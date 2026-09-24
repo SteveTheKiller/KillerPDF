@@ -47,14 +47,28 @@ public sealed class PdfPageRendererFormAppearanceTests
     }
 
     [Fact]
-    public void UnsupportedLayoutRetainsSavedAppearanceWithDiagnostic()
+    public void MultilineTextRegeneratesSeparateVisibleLines()
     {
         var options = new PdfRenderOptions(120, 40);
-        var unsupported = new PdfPageRenderer(Create(true, "", false, false, 4096)).Render(0, options);
-        var saved = new PdfPageRenderer(Create(false, "", false, false, 4096)).Render(0, options);
-        Assert.Equal(saved.Pixels.ToArray(), unsupported.Pixels.ToArray());
-        Assert.Contains(unsupported.Diagnostics, text => text.Contains("multiline"));
-        Assert.Empty(saved.Diagnostics);
+        var actual = new PdfPageRenderer(Create(true, "", false, false, 1 << 12,
+            defaultAppearance: "0 g /F1 10 Tf", textValue: "One\nTwo")).Render(0, options);
+
+        Assert.Contains("A requested form-field text appearance was regenerated.", actual.Diagnostics);
+        Assert.True(BlackPixels(0, 20) > 0);
+        Assert.True(BlackPixels(20, 40) > 0);
+
+        int BlackPixels(int top, int bottom)
+        {
+            int count = 0;
+            for (int y = top; y < bottom; y++)
+                for (int x = 0; x < 120; x++)
+                {
+                    int offset = (y * 120 + x) * 4;
+                    if (actual.Pixels.Span[offset] < 64 && actual.Pixels.Span[offset + 1] < 64
+                        && actual.Pixels.Span[offset + 2] < 64) count++;
+                }
+            return count;
+        }
     }
 
     [Fact]

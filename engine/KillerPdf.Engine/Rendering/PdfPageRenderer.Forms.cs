@@ -33,12 +33,13 @@ public sealed partial class PdfPageRenderer
         string? kind = Field("FT") is PdfName fieldType ? fieldType.ToString() : null;
         if (kind is not "/Tx" and not "/Ch") return saved;
         long flags = Field("Ff") is PdfInteger flagValue ? flagValue.Value : 0;
-        if ((flags & (1L << 12)) != 0
-            || (kind == "/Ch" && (flags & (1L << 17)) == 0))
-            return Unsupported("multiline or list-box layout");
+        bool multiline = kind == "/Tx" && (flags & (1L << 12)) != 0;
+        if (kind == "/Ch" && (flags & (1L << 17)) == 0)
+            return Unsupported("list-box layout");
         int combCells = 0;
         if (kind == "/Tx" && (flags & (1L << 24)) != 0)
         {
+            if (multiline) return Unsupported("a multiline comb field");
             if (Field("MaxLen") is not PdfInteger { Value: > 0 and <= 32768 } maximumLength)
                 return Unsupported("missing, invalid, or excessive comb cell count");
             combCells = (int)maximumLength.Value;
@@ -71,7 +72,9 @@ public sealed partial class PdfPageRenderer
         }
         if (text.Length > 32768) return Unsupported("field text limit");
         if ((flags & (1L << 13)) != 0) text = new string('*', text.EnumerateRunes().Count());
-        text = text.Replace('\r', ' ').Replace('\n', ' ');
+        string[] textLines = multiline
+            ? text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n')
+            : [text.Replace('\r', ' ').Replace('\n', ' ')];
         if (text.Length == 0 && originalSaved is null)
         {
             diagnostics.Add("A requested empty form-field appearance was regenerated.");
@@ -123,21 +126,30 @@ public sealed partial class PdfPageRenderer
             if (decoded.Count == 1 && decoded[0].Text.Length > 0 && decoded[0].Text != "\uFFFD")
                 encoding.TryAdd(decoded[0].Text, (byte)code);
         }
-        var encoded = new List<byte>(text.Length);
-        double advance = 0;
-        foreach (Rune rune in text.EnumerateRunes())
+        var encodedLines = new List<byte[]>(textLines.Length);
+        var advances = new List<double>(textLines.Length);
+        foreach (string line in textLines)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (combCells > 0 && encoded.Count == combCells)
+            var encodedLine = new List<byte>(line.Length);
+            double lineAdvance = 0;
+            foreach (Rune rune in line.EnumerateRunes())
             {
-                diagnostics.Add("A comb field value exceeded MaxLen; only the declared cells were rendered.");
-                break;
+                cancellationToken.ThrowIfCancellationRequested();
+                if (combCells > 0 && encodedLine.Count == combCells)
+                {
+                    diagnostics.Add("A comb field value exceeded MaxLen; only the declared cells were rendered.");
+                    break;
+                }
+                if (!encoding.TryGetValue(rune.ToString(), out byte code))
+                    return Unsupported("unmapped field character");
+                encodedLine.Add(code);
+                lineAdvance += extraction.GetWidth(code) / 1000;
             }
-            if (!encoding.TryGetValue(rune.ToString(), out byte code))
-                return Unsupported("unmapped field character");
-            encoded.Add(code);
-            advance += extraction.GetWidth(code) / 1000;
+            encodedLines.Add(encodedLine.ToArray());
+            advances.Add(lineAdvance);
         }
+        byte[] encoded = encodedLines[0];
+        double advance = advances[0];
         if (!saved.Dictionary.TryGetValue(Name("BBox"), out PdfObject? boundsValue))
             return Unsupported("missing saved appearance bounds");
         PdfArray bounds = ResolveArray(boundsValue, 4, "Field appearance bounds");
@@ -151,10 +163,14 @@ public sealed partial class PdfPageRenderer
         if (border is not null && NameValue(border, "S") is "B" or "I") inset *= 2;
         double interiorWidth = width - 2 * inset, interiorHeight = height - 2 * inset;
         if (interiorWidth <= 0 || interiorHeight <= 0) return Unsupported("empty field interior");
-        if (size == 0) size = Math.Min(interiorHeight,
-            combCells > 0 && encoded.Count > 0
-                ? interiorWidth / combCells / Math.Max(0.001, encoded.Max(code => extraction.GetWidth(code) / 1000))
-                : advance > 0 ? interiorWidth / advance : interiorHeight);
+        if (size == 0)
+        {
+            double longestAdvance = advances.Count == 0 ? 0 : advances.Max();
+            size = Math.Min(multiline ? interiorHeight / Math.Max(1, encodedLines.Count) : interiorHeight,
+                combCells > 0 && encoded.Length > 0
+                    ? interiorWidth / combCells / Math.Max(0.001, encoded.Max(code => extraction.GetWidth(code) / 1000))
+                    : longestAdvance > 0 ? interiorWidth / longestAdvance : interiorHeight);
+        }
         int alignment = Field("Q") is PdfInteger q ? (int)q.Value : 0;
         double x = alignment switch
         {
@@ -179,11 +195,11 @@ public sealed partial class PdfPageRenderer
             double cellWidth = interiorWidth / combCells;
             int firstCell = alignment switch
             {
-                1 => (combCells - encoded.Count) / 2,
-                2 => combCells - encoded.Count,
+                1 => (combCells - encoded.Length) / 2,
+                2 => combCells - encoded.Length,
                 _ => 0
             };
-            for (int index = 0; index < encoded.Count; index++)
+            for (int index = 0; index < encoded.Length; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 byte code = encoded[index];
@@ -191,6 +207,26 @@ public sealed partial class PdfPageRenderer
                 double cellX = left + inset + (firstCell + index + 0.5) * cellWidth - glyphWidth / 2;
                 replacement.Add(I("Tm", R(1), R(0), R(0), R(1), R(cellX), R(bottom + y)));
                 replacement.Add(I("Tj", new PdfString(new byte[] { code }, PdfStringForm.Hexadecimal)));
+            }
+        }
+        else if (multiline)
+        {
+            double leading = defaultInstructions.LastOrDefault(item => item.Operator == "TL") is { Operands.Count: 1 } leadingInstruction
+                ? Number(leadingInstruction.Operands[0]) : 0;
+            if (leading <= 0) leading = size * 1.2;
+            double lineY = bottom + height - inset - extraction.Ascent * size / 1000;
+            for (int index = 0; index < encodedLines.Count && lineY >= bottom + inset - size; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                double lineX = alignment switch
+                {
+                    1 => Math.Max(inset, (width - advances[index] * size) / 2),
+                    2 => Math.Max(inset, width - advances[index] * size - inset),
+                    _ => inset
+                };
+                replacement.Add(I("Tm", R(1), R(0), R(0), R(1), R(left + lineX), R(lineY)));
+                replacement.Add(I("Tj", new PdfString(encodedLines[index], PdfStringForm.Hexadecimal)));
+                lineY -= leading;
             }
         }
         else
