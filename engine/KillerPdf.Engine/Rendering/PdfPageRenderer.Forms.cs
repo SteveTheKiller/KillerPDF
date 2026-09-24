@@ -328,28 +328,44 @@ public sealed partial class PdfPageRenderer
             double borderWidth = border is not null && border.TryGetValue(Name("W"), out PdfObject? bw)
                 ? Number(Resolve(bw)) : 1;
             string style = border is null ? "S" : NameValue(border, "S") ?? "S";
-            if (borderWidth < 0 || style is not "S" and not "D" and not "U") return null;
+            if (borderWidth < 0 || style is not "S" and not "D" and not "U" and not "B" and not "I") return null;
             if (borderWidth > 0)
             {
                 instructions.Add(I("q"));
-                instructions.Add(borderColor);
-                instructions.Add(I("w", R(borderWidth)));
-                if (style == "D")
+                if (style is "B" or "I")
                 {
-                    PdfObject pattern = border is not null
-                        && border.TryGetValue(Name("D"), out PdfObject? dash) ? Resolve(dash) : A(3);
-                    instructions.Add(I("d", pattern, R(0)));
-                }
-                double inset = borderWidth / 2;
-                if (style == "U")
-                {
-                    instructions.Add(I("m", R(0), R(inset)));
-                    instructions.Add(I("l", R(fieldWidth), R(inset)));
+                    double first = style == "B" ? 1 : 0.5;
+                    double second = style == "B" ? 0.5 : 1;
+                    instructions.Add(I("g", R(first)));
+                    instructions.Add(I("re", R(0), R(0), R(borderWidth), R(fieldHeight)));
+                    instructions.Add(I("re", R(0), R(fieldHeight - borderWidth), R(fieldWidth), R(borderWidth)));
+                    instructions.Add(I("f"));
+                    instructions.Add(I("g", R(second)));
+                    instructions.Add(I("re", R(0), R(0), R(fieldWidth), R(borderWidth)));
+                    instructions.Add(I("re", R(fieldWidth - borderWidth), R(0), R(borderWidth), R(fieldHeight)));
+                    instructions.Add(I("f"));
                 }
                 else
-                    instructions.Add(I("re", R(inset), R(inset),
-                        R(Math.Max(0, fieldWidth - borderWidth)), R(Math.Max(0, fieldHeight - borderWidth))));
-                instructions.Add(I("S"));
+                {
+                    instructions.Add(borderColor);
+                    instructions.Add(I("w", R(borderWidth)));
+                    if (style == "D")
+                    {
+                        PdfObject pattern = border is not null
+                            && border.TryGetValue(Name("D"), out PdfObject? dash) ? Resolve(dash) : A(3);
+                        instructions.Add(I("d", pattern, R(0)));
+                    }
+                    double inset = borderWidth / 2;
+                    if (style == "U")
+                    {
+                        instructions.Add(I("m", R(0), R(inset)));
+                        instructions.Add(I("l", R(fieldWidth), R(inset)));
+                    }
+                    else
+                        instructions.Add(I("re", R(inset), R(inset),
+                            R(Math.Max(0, fieldWidth - borderWidth)), R(Math.Max(0, fieldHeight - borderWidth))));
+                    instructions.Add(I("S"));
+                }
                 instructions.Add(I("Q"));
             }
         }

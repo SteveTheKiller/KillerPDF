@@ -135,6 +135,8 @@ public sealed class PdfPageRendererFormAppearanceTests
     [InlineData("S")]
     [InlineData("D")]
     [InlineData("U")]
+    [InlineData("B")]
+    [InlineData("I")]
     public void MissingAppearanceMatchesExplicitBorderArtwork(string borderStyle)
     {
         var options = new PdfRenderOptions(120, 40);
@@ -298,6 +300,8 @@ public sealed class PdfPageRendererFormAppearanceTests
             "S" => "q 0 G 2 w 1 1 118 38 re S Q",
             "D" => "q 0 G 2 w [3 2] 0 d 1 1 118 38 re S Q",
             "U" => "q 0 G 2 w 0 1 m 120 1 l S Q",
+            "B" => "q 1 g 0 0 2 40 re 0 38 120 2 re f 0.5 g 0 0 120 2 re 118 0 2 40 re f Q",
+            "I" => "q 0.5 g 0 0 2 40 re 0 38 120 2 re f 1 g 0 0 120 2 re 118 0 2 40 re f Q",
             _ => ""
         };
         string textSection = missingTextSection ? "" : $"/Tx BMC {previousText} EMC";
