@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 24: 4,131 engine tests, 431 app tests, and the Release build pass, including exact-pixel sequential versus parallel function shading coverage. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 24: 4,132 engine tests, 431 app tests, and the Release build pass, including exact-pixel sequential versus parallel function shading and soft-mask reduction coverage. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -1410,5 +1410,22 @@ reversed-order pairs reduced the same function-shading page from 323.567 and
 stable SHA-256 pixel hash in every run. All six application PNGs also match
 the pre-change 1.9 outputs byte for byte. The apparent lattice improvement is
 not attributed to this function-shading change because session load and
-tiered compilation varied. All 4,131 engine tests and 431 app tests pass, and
-the Release build completes with no warnings or errors.
+tiered compilation varied.
+
+The 12,608 by 16,806 eight-bit soft mask in `issue19517.pdf` now splits its
+independent reduction rows across the render's bounded workers. At 1024
+pixels, the four-worker warmed median fell from 453.282 ms to 375.709 and
+359.805 ms in two subsequent runs. One-worker medians remained 463.286,
+464.628, and 459.491 ms, isolating the improvement to parallel reduction.
+The 2048-pixel application median fell from 1,188 to 1,110.5 ms across four
+runs. Every engine render kept pixel hash
+`99ACCC3DA687225F51619E0B0C122CF4DB143806A00FD4C1A6E38D9F20E7590E`,
+and every application PNG matched the pre-change output byte for byte.
+
+The post-change sampled-thread-time profile reports reduction rows at 6.07
+percent exclusive, followed by CoreJ2K tag-tree updates at 2.65 percent,
+packet headers at 1.89 percent, entropy code blocks at 1.17 percent,
+RunLength expansion at 1.12 percent, and embedded-alpha separation at 1.05
+percent. The remaining JPEG 2000 costs are inside the vendored decoder and
+remain slower than 1.8. All 4,132 engine tests and 431 app tests pass, and the
+Release build completes with no warnings or errors.

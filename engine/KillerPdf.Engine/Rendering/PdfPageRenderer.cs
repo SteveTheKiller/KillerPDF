@@ -4436,23 +4436,29 @@ public sealed partial class PdfPageRenderer
             var mask = new SoftMask(full.Samples, full.Width, full.Height,
                 full.MaskBits, full.MaskDecodeStart, full.MaskDecodeEnd);
             var samples = new byte[checked(reducedWidth * reducedHeight)];
-            for (int y = 0; y < reducedHeight; y++)
+            ForEachRow(0, reducedHeight, (long)width * height,
+                cancellationToken, ReduceRows);
+            return new DecodedImage(samples, reducedWidth, reducedHeight);
+
+            void ReduceRows(int rowStart, int rowEnd)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                int startY = (int)((long)y * height / reducedHeight);
-                int endY = (int)((long)(y + 1) * height / reducedHeight);
-                for (int x = 0; x < reducedWidth; x++)
+                for (int y = rowStart; y < rowEnd; y++)
                 {
-                    int startX = (int)((long)x * width / reducedWidth);
-                    int endX = (int)((long)(x + 1) * width / reducedWidth);
-                    long sum = 0;
-                    for (int sourceY = startY; sourceY < endY; sourceY++)
-                        sum += mask.SumRow(startX, endX, sourceY);
-                    long count = (long)(endX - startX) * (endY - startY);
-                    samples[y * reducedWidth + x] = (byte)((sum + count / 2) / count);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int startY = (int)((long)y * height / reducedHeight);
+                    int endY = (int)((long)(y + 1) * height / reducedHeight);
+                    for (int x = 0; x < reducedWidth; x++)
+                    {
+                        int startX = (int)((long)x * width / reducedWidth);
+                        int endX = (int)((long)(x + 1) * width / reducedWidth);
+                        long sum = 0;
+                        for (int sourceY = startY; sourceY < endY; sourceY++)
+                            sum += mask.SumRow(startX, endX, sourceY);
+                        long count = (long)(endX - startX) * (endY - startY);
+                        samples[y * reducedWidth + x] = (byte)((sum + count / 2) / count);
+                    }
                 }
             }
-            return new DecodedImage(samples, reducedWidth, reducedHeight);
         }
 
         DecodedImage DecodeMask()

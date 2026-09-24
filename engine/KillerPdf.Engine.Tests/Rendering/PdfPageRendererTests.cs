@@ -1460,6 +1460,36 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_ParallelSoftMaskReductionMatchesSequentialPixels()
+    {
+        const int sourceWidth = 1024, sourceHeight = 512;
+        var rgba = new byte[sourceWidth * sourceHeight * 4];
+        for (int y = 0; y < sourceHeight; y++)
+        {
+            for (int x = 0; x < sourceWidth; x++)
+            {
+                int offset = (y * sourceWidth + x) * 4;
+                rgba[offset] = 255;
+                rgba[offset + 3] = (byte)((x * 31 + y * 17) & 255);
+            }
+        }
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(1, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgba(sourceWidth, sourceHeight, rgba), 0, 0, 1, 1))
+            .Build());
+        var sequentialOptions = new PdfRenderOptions(256, 256, transparentBackground: true,
+            includeAnnotations: false, includeFormFields: false);
+        var parallelOptions = sequentialOptions with { MaximumParallelism = 4 };
+
+        PdfRenderedPage sequential = new PdfPageRenderer(document).Render(0, sequentialOptions);
+        PdfRenderedPage parallel = new PdfPageRenderer(document).Render(0, parallelOptions);
+
+        Assert.Equal(sequential.Pixels.ToArray(), parallel.Pixels.ToArray());
+        Assert.Empty(sequential.Diagnostics);
+        Assert.Empty(parallel.Diagnostics);
+    }
+
+    [Fact]
     public void Render_DecodesCcittFaxImageXObjects()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
