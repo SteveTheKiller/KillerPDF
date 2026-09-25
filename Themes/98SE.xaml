@@ -220,6 +220,8 @@
 
     <Thickness x:Key="TabBevelMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">-12,-4,-5,-4</Thickness>
 
+    <Thickness x:Key="TabActiveOuterOutlineMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">-13,-5,-6,-4</Thickness>
+
     <!-- The selected tab's dark right edge must reach the same strip/card seam as its light
          left edge. A -2 bottom stopped it two pixels early and made it dissolve into the band. -->
     <Thickness x:Key="TabActiveBevelDarkMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">-12,-4,-5,-4</Thickness>
@@ -301,6 +303,7 @@
     <sys:Double x:Key="DetailsDividerWidth" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">0</sys:Double>
 
     <Thickness x:Key="TabMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0,5,0,1</Thickness>
+    <Thickness x:Key="TabActiveMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0,3,0,-1</Thickness>
     <!-- Leave the pane's outer gray pixel exposed when its first tab is behind the
          selected tab. The negative right margin preserves the shared tab seam. -->
     <Thickness x:Key="TabInactiveFirstMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">1,5,-1,1</Thickness>
@@ -309,9 +312,9 @@
     <Thickness x:Key="TabInactiveLastMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0,5,1,1</Thickness>
     <!-- The raised pane's visible light edge is its inner x pixel. Keep a first active tab on
          that same pixel so the line does not step sideways where the tab meets the pane. -->
-    <Thickness x:Key="TabActiveFirstMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">1,3,0,0</Thickness>
-    <Thickness x:Key="TabActiveLastMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0,3,1,0</Thickness>
-    <Thickness x:Key="TabActiveOnlyMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">1,3,1,0</Thickness>
+    <Thickness x:Key="TabActiveFirstMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">1,3,0,-1</Thickness>
+    <Thickness x:Key="TabActiveLastMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0,3,1,-1</Thickness>
+    <Thickness x:Key="TabActiveOnlyMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">1,3,1,-1</Thickness>
     <Visibility x:Key="RetroTabJoinVisibility" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">Visible</Visibility>
     <Visibility x:Key="RetroActiveTabOutlineVisibility" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">Visible</Visibility>
     <sys:Double x:Key="TabBandHeight" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">28</sys:Double>
