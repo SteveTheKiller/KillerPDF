@@ -339,46 +339,6 @@
                                             </MultiDataTrigger.Conditions>
                                             <Setter TargetName="tabBd" Property="Background" Value="{DynamicResource TabActiveBrush}"/>
                                         </MultiDataTrigger>
-                                        <!-- The OUTERMOST side is the band's to draw (TabEdgeLeft /
-                                             TabEdgeRight), so the first and last tab must not draw
-                                             it as well. Two 1px borders at the same x is a 2px edge
-                                             on a ring that is 1px everywhere else - and only
-                                             SOMETIMES, because whether the tab's own outer border
-                                             clears the ScrollViewer's clip depends on how the
-                                             UniformGrid divided a fractional band width. That is
-                                             where the halo came out uneven, and why it changed when
-                                             the split moved.
-                                             The padding gives the pixel back on that side so the
-                                             title does not shift, exactly as PaneFocused does.
-                                             Declared after PaneFocused - all three match on a first
-                                             or last tab and the last match wins. -->
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding PaneFocused}" Value="True"/>
-                                                <Condition Binding="{Binding IsFirst}"     Value="True"/>
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter TargetName="tabBd" Property="BorderThickness" Value="{DynamicResource TabFocusFirstThickness}"/>
-                                            <Setter TargetName="tabBd" Property="Padding" Value="{DynamicResource TabFocusFirstPadding}"/>
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding PaneFocused}" Value="True"/>
-                                                <Condition Binding="{Binding IsLast}"      Value="True"/>
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter TargetName="tabBd" Property="BorderThickness" Value="{DynamicResource TabFocusLastThickness}"/>
-                                            <Setter TargetName="tabBd" Property="Padding" Value="{DynamicResource TabFocusLastPadding}"/>
-                                        </MultiDataTrigger>
-                                        <!-- One tab in a focused pane owns BOTH edges, so it draws
-                                             neither. Last of the three for the same reason. -->
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding PaneFocused}" Value="True"/>
-                                                <Condition Binding="{Binding IsFirst}"     Value="True"/>
-                                                <Condition Binding="{Binding IsLast}"      Value="True"/>
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter TargetName="tabBd" Property="BorderThickness" Value="{DynamicResource TabFocusOnlyThickness}"/>
-                                            <Setter TargetName="tabBd" Property="Padding" Value="{DynamicResource TabFocusOnlyPadding}"/>
-                                        </MultiDataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
