@@ -346,6 +346,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Quitar de recientes</sys:String>
     <sys:String x:Key="Str_DocumentTools">Herramientas de documento</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Informe de producción de impresión</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">Informe de comprobación previa</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">Informe de accesibilidad</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Informe de capas</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Informe de portafolio</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Informe de vista previa de separaciones</sys:String>

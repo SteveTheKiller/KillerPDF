@@ -426,6 +426,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Remove from recents</sys:String>
     <sys:String x:Key="Str_DocumentTools">Document tools</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Print production report</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">Preflight report</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">Accessibility report</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Layers report</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Portfolio report</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Separation preview report</sys:String>

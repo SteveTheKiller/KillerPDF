@@ -426,6 +426,8 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Удалить из последних</sys:String>
     <sys:String x:Key="Str_DocumentTools">Инструменты документа</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Отчет о допечатной подготовке</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">Отчет предпечатной проверки</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">Отчет о доступности</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Отчет о слоях</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Отчет о портфолио</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Отчет о предпросмотре цветоделения</sys:String>

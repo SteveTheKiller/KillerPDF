@@ -20,6 +20,9 @@ public partial class MainWindow
             FontSize = 12,
             VerticalAlignment = VerticalAlignment.Center
         };
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_Preflight"),
+            (_, _) => ShowDocumentReport(Loc("Str_DocumentTools_Preflight"),
+                path => PdfEngineIntegration.InspectPreflight(path).ToText()), glyph: "\uE9D9"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_PrintProduction"),
             (_, _) => ShowDocumentReport(Loc("Str_DocumentTools_PrintProduction"),
                 path => PdfEngineIntegration.InspectPrintProduction(path).ToText()), glyph: "\uE7C3"));
@@ -30,6 +33,9 @@ public partial class MainWindow
                 return PdfEngineIntegration.CreateSeparationPreview(path,
                     production.Colorants.Select(colorant => colorant.Name)).ToText();
             }), glyph: "\uE790"));
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_Accessibility"),
+            (_, _) => ShowDocumentReport(Loc("Str_DocumentTools_Accessibility"),
+                path => PdfEngineIntegration.InspectAccessibility(path).ToText()), glyph: "\uE776"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_Layers"),
             (_, _) => ShowDocumentReport(Loc("Str_DocumentTools_Layers"),
                 path => PdfEngineIntegration.InspectLayers(path).ToText()), glyph: "\uE8A1"));

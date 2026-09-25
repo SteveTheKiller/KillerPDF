@@ -426,6 +426,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Xóa khỏi danh sách gần đây</sys:String>
     <sys:String x:Key="Str_DocumentTools">Công cụ tài liệu</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Báo cáo sản xuất in</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">Báo cáo kiểm tra trước khi in</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">Báo cáo khả năng tiếp cận</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Báo cáo lớp</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Báo cáo danh mục</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Báo cáo xem trước tách màu</sys:String>

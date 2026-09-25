@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
-- Added localized desktop reports for print production, separations, layers, portfolios, and structural comparisons.
+- Added localized desktop reports for preflight, accessibility, print production, separations, layers, portfolios, and structural comparisons.
 - Added desktop table-of-contents authoring from document bookmarks, with clickable destinations and undo support.
 - Added Vietnamese application, installer, OCR, website, and engine documentation support. (Thanks @vuanhvu11982)
 - Added startup update checks, enabled by default, with confirmation before updating and a shared toggle in About and the update dialog.

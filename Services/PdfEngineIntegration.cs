@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Fonts;
@@ -81,6 +82,20 @@ internal static class PdfEngineIntegration
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return PdfPrintProductionReport.Inspect(PdfDocument.Open(File.ReadAllBytes(path)));
+    }
+
+    /// <summary>Runs the complete built-in print-production preflight profile.</summary>
+    internal static PdfPreflightReport InspectPreflight(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfPreflightRunner.Run(File.ReadAllBytes(path), PdfPreflightProfile.PrintProduction);
+    }
+
+    /// <summary>Inspects implemented accessibility requirements and document structure.</summary>
+    internal static PdfAccessibilityReport InspectAccessibility(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfAccessibilityInspector.Inspect(PdfDocument.Open(File.ReadAllBytes(path)));
     }
 
     /// <summary>Reads the document's optional-content layer definitions and state.</summary>

@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
@@ -114,11 +115,16 @@ public sealed class PdfEngineIntegrationTests
             PdfOptionalContentInfo layers = PdfEngineIntegration.InspectLayers(path);
             string portfolio = PdfEngineIntegration.InspectPortfolio(path);
             PdfStructuralComparison comparison = PdfEngineIntegration.CompareStructure(path, path);
+            PdfPreflightReport preflight = PdfEngineIntegration.InspectPreflight(path);
+            PdfAccessibilityReport accessibility = PdfEngineIntegration.InspectAccessibility(path);
 
             Assert.Empty(layers.Groups);
             Assert.Equal($"Layers: 0{Environment.NewLine}Configurations: 0", layers.ToText());
             Assert.Equal("PDF portfolio: none", portfolio);
             Assert.Empty(comparison.Changes);
+            Assert.Equal("Print production", preflight.ProfileName);
+            Assert.Contains("Preflight profile: Print production", preflight.ToText());
+            Assert.Contains("Accessibility result:", accessibility.ToText());
             Assert.Empty(PdfEngineIntegration.PlanTableOfContents(path, 6).Entries);
         }
         finally

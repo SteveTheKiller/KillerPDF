@@ -426,6 +426,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Rimuovi dai recenti</sys:String>
     <sys:String x:Key="Str_DocumentTools">Strumenti documento</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Rapporto produzione di stampa</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">Rapporto di verifica preliminare</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">Rapporto di accessibilità</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Rapporto livelli</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Rapporto portfolio</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Rapporto anteprima separazioni</sys:String>

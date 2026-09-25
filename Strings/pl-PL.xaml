@@ -411,6 +411,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Usuń z ostatnich</sys:String>
     <sys:String x:Key="Str_DocumentTools">Narzędzia dokumentu</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Raport produkcji poligraficznej</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">Raport inspekcji wstępnej</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">Raport dostępności</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Raport warstw</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Raport portfolio</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Raport podglądu separacji</sys:String>

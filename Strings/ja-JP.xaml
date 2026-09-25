@@ -426,6 +426,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">最近使ったファイルから削除</sys:String>
     <sys:String x:Key="Str_DocumentTools">ドキュメントツール</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">印刷製作レポート</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">プリフライトレポート</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">アクセシビリティレポート</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">レイヤーレポート</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">ポートフォリオレポート</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">色分解プレビューレポート</sys:String>

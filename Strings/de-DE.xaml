@@ -346,6 +346,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Aus zuletzt verwendeten entfernen</sys:String>
     <sys:String x:Key="Str_DocumentTools">Dokumentwerkzeuge</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Druckproduktionsbericht</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">Preflight-Bericht</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">Barrierefreiheitsbericht</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Ebenenbericht</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Portfoliobericht</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Separationenvorschaubericht</sys:String>

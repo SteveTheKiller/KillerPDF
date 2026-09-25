@@ -423,6 +423,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Жақындағылардан жою</sys:String>
     <sys:String x:Key="Str_DocumentTools">Құжат құралдары</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Баспа өндірісі есебі</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">Баспаға дейінгі тексеру есебі</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">Қолжетімділік есебі</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Қабаттар есебі</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Портфолио есебі</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Түстік бөлуді алдын ала қарау есебі</sys:String>

@@ -426,6 +426,8 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Retirer des récents</sys:String>
     <sys:String x:Key="Str_DocumentTools">Outils du document</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Rapport de production d'impression</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">Rapport de contrôle en amont</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">Rapport d'accessibilité</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Rapport des calques</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Rapport du portfolio</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Rapport d'aperçu des séparations</sys:String>

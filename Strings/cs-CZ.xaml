@@ -419,6 +419,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Odebrat z nedávných</sys:String>
     <sys:String x:Key="Str_DocumentTools">Nástroje dokumentu</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Zpráva o tiskové produkci</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">Zpráva o předvýstupní kontrole</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">Zpráva o přístupnosti</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Zpráva o vrstvách</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Zpráva o portfoliu</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Zpráva náhledu separací</sys:String>

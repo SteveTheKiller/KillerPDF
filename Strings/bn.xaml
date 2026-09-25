@@ -346,6 +346,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Menu_RemoveFromRecents">সাম্প্রতিক থেকে সরান</sys:String>
     <sys:String x:Key="Str_DocumentTools">ডকুমেন্ট টুলস</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">প্রিন্ট প্রোডাকশন রিপোর্ট</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">প্রিফ্লাইট প্রতিবেদন</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">অ্যাক্সেসিবিলিটি প্রতিবেদন</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">লেয়ার রিপোর্ট</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">পোর্টফোলিও রিপোর্ট</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">কালার সেপারেশন প্রিভিউ রিপোর্ট</sys:String>

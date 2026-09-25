@@ -346,6 +346,8 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">从最近移除</sys:String>
     <sys:String x:Key="Str_DocumentTools">文档工具</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">印刷生产报告</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Preflight">印前检查报告</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Accessibility">无障碍报告</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">图层报告</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">PDF 包报告</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">分色预览报告</sys:String>
