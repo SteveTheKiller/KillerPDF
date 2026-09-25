@@ -986,7 +986,7 @@
             <Setter Property="Height" Value="20"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextFooter}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
             <Setter Property="FontSize" Value="13"/>
@@ -1014,7 +1014,7 @@
             <Setter Property="Height" Value="20"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextFooter}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
@@ -2744,7 +2744,7 @@
                     <!-- Left-aligned + trimming so UpdateFooterFade's MaxWidth cap ellipsizes a long
                          status before it reaches the Install action (stretch + MaxWidth would center). -->
                     <TextBlock x:Name="StatusText" Text="{DynamicResource Str_Ready}"
-                               Foreground="{DynamicResource TextFooter}"
+                               Foreground="{DynamicResource TextBrush}"
                                FontFamily="Consolas" FontSize="11.5" Cursor="Hand"
                                ToolTip="{DynamicResource Str_KS_FileSize}"
                                MouseLeftButtonUp="StatusText_Click"

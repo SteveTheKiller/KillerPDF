@@ -18,6 +18,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Rounded modern flyout corners and restored shortcut-list category colors.
 - Corrected document tab alignment, outlines, widths, and 98SE shading.
 - Aligned the sidebar rail with the family footer spacing.
+- Restored full-strength footer controls and status text.
 - Preserved shapes and other annotations on retained pages when deleting PDF pages (#429).
 - Kept text editing active while choosing a font from the dropdown (#428).
 - Restored pane 2's saved fit mode when reopening a split-view session.
