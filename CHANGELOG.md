@@ -15,21 +15,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Hardened native library loading and release artifact verification.
-- Rounded modern flyout corners and restored shortcut-list category colors.
-- Corrected document tab alignment, outlines, widths, and 98SE shading.
-- Aligned the sidebar rail with the family footer spacing.
-- Restored full-strength footer controls and status text.
 - Preserved shapes and other annotations on retained pages when deleting PDF pages (#429).
-- Kept text editing active while choosing a font from the dropdown (#428).
-- Restored pane 2's saved fit mode when reopening a split-view session.
-- Closed 98SE tab seams and restored the vertical scrollbar's top bevel.
-- Kept region-copy selection outlines visible after releasing the mouse.
-- Localized key names throughout the website Help keyboard guide (#230).
-- Kept localized toolbar captions fully visible after language changes.
-- Stabilized precision-touchpad pinch zoom without queued page jumps.
-- Aligned new text with the insertion cursor and made Enter add lines while Ctrl+Enter finishes editing.
-- Allowed PDFs with recursive Form XObject resources to be combined (#421).
 - Preserved annotation position and orientation when saving PDFs whose page content leaves a transform active.
+- Allowed PDFs with recursive Form XObject resources to be combined (#421).
+- Kept text editing, selection feedback, and touchpad zoom reliable, including font changes, multiline entry, and region selection (#428).
+- Restored split-view state and polished document tabs, flyouts, shortcut colors, footer and sidebar controls, and 98SE chrome.
+- Kept localized toolbar captions and website Help key names complete and visible (#230).
 
 ## [1.8.61] - 2026-09-22
 
