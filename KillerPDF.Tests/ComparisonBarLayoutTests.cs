@@ -35,7 +35,7 @@ public sealed class ComparisonBarLayoutTests
         XElement dockContents = comparisonBar.Elements().Single(element => element.Name.LocalName == "Grid");
         XElement accentFace = dockContents.Descendants()
             .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonAccentFace");
-        Assert.Equal("{DynamicResource PrimaryBrush}", (string?)accentFace.Attribute("Background"));
+        Assert.Equal("{DynamicResource ComparisonBarBrush}", (string?)accentFace.Attribute("Background"));
         Assert.Single(comparisonBar.Descendants(), element =>
             element.Name.LocalName == "TextBlock" &&
             (string?)element.Attribute("Text") == "{DynamicResource Str_Compare_Bar}");
@@ -75,7 +75,18 @@ public sealed class ComparisonBarLayoutTests
         Assert.Contains(comparisonTextStyle.Elements(), element =>
             element.Name.LocalName == "Setter" &&
             (string?)element.Attribute("Property") == "Effect" &&
-            (string?)element.Attribute("Value") == "{DynamicResource TextStroke}");
+            (string?)element.Attribute("Value") == "{DynamicResource ComparisonBarTextEffect}");
+
+        Assert.DoesNotContain(comparisonBar.Descendants(), element =>
+            (string?)element.Attribute("Foreground") == "White" ||
+            (string?)element.Attribute("Foreground") == "{StaticResource ComparisonBarForegroundBrush}");
+
+        string themeManager = File.ReadAllText(Path.Combine(root, "Services", "ThemeManager.cs"));
+        Assert.Contains("ApplyComparisonBarPalette(liveResources, theme);", themeManager);
+        Assert.Contains("case Theme.Blood:", themeManager);
+        Assert.Contains("case Theme.Greed:", themeManager);
+        Assert.Contains("case Theme.Cyanotic:", themeManager);
+        Assert.Contains("case Theme.Ectoplasm:", themeManager);
 
         XElement detailsPopup = splitHost.Elements()
             .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonDetailsPopup");
