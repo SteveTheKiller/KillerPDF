@@ -424,6 +424,17 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Menu_RecentNone">Нет последних файлов</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">Очистить список</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Удалить из последних</sys:String>
+    <sys:String x:Key="Str_DocumentTools">Инструменты документа</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">Отчет о допечатной подготовке</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">Отчет о слоях</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">Отчет о портфолио</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Отчет о предпросмотре цветоделения</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">Отчет о структурном сравнении</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Откройте документ в каждой панели, чтобы сравнить их структуру.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">Копировать отчет</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">Закрыть</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">Отчет скопирован в буфер обмена</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">Не удалось проверить этот документ:</sys:String>
 
     <!-- Import images as PDF / Compress to ZIP -->
     <sys:String x:Key="Str_Menu_Import">Импорт изображения в новую PDF вкладку</sys:String>

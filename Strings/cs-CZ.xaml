@@ -417,6 +417,17 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Menu_RecentNone">Žádné nedávné soubory</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">Vymazat seznam</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Odebrat z nedávných</sys:String>
+    <sys:String x:Key="Str_DocumentTools">Nástroje dokumentu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">Zpráva o tiskové produkci</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">Zpráva o vrstvách</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">Zpráva o portfoliu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Zpráva náhledu separací</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">Zpráva o porovnání struktury</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Pro porovnání struktury otevřete dokument v každém panelu.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">Kopírovat zprávu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">Zavřít</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">Zpráva byla zkopírována do schránky</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">Dokument se nepodařilo zkontrolovat:</sys:String>
 
     <!-- Import images as PDF / Compress to ZIP -->
     <sys:String x:Key="Str_Menu_Import">Importovat obrázky jako PDF</sys:String>

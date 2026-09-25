@@ -344,6 +344,17 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Menu_RecentNone">Keine zuletzt verwendeten Dateien</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">Liste leeren</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Aus zuletzt verwendeten entfernen</sys:String>
+    <sys:String x:Key="Str_DocumentTools">Dokumentwerkzeuge</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">Druckproduktionsbericht</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">Ebenenbericht</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">Portfoliobericht</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Separationenvorschaubericht</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">Strukturvergleichsbericht</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Öffnen Sie in jedem Bereich ein Dokument, um deren Struktur zu vergleichen.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">Bericht kopieren</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">Schließen</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">Bericht wurde in die Zwischenablage kopiert</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">Dieses Dokument konnte nicht geprüft werden:</sys:String>
 
     <!-- Bilder als PDF importieren / In ZIP komprimieren -->
     <sys:String x:Key="Str_Menu_Import">Bilder als PDF importieren</sys:String>

@@ -409,6 +409,17 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Menu_RecentNone">Brak ostatnich plików</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">Wyczyść listę</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Usuń z ostatnich</sys:String>
+    <sys:String x:Key="Str_DocumentTools">Narzędzia dokumentu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">Raport produkcji poligraficznej</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">Raport warstw</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">Raport portfolio</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Raport podglądu separacji</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">Raport porównania strukturalnego</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Otwórz dokument w każdym panelu, aby porównać ich strukturę.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">Kopiuj raport</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">Zamknij</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">Raport skopiowano do schowka</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">Nie można sprawdzić tego dokumentu:</sys:String>
 
     <!-- Import images as PDF / Compress to ZIP -->
     <sys:String x:Key="Str_Menu_Import">Importuj obrazy jako PDF</sys:String>

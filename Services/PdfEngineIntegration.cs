@@ -83,6 +83,30 @@ internal static class PdfEngineIntegration
         return PdfPrintProductionReport.Inspect(PdfDocument.Open(File.ReadAllBytes(path)));
     }
 
+    /// <summary>Reads the document's optional-content layer definitions and state.</summary>
+    internal static PdfOptionalContentInfo InspectLayers(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfOptionalContentReader.Read(PdfDocument.Open(File.ReadAllBytes(path)));
+    }
+
+    /// <summary>Formats portfolio metadata without loading embedded-file payloads.</summary>
+    internal static string InspectPortfolio(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfCollectionReader.ToText(PdfDocument.Open(File.ReadAllBytes(path)));
+    }
+
+    /// <summary>Compares interpreted content, resources, and page geometry.</summary>
+    internal static PdfStructuralComparison CompareStructure(string originalPath, string changedPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(originalPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(changedPath);
+        return PdfStructuralComparison.Compare(
+            PdfDocument.Open(File.ReadAllBytes(originalPath)),
+            PdfDocument.Open(File.ReadAllBytes(changedPath)));
+    }
+
     /// <summary>Builds a validated separation selection for the requested pages.</summary>
     internal static PdfSeparationPreview CreateSeparationPreview(
         string path, IEnumerable<string> plateNames, IEnumerable<int>? pageIndexes = null)

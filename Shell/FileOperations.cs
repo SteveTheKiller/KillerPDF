@@ -745,6 +745,8 @@ namespace KillerPDF
                 var removePw = MakeMenuItem(Loc("Str_Menu_RemovePassword"), (_, _) => SaveInPlace(), null, "");
                 removePw.IsEnabled = _openedFromProtected;
                 menu.Items.Add(removePw);
+                menu.Items.Add(new Separator());
+                menu.Items.Add(BuildDocumentToolsMenu());
             }
 
             menu.PlacementTarget = (UIElement)sender;

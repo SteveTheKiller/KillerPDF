@@ -421,6 +421,17 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Menu_RecentNone">Жақындағы файлдар жоқ</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">Тізімді тазалау</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Жақындағылардан жою</sys:String>
+    <sys:String x:Key="Str_DocumentTools">Құжат құралдары</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">Баспа өндірісі есебі</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">Қабаттар есебі</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">Портфолио есебі</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Түстік бөлуді алдын ала қарау есебі</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">Құрылымдық салыстыру есебі</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Құрылымын салыстыру үшін әр тақтада бір құжатты ашыңыз.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">Есепті көшіру</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">Жабу</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">Есеп алмасу буферіне көшірілді</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">Бұл құжатты тексеру мүмкін болмады:</sys:String>
 
     <!-- Import images as PDF / Compress to ZIP -->
     <sys:String x:Key="Str_Menu_Import">Суреттерді PDF ретінде импорттау</sys:String>

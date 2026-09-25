@@ -103,6 +103,30 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void DocumentReports_ExposeLayersAndPortfolioMetadata()
+    {
+        string path = Path.Combine(Path.GetTempPath(),
+            $"killerpdf-document-reports-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage().Build());
+
+            PdfOptionalContentInfo layers = PdfEngineIntegration.InspectLayers(path);
+            string portfolio = PdfEngineIntegration.InspectPortfolio(path);
+            PdfStructuralComparison comparison = PdfEngineIntegration.CompareStructure(path, path);
+
+            Assert.Empty(layers.Groups);
+            Assert.Equal($"Layers: 0{Environment.NewLine}Configurations: 0", layers.ToText());
+            Assert.Equal("PDF portfolio: none", portfolio);
+            Assert.Empty(comparison.Changes);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void CommentIntegration_ReadsEditsAndRemovesSelectedComment()
     {
         string path = Path.Combine(Path.GetTempPath(),

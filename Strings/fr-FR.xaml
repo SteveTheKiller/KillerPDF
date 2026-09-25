@@ -424,6 +424,17 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Menu_RecentNone">Aucun fichier récent</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">Effacer la liste</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Retirer des récents</sys:String>
+    <sys:String x:Key="Str_DocumentTools">Outils du document</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">Rapport de production d'impression</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">Rapport des calques</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">Rapport du portfolio</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Rapport d'aperçu des séparations</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">Rapport de comparaison structurelle</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Ouvrez un document dans chaque volet pour comparer leur structure.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">Copier le rapport</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">Fermer</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">Rapport copié dans le presse-papiers</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">Impossible d'inspecter ce document :</sys:String>
 
     <!-- Import images as PDF / Compress to ZIP -->
     <sys:String x:Key="Str_Menu_Import">Importer des images en PDF</sys:String>

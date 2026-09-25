@@ -346,6 +346,17 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Menu_RecentNone">沒有最近的檔案</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">清除清單</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">從最近移除</sys:String>
+    <sys:String x:Key="Str_DocumentTools">文件工具</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">列印生產報告</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">圖層報告</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">PDF 包報告</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">分色預覽報告</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">結構比較報告</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">在每個窗格中開啟一個文件以比較其結構。</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">複製報告</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">關閉</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">報告已複製到剪貼簿</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">無法檢查此文件:</sys:String>
 
     <!-- 將圖片匯入為 PDF / 壓縮為 ZIP -->
     <sys:String x:Key="Str_Menu_Import">將圖片匯入為 PDF</sys:String>

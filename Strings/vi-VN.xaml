@@ -424,6 +424,17 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Menu_RecentNone">Không có tệp gần đây</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">Xóa danh sách</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Xóa khỏi danh sách gần đây</sys:String>
+    <sys:String x:Key="Str_DocumentTools">Công cụ tài liệu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">Báo cáo sản xuất in</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">Báo cáo lớp</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">Báo cáo danh mục</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Báo cáo xem trước tách màu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">Báo cáo so sánh cấu trúc</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Mở một tài liệu trong mỗi ngăn để so sánh cấu trúc.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">Sao chép báo cáo</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">Đóng</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">Đã sao chép báo cáo vào bảng tạm</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">Không thể kiểm tra tài liệu này:</sys:String>
 
     <!-- ── Nhập hình ảnh dưới dạng PDF / Nén thành ZIP ──────────────────── -->
     <sys:String x:Key="Str_Menu_Import">Nhập hình ảnh dưới dạng PDF</sys:String>

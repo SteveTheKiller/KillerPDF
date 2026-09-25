@@ -424,6 +424,17 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Menu_RecentNone">Nincsenek legutóbbi fájlok</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">Lista törlése</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Eltávolítás a legutóbbiakból</sys:String>
+    <sys:String x:Key="Str_DocumentTools">Dokumentumeszközök</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">Nyomdai gyártási jelentés</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">Rétegjelentés</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">Portfóliójelentés</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Színbontási előnézeti jelentés</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">Szerkezeti összehasonlítási jelentés</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">A szerkezet összehasonlításához nyisson meg egy dokumentumot mindkét panelen.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">Jelentés másolása</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">Bezárás</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">A jelentés a vágólapra került</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">A dokumentum nem vizsgálható meg:</sys:String>
 
     <!-- Import images as PDF / Compress to ZIP -->
     <sys:String x:Key="Str_Menu_Import">Képek importálása PDF-ként</sys:String>

@@ -344,6 +344,17 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Menu_RecentNone">Son dosya yok</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">Listeyi temizle</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Son kullanılanlardan kaldır</sys:String>
+    <sys:String x:Key="Str_DocumentTools">Belge araçları</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">Baskı üretim raporu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">Katman raporu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">Portföy raporu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Renk ayrımı önizleme raporu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">Yapısal karşılaştırma raporu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Yapılarını karşılaştırmak için her bölmede bir belge açın.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">Raporu kopyala</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">Kapat</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">Rapor panoya kopyalandı</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">Bu belge incelenemedi:</sys:String>
 
     <!-- Görüntüleri PDF olarak içe aktar / ZIP olarak sıkıştır -->
     <sys:String x:Key="Str_Menu_Import">Görüntüleri PDF olarak içe aktar</sys:String>

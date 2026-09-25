@@ -424,6 +424,17 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Menu_RecentNone">最近使ったファイルはありません</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">一覧をクリア</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">最近使ったファイルから削除</sys:String>
+    <sys:String x:Key="Str_DocumentTools">ドキュメントツール</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">印刷製作レポート</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">レイヤーレポート</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">ポートフォリオレポート</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">色分解プレビューレポート</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">構造比較レポート</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">構造を比較するには、各ペインでドキュメントを開いてください。</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">レポートをコピー</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">閉じる</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">レポートをクリップボードにコピーしました</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">このドキュメントを検査できませんでした:</sys:String>
 
     <!-- 画像をPDFとして読み込み / ZIPに圧縮 -->
     <sys:String x:Key="Str_Menu_Import">画像を PDF として読み込み</sys:String>

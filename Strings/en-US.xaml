@@ -424,6 +424,17 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Menu_RecentNone">No recent files</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">Clear list</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Remove from recents</sys:String>
+    <sys:String x:Key="Str_DocumentTools">Document tools</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">Print production report</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">Layers report</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">Portfolio report</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Separation preview report</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">Structural comparison report</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Open a document in each pane to compare their structure.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">Copy report</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">Close</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">Report copied to the clipboard</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">Could not inspect this document:</sys:String>
 
     <!-- Import images as PDF / Compress to ZIP -->
     <sys:String x:Key="Str_Menu_Import">Import images as PDF</sys:String>

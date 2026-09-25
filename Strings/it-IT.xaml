@@ -424,6 +424,17 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Menu_RecentNone">Nessun file recente</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">Azzera elenco</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Rimuovi dai recenti</sys:String>
+    <sys:String x:Key="Str_DocumentTools">Strumenti documento</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">Rapporto produzione di stampa</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">Rapporto livelli</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">Rapporto portfolio</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">Rapporto anteprima separazioni</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">Rapporto confronto strutturale</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Apri un documento in ogni riquadro per confrontarne la struttura.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">Copia rapporto</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">Chiudi</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">Rapporto copiato negli appunti</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">Impossibile ispezionare questo documento:</sys:String>
 
     <!-- Import images as PDF / Compress to ZIP -->
     <sys:String x:Key="Str_Menu_Import">Importa immagini come PDF</sys:String>

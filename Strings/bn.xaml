@@ -344,6 +344,17 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Menu_RecentNone">সাম্প্রতিক কোনো ফাইল নেই</sys:String>
     <sys:String x:Key="Str_Menu_ClearList">তালিকা সাফ করুন</sys:String>
     <sys:String x:Key="Str_Menu_RemoveFromRecents">সাম্প্রতিক থেকে সরান</sys:String>
+    <sys:String x:Key="Str_DocumentTools">ডকুমেন্ট টুলস</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PrintProduction">প্রিন্ট প্রোডাকশন রিপোর্ট</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Layers">লেয়ার রিপোর্ট</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Portfolio">পোর্টফোলিও রিপোর্ট</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Separations">কালার সেপারেশন প্রিভিউ রিপোর্ট</sys:String>
+    <sys:String x:Key="Str_DocumentTools_StructuralComparison">কাঠামোগত তুলনা রিপোর্ট</sys:String>
+    <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">কাঠামো তুলনা করতে প্রতিটি প্যানে একটি ডকুমেন্ট খুলুন।</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copy">রিপোর্ট কপি করুন</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Close">বন্ধ করুন</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Copied">রিপোর্ট ক্লিপবোর্ডে কপি হয়েছে</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Failed">এই ডকুমেন্ট পরীক্ষা করা যায়নি:</sys:String>
 
     <!-- ছবিগুলি PDF হিসেবে আমদানি করুন / ZIP-এ সংকুচিত করুন -->
     <sys:String x:Key="Str_Menu_Import">ছবিগুলি PDF হিসেবে আমদানি করুন</sys:String>
