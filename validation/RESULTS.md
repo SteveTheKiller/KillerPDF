@@ -2,6 +2,8 @@
 
 ## Release records
 
+- **1.8.70:** [Corpus benchmark and release comparison](benchmarks/1.8.70/CORPUS.md),
+  including five measured passes and comparison with 1.8.6.
 - **1.8.6:** [Corpus benchmark and release comparison](benchmarks/1.8.6/CORPUS.md),
   including five measured passes and exact comparison with 1.8.4.
 - **1.8.4:** [Corpus benchmark and release comparison](benchmarks/1.8.4/CORPUS.md),
@@ -12,9 +14,10 @@
   including complete per-file logs and five measured passes.
 - **1.8.1:** The standards-conformance run is preserved below.
 
-The 1.8.6 benchmark reproduced every 1.8.4 file outcome and diagnostic detail across
-46,944 normal inputs and 80 damaged inputs. These open/save benchmarks and the
-standards checks below measure different things.
+The 1.8.70 benchmark reproduced every 1.8.6 file outcome and diagnostic detail
+across 46,944 normal inputs and 80 damaged inputs. Every current-run pass also
+agreed on each path, status, diagnostic, and exit code. These open/save benchmarks
+and the standards checks below measure different things.
 
 ## Standards-conformance validation: KillerPDF 1.8.1
 
