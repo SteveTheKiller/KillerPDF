@@ -243,6 +243,7 @@ namespace KillerPDF.Services
             // zero radius actually reaches panes, tabs, flyouts, and dialogs.
             var appResources = Application.Current.Resources;
             var liveResources = merged[0];
+            ApplyComparisonBarPalette(liveResources, theme);
             // One semantic role for the two window-like overlays. This is assigned after the
             // palette and accent overlay are fully merged so gradient BackgroundBrush values are
             // preserved instead of being flattened or replaced by MenuBackgroundBrush.
@@ -255,6 +256,50 @@ namespace KillerPDF.Services
             // One SystemIdle pass to nudge any elements whose effective value didn't auto-update
             // (e.g. ControlTemplate trigger bindings with TargetName that missed the per-key signal).
             Application.Current?.Dispatcher.BeginInvoke(DispatcherPriority.SystemIdle, (Action)RefreshIcons);
+        }
+
+        private static void ApplyComparisonBarPalette(ResourceDictionary resources, Theme theme)
+        {
+            object background = resources["PrimaryBrush"];
+            object foreground = resources["OnPrimaryBrush"];
+            object? effect = null;
+
+            static SolidColorBrush Solid(byte red, byte green, byte blue)
+            {
+                var brush = new SolidColorBrush(Color.FromRgb(red, green, blue));
+                brush.Freeze();
+                return brush;
+            }
+
+            switch (theme)
+            {
+                case Theme.Light:
+                    effect = resources["TextStroke"];
+                    break;
+                case Theme.Blood:
+                    background = Solid(0x8f, 0x3f, 0x46);
+                    foreground = Brushes.White;
+                    effect = resources["TextStroke"];
+                    break;
+                case Theme.Greed:
+                    background = Solid(0x17, 0x6a, 0x46);
+                    foreground = Brushes.White;
+                    effect = resources["TextStroke"];
+                    break;
+                case Theme.Cyanotic:
+                    background = Solid(0x12, 0x6f, 0x9f);
+                    foreground = Brushes.White;
+                    effect = resources["TextStroke"];
+                    break;
+                case Theme.Ectoplasm:
+                    foreground = Solid(0x5e, 0x17, 0x64);
+                    effect = resources.Contains("TextStrokeSoft") ? resources["TextStrokeSoft"] : resources["TextStroke"];
+                    break;
+            }
+
+            resources["ComparisonBarBrush"] = background;
+            resources["ComparisonBarForegroundBrush"] = foreground;
+            resources["ComparisonBarTextEffect"] = effect;
         }
 
         private static bool UsesLightChrome(Theme theme) => theme is Theme.Light or Theme.SE98;
