@@ -67,6 +67,16 @@ public sealed class ComparisonBarLayoutTests
             .Single(element => element.Name.LocalName == "Style" &&
                 (string?)element.Attribute(x + "Key") == "ComparisonCloseButton");
         Assert.Equal("{StaticResource OverlayCloseButton}", (string?)comparisonCloseStyle.Attribute("BasedOn"));
+        XElement comparisonCloseHover = comparisonCloseStyle.Descendants()
+            .Single(element => element.Name.LocalName == "Trigger" &&
+                (string?)element.Attribute("Property") == "IsMouseOver");
+        Assert.Contains(comparisonCloseHover.Descendants(), element =>
+            element.Name.LocalName == "Setter" &&
+            (string?)element.Attribute("Property") == "Foreground" &&
+            (string?)element.Attribute("Value") == "{DynamicResource ComparisonBarCloseHoverBrush}");
+        Assert.DoesNotContain(comparisonCloseHover.Descendants(), element =>
+            element.Name.LocalName == "Setter" &&
+            (string?)element.Attribute("Property") == "Background");
 
         XElement comparisonClose = comparisonBar.Descendants()
             .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonCloseButtonControl");
@@ -93,13 +103,19 @@ public sealed class ComparisonBarLayoutTests
 
         string themeManager = File.ReadAllText(Path.Combine(root, "Services", "ThemeManager.cs"));
         Assert.Contains("ApplyComparisonBarPalette(liveResources, theme);", themeManager);
-        Assert.Matches(
-            @"case Theme\.Dark:\s+case Theme\.Light:\s+case Theme\.Black:\s+foreground = Brushes\.White;\s+effect = resources\[""TextStroke""\];\s+break;",
-            themeManager);
+        Assert.Contains("case Theme.Dark:", themeManager);
+        Assert.Contains("case Theme.Light:", themeManager);
+        Assert.Contains("case Theme.Black:", themeManager);
+        Assert.Contains("accent is DarkAccent.Green or DarkAccent.Teal", themeManager);
         Assert.Contains("case Theme.Blood:", themeManager);
         Assert.Contains("case Theme.Greed:", themeManager);
         Assert.Contains("case Theme.Cyanotic:", themeManager);
         Assert.Contains("case Theme.Ectoplasm:", themeManager);
+        Assert.Contains("case Theme.Delirium:", themeManager);
+        Assert.Contains("case Theme.Mourning:", themeManager);
+        Assert.Contains("case Theme.Sepulchre:", themeManager);
+        Assert.Contains("case Theme.Malaise:", themeManager);
+        Assert.Contains("resources[\"ComparisonBarCloseHoverBrush\"] = closeHover;", themeManager);
 
         XElement detailsPopup = splitHost.Elements()
             .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonDetailsPopup");
