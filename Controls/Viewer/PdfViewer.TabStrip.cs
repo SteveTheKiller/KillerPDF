@@ -61,8 +61,7 @@ namespace KillerPDF.Controls
             CardRow.Margin = new Thickness(0, show ? -1 : 3, 0, 0);
 
             // Win98 tabs sit on a raised client frame. Keep the frame's vertical sides and bottom;
-            // the one-pixel top ledge is drawn by TabBarRing so the active tab can cover its own
-            // segment while the ledge remains visible beneath the inactive tabs.
+            // each tab draws its own outline without extending a line across the empty band.
             bool retroTheme = Services.ThemeManager.Current == Services.Theme.SE98;
             bool retroTabs = show && retroTheme;
             if (retroTheme)
@@ -336,13 +335,6 @@ namespace KillerPDF.Controls
             var cr = new CornerRadius(firstActive ? 0 : r, lastActive ? 0 : r, r, r);
             PaneBorder.CornerRadius = cr;
             PaneShadow?.CornerRadius = cr;
-            if (TabBarRing != null)
-            {
-                TabBarRing.CornerRadius = new CornerRadius(cr.TopLeft, cr.TopRight, 0, 0);
-                // Tabs carry their own outline. A full-width ring creates stray horizontal rules
-                // beside a bounded, left-aligned tab group.
-                TabBarRing.BorderThickness = new Thickness(0);
-            }
         }
 
         /// <summary>
