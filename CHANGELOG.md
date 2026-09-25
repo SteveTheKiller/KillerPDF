@@ -53,30 +53,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Faster soft masks, compositing, scanned pages, and function shadings without changing pixels. Large fills, image paints, function shadings, and soft-mask reductions split across a few threads.
 - Reuse decoded page data during zooming and background page rendering, with invalidation after document changes and cache flushes.
 - Match legacy bitmap dimensions for fractional page boxes without changing engine numeric precision.
+- Docked the comparison bar below the documents, connected it to the split divider, polished its accent-colored controls, and kept selected toolbar tools crisp.
 - Click the footer page dimensions to cycle through pixel, inch, millimeter, and point dimensions (#364).
 - Transform and image export DPI previews show the output scale (#365).
-- Docked the comparison bar below the documents, connected it to the split divider, polished its accent-colored controls, and kept selected toolbar tools crisp.
 
 ### Fixed
 
 - Hardened native library loading and release artifact verification.
-- Rounded modern flyout corners and restored shortcut-list category colors.
-- Corrected document tab alignment, outlines, widths, and 98SE shading.
-- Aligned the sidebar rail with the family footer spacing.
-- Restored full-strength footer controls and status text.
 - Preserved shapes and other annotations on retained pages when deleting PDF pages (#429).
-- Kept text editing active while choosing a font from the dropdown (#428).
-- Restored pane 2's saved fit mode when reopening a split-view session.
-- Closed 98SE tab seams and restored the vertical scrollbar's top bevel.
-- Kept region-copy selection outlines visible after releasing the mouse.
-- Localized key names throughout the website Help keyboard guide (#230).
-- Kept localized toolbar captions fully visible after language changes.
+- Preserved annotation position and orientation when saving PDFs whose page content leaves a transform active.
 - Recovered malformed JPEG filter chains and used a valid media box when a crop box is unusable.
 - Recovered undeclared CCITT scan-line markers and one-bit grayscale image masks in malformed PDFs.
-- Stabilized precision-touchpad pinch zoom without queued page jumps.
-- Aligned new text with the insertion cursor and made Enter add lines while Ctrl+Enter finishes editing.
 - Allowed valid recursive Form XObject resource graphs to be imported during page merges (#421).
-- Preserved annotation position and orientation when saving PDFs whose page content leaves a transform active.
+- Kept text editing, selection feedback, and touchpad zoom reliable, including font changes, multiline entry, and region selection (#428).
+- Restored split-view state and polished document tabs, flyouts, shortcut colors, footer and sidebar controls, and 98SE chrome.
+- Kept localized toolbar captions and website Help key names complete and visible (#230).
 - Prevented packaged application metadata from drifting from compiled resources.
 - Kept the KillerPDF icon visible on Windows 11 taskbar buttons throughout slower portable launches.
 - Restored the document display after minimizing or switching back from another window (#415).
