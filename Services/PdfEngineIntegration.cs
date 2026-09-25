@@ -23,6 +23,9 @@ internal static class PdfEngineIntegration
     internal sealed record LayerEdit(
         int ObjectNumber, string Name, bool IsVisible, bool IsLocked);
 
+    internal sealed record PortfolioEditorState(
+        PdfCollectionInfo? Collection, IReadOnlyList<string> AttachmentNames);
+
     internal sealed record FormEdits(
         IReadOnlyDictionary<string, string> TextValues,
         IReadOnlyDictionary<string, string> ChoiceValues,
@@ -149,6 +152,34 @@ internal static class PdfEngineIntegration
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return PdfCollectionReader.ToText(PdfDocument.Open(File.ReadAllBytes(path)));
+    }
+
+    internal static PortfolioEditorState ReadPortfolioEditorState(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
+        return new PortfolioEditorState(
+            PdfCollectionReader.Read(document),
+            PdfAttachmentReader.Read(document)
+                .Select(attachment => attachment.FileName).ToArray());
+    }
+
+    internal static void ApplyPortfolioPresentation(
+        string path, PdfCollectionView view, string? initialDocument)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ReadOnlyMemory<byte> result = PdfCollectionMacro.Execute(
+            PdfCollectionMacro.PresentationStep(view, initialDocument),
+            File.ReadAllBytes(path));
+        ReplaceWithBuiltResult(path, result.ToArray());
+    }
+
+    internal static void ClearPortfolioMetadata(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ReadOnlyMemory<byte> result = PdfCollectionMacro.Execute(
+            PdfCollectionMacro.ClearStep(), File.ReadAllBytes(path));
+        ReplaceWithBuiltResult(path, result.ToArray());
     }
 
     /// <summary>Compares interpreted content, resources, and page geometry.</summary>

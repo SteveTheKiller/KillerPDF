@@ -47,6 +47,8 @@ public partial class MainWindow
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_Portfolio"),
             (_, _) => ShowDocumentReport(Loc("Str_DocumentTools_Portfolio"),
                 PdfEngineIntegration.InspectPortfolio), glyph: "\uE8B7"));
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_EditPortfolio"),
+            (_, _) => EditPortfolio(), glyph: "\uE70F"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_InitialView"),
             (_, _) => EditInitialView(), glyph: "\uE7B3"));
         var comparison = MakeMenuItem(Loc("Str_DocumentTools_StructuralComparison"),
@@ -317,6 +319,43 @@ public partial class MainWindow
         catch (Exception ex)
         {
             KillerDialog.Show(this, Loc("Str_InitialView_Failed") + "\n" + ex.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void EditPortfolio()
+    {
+        if (_doc is null || string.IsNullOrWhiteSpace(_currentFile))
+        {
+            KillerDialog.Show(this, Loc("Str_Msg_OpenFirst"));
+            return;
+        }
+
+        CommitActiveTextBox();
+        try
+        {
+            PdfEngineIntegration.PortfolioEditorState state =
+                PdfEngineIntegration.ReadPortfolioEditorState(_currentFile);
+            var dialog = new PortfolioEditorDialog(
+                this, state.Collection, state.AttachmentNames);
+            if (dialog.ShowDialog() != true) return;
+            UndoEntry? documentUndo = CaptureDocumentUndo();
+            SaveTempAndReload(
+                keepAnnotations: true,
+                finalizeSavedFile: path =>
+                {
+                    if (dialog.RemoveMetadata)
+                        PdfEngineIntegration.ClearPortfolioMetadata(path);
+                    else
+                        PdfEngineIntegration.ApplyPortfolioPresentation(
+                            path, dialog.View, dialog.InitialDocument);
+                },
+                documentUndo: documentUndo);
+            SetStatus(Loc("Str_Portfolio_Updated"));
+        }
+        catch (Exception ex)
+        {
+            KillerDialog.Show(this, Loc("Str_Portfolio_Failed") + "\n" + ex.Message,
                 "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

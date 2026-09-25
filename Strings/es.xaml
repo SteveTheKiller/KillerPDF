@@ -392,6 +392,16 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Abra un documento en cada panel para comparar su estructura.</sys:String>
     <sys:String x:Key="Str_DocumentTools_InsertToc">Insert table of contents</sys:String>
     <sys:String x:Key="Str_DocumentTools_DataMerge">Data merge</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditPortfolio">Edit portfolio</sys:String>
+    <sys:String x:Key="Str_Portfolio_View">Portfolio view</sys:String>
+    <sys:String x:Key="Str_Portfolio_Details">Details</sys:String>
+    <sys:String x:Key="Str_Portfolio_Tile">Tiles</sys:String>
+    <sys:String x:Key="Str_Portfolio_Hidden">Hidden</sys:String>
+    <sys:String x:Key="Str_Portfolio_InitialDocument">Initial document</sys:String>
+    <sys:String x:Key="Str_Portfolio_None">None</sys:String>
+    <sys:String x:Key="Str_Portfolio_RemoveMetadata">Remove portfolio metadata but keep attachments</sys:String>
+    <sys:String x:Key="Str_Portfolio_Updated">Portfolio settings updated</sys:String>
+    <sys:String x:Key="Str_Portfolio_Failed">Could not update the portfolio:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Select merge data</sys:String>
     <sys:String x:Key="Str_DataMerge_DataFiles">Merge data files</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectOutput">Choose the first output PDF</sys:String>
