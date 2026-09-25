@@ -68,10 +68,6 @@ namespace KillerPDF.Controls
         /// SetResourceReference to a missing key does not throw, it silently leaves the property
         /// unset, which blanks the border instead of accenting it.
         ///
-        /// Both borders, matching KillerShell's UpdatePaneFocusRing: TabBarRing is the card's top
-        /// border drawn again inside the tab band, so lighting only the card leaves the ring open
-        /// along its whole top edge.
-        ///
         /// The brush moves, never the thickness - a thickness change would reflow the pane on every
         /// click between panes.
         ///
@@ -87,11 +83,8 @@ namespace KillerPDF.Controls
             PaneBorder.SetResourceReference(Border.BorderBrushProperty, key);
             // The 98SE band is the raised client's white top ledge. Replacing it with the gray
             // outer-frame brush on focus made the tab/pane join visibly change after a click.
-            TabBarRing.SetResourceReference(Border.BorderBrushProperty,
-                retro ? "BevelLightBrush" : key);
-            // The ring runs on around the active tab, so it moves with the pane border. The tab's own
-            // share of that is a template trigger on PaneFocused / PaneDimmed, which this sets, plus
-            // the band-drawn outer verticals.
+            if (retro)
+                TabBarRing.SetResourceReference(Border.BorderBrushProperty, "BevelLightBrush");
             UpdatePaneFocusRing();
         }
 

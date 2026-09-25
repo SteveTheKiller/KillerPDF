@@ -104,7 +104,9 @@ namespace KillerPDF.Controls
             }
             else
             {
-                PaneBorder.BorderThickness = new Thickness(1);
+                PaneBorder.BorderThickness = show
+                    ? new Thickness(1, 0, 1, 1)
+                    : new Thickness(1);
                 PaneBevelOuterDark.SetResourceReference(Border.BorderThicknessProperty, "PaneBevelLightThickness");
                 PaneBevelOuterLight.SetResourceReference(Border.BorderThicknessProperty, "PaneBevelDarkThickness");
                 PaneBevelInnerDark.SetResourceReference(Border.BorderThicknessProperty, "PaneBevel2LightThickness");
@@ -209,9 +211,11 @@ namespace KillerPDF.Controls
         /// </remarks>
         private void ApplyTabWindow()
         {
-            int n = _sessions.Count;
+            var tabs = _sessions.Where(t => t.Doc != null || t.DeferredPath != null).ToList();
+            int n = tabs.Count;
             if (n == 0)
             {
+                foreach (var session in _sessions) session.IsStripVisible = false;
                 TabOverflowBtn.Visibility = Visibility.Collapsed;
                 if (TabStripHost != null) TabStripHost.Width = 0;
                 return;
@@ -247,7 +251,7 @@ namespace KillerPDF.Controls
                 // by a close does not survive as a scroll nobody asked for.
                 start = Math.Max(0, Math.Min(_tabWindow, n - cap));
 
-                int active = _active == null ? -1 : _sessions.IndexOf(_active);
+                int active = _active == null ? -1 : tabs.IndexOf(_active);
                 if      (active >= 0 && active < start)           start = active;
                 else if (active >= 0 && active > start + cap - 1) start = active - cap + 1;
 
@@ -259,8 +263,9 @@ namespace KillerPDF.Controls
                 cap = n;
             }
 
+            foreach (var session in _sessions) session.IsStripVisible = false;
             for (int i = 0; i < n; i++)
-                _sessions[i].IsStripVisible = i >= start && i < start + cap;
+                tabs[i].IsStripVisible = i >= start && i < start + cap;
         }
 
         /// <summary>The band was resized, so the strip may hold a different number of tabs.</summary>
@@ -295,6 +300,7 @@ namespace KillerPDF.Controls
             var menu = MakeThemedMenu();
             foreach (var t in _sessions)
             {
+                if (t.Doc == null && t.DeferredPath == null) continue;
                 if (t.IsStripVisible) continue;
 
                 var sess = t;
@@ -343,8 +349,6 @@ namespace KillerPDF.Controls
             var cr = new CornerRadius(firstActive ? 0 : r, lastActive ? 0 : r, r, r);
             PaneBorder.CornerRadius = cr;
             PaneShadow?.CornerRadius = cr;
-            // Keep the ring's top radii in step with the card's, so its curved sides land exactly on
-            // the card's own left/right border rather than beside them.
             if (TabBarRing != null)
             {
                 TabBarRing.CornerRadius = new CornerRadius(cr.TopLeft, cr.TopRight, 0, 0);
@@ -358,16 +362,15 @@ namespace KillerPDF.Controls
                 }
                 else
                 {
-                    // Modern themes do not use the Win98 edge overlays, so the ring carries the
-                    // side only where the active tab makes that card corner square.
-                    TabBarRing.BorderThickness = new Thickness(firstActive ? 1 : 0, 1, lastActive ? 1 : 0, 0);
-                    TabBarRing.SetResourceReference(Border.BorderBrushProperty, "PaneEdgeBrush");
+                    // Modern tabs carry their own outline. A full-width ring here creates stray
+                    // horizontal rules on both sides of a bounded, left-aligned tab strip.
+                    TabBarRing.BorderThickness = new Thickness(0);
                 }
             }
         }
 
         /// <summary>
-        /// Mark this pane's focus state on its tabs and draw the ring's outer verticals.
+        /// Mark this pane's focus state on its tabs and preserve the classic outer frame.
         /// </summary>
         /// <remarks>
         /// The ring has to continue UP and AROUND the active tab, or it stops dead at the band and the
@@ -379,11 +382,8 @@ namespace KillerPDF.Controls
         /// live pane. Deliberately NOT !PaneFocused: with one pane open both are false and that pane's
         /// lip stays bright.
         ///
-        /// The outermost verticals come from the BAND, not from the tab: a first or last tab's own
-        /// outer border sits on the ScrollViewer's clip edge and gets cut, so whether it survived
-        /// depended on how the UniformGrid divided a fractional band width. TabEdgeLeft/Right are
-        /// anchored to the band's own edges, which are the card's edges, so there is no arithmetic to
-        /// land wrong.
+        /// The classic theme keeps its outer frame in the band. Modern tabs draw their complete
+        /// outline themselves so a bounded strip does not create lines at the pane edges.
         /// </remarks>
         private void UpdatePaneFocusRing()
         {
@@ -392,16 +392,6 @@ namespace KillerPDF.Controls
             // Modern themes only need a focus ring when panes are split. 98SE uses the
             // selected pane's surface color as its focus indicator, including single-pane mode.
             bool paneActive = PaneHasFocus && (split || retro);
-            bool lit        = PaneHasFocus && split && !retro;
-
-            // TabBarRing is the pane border's top segment inside the tab band. Corner syncing
-            // assigns its geometry and an idle brush, so focus must restore the live accent here
-            // every time the tab state is rebuilt. Without this assignment, the active tab and
-            // the vertical card edges lit up while the horizontal segments beside the tab stayed
-            // dark, leaving the focused-pane perimeter visibly broken.
-            if (TabBarRing != null && !retro)
-                TabBarRing.SetResourceReference(Border.BorderBrushProperty,
-                    lit ? "TabActiveRingBrush" : "PaneEdgeBrush");
 
             foreach (var t in _sessions)
             {
@@ -446,9 +436,7 @@ namespace KillerPDF.Controls
                 }
                 else
                 {
-                    TabEdgeLeft.Margin = new Thickness(0, 9, 0, 0);
-                    TabEdgeLeft.Visibility = lit && firstActive ? Visibility.Visible : Visibility.Collapsed;
-                    TabEdgeLeft.SetResourceReference(Border.BackgroundProperty, "SelectionAccent");
+                    TabEdgeLeft.Visibility = Visibility.Collapsed;
                 }
             }
             if (TabEdgeRight != null)
@@ -464,10 +452,10 @@ namespace KillerPDF.Controls
                 {
                     TabEdgeRight.Margin = retro ? new Thickness(0, 3, 0, 0) : new Thickness(0, 9, 0, 0);
                 }
-                TabEdgeRight.Visibility = retro
-                    ? (lastActive || lastInactiveRetro ? Visibility.Visible : Visibility.Collapsed)
-                    : (lit && lastActive ? Visibility.Visible : Visibility.Collapsed);
-                TabEdgeRight.SetResourceReference(Border.BackgroundProperty, retro ? "PaneBorderBrush" : "SelectionAccent");
+                TabEdgeRight.Visibility = retro && (lastActive || lastInactiveRetro)
+                    ? Visibility.Visible : Visibility.Collapsed;
+                if (retro)
+                    TabEdgeRight.SetResourceReference(Border.BackgroundProperty, "PaneBorderBrush");
             }
         }
 
