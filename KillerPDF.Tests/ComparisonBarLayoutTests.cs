@@ -40,6 +40,21 @@ public sealed class ComparisonBarLayoutTests
             element.Name.LocalName == "TextBlock" &&
             (string?)element.Attribute("Text") == "{DynamicResource Str_Compare_Bar}"));
 
+        XElement comparisonButtonStyle = document.Descendants()
+            .Single(element => element.Name.LocalName == "Style" &&
+                (string?)element.Attribute(x + "Key") == "ComparisonBarButton");
+        Assert.DoesNotContain(comparisonButtonStyle.Descendants(), element =>
+            element.Name.LocalName == "DropShadowEffect");
+
+        XElement comparisonCloseStyle = document.Descendants()
+            .Single(element => element.Name.LocalName == "Style" &&
+                (string?)element.Attribute(x + "Key") == "ComparisonCloseButton");
+        Assert.Equal("{StaticResource OverlayCloseButton}", (string?)comparisonCloseStyle.Attribute("BasedOn"));
+
+        XElement comparisonClose = comparisonBar.Descendants()
+            .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonCloseButtonControl");
+        Assert.Equal("{StaticResource ComparisonCloseButton}", (string?)comparisonClose.Attribute("Style"));
+
         XElement detailsPopup = splitHost.Elements()
             .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonDetailsPopup");
         Assert.Equal("Top", (string?)detailsPopup.Attribute("Placement"));
