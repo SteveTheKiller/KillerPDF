@@ -48,8 +48,21 @@ public sealed class DocumentTabLayoutTests
             .Single(element => (string?)element.Attribute(x + "Name") == "RetroTabJoinLine");
         Assert.Equal("1", (string?)join.Attribute("Height"));
         Assert.Equal("Bottom", (string?)join.Attribute("VerticalAlignment"));
-        Assert.Equal("{DynamicResource BevelLightBrush}", (string?)join.Attribute("Background"));
+        Assert.Equal("{DynamicResource PaneBorderBrush}", (string?)join.Attribute("Background"));
         Assert.Equal("{DynamicResource RetroTabJoinVisibility}", (string?)join.Attribute("Visibility"));
+
+        XElement outline = document.Descendants()
+            .Single(element => (string?)element.Attribute(x + "Name") == "tabActiveRetroOuterOutline");
+        Assert.Equal("{DynamicResource TabActiveOuterOutlineMargin}", (string?)outline.Attribute("Margin"));
+        Assert.Equal("{DynamicResource PaneBorderBrush}", (string?)outline.Attribute("BorderBrush"));
+        Assert.Equal("1,1,1,0", (string?)outline.Attribute("BorderThickness"));
+
+        string ThicknessValue(string key) => theme.Descendants()
+            .Single(element => element.Name.LocalName == "Thickness" &&
+                (string?)element.Attribute(x + "Key") == key).Value;
+        Assert.Equal("0,3,0,-1", ThicknessValue("TabActiveMargin"));
+        Assert.Equal("1,3,0,-1", ThicknessValue("TabActiveFirstMargin"));
+        Assert.Equal("0,3,1,-1", ThicknessValue("TabActiveLastMargin"));
     }
 
     private static string FindRepositoryRoot()

@@ -36,11 +36,10 @@
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
-                <!-- Classic tabs interrupt this pane-top line with the active tab's own raised
-                     outline. Inactive tabs sit one pixel above it, keeping the pane perimeter
-                     continuous on both sides of the selected tab. -->
+                <!-- The pane's outer gray perimeter continues beneath inactive tabs. The active
+                     tab overlaps its segment and routes that same perimeter around its sides and top. -->
                 <Border x:Name="RetroTabJoinLine" Height="1" VerticalAlignment="Bottom"
-                        Background="{DynamicResource BevelLightBrush}"
+                        Background="{DynamicResource PaneBorderBrush}"
                         Visibility="{DynamicResource RetroTabJoinVisibility}"
                         IsHitTestVisible="False"/>
                 <DockPanel LastChildFill="True">
@@ -159,6 +158,10 @@
                                                            Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"
                                                            TextTrimming="CharacterEllipsis"/>
                                             </DockPanel>
+                                            <Border x:Name="tabActiveRetroOuterOutline" IsHitTestVisible="False" Panel.ZIndex="3"
+                                                    Margin="{DynamicResource TabActiveOuterOutlineMargin}"
+                                                    BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1,1,1,0"
+                                                    SnapsToDevicePixels="True" Visibility="Collapsed"/>
                                             <Border x:Name="tabBevelLight" IsHitTestVisible="False" Panel.ZIndex="4"
                                                     Margin="{DynamicResource TabBevelMargin}" SnapsToDevicePixels="True"
                                                     BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
@@ -215,7 +218,7 @@
                                             <Setter TargetName="tabBd" Property="BorderThickness" Value="{DynamicResource TabStripeThickness}"/>
                                             <!-- Reaches the foot of the band so its fill breaks the
                                                  ring line where the tab is. -->
-                                            <Setter TargetName="tabBd" Property="Margin" Value="0,3,0,0"/>
+                                            <Setter TargetName="tabBd" Property="Margin" Value="{DynamicResource TabActiveMargin}"/>
                                             <!-- Top padding gives back the 3px the accent stripe
                                                  takes, so the title does not drop on activation. -->
                                             <Setter TargetName="tabBd" Property="Padding" Value="{DynamicResource TabActivePadding}"/>
@@ -229,6 +232,7 @@
                                             <Setter TargetName="tabLbl" Property="FontSize" Value="11.5"/>
                                             <Setter TargetName="tabBevelDark" Property="BorderThickness" Value="{DynamicResource TabActiveBevelDarkThickness}"/>
                                             <Setter TargetName="tabBevelDark" Property="Margin" Value="{DynamicResource TabActiveBevelDarkMargin}"/>
+                                            <Setter TargetName="tabActiveRetroOuterOutline" Property="Visibility" Value="{DynamicResource RetroActiveTabOutlineVisibility}"/>
                                             <Setter TargetName="tabActiveRetroInnerBevel" Property="Visibility" Value="{DynamicResource RetroActiveTabOutlineVisibility}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding UseRetroTabChrome}" Value="True">
