@@ -81,10 +81,6 @@ namespace KillerPDF.Controls
             bool retro = Services.ThemeManager.Current == Services.Theme.SE98;
             string key = focused && !retro ? "SelectionAccent" : "PaneBorderBrush";
             PaneBorder.SetResourceReference(Border.BorderBrushProperty, key);
-            // The 98SE band is the raised client's white top ledge. Replacing it with the gray
-            // outer-frame brush on focus made the tab/pane join visibly change after a click.
-            if (retro)
-                TabBarRing.SetResourceReference(Border.BorderBrushProperty, "BevelLightBrush");
             UpdatePaneFocusRing();
         }
 

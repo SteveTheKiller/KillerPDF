@@ -23,7 +23,7 @@ public sealed class DocumentTabLayoutTests
             .Single(element => (string?)element.Attribute(x + "Name") == "TabStripHost");
         Assert.Equal("Left", (string?)host.Attribute("HorizontalAlignment"));
         Assert.DoesNotContain(document.Descendants(), element =>
-            (string?)element.Attribute(x + "Name") is "TabEdgeLeft" or "TabEdgeRight");
+            (string?)element.Attribute(x + "Name") is "TabEdgeLeft" or "TabEdgeRight" or "TabBarRing");
     }
 
     [Fact]
@@ -39,10 +39,9 @@ public sealed class DocumentTabLayoutTests
                 (string?)element.Attribute(x + "Key") == key)
             .Attribute("Color")!;
 
-        Assert.Equal("#c0c0c0", BrushColor("TabActiveBrush"), ignoreCase: true);
-        Assert.Equal("#9f9f9f", BrushColor("TabInactiveBrush"), ignoreCase: true);
-        Assert.Contains("TabBarRing.BorderThickness = new Thickness(0);", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("TabBarRing.BorderThickness = new Thickness(0, 1, 0, 0);", source, StringComparison.Ordinal);
+        Assert.Equal("#9f9f9f", BrushColor("TabActiveBrush"), ignoreCase: true);
+        Assert.Equal("#c0c0c0", BrushColor("TabInactiveBrush"), ignoreCase: true);
+        Assert.DoesNotContain("TabBarRing", source, StringComparison.Ordinal);
     }
 
     private static string FindRepositoryRoot()

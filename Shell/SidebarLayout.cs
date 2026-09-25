@@ -106,10 +106,8 @@ namespace KillerPDF
                 // docPane is SplitHost, so this one margin now insets BOTH panes from the window
                 // edge together, which is what the 8px gutter always meant.
                 docPane.Margin = DocPaneInsetMargin();
-                // No tab-band or TabBarRing margins here. Those exist only to stop a window-level
-                // band overhanging the card's rounded outer corner, where the band runs the full
-                // width while the card is inset 8px. Each strip is inside its own pane and spans
-                // exactly that pane, so the band and the card share an edge by construction.
+                // No separate tab-band margins here. Each strip is inside its own pane, so the band
+                // and the card share an edge by construction.
             }
 
             UpdateSidebarToggleGlyph();

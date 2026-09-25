@@ -252,6 +252,5 @@ namespace KillerPDF.Controls
         // which now have to act on BOTH panes rather than one window-level band.
         internal System.Windows.Controls.Border TabStripBorderCtl => TabStripBorder;
         internal System.Windows.Controls.Border TabStripFadeCtl => TabStripFade;
-        internal System.Windows.Controls.Border TabBarRingCtl => TabBarRing;
     }
 }

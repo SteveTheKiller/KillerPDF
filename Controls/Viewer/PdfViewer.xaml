@@ -36,17 +36,6 @@
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
-                <!-- TabBarRing, ported from KillerShell. The card's top border drawn again, radii
-                     and all - 7px tall with a -6 bottom margin, so its 1px top edge lands in the
-                     band's last row and its curved sides drop out of the band onto the card's own
-                     left/right border. A flat 1px strip would run past the card's rounded corners.
-                     SyncPaneLeadingCorner keeps the radii in step with the card's; SetFocusHalo
-                     drives its brush alongside the card's.
-                     Declared after the fade (whose dark bottom would wash it out) and before the
-                     tabs, so the active tab covers its own segment and breaks the line at the tab. -->
-                <Border x:Name="TabBarRing" Height="7" VerticalAlignment="Bottom" Margin="0,0,0,-6"
-                        BorderThickness="1,1,1,0" CornerRadius="{DynamicResource TabCornerRadius}" IsHitTestVisible="False"
-                        BorderBrush="{DynamicResource PaneEdgeBrush}"/>
                 <DockPanel LastChildFill="True">
                     <!-- Overflow chevron: only tabs collapsed out of this pane's strip
                          (TabOverflowMenu). Docked BEFORE the strip so the strip measures against
@@ -131,10 +120,8 @@
                                          stopped the last tab reaching the strip's right edge -
                                          which is the card's edge, so it left a 1px step under the
                                          corner.
-                                         1px bottom margin keeps an inactive tab clear of
-                                         TabBarRing; the active tab drops it and covers its own
-                                         segment, which is what breaks that line exactly at the tab
-                                         and makes the browser-tab join. -->
+                                         The inactive bottom margin and active flush margin keep the
+                                         selected tab visually connected to the document pane. -->
                                     <Border x:Name="tabBd" CornerRadius="{DynamicResource TabCornerRadius}" Margin="{DynamicResource TabMargin}" Padding="{DynamicResource TabPadding}"
                                             MinWidth="120" MaxWidth="240"
                                             UseLayoutRounding="True" SnapsToDevicePixels="True"
@@ -351,7 +338,7 @@
 
         <!-- ── This pane's card ───────────────────────────────────────────────────────────
              Row 1. The -1 top margin tucks the card's top border up into the strip band so the
-             active tab and the card read as one surface (see TabBarRing).
+             active tab and the card read as one surface.
 
              Margin is set in CODE, not here: it must be -1 only while this pane HAS a strip.
              A pane with one tab collapses its strip, and the -1 then lifts that pane a pixel above
