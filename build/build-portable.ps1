@@ -156,7 +156,8 @@ if (-not [IO.File]::Exists($builtLauncher)) { throw "Launcher output is missing:
 # Regression gate for #238: installer commands must install exactly once and exit. They must not
 # fall through to the portable launch path or start the installed UI. A disposable install root
 # keeps this safe for developer and CI builds without touching registry or installed copies.
-$installSmokeRoot = Join-Path $artifactRoot ('install-smoke-' + [Guid]::NewGuid().ToString('N'))
+# Keep it outside the active build tree so publish cleanup cannot remove the staging payload.
+$installSmokeRoot = Join-Path ([IO.Path]::GetTempPath()) ('KillerPDF-install-smoke-' + [Guid]::NewGuid().ToString('N'))
 $previousTestRoot = [Environment]::GetEnvironmentVariable('KILLERPDF_TEST_INSTALL_ROOT')
 $previousSkipRegistration = [Environment]::GetEnvironmentVariable('KILLERPDF_SKIP_REGISTRATION')
 if ($isInstaller -and -not $RequireSignature) { try {
