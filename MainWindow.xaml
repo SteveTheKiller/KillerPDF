@@ -401,6 +401,21 @@
         </Style>
         <Style x:Key="ComparisonCloseButton" TargetType="Button" BasedOn="{StaticResource OverlayCloseButton}">
             <Setter Property="Foreground" Value="{DynamicResource ComparisonBarForegroundBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource ComparisonBarCloseHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- Tab close button: themed so hover is the danger red (not WPF's default blue chrome). -->

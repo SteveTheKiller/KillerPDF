@@ -262,7 +262,9 @@ namespace KillerPDF.Services
         {
             object background = resources["PrimaryBrush"];
             object foreground = resources["OnPrimaryBrush"];
+            object closeHover = resources["AboutCloseHoverFg"];
             object? effect = null;
+            DarkAccent accent = AccentFor(theme);
 
             static SolidColorBrush Solid(byte red, byte green, byte blue)
             {
@@ -275,9 +277,19 @@ namespace KillerPDF.Services
             {
                 case Theme.Dark:
                 case Theme.Light:
-                case Theme.Black:
                     foreground = Brushes.White;
                     effect = resources["TextStroke"];
+                    break;
+                case Theme.Black:
+                    if (accent is DarkAccent.Green or DarkAccent.Teal)
+                    {
+                        foreground = Brushes.Black;
+                    }
+                    else
+                    {
+                        foreground = Brushes.White;
+                        effect = resources["TextStroke"];
+                    }
                     break;
                 case Theme.Blood:
                     background = Solid(0x8f, 0x3f, 0x46);
@@ -298,10 +310,22 @@ namespace KillerPDF.Services
                     foreground = Solid(0x5e, 0x17, 0x64);
                     effect = resources.Contains("TextStrokeSoft") ? resources["TextStrokeSoft"] : resources["TextStroke"];
                     break;
+                case Theme.Delirium:
+                case Theme.Mourning:
+                case Theme.Sepulchre:
+                case Theme.Malaise:
+                    foreground = Brushes.White;
+                    effect = resources["TextStroke"];
+                    break;
             }
+
+            if ((HasAccents(theme) && accent == DarkAccent.Red) ||
+                theme is Theme.Blood or Theme.Delirium or Theme.Mourning or Theme.Malaise)
+                closeHover = foreground;
 
             resources["ComparisonBarBrush"] = background;
             resources["ComparisonBarForegroundBrush"] = foreground;
+            resources["ComparisonBarCloseHoverBrush"] = closeHover;
             resources["ComparisonBarTextEffect"] = effect;
         }
 
