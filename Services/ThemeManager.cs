@@ -310,6 +310,11 @@ namespace KillerPDF.Services
                     foreground = Solid(0x5e, 0x17, 0x64);
                     effect = resources.Contains("TextStrokeSoft") ? resources["TextStrokeSoft"] : resources["TextStroke"];
                     break;
+                case Theme.Decay:
+                    background = resources["SelectionBg"];
+                    foreground = Brushes.White;
+                    effect = resources["TextStroke"];
+                    break;
                 case Theme.Delirium:
                 case Theme.Mourning:
                 case Theme.Sepulchre:

@@ -111,6 +111,8 @@ public sealed class ComparisonBarLayoutTests
         Assert.Contains("case Theme.Greed:", themeManager);
         Assert.Contains("case Theme.Cyanotic:", themeManager);
         Assert.Contains("case Theme.Ectoplasm:", themeManager);
+        Assert.Contains("case Theme.Decay:", themeManager);
+        Assert.Contains("background = resources[\"SelectionBg\"];", themeManager);
         Assert.Contains("case Theme.Delirium:", themeManager);
         Assert.Contains("case Theme.Mourning:", themeManager);
         Assert.Contains("case Theme.Sepulchre:", themeManager);
