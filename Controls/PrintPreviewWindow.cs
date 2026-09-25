@@ -100,7 +100,7 @@ namespace KillerPDF
         public int PrintedPageCount { get; private set; }
 
         public PrintPreviewWindow(Window? owner, int pageCount, double[] pageDipW, double[] pageDipH,
-                                  string renderPath, string? cleanupPath)
+                                  int currentPageIndex, string renderPath, string? cleanupPath)
         {
             // Pages render lazily on a background thread (fed in via SetRenderedPage), so the
             // window opens instantly and shows a spinner instead of blocking on large files.
@@ -109,6 +109,7 @@ namespace KillerPDF
             _rasterH = new int[pageCount];
             _pageDipW = pageDipW;
             _pageDipH = pageDipH;
+            _landscape = PrintOrientationPolicy.IsLandscape(pageDipW, pageDipH, currentPageIndex);
             _renderPath  = renderPath;
             _cleanupPath = cleanupPath;
 
@@ -532,7 +533,6 @@ namespace KillerPDF
             ApplyComboStyle(orient);
             orient.Items.Add(S("Str_Print_Portrait"));
             orient.Items.Add(S("Str_Print_Landscape"));
-            _landscape = App.GetSetting("PrintLandscape") == "1";   // restore last orientation
             orient.SelectedIndex = _landscape ? 1 : 0;
             orient.SelectionChanged += (s, _) =>
             {
@@ -1212,13 +1212,12 @@ namespace KillerPDF
             return sp;
         }
 
-        // Persists the device-level print choices so the dialog reopens with the user's last setup.
+        // Persists device-level print choices. Orientation is derived from the active page each time.
         private void SavePrintPrefs()
         {
             try
             {
                 if (_queue != null) App.SetSetting("PrintPrinter", _queue.FullName);
-                App.SetSetting("PrintLandscape", _landscape ? "1" : "0");
                 App.SetSetting("PrintGrayscale", _grayscale ? "1" : "0");
                 App.SetSetting("PrintDuplex",    _duplex     ? "1" : "0");
             }

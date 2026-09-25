@@ -1478,7 +1478,8 @@ namespace KillerPDF
             // bitmaps from ballooning on large files. The Print button re-renders the chosen pages at a
             // true 300 DPI on demand (PrintPreviewWindow.DoPrint), so output stays crisp (issue #83).
             int previewBox = pageCount <= 80 ? 1536 : pageCount <= 250 ? 1100 : 800;
-            var preview = new PrintPreviewWindow(this, pageCount, pageDipW, pageDipH, renderPath, cleanup);
+            var preview = new PrintPreviewWindow(
+                this, pageCount, pageDipW, pageDipH, _currentPage, renderPath, cleanup);
 
             _ = Task.Run(() =>
             {

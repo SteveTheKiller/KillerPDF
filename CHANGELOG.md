@@ -72,6 +72,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Hardened native library loading and release artifact verification.
+- Chose the print dialog's initial orientation from the active page while preserving manual overrides (#432).
 - Preserved shapes and other annotations on retained pages when deleting PDF pages (#429).
 - Preserved annotation position and orientation when saving PDFs whose page content leaves a transform active.
 - Recovered malformed JPEG filter chains and used a valid media box when a crop box is unusable.
