@@ -119,12 +119,8 @@ namespace KillerPDF.Controls
             /// <summary>The front tab of its pane.</summary>
             public bool IsActive { get => _isActive; set { if (_isActive != value) { _isActive = value; Notify(); } } }
 
-            // Leftmost tab in the strip. Only the focus ring reads this: the band draws the ring's
-            // outermost verticals itself (TabEdgeLeft / TabEdgeRight), because a tab's own outer
-            // border sits on the ScrollViewer's clip edge and survives or vanishes depending on how
-            // the UniformGrid divided a fractional band width. Without it the first and last tab
-            // drew that side TOO, so the outer edge of the ring came out 2px wherever the clip
-            // spared it and 1px everywhere else.
+            // Leftmost and rightmost tabs in the visible strip. Their templates use these flags to
+            // join the tab face cleanly to the pane and to suppress dividers at a filled band edge.
             private bool _isFirst;
             public bool IsFirst { get => _isFirst; set { if (_isFirst != value) { _isFirst = value; Notify(); } } }
 
@@ -143,9 +139,6 @@ namespace KillerPDF.Controls
 
             private bool _retroAfterActive;
             public bool RetroAfterActive { get => _retroAfterActive; set { if (_retroAfterActive != value) { _retroAfterActive = value; Notify(); } } }
-
-            private bool _retroLastInactive;
-            public bool RetroLastInactive { get => _retroLastInactive; set { if (_retroLastInactive != value) { _retroLastInactive = value; Notify(); } } }
 
             // Theme gate for chrome that must never leak into the shared tab template. Modern
             // tabs keep their ShadowBar and normal canvas fills; 98SE replaces those with crisp
