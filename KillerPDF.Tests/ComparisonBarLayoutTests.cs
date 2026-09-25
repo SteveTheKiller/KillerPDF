@@ -46,6 +46,8 @@ public sealed class ComparisonBarLayoutTests
         XElement accentFace = dockContents.Descendants()
             .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonAccentFace");
         Assert.Equal("{DynamicResource ComparisonBarBrush}", (string?)accentFace.Attribute("Background"));
+        Assert.Equal("{DynamicResource ComparisonBarVerticalMask}",
+            (string?)accentFace.Parent?.Attribute("OpacityMask"));
         Assert.Single(comparisonBar.Descendants(), element =>
             element.Name.LocalName == "TextBlock" &&
             (string?)element.Attribute("Text") == "{DynamicResource Str_Compare_Bar}");
@@ -118,6 +120,8 @@ public sealed class ComparisonBarLayoutTests
         Assert.Contains("case Theme.Sepulchre:", themeManager);
         Assert.Contains("case Theme.Malaise:", themeManager);
         Assert.Contains("resources[\"ComparisonBarCloseHoverBrush\"] = closeHover;", themeManager);
+        Assert.Contains("resources[\"ComparisonBarVerticalMask\"] = BuildComparisonBarVerticalMask(theme);", themeManager);
+        Assert.Contains("if (theme == Theme.SE98) return Brushes.Black;", themeManager);
 
         XElement detailsPopup = splitHost.Elements()
             .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonDetailsPopup");

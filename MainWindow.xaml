@@ -2609,15 +2609,7 @@
                                     <GradientStop Color="Transparent" Offset="1"/>
                                 </LinearGradientBrush>
                             </Border.OpacityMask>
-                            <Grid>
-                                <Grid.OpacityMask>
-                                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
-                                        <GradientStop Color="Transparent" Offset="0"/>
-                                        <GradientStop Color="Black" Offset="0.16"/>
-                                        <GradientStop Color="Black" Offset="0.84"/>
-                                        <GradientStop Color="Transparent" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Grid.OpacityMask>
+                            <Grid OpacityMask="{DynamicResource ComparisonBarVerticalMask}">
                                 <Border x:Name="ComparisonAccentFace" Background="{DynamicResource ComparisonBarBrush}"/>
                                 <Border Background="{StaticResource GrainBrushShared}"
                                         Opacity="{DynamicResource GrainOpacity}"/>
