@@ -12,7 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - Added localized desktop reports for preflight, accessibility, print production, separations, layers, portfolios, and structural comparisons.
 - Added desktop layer editing for names, saved visibility, and lock state.
-- Added desktop portfolio presentation controls for view mode and initial document, with safe metadata removal.
+- Added desktop portfolio controls for presentation, schema, sorting, folders, attachment values, and safe metadata removal.
 - Added desktop attachment management for names, descriptions, MIME types, relationships, and removal.
 - Added desktop navigation auditing with selective cleanup of unsafe and broken links.
 - Added desktop initial-view controls for opening page, zoom, layout, navigation panel, and viewer chrome.

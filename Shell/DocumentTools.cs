@@ -49,6 +49,8 @@ public partial class MainWindow
                 PdfEngineIntegration.InspectPortfolio), glyph: "\uE8B7"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_EditPortfolio"),
             (_, _) => EditPortfolio(), glyph: "\uE70F"));
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_EditPortfolioStructure"),
+            (_, _) => EditPortfolioStructure(), glyph: "\uE70F"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_EditAttachments"),
             (_, _) => EditAttachments(), glyph: "\uE8B7"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_NavigationAudit"),
@@ -343,7 +345,8 @@ public partial class MainWindow
             PdfEngineIntegration.PortfolioEditorState state =
                 PdfEngineIntegration.ReadPortfolioEditorState(_currentFile);
             var dialog = new PortfolioEditorDialog(
-                this, state.Collection, state.AttachmentNames);
+                this, state.Collection,
+                state.Attachments.Select(attachment => attachment.FileName).ToArray());
             if (dialog.ShowDialog() != true) return;
             UndoEntry? documentUndo = CaptureDocumentUndo();
             SaveTempAndReload(
@@ -362,6 +365,37 @@ public partial class MainWindow
         catch (Exception ex)
         {
             KillerDialog.Show(this, Loc("Str_Portfolio_Failed") + "\n" + ex.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void EditPortfolioStructure()
+    {
+        if (_doc is null || string.IsNullOrWhiteSpace(_currentFile))
+        {
+            KillerDialog.Show(this, Loc("Str_Msg_OpenFirst"));
+            return;
+        }
+
+        CommitActiveTextBox();
+        try
+        {
+            PdfEngineIntegration.PortfolioEditorState state =
+                PdfEngineIntegration.ReadPortfolioEditorState(_currentFile);
+            var dialog = new PortfolioStructureDialog(
+                this, state.Collection, state.Attachments);
+            if (dialog.ShowDialog() != true) return;
+            UndoEntry? documentUndo = CaptureDocumentUndo();
+            SaveTempAndReload(
+                keepAnnotations: true,
+                finalizeSavedFile: path => PdfEngineIntegration.ApplyPortfolioStructure(
+                    path, dialog.Fields, dialog.Sort, dialog.Folders, dialog.ItemValues),
+                documentUndo: documentUndo);
+            SetStatus(Loc("Str_Portfolio_StructureUpdated"));
+        }
+        catch (Exception ex)
+        {
+            KillerDialog.Show(this, Loc("Str_Portfolio_StructureFailed") + "\n" + ex.Message,
                 "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

@@ -24,7 +24,10 @@ internal static class PdfEngineIntegration
         int ObjectNumber, string Name, bool IsVisible, bool IsLocked);
 
     internal sealed record PortfolioEditorState(
-        PdfCollectionInfo? Collection, IReadOnlyList<string> AttachmentNames);
+        PdfCollectionInfo? Collection, IReadOnlyList<PortfolioAttachmentItem> Attachments);
+
+    internal sealed record PortfolioAttachmentItem(
+        string FileName, IReadOnlyList<PdfCollectionItemValue> Values);
 
     internal sealed record AttachmentEditorItem(
         string OriginalFileName, string FileName, string? Description,
@@ -166,7 +169,8 @@ internal static class PdfEngineIntegration
         return new PortfolioEditorState(
             PdfCollectionReader.Read(document),
             PdfAttachmentReader.Read(document)
-                .Select(attachment => attachment.FileName).ToArray());
+                .Select(attachment => new PortfolioAttachmentItem(
+                    attachment.FileName, attachment.CollectionValues)).ToArray());
     }
 
     internal static void ApplyPortfolioPresentation(
@@ -185,6 +189,27 @@ internal static class PdfEngineIntegration
         ReadOnlyMemory<byte> result = PdfCollectionMacro.Execute(
             PdfCollectionMacro.ClearStep(), File.ReadAllBytes(path));
         ReplaceWithBuiltResult(path, result.ToArray());
+    }
+
+    internal static void ApplyPortfolioStructure(
+        string path,
+        IReadOnlyList<PdfCollectionFieldInfo> fields,
+        IReadOnlyList<PdfCollectionSortInfo> sort,
+        IReadOnlyList<PdfCollectionFolder> folders,
+        IReadOnlyDictionary<string, IReadOnlyList<PdfCollectionItemValue>> itemValues)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(fields);
+        ArgumentNullException.ThrowIfNull(sort);
+        ArgumentNullException.ThrowIfNull(folders);
+        ArgumentNullException.ThrowIfNull(itemValues);
+        byte[] result = File.ReadAllBytes(path);
+        result = PdfCollectionEditor.SetSchema(PdfDocument.Open(result), fields, sort);
+        result = PdfCollectionEditor.SetFolders(PdfDocument.Open(result), folders);
+        foreach ((string fileName, IReadOnlyList<PdfCollectionItemValue> values) in itemValues)
+            result = PdfCollectionEditor.SetItemValues(
+                PdfDocument.Open(result), fileName, values);
+        ReplaceWithBuiltResult(path, result);
     }
 
     internal static IReadOnlyList<AttachmentEditorItem> ReadAttachmentEditorItems(string path)
