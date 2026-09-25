@@ -91,9 +91,7 @@ namespace KillerPDF.Controls
             }
             else
             {
-                PaneBorder.BorderThickness = show
-                    ? new Thickness(1, 0, 1, 1)
-                    : new Thickness(1);
+                PaneBorder.BorderThickness = new Thickness(1);
                 PaneBevelOuterDark.SetResourceReference(Border.BorderThicknessProperty, "PaneBevelLightThickness");
                 PaneBevelOuterLight.SetResourceReference(Border.BorderThicknessProperty, "PaneBevelDarkThickness");
                 PaneBevelInnerDark.SetResourceReference(Border.BorderThicknessProperty, "PaneBevel2LightThickness");

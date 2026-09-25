@@ -18,6 +18,8 @@ public sealed class DocumentTabLayoutTests
 
         Assert.Contains("int visibleCount = overflow ? cap : n;", source, StringComparison.Ordinal);
         Assert.Contains("visibleCount * TabCeilingWidth", source, StringComparison.Ordinal);
+        Assert.Contains("PaneBorder.BorderThickness = new Thickness(1);", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("PaneBorder.BorderThickness = show", source, StringComparison.Ordinal);
 
         XElement host = document.Descendants()
             .Single(element => (string?)element.Attribute(x + "Name") == "TabStripHost");
