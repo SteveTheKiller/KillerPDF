@@ -90,18 +90,6 @@ namespace KillerPDF.Controls
                 // step where the selected last tab joined it.
                 PaneBevelInnerLight.BorderThickness = new Thickness(0, 0, 0, 1);
             }
-            else if (retroTheme)
-            {
-                // With no tab band there is nothing for a raised client frame to join. The old
-                // generic fallback below reapplied all four 98SE bevel resources and drew a heavy
-                // rectangle around the entire document pane. Keep the single-document client
-                // flush; the classic frame is only part of the multi-tab treatment above.
-                PaneBorder.BorderThickness = new Thickness(0);
-                PaneBevelOuterDark.BorderThickness = new Thickness(0);
-                PaneBevelOuterLight.BorderThickness = new Thickness(0);
-                PaneBevelInnerDark.BorderThickness = new Thickness(0);
-                PaneBevelInnerLight.BorderThickness = new Thickness(0);
-            }
             else
             {
                 PaneBorder.BorderThickness = show
