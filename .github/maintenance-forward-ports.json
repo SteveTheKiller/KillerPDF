@@ -328,6 +328,146 @@
       "maintenanceCommit": "0dbd5ebb6f34e099a5b7d5fe8aba2c72b38b5009",
       "developmentCommit": "d62366aaf8ac67a2ce7187c27120dc4330814432",
       "reason": "The 1.8.6 benchmark report, measured runs, performance record, landing results, and localized claims are preserved in 1.9."
+    },
+    {
+      "maintenanceCommit": "8289b8148e6f881a4e927ee6e79ee6021b5690d0",
+      "developmentCommit": "0ee5e5d10a4529cb86ee04522d8a7f2998e8a57d",
+      "reason": "Vietnamese website localization and contributor credit match the maintenance implementation."
+    },
+    {
+      "maintenanceCommit": "378606fac57efaf7af7bf924f784ecba0c262f1e",
+      "developmentCommit": "cba7ff3594007668593a836db1795147209236f8",
+      "reason": "The development README remains branch-specific while the landing pages now carry the 1.8.70 stable release metadata."
+    },
+    {
+      "maintenanceCommit": "c7eafbf72fc72abc7ffe4e3084c99293713e35c2",
+      "developmentCommit": "cba7ff3594007668593a836db1795147209236f8",
+      "reason": "The current stable release metadata supersedes the earlier 1.8.6 landing values."
+    },
+    {
+      "maintenanceCommit": "3bb4d25c3332926d97f5632c87799969a6004983",
+      "developmentCommit": "79c04db5a81849fa3112fe26d476563f0e5c8038",
+      "reason": "The final 1.9 release workflow retains complete app and engine publication with strict version parity; the temporary maintenance exception is not applicable."
+    },
+    {
+      "maintenanceCommit": "3efe6a69e93051e32a5ae62970be05cd066d9e1f",
+      "developmentCommit": "cba7ff3594007668593a836db1795147209236f8",
+      "reason": "The development README remains branch-specific while the landing pages now carry the 1.8.70 stable release metadata."
+    },
+    {
+      "maintenanceCommit": "2676767c916875af7647f7fecca3c3c7f10f1f54",
+      "developmentCommit": "cba7ff3594007668593a836db1795147209236f8",
+      "reason": "The current stable release metadata supersedes the earlier 1.8.61 landing values."
+    },
+    {
+      "maintenanceCommit": "f701f1e43956e6fb99232a93e32fbf41c58680be",
+      "developmentCommit": "79c04db5a81849fa3112fe26d476563f0e5c8038",
+      "reason": "The 1.9 workflow publishes complete app and engine releases and enforces application, engine, and release version parity."
+    },
+    {
+      "maintenanceCommit": "314c91aff3322ac18a77806b72550220db9c222e",
+      "developmentCommit": "bff410185c3d2a7d80faa7a087e82bce240e077a",
+      "reason": "Vietnamese application and OCR support are present in 1.9. The 1.8 series brochure remains maintenance material and is not copied over the separate 1.9 brochure."
+    },
+    {
+      "maintenanceCommit": "b65b974d9bf728351126ff721d62cdfebb2a261a",
+      "developmentCommit": "49e759d14ab8b0b7cca6c783ddb0c2dae802ae17",
+      "reason": "Recursive XObject import handling and its regression coverage match the maintenance fix."
+    },
+    {
+      "maintenanceCommit": "03d1c18fadeb69e417bcdfaabb92e0971f5dc08b",
+      "developmentCommit": "f97cdffb2aa2d8e89d74562a81283c730f7d7c1c",
+      "reason": "Saved annotation overlay isolation and its regression coverage match the maintenance fix."
+    },
+    {
+      "maintenanceCommit": "df7c74ec5a170b5085d842405c3c0a990bc56d59",
+      "developmentCommit": "4a21fed4e41f058d2ae789b0a81703272ffed361",
+      "reason": "Text box placement, editing behavior, shortcut policy, and tests match maintenance."
+    },
+    {
+      "maintenanceCommit": "bad4d96afe6c66e10f445145e1d9912074e36cf9",
+      "developmentCommit": "0ad9ea7c8bff6f9eecf829341cf6ccdecd0a6aef",
+      "reason": "Precision touchpad zoom stabilization and its math tests match maintenance."
+    },
+    {
+      "maintenanceCommit": "7b06225a58a6d905f44c6a1d2e898f36bc8d475d",
+      "developmentCommit": "697a1c9285b1beb2a812329f2841f1800e922e81",
+      "reason": "Localized toolbar caption sizing and localization coverage match maintenance."
+    },
+    {
+      "maintenanceCommit": "41b5c142746104b042fac717453c51d88e293460",
+      "developmentCommit": "88e65a4aace9dfdb7561a95cc69a267c8d06b2ae",
+      "reason": "Region-copy selection visibility matches the maintenance fix."
+    },
+    {
+      "maintenanceCommit": "22e2d2d38a52e15d46cfa93ecdb1db1e3edd56ad",
+      "developmentCommit": "ac5e701c9009b4d803c4672447d52449ece21aca",
+      "reason": "Website keyboard labels and the release localization gate match maintenance."
+    },
+    {
+      "maintenanceCommit": "7be7c078987ed2995abae27877acd9835785be18",
+      "developmentCommit": "cba7ff3594007668593a836db1795147209236f8",
+      "reason": "The 1.8.70 release date and stable landing metadata are preserved while active 1.9 project metadata correctly remains Unreleased."
+    },
+    {
+      "maintenanceCommit": "032f8e8cf1dc11a1b4425659dacb4872115cf93e",
+      "developmentCommit": "659c41b9acc58b54787b782b950e3b3c10a4050c",
+      "reason": "Release artifact gates, regression tests, package metadata, and source-bundle checks match maintenance."
+    },
+    {
+      "maintenanceCommit": "818adca65fdd2ba36c6587f893a2dc67937e3fb6",
+      "developmentCommit": "ff64778dbeb6de090d4333800aa31f481891b5e2",
+      "reason": "Comparison controls use the same docked layout and regression coverage as maintenance."
+    },
+    {
+      "maintenanceCommit": "536859fd0c3a7ff510e1ea70c3d0f3400fd2b9dd",
+      "developmentCommit": "e580bf8f33c61086ce03d103699b1fdfaa86ef3b",
+      "reason": "Startup taskbar icon handling and native import coverage match maintenance."
+    },
+    {
+      "maintenanceCommit": "54e2a0d25a56e7e68bd52a48d1f0a681d2f6f277",
+      "developmentCommit": "4ffd5c923b944cd7eda852f5b87629fd82bc0fdd",
+      "reason": "The 1.9 changelog keeps the same consolidated priority ordering while retaining development-specific history."
+    },
+    {
+      "maintenanceCommit": "d61f24197f95e3ae5d013fd97c608184194e63ba",
+      "developmentCommit": "c80d7ce8f088047ccea4a67a3aa8d5c39d993ee4",
+      "reason": "Comparison hover behavior, control spacing, and layout tests match maintenance."
+    },
+    {
+      "maintenanceCommit": "048a40c2e6371e17b3a8d854c64c2f4446cf8054",
+      "developmentCommit": "87d232fffc918e5f817f31561dc7568bdaac8d9e",
+      "reason": "Comparison contrast, selected toolbar visuals, and their regression tests match maintenance."
+    },
+    {
+      "maintenanceCommit": "5d03166375c204c3782db00cce70da2d9d11e16a",
+      "developmentCommit": "712c9c73c98ea54ab34d8ed8a5d392d7807edae2",
+      "reason": "The comparison dock and split divider geometry match maintenance."
+    },
+    {
+      "maintenanceCommit": "535aa499a785120c02466b222419d91821cdaf43",
+      "developmentCommit": "4ffd5c923b944cd7eda852f5b87629fd82bc0fdd",
+      "reason": "The 1.9 changelog keeps the same consolidated priority ordering while retaining development-specific history."
+    },
+    {
+      "maintenanceCommit": "d52213eb3c319affcaa3b47152a4c7713ea11a6b",
+      "developmentCommit": "9ac015e24aa0cd4f519471d9db178edbbcdd837a",
+      "reason": "The 1.8.70 benchmark report, measured runs, performance record, landing results, and localized claims are preserved in 1.9."
+    },
+    {
+      "maintenanceCommit": "b2dcd0c136eef9fbf4d63fdaa6b2bcbca2989b75",
+      "developmentCommit": "e8fe5fe792a86df5f4d5adde395aebd450fcc3e0",
+      "reason": "Release package switch forwarding matches maintenance."
+    },
+    {
+      "maintenanceCommit": "95a0feba634a51646607e3f126ff2bf47a3186a2",
+      "developmentCommit": "cba7ff3594007668593a836db1795147209236f8",
+      "reason": "The development README remains branch-specific while the landing pages now carry the 1.8.70 stable release metadata."
+    },
+    {
+      "maintenanceCommit": "895cc87e2a033a0f870c326461f3c5dd3a79dcea",
+      "developmentCommit": "cba7ff3594007668593a836db1795147209236f8",
+      "reason": "All stable landing-page version, date, size, digest, footer, and localized footer values match the 1.8.70 release."
     }
   ]
 }
