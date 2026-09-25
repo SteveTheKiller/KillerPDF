@@ -73,6 +73,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Hardened native library loading and release artifact verification.
+- Preserved descriptor font names and source baselines when editing existing PDF text (#431).
 - Chose the print dialog's initial orientation from the active page while preserving manual overrides (#432).
 - Preserved shapes and other annotations on retained pages when deleting PDF pages (#429).
 - Preserved annotation position and orientation when saving PDFs whose page content leaves a transform active.

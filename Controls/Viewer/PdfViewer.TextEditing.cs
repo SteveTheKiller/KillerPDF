@@ -328,6 +328,8 @@ namespace KillerPDF.Controls
                 string fontName = "Segoe UI"; // fallback
                 bool fontBold = false;
                 bool fontItalic = false;
+                double? sourceLeft = null;
+                double? sourceBaseline = null;
                 var firstWord = lineWords.First().Word;
                 try
                 {
@@ -343,6 +345,12 @@ namespace KillerPDF.Controls
                         double pdfFontPts = letter.PointSize > 0 ? letter.PointSize : letter.FontSize;
                         if (pdfFontPts > 0)
                             canvasFontSize = pdfFontPts * syInv;
+
+                        if (letter.WritingDirection == KillerPdf.Engine.Documents.PdfWritingDirection.LeftToRight)
+                        {
+                            sourceLeft = letter.StartBaseLine.X * sxInv;
+                            sourceBaseline = renderH - letter.StartBaseLine.Y * syInv;
+                        }
 
                         // Font family from the LETTER, never the word (#166, thanks Ryokoxx):
                         // Word.FontName joins its letters' names ("Helvetica Helvetica Helvetica
@@ -369,9 +377,24 @@ namespace KillerPDF.Controls
                 string prefill = LooksGarbled(lineText) ? "" : lineText;
                 string requestedFamily = fontName;
                 fontName = PdfFontStyle.ResolveInstalledFamily(fontName, MainWindow.SystemFontNames);
+                double boxFontCanvas = Math.Max(canvasFontSize, syInv);
+                double editorLeft = sourceLeft is double origin
+                    ? PdfTextEditPlacement.LeftFromOrigin(origin, 1, 2, cLeft)
+                    : cLeft;
+                double editorTop = cTop;
+                try
+                {
+                    if (sourceBaseline is double baseline)
+                    {
+                        var family = new FontFamily(fontName);
+                        editorTop = PdfTextEditPlacement.TopFromBaseline(
+                            baseline, family.Baseline, boxFontCanvas, 1, cTop);
+                    }
+                }
+                catch { /* retain the extracted glyph top */ }
                 StartCoverTextEdit(pageIdx, new Rect(cLeft, cTop, cWidth, cHeight), prefill,
-                    Math.Max(canvasFontSize, syInv), fontName, syInv,
-                    fontBold, fontItalic);
+                    boxFontCanvas, fontName, syInv,
+                    fontBold, fontItalic, editorLeft, editorTop);
                 SetStatus(string.Equals(requestedFamily, fontName, StringComparison.OrdinalIgnoreCase)
                     ? string.Format(Loc("Str_St_TextEditDetectedFont"), fontName, _textFontSize.ToString("0.##"))
                     : string.Format(Loc("Str_St_TextEditFontSubstituted"), requestedFamily, fontName, _textFontSize.ToString("0.##")));
@@ -387,7 +410,8 @@ namespace KillerPDF.Controls
         // text layer, for a manual edit at the click point. boxFontCanvas is the on-canvas font size;
         // the cover fill and text ink are sampled from the page so the edit blends in.
         private void StartCoverTextEdit(int pageIdx, Rect lineRect, string text, double boxFontCanvas,
-                                        string fontName, double syInv, bool bold = false, bool italic = false)
+                                        string fontName, double syInv, bool bold = false, bool italic = false,
+                                        double? editorLeft = null, double? editorTop = null)
         {
             double cLeft = lineRect.X, cTop = lineRect.Y, cWidth = lineRect.Width, cHeight = lineRect.Height;
             // Pair id shared with the replacement text - the cover renders dashed while paired.
@@ -437,8 +461,8 @@ namespace KillerPDF.Controls
                 TextWrapping = TextWrapping.Wrap,
                 Tag = pageIdx
             };
-            Canvas.SetLeft(tb, cLeft);
-            Canvas.SetTop(tb, cTop);
+            Canvas.SetLeft(tb, editorLeft ?? cLeft);
+            Canvas.SetTop(tb, editorTop ?? cTop);
             TextEditorLayerFor(_activeCanvas).Children.Add(tb);
             _activeTextBox = tb;
             StyleEditBox(tb);

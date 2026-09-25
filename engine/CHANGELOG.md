@@ -81,6 +81,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Fixed
 
+- Preserved descriptor font names when a PDF omits the font resource's top-level name (#431).
 - Treated a null transparency-group color space as omitted instead of failing the page render.
 - Recovered usable page content from damaged top-level ASCII85 streams while preserving strict rejection.
 - Allowed valid recursive Form XObject resource graphs to be imported during page merges (#421).

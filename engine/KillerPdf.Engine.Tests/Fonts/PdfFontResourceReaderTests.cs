@@ -333,6 +333,15 @@ public sealed class PdfFontResourceReaderTests
         Assert.Equal(new PdfGlyphBounds(14, 0, 654, 718), font.GetGlyphBounds(65));
     }
 
+    [Fact]
+    public void MissingBaseFontUsesDescriptorFontName()
+    {
+        var font = Read(D(("Subtype", N("TrueType")),
+            ("FontDescriptor", D(("FontName", N("ABCDEF+Calibri-Bold"))))));
+
+        Assert.Equal("ABCDEF+Calibri-Bold", font.FontName);
+    }
+
     [Theory]
     [InlineData("ArialMT", 667)]
     [InlineData("ABCDEF+Arial-BoldMT", 722)]

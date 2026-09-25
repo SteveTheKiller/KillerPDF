@@ -30,9 +30,6 @@ public static class PdfFontResourceReader
 
         internal PdfExtractionFont Read(PdfDictionary font)
         {
-            string fontName = Name(Get(font, "BaseFont")) ?? "Unknown";
-            string metricsName = fontName.Length > 7 && fontName[6] == '+' ? fontName[7..] : fontName;
-            string standardMetricsName = PdfStandardFontSubstitutes.CanonicalMetricsName(metricsName);
             string? subtype = Name(Get(font, "Subtype"));
             bool composite = subtype == "Type0";
             PdfDictionary metrics = font;
@@ -52,6 +49,12 @@ public static class PdfFontResourceReader
                     throw new FormatException("A Type0 font must have one descendant font.");
             }
             var descriptor = Get(metrics, "FontDescriptor") as PdfDictionary;
+            string fontName = Name(Get(font, "BaseFont"))
+                ?? Name(Get(metrics, "BaseFont"))
+                ?? Name(Get(descriptor, "FontName"))
+                ?? "Unknown";
+            string metricsName = fontName.Length > 7 && fontName[6] == '+' ? fontName[7..] : fontName;
+            string standardMetricsName = PdfStandardFontSubstitutes.CanonicalMetricsName(metricsName);
             var systemInfo = Get(metrics, "CIDSystemInfo") as PdfDictionary;
             string registry = Get(systemInfo, "Registry") is PdfString registryText
                 ? Encoding.Latin1.GetString(registryText.Bytes.Span) : "Adobe";
