@@ -343,6 +343,11 @@
       "maintenanceCommit": "b2dcd0c136eef9fbf4d63fdaa6b2bcbca2989b75",
       "developmentCommit": "e8fe5fe792a86df5f4d5adde395aebd450fcc3e0",
       "reason": "The release package switch forwarding fix matches maintenance."
+    },
+    {
+      "maintenanceCommit": "60d03cb8c81c5972df3ef697746b18763e0d33af",
+      "developmentCommit": "f97db5449eeb500659923497d45433929b02ad07",
+      "reason": "The installer smoke test isolation and regression assertion match maintenance."
     }
   ]
 }
