@@ -44,6 +44,8 @@ public partial class MainWindow
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_Portfolio"),
             (_, _) => ShowDocumentReport(Loc("Str_DocumentTools_Portfolio"),
                 PdfEngineIntegration.InspectPortfolio), glyph: "\uE8B7"));
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_InitialView"),
+            (_, _) => EditInitialView(), glyph: "\uE7B3"));
         var comparison = MakeMenuItem(Loc("Str_DocumentTools_StructuralComparison"),
             (_, _) => ShowStructuralComparison(), glyph: "\uE8AB");
         comparison.IsEnabled = IsSplit
@@ -149,6 +151,37 @@ public partial class MainWindow
         catch (Exception ex)
         {
             KillerDialog.Show(this, Loc("Str_DocumentTools_LayersFailed") + "\n" + ex.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void EditInitialView()
+    {
+        if (_doc is null || string.IsNullOrWhiteSpace(_currentFile))
+        {
+            KillerDialog.Show(this, Loc("Str_Msg_OpenFirst"));
+            return;
+        }
+
+        CommitActiveTextBox();
+        try
+        {
+            var information = KillerPdf.Engine.Documents.PdfDocumentInformation.Read(
+                EnsureEngineDocumentSession().Document);
+            var dialog = new InitialViewDialog(
+                this, information.InitialView, information.PageCount);
+            if (dialog.ShowDialog() != true || dialog.InitialView is null) return;
+            UndoEntry? documentUndo = CaptureDocumentUndo();
+            SaveTempAndReload(
+                keepAnnotations: true,
+                finalizeSavedFile: path =>
+                    PdfEngineIntegration.ApplyInitialView(path, dialog.InitialView),
+                documentUndo: documentUndo);
+            SetStatus(Loc("Str_InitialView_Updated"));
+        }
+        catch (Exception ex)
+        {
+            KillerDialog.Show(this, Loc("Str_InitialView_Failed") + "\n" + ex.Message,
                 "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
