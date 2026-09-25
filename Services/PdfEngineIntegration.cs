@@ -338,6 +338,16 @@ internal static class PdfEngineIntegration
         ReplaceWithBuiltResult(path, result);
     }
 
+    internal static void ApplyPageLabels(
+        string path, IReadOnlyList<PdfPageLabelMacroRange> ranges)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(ranges);
+        ReadOnlyMemory<byte> result = PdfNavigationMacro.Execute(
+            PdfNavigationMacro.PageLabelsStep(ranges), File.ReadAllBytes(path));
+        ReplaceWithBuiltResult(path, result.ToArray());
+    }
+
     /// <summary>Compares interpreted content, resources, and page geometry.</summary>
     internal static PdfStructuralComparison CompareStructure(string originalPath, string changedPath)
     {

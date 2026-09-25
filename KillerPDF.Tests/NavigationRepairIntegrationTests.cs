@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using KillerPDF.Services;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Parsing;
 using Xunit;
@@ -31,6 +32,32 @@ public sealed class NavigationRepairIntegrationTests
             Assert.Empty(PdfEngineIntegration.InspectNavigation(path));
             Assert.Empty(PdfLinkReader.ReadPage(
                 PdfDocument.Open(File.ReadAllBytes(path)), 0));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void ApplyPageLabels_ReplacesRangesAndPreservesThePages()
+    {
+        string path = Path.Combine(Path.GetTempPath(),
+            $"killerpdf-page-labels-{System.Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder()
+                .AddBlankPage().AddBlankPage().AddBlankPage().Build());
+
+            PdfEngineIntegration.ApplyPageLabels(path,
+            [
+                new PdfPageLabelMacroRange(0, PdfPageLabelStyle.LowerRoman),
+                new PdfPageLabelMacroRange(2, PdfPageLabelStyle.Decimal, "A-", 4)
+            ]);
+
+            PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
+            Assert.Equal(["i", "ii", "A-4"], PdfPageLabelReader.Read(document));
+            Assert.Equal(3, PdfDocumentInformation.Read(document).PageCount);
         }
         finally
         {

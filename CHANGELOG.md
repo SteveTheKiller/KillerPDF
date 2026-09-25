@@ -19,6 +19,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added desktop data merge from CSV, JSON, and XLSX into matching PDF form fields, with isolated output and batch results.
 - Added desktop table-of-contents authoring from document bookmarks, with clickable destinations and undo support.
 - Added reviewed desktop bookmark generation from detected document headings.
+- Added desktop page-label range editing with decimal, Roman numeral, letter, and prefix-only styles.
 - Added Vietnamese application, installer, OCR, website, and engine documentation support. (Thanks @vuanhvu11982)
 - Added startup update checks, enabled by default, with confirmation before updating and a shared toggle in About and the update dialog.
 - Added Ctrl+R and Ctrl+Shift+R to rotate selected pages clockwise and counterclockwise.
