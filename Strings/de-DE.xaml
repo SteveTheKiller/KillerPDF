@@ -349,6 +349,14 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_DocumentTools_Preflight">Preflight-Bericht</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Barrierefreiheitsbericht</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Ebenenbericht</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">Ebenen bearbeiten</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">Ebenenname</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">Sichtbar</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">Gesperrt</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">Dieses Dokument enthält keine Ebenen.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">Geben Sie für jede Ebene einen eindeutigen Namen ein.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">Ebenen aktualisiert</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">Die Ebenen konnten nicht aktualisiert werden:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Portfoliobericht</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Separationenvorschaubericht</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Strukturvergleichsbericht</sys:String>

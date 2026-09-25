@@ -429,6 +429,14 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_DocumentTools_Preflight">Előellenőrzési jelentés</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Akadálymentességi jelentés</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Rétegjelentés</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">Rétegek szerkesztése</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">Réteg neve</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">Látható</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">Zárolt</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">Ez a dokumentum nem tartalmaz rétegeket.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">Adjon egyedi nevet minden rétegnek.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">Rétegek frissítve</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">A rétegek frissítése nem sikerült:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Portfóliójelentés</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Színbontási előnézeti jelentés</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Szerkezeti összehasonlítási jelentés</sys:String>

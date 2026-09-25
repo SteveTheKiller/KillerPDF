@@ -429,6 +429,14 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">プリフライトレポート</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">アクセシビリティレポート</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">レイヤーレポート</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">レイヤーを編集</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">レイヤー名</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">表示</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">ロック</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">この文書にはレイヤーがありません。</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">各レイヤーに一意の名前を入力してください。</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">レイヤーを更新しました</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">レイヤーを更新できませんでした:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">ポートフォリオレポート</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">色分解プレビューレポート</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">構造比較レポート</sys:String>

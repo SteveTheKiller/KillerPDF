@@ -349,6 +349,14 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_DocumentTools_Preflight">প্রিফ্লাইট প্রতিবেদন</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">অ্যাক্সেসিবিলিটি প্রতিবেদন</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">লেয়ার রিপোর্ট</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">লেয়ার সম্পাদনা</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">লেয়ারের নাম</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">দৃশ্যমান</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">লক করা</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">এই নথিতে কোনো লেয়ার নেই।</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">প্রতিটি লেয়ারের জন্য একটি অনন্য নাম লিখুন।</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">লেয়ার আপডেট করা হয়েছে</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">লেয়ার আপডেট করা যায়নি:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">পোর্টফোলিও রিপোর্ট</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">কালার সেপারেশন প্রিভিউ রিপোর্ট</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">কাঠামোগত তুলনা রিপোর্ট</sys:String>

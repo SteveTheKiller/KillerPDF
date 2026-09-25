@@ -349,6 +349,14 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_DocumentTools_Preflight">Ön kontrol raporu</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Erişilebilirlik raporu</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Katman raporu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">Katmanları düzenle</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">Katman adı</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">Görünür</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">Kilitli</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">Bu belgede katman yok.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">Her katman için benzersiz bir ad girin.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">Katmanlar güncellendi</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">Katmanlar güncellenemedi:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Portföy raporu</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Renk ayrımı önizleme raporu</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Yapısal karşılaştırma raporu</sys:String>

@@ -429,6 +429,14 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_DocumentTools_Preflight">Báo cáo kiểm tra trước khi in</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Báo cáo khả năng tiếp cận</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Báo cáo lớp</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">Chỉnh sửa lớp</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">Tên lớp</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">Hiển thị</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">Đã khóa</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">Tài liệu này không có lớp.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">Nhập tên duy nhất cho mỗi lớp.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">Đã cập nhật lớp</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">Không thể cập nhật các lớp:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Báo cáo danh mục</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Báo cáo xem trước tách màu</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Báo cáo so sánh cấu trúc</sys:String>

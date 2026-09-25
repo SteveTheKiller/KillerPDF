@@ -351,6 +351,14 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">印前檢查報告</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">無障礙報告</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">圖層報告</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">編輯圖層</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">圖層名稱</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">可見</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">已鎖定</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">此文件沒有圖層。</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">請為每個圖層輸入唯一名稱。</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">圖層已更新</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">無法更新圖層:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">PDF 包報告</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">分色預覽報告</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">結構比較報告</sys:String>

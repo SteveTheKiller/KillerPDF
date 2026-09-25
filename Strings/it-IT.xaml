@@ -429,6 +429,14 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_DocumentTools_Preflight">Rapporto di verifica preliminare</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Rapporto di accessibilità</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Rapporto livelli</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">Modifica livelli</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">Nome livello</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">Visibile</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">Bloccato</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">Questo documento non contiene livelli.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">Immettere un nome univoco per ogni livello.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">Livelli aggiornati</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">Impossibile aggiornare i livelli:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Rapporto portfolio</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Rapporto anteprima separazioni</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Rapporto confronto strutturale</sys:String>

@@ -20,6 +20,9 @@ namespace KillerPDF.Services;
 /// <summary>Bridges completed application state into The KillerPDF.Engine during migration.</summary>
 internal static class PdfEngineIntegration
 {
+    internal sealed record LayerEdit(
+        int ObjectNumber, string Name, bool IsVisible, bool IsLocked);
+
     internal sealed record FormEdits(
         IReadOnlyDictionary<string, string> TextValues,
         IReadOnlyDictionary<string, string> ChoiceValues,
@@ -103,6 +106,42 @@ internal static class PdfEngineIntegration
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return PdfOptionalContentReader.Read(PdfDocument.Open(File.ReadAllBytes(path)));
+    }
+
+    /// <summary>Applies reviewed layer names, saved visibility, and lock state.</summary>
+    internal static void ApplyLayerEdits(string path, IReadOnlyList<LayerEdit> edits)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(edits);
+        byte[] result = File.ReadAllBytes(path);
+        PdfDocument document = PdfDocument.Open(result);
+        PdfOptionalContentInfo original = PdfOptionalContentReader.Read(document);
+        var groups = original.Groups.ToDictionary(group => group.ObjectNumber);
+
+        foreach (LayerEdit edit in edits)
+        {
+            if (!groups.TryGetValue(edit.ObjectNumber, out PdfOptionalContentGroupInfo? group))
+                throw new InvalidOperationException("A selected layer no longer exists.");
+            if (!string.Equals(edit.Name, group.Name, StringComparison.Ordinal))
+            {
+                result = PdfOptionalContentEditor.RenameGroup(document, edit.ObjectNumber, edit.Name);
+                document = PdfDocument.Open(result);
+            }
+            if (edit.IsVisible != group.IsInitiallyVisible)
+            {
+                result = PdfOptionalContentEditor.SetInitialVisibility(
+                    document, edit.ObjectNumber, edit.IsVisible);
+                document = PdfDocument.Open(result);
+            }
+            if (edit.IsLocked != group.IsLocked)
+            {
+                result = PdfOptionalContentEditor.SetLocked(
+                    document, edit.ObjectNumber, edit.IsLocked);
+                document = PdfDocument.Open(result);
+            }
+        }
+
+        ReplaceWithBuiltResult(path, result);
     }
 
     /// <summary>Formats portfolio metadata without loading embedded-file payloads.</summary>

@@ -414,6 +414,14 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_DocumentTools_Preflight">Raport inspekcji wstępnej</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Raport dostępności</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Raport warstw</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">Edytuj warstwy</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">Nazwa warstwy</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">Widoczna</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">Zablokowana</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">Ten dokument nie zawiera warstw.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">Wprowadź unikatową nazwę każdej warstwy.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">Warstwy zaktualizowane</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">Nie można zaktualizować warstw:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Raport portfolio</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Raport podglądu separacji</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Raport porównania strukturalnego</sys:String>

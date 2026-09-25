@@ -39,6 +39,8 @@ public partial class MainWindow
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_Layers"),
             (_, _) => ShowDocumentReport(Loc("Str_DocumentTools_Layers"),
                 path => PdfEngineIntegration.InspectLayers(path).ToText()), glyph: "\uE8A1"));
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_EditLayers"),
+            (_, _) => EditLayers(), glyph: "\uE70F"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_Portfolio"),
             (_, _) => ShowDocumentReport(Loc("Str_DocumentTools_Portfolio"),
                 PdfEngineIntegration.InspectPortfolio), glyph: "\uE8B7"));
@@ -111,6 +113,42 @@ public partial class MainWindow
         catch (Exception ex)
         {
             KillerDialog.Show(this, Loc("Str_DocumentTools_TocFailed") + "\n" + ex.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void EditLayers()
+    {
+        if (_doc is null || string.IsNullOrWhiteSpace(_currentFile))
+        {
+            KillerDialog.Show(this, Loc("Str_Msg_OpenFirst"));
+            return;
+        }
+
+        CommitActiveTextBox();
+        try
+        {
+            var layers = PdfEngineIntegration.InspectLayers(_currentFile);
+            if (layers.Groups.Count == 0)
+            {
+                KillerDialog.Show(this, Loc("Str_DocumentTools_NoLayers"),
+                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var dialog = new LayerEditorDialog(this, layers.Groups);
+            if (dialog.ShowDialog() != true) return;
+            UndoEntry? documentUndo = CaptureDocumentUndo();
+            SaveTempAndReload(
+                keepAnnotations: true,
+                finalizeSavedFile: path =>
+                    PdfEngineIntegration.ApplyLayerEdits(path, dialog.Edits),
+                documentUndo: documentUndo);
+            SetStatus(Loc("Str_DocumentTools_LayersUpdated"));
+        }
+        catch (Exception ex)
+        {
+            KillerDialog.Show(this, Loc("Str_DocumentTools_LayersFailed") + "\n" + ex.Message,
                 "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

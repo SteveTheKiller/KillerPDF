@@ -349,6 +349,14 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Informe de comprobación previa</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Informe de accesibilidad</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Informe de capas</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">Editar capas</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">Nombre de la capa</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">Visible</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">Bloqueada</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">Este documento no tiene capas.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">Escriba un nombre único para cada capa.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">Capas actualizadas</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">No se pudieron actualizar las capas:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Informe de portafolio</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Informe de vista previa de separaciones</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Informe de comparación estructural</sys:String>

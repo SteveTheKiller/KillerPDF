@@ -167,6 +167,40 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void LayerIntegration_RenamesAndUpdatesSavedState()
+    {
+        string path = Path.Combine(Path.GetTempPath(),
+            $"killerpdf-layer-edit-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            var layer = new PdfOptionalContentGroup("Original", initiallyVisible: true);
+            File.WriteAllBytes(path, new PdfDocumentBuilder()
+                .AddPage(100, 100, new PdfContentStreamBuilder()
+                    .BeginOptionalContent(layer).Rectangle(0, 0, 10, 10).Fill()
+                    .EndMarkedContent())
+                .Build());
+            PdfOptionalContentGroupInfo original = Assert.Single(
+                PdfEngineIntegration.InspectLayers(path).Groups);
+
+            PdfEngineIntegration.ApplyLayerEdits(path,
+            [
+                new PdfEngineIntegration.LayerEdit(
+                    original.ObjectNumber, "Reviewed", false, true)
+            ]);
+
+            PdfOptionalContentGroupInfo changed = Assert.Single(
+                PdfEngineIntegration.InspectLayers(path).Groups);
+            Assert.Equal("Reviewed", changed.Name);
+            Assert.False(changed.IsInitiallyVisible);
+            Assert.True(changed.IsLocked);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void CommentIntegration_ReadsEditsAndRemovesSelectedComment()
     {
         string path = Path.Combine(Path.GetTempPath(),

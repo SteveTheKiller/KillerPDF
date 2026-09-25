@@ -429,6 +429,14 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_DocumentTools_Preflight">Preflight report</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Accessibility report</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Layers report</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">Edit layers</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">Layer name</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">Visible</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">Locked</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">This document has no layers.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">Enter a unique name for every layer.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">Layers updated</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">Could not update the layers:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Portfolio report</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Separation preview report</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Structural comparison report</sys:String>

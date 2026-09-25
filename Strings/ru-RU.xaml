@@ -429,6 +429,14 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_DocumentTools_Preflight">Отчет предпечатной проверки</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Отчет о доступности</sys:String>
     <sys:String x:Key="Str_DocumentTools_Layers">Отчет о слоях</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditLayers">Изменить слои</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerName">Имя слоя</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerVisible">Видимый</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerLocked">Заблокирован</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NoLayers">В этом документе нет слоев.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayerInvalid">Введите уникальное имя для каждого слоя.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersUpdated">Слои обновлены</sys:String>
+    <sys:String x:Key="Str_DocumentTools_LayersFailed">Не удалось обновить слои:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Portfolio">Отчет о портфолио</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">Отчет о предпросмотре цветоделения</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Отчет о структурном сравнении</sys:String>
