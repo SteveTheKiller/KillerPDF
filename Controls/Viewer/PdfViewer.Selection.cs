@@ -105,6 +105,36 @@ namespace KillerPDF.Controls
             return true;
         }
 
+        private bool IsTextAtPosition(int pageIdx, Point pos)
+        {
+            if (_currentFile is null || !_renderDims.TryGetValue(pageIdx, out var rd)) return false;
+            var runs = _textRuns.GetPage(_currentFile, pageIdx);
+            if (runs is null || runs.Chars.Count == 0) return false;
+            var (px, py) = CanvasToPdf(pos, rd.w, rd.h, runs);
+            return TextRunService.IsOverText(runs, px, py);
+        }
+
+        private bool TrySelectWordAtPosition(int pageIdx, Point pos)
+        {
+            if (_currentFile is null || !_renderDims.TryGetValue(pageIdx, out var rd)) return false;
+            var runs = _textRuns.GetPage(_currentFile, pageIdx);
+            if (runs is null || runs.Chars.Count == 0) return false;
+            var (px, py) = CanvasToPdf(pos, rd.w, rd.h, runs);
+            var range = TextRunService.WordRangeFromPoint(runs, px, py);
+            if (range is null) return false;
+
+            ClearTextSelection();
+            _txtSelAnchor = (pageIdx, range.Value.Start);
+            _txtSelFocus = (pageIdx, range.Value.End);
+            _txtSelHasRange = true;
+            RepaintTextSelection();
+            _selectedText = TextRunService.TextForRange(
+                runs, range.Value.Start, range.Value.End, out int words);
+            try { Clipboard.SetText(_selectedText); } catch { }
+            SetStatus(string.Format(Loc("Str_St_CopiedWords"), words));
+            return true;
+        }
+
         /// <summary>Mouse-move while a flowing selection drag is live. Resolves which page the
         /// pointer is over (cross-page tracking in Continuous, where every overlay is a live tile),
         /// moves the focus caret, and repaints.</summary>

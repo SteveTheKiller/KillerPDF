@@ -328,6 +328,38 @@ namespace KillerPDF.Services
             return target.End;
         }
 
+        /// <summary>Returns the caret range of the word under a point, or null when the point is
+        /// outside selectable text. Used for conventional double-click word selection.</summary>
+        public static (int Start, int End)? WordRangeFromPoint(PageTextRuns runs, double x, double y)
+        {
+            if (!IsOverText(runs, x, y)) return null;
+
+            int bestIndex = -1;
+            double bestDistance = double.MaxValue;
+            for (int i = 0; i < runs.Chars.Count; i++)
+            {
+                RunChar character = runs.Chars[i];
+                RunLine line = runs.Lines[character.Line];
+                if (y < line.Bottom - 2 || y > line.Top + 2) continue;
+
+                double distance = x < character.Left ? character.Left - x
+                    : x > character.Right ? x - character.Right : 0;
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    bestIndex = i;
+                }
+            }
+            if (bestIndex < 0) return null;
+
+            int word = runs.Chars[bestIndex].Word;
+            int start = bestIndex;
+            int end = bestIndex + 1;
+            while (start > 0 && runs.Chars[start - 1].Word == word) start--;
+            while (end < runs.Chars.Count && runs.Chars[end].Word == word) end++;
+            return (start, end);
+        }
+
         /// <summary>Text for the caret range [start, end): spaces between words, newlines between
         /// lines. Also reports how many distinct words the range touches.</summary>
         public static string TextForRange(PageTextRuns runs, int start, int end, out int wordCount)

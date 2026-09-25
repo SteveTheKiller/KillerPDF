@@ -58,4 +58,24 @@ public sealed class TextRunServiceTests
         Assert.Equal(1, TextRunService.CaretFromPoint(runs, 111, 15));
         Assert.Equal(2, TextRunService.CaretFromPoint(runs, 121, 15));
     }
+
+    [Fact]
+    public void WordRangeFromPoint_SelectsOnlyTheClickedWord()
+    {
+        var runs = new PageTextRuns();
+        runs.Chars.Add(new RunChar("o", 10, 15, 0, 0));
+        runs.Chars.Add(new RunChar("n", 15, 20, 0, 0));
+        runs.Chars.Add(new RunChar("e", 20, 25, 0, 0));
+        runs.Chars.Add(new RunChar("t", 30, 35, 1, 0));
+        runs.Chars.Add(new RunChar("w", 35, 40, 1, 0));
+        runs.Chars.Add(new RunChar("o", 40, 45, 1, 0));
+        runs.Lines.Add(new RunLine
+        {
+            Start = 0, Count = 6, Top = 20, Bottom = 10,
+            Left = 10, Right = 45,
+        });
+
+        Assert.Equal((3, 6), TextRunService.WordRangeFromPoint(runs, 36, 15));
+        Assert.Null(TextRunService.WordRangeFromPoint(runs, 80, 15));
+    }
 }

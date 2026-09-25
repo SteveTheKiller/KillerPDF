@@ -1104,7 +1104,7 @@ namespace KillerPDF.Controls
                         if (StampHitTest(pageIdx, pos)) { OpenStampTool(); e.Handled = true; return; }
                         ClearSelection();
                         ClearTextSelection();
-                        EditTextAtPosition(pos, pageIdx);
+                        TrySelectWordAtPosition(pageIdx, pos);
                         e.Handled = true;
                     }
                     else
@@ -1213,7 +1213,13 @@ namespace KillerPDF.Controls
                         break;
                     }
                     CommitActiveTextBox();
-                    PlaceTextBox(pos, pageIdx);
+                    bool placedTextHit = _annotations.TryGetValue(pageIdx, out var textAnnotations)
+                        && textAnnotations.OfType<TextAnnotation>()
+                            .Any(annotation => HitTestAnnotation(annotation, pos, out _));
+                    if (placedTextHit || IsTextAtPosition(pageIdx, pos))
+                        EditTextAtPosition(pos, pageIdx);
+                    else
+                        PlaceTextBox(pos, pageIdx);
                     e.Handled = true;
                     break;
 
