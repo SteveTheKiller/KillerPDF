@@ -424,6 +424,15 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_DocumentTools_Separations">Zpráva náhledu separací</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Zpráva o porovnání struktury</sys:String>
     <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Pro porovnání struktury otevřete dokument v každém panelu.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_InsertToc">Insert table of contents</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocEntries">The document has {0} bookmark entries available for the table of contents.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocTitle">Title</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocDefaultTitle">Table of Contents</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocDepth">Maximum bookmark depth (1 to 6)</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocNeedsBookmarks">Add bookmarks before inserting a table of contents.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocInvalid">Enter a title and a bookmark depth from 1 to 6.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocInserted">Inserted {0} table-of-contents page(s)</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocFailed">Could not insert the table of contents:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Copy">Kopírovat zprávu</sys:String>
     <sys:String x:Key="Str_DocumentTools_Close">Zavřít</sys:String>
     <sys:String x:Key="Str_DocumentTools_Copied">Zpráva byla zkopírována do schránky</sys:String>

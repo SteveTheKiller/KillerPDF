@@ -431,6 +431,15 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_DocumentTools_Separations">Separation preview report</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Structural comparison report</sys:String>
     <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Open a document in each pane to compare their structure.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_InsertToc">Insert table of contents</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocEntries">The document has {0} bookmark entries available for the table of contents.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocTitle">Title</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocDefaultTitle">Table of Contents</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocDepth">Maximum bookmark depth (1 to 6)</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocNeedsBookmarks">Add bookmarks before inserting a table of contents.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocInvalid">Enter a title and a bookmark depth from 1 to 6.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocInserted">Inserted {0} table-of-contents page(s)</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocFailed">Could not insert the table of contents:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Copy">Copy report</sys:String>
     <sys:String x:Key="Str_DocumentTools_Close">Close</sys:String>
     <sys:String x:Key="Str_DocumentTools_Copied">Report copied to the clipboard</sys:String>

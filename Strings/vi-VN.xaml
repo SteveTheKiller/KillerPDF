@@ -431,6 +431,15 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_DocumentTools_Separations">Báo cáo xem trước tách màu</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Báo cáo so sánh cấu trúc</sys:String>
     <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Mở một tài liệu trong mỗi ngăn để so sánh cấu trúc.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_InsertToc">Insert table of contents</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocEntries">The document has {0} bookmark entries available for the table of contents.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocTitle">Title</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocDefaultTitle">Table of Contents</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocDepth">Maximum bookmark depth (1 to 6)</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocNeedsBookmarks">Add bookmarks before inserting a table of contents.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocInvalid">Enter a title and a bookmark depth from 1 to 6.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocInserted">Inserted {0} table-of-contents page(s)</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocFailed">Could not insert the table of contents:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Copy">Sao chép báo cáo</sys:String>
     <sys:String x:Key="Str_DocumentTools_Close">Đóng</sys:String>
     <sys:String x:Key="Str_DocumentTools_Copied">Đã sao chép báo cáo vào bảng tạm</sys:String>

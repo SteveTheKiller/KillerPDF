@@ -107,6 +107,30 @@ internal static class PdfEngineIntegration
             PdfDocument.Open(File.ReadAllBytes(changedPath)));
     }
 
+    /// <summary>Plans a clickable table of contents from the current bookmark hierarchy.</summary>
+    internal static PdfTableOfContentsPlan PlanTableOfContents(string path, int maximumDepth)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfTableOfContentsPlanner.Plan(
+            PdfDocument.Open(File.ReadAllBytes(path)), maximumDepth);
+    }
+
+    /// <summary>Inserts clickable table-of-contents pages at the start of a document.</summary>
+    internal static PdfTableOfContentsWriteResult InsertTableOfContents(
+        string path, string title, int maximumDepth)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        PdfTableOfContentsWriteResult result = PdfTableOfContentsWriter.Write(
+            PdfDocument.Open(File.ReadAllBytes(path)), new PdfTableOfContentsWriteOptions
+            {
+                Title = title,
+                MaximumDepth = maximumDepth
+            });
+        ReplaceWithBuiltResult(path, result.Document);
+        return result;
+    }
+
     /// <summary>Builds a validated separation selection for the requested pages.</summary>
     internal static PdfSeparationPreview CreateSeparationPreview(
         string path, IEnumerable<string> plateNames, IEnumerable<int>? pageIndexes = null)
@@ -1016,13 +1040,15 @@ internal static class PdfEngineIntegration
 
     /// <summary>Creates a zero-rotation entry and shifts later page rotation state.</summary>
     internal static void RemapRotationsAfterPageInsertion(
-        Dictionary<int, int> rotations, int pageIndex)
+        Dictionary<int, int> rotations, int pageIndex, int pageCount = 1)
     {
         ArgumentNullException.ThrowIfNull(rotations);
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
+        ArgumentOutOfRangeException.ThrowIfLessThan(pageCount, 1);
         var ordered = Enumerable.Range(0, rotations.Count)
             .Select(index => rotations[index])
             .ToList();
-        ordered.Insert(pageIndex, 0);
+        ordered.InsertRange(pageIndex, Enumerable.Repeat(0, pageCount));
         rotations.Clear();
         for (int index = 0; index < ordered.Count; index++)
             rotations[index] = ordered[index];

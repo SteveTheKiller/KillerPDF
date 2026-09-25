@@ -353,6 +353,15 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_DocumentTools_Separations">分色預覽報告</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">結構比較報告</sys:String>
     <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">在每個窗格中開啟一個文件以比較其結構。</sys:String>
+    <sys:String x:Key="Str_DocumentTools_InsertToc">Insert table of contents</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocEntries">The document has {0} bookmark entries available for the table of contents.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocTitle">Title</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocDefaultTitle">Table of Contents</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocDepth">Maximum bookmark depth (1 to 6)</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocNeedsBookmarks">Add bookmarks before inserting a table of contents.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocInvalid">Enter a title and a bookmark depth from 1 to 6.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocInserted">Inserted {0} table-of-contents page(s)</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocFailed">Could not insert the table of contents:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Copy">複製報告</sys:String>
     <sys:String x:Key="Str_DocumentTools_Close">關閉</sys:String>
     <sys:String x:Key="Str_DocumentTools_Copied">報告已複製到剪貼簿</sys:String>

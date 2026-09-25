@@ -431,6 +431,15 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_DocumentTools_Separations">Отчет о предпросмотре цветоделения</sys:String>
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Отчет о структурном сравнении</sys:String>
     <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Откройте документ в каждой панели, чтобы сравнить их структуру.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_InsertToc">Insert table of contents</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocEntries">The document has {0} bookmark entries available for the table of contents.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocTitle">Title</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocDefaultTitle">Table of Contents</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocDepth">Maximum bookmark depth (1 to 6)</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocNeedsBookmarks">Add bookmarks before inserting a table of contents.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocInvalid">Enter a title and a bookmark depth from 1 to 6.</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocInserted">Inserted {0} table-of-contents page(s)</sys:String>
+    <sys:String x:Key="Str_DocumentTools_TocFailed">Could not insert the table of contents:</sys:String>
     <sys:String x:Key="Str_DocumentTools_Copy">Копировать отчет</sys:String>
     <sys:String x:Key="Str_DocumentTools_Close">Закрыть</sys:String>
     <sys:String x:Key="Str_DocumentTools_Copied">Отчет скопирован в буфер обмена</sys:String>

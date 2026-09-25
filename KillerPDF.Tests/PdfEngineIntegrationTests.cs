@@ -119,6 +119,40 @@ public sealed class PdfEngineIntegrationTests
             Assert.Equal($"Layers: 0{Environment.NewLine}Configurations: 0", layers.ToText());
             Assert.Equal("PDF portfolio: none", portfolio);
             Assert.Empty(comparison.Changes);
+            Assert.Empty(PdfEngineIntegration.PlanTableOfContents(path, 6).Entries);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void TableOfContentsIntegration_PlansAndInsertsClickableContents()
+    {
+        string path = Path.Combine(Path.GetTempPath(),
+            $"killerpdf-table-of-contents-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder()
+                .AddBlankPage()
+                .AddBlankPage()
+                .AddBookmark("Chapter", 0)
+                .AddBookmark("Section", 1, level: 1)
+                .Build());
+
+            PdfTableOfContentsPlan plan = PdfEngineIntegration.PlanTableOfContents(path, 6);
+            PdfTableOfContentsWriteResult result = PdfEngineIntegration.InsertTableOfContents(
+                path, "Contents", 6);
+            PdfDocument output = PdfDocument.Open(File.ReadAllBytes(path));
+
+            Assert.Equal(2, plan.Entries.Count);
+            Assert.Equal(1, result.InsertedPageCount);
+            Assert.Equal(2, result.EntryCount);
+            Assert.Equal(3, PageCount(output));
+            Assert.Contains("Contents", PdfStructuredExport.ToPlainText(output, [0]));
+            Assert.Equal([1, 2], PdfLinkReader.ReadPage(output, 0)
+                .Select(link => link.DestinationPageIndex));
         }
         finally
         {
@@ -1531,6 +1565,26 @@ public sealed class PdfEngineIntegrationTests
             [1] = 0,
             [2] = 180,
             [3] = 270
+        }, rotations);
+    }
+
+    [Fact]
+    public void RemapRotationsAfterPageInsertion_ShiftsForMultipleInsertedPages()
+    {
+        var rotations = new Dictionary<int, int>
+        {
+            [0] = 90,
+            [1] = 180
+        };
+
+        PdfEngineIntegration.RemapRotationsAfterPageInsertion(rotations, 0, 2);
+
+        Assert.Equal(new Dictionary<int, int>
+        {
+            [0] = 0,
+            [1] = 0,
+            [2] = 90,
+            [3] = 180
         }, rotations);
     }
 

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using KillerPDF.Services;
@@ -41,7 +42,71 @@ public partial class MainWindow
             && !string.IsNullOrWhiteSpace(Viewer.CurrentFilePathExt)
             && !string.IsNullOrWhiteSpace(ViewerB.CurrentFilePathExt);
         menu.Items.Add(comparison);
+        menu.Items.Add(new Separator());
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_InsertToc"),
+            (_, _) => InsertTableOfContents(), glyph: "\uE8FD"));
         return menu;
+    }
+
+    private void InsertTableOfContents()
+    {
+        if (_doc is null || string.IsNullOrWhiteSpace(_currentFile))
+        {
+            KillerDialog.Show(this, Loc("Str_Msg_OpenFirst"));
+            return;
+        }
+
+        CommitActiveTextBox();
+        try
+        {
+            var initialPlan = PdfEngineIntegration.PlanTableOfContents(_currentFile, 6);
+            if (initialPlan.Entries.Count == 0)
+            {
+                KillerDialog.Show(this, Loc("Str_DocumentTools_TocNeedsBookmarks"),
+                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var dialog = new TableOfContentsDialog(this, initialPlan.Entries.Count);
+            if (dialog.ShowDialog() != true) return;
+
+            var plan = PdfEngineIntegration.PlanTableOfContents(_currentFile, dialog.MaximumDepth);
+            const int rowsPerPage = 40;
+            int insertedPages = Math.Max(1, (plan.Entries.Count + rowsPerPage - 1) / rowsPerPage);
+            UndoEntry? documentUndo = CaptureDocumentUndo();
+            var annotationBackup = _annotations.ToDictionary(pair => pair.Key, pair => pair.Value);
+            try
+            {
+                PageAnnotationInsertion.Shift(_annotations, 0, insertedPages);
+                SaveTempAndReload(
+                    keepAnnotations: true,
+                    finalizeSavedFile: path =>
+                        PdfEngineIntegration.InsertTableOfContents(
+                            path, dialog.ContentsTitle, dialog.MaximumDepth),
+                    remapRotations: rotations =>
+                        PdfEngineIntegration.RemapRotationsAfterPageInsertion(
+                            rotations, 0, insertedPages),
+                    selectedPageAfterReload: 0,
+                    documentUndo: documentUndo);
+            }
+            catch
+            {
+                _annotations.Clear();
+                foreach (KeyValuePair<int, List<PageAnnotation>> pair in annotationBackup)
+                {
+                    foreach (PageAnnotation annotation in pair.Value)
+                        annotation.PageIndex = pair.Key;
+                    _annotations[pair.Key] = pair.Value;
+                }
+                throw;
+            }
+            SetStatus(string.Format(Loc("Str_DocumentTools_TocInserted"), insertedPages));
+        }
+        catch (Exception ex)
+        {
+            KillerDialog.Show(this, Loc("Str_DocumentTools_TocFailed") + "\n" + ex.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void ShowStructuralComparison()
