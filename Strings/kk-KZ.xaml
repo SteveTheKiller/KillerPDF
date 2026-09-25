@@ -479,6 +479,16 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Portfolio_RemoveMetadata">Remove portfolio metadata but keep attachments</sys:String>
     <sys:String x:Key="Str_Portfolio_Updated">Portfolio settings updated</sys:String>
     <sys:String x:Key="Str_Portfolio_Failed">Could not update the portfolio:</sys:String>
+    <sys:String x:Key="Str_DocumentTools_EditAttachments">Edit attachments</sys:String>
+    <sys:String x:Key="Str_Attachment_Name">Name</sys:String>
+    <sys:String x:Key="Str_Attachment_Description">Description</sys:String>
+    <sys:String x:Key="Str_Attachment_MimeType">MIME type</sys:String>
+    <sys:String x:Key="Str_Attachment_Relationship">Relationship</sys:String>
+    <sys:String x:Key="Str_Attachment_Remove">Remove</sys:String>
+    <sys:String x:Key="Str_Attachment_Invalid">Attachment names and MIME types must be valid and unique.</sys:String>
+    <sys:String x:Key="Str_Attachment_None">This document has no attachments.</sys:String>
+    <sys:String x:Key="Str_Attachment_Updated">Attachments updated</sys:String>
+    <sys:String x:Key="Str_Attachment_Failed">Could not update the attachments:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Select merge data</sys:String>
     <sys:String x:Key="Str_DataMerge_DataFiles">Merge data files</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectOutput">Choose the first output PDF</sys:String>

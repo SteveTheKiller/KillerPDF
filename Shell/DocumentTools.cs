@@ -49,6 +49,8 @@ public partial class MainWindow
                 PdfEngineIntegration.InspectPortfolio), glyph: "\uE8B7"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_EditPortfolio"),
             (_, _) => EditPortfolio(), glyph: "\uE70F"));
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_EditAttachments"),
+            (_, _) => EditAttachments(), glyph: "\uE8B7"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_InitialView"),
             (_, _) => EditInitialView(), glyph: "\uE7B3"));
         var comparison = MakeMenuItem(Loc("Str_DocumentTools_StructuralComparison"),
@@ -356,6 +358,42 @@ public partial class MainWindow
         catch (Exception ex)
         {
             KillerDialog.Show(this, Loc("Str_Portfolio_Failed") + "\n" + ex.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void EditAttachments()
+    {
+        if (_doc is null || string.IsNullOrWhiteSpace(_currentFile))
+        {
+            KillerDialog.Show(this, Loc("Str_Msg_OpenFirst"));
+            return;
+        }
+
+        CommitActiveTextBox();
+        try
+        {
+            IReadOnlyList<PdfEngineIntegration.AttachmentEditorItem> attachments =
+                PdfEngineIntegration.ReadAttachmentEditorItems(_currentFile);
+            if (attachments.Count == 0)
+            {
+                KillerDialog.Show(this, Loc("Str_Attachment_None"),
+                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            var dialog = new AttachmentEditorDialog(this, attachments);
+            if (dialog.ShowDialog() != true) return;
+            UndoEntry? documentUndo = CaptureDocumentUndo();
+            SaveTempAndReload(
+                keepAnnotations: true,
+                finalizeSavedFile: path =>
+                    PdfEngineIntegration.ApplyAttachmentEdits(path, dialog.Edits),
+                documentUndo: documentUndo);
+            SetStatus(Loc("Str_Attachment_Updated"));
+        }
+        catch (Exception ex)
+        {
+            KillerDialog.Show(this, Loc("Str_Attachment_Failed") + "\n" + ex.Message,
                 "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

@@ -26,6 +26,11 @@ internal static class PdfEngineIntegration
     internal sealed record PortfolioEditorState(
         PdfCollectionInfo? Collection, IReadOnlyList<string> AttachmentNames);
 
+    internal sealed record AttachmentEditorItem(
+        string OriginalFileName, string FileName, string? Description,
+        string MimeType, PdfAssociatedFileRelationship Relationship, int ByteCount,
+        bool Remove = false);
+
     internal sealed record FormEdits(
         IReadOnlyDictionary<string, string> TextValues,
         IReadOnlyDictionary<string, string> ChoiceValues,
@@ -180,6 +185,81 @@ internal static class PdfEngineIntegration
         ReadOnlyMemory<byte> result = PdfCollectionMacro.Execute(
             PdfCollectionMacro.ClearStep(), File.ReadAllBytes(path));
         ReplaceWithBuiltResult(path, result.ToArray());
+    }
+
+    internal static IReadOnlyList<AttachmentEditorItem> ReadAttachmentEditorItems(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfAttachmentReader.Read(PdfDocument.Open(File.ReadAllBytes(path)))
+            .Select(attachment => new AttachmentEditorItem(
+                attachment.FileName, attachment.FileName, attachment.Description,
+                attachment.MimeType, attachment.Relationship, attachment.Data.Length))
+            .ToArray();
+    }
+
+    internal static void ApplyAttachmentEdits(
+        string path, IReadOnlyList<AttachmentEditorItem> edits)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(edits);
+        byte[] result = File.ReadAllBytes(path);
+        PdfAttachmentInfo[] current = [.. PdfAttachmentReader.Read(PdfDocument.Open(result))];
+        if (!current.Select(item => item.FileName).OrderBy(name => name, StringComparer.Ordinal)
+            .SequenceEqual(edits.Select(item => item.OriginalFileName)
+                .OrderBy(name => name, StringComparer.Ordinal), StringComparer.Ordinal))
+            throw new InvalidOperationException("The attachment list changed before it was saved.");
+
+        AttachmentEditorItem[] remaining = [.. edits.Where(edit => !edit.Remove)];
+        if (remaining.Any(edit => string.IsNullOrWhiteSpace(edit.FileName)
+                || string.IsNullOrWhiteSpace(edit.MimeType))
+            || remaining.Select(edit => edit.FileName)
+                .Distinct(StringComparer.OrdinalIgnoreCase).Count() != remaining.Length)
+            throw new InvalidOperationException("Attachment names and MIME types must be valid and unique.");
+
+        foreach (AttachmentEditorItem edit in edits.Where(edit => edit.Remove))
+        {
+            result = new PdfIncrementalPageEditor(PdfDocument.Open(result))
+                .RemoveAttachment(edit.OriginalFileName).Build();
+        }
+
+        var workingNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (AttachmentEditorItem edit in remaining.Where(edit =>
+                     !string.Equals(edit.OriginalFileName, edit.FileName, StringComparison.Ordinal)))
+        {
+            string extension = Path.GetExtension(edit.FileName);
+            string temporary = $"killerpdf-{Guid.NewGuid():N}{extension}";
+            result = PdfAttachmentMacro.Execute(
+                PdfAttachmentMacro.RenameStep(edit.OriginalFileName, temporary), result).ToArray();
+            workingNames[edit.OriginalFileName] = temporary;
+        }
+        foreach (AttachmentEditorItem edit in remaining.Where(edit =>
+                     !string.Equals(edit.OriginalFileName, edit.FileName, StringComparison.Ordinal)))
+        {
+            result = PdfAttachmentMacro.Execute(
+                PdfAttachmentMacro.RenameStep(
+                    workingNames[edit.OriginalFileName], edit.FileName), result).ToArray();
+        }
+
+        var originals = current.ToDictionary(item => item.FileName, StringComparer.Ordinal);
+        foreach (AttachmentEditorItem edit in remaining)
+        {
+            PdfAttachmentInfo original = originals[edit.OriginalFileName];
+            if (!string.Equals(edit.Description, original.Description, StringComparison.Ordinal))
+            {
+                result = PdfAttachmentMacro.Execute(
+                    PdfAttachmentMacro.DescriptionStep(edit.FileName,
+                        string.IsNullOrEmpty(edit.Description) ? null : edit.Description),
+                    result).ToArray();
+            }
+            if (!string.Equals(edit.MimeType, original.MimeType, StringComparison.Ordinal)
+                || edit.Relationship != original.Relationship)
+            {
+                result = PdfAttachmentMacro.Execute(
+                    PdfAttachmentMacro.ClassificationStep(
+                        edit.FileName, edit.MimeType, edit.Relationship), result).ToArray();
+            }
+        }
+        ReplaceWithBuiltResult(path, result);
     }
 
     /// <summary>Compares interpreted content, resources, and page geometry.</summary>
