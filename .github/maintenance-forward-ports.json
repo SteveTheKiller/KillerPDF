@@ -468,6 +468,21 @@
       "maintenanceCommit": "895cc87e2a033a0f870c326461f3c5dd3a79dcea",
       "developmentCommit": "cba7ff3594007668593a836db1795147209236f8",
       "reason": "All stable landing-page version, date, size, digest, footer, and localized footer values match the 1.8.70 release."
+    },
+    {
+      "maintenanceCommit": "97c736fe0497acc010648229b0612acb6e59429b",
+      "developmentCommit": "66f72f1418a960bded8c3097fd820c9d042329a3",
+      "reason": "The 1.9 policy now records every reviewed functional and release-specific 1.8.70 disposition."
+    },
+    {
+      "maintenanceCommit": "bb39e217cb923acd5ba16467cfd94c40041eb2e6",
+      "developmentCommit": "66f72f1418a960bded8c3097fd820c9d042329a3",
+      "reason": "The 1.9 policy records the matching release switch repair and its verified development commit."
+    },
+    {
+      "maintenanceCommit": "a4675620bc2fce88aedf39ec0b5144f005103ac3",
+      "developmentCommit": "66f72f1418a960bded8c3097fd820c9d042329a3",
+      "reason": "The 1.9 policy records the matching installer smoke staging repair and its verified development commit."
     }
   ]
 }
