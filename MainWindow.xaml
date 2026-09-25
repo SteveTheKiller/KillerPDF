@@ -2293,7 +2293,7 @@
                             <Button x:Name="RailThemeBtn" Click="RailTheme_Click"
                                     Cursor="Hand" FocusVisualStyle="{x:Null}"
                                     ToolTip="{DynamicResource Str_Theme}"
-                                    Width="24" Height="24" Padding="0" Margin="0,0,0,6">
+                                    Width="24" Height="24" Padding="0">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
                                         <Border Background="Transparent">
