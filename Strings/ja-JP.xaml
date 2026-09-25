@@ -1212,4 +1212,25 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_PasswordProtected">「{0}」はパスワードで保護されています。</sys:String>
     <sys:String x:Key="Str_About_Aka">別名</sys:String>
     <sys:String x:Key="Str_Btn_Run">実行</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">マクロ</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">保存済みマクロ</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">ステップの順序</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">複製</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">コピー</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">利用不可</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">すべてのステップを実行できます。</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">利用できないステップ:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">マクロ名を入力し、1つ以上のステップを残してください。</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">保存済みマクロを読み込めませんでした:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">マクロを保存できませんでした:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">マクロ「{0}」を削除しますか?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">マクロをインポートできませんでした:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">マクロをエクスポートできませんでした:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">KillerPDF マクロ</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">マクロの出力先を選択</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">マクロ: {0}&#10;入力: {1}&#10;出力: {2}&#10;&#10;ステップ:&#10;{3}&#10;&#10;このマクロを実行しますか?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">マクロを実行しています...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">マクロの出力を {0} に保存しました</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">マクロを完了できませんでした。</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">マクロをキャンセルしました</sys:String>
 </ResourceDictionary>

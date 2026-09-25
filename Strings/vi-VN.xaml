@@ -1212,4 +1212,25 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_PasswordProtected">“{0}” được bảo vệ bằng mật khẩu.</sys:String>
     <sys:String x:Key="Str_About_Aka">CÒN GỌI LÀ</sys:String>
     <sys:String x:Key="Str_Btn_Run">Chạy</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Macro</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Macro đã lưu</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Thứ tự bước</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Nhân bản</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">bản sao</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">không khả dụng</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Mọi bước đều khả dụng và sẵn sàng chạy.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Các bước không khả dụng:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Nhập tên macro và giữ lại ít nhất một bước.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">Không thể tải các macro đã lưu:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">Không thể lưu macro:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">Xóa macro &quot;{0}&quot;?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">Không thể nhập macro:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">Không thể xuất macro:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">Macro KillerPDF</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Chọn đầu ra macro</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Macro: {0}&#10;Đầu vào: {1}&#10;Đầu ra: {2}&#10;&#10;Các bước:&#10;{3}&#10;&#10;Chạy macro này?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Đang chạy macro...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">Đã lưu đầu ra macro vào {0}</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">Không thể hoàn tất macro.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Đã hủy macro</sys:String>
 </ResourceDictionary>

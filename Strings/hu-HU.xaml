@@ -1199,4 +1199,25 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_PasswordProtected">A(z) „{0}” jelszóval védett.</sys:String>
     <sys:String x:Key="Str_About_Aka">Más néven</sys:String>
     <sys:String x:Key="Str_Btn_Run">Futtatás</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Makrók</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Mentett makrók</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Lépések sorrendje</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Másolat készítése</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">másolat</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">nem érhető el</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Minden lépés elérhető és futtatásra kész.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Nem elérhető lépések:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Adjon nevet a makrónak, és tartson meg legalább egy lépést.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">Nem sikerült betölteni a mentett makrókat:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">Nem sikerült menteni a makrót:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">Törli a(z) &quot;{0}&quot; makrót?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">Nem sikerült importálni a makrót:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">Nem sikerült exportálni a makrót:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">KillerPDF makró</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Makró kimenetének kiválasztása</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Makró: {0}&#10;Bemenet: {1}&#10;Kimenet: {2}&#10;&#10;Lépések:&#10;{3}&#10;&#10;Futtatja ezt a makrót?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Makró futtatása...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">A makró kimenete ide lett mentve: {0}</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">A makró nem fejeződött be.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Makró megszakítva</sys:String>
 </ResourceDictionary>

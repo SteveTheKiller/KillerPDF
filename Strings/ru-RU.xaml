@@ -1212,4 +1212,25 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_PasswordProtected">«{0}» защищен паролем.</sys:String>
     <sys:String x:Key="Str_About_Aka">Также известен как</sys:String>
     <sys:String x:Key="Str_Btn_Run">Запустить</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Макросы</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Сохраненные макросы</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Порядок шагов</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Дублировать</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">копия</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">недоступно</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Все шаги доступны и готовы к запуску.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Недоступные шаги:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Введите имя макроса и оставьте хотя бы один шаг.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">Не удалось загрузить сохраненные макросы:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">Не удалось сохранить макрос:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">Удалить макрос «{0}»?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">Не удалось импортировать макрос:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">Не удалось экспортировать макрос:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">Макрос KillerPDF</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Выберите выходной файл макроса</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Макрос: {0}&#10;Вход: {1}&#10;Выход: {2}&#10;&#10;Шаги:&#10;{3}&#10;&#10;Запустить этот макрос?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Выполнение макроса...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">Результат макроса сохранен в {0}</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">Не удалось завершить макрос.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Макрос отменен</sys:String>
 </ResourceDictionary>

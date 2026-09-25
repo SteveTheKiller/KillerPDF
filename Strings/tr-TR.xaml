@@ -1192,4 +1192,25 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_PasswordProtected">“{0}” parola korumalıdır.</sys:String>
     <sys:String x:Key="Str_About_Aka">Diğer adıyla</sys:String>
     <sys:String x:Key="Str_Btn_Run">Çalıştır</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Makrolar</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Kaydedilmiş makrolar</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Sıralı adımlar</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Çoğalt</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">kopya</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">kullanılamıyor</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Tüm adımlar kullanılabilir ve çalıştırılmaya hazır.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Kullanılamayan adımlar:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Bir makro adı girin ve en az bir adım bırakın.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">Kaydedilmiş makrolar yüklenemedi:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">Makro kaydedilemedi:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">&quot;{0}&quot; makrosu silinsin mi?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">Makro içe aktarılamadı:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">Makro dışa aktarılamadı:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">KillerPDF makrosu</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Makro çıktısını seçin</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Makro: {0}&#10;Girdi: {1}&#10;Çıktı: {2}&#10;&#10;Adımlar:&#10;{3}&#10;&#10;Bu makro çalıştırılsın mı?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Makro çalıştırılıyor...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">Makro çıktısı {0} konumuna kaydedildi</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">Makro tamamlanamadı.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Makro iptal edildi</sys:String>
 </ResourceDictionary>

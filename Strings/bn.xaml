@@ -1192,4 +1192,25 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_PasswordProtected">“{0}” পাসওয়ার্ড দিয়ে সুরক্ষিত।</sys:String>
     <sys:String x:Key="Str_About_Aka">অন্য নাম</sys:String>
     <sys:String x:Key="Str_Btn_Run">চালু করুন</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">ম্যাক্রো</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">সংরক্ষিত ম্যাক্রো</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">ধাপের ক্রম</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">অনুলিপি</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">অনুলিপি</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">উপলভ্য নয়</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">প্রতিটি ধাপ উপলভ্য এবং চালানোর জন্য প্রস্তুত।</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">অনুপলভ্য ধাপ:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">একটি ম্যাক্রোর নাম লিখুন এবং অন্তত একটি ধাপ রাখুন।</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">সংরক্ষিত ম্যাক্রো লোড করা যায়নি:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">ম্যাক্রো সংরক্ষণ করা যায়নি:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">&quot;{0}&quot; ম্যাক্রোটি মুছবেন?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">ম্যাক্রো আমদানি করা যায়নি:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">ম্যাক্রো রপ্তানি করা যায়নি:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">KillerPDF ম্যাক্রো</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">ম্যাক্রোর আউটপুট বেছে নিন</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">ম্যাক্রো: {0}&#10;ইনপুট: {1}&#10;আউটপুট: {2}&#10;&#10;ধাপ:&#10;{3}&#10;&#10;এই ম্যাক্রো চালাবেন?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">ম্যাক্রো চলছে...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">ম্যাক্রোর আউটপুট {0} এ সংরক্ষিত হয়েছে</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">ম্যাক্রো সম্পন্ন করা যায়নি।</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">ম্যাক্রো বাতিল হয়েছে</sys:String>
 </ResourceDictionary>

@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Added
 
 - Added localized desktop reports for preflight, accessibility, print production, separations, layers, portfolios, and structural comparisons.
+- Added a desktop macro library with starter workflows, ordered step editing, import and export, exact current-document previews, safe output, and readable results (#343).
 - Added desktop layer editing for names, saved visibility, and lock state.
 - Added desktop portfolio controls for presentation, schema, sorting, folders, attachment values, and safe metadata removal.
 - Added desktop attachment management for names, descriptions, MIME types, relationships, and removal.

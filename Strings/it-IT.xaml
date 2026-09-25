@@ -1212,4 +1212,25 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_PasswordProtected">'{0}' è protetto da password.</sys:String>
     <sys:String x:Key="Str_About_Aka">Conosciuto anche come</sys:String>
     <sys:String x:Key="Str_Btn_Run">Esegui</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Macro</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Macro salvate</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Passaggi ordinati</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Duplica</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">copia</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">non disponibile</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Tutti i passaggi sono disponibili e pronti per l'esecuzione.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Passaggi non disponibili:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Immettere un nome per la macro e mantenere almeno un passaggio.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">Impossibile caricare le macro salvate:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">Impossibile salvare la macro:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">Eliminare la macro &quot;{0}&quot;?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">Impossibile importare la macro:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">Impossibile esportare la macro:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">Macro KillerPDF</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Scegli output macro</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Macro: {0}&#10;Input: {1}&#10;Output: {2}&#10;&#10;Passaggi:&#10;{3}&#10;&#10;Eseguire questa macro?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Esecuzione macro...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">Output della macro salvato in {0}</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">Impossibile completare la macro.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Macro annullata</sys:String>
 </ResourceDictionary>

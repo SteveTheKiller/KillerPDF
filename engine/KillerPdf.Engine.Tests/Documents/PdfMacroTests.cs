@@ -1,4 +1,6 @@
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Syntax;
 using System.Text.Json;
 using Xunit;
 
@@ -113,6 +115,25 @@ public sealed class PdfMacroTests
             .GetProperty("error").GetString());
         Assert.DoesNotContain("QUJD", json, StringComparison.Ordinal);
         Assert.DoesNotContain("data", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RunReportFormatsReadableOutcomesWithoutDocumentData()
+    {
+        var report = new PdfMacroRunReport(3, [
+            new PdfMacroFileResult(0, new byte[] { 65, 66, 67 }, null, false),
+            new PdfMacroFileResult(1, null, "Invalid PDF", false)
+            {
+                FailedOperation = PdfMacroOperation.Validate
+            }]);
+
+        string text = report.ToText();
+
+        Assert.Contains("1 succeeded, 1 failed", text, StringComparison.Ordinal);
+        Assert.Contains("Input 1: Succeeded", text, StringComparison.Ordinal);
+        Assert.Contains("Input 2: Failed at Validate: Invalid PDF", text,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ABC", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -262,5 +283,110 @@ public sealed class PdfMacroTests
         Assert.False(result.Succeeded);
         Assert.Contains("not available", result.Error, StringComparison.Ordinal);
         Assert.Equal(new byte[] { 7 }, source);
+    }
+
+    [Fact]
+    public void DispatcherClassifiesEveryMacroOperationExactlyOnce()
+    {
+        PdfMacroOperation[] builtIn = [.. PdfMacroDispatcher.BuiltInOperations];
+        PdfMacroOperation[] host = [.. PdfMacroDispatcher.HostOperations];
+
+        Assert.Empty(builtIn.Intersect(host));
+        Assert.Equal(Enum.GetValues<PdfMacroOperation>().Order(),
+            builtIn.Concat(host).Order());
+        Assert.Equal(builtIn.Length, builtIn.Distinct().Count());
+        Assert.Equal(host.Length, host.Distinct().Count());
+    }
+
+    [Fact]
+    public void DispatcherRunsBuiltInValidationAndPublishesContextValues()
+    {
+        byte[] source = new PdfDocumentBuilder(PdfVersion.Pdf17)
+            .AddBlankPage().Build();
+        var dispatcher = new PdfMacroDispatcher();
+
+        PdfMacroOperationResult result = dispatcher.Execute(
+            new PdfMacroStep(PdfMacroOperation.Validate), source);
+
+        Assert.Equal(source, result.Data.ToArray());
+        Assert.Equal("True", result.Values!["validationPassed"]);
+        Assert.Equal("True", result.Values["validationComplete"]);
+        Assert.Contains("\"profileName\":\"General PDF\"",
+            result.Values["validationReport"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DispatcherRequiresExplicitHostHandlersAndRunsRegisteredOnes()
+    {
+        var dispatcher = new PdfMacroDispatcher([
+            new(PdfMacroOperation.Ocr, (step, source, values, _) =>
+                new PdfMacroOperationResult(source.ToArray().Append(
+                    (byte)values["suffix"].Length).ToArray()))]);
+
+        Assert.True(dispatcher.CanExecute(PdfMacroOperation.Validate));
+        Assert.True(dispatcher.CanExecute(PdfMacroOperation.Ocr));
+        Assert.False(dispatcher.CanExecute(PdfMacroOperation.Redact));
+        PdfMacroOperationResult result = dispatcher.Execute(
+            new PdfMacroStep(PdfMacroOperation.Ocr), new byte[] { 7 },
+            new Dictionary<string, string> { ["suffix"] = "done" });
+
+        Assert.Equal(new byte[] { 7, 4 }, result.Data.ToArray());
+        Assert.Throws<NotSupportedException>(() => dispatcher.Execute(
+            new PdfMacroStep(PdfMacroOperation.Redact), new byte[] { 7 }));
+    }
+
+    [Fact]
+    public void DispatcherRejectsDuplicateAndBuiltInRegistrations()
+    {
+        static PdfMacroOperationResult Handler(PdfMacroStep step, ReadOnlyMemory<byte> source,
+            IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken) =>
+            new(source);
+
+        Assert.Throws<ArgumentException>(() => new PdfMacroDispatcher([
+            new(PdfMacroOperation.Ocr, Handler),
+            new(PdfMacroOperation.Ocr, Handler)]));
+        Assert.Throws<ArgumentException>(() => new PdfMacroDispatcher([
+            new(PdfMacroOperation.Validate, Handler)]));
+    }
+
+    [Fact]
+    public void DispatcherRunReportKeepsUnsupportedOperationsIsolatedPerFile()
+    {
+        var macro = new PdfMacro("OCR", [new(PdfMacroOperation.Ocr)]);
+        var dispatcher = new PdfMacroDispatcher();
+
+        PdfMacroRunReport report = dispatcher.RunReport(macro,
+            [new byte[] { 1 }, new byte[] { 2 }]);
+
+        Assert.Equal(2, report.FailedCount);
+        Assert.All(report.Results, result =>
+        {
+            Assert.Equal(0, result.FailedStepIndex);
+            Assert.Equal(PdfMacroOperation.Ocr, result.FailedOperation);
+            Assert.Contains("requires a host handler", result.Error,
+                StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void DispatcherResumeReportRetriesCanceledInputWithFreshContext()
+    {
+        var macro = new PdfMacro("Save", [new(PdfMacroOperation.Save,
+            new Dictionary<string, string> { ["suffix"] = "${suffix}" })]);
+        var dispatcher = new PdfMacroDispatcher([
+            new(PdfMacroOperation.Save, (step, source, _, _) =>
+                new PdfMacroOperationResult(source.ToArray().Append(
+                    (byte)step.Settings!["suffix"].Length).ToArray()))]);
+        ReadOnlyMemory<byte>[] inputs = [new byte[] { 1 }, new byte[] { 2 }];
+        var previous = new PdfMacroRunReport(2, [
+            new PdfMacroFileResult(0, new byte[] { 1, 3 }, null, false),
+            new PdfMacroFileResult(1, null, null, true)]);
+
+        PdfMacroRunReport resumed = dispatcher.ResumeReport(macro, inputs, previous,
+            new Dictionary<string, string> { ["suffix"] = "done" });
+
+        Assert.Equal(2, resumed.SucceededCount);
+        Assert.Equal(new byte[] { 1, 3 }, resumed.Results[0].Data!.Value.ToArray());
+        Assert.Equal(new byte[] { 2, 4 }, resumed.Results[1].Data!.Value.ToArray());
     }
 }

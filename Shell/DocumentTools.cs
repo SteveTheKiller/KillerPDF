@@ -68,6 +68,8 @@ public partial class MainWindow
             && !string.IsNullOrWhiteSpace(ViewerB.CurrentFilePathExt);
         menu.Items.Add(comparison);
         menu.Items.Add(new Separator());
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_Macros"),
+            (_, _) => OpenMacroDialog(), glyph: "\uE945"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_DataMerge"),
             (_, _) => RunDataMerge(), glyph: "\uE8F1"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_InsertToc"),

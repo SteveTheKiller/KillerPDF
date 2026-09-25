@@ -1211,4 +1211,25 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_PasswordProtected">«{0}» құпиясөзбен қорғалған.</sys:String>
     <sys:String x:Key="Str_About_Aka">Басқа аты</sys:String>
     <sys:String x:Key="Str_Btn_Run">Іске қосу</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Макростар</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Сақталған макростар</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Қадамдар реті</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Көшірмесін жасау</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">көшірме</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">қолжетімсіз</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Барлық қадам қолжетімді және іске қосуға дайын.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Қолжетімсіз қадамдар:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Макрос атауын енгізіп, кемінде бір қадам қалдырыңыз.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">Сақталған макростарды жүктеу мүмкін болмады:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">Макросты сақтау мүмкін болмады:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">«{0}» макросы жойылсын ба?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">Макросты импорттау мүмкін болмады:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">Макросты экспорттау мүмкін болмады:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">KillerPDF макросы</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Макрос шығысын таңдаңыз</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Макрос: {0}&#10;Кіріс: {1}&#10;Шығыс: {2}&#10;&#10;Қадамдар:&#10;{3}&#10;&#10;Осы макрос іске қосылсын ба?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Макрос орындалуда...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">Макрос шығысы {0} орнына сақталды</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">Макросты аяқтау мүмкін болмады.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Макрос тоқтатылды</sys:String>
 </ResourceDictionary>

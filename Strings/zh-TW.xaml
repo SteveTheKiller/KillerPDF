@@ -1194,4 +1194,25 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_PasswordProtected">「{0}」受密碼保護。</sys:String>
     <sys:String x:Key="Str_About_Aka">別名</sys:String>
     <sys:String x:Key="Str_Btn_Run">執行</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">巨集</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">已儲存的巨集</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">步驟順序</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">建立副本</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">副本</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">無法使用</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">所有步驟都可使用並已準備執行。</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">無法使用的步驟:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">請輸入巨集名稱並至少保留一個步驟。</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">無法載入已儲存的巨集:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">無法儲存巨集:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">刪除巨集「{0}」?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">無法匯入巨集:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">無法匯出巨集:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">KillerPDF 巨集</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">選擇巨集輸出</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">巨集: {0}&#10;輸入: {1}&#10;輸出: {2}&#10;&#10;步驟:&#10;{3}&#10;&#10;執行此巨集?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">正在執行巨集...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">巨集輸出已儲存到 {0}</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">無法完成巨集。</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">巨集已取消</sys:String>
 </ResourceDictionary>

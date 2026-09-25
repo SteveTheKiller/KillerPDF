@@ -1196,4 +1196,25 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_PasswordProtected">“{0}”受密码保护。</sys:String>
     <sys:String x:Key="Str_About_Aka">别名</sys:String>
     <sys:String x:Key="Str_Btn_Run">运行</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">宏</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">已保存的宏</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">步骤顺序</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">创建副本</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">副本</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">不可用</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">所有步骤均可用并已准备运行。</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">不可用的步骤:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">请输入宏名称并至少保留一个步骤。</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">无法加载已保存的宏:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">无法保存宏:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">删除宏“{0}”?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">无法导入宏:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">无法导出宏:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">KillerPDF 宏</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">选择宏输出</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">宏: {0}&#10;输入: {1}&#10;输出: {2}&#10;&#10;步骤:&#10;{3}&#10;&#10;运行此宏?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">正在运行宏...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">宏输出已保存到 {0}</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">无法完成宏。</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">宏已取消</sys:String>
 </ResourceDictionary>

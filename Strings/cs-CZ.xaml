@@ -1197,4 +1197,25 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_PasswordProtected">Soubor „{0}“ je chráněn heslem.</sys:String>
     <sys:String x:Key="Str_About_Aka">Také známý jako</sys:String>
     <sys:String x:Key="Str_Btn_Run">Spustit</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Makra</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Uložená makra</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Pořadí kroků</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Duplikovat</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">kopie</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">není k dispozici</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Všechny kroky jsou k dispozici a připraveny ke spuštění.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Nedostupné kroky:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Zadejte název makra a ponechte alespoň jeden krok.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">Uložená makra se nepodařilo načíst:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">Makro se nepodařilo uložit:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">Odstranit makro &quot;{0}&quot;?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">Makro se nepodařilo importovat:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">Makro se nepodařilo exportovat:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">Makro KillerPDF</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Vyberte výstup makra</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Makro: {0}&#10;Vstup: {1}&#10;Výstup: {2}&#10;&#10;Kroky:&#10;{3}&#10;&#10;Spustit toto makro?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Probíhá makro...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">Výstup makra byl uložen do {0}</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">Makro se nepodařilo dokončit.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Makro bylo zrušeno</sys:String>
 </ResourceDictionary>

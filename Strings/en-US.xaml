@@ -1212,4 +1212,25 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_PasswordProtected">“{0}” is password protected.</sys:String>
     <sys:String x:Key="Str_About_Aka">AKA</sys:String>
     <sys:String x:Key="Str_Btn_Run">Run</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Macros</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Saved macros</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Ordered steps</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Duplicate</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">copy</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">not available</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Every step is available and ready to run.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Unavailable steps:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Enter a macro name and keep at least one step.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">Could not load the saved macros:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">Could not save the macro:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">Delete the macro &quot;{0}&quot;?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">Could not import the macro:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">Could not export the macro:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">KillerPDF macro</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Choose macro output</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Macro: {0}&#10;Input: {1}&#10;Output: {2}&#10;&#10;Steps:&#10;{3}&#10;&#10;Run this macro?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Running macro...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">Macro output saved to {0}</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">The macro could not complete.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Macro canceled</sys:String>
 </ResourceDictionary>

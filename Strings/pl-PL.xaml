@@ -1200,4 +1200,25 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_PasswordProtected">Plik „{0}” jest chroniony hasłem.</sys:String>
     <sys:String x:Key="Str_About_Aka">Znany także jako</sys:String>
     <sys:String x:Key="Str_Btn_Run">Uruchom</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Makra</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Zapisane makra</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Kolejność kroków</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Duplikuj</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">kopia</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">niedostępne</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Wszystkie kroki są dostępne i gotowe do uruchomienia.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Niedostępne kroki:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Wprowadź nazwę makra i pozostaw co najmniej jeden krok.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">Nie można wczytać zapisanych makr:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">Nie można zapisać makra:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">Usunąć makro &quot;{0}&quot;?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">Nie można zaimportować makra:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">Nie można wyeksportować makra:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">Makro KillerPDF</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Wybierz plik wyjściowy makra</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Makro: {0}&#10;Wejście: {1}&#10;Wyjście: {2}&#10;&#10;Kroki:&#10;{3}&#10;&#10;Uruchomić to makro?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Uruchamianie makra...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">Plik wyjściowy makra zapisano w {0}</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">Nie można ukończyć makra.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Makro anulowano</sys:String>
 </ResourceDictionary>

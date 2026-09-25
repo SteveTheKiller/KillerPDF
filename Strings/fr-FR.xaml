@@ -1212,4 +1212,25 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_PasswordProtected">« {0} » est protégé par un mot de passe.</sys:String>
     <sys:String x:Key="Str_About_Aka">Aussi connu sous le nom de</sys:String>
     <sys:String x:Key="Str_Btn_Run">Exécuter</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Macros</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Macros enregistrées</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Étapes ordonnées</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Dupliquer</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">copie</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">indisponible</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Toutes les étapes sont disponibles et prêtes à être exécutées.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Étapes indisponibles :</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Saisissez un nom de macro et conservez au moins une étape.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">Impossible de charger les macros enregistrées :</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">Impossible d'enregistrer la macro :</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">Supprimer la macro « {0} » ?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">Impossible d'importer la macro :</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">Impossible d'exporter la macro :</sys:String>
+    <sys:String x:Key="Str_Macro_Files">Macro KillerPDF</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Choisir la sortie de la macro</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Macro : {0}&#10;Entrée : {1}&#10;Sortie : {2}&#10;&#10;Étapes :&#10;{3}&#10;&#10;Exécuter cette macro ?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Exécution de la macro...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">Sortie de la macro enregistrée dans {0}</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">La macro n'a pas pu se terminer.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Macro annulée</sys:String>
 </ResourceDictionary>

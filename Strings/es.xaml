@@ -1192,4 +1192,25 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_PasswordProtected">«{0}» está protegido con contraseña.</sys:String>
     <sys:String x:Key="Str_About_Aka">También conocido como</sys:String>
     <sys:String x:Key="Str_Btn_Run">Ejecutar</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Macros</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Macros guardadas</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Pasos ordenados</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Duplicar</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">copia</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">no disponible</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Todos los pasos están disponibles y listos para ejecutarse.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Pasos no disponibles:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Escriba un nombre para la macro y conserve al menos un paso.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">No se pudieron cargar las macros guardadas:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">No se pudo guardar la macro:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">¿Eliminar la macro &quot;{0}&quot;?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">No se pudo importar la macro:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">No se pudo exportar la macro:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">Macro de KillerPDF</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Elegir salida de la macro</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Macro: {0}&#10;Entrada: {1}&#10;Salida: {2}&#10;&#10;Pasos:&#10;{3}&#10;&#10;¿Ejecutar esta macro?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Ejecutando macro...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">La salida de la macro se guardó en {0}</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">La macro no pudo completarse.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Macro cancelada</sys:String>
 </ResourceDictionary>

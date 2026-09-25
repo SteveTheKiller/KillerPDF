@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -391,6 +392,64 @@ public static class PdfMacroRunner
     /// Runs a macro with caller-supplied prompt values and values produced by earlier steps.
     /// A setting whose complete value is ${name} consumes the corresponding contextual value.
     /// </summary>
+    public static PdfMacroRunReport RunContextualReport(
+        PdfMacro macro, IEnumerable<ReadOnlyMemory<byte>> inputs,
+        IReadOnlyDictionary<string, string>? initialValues,
+        Func<PdfMacroStep, ReadOnlyMemory<byte>, IReadOnlyDictionary<string, string>,
+            CancellationToken, PdfMacroOperationResult> operation,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        ReadOnlyMemory<byte>[] supplied = inputs.ToArray();
+        return new PdfMacroRunReport(supplied.Length,
+            RunContextual(macro, supplied, initialValues, operation, cancellationToken));
+    }
+
+    /// <summary>
+    /// Resumes an interrupted contextual report, preserving completed outcomes and retrying
+    /// a canceled file with a fresh per-file value context.
+    /// </summary>
+    public static PdfMacroRunReport ResumeContextualReport(
+        PdfMacro macro, IEnumerable<ReadOnlyMemory<byte>> inputs,
+        PdfMacroRunReport previous, IReadOnlyDictionary<string, string>? initialValues,
+        Func<PdfMacroStep, ReadOnlyMemory<byte>, IReadOnlyDictionary<string, string>,
+            CancellationToken, PdfMacroOperationResult> operation,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        ArgumentNullException.ThrowIfNull(previous);
+        ReadOnlyMemory<byte>[] supplied = inputs.ToArray();
+        if (previous.TotalInputCount != supplied.Length)
+            throw new ArgumentException(
+                "The previous macro report does not match the supplied input count.",
+                nameof(previous));
+        for (int index = 0; index < previous.Results.Count; index++)
+            if (previous.Results[index].InputIndex != index
+                || (previous.Results[index].WasCanceled && index != previous.Results.Count - 1))
+                throw new ArgumentException(
+                    "The previous macro report is not a contiguous resumable prefix.",
+                    nameof(previous));
+
+        int startIndex = previous.Results.Count;
+        var combined = previous.Results.ToList();
+        if (combined.LastOrDefault()?.WasCanceled == true)
+        {
+            startIndex--;
+            combined.RemoveAt(combined.Count - 1);
+        }
+        IReadOnlyList<PdfMacroFileResult> resumed = RunContextual(
+            macro, supplied.Skip(startIndex), initialValues, operation, cancellationToken);
+        combined.AddRange(resumed.Select(result => result with
+        {
+            InputIndex = result.InputIndex + startIndex
+        }));
+        return new PdfMacroRunReport(supplied.Length, combined);
+    }
+
+    /// <summary>
+    /// Runs a macro with caller-supplied prompt values and values produced by earlier steps.
+    /// A setting whose complete value is ${name} consumes the corresponding contextual value.
+    /// </summary>
     public static IReadOnlyList<PdfMacroFileResult> RunContextual(
         PdfMacro macro, IEnumerable<ReadOnlyMemory<byte>> inputs,
         IReadOnlyDictionary<string, string>? initialValues,
@@ -536,6 +595,33 @@ public sealed partial record PdfMacroRunReport
                 result.FailedStepIndex, result.FailedOperation))]);
         return JsonSerializer.Serialize(report, indented
             ? IndentedJson.ReportFile : CompactJson.ReportFile);
+    }
+
+    /// <summary>Formats a readable summary without embedding document data.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder()
+            .Append("Macro run: ").Append(SucceededCount).Append(" succeeded, ")
+            .Append(FailedCount).Append(" failed, ").Append(CanceledCount)
+            .Append(" canceled, ").Append(UnprocessedCount).AppendLine(" not started");
+        foreach (PdfMacroFileResult result in Results)
+        {
+            output.Append("Input ").Append(result.InputIndex + 1).Append(": ");
+            if (result.Succeeded)
+                output.AppendLine("Succeeded");
+            else if (result.WasCanceled)
+                output.AppendLine("Canceled");
+            else
+            {
+                output.Append("Failed");
+                if (result.FailedOperation is PdfMacroOperation operation)
+                    output.Append(" at ").Append(operation);
+                if (!string.IsNullOrWhiteSpace(result.Error))
+                    output.Append(": ").Append(result.Error);
+                output.AppendLine();
+            }
+        }
+        return output.ToString().TrimEnd();
     }
 
     private sealed record ReportFile(int Version, int TotalInputCount,

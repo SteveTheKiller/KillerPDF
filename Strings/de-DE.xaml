@@ -1198,4 +1198,25 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_PasswordProtected">„{0}“ ist passwortgeschützt.</sys:String>
     <sys:String x:Key="Str_About_Aka">Auch bekannt als</sys:String>
     <sys:String x:Key="Str_Btn_Run">Starten</sys:String>
+    <sys:String x:Key="Str_DocumentTools_Macros">Makros</sys:String>
+    <sys:String x:Key="Str_Macro_Saved">Gespeicherte Makros</sys:String>
+    <sys:String x:Key="Str_Macro_Steps">Geordnete Schritte</sys:String>
+    <sys:String x:Key="Str_Macro_Duplicate">Duplizieren</sys:String>
+    <sys:String x:Key="Str_Macro_Copy">Kopie</sys:String>
+    <sys:String x:Key="Str_Macro_NotAvailable">nicht verfügbar</sys:String>
+    <sys:String x:Key="Str_Macro_Ready">Alle Schritte sind verfügbar und startbereit.</sys:String>
+    <sys:String x:Key="Str_Macro_Unavailable">Nicht verfügbare Schritte:</sys:String>
+    <sys:String x:Key="Str_Macro_Invalid">Geben Sie einen Makronamen ein und behalten Sie mindestens einen Schritt.</sys:String>
+    <sys:String x:Key="Str_Macro_LoadFailed">Die gespeicherten Makros konnten nicht geladen werden:</sys:String>
+    <sys:String x:Key="Str_Macro_SaveFailed">Das Makro konnte nicht gespeichert werden:</sys:String>
+    <sys:String x:Key="Str_Macro_DeleteConfirm">Makro &quot;{0}&quot; löschen?</sys:String>
+    <sys:String x:Key="Str_Macro_ImportFailed">Das Makro konnte nicht importiert werden:</sys:String>
+    <sys:String x:Key="Str_Macro_ExportFailed">Das Makro konnte nicht exportiert werden:</sys:String>
+    <sys:String x:Key="Str_Macro_Files">KillerPDF Makro</sys:String>
+    <sys:String x:Key="Str_Macro_SelectOutput">Makroausgabe auswählen</sys:String>
+    <sys:String x:Key="Str_Macro_Preview" xml:space="preserve">Makro: {0}&#10;Eingabe: {1}&#10;Ausgabe: {2}&#10;&#10;Schritte:&#10;{3}&#10;&#10;Dieses Makro starten?</sys:String>
+    <sys:String x:Key="Str_Macro_Running">Makro wird ausgeführt...</sys:String>
+    <sys:String x:Key="Str_Macro_Complete">Makroausgabe wurde unter {0} gespeichert</sys:String>
+    <sys:String x:Key="Str_Macro_Failed">Das Makro konnte nicht abgeschlossen werden.</sys:String>
+    <sys:String x:Key="Str_Macro_Canceled">Makro abgebrochen</sys:String>
 </ResourceDictionary>
