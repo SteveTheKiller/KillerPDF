@@ -82,7 +82,7 @@ public sealed class ComparisonBarLayoutTests
             (string?)element.Attribute("Data") == "M 1,1 L 10,10 M 10,1 L 1,10");
         Assert.Contains(comparisonClose.Descendants(), element =>
             element.Name.LocalName == "Run" &&
-            (string?)element.Attribute("Text") == " (Esc)");
+            (string?)element.Attribute("Text") == "{DynamicResource Str_Key_Esc}");
 
         XElement comparisonTextStyle = comparisonBar.Descendants()
             .Single(element => element.Name.LocalName == "Style" &&

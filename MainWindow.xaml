@@ -2664,7 +2664,7 @@
                                             Style="{StaticResource ComparisonCloseButton}" Click="ComparisonClose_Click">
                                         <Button.ToolTip>
                                             <TextBlock Foreground="{DynamicResource TextBrush}" Effect="{x:Null}">
-                                                <Run Text="{DynamicResource Str_TT_ExitComparison}"/><Run Text=" (Esc)"/>
+                                                <Run Text="{DynamicResource Str_TT_ExitComparison}"/><Run Text=" ("/><Run Text="{DynamicResource Str_Key_Esc}"/><Run Text=")"/>
                                             </TextBlock>
                                         </Button.ToolTip>
                                         <Grid Width="11" Height="11">
