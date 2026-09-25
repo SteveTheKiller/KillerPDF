@@ -361,7 +361,9 @@ if ($pdfiumPath) {
 
 # 2. Build the portable and installed packages
 Write-Host "`n==> Building portable and installer packages..." -ForegroundColor Cyan
-& powershell -NoProfile -ExecutionPolicy Bypass -File $packageBuild -RequireSignature:$(-not $SkipSign)
+$packageBuildArguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $packageBuild)
+if (-not $SkipSign) { $packageBuildArguments += '-RequireSignature' }
+& powershell @packageBuildArguments
 if ($LASTEXITCODE -ne 0) { throw "Package build failed." }
 foreach ($artifact in @($portableExe, $installerExe) + $innerExes) {
     if (-not (Test-Path $artifact)) { throw "Release artifact not found at: $artifact" }
