@@ -53,6 +53,8 @@ public partial class MainWindow
             (_, _) => EditAttachments(), glyph: "\uE8B7"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_NavigationAudit"),
             (_, _) => AuditNavigation(), glyph: "\uE9D9"));
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_AutoBookmarks"),
+            (_, _) => GenerateBookmarks(), glyph: "\uE8FD"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_InitialView"),
             (_, _) => EditInitialView(), glyph: "\uE7B3"));
         var comparison = MakeMenuItem(Loc("Str_DocumentTools_StructuralComparison"),
@@ -432,6 +434,47 @@ public partial class MainWindow
         catch (Exception ex)
         {
             KillerDialog.Show(this, Loc("Str_Navigation_Failed") + "\n" + ex.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void GenerateBookmarks()
+    {
+        if (_doc is null || string.IsNullOrWhiteSpace(_currentFile))
+        {
+            KillerDialog.Show(this, Loc("Str_Msg_OpenFirst"));
+            return;
+        }
+
+        CommitActiveTextBox();
+        try
+        {
+            var detection = new BookmarkDetectionDialog(this);
+            if (detection.ShowDialog() != true || detection.Options is null) return;
+            IReadOnlyList<PdfBookmarkProposal> proposals =
+                PdfEngineIntegration.DetectBookmarkHeadings(_currentFile, detection.Options);
+            if (proposals.Count == 0)
+            {
+                KillerDialog.Show(this, Loc("Str_AutoBookmarks_NoneFound"),
+                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var review = new BookmarkReviewDialog(this, proposals);
+            if (review.ShowDialog() != true) return;
+            UndoEntry? documentUndo = CaptureDocumentUndo();
+            SaveTempAndReload(
+                keepAnnotations: true,
+                finalizeSavedFile: path =>
+                    PdfEngineIntegration.ApplyBookmarkProposals(path, review.Proposals),
+                documentUndo: documentUndo);
+            SetStatus(string.Format(Loc("Str_AutoBookmarks_Added"),
+                review.Proposals.Count(item =>
+                    item.Decision == PdfBookmarkProposalDecision.Accepted)));
+        }
+        catch (Exception ex)
+        {
+            KillerDialog.Show(this, Loc("Str_AutoBookmarks_Failed") + "\n" + ex.Message,
                 "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

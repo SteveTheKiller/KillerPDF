@@ -294,6 +294,25 @@ internal static class PdfEngineIntegration
         ReplaceWithBuiltResult(path, result);
     }
 
+    internal static IReadOnlyList<PdfBookmarkProposal> DetectBookmarkHeadings(
+        string path, PdfBookmarkDetectionOptions options)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(options);
+        return PdfBookmarkGeneration.DetectHeadings(
+            PdfDocument.Open(File.ReadAllBytes(path)), options);
+    }
+
+    internal static void ApplyBookmarkProposals(
+        string path, IReadOnlyList<PdfBookmarkProposal> proposals)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(proposals);
+        byte[] result = PdfBookmarkGeneration.Apply(
+            PdfDocument.Open(File.ReadAllBytes(path)), proposals);
+        ReplaceWithBuiltResult(path, result);
+    }
+
     /// <summary>Compares interpreted content, resources, and page geometry.</summary>
     internal static PdfStructuralComparison CompareStructure(string originalPath, string changedPath)
     {
