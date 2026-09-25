@@ -332,6 +332,27 @@ namespace KillerPDF.Services
             resources["ComparisonBarForegroundBrush"] = foreground;
             resources["ComparisonBarCloseHoverBrush"] = closeHover;
             resources["ComparisonBarTextEffect"] = effect;
+            resources["ComparisonBarVerticalMask"] = BuildComparisonBarVerticalMask(theme);
+        }
+
+        private static Brush BuildComparisonBarVerticalMask(Theme theme)
+        {
+            if (theme == Theme.SE98) return Brushes.Black;
+
+            var mask = new LinearGradientBrush
+            {
+                StartPoint = new Point(0.5, 0),
+                EndPoint = new Point(0.5, 1),
+                GradientStops =
+                {
+                    new GradientStop(Colors.Transparent, 0),
+                    new GradientStop(Colors.Black, 0.16),
+                    new GradientStop(Colors.Black, 0.84),
+                    new GradientStop(Colors.Transparent, 1)
+                }
+            };
+            mask.Freeze();
+            return mask;
         }
 
         private static bool UsesLightChrome(Theme theme) => theme is Theme.Light or Theme.SE98;
