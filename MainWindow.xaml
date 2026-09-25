@@ -1391,7 +1391,8 @@
                     </Image>
                     <TextBlock Text="KillerPDF" Visibility="{DynamicResource PlainTitleVisibility}"
                                FontFamily="{DynamicResource ChromeFontFamily}" FontSize="11" FontWeight="Bold"
-                               Foreground="{DynamicResource ChromeTextBrush}" VerticalAlignment="Center"/>
+                               Foreground="{DynamicResource ChromeTextBrush}" VerticalAlignment="Center"
+                               Margin="{DynamicResource TitleTextMargin}"/>
                     <Grid VerticalAlignment="Center" Visibility="{DynamicResource WordmarkVisibility}">
                         <!-- Soft drop shadow: a blurred, offset copy behind the crisp wordmark -->
                         <StackPanel Orientation="Horizontal" Margin="1,1,0,0" Opacity="{DynamicResource WordmarkShadowOpacity}">
