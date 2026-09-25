@@ -82,6 +82,7 @@ namespace KillerPDF
             };
             foreach (var (btn, t) in map)
             {
+                btn.Tag = t == tool ? "selected" : null;
                 if (t == tool)
                 {
                     btn.SetResourceReference(Control.BackgroundProperty, "SelectionBg");
