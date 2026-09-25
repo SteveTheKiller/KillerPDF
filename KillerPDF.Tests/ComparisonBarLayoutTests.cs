@@ -32,6 +32,16 @@ public sealed class ComparisonBarLayoutTests
         Assert.Equal("0", (string?)comparisonBar.Attribute("CornerRadius"));
         Assert.DoesNotContain(comparisonBar.Elements(), element => element.Name.LocalName == "Border.Effect");
 
+        XElement dividerStem = splitHost.Elements()
+            .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonDividerStem");
+        Assert.Equal("0", (string?)dividerStem.Attribute("Grid.Row"));
+        Assert.Equal("1", (string?)dividerStem.Attribute("Grid.Column"));
+        Assert.Equal("4", (string?)dividerStem.Attribute("Width"));
+        Assert.Equal("24", (string?)dividerStem.Attribute("Height"));
+        Assert.Equal("0,0,0,-2", (string?)dividerStem.Attribute("Margin"));
+        Assert.Equal("{DynamicResource ComparisonBarBrush}", (string?)dividerStem.Attribute("Background"));
+        Assert.Equal("{Binding Visibility, ElementName=ComparisonBar}", (string?)dividerStem.Attribute("Visibility"));
+
         XElement dockContents = comparisonBar.Elements().Single(element => element.Name.LocalName == "Grid");
         XElement accentFace = dockContents.Descendants()
             .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonAccentFace");
