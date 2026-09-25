@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
-- Docked the comparison bar below the documents and gave it a feathered accent-colored face.
+- Docked the comparison bar below the documents and polished its feathered accent-colored controls.
 
 ### Fixed
 

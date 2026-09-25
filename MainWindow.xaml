@@ -135,8 +135,8 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Comparison controls stay crisp over the bright accent face. This preserves the
-             toolbar button geometry and hover behavior without its content shadow. -->
+        <!-- Comparison controls stay crisp over the bright accent face. Hover feedback is a
+             quiet fade so the controls do not place dark blocks over the accent bar. -->
         <Style x:Key="ComparisonBarButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
             <Setter Property="Template">
                 <Setter.Value>
@@ -151,7 +151,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                                <Setter Property="Opacity" Value="0.72"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.4"/>
@@ -2648,9 +2648,19 @@
                                             <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
                                         </Button>
                                     </StackPanel>
-                                    <Button x:Name="ComparisonCloseButtonControl" Width="25" Height="24" Margin="5,0,0,0"
-                                            Content="{DynamicResource AboutCloseGlyph}" Style="{StaticResource ComparisonCloseButton}"
-                                            Click="ComparisonClose_Click" ToolTip="{DynamicResource Str_TT_ExitComparison}"/>
+                                    <Button x:Name="ComparisonCloseButtonControl" Width="25" Height="24" Margin="10,0,0,0"
+                                            Style="{StaticResource ComparisonCloseButton}" Click="ComparisonClose_Click">
+                                        <Button.ToolTip>
+                                            <TextBlock>
+                                                <Run Text="{DynamicResource Str_TT_ExitComparison}"/><Run Text=" (Esc)"/>
+                                            </TextBlock>
+                                        </Button.ToolTip>
+                                        <TextBlock Text="{DynamicResource AboutCloseGlyph}">
+                                            <TextBlock.RenderTransform>
+                                                <TranslateTransform Y="1"/>
+                                            </TextBlock.RenderTransform>
+                                        </TextBlock>
+                                    </Button>
                                 </StackPanel>
                             </Border>
                             <Border Grid.ColumnSpan="2" IsHitTestVisible="False"
