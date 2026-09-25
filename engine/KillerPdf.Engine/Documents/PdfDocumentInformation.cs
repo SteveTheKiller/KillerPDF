@@ -110,6 +110,8 @@ public sealed record PdfDocumentInformation
     private static PdfTrappedStatus? ReadTrapped(PdfDictionary? info)
     {
         if (info is null || !info.TryGetValue(new PdfName("Trapped"u8), out PdfObject? value)) return null;
+        // A null entry carries no value and means the same as an absent entry.
+        if (value is PdfNull) return null;
         return value is PdfName name && Enum.TryParse(name.ValueAsLatin1(), out PdfTrappedStatus result)
             ? result
             : throw new InvalidOperationException("The /Trapped document information value is not defined.");
