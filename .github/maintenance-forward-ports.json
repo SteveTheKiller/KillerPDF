@@ -328,6 +328,16 @@
       "maintenanceCommit": "0dbd5ebb6f34e099a5b7d5fe8aba2c72b38b5009",
       "developmentCommit": "d62366aaf8ac67a2ce7187c27120dc4330814432",
       "reason": "The 1.8.6 benchmark report, measured runs, performance record, landing results, and localized claims are preserved in 1.9."
+    },
+    {
+      "maintenanceCommit": "d52213eb3c319affcaa3b47152a4c7713ea11a6b",
+      "developmentCommit": "9ac015e24aa0cd4f519471d9db178edbbcdd837a",
+      "reason": "The 1.8.70 benchmark report, measured runs, performance record, landing results, and localized claims are preserved in 1.9."
+    },
+    {
+      "maintenanceCommit": "4d38e01bbf24918136bb97dd95872df2cfad7500",
+      "developmentCommit": "3489d16b24f3e78d881d2231a951ebe62a993006",
+      "reason": "The localized comparison close shortcut and its regression assertion match maintenance."
     }
   ]
 }
