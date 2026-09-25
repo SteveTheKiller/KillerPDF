@@ -27,16 +27,18 @@ public sealed class ComparisonBarLayoutTests
         Assert.Equal("1", (string?)comparisonBar.Attribute("Grid.Row"));
         Assert.Equal("Stretch", (string?)comparisonBar.Attribute("HorizontalAlignment"));
         Assert.Null(comparisonBar.Attribute("VerticalAlignment"));
-        Assert.Equal("0,4,0,0", (string?)comparisonBar.Attribute("Margin"));
+        Assert.Equal("0", (string?)comparisonBar.Attribute("Margin"));
         Assert.Equal("0", (string?)comparisonBar.Attribute("BorderThickness"));
         Assert.Equal("0", (string?)comparisonBar.Attribute("CornerRadius"));
         Assert.DoesNotContain(comparisonBar.Elements(), element => element.Name.LocalName == "Border.Effect");
 
         XElement dockContents = comparisonBar.Elements().Single(element => element.Name.LocalName == "Grid");
-        XElement dockColumns = dockContents.Elements()
-            .Single(element => element.Name.LocalName == "Grid.ColumnDefinitions");
-        Assert.Equal(new[] { "*", "Auto", "Auto", "*" }, dockColumns.Elements()
-            .Select(element => (string?)element.Attribute("Width")));
+        XElement accentFace = dockContents.Descendants()
+            .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonAccentFace");
+        Assert.Equal("{DynamicResource PrimaryBrush}", (string?)accentFace.Attribute("Background"));
+        Assert.Single(comparisonBar.Descendants().Where(element =>
+            element.Name.LocalName == "TextBlock" &&
+            (string?)element.Attribute("Text") == "{DynamicResource Str_Compare_Bar}"));
 
         XElement detailsPopup = splitHost.Elements()
             .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonDetailsPopup");
