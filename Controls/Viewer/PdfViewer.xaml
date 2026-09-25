@@ -36,6 +36,13 @@
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
+                <!-- Classic tabs interrupt this pane-top line with the active tab's own raised
+                     outline. Inactive tabs sit one pixel above it, keeping the pane perimeter
+                     continuous on both sides of the selected tab. -->
+                <Border x:Name="RetroTabJoinLine" Height="1" VerticalAlignment="Bottom"
+                        Background="{DynamicResource BevelLightBrush}"
+                        Visibility="{DynamicResource RetroTabJoinVisibility}"
+                        IsHitTestVisible="False"/>
                 <DockPanel LastChildFill="True">
                     <!-- Overflow chevron: only tabs collapsed out of this pane's strip
                          (TabOverflowMenu). Docked BEFORE the strip so the strip measures against
