@@ -412,6 +412,12 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Attachment_None">This document has no attachments.</sys:String>
     <sys:String x:Key="Str_Attachment_Updated">Attachments updated</sys:String>
     <sys:String x:Key="Str_Attachment_Failed">Could not update the attachments:</sys:String>
+    <sys:String x:Key="Str_DocumentTools_NavigationAudit">Navigation audit</sys:String>
+    <sys:String x:Key="Str_Navigation_RemoveUnsafe">Remove links with unsafe or invalid web addresses</sys:String>
+    <sys:String x:Key="Str_Navigation_RemoveUnresolved">Remove links with destinations that cannot be found</sys:String>
+    <sys:String x:Key="Str_Navigation_Repair">Repair selected</sys:String>
+    <sys:String x:Key="Str_Navigation_Updated">Navigation links repaired</sys:String>
+    <sys:String x:Key="Str_Navigation_Failed">Could not audit or repair navigation:</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectData">Select merge data</sys:String>
     <sys:String x:Key="Str_DataMerge_DataFiles">Merge data files</sys:String>
     <sys:String x:Key="Str_DataMerge_SelectOutput">Choose the first output PDF</sys:String>

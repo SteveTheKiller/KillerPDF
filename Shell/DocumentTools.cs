@@ -51,6 +51,8 @@ public partial class MainWindow
             (_, _) => EditPortfolio(), glyph: "\uE70F"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_EditAttachments"),
             (_, _) => EditAttachments(), glyph: "\uE8B7"));
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_NavigationAudit"),
+            (_, _) => AuditNavigation(), glyph: "\uE9D9"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_InitialView"),
             (_, _) => EditInitialView(), glyph: "\uE7B3"));
         var comparison = MakeMenuItem(Loc("Str_DocumentTools_StructuralComparison"),
@@ -394,6 +396,42 @@ public partial class MainWindow
         catch (Exception ex)
         {
             KillerDialog.Show(this, Loc("Str_Attachment_Failed") + "\n" + ex.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void AuditNavigation()
+    {
+        if (_doc is null || string.IsNullOrWhiteSpace(_currentFile))
+        {
+            KillerDialog.Show(this, Loc("Str_Msg_OpenFirst"));
+            return;
+        }
+
+        CommitActiveTextBox();
+        try
+        {
+            IReadOnlyList<PdfNavigationFinding> findings =
+                PdfEngineIntegration.InspectNavigation(_currentFile);
+            bool hasUnsafeLinks = findings.Any(finding =>
+                finding.Code == PdfNavigationFindingCode.LinkUnsafeUri);
+            bool hasUnresolvedLinks = findings.Any(finding =>
+                finding.Code == PdfNavigationFindingCode.LinkUnresolvedDestination);
+            var dialog = new NavigationRepairDialog(
+                this, PdfEngineIntegration.FormatNavigationAudit(_currentFile),
+                hasUnsafeLinks, hasUnresolvedLinks);
+            if (dialog.ShowDialog() != true) return;
+            UndoEntry? documentUndo = CaptureDocumentUndo();
+            SaveTempAndReload(
+                keepAnnotations: true,
+                finalizeSavedFile: path => PdfEngineIntegration.RepairNavigationLinks(
+                    path, dialog.RemoveUnsafeLinks, dialog.RemoveUnresolvedLinks),
+                documentUndo: documentUndo);
+            SetStatus(Loc("Str_Navigation_Updated"));
+        }
+        catch (Exception ex)
+        {
+            KillerDialog.Show(this, Loc("Str_Navigation_Failed") + "\n" + ex.Message,
                 "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

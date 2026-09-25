@@ -262,6 +262,38 @@ internal static class PdfEngineIntegration
         ReplaceWithBuiltResult(path, result);
     }
 
+    internal static IReadOnlyList<PdfNavigationFinding> InspectNavigation(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfNavigationAudit.Inspect(PdfDocument.Open(File.ReadAllBytes(path)));
+    }
+
+    internal static string FormatNavigationAudit(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfNavigationAudit.ExportText(PdfDocument.Open(File.ReadAllBytes(path)));
+    }
+
+    internal static void RepairNavigationLinks(
+        string path, bool removeUnsafeLinks, bool removeUnresolvedLinks)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        if (!removeUnsafeLinks && !removeUnresolvedLinks)
+            throw new ArgumentException("At least one navigation repair must be selected.");
+        byte[] result = File.ReadAllBytes(path);
+        if (removeUnsafeLinks)
+        {
+            result = PdfNavigationMacro.Execute(
+                PdfNavigationMacro.RemoveUnsafeLinksStep(), result).ToArray();
+        }
+        if (removeUnresolvedLinks)
+        {
+            result = PdfNavigationMacro.Execute(
+                PdfNavigationMacro.RemoveUnresolvedLinksStep(), result).ToArray();
+        }
+        ReplaceWithBuiltResult(path, result);
+    }
+
     /// <summary>Compares interpreted content, resources, and page geometry.</summary>
     internal static PdfStructuralComparison CompareStructure(string originalPath, string changedPath)
     {
