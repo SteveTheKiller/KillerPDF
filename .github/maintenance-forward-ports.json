@@ -338,6 +338,11 @@
       "maintenanceCommit": "4d38e01bbf24918136bb97dd95872df2cfad7500",
       "developmentCommit": "3489d16b24f3e78d881d2231a951ebe62a993006",
       "reason": "The localized comparison close shortcut and its regression assertion match maintenance."
+    },
+    {
+      "maintenanceCommit": "b2dcd0c136eef9fbf4d63fdaa6b2bcbca2989b75",
+      "developmentCommit": "e8fe5fe792a86df5f4d5adde395aebd450fcc3e0",
+      "reason": "The release package switch forwarding fix matches maintenance."
     }
   ]
 }
