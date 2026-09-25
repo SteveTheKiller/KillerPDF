@@ -10,6 +10,7 @@ public sealed class ReleaseScriptSafetyTests
     {
         string root = FindRepositoryRoot();
         string script = File.ReadAllText(Path.Combine(root, "release.ps1"));
+        string packageScript = File.ReadAllText(Path.Combine(root, "build", "build-portable.ps1"));
 
         Assert.Contains("$SkipSign -and -not $DryRun", script, StringComparison.Ordinal);
         Assert.Contains("dotnet list $proj package --vulnerable --include-transitive", script,
@@ -22,6 +23,10 @@ public sealed class ReleaseScriptSafetyTests
         Assert.Contains("KillerPDF-$Version-src.zip", script, StringComparison.Ordinal);
         Assert.Contains("SHA256SUMS.txt does not match", script, StringComparison.Ordinal);
         Assert.Contains("DryRun: skipping WinGet fork synchronization", script,
+            StringComparison.Ordinal);
+        Assert.Contains("Join-Path ([IO.Path]::GetTempPath()) ('KillerPDF-install-smoke-'", packageScript,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("Join-Path $artifactRoot ('install-smoke-'", packageScript,
             StringComparison.Ordinal);
         Assert.DoesNotMatch("[^\\x00-\\x7F]", script);
     }
