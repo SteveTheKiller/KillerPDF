@@ -6,12 +6,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.8.70] - 2026-09-24
 
-1.8.70 hardens releases, repairs difficult PDF editing and saving cases, and polishes comparison, tabs, localization, and other interface behavior.
+1.8.70 introduces KillerPDF's four-digit version numbering, hardens releases, repairs difficult PDF editing and saving cases, and polishes comparison, tabs, localization, and other interface behavior.
+
+### Changed
+
+- Docked the comparison bar below the documents and gave it a feathered accent-colored face.
 
 ### Fixed
 
 - Hardened native library loading and release artifact verification.
-- Rounded modern flyout corners, restored shortcut-list category colors, and docked an accent-colored comparison bar below the documents.
+- Rounded modern flyout corners and restored shortcut-list category colors.
 - Corrected document tab alignment, outlines, widths, and 98SE shading.
 - Preserved shapes and other annotations on retained pages when deleting PDF pages (#429).
 - Kept text editing active while choosing a font from the dropdown (#428).
