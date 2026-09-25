@@ -45,6 +45,16 @@ public sealed class ComparisonBarLayoutTests
                 (string?)element.Attribute(x + "Key") == "ComparisonBarButton");
         Assert.DoesNotContain(comparisonButtonStyle.Descendants(), element =>
             element.Name.LocalName == "DropShadowEffect");
+        XElement comparisonHoverTrigger = comparisonButtonStyle.Descendants()
+            .Single(element => element.Name.LocalName == "Trigger" &&
+                (string?)element.Attribute("Property") == "IsMouseOver");
+        Assert.DoesNotContain(comparisonHoverTrigger.Descendants(), element =>
+            element.Name.LocalName == "Setter" &&
+            (string?)element.Attribute("Property") == "Background");
+        Assert.Contains(comparisonHoverTrigger.Descendants(), element =>
+            element.Name.LocalName == "Setter" &&
+            (string?)element.Attribute("Property") == "Opacity" &&
+            (string?)element.Attribute("Value") == "0.72");
 
         XElement comparisonCloseStyle = document.Descendants()
             .Single(element => element.Name.LocalName == "Style" &&
@@ -54,6 +64,13 @@ public sealed class ComparisonBarLayoutTests
         XElement comparisonClose = comparisonBar.Descendants()
             .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonCloseButtonControl");
         Assert.Equal("{StaticResource ComparisonCloseButton}", (string?)comparisonClose.Attribute("Style"));
+        Assert.Equal("10,0,0,0", (string?)comparisonClose.Attribute("Margin"));
+        Assert.Contains(comparisonClose.Descendants(), element =>
+            element.Name.LocalName == "TranslateTransform" &&
+            (string?)element.Attribute("Y") == "1");
+        Assert.Contains(comparisonClose.Descendants(), element =>
+            element.Name.LocalName == "Run" &&
+            (string?)element.Attribute("Text") == " (Esc)");
 
         XElement detailsPopup = splitHost.Elements()
             .Single(element => (string?)element.Attribute(x + "Name") == "ComparisonDetailsPopup");
