@@ -27,10 +27,11 @@ public sealed class DocumentTabLayoutTests
     }
 
     [Fact]
-    public void RetroTabsHaveDistinctFacesWithoutFullWidthJoinLines()
+    public void RetroTabsHaveDistinctFacesAndContinuousPaneJoin()
     {
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.TabStrip.cs"));
+        var document = XDocument.Load(Path.Combine(root, "Controls", "Viewer", "PdfViewer.xaml"));
         var theme = XDocument.Load(Path.Combine(root, "Themes", "98SE.xaml"));
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
 
@@ -42,6 +43,13 @@ public sealed class DocumentTabLayoutTests
         Assert.Equal("#9f9f9f", BrushColor("TabActiveBrush"), ignoreCase: true);
         Assert.Equal("#c0c0c0", BrushColor("TabInactiveBrush"), ignoreCase: true);
         Assert.DoesNotContain("TabBarRing", source, StringComparison.Ordinal);
+
+        XElement join = document.Descendants()
+            .Single(element => (string?)element.Attribute(x + "Name") == "RetroTabJoinLine");
+        Assert.Equal("1", (string?)join.Attribute("Height"));
+        Assert.Equal("Bottom", (string?)join.Attribute("VerticalAlignment"));
+        Assert.Equal("{DynamicResource BevelLightBrush}", (string?)join.Attribute("Background"));
+        Assert.Equal("{DynamicResource RetroTabJoinVisibility}", (string?)join.Attribute("Visibility"));
     }
 
     private static string FindRepositoryRoot()
