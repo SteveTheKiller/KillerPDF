@@ -493,6 +493,17 @@ namespace KillerPDF
                 OpenContextMenuAtSelection();
                 e.Handled = true;
             }
+            else if (Keyboard.Modifiers == ModifierKeys.None && e.Key is Key.Left or Key.Right or Key.Up or Key.Down
+                     && NudgeSelection(e.Key switch
+                     {
+                         Key.Left  => new Vector(-1, 0),
+                         Key.Right => new Vector(1, 0),
+                         Key.Up    => new Vector(0, -1),
+                         _         => new Vector(0, 1)
+                     }, createUndo: !e.IsRepeat))
+            {
+                e.Handled = true;
+            }
             // Bare-key tool switches. Only when a document is open, no modifier is held, and no
             // overlay is up (and not while typing - guarded at the top of this handler).
             else if (Keyboard.Modifiers == ModifierKeys.None && _doc is not null

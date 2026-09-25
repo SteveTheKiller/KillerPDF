@@ -49,6 +49,7 @@ namespace KillerPDF
         private PageAnnotation? SelectedPaired() => ActiveViewer.SelectedPairedExt();
         private int SelectionCount() => ActiveViewer.SelectionCountExt();
         private void ReattachSelectionVisuals() => ActiveViewer.ReattachSelectionVisualsExt();
+        private bool NudgeSelection(Vector requested, bool createUndo) => ActiveViewer.NudgeSelectionExt(requested, createUndo);
         private void UnpairSelected() => ActiveViewer.UnpairSelectedExt();
         private void GroupSelected() => ActiveViewer.GroupSelectedExt();
         private void UngroupAnnotation(PageAnnotation a) => ActiveViewer.UngroupAnnotationExt(a);

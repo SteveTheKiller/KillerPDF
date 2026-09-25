@@ -818,6 +818,48 @@ namespace KillerPDF.Controls
             return ClampRectToPage(a.PageIndex, b).Location;
         }
 
+        private bool NudgeSelection(Vector requested, bool createUndo)
+        {
+            var selected = new List<PageAnnotation>();
+            if (_selectedAnnotation is not null && IsDraggable(_selectedAnnotation))
+                selected.Add(_selectedAnnotation);
+            foreach (var annotation in _selectedSet)
+                if (IsDraggable(annotation) && !selected.Contains(annotation))
+                    selected.Add(annotation);
+
+            if (selected.Count == 0) return false;
+
+            var constraints = selected
+                .Where(annotation => _renderDims.ContainsKey(annotation.PageIndex))
+                .Select(annotation =>
+                {
+                    var dimensions = _renderDims[annotation.PageIndex];
+                    return new AnnotationNudge.Constraint(
+                        AnnotBounds(annotation), new Size(dimensions.w, dimensions.h));
+                });
+            Vector delta = AnnotationNudge.ClampDelta(constraints, requested);
+
+            // A selected object owns the arrow keys even at a page edge. Otherwise the same key
+            // unexpectedly starts scrolling or changing pages when the object cannot move farther.
+            if (delta.X == 0 && delta.Y == 0) return true;
+
+            if (createUndo)
+                PushPagesSnapshotUndo(selected.Select(annotation => annotation.PageIndex));
+
+            foreach (var annotation in selected)
+            {
+                Point position = AnnotGetPos(annotation);
+                AnnotSetPos(annotation, new Point(position.X + delta.X, position.Y + delta.Y));
+            }
+
+            foreach (int pageIndex in selected.Select(annotation => annotation.PageIndex).Distinct())
+                RenderAllAnnotations(pageIndex);
+            ReattachSelectionVisuals();
+            if (_selectedSet.Count > 0) ReattachMultiOutlines();
+            MarkDirty();
+            return true;
+        }
+
         // Clamps a point to the page rectangle. Used during resize so a dragged corner can't leave the
         // page (with the opposite corner already on-page, that keeps the whole box on-page).
         private Point ClampPointToPage(int pageIdx, Point p)

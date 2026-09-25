@@ -41,6 +41,7 @@
     <Compile Include="..\Services\InstalledPdfFontResolver.cs" Link="Services\InstalledPdfFontResolver.cs" />
     <Compile Include="..\Services\PdfBurn.cs" Link="Services\PdfBurn.cs" />
     <Compile Include="..\Services\AnnotationRotate.cs" Link="Services\AnnotationRotate.cs" />
+    <Compile Include="..\Services\AnnotationNudge.cs" Link="Services\AnnotationNudge.cs" />
     <Compile Include="..\Services\WheelPageFlipGate.cs" Link="Services\WheelPageFlipGate.cs" />
     <Compile Include="..\Services\PinchZoomMath.cs" Link="Services\PinchZoomMath.cs" />
     <Compile Include="..\Services\ViewerRenderResolution.cs" Link="Services\ViewerRenderResolution.cs" />
