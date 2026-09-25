@@ -126,7 +126,6 @@ namespace KillerPDF.Controls
                 t.IsLast = false;
                 t.RetroBeforeActive = false;
                 t.RetroAfterActive = false;
-                t.RetroLastInactive = false;
                 t.UseRetroTabChrome = retroTabs;
             }
             if (strip.Count > 0)
@@ -139,7 +138,6 @@ namespace KillerPDF.Controls
                 {
                     if (activeIndex > 0) strip[activeIndex - 1].RetroBeforeActive = true;
                     if (activeIndex + 1 < strip.Count) strip[activeIndex + 1].RetroAfterActive = true;
-                    if (!chevron && hostFillsBand && !strip[^1].IsActive) strip[^1].RetroLastInactive = true;
                 }
             }
 
@@ -229,8 +227,9 @@ namespace KillerPDF.Controls
             TabOverflowBtn.Visibility = overflow ? Visibility.Visible : Visibility.Collapsed;
 
             double stripAvail = Math.Max(0, avail - (overflow ? TabChevronWidth : 0));
+            int visibleCount = overflow ? cap : n;
             if (TabStripHost != null)
-                TabStripHost.Width = Math.Max(TabFloorWidth, Math.Min(stripAvail, cap * TabCeilingWidth));
+                TabStripHost.Width = Math.Max(TabFloorWidth, Math.Min(stripAvail, visibleCount * TabCeilingWidth));
 
             int start = 0;
             if (overflow)
@@ -340,20 +339,9 @@ namespace KillerPDF.Controls
             if (TabBarRing != null)
             {
                 TabBarRing.CornerRadius = new CornerRadius(cr.TopLeft, cr.TopRight, 0, 0);
-                if (Services.ThemeManager.Current == Services.Theme.SE98)
-                {
-                    // The raised pane's light top rule is the horizontal part of the selected-tab
-                    // route. The selected tab covers its own segment; the remaining rule turns up
-                    // at the tab sides and therefore reads as one continuous classic outline.
-                    TabBarRing.BorderThickness = new Thickness(0, 1, 0, 0);
-                    TabBarRing.SetResourceReference(Border.BorderBrushProperty, "BevelLightBrush");
-                }
-                else
-                {
-                    // Modern tabs carry their own outline. A full-width ring here creates stray
-                    // horizontal rules on both sides of a bounded, left-aligned tab strip.
-                    TabBarRing.BorderThickness = new Thickness(0);
-                }
+                // Tabs carry their own outline. A full-width ring creates stray horizontal rules
+                // beside a bounded, left-aligned tab group.
+                TabBarRing.BorderThickness = new Thickness(0);
             }
         }
 
@@ -390,61 +378,10 @@ namespace KillerPDF.Controls
             }
 
             PaneBorder?.SetResourceReference(Border.BackgroundProperty,
-                    retro ? (paneActive ? "TabActiveBrush" : "TabInactiveBrush") : "BgCanvas");
+                    retro ? (paneActive ? "FocusedPaneBrush" : "TabInactiveBrush") : "BgCanvas");
             PaneShadow?.SetResourceReference(Border.BackgroundProperty,
-                    retro ? (paneActive ? "TabActiveBrush" : "TabInactiveBrush") : "BgCanvas");
+                    retro ? (paneActive ? "FocusedPaneBrush" : "TabInactiveBrush") : "BgCanvas");
 
-            // Same ownership rule the card's corner rounding uses, read off the tab rather than
-            // recomputed: with the strip windowed the tab on an edge is not the one at the end of the
-            // list, and two places working that out separately is two places to get it wrong.
-            bool firstActive = _active?.IsFirst == true;
-            bool lastActive  = _active?.IsLast  == true;
-            bool firstInactiveRetro = retro && _sessions.Any(t => t.IsStripVisible && t.IsFirst && !t.IsActive);
-            bool lastInactiveRetro = retro && _sessions.Any(t => t.RetroLastInactive);
-            // The XAML declares these with NO Background - unlike KillerShell's copy, which paints
-            // them PrimaryBrush directly in markup, KillerPDF's accent key is only known at runtime
-            // (SelectionAccent, resolved the same way SetFocusHalo resolves the card border). Without
-            // this they toggle Visible and still draw nothing: a transparent Border is invisible
-            // whatever its Visibility says.
-            if (TabEdgeLeft != null)
-            {
-                if (retro)
-                {
-                    // This is the OUTER gray frame, not a duplicate highlight. The active first
-                    // tab is inset one pixel: its own white bevel lands at x+1 and its inset light
-                    // gray bevel at x+2, exactly where the pane draws those same two raised layers.
-                    // Keeping the three responsibilities separate makes the complete side read
-                    // gray / white / light-gray instead of a flat or doubled white line.
-                    // Run through the band's final row so it meets the card edge below. Leaving the
-                    // inactive case one pixel short exposed a literal gap in the left frame.
-                    TabEdgeLeft.Margin = new Thickness(0, firstActive ? 3 : 5, 0, 0);
-                    TabEdgeLeft.Visibility = firstActive || firstInactiveRetro
-                        ? Visibility.Visible : Visibility.Collapsed;
-                    TabEdgeLeft.SetResourceReference(Border.BackgroundProperty, "PaneBorderBrush");
-                }
-                else
-                {
-                    TabEdgeLeft.Visibility = Visibility.Collapsed;
-                }
-            }
-            if (TabEdgeRight != null)
-            {
-                // The tab now reserves its final pixel, so this is only the outer frame. Because
-                // the border lives inside TabScroll it shares the tab's vertical origin and no
-                // longer starts above the tab or cuts through the scrollbar-arrow corner.
-                if (retro && lastInactiveRetro)
-                {
-                    TabEdgeRight.Margin = new Thickness(0, 5, 0, 1);
-                }
-                else
-                {
-                    TabEdgeRight.Margin = retro ? new Thickness(0, 3, 0, 0) : new Thickness(0, 9, 0, 0);
-                }
-                TabEdgeRight.Visibility = retro && (lastActive || lastInactiveRetro)
-                    ? Visibility.Visible : Visibility.Collapsed;
-                if (retro)
-                    TabEdgeRight.SetResourceReference(Border.BackgroundProperty, "PaneBorderBrush");
-            }
         }
 
         // ════════════════════════════════════════════════════════════════════════════════════════

@@ -343,13 +343,6 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                            <!-- The outer gray frame pixels. The tabs reserve their edge pixel and
-                                 draw the inner white/gray bevel themselves; these borders complete
-                                 only the outermost frame and therefore cannot thicken the bevel. -->
-                            <Border x:Name="TabEdgeLeft" Width="1" HorizontalAlignment="Left"
-                                    IsHitTestVisible="False" Visibility="Collapsed"/>
-                            <Border x:Name="TabEdgeRight" Width="1" HorizontalAlignment="Right"
-                                    IsHitTestVisible="False" Visibility="Collapsed"/>
                         </Grid>
                     </ScrollViewer>
                 </DockPanel>
