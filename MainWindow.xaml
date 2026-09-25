@@ -135,6 +135,32 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Comparison controls stay crisp over the bright accent face. This preserves the
+             toolbar button geometry and hover behavior without its content shadow. -->
+        <Style x:Key="ComparisonBarButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="{TemplateBinding Padding}"
+                                ToolTip="{TemplateBinding ToolTip}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="ToolbarButtonAccent" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
             <Setter Property="Foreground" Value="{DynamicResource AccentLogo}"/>
         </Style>
@@ -369,6 +395,9 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+        <Style x:Key="ComparisonCloseButton" TargetType="Button" BasedOn="{StaticResource OverlayCloseButton}">
+            <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
         </Style>
 
         <!-- Tab close button: themed so hover is the danger red (not WPF's default blue chrome). -->
@@ -2562,6 +2591,11 @@
                             </Grid>
                         </Border>
                         <Grid HorizontalAlignment="Center">
+                            <Grid.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Effect" Value="{x:Null}"/>
+                                </Style>
+                            </Grid.Resources>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -2588,7 +2622,7 @@
                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="390"/>
                                     <Rectangle Width="1" Margin="10,2" Fill="{DynamicResource OnPrimaryBrush}" Opacity="0.45"/>
                                     <Button x:Name="ComparisonResultButton" Width="300" Height="24" Margin="0" Padding="5,1"
-                                            Style="{StaticResource ToolbarButton}" Click="ComparisonDetails_Click"
+                                            Style="{StaticResource ComparisonBarButton}" Click="ComparisonDetails_Click"
                                             Foreground="{DynamicResource OnPrimaryBrush}"
                                             ToolTip="{DynamicResource Str_Compare_ViewDetails}">
                                         <StackPanel Orientation="Horizontal">
@@ -2600,7 +2634,7 @@
                                         </StackPanel>
                                     </Button>
                                     <StackPanel x:Name="ComparisonRegionNavigation" Orientation="Horizontal" Margin="5,0,0,0" Visibility="Collapsed">
-                                        <Button Width="24" Height="24" Padding="0" Style="{StaticResource ToolbarButton}"
+                                        <Button Width="24" Height="24" Padding="0" Style="{StaticResource ComparisonBarButton}"
                                                 Foreground="{DynamicResource OnPrimaryBrush}"
                                                 Click="ComparisonPreviousDifference_Click" ToolTip="{DynamicResource Str_Compare_PreviousRegion}">
                                             <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
@@ -2608,20 +2642,15 @@
                                         <TextBlock x:Name="ComparisonRegionText" MinWidth="38" TextAlignment="Center"
                                                    FontFamily="{DynamicResource MenuFontFamily}" FontSize="{DynamicResource MenuFontSize}"
                                                    Foreground="{DynamicResource OnPrimaryBrush}" VerticalAlignment="Center"/>
-                                        <Button Width="24" Height="24" Padding="0" Style="{StaticResource ToolbarButton}"
+                                        <Button Width="24" Height="24" Padding="0" Style="{StaticResource ComparisonBarButton}"
                                                 Foreground="{DynamicResource OnPrimaryBrush}"
                                                 Click="ComparisonNextDifference_Click" ToolTip="{DynamicResource Str_Compare_NextRegion}">
                                             <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
                                         </Button>
                                     </StackPanel>
-                                    <Button Width="25" Height="24" Padding="0" Margin="5,0,0,0"
-                                            Style="{StaticResource ToolbarButtonDanger}" Foreground="{DynamicResource OnPrimaryBrush}"
-                                            Click="ComparisonClose_Click" ToolTip="{DynamicResource Str_TT_ExitComparison}">
-                                        <Grid Width="11" Height="11">
-                                            <Path Stroke="{DynamicResource OnPrimaryBrush}" StrokeThickness="1.5" StrokeStartLineCap="Square" StrokeEndLineCap="Square" Data="M 1,1 L 10,10"/>
-                                            <Path Stroke="{DynamicResource OnPrimaryBrush}" StrokeThickness="1.5" StrokeStartLineCap="Square" StrokeEndLineCap="Square" Data="M 10,1 L 1,10"/>
-                                        </Grid>
-                                    </Button>
+                                    <Button x:Name="ComparisonCloseButtonControl" Width="25" Height="24" Margin="5,0,0,0"
+                                            Content="{DynamicResource AboutCloseGlyph}" Style="{StaticResource ComparisonCloseButton}"
+                                            Click="ComparisonClose_Click" ToolTip="{DynamicResource Str_TT_ExitComparison}"/>
                                 </StackPanel>
                             </Border>
                             <Border Grid.ColumnSpan="2" IsHitTestVisible="False"
