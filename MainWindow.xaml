@@ -2565,6 +2565,21 @@
 
                 <ctrl:PdfViewer x:Name="ViewerB" Grid.Column="2" Visibility="Collapsed"/>
 
+                <Border x:Name="ComparisonDividerStem" Grid.Row="0" Grid.Column="1" Panel.ZIndex="99"
+                        Width="4" Height="24" Margin="0,0,0,-2"
+                        HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                        Background="{DynamicResource ComparisonBarBrush}"
+                        Visibility="{Binding Visibility, ElementName=ComparisonBar}"
+                        IsHitTestVisible="False">
+                    <Border.OpacityMask>
+                        <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                            <GradientStop Color="Transparent" Offset="0"/>
+                            <GradientStop Color="#99000000" Offset="0.4"/>
+                            <GradientStop Color="Black" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.OpacityMask>
+                </Border>
+
                 <Border x:Name="ComparisonBar" Grid.Row="1" Grid.ColumnSpan="3" Panel.ZIndex="100"
                         Visibility="Collapsed" HorizontalAlignment="Stretch"
                         Margin="0" Padding="0" Background="Transparent"

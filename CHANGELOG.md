@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
-- Docked the comparison bar below the documents, polished its accent-colored controls, and kept selected toolbar tools crisp.
+- Docked the comparison bar below the documents, connected it to the split divider, polished its accent-colored controls, and kept selected toolbar tools crisp.
 
 ### Fixed
 
