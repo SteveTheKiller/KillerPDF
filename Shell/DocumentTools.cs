@@ -4,6 +4,9 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using System.Threading.Tasks;
+using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Parsing;
 using KillerPDF.Services;
 
 namespace KillerPDF;
@@ -53,9 +56,141 @@ public partial class MainWindow
             && !string.IsNullOrWhiteSpace(ViewerB.CurrentFilePathExt);
         menu.Items.Add(comparison);
         menu.Items.Add(new Separator());
+        menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_DataMerge"),
+            (_, _) => RunDataMerge(), glyph: "\uE8F1"));
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_InsertToc"),
             (_, _) => InsertTableOfContents(), glyph: "\uE8FD"));
         return menu;
+    }
+
+    private async void RunDataMerge()
+    {
+        if (_doc is null || string.IsNullOrWhiteSpace(_currentFile))
+        {
+            KillerDialog.Show(this, Loc("Str_Msg_OpenFirst"));
+            return;
+        }
+
+        var dataDialog = new Controls.FileDialog(Controls.FileDialogMode.Open)
+        {
+            Title = Loc("Str_DataMerge_SelectData"),
+            Filter = Loc("Str_DataMerge_DataFiles") + "|*.csv;*.json;*.xlsx|"
+                + Loc("Str_Dlg_AllFiles") + "|*.*"
+        };
+        if (dataDialog.ShowDialog(this) != true) return;
+
+        IReadOnlyList<IReadOnlyDictionary<string, string?>> records;
+        try
+        {
+            records = PdfDataMergeWorkflow.LoadRecords(dataDialog.FileName);
+        }
+        catch (Exception ex)
+        {
+            KillerDialog.Show(this, Loc("Str_DataMerge_Failed") + "\n" + ex.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+        if (records.Count == 0)
+        {
+            KillerDialog.Show(this, Loc("Str_DataMerge_NoRecords"),
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        string stem = Path.GetFileNameWithoutExtension(_originalFile ?? _currentFile) + "-merged.pdf";
+        var outputDialog = new Controls.FileDialog(Controls.FileDialogMode.Save)
+        {
+            Title = Loc("Str_DataMerge_SelectOutput"),
+            Filter = "PDF|*.pdf",
+            DefaultExt = "pdf",
+            FileName = stem
+        };
+        if (outputDialog.ShowDialog(this) != true) return;
+
+        CommitActiveTextBox();
+        byte[] templateBytes;
+        PdfDataMergePlan plan;
+        try
+        {
+            templateBytes = File.ReadAllBytes(_currentFile);
+            plan = PdfDataMergeWorkflow.CreatePlan(
+                PdfDocument.Open(templateBytes), records, Path.GetFileName(outputDialog.FileName));
+        }
+        catch (Exception ex)
+        {
+            KillerDialog.Show(this, Loc("Str_DataMerge_Failed") + "\n" + ex.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        string outputDirectory = Path.GetDirectoryName(outputDialog.FileName)!;
+        int collisions = plan.OutputFileNames.Count(name =>
+            File.Exists(Path.Combine(outputDirectory, name)));
+        if (collisions > 0 && KillerDialog.Show(this,
+                string.Format(Loc("Str_DataMerge_Overwrite"), collisions), "KillerPDF",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+            return;
+
+        var busy = ShowBusyOverlay(Loc("Str_DataMerge_Processing"));
+        CancellationToken token = BeginCancellableOp(Loc("Str_DocumentTools_DataMerge"));
+        try
+        {
+            PdfDataMergeBatchReport report = await Task.Run(() =>
+            {
+                IReadOnlyList<PdfDataMergeDocumentResult> generated = PdfDataMerge.RunFormBatch(
+                    PdfDocument.Open(templateBytes), plan.Records, plan.Profile,
+                    PdfDataMergeOutputMode.Editable, token);
+                var completed = new List<PdfDataMergeDocumentResult>(generated.Count);
+                foreach (PdfDataMergeDocumentResult result in generated)
+                {
+                    if (!result.Succeeded || result.Data is null || result.OutputFileName is null)
+                    {
+                        completed.Add(result);
+                        continue;
+                    }
+                    string destination = Path.Combine(outputDirectory, result.OutputFileName);
+                    string temporary = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                    try
+                    {
+                        File.WriteAllBytes(temporary, result.Data.Value.ToArray());
+                        File.Move(temporary, destination, overwrite: true);
+                        completed.Add(result);
+                    }
+                    catch (Exception ex) when (ex is not OutOfMemoryException
+                        and not StackOverflowException and not AccessViolationException)
+                    {
+                        try { if (File.Exists(temporary)) File.Delete(temporary); }
+                        catch { }
+                        completed.Add(new PdfDataMergeDocumentResult(
+                            result.RecordIndex, result.OutputFileName, null, ex.Message));
+                    }
+                }
+                return PdfDataMergeBatchReport.Create(completed);
+            });
+
+            HideBusyOverlay(busy);
+            SetStatus(token.IsCancellationRequested
+                ? Loc("Str_DataMerge_Canceled")
+                : string.Format(Loc("Str_DataMerge_Complete"),
+                    report.SucceededRecords, report.FailedRecords));
+            new DocumentReportDialog(this, Loc("Str_DocumentTools_DataMerge"),
+                report.ToText()).ShowDialog();
+        }
+        catch (OperationCanceledException)
+        {
+            HideBusyOverlay(busy);
+            SetStatus(Loc("Str_DataMerge_Canceled"));
+        }
+        catch (Exception ex)
+        {
+            HideBusyOverlay(busy);
+            KillerDialog.Show(this, Loc("Str_DataMerge_Failed") + "\n" + ex.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            EndCancellableOp();
+        }
     }
 
     private void InsertTableOfContents()

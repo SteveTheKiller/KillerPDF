@@ -464,6 +464,16 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_DocumentTools_StructuralComparison">Zpráva o porovnání struktury</sys:String>
     <sys:String x:Key="Str_DocumentTools_ComparisonNeedsTwo">Pro porovnání struktury otevřete dokument v každém panelu.</sys:String>
     <sys:String x:Key="Str_DocumentTools_InsertToc">Insert table of contents</sys:String>
+    <sys:String x:Key="Str_DocumentTools_DataMerge">Data merge</sys:String>
+    <sys:String x:Key="Str_DataMerge_SelectData">Select merge data</sys:String>
+    <sys:String x:Key="Str_DataMerge_DataFiles">Merge data files</sys:String>
+    <sys:String x:Key="Str_DataMerge_SelectOutput">Choose the first output PDF</sys:String>
+    <sys:String x:Key="Str_DataMerge_NoRecords">The selected data file has no records.</sys:String>
+    <sys:String x:Key="Str_DataMerge_Overwrite">{0} output file(s) already exist. Replace them?</sys:String>
+    <sys:String x:Key="Str_DataMerge_Processing">Generating merged PDFs...</sys:String>
+    <sys:String x:Key="Str_DataMerge_Complete">Data merge completed: {0} succeeded, {1} failed</sys:String>
+    <sys:String x:Key="Str_DataMerge_Canceled">Data merge canceled</sys:String>
+    <sys:String x:Key="Str_DataMerge_Failed">Could not complete the data merge:</sys:String>
     <sys:String x:Key="Str_DocumentTools_TocEntries">The document has {0} bookmark entries available for the table of contents.</sys:String>
     <sys:String x:Key="Str_DocumentTools_TocTitle">Title</sys:String>
     <sys:String x:Key="Str_DocumentTools_TocDefaultTitle">Table of Contents</sys:String>
