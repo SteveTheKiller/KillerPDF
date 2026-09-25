@@ -143,7 +143,38 @@ namespace KillerPDF.Controls
             SyncPaneLeadingCorner();
             UpdatePaneFocusRing();
             UpdateTabStripFade();
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)UpdateRetroTabInnerJoin);
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)UpdateFooterFade);
+        }
+
+        /// <summary>Route the classic pane's inner light bevel around the selected tab.</summary>
+        private void UpdateRetroTabInnerJoin()
+        {
+            if (RetroTabInnerJoin == null || RetroTabInnerJoinLeft == null || RetroTabInnerJoinRight == null)
+                return;
+
+            RetroTabInnerJoinLeft.Width = 0;
+            RetroTabInnerJoinRight.Width = 0;
+
+            if (Services.ThemeManager.Current != Services.Theme.SE98 ||
+                TabStripBorder.Visibility != Visibility.Visible || _active == null)
+                return;
+
+            TabStrip.UpdateLayout();
+            FrameworkElement? activeTab = TabContainer(_active);
+            if (activeTab == null || activeTab.ActualWidth <= 0 || RetroTabInnerJoin.ActualWidth <= 0)
+                return;
+
+            Point activeOrigin = activeTab.TranslatePoint(new Point(0, 0), RetroTabInnerJoin);
+            double joinWidth = RetroTabInnerJoin.ActualWidth;
+            double activeLeft = Math.Max(0, Math.Min(joinWidth, Math.Round(activeOrigin.X)));
+            double activeRight = Math.Max(activeLeft,
+                Math.Min(joinWidth, Math.Round(activeOrigin.X + activeTab.ActualWidth)));
+
+            RetroTabInnerJoinLeft.Width = activeLeft;
+            Canvas.SetLeft(RetroTabInnerJoinLeft, 0);
+            RetroTabInnerJoinRight.Width = joinWidth - activeRight;
+            Canvas.SetLeft(RetroTabInnerJoinRight, activeRight);
         }
 
         // ════════════════════════════════════════════════════════════════════════════════════════

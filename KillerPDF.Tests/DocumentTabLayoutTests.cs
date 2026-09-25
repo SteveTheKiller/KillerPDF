@@ -51,6 +51,21 @@ public sealed class DocumentTabLayoutTests
         Assert.Equal("{DynamicResource PaneBorderBrush}", (string?)join.Attribute("Background"));
         Assert.Equal("{DynamicResource RetroTabJoinVisibility}", (string?)join.Attribute("Visibility"));
 
+        XElement innerJoin = document.Descendants()
+            .Single(element => (string?)element.Attribute(x + "Name") == "RetroTabInnerJoin");
+        Assert.Equal("1,0,2,-1", (string?)innerJoin.Attribute("Margin"));
+        Assert.Equal("{DynamicResource RetroTabJoinVisibility}", (string?)innerJoin.Attribute("Visibility"));
+        foreach (string segmentName in new[] { "RetroTabInnerJoinLeft", "RetroTabInnerJoinRight" })
+        {
+            XElement segment = document.Descendants()
+                .Single(element => (string?)element.Attribute(x + "Name") == segmentName);
+            Assert.Equal("{DynamicResource BevelLightBrush}", (string?)segment.Attribute("Background"));
+        }
+        Assert.Contains("UpdateRetroTabInnerJoin", source, StringComparison.Ordinal);
+        Assert.Contains("Canvas.SetLeft(RetroTabInnerJoinRight, activeRight)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain(document.Descendants(), element =>
+            (string?)element.Attribute(x + "Name") == "tabActiveRetroSeamPatch");
+
         XElement outline = document.Descendants()
             .Single(element => (string?)element.Attribute(x + "Name") == "tabActiveRetroOuterOutline");
         Assert.Equal("{DynamicResource TabActiveOuterOutlineMargin}", (string?)outline.Attribute("Margin"));
@@ -60,9 +75,11 @@ public sealed class DocumentTabLayoutTests
         string ThicknessValue(string key) => theme.Descendants()
             .Single(element => element.Name.LocalName == "Thickness" &&
                 (string?)element.Attribute(x + "Key") == key).Value;
-        Assert.Equal("0,3,0,-1", ThicknessValue("TabActiveMargin"));
-        Assert.Equal("1,3,0,-1", ThicknessValue("TabActiveFirstMargin"));
-        Assert.Equal("0,3,1,-1", ThicknessValue("TabActiveLastMargin"));
+        Assert.Equal("-13,-5,-6,-2", ThicknessValue("TabActiveOuterOutlineMargin"));
+        Assert.Equal("0,3,0,-3", ThicknessValue("TabActiveMargin"));
+        Assert.Equal("1,3,0,-3", ThicknessValue("TabActiveFirstMargin"));
+        Assert.Equal("0,3,1,-3", ThicknessValue("TabActiveLastMargin"));
+        Assert.Equal("1,3,1,-3", ThicknessValue("TabActiveOnlyMargin"));
     }
 
     private static string FindRepositoryRoot()

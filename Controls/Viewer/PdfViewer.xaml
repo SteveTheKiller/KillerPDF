@@ -42,6 +42,17 @@
                         Background="{DynamicResource PaneBorderBrush}"
                         Visibility="{DynamicResource RetroTabJoinVisibility}"
                         IsHitTestVisible="False"/>
+                <!-- The inner light bevel stops at the selected tab, climbs through the tab's
+                     own left edge, then resumes after its right edge. The final two pixels stay
+                     clear so the light bevel cannot overwrite the gray right-side frame. -->
+                <Canvas x:Name="RetroTabInnerJoin" Height="1" VerticalAlignment="Bottom"
+                        Margin="1,0,2,-1" Visibility="{DynamicResource RetroTabJoinVisibility}"
+                        IsHitTestVisible="False" SnapsToDevicePixels="True">
+                    <Border x:Name="RetroTabInnerJoinLeft" Height="1"
+                            Background="{DynamicResource BevelLightBrush}"/>
+                    <Border x:Name="RetroTabInnerJoinRight" Height="1"
+                            Background="{DynamicResource BevelLightBrush}"/>
+                </Canvas>
                 <DockPanel LastChildFill="True">
                     <!-- Overflow chevron: only tabs collapsed out of this pane's strip
                          (TabOverflowMenu). Docked BEFORE the strip so the strip measures against
@@ -178,13 +189,6 @@
                                                     BorderBrush="{DynamicResource TabActiveInnerBevelBrush}"
                                                     BorderThickness="{DynamicResource TabActiveInnerBevelThickness}"
                                                     SnapsToDevicePixels="True" Visibility="Collapsed"/>
-                                            <!-- Fill the lower-right join between a selected 98SE tab and
-                                                 the tab that follows it. The final tab never shows this patch,
-                                                 which keeps the classic edge inside the pane frame. -->
-                                            <Border x:Name="tabActiveRetroSeamPatch" IsHitTestVisible="False" Panel.ZIndex="7"
-                                                    Width="2" Height="2" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                                    Margin="0,0,-5,-4" Background="{DynamicResource TabSeamPatchBrush}"
-                                                    SnapsToDevicePixels="True" Visibility="Collapsed"/>
                                         </Grid>
                                     </Border>
                                     <DataTemplate.Triggers>
@@ -262,14 +266,6 @@
                                                 <Condition Binding="{Binding IsLast}" Value="True"/>
                                             </MultiDataTrigger.Conditions>
                                             <Setter TargetName="tabBd" Property="Margin" Value="{DynamicResource TabActiveOnlyMargin}"/>
-                                        </MultiDataTrigger>
-                                        <MultiDataTrigger>
-                                            <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsActive}" Value="True"/>
-                                                <Condition Binding="{Binding IsLast}" Value="False"/>
-                                                <Condition Binding="{Binding UseRetroTabChrome}" Value="True"/>
-                                            </MultiDataTrigger.Conditions>
-                                            <Setter TargetName="tabActiveRetroSeamPatch" Property="Visibility" Value="Visible"/>
                                         </MultiDataTrigger>
                                         <!-- Unfocused pane: the lip drops off the accent entirely
                                              and takes the card's own border color, so the whole
