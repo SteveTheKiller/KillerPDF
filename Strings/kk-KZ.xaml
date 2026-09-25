@@ -932,6 +932,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Dlg_SaveFlattened">Тегістелген PDF сақтау</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Шығарылған беттерді сақтау</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Сурет кірістіру</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">«{0}» кескінін жою керек пе?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Жұмыс үстеліндегі төте жол жасау</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">ЖОБА</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Алдымен сертификат файлын (.pfx / .p12) таңдаңыз.</sys:String>

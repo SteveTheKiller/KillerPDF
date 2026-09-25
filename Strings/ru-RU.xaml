@@ -958,6 +958,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Dlg_SaveFlattened">Сохранить сжатый PDF-файл</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Сохраните извлеченные страницы как</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Вставить изображение</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">Удалить изображение «{0}»?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Создать ярлык на рабочем столе</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">ПРОЕКТ</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Выберите файл сертификата (.pfx / .p12) сперва.</sys:String>

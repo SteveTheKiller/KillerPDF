@@ -955,6 +955,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Dlg_SaveFlattened">Zapisz spłaszczony PDF</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Zapisz wyodrębnione strony jako</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Wstaw obraz</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">Usunąć obraz „{0}”?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Utwórz skrót na pulpicie</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">SZKIC</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Najpierw wybierz plik certyfikatu (.pfx / .p12).</sys:String>

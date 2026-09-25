@@ -953,6 +953,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Dlg_SaveFlattened">Reduzierte PDF speichern</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Extrahierte Seiten speichern unter</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Bild einfügen</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">Bild „{0}“ löschen?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Desktopverknüpfung erstellen</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">ENTWURF</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Wählen Sie zuerst eine Zertifikatdatei (.pfx / .p12).</sys:String>

@@ -949,6 +949,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">儲存平面化 PDF</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">擷取的頁面另存為</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">插入圖片</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">刪除影像「{0}」？</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">建立桌面捷徑</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">草稿</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">請先選擇憑證檔案 (.pfx / .p12)。</sys:String>

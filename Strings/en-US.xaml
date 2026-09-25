@@ -958,6 +958,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Dlg_SaveFlattened">Save Flattened PDF</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Save extracted pages as</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Insert Image</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">Delete image "{0}"?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Create desktop shortcut</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">DRAFT</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Choose a certificate file (.pfx / .p12) first.</sys:String>

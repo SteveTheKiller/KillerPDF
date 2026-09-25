@@ -958,6 +958,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">統合された PDF を保存</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">抽出したページを保存</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">画像を挿入</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">画像「{0}」を削除しますか？</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">デスクトップにショートカットを作成</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">下書き</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">まず証明書ファイル (.pfx / .p12) を選択してください。</sys:String>

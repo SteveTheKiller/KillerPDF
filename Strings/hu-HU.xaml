@@ -954,6 +954,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Dlg_SaveFlattened">Egyesített PDF mentése</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Kinyert oldalak mentése másként</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Kép beszúrása</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">Törli ezt a képet: „{0}”?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Parancsikon létrehozása az asztalon</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">VÁZLAT</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Először válasszon tanúsítványfájlt (.pfx / .p12).</sys:String>

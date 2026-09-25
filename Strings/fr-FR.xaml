@@ -958,6 +958,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Dlg_SaveFlattened">Enregistrer le PDF aplati</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Enregistrer les pages extraites sous</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Insérer une image</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">Supprimer l’image « {0} » ?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Créer un raccourci sur le bureau</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">BROUILLON</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Choisissez d'abord un fichier de certificat (.pfx / .p12).</sys:String>

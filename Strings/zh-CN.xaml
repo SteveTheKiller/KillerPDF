@@ -951,6 +951,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">保存展平的 PDF</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">提取的页面另存为</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">插入图片</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">删除图像“{0}”？</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">创建桌面快捷方式</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">草稿</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">请先选择证书文件 (.pfx / .p12)。</sys:String>

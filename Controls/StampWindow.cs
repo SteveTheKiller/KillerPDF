@@ -500,12 +500,11 @@ namespace KillerPDF
 
         private void ChooseImage()
         {
-            var ofd = new KillerPDF.Controls.FileDialog(KillerPDF.Controls.FileDialogMode.Open)
-                          { Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files|*.*", ShowImagePreview = true };
-            if (ofd.ShowDialog(this) == true)
+            var picker = new KillerPDF.Controls.ImageAssetPickerDialog(this);
+            if (picker.ShowDialog() == true && !string.IsNullOrEmpty(picker.SelectedPath))
             {
-                _wmImagePath = ofd.FileName;
-                _wmImageLabel.Text = System.IO.Path.GetFileName(_wmImagePath);
+                _wmImagePath = picker.SelectedPath;
+                _wmImageLabel.Text = picker.SelectedName ?? System.IO.Path.GetFileName(_wmImagePath);
                 LoadWatermarkImage();
                 Schedule();
             }

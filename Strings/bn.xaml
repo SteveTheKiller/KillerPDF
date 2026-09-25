@@ -947,6 +947,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Dlg_SaveFlattened">ফ্ল্যাট করা PDF সংরক্ষণ করুন</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">বের করা পাতাগুলি এভাবে সংরক্ষণ করুন</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">ছবি ঢোকান</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">"{0}" ছবিটি মুছবেন?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">ডেস্কটপ শর্টকাট তৈরি করুন</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">খসড়া</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">প্রথমে একটি সার্টিফিকেট ফাইল (.pfx / .p12) বাছুন।</sys:String>

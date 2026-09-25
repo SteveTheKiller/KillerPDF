@@ -947,6 +947,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Dlg_SaveFlattened">Düzleştirilmiş PDF'yi kaydet</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Çıkarılan sayfaları farklı kaydet</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Resim ekle</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">"{0}" resmi silinsin mi?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Masaüstü kısayolu oluştur</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">TASLAK</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Önce bir sertifika dosyası (.pfx / .p12) seçin.</sys:String>

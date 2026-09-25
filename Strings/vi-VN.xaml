@@ -958,6 +958,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Dlg_SaveFlattened">Lưu PDF đã làm phẳng</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Lưu các trang đã trích xuất thành</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Chèn hình ảnh</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">Xóa hình ảnh "{0}"?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Tạo lối tắt trên màn hình nền</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">BẢN NHÁP</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Hãy chọn tệp chứng chỉ (.pfx / .p12) trước.</sys:String>

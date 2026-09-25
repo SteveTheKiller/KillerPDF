@@ -952,6 +952,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Dlg_SaveFlattened">Uložit sloučené PDF</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Uložit vyjmuté stránky jako</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Vložit obrázek</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">Odstranit obrázek „{0}“?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Vytvořit zástupce na ploše</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">NÁVRH</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Nejprve vyberte soubor certifikátu (.pfx / .p12).</sys:String>

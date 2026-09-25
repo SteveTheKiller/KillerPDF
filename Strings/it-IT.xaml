@@ -958,6 +958,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Dlg_SaveFlattened">Salva PDF appiattito</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Salva pagine estratte con nome</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Inserisci immagine</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">Eliminare l'immagine "{0}"?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Crea collegamento programma sul desktop</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">BOZZA</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Prima seleziona un file certificato (.pfx / .p12).</sys:String>

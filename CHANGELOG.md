@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Added a shared reusable image library for the Image tool, image watermarks, and imported signatures, with import, preview, rename, and delete controls (#326).
 - Added localized desktop reports for preflight, accessibility, print production, separations, layers, portfolios, and structural comparisons.
 - Added a desktop macro library with starter workflows, ordered step editing, import and export, exact current-document previews, safe output, and readable results (#343).
 - Added desktop layer editing for names, saved visibility, and lock state.

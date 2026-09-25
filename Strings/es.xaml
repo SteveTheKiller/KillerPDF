@@ -947,6 +947,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Dlg_SaveFlattened">Guardar PDF aplanado</sys:String>
     <sys:String x:Key="Str_Dlg_SaveExtractedAs">Guardar páginas extraídas como</sys:String>
     <sys:String x:Key="Str_Dlg_InsertImage">Insertar imagen</sys:String>
+    <sys:String x:Key="Str_ImageAsset_DeleteConfirm">¿Eliminar la imagen «{0}»?</sys:String>
     <sys:String x:Key="Str_Dlg_InstallShortcut">Crear acceso directo en el escritorio</sys:String>
     <sys:String x:Key="Str_Stamp_DefaultText">BORRADOR</sys:String>
     <sys:String x:Key="Str_Sign_NeedCertFile">Primero elija un archivo de certificado (.pfx / .p12).</sys:String>

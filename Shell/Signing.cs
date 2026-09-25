@@ -832,17 +832,12 @@ namespace KillerPDF
 
         private void ImportImageSignature(SignatureKind kind = SignatureKind.Signature)
         {
-            var dlg = new Controls.FileDialog(Controls.FileDialogMode.Open)
-            {
-                Filter = Loc("Str_Filter_Images") + "|*.png;*.jpg;*.jpeg;*.bmp;*.gif|" + Loc("Str_Filter_AllFiles") + "|*.*",
-                Title = Loc("Str_Sign_ImportImage"),
-                ShowImagePreview = true
-            };
-            if (dlg.ShowDialog(this) != true) return;
+            var dlg = new Controls.ImageAssetPickerDialog(this);
+            if (dlg.ShowDialog() != true || string.IsNullOrEmpty(dlg.SelectedPath)) return;
 
             try
             {
-                var bmp = new System.Windows.Media.Imaging.BitmapImage(new Uri(dlg.FileName));
+                var bmp = new System.Windows.Media.Imaging.BitmapImage(new Uri(dlg.SelectedPath));
                 byte[] pngBytes;
                 using (var ms = new System.IO.MemoryStream())
                 {
@@ -855,7 +850,7 @@ namespace KillerPDF
                 var saved = new SavedSignature
                 {
                     Kind = kind,
-                    Name = System.IO.Path.GetFileNameWithoutExtension(dlg.FileName),
+                    Name = dlg.SelectedName ?? System.IO.Path.GetFileNameWithoutExtension(dlg.SelectedPath),
                     CanvasWidth = bmp.PixelWidth,
                     CanvasHeight = bmp.PixelHeight,
                     ImageData = Convert.ToBase64String(pngBytes)

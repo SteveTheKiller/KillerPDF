@@ -704,17 +704,12 @@ namespace KillerPDF
 
         private void PlaceImageFromDialog(Point pos, int pageIdx)
         {
-            var dlg = new Controls.FileDialog(Controls.FileDialogMode.Open)
-            {
-                Title = Loc("Str_Dlg_InsertImage"),
-                Filter = Loc("Str_Filter_Images") + "|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.tif|" + Loc("Str_Filter_AllFiles") + "|*.*",
-                ShowImagePreview = true
-            };
-            if (dlg.ShowDialog(this) != true) return;
+            var dlg = new Controls.ImageAssetPickerDialog(this);
+            if (dlg.ShowDialog() != true || string.IsNullOrEmpty(dlg.SelectedPath)) return;
 
             try
             {
-                var imgBytes = File.ReadAllBytes(dlg.FileName);
+                var imgBytes = File.ReadAllBytes(dlg.SelectedPath);
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
                 bmp.StreamSource = new MemoryStream(imgBytes);
