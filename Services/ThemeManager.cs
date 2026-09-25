@@ -273,7 +273,10 @@ namespace KillerPDF.Services
 
             switch (theme)
             {
+                case Theme.Dark:
                 case Theme.Light:
+                case Theme.Black:
+                    foreground = Brushes.White;
                     effect = resources["TextStroke"];
                     break;
                 case Theme.Blood:

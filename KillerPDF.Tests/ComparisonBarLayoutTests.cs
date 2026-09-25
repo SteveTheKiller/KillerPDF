@@ -93,6 +93,9 @@ public sealed class ComparisonBarLayoutTests
 
         string themeManager = File.ReadAllText(Path.Combine(root, "Services", "ThemeManager.cs"));
         Assert.Contains("ApplyComparisonBarPalette(liveResources, theme);", themeManager);
+        Assert.Matches(
+            @"case Theme\.Dark:\s+case Theme\.Light:\s+case Theme\.Black:\s+foreground = Brushes\.White;\s+effect = resources\[""TextStroke""\];\s+break;",
+            themeManager);
         Assert.Contains("case Theme.Blood:", themeManager);
         Assert.Contains("case Theme.Greed:", themeManager);
         Assert.Contains("case Theme.Cyanotic:", themeManager);
