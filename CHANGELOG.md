@@ -4,6 +4,14 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.71] - Unreleased
+
+1.8.71 improves installation reliability.
+
+### Fixed
+
+- Retried installation when Windows briefly keeps the previous version's files open (#434).
+
 ## [1.8.70] - 2026-09-24
 
 1.8.70 introduces KillerPDF's four-digit version numbering, hardens releases, repairs difficult PDF editing and saving cases, and polishes comparison, tabs, localization, and other interface behavior.

@@ -165,10 +165,10 @@ namespace KillerLauncher
 
                 if (Directory.Exists(destination))
                 {
-                    Directory.Move(destination, backup);
+                    MoveDirectoryWithRetries(destination, backup);
                     movedExisting = true;
                 }
-                Directory.Move(staging, destination);
+                MoveDirectoryWithRetries(staging, destination);
 
                 int registrationExit = string.Equals(
                     Environment.GetEnvironmentVariable(SkipRegistrationEnvironmentVariable), "1", StringComparison.Ordinal)
@@ -192,7 +192,7 @@ namespace KillerLauncher
                 if (movedExisting && Directory.Exists(backup))
                 {
                     DeleteDirectoryWithRetries(destination);
-                    if (!Directory.Exists(destination)) Directory.Move(backup, destination);
+                    if (!Directory.Exists(destination)) MoveDirectoryWithRetries(backup, destination);
                 }
                 throw;
             }
@@ -452,6 +452,22 @@ namespace KillerLauncher
             // have reused it, and retain the directory only if its child still runs from there.
             return lines.Length >= 4
                 && PortableProcessIdentity.IsLive(lines[3], null, directory);
+        }
+
+        private static void MoveDirectoryWithRetries(string source, string destination)
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    Directory.Move(source, destination);
+                    return;
+                }
+                catch (IOException) when (attempt < 20)
+                {
+                    System.Threading.Thread.Sleep(250);
+                }
+            }
         }
 
         private static void DeleteDirectoryWithRetries(string directory)
