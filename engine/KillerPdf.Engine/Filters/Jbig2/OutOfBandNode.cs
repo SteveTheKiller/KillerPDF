@@ -11,10 +11,6 @@ namespace KillerPdf.Engine.Filters.Jbig2
     /// </summary>
     internal sealed class OutOfBandNode : Node
     {
-        public OutOfBandNode(Code _)
-        {
-        }
-
         public override long Decode(IImageInputStream iis)
         {
             return long.MaxValue;

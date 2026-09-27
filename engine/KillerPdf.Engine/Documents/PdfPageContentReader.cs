@@ -410,7 +410,7 @@ public sealed class PdfPageContentReader
                         }
                         pathSegments.Add(new(instruction.Operator, segmentPoints.AsReadOnly()));
                         break;
-                    case "h": pathSegments.Add(new("h", Array.Empty<PdfPoint>())); break;
+                    case "h": pathSegments.Add(new("h", [])); break;
                     case "W": case "W*": pendingClip = true; break;
                     case "n": case "S": case "s": case "f": case "F": case "f*": case "B": case "B*": case "b": case "b*":
                         if (path.Count > 0)

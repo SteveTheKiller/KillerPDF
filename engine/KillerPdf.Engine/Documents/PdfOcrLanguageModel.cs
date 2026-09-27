@@ -284,7 +284,7 @@ public sealed class PdfOcrLanguageModel
         if (!double.IsFinite(languageWeight) || languageWeight < 0)
             throw new ArgumentOutOfRangeException(nameof(languageWeight));
         if (positions.Count == 0)
-            return new PdfOcrLanguageDecode(Array.Empty<string>(), 0);
+            return new PdfOcrLanguageDecode([], 0);
         if (positions.Count > MaximumSequenceLength)
             throw new ArgumentException(
                 "The OCR language-model sequence exceeds the position limit.",

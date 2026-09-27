@@ -2209,7 +2209,7 @@ public sealed partial class PdfPageRenderer
         }
     }
 
-    private static readonly double[] element = new[] { 0d, 1d };
+    private static readonly double[] element = [0d, 1d];
 
     private IEnumerable<PdfContentInstruction> ReadInstructions(
         int pageIndex, CancellationToken cancellationToken, ISet<string> diagnostics)

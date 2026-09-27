@@ -37,7 +37,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         public static readonly int[][] ModeCodes =
         [
-            new[] { 4, 0x1, CODE_P }, // 0001 pass
+            [4, 0x1, CODE_P], // 0001 pass
             [3, 0x1, CODE_H], // 001 horizontal
             [1, 0x1, CODE_V0], // 1 vert 0
             [3, 0x3, CODE_VR1], // 011 vert r 1
@@ -53,7 +53,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         public static readonly int[][] WhiteCodes =
         [
-            new[] { 4, 0x07, 2 }, // 0111
+            [4, 0x07, 2], // 0111
             [4, 0x08, 3], // 1000
             [4, 0x0B, 4], // 1011
             [4, 0x0C, 5], // 1100
@@ -168,7 +168,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         public static readonly int[][] BlackCodes =
         [
-            new[] { 2, 0x02, 3 }, // 10
+            [2, 0x02, 3], // 10
             [2, 0x03, 2], // 11
             [3, 0x02, 1], // 010
             [3, 0x03, 4], // 011

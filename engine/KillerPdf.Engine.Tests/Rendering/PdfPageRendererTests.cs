@@ -3217,7 +3217,7 @@ public sealed class PdfPageRendererTests
             rendered.Diagnostics);
     }
 
-    private static readonly double[] element = new[] { 0d, 1d };
+    private static readonly double[] element = [0d, 1d];
 
     [Fact]
     public void Render_AppliesNineChannelDeviceNTintTransforms()

@@ -166,7 +166,7 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
         if (trailer is null || !trailer.ContainsKey(RootName))
         {
             var found = new Dictionary<PdfName, PdfObject>();
-            foreach (var entry in trailer ?? new PdfDictionary(new Dictionary<PdfName, PdfObject>()))
+            foreach (var entry in trailer ?? new PdfDictionary([]))
                 found[entry.Key] = entry.Value;
             foreach (PdfCrossReferenceEntry entry in entries.Values
                 .Where(entry => entry.Type == PdfCrossReferenceEntryType.InUse)

@@ -59,7 +59,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                             throw new InvalidOperationException("already have a OOB for " + c);
                         }
 
-                        one = new OutOfBandNode(c);
+                        one = new OutOfBandNode();
                     }
                     else
                     {
@@ -68,7 +68,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                             throw new InvalidOperationException("already have a OOB for " + c);
                         }
 
-                        zero = new OutOfBandNode(c);
+                        zero = new OutOfBandNode();
                     }
                 }
                 else

@@ -79,7 +79,7 @@ public sealed class PdfOcrProviderSelectorTests
         Assert.True(session.WasDisposed);
     }
 
-    private static readonly float[] Features = new float[] { 1f };
+    private static readonly float[] Features = [1f];
 
     [Fact]
     public void EngineProviderSelectsPrimaryLanguageAndAcceptsPaddedRows()

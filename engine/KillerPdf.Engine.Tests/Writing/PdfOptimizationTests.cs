@@ -48,7 +48,7 @@ public sealed class PdfOptimizationTests
                 CompressStructure = false
             });
         PdfOptimizationResult result = plan.Apply();
-        PdfDocument output = PdfDocument.Open(result.Data);
+        _ = PdfDocument.Open(result.Data);
 
         Assert.Contains(PdfOptimizationChangeKind.RepairHarmlessArtifacts, plan.Changes);
         PdfSaveRepairChange repair = Assert.Single(result.Repairs);

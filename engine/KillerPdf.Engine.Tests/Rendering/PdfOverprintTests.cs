@@ -201,7 +201,7 @@ public sealed class PdfOverprintTests
         return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(1, 1)).Pixels.ToArray();
     }
 
-    private static readonly string[] sourceArray = new[] { "Custom" };
+    private static readonly string[] sourceArray = ["Custom"];
 
     private static PdfRenderedPage Render(string paint, bool? fill, bool stroke, int mode, double opacity = 1,
         bool indexed = false, bool none = false, bool rgb = false, bool registration = false, double registrationTint = 0.5)

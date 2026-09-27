@@ -253,7 +253,7 @@ public static class PdfPermanentRedaction
                 "Comment redaction overlay text requires a rasterized page workflow.");
         if (selected.Length == 0)
             return new PdfCommentRedactionResult(document.Source,
-                Array.Empty<string>(), PdfCommentReader.Read(document).Count);
+                [], PdfCommentReader.Read(document).Count);
 
         PdfCommentInfo[] current = [.. PdfCommentReader.Read(document)];
         var targets = new List<(PdfRedactionMatch Match, PdfCommentInfo Comment)>();

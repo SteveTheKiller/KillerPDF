@@ -26,7 +26,7 @@ public sealed class PdfExtractionFont
     public string FontName { get; internal init; } = string.Empty;
 
     /// <summary>Gets compatibility recovery diagnostics for the font resource.</summary>
-    public IReadOnlyList<string> Diagnostics { get; internal init; } = Array.Empty<string>();
+    public IReadOnlyList<string> Diagnostics { get; internal init; } = [];
 
     /// <summary>Gets the ascender in thousandths of text space.</summary>
     public double Ascent { get; internal init; } = 800;

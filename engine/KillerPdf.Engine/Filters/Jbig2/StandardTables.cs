@@ -34,16 +34,15 @@ namespace KillerPdf.Engine.Filters.Jbig2
         private static readonly int[][][] TABLES =
         [
             // B1
-            new[]
-            {
-                new[] { 1, 4, 0 }, //
+            [
+                [1, 4, 0], //
                 [2, 8, 16], //
                 [3, 16, 272], //
                 [3, 32, 65808] /* high */
-            },
+            ],
             // B2
             [
-                new[] { 1, 0, 0 }, //
+                [1, 0, 0], //
                 [2, 0, 1], //
                 [3, 0, 2], //
                 [4, 3, 3], //
@@ -53,7 +52,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B3
             [
-                new[] { 8, 8, -256 }, //
+                [8, 8, -256], //
                 [1, 0, 0], //
                 [2, 0, 1], //
                 [3, 0, 2], //
@@ -65,7 +64,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B4
             [
-                new[] { 1, 0, 1 }, //
+                [1, 0, 1], //
                 [2, 0, 2], //
                 [3, 0, 3], //
                 [4, 3, 4], //
@@ -74,7 +73,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B5
             [
-                new[] { 7, 8, -255 }, //
+                [7, 8, -255], //
                 [1, 0, 1], //
                 [2, 0, 2], //
                 [3, 0, 3], //
@@ -85,7 +84,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B6
             [
-                new[] { 5, 10, -2048 }, //
+                [5, 10, -2048], //
                 [4, 9, -1024], //
                 [4, 8, -512], //
                 [4, 7, -256], //
@@ -102,7 +101,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B7
             [
-                new[] { 4, 9, -1024 }, //
+                [4, 9, -1024], //
                 [3, 8, -512], //
                 [4, 7, -256], //
                 [5, 6, -128], //
@@ -120,7 +119,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B8
             [
-                new[] { 8, 3, -15 }, //
+                [8, 3, -15], //
                 [9, 1, -7], //
                 [8, 1, -5], //
                 [9, 0, -3], //
@@ -144,7 +143,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B9
             [
-                new[] { 8, 4, -31 }, //
+                [8, 4, -31], //
                 [9, 2, -15], //
                 [8, 2, -11], //
                 [9, 1, -7], //
@@ -169,7 +168,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B10
             [
-                new[] { 7, 4, -21 }, //
+                [7, 4, -21], //
                 [8, 0, -5], //
                 [7, 0, -4], //
                 [5, 0, -3], //
@@ -193,7 +192,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B11
             [
-                new[] { 1, 0, 1 }, //
+                [1, 0, 1], //
                 [2, 1, 2], //
                 [4, 0, 4], //
                 [4, 1, 5], //
@@ -209,7 +208,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B12
             [
-                new[] { 1, 0, 1 }, //
+                [1, 0, 1], //
                 [2, 0, 2], //
                 [3, 1, 3], //
                 [5, 0, 5], //
@@ -225,7 +224,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B13
             [
-                new[] { 1, 0, 1 }, //
+                [1, 0, 1], //
                 [3, 0, 2], //
                 [4, 0, 3], //
                 [5, 0, 4], //
@@ -241,7 +240,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B14
             [
-                new[] { 3, 0, -2 }, //
+                [3, 0, -2], //
                 [3, 0, -1], //
                 [1, 0, 0], //
                 [3, 0, 1], //
@@ -249,7 +248,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ],
             // B15
             [
-                new[] { 7, 4, -24 }, //
+                [7, 4, -24], //
                 [6, 2, -8], //
                 [5, 1, -4], //
                 [4, 0, -2], //

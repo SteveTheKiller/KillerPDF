@@ -758,7 +758,7 @@ public static class PdfStreamDecoder
 
         public void Dispose()
         {
-            foreach (var (Bytes, Count) in _blocks)
+            foreach (var (Bytes, _) in _blocks)
                 FlateBuffers.Return(Bytes);
             _blocks.Clear();
         }

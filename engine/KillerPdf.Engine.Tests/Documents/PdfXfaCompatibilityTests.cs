@@ -73,7 +73,7 @@ public sealed class PdfXfaCompatibilityTests
         Assert.Empty(report.Findings);
     }
 
-    private static readonly string[] expected = new[] { "dynamic-layout" };
+    private static readonly string[] expected = ["dynamic-layout"];
 
     [Theory]
     [InlineData("position", false, true)]

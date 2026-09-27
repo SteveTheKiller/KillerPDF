@@ -561,7 +561,7 @@ public sealed partial class PdfPageRenderer
             int dx = (int)dxLong;
             int dy = y2 - y1;
             int ex1 = x1 >> Shift;
-            int ex2 = x2 >> Shift;
+            _ = x2 >> Shift;
             int ey1 = y1 >> Shift;
             int ey2 = y2 >> Shift;
             int fy1 = y1 & Mask;
