@@ -17637,21 +17637,21 @@ public sealed class PdfIncrementalPageEditor
         var usedProperties = new HashSet<PdfName>();
         foreach (PdfContentInstruction instruction in instructions)
         {
-            if (instruction.Operator == "Tf" && instruction.Operands.FirstOrDefault() is PdfName font)
+            if (instruction.Operator == "Tf" && instruction.Operands.Count > 0 && instruction.Operands[0] is PdfName font)
                 usedFonts.Add(font);
-            else if (instruction.Operator == "Do" && instruction.Operands.FirstOrDefault() is PdfName xObject)
+            else if (instruction.Operator == "Do" && instruction.Operands.Count > 0 && instruction.Operands[0] is PdfName xObject)
                 usedXObjects.Add(xObject);
             else if (instruction.Operator is "CS" or "cs"
-                     && instruction.Operands.FirstOrDefault() is PdfName colorSpace)
+                     && instruction.Operands.Count > 0 && instruction.Operands[0] is PdfName colorSpace)
                 usedColorSpaces.Add(colorSpace);
             else if (instruction.Operator == "gs"
-                     && instruction.Operands.FirstOrDefault() is PdfName graphicsState)
+                     && instruction.Operands.Count > 0 && instruction.Operands[0] is PdfName graphicsState)
                 usedGraphicsStates.Add(graphicsState);
             else if (instruction.Operator == "sh"
-                     && instruction.Operands.FirstOrDefault() is PdfName shading)
+                     && instruction.Operands.Count > 0 && instruction.Operands[0] is PdfName shading)
                 usedShadings.Add(shading);
             else if (instruction.Operator is "SCN" or "scn"
-                     && instruction.Operands.LastOrDefault() is PdfName pattern)
+                     && instruction.Operands.Count > 0 && instruction.Operands[^1] is PdfName pattern)
                 usedPatterns.Add(pattern);
             else if (instruction.Operator is "BDC" or "DP"
                      && instruction.Operands.Count >= 2

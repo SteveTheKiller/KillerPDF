@@ -150,7 +150,7 @@ internal sealed class MacroDialog : Window
             _saved.DisplayMemberPath = nameof(PdfMacro.Name);
             _saved.SelectedItem = macros.FirstOrDefault(macro => string.Equals(
                 macro.Name, selectName, StringComparison.OrdinalIgnoreCase))
-                ?? macros.FirstOrDefault();
+                ?? (macros.Count > 0 ? macros[0] : null);
             if (_saved.SelectedItem is null) CreateStarter();
         }
         catch (Exception ex) when (Recoverable(ex))

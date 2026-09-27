@@ -608,7 +608,7 @@ public static partial class PdfStructuredExport
                     body.Append("<w:p>");
                     string runText = string.Concat(line.Runs.Select(run => run.Text));
                     if (line.Runs.Count == 0 || runText != line.Text)
-                        AppendWordRun(body, line.Text, line.Runs.FirstOrDefault(), fontSubstitutions);
+                        AppendWordRun(body, line.Text, line.Runs.Count > 0 ? line.Runs[0] : null, fontSubstitutions);
                     else
                         foreach (PdfExtractedTextRun run in line.Runs)
                             AppendWordRun(body, run.Text, run, fontSubstitutions);
@@ -785,7 +785,7 @@ public static partial class PdfStructuredExport
             .Append("\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap=\"none\"/><a:lstStyle/><a:p>");
         string runText = runs is null ? string.Empty : string.Concat(runs.Select(run => run.Text));
         if (runs is null || runs.Count == 0 || runText != text)
-            AppendRun(text, runs?.FirstOrDefault());
+            AppendRun(text, runs is { Count: > 0 } ? runs[0] : null);
         else
             foreach (PdfExtractedTextRun run in runs) AppendRun(run.Text, run);
         output.Append("<a:endParaRPr lang=\"en-US\"/></a:p></p:txBody></p:sp>");

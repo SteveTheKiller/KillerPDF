@@ -86,7 +86,7 @@ public static class PdfFormDataImporter
             if (preview[index].Status != PdfFormDataMatchStatus.Matched) continue;
             PdfFormDataField field = data.Fields[index];
             PdfFormWidgetInfo widget = widgets[field.Name][0];
-            string first = field.Values.FirstOrDefault() ?? string.Empty;
+            string first = field.Values.Count > 0 ? field.Values[0] : string.Empty;
             switch (widget.FieldKind)
             {
                 case PdfFormFieldKind.Text:
@@ -217,7 +217,7 @@ public static class PdfFormDataImporter
         IReadOnlyList<PdfFormWidgetInfo> widgets)
     {
         PdfFormWidgetInfo widget = widgets[0];
-        string first = field.Values.FirstOrDefault() ?? string.Empty;
+        string first = field.Values.Count > 0 ? field.Values[0] : string.Empty;
         if (widget.FieldKind == PdfFormFieldKind.Text)
             return field.Values.Count <= 1
                 && (widget.MaximumLength == 0 || first.Length <= widget.MaximumLength);

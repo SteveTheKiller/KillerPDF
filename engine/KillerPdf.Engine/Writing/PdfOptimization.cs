@@ -626,7 +626,7 @@ public static class PdfOptimizer
             HashSet<PdfName> shadings = UsedNames(instructions, "sh", 0);
             HashSet<PdfName> patterns = [.. instructions
                 .Where(item => item.Operator is "SCN" or "scn"
-                    && item.Operands.LastOrDefault() is PdfName)
+                    && item.Operands.Count > 0 && item.Operands[^1] is PdfName)
                 .Select(item => item.Operands[^1]).OfType<PdfName>()];
             HashSet<PdfName> properties = [.. instructions
                 .Where(item => item.Operator is "BDC" or "DP" && item.Operands.Count > 1)
