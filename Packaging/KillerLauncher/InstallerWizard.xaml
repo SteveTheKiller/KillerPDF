@@ -188,6 +188,7 @@
                             <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button x:Name="BackButton" Content="{local:Loc Back}" Style="{StaticResource WizardButton}" Click="Back_Click"/>
                                 <Button x:Name="CancelButton" Content="{local:Loc Cancel}" Style="{StaticResource WizardButton}" Click="Cancel_Click"/>
+                                <Button x:Name="UninstallButton" Content="{local:Loc Uninstall}" Style="{StaticResource WizardButton}" Click="Uninstall_Click" Visibility="Collapsed"/>
                                 <Button x:Name="NextButton" Content="{local:Loc Next}" Style="{StaticResource PrimaryButton}" Click="Next_Click"/>
                             </StackPanel>
                         </Grid>

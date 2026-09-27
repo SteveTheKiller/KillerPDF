@@ -56,6 +56,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
+- The installer now offers upgrade, reinstall, uninstall, or cancel when KillerPDF is already installed.
 - Kept Select mode non-editing and moved existing PDF text changes behind the explicit Text tool (#411).
 - Arrow keys move selected editable objects one precise step instead of scrolling the page (#368).
 - Routed desktop OCR provider selection through the engine's explicit or automatic provider contract, including complete installed-language checks for engine and Tesseract model sets.

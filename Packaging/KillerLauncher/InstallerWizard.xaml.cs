@@ -15,13 +15,21 @@ namespace KillerLauncher
         private bool _installed;
         private bool _closeAfterNotice;
         private string _installedDirectory = string.Empty;
+        private readonly Program.InstalledCopy? _existing;
 
         private InstallerWizard()
         {
             InitializeComponent();
             SetupVersionLabel.Text = LauncherStrings.Format("SetupVersion",
                 typeof(InstallerWizard).Assembly.GetName().Version!.ToString(3));
-            InstallFolder.Text = Program.DefaultInstallDirectory(false);
+            _existing = Program.FindInstalledCopy();
+            InstallFolder.Text = _existing?.Directory ?? Program.DefaultInstallDirectory(false);
+            if (_existing != null)
+            {
+                CurrentUser.IsChecked = !_existing.Machine;
+                AllUsers.IsChecked = _existing.Machine;
+                DesktopShortcut.IsChecked = _existing.DesktopShortcut;
+            }
             ImageBrush grain = CreateGrain();
             GrainLayer.Background = grain;
             SidebarGrain.Background = grain;
@@ -51,9 +59,30 @@ namespace KillerLauncher
 
         private void RenderPage()
         {
+            if (_existing != null && !_installed)
+            {
+                Options.Visibility = Visibility.Collapsed;
+                RuntimeStatus.Visibility = Visibility.Visible;
+                BackButton.Visibility = Visibility.Collapsed;
+                CancelButton.Visibility = Visibility.Visible;
+                UninstallButton.Visibility = Visibility.Visible;
+                SetRuntimeStatus();
+                bool current = string.Equals(_existing.Version, Program.SetupVersion, StringComparison.Ordinal);
+                Heading.Text = current
+                    ? LauncherStrings.Get("AlreadyInstalledHeading")
+                    : LauncherStrings.Get("UpgradeReadyHeading");
+                Copy.Text = LauncherStrings.Format("MaintenanceCopy", _existing.Version);
+                NextButton.Content = current
+                    ? LauncherStrings.Get("Reinstall")
+                    : LauncherStrings.Get("Upgrade");
+                return;
+            }
+
             bool options = _page == 1;
             Options.Visibility = options ? Visibility.Visible : Visibility.Collapsed;
             RuntimeStatus.Visibility = options ? Visibility.Visible : Visibility.Collapsed;
+            BackButton.Visibility = Visibility.Visible;
+            UninstallButton.Visibility = Visibility.Collapsed;
             BackButton.IsEnabled = _page > 0 && !_installed;
             CancelButton.Visibility = _installed ? Visibility.Collapsed : Visibility.Visible;
             if (_page == 0)
@@ -96,7 +125,7 @@ namespace KillerLauncher
                 DialogResult = true;
                 return;
             }
-            if (_page < 2) { _page++; RenderPage(); return; }
+            if (_existing == null && _page < 2) { _page++; RenderPage(); return; }
             string installDirectory;
             try { installDirectory = Program.ValidateInstallDirectory(InstallFolder.Text); }
             catch (Exception ex)
@@ -122,8 +151,8 @@ namespace KillerLauncher
                 Copy.Text = LauncherStrings.Get("InstallingCopy");
                 RuntimeStatus.Visibility = Visibility.Collapsed;
                 InstallProgress.Visibility = Visibility.Visible;
-                bool machine = AllUsers.IsChecked == true;
-                bool desktop = DesktopShortcut.IsChecked == true;
+                bool machine = _existing?.Machine ?? AllUsers.IsChecked == true;
+                bool desktop = _existing?.DesktopShortcut ?? DesktopShortcut.IsChecked == true;
                 Task<int> install = Task.Run(() => machine ? InstallForEveryone(desktop, installDirectory)
                     : Program.Install(false, desktop, installDirectory));
                 await Task.WhenAll(install, Task.Delay(2000));
@@ -204,6 +233,12 @@ namespace KillerLauncher
         }
 
         private void Back_Click(object sender, RoutedEventArgs e) { if (_page > 0) { _page--; RenderPage(); } }
+        private void Uninstall_Click(object sender, RoutedEventArgs e)
+        {
+            if (_existing == null) return;
+            Process.Start(new ProcessStartInfo(_existing.Executable, "/uninstall") { UseShellExecute = true });
+            DialogResult = true;
+        }
         private void Cancel_Click(object sender, RoutedEventArgs e) { DialogResult = false; }
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.LeftButton == MouseButtonState.Pressed) DragMove(); }
         private void Website_Click(object sender, RoutedEventArgs e) =>
