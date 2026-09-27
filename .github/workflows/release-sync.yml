@@ -1,0 +1,157 @@
+name: Release Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to verify, without the v prefix. Leave blank for the latest release.
+        required: false
+        type: string
+  schedule:
+    - cron: '37 */6 * * *'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      APP_NAME: KillerPDF
+      PROJECT_PATH: KillerPDF.csproj
+      ENGINE_PROJECT_PATH: engine/KillerPdf.Engine/KillerPdf.Engine.csproj
+      EXPECTED_ASSETS: KillerPDF.exe,SHA256SUMS.txt
+      CHOCOLATEY_ID: killerpdf
+      WINGET_ID: SteveTheKiller.KillerPDF
+      WINGET_MANIFEST_ROOT: manifests/s/SteveTheKiller/KillerPDF
+      NUGET_ID: killerpdf.engine
+      REQUESTED_VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare release channels
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repository = $env:GITHUB_REPOSITORY
+          $requested = ([string]$env:REQUESTED_VERSION).Trim()
+          $releasePath = if ($requested) {
+              "repos/$repository/releases/tags/v$requested"
+          } else {
+              "repos/$repository/releases/latest"
+          }
+          $release = gh api $releasePath | ConvertFrom-Json
+          $tag = [string]$release.tag_name
+          $version = $tag -replace '^v', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Invalid release tag: $tag" }
+
+          $rows = [System.Collections.Generic.List[object]]::new()
+          $blocking = $false
+          function Add-Result([string]$channel, [string]$status, [string]$details) {
+              $script:rows.Add([pscustomobject]@{ Channel = $channel; Status = $status; Details = $details })
+              if ($status -in @('Mismatch', 'Missing', 'Failed')) { $script:blocking = $true }
+          }
+          function Get-HttpStatus([string]$url) {
+              $handler = [System.Net.Http.HttpClientHandler]::new()
+              $handler.AllowAutoRedirect = $false
+              $client = [System.Net.Http.HttpClient]::new($handler)
+              try {
+                  $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Head, $url)
+                  $response = $client.SendAsync($request).GetAwaiter().GetResult()
+                  return [int]$response.StatusCode
+              } catch {
+                  return 0
+              } finally {
+                  $client.Dispose()
+                  $handler.Dispose()
+              }
+          }
+          function Get-PublishFallback([string]$workflowName, [timespan]$age) {
+              $json = gh run list --workflow $workflowName --branch $tag --limit 1 --json status,conclusion,url
+              $runs = @($json | ConvertFrom-Json)
+              if ($runs.Count -and $runs[0].conclusion -eq 'failure') { return @('Failed', $runs[0].url) }
+              if ($runs.Count -and $runs[0].status -ne 'completed') { return @('Pending', $runs[0].url) }
+              if ($age.TotalDays -ge 7) { return @('Missing', 'Not published after seven days') }
+              $detail = if ($runs.Count) { $runs[0].url } else { 'Marketplace publication is still within the review window' }
+              return @('Pending', $detail)
+          }
+
+          git cat-file -e "$tag^{commit}"
+          if ($LASTEXITCODE -ne 0) { throw "Tag $tag is not available in the checkout." }
+          $projectText = (git show "${tag}:$env:PROJECT_PATH" | Out-String).TrimStart([char]0xFEFF)
+          [xml]$project = $projectText
+          $projectVersion = $project.SelectSingleNode('/Project/PropertyGroup/Version').InnerText.Trim()
+          if ($projectVersion -eq $version) {
+              Add-Result 'Application source' 'Matched' "$env:PROJECT_PATH is $version at $tag"
+          } else {
+              Add-Result 'Application source' 'Mismatch' "$env:PROJECT_PATH is $projectVersion at $tag"
+          }
+          if ($env:ENGINE_PROJECT_PATH) {
+              $engineText = (git show "${tag}:$env:ENGINE_PROJECT_PATH" | Out-String).TrimStart([char]0xFEFF)
+              [xml]$engine = $engineText
+              $engineVersion = $engine.SelectSingleNode('/Project/PropertyGroup/Version').InnerText.Trim()
+              if ($engineVersion -eq $version) {
+                  Add-Result 'Engine source' 'Matched' "$env:ENGINE_PROJECT_PATH is $version at $tag"
+              } else {
+                  Add-Result 'Engine source' 'Mismatch' "$env:ENGINE_PROJECT_PATH is $engineVersion at $tag"
+              }
+          }
+
+          $assetNames = @($release.assets | ForEach-Object name)
+          $missingAssets = @($env:EXPECTED_ASSETS.Split(',') | Where-Object { $_ -notin $assetNames })
+          if ($missingAssets.Count) {
+              Add-Result 'GitHub release' 'Missing' ('Missing assets: ' + ($missingAssets -join ', '))
+          } else {
+              Add-Result 'GitHub release' 'Published' "$tag with required assets"
+          }
+
+          $publishedAt = [DateTimeOffset]::Parse([string]$release.published_at)
+          $age = [DateTimeOffset]::UtcNow - $publishedAt
+
+          $chocoStatus = Get-HttpStatus "https://community.chocolatey.org/api/v2/package/$env:CHOCOLATEY_ID/$version"
+          if ($chocoStatus -in @(200, 302)) {
+              Add-Result 'Chocolatey' 'Published' "$env:CHOCOLATEY_ID $version"
+          } else {
+              $fallback = Get-PublishFallback 'Chocolatey Release' $age
+              Add-Result 'Chocolatey' $fallback[0] $fallback[1]
+          }
+
+          $wingetUrl = "https://raw.githubusercontent.com/microsoft/winget-pkgs/master/$env:WINGET_MANIFEST_ROOT/$version/$env:WINGET_ID.yaml"
+          if ((Get-HttpStatus $wingetUrl) -eq 200) {
+              Add-Result 'WinGet' 'Published' "$env:WINGET_ID $version"
+          } else {
+              $search = gh search prs "New version: $env:WINGET_ID version $version" --repo microsoft/winget-pkgs --state open --limit 1 --json url
+              $pulls = @($search | ConvertFrom-Json)
+              if ($pulls.Count -and $age.TotalDays -ge 7) {
+                  Add-Result 'WinGet' 'Missing' ($pulls[0].url + ' is still open after seven days')
+              } elseif ($pulls.Count) {
+                  Add-Result 'WinGet' 'Pending' $pulls[0].url
+              } else {
+                  $fallback = Get-PublishFallback 'WinGet Release' $age
+                  Add-Result 'WinGet' $fallback[0] $fallback[1]
+              }
+          }
+
+          if ($env:NUGET_ID) {
+              $nugetUrl = "https://api.nuget.org/v3-flatcontainer/$env:NUGET_ID/$version/$env:NUGET_ID.$version.nupkg"
+              if ((Get-HttpStatus $nugetUrl) -eq 200) {
+                  Add-Result 'NuGet' 'Published' "$env:NUGET_ID $version"
+              } else {
+                  $fallback = Get-PublishFallback 'NuGet Engine Release' $age
+                  Add-Result 'NuGet' $fallback[0] $fallback[1]
+              }
+          }
+
+          "### $env:APP_NAME $version release sync" >> $env:GITHUB_STEP_SUMMARY
+          '' >> $env:GITHUB_STEP_SUMMARY
+          '| Channel | Status | Details |' >> $env:GITHUB_STEP_SUMMARY
+          '| --- | --- | --- |' >> $env:GITHUB_STEP_SUMMARY
+          foreach ($row in $rows) {
+              "| $($row.Channel) | $($row.Status) | $($row.Details) |" >> $env:GITHUB_STEP_SUMMARY
+          }
+          $rows | Format-Table -AutoSize
+          if ($blocking) { throw "$env:APP_NAME $version has a release channel mismatch." }
