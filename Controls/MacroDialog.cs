@@ -165,7 +165,7 @@ internal sealed class MacroDialog : Window
         if (_saved.SelectedItem is not PdfMacro macro) return;
         _originalName = macro.Name;
         _name.Text = macro.Name;
-        _currentSteps = macro.Steps.Select(Copy).ToList();
+        _currentSteps = [.. macro.Steps.Select(Copy)];
         RefreshSteps();
     }
 
@@ -176,7 +176,7 @@ internal sealed class MacroDialog : Window
         PdfMacro macro = PdfMacro.CreateStarter(kind);
         _originalName = null;
         _name.Text = UniqueName(macro.Name);
-        _currentSteps = macro.Steps.Select(Copy).ToList();
+        _currentSteps = [.. macro.Steps.Select(Copy)];
         _saved.SelectedItem = null;
         RefreshSteps();
     }
@@ -352,8 +352,7 @@ internal sealed class MacroDialog : Window
     private static string SafeFileName(string value)
     {
         char[] invalid = Path.GetInvalidFileNameChars();
-        string safe = new(value.Select(character => invalid.Contains(character) ? '_' : character)
-            .ToArray());
+        string safe = new([.. value.Select(character => invalid.Contains(character) ? '_' : character)]);
         return safe.Trim().Length == 0 ? "macro" : safe.Trim();
     }
 

@@ -60,10 +60,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
         internal static System.IDisposable BeginAllocationLimit(
             int maximumBitmapBytes, long maximumTotalBytes)
         {
-            if (maximumBitmapBytes <= 0)
-                throw new System.ArgumentOutOfRangeException(nameof(maximumBitmapBytes));
-            if (maximumTotalBytes < maximumBitmapBytes)
-                throw new System.ArgumentOutOfRangeException(nameof(maximumTotalBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBitmapBytes);
+            ArgumentOutOfRangeException.ThrowIfLessThan(maximumTotalBytes, maximumBitmapBytes);
 
             AllocationBudget previousBudget = ActiveBudget.Value;
             long availableTotalBytes = previousBudget is null
@@ -77,41 +75,28 @@ namespace KillerPdf.Engine.Filters.Jbig2
             return new AllocationLimitScope(previousBudget, budget);
         }
 
-        private sealed class AllocationLimitScope : System.IDisposable
+        private sealed class AllocationLimitScope(Jbig2Bitmap.AllocationBudget previousBudget, Jbig2Bitmap.AllocationBudget budget) : System.IDisposable
         {
-            private readonly AllocationBudget previousBudget;
-            private readonly AllocationBudget budget;
+            private readonly AllocationBudget previousBudget = previousBudget;
+            private readonly AllocationBudget budget = budget;
             private bool disposed;
-
-            public AllocationLimitScope(AllocationBudget previousBudget, AllocationBudget budget)
-            {
-                this.previousBudget = previousBudget;
-                this.budget = budget;
-            }
 
             public void Dispose()
             {
                 if (disposed)
                     return;
 
-                if (previousBudget is not null)
-                    previousBudget.TryReserve(budget.AllocatedBytes);
+                previousBudget?.TryReserve(budget.AllocatedBytes);
                 ActiveBudget.Value = previousBudget;
                 disposed = true;
             }
         }
 
-        private sealed class AllocationBudget
+        private sealed class AllocationBudget(long maximumBitmapBytes, long maximumTotalBytes)
         {
-            public AllocationBudget(long maximumBitmapBytes, long maximumTotalBytes)
-            {
-                MaximumBitmapBytes = maximumBitmapBytes;
-                RemainingBytes = maximumTotalBytes;
-            }
-
             public long AllocatedBytes { get; private set; }
-            public long MaximumBitmapBytes { get; }
-            public long RemainingBytes { get; private set; }
+            public long MaximumBitmapBytes { get; } = maximumBitmapBytes;
+            public long RemainingBytes { get; private set; } = maximumTotalBytes;
 
             public bool TryReserve(long byteLength)
             {

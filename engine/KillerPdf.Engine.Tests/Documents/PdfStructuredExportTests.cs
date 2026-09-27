@@ -16,7 +16,7 @@ public sealed class PdfStructuredExportTests
     {
         byte[] source = new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
             .AddBlankPage(300, 400).Build();
-        byte[] original = source.ToArray();
+        byte[] original = [.. source];
         PdfDocument document = PdfDocument.Open(source);
         var review = new PdfOcrReview([
             new PdfOcrWord("word-1", 0, 0, "wrong", "wrong",
@@ -42,7 +42,7 @@ public sealed class PdfStructuredExportTests
     {
         byte[] source = new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
             .AddBlankPage(300, 400).Build();
-        byte[] original = source.ToArray();
+        byte[] original = [.. source];
         var review = new PdfOcrReview([
             new PdfOcrWord("word-1", 0, 0, "wrong", "wrong",
                 new PdfContentBounds(10, 20, 30, 32), 0.4, "en")

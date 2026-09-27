@@ -177,12 +177,12 @@ namespace KillerPdf.Engine.Filters.Jbig2
                     // check filling degree
                     if (bufferTop > -1 && bufferTop < 3)
                     {
-                        // CK: if filling degree is too small,
-                        // smoothly fill up to the next three bytes or substitute with with
-                        // empty bytes
-                        int read = 0;
                         while (bufferTop < 3)
                         {
+                            // CK: if filling degree is too small,
+                            // smoothly fill up to the next three bytes or substitute with with
+                            // empty bytes
+                            int read;
                             try
                             {
                                 read = stream.Read();
@@ -201,7 +201,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 if (bufferTop < 0)
                 {
                     // if we're at EOF, just supply zero-bytes
-                    buffer.AsSpan().Fill(0);
+                    buffer.AsSpan().Clear();
                     bufferTop = buffer.Length - 3;
                 }
             }
@@ -451,19 +451,19 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 var strBuf = new StringBuilder();
                 strBuf.Append("whiteRun           = ");
                 strBuf.Append(whiteRun);
-                strBuf.Append("\n");
+                strBuf.Append('\n');
                 strBuf.Append("code               = ");
                 strBuf.Append(code);
-                strBuf.Append("\n");
+                strBuf.Append('\n');
                 strBuf.Append("refOffset          = ");
                 strBuf.Append(referenceBufferOffset);
-                strBuf.Append("\n");
+                strBuf.Append('\n');
                 strBuf.Append("curOffset          = ");
                 strBuf.Append(currentBufferOffset);
-                strBuf.Append("\n");
+                strBuf.Append('\n');
                 strBuf.Append("bitPos             = ");
                 strBuf.Append(currentLineBitPosition);
-                strBuf.Append("\n");
+                strBuf.Append('\n');
                 strBuf.Append("runData.offset = ");
                 strBuf.Append(runData.Offset);
                 strBuf.Append(" ( byte:");
@@ -502,7 +502,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         public Jbig2Bitmap Uncompress()
         {
-            Jbig2Bitmap result = new Jbig2Bitmap(width, height);
+            Jbig2Bitmap result = new(width, height);
 
             int[] currentOffsets = new int[width + 5];
             int[] referenceOffsets = new int[width + 5];
@@ -526,9 +526,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 }
 
                 // Swap lines
-                int[] tempOffsets = referenceOffsets;
-                referenceOffsets = currentOffsets;
-                currentOffsets = tempOffsets;
+                (currentOffsets, referenceOffsets) = (referenceOffsets, currentOffsets);
                 refRunLength = count;
             }
 
@@ -682,8 +680,10 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
                     if (firstLevelTable[firstLevelIndex] == null)
                     {
-                        var firstLevelCode = new Code(new int[3]);
-                        firstLevelCode.SubTable = new Code[SECOND_LEVEL_TABLE_MASK + 1];
+                        var firstLevelCode = new Code(new int[3])
+                        {
+                            SubTable = new Code[SECOND_LEVEL_TABLE_MASK + 1]
+                        };
                         firstLevelTable[firstLevelIndex] = firstLevelCode;
                     }
 

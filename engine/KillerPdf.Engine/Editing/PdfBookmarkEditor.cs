@@ -16,7 +16,7 @@ public static class PdfBookmarkEditor
     public static byte[] Rename(PdfDocument document, int objectNumber, string title)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (objectNumber <= 0) throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(objectNumber);
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("A bookmark title is required.", nameof(title));
         PdfBookmarkInfo bookmark = Flatten(PdfBookmarkReader.Read(document))
@@ -37,7 +37,7 @@ public static class PdfBookmarkEditor
         PdfBookmarkStyle style = PdfBookmarkStyle.Regular, PdfRgbColor? color = null)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (objectNumber <= 0) throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(objectNumber);
         if ((style & ~(PdfBookmarkStyle.Italic | PdfBookmarkStyle.Bold)) != 0)
             throw new ArgumentOutOfRangeException(nameof(style));
         PdfBookmarkInfo bookmark = Flatten(PdfBookmarkReader.Read(document))

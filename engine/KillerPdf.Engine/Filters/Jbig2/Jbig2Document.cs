@@ -19,7 +19,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         private static readonly int[] FILE_HEADER_ID = [0x97, 0x4A, 0x42, 0x32, 0x0D, 0x0A, 0x1A, 0x0A];
 
         // This map contains all pages of this document. The key is the number of the page.
-        private readonly Dictionary<int, Jbig2Page> pages = new Dictionary<int, Jbig2Page>();
+        private readonly Dictionary<int, Jbig2Page> pages = [];
 
         // The length of the file header if exists
         private short fileHeaderLength = 9;
@@ -98,7 +98,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <returns>The requested <see cref="Jbig2Page"/>.</returns>
         public Jbig2Page GetPage(int pageNumber)
         {
-            return pages.ContainsKey(pageNumber) ? pages[pageNumber] : null;
+            return pages.TryGetValue(pageNumber, out Jbig2Page value) ? value : null;
         }
 
         /// <summary>

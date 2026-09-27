@@ -108,14 +108,14 @@ public static partial class PdfFormActionInspector
         {
             if (owner.TryGetValue(ActionName, out PdfObject? action))
                 VisitAction(action, fieldName, sourceObjectNumber, "A", 0,
-                    new HashSet<(int, int)>());
+                    []);
             if (!owner.TryGetValue(AdditionalActionsName, out PdfObject? additionalValue)) return;
             PdfDictionary additional = Resolve(document, additionalValue,
                 "An AcroForm /AA value") as PdfDictionary
                 ?? throw new InvalidOperationException("An AcroForm /AA value is not a dictionary.");
             foreach ((PdfName trigger, PdfObject triggerAction) in additional)
                 VisitAction(triggerAction, fieldName, sourceObjectNumber,
-                    trigger.ValueAsLatin1(), 0, new HashSet<(int, int)>());
+                    trigger.ValueAsLatin1(), 0, []);
         }
 
         void VisitAction(PdfObject value, string fieldName, int? ownerObjectNumber,

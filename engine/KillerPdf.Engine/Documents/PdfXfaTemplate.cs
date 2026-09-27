@@ -110,7 +110,7 @@ public static class PdfXfaTemplate
         if (sets.Length == 0) return [];
         if (sets.Length > 2)
             throw new InvalidOperationException($"XFA field '{path}' has too many item lists.");
-        string[] First(XElement set) => [.. set.Elements().Select(item => item.Value)];
+        static string[] First(XElement set) => [.. set.Elements().Select(item => item.Value)];
         XElement displaySet = sets.FirstOrDefault(set => Attribute(set, "save") != "1") ?? sets[0];
         XElement exportSet = sets.FirstOrDefault(set => Attribute(set, "save") == "1") ?? displaySet;
         string[] displays = First(displaySet);

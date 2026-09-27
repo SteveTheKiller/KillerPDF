@@ -27,6 +27,7 @@ public static class PdfFontResourceReader
     {
         private bool _ignoredUnicodeMap;
         private bool _recoveredType1Lengths;
+        private static readonly string[] array = new[] { "Invalid Type 1 font lengths were recovered from the embedded program." };
 
         internal PdfExtractionFont Read(PdfDictionary font)
         {
@@ -374,7 +375,7 @@ public static class PdfFontResourceReader
             {
                 FontName = fontName,
                 Diagnostics = _recoveredType1Lengths
-                    ? Array.AsReadOnly(new[] { "Invalid Type 1 font lengths were recovered from the embedded program." })
+                    ? Array.AsReadOnly(array)
                     : _ignoredUnicodeMap
                     ? Array.AsReadOnly(new[] { "An unreadable ToUnicode map was ignored; embedded font mappings were used." })
                     : Array.Empty<string>(),
@@ -625,7 +626,7 @@ public static class PdfFontResourceReader
         bool compatibilityRecovery)
     {
         var map = inherited is null
-            ? new Dictionary<uint, uint>() : new Dictionary<uint, uint>(inherited.Value.Map);
+            ? [] : new Dictionary<uint, uint>(inherited.Value.Map);
         var spaces = inherited is null
             ? [] : new List<(uint Low, uint High, int Length)>(inherited.Value.Spaces);
         long expanded = 0;

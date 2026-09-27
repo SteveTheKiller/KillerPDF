@@ -833,9 +833,9 @@ namespace KillerPDF.Controls
                 .Where(annotation => _renderDims.ContainsKey(annotation.PageIndex))
                 .Select(annotation =>
                 {
-                    var dimensions = _renderDims[annotation.PageIndex];
+                    var (w, h) = _renderDims[annotation.PageIndex];
                     return new AnnotationNudge.Constraint(
-                        AnnotBounds(annotation), new Size(dimensions.w, dimensions.h));
+                        AnnotBounds(annotation), new Size(w, h));
                 });
             Vector delta = AnnotationNudge.ClampDelta(constraints, requested);
 

@@ -27,7 +27,7 @@ public sealed class PdfReducedMaskCacheTests
         object cache = typeof(PdfPageRenderer).GetField("_imageCache", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(renderer)!;
         long retained = (long)cache.GetType().GetField("_currentWeight", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(cache)!;
         Assert.True(retained <= size * size * 3 + 200 * 200, $"Decoded cache retained {retained} bytes.");
-        byte[] expected = pixels.ToArray();
+        byte[] expected = [.. pixels];
         long before = GC.GetAllocatedBytesForCurrentThread();
         Assert.Empty(renderer.RenderInto(0, options, pixels));
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;

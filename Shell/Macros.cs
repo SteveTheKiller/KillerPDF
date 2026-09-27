@@ -128,8 +128,7 @@ public partial class MainWindow
     private static string SafeMacroFileName(string value)
     {
         char[] invalid = Path.GetInvalidFileNameChars();
-        string safe = new(value.Select(character => invalid.Contains(character) ? '_' : character)
-            .ToArray());
+        string safe = new([.. value.Select(character => invalid.Contains(character) ? '_' : character)]);
         return safe.Trim().Length == 0 ? "macro" : safe.Trim();
     }
 

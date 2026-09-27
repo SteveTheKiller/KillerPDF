@@ -79,11 +79,13 @@ public sealed class PdfOcrProviderSelectorTests
         Assert.True(session.WasDisposed);
     }
 
+    private static readonly float[] Features = new float[] { 1f };
+
     [Fact]
     public void EngineProviderSelectsPrimaryLanguageAndAcceptsPaddedRows()
     {
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(1, 1,
-            [new PdfOcrTrainingSample("A", new float[] { 1f })]);
+            [new PdfOcrTrainingSample("A", Features)]);
         var catalog = new PdfOcrRecognitionModelCatalog(
             [new KeyValuePair<string, PdfOcrRecognitionModel>("eng", model)]);
         var options = new PdfOcrOptions(["eng-US"]);

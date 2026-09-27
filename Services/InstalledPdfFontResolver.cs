@@ -62,7 +62,7 @@ internal sealed class InstalledPdfFontResolver : IPdfFontResolver
             "CNS1" => ["Microsoft JhengHei", "PMingLiU"],
             "Korea1" when serif => ["Batang", "Malgun Gothic"],
             "Korea1" => ["Malgun Gothic", "Batang"],
-            _ => Array.Empty<string>()
+            _ => []
         };
         foreach (string family in fallbacks)
             if (!family.Equals(name, StringComparison.OrdinalIgnoreCase)) yield return family;

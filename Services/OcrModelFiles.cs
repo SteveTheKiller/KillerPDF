@@ -19,7 +19,7 @@ namespace KillerPDF.Services
         internal static string SelectProvider(string directory,
             IEnumerable<string> languages, PdfOcrProviderPreference? preference = null)
         {
-            string[] requested = languages.Distinct(StringComparer.Ordinal).ToArray();
+            string[] requested = [.. languages.Distinct(StringComparer.Ordinal)];
             var installed = new List<InstalledProvider>(2);
             if (requested.All(code => HasEngineModel(directory, code)))
                 installed.Add(new InstalledProvider("engine", requested, 10));
@@ -32,9 +32,9 @@ namespace KillerPDF.Services
         internal static IReadOnlyList<string> MissingForCommonBackend(
             string directory, IEnumerable<string> languages)
         {
-            string[] requested = languages.Distinct(StringComparer.Ordinal).ToArray();
+            string[] requested = [.. languages.Distinct(StringComparer.Ordinal)];
             if (requested.All(code => HasEngineModel(directory, code))) return [];
-            return requested.Where(code => !HasTesseractModel(directory, code)).ToArray();
+            return [.. requested.Where(code => !HasTesseractModel(directory, code))];
         }
 
         private sealed class InstalledProvider : IPdfOcrProviderMetadata

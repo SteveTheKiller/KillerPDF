@@ -116,8 +116,7 @@ public static class PdfXfdfFormData
     {
         int page = IntegerAttribute(element, "page");
         if (page < 0) throw new InvalidOperationException("An XFDF annotation page cannot be negative.");
-        double[] rectangle = RequiredAttribute(element, "rect").Split(',')
-            .Select(value => ParseFiniteDouble(value, "rectangle")).ToArray();
+        double[] rectangle = [.. RequiredAttribute(element, "rect").Split(',').Select(value => ParseFiniteDouble(value, "rectangle"))];
         if (rectangle.Length != 4 || rectangle[2] < rectangle[0] || rectangle[3] < rectangle[1])
             throw new InvalidOperationException("An XFDF annotation rectangle is invalid.");
         double? opacity = OptionalDoubleAttribute(element, "opacity");

@@ -82,7 +82,7 @@ public static partial class PdfNavigationAudit
 
     /// <summary>Exports navigation findings as stable machine-readable JSON.</summary>
     public static string ExportJson(PdfDocument document, bool indented = true) =>
-        JsonSerializer.Serialize(Inspect(document).ToArray(),
+        JsonSerializer.Serialize([.. Inspect(document)],
             indented ? IndentedJson.PdfNavigationFindingArray
                 : CompactJson.PdfNavigationFindingArray);
 

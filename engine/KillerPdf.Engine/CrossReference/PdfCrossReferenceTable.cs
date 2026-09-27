@@ -59,7 +59,7 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
         int streamNumber)
     {
         if (_recoveredHeaders.TryGetValue(streamNumber, out var recovered))
-            return new HashSet<(int ObjectNumber, int Index)>(recovered);
+            return [.. recovered];
         if (!_entries.TryGetValue(streamNumber, out PdfCrossReferenceEntry current)
             || current.Type != PdfCrossReferenceEntryType.InUse)
             return [];

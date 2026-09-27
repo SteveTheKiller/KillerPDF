@@ -44,7 +44,7 @@ public sealed class PdfIccMultiProcessLutTests
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int index = 0; index < 1000; index++) table.Transform(values, values);
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
-        Assert.Equal(new double[] { 0.25, 0, 0.75 }, values);
+        Assert.Equal([0.25, 0, 0.75], values);
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public sealed class PdfIccMultiProcessLutTests
     {
         int matrixChannels = reverse ? inputs : outputs;
         int aChannels = reverse ? outputs : inputs;
-        int[] grid = Enumerable.Range(0, inputs).Select(index => index == 1 ? 3 : 2).ToArray();
+        int[] grid = [.. Enumerable.Range(0, inputs).Select(index => index == 1 ? 3 : 2)];
         int cells = grid.Aggregate(1, (product, count) => product * count);
         int sample = sixteen ? 2 : 1;
         int bOffset = 32;

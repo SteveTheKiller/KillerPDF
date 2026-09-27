@@ -4,7 +4,7 @@ namespace KillerPDF.Services;
 internal sealed class PdfEncodingBufferPool
 {
     private const int MaximumRetainedBytes = 16 * 1024 * 1024;
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     private byte[]? _spare;
 
     internal byte[] Rent(int minimumLength)

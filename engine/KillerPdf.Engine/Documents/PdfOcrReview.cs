@@ -37,9 +37,9 @@ public sealed record PdfOcrOptions
         bool detectPageSegments = true)
     {
         ArgumentNullException.ThrowIfNull(languages);
-        _languages = languages.Select(language => language?.Trim())
+        _languages = [.. languages.Select(language => language?.Trim())
             .Where(language => !string.IsNullOrEmpty(language))
-            .Cast<string>().Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            .Cast<string>().Distinct(StringComparer.OrdinalIgnoreCase)];
         if (_languages.Length == 0)
             throw new ArgumentException(
                 "At least one OCR recognition language is required.", nameof(languages));
@@ -163,7 +163,7 @@ public sealed partial record PdfOcrAccuracyReport
     public string ToJson(bool indented = false)
     {
         var report = new PdfOcrAccuracyJson(1, LowConfidenceThreshold,
-            WordCount, AverageConfidence, HasWarnings, Pages.ToArray());
+            WordCount, AverageConfidence, HasWarnings, [.. Pages]);
         return JsonSerializer.Serialize(report, indented
             ? IndentedJson.PdfOcrAccuracyJson
             : CompactJson.PdfOcrAccuracyJson);
@@ -238,8 +238,8 @@ public sealed record PdfOcrWord
         PdfOcrWordStatus status = PdfOcrWordStatus.Pending)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A word ID is required.", nameof(id));
-        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
-        if (sequence < 0) throw new ArgumentOutOfRangeException(nameof(sequence));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
+        ArgumentOutOfRangeException.ThrowIfNegative(sequence);
         ArgumentNullException.ThrowIfNull(originalText);
         ArgumentNullException.ThrowIfNull(text);
         if (!double.IsFinite(boundingBox.Left) || !double.IsFinite(boundingBox.Bottom)
@@ -293,7 +293,7 @@ public sealed partial class PdfOcrReview
     public PdfOcrReview(IEnumerable<PdfOcrWord> words)
     {
         ArgumentNullException.ThrowIfNull(words);
-        _words = words.OrderBy(word => word.PageIndex).ThenBy(word => word.Sequence).ToArray();
+        _words = [.. words.OrderBy(word => word.PageIndex).ThenBy(word => word.Sequence)];
         if (_words.Select(word => word.Id).Distinct(StringComparer.Ordinal).Count() != _words.Length)
             throw new ArgumentException("OCR word IDs must be unique.", nameof(words));
         Words = Array.AsReadOnly(_words);
@@ -306,7 +306,7 @@ public sealed partial class PdfOcrReview
     public PdfOcrReview SelectPages(IEnumerable<int> pageIndexes)
     {
         ArgumentNullException.ThrowIfNull(pageIndexes);
-        int[] selected = pageIndexes.ToArray();
+        int[] selected = [.. pageIndexes];
         if (selected.Length == 0 || selected.Any(index => index < 0)
             || selected.Distinct().Count() != selected.Length)
             throw new ArgumentException(
@@ -498,7 +498,7 @@ public sealed record PdfOcrBatchPage
     {
         if (string.IsNullOrWhiteSpace(sourceName))
             throw new ArgumentException("A source name is required.", nameof(sourceName));
-        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
         SourceName = sourceName;
         PageIndex = pageIndex;
         Source = source.ToArray();
@@ -543,7 +543,7 @@ public sealed partial record PdfOcrBatchReport
     {
         ArgumentOutOfRangeException.ThrowIfNegative(totalPageCount);
         ArgumentNullException.ThrowIfNull(results);
-        PdfOcrBatchResult[] values = results.ToArray();
+        PdfOcrBatchResult[] values = [.. results];
         if (values.Length > totalPageCount)
             throw new ArgumentException(
                 "OCR batch results cannot exceed the supplied page count.", nameof(results));
@@ -575,7 +575,7 @@ public sealed partial record PdfOcrBatchReport
     public string ToJson(bool indented = false)
     {
         var report = new PdfOcrBatchJson(1, TotalPageCount, SucceededCount,
-            FailedCount, CanceledCount, UnprocessedCount, Sources.ToArray(),
+            FailedCount, CanceledCount, UnprocessedCount, [.. Sources],
             [.. Results.Select(result => new PdfOcrBatchResultJson(
                 result.Input.SourceName, result.Input.PageIndex, result.Succeeded,
                 result.WasCanceled, result.Error, result.Review?.Words.Count))]);
@@ -660,7 +660,7 @@ public static class PdfOcrBatchRunner
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        PdfOcrBatchPage[] supplied = pages.ToArray();
+        PdfOcrBatchPage[] supplied = [.. pages];
         return new PdfOcrBatchReport(supplied.Length,
             Run(supplied, options, recognize, cancellationToken));
     }
@@ -672,7 +672,7 @@ public static class PdfOcrBatchRunner
         int maximumDegreeOfParallelism, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        PdfOcrBatchPage[] supplied = pages.ToArray();
+        PdfOcrBatchPage[] supplied = [.. pages];
         return new PdfOcrBatchReport(supplied.Length,
             Run(supplied, options, recognize, maximumDegreeOfParallelism, cancellationToken));
     }
@@ -683,7 +683,7 @@ public static class PdfOcrBatchRunner
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        PdfOcrBatchPage[] supplied = pages.ToArray();
+        PdfOcrBatchPage[] supplied = [.. pages];
         return new PdfOcrBatchReport(supplied.Length,
             Run(supplied, recognize, cancellationToken));
     }
@@ -694,7 +694,7 @@ public static class PdfOcrBatchRunner
         int maximumDegreeOfParallelism, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        PdfOcrBatchPage[] supplied = pages.ToArray();
+        PdfOcrBatchPage[] supplied = [.. pages];
         return new PdfOcrBatchReport(supplied.Length,
             Run(supplied, recognize, maximumDegreeOfParallelism, cancellationToken));
     }
@@ -737,8 +737,8 @@ public static class PdfOcrBatchRunner
         ArgumentNullException.ThrowIfNull(recognize);
         if (maximumDegreeOfParallelism is < 1 or > 64)
             throw new ArgumentOutOfRangeException(nameof(maximumDegreeOfParallelism));
-        PdfOcrBatchPage[] prepared = pages.Select(page => new PdfOcrBatchPage(
-            page.SourceName, page.PageIndex, page.Source)).ToArray();
+        PdfOcrBatchPage[] prepared = [.. pages.Select(page => new PdfOcrBatchPage(
+            page.SourceName, page.PageIndex, page.Source))];
         if (maximumDegreeOfParallelism == 1)
         {
             var sequential = new List<PdfOcrBatchResult>();

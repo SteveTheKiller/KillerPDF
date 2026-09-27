@@ -54,7 +54,7 @@ internal static partial class PdfJpeg2000Decoder
                 throw new PdfFilterException("JPEG 2000 data has an invalid box length.");
             if (type == wanted)
             {
-                payload = source.Slice(headerLength, (int)length - headerLength);
+                payload = source[headerLength..(int)length];
                 return true;
             }
             source = source[(int)length..];

@@ -16,9 +16,9 @@ public sealed class PdfImageAreaSamplingTests
     [InlineData(true, true)]
     public void ReducedAlternatingSamplesPreserveAverageColor(bool rgb, bool rotated)
     {
-        byte[] values = Enumerable.Range(0, 16).SelectMany(index => rgb
-            ? index % 2 == 0 ? new byte[] { 255, 0, 0 } : new byte[] { 0, 0, 255 }
-            : new byte[] { index % 2 == 0 ? (byte)0 : (byte)255 }).ToArray();
+        byte[] values = [.. Enumerable.Range(0, 16).SelectMany(index => rgb
+            ? index % 2 == 0 ? new byte[] { 255, 0, 0 } : [0, 0, 255]
+            : [index % 2 == 0 ? (byte)0 : (byte)255])];
         PdfImage image = rgb ? PdfImage.FromRgb(4, 4, values) : PdfImage.FromGray(4, 4, values);
         var content = new PdfContentStreamBuilder();
         if (rotated) content.Transform(0, 1, -1, 0, 2, 0);
@@ -34,7 +34,7 @@ public sealed class PdfImageAreaSamplingTests
     [Fact]
     public void ReductionUnderNonrectangularClipPreservesFineStripes()
     {
-        byte[] values = Enumerable.Range(0, 256).Select(index => index % 2 == 0 ? (byte)0 : (byte)255).ToArray();
+        byte[] values = [.. Enumerable.Range(0, 256).Select(index => index % 2 == 0 ? (byte)0 : (byte)255)];
         var content = new PdfContentStreamBuilder().MoveTo(0, 0).LineTo(8, 0).LineTo(0, 8)
             .ClosePath().Clip().DrawImage(PdfImage.FromGray(16, 16, values), 0, 0, 8, 8);
         var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(8, 8, content).Build());
@@ -59,8 +59,7 @@ public sealed class PdfImageAreaSamplingTests
     [InlineData(3)]
     public void PrecomputedColumnsMatchDirectSampling(int components)
     {
-        byte[] samples = Enumerable.Range(0, 17 * 13 * components)
-            .Select(index => (byte)(index * 37 + index / 17 * 13)).ToArray();
+        byte[] samples = [.. Enumerable.Range(0, 17 * 13 * components).Select(index => (byte)(index * 37 + index / 17 * 13))];
         var row = new PdfImageAreaSampler.Row(13, 6.25, 2.75);
         foreach (double center in new[] { .25, 1.5, 8.75, 16.8 })
         foreach (double footprint in new[] { 1.25, 1.999, 2, 2.75, 5.5 })
@@ -80,8 +79,7 @@ public sealed class PdfImageAreaSamplingTests
     [InlineData(8, true)]
     public void PackedBinaryReductionMatchesByteSamples(int outputSize, bool rotated)
     {
-        byte[] values = Enumerable.Range(0, 17 * 19)
-            .Select(index => (index % 17 * 11 + index / 17 * 7) % 8 > 3 ? (byte)255 : (byte)0).ToArray();
+        byte[] values = [.. Enumerable.Range(0, 17 * 19).Select(index => (index % 17 * 11 + index / 17 * 7) % 8 > 3 ? (byte)255 : (byte)0)];
         byte[] Render(PdfImage image)
         {
             var content = new PdfContentStreamBuilder();
@@ -103,8 +101,7 @@ public sealed class PdfImageAreaSamplingTests
         Span<byte> packed = stackalloc byte[4];
         foreach (int components in new[] { 1, 3 })
         {
-            byte[] samples = Enumerable.Range(0, 17 * 13 * components)
-                .Select(index => (byte)(index * 37 + index / 17 * 13)).ToArray();
+            byte[] samples = [.. Enumerable.Range(0, 17 * 13 * components).Select(index => (byte)(index * 37 + index / 17 * 13))];
             foreach (double width in new[] { .25, .75, 1, 1.25, 1.999, 2, 2.5, 3, 3.25, 5.5, 19 })
             foreach (double height in new[] { .5, 1, 1.75, 3.5, 15 })
             for (int y = 0; y < 52; y++)
@@ -134,8 +131,7 @@ public sealed class PdfImageAreaSamplingTests
     [InlineData(32768, 15, 16384, 2)]
     public void ConvertedImageReductionMatchesIndependentAreaAverage(int width, int height, int outputWidth, int outputHeight)
     {
-        byte[] samples = Enumerable.Range(0, width * height * 4)
-            .Select(index => (byte)(index * 37 + index / width * 13)).ToArray();
+        byte[] samples = [.. Enumerable.Range(0, width * height * 4).Select(index => (byte)(index * 37 + index / width * 13))];
         var content = new PdfContentStreamBuilder().DrawImage(
             PdfImage.FromCmyk(width, height, samples), 0, 0, outputWidth, outputHeight);
         var document = PdfDocument.Open(new PdfDocumentBuilder()

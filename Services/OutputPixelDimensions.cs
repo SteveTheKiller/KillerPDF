@@ -24,8 +24,8 @@ internal static class OutputPixelDimensions
     internal static bool MatchesDpi(
         int pixelWidth, int pixelHeight, double widthPoints, double heightPoints, double dpi)
     {
-        var expected = FromPoints(widthPoints, heightPoints, dpi);
-        return Math.Abs(pixelWidth - expected.Width) <= 1
-            && Math.Abs(pixelHeight - expected.Height) <= 1;
+        var (Width, Height) = FromPoints(widthPoints, heightPoints, dpi);
+        return Math.Abs(pixelWidth - Width) <= 1
+            && Math.Abs(pixelHeight - Height) <= 1;
     }
 }

@@ -14,9 +14,9 @@ public sealed class PdfJpeg2000TileTests
     [InlineData(1025, 513, 3)]
     public void ParallelIrreversibleRowsMatchSerialSamples(int width, int height, int components)
     {
-        int[][] samples = Enumerable.Range(0, components).Select(component =>
+        int[][] samples = [.. Enumerable.Range(0, components).Select(component =>
             Enumerable.Range(0, width * height).Select(index =>
-                ((index % width * 17 + index / width * 29 + component * 53) & 255) - 128).ToArray()).ToArray();
+                ((index % width * 17 + index / width * 29 + component * 53) & 255) - 128).ToArray())];
         var source = new InterleavedImageSource(width, height, components, 8, new bool[components], samples);
         var parameters = new J2KEncoderConfiguration().ToParameterList();
         parameters["Wlev"] = "3";
@@ -52,9 +52,9 @@ public sealed class PdfJpeg2000TileTests
     {
         int bias = 1 << (bits - 1);
         int maximum = (1 << bits) - 1;
-        int[][] samples = Enumerable.Range(0, components).Select(component =>
+        int[][] samples = [.. Enumerable.Range(0, components).Select(component =>
             Enumerable.Range(0, width * height).Select(index =>
-                ((index % width * 17 + index / width * 29 + component * 53) & maximum) - bias).ToArray()).ToArray();
+                ((index % width * 17 + index / width * 29 + component * 53) & maximum) - bias).ToArray())];
         var source = new InterleavedImageSource(width, height, components, bits, new bool[components], samples);
         var parameters = new J2KEncoderConfiguration().WithLossless()
             .WithTiles(tiles => tiles.SetSize(64, 128)).ToParameterList();
@@ -114,9 +114,9 @@ public sealed class PdfJpeg2000TileTests
     public void ReducedResolutionPreservesEveryTileIncludingPartialEdges(int bits, int components)
     {
         const int width = 70, height = 99, levels = 3;
-        int[][] samples = Enumerable.Range(0, components).Select(component =>
+        int[][] samples = [.. Enumerable.Range(0, components).Select(component =>
             Enumerable.Range(0, width * height).Select(index =>
-                Value(index % width, index / width, component) - (1 << (bits - 1))).ToArray()).ToArray();
+                Value(index % width, index / width, component) - (1 << (bits - 1))).ToArray())];
         var source = new InterleavedImageSource(width, height, components, bits, new bool[components], samples);
         var parameters = new J2KEncoderConfiguration().WithLossless()
             .WithTiles(tiles => tiles.SetSize(32, 32)).ToParameterList();

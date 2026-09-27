@@ -160,7 +160,7 @@ internal static class PdfPngDecoder
                 }
                 if (a != 255)
                 {
-                    alpha ??= Enumerable.Repeat((byte)255, width * height).ToArray();
+                    alpha ??= [.. Enumerable.Repeat((byte)255, width * height)];
                     alpha[pixel] = (byte)a;
                 }
             }

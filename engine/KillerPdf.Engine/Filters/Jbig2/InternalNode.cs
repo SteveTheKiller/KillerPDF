@@ -99,19 +99,13 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 // the child will be an InternalNode
                 if (bit == 1)
                 {
-                    if (one is null)
-                    {
-                        one = new InternalNode(depth + 1);
-                    }
+                    one ??= new InternalNode(depth + 1);
 
                     ((InternalNode)one).Append(c);
                 }
                 else
                 {
-                    if (zero is null)
-                    {
-                        zero = new InternalNode(depth + 1);
-                    }
+                    zero ??= new InternalNode(depth + 1);
 
                     ((InternalNode)zero).Append(c);
                 }
@@ -130,9 +124,9 @@ namespace KillerPdf.Engine.Filters.Jbig2
             var sb = new StringBuilder("\n");
 
             Pad(sb);
-            sb.Append("0: ").Append(zero).Append("\n");
+            sb.Append("0: ").Append(zero).Append('\n');
             Pad(sb);
-            sb.Append("1: ").Append(one).Append("\n");
+            sb.Append("1: ").Append(one).Append('\n');
 
             return sb.ToString();
         }

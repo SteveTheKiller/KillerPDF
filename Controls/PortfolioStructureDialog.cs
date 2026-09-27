@@ -196,11 +196,11 @@ internal sealed class PortfolioStructureDialog : Window
 
             var values = _attachmentNames.ToDictionary(
                 name => name,
-                name => (IReadOnlyList<PdfCollectionItemValue>)_valueRows
+                name => (IReadOnlyList<PdfCollectionItemValue>)[.. _valueRows
                     .Where(row => row.Remove.IsChecked != true
                         && string.Equals(row.Attachment.SelectedItem as string, name,
                             StringComparison.Ordinal))
-                    .Select(row => BuildValue(row, fieldKeys)).ToArray(),
+                    .Select(row => BuildValue(row, fieldKeys))],
                 StringComparer.Ordinal);
             if (values.Values.Any(items => items.Select(item => item.Key)
                     .Distinct(StringComparer.Ordinal).Count() != items.Count))

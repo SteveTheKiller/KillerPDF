@@ -8,7 +8,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_GroupsComponentsIntoTopToBottomLines()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 12 * 8).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 12 * 8)];
         Paint(pixels, 12, 1, 1, 2, 3);
         Paint(pixels, 12, 5, 1, 2, 3);
         Paint(pixels, 12, 2, 6, 2, 2);
@@ -27,7 +27,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_SplitsWordsAtGlyphScaledHorizontalGaps()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 24 * 6).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 24 * 6)];
         Paint(pixels, 24, 1, 1, 2, 3);
         Paint(pixels, 24, 5, 1, 2, 3);
         Paint(pixels, 24, 14, 1, 2, 3);
@@ -44,7 +44,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_SplitsProportionalWordsAtOrdinarySpaceWidths()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 60 * 12).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 60 * 12)];
         Paint(pixels, 60, 1, 2, 10, 6);
         Paint(pixels, 60, 13, 2, 10, 6);
         Paint(pixels, 60, 29, 2, 10, 6);
@@ -61,7 +61,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_SplitsSmallTextAtThreePixelWordGaps()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 36 * 10).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 36 * 10)];
         Paint(pixels, 36, 1, 2, 6, 6);
         Paint(pixels, 36, 8, 2, 6, 6);
         Paint(pixels, 36, 17, 2, 6, 6);
@@ -79,7 +79,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_MergesDetachedMarksIntoTheirGlyphs()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 14 * 9).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 14 * 9)];
         Paint(pixels, 14, 3, 1, 2, 2);
         Paint(pixels, 14, 3, 4, 2, 4);
         Paint(pixels, 14, 9, 4, 3, 4);
@@ -96,7 +96,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_RetainsSinglePixelPunctuationNearText()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 14 * 9).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 14 * 9)];
         Paint(pixels, 14, 3, 3, 2, 5);
         pixels[1 * 14 + 3] = 0;
         Paint(pixels, 14, 9, 3, 3, 5);
@@ -114,7 +114,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     public void Analyze_BoundsDenseSinglePixelNoise()
     {
         const int size = 210;
-        byte[] pixels = Enumerable.Repeat((byte)255, size * size).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, size * size)];
         Paint(pixels, size, 1, 1, 2, 5);
         for (int y = 10; y < size; y += 3)
             for (int x = 0; x < size; x += 3)
@@ -132,7 +132,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     {
         const int width = 384;
         const int height = 387;
-        byte[] pixels = Enumerable.Repeat((byte)255, width * height).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, width * height)];
         for (int y = 0; y < height; y += 3)
             for (int x = 0; x + 1 < width; x += 3)
             {
@@ -147,7 +147,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_KeepsDiagonalStrokesConnected()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 8 * 8).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 8 * 8)];
         for (int offset = 0; offset < 5; offset++)
             pixels[(offset + 1) * 8 + offset + 1] = 0;
 
@@ -161,7 +161,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_SplitsTouchingWideGlyphsAtVerticalValleys()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 10 * 7).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 10 * 7)];
         Paint(pixels, 10, 1, 1, 2, 4);
         Paint(pixels, 10, 5, 1, 2, 4);
         pixels[2 * 10 + 3] = 0;
@@ -179,7 +179,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_DoesNotSplitWideGlyphsThatMatchThePageScale()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 24 * 7).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 24 * 7)];
         Paint(pixels, 24, 1, 1, 2, 4);
         Paint(pixels, 24, 5, 1, 2, 4);
         pixels[2 * 24 + 3] = 0;
@@ -197,7 +197,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_MergesAlignedPunctuationStrokes()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 14 * 9).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 14 * 9)];
         Paint(pixels, 14, 2, 1, 2, 2);
         Paint(pixels, 14, 2, 5, 2, 2);
         Paint(pixels, 14, 9, 2, 3, 5);
@@ -214,7 +214,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_MergesColonDotsAcrossTheTextHeight()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 20 * 14).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 20 * 14)];
         Paint(pixels, 20, 2, 1, 2, 2);
         Paint(pixels, 20, 2, 8, 2, 2);
         Paint(pixels, 20, 10, 1, 3, 10);
@@ -229,7 +229,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_IgnoresRuleLinesAndExtremeGraphicStrokes()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 80 * 80).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 80 * 80)];
         Paint(pixels, 80, 2, 10, 3, 3);
         Paint(pixels, 80, 2, 15, 3, 3);
         foreach (int x in new[] { 20, 28, 36, 44, 52 })
@@ -252,7 +252,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_OrdersDetectedColumnsBeforeMovingRight()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 30 * 14).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 30 * 14)];
         Paint(pixels, 30, 1, 1, 2, 3);
         Paint(pixels, 30, 1, 8, 2, 3);
         Paint(pixels, 30, 22, 2, 2, 3);
@@ -271,7 +271,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_OrdersThreeDetectedColumnsIndependently()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 42 * 14).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 42 * 14)];
         foreach (int left in new[] { 1, 15, 29 })
         {
             Paint(pixels, 42, left, 1, 2, 3);
@@ -291,7 +291,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     [Fact]
     public void Analyze_IgnoresSinglePixelNoiseAndHonorsCancellation()
     {
-        byte[] pixels = Enumerable.Repeat((byte)255, 16).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat((byte)255, 16)];
         pixels[5] = 0;
         Assert.Empty(PdfOcrLayoutAnalyzer.Analyze(Prepared(4, 4, pixels)).Components);
         using var canceled = new CancellationTokenSource();

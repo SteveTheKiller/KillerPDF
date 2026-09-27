@@ -33,12 +33,11 @@ internal static class SvgSignatureImporter
             throw new InvalidDataException("SVG signatures cannot contain active or external content.");
 
         (double width, double height) = Dimensions(root);
-        string[] paths = root.Descendants()
+        string[] paths = [.. root.Descendants()
             .Where(element => element.Name.LocalName == "path")
             .Select(element => (string?)element.Attribute("d"))
             .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Select(value => value!)
-            .ToArray();
+            .Select(value => value!)];
         if (paths.Length == 0)
             throw new InvalidDataException("The SVG signature does not contain any paths.");
         return new SvgSignatureDocument(source, width, height, Array.AsReadOnly(paths));
@@ -49,8 +48,7 @@ internal static class SvgSignatureImporter
         string? viewBox = (string?)root.Attribute("viewBox");
         if (!string.IsNullOrWhiteSpace(viewBox))
         {
-            double[] values = viewBox.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries)
-                .Select(ParseNumber).ToArray();
+            double[] values = [.. viewBox.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries).Select(ParseNumber)];
             if (values.Length == 4 && values[2] > 0 && values[3] > 0)
                 return (values[2], values[3]);
         }

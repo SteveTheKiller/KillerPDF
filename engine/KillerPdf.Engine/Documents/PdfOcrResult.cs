@@ -15,7 +15,7 @@ public sealed class PdfOcrResult
         ArgumentNullException.ThrowIfNull(words);
         if (!float.IsFinite(meanConfidence) || meanConfidence is < 0 or > 1)
             throw new ArgumentOutOfRangeException(nameof(meanConfidence));
-        PdfOcrPixelWord[] copied = words.ToArray();
+        PdfOcrPixelWord[] copied = [.. words];
         if (copied.Any(word => word is null))
             throw new ArgumentException("An OCR result word is null.", nameof(words));
         if (copied.Any(word => word.Text is null
@@ -42,7 +42,7 @@ public sealed class PdfOcrResult
         int lineTolerance = 8)
     {
         ArgumentNullException.ThrowIfNull(words);
-        if (lineTolerance < 0) throw new ArgumentOutOfRangeException(nameof(lineTolerance));
+        ArgumentOutOfRangeException.ThrowIfNegative(lineTolerance);
         var lines = new List<(int Top, List<PdfOcrPixelWord> Words)>();
         foreach (PdfOcrPixelWord word in words.OrderBy(word => word.Top)
             .ThenBy(word => word.Left))

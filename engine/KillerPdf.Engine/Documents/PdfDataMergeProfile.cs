@@ -34,7 +34,7 @@ public sealed partial class PdfDataMergeProfile
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A data-merge profile name is required.", nameof(name));
         ArgumentNullException.ThrowIfNull(mappings);
-        PdfDataMergeFieldMapping[] selected = mappings.ToArray();
+        PdfDataMergeFieldMapping[] selected = [.. mappings];
         PdfDataMergeImageMapping[] selectedImages = imageMappings?.ToArray() ?? [];
         if (selected.Length == 0 && selectedImages.Length == 0)
             throw new ArgumentException("A data-merge profile requires at least one mapping.",
@@ -194,8 +194,8 @@ public sealed partial class PdfDataMergeProfile
 
     /// <summary>Serializes the reusable mapping without source record values.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new ProfileFile(1, Name, Mappings.ToArray(), OutputFileNameTemplate, MissingValueBehavior,
-            ImageMappings.ToArray(), IncludeWhenField, IncludeWhenValue),
+        new ProfileFile(1, Name, [.. Mappings], OutputFileNameTemplate, MissingValueBehavior,
+            [.. ImageMappings], IncludeWhenField, IncludeWhenValue),
         indented ? IndentedJson.ProfileFile : CompactJson.ProfileFile);
 
     /// <summary>Reads a reusable mapping profile.</summary>

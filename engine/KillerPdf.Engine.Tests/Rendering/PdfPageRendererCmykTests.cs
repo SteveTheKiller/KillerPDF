@@ -16,7 +16,7 @@ public sealed class PdfPageRendererCmykTests
         var content = new PdfContentStreamBuilder().SetFillRgb(1, 0, 0)
             .Rectangle(0, 0, 1, 1).Fill();
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1, content).Build());
-        PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+        static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
         var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
         var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
         var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
@@ -79,8 +79,8 @@ public sealed class PdfPageRendererCmykTests
             new PdfRenderOptions(3, 1, transparentBackground: transparent));
 
         Assert.Equal(transparent
-            ? new byte[] { 255, 255, 255, 0, 140, 2, 237, 64, 140, 2, 237, 128 }
-            : new byte[] { 255, 255, 255, 255, 226, 192, 250, 255, 198, 128, 246, 255 },
+            ? [255, 255, 255, 0, 140, 2, 237, 64, 140, 2, 237, 128]
+            : [255, 255, 255, 255, 226, 192, 250, 255, 198, 128, 246, 255],
             page.Pixels.ToArray());
         Assert.Empty(page.Diagnostics);
     }
@@ -107,7 +107,7 @@ public sealed class PdfPageRendererCmykTests
             content = new PdfContentStreamBuilder().DrawForm(new PdfFormXObject(2, 1, content,
                 isolatedTransparencyGroup: true, transparencyGroupColorSpace: PdfTransparencyGroupColorSpace.Cmyk), 0, 0);
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1, content).Build());
-        PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+        static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
         var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
         var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
         var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
@@ -147,8 +147,8 @@ public sealed class PdfPageRendererCmykTests
     [InlineData(true, 1)]
     public void Render_BlendModesOverTransparentCmykPreserveSource(bool image, double opacity)
     {
-        byte[] samples = Enumerable.Range(0, 256).SelectMany(value =>
-            new byte[] { (byte)value, (byte)(255 - value), (byte)(value * 37), (byte)(value * 71) }).ToArray();
+        byte[] samples = [.. Enumerable.Range(0, 256).SelectMany(value =>
+            new byte[] { (byte)value, (byte)(255 - value), (byte)(value * 37), (byte)(value * 71) })];
         byte[] expected = Render(PdfBlendMode.Normal);
         foreach (PdfBlendMode mode in Enum.GetValues<PdfBlendMode>())
             Assert.Equal(expected, Render(mode));

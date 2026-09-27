@@ -73,7 +73,7 @@ public static class PdfCollectionEditor
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(fields);
-        PdfCollectionFieldInfo[] selectedFields = fields.ToArray();
+        PdfCollectionFieldInfo[] selectedFields = [.. fields];
         if (selectedFields.Length == 0)
             throw new ArgumentException(
                 "A portfolio schema requires at least one field.", nameof(fields));
@@ -142,7 +142,7 @@ public static class PdfCollectionEditor
             ?? throw new InvalidOperationException("The document has no portfolio collection.");
         HashSet<string> schemaKeys = collection.Fields.Select(field => field.Key)
             .ToHashSet(StringComparer.Ordinal);
-        PdfCollectionItemValue[] selected = values.ToArray();
+        PdfCollectionItemValue[] selected = [.. values];
         if (selected.Any(value => value is null || string.IsNullOrWhiteSpace(value.Key)
             || !schemaKeys.Contains(value.Key)
             || (value.Text is null) == (value.Number is null)
@@ -186,7 +186,7 @@ public static class PdfCollectionEditor
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(folders);
-        PdfCollectionFolder[] selected = folders.ToArray();
+        PdfCollectionFolder[] selected = [.. folders];
         if (selected.Any(folder => folder is null || folder.Id < 0
             || string.IsNullOrWhiteSpace(folder.Name)
             || (folder.Description is not null && string.IsNullOrWhiteSpace(folder.Description))

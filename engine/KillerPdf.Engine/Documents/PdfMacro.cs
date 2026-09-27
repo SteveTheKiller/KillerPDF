@@ -39,7 +39,7 @@ public sealed partial record PdfMacro
     {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A macro name is required.", nameof(name));
         ArgumentNullException.ThrowIfNull(steps);
-        PdfMacroStep[] values = steps.ToArray();
+        PdfMacroStep[] values = [.. steps];
         if (values.Length == 0) throw new ArgumentException("A macro requires at least one step.", nameof(steps));
         if (values.Any(step => !Enum.IsDefined(step.Operation)))
             throw new ArgumentException("A macro contains an unsupported operation.", nameof(steps));
@@ -59,7 +59,7 @@ public sealed partial record PdfMacro
         ArgumentNullException.ThrowIfNull(files);
         if (!Enum.IsDefined(overwriteBehavior))
             throw new ArgumentOutOfRangeException(nameof(overwriteBehavior));
-        PdfMacroPreviewFile[] planned = files.ToArray();
+        PdfMacroPreviewFile[] planned = [.. files];
         if (planned.Any(file => string.IsNullOrWhiteSpace(file.InputName)
             || string.IsNullOrWhiteSpace(file.OutputName)))
             throw new ArgumentException("Macro preview file names cannot be empty.", nameof(files));
@@ -86,7 +86,7 @@ public sealed partial record PdfMacro
             throw new ArgumentOutOfRangeException(nameof(fromIndex));
         if ((uint)toIndex >= (uint)Steps.Count)
             throw new ArgumentOutOfRangeException(nameof(toIndex));
-        PdfMacroStep[] reordered = Steps.Select(Copy).ToArray();
+        PdfMacroStep[] reordered = [.. Steps.Select(Copy)];
         PdfMacroStep moved = reordered[fromIndex];
         if (fromIndex < toIndex)
             Array.Copy(reordered, fromIndex + 1, reordered, fromIndex, toIndex - fromIndex);
@@ -113,7 +113,7 @@ public sealed partial record PdfMacro
         if ((uint)index >= (uint)Steps.Count)
             throw new ArgumentOutOfRangeException(nameof(index));
         ArgumentNullException.ThrowIfNull(step);
-        PdfMacroStep[] changed = Steps.Select(Copy).ToArray();
+        PdfMacroStep[] changed = [.. Steps.Select(Copy)];
         changed[index] = Copy(step);
         return new PdfMacro(Name, changed);
     }
@@ -131,9 +131,9 @@ public sealed partial record PdfMacro
 
     /// <summary>Serializes the macro without executable code or external actions.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new PdfMacroFile(1, Name, Steps.Select(step => new PdfMacroStepFile(
+        new PdfMacroFile(1, Name, [.. Steps.Select(step => new PdfMacroStepFile(
             step.Operation, step.Settings is null ? null
-                : new Dictionary<string, string>(step.Settings, StringComparer.Ordinal))).ToArray()),
+                : new Dictionary<string, string>(step.Settings, StringComparer.Ordinal)))]),
         indented ? IndentedJson.PdfMacroFile : CompactJson.PdfMacroFile);
 
     /// <summary>Reads and validates a serialized macro.</summary>
@@ -298,7 +298,7 @@ public static class PdfMacroRunner
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(inputs);
-        ReadOnlyMemory<byte>[] supplied = inputs.ToArray();
+        ReadOnlyMemory<byte>[] supplied = [.. inputs];
         return new PdfMacroRunReport(supplied.Length,
             Run(macro, supplied, operation, cancellationToken));
     }
@@ -314,7 +314,7 @@ public static class PdfMacroRunner
     {
         ArgumentNullException.ThrowIfNull(inputs);
         ArgumentNullException.ThrowIfNull(previous);
-        ReadOnlyMemory<byte>[] supplied = inputs.ToArray();
+        ReadOnlyMemory<byte>[] supplied = [.. inputs];
         if (previous.TotalInputCount != supplied.Length)
             throw new ArgumentException(
                 "The previous macro report does not match the supplied input count.", nameof(previous));
@@ -400,7 +400,7 @@ public static class PdfMacroRunner
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(inputs);
-        ReadOnlyMemory<byte>[] supplied = inputs.ToArray();
+        ReadOnlyMemory<byte>[] supplied = [.. inputs];
         return new PdfMacroRunReport(supplied.Length,
             RunContextual(macro, supplied, initialValues, operation, cancellationToken));
     }
@@ -418,7 +418,7 @@ public static class PdfMacroRunner
     {
         ArgumentNullException.ThrowIfNull(inputs);
         ArgumentNullException.ThrowIfNull(previous);
-        ReadOnlyMemory<byte>[] supplied = inputs.ToArray();
+        ReadOnlyMemory<byte>[] supplied = [.. inputs];
         if (previous.TotalInputCount != supplied.Length)
             throw new ArgumentException(
                 "The previous macro report does not match the supplied input count.",
@@ -564,9 +564,9 @@ public sealed partial record PdfMacroRunReport
     /// <summary>Creates a report for a bounded input batch.</summary>
     public PdfMacroRunReport(int totalInputCount, IEnumerable<PdfMacroFileResult> results)
     {
-        if (totalInputCount < 0) throw new ArgumentOutOfRangeException(nameof(totalInputCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(totalInputCount);
         ArgumentNullException.ThrowIfNull(results);
-        PdfMacroFileResult[] values = results.ToArray();
+        PdfMacroFileResult[] values = [.. results];
         if (values.Length > totalInputCount)
             throw new ArgumentException("Macro results exceed the input count.", nameof(results));
         TotalInputCount = totalInputCount;

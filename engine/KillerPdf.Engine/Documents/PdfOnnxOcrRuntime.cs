@@ -88,22 +88,14 @@ public static class PdfOnnxOcrRuntime
         }
     }
 
-    private sealed class RuntimeTensorRunner : IPdfOnnxOcrTensorRunner
+    private sealed class RuntimeTensorRunner(InferenceSession session, SessionOptions options) : IPdfOnnxOcrTensorRunner
     {
-        private readonly InferenceSession _session;
-        private readonly SessionOptions _options;
+        private readonly InferenceSession _session = session;
+        private readonly SessionOptions _options = options;
         private bool _disposed;
 
-        public RuntimeTensorRunner(InferenceSession session, SessionOptions options)
-        {
-            _session = session;
-            _options = options;
-            InputNames = Array.AsReadOnly(session.InputMetadata.Keys.ToArray());
-            OutputNames = Array.AsReadOnly(session.OutputMetadata.Keys.ToArray());
-        }
-
-        public IReadOnlyList<string> InputNames { get; }
-        public IReadOnlyList<string> OutputNames { get; }
+        public IReadOnlyList<string> InputNames { get; } = Array.AsReadOnly(session.InputMetadata.Keys.ToArray());
+        public IReadOnlyList<string> OutputNames { get; } = Array.AsReadOnly(session.OutputMetadata.Keys.ToArray());
 
         public PdfOnnxOcrTensor Run(string inputName, PdfOnnxOcrTensor input, string outputName,
             CancellationToken cancellationToken = default)
@@ -138,7 +130,7 @@ public static class PdfOnnxOcrRuntime
                 Tensor<float> output = result.AsTensor<float>()
                     ?? throw new InvalidOperationException(
                         $"The ONNX output '{outputName}' is not a float tensor.");
-                return new PdfOnnxOcrTensor(output.ToArray(), output.Dimensions.ToArray());
+                return new PdfOnnxOcrTensor([.. output], output.Dimensions.ToArray());
             }
             catch (OnnxRuntimeException error)
             {

@@ -222,7 +222,7 @@ public sealed partial class PdfPageRenderer
                 glyphLine.Add(glyph);
                 lineAdvance += extraction.GetWidth(glyph.Code) / 1000;
             }
-            encodedLines.Add(encodedLine.ToArray());
+            encodedLines.Add([.. encodedLine]);
             glyphLines.Add(glyphLine);
             advances.Add(lineAdvance);
         }
@@ -302,11 +302,11 @@ public sealed partial class PdfPageRenderer
             for (int index = 0; index < glyphs.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var glyph = glyphs[index];
-                double glyphWidth = extraction.GetWidth(glyph.Code) * size / 1000;
+                var (Bytes, Code) = glyphs[index];
+                double glyphWidth = extraction.GetWidth(Code) * size / 1000;
                 double cellX = left + inset + (firstCell + index + 0.5) * cellWidth - glyphWidth / 2;
                 replacement.Add(I("Tm", R(1), R(0), R(0), R(1), R(cellX), R(bottom + y)));
-                replacement.Add(I("Tj", new PdfString(glyph.Bytes, PdfStringForm.Hexadecimal)));
+                replacement.Add(I("Tj", new PdfString(Bytes, PdfStringForm.Hexadecimal)));
             }
         }
         else if (multiline || listBox)

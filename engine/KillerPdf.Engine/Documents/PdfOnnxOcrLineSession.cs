@@ -89,7 +89,7 @@ public sealed class PdfOnnxOcrLineSession : IPdfOnnxOcrSession
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         int rowBytes = checked(width * 4);
-        if (stride < rowBytes) throw new ArgumentOutOfRangeException(nameof(stride));
+        ArgumentOutOfRangeException.ThrowIfLessThan(stride, rowBytes);
         if (bgra.Length < checked(stride * height))
             throw new ArgumentException("The BGRA buffer is shorter than the requested image.", nameof(bgra));
         ArgumentNullException.ThrowIfNull(options);

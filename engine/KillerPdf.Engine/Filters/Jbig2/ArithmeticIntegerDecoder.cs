@@ -8,16 +8,11 @@ namespace KillerPdf.Engine.Filters.Jbig2
     /// <summary>
     /// This class represents the arithmetic integer decoder, described in ISO/IEC 14492:2001 (Annex A).
     /// </summary>
-    internal sealed class ArithmeticIntegerDecoder
+    internal sealed class ArithmeticIntegerDecoder(ArithmeticDecoder decoder)
     {
-        private readonly ArithmeticDecoder decoder;
+        private readonly ArithmeticDecoder decoder = decoder;
 
         private int prev;
-
-        public ArithmeticIntegerDecoder(ArithmeticDecoder decoder)
-        {
-            this.decoder = decoder;
-        }
 
         /// <summary>
         /// Arithmetic Integer Decoding Procedure, Annex A.2.
@@ -32,10 +27,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             int bitsToRead;
             int offset;
 
-            if (cxIAx is null)
-            {
-                cxIAx = new CX(512, 1);
-            }
+            cxIAx ??= new CX(512, 1);
 
             prev = 1;
 

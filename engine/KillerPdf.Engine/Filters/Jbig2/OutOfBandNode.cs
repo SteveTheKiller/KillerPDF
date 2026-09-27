@@ -11,7 +11,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
     /// </summary>
     internal sealed class OutOfBandNode : Node
     {
-        public OutOfBandNode(Code c)
+        public OutOfBandNode(Code _)
         {
         }
 

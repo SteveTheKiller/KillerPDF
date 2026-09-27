@@ -55,7 +55,7 @@ public sealed partial class PdfPageRenderer
 
     private static Color ProcessColor(int[] channels, double first, double second, double third, double fourth)
     {
-        ReadOnlySpan<double> source = stackalloc double[4] { first, second, third, fourth };
+        ReadOnlySpan<double> source = [first, second, third, fourth];
         return ProcessColor(channels, source);
     }
 

@@ -372,7 +372,7 @@ public static class PdfOcrImagePreprocessor
         double radians = angle * Math.PI / 180;
         double cosine = Math.Cos(radians), sine = Math.Sin(radians);
         double centerX = (width - 1) / 2d, centerY = (height - 1) / 2d;
-        byte[] result = Enumerable.Repeat(byte.MaxValue, source.Length).ToArray();
+        byte[] result = [.. Enumerable.Repeat(byte.MaxValue, source.Length)];
         for (int y = 0; y < height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -428,7 +428,7 @@ public static class PdfOcrImagePreprocessor
         bool binary, CancellationToken cancellationToken)
     {
         if (!binary) return Median3x3(source, width, height, cancellationToken);
-        byte[] result = source.ToArray();
+        byte[] result = [.. source];
         for (int y = 0; y < height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -449,7 +449,7 @@ public static class PdfOcrImagePreprocessor
     private static byte[] Median3x3(byte[] source, int width, int height,
         CancellationToken cancellationToken)
     {
-        byte[] result = source.ToArray();
+        byte[] result = [.. source];
         Span<byte> values = stackalloc byte[9];
         for (int y = 1; y < height - 1; y++)
         {

@@ -55,7 +55,7 @@ public static partial class PdfAttachmentReader
         int pageCount = PdfPageTree.Read(document).Pages.Count;
         PdfAttachmentAnnotationInfo[] annotations = [.. Enumerable.Range(0, pageCount)
             .SelectMany(pageIndex => ReadPageAnnotations(document, pageIndex))];
-        ReportAttachment Describe(PdfAttachmentInfo attachment) => new(
+        static ReportAttachment Describe(PdfAttachmentInfo attachment) => new(
             attachment.FileName,
             attachment.Description,
             attachment.MimeType,
@@ -217,8 +217,7 @@ public static partial class PdfAttachmentReader
         for (int index = 0; index < annotations.Count; index++)
         {
             PdfObject annotationValue = annotations[index];
-            PdfDictionary? annotation = Resolve(document, annotationValue) as PdfDictionary;
-            if (annotation is null
+            if (Resolve(document, annotationValue) is not PdfDictionary annotation
                 || !annotation.TryGetValue(Name("Subtype"), out PdfObject? subtypeValue)
                 || Resolve(document, subtypeValue) is not PdfName subtype
                 || subtype.ValueAsLatin1() != "FileAttachment") continue;
@@ -387,10 +386,9 @@ public static partial class PdfAttachmentReader
         string directory, bool overwrite = false)
     {
         ArgumentNullException.ThrowIfNull(attachments);
-        PdfAttachmentInfo[] values = attachments.Select(attachment => attachment
+        PdfAttachmentInfo[] values = [.. attachments.Select(attachment => attachment
             ?? throw new ArgumentException(
-                "An attachment extraction item cannot be null.", nameof(attachments)))
-            .ToArray();
+                "An attachment extraction item cannot be null.", nameof(attachments)))];
         string[] paths = [.. values.Select(attachment =>
             GetSafeExtractionPath(directory, attachment.FileName))];
         if (paths.Distinct(StringComparer.OrdinalIgnoreCase).Count() != paths.Length)

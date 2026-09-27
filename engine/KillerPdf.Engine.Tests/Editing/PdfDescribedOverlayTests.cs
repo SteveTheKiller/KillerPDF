@@ -36,9 +36,9 @@ public sealed class PdfDescribedOverlayTests
     public void RepeatedSavesPreserveOriginalStructureAndLinkEveryOverlay()
     {
         PdfDocument document = Source();
-        var sourceTree = Tree(document);
-        PdfObject originalContents = sourceTree.Page[N("Contents")];
-        PdfDictionary root = D(document, sourceTree.Catalog[N("StructTreeRoot")]);
+        var (Catalog, Page, Reference) = Tree(document);
+        PdfObject originalContents = Page[N("Contents")];
+        PdfDictionary root = D(document, Catalog[N("StructTreeRoot")]);
         PdfDictionary originalParentTree = D(document, root[N("ParentTree")]);
         var originalNumbers = Assert.IsType<PdfArray>(originalParentTree[N("Nums")]);
         byte[] originalEntry = PdfObjectWriter.Write(originalNumbers[1]);

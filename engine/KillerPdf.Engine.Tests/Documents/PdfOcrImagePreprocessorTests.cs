@@ -48,7 +48,7 @@ public sealed class PdfOcrImagePreprocessorTests
     [Fact]
     public void PrepareBgra_AdaptiveThresholdAndDenoiseRemoveIsolatedNoise()
     {
-        byte[] bgra = Enumerable.Repeat((byte)255, 7 * 7 * 4).ToArray();
+        byte[] bgra = [.. Enumerable.Repeat((byte)255, 7 * 7 * 4)];
         for (int pixel = 0; pixel < 49; pixel++) bgra[pixel * 4 + 3] = 255;
         int center = (3 * 7 + 3) * 4;
         bgra[center] = bgra[center + 1] = bgra[center + 2] = 0;
@@ -65,7 +65,7 @@ public sealed class PdfOcrImagePreprocessorTests
     [Fact]
     public void PrepareBgra_BinaryDenoisePreservesConnectedDiagonalStrokes()
     {
-        byte[] bgra = Enumerable.Repeat((byte)255, 7 * 7 * 4).ToArray();
+        byte[] bgra = [.. Enumerable.Repeat((byte)255, 7 * 7 * 4)];
         for (int pixel = 0; pixel < 49; pixel++) bgra[pixel * 4 + 3] = 255;
         for (int offset = 1; offset <= 5; offset++)
         {
@@ -86,7 +86,7 @@ public sealed class PdfOcrImagePreprocessorTests
     [Fact]
     public void PrepareBgra_BinaryDenoisePreservesSmallWhiteCounters()
     {
-        byte[] bgra = Enumerable.Repeat((byte)255, 7 * 7 * 4).ToArray();
+        byte[] bgra = [.. Enumerable.Repeat((byte)255, 7 * 7 * 4)];
         for (int pixel = 0; pixel < 49; pixel++) bgra[pixel * 4 + 3] = 255;
         for (int y = 2; y <= 4; y++)
             for (int x = 2; x <= 4; x++)
@@ -189,7 +189,7 @@ public sealed class PdfOcrImagePreprocessorTests
     public void PrepareBgra_DeskewsSlantedTextRows()
     {
         const int width = 41, height = 21;
-        byte[] bgra = Enumerable.Repeat(byte.MaxValue, width * height * 4).ToArray();
+        byte[] bgra = [.. Enumerable.Repeat(byte.MaxValue, width * height * 4)];
         for (int x = 0; x < width; x++)
             foreach (int baseline in new[] { 5, 12 })
             {
@@ -234,7 +234,7 @@ public sealed class PdfOcrImagePreprocessorTests
     [Fact]
     public void CropBgra_ClampsBoundsAndCopiesWholePixels()
     {
-        byte[] bgra = Enumerable.Range(0, 4 * 3 * 4).Select(value => (byte)value).ToArray();
+        byte[] bgra = [.. Enumerable.Range(0, 4 * 3 * 4).Select(value => (byte)value)];
 
         PdfOcrBgraImage crop = PdfOcrImagePreprocessor.CropBgra(
             bgra, 4, 3, left: 2, top: 1, width: 8, height: 8);

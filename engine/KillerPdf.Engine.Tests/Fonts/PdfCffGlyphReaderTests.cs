@@ -189,8 +189,7 @@ public sealed class PdfCffGlyphReaderTests
     public void ReadsCompletePredefinedExpertCharset(
         int charset, int glyphCount, string lastGlyph)
     {
-        byte[][] programs = Enumerable.Range(0, glyphCount)
-            .Select(_ => new byte[] { 14 }).ToArray();
+        byte[][] programs = [.. Enumerable.Range(0, glyphCount).Select(_ => new byte[] { 14 })];
         var font = Assert.IsType<PdfCffGlyphReader>(PdfCffGlyphReader.TryRead(
             BuildPredefined(charset, programs)));
 
@@ -217,7 +216,7 @@ public sealed class PdfCffGlyphReaderTests
     }
     internal static byte[] BuildNamed(params (string Name, byte[] Program)[] glyphs)
     {
-        int[] sids = glyphs.Select(glyph => glyph.Name switch
+        int[] sids = [.. glyphs.Select(glyph => glyph.Name switch
         {
             "A" => 34,
             "f" => 71,
@@ -225,7 +224,7 @@ public sealed class PdfCffGlyphReaderTests
             "acute" => 125,
             "Aacute" => 171,
             _ => throw new ArgumentOutOfRangeException(nameof(glyphs))
-        }).ToArray();
+        })];
         byte[] name = Index("Example"u8.ToArray());
         byte[][] programs = [[14], .. glyphs.Select(glyph => glyph.Program)];
         byte[] charstrings = Index(programs);

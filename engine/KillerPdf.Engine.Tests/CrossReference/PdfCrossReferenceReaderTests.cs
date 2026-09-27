@@ -177,10 +177,14 @@ public sealed class PdfCrossReferenceReaderTests
     public void ReadSection_CompatibilityRecoveryAcceptsUnusualObjectHeaders(string header)
     {
         byte[] prefix = "endobj\n"u8.ToArray();
-        byte[] stream = Encoding.ASCII.GetBytes(header
-            + " << /Type /XRef /Size 1 /W [1 2 2] /Length 5 >> stream\n")
-            .Concat(new byte[] { 0, 0, 0, 255, 255 })
-            .Concat("\nendstream endobj"u8.ToArray()).ToArray();
+        byte[] stream =
+        [
+            .. Encoding.ASCII.GetBytes(header
+                        + " << /Type /XRef /Size 1 /W [1 2 2] /Length 5 >> stream\n")
+,
+            .. new byte[] { 0, 0, 0, 255, 255 },
+            .. "\nendstream endobj"u8.ToArray(),
+        ];
         byte[] source = [.. prefix, .. stream];
 
         PdfCrossReferenceSection section = PdfCrossReferenceReader.ReadSection(

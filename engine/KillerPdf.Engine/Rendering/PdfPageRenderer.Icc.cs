@@ -35,10 +35,10 @@ public sealed partial class PdfPageRenderer
 
     private PdfColorTransform? OutputProfile(HashSet<string>? diagnostics, int intent = 1)
     {
-        var profile = _outputProfiles[intent].Value;
-        if (profile.Unavailable)
+        var (Transform, Unavailable) = _outputProfiles[intent].Value;
+        if (Unavailable)
             diagnostics?.Add("The document output profile could not be used for DeviceCMYK color conversion.");
-        return profile.Transform;
+        return Transform;
     }
 
     private ImageColorSpace BindDeviceProfile(ImageColorSpace space, HashSet<string>? diagnostics, int intent)
@@ -128,7 +128,7 @@ public sealed partial class PdfPageRenderer
     private static Color ConvertProfileColor(PdfColorTransform profile,
         double first, double second, double third, double fourth)
     {
-        Span<double> device = stackalloc double[4] { first, second, third, fourth };
+        Span<double> device = [first, second, third, fourth];
         Span<double> xyz = stackalloc double[3];
         profile.ToXyz(device[..profile.Components], xyz);
         Color color = IccXyzToDisplay(xyz[0], xyz[1], xyz[2]) with { Connection = (xyz[0], xyz[1], xyz[2]) };

@@ -152,8 +152,7 @@ public sealed class PdfOnnxOcrProvider : IPdfOcrRasterProvider
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
-        if (stride < checked(width * 4))
-            throw new ArgumentOutOfRangeException(nameof(stride));
+        ArgumentOutOfRangeException.ThrowIfLessThan(stride, width * 4);
         if (bgra.Length < checked(stride * height))
             throw new ArgumentException("The BGRA buffer is shorter than the requested image.", nameof(bgra));
         ArgumentNullException.ThrowIfNull(options);
@@ -216,7 +215,7 @@ public sealed class PdfEngineOcrProvider : IPdfOcrRasterProvider
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         int rowBytes = checked(width * 4);
-        if (stride < rowBytes) throw new ArgumentOutOfRangeException(nameof(stride));
+        ArgumentOutOfRangeException.ThrowIfLessThan(stride, rowBytes);
         if (bgra.Length < checked(stride * height))
             throw new ArgumentException("The BGRA buffer is shorter than the requested image.", nameof(bgra));
         ArgumentNullException.ThrowIfNull(options);
@@ -273,9 +272,7 @@ public static class PdfOcrProviderSelector
         {
             TProvider? selected = supplied.SingleOrDefault(provider =>
                 string.Equals(provider.Descriptor.Id, preference.ProviderId,
-                    StringComparison.OrdinalIgnoreCase));
-            if (selected is null)
-                throw new InvalidOperationException(
+                    StringComparison.OrdinalIgnoreCase)) ?? throw new InvalidOperationException(
                     $"The OCR provider '{preference.ProviderId}' is not installed.");
             if (!Supports(selected, options))
                 throw new InvalidOperationException(

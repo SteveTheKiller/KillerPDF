@@ -168,9 +168,9 @@ internal static class PdfEngineIntegration
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
         return new PortfolioEditorState(
             PdfCollectionReader.Read(document),
-            PdfAttachmentReader.Read(document)
+            [.. PdfAttachmentReader.Read(document)
                 .Select(attachment => new PortfolioAttachmentItem(
-                    attachment.FileName, attachment.CollectionValues)).ToArray());
+                    attachment.FileName, attachment.CollectionValues))]);
     }
 
     internal static void ApplyPortfolioPresentation(
@@ -215,11 +215,10 @@ internal static class PdfEngineIntegration
     internal static IReadOnlyList<AttachmentEditorItem> ReadAttachmentEditorItems(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfAttachmentReader.Read(PdfDocument.Open(File.ReadAllBytes(path)))
+        return [.. PdfAttachmentReader.Read(PdfDocument.Open(File.ReadAllBytes(path)))
             .Select(attachment => new AttachmentEditorItem(
                 attachment.FileName, attachment.FileName, attachment.Description,
-                attachment.MimeType, attachment.Relationship, attachment.Data.Length))
-            .ToArray();
+                attachment.MimeType, attachment.Relationship, attachment.Data.Length))];
     }
 
     internal static void ApplyAttachmentEdits(

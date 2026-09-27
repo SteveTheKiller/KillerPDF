@@ -61,7 +61,7 @@ public static class PdfXfaFormatter
         if (mask.Length == 0 || mask.Length > 128
             || integerMask.Any(character => character is not ('z' or 'Z' or '9' or ','))
             || fractionMask.Any(character => character is not ('z' or 'Z' or '9'))
-            || integerMask.Count(character => character == '9') == 0)
+            || !integerMask.Any(character => character == '9'))
             return Result(format, PdfXfaFormatStatus.UnsupportedPicture, null,
                 "The numeric XFA picture clause uses unsupported symbols.");
         if (!decimal.TryParse(source, NumberStyles.Float, CultureInfo.InvariantCulture,
@@ -123,12 +123,12 @@ public static class PdfXfaFormatter
                     ("M", "M"), ("D", "d")]
                 : [("HH", "HH"), ("hh", "hh"), ("MM", "mm"),
                     ("SS", "ss"), ("A", "tt")];
-            var match = tokens.FirstOrDefault(token =>
+            var (Token, Replacement) = tokens.FirstOrDefault(token =>
                 remaining.StartsWith(token.Token, StringComparison.Ordinal));
-            if (match.Token is not null)
+            if (Token is not null)
             {
-                output.Append(match.Replacement);
-                index += match.Token.Length;
+                output.Append(Replacement);
+                index += Token.Length;
                 continue;
             }
             char character = mask[index++];

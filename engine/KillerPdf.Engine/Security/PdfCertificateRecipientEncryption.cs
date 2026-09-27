@@ -35,7 +35,7 @@ public static class PdfCertificateRecipientEncryption
         bool encryptMetadata = true)
     {
         ArgumentNullException.ThrowIfNull(recipients);
-        X509Certificate2[] certificates = recipients.ToArray();
+        X509Certificate2[] certificates = [.. recipients];
         if (certificates.Length == 0)
             throw new ArgumentException(
                 "At least one certificate recipient is required.", nameof(recipients));
@@ -84,13 +84,13 @@ public static class PdfCertificateRecipientEncryption
         if (!recipient.HasPrivateKey)
             throw new ArgumentException(
                 "The recipient certificate must include its private key.", nameof(recipient));
-        ReadOnlyMemory<byte>[] blocks = recipientBlocks.Select(block =>
+        ReadOnlyMemory<byte>[] blocks = [.. recipientBlocks.Select(block =>
         {
             if (block.IsEmpty)
                 throw new ArgumentException(
                     "Recipient blocks cannot be empty.", nameof(recipientBlocks));
             return (ReadOnlyMemory<byte>)block.ToArray();
-        }).ToArray();
+        })];
         if (blocks.Length == 0)
             throw new ArgumentException(
                 "At least one recipient block is required.", nameof(recipientBlocks));

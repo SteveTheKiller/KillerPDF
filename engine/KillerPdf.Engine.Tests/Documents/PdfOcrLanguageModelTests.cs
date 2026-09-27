@@ -114,8 +114,8 @@ public sealed class PdfOcrLanguageModelTests
         PdfOcrLanguageModel model = PdfOcrLanguageModel.Train(["AB"]);
         Assert.Throws<ArgumentException>(() => model.Decode([[]]));
         Assert.Throws<ArgumentException>(() => model.Decode(
-            Enumerable.Repeat<IReadOnlyList<PdfOcrLanguageCandidate>>(
-                [new("A", 1)], 4_097).ToArray()));
+            [.. Enumerable.Repeat<IReadOnlyList<PdfOcrLanguageCandidate>>(
+                [new("A", 1)], 4_097)]));
         Assert.Throws<ArgumentOutOfRangeException>(() => model.Decode(
             [[new("A", 1)]], double.NaN));
         Assert.Throws<InvalidDataException>(() =>
@@ -145,8 +145,8 @@ public sealed class PdfOcrLanguageModelTests
     {
         PdfOcrLanguageModel model = PdfOcrLanguageModel.Train(["AB"]);
         IReadOnlyList<IReadOnlyList<PdfOcrLanguageCandidate>> positions =
-            Enumerable.Repeat<IReadOnlyList<PdfOcrLanguageCandidate>>(
-                [new("A", 1), new("B", 0)], 1_024).ToArray();
+            [.. Enumerable.Repeat<IReadOnlyList<PdfOcrLanguageCandidate>>(
+                [new("A", 1), new("B", 0)], 1_024)];
         long before = GC.GetAllocatedBytesForCurrentThread();
 
         IReadOnlyList<string> decoded = model.Decode(positions, languageWeight: 0);
@@ -163,7 +163,7 @@ public sealed class PdfOcrLanguageModelTests
         IReadOnlyList<PdfOcrLanguageCandidate> candidates = [.. Enumerable.Range(0, 64)
             .Select(index => new PdfOcrLanguageCandidate($"L{index:D2}", 0))];
         IReadOnlyList<IReadOnlyList<PdfOcrLanguageCandidate>> positions =
-            Enumerable.Repeat(candidates, 256).ToArray();
+            [.. Enumerable.Repeat(candidates, 256)];
         long before = GC.GetAllocatedBytesForCurrentThread();
 
         IReadOnlyList<string> decoded = model.Decode(positions, languageWeight: 0);

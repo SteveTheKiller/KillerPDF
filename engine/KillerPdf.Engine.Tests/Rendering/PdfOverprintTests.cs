@@ -201,6 +201,8 @@ public sealed class PdfOverprintTests
         return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(1, 1)).Pixels.ToArray();
     }
 
+    private static readonly string[] sourceArray = new[] { "Custom" };
+
     private static PdfRenderedPage Render(string paint, bool? fill, bool stroke, int mode, double opacity = 1,
         bool indexed = false, bool none = false, bool rgb = false, bool registration = false, double registrationTint = 0.5)
     {
@@ -255,11 +257,11 @@ public sealed class PdfOverprintTests
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)), Entry("Height", new PdfInteger(1)),
             Entry("BitsPerComponent", new PdfInteger(paint is "stencil" or "namedstencil" ? 1 : 8))
         };
-        byte[] imageSamples = paint is "stencil" or "namedstencil" ? new byte[] { 0 }
-                : paint is "namedimage" or "spotimage" ? new byte[] { 255 }
-                : paint == "namednoneimage" ? new byte[] { 255, 192 }
-                : paint == "namedfiveimage" ? new byte[] { 0, 255, 0, 0, 192 }
-                : new byte[] { 0, 255, 0, 0 };
+        byte[] imageSamples = paint is "stencil" or "namedstencil" ? [0]
+                : paint is "namedimage" or "spotimage" ? [255]
+                : paint == "namednoneimage" ? [255, 192]
+                : paint == "namedfiveimage" ? [0, 255, 0, 0, 192]
+                : [0, 255, 0, 0];
         if (registration && paint == "namedimage") imageSamples = [(byte)Math.Round(registrationTint * 255)];
         if (paint is "stencil" or "namedstencil") imageEntries.Add(Entry("ImageMask", new PdfBoolean(true)));
         else imageEntries.Add(Entry("ColorSpace", indexed
@@ -326,11 +328,11 @@ public sealed class PdfOverprintTests
                 Name(paint is "separation" or "spot" || registration ? "Separation" : "DeviceN"),
                 paint is "separation" or "spot" || registration
                     ? Name(paint == "spot" ? "Custom" : colorants[0])
-                    : new PdfArray((paint == "spotimage" ? new[] { "Custom" } : colorants)
+                    : new PdfArray((paint == "spotimage" ? sourceArray : colorants)
                         .Select(value => (PdfObject)Name(value))),
                 Name("DeviceCMYK"), update.AddObject(new PdfStream(new PdfDictionary([
                     Entry("FunctionType", new PdfInteger(4)),
-                    Entry("Domain", Numbers(Enumerable.Range(0, colorants.Length * 2).Select(index => index % 2).ToArray())),
+                    Entry("Domain", Numbers([.. Enumerable.Range(0, colorants.Length * 2).Select(index => index % 2)])),
                     Entry("Range", Numbers(0, 1, 0, 1, 0, 1, 0, 1))]),
                     Encoding.ASCII.GetBytes(none ? "{ " + string.Concat(Enumerable.Repeat("pop ", colorants.Length)) + "0 1 0 0 }"
                         : paint is "namednone" or "namednoneimage" ? "{ pop pop 1 0 0 0 }"
@@ -339,7 +341,7 @@ public sealed class PdfOverprintTests
                         : paint.StartsWith("group-", StringComparison.Ordinal)
                         ? "{ 0 0 0 }" : paint == "namedzero" ? "{ 0 0 }" : "{ 0 exch 0 0 }")))
             })), Entry("IndexedNamed", new PdfArray([Name("Indexed"), Name("Named"),
-                new PdfInteger(1), new PdfString(new byte[] { 0, 255 }, PdfStringForm.Hexadecimal)]))])),
+                new PdfInteger(1), new PdfString([0, 255], PdfStringForm.Hexadecimal)]))])),
             Entry("Font", new PdfDictionary([Entry("F", new PdfDictionary([
                 Entry("Type", Name("Font")), Entry("Subtype", Name("Type1")), Entry("BaseFont", Name("Helvetica"))]))])),
             Entry("Shading", new PdfDictionary([Entry("Sh", update.AddObject(shading))])),

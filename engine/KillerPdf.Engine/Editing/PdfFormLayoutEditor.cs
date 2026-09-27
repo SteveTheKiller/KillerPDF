@@ -82,7 +82,7 @@ public static class PdfFormLayoutEditor
         IEnumerable<int> objectNumbers, int minimum)
     {
         ArgumentNullException.ThrowIfNull(objectNumbers);
-        int[] requested = objectNumbers.ToArray();
+        int[] requested = [.. objectNumbers];
         if (requested.Length < minimum || requested.Any(number => number <= 0)
             || requested.Distinct().Count() != requested.Length)
             throw new ArgumentException(

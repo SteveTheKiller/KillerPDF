@@ -733,10 +733,10 @@ public static class PdfStreamDecoder
                     int size = (int)Math.Min(remaining, Math.Min(BlockSize, Math.Max(previous * 2L, count)));
                     _blocks.Add((FlateBuffers.Rent(size), 0));
                 }
-                var block = _blocks[^1];
-                int take = Math.Min(count, block.Bytes.Length - block.Count);
-                source.AsSpan(offset, take).CopyTo(block.Bytes.AsSpan(block.Count));
-                _blocks[^1] = (block.Bytes, block.Count + take);
+                var (Bytes, Count) = _blocks[^1];
+                int take = Math.Min(count, Bytes.Length - Count);
+                source.AsSpan(offset, take).CopyTo(Bytes.AsSpan(Count));
+                _blocks[^1] = (Bytes, Count + take);
                 Length += take;
                 offset += take;
                 count -= take;
@@ -748,18 +748,18 @@ public static class PdfStreamDecoder
             if (Length == 0) return [];
             byte[] result = new byte[(int)Length];
             int offset = 0;
-            foreach (var block in _blocks)
+            foreach (var (Bytes, Count) in _blocks)
             {
-                block.Bytes.AsSpan(0, block.Count).CopyTo(result.AsSpan(offset));
-                offset += block.Count;
+                Bytes.AsSpan(0, Count).CopyTo(result.AsSpan(offset));
+                offset += Count;
             }
             return result;
         }
 
         public void Dispose()
         {
-            foreach (var block in _blocks)
-                FlateBuffers.Return(block.Bytes);
+            foreach (var (Bytes, Count) in _blocks)
+                FlateBuffers.Return(Bytes);
             _blocks.Clear();
         }
     }

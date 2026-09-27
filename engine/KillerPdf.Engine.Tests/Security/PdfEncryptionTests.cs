@@ -60,7 +60,7 @@ public sealed class PdfEncryptionTests
             Assert.Throws<CryptographicException>(() => recovery.Decrypt(
                 new PdfStream(new PdfDictionary([]), new byte[length]), 1, 0));
         PdfStream encrypted = Assert.IsType<PdfStream>(writer.Encrypt(
-            new PdfStream(new PdfDictionary([]), Array.Empty<byte>()), 1, 0));
+            new PdfStream(new PdfDictionary([]), []), 1, 0));
         Assert.Equal(32, encrypted.EncodedData.Length);
         Assert.Empty(Assert.IsType<PdfStream>(strict.Decrypt(encrypted, 1, 0)).EncodedData.ToArray());
         Assert.ThrowsAny<CryptographicException>(() => PdfStandardSecurityHandler.Create(
@@ -528,7 +528,7 @@ public sealed class PdfEncryptionTests
         PdfStream encryptedContents = Assert.IsType<PdfStream>(raw.Resolve(contentsReference));
         int streamOffset = source.AsSpan().IndexOf(encryptedContents.EncodedData.Span);
         Assert.True(streamOffset >= 0);
-        byte[] tampered = source.ToArray();
+        byte[] tampered = [.. source];
         tampered[streamOffset + encryptedContents.EncodedData.Length - 1] ^= 1;
 
         PdfDocument reopened = PdfDocument.Open(tampered, "gcm-owner");

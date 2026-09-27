@@ -35,7 +35,7 @@ public sealed class PdfStreamDecoderTests
             for (int bit = 0; bit < bits.Length; bit++)
                 if (bits[bit] == '1') encoded[bit / 8] |= (byte)(128 >> (bit % 8));
             int stride = (columns + 7) / 8;
-            byte[] expected = Enumerable.Repeat(blackIs1 ? (byte)0 : (byte)255, stride * 3).ToArray();
+            byte[] expected = [.. Enumerable.Repeat(blackIs1 ? (byte)0 : (byte)255, stride * 3)];
             for (int row = 0; row < 3; row++)
             for (int column = start; column < start + length; column++)
             {
@@ -390,7 +390,7 @@ public sealed class PdfStreamDecoderTests
     [Fact]
     public void Decode_RunLengthPreservesMaximumRunsAndIgnoresDataAfterEnd()
     {
-        byte[] literal = Enumerable.Range(0, 128).Select(value => (byte)value).ToArray();
+        byte[] literal = [.. Enumerable.Range(0, 128).Select(value => (byte)value)];
         PdfStream stream = Stream([127, .. literal, 129, 211, 128, 129],
             Pair("Filter", Name("RunLengthDecode")));
         Assert.Equal([.. literal, .. Enumerable.Repeat((byte)211, 128)],
@@ -538,8 +538,7 @@ public sealed class PdfStreamDecoderTests
             const int rows = 9;
             int maximum = (1 << bits) - 1;
             int samplesPerRow = columns * colors;
-            int[] values = Enumerable.Range(0, samplesPerRow * rows)
-                .Select(index => (index * 7919 + index / samplesPerRow * 65521) & maximum).ToArray();
+            int[] values = [.. Enumerable.Range(0, samplesPerRow * rows).Select(index => (index * 7919 + index / samplesPerRow * 65521) & maximum)];
             byte[] expected = new byte[values.Length * (bits / 8)];
             byte[] predicted = new byte[expected.Length];
             for (int sample = 0; sample < values.Length; sample++)
@@ -890,7 +889,7 @@ public sealed class PdfStreamDecoderTests
                 Pair("Columns", new PdfInteger(8)))));
 
         Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
-        Assert.Equal(new[] { expected },
+        Assert.Equal([expected],
             PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream));
     }
 

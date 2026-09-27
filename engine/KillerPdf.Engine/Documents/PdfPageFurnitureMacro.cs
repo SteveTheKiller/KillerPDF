@@ -132,7 +132,7 @@ public static partial class PdfPageFurnitureMacro
                 nameof(step), error);
         }
 
-        ReadOnlyMemory<byte>[] inputs = sources.ToArray();
+        ReadOnlyMemory<byte>[] inputs = [.. sources];
         if (inputs.Any(source => source.IsEmpty))
             throw new ArgumentException("A Bates source PDF is empty.", nameof(sources));
         cancellationToken.ThrowIfCancellationRequested();
@@ -246,7 +246,7 @@ public static partial class PdfPageFurnitureMacro
             throw new ArgumentOutOfRangeException(nameof(options));
         if (options.PageIndices is not null)
         {
-            int[] pages = options.PageIndices.ToArray();
+            int[] pages = [.. options.PageIndices];
             if (pages.Length == 0 || pages.Any(page => page < 0)
                 || pages.Distinct().Count() != pages.Length)
                 throw new ArgumentOutOfRangeException(nameof(options));

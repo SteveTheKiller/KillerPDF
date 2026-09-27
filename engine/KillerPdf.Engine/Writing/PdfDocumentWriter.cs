@@ -578,7 +578,7 @@ public static class PdfDocumentWriter
             return new PdfIndirectReference(replacement.ObjectNumber, replacement.Generation);
         if (value is PdfArray array)
         {
-            PdfObject[] items = array.Select(item => RewriteReferences(item, replacements)).ToArray();
+            PdfObject[] items = [.. array.Select(item => RewriteReferences(item, replacements))];
             return items.Where((item, index) => !ReferenceEquals(item, array[index])).Any()
                 ? new PdfArray(items) : array;
         }

@@ -143,7 +143,7 @@ public static class PdfXfaAcroFormConverter
         XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
         XElement root = document.Root
             ?? throw new InvalidOperationException("The combined XDP stream has no root element.");
-        XElement[] elements = root.Elements().ToArray();
+        XElement[] elements = [.. root.Elements()];
         if (elements.Length == 0)
             throw new InvalidOperationException("The combined XDP stream has no packets.");
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

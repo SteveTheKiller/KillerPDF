@@ -61,7 +61,7 @@ public sealed class PdfPageRendererStencilStorageTests
     [InlineData(true, true)]
     public void Render_StencilPreservesClipOpacityDecodeAndQuarterTurn(bool reverse, bool rotated)
     {
-        byte[] samples = Enumerable.Range(0, 9).SelectMany(_ => new byte[] { 0x0F, 0x80 }).ToArray();
+        byte[] samples = [.. Enumerable.Range(0, 9).SelectMany(_ => new byte[] { 0x0F, 0x80 })];
         string matrix = rotated ? "0 9 -9 0 9 0" : "9 0 0 9 0 0";
         string decode = reverse ? "1 0" : "0 1";
         byte[] prefix = Encoding.ASCII.GetBytes(

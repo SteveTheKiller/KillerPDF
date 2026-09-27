@@ -85,7 +85,7 @@ public static class PdfPartialRasterization
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(replacements);
-        PdfPartialRasterizationReplacement[] selected = replacements.ToArray();
+        PdfPartialRasterizationReplacement[] selected = [.. replacements];
         if (selected.Length == 0)
             throw new ArgumentException("At least one raster replacement is required.",
                 nameof(replacements));
@@ -96,7 +96,7 @@ public static class PdfPartialRasterization
         {
             cancellationToken.ThrowIfCancellationRequested();
             PdfPageContent page = reader.Read(pageGroup.Key, cancellationToken);
-            PdfPartialRasterizationReplacement[] pageReplacements = pageGroup.ToArray();
+            PdfPartialRasterizationReplacement[] pageReplacements = [.. pageGroup];
             for (int index = 0; index < pageReplacements.Length; index++)
             {
                 ValidateReplacement(page, pageReplacements[index]);

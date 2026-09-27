@@ -64,10 +64,9 @@ public static class PdfAccessibilityRepair
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(orderedChildObjectNumbers);
-        if (parentObjectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(parentObjectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(parentObjectNumber);
         int[] original = StructureChildObjects(document, parentObjectNumber);
-        int[] ordered = orderedChildObjectNumbers.ToArray();
+        int[] ordered = [.. orderedChildObjectNumbers];
         if (ordered.Any(number => number <= 0)
             || ordered.Distinct().Count() != ordered.Length
             || !ordered.Order().SequenceEqual(original.Order()))
@@ -117,10 +116,8 @@ public static class PdfAccessibilityRepair
         PdfAccessibilityTableHeaderScope scope = PdfAccessibilityTableHeaderScope.Column)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (tableObjectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(tableObjectNumber));
-        if (cellObjectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(cellObjectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tableObjectNumber);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellObjectNumber);
         if (!Enum.IsDefined(scope))
             throw new ArgumentOutOfRangeException(nameof(scope));
         PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
@@ -269,7 +266,7 @@ public static class PdfAccessibilityRepair
         PdfDocument document, int objectNumber, string alternateDescription)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (objectNumber <= 0) throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(objectNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(alternateDescription);
         PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
         bool missing = before.Findings.Any(finding =>

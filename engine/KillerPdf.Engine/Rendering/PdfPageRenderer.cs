@@ -116,8 +116,7 @@ public sealed partial class PdfPageRenderer
         _tree = PdfPageTree.Read(document, allowCycleRecovery: true);
         _pages = PdfPageInformation.Read(document);
         _boxes = PdfPageBoxInformation.Read(document);
-        _pageResources = Enumerable.Range(0, _pages.Count)
-            .Select(PageResources).ToArray();
+        _pageResources = [.. Enumerable.Range(0, _pages.Count).Select(PageResources)];
         _hiddenOptionalContentGroups = PdfOptionalContentReader.Read(_document).Groups
             .Where(group => !group.IsInitiallyVisible)
             .Select(group => group.ObjectNumber).ToHashSet();
@@ -181,10 +180,10 @@ public sealed partial class PdfPageRenderer
         PdfColorTransform? outputProfile = null)
     {
         byte background = options.TransparentBackground ? (byte)0 : (byte)255;
-        var bounds = region ?? (Left: 0, Top: 0, Right: options.Width, Bottom: options.Height);
-        int rasterWidth = bounds.Right - bounds.Left, rasterHeight = bounds.Bottom - bounds.Top;
+        var (Left, Top, Right, Bottom) = region ?? (Left: 0, Top: 0, Right: options.Width, Bottom: options.Height);
+        int rasterWidth = Right - Left, rasterHeight = Bottom - Top;
         var pixels = new RasterSurface(destination ?? GC.AllocateUninitializedArray<byte>(
-            checked(rasterWidth * rasterHeight * 4)), bounds.Left, bounds.Top, rasterWidth, rasterHeight);
+            checked(rasterWidth * rasterHeight * 4)), Left, Top, rasterWidth, rasterHeight);
         cancellationToken.ThrowIfCancellationRequested();
         System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
             pixels.Data.AsSpan(0, pixels.Length))
@@ -210,7 +209,7 @@ public sealed partial class PdfPageRenderer
         var initialState = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
             1, 1, 1, RendererLineCap.Butt, RendererLineJoin.Miter, 10,
             [], 0, RendererBlendMode.Normal, region.HasValue
-                ? [new ClipRegion(CoverageMask.Rectangle(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom))] : [],
+                ? [new ClipRegion(CoverageMask.Rectangle(Left, Top, Right, Bottom))] : [],
             false, null, null, false, null, null,
             new ImageColorSpace(1, null), new ImageColorSpace(1, null), null, null);
         var diagnostics = new HashSet<string>();
@@ -544,7 +543,7 @@ public sealed partial class PdfPageRenderer
                     state = state with { MiterLimit = miterLimit };
                     break;
                 case "d" when values.Count == 2 && Resolve(values[0]) is PdfArray dashArray:
-                    double[] dashPattern = dashArray.Select(item => Number(Resolve(item))).ToArray();
+                    double[] dashPattern = [.. dashArray.Select(item => Number(Resolve(item)))];
                     double dashPhase = Number(Resolve(values[1]));
                     if (dashPattern.Any(length => !double.IsFinite(length) || length < 0)
                         || dashPattern.Length > 0 && dashPattern.All(length => length == 0)
@@ -841,7 +840,7 @@ public sealed partial class PdfPageRenderer
             List<Point> BeginSubpath(Point first)
             {
                 List<Point> result = freeSubpaths.Count == 0
-                    ? new List<Point>() : freeSubpaths.Pop();
+                    ? [] : freeSubpaths.Pop();
                 result.Add(first);
                 path.Add(result);
                 return result;
@@ -1005,8 +1004,7 @@ public sealed partial class PdfPageRenderer
                                     : RemoveGroupBackdrop(group, offset, backdrop, backdropOffset, alpha);
                                 immediateBackdrop.CopyTo(backdrop.Data.AsSpan(backdropOffset, 4));
                                 backdrop.SetAlpha(backdropOffset, immediateAlpha);
-                                if (backdrop.GroupAlpha is not null)
-                                    backdrop.GroupAlpha[backdropOffset / 4] = immediateGroupAlpha;
+                                backdrop.GroupAlpha?[backdropOffset / 4] = immediateGroupAlpha;
                                 SetPixel(backdrop, options.Width, x, y, groupSource, alpha * outerAlpha,
                                     parentState.BlendMode, knockout: parentState.Knockout, shape: shape);
                                 continue;
@@ -1050,8 +1048,7 @@ public sealed partial class PdfPageRenderer
                             throw new FormatException("A shading background color space is missing.");
                         ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, parentResources, 0,
                             diagnostics: diagnostics, intent: shadingState.RenderingIntent).ForDestination(pixels);
-                        double[] components = ResolveArray(paint.Background, colorSpace.Components, "Shading background")
-                            .Select(value => Number(Resolve(value))).ToArray();
+                        double[] components = [.. ResolveArray(paint.Background, colorSpace.Components, "Shading background").Select(value => Number(Resolve(value)))];
                         if (components.Any(value => !double.IsFinite(value)))
                             throw new FormatException("A shading background component is invalid.");
                         Color background = OverprintColor(colorSpace.Convert(components), colorSpace,
@@ -1084,8 +1081,7 @@ public sealed partial class PdfPageRenderer
                 Matrix patternMatrix = paint.Matrix;
                 Matrix patternToPage = patternMatrix.Then(initial.Transform);
                 if (!patternToPage.TryInverse(out Matrix pageToPattern)) return;
-                Point[] patternBounds = paintPath.SelectMany(points => points)
-                    .Select(point => pageToPattern.Apply(point.X, point.Y)).ToArray();
+                Point[] patternBounds = [.. paintPath.SelectMany(points => points).Select(point => pageToPattern.Apply(point.X, point.Y))];
                 if (patternBounds.Length == 0) return;
                 double stepX = Math.Abs(xStep), stepY = Math.Abs(yStep);
                 int firstX = checked((int)Math.Floor(
@@ -1537,7 +1533,7 @@ public sealed partial class PdfPageRenderer
                                     samples = GC.AllocateUninitializedArray<byte>(sampleCount);
                                     samples.AsSpan(0, rowIndex).Fill(constant);
                                 }
-                                if (samples is not null) samples.AsSpan(rowIndex, maskWidth).Fill(blankConverted);
+                                samples?.AsSpan(rowIndex, maskWidth).Fill(blankConverted);
                                 continue;
                             }
                             for (int column = 0; column < maskWidth; column++)
@@ -1565,7 +1561,7 @@ public sealed partial class PdfPageRenderer
                                     samples = GC.AllocateUninitializedArray<byte>(sampleCount);
                                     samples.AsSpan(0, index).Fill(constant);
                                 }
-                                if (samples is not null) samples[index] = converted;
+                                samples?[index] = converted;
                             }
                         }
                         return (samples, constant);
@@ -1595,8 +1591,8 @@ public sealed partial class PdfPageRenderer
                         return colorSpace.Convert(new double[colorSpace.Components]);
                     PdfArray array = ResolveArray(backdropValue, colorSpace.Components,
                         "Soft-mask backdrop color");
-                    return colorSpace.Convert(array.Select(item =>
-                        Number(Resolve(item))).ToArray());
+                    return colorSpace.Convert([.. array.Select(item =>
+                        Number(Resolve(item)))]);
                 }
             }
 
@@ -1742,8 +1738,7 @@ public sealed partial class PdfPageRenderer
                                             nonisolatedPagePixels, pageOffset, alpha);
                                     immediateBackdrop.CopyTo(nonisolatedPagePixels.Data.AsSpan(pageOffset, 4));
                                     nonisolatedPagePixels.SetAlpha(pageOffset, immediateAlpha);
-                                    if (nonisolatedPagePixels.GroupAlpha is not null)
-                                        nonisolatedPagePixels.GroupAlpha[pageOffset / 4] = immediateGroupAlpha;
+                                    nonisolatedPagePixels.GroupAlpha?[pageOffset / 4] = immediateGroupAlpha;
                                     SetPixel(nonisolatedPagePixels, options.Width, x, y, groupSource,
                                         alpha * outerAlpha, parentState.BlendMode,
                                         knockout: parentState.Knockout, shape: shape);
@@ -2092,7 +2087,7 @@ public sealed partial class PdfPageRenderer
                                 // opacity: the ink is written unchanged with full alpha.
                                 if (!pagePixels.Contains(x, y)) continue;
                                 int pageOffset = pagePixels.Offset(x, y);
-                                if (pagePixels.GroupAlpha is not null) pagePixels.GroupAlpha[pageOffset / 4] = 255;
+                                pagePixels.GroupAlpha?[pageOffset / 4] = 255;
                                 WriteInk(pagePixels.Ink!, pageOffset, ReadInk(groupPixels.Ink!, offset));
                                 pagePixels.SetAlpha(pageOffset, 255);
                                 continue;
@@ -2213,6 +2208,8 @@ public sealed partial class PdfPageRenderer
             return appearance is not null;
         }
     }
+
+    private static readonly double[] element = new[] { 0d, 1d };
 
     private IEnumerable<PdfContentInstruction> ReadInstructions(
         int pageIndex, CancellationToken cancellationToken, ISet<string> diagnostics)
@@ -2389,7 +2386,7 @@ public sealed partial class PdfPageRenderer
                 && Resolve(baseValue) is PdfName baseName
                 ? baseName.ValueAsLatin1() : "StandardEncoding";
         string[] names = PdfFontTables.EncodingNames(baseEncoding)
-            ?? Enumerable.Repeat(string.Empty, 256).ToArray();
+            ?? [.. Enumerable.Repeat(string.Empty, 256)];
         if (value is PdfDictionary differencesDictionary
             && differencesDictionary.TryGetValue(Name("Differences"),
                 out PdfObject? differencesValue)
@@ -2654,7 +2651,7 @@ public sealed partial class PdfPageRenderer
                     throw new FormatException("Image sample data has an invalid length.");
                 return new DecodedImage(decodedSamples, width, decodedHeight);
             }
-            if (softMask is null) softMask = ReadSoftMask(stream.Dictionary,
+            softMask ??= ReadSoftMask(stream.Dictionary,
                 transform, scaleX, scaleY, cancellationToken);
             if (softMask is null && stream.Dictionary.TryGetValue(Name("Mask"), out PdfObject? colorKeyValue))
             {
@@ -2663,11 +2660,10 @@ public sealed partial class PdfPageRenderer
                     explicitMask = maskStream;
                 else if (resolvedMask is PdfArray colorKey
                     && colorKey.Count == components * 2 && !imageMask)
-                    colorKeyMask = colorKey.Select(item => Resolve(item) is PdfInteger integer
+                    colorKeyMask = [.. colorKey.Select(item => Resolve(item) is PdfInteger integer
                             && integer.Value >= 0 && integer.Value <= (1 << bits) - 1
                             ? (int)integer.Value
-                            : throw new FormatException("An image color-key mask range is invalid."))
-                        .ToArray();
+                            : throw new FormatException("An image color-key mask range is invalid."))];
                 else
                 {
                     diagnostic = "Masked-image rendering is not implemented.";
@@ -2831,7 +2827,7 @@ public sealed partial class PdfPageRenderer
         int components = (colorSpace.PaletteBase ?? colorSpace).Components;
         if (!dictionary.TryGetValue(Name("Matte"), out PdfObject? value)) return new double[components];
         PdfArray matte = ResolveArray(value, components, "Image matte array");
-        return matte.Select(item => Number(Resolve(item))).ToArray();
+        return [.. matte.Select(item => Number(Resolve(item)))];
     }
 
     private ImageColorSpace ReadImageColorSpace(
@@ -2980,7 +2976,7 @@ public sealed partial class PdfPageRenderer
                         alternateRange[index / 2 * 2], alternateRange[index / 2 * 2 + 1]);
             }
             else if (effectiveRange is null && (alternate.Converter is not null || alternate.MultiConverter is not null))
-                effectiveRange = Enumerable.Range(0, (int)count.Value * 2).Select(index => (double)(index % 2)).ToArray();
+                effectiveRange = [.. Enumerable.Range(0, (int)count.Value * 2).Select(index => (double)(index % 2))];
             return alternate with { DefaultDecode = componentRange, ComponentRange = effectiveRange,
                 Initial = InitialColor.Zero, HasIccSource = true };
         }
@@ -3083,7 +3079,7 @@ public sealed partial class PdfPageRenderer
                 throw new FormatException("A DeviceN image alternate color space is invalid.");
             Func<double[], Color> tintTransform = ReadMultidimensionalColorFunction(
                 array[3], names.Count, alternate, "DeviceN tint transform");
-            int[] channels = names.Select(item => ProcessChannel(((PdfName)Resolve(item)).ValueAsLatin1())).ToArray();
+            int[] channels = [.. names.Select(item => ProcessChannel(((PdfName)Resolve(item)).ValueAsLatin1()))];
             int activeChannels = channels.Count(channel => channel >= 0);
             bool supported = activeChannels > 0 && channels.All(channel => channel >= -1)
                 && channels.Where(channel => channel >= 0).Distinct().Count() == activeChannels;
@@ -3122,7 +3118,7 @@ public sealed partial class PdfPageRenderer
             return defaultValues;
         }
         PdfArray array = ResolveArray(value, count, $"Calibrated image /{key} array");
-        return array.Select(item => Number(Resolve(item))).ToArray();
+        return [.. array.Select(item => Number(Resolve(item)))];
     }
 
     private void ReadAndValidateBlackPoint(PdfDictionary dictionary, string colorSpace)
@@ -3206,9 +3202,9 @@ public sealed partial class PdfPageRenderer
             || domain[0] >= domain[1])
             throw new FormatException($"A {description} domain is invalid.");
         double[] c0 = ReadFunctionArray(dictionary, "C0", outputCount, required: false,
-            defaultValues: Enumerable.Repeat(0d, outputCount).ToArray());
+            defaultValues: [.. Enumerable.Repeat(0d, outputCount)]);
         double[] c1 = ReadFunctionArray(dictionary, "C1", outputCount, required: false,
-            defaultValues: Enumerable.Repeat(1d, outputCount).ToArray());
+            defaultValues: [.. Enumerable.Repeat(1d, outputCount)]);
         if (!dictionary.TryGetValue(Name("N"), out PdfObject? exponentValue))
             throw new FormatException($"A {description} exponent is missing.");
         double exponent = Number(Resolve(exponentValue));
@@ -3252,7 +3248,7 @@ public sealed partial class PdfPageRenderer
         {
             CalculatorColorFunction components = ReadCalculatorComponentFunctions(
                 functions, 1, colorSpace, description);
-            return input => components(stackalloc double[] { input });
+            return input => components([input]);
         }
         PdfDictionary dictionary = resolved switch
         {
@@ -3279,7 +3275,7 @@ public sealed partial class PdfPageRenderer
     {
         CalculatorColorFunction function = ReadCalculatorColorFunction(
             stream, 1, colorSpace, description);
-        return input => function(stackalloc double[] { input });
+        return input => function([input]);
     }
 
     private Func<double, Color> ReadSampledFunction(PdfObject resolved,
@@ -3396,10 +3392,9 @@ public sealed partial class PdfPageRenderer
         if (!dictionary.TryGetValue(Name("Size"), out PdfObject? sizeValue)
             || Resolve(sizeValue) is not PdfArray sizeArray || sizeArray.Count != inputCount)
             throw new FormatException($"A {description} size array is invalid.");
-        int[] sizes = sizeArray.Select(item => Resolve(item) is PdfInteger size
+        int[] sizes = [.. sizeArray.Select(item => Resolve(item) is PdfInteger size
                 && size.Value is >= 1 and <= 1_000_000 ? (int)size.Value
-                : throw new FormatException($"A {description} size is invalid."))
-            .ToArray();
+                : throw new FormatException($"A {description} size is invalid."))];
         long points = 1;
         foreach (int size in sizes)
         {
@@ -3424,7 +3419,7 @@ public sealed partial class PdfPageRenderer
         double[] encode = dictionary.TryGetValue(Name("Encode"), out _)
             ? ReadFunctionArray(dictionary, "Encode", inputCount * 2,
                 required: true, defaultValues: [])
-            : sizes.SelectMany(size => new[] { 0d, size - 1d }).ToArray();
+            : [.. sizes.SelectMany(size => new[] { 0d, size - 1d })];
         double[] decode = dictionary.TryGetValue(Name("Decode"), out _)
             ? ReadFunctionArray(dictionary, "Decode", colorSpace.Components * 2,
                 required: true, defaultValues: []) : range;
@@ -3519,7 +3514,7 @@ public sealed partial class PdfPageRenderer
     {
         if (functions.Count != colorSpace.Components)
             throw new FormatException($"A {description} array has the wrong component count.");
-        CalculatorValueFunction[] components = functions.Select((item, index) =>
+        CalculatorValueFunction[] components = [.. functions.Select((item, index) =>
         {
             PdfObject component = Resolve(item);
             if (component is not PdfStream calculator
@@ -3529,7 +3524,7 @@ public sealed partial class PdfPageRenderer
                 throw new NotSupportedException();
             return ReadCalculatorValueFunction(calculator, inputCount, 1,
                 $"{description} component {index + 1}");
-        }).ToArray();
+        })];
         if (colorSpace.MultiConverter is not null)
             return inputs =>
             {
@@ -3618,9 +3613,8 @@ public sealed partial class PdfPageRenderer
             || Resolve(functionsValue) is not PdfArray functionValues
             || functionValues.Count == 0)
             throw new FormatException($"A {description} function array is invalid.");
-        Func<double, Color>[] functions = functionValues.Select((function, index) =>
-            ReadColorFunction(function, colorSpace, $"{description} segment {index + 1}"))
-            .ToArray();
+        Func<double, Color>[] functions = [.. functionValues.Select((function, index) =>
+            ReadColorFunction(function, colorSpace, $"{description} segment {index + 1}"))];
         double[] bounds = functions.Length == 1 ? []
             : ReadFunctionArray(dictionary, "Bounds", functions.Length - 1, required: true,
                 defaultValues: []);
@@ -3748,8 +3742,7 @@ public sealed partial class PdfPageRenderer
             Func<double, Color> function = ReadColorFunction(
                 functionValue, colorSpace, "axial shading function");
             double[] domain = shading.TryGetValue(Name("Domain"), out PdfObject? domainValue)
-                ? ResolveArray(domainValue, 2, "Axial shading domain")
-                    .Select(item => Number(Resolve(item))).ToArray()
+                ? [.. ResolveArray(domainValue, 2, "Axial shading domain").Select(item => Number(Resolve(item)))]
                 : [0, 1];
             if (domain.Any(value => !double.IsFinite(value)) || domain[0] >= domain[1])
                 throw new FormatException("An axial shading domain is invalid.");
@@ -4264,8 +4257,7 @@ public sealed partial class PdfPageRenderer
         Func<double, Color> function = ReadColorFunction(
             functionValue, colorSpace, "radial shading function");
         double[] domain = shading.TryGetValue(Name("Domain"), out PdfObject? domainValue)
-            ? ResolveArray(domainValue, 2, "Radial shading domain")
-                .Select(item => Number(Resolve(item))).ToArray()
+            ? [.. ResolveArray(domainValue, 2, "Radial shading domain").Select(item => Number(Resolve(item)))]
             : [0, 1];
         if (domain.Any(value => !double.IsFinite(value)) || domain[0] >= domain[1])
             throw new FormatException("A radial shading domain is invalid.");
@@ -4391,7 +4383,7 @@ public sealed partial class PdfPageRenderer
             return defaultValues;
         }
         PdfArray array = ResolveArray(value, count, $"Separation tint-transform /{key} array");
-        return array.Select(item => Number(Resolve(item))).ToArray();
+        return [.. array.Select(item => Number(Resolve(item)))];
     }
 
     private SoftMask? ReadSoftMask(PdfDictionary dictionary,
@@ -4534,10 +4526,10 @@ public sealed partial class PdfPageRenderer
     {
         if (imageMask) return [];
         if (!dictionary.TryGetValue(Name("Decode"), out PdfObject? value))
-            return colorSpace.DefaultDecode ?? Enumerable.Repeat(new[] { 0d, 1d },
-                colorSpace.Components).SelectMany(pair => pair).ToArray();
+            return colorSpace.DefaultDecode ?? [.. Enumerable.Repeat(element,
+                colorSpace.Components).SelectMany(pair => pair)];
         PdfArray array = ResolveArray(value, colorSpace.Components * 2, "Image decode array");
-        return array.Select(item => Number(Resolve(item))).ToArray();
+        return [.. array.Select(item => Number(Resolve(item)))];
     }
 
     private static bool ImageMayReachTarget(Matrix transform, IReadOnlyList<ClipRegion> clips,
@@ -4744,7 +4736,7 @@ public sealed partial class PdfPageRenderer
                             inkLookup[slot] = (ulong)key << 40 | 0x100000000ul | ink;
                         }
                         int inkOffset = target.Offset(x, y);
-                        if (target.GroupAlpha is not null) target.GroupAlpha[inkOffset / 4] = 255;
+                        target.GroupAlpha?[inkOffset / 4] = 255;
                         WriteInk(target.Ink!, inkOffset, ink);
                         target.SetAlpha(inkOffset, 255);
                         continue;
@@ -4760,7 +4752,7 @@ public sealed partial class PdfPageRenderer
                     }
                     int targetOffset = directRowOffset + (x - left) * 4;
                     // Full opacity sets group alpha to 255, the same as the compositor.
-                    if (target.GroupAlpha is not null) target.GroupAlpha[targetOffset / 4] = 255;
+                    target.GroupAlpha?[targetOffset / 4] = 255;
                     if (directGray)
                     {
                         byte gray = (byte)rgb;
@@ -4901,7 +4893,7 @@ public sealed partial class PdfPageRenderer
                             if (targetInk)
                             {
                                 WriteInk(planeData, offset, color);
-                                if (alphaPlaneData is not null) alphaPlaneData[offset / 4] = (byte)alpha;
+                                alphaPlaneData?[offset / 4] = (byte)alpha;
                             }
                             else
                             {
@@ -4983,7 +4975,7 @@ public sealed partial class PdfPageRenderer
                                 data[targetOffset + 1] = planeData[planeOffset + greenIndex];
                                 data[targetOffset + 2] = planeData[planeOffset + redIndex];
                                 data[targetOffset + 3] = 255;
-                                if (directGroupAlpha is not null) directGroupAlpha[targetOffset / 4] = 255;
+                                directGroupAlpha?[targetOffset / 4] = 255;
                                 continue;
                             }
                             SetPixel(target, targetWidth, x, y,
@@ -5029,8 +5021,7 @@ public sealed partial class PdfPageRenderer
                                     + Math.Min(px * factor, sourceWidth - 1) * 4;
                                 WriteInk(target.Ink!, targetOffset, ReadInk(samples, sourceOffset));
                                 target.SetAlpha(targetOffset, 255);
-                                if (target.GroupAlpha is not null)
-                                    target.GroupAlpha[targetOffset / 4] = 255;
+                                target.GroupAlpha?[targetOffset / 4] = 255;
                             }
                         }
                     });
@@ -5077,7 +5068,7 @@ public sealed partial class PdfPageRenderer
                                 + Math.Min(px * factor, sourceWidth - 1) * 4);
                         WriteInk(target.Ink!, targetOffset, ink);
                         target.SetAlpha(targetOffset, 255);
-                        if (target.GroupAlpha is not null) target.GroupAlpha[targetOffset / 4] = 255;
+                        target.GroupAlpha?[targetOffset / 4] = 255;
                         continue;
                     }
                     if (matteConverter is not null)
@@ -5141,7 +5132,7 @@ public sealed partial class PdfPageRenderer
                         target[targetOffset + 1] = color.Green;
                         target[targetOffset + 2] = color.Red;
                         target[targetOffset + 3] = 255;
-                        if (directGroupAlpha is not null) directGroupAlpha[targetOffset / 4] = 255;
+                        directGroupAlpha?[targetOffset / 4] = 255;
                         continue;
                     }
                     double clipAlpha = rectangularClips ? 1 : clipCoverage / 255d;
@@ -5578,7 +5569,7 @@ public sealed partial class PdfPageRenderer
                     PdfArray dash = ResolveArray(value, 2, "A graphics-state dash pattern");
                     if (Resolve(dash[0]) is not PdfArray array)
                         throw new FormatException("A graphics-state dash array is invalid.");
-                    double[] pattern = array.Select(item => Number(Resolve(item))).ToArray();
+                    double[] pattern = [.. array.Select(item => Number(Resolve(item)))];
                     double phase = Number(Resolve(dash[1]));
                     double cycle = pattern.Sum() * (pattern.Length % 2 == 0 ? 1 : 2);
                     if (pattern.Any(length => !double.IsFinite(length) || length < 0)
@@ -5819,7 +5810,7 @@ public sealed partial class PdfPageRenderer
                 }
                 if (!valid) continue;
                 if (cubicPath[^1] != cubicPath[0]) cubicPath.Add(cubicPath[0]);
-                paths.Add(cubicPath.ToArray());
+                paths.Add([.. cubicPath]);
                 continue;
             }
             PdfGlyphPoint start;
@@ -5874,7 +5865,7 @@ public sealed partial class PdfPageRenderer
                 }
             }
             if (path[^1] != path[0]) path.Add(path[0]);
-            paths.Add(path.ToArray());
+            paths.Add([.. path]);
         }
         return paths;
 
@@ -5923,8 +5914,7 @@ public sealed partial class PdfPageRenderer
                         (immediate[channel] * initialWeight + pixels[offset + channel] * paintedWeight)
                             / resultAlpha, 0, 255));
             pixels.SetAlpha(offset, (byte)Math.Round(resultAlpha * 255));
-            if (pixels.GroupAlpha is not null)
-                pixels.GroupAlpha[offset / 4] = (byte)Math.Round(
+            pixels.GroupAlpha?[offset / 4] = (byte)Math.Round(
                     immediateGroupAlpha * (1 - shape) + pixels.GroupAlpha[offset / 4] * shape);
             return;
         }
@@ -6118,7 +6108,7 @@ public sealed partial class PdfPageRenderer
     {
         if (!transform.TryInverse(out Matrix inverse)) return paths;
         double[] pattern = suppliedPattern.Count % 2 == 0
-            ? suppliedPattern.ToArray()
+            ? [.. suppliedPattern]
             : [.. suppliedPattern, .. suppliedPattern];
         double cycle = pattern.Sum();
         int steps = 0;
@@ -6648,9 +6638,8 @@ public sealed partial class PdfPageRenderer
             if (_objects[pixel] == 0)
             {
                 target.Data.AsSpan(offset, 4).CopyTo(_immediateBackdrop.AsSpan(pixel * 4, 4));
-                if (_immediateAlpha is not null) _immediateAlpha[pixel] = target.Alpha(offset);
-                if (_immediateGroupAlpha is not null)
-                    _immediateGroupAlpha[pixel] = target.GroupAlpha![offset / 4];
+                _immediateAlpha?[pixel] = target.Alpha(offset);
+                _immediateGroupAlpha?[pixel] = target.GroupAlpha![offset / 4];
                 return;
             }
             _immediateBackdrop.AsSpan(pixel * 4, 4).CopyTo(target.Data.AsSpan(offset, 4));
@@ -6668,9 +6657,8 @@ public sealed partial class PdfPageRenderer
             {
                 _parent.PreparePixel(target, x, y);
                 target.Data.AsSpan(offset, 4).CopyTo(_backdrop!.AsSpan(pixel * 4, 4));
-                if (_backdropAlpha is not null) _backdropAlpha[pixel] = target.Alpha(offset);
-                if (_backdropGroupAlpha is not null)
-                    _backdropGroupAlpha[pixel] = target.GroupAlpha![offset / 4];
+                _backdropAlpha?[pixel] = target.Alpha(offset);
+                _backdropGroupAlpha?[pixel] = target.GroupAlpha![offset / 4];
             }
             _objects[pixel] = _currentObject;
             RestorePixel(target, x, y);
@@ -6689,8 +6677,7 @@ public sealed partial class PdfPageRenderer
         {
             int offset = target.Offset(x, y);
             int pixel = (y - _top) * _width + x - _left;
-            if (target.GroupAlpha is not null)
-                target.GroupAlpha[offset / 4] = _backdropGroupAlpha?[pixel] ?? 0;
+            target.GroupAlpha?[offset / 4] = _backdropGroupAlpha?[pixel] ?? 0;
             if (_backdrop is null)
             {
                 target.Data.AsSpan(offset, 4).Clear();

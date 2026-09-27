@@ -585,8 +585,8 @@ public sealed class PdfCffGlyphReader
         private void EnsureContour()
         {
             if (_contour is not null) return;
-            var start = Transform(_x, _y);
-            _contour = [new PdfGlyphPoint(start.X, start.Y, true)];
+            var (X, Y) = Transform(_x, _y);
+            _contour = [new PdfGlyphPoint(X, Y, true)];
         }
         private void FinishContour()
         {

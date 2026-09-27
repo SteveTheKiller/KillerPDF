@@ -67,7 +67,7 @@ public sealed partial class PdfTextFieldPresetCollection
     public PdfTextFieldPresetCollection(IEnumerable<PdfTextFieldPreset> presets)
     {
         ArgumentNullException.ThrowIfNull(presets);
-        _presets = presets.ToArray();
+        _presets = [.. presets];
         if (_presets.Any(preset => preset is null))
             throw new ArgumentException("A preset cannot be null.", nameof(presets));
         if (_presets.Select(preset => preset.Name)

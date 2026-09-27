@@ -160,6 +160,6 @@ public static class PdfTextReflow
             else if (start < 0) start = index;
         }
         if (start >= 0) words.Add(paragraph[start..]);
-        return words.ToArray();
+        return [.. words];
     }
 }

@@ -37,9 +37,9 @@ public static class PdfSpreadDivider
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(requests);
-        PdfSpreadDivisionRequest[] values = requests.Select(request => request
+        PdfSpreadDivisionRequest[] values = [.. requests.Select(request => request
             ?? throw new ArgumentException(
-                "A spread division request cannot be null.", nameof(requests))).ToArray();
+                "A spread division request cannot be null.", nameof(requests)))];
         if (values.Length == 0)
             throw new ArgumentException(
                 "At least one spread division request is required.", nameof(requests));
@@ -82,12 +82,11 @@ public static class PdfSpreadDivider
 
         cancellationToken.ThrowIfCancellationRequested();
         byte[] output = editor.Build();
-        PdfSpreadDivisionMapping[] mappings = values
+        PdfSpreadDivisionMapping[] mappings = [.. values
             .OrderBy(request => request.PageIndex)
             .Select((request, selectedIndex) => new PdfSpreadDivisionMapping(
                 request.PageIndex, request.PageIndex + selectedIndex,
-                request.PageIndex + selectedIndex + 1))
-            .ToArray();
+                request.PageIndex + selectedIndex + 1))];
         return new PdfSpreadDivisionResult(output, Array.AsReadOnly(mappings));
     }
 

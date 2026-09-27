@@ -142,7 +142,7 @@ public sealed class PdfOcrFormRecognizerTests
 
     private static byte[] WhiteBgra(int width, int height)
     {
-        byte[] pixels = Enumerable.Repeat(byte.MaxValue, width * height * 4).ToArray();
+        byte[] pixels = [.. Enumerable.Repeat(byte.MaxValue, width * height * 4)];
         return pixels;
     }
 }

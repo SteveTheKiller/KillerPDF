@@ -267,7 +267,7 @@ public sealed class PdfXfaAcroFormConverterTests
 
     private static PdfDocument BuildDocument(IEnumerable<string> sourceObjects)
     {
-        string[] objects = sourceObjects.ToArray();
+        string[] objects = [.. sourceObjects];
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();
         for (int index = 0; index < objects.Length; index++)

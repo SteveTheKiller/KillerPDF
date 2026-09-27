@@ -77,7 +77,7 @@ public static class PdfXfaDatasets
             if (node.Children.Count > 0)
                 throw new ArgumentException(
                     "An XFA dataset field cannot also contain child fields.", nameof(data));
-            node.Values = field.Values.ToArray();
+            node.Values = [.. field.Values];
         }
 
         XNamespace xfa = "http://www.xfa.org/schema/xfa-data/1.0/";
@@ -123,7 +123,7 @@ public static class PdfXfaDatasets
         }
         if (index < 0)
             throw new InvalidOperationException("The XFA data has no datasets packet.");
-        PdfXfaPacket[] packets = info.Packets.ToArray();
+        PdfXfaPacket[] packets = [.. info.Packets];
         packets[index] = new PdfXfaPacket(packets[index].Name, Write(data));
         return info with { Packets = Array.AsReadOnly(packets) };
     }
@@ -137,8 +137,7 @@ public static class PdfXfaDatasets
         ArgumentNullException.ThrowIfNull(info);
         if (string.IsNullOrWhiteSpace(fieldName))
             throw new ArgumentException("An XFA dataset field name is required.", nameof(fieldName));
-        if (occurrenceIndex < 0)
-            throw new ArgumentOutOfRangeException(nameof(occurrenceIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(occurrenceIndex);
         ArgumentNullException.ThrowIfNull(value);
         (int packetIndex, XDocument document, XElement root) =
             DatasetDocument(info, preserveWhitespace: true);
@@ -167,9 +166,9 @@ public static class PdfXfaDatasets
             info.Packets.Count == 1 ? 0 : throw new InvalidOperationException(
                 "Combined XDP data requires exactly one stream packet.");
         XDocument document = LoadXml(info.Packets[packetIndex], preserveWhitespace);
-        XElement[] datasets = document.Root!.DescendantsAndSelf().Where(element =>
+        XElement[] datasets = [.. document.Root!.DescendantsAndSelf().Where(element =>
             string.Equals(element.Name.LocalName, "datasets",
-                StringComparison.OrdinalIgnoreCase)).ToArray();
+                StringComparison.OrdinalIgnoreCase))];
         if (datasets.Length != 1)
             throw new InvalidOperationException(
                 "The XFA data must contain exactly one datasets element.");
@@ -182,7 +181,7 @@ public static class PdfXfaDatasets
     private static PdfXfaInfo ReplacePacket(
         PdfXfaInfo info, int packetIndex, byte[] data)
     {
-        PdfXfaPacket[] packets = info.Packets.ToArray();
+        PdfXfaPacket[] packets = [.. info.Packets];
         packets[packetIndex] = new PdfXfaPacket(packets[packetIndex].Name, data);
         return info with { Packets = Array.AsReadOnly(packets) };
     }

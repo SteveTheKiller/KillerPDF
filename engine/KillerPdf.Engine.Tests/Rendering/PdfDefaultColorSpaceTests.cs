@@ -67,7 +67,7 @@ public sealed class PdfDefaultColorSpaceTests
             "Cycle" => Name("DefaultRGB"),
             "Lab" => new PdfArray([Name("Lab"), new PdfDictionary([Entry("WhitePoint", Numbers(0.95047, 1, 1.08883))])]),
             "Indexed" => new PdfArray([Name("Indexed"), Name("DeviceRGB"), new PdfInteger(0),
-                new PdfString(new byte[] { 255, 0, 0 }, PdfStringForm.Hexadecimal)]),
+                new PdfString([255, 0, 0], PdfStringForm.Hexadecimal)]),
             _ => Name(kind)
         };
         var resources = new PdfDictionary([Entry("ColorSpace", new PdfDictionary([Entry("DefaultRGB", replacement)]))]);
@@ -126,10 +126,10 @@ public sealed class PdfDefaultColorSpaceTests
                 Entry("C0", Numbers(1, 0, 0)), Entry("C1", Numbers(0, 0, 1)), Entry("N", new PdfInteger(1))])]);
         if (paint == "range") replacement = new PdfArray([Name("ICCBased"), update.AddObject(new PdfStream(
             new PdfDictionary([Entry("N", new PdfInteger(1)), Entry("Alternate", replacement),
-                Entry("Range", Numbers(0.25, 0.75))]), Array.Empty<byte>()))]);
+                Entry("Range", Numbers(0.25, 0.75))]), []))]);
         var spaces = new PdfDictionary([Entry("Replacement", replacement), Entry(defaultName, replacement)]);
         PdfObject imageSpace = Name(selected);
-        byte[] samples = Enumerable.Repeat((byte)128, components).ToArray();
+        byte[] samples = [.. Enumerable.Repeat((byte)128, components)];
         if (paint == "indexed")
         {
             imageSpace = new PdfArray([Name("Indexed"), imageSpace, new PdfInteger(0),
@@ -141,7 +141,7 @@ public sealed class PdfDefaultColorSpaceTests
             Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)),
             Entry("ColorSpace", imageSpace)]), samples));
         var function = new PdfDictionary([Entry("FunctionType", new PdfInteger(2)), Entry("Domain", Numbers(0, 1)),
-            Entry("C0", Numbers(new double[components])), Entry("C1", Numbers(Enumerable.Repeat(1d, components).ToArray())),
+            Entry("C0", Numbers(new double[components])), Entry("C1", Numbers([.. Enumerable.Repeat(1d, components)])),
             Entry("N", new PdfInteger(1))]);
         var shading = new PdfDictionary([Entry("ShadingType", new PdfInteger(2)), Entry("ColorSpace", Name(selected)),
             Entry("Coords", Numbers(0, 0, 8, 0)), Entry("Function", function)]);

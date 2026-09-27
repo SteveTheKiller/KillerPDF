@@ -147,7 +147,7 @@ namespace KillerPDF
         }
 
         // A short human label for the kind of annotation right-clicked, shown as a disabled menu header.
-        private string AnnotationKindLabel(PageAnnotation a) => a switch
+        private static string AnnotationKindLabel(PageAnnotation a) => a switch
         {
             CoverAnnotation => Loc("Str_Annot_Cover"),
             TextAnnotation => Loc("Str_Annot_TextBox"),
@@ -720,7 +720,7 @@ namespace KillerPDF
             return item;
         }
 
-        private MenuItem MakeRotateMenuItem(string header, RoutedEventHandler click, bool clockwise)
+        private static MenuItem MakeRotateMenuItem(string header, RoutedEventHandler click, bool clockwise)
         {
             string gesture = clockwise
                 ? Loc("Str_Key_Ctrl") + "+R"

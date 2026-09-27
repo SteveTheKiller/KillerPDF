@@ -16,13 +16,13 @@ public sealed partial class PdfPageRenderer
             var one = Vector<ushort>.One;
             for (; x <= destination.Length - Vector<byte>.Count; x += Vector<byte>.Count)
             {
-                Vector.Widen(new Vector<byte>(first.Slice(x)), out Vector<ushort> a0, out Vector<ushort> a1);
-                Vector.Widen(new Vector<byte>(second.Slice(x)), out Vector<ushort> b0, out Vector<ushort> b1);
+                Vector.Widen(new Vector<byte>(first[x..]), out Vector<ushort> a0, out Vector<ushort> a1);
+                Vector.Widen(new Vector<byte>(second[x..]), out Vector<ushort> b0, out Vector<ushort> b1);
                 Vector<ushort> low = a0 * b0 + rounding, high = a1 * b1 + rounding;
                 // Exact division by 255 for products rounded within the byte-coverage range.
                 low = (low + one + (low >> 8)) >> 8;
                 high = (high + one + (high >> 8)) >> 8;
-                Vector.Narrow(low, high).CopyTo(destination.Slice(x));
+                Vector.Narrow(low, high).CopyTo(destination[x..]);
             }
         }
         for (; x < destination.Length; x++)
@@ -346,19 +346,19 @@ public sealed partial class PdfPageRenderer
                 pixelAligned &= (x & Mask) == 0 && (y & Mask) == 0;
                 corners[i] = (x, y);
             }
-            var a = corners[0];
+            var (X, Y) = corners[0];
             var b = corners[1];
             var c = corners[2];
             var d = corners[3];
-            if (!(a.X == b.X && b.Y == c.Y && c.X == d.X && d.Y == a.Y)
-                && !(a.Y == b.Y && b.X == c.X && c.Y == d.Y && d.X == a.X))
+            if (!(X == b.X && b.Y == c.Y && c.X == d.X && d.Y == Y)
+                && !(Y == b.Y && b.X == c.X && c.Y == d.Y && d.X == X))
                 return null;
             if (pixelAligned)
-                return CoverageMask.Rectangle(Math.Max(0, Math.Min(a.X, c.X) >> Shift),
-                    Math.Max(0, Math.Min(a.Y, c.Y) >> Shift), Math.Min(width, Math.Max(a.X, c.X) >> Shift),
-                    Math.Min(height, Math.Max(a.Y, c.Y) >> Shift));
+                return CoverageMask.Rectangle(Math.Max(0, Math.Min(X, c.X) >> Shift),
+                    Math.Max(0, Math.Min(Y, c.Y) >> Shift), Math.Min(width, Math.Max(X, c.X) >> Shift),
+                    Math.Min(height, Math.Max(Y, c.Y) >> Shift));
 
-            int minimumY = Math.Min(a.Y, c.Y), maximumY = Math.Max(a.Y, c.Y);
+            int minimumY = Math.Min(Y, c.Y), maximumY = Math.Max(Y, c.Y);
             int top = Math.Max(0, minimumY >> Shift);
             int bottom = Math.Min(height, (maximumY + Mask) >> Shift);
             if (bottom - top <= 3) return null;
@@ -1323,7 +1323,7 @@ public sealed partial class PdfPageRenderer
                         if (cover == 255)
                         {
                             Unsafe.WriteUnaligned(ref data[offset], packed);
-                            if (groupAlpha is not null) groupAlpha[offset / 4] = 255;
+                            groupAlpha?[offset / 4] = 255;
                             continue;
                         }
                         if (data[offset + 3] == 255)
@@ -1387,7 +1387,7 @@ public sealed partial class PdfPageRenderer
                     int offset = pixels.Offset(x, y);
                     WriteInk(pixels.Ink!, offset, ink);
                     pixels.SetAlpha(offset, 255);
-                    if (pixels.GroupAlpha is not null) pixels.GroupAlpha[offset / 4] = 255;
+                    pixels.GroupAlpha?[offset / 4] = 255;
                     continue;
                 }
                 if (direct)
@@ -1396,7 +1396,7 @@ public sealed partial class PdfPageRenderer
                     if (cover == 255)
                     {
                         Unsafe.WriteUnaligned(ref pixels.Data[offset], directPacked);
-                        if (groupAlpha is not null) groupAlpha[offset / 4] = 255;
+                        groupAlpha?[offset / 4] = 255;
                         continue;
                     }
                     if (pixels[offset + 3] == 255)

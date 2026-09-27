@@ -6,7 +6,7 @@ namespace KillerPdf.Engine.Filters;
 
 internal static class PdfJbig2Decoder
 {
-    private static readonly ConditionalWeakTable<PdfStream, GlobalState> GlobalCache = new();
+    private static readonly ConditionalWeakTable<PdfStream, GlobalState> GlobalCache = [];
 
     public static byte[] Decode(
         ReadOnlySpan<byte> encoded,
@@ -93,14 +93,9 @@ internal static class PdfJbig2Decoder
             throw new PdfFilterException("Decoded stream exceeds the configured safety limit.");
     }
 
-    private sealed class GlobalState
+    private sealed class GlobalState(byte[] encoded)
     {
-        public GlobalState(byte[] encoded)
-        {
-            Document = new Jbig2Document(new ImageInputStream(encoded));
-        }
-
         public object SyncRoot { get; } = new();
-        public Jbig2Document Document { get; }
+        public Jbig2Document Document { get; } = new Jbig2Document(new ImageInputStream(encoded));
     }
 }

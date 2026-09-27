@@ -105,10 +105,10 @@ public static partial class PdfAccessibilityTaggingProposal
                 .OrderByDescending(region => region.BoundingBox.Top)
                 .ThenBy(region => region.BoundingBox.Left)
                 .ThenBy(region => region.Role);
-            foreach (var region in regions)
+            foreach (var (BoundingBox, Text, Role, Confidence) in regions)
                 result.Add(new PdfAccessibilityTaggingProposalItem(
-                    result.Count, pageIndex, region.Role, region.BoundingBox,
-                    region.Text, region.Confidence, RequiresReview: true));
+                    result.Count, pageIndex, Role, BoundingBox,
+                    Text, Confidence, RequiresReview: true));
         }
         return Array.AsReadOnly(result.ToArray());
     }

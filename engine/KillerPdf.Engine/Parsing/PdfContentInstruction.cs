@@ -14,7 +14,7 @@ public sealed class PdfContentInstruction : IReadOnlyList<PdfObject>
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operation);
         ArgumentNullException.ThrowIfNull(operands);
-        if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
         if (operation == "BI" && !inlineImageData.HasValue)
             throw new ArgumentException("An inline-image instruction requires image data.", nameof(inlineImageData));
         if (operation != "BI" && inlineImageData.HasValue)

@@ -10,7 +10,7 @@ public sealed class PdfBookmarkOutline
     public PdfBookmarkOutline(IEnumerable<PdfBookmarkOutlineItem> items)
     {
         ArgumentNullException.ThrowIfNull(items);
-        PdfBookmarkOutlineItem[] selected = items.ToArray();
+        PdfBookmarkOutlineItem[] selected = [.. items];
         Validate(selected);
         Items = Array.AsReadOnly(selected);
     }
@@ -52,7 +52,7 @@ public sealed class PdfBookmarkOutline
         int sourceObjectNumber, int targetIndex, int level)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(level);
-        PdfBookmarkOutlineItem[] source = Items.ToArray();
+        PdfBookmarkOutlineItem[] source = [.. Items];
         int start = Index(source, sourceObjectNumber);
         int end = start + 1;
         while (end < source.Length && source[end].Level > source[start].Level) end++;
@@ -69,7 +69,7 @@ public sealed class PdfBookmarkOutline
     /// <summary>Duplicates one complete bookmark subtree immediately after itself.</summary>
     public PdfBookmarkOutline DuplicateSubtree(int sourceObjectNumber)
     {
-        PdfBookmarkOutlineItem[] source = Items.ToArray();
+        PdfBookmarkOutlineItem[] source = [.. Items];
         int start = Index(source, sourceObjectNumber);
         int end = start + 1;
         while (end < source.Length && source[end].Level > source[start].Level) end++;
@@ -86,7 +86,7 @@ public sealed class PdfBookmarkOutline
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException("A bookmark title is required.", nameof(title));
-        PdfBookmarkOutlineItem[] changed = Items.ToArray();
+        PdfBookmarkOutlineItem[] changed = [.. Items];
         int index = Index(changed, sourceObjectNumber);
         changed[index] = changed[index] with { Title = title };
         return new PdfBookmarkOutline(changed);
@@ -121,8 +121,7 @@ public sealed class PdfBookmarkOutline
     private static int Index(
         IReadOnlyList<PdfBookmarkOutlineItem> items, int sourceObjectNumber)
     {
-        if (sourceObjectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(sourceObjectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sourceObjectNumber);
         int[] matches = [.. items.Select((item, index) => (item, index))
             .Where(pair => pair.item.SourceObjectNumber == sourceObjectNumber)
             .Select(pair => pair.index)];

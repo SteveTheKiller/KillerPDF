@@ -231,7 +231,7 @@ namespace KillerPDF.Controls
             {
                 foreach (var session in _sessions) session.IsStripVisible = false;
                 TabOverflowBtn.Visibility = Visibility.Collapsed;
-                if (TabStripHost != null) TabStripHost.Width = 0;
+                TabStripHost?.Width = 0;
                 return;
             }
 
@@ -256,8 +256,7 @@ namespace KillerPDF.Controls
 
             double stripAvail = Math.Max(0, avail - (overflow ? TabChevronWidth : 0));
             int visibleCount = overflow ? cap : n;
-            if (TabStripHost != null)
-                TabStripHost.Width = Math.Max(TabFloorWidth, Math.Min(stripAvail, visibleCount * TabCeilingWidth));
+            TabStripHost?.Width = Math.Max(TabFloorWidth, Math.Min(stripAvail, visibleCount * TabCeilingWidth));
 
             int start = 0;
             if (overflow)

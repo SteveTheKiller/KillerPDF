@@ -63,8 +63,8 @@ public sealed class PdfPageRendererGroupMaskTests
         PdfRenderedPage page = new PdfPageRenderer(document).Render(0,
             new PdfRenderOptions(10, 10, transparentBackground: transparent));
 
-        Assert.Equal(transparent ? new byte[] { 255, 0, 0, 128 }
-            : new byte[] { 255, 128, 128, 255 }, Pixel(page, 2));
+        Assert.Equal(transparent ? [255, 0, 0, 128]
+            : [255, 128, 128, 255], Pixel(page, 2));
         Assert.Empty(page.Diagnostics);
     }
 

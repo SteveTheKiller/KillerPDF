@@ -18,15 +18,15 @@ internal sealed class PdfCalibratedColorTransform : PdfColorTransform
         _gamma = (double[])gamma.Clone();
         _matrix = new double[Components * 3];
         var source = Bradford(white[0], white[1], white[2]);
-        var target = Bradford(0.9642, 1, 0.8249);
+        var (L, M, S) = Bradford(0.9642, 1, 0.8249);
         if (source.L == 0 || source.M == 0 || source.S == 0)
             throw new FormatException("A calibrated white point cannot be adapted.");
         for (int column = 0; column < Components; column++)
         {
             var cone = Components == 1 ? source
                 : Bradford(matrix![column * 3], matrix[column * 3 + 1], matrix[column * 3 + 2]);
-            double l = cone.L * target.L / source.L, m = cone.M * target.M / source.M,
-                s = cone.S * target.S / source.S;
+            double l = cone.L * L / source.L, m = cone.M * M / source.M,
+                s = cone.S * S / source.S;
             _matrix[column] = 0.9869929 * l - 0.1470543 * m + 0.1599627 * s;
             _matrix[Components + column] = 0.4323053 * l + 0.5183603 * m + 0.0492912 * s;
             _matrix[Components * 2 + column] = -0.0085287 * l + 0.0400428 * m + 0.9684867 * s;

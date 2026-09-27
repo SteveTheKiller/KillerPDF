@@ -11,14 +11,20 @@ namespace KillerPdf.Engine.Filters.Jbig2
     /// Read accesses to the wrapped stream are synchronized, so that users of this stream need to deal with synchronization
     /// against other users of the same instance, but not against other users of the wrapped stream.
     /// </summary>
-    internal sealed class SubInputStream : AbstractImageInputStream
+    /// <remarks>
+    /// Constructs a new SubInputStream which provides a view of the wrapped stream.
+    /// </remarks>
+    /// <param name="iis">The stream to be wrapped.</param>
+    /// <param name="offset">The absolute position in the wrapped stream at which the sub-stream starts.</param>
+    /// <param name="length">The length of the sub-stream.</param>
+    internal sealed class SubInputStream(IImageInputStream iis, long offset, long length) : AbstractImageInputStream
     {
-        private readonly IImageInputStream wrappedStream;
+        private readonly IImageInputStream wrappedStream = iis;
 
         /// <summary>
         /// The position in the wrapped stream at which the window starts. Offset is an absolut value.
         /// </summary>
-        private readonly long offset;
+        private readonly long offset = offset;
 
         /// <summary>
         /// A buffer which is used to improve read performance.
@@ -41,23 +47,10 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <inheritdoc />
         /// The length of the window. Length is a relative value.
         /// </summary>
-        public override long Length { get; }
+        public override long Length { get; } = length;
 
         /// <inheritdoc />
         public override long Position => streamPosition;
-
-        /// <summary>
-        /// Constructs a new SubInputStream which provides a view of the wrapped stream.
-        /// </summary>
-        /// <param name="iis">The stream to be wrapped.</param>
-        /// <param name="offset">The absolute position in the wrapped stream at which the sub-stream starts.</param>
-        /// <param name="length">The length of the sub-stream.</param>
-        public SubInputStream(IImageInputStream iis, long offset, long length)
-        {
-            wrappedStream = iis;
-            this.offset = offset;
-            Length = length;
-        }
 
         /// <inheritdoc />
         public override int Read()

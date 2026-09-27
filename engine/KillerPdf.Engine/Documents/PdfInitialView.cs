@@ -108,9 +108,7 @@ public sealed record PdfInitialView
             return (null, null, PdfUnicodeEncoding.DecodeTextString(text.Bytes.Span, "The catalog /OpenAction value"));
         if (value is PdfName name) return (null, null, name.ValueAsLatin1());
         if (value is not PdfArray array || array.Count < 2) return (null, null, null);
-        PdfIndirectReference? pageReference = array[0] as PdfIndirectReference;
-        PdfName? kindName = Resolve(document, array[1]) as PdfName;
-        if (pageReference is null || kindName is null) return (null, null, null);
+        if (array[0] is not PdfIndirectReference pageReference || Resolve(document, array[1]) is not PdfName kindName) return (null, null, null);
         int pageIndex = tree.Pages.ToList().FindIndex(page =>
             page.Reference.ObjectNumber == pageReference.ObjectNumber
             && page.Reference.Generation == pageReference.Generation);

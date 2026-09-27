@@ -49,7 +49,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         private int amountOfSymbols;
 
         private Jbig2Bitmap regionBitmap;
-        private List<Jbig2Bitmap> symbols = new List<Jbig2Bitmap>();
+        private List<Jbig2Bitmap> symbols = [];
 
         private ArithmeticDecoder arithmeticDecoder;
         private ArithmeticIntegerDecoder integerDecoder;
@@ -285,65 +285,29 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         private void SetCodingStatistics()
         {
-            if (cxIADT is null)
-            {
-                cxIADT = new CX(512, 1);
-            }
+            cxIADT ??= new CX(512, 1);
 
-            if (cxIAFS is null)
-            {
-                cxIAFS = new CX(512, 1);
-            }
+            cxIAFS ??= new CX(512, 1);
 
-            if (cxIADS is null)
-            {
-                cxIADS = new CX(512, 1);
-            }
+            cxIADS ??= new CX(512, 1);
 
-            if (cxIAIT is null)
-            {
-                cxIAIT = new CX(512, 1);
-            }
+            cxIAIT ??= new CX(512, 1);
 
-            if (cxIARI is null)
-            {
-                cxIARI = new CX(512, 1);
-            }
+            cxIARI ??= new CX(512, 1);
 
-            if (cxIARDW is null)
-            {
-                cxIARDW = new CX(512, 1);
-            }
+            cxIARDW ??= new CX(512, 1);
 
-            if (cxIARDH is null)
-            {
-                cxIARDH = new CX(512, 1);
-            }
+            cxIARDH ??= new CX(512, 1);
 
-            if (cxIAID is null)
-            {
-                cxIAID = new CX(1 << symbolCodeLength, 1);
-            }
+            cxIAID ??= new CX(1 << symbolCodeLength, 1);
 
-            if (cxIARDX is null)
-            {
-                cxIARDX = new CX(512, 1);
-            }
+            cxIARDX ??= new CX(512, 1);
 
-            if (cxIARDY is null)
-            {
-                cxIARDY = new CX(512, 1);
-            }
+            cxIARDY ??= new CX(512, 1);
 
-            if (arithmeticDecoder is null)
-            {
-                arithmeticDecoder = new ArithmeticDecoder(subInputStream);
-            }
+            arithmeticDecoder ??= new ArithmeticDecoder(subInputStream);
 
-            if (integerDecoder is null)
-            {
-                integerDecoder = new ArithmeticIntegerDecoder(arithmeticDecoder);
-            }
+            integerDecoder ??= new ArithmeticIntegerDecoder(arithmeticDecoder);
         }
 
         private void CreateRegionBitmap()
@@ -498,10 +462,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             {
                 if (sbHuffFS == 3)
                 {
-                    if (fsTable is null)
-                    {
-                        fsTable = GetUserTable(0);
-                    }
+                    fsTable ??= GetUserTable(0);
                     return fsTable.Decode(subInputStream);
                 }
 
@@ -615,10 +576,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 int genericRegionReferenceDX = (int)((rdw >> 1) + rdx);
                 int genericRegionReferenceDY = (int)((rdh >> 1) + rdy);
 
-                if (genericRefinementRegion == null)
-                {
-                    genericRefinementRegion = new GenericRefinementRegion(subInputStream);
-                }
+                genericRefinementRegion ??= new GenericRefinementRegion(subInputStream);
 
                 genericRefinementRegion.SetParameters(cx, arithmeticDecoder, sbrTemplate,
                         (int)(wo + rdw), (int)(ho + rdh), ibo, genericRegionReferenceDX,
@@ -963,7 +921,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         private void SymbolIDCodeLengths()
         {
             // 1) - 2)
-            List<Code> runCodeTable = new List<Code>();
+            List<Code> runCodeTable = [];
 
             for (int i = 0; i < 35; i++)
             {
@@ -980,7 +938,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             long previousCodeLength = 0;
 
             int counter = 0;
-            List<Code> sbSymCodes = new List<Code>();
+            List<Code> sbSymCodes = [];
             while (counter < amountOfSymbols)
             {
                 long code = ht.Decode(subInputStream);

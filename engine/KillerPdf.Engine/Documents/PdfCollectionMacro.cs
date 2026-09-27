@@ -31,7 +31,7 @@ public static partial class PdfCollectionMacro
     public static PdfMacroStep FoldersStep(IEnumerable<PdfCollectionFolder> folders)
     {
         ArgumentNullException.ThrowIfNull(folders);
-        PdfCollectionFolder[] selected = folders.ToArray();
+        PdfCollectionFolder[] selected = [.. folders];
         return new PdfMacroStep(PdfMacroOperation.EditPortfolio,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -47,7 +47,7 @@ public static partial class PdfCollectionMacro
         IEnumerable<PdfCollectionSortInfo>? sort = null)
     {
         ArgumentNullException.ThrowIfNull(fields);
-        PdfCollectionFieldInfo[] selectedFields = fields.ToArray();
+        PdfCollectionFieldInfo[] selectedFields = [.. fields];
         PdfCollectionSortInfo[] selectedSort = sort?.ToArray() ?? [];
         return new PdfMacroStep(PdfMacroOperation.EditPortfolio,
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -72,7 +72,7 @@ public static partial class PdfCollectionMacro
                 ["action"] = "itemValues",
                 ["fileName"] = fileName,
                 ["values"] = JsonSerializer.Serialize(
-                    values.ToArray(), CollectionJson.PdfCollectionItemValueArray)
+                    [.. values], CollectionJson.PdfCollectionItemValueArray)
             });
     }
 

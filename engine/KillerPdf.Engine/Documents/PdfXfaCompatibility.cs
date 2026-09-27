@@ -90,7 +90,7 @@ public sealed partial record PdfXfaCompatibilityReport(
 
     /// <summary>Exports compatibility findings as stable machine-readable JSON.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new ReportFile(1, IsSupported, Findings.ToArray()), indented
+        new ReportFile(1, IsSupported, [.. Findings]), indented
             ? IndentedJson.ReportFile : CompactJson.ReportFile);
 
     private sealed record ReportFile(

@@ -51,19 +51,19 @@ public sealed class PdfPageRendererImageOpacityTests
             imageEntries.Add(Entry("SMask", update.AddObject(new PdfStream(new PdfDictionary([
                 Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(2)),
                 Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)),
-                Entry("ColorSpace", Name("DeviceGray"))]), new byte[] { 128, 0 }))));
+                Entry("ColorSpace", Name("DeviceGray"))]), [128, 0]))));
         if (maskKind is "Explicit" or "SoftAndExplicit")
             imageEntries.Add(Entry("Mask", update.AddObject(new PdfStream(new PdfDictionary([
                 Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(2)),
                 Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(1)),
                 Entry("ImageMask", new PdfBoolean(true))]),
-                new byte[] { maskKind == "Explicit" ? (byte)0x40 : (byte)0xC0 }))));
+                [maskKind == "Explicit" ? (byte)0x40 : (byte)0xC0]))));
         if (maskKind == "SoftAndInvalidMask") imageEntries.Add(Entry("Mask", Numbers(-1)));
         if (maskKind is "ColorKey" or "SoftAndColorKey")
             imageEntries.Add(Entry("Mask", maskKind == "ColorKey"
                 ? Numbers(0, 0, 0, 0, 255, 255) : Numbers(255, 255, 0, 0, 0, 0)));
         var image = update.AddObject(new PdfStream(new PdfDictionary(imageEntries),
-            new byte[] { 255, 0, 0, 0, 0, 255 }));
+            [255, 0, 0, 0, 0, 255]));
         var resources = new PdfDictionary([
             Entry("XObject", new PdfDictionary([Entry("Image", image)])),
             Entry("ExtGState", new PdfDictionary([Entry("Outer", new PdfDictionary([
@@ -76,10 +76,10 @@ public sealed class PdfPageRendererImageOpacityTests
         byte alpha = maskKind == "None" ? (byte)32
             : maskKind.StartsWith("Soft", StringComparison.Ordinal) ? (byte)64 : (byte)128;
         byte faded = maskKind is "Explicit" or "ColorKey" ? (byte)128 : (byte)(255 - alpha);
-        Assert.Equal(transparent ? new byte[] { 0, 0, 255, alpha }
-            : new byte[] { faded, faded, 255, 255 }, rendered.Pixels.Slice(0, 4).ToArray());
-        Assert.Equal(transparent ? new byte[] { 0, 0, 255, 32 }
-            : new byte[] { 223, 223, 255, 255 }, rendered.Pixels.Slice(8, 4).ToArray());
+        Assert.Equal(transparent ? [0, 0, 255, alpha]
+            : [faded, faded, 255, 255], rendered.Pixels[..4].ToArray());
+        Assert.Equal(transparent ? [0, 0, 255, 32]
+            : [223, 223, 255, 255], rendered.Pixels.Slice(8, 4).ToArray());
         if (maskKind != "None") Assert.Equal(new byte[] { 255, 255, 255, transparent ? (byte)0 : (byte)255 },
             rendered.Pixels.Slice(4, 4).ToArray());
     }
@@ -96,8 +96,8 @@ public sealed class PdfPageRendererImageOpacityTests
         PdfRenderedPage page = new PdfPageRenderer(document).Render(0,
             new PdfRenderOptions(1, 1, transparentBackground: transparent));
 
-        Assert.Equal(transparent ? new byte[] { 0, 0, 255, 64 }
-            : new byte[] { 191, 191, 255, 255 }, page.Pixels.ToArray());
+        Assert.Equal(transparent ? [0, 0, 255, 64]
+            : [191, 191, 255, 255], page.Pixels.ToArray());
         Assert.Empty(page.Diagnostics);
     }
 
@@ -127,7 +127,7 @@ public sealed class PdfPageRendererImageOpacityTests
         var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1, content).Build());
         PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(2, 1));
 
-        Assert.Equal(page.Pixels.Slice(4, 4).ToArray(), page.Pixels.Slice(0, 4).ToArray());
+        Assert.Equal(page.Pixels.Slice(4, 4).ToArray(), page.Pixels[..4].ToArray());
         Assert.Empty(page.Diagnostics);
     }
 }

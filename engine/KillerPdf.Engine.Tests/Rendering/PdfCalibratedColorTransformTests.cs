@@ -45,14 +45,14 @@ public sealed class PdfCalibratedColorTransformTests
         Assert.False(transform.CanConvertFromXyz);
         double[] result = [7, 8, 9];
         Assert.Throws<NotSupportedException>(() => transform.FromXyz([0.2, 0.3, 0.4], result));
-        Assert.Equal(new double[] { 7, 8, 9 }, result);
+        Assert.Equal([7, 8, 9], result);
     }
 
     [Fact]
     public void Conversion_DoesNotAllocatePerSample()
     {
         var transform = Create(false);
-        ReadOnlySpan<double> input = stackalloc double[3] { 0.2, 0.4, 0.8 };
+        ReadOnlySpan<double> input = [0.2, 0.4, 0.8];
         Span<double> xyz = stackalloc double[3];
         Span<double> samples = stackalloc double[3];
         for (int index = 0; index < 100; index++)

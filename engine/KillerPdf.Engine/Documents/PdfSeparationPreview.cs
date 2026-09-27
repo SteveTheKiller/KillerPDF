@@ -48,7 +48,7 @@ public sealed partial record PdfSeparationPreview(
 
     /// <summary>Exports the selected plates and per-page presence without document content.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new ReportFile(1, Plates.ToArray(), Pages.ToArray()), indented
+        new ReportFile(1, [.. Plates], [.. Pages]), indented
             ? IndentedJson.ReportFile : CompactJson.ReportFile);
 
     private sealed record ReportFile(int Version,
@@ -76,7 +76,7 @@ public sealed partial record PdfSeparationPreview(
         ArgumentNullException.ThrowIfNull(plateNames);
         int pageCount = PdfPageTree.Read(document).Pages.Count;
         int[] selectedPages = pageIndexes?.ToArray()
-            ?? Enumerable.Range(0, pageCount).ToArray();
+            ?? [.. Enumerable.Range(0, pageCount)];
         if (selectedPages.Length == 0 || selectedPages.Any(index => index < 0 || index >= pageCount)
             || selectedPages.Distinct().Count() != selectedPages.Length)
             throw new ArgumentException(

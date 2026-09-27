@@ -43,10 +43,10 @@ public static class PdfXfaLocales
                 Values(element, "datePatterns", "datePattern"),
                 Values(element, "timePatterns", "timePattern"),
                 Values(element, "currencySymbols", "currencySymbol"),
-                element.Descendants().Where(item => item.Name.LocalName.Equals(
+                [.. element.Descendants().Where(item => item.Name.LocalName.Equals(
                     "typeface", StringComparison.OrdinalIgnoreCase))
                     .Select(item => Attribute(item, "name"))
-                    .Where(value => !string.IsNullOrWhiteSpace(value)).Cast<string>().ToArray()));
+                    .Where(value => !string.IsNullOrWhiteSpace(value)).Cast<string>()]));
         }
         return Array.AsReadOnly(locales.ToArray());
     }

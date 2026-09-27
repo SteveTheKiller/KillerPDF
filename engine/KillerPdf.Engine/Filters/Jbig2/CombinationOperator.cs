@@ -21,23 +21,14 @@ namespace KillerPdf.Engine.Filters.Jbig2
     {
         public static CombinationOperator TranslateOperatorCodeToEnum(short combinationOperatorCode)
         {
-            switch (combinationOperatorCode)
+            return combinationOperatorCode switch
             {
-                case 0:
-                    return CombinationOperator.OR;
-
-                case 1:
-                    return CombinationOperator.AND;
-
-                case 2:
-                    return CombinationOperator.XOR;
-
-                case 3:
-                    return CombinationOperator.XNOR;
-
-                default:
-                    return CombinationOperator.REPLACE;
-            }
+                0 => CombinationOperator.OR,
+                1 => CombinationOperator.AND,
+                2 => CombinationOperator.XOR,
+                3 => CombinationOperator.XNOR,
+                _ => CombinationOperator.REPLACE,
+            };
         }
     }
 }

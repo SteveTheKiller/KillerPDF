@@ -14,27 +14,19 @@ namespace KillerPdf.Engine.Filters.Jbig2
     /// </summary>
     internal abstract class HuffmanTable
     {
-        private readonly InternalNode rootNode = new InternalNode();
+        private readonly InternalNode rootNode = new();
 
         /// <summary>
         ///  This inner class represents a code for use in Huffman tables.
         /// </summary>
-        internal sealed class Code
+        internal sealed class Code(int prefixLength, int rangeLength, int rangeLow, bool isLowerRange)
         {
-            public int PrefixLength { get; }
-            public int RangeLength { get; }
-            public int RangeLow { get; }
-            public bool IsLowerRange { get; }
+            public int PrefixLength { get; } = prefixLength;
+            public int RangeLength { get; } = rangeLength;
+            public int RangeLow { get; } = rangeLow;
+            public bool IsLowerRange { get; } = isLowerRange;
 
             public int Value { get; set; } = -1;
-
-            public Code(int prefixLength, int rangeLength, int rangeLow, bool isLowerRange)
-            {
-                PrefixLength = prefixLength;
-                RangeLength = rangeLength;
-                RangeLow = rangeLow;
-                IsLowerRange = isLowerRange;
-            }
 
             public override string ToString()
             {
@@ -69,7 +61,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
             foreach (var c in codeTable)
             {
-                sb.Append(c.ToString()).Append("\n");
+                sb.Append(c.ToString()).Append('\n');
             }
 
             return sb.ToString();

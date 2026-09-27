@@ -7,9 +7,9 @@ public static class PdfImpositionPlanner
     public static IReadOnlyList<PdfImposedSheetSide> PlanNUp(int pageCount, int columns, int rows,
         bool duplex = false)
     {
-        if (pageCount < 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
-        if (columns <= 0) throw new ArgumentOutOfRangeException(nameof(columns));
-        if (rows <= 0) throw new ArgumentOutOfRangeException(nameof(rows));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columns);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rows);
         int slotsPerSide = checked(columns * rows);
         int sideCount = pageCount == 0 ? 0 : (pageCount + slotsPerSide - 1) / slotsPerSide;
         var result = new List<PdfImposedSheetSide>(sideCount);
@@ -34,10 +34,8 @@ public static class PdfImpositionPlanner
         int sourcePageIndex, int copyCount, int columns, int rows,
         bool duplex = false)
     {
-        if (sourcePageIndex < 0)
-            throw new ArgumentOutOfRangeException(nameof(sourcePageIndex));
-        if (copyCount < 0)
-            throw new ArgumentOutOfRangeException(nameof(copyCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(sourcePageIndex);
+        ArgumentOutOfRangeException.ThrowIfNegative(copyCount);
         IReadOnlyList<PdfImposedSheetSide> layout =
             PlanNUp(copyCount, columns, rows, duplex);
         return Array.AsReadOnly(layout.Select(side => side with
@@ -52,9 +50,9 @@ public static class PdfImpositionPlanner
     public static IReadOnlyList<PdfImposedSheetSide> PlanCutStack(
         int pageCount, int columns, int rows)
     {
-        if (pageCount < 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
-        if (columns <= 0) throw new ArgumentOutOfRangeException(nameof(columns));
-        if (rows <= 0) throw new ArgumentOutOfRangeException(nameof(rows));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columns);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rows);
         if (pageCount == 0) return [];
         int slotsPerSide = checked(columns * rows);
         int sheetCount = checked((pageCount + slotsPerSide - 1) / slotsPerSide);
@@ -78,11 +76,9 @@ public static class PdfImpositionPlanner
         int sourcePageCount, IReadOnlyList<int?> sequence,
         int slotsPerSide, bool duplex = false)
     {
-        if (sourcePageCount < 0)
-            throw new ArgumentOutOfRangeException(nameof(sourcePageCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(sourcePageCount);
         ArgumentNullException.ThrowIfNull(sequence);
-        if (slotsPerSide <= 0)
-            throw new ArgumentOutOfRangeException(nameof(slotsPerSide));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(slotsPerSide);
         if (sequence.Any(page => page is < 0 || page >= sourcePageCount))
             throw new ArgumentOutOfRangeException(nameof(sequence),
                 "A manual imposition page is outside the source document.");
@@ -110,7 +106,7 @@ public static class PdfImpositionPlanner
     /// <summary>Plans two-up saddle-stitched booklet signatures in left-to-right slot order.</summary>
     public static IReadOnlyList<PdfImposedSheetSide> PlanBooklet(int pageCount)
     {
-        if (pageCount < 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageCount);
         if (pageCount == 0) return [];
         int paddedCount = checked((pageCount + 3) / 4 * 4);
         var result = new List<PdfImposedSheetSide>(paddedCount / 2);
@@ -135,7 +131,7 @@ public static class PdfImpositionPlanner
     public static IReadOnlyList<PdfImposedSheetSide> PlanBookletSignatures(
         int pageCount, int maximumPagesPerSignature)
     {
-        if (pageCount < 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageCount);
         if (maximumPagesPerSignature <= 0 || maximumPagesPerSignature % 4 != 0)
             throw new ArgumentOutOfRangeException(nameof(maximumPagesPerSignature),
                 "A booklet signature size must be a positive multiple of four pages.");
@@ -200,8 +196,8 @@ public static class PdfImpositionPlanner
     {
         ArgumentNullException.ThrowIfNull(side);
         ArgumentNullException.ThrowIfNull(sourcePageBounds);
-        if (columns <= 0) throw new ArgumentOutOfRangeException(nameof(columns));
-        if (rows <= 0) throw new ArgumentOutOfRangeException(nameof(rows));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columns);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rows);
         ValidateDimension(sheetWidth, nameof(sheetWidth));
         ValidateDimension(sheetHeight, nameof(sheetHeight));
         if (!double.IsFinite(margin) || margin < 0)
@@ -252,7 +248,7 @@ public static class PdfImpositionPlanner
     {
         ArgumentNullException.ThrowIfNull(side);
         ArgumentNullException.ThrowIfNull(placements);
-        if (columns <= 1) throw new ArgumentOutOfRangeException(nameof(columns));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(columns, 1);
         if (!double.IsFinite(creepPerSheet) || creepPerSheet < 0)
             throw new ArgumentOutOfRangeException(nameof(creepPerSheet));
         double offset = checked(side.CreepDepth) * creepPerSheet;

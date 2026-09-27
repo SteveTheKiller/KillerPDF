@@ -324,7 +324,7 @@ public sealed class PdfContentTransformationTests
                 source, image, [0, 0], replacement));
         Assert.Throws<ArgumentException>(() =>
             PdfContentTransformation.SubstituteXObjectPlacements(
-                source, image, [0], new PdfName(ReadOnlySpan<byte>.Empty)));
+                source, image, [0], new PdfName([])));
     }
 
     [Fact]

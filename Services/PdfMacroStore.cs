@@ -16,10 +16,9 @@ internal sealed class PdfMacroStore
     internal IReadOnlyList<PdfMacro> LoadAll()
     {
         if (!Directory.Exists(_directory)) return [];
-        return Directory.EnumerateFiles(_directory, "*.json")
+        return [.. Directory.EnumerateFiles(_directory, "*.json")
             .Select(file => PdfMacro.FromJson(File.ReadAllText(file)))
-            .OrderBy(macro => macro.Name, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+            .OrderBy(macro => macro.Name, StringComparer.OrdinalIgnoreCase)];
     }
 
     internal void Save(PdfMacro macro)

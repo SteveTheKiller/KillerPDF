@@ -133,8 +133,7 @@ public sealed class PdfCmykImageStorageTests
             Entry("BitsPerComponent", new PdfInteger(wideSamples ? 16 : 8)) };
         if (masked)
         {
-            byte[] alpha = Enumerable.Range(0, size * size)
-                .Select(index => opaqueMask ? (byte)255 : (byte)(index * 53)).ToArray();
+            byte[] alpha = [.. Enumerable.Range(0, size * size).Select(index => opaqueMask ? (byte)255 : (byte)(index * 53))];
             var maskEntries = new List<KeyValuePair<PdfName, PdfObject>> {
                 Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(size)),
                 Entry("Height", new PdfInteger(size)), Entry("ColorSpace", Name("DeviceGray")),

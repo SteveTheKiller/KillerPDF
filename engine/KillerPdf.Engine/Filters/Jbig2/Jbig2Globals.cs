@@ -15,7 +15,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
     internal sealed class Jbig2Globals
     {
         // This map contains all segments, that are not associated with a page. The key is the segment number.
-        private readonly Dictionary<int, SegmentHeader> globalSegments = new Dictionary<int, SegmentHeader>();
+        private readonly Dictionary<int, SegmentHeader> globalSegments = [];
 
         internal SegmentHeader GetSegment(int segmentNumber)
         {

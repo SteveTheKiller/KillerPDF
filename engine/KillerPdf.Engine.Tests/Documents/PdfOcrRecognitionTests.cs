@@ -118,9 +118,8 @@ public sealed class PdfOcrRecognitionTests
     [Fact]
     public void ShapeBucketsSeparateCommonGlyphProportions()
     {
-        int[] buckets = new[] { 3, 5, 8, 12, 18 }
-            .Select(glyphWidth => PdfOcrRecognitionModel.ShapeBucket(
-                Glyph(glyphWidth), 20, 10)).ToArray();
+        int[] buckets = [.. new[] { 3, 5, 8, 12, 18 }.Select(glyphWidth => PdfOcrRecognitionModel.ShapeBucket(
+                Glyph(glyphWidth), 20, 10))];
 
         Assert.Equal(5, buckets.Distinct().Count());
 
@@ -1235,7 +1234,7 @@ public sealed class PdfOcrRecognitionTests
     public void RawBgraRecognitionRestoresDeskewedBoundsToSourcePixels()
     {
         const int width = 41, height = 21;
-        byte[] bgra = Enumerable.Repeat(byte.MaxValue, width * height * 4).ToArray();
+        byte[] bgra = [.. Enumerable.Repeat(byte.MaxValue, width * height * 4)];
         for (int x = 0; x < 24; x++)
             foreach (int baseline in new[] { 5, 12 })
             {
@@ -1250,9 +1249,9 @@ public sealed class PdfOcrRecognitionTests
             bgra, width, height, options);
         PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(prepared, false);
         Assert.NotEmpty(layout.Words);
-        PdfOcrImageRegion[] expected = layout.Words.Select(word =>
+        PdfOcrImageRegion[] expected = [.. layout.Words.Select(word =>
             PdfOcrImagePreprocessor.RestoreDeskewedBounds(
-                word.Bounds, prepared.DeskewDegrees, width, height)).ToArray();
+                word.Bounds, prepared.DeskewDegrees, width, height))];
 
         PdfOcrResult result = PdfOcrRecognizer.RecognizeBgra(
             bgra, width, height, TinyModel("E"), options);
@@ -1304,8 +1303,8 @@ public sealed class PdfOcrRecognitionTests
         ]);
         PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Create(
             1, 1, ["A", "7"], new float[] { 1, -1 }, new float[] { 0, 0 });
-        byte[] bgra = image.Pixels.ToArray().SelectMany(value =>
-            new byte[] { value, value, value, 255 }).ToArray();
+        byte[] bgra = [.. image.Pixels.ToArray().SelectMany(value =>
+            new byte[] { value, value, value, 255 })];
         var options = new PdfOcrOptions(["eng"], deskew: false,
             correctOrientation: false, removeBackground: false, removeNoise: false,
             detectPageSegments: false);
@@ -1334,8 +1333,8 @@ public sealed class PdfOcrRecognitionTests
             4, 4, ["0", "O", "X"], new float[48], new float[] { 0.1f, 0, 1 });
         PdfOcrLanguageModel language = PdfOcrLanguageModel.Train(
             Enumerable.Repeat("OO", 20));
-        byte[] bgra = image.Pixels.ToArray().SelectMany(value =>
-            new byte[] { value, value, value, 255 }).ToArray();
+        byte[] bgra = [.. image.Pixels.ToArray().SelectMany(value =>
+            new byte[] { value, value, value, 255 })];
         var options = new PdfOcrOptions(["eng"], deskew: false,
             correctOrientation: false, removeBackground: false, removeNoise: false,
             detectPageSegments: false);
@@ -1362,8 +1361,8 @@ public sealed class PdfOcrRecognitionTests
             4, 4, ["0", "O", "X"], new float[48], new float[] { 0.1f, 0, 1 });
         PdfOcrLanguageModel language = PdfOcrLanguageModel.Train(
             Enumerable.Repeat("XX", 20));
-        byte[] bgra = image.Pixels.ToArray().SelectMany(value =>
-            new byte[] { value, value, value, 255 }).ToArray();
+        byte[] bgra = [.. image.Pixels.ToArray().SelectMany(value =>
+            new byte[] { value, value, value, 255 })];
         var options = new PdfOcrOptions(["eng"], deskew: false,
             correctOrientation: false, removeBackground: false, removeNoise: false,
             detectPageSegments: false);
@@ -1388,8 +1387,8 @@ public sealed class PdfOcrRecognitionTests
     public void ModelClassificationHandlesVectorBlocksAndScalarTail()
     {
         int features = Math.Min(128, Vector<float>.Count + 3);
-        float[] positive = Enumerable.Repeat(1f, features).ToArray();
-        float[] negative = Enumerable.Repeat(-1f, features).ToArray();
+        float[] positive = [.. Enumerable.Repeat(1f, features)];
+        float[] negative = [.. Enumerable.Repeat(-1f, features)];
         PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Create(
             features, 1, ["positive", "negative"],
             positive.Concat(negative).ToArray(), new float[] { 0, 0 });
@@ -1779,7 +1778,7 @@ public sealed class PdfOcrRecognitionTests
         PdfOcrImageRegion bounds = Assert.Single(
             PdfOcrLayoutAnalyzer.Analyze(upright).Components);
         float[] features = PdfOcrRecognizer.NormalizeGlyph(upright, bounds, size, size);
-        float[][] wrongFeatures = Enumerable.Range(1, 3).Select(turns =>
+        float[][] wrongFeatures = [.. Enumerable.Range(1, 3).Select(turns =>
         {
             string[] rotated = uprightRows;
             for (int turn = 0; turn < turns; turn++) rotated = RotateRowsClockwise(rotated);
@@ -1787,7 +1786,7 @@ public sealed class PdfOcrRecognitionTests
             PdfOcrImageRegion rotatedBounds = Assert.Single(
                 PdfOcrLayoutAnalyzer.Analyze(prepared).Components);
             return PdfOcrRecognizer.NormalizeGlyph(prepared, rotatedBounds, size, size);
-        }).ToArray();
+        })];
         var basis = new List<float[]>();
         foreach (float[] wrong in wrongFeatures)
         {

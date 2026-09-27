@@ -162,7 +162,7 @@ internal static class PdfCcittFaxDecoder
         for (int index = 1; index <= codingPosition; index += 2)
             PaintBlack(output, rowOffset, codingLine[index - 1],
                 codingLine[index] - codingLine[index - 1], options.BlackIs1);
-        return codingLine.Take(codingPosition + 1).ToArray();
+        return [.. codingLine.Take(codingPosition + 1)];
 
         void Add(int position, bool paintsBlack, bool allowBackward)
         {
@@ -295,7 +295,7 @@ internal static class PdfCcittFaxDecoder
 
         internal BitReader(ReadOnlySpan<byte> source) => _source = source;
 
-        internal bool TryPeek(int count, out int value)
+        internal readonly bool TryPeek(int count, out int value)
         {
             value = 0;
             if ((long)_position + count > (long)_source.Length * 8) return false;

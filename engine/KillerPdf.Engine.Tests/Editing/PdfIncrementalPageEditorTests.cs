@@ -13187,7 +13187,7 @@ public sealed class PdfIncrementalPageEditorTests
             .AddTextField(0, "first", 10, 10, 80, 20)
             .AddTextField(0, "second", 10, 40, 80, 20)
             .Build());
-        PdfFormWidgetInfo[] widgets = PdfFormWidgetReader.ReadPage(document, 0).ToArray();
+        PdfFormWidgetInfo[] widgets = [.. PdfFormWidgetReader.ReadPage(document, 0)];
 
         PdfDocument reordered = PdfDocument.Open(new PdfIncrementalPageEditor(document)
             .SetFormWidgetTabOrder(0,

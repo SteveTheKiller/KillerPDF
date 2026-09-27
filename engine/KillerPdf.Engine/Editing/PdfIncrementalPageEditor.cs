@@ -1651,7 +1651,7 @@ public sealed class PdfIncrementalPageEditor
     {
         ValidateIndex(pageIndex, nameof(pageIndex));
         ArgumentNullException.ThrowIfNull(instructions);
-        PdfContentInstruction[] rewritten = instructions.ToArray();
+        PdfContentInstruction[] rewritten = [.. instructions];
         PageState page = _pages[pageIndex];
         PdfDictionary resources = PrunePageResources(page, rewritten);
         SetPageContent(pageIndex, rewritten);
@@ -2094,8 +2094,8 @@ public sealed class PdfIncrementalPageEditor
         if (state.ReplaceAnnotations)
             throw new InvalidOperationException(
                 "Widget tab order must be selected before other annotation-array changes.");
-        PdfFormWidgetInfo[] widgets = PdfFormWidgetReader.ReadPage(_document, pageIndex).ToArray();
-        int[] requested = orderedWidgetObjectNumbers.ToArray();
+        PdfFormWidgetInfo[] widgets = [.. PdfFormWidgetReader.ReadPage(_document, pageIndex)];
+        int[] requested = [.. orderedWidgetObjectNumbers];
         int[] existing = [.. widgets.Select(widget => widget.ObjectNumber)];
         if (requested.Length == 0 || requested.Distinct().Count() != requested.Length
             || !requested.Order().SequenceEqual(existing.Order()))
@@ -2106,7 +2106,7 @@ public sealed class PdfIncrementalPageEditor
             || ResolveCatalogValue(_document, annotationsValue,
                 $"Page {pageIndex + 1} /Annots value") is not PdfArray annotations)
             throw new InvalidOperationException("The page has no annotation array.");
-        PdfObject[] reordered = annotations.ToArray();
+        PdfObject[] reordered = [.. annotations];
         int[] slots = [.. widgets.Select(widget => widget.AnnotationIndex).Order()];
         Dictionary<int, PdfObject> references = widgets.ToDictionary(
             widget => widget.ObjectNumber, widget => annotations[widget.AnnotationIndex]);
@@ -2758,11 +2758,11 @@ public sealed class PdfIncrementalPageEditor
                     widgets.Add((reference, annotation, page.Reference, null, null));
             }
         }
-        foreach (var overlay in _taggedOverlays)
+        foreach (var (Form, Page, Description) in _taggedOverlays)
         {
-            PdfStream stream = document.Resolve(overlay.Form) as PdfStream
+            PdfStream stream = document.Resolve(Form) as PdfStream
                 ?? throw new InvalidOperationException("The authored overlay is not a stream.");
-            widgets.Add((overlay.Form, stream.Dictionary, overlay.Page, stream, overlay.Description));
+            widgets.Add((Form, stream.Dictionary, Page, stream, Description));
         }
         if (widgets.Count == 0) return source;
 

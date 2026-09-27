@@ -491,7 +491,7 @@ internal static class PdfJpegDecoder
 
         private void DecodeProgressiveScan()
         {
-            var geometry = PrepareProgressiveComponents();
+            var (MaxHorizontal, MaxVertical, McuColumns, McuRows) = PrepareProgressiveComponents();
             if (_spectralStart == 0 && _successiveHigh == 0
                 && _scanComponents.Any(component => component.DcTable > 3
                     || _huffman[0, component.DcTable] is null))
@@ -506,8 +506,8 @@ internal static class PdfJpegDecoder
 
             if (_scanComponents.Count > 1)
             {
-                for (int row = 0; row < geometry.McuRows; row++)
-                    for (int column = 0; column < geometry.McuColumns; column++, unit++)
+                for (int row = 0; row < McuRows; row++)
+                    for (int column = 0; column < McuColumns; column++, unit++)
                     {
                         RestartIfNeeded(bits, unit, ref eobRun);
                         foreach (Component component in _scanComponents)
@@ -729,7 +729,7 @@ internal static class PdfJpegDecoder
 
         private JpegDecodedImage BuildProgressiveOutput()
         {
-            var geometry = PrepareProgressiveComponents();
+            var (MaxHorizontal, MaxVertical, McuColumns, McuRows) = PrepareProgressiveComponents();
             if (_components.Any(component => !component.HasDc))
                 throw Error("The progressive JPEG is missing a DC scan.");
             foreach (Component component in _components)
@@ -743,8 +743,8 @@ internal static class PdfJpegDecoder
             int outputHeight = ReducedDimension(_height);
             int components = _components.Count;
             var output = new byte[checked(outputWidth * outputHeight * components)];
-            int rowHeight = geometry.MaxVertical * (8 / reduction);
-            for (int row = 0; row < geometry.McuRows; row++)
+            int rowHeight = MaxVertical * (8 / reduction);
+            for (int row = 0; row < McuRows; row++)
             {
                 foreach (Component component in _components)
                 {
@@ -764,7 +764,7 @@ internal static class PdfJpegDecoder
                 int firstRow = row * rowHeight;
                 int rows = Math.Min(rowHeight, outputHeight - firstRow);
                 WriteOutput(output.AsSpan(firstRow * outputWidth * components,
-                    rows * outputWidth * components), geometry.MaxHorizontal, geometry.MaxVertical,
+                    rows * outputWidth * components), MaxHorizontal, MaxVertical,
                     outputWidth, rows);
             }
             return new JpegDecodedImage(output, outputWidth, outputHeight, components, _width, _height);

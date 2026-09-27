@@ -12,7 +12,7 @@ internal static class PdfPngPredictorEncoder
         {
             ReadOnlySpan<byte> source = pixels.Slice(row * rowBytes, rowBytes);
             ReadOnlySpan<byte> previous = row == 0
-                ? ReadOnlySpan<byte>.Empty
+                ? []
                 : pixels.Slice((row - 1) * rowBytes, rowBytes);
             int bestFilter = 0;
             long bestScore = Score(source);

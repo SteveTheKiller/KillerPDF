@@ -87,7 +87,7 @@ public sealed partial class PdfRedactionReview
 
     internal PdfRedactionReview(IEnumerable<PdfRedactionMatch> matches, IEnumerable<string>? excluded = null)
     {
-        _matches = matches.ToArray();
+        _matches = [.. matches];
         _excluded = new HashSet<string>(excluded ?? [], StringComparer.Ordinal);
         Matches = Array.AsReadOnly(_matches);
         Included = Array.AsReadOnly(_matches.Where(match => !_excluded.Contains(match.Id)).ToArray());
@@ -125,8 +125,8 @@ public sealed partial class PdfRedactionReview
     public static PdfRedactionReview FromRegions(IEnumerable<PdfRedactionRegion> regions)
     {
         ArgumentNullException.ThrowIfNull(regions);
-        PdfRedactionRegion[] values = regions.Select(region => region
-            ?? throw new ArgumentException("A redaction region cannot be null.", nameof(regions))).ToArray();
+        PdfRedactionRegion[] values = [.. regions.Select(region => region
+            ?? throw new ArgumentException("A redaction region cannot be null.", nameof(regions)))];
         var matches = new PdfRedactionMatch[values.Length];
         for (int index = 0; index < values.Length; index++)
         {
@@ -410,7 +410,7 @@ public static class PdfRedactionSearch
 
     private static bool HasValidSocialSecurityNumber(string value)
     {
-        string digits = new(value.Where(char.IsAsciiDigit).ToArray());
+        string digits = new([.. value.Where(char.IsAsciiDigit)]);
         if (digits.Length != 9) return false;
         int area = int.Parse(digits.AsSpan(0, 3), System.Globalization.CultureInfo.InvariantCulture);
         int group = int.Parse(digits.AsSpan(3, 2), System.Globalization.CultureInfo.InvariantCulture);
@@ -420,8 +420,7 @@ public static class PdfRedactionSearch
 
     private static bool HasValidInternationalBankAccountNumber(string value)
     {
-        string compact = new(value.Where(character => character != ' ')
-            .Select(char.ToUpperInvariant).ToArray());
+        string compact = new([.. value.Where(character => character != ' ').Select(char.ToUpperInvariant)]);
         if (compact.Length is < 15 or > 34
             || !char.IsAsciiLetter(compact[0]) || !char.IsAsciiLetter(compact[1])
             || !char.IsAsciiDigit(compact[2]) || !char.IsAsciiDigit(compact[3])

@@ -92,8 +92,7 @@ internal static class PdfStandardFontSubstitutes
         if (Fonts.ContainsKey(fontName) || fontName is "Symbol" or "ZapfDingbats")
             return fontName;
 
-        string compact = new(fontName.Where(char.IsLetterOrDigit)
-            .Select(char.ToLowerInvariant).ToArray());
+        string compact = new([.. fontName.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant)]);
         bool sans = compact.StartsWith("arial", StringComparison.Ordinal)
             || compact.StartsWith("helv", StringComparison.Ordinal);
         bool serif = compact.StartsWith("timesnewroman", StringComparison.Ordinal)

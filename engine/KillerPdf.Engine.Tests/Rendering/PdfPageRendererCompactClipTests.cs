@@ -36,9 +36,9 @@ public sealed class PdfPageRendererCompactClipTests
         content.MoveTo(points[0].X, points[0].Y);
         for (int i = 0; i < points.Count; i++)
         {
-            var from = points[i];
+            var (X, Y) = points[i];
             var to = points[(i + 1) % points.Count];
-            if (subdivide) content.LineTo((from.X + to.X) / 2, (from.Y + to.Y) / 2);
+            if (subdivide) content.LineTo((X + to.X) / 2, (Y + to.Y) / 2);
             content.LineTo(to.X, to.Y);
         }
         content.ClosePath();

@@ -47,8 +47,8 @@ public sealed partial record PdfImpositionPreset
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A preset name is required.", nameof(name));
-        if (columns <= 0) throw new ArgumentOutOfRangeException(nameof(columns));
-        if (rows <= 0) throw new ArgumentOutOfRangeException(nameof(rows));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columns);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rows);
         if (!double.IsFinite(sheetWidth) || sheetWidth <= 0)
             throw new ArgumentOutOfRangeException(nameof(sheetWidth));
         if (!double.IsFinite(sheetHeight) || sheetHeight <= 0)
@@ -145,7 +145,7 @@ public sealed partial record PdfImpositionPreset
         var preview = new PreviewFile(1, Name, SheetWidth, SheetHeight,
             sourcePageBounds.Count, [.. sides.Select(side => new PreviewSide(
                 side.SheetIndex, side.Face, side.CreepDepth,
-                side.SourcePageIndices.ToArray(), [.. Place(side, sourcePageBounds)]))]);
+                [.. side.SourcePageIndices], [.. Place(side, sourcePageBounds)]))]);
         return JsonSerializer.Serialize(preview, indented
             ? IndentedJson.PreviewFile : CompactJson.PreviewFile);
     }

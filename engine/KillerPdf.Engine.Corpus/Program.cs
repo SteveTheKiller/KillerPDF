@@ -304,15 +304,15 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
         }
         using Process process = Process.Start(start)
             ?? throw new InvalidOperationException("The render worker could not start.");
-        Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
-        Task<string> errorTask = process.StandardError.ReadToEndAsync();
-        Task completed = await Task.WhenAny(process.WaitForExitAsync(),
-            Task.Delay(TimeSpan.FromSeconds(timeoutSeconds)));
+        Task<string> outputTask = process.StandardOutput.ReadToEndAsync(_);
+        Task<string> errorTask = process.StandardError.ReadToEndAsync(_);
+        Task completed = await Task.WhenAny(process.WaitForExitAsync(_),
+            Task.Delay(TimeSpan.FromSeconds(timeoutSeconds), _));
         string status, detail;
         if (!process.HasExited)
         {
             process.Kill(entireProcessTree: true);
-            await process.WaitForExitAsync();
+            await process.WaitForExitAsync(_);
             await outputTask;
             await errorTask;
             status = "timeout";

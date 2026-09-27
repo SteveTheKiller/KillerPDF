@@ -253,8 +253,8 @@ public sealed class PdfToUnicodeMap
             if (_spaces.Count > 0 && _spaces[^1].Length == space.Length
                 && space.Low <= _spaces[^1].High)
             {
-                var previous = _spaces[^1];
-                _spaces[^1] = (previous.Low, Math.Max(previous.High, space.High), space.Length);
+                var (Low, High, Length) = _spaces[^1];
+                _spaces[^1] = (Low, Math.Max(High, space.High), space.Length);
             }
             else _spaces.Add(space);
         }

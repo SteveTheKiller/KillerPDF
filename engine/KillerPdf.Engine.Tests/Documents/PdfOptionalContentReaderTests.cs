@@ -526,8 +526,7 @@ public sealed class PdfOptionalContentReaderTests
     {
         PdfDocument policy = MembershipDocument("/OCGs [5 0 R 6 0 R] /P /AllOn");
         PdfDocument expression = MembershipDocument("/VE [/Or 5 0 R 6 0 R]");
-        int[] allVisible = PdfOptionalContentReader.Read(policy).Groups
-            .Select(group => group.ObjectNumber).ToArray();
+        int[] allVisible = [.. PdfOptionalContentReader.Read(policy).Groups.Select(group => group.ObjectNumber)];
 
         PdfDocument hidden = PdfDocument.Open(
             PdfOptionalContentEditor.FlattenPageContent(policy));

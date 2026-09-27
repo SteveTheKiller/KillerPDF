@@ -71,7 +71,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
         if (tags.ContainsKey("A2B0") || tags.ContainsKey("A2B1") || tags.ContainsKey("A2B2"))
         {
             _tableData = data[..(int)length];
-            _tables = tables ?? new();
+            _tables = tables ?? [];
         }
         if (tags.TryGetValue("wtpt", out ReadOnlyMemory<byte> whitePoint))
         {
@@ -154,14 +154,18 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
         {
             try
             {
-                var perceptual = new PdfIccProfileTransform(data, 0);
-                perceptual._attemptedIntents = 1 << 1;
+                var perceptual = new PdfIccProfileTransform(data, 0)
+                {
+                    _attemptedIntents = 1 << 1
+                };
                 return perceptual;
             }
             catch (Exception alternate) when (alternate is FormatException or NotSupportedException)
             {
-                var saturation = new PdfIccProfileTransform(data, 2);
-                saturation._attemptedIntents = (1 << 0) | (1 << 1);
+                var saturation = new PdfIccProfileTransform(data, 2)
+                {
+                    _attemptedIntents = (1 << 0) | (1 << 1)
+                };
                 return saturation;
             }
         }
@@ -223,10 +227,12 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
                 for (int channel = 0; channel < 3; channel++)
                     if (!double.IsFinite(device[channel]))
                         throw new ArgumentException("ICC device values must be finite.");
-                Span<double> encoded = stackalloc double[3];
-                encoded[0] = ClampComponent(0, device[0]) / 100;
-                encoded[1] = (ClampComponent(1, device[1]) + 128) / 255;
-                encoded[2] = (ClampComponent(2, device[2]) + 128) / 255;
+                Span<double> encoded =
+                [
+                    ClampComponent(0, device[0]) / 100,
+                    (ClampComponent(1, device[1]) + 128) / 255,
+                    (ClampComponent(2, device[2]) + 128) / 255,
+                ];
                 if (_lab && _forward.UsesLegacyLabEncoding)
                     for (int channel = 0; channel < 3; channel++) encoded[channel] *= 65280d / 65535;
                 _forward.Transform(encoded, xyz);

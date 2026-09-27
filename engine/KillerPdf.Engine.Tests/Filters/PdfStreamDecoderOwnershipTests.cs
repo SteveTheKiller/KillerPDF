@@ -14,7 +14,7 @@ public sealed class PdfStreamDecoderOwnershipTests
     {
         var stream = new PdfStream(new PdfDictionary([
             new(new PdfName("Filter"u8), new PdfName(System.Text.Encoding.ASCII.GetBytes(filter)))]),
-            new byte[] { 1, 2, 3 });
+            [1, 2, 3]);
         byte[] decoded = PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream);
         decoded[0] = 99;
         Assert.Equal(new byte[] { 1, 2, 3 }, stream.EncodedData.ToArray());

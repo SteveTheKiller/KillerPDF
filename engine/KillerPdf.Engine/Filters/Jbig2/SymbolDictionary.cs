@@ -235,7 +235,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             }
             else
             {
-                importSymbols = new List<Jbig2Bitmap>();
+                importSymbols = [];
             }
         }
 
@@ -456,30 +456,15 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         private void SetCodingStatistics()
         {
-            if (cxIADT is null)
-            {
-                cxIADT = new CX(512, 1);
-            }
+            cxIADT ??= new CX(512, 1);
 
-            if (cxIADH is null)
-            {
-                cxIADH = new CX(512, 1);
-            }
+            cxIADH ??= new CX(512, 1);
 
-            if (cxIADW is null)
-            {
-                cxIADW = new CX(512, 1);
-            }
+            cxIADW ??= new CX(512, 1);
 
-            if (cxIAAI is null)
-            {
-                cxIAAI = new CX(512, 1);
-            }
+            cxIAAI ??= new CX(512, 1);
 
-            if (cxIAEX is null)
-            {
-                cxIAEX = new CX(512, 1);
-            }
+            cxIAEX ??= new CX(512, 1);
 
             if (useRefinementAggregation && cxIAID is null)
             {
@@ -656,15 +641,9 @@ namespace KillerPdf.Engine.Filters.Jbig2
             {
                 genericRefinementRegion = new GenericRefinementRegion(subInputStream);
 
-                if (arithmeticDecoder is null)
-                {
-                    arithmeticDecoder = new ArithmeticDecoder(subInputStream);
-                }
+                arithmeticDecoder ??= new ArithmeticDecoder(subInputStream);
 
-                if (cx is null)
-                {
-                    cx = new CX(65536, 1);
-                }
+                cx ??= new CX(65536, 1);
             }
 
             // Parameters as shown in Table 18, page 36
@@ -676,10 +655,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         private void DecodeDirectlyThroughGenericRegion(int symWidth, int hcHeight)
         {
-            if (genericRegion is null)
-            {
-                genericRegion = new GenericRegion(subInputStream);
-            }
+            genericRegion ??= new GenericRegion(subInputStream);
 
             // Parameters set according to Table 16, page 35
             genericRegion.SetParameters(false, sdTemplate, false, false, sdATX, sdATY, symWidth,
@@ -757,10 +733,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                     return StandardTables.GetTable(5).Decode(subInputStream);
 
                 case 3:
-                    if (dhTable is null)
-                    {
-                        dhTable = GetUserTable(0);
-                    }
+                    dhTable ??= GetUserTable(0);
                     return dhTable.Decode(subInputStream);
             }
 
@@ -772,7 +745,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         {
             if (bmSize == 0)
             {
-                Jbig2Bitmap heightClassCollectiveBitmap = new Jbig2Bitmap(totalWidth, heightClassHeight);
+                Jbig2Bitmap heightClassCollectiveBitmap = new(totalWidth, heightClassHeight);
 
                 for (int i = 0; i < heightClassCollectiveBitmap.ByteArray.Length; i++)
                 {
@@ -783,10 +756,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             }
             else
             {
-                if (genericRegion is null)
-                {
-                    genericRegion = new GenericRegion(subInputStream);
-                }
+                genericRegion ??= new GenericRegion(subInputStream);
 
                 genericRegion.SetParameters(true, subInputStream.Position, bmSize,
                         heightClassHeight, totalWidth);
@@ -900,10 +870,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 RetrieveImportSymbols();
             }
 
-            if (sbSymbols is null)
-            {
-                sbSymbols = new List<Jbig2Bitmap>(importSymbols);
-            }
+            sbSymbols ??= [.. importSymbols];
         }
 
         /// <summary>
@@ -911,7 +878,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// </summary>
         private void RetrieveImportSymbols()
         {
-            importSymbols = new List<Jbig2Bitmap>();
+            importSymbols = [];
             foreach (SegmentHeader referredToSegmentHeader in segmentHeader.RtSegments)
             {
                 if (referredToSegmentHeader.SegmentType == 0)

@@ -53,12 +53,12 @@ public sealed class PdfInitialColorTests
         {
             "CalGray" or "CalRGB" => new PdfArray([Name(kind), parameters]),
             "Lab" => new PdfArray([Name(kind), new PdfDictionary(parameters.Append(Entry("Range", Numbers(10, 20, -30, -20))))]),
-            "Indexed" => new PdfArray([Name(kind), Name("DeviceRGB"), new PdfInteger(1), new PdfString(new byte[] { 0, 255, 0, 0, 0, 255 }, PdfStringForm.Hexadecimal)]),
+            "Indexed" => new PdfArray([Name(kind), Name("DeviceRGB"), new PdfInteger(1), new PdfString([0, 255, 0, 0, 0, 255], PdfStringForm.Hexadecimal)]),
             "Separation" or "All" or "None" => new PdfArray([Name("Separation"), Name(kind == "Separation" ? "Spot" : kind), Name("DeviceRGB"), function]),
             "DeviceN" => new PdfArray([Name(kind), new PdfArray([Name("Spot")]), Name("DeviceRGB"), function]),
             "ICCBased" => new PdfArray([Name(kind), update.AddObject(new PdfStream(new PdfDictionary([
                 Entry("N", new PdfInteger(4)), Entry("Alternate", Name("DeviceCMYK")),
-                Entry("Range", Numbers(0.25, 1, 0, 1, 0, 1, 0, 1))]), Array.Empty<byte>()))]),
+                Entry("Range", Numbers(0.25, 1, 0, 1, 0, 1, 0, 1))]), []))]),
             _ => Name(kind)
         };
         var resources = new PdfDictionary([Entry("ColorSpace", new PdfDictionary([Entry("Space", space)]))]);

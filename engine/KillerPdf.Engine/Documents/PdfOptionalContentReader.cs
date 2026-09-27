@@ -95,7 +95,7 @@ public static class PdfOptionalContentReader
         string baseState = OptionalName(document, dictionary, "BaseState") ?? "ON";
         if (baseState is not ("ON" or "OFF" or "Unchanged"))
             throw new InvalidOperationException("An optional-content configuration has an invalid /BaseState.");
-        var visible = baseState == "OFF" ? new HashSet<int>()
+        var visible = baseState == "OFF" ? []
             : groups.Select(group => group.ObjectNumber).ToHashSet();
         ApplyState("ON", true);
         ApplyState("OFF", false);

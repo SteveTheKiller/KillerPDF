@@ -75,7 +75,7 @@ public static class PdfBookmarkGeneration
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(proposals);
-        PdfBookmarkProposal[] reviewed = proposals.ToArray();
+        PdfBookmarkProposal[] reviewed = [.. proposals];
         if (reviewed.Any(item => item.Decision == PdfBookmarkProposalDecision.Pending))
             throw new InvalidOperationException(
                 "Every bookmark proposal must be accepted or rejected before authoring.");

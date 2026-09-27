@@ -55,7 +55,7 @@ public static partial class PdfLayerMacro
     /// <summary>Creates a step that assigns all content on one page to a layer.</summary>
     public static PdfMacroStep PageContentStep(string layerName, int pageIndex)
     {
-        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
         return EditStep("pageContent", layerName,
             pageIndex.ToString(CultureInfo.InvariantCulture));
     }
@@ -64,11 +64,9 @@ public static partial class PdfLayerMacro
     public static PdfMacroStep InstructionRangeStep(string layerName,
         int pageIndex, int instructionIndex, int instructionCount)
     {
-        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
-        if (instructionIndex < 0)
-            throw new ArgumentOutOfRangeException(nameof(instructionIndex));
-        if (instructionCount <= 0)
-            throw new ArgumentOutOfRangeException(nameof(instructionCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
+        ArgumentOutOfRangeException.ThrowIfNegative(instructionIndex);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(instructionCount);
         return EditStep("instructionRange", layerName, JsonSerializer.Serialize(
             new InstructionRangeSettings(pageIndex, instructionIndex, instructionCount),
             LayerJson.InstructionRangeSettings));
@@ -78,8 +76,7 @@ public static partial class PdfLayerMacro
     public static PdfMacroStep AnnotationStep(
         string layerName, int annotationObjectNumber)
     {
-        if (annotationObjectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(annotationObjectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(annotationObjectNumber);
         return EditStep("annotation", layerName,
             annotationObjectNumber.ToString(CultureInfo.InvariantCulture));
     }
@@ -87,8 +84,7 @@ public static partial class PdfLayerMacro
     /// <summary>Creates a step that clears a page annotation's layer assignment.</summary>
     public static PdfMacroStep ClearAnnotationStep(int annotationObjectNumber)
     {
-        if (annotationObjectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(annotationObjectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(annotationObjectNumber);
         return new PdfMacroStep(PdfMacroOperation.EditLayers,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -125,7 +121,7 @@ public static partial class PdfLayerMacro
     public static PdfMacroStep DisplayOrderStep(IEnumerable<string> layerNames)
     {
         ArgumentNullException.ThrowIfNull(layerNames);
-        string[] names = layerNames.ToArray();
+        string[] names = [.. layerNames];
         ValidateNames(names, nameof(layerNames));
         return new PdfMacroStep(PdfMacroOperation.EditLayers,
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -140,7 +136,7 @@ public static partial class PdfLayerMacro
         IEnumerable<PdfLayerOrderItem> items)
     {
         ArgumentNullException.ThrowIfNull(items);
-        PdfLayerOrderItem[] tree = items.ToArray();
+        PdfLayerOrderItem[] tree = [.. items];
         ValidateOrderTree(tree, nameof(items));
         return new PdfMacroStep(PdfMacroOperation.EditLayers,
             new Dictionary<string, string>(StringComparer.Ordinal)
@@ -157,7 +153,7 @@ public static partial class PdfLayerMacro
     public static PdfMacroStep FlattenStep(IEnumerable<string> visibleLayerNames)
     {
         ArgumentNullException.ThrowIfNull(visibleLayerNames);
-        string[] names = visibleLayerNames.ToArray();
+        string[] names = [.. visibleLayerNames];
         if (names.Any(string.IsNullOrWhiteSpace)
             || names.Distinct(StringComparer.Ordinal).Count() != names.Length)
             throw new ArgumentException(
@@ -425,7 +421,7 @@ public static partial class PdfLayerMacro
         item.LayerName is not null
             ? PdfOptionalContentOrderItem.Layer(GroupNumber(document, item.LayerName))
             : PdfOptionalContentOrderItem.Folder(item.Label!,
-                (item.Children ?? []).Select(child => Convert(document, child)).ToArray());
+                [.. (item.Children ?? []).Select(child => Convert(document, child))]);
 
     private static IReadOnlyCollection<int>? VisibleGroups(
         PdfMacroStep step, PdfDocument document)

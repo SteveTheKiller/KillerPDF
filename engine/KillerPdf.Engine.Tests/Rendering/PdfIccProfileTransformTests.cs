@@ -466,7 +466,7 @@ public sealed class PdfIccProfileTransformTests
         else tags.AddRange([
             ("A2B0", Lut(true, false, false)), ("A2B1", Lut(true, false, true)),
             ("B2A0", Lut(true, false, false)), ("B2A1", Lut(true, false, true))]);
-        byte[] bytes = Profile(kind == "LUT" ? "RGB " : kind, "XYZ ", tags.ToArray());
+        byte[] bytes = Profile(kind == "LUT" ? "RGB " : kind, "XYZ ", [.. tags]);
         var relative = new PdfIccProfileTransform(bytes, 1);
         var absolute = new PdfIccProfileTransform(bytes, 3);
         double[] input = kind == "GRAY" ? [0.25] : [0.2, 0.3, 0.4];
@@ -502,7 +502,7 @@ public sealed class PdfIccProfileTransformTests
     [Fact]
     public void Render_RejectsReversibleLabBlendingProfile()
     {
-        PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+        static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
             Encoding.ASCII.GetBytes("0.25 0.5 0.75 rg 0 0 1 1 re f")).Build());
         var options = new PdfRenderOptions(1, 1);
@@ -539,7 +539,7 @@ public sealed class PdfIccProfileTransformTests
             input[channel] = invalid;
             double[] output = [7, 8, 9];
             Assert.Throws<ArgumentException>(() => profile.ToXyz(input, output));
-            Assert.Equal(new double[] { 7, 8, 9 }, output);
+            Assert.Equal([7, 8, 9], output);
         }
     }
 
@@ -602,7 +602,7 @@ public sealed class PdfIccProfileTransformTests
         var profile = new PdfIccProfileTransform(Profile("Lab ", "Lab ", ("A2B0", table), ("B2A0", table)));
         double[] values = [50, 20, -30];
         profile.ConvertTo(profile, values, values);
-        Assert.Equal(new double[] { 50, 20, -30 }, values);
+        Assert.Equal([50, 20, -30], values);
         profile.ToXyz(values, values);
         Assert.InRange(Math.Abs(values[1] - Math.Pow(66d / 116, 3)), 0, 1e-12);
         profile.FromXyz(values, values);
@@ -610,7 +610,7 @@ public sealed class PdfIccProfileTransformTests
         Assert.InRange(Math.Abs(values[1] - 20), 0, 1e-10);
         Assert.InRange(Math.Abs(values[2] + 30), 0, 1e-10);
         profile.ConvertTo(profile, [-1, -200, 200], values);
-        Assert.Equal(new double[] { 0, -128, 127 }, values);
+        Assert.Equal([0, -128, 127], values);
     }
 
     [Theory]
@@ -1114,7 +1114,7 @@ public sealed class PdfIccProfileTransformTests
         var update = new PdfIncrementalUpdateBuilder(source);
         PdfArray Space(byte[] profile, int count = 4) => new([Name("ICCBased"), update.AddObject(new PdfStream(
             new PdfDictionary([Entry("N", new PdfInteger(count))]), profile))]);
-        byte[] relativeLut = groupLut.ToArray();
+        byte[] relativeLut = [.. groupLut];
         if (intent != 1)
             for (int cell = 0; cell < 1 << components; cell++)
                 BinaryPrimitives.WriteUInt16BigEndian(relativeLut.AsSpan(tableOffset + cell * 6), 48960);
@@ -1190,7 +1190,7 @@ public sealed class PdfIccProfileTransformTests
                 isolatedTransparencyGroup: true, transparencyGroupColorSpace: sourceKind == "cmykGroup"
                     ? PdfTransparencyGroupColorSpace.Cmyk : PdfTransparencyGroupColorSpace.Rgb), 0, 0);
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1, content).Build());
-        PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+        static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
         var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
         var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
         var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
@@ -1269,7 +1269,7 @@ public sealed class PdfIccProfileTransformTests
         Assert.False(profile.CanConvertFromXyz);
         double[] result = [0.9, 0.8, 0.7];
         Assert.Throws<NotSupportedException>(() => profile.FromXyz([0.2, 0.3, 0.4], result));
-        Assert.Equal(new double[] { 0.9, 0.8, 0.7 }, result);
+        Assert.Equal([0.9, 0.8, 0.7], result);
     }
 
     [Theory]
@@ -1323,9 +1323,9 @@ public sealed class PdfIccProfileTransformTests
             ("rXYZ", Xyz(0, 1, 0)), ("gXYZ", Xyz(1, 0, 0)), ("bXYZ", Xyz(0, 0, 1))));
         double[] result = new double[3];
         profile.ToXyz([0.5, 0.75, 1], result);
-        Assert.Equal(new double[] { 0.5625, 0.25, 1 }, result);
+        Assert.Equal([0.5625, 0.25, 1], result);
         profile.FromXyz(result, result);
-        Assert.Equal(new double[] { 0.5, 0.75, 1 }, result);
+        Assert.Equal([0.5, 0.75, 1], result);
     }
 
     [Fact]
@@ -1336,7 +1336,7 @@ public sealed class PdfIccProfileTransformTests
         var profile = new PdfIccProfileTransform(Profile("GRAY", "XYZ ", ("kTRC", identity)));
         double[] result = new double[3];
         profile.ToXyz([0.5], result);
-        Assert.Equal(new double[] { 0.4821, 0.5, 0.41245 }, result);
+        Assert.Equal([0.4821, 0.5, 0.41245], result);
         double[] gray = new double[1];
         profile.FromXyz(result, gray);
         Assert.Equal(0.5, gray[0]);
@@ -1360,7 +1360,7 @@ public sealed class PdfIccProfileTransformTests
         double scale = sixteen ? 65535d : 255;
         double[] encoded = lab ? sixteen ? [65280 / scale, 32768 / scale, 32768 / scale]
             : [1, 128 / scale, 128 / scale]
-            : Enumerable.Repeat((sixteen ? 32768 : 128) / scale, 3).ToArray();
+            : [.. Enumerable.Repeat((sixteen ? 32768 : 128) / scale, 3)];
         for (int channel = 0; channel < 3; channel++) Assert.Equal(encoded[channel], result[channel], 10);
     }
 

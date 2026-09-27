@@ -14,7 +14,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
     internal sealed class GenericRegion : IRegion
     {
         private SubInputStream subInputStream;
-        private long dataHeaderOffset = 0;
+        private readonly long dataHeaderOffset = 0;
         private long dataHeaderLength;
         private long dataOffset;
         private long dataLength;
@@ -139,12 +139,9 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 if (IsMMREncoded)
                 {
                     // MMR DECODER CALL
-                    if (mmrDecompressor is null)
-                    {
-                        mmrDecompressor = new MMRDecompressor(RegionInfo.BitmapWidth,
+                    mmrDecompressor ??= new MMRDecompressor(RegionInfo.BitmapWidth,
                                 RegionInfo.BitmapHeight,
                                 new SubInputStream(subInputStream, dataOffset, dataLength));
-                    }
 
                     // 6.2.6
                     regionBitmap = mmrDecompressor.Uncompress();

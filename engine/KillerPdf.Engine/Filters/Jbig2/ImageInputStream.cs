@@ -8,9 +8,14 @@ namespace KillerPdf.Engine.Filters.Jbig2
     using System;
     using System.IO;
 
-    internal sealed class ImageInputStream : AbstractImageInputStream
+    /// <summary>
+    /// Constructs a <see cref="ImageInputStream"/> that will read the image data
+    /// from a given <see cref="Stream"/>.
+    /// </summary>
+    /// <param name="input">the <see cref="Stream"/> to read the image data from.></param>
+    internal sealed class ImageInputStream(Stream input) : AbstractImageInputStream
     {
-        private readonly Stream inner;
+        private readonly Stream inner = input ?? throw new ArgumentNullException(nameof(input));
 
         /// <inheritdoc />
         public override long Length => inner.Length;
@@ -35,16 +40,6 @@ namespace KillerPdf.Engine.Filters.Jbig2
         public ImageInputStream(ReadOnlyMemory<byte> bytes)
             : this(new MemoryStream(bytes.ToArray(), writable: false))
         { }
-
-        /// <summary>
-        /// Constructs a <see cref="ImageInputStream"/> that will read the image data
-        /// from a given <see cref="Stream"/>.
-        /// </summary>
-        /// <param name="input">the <see cref="Stream"/> to read the image data from.></param>
-        public ImageInputStream(Stream input)
-        {
-            inner = input ?? throw new ArgumentNullException(nameof(input));
-        }
 
         /// <inheritdoc />
         public override void Seek(long pos)
@@ -84,7 +79,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             SetBitOffset(0);
 
 #if NET
-            return inner.Read(b.Slice(0, len));
+            return inner.Read(b[..len]);
 #else
             byte[] tempArray = new byte[len];
             int read = inner.Read(tempArray, 0, len);

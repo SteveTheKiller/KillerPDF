@@ -121,7 +121,7 @@ public sealed class PdfOcrRecognitionModel
         ReadOnlyMemory<float> biases)
     {
         ArgumentNullException.ThrowIfNull(labels);
-        string[] names = labels.ToArray();
+        string[] names = [.. labels];
         return CreateCore(width, height, names, weights, biases,
             new float[names.Length]);
     }
@@ -131,7 +131,7 @@ public sealed class PdfOcrRecognitionModel
         ReadOnlyMemory<float> biases, ReadOnlyMemory<float> priors)
     {
         ArgumentNullException.ThrowIfNull(labels);
-        return CreateCore(width, height, labels.ToArray(), weights, biases, priors);
+        return CreateCore(width, height, [.. labels], weights, biases, priors);
     }
 
     private static PdfOcrRecognitionModel CreateCore(int width, int height,
@@ -170,7 +170,7 @@ public sealed class PdfOcrRecognitionModel
         IEnumerable<PdfOcrRecognitionModel> models)
     {
         ArgumentNullException.ThrowIfNull(models);
-        PdfOcrRecognitionModel[] supplied = models.ToArray();
+        PdfOcrRecognitionModel[] supplied = [.. models];
         if (supplied.Length is < 1 or > 16 || supplied.Any(model => model is null))
             throw new ArgumentException(
                 "One through sixteen OCR recognition models are required.", nameof(models));
@@ -212,9 +212,8 @@ public sealed class PdfOcrRecognitionModel
         IEnumerable<PdfOcrRecognitionModel> models, int maximumModelValues = int.MaxValue)
     {
         ArgumentNullException.ThrowIfNull(models);
-        if (maximumModelValues <= 0)
-            throw new ArgumentOutOfRangeException(nameof(maximumModelValues));
-        PdfOcrRecognitionModel[] supplied = models.ToArray();
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumModelValues);
+        PdfOcrRecognitionModel[] supplied = [.. models];
         if (supplied.Length is < 1 or > 16 || supplied.Any(model => model is null))
             throw new ArgumentException(
                 "One through sixteen OCR recognition models are required.", nameof(models));
@@ -326,7 +325,7 @@ public sealed class PdfOcrRecognitionModel
     private static IEnumerable<int> SelectManyRoundRobin(
         IEnumerable<int[]> groups, int maximumCount)
     {
-        int[][] ordered = groups.ToArray();
+        int[][] ordered = [.. groups];
         for (int offset = 0, count = 0; count < maximumCount; offset++)
         {
             bool found = false;
@@ -813,8 +812,7 @@ public sealed class PdfOcrRecognitionModel
         if (prototypeScores.Length < _labels.Length)
             throw new ArgumentException("OCR prototype scores are incomplete.",
                 nameof(prototypeScores));
-        if (maximumCandidates <= 0)
-            throw new ArgumentOutOfRangeException(nameof(maximumCandidates));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumCandidates);
         int capacity = Math.Min(maximumCandidates, allowedLabels is null
             ? Labels.Count : Labels.Count(allowedLabels.Contains));
         var candidates = new PdfOcrLanguageCandidate[capacity];

@@ -94,7 +94,7 @@ public static class PdfFdfFormData
             EmbeddedSourcePdf = embeddedSourcePdf,
             Fields = Array.AsReadOnly(fields.ToArray()),
             Annotations = Array.AsReadOnly(annotations.ToArray()),
-            ContainsJavaScript = ContainsScript(root, new HashSet<(int, int)>(), 0),
+            ContainsJavaScript = ContainsScript(root, [], 0),
             ContainsSignature = fdf.ContainsKey(Name("Sig")),
             ContainsIncrementalDifferences = fdf.ContainsKey(Name("Differences"))
         };
@@ -162,7 +162,7 @@ public static class PdfFdfFormData
                 ? Resolve(rectangleValue) as PdfArray
                     ?? throw new InvalidOperationException("An FDF annotation rectangle is not an array.")
                 : throw new InvalidOperationException("An FDF annotation has no rectangle.");
-            double[] coordinates = rectangle.Select(Number).ToArray();
+            double[] coordinates = [.. rectangle.Select(Number)];
             if (coordinates.Length != 4 || coordinates[2] < coordinates[0]
                 || coordinates[3] < coordinates[1])
                 throw new InvalidOperationException("An FDF annotation rectangle is invalid.");
@@ -202,7 +202,7 @@ public static class PdfFdfFormData
             if (!dictionary.TryGetValue(Name("C"), out PdfObject? value)) return null;
             PdfArray color = Resolve(value) as PdfArray
                 ?? throw new InvalidOperationException("An FDF annotation color is not an array.");
-            double[] components = color.Select(Number).ToArray();
+            double[] components = [.. color.Select(Number)];
             if (components.Length != 3 || components.Any(component => component is < 0 or > 1))
                 throw new InvalidOperationException("An FDF annotation RGB color is invalid.");
             return $"#{(int)Math.Round(components[0] * 255):X2}{(int)Math.Round(components[1] * 255):X2}{(int)Math.Round(components[2] * 255):X2}";
@@ -292,8 +292,10 @@ public static class PdfFdfFormData
             new(Name("FDF"), new PdfDictionary(fdfEntries))]);
         using var output = new MemoryStream();
         output.Write("%FDF-1.2\n%\xE2\xE3\xCF\xD3\n"u8);
-        var offsets = new List<long>();
-        offsets.Add(output.Position);
+        var offsets = new List<long>
+        {
+            output.Position
+        };
         PdfObjectWriter.Write(output, new PdfIndirectObject(1, 0, root, (int)offsets[0]));
         if (sourceSpecification is not null && embeddedSource is not null)
         {

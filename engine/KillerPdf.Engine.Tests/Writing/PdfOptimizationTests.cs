@@ -113,7 +113,7 @@ public sealed class PdfOptimizationTests
             new PdfOptimizationOptions { RemoveMetadata = true, PackObjects = false, CompressStructure = false });
 
         Assert.Equal([PdfOptimizationChangeKind.ConsolidateRevisions], plan.Changes);
-        Assert.True(PdfDocument.Open(plan.Apply().Data).CrossReferences.Sections.Count == 1);
+        Assert.Single(PdfDocument.Open(plan.Apply().Data).CrossReferences.Sections);
     }
 
     [Fact]

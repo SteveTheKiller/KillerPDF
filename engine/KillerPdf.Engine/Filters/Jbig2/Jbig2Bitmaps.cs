@@ -78,25 +78,14 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <returns>The combination result.</returns>
         public static byte CombineBytes(byte value1, byte value2, CombinationOperator op)
         {
-            switch (op)
+            return op switch
             {
-                case CombinationOperator.OR:
-                    return (byte)(value2 | value1);
-
-                case CombinationOperator.AND:
-                    return (byte)(value2 & value1);
-
-                case CombinationOperator.XOR:
-                    return (byte)(value2 ^ value1);
-
-                case CombinationOperator.XNOR:
-                    return (byte)~(value1 ^ value2);
-
-                case CombinationOperator.REPLACE:
-                default:
-                    // Old value is replaced by new value.
-                    return value2;
-            }
+                CombinationOperator.OR => (byte)(value2 | value1),
+                CombinationOperator.AND => (byte)(value2 & value1),
+                CombinationOperator.XOR => (byte)(value2 ^ value1),
+                CombinationOperator.XNOR => (byte)~(value1 ^ value2),
+                _ => value2,// Old value is replaced by new value.
+            };
         }
 
         /// <summary>

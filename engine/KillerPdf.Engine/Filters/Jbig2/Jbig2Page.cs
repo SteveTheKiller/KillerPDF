@@ -14,7 +14,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
     internal sealed class Jbig2Page
     {
         // This list contains all segments of this page, sorted by segment number in ascending order.
-        private readonly SortedDictionary<int, SegmentHeader> segments = new SortedDictionary<int, SegmentHeader>();
+        private readonly SortedDictionary<int, SegmentHeader> segments = [];
 
         // NOTE: page number != segmentList index
         private readonly int pageNumber;
@@ -42,7 +42,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <returns>The retrieved <see cref="SegmentHeader"/> or null.</returns>
         internal SegmentHeader GetSegment(int number)
         {
-            SegmentHeader s = segments.ContainsKey(number) ? segments[number] : null;
+            SegmentHeader s = segments.TryGetValue(number, out SegmentHeader value) ? value : null;
 
             return s ?? document?.GetGlobalSegment(number);
         }
@@ -197,7 +197,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         private List<ISegmentData> CollectPageStripes()
         {
-            List<ISegmentData> pageStripes = new List<ISegmentData>();
+            List<ISegmentData> pageStripes = [];
             foreach (SegmentHeader s in segments.Values)
             {
                 // Page 79, 5)

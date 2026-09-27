@@ -22,7 +22,7 @@ public sealed record PdfFormDataSet
     public PdfFormDataSet SelectFields(IEnumerable<string> fieldNames)
     {
         ArgumentNullException.ThrowIfNull(fieldNames);
-        string[] requested = fieldNames.ToArray();
+        string[] requested = [.. fieldNames];
         if (requested.Any(string.IsNullOrWhiteSpace)
             || requested.Distinct(StringComparer.Ordinal).Count() != requested.Length)
             throw new ArgumentException(
@@ -41,7 +41,7 @@ public sealed record PdfFormDataSet
     public PdfFormDataSet SelectAnnotationPages(IEnumerable<int> pageIndexes)
     {
         ArgumentNullException.ThrowIfNull(pageIndexes);
-        int[] requested = pageIndexes.ToArray();
+        int[] requested = [.. pageIndexes];
         if (requested.Any(page => page < 0)
             || requested.Distinct().Count() != requested.Length)
             throw new ArgumentException(

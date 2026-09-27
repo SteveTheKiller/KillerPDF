@@ -36,11 +36,9 @@ public static class PdfFormDataSourceResolver
             source = embedded;
         else
         {
-            string? path = string.IsNullOrWhiteSpace(replacementSourcePdfPath)
+            string? path = (string.IsNullOrWhiteSpace(replacementSourcePdfPath)
                 ? Resolve(data, interchangeFilePath)
-                : Path.GetFullPath(replacementSourcePdfPath);
-            if (path is null)
-                throw new FileNotFoundException(
+                : Path.GetFullPath(replacementSourcePdfPath)) ?? throw new FileNotFoundException(
                     "The FDF or XFDF data does not identify a source PDF.");
             source = File.ReadAllBytes(path);
         }

@@ -15,7 +15,7 @@ public sealed class PdfPageRendererCachePolicyTests
         var renderer = new PdfPageRenderer(source);
         var options = new PdfRenderOptions(20, 20);
         PdfRenderedPage cached = renderer.Render(0, options);
-        byte[] destination = Enumerable.Repeat((byte)77, 1700).ToArray();
+        byte[] destination = [.. Enumerable.Repeat((byte)77, 1700)];
         Assert.Empty(renderer.RenderInto(0, options, destination));
         Assert.Equal(cached.Pixels.ToArray(), destination[..1600]);
         Assert.All(destination[1600..], value => Assert.Equal(77, value));

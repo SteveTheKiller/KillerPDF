@@ -169,7 +169,7 @@ public sealed partial record PdfStructuredExportBatchReport
     {
         ArgumentOutOfRangeException.ThrowIfNegative(totalDocumentCount);
         ArgumentNullException.ThrowIfNull(results);
-        PdfStructuredExportBatchResult[] values = results.ToArray();
+        PdfStructuredExportBatchResult[] values = [.. results];
         if (values.Length > totalDocumentCount)
             throw new ArgumentException(
                 "Export batch results cannot exceed the supplied document count.", nameof(results));
@@ -258,7 +258,7 @@ public static class PdfStructuredExportBatchRunner
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(items);
-        PdfStructuredExportBatchItem[] supplied = items.ToArray();
+        PdfStructuredExportBatchItem[] supplied = [.. items];
         return new PdfStructuredExportBatchReport(supplied.Length,
             Run(supplied, format, cancellationToken));
     }
@@ -270,8 +270,8 @@ public static class PdfStructuredExportBatchRunner
     {
         ArgumentNullException.ThrowIfNull(items);
         if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
-        PdfStructuredExportBatchItem[] supplied = items.ToArray();
-        string[] outputNames = supplied.Select(item => OutputName(item.SourceName, format)).ToArray();
+        PdfStructuredExportBatchItem[] supplied = [.. items];
+        string[] outputNames = [.. supplied.Select(item => OutputName(item.SourceName, format))];
         if (outputNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() != outputNames.Length)
             throw new ArgumentException("Structured export output names must be unique.", nameof(items));
         var results = new List<PdfStructuredExportBatchResult>();
@@ -863,7 +863,7 @@ public static partial class PdfStructuredExport
     {
         ArgumentNullException.ThrowIfNull(document);
         int pageCount = PdfPageTree.Read(document).Pages.Count;
-        int[] indices = pageIndices?.ToArray() ?? Enumerable.Range(0, pageCount).ToArray();
+        int[] indices = pageIndices?.ToArray() ?? [.. Enumerable.Range(0, pageCount)];
         if (indices.Distinct().Count() != indices.Length || indices.Any(index => index < 0 || index >= pageCount))
             throw new ArgumentOutOfRangeException(nameof(pageIndices),
                 "Page indices must be unique and within the document.");

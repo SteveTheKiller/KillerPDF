@@ -57,7 +57,7 @@ public static partial class PdfNavigationMacro
         IEnumerable<PdfPageLabelMacroRange> ranges)
     {
         ArgumentNullException.ThrowIfNull(ranges);
-        PdfPageLabelMacroRange[] values = ranges.ToArray();
+        PdfPageLabelMacroRange[] values = [.. ranges];
         ValidatePageLabelRanges(values);
         return new PdfMacroStep(PdfMacroOperation.SetPageLabels,
             new Dictionary<string, string>(StringComparer.Ordinal)

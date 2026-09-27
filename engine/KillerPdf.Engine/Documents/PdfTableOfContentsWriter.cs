@@ -92,7 +92,7 @@ public static class PdfTableOfContentsWriter
     };
 
     private static string Latin1(string value) =>
-        new(value.Select(character => character <= 0xff ? character : '?').ToArray());
+        new([.. value.Select(character => character <= 0xff ? character : '?')]);
 
     private static void Validate(PdfTableOfContentsWriteOptions options)
     {

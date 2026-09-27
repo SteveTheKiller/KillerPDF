@@ -158,9 +158,9 @@ public static partial class PdfCollectionReader
                             "A collection folder has no indirect parent reference.")
                         : throw new InvalidOperationException(
                             "A collection folder has no parent reference.");
-                    var expected = folderReferences[parentId!.Value];
-                    if (parentReference.ObjectNumber != expected.ObjectNumber
-                        || parentReference.Generation != expected.Generation)
+                    var (ObjectNumber, Generation) = folderReferences[parentId!.Value];
+                    if (parentReference.ObjectNumber != ObjectNumber
+                        || parentReference.Generation != Generation)
                         throw new InvalidOperationException(
                             "A collection folder parent reference is not reciprocal.");
                 }
@@ -227,10 +227,9 @@ public static partial class PdfCollectionReader
         if (resolved is PdfName name) return [name.ValueAsLatin1()];
         if (resolved is not PdfArray array || array.Count == 0)
             throw new InvalidOperationException($"{label} is not a name or nonempty name array.");
-        return array.Select(item => Resolve(document, item) is PdfName itemName
+        return [.. array.Select(item => Resolve(document, item) is PdfName itemName
             ? itemName.ValueAsLatin1()
-            : throw new InvalidOperationException($"{label} contains a value that is not a name."))
-            .ToArray();
+            : throw new InvalidOperationException($"{label} contains a value that is not a name."))];
     }
 
     private static bool[] Booleans(
@@ -241,11 +240,10 @@ public static partial class PdfCollectionReader
         if (resolved is not PdfArray array || array.Count != keyCount)
             throw new InvalidOperationException(
                 "The collection /Sort /A array must match the number of sort keys.");
-        return array.Select(item => Resolve(document, item) is PdfBoolean itemBoolean
+        return [.. array.Select(item => Resolve(document, item) is PdfBoolean itemBoolean
             ? itemBoolean.Value
             : throw new InvalidOperationException(
-                "The collection /Sort /A array contains a value that is not Boolean."))
-            .ToArray();
+                "The collection /Sort /A array contains a value that is not Boolean."))];
     }
 
     private static PdfDictionary Dictionary(

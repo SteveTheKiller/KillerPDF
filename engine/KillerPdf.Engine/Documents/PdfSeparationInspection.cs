@@ -53,7 +53,7 @@ public static class PdfSeparationInspection
                         ?? throw new FormatException("A page resource value is not a dictionary.")
                     : new PdfDictionary([]);
                 InspectSpotUsage(content, resources, page.Index,
-                    new HashSet<(int, int)>(), 0);
+                    [], 0);
             }
         }
 

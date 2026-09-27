@@ -15,13 +15,16 @@ public partial class MainWindow
 {
     private MenuItem BuildDocumentToolsMenu()
     {
-        var menu = new MenuItem { Header = Loc("Str_DocumentTools") };
-        menu.Icon = new TextBlock
+        var menu = new MenuItem
         {
-            Text = "\uE9D2",
-            FontFamily = UiKit.IconFont,
-            FontSize = 12,
-            VerticalAlignment = VerticalAlignment.Center
+            Header = Loc("Str_DocumentTools"),
+            Icon = new TextBlock
+            {
+                Text = "\uE9D2",
+                FontFamily = UiKit.IconFont,
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            }
         };
         menu.Items.Add(MakeMenuItem(Loc("Str_DocumentTools_Preflight"),
             (_, _) => ShowDocumentReport(Loc("Str_DocumentTools_Preflight"),
@@ -350,7 +353,7 @@ public partial class MainWindow
                 PdfEngineIntegration.ReadPortfolioEditorState(_currentFile);
             var dialog = new PortfolioEditorDialog(
                 this, state.Collection,
-                state.Attachments.Select(attachment => attachment.FileName).ToArray());
+                [.. state.Attachments.Select(attachment => attachment.FileName)]);
             if (dialog.ShowDialog() != true) return;
             UndoEntry? documentUndo = CaptureDocumentUndo();
             SaveTempAndReload(

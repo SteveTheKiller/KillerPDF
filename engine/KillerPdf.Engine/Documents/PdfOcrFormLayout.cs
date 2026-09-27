@@ -24,8 +24,8 @@ public static class PdfOcrFormLayout
         int additionalRotation = 0)
     {
         ArgumentNullException.ThrowIfNull(widgets);
-        if (pixelWidth <= 0) throw new ArgumentOutOfRangeException(nameof(pixelWidth));
-        if (pixelHeight <= 0) throw new ArgumentOutOfRangeException(nameof(pixelHeight));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pixelWidth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pixelHeight);
 
         var regions = new List<PdfOcrFormRegion>();
         foreach (PdfFormWidgetInfo widget in widgets)

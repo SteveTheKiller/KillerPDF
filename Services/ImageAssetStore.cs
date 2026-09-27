@@ -31,7 +31,7 @@ internal sealed class ImageAssetStore
         var asset = new ImageAsset(id,
             string.IsNullOrWhiteSpace(name) ? Path.GetFileNameWithoutExtension(sourcePath) : name.Trim(),
             id + extension);
-        List<ImageAsset> assets = ReadAssets().ToList();
+        List<ImageAsset> assets = [.. ReadAssets()];
         assets.Add(asset);
         Directory.CreateDirectory(_directory);
         File.WriteAllBytes(Path.Combine(_directory, asset.FileName), data);
@@ -42,7 +42,7 @@ internal sealed class ImageAssetStore
     internal void Rename(string id, string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        List<ImageAsset> assets = ReadAssets().ToList();
+        List<ImageAsset> assets = [.. ReadAssets()];
         int index = Find(assets, id);
         assets[index] = assets[index] with { Name = name.Trim() };
         WriteAssets(assets);
@@ -50,7 +50,7 @@ internal sealed class ImageAssetStore
 
     internal void Remove(string id)
     {
-        List<ImageAsset> assets = ReadAssets().ToList();
+        List<ImageAsset> assets = [.. ReadAssets()];
         int index = Find(assets, id);
         string file = Path.Combine(_directory, assets[index].FileName);
         assets.RemoveAt(index);

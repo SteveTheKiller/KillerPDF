@@ -101,7 +101,7 @@ public sealed class PdfMacroTests
     public void RunReportExportsOutcomesWithoutDocumentData()
     {
         var report = new PdfMacroRunReport(3, [
-            new PdfMacroFileResult(0, new byte[] { 65, 66, 67 }, null, false),
+            new PdfMacroFileResult(0, "ABC"u8.ToArray(), null, false),
             new PdfMacroFileResult(1, null, "Invalid PDF", false)]);
 
         string json = report.ToJson();
@@ -121,7 +121,7 @@ public sealed class PdfMacroTests
     public void RunReportFormatsReadableOutcomesWithoutDocumentData()
     {
         var report = new PdfMacroRunReport(3, [
-            new PdfMacroFileResult(0, new byte[] { 65, 66, 67 }, null, false),
+            new PdfMacroFileResult(0, "ABC"u8.ToArray(), null, false),
             new PdfMacroFileResult(1, null, "Invalid PDF", false)
             {
                 FailedOperation = PdfMacroOperation.Validate
@@ -143,7 +143,7 @@ public sealed class PdfMacroTests
             new(PdfMacroOperation.Ocr), new(PdfMacroOperation.Validate)]);
 
         PdfMacroRunReport report = PdfMacroRunner.RunReport(macro,
-            [new ReadOnlyMemory<byte>(new byte[] { 7 })],
+            [new ReadOnlyMemory<byte>([7])],
             (step, input, _) => step.Operation == PdfMacroOperation.Validate
                 ? throw new InvalidOperationException("Validation failed") : input);
         PdfMacroFileResult result = Assert.Single(report.Results);

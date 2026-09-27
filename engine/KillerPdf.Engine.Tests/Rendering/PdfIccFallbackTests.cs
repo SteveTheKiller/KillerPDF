@@ -68,7 +68,7 @@ public sealed class PdfIccFallbackTests
         var spaces = new PdfDictionary([
             Entry("Space", space),
             Entry("Indexed", new PdfArray([Name("Indexed"), space, new PdfInteger(0),
-                new PdfString(new byte[] { 128 }, PdfStringForm.Hexadecimal)]))]);
+                new PdfString([128], PdfStringForm.Hexadecimal)]))]);
         if (paint == "default") spaces = new PdfDictionary(spaces.Append(Entry("DefaultGray", space)));
         var image = update.AddObject(new PdfStream(new PdfDictionary([
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)), Entry("Height", new PdfInteger(1)),

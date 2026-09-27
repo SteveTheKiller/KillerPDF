@@ -15,7 +15,7 @@ public sealed class PdfDocumentStreamOwnershipTests
     {
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
             new PdfContentStreamBuilder()).Build());
-        byte[] payload = Enumerable.Repeat((byte)42, 2 * 1024 * 1024).ToArray();
+        byte[] payload = [.. Enumerable.Repeat((byte)42, 2 * 1024 * 1024)];
         var update = new PdfIncrementalUpdateBuilder(source);
         var reference = update.AddObject(new PdfStream(new PdfDictionary([
             new(new PdfName("Length"u8), new PdfInteger(payload.Length))]), payload));
@@ -37,7 +37,7 @@ public sealed class PdfDocumentStreamOwnershipTests
     {
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
             new PdfContentStreamBuilder()).Build());
-        byte[] payload = Enumerable.Repeat((byte)42, 2 * 1024 * 1024).ToArray();
+        byte[] payload = [.. Enumerable.Repeat((byte)42, 2 * 1024 * 1024)];
         var update = new PdfIncrementalUpdateBuilder(source);
         var reference = update.AddObject(new PdfStream(new PdfDictionary([
             new(new PdfName("Length"u8), new PdfInteger(payload.Length))]), payload));

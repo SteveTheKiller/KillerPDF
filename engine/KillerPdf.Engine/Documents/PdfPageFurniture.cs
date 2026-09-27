@@ -114,7 +114,7 @@ public static class PdfPageFurnitureFormatter
     /// <summary>Formats a positive page number independently from the document page label.</summary>
     public static string FormatNumber(int number, PdfPageNumberFormat format)
     {
-        if (number <= 0) throw new ArgumentOutOfRangeException(nameof(number));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(number);
         if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
         return format switch
         {
@@ -129,7 +129,7 @@ public static class PdfPageFurnitureFormatter
 
     private static string Roman(int number)
     {
-        if (number > 3999) throw new ArgumentOutOfRangeException(nameof(number));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(number, 3999);
         (int Value, string Text)[] values = [(1000, "M"), (900, "CM"), (500, "D"),
             (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
             (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")];
@@ -301,7 +301,7 @@ public static partial class PdfPageFurnitureReport
     public static string ToJson(PdfDocument document, bool indented = false)
     {
         IReadOnlyList<PdfPageFurnitureReportEntry> entries = Inspect(document);
-        var report = new ReportFile(1, entries.Count, entries.ToArray());
+        var report = new ReportFile(1, entries.Count, [.. entries]);
         return JsonSerializer.Serialize(report, indented
             ? IndentedReportJson.ReportFile : CompactReportJson.ReportFile);
     }
@@ -404,7 +404,7 @@ public static class PdfPageFurnitureWriter
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(marks);
-        PdfPageFurnitureMark[] requested = marks.ToArray();
+        PdfPageFurnitureMark[] requested = [.. marks];
         if (requested.Length == 0)
             throw new ArgumentException("At least one page-furniture mark is required.", nameof(marks));
         IReadOnlyList<PdfPageBoxInformation> pages = PdfPageBoxInformation.Read(document);
@@ -492,7 +492,7 @@ public static class PdfPageFurnitureEditor
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(marks);
-        PdfPageFurnitureMark[] requested = marks.ToArray();
+        PdfPageFurnitureMark[] requested = [.. marks];
         byte[] removed = RemoveAll(document);
         if (requested.Length == 0) return removed;
         return PdfPageFurnitureWriter.Apply(PdfDocument.Open(removed), requested);
@@ -534,7 +534,7 @@ public static class PdfBatesNumbering
         ArgumentNullException.ThrowIfNull(options);
         if (options.StartNumber < 0) throw new ArgumentOutOfRangeException(nameof(options));
         if (options.DigitCount is < 1 or > 18) throw new ArgumentOutOfRangeException(nameof(options));
-        int[] counts = documentPageCounts.ToArray();
+        int[] counts = [.. documentPageCounts];
         if (counts.Any(count => count < 0))
             throw new ArgumentException("Document page counts cannot be negative.", nameof(documentPageCounts));
         long pageCount = counts.Aggregate(0L, (total, count) => checked(total + count));
@@ -565,17 +565,17 @@ public static class PdfBatesNumbering
         ArgumentNullException.ThrowIfNull(documents);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(createMark);
-        PdfDocument[] sources = documents.ToArray();
-        int[] pageCounts = sources.Select(document =>
+        PdfDocument[] sources = [.. documents];
+        int[] pageCounts = [.. sources.Select(document =>
         {
             ArgumentNullException.ThrowIfNull(document);
             return PdfPageBoxInformation.Read(document).Count;
-        }).ToArray();
+        })];
         IReadOnlyList<PdfBatesNumber> numbers = Plan(pageCounts, options);
         var outputs = new List<byte[]>(sources.Length);
         for (int documentIndex = 0; documentIndex < sources.Length; documentIndex++)
         {
-            PdfPageFurnitureMark[] marks = numbers
+            PdfPageFurnitureMark[] marks = [.. numbers
                 .Where(number => number.DocumentIndex == documentIndex)
                 .Select(number =>
                 {
@@ -586,7 +586,7 @@ public static class PdfBatesNumbering
                         throw new InvalidOperationException(
                             "The Bates mark page does not match its assigned number.");
                     return mark;
-                }).ToArray();
+                })];
             outputs.Add(marks.Length == 0
                 ? sources[documentIndex].Source.ToArray()
                 : PdfPageFurnitureWriter.Apply(sources[documentIndex], marks));
@@ -602,12 +602,12 @@ public static class PdfBatesNumbering
     {
         ArgumentNullException.ThrowIfNull(inputs);
         ArgumentNullException.ThrowIfNull(options);
-        PdfBatesBatchInput[] values = inputs.Select(input => input
-            ?? throw new ArgumentException("A Bates batch input cannot be null.", nameof(inputs))).ToArray();
+        PdfBatesBatchInput[] values = [.. inputs.Select(input => input
+            ?? throw new ArgumentException("A Bates batch input cannot be null.", nameof(inputs)))];
         if (string.IsNullOrWhiteSpace(options.OutputNameSuffix)
             || options.OutputNameSuffix.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
             throw new ArgumentException("The Bates output-name suffix is invalid.", nameof(options));
-        string[] outputNames = values.Select(input => OutputName(input.Name, options.OutputNameSuffix)).ToArray();
+        string[] outputNames = [.. values.Select(input => OutputName(input.Name, options.OutputNameSuffix))];
         if (outputNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() != outputNames.Length)
             throw new ArgumentException("Bates batch output names must be unique.", nameof(inputs));
         IReadOnlyList<byte[]> data = ApplyBatch(values.Select(input => input.Document), options, createMark);

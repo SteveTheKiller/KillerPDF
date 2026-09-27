@@ -15,49 +15,20 @@ namespace KillerPdf.Engine.Filters.Jbig2
     {
         private static ISegmentData CreateSegmentData(int segmentType)
         {
-            switch (segmentType)
+            return segmentType switch
             {
-                case 0:
-                    return new SymbolDictionary();
-
-                case 4:
-                case 6:
-                case 7:
-                    return new TextRegion();
-
-                case 16:
-                    return new PatternDictionary();
-
-                case 20:
-                case 22:
-                case 23:
-                    return new HalftoneRegion();
-
-                case 36:
-                case 38:
-                case 39:
-                    return new GenericRegion();
-
-                case 40:
-                case 42:
-                case 43:
-                    return new GenericRefinementRegion();
-
-                case 48:
-                    return new PageInformation();
-
-                case 50:
-                    return new EndOfStripe();
-
-                case 52:
-                    return new Profiles();
-
-                case 53:
-                    return new Table();
-
-                default:
-                    throw new InvalidOperationException($"No segment class for type {segmentType}.");
-            }
+                0 => new SymbolDictionary(),
+                4 or 6 or 7 => new TextRegion(),
+                16 => new PatternDictionary(),
+                20 or 22 or 23 => new HalftoneRegion(),
+                36 or 38 or 39 => new GenericRegion(),
+                40 or 42 or 43 => new GenericRefinementRegion(),
+                48 => new PageInformation(),
+                50 => new EndOfStripe(),
+                52 => new Profiles(),
+                53 => new Table(),
+                _ => throw new InvalidOperationException($"No segment class for type {segmentType}."),
+            };
         }
 
         private readonly SubInputStream subInputStream;
@@ -304,7 +275,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         public override string ToString()
         {
-            StringBuilder stringBuilder = new StringBuilder();
+            StringBuilder stringBuilder = new();
 
             if (RtSegments != null)
             {

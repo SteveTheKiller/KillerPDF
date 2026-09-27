@@ -38,7 +38,7 @@ public sealed partial class PdfPageRenderer
                 for (int channel = 0; channel < 4; channel++) source[channel] = (byte)(ink >> (channel * 8)) / 255d;
                 if (color.Connection is { } connection)
                 {
-                    ReadOnlySpan<double> xyz = stackalloc double[3] { connection.X, connection.Y, connection.Z };
+                    ReadOnlySpan<double> xyz = [connection.X, connection.Y, connection.Z];
                     profile.FromXyz(xyz, destination);
                 }
                 else color.InkProfile.ConvertTo(profile, source, destination);
@@ -50,7 +50,7 @@ public sealed partial class PdfPageRenderer
             if (color.Connection is { } connection)
             {
                 Span<double> destination = stackalloc double[4];
-                ReadOnlySpan<double> xyz = stackalloc double[3] { connection.X, connection.Y, connection.Z };
+                ReadOnlySpan<double> xyz = [connection.X, connection.Y, connection.Z];
                 profile.FromXyz(xyz, destination);
                 return Color.Cmyk(destination[0], destination[1], destination[2], destination[3]).Ink!.Value;
             }

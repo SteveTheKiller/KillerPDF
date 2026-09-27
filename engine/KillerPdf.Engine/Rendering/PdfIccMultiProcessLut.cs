@@ -42,7 +42,7 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
             if (start == 0) return default;
             int end = data.Length;
             foreach (int candidate in offsets) if (candidate > start && candidate < end) end = candidate;
-            return data.Slice(start, end - start);
+            return data[start..end];
         }
         if (offsets[0] == 0 || (offsets[1] == 0) != (offsets[2] == 0)
             || (offsets[3] == 0) != (offsets[4] == 0)

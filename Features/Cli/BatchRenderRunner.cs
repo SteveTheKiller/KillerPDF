@@ -110,7 +110,7 @@ namespace KillerPDF.Features
             {
                 string inRoot = Path.GetFullPath(input).TrimEnd('\\', '/');
                 foreach (var f in Directory.GetFiles(inRoot, "*.pdf", SearchOption.AllDirectories))
-                    work.Add((f.Substring(inRoot.Length).TrimStart('\\', '/'), f));
+                    work.Add((f[inRoot.Length..].TrimStart('\\', '/'), f));
             }
             else
             {
@@ -266,7 +266,7 @@ namespace KillerPDF.Features
 
         private static string Csv(string s)
         {
-            if (s.IndexOfAny(new[] { ',', '"', '\r', '\n' }) < 0) return s;
+            if (s.IndexOfAny([',', '"', '\r', '\n']) < 0) return s;
             return "\"" + s.Replace("\"", "\"\"") + "\"";
         }
     }

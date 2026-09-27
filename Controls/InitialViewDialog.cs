@@ -78,11 +78,11 @@ internal sealed class InitialViewDialog : Window
 
     private void Commit()
     {
-        int? pageIndex = null;
-        PdfDestination? destination = null;
         string? namedDestination = null;
         string pageText = _page.Text.Trim();
         ZoomChoice zoom = ((Choice<ZoomChoice>)_zoom.SelectedItem).Value;
+        int? pageIndex;
+        PdfDestination? destination;
         if (pageText.Length == 0 && zoom == ZoomChoice.Preserve)
         {
             pageIndex = _current.PageIndex;

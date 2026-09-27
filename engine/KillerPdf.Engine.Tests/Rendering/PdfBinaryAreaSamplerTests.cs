@@ -15,7 +15,7 @@ public sealed class PdfBinaryAreaSamplerTests
     {
         const int width = 257, height = 19, rowBytes = 33;
         const uint zero = 0x12EF34CD, one = 0xFE019876;
-        byte[] samples = Enumerable.Range(0, rowBytes * height).Select(index => (byte)(index * 37 + 91)).ToArray();
+        byte[] samples = [.. Enumerable.Range(0, rowBytes * height).Select(index => (byte)(index * 37 + 91))];
         for (int y = 0; y < outputHeight; y++)
         for (int x = 0; x < outputWidth; x++)
         {

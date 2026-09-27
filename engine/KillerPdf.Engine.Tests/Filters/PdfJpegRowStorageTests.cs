@@ -64,7 +64,7 @@ public sealed class PdfJpegRowStorageTests
         var frame = new List<byte> { 8, (byte)(height >> 8), (byte)height, (byte)(width >> 8), (byte)width, (byte)components };
         for (int c = 0; c < components; c++)
             frame.AddRange([(byte)(c + 1), c == 0 ? (byte)(horizontal * 16 + vertical) : (byte)0x11, 0]);
-        Segment(progressive ? (byte)0xc2 : (byte)0xc0, frame.ToArray());
+        Segment(progressive ? (byte)0xc2 : (byte)0xc0, [.. frame]);
         byte[] dcCounts = new byte[16];
         dcCounts[3] = 12;
         Segment(0xc4, [0, .. dcCounts, .. Enumerable.Range(0, 12).Select(i => (byte)i),
@@ -72,7 +72,7 @@ public sealed class PdfJpegRowStorageTests
         var scan = new List<byte> { (byte)components };
         for (int c = 0; c < components; c++) scan.AddRange([(byte)(c + 1), 0]);
         scan.AddRange([0, progressive ? (byte)0 : (byte)63, 0]);
-        Segment(0xda, scan.ToArray());
+        Segment(0xda, [.. scan]);
         int pending = 0, bits = 0;
         void Write(int value, int count)
         {
@@ -103,6 +103,6 @@ public sealed class PdfJpegRowStorageTests
                         }
         if (bits != 0) Write((1 << (8 - bits)) - 1, 8 - bits);
         bytes.AddRange([0xff, 0xd9]);
-        return bytes.ToArray();
+        return [.. bytes];
     }
 }

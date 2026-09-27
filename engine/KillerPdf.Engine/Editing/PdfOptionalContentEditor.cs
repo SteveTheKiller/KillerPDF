@@ -33,8 +33,7 @@ public static class PdfOptionalContentEditor
         PdfDocument document, int annotationObjectNumber, int? groupObjectNumber)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (annotationObjectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(annotationObjectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(annotationObjectNumber);
         PdfOptionalContentGroupInfo? group = groupObjectNumber.HasValue
             ? FindGroup(PdfOptionalContentReader.Read(document), groupObjectNumber.Value)
             : null;
@@ -42,9 +41,7 @@ public static class PdfOptionalContentEditor
         PdfIndirectReference? annotationReference = tree.Pages
             .Select(page => FindAnnotation(
                 page.Dictionary.GetValueOrDefault(AnnotationsKey), annotationObjectNumber))
-            .FirstOrDefault(reference => reference is not null);
-        if (annotationReference is null)
-            throw new KeyNotFoundException(
+            .FirstOrDefault(reference => reference is not null) ?? throw new KeyNotFoundException(
                 $"Annotation {annotationObjectNumber} was not found on a page.");
         PdfDictionary annotation = document.Resolve(annotationReference) as PdfDictionary
             ?? throw new InvalidOperationException("The annotation is not a dictionary.");
@@ -86,8 +83,7 @@ public static class PdfOptionalContentEditor
         PdfDocument document, int pageIndex, int groupObjectNumber)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (groupObjectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(groupObjectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(groupObjectNumber);
         PdfOptionalContentGroupInfo group = FindGroup(
             PdfOptionalContentReader.Read(document), groupObjectNumber);
         PdfPageTree tree = PdfPageTree.Read(document);
@@ -164,8 +160,7 @@ public static class PdfOptionalContentEditor
         int instructionCount, int groupObjectNumber)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (groupObjectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(groupObjectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(groupObjectNumber);
         PdfOptionalContentGroupInfo group = FindGroup(
             PdfOptionalContentReader.Read(document), groupObjectNumber);
         PdfPageTree tree = PdfPageTree.Read(document);
@@ -258,9 +253,8 @@ public static class PdfOptionalContentEditor
         EnsureNoNestedOptionalContent();
         var registered = info.Groups.Select(group => group.ObjectNumber).ToHashSet();
         HashSet<int> visible = visibleGroupObjectNumbers is null
-            ? info.Groups.Where(group => group.IsInitiallyVisible)
-                .Select(group => group.ObjectNumber).ToHashSet()
-            : visibleGroupObjectNumbers.ToHashSet();
+            ? [.. info.Groups.Where(group => group.IsInitiallyVisible).Select(group => group.ObjectNumber)]
+            : [.. visibleGroupObjectNumbers];
         if (!visible.IsSubsetOf(registered))
             throw new ArgumentOutOfRangeException(nameof(visibleGroupObjectNumbers),
                 "The visible set contains an unregistered optional-content group.");
@@ -575,10 +569,8 @@ public static class PdfOptionalContentEditor
         PdfDocument document, int sourceObjectNumber, int targetObjectNumber)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (sourceObjectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(sourceObjectNumber));
-        if (targetObjectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(targetObjectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sourceObjectNumber);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(targetObjectNumber);
         if (sourceObjectNumber == targetObjectNumber)
             throw new ArgumentException("A layer cannot be merged into itself.",
                 nameof(targetObjectNumber));
@@ -793,8 +785,7 @@ public static class PdfOptionalContentEditor
         PdfDocument document, int objectNumber, string name)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (objectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(objectNumber);
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A layer name is required.", nameof(name));
         PdfOptionalContentInfo info = PdfOptionalContentReader.Read(document);
@@ -827,8 +818,7 @@ public static class PdfOptionalContentEditor
     public static byte[] RemoveUnusedGroup(PdfDocument document, int objectNumber)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (objectNumber <= 0)
-            throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(objectNumber);
         PdfOptionalContentInfo info = PdfOptionalContentReader.Read(document);
         PdfOptionalContentGroupInfo group = FindGroup(info, objectNumber);
         var target = new PdfIndirectReference(group.ObjectNumber, group.Generation);
@@ -967,7 +957,7 @@ public static class PdfOptionalContentEditor
     public static byte[] RenameGroup(PdfDocument document, int objectNumber, string name)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (objectNumber <= 0) throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(objectNumber);
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A layer name is required.", nameof(name));
         PdfOptionalContentInfo info = PdfOptionalContentReader.Read(document);
@@ -1000,7 +990,7 @@ public static class PdfOptionalContentEditor
         PdfDocument document, int objectNumber, bool visible)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (objectNumber <= 0) throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(objectNumber);
         PdfOptionalContentGroupInfo group = FindGroup(
             PdfOptionalContentReader.Read(document), objectNumber);
         PdfPageTree tree = PdfPageTree.Read(document);
@@ -1051,7 +1041,7 @@ public static class PdfOptionalContentEditor
     public static byte[] SetLocked(PdfDocument document, int objectNumber, bool locked)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (objectNumber <= 0) throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(objectNumber);
         PdfOptionalContentGroupInfo group = FindGroup(
             PdfOptionalContentReader.Read(document), objectNumber);
         PdfPageTree tree = PdfPageTree.Read(document);
@@ -1326,7 +1316,7 @@ public static class PdfOptionalContentEditor
         string categoryName, string stateName, bool? visible)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (objectNumber <= 0) throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(objectNumber);
         PdfOptionalContentGroupInfo group = FindGroup(
             PdfOptionalContentReader.Read(document), objectNumber);
         var reference = new PdfIndirectReference(group.ObjectNumber, group.Generation);

@@ -153,7 +153,7 @@ public static class PdfContentTransformation
         var encoded = replacements.Select(item => (
             Find: Encoding.Latin1.GetBytes(item.Key),
             Replace: Encoding.Latin1.GetBytes(item.Value))).ToArray();
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         var result = source.ToArray();
         replacementCount = 0;
         for (int index = 0; index < result.Length; index++)
@@ -168,7 +168,7 @@ public static class PdfContentTransformation
             else if (instruction.Operator == "TJ"
                 && instruction.Operands is [PdfArray array])
             {
-                PdfObject[] items = array.ToArray();
+                PdfObject[] items = [.. array];
                 bool changed = false;
                 for (int itemIndex = 0; itemIndex < items.Length; itemIndex++)
                 {
@@ -224,10 +224,10 @@ public static class PdfContentTransformation
     {
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(textObjectIndexes);
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
 
-        int[] requested = textObjectIndexes.ToArray();
+        int[] requested = [.. textObjectIndexes];
         if (requested.Any(index => index < 0 || index >= ranges.Count)
             || requested.Distinct().Count() != requested.Length)
             throw new ArgumentException(
@@ -260,7 +260,7 @@ public static class PdfContentTransformation
     {
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(replacements);
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
         if (replacements.Keys.Any(index => index < 0 || index >= ranges.Count))
             throw new ArgumentException(
@@ -316,9 +316,9 @@ public static class PdfContentTransformation
     {
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(textObjectIndexes);
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
-        int[] requested = textObjectIndexes.ToArray();
+        int[] requested = [.. textObjectIndexes];
         if (requested.Any(index => index < 0 || index >= ranges.Count)
             || requested.Distinct().Count() != requested.Length)
             throw new ArgumentException(
@@ -363,15 +363,15 @@ public static class PdfContentTransformation
         if (renderingMode is < 0 or > 7)
             throw new ArgumentOutOfRangeException(nameof(renderingMode),
                 "Text rendering mode must be between zero and seven.");
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
-        int[] requested = textObjectIndexes.ToArray();
+        int[] requested = [.. textObjectIndexes];
         if (requested.Any(index => index < 0 || index >= ranges.Count)
             || requested.Distinct().Count() != requested.Length)
             throw new ArgumentException(
                 "Selected text-object indexes must be valid and unique.",
                 nameof(textObjectIndexes));
-        HashSet<int> selected = requested.ToHashSet();
+        HashSet<int> selected = [.. requested];
         var result = new List<PdfContentInstruction>(source.Length + selected.Count);
         for (int objectIndex = 0; objectIndex < ranges.Count; objectIndex++)
         {
@@ -416,10 +416,10 @@ public static class PdfContentTransformation
     {
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(pathIndexes);
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         IReadOnlyList<(int Start, int End, bool Clipping)> ranges = PaintedPathRanges(source);
 
-        int[] requested = pathIndexes.ToArray();
+        int[] requested = [.. pathIndexes];
         if (requested.Any(index => index < 0 || index >= ranges.Count)
             || requested.Distinct().Count() != requested.Length)
             throw new ArgumentException(
@@ -449,7 +449,7 @@ public static class PdfContentTransformation
     {
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(replacements);
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         IReadOnlyList<(int Start, int End, bool Clipping)> ranges = PaintedPathRanges(source);
         if (replacements.Keys.Any(index => index < 0 || index >= ranges.Count))
             throw new ArgumentException(
@@ -505,9 +505,9 @@ public static class PdfContentTransformation
     {
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(pathIndexes);
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         IReadOnlyList<(int Start, int End, bool Clipping)> ranges = PaintedPathRanges(source);
-        int[] requested = pathIndexes.ToArray();
+        int[] requested = [.. pathIndexes];
         if (requested.Any(index => index < 0 || index >= ranges.Count)
             || requested.Distinct().Count() != requested.Length)
             throw new ArgumentException(
@@ -610,7 +610,7 @@ public static class PdfContentTransformation
     {
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(changes);
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         if (changes.Keys.Any(index => index < 0 || index >= source.Length))
             throw new ArgumentOutOfRangeException(nameof(changes), "A changed instruction index is outside the stream.");
         var result = new List<PdfContentInstruction>(source.Length);
@@ -629,7 +629,7 @@ public static class PdfContentTransformation
         IEnumerable<PdfContentInstruction> instructions, PdfContentTransformMatrix matrix)
     {
         ArgumentNullException.ThrowIfNull(instructions);
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         var result = new List<PdfContentInstruction>(source.Length + 3)
         {
             new("q", 0, []),
@@ -648,7 +648,7 @@ public static class PdfContentTransformation
         PdfContentTransformMatrix matrix)
     {
         ArgumentNullException.ThrowIfNull(instructions);
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         if (startIndex < 0 || count <= 0 || startIndex > source.Length - count)
             throw new ArgumentOutOfRangeException(nameof(startIndex),
                 "The transformed instruction range is outside the stream.");
@@ -680,13 +680,13 @@ public static class PdfContentTransformation
         if (resourceName.Bytes.IsEmpty)
             throw new ArgumentException("An XObject resource name is required.",
                 nameof(resourceName));
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         int[] placements = [.. source.Select((instruction, index) => (instruction, index))
             .Where(item => item.instruction.Operator == "Do"
                 && item.instruction.Operands is [PdfName name]
                 && name.Equals(resourceName))
             .Select(item => item.index)];
-        int[] requested = occurrenceIndexes.ToArray();
+        int[] requested = [.. occurrenceIndexes];
         if (requested.Any(index => index < 0 || index >= placements.Length)
             || requested.Distinct().Count() != requested.Length)
             throw new ArgumentException(
@@ -726,19 +726,19 @@ public static class PdfContentTransformation
         if (resourceName.Bytes.IsEmpty)
             throw new ArgumentException("An XObject resource name is required.",
                 nameof(resourceName));
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         int[] placements = [.. source.Select((instruction, index) => (instruction, index))
             .Where(item => item.instruction.Operator == "Do"
                 && item.instruction.Operands is [PdfName name]
                 && name.Equals(resourceName))
             .Select(item => item.index)];
-        int[] requested = occurrenceIndexes.ToArray();
+        int[] requested = [.. occurrenceIndexes];
         if (requested.Any(index => index < 0 || index >= placements.Length)
             || requested.Distinct().Count() != requested.Length)
             throw new ArgumentException(
                 "Selected XObject occurrence indexes must be valid and unique.",
                 nameof(occurrenceIndexes));
-        HashSet<int> removed = requested.Select(index => placements[index]).ToHashSet();
+        HashSet<int> removed = [.. requested.Select(index => placements[index])];
         return Array.AsReadOnly(source.Where((_, index) => !removed.Contains(index)).ToArray());
     }
 
@@ -756,7 +756,7 @@ public static class PdfContentTransformation
         PdfContentInstruction[] source = ValidateNamedPlacements(
             instructions, resourceName, occurrenceIndexes, "Do", "XObject",
             out HashSet<int> selected);
-        PdfContentInstruction[] result = source.ToArray();
+        PdfContentInstruction[] result = [.. source];
         foreach (int index in selected)
             result[index] = new PdfContentInstruction(
                 "Do", source[index].Offset, [replacementResourceName]);
@@ -846,19 +846,19 @@ public static class PdfContentTransformation
         if (resourceName.Bytes.IsEmpty)
             throw new ArgumentException($"A {kind} resource name is required.",
                 nameof(resourceName));
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         int[] placements = [.. source.Select((instruction, index) => (instruction, index))
             .Where(item => item.instruction.Operator == operation
                 && item.instruction.Operands is [PdfName name]
                 && name.Equals(resourceName))
             .Select(item => item.index)];
-        int[] requested = occurrenceIndexes.ToArray();
+        int[] requested = [.. occurrenceIndexes];
         if (requested.Any(index => index < 0 || index >= placements.Length)
             || requested.Distinct().Count() != requested.Length)
             throw new ArgumentException(
                 $"Selected {kind} occurrence indexes must be valid and unique.",
                 nameof(occurrenceIndexes));
-        selected = requested.Select(index => placements[index]).ToHashSet();
+        selected = [.. requested.Select(index => placements[index])];
         return source;
     }
 
@@ -870,7 +870,7 @@ public static class PdfContentTransformation
         bool evenOdd = false)
     {
         ArgumentNullException.ThrowIfNull(instructions);
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         if (startIndex < 0 || count <= 0 || startIndex > source.Length - count)
             throw new ArgumentOutOfRangeException(nameof(startIndex),
                 "The clipped instruction range is outside the stream.");
@@ -925,7 +925,7 @@ public static class PdfContentTransformation
         IReadOnlyList<double> components, bool fill, bool stroke)
     {
         ArgumentNullException.ThrowIfNull(instructions);
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         if (startIndex < 0 || count <= 0 || startIndex > source.Length - count)
             throw new ArgumentOutOfRangeException(nameof(startIndex),
                 "The recolored instruction range is outside the stream.");
@@ -957,7 +957,7 @@ public static class PdfContentTransformation
         if (!double.IsFinite(fontSize) || fontSize <= 0)
             throw new ArgumentOutOfRangeException(nameof(fontSize),
                 "Text font size must be finite and positive.");
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         if (startIndex < 0 || count <= 0 || startIndex > source.Length - count)
             throw new ArgumentOutOfRangeException(nameof(startIndex),
                 "The resized text instruction range is outside the stream.");
@@ -984,7 +984,7 @@ public static class PdfContentTransformation
         ArgumentNullException.ThrowIfNull(fontResource);
         if (fontResource.Bytes.IsEmpty)
             throw new ArgumentException("A font resource name is required.", nameof(fontResource));
-        PdfContentInstruction[] source = instructions.ToArray();
+        PdfContentInstruction[] source = [.. instructions];
         if (startIndex < 0 || count <= 0 || startIndex > source.Length - count)
             throw new ArgumentOutOfRangeException(nameof(startIndex),
                 "The substituted text instruction range is outside the stream.");

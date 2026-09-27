@@ -109,7 +109,7 @@ public sealed class PdfOcrLanguageModel
     public static PdfOcrLanguageModel Combine(IEnumerable<PdfOcrLanguageModel> models)
     {
         ArgumentNullException.ThrowIfNull(models);
-        PdfOcrLanguageModel[] supplied = models.ToArray();
+        PdfOcrLanguageModel[] supplied = [.. models];
         if (supplied.Length is < 1 or > 16 || supplied.Any(model => model is null))
             throw new ArgumentException(
                 "One through sixteen OCR language models are required.", nameof(models));

@@ -76,7 +76,7 @@ public sealed partial record PdfPrintProductionReport(
 
     /// <summary>Exports stable JSON without embedding ICC profile bytes.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new ReportFile(1, Pages.ToArray(), Colorants.ToArray(),
+        new ReportFile(1, [.. Pages], [.. Colorants],
             [.. OutputIntents.Select(intent => new OutputIntentFile(
                 intent.Subtype, intent.OutputConditionIdentifier,
                 intent.OutputCondition, intent.RegistryName, intent.Information,

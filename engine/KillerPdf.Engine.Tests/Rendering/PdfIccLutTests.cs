@@ -18,7 +18,7 @@ public sealed class PdfIccLutTests
         Assert.Equal(0.5, result[1], 10);
         Assert.Equal(0.75, result[2], 10);
         lut.Transform([-1, 2, 1, 1], result);
-        Assert.Equal(new double[] { 0, 1, 1 }, result);
+        Assert.Equal([0, 1, 1], result);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed class PdfIccLutTests
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int index = 0; index < 1000; index++) lut.Transform(values, values);
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
-        Assert.Equal(new double[] { 0.25, 0.5, 0.75 }, values);
+        Assert.Equal([0.25, 0.5, 0.75], values);
     }
 
     [Theory]

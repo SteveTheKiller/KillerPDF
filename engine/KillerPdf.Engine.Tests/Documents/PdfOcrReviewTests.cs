@@ -208,10 +208,9 @@ public sealed class PdfOcrReviewTests
     [Fact]
     public void BatchRunnerBoundsParallelismAndPreservesInputOrder()
     {
-        PdfOcrBatchPage[] pages = Enumerable.Range(0, 8)
+        PdfOcrBatchPage[] pages = [.. Enumerable.Range(0, 8)
             .Select(index => new PdfOcrBatchPage(
-                $"page-{index}.pdf", index, new byte[] { (byte)index }))
-            .ToArray();
+                $"page-{index}.pdf", index, new byte[] { (byte)index }))];
         int running = 0, maximumRunning = 0;
 
         IReadOnlyList<PdfOcrBatchResult> results = PdfOcrBatchRunner.Run(

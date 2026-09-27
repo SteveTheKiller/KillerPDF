@@ -50,8 +50,8 @@ public sealed class PdfPageRendererTransparencyBandTests
         {
             Assert.Equal(new byte[] { 128, 128, 255, 255 }, Pixel(100, y));
             Assert.Equal(knockout
-                ? new byte[] { 255, 191, 191, 255 }
-                : new byte[] { 192, 128, 192, 255 }, Pixel(750, y));
+                ? [255, 191, 191, 255]
+                : [192, 128, 192, 255], Pixel(750, y));
             Assert.Equal(new byte[] { 255, 191, 191, 255 }, Pixel(1400, y));
         }
 

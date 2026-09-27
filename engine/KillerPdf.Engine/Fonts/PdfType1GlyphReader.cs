@@ -393,8 +393,8 @@ internal sealed class PdfType1GlyphReader
             Include(_x, _y);
             _x += dx; _y += dy;
             Include(_x, _y);
-            var end = Transform(_x, _y);
-            _contour?.Add(new PdfGlyphPoint(end.X, end.Y, true));
+            var (X, Y) = Transform(_x, _y);
+            _contour?.Add(new PdfGlyphPoint(X, Y, true));
         }
         private void Curve(double dx1, double dy1, double dx2, double dy2, double dx3, double dy3)
         {
@@ -436,8 +436,8 @@ internal sealed class PdfType1GlyphReader
         private void EnsureContour()
         {
             if (_contour is not null) return;
-            var start = Transform(_x, _y);
-            _contour = [new PdfGlyphPoint(start.X, start.Y, true)];
+            var (X, Y) = Transform(_x, _y);
+            _contour = [new PdfGlyphPoint(X, Y, true)];
         }
         private void FinishContour()
         {

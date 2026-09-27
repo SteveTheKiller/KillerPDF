@@ -247,7 +247,7 @@ public static class PdfFormRecognizer
     {
         string normalized = string.Join('_', label.ToLowerInvariant()
             .Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(part => new string(part.Where(char.IsLetterOrDigit).ToArray()))
+            .Select(part => new string([.. part.Where(char.IsLetterOrDigit)]))
             .Where(part => part.Length > 0));
         return normalized.Length > 0
             ? normalized : $"field_{pageIndex + 1}_{sequence}";
@@ -282,7 +282,7 @@ public sealed record PdfFormFieldProposal
         IEnumerable<string>? suggestedDefaultValues = null)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
-        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
         if (bounds.Width <= 0 || bounds.Height <= 0) throw new ArgumentException("Field bounds must have positive dimensions.", nameof(bounds));
         if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
         if (!double.IsFinite(confidence) || confidence is < 0 or > 1) throw new ArgumentOutOfRangeException(nameof(confidence));
@@ -601,8 +601,7 @@ public sealed partial class PdfFormRecognitionReview
     public PdfFormRecognitionReview(IEnumerable<PdfFormFieldProposal> proposals)
     {
         ArgumentNullException.ThrowIfNull(proposals);
-        _proposals = proposals.OrderBy(item => item.PageIndex).ThenByDescending(item => item.Bounds.Top)
-            .ThenBy(item => item.Bounds.Left).ToArray();
+        _proposals = [.. proposals.OrderBy(item => item.PageIndex).ThenByDescending(item => item.Bounds.Top).ThenBy(item => item.Bounds.Left)];
         if (_proposals.Select(item => item.Id).Distinct(StringComparer.Ordinal).Count() != _proposals.Length)
             throw new ArgumentException("Form proposal IDs must be unique.", nameof(proposals));
         Proposals = Array.AsReadOnly(_proposals);
@@ -1044,7 +1043,7 @@ public sealed partial class PdfFormRecognitionReview
         IEnumerable<string> ids, int minimumCount)
     {
         ArgumentNullException.ThrowIfNull(ids);
-        string[] selectedIds = ids.ToArray();
+        string[] selectedIds = [.. ids];
         if (selectedIds.Length < minimumCount)
             throw new ArgumentException(
                 $"At least {minimumCount} form proposals must be selected.", nameof(ids));
@@ -1068,7 +1067,7 @@ public sealed partial class PdfFormRecognitionReview
         Func<PdfFormFieldProposal, PdfFormFieldProposal> change)
     {
         ArgumentNullException.ThrowIfNull(ids);
-        string[] selected = ids.ToArray();
+        string[] selected = [.. ids];
         if (selected.Length == 0)
             throw new ArgumentException("At least one form proposal must be selected.", nameof(ids));
         if (selected.Any(string.IsNullOrWhiteSpace)

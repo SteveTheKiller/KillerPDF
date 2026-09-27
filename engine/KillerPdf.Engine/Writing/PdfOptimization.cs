@@ -211,15 +211,15 @@ public sealed partial class PdfOptimizationPlan
     {
         _document = document;
         _options = options;
-        _attachmentNames = attachmentNames.ToArray();
-        _formFieldNames = formFieldNames.ToArray();
-        _resourcePages = resourcePages.ToArray();
-        _thumbnailPages = thumbnailPages.ToArray();
-        _unreachableObjectNumbers = unreachableObjectNumbers.ToArray();
-        _compressedStreamObjectNumbers = compressedStreamObjectNumbers.ToArray();
-        _optionalContentGroupNames = optionalContentGroupNames.ToArray();
-        _hiddenOptionalContentGroupNames = hiddenOptionalContentGroupNames.ToArray();
-        _repairs = repairs.ToArray();
+        _attachmentNames = [.. attachmentNames];
+        _formFieldNames = [.. formFieldNames];
+        _resourcePages = [.. resourcePages];
+        _thumbnailPages = [.. thumbnailPages];
+        _unreachableObjectNumbers = [.. unreachableObjectNumbers];
+        _compressedStreamObjectNumbers = [.. compressedStreamObjectNumbers];
+        _optionalContentGroupNames = [.. optionalContentGroupNames];
+        _hiddenOptionalContentGroupNames = [.. hiddenOptionalContentGroupNames];
+        _repairs = [.. repairs];
         _commentCount = commentCount;
         Changes = Array.AsReadOnly(changes.ToArray());
     }
@@ -790,7 +790,7 @@ public static class PdfOptimizer
                 || instruction.Operands[operandIndex] is not PdfName name
                 || !aliases.TryGetValue(name, out PdfName? canonical))
                 return instruction;
-            PdfObject[] operands = instruction.Operands.ToArray();
+            PdfObject[] operands = [.. instruction.Operands];
             operands[operandIndex] = canonical;
             return new KillerPdf.Engine.Parsing.PdfContentInstruction(
                 instruction.Operator, instruction.Offset, operands,

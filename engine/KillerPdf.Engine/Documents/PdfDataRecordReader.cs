@@ -369,7 +369,7 @@ public static class PdfDataRecordReader
                 {
                     if (character == '\r' && index + 1 < csv.Length
                         && csv[index + 1] == '\n') index++;
-                    rows.Add(row.ToArray());
+                    rows.Add([.. row]);
                     row.Clear();
                 }
             }
@@ -381,7 +381,7 @@ public static class PdfDataRecordReader
         if (field.Length > 0 || row.Count > 0 || csv[^1] == ',')
         {
             row.Add(field.ToString());
-            rows.Add(row.ToArray());
+            rows.Add([.. row]);
         }
         return rows;
     }

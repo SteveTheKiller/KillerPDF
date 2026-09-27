@@ -88,7 +88,7 @@ public sealed class PdfPageRendererUniformAlphaTests
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(0,
             new PdfRenderOptions(3, 1, transparentBackground: transparent));
         Assert.Empty(rendered.Diagnostics);
-        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 255, 255), rendered.Pixels.Slice(0, 4).ToArray());
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 255, 255), rendered.Pixels[..4].ToArray());
         byte faded = !transparent && !knockout ? (byte)127 : (byte)0;
         byte middleAlpha = transparent && !knockout ? (byte)128 : (byte)255;
         byte[] middle = PdfDeviceCmykTests.RenderInk((byte)(255 - faded), (byte)(255 - faded));

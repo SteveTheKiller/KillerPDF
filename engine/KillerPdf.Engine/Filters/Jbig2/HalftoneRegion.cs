@@ -19,7 +19,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         private SubInputStream subInputStream;
         private SegmentHeader segmentHeader;
-        private long dataHeaderOffset = 0;
+        private readonly long dataHeaderOffset = 0;
         private long dataHeaderLength;
         private long dataOffset;
         private long dataLength;
@@ -131,10 +131,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 halftoneRegionBitmap = new Jbig2Bitmap(RegionInfo.BitmapWidth,
                         RegionInfo.BitmapHeight);
 
-                if (patterns is null)
-                {
-                    patterns = GetPatterns();
-                }
+                patterns ??= GetPatterns();
 
                 if (HDefaultPixel == 1)
                 {

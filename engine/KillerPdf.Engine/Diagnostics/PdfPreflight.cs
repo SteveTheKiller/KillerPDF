@@ -57,7 +57,7 @@ public sealed partial record PdfPreflightProfile
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A preflight profile name is required.", nameof(name));
         ArgumentNullException.ThrowIfNull(checks);
-        PdfPreflightCheck[] selected = checks.Distinct().ToArray();
+        PdfPreflightCheck[] selected = [.. checks.Distinct()];
         if (selected.Length == 0)
             throw new ArgumentException("A preflight profile requires at least one check.", nameof(checks));
         if (selected.Any(check => !Enum.IsDefined(check)))
@@ -107,7 +107,7 @@ public sealed partial record PdfPreflightProfile
 
     /// <summary>Serializes the profile with stable camel-case names.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new PdfPreflightProfileFile(1, Name, Checks.ToArray(), MinimumImageDpi,
+        new PdfPreflightProfileFile(1, Name, [.. Checks], MinimumImageDpi,
             MaximumInkCoveragePercent), indented
                 ? IndentedJson.PdfPreflightProfileFile
                 : CompactJson.PdfPreflightProfileFile);

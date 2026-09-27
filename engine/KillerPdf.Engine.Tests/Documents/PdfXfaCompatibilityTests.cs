@@ -73,6 +73,8 @@ public sealed class PdfXfaCompatibilityTests
         Assert.Empty(report.Findings);
     }
 
+    private static readonly string[] expected = new[] { "dynamic-layout" };
+
     [Theory]
     [InlineData("position", false, true)]
     [InlineData("tb", true, true)]
@@ -87,7 +89,7 @@ public sealed class PdfXfaCompatibilityTests
         PdfXfaCompatibilityReport report = PdfXfaCompatibility.Analyze(info);
 
         Assert.Equal(supported, report.IsSupported);
-        Assert.Equal(supported ? [] : new[] { "dynamic-layout" }, report.Findings.Select(finding => finding.Code));
+        Assert.Equal(supported ? [] : expected, report.Findings.Select(finding => finding.Code));
         Assert.False(info.IsPacketArray);
         Assert.Equal(original, info.Packets[0].Data.ToArray());
     }

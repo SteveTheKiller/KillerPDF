@@ -110,8 +110,7 @@ public static class PdfSignatureVerifier
                         : (flags & (X509ChainStatusFlags.RevocationStatusUnknown | X509ChainStatusFlags.OfflineRevocation)) != 0
                             ? PdfCertificateRevocationStatus.Indeterminate
                             : PdfCertificateRevocationStatus.Good;
-                string[] errors = chain.ChainStatus.Select(status => status.StatusInformation.Trim())
-                    .Where(message => message.Length > 0).ToArray();
+                string[] errors = [.. chain.ChainStatus.Select(status => status.StatusInformation.Trim()).Where(message => message.Length > 0)];
                 PdfCertificateChainElement[] chainElements = [.. chain.ChainElements
                     .Select(element => ChainElement(element))];
                 if (!trusted)

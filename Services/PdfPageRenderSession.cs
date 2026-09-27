@@ -28,7 +28,7 @@ internal sealed class PdfPageRenderSession : IDisposable
     // print-preview, and image-export renderers all reuse parsed page and form instructions,
     // decoded images, glyph masks, flattened glyph outlines, and parsed fonts.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<EngineDocument,
-        EngineRenderer.SharedCache> _sharedRenderCaches = new();
+        EngineRenderer.SharedCache> _sharedRenderCaches = [];
 
     private static EngineRenderer.SharedCache SharedCacheFor(EngineDocument document) =>
         _sharedRenderCaches.GetValue(document, static _ => new EngineRenderer.SharedCache());
@@ -40,7 +40,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         _engineRenderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance,
             SharedCacheFor(document));
         var boxes = KillerPdf.Engine.Documents.PdfPageBoxInformation.Read(document);
-        _enginePages = pages.Select((page, index) => PdfLegacyPageGeometry.Size(page, boxes[index])).ToArray();
+        _enginePages = [.. pages.Select((page, index) => PdfLegacyPageGeometry.Size(page, boxes[index]))];
         _maximumWidth = maximumWidth;
         _maximumHeight = maximumHeight;
         _scale = scale;
@@ -50,8 +50,8 @@ internal sealed class PdfPageRenderSession : IDisposable
         string path, int maximumWidth, int maximumHeight)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        if (maximumWidth <= 0) throw new ArgumentOutOfRangeException(nameof(maximumWidth));
-        if (maximumHeight <= 0) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumWidth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumHeight);
         EngineDocument document = OpenDocument(path);
         IReadOnlyList<EnginePageInformation> pages = EnginePageInformation.Read(document);
         return new PdfPageRenderSession(document, pages, maximumWidth, maximumHeight, 0);
@@ -187,8 +187,8 @@ internal sealed class PdfPageRenderSession : IDisposable
     internal PdfRenderedPage RenderFittedPage(int pageIndex, int maximumWidth, int maximumHeight,
         bool includeFormFields = false, CancellationToken cancellationToken = default)
     {
-        if (maximumWidth <= 0) throw new ArgumentOutOfRangeException(nameof(maximumWidth));
-        if (maximumHeight <= 0) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumWidth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumHeight);
         return RenderOwnedPage(Renderer, pageIndex,
             CreateRenderOptions(pageIndex, false, true, includeFormFields, maximumWidth, maximumHeight), cancellationToken);
     }
@@ -334,7 +334,7 @@ internal sealed class PdfPrimaryRenderSession
 // A task exclusively owns its lease. Only one idle session is retained per pane.
 internal sealed class PdfBackgroundRenderCache
 {
-    private readonly object _sync = new();
+    private readonly Lock _sync = new();
     private Request? _current;
     private PdfPageRenderSession? _idle;
 

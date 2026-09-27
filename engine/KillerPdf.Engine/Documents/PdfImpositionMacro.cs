@@ -44,10 +44,8 @@ public static partial class PdfImpositionMacro
         PdfImpositionPreset preset, int sourcePageIndex, int copyCount)
     {
         ArgumentNullException.ThrowIfNull(preset);
-        if (sourcePageIndex < 0)
-            throw new ArgumentOutOfRangeException(nameof(sourcePageIndex));
-        if (copyCount < 0)
-            throw new ArgumentOutOfRangeException(nameof(copyCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(sourcePageIndex);
+        ArgumentOutOfRangeException.ThrowIfNegative(copyCount);
         return new PdfMacroStep(PdfMacroOperation.ImposeStepAndRepeat,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -83,7 +81,7 @@ public static partial class PdfImpositionMacro
             {
                 [PresetKey] = preset.ToJson(),
                 [PageSequenceKey] = JsonSerializer.Serialize(
-                    pageSequence.ToArray(), ImpositionJson.NullableInt32Array)
+                    [.. pageSequence], ImpositionJson.NullableInt32Array)
             });
     }
 
@@ -92,8 +90,7 @@ public static partial class PdfImpositionMacro
         PdfImpositionPreset preset, int sourcePageIndex, double overlap = 0)
     {
         ValidatePoster(preset, overlap);
-        if (sourcePageIndex < 0)
-            throw new ArgumentOutOfRangeException(nameof(sourcePageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(sourcePageIndex);
         return new PdfMacroStep(PdfMacroOperation.ImposePoster,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {

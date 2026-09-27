@@ -36,7 +36,7 @@ internal static partial class PdfJpeg2000Decoder
         var information = new HeaderInfo();
         var header = new HeaderDecoder(access, parameters, information);
         DecoderSpecs specifications = header.DecoderSpecs;
-        int[] depths = Enumerable.Range(0, header.NumComps).Select(header.GetOriginalBitDepth).ToArray();
+        int[] depths = [.. Enumerable.Range(0, header.NumComps).Select(header.GetOriginalBitDepth)];
         var packets = BitstreamReaderAgent.createInstance(
             access, header, parameters, specifications, false, information);
         var entropy = header.createEntropyDecoder(packets, parameters);

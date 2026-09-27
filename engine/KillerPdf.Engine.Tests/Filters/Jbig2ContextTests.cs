@@ -34,8 +34,10 @@ public sealed class Jbig2ContextTests
     [Fact]
     public void CopiedContextsRetainBothStatesAndMutateIndependently()
     {
-        var original = new CX(2, 1);
-        original.Cx = 46;
+        var original = new CX(2, 1)
+        {
+            Cx = 46
+        };
         original.ToggleMps();
         var copy = original.Copy();
         Assert.Equal(1, copy.Index);

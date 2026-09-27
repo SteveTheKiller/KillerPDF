@@ -159,7 +159,7 @@ public sealed partial class PdfOnnxOcrModelDescription
     /// <summary>Returns the padded input width for one line of the given scaled width.</summary>
     public int ResolveInputWidth(int scaledWidth)
     {
-        if (scaledWidth < 1) throw new ArgumentOutOfRangeException(nameof(scaledWidth));
+        ArgumentOutOfRangeException.ThrowIfLessThan(scaledWidth, 1);
         if (InputWidth > 0) return InputWidth;
         int padded = checked((scaledWidth + WidthMultiple - 1) / WidthMultiple * WidthMultiple);
         return Math.Min(Math.Max(padded, WidthMultiple), MaximumInputWidth);

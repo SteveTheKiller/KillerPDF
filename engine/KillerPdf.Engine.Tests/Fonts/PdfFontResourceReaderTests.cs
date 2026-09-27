@@ -295,7 +295,7 @@ public sealed class PdfFontResourceReaderTests
             2 => new PdfArray([]),
             _ => new PdfArray([PdfNull.Instance])
         }));
-        var resource = D(entries.ToArray());
+        var resource = D([.. entries]);
         Assert.Throws<FormatException>(() => Read(resource));
         var recovery = PdfDocument.OpenWithCompatibilityRecovery(new PdfDocumentBuilder().AddBlankPage().Build());
         var resolver = new TestFontResolver(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
@@ -318,7 +318,7 @@ public sealed class PdfFontResourceReaderTests
         };
         if (unicode) entries.Add(("ToUnicode", Stream("1 begincodespacerange <0000> <ffff> endcodespacerange")));
         var recovery = PdfDocument.OpenWithCompatibilityRecovery(new PdfDocumentBuilder().AddBlankPage().Build());
-        Assert.Throws<FormatException>(() => PdfFontResourceReader.Read(recovery, D(entries.ToArray())));
+        Assert.Throws<FormatException>(() => PdfFontResourceReader.Read(recovery, D([.. entries])));
     }
 
     [Fact]
@@ -409,7 +409,7 @@ public sealed class PdfFontResourceReaderTests
             ("ToUnicode", Stream("1 begincodespacerange <00> <FF> endcodespacerange "
                 + "1 beginbfchar <21> <004B> endbfchar"))));
 
-        Assert.Equal("K", Assert.Single(font.Decode(new byte[] { 33 })).Text);
+        Assert.Equal("K", Assert.Single(font.Decode("!"u8.ToArray())).Text);
         Assert.Equal(expectedLeft, font.GetGlyphBounds(33)!.Value.Left);
     }
 
@@ -486,7 +486,7 @@ public sealed class PdfFontResourceReaderTests
             ? PdfDocument.OpenWithCompatibilityRecovery(new PdfDocumentBuilder().AddBlankPage().Build())
             : Document;
         PdfExtractionFont font = PdfFontResourceReader.Read(document,
-            Type0(D(entries.ToArray()), N("Identity-H")), new TestFontResolver(bytes));
+            Type0(D([.. entries]), N("Identity-H")), new TestFontResolver(bytes));
 
         PdfGlyphOutline outline = Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(code));
         Assert.Single(outline.Contours);
@@ -515,7 +515,7 @@ public sealed class PdfFontResourceReaderTests
             entries.Add(("W", new PdfArray([
                 new PdfInteger(1), new PdfArray([new PdfInteger(expected)])])));
         PdfExtractionFont font = PdfFontResourceReader.Read(Document,
-            Type0(D(entries.ToArray()), N("Identity-H")), new TestFontResolver(bytes));
+            Type0(D([.. entries]), N("Identity-H")), new TestFontResolver(bytes));
 
         Assert.Equal(expected, font.GetWidth(1));
         PdfGlyphOutline outline = Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(1));

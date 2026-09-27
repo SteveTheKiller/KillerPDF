@@ -187,11 +187,11 @@ public static class PdfPermanentRedaction
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(review);
-        PdfRedactionMatch[] selected = review.Included.ToArray();
+        PdfRedactionMatch[] selected = [.. review.Included];
         if (selected.Any(match => match.TargetKind != PdfRedactionTargetKind.Attachment))
             throw new ArgumentException(
                 "Reviewed attachment removal accepts only attachment targets.", nameof(review));
-        PdfAttachmentInfo[] current = PdfAttachmentReader.Read(document).ToArray();
+        PdfAttachmentInfo[] current = [.. PdfAttachmentReader.Read(document)];
         var targets = new List<(PdfRedactionMatch Match, PdfAttachmentInfo Attachment)>();
         foreach (PdfRedactionMatch match in selected)
         {
@@ -207,8 +207,8 @@ public static class PdfPermanentRedaction
                 Array.AsReadOnly(current.Select(item => item.FileName).ToArray()));
 
         var editor = new PdfIncrementalPageEditor(document);
-        foreach (var target in targets)
-            editor.RemoveAttachment(target.Attachment.FileName);
+        foreach (var (Match, Attachment) in targets)
+            editor.RemoveAttachment(Attachment.FileName);
         byte[] output = PdfDocumentWriter.Write(PdfDocument.Open(editor.Build()),
             new PdfDocumentWriteOptions
             {
@@ -244,7 +244,7 @@ public static class PdfPermanentRedaction
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(review);
-        PdfRedactionMatch[] selected = review.Included.ToArray();
+        PdfRedactionMatch[] selected = [.. review.Included];
         if (selected.Any(match => match.TargetKind != PdfRedactionTargetKind.Comment))
             throw new ArgumentException(
                 "Reviewed comment removal accepts only comment targets.", nameof(review));
@@ -255,7 +255,7 @@ public static class PdfPermanentRedaction
             return new PdfCommentRedactionResult(document.Source,
                 Array.Empty<string>(), PdfCommentReader.Read(document).Count);
 
-        PdfCommentInfo[] current = PdfCommentReader.Read(document).ToArray();
+        PdfCommentInfo[] current = [.. PdfCommentReader.Read(document)];
         var targets = new List<(PdfRedactionMatch Match, PdfCommentInfo Comment)>();
         foreach (PdfRedactionMatch match in selected)
         {
@@ -270,10 +270,10 @@ public static class PdfPermanentRedaction
         }
 
         var editor = new PdfIncrementalAnnotationEditor(document);
-        foreach (var target in targets.OrderByDescending(item => item.Comment.PageIndex)
+        foreach (var (Match, Comment) in targets.OrderByDescending(item => item.Comment.PageIndex)
                      .ThenByDescending(item => item.Comment.AnnotationIndex))
             editor.RemoveAnnotationAt(
-                target.Comment.PageIndex, target.Comment.AnnotationIndex);
+                Comment.PageIndex, Comment.AnnotationIndex);
         PdfDocument edited = PdfDocument.Open(editor.Build());
         byte[] output = PdfDocumentWriter.Write(edited, new PdfDocumentWriteOptions
         {
@@ -281,7 +281,7 @@ public static class PdfPermanentRedaction
             AllowSignatureInvalidation = allowSignatureInvalidation
         });
         PdfDocument reopened = PdfDocument.Open(output);
-        PdfCommentInfo[] remaining = PdfCommentReader.Read(reopened).ToArray();
+        PdfCommentInfo[] remaining = [.. PdfCommentReader.Read(reopened)];
         string[] expected = [.. current.Except(targets.Select(item => item.Comment))
             .Select(item => item.Contents).Order(StringComparer.Ordinal)];
         string[] actual = [.. remaining.Select(item => item.Contents)
@@ -298,7 +298,7 @@ public static class PdfPermanentRedaction
     public static byte[] RebuildFromSanitizedPages(IEnumerable<PdfSanitizedRasterPage> pages)
     {
         ArgumentNullException.ThrowIfNull(pages);
-        PdfSanitizedRasterPage[] values = pages.ToArray();
+        PdfSanitizedRasterPage[] values = [.. pages];
         if (values.Length == 0) throw new ArgumentException("At least one sanitized page is required.", nameof(pages));
         var builder = new PdfDocumentBuilder();
         foreach (PdfSanitizedRasterPage page in values)
@@ -346,8 +346,8 @@ public static class PdfPermanentRedaction
         int expectedPageCount, IEnumerable<string>? prohibitedText = null,
         CancellationToken cancellationToken = default)
     {
-        if (expectedPageCount <= 0) throw new ArgumentOutOfRangeException(nameof(expectedPageCount));
-        string[] prohibited = (prohibitedText ?? []).Where(value => !string.IsNullOrEmpty(value)).ToArray();
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(expectedPageCount);
+        string[] prohibited = [.. (prohibitedText ?? []).Where(value => !string.IsNullOrEmpty(value))];
         PdfDocument document = PdfDocument.Open(source);
         var findings = new List<PdfRedactionVerificationFinding>();
         if (document.CrossReferences.Sections.Count != 1)
@@ -361,8 +361,8 @@ public static class PdfPermanentRedaction
         CheckCatalog(NamesName, "NameTrees", "The output contains document name trees.");
         CheckCatalog(AcroFormName, "AcroForm", "The output contains form data.");
         CheckCatalog(OutlinesName, "Outlines", "The output contains bookmarks.");
-        foreach (var dataStore in CatalogDataStores)
-            CheckCatalog(dataStore.Key, dataStore.Code, dataStore.Message);
+        foreach (var (Key, Code, Message) in CatalogDataStores)
+            CheckCatalog(Key, Code, Message);
         if (tree.Pages.Count != expectedPageCount)
             findings.Add(new("PageCount", $"Expected {expectedPageCount} pages but found {tree.Pages.Count}."));
         var reader = new PdfPageContentReader(document);
@@ -371,9 +371,9 @@ public static class PdfPermanentRedaction
             cancellationToken.ThrowIfCancellationRequested();
             if (tree.Pages[pageIndex].Dictionary.ContainsKey(AnnotationsName))
                 findings.Add(new("Annotations", "The output page contains annotations.", pageIndex));
-            foreach (var dataStore in PageDataStores)
-                if (tree.Pages[pageIndex].Dictionary.ContainsKey(dataStore.Key))
-                    findings.Add(new(dataStore.Code, dataStore.Message, pageIndex));
+            foreach (var (Key, Code, Message) in PageDataStores)
+                if (tree.Pages[pageIndex].Dictionary.ContainsKey(Key))
+                    findings.Add(new(Code, Message, pageIndex));
             PdfPageContent content = reader.Read(pageIndex, cancellationToken);
             if (content.Images.Count != 1 || content.Letters.Count != 0 || content.Paths.Count != 0)
                 findings.Add(new("NonRasterContent", "The output page is not a single image-only page.", pageIndex));

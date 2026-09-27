@@ -11,7 +11,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
     internal abstract class AbstractImageInputStream : IImageInputStream
     {
-        private readonly Stack<(long streamPos, int bitOffset)> markedPositions = new Stack<(long, int)>();
+        private readonly Stack<(long streamPos, int bitOffset)> markedPositions = new();
 
         private int bitOffset;
 
@@ -59,10 +59,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <inheritdoc />
         public long ReadBits(int numBits)
         {
-            if (numBits > 32)
-            {
-                throw new ArgumentOutOfRangeException(nameof(numBits));
-            }
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(numBits, 32);
 
             long accum = 0L;
             for (int i = 0; i < numBits; i++)

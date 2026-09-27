@@ -8,9 +8,9 @@ public sealed class PdfScratchBufferPoolTests
     public void Return_CountLimitDoesNotLetSmallBuffersDisplaceLargeWorkingSet()
     {
         var pool = new PdfScratchBufferPool<byte>(8 * 1024 * 1024);
-        byte[][] small = Enumerable.Range(0, 64).Select(_ => pool.Rent(16)).ToArray();
+        byte[][] small = [.. Enumerable.Range(0, 64).Select(_ => pool.Rent(16))];
         foreach (byte[] buffer in small) pool.Return(buffer);
-        byte[][] large = Enumerable.Range(0, 32).Select(_ => pool.Rent(128 * 1024)).ToArray();
+        byte[][] large = [.. Enumerable.Range(0, 32).Select(_ => pool.Rent(128 * 1024))];
         foreach (byte[] buffer in large) pool.Return(buffer);
 
         var expected = new HashSet<byte[]>(large);

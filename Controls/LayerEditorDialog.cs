@@ -85,9 +85,9 @@ internal sealed class LayerEditorDialog : Window
             return;
         }
 
-        Edits = _rows.Select((row, index) => new PdfEngineIntegration.LayerEdit(
+        Edits = [.. _rows.Select((row, index) => new PdfEngineIntegration.LayerEdit(
             row.ObjectNumber, names[index], row.Visible.IsChecked == true,
-            row.Locked.IsChecked == true)).ToArray();
+            row.Locked.IsChecked == true))];
         DialogResult = true;
         Close();
     }

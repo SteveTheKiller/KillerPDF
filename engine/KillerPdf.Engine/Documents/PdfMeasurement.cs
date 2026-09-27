@@ -124,7 +124,7 @@ public sealed class PdfMeasurementProfileMap
     public PdfMeasurementProfileMap(IEnumerable<PdfMeasurementProfileAssignment> assignments)
     {
         ArgumentNullException.ThrowIfNull(assignments);
-        _assignments = assignments.ToArray();
+        _assignments = [.. assignments];
         if (_assignments.Any(assignment => assignment is null))
             throw new ArgumentException("A profile assignment cannot be null.", nameof(assignments));
         if (_assignments.Count(assignment => assignment.PageIndex is null) > 1)
@@ -142,7 +142,7 @@ public sealed class PdfMeasurementProfileMap
     /// <summary>Resolves the most specific profile for a page coordinate.</summary>
     public PdfMeasurementProfile Resolve(int pageIndex, PdfMeasurementPoint? point = null)
     {
-        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
         if (point is { } coordinate)
         {
             PdfMeasurement.DistanceInPoints(coordinate, coordinate);
@@ -477,7 +477,7 @@ public static partial class PdfMeasurementReport
     private static PdfMeasurementResult[] Checked(IEnumerable<PdfMeasurementResult> results)
     {
         ArgumentNullException.ThrowIfNull(results);
-        PdfMeasurementResult[] values = results.ToArray();
+        PdfMeasurementResult[] values = [.. results];
         if (values.Any(result => result.PageIndex < 0 || !double.IsFinite(result.Value)
             || result.UnitsPerPoint is double scale && (!double.IsFinite(scale) || scale <= 0)
             || result.Points.Any(point => !double.IsFinite(point.X) || !double.IsFinite(point.Y))

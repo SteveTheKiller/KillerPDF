@@ -14,7 +14,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         private SubInputStream subInputStream;
 
         // Segment data structure (only necessary if MMR is used)
-        private long dataHeaderOffset = 0;
+        private readonly long dataHeaderOffset = 0;
         private long dataHeaderLength;
         private long dataOffset;
         private long dataLength;
@@ -116,7 +116,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 }
 
                 // 2)
-                GenericRegion genericRegion = new GenericRegion(subInputStream);
+                GenericRegion genericRegion = new(subInputStream);
                 genericRegion.SetParameters(IsMMREncoded, dataOffset, dataLength, HdpHeight,
                         (GrayMax + 1) * HdpWidth, HdTemplate, false, false, null, gbAtX, gbAtY);
 
@@ -139,7 +139,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             while (gray <= GrayMax)
             {
                 // 4) a) Retrieve a pattern bitmap by extracting it out of the collective bitmap
-                Jbig2Rectangle roi = new Jbig2Rectangle(HdpWidth * gray, 0, HdpWidth, HdpHeight);
+                Jbig2Rectangle roi = new(HdpWidth * gray, 0, HdpWidth, HdpHeight);
                 Jbig2Bitmap patternBitmap = Jbig2Bitmaps.Extract(roi, collectiveBitmap);
                 patterns.Add(patternBitmap);
 

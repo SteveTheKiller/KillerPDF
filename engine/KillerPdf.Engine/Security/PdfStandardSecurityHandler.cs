@@ -205,8 +205,7 @@ internal sealed class PdfStandardSecurityHandler
     private static long ReadCertificateKeyLength(
         PdfDictionary encryption, PdfDictionary? defaultCryptFilter)
     {
-        PdfObject? value = null;
-        if (!encryption.TryGetValue(Name("Length"), out value))
+        if (!encryption.TryGetValue(Name("Length"), out PdfObject? value))
             defaultCryptFilter?.TryGetValue(Name("Length"), out value);
         if (value is null) return 40;
         if (value is not PdfInteger length)
@@ -232,8 +231,7 @@ internal sealed class PdfStandardSecurityHandler
     private static PdfArray ReadCertificateRecipients(
         PdfDictionary encryption, PdfDictionary? defaultCryptFilter)
     {
-        PdfObject? recipientsValue = null;
-        if (!encryption.TryGetValue(Name("Recipients"), out recipientsValue))
+        if (!encryption.TryGetValue(Name("Recipients"), out PdfObject? recipientsValue))
             defaultCryptFilter?.TryGetValue(Name("Recipients"), out recipientsValue);
         if (recipientsValue is not PdfArray recipients || recipients.Count == 0
             || recipients.Any(value => value is not PdfString))
@@ -443,7 +441,7 @@ internal sealed class PdfStandardSecurityHandler
         ReadOnlySpan<byte> data = stream.EncodedData.Span;
         if (_recoverIvOnlyStreams && method == CryptMethod.Aes256 && data.Length == 16
             && (_encryptMetadata || !isMetadata))
-            return new PdfStream(dictionary, ReadOnlySpan<byte>.Empty);
+            return new PdfStream(dictionary, []);
         return new PdfStream(dictionary,
             method != CryptMethod.Identity && (_encryptMetadata || !isMetadata)
                 ? DecryptBytes(data, method, objectNumber, generation) : data);
@@ -1132,7 +1130,7 @@ internal sealed class PdfStandardSecurityHandler
             || (allowTrailingBytes ? text.Bytes.Length < length : text.Bytes.Length != length))
             throw new InvalidOperationException(
                 $"The encryption dictionary /{key} value is not a {length}-byte string.");
-        return text.Bytes.Slice(0, length).ToArray();
+        return text.Bytes[..length].ToArray();
     }
 
     private static byte[] RequireLegacyUserBytes(PdfDictionary encryption)
