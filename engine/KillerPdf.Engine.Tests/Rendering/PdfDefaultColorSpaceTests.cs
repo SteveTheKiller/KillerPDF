@@ -10,11 +10,16 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfDefaultColorSpaceTests
 {
-    public static IEnumerable<object[]> Cases()
+    public static TheoryData<int, string> Cases
     {
-        foreach (int components in new[] { 1, 3, 4 })
-            foreach (string paint in new[] { "fill", "stroke", "selected", "initial", "image", "inline", "indexed", "shading", "form" })
-                yield return [components, paint];
+        get
+        {
+            var data = new TheoryData<int, string>();
+            foreach (int components in new[] { 1, 3, 4 })
+                foreach (string paint in new[] { "fill", "stroke", "selected", "initial", "image", "inline", "indexed", "shading", "form" })
+                    data.Add(components, paint);
+            return data;
+        }
     }
 
     [Theory]

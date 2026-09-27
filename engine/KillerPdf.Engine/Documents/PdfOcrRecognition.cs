@@ -135,33 +135,33 @@ public sealed class PdfOcrRecognitionModel
     }
 
     private static PdfOcrRecognitionModel CreateCore(int width, int height,
-        string[] names, ReadOnlyMemory<float> weights,
+        string[] labels, ReadOnlyMemory<float> weights,
         ReadOnlyMemory<float> biases, ReadOnlyMemory<float> priors)
     {
         if (width is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(width));
         if (height is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(height));
-        if (names.Length is <= 0 or > 65_536 || names.Any(label =>
+        if (labels.Length is <= 0 or > 65_536 || labels.Any(label =>
             string.IsNullOrEmpty(label) || Encoding.UTF8.GetByteCount(label) > 64
             || label.EnumerateRunes().Any(rune => rune == Rune.ReplacementChar)))
             throw new ArgumentException(
-                "OCR model labels are empty, oversized, or invalid.", "labels");
+                "OCR model labels are empty, oversized, or invalid.", nameof(labels));
         int featureCount = checked(width * height);
-        if (weights.Length != checked(featureCount * names.Length))
+        if (weights.Length != checked(featureCount * labels.Length))
             throw new ArgumentException("OCR model weights do not match its dimensions.", nameof(weights));
-        if (biases.Length != names.Length)
+        if (biases.Length != labels.Length)
             throw new ArgumentException("OCR model biases do not match its labels.", nameof(biases));
-        if (priors.Length != names.Length)
+        if (priors.Length != labels.Length)
             throw new ArgumentException("OCR model priors do not match its labels.", nameof(priors));
-        long labelBytes = names.Sum(label =>
+        long labelBytes = labels.Sum(label =>
             1L + Encoding.UTF8.GetByteCount(label));
-        if (!FitsSerializedSize(labelBytes, names.Length, weights.Length))
+        if (!FitsSerializedSize(labelBytes, labels.Length, weights.Length))
             throw new ArgumentException(
                 "The OCR recognition model exceeds the size limit.", nameof(weights));
         if (weights.Span.ContainsAnyExceptInRange(float.MinValue, float.MaxValue)
             || biases.Span.ContainsAnyExceptInRange(float.MinValue, float.MaxValue)
             || priors.Span.ContainsAnyExceptInRange(float.MinValue, float.MaxValue))
             throw new ArgumentException("OCR model values must be finite.");
-        return new PdfOcrRecognitionModel(width, height, names,
+        return new PdfOcrRecognitionModel(width, height, labels,
             weights.ToArray(), biases.ToArray(), priors.ToArray());
     }
 
@@ -181,9 +181,9 @@ public sealed class PdfOcrRecognitionModel
                 "OCR recognition model dimensions do not match.", nameof(models));
         int labelCount = checked(supplied.Sum(model => model._labels.Length));
         int featureCount = checked(first.Width * first.Height);
-        long labelBytes = supplied.Sum(model => model._labels.Sum(
-            label => 1L + Encoding.UTF8.GetByteCount(label)));
-        long valueCount = supplied.Sum(model => (long)model._weights.Length
+        long labelBytes = supplied.Sum((PdfOcrRecognitionModel model) => model._labels.Sum(
+            (string label) => 1L + Encoding.UTF8.GetByteCount(label)));
+        long valueCount = supplied.Sum((PdfOcrRecognitionModel model) => (long)model._weights.Length
             + model._biases.Length + model._priors.Length);
         if (labelCount > 65_536
             || !FitsSerializedSize(labelBytes, labelCount,

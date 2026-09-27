@@ -10,11 +10,16 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfInitialColorTests
 {
-    public static IEnumerable<object[]> Cases()
+    public static TheoryData<string, bool> Cases
     {
-        foreach (string space in new[] { "DeviceGray", "DeviceRGB", "DeviceCMYK", "CalGray",
-            "CalRGB", "Lab", "Indexed", "Separation", "DeviceN", "All", "None", "ICCBased", "Pattern" })
-            foreach (bool stroke in new[] { false, true }) yield return [space, stroke];
+        get
+        {
+            var data = new TheoryData<string, bool>();
+            foreach (string space in new[] { "DeviceGray", "DeviceRGB", "DeviceCMYK", "CalGray",
+                "CalRGB", "Lab", "Indexed", "Separation", "DeviceN", "All", "None", "ICCBased", "Pattern" })
+                foreach (bool stroke in new[] { false, true }) data.Add(space, stroke);
+            return data;
+        }
     }
 
     [Theory]

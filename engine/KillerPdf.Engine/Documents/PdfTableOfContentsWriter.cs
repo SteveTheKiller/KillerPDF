@@ -97,7 +97,7 @@ public static class PdfTableOfContentsWriter
     private static void Validate(PdfTableOfContentsWriteOptions options)
     {
         if (options.MaximumDepth is < 1 or > 256)
-            throw new ArgumentOutOfRangeException(nameof(options.MaximumDepth));
+            throw new ArgumentOutOfRangeException(nameof(options));
         Positive(options.PageWidth, nameof(options.PageWidth));
         Positive(options.PageHeight, nameof(options.PageHeight));
         Positive(options.LeftMargin, nameof(options.LeftMargin));

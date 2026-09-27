@@ -1014,7 +1014,7 @@ public sealed partial class PdfFormRecognitionReview
                     appearanceOptions: appearance);
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(action));
+                throw new ArgumentOutOfRangeException(nameof(proposal));
         }
     }
 

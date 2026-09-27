@@ -44,13 +44,18 @@ public sealed class PdfDeviceImageStorageTests
         }
     }
 
-    public static IEnumerable<object[]> Cases()
+    public static TheoryData<int, int, double, bool> Cases
     {
-        foreach (int components in new[] { 1, 3 })
-            foreach (int size in new[] { 5, 23 })
-                foreach (double opacity in new[] { 0.5, 1 })
-                    foreach (bool rotated in new[] { false, true })
-                        yield return [components, size, opacity, rotated];
+        get
+        {
+            var data = new TheoryData<int, int, double, bool>();
+            foreach (int components in new[] { 1, 3 })
+                foreach (int size in new[] { 5, 23 })
+                    foreach (double opacity in new[] { 0.5, 1 })
+                        foreach (bool rotated in new[] { false, true })
+                            data.Add(components, size, opacity, rotated);
+            return data;
+        }
     }
 
     [Theory]

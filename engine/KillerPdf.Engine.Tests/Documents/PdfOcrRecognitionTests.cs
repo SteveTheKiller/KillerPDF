@@ -379,6 +379,7 @@ public sealed class PdfOcrRecognitionTests
     }
 
     private static readonly float[] SupportedShapeFeatures = [0.9f, 0.1f];
+    private static readonly float[] SupportedLabelFeatures = [0.1f, 0.9f];
 
     [Fact]
     public void TrainerDoesNotLetOneMislabeledPrototypeOverrideSupportedShape()
@@ -389,7 +390,7 @@ public sealed class PdfOcrRecognitionTests
             new("A", new float[] { 1, 0 }),
             new("A", SupportedShapeFeatures),
             new("B", new float[] { 0, 1 }),
-            new("B", new float[] { 0.1f, 0.9f })
+            new("B", SupportedLabelFeatures)
         ]);
 
         PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,

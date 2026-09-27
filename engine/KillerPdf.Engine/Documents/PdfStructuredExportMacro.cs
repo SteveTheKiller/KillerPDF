@@ -74,7 +74,7 @@ public static partial class PdfStructuredExportMacro
                 PdfStructuredExport.ToXlsx(document, pages, cancellationToken),
             PdfStructuredExportFormat.Presentation =>
                 PdfStructuredExport.ToPptx(document, pages, cancellationToken),
-            _ => throw new ArgumentOutOfRangeException(nameof(options.Format))
+            _ => throw new ArgumentOutOfRangeException(nameof(step))
         };
     }
 

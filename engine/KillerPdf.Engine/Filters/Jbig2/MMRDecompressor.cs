@@ -243,10 +243,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                         code.RunLength == RunLength;
             }
 
-            public override int GetHashCode()
-            {
-                return (BitLength, CodeWord, RunLength).GetHashCode();
-            }
+            public override int GetHashCode() => (BitLength, CodeWord, RunLength).GetHashCode();
         }
 
         private static readonly int FIRST_LEVEL_TABLE_SIZE = 8;
@@ -710,4 +707,3 @@ namespace KillerPdf.Engine.Filters.Jbig2
         }
     }
 }
-

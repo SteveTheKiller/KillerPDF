@@ -21,7 +21,7 @@ public static class PdfBookmarkGeneration
         var reader = new PdfPageContentReader(document);
         if (options.PageRegions is not null
             && options.PageRegions.Keys.Any(page => page < 0 || page >= reader.PageCount))
-            throw new ArgumentOutOfRangeException(nameof(options.PageRegions),
+            throw new ArgumentOutOfRangeException(nameof(options),
                 "A heading region page is outside the document.");
         var candidates = new List<(int Page, PdfExtractedLine Line, double Size)>();
         for (int pageIndex = 0; pageIndex < reader.PageCount; pageIndex++)
@@ -106,14 +106,14 @@ public static class PdfBookmarkGeneration
     {
         if (!double.IsFinite(options.MinimumPointSize)
             || options.MinimumPointSize <= 0)
-            throw new ArgumentOutOfRangeException(nameof(options.MinimumPointSize));
+            throw new ArgumentOutOfRangeException(nameof(options));
         if (options.MaximumTitleLength < 1)
-            throw new ArgumentOutOfRangeException(nameof(options.MaximumTitleLength));
+            throw new ArgumentOutOfRangeException(nameof(options));
         if (options.MaximumDepth is < 1 or > 256)
-            throw new ArgumentOutOfRangeException(nameof(options.MaximumDepth));
+            throw new ArgumentOutOfRangeException(nameof(options));
         if (options.PageRegions?.Values.Any(region => region.Width <= 0 || region.Height <= 0) == true)
             throw new ArgumentException(
-                "Heading regions must have positive dimensions.", nameof(options.PageRegions));
+                "Heading regions must have positive dimensions.", nameof(options));
         if (options.TitlePattern is not null)
             try
             {
@@ -123,7 +123,7 @@ public static class PdfBookmarkGeneration
             catch (ArgumentException error)
             {
                 throw new ArgumentException(
-                    "The heading title pattern is invalid.", nameof(options.TitlePattern), error);
+                    "The heading title pattern is invalid.", nameof(options), error);
             }
     }
 }
