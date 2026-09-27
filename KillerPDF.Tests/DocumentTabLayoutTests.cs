@@ -42,8 +42,10 @@ public sealed class DocumentTabLayoutTests
                 (string?)element.Attribute(x + "Key") == key)
             .Attribute("Color")!;
 
-        Assert.Equal("#9f9f9f", BrushColor("TabActiveBrush"), ignoreCase: true);
-        Assert.Equal("#c0c0c0", BrushColor("TabInactiveBrush"), ignoreCase: true);
+        Assert.Equal("#c0c0c0", BrushColor("TabActiveBrush"), ignoreCase: true);
+        Assert.Equal("#9f9f9f", BrushColor("TabInactiveBrush"), ignoreCase: true);
+        Assert.Equal("#c0c0c0", BrushColor("FocusedPaneBrush"), ignoreCase: true);
+        Assert.Equal("#c0c0c0", BrushColor("BgCanvas"), ignoreCase: true);
         Assert.DoesNotContain("TabBarRing", source, StringComparison.Ordinal);
 
         XElement join = document.Descendants()
