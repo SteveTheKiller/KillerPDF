@@ -111,6 +111,7 @@ namespace KillerPDF
             _rasterH = new int[pageCount];
             _pageDipW = pageDipW;
             _pageDipH = pageDipH;
+            _landscape = PrintOrientationPolicy.UseLandscape(pageDipW, pageDipH);
             _renderPath  = renderPath;
             _cleanupPath = cleanupPath;
 
@@ -534,7 +535,6 @@ namespace KillerPDF
             ApplyComboStyle(orient);
             orient.Items.Add(S("Str_Print_Portrait"));
             orient.Items.Add(S("Str_Print_Landscape"));
-            _landscape = App.GetSetting("PrintLandscape") == "1";   // restore last orientation
             orient.SelectedIndex = _landscape ? 1 : 0;
             orient.SelectionChanged += (s, _) =>
             {

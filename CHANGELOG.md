@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.8.71] - Unreleased
 
-1.8.71 expands KillerPDF automation and improves installation reliability.
+1.8.71 expands automation, improves printing, and makes installation more reliable.
 
 ### Added
 
@@ -14,6 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Chose the print dialog's initial orientation from the PDF while keeping the manual override (#432).
 - Retried installation when Windows briefly keeps the previous version's files open (#434).
 
 ## [1.8.70] - 2026-09-24
