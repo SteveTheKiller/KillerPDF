@@ -83,8 +83,8 @@ public sealed class DocumentTabLayoutTests
         string ThicknessValue(string key) => theme.Descendants()
             .Single(element => element.Name.LocalName == "Thickness" &&
                 (string?)element.Attribute(x + "Key") == key).Value;
-        Assert.Equal("-13,-5,-6,-2", ThicknessValue("TabActiveOuterOutlineMargin"));
-        Assert.Equal("-13,-5,-6,-3", ThicknessValue("TabInactiveOuterOutlineMargin"));
+        Assert.Equal("-13,-5,-7,-2", ThicknessValue("TabActiveOuterOutlineMargin"));
+        Assert.Equal("-13,-5,-7,-3", ThicknessValue("TabInactiveOuterOutlineMargin"));
         Assert.Equal("12,6,5,2", ThicknessValue("TabPadding"));
         Assert.Equal("0,3,0,-3", ThicknessValue("TabActiveMargin"));
         Assert.Equal("-1,3,0,-3", ThicknessValue("TabActiveFirstMargin"));
@@ -101,6 +101,8 @@ public sealed class DocumentTabLayoutTests
 
         Assert.Contains("Host?.IsOutsideWindow(e) == true", strip, StringComparison.Ordinal);
         Assert.Contains("Host.TearOutTab(this, s)", strip, StringComparison.Ordinal);
+        Assert.Contains("MinimumHorizontalDragDistance", strip, StringComparison.Ordinal);
+        Assert.Contains("MinimumVerticalDragDistance", strip, StringComparison.Ordinal);
         Assert.Contains("new MainWindow(session)", tearOut, StringComparison.Ordinal);
         Assert.Contains("source.DetachSessionExt(session)", tearOut, StringComparison.Ordinal);
     }

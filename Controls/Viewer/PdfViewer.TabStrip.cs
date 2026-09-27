@@ -551,8 +551,11 @@ namespace KillerPDF.Controls
             var cont = TabContainer(_tabDragSession);
             if (cont == null) return;
 
-            double x = e.GetPosition(TabStrip).X;
-            if (!_tabDragging && Math.Abs(x - _tabDragStart.X) < SystemParameters.MinimumHorizontalDragDistance) return;
+            Point pointer = e.GetPosition(TabStrip);
+            double x = pointer.X;
+            if (!_tabDragging
+                && Math.Abs(pointer.X - _tabDragStart.X) < SystemParameters.MinimumHorizontalDragDistance
+                && Math.Abs(pointer.Y - _tabDragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
             _tabDragging = true;
             Panel.SetZIndex(cont, 3);   // the grabbed tab rides above its neighbors
 

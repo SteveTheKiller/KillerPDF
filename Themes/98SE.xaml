@@ -218,9 +218,9 @@
 
     <Thickness x:Key="TabBevelMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">-12,-4,-5,-4</Thickness>
 
-    <Thickness x:Key="TabActiveOuterOutlineMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">-13,-5,-6,-2</Thickness>
+    <Thickness x:Key="TabActiveOuterOutlineMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">-13,-5,-7,-2</Thickness>
 
-    <Thickness x:Key="TabInactiveOuterOutlineMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">-13,-5,-6,-3</Thickness>
+    <Thickness x:Key="TabInactiveOuterOutlineMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">-13,-5,-7,-3</Thickness>
 
     <!-- The selected tab's dark right edge must reach the same strip/card seam as its light
          left edge. A -2 bottom stopped it two pixels early and made it dissolve into the band. -->
