@@ -2106,11 +2106,11 @@ public sealed class PdfIncrementalPageEditor
                     widgets.Add((reference, annotation, page.Reference, null, null));
             }
         }
-        foreach (var overlay in _taggedOverlays)
+        foreach (var (Form, Page, Description) in _taggedOverlays)
         {
-            PdfStream stream = document.Resolve(overlay.Form) as PdfStream
+            PdfStream stream = document.Resolve(Form) as PdfStream
                 ?? throw new InvalidOperationException("The authored overlay is not a stream.");
-            widgets.Add((overlay.Form, stream.Dictionary, overlay.Page, stream, overlay.Description));
+            widgets.Add((Form, stream.Dictionary, Page, stream, Description));
         }
         if (widgets.Count == 0) return source;
 
