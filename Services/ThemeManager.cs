@@ -621,6 +621,7 @@ namespace KillerPDF.Services
             if (!d.Contains("TabActiveBevelDarkThickness")) d["TabActiveBevelDarkThickness"] = new Thickness(0);
             if (!d.Contains("TabBevelMargin")) d["TabBevelMargin"] = new Thickness(0);
             if (!d.Contains("TabActiveOuterOutlineMargin")) d["TabActiveOuterOutlineMargin"] = d["TabBevelMargin"];
+            if (!d.Contains("TabInactiveOuterOutlineMargin")) d["TabInactiveOuterOutlineMargin"] = d["TabBevelMargin"];
             if (!d.Contains("TabActiveInnerBevelBrush")) d["TabActiveInnerBevelBrush"] = Brushes.Transparent;
             if (!d.Contains("TabActiveInnerBevelThickness")) d["TabActiveInnerBevelThickness"] = new Thickness(0);
             if (!d.Contains("TabActiveInnerBevelMargin")) d["TabActiveInnerBevelMargin"] = new Thickness(0);

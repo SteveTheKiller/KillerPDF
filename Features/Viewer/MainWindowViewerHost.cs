@@ -270,6 +270,11 @@ namespace KillerPDF
             PdfViewer.DocumentSession session, MouseEventArgs e)
             => MoveTabToPane(source, target, session, e);
 
+        bool IViewerHost.IsOutsideWindow(MouseEventArgs e) => IsOutsideWindow(e);
+
+        void IViewerHost.TearOutTab(PdfViewer source, PdfViewer.DocumentSession session)
+            => TearOutTab(source, session);
+
         void IViewerHost.RunWithViewerContext(PdfViewer viewer, Action work)
         {
             var focused = ActiveViewer;

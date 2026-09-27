@@ -9,7 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Changed
 
 - The installer now offers upgrade, reinstall, uninstall, or cancel when KillerPDF is already installed.
-- The active 98SE document tab now matches the light document pane, while inactive tabs use the darker gray face.
+- Document tabs now use complete 98SE geometry and themed drag previews, and can be moved into a new window without losing their live editing state.
 
 ## [1.8.71] - 2026-09-26
 

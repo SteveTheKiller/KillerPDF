@@ -298,8 +298,15 @@ namespace KillerPDF
         // Whole-document search results now live on SearchController (Features/Search); Tabs.cs
         // parks and restores them per tab through its AllSearchRects/ResultPages/PageCursor.
 
-        public MainWindow()
+        private readonly Controls.PdfViewer.DocumentSession? _startupTearOutSession;
+
+        public MainWindow() : this(null)
         {
+        }
+
+        internal MainWindow(Controls.PdfViewer.DocumentSession? startupTearOutSession)
+        {
+            _startupTearOutSession = startupTearOutSession;
             InitializeComponent();
             VersionLabel.Text = $"v{AppVersion.Display}";
             // Accept dropped files/folders/archives anywhere on the window (not just the empty drop zone),
@@ -411,7 +418,13 @@ namespace KillerPDF
             ApplyToolNumberTooltips();   // append the 1-9 toolbar positions to the tool tooltips
             BuildShortcutsOverlay();     // generate the shortcuts card from the single-source table (ShortcutsOverlay.cs)
             SourceInitialized += MainWindow_SourceInitialized;
-            Closed += (_, _) => { _continuousRenderCts?.Cancel(); _doc?.Close(); CloseEngineDocumentSession(); App.CleanupSessionTemps(); };
+            Closed += (_, _) =>
+            {
+                _continuousRenderCts?.Cancel();
+                _doc?.Close();
+                CloseEngineDocumentSession();
+                if (Application.Current.Windows.Count <= 1) App.CleanupSessionTemps();
+            };
 
             // Open a file passed via command-line / file association (e.g. double-clicking a .pdf)
             // Also show the portable badge when running outside the install location.
@@ -470,7 +483,14 @@ namespace KillerPDF
                 // Gating on a usable target here swallowed a refused handoff before anything could
                 // report it, and restored the last session instead, so a cold launch looked like a
                 // handoff that had simply done nothing.
-                if (args.Length > 1 && (System.IO.File.Exists(args[1]) ||
+                if (_startupTearOutSession is { } tornOut)
+                {
+                    SetRestoredSessions([tornOut], tornOut);
+                    ApplySessionState(tornOut);
+                    RebuildTabStrip();
+                    RenderActiveSession();
+                }
+                else if (args.Length > 1 && (System.IO.File.Exists(args[1]) ||
                     Services.ProtocolRegistrar.IsHandoffLaunch(args[1])))
                 {
                     OpenFromExternal(args[1]);
