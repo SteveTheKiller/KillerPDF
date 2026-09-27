@@ -392,7 +392,7 @@ namespace KillerPDF.Controls
 
             foreach (var t in _sessions)
             {
-                // 98SE uses PaneFocused only for the shared darker pane/tab surface. Its focus
+                // 98SE uses PaneFocused only for the shared light pane/tab surface. Its focus
                 // thickness resources are zero, so this never revives the modern accent outline.
                 t.PaneFocused = paneActive && t.IsActive;
                 t.PaneDimmed  = split && !paneActive && t.IsActive;

@@ -63,18 +63,16 @@
 
     <SolidColorBrush x:Key="PaneBrush" Color="#c0c0c0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
-    <!-- The PDF canvas needs separation from the classic #c0c0c0 window face without turning
-         white and competing with the pages themselves. This slightly deeper neutral frames white
-         documents while keeping the application unmistakably in the Win98 palette. -->
-    <SolidColorBrush x:Key="BgCanvas" Color="#aaaaaa" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <!-- The active document tab and its workspace are one continuous classic window face. -->
+    <SolidColorBrush x:Key="BgCanvas" Color="#c0c0c0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <!-- 98SE communicates split-pane focus by shading the complete live pane, not by drawing
          the accent halo used by the rounded themes. -->
-    <SolidColorBrush x:Key="FocusedPaneBrush" Color="#9f9f9f" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="FocusedPaneBrush" Color="#c0c0c0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
-    <SolidColorBrush x:Key="TabActiveBrush" Color="#9f9f9f" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="TabActiveBrush" Color="#c0c0c0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
-    <SolidColorBrush x:Key="TabInactiveBrush" Color="#c0c0c0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="TabInactiveBrush" Color="#9f9f9f" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <SolidColorBrush x:Key="TableHeaderBrush" Color="#c0c0c0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
