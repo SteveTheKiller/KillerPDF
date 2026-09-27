@@ -137,6 +137,10 @@ html[data-theme="light"] .page-title { text-shadow: none; }
 .sb-tabs { display: flex; font-size: 11px; font-family: Consolas, monospace; letter-spacing: 0.5px; color: var(--muted); border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .sb-tabs span { flex: 1; text-align: center; padding: 9px 0; }
 .sb-tabs .on { color: var(--accent); border-bottom: 2px solid var(--tab-edge); }
+.outline { display: flex; flex: 1; min-height: 0; flex-direction: column; padding: 8px 0; overflow-y: auto; }
+.outline a { display: block; padding: 8px 16px 8px 18px; color: var(--muted); font-size: 13px; border-left: 2px solid transparent; }
+.outline a:hover { color: var(--text); background: var(--accent-dim); filter: none; }
+.outline a.on { color: var(--text); border-left-color: var(--accent); background: var(--accent-dim); }
 
 /* ---- Status bar footer (matches the app) ---- */
 .statusbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 3px 16px; background: var(--chrome-bg); font-family: Consolas, monospace; font-size: 11.5px; color: var(--footer-text); position: relative; flex: 0 0 auto; }
@@ -217,6 +221,8 @@ html[data-theme="light"] .page-title { text-shadow: none; }
   .content { overflow: visible; min-height: 0; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
   .content-scroll { height: auto; overflow: visible; }
   .sidebar { position: static; height: auto; min-width: 0; overflow: hidden; border-left: 0; border-top: 1px solid var(--border); }
+  .outline { flex-direction: row; flex-wrap: wrap; gap: 4px; padding: 8px; }
+  .outline a { padding: 6px 10px; border-left: 0; border-radius: 5px; }
   .topbar { gap: 10px; padding-bottom: 8px; }
 }
 

@@ -6,7 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.8.71] - Unreleased
 
-1.8.71 improves installation reliability.
+1.8.71 expands KillerPDF automation and improves installation reliability.
+
+### Added
+
+- Added CLI commands for page rotation, deletion, reordering, blank-page insertion, duplication, document details, and text search. KillerMCP can also use every headless app operation.
 
 ### Fixed
 
