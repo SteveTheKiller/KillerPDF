@@ -75,15 +75,49 @@ public sealed class DocumentTabLayoutTests
         Assert.Equal("{DynamicResource TabActiveOuterOutlineMargin}", (string?)outline.Attribute("Margin"));
         Assert.Equal("{DynamicResource PaneBorderBrush}", (string?)outline.Attribute("BorderBrush"));
         Assert.Equal("1,1,1,0", (string?)outline.Attribute("BorderThickness"));
+        XElement inactiveOutline = document.Descendants()
+            .Single(element => (string?)element.Attribute(x + "Name") == "tabInactiveRetroOuterOutline");
+        Assert.Equal("{DynamicResource PaneBorderBrush}", (string?)inactiveOutline.Attribute("BorderBrush"));
+        Assert.Equal("1,1,1,0", (string?)inactiveOutline.Attribute("BorderThickness"));
 
         string ThicknessValue(string key) => theme.Descendants()
             .Single(element => element.Name.LocalName == "Thickness" &&
                 (string?)element.Attribute(x + "Key") == key).Value;
         Assert.Equal("-13,-5,-6,-2", ThicknessValue("TabActiveOuterOutlineMargin"));
+        Assert.Equal("-13,-5,-6,-3", ThicknessValue("TabInactiveOuterOutlineMargin"));
+        Assert.Equal("12,6,5,2", ThicknessValue("TabPadding"));
         Assert.Equal("0,3,0,-3", ThicknessValue("TabActiveMargin"));
-        Assert.Equal("1,3,0,-3", ThicknessValue("TabActiveFirstMargin"));
+        Assert.Equal("-1,3,0,-3", ThicknessValue("TabActiveFirstMargin"));
         Assert.Equal("0,3,1,-3", ThicknessValue("TabActiveLastMargin"));
-        Assert.Equal("1,3,1,-3", ThicknessValue("TabActiveOnlyMargin"));
+        Assert.Equal("-1,3,1,-3", ThicknessValue("TabActiveOnlyMargin"));
+    }
+
+    [Fact]
+    public void TabDragCanTearAFreeTabIntoANewWindow()
+    {
+        string root = FindRepositoryRoot();
+        string strip = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.TabStrip.cs"));
+        string tearOut = File.ReadAllText(Path.Combine(root, "Shell", "TabTearOut.cs"));
+
+        Assert.Contains("Host?.IsOutsideWindow(e) == true", strip, StringComparison.Ordinal);
+        Assert.Contains("Host.TearOutTab(this, s)", strip, StringComparison.Ordinal);
+        Assert.Contains("new MainWindow(session)", tearOut, StringComparison.Ordinal);
+        Assert.Contains("source.DetachSessionExt(session)", tearOut, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DragGhostUsesTheActiveTabThemeResources()
+    {
+        string root = FindRepositoryRoot();
+        var window = XDocument.Load(Path.Combine(root, "MainWindow.xaml"));
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        XElement ghost = window.Descendants()
+            .Single(element => (string?)element.Attribute(x + "Name") == "TabDragGhost");
+
+        Assert.Equal("{DynamicResource TabCornerRadius}", (string?)ghost.Attribute("CornerRadius"));
+        Assert.Equal("{DynamicResource TabActiveBrush}", (string?)ghost.Attribute("Background"));
+        Assert.Equal("{DynamicResource TabActivePadding}", (string?)ghost.Attribute("Padding"));
+        Assert.Equal("{DynamicResource BarShadowEffect}", (string?)ghost.Attribute("Effect"));
     }
 
     private static string FindRepositoryRoot()

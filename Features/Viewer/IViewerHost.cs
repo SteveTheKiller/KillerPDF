@@ -167,6 +167,8 @@ namespace KillerPDF.Features
         void HideTabDragFeedback();
         void MoveTabToPane(PdfViewer source, PdfViewer target,
             PdfViewer.DocumentSession session, MouseEventArgs e);
+        bool IsOutsideWindow(MouseEventArgs e);
+        void TearOutTab(PdfViewer source, PdfViewer.DocumentSession session);
 
         void RunWithViewerContext(PdfViewer viewer, System.Action work);
     }

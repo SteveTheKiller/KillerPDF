@@ -2917,15 +2917,36 @@
              drop from ever finding the pane beneath it. -->
         <Canvas x:Name="DragLayer" Grid.RowSpan="5" Panel.ZIndex="9000"
                 IsHitTestVisible="False" Visibility="Collapsed">
-            <!-- A half-real copy of the tab, carrying the same accent lip and title weight so it is
-                 obviously THE tab rather than a generic drag box. -->
-            <Border x:Name="TabDragGhost" Opacity="0.72" CornerRadius="6,6,0,0" Padding="12,2,10,5"
-                    Background="{DynamicResource BgCanvas}"
-                    BorderThickness="0,3,0,0" BorderBrush="{DynamicResource SelectionAccent}"
-                    Effect="{StaticResource ShadowBar}">
-                <TextBlock x:Name="TabDragGhostText" FontFamily="{DynamicResource UiFont}" FontSize="11"
-                           FontWeight="Bold" VerticalAlignment="Center"
-                           Foreground="{DynamicResource TextBrush}"/>
+            <!-- The drag copy uses the same theme resources as an active tab. -->
+            <Border x:Name="TabDragGhost" Opacity="0.82"
+                    CornerRadius="{DynamicResource TabCornerRadius}"
+                    Padding="{DynamicResource TabActivePadding}"
+                    Background="{DynamicResource TabActiveBrush}"
+                    BorderThickness="{DynamicResource TabStripeThickness}"
+                    BorderBrush="{DynamicResource TabActiveRingBrush}"
+                    Effect="{DynamicResource BarShadowEffect}">
+                <Grid>
+                    <TextBlock x:Name="TabDragGhostText" FontFamily="{DynamicResource UiFont}" FontSize="11.5"
+                               FontWeight="Bold" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextBrush}"/>
+                    <Border IsHitTestVisible="False" Panel.ZIndex="3"
+                            Margin="{DynamicResource TabActiveOuterOutlineMargin}"
+                            BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1,1,1,0"
+                            Visibility="{DynamicResource RetroActiveTabOutlineVisibility}"/>
+                    <Border IsHitTestVisible="False" Panel.ZIndex="4"
+                            Margin="{DynamicResource TabBevelMargin}"
+                            BorderBrush="{DynamicResource BevelLightBrush}"
+                            BorderThickness="{DynamicResource BevelLightThickness}"/>
+                    <Border IsHitTestVisible="False" Panel.ZIndex="4"
+                            Margin="{DynamicResource TabActiveBevelDarkMargin}"
+                            BorderBrush="{DynamicResource BevelDarkBrush}"
+                            BorderThickness="{DynamicResource TabActiveBevelDarkThickness}"/>
+                    <Border IsHitTestVisible="False" Panel.ZIndex="6"
+                            Margin="{DynamicResource TabActiveInnerBevelMargin}"
+                            BorderBrush="{DynamicResource TabActiveInnerBevelBrush}"
+                            BorderThickness="{DynamicResource TabActiveInnerBevelThickness}"
+                            Visibility="{DynamicResource RetroActiveTabOutlineVisibility}"/>
+                </Grid>
             </Border>
 
             <!-- Where it would land. Only shown over the target strip, because anywhere else in the

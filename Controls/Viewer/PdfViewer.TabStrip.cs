@@ -598,6 +598,7 @@ namespace KillerPDF.Controls
         {
             if (sender is not FrameworkElement bd || !bd.IsMouseCaptured) return;
             bd.ReleaseMouseCapture();
+            e.Handled = true;
             bool wasDragging = _tabDragging;
             var  s = _tabDragSession;
             _tabDragSession = null;
@@ -616,6 +617,12 @@ namespace KillerPDF.Controls
             if (s != null && Host?.TabDropTarget(this, e) is { } target)
             {
                 Host.MoveTabToPane(this, target, s, e);
+                return;
+            }
+
+            if (s != null && Host?.IsOutsideWindow(e) == true)
+            {
+                Host.TearOutTab(this, s);
                 return;
             }
 

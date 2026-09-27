@@ -173,6 +173,10 @@
                                                     Margin="{DynamicResource TabActiveOuterOutlineMargin}"
                                                     BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1,1,1,0"
                                                     SnapsToDevicePixels="True" Visibility="Collapsed"/>
+                                            <Border x:Name="tabInactiveRetroOuterOutline" IsHitTestVisible="False" Panel.ZIndex="3"
+                                                    Margin="{DynamicResource TabInactiveOuterOutlineMargin}"
+                                                    BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1,1,1,0"
+                                                    SnapsToDevicePixels="True" Visibility="Collapsed"/>
                                             <Border x:Name="tabBevelLight" IsHitTestVisible="False" Panel.ZIndex="4"
                                                     Margin="{DynamicResource TabBevelMargin}" SnapsToDevicePixels="True"
                                                     BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource BevelLightThickness}"/>
@@ -242,6 +246,13 @@
                                         <DataTrigger Binding="{Binding UseRetroTabChrome}" Value="True">
                                             <Setter TargetName="tabBd" Property="Effect" Value="{x:Null}"/>
                                         </DataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding UseRetroTabChrome}" Value="True"/>
+                                                <Condition Binding="{Binding IsActive}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="tabInactiveRetroOuterOutline" Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
                                         <!-- A first 98SE tab follows the pane's inner light bevel,
                                              one pixel inside its dark outer frame. Modern themes
                                              resolve this token to the normal flush active margin. -->
