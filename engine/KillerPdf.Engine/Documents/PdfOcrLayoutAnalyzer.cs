@@ -153,7 +153,7 @@ public static class PdfOcrLayoutAnalyzer
     }
 
     private static List<PdfOcrImageRegion> SplitTouchingGlyphs(
-        IReadOnlyList<PdfOcrImageRegion> components, ReadOnlyMemory<byte> pixels,
+        List<PdfOcrImageRegion> components, ReadOnlyMemory<byte> pixels,
         int imageWidth)
     {
         var split = new List<PdfOcrImageRegion>(components.Count);
@@ -234,7 +234,7 @@ public static class PdfOcrLayoutAnalyzer
     }
 
     private static List<PdfOcrImageRegion> FilterGraphicOutliers(
-        IReadOnlyList<PdfOcrImageRegion> components)
+        List<PdfOcrImageRegion> components)
     {
         if (components.Count < 5) return [.. components];
         int[] heights = [.. components.Select(component => component.Height)
@@ -248,7 +248,7 @@ public static class PdfOcrLayoutAnalyzer
     }
 
     private static List<PdfOcrImageRegion> MergeDetachedMarks(
-        IReadOnlyList<PdfOcrImageRegion> components)
+        List<PdfOcrImageRegion> components)
     {
         var merged = new List<PdfOcrImageRegion>(components.Count);
         var consumed = new bool[components.Count];
@@ -299,7 +299,7 @@ public static class PdfOcrLayoutAnalyzer
         return merged;
     }
 
-    private static IReadOnlyList<PdfOcrTextLine> BuildLines(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfOcrTextLine> BuildLines(
         IReadOnlyList<PdfOcrImageRegion> components)
     {
         var lines = new List<LineBuilder>();
@@ -356,11 +356,13 @@ public static class PdfOcrLayoutAnalyzer
         }
     }
 
-    private static IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> SplitColumns(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<IReadOnlyList<PdfOcrImageRegion>> SplitColumns(
         IReadOnlyList<PdfOcrImageRegion> components, int depth = 0)
     {
         if (components.Count < 4 || depth >= 16)
-            return components.Count == 0 ? [] : [components];
+            return components.Count == 0
+                ? Array.AsReadOnly(Array.Empty<IReadOnlyList<PdfOcrImageRegion>>())
+                : Array.AsReadOnly<IReadOnlyList<PdfOcrImageRegion>>([components]);
         PdfOcrImageRegion[] ordered = [.. components.OrderBy(item => item.Left)];
         int medianHeight = ordered.Select(item => item.Height).OrderBy(value => value)
             .ElementAt(ordered.Length / 2);
@@ -384,7 +386,8 @@ public static class PdfOcrLayoutAnalyzer
             }
             right = Math.Max(right, ordered[index].Right);
         }
-        if (split == 0 || bestGap < Math.Max(4, medianHeight)) return [components];
+        if (split == 0 || bestGap < Math.Max(4, medianHeight))
+            return Array.AsReadOnly<IReadOnlyList<PdfOcrImageRegion>>([components]);
         return Array.AsReadOnly(SplitColumns(ordered[..split], depth + 1)
             .Concat(SplitColumns(ordered[split..], depth + 1)).ToArray());
     }
@@ -395,16 +398,16 @@ public static class PdfOcrLayoutAnalyzer
             lines.Max(line => line.Bounds.Right), lines.Max(line => line.Bounds.Bottom)),
             Array.AsReadOnly(lines.ToArray()));
 
-    private static IReadOnlyList<PdfOcrWordRegion> GroupWords(
-        IReadOnlyList<PdfOcrImageRegion> components)
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfOcrWordRegion> GroupWords(
+        PdfOcrImageRegion[] components)
     {
-        if (components.Count == 0) return [];
+        if (components.Length == 0) return Array.AsReadOnly(Array.Empty<PdfOcrWordRegion>());
         int[] widths = [.. components.Select(item => item.Width).OrderBy(value => value)];
         double medianWidth = widths[widths.Length / 2];
         int wordGap = medianWidth <= 2 ? 3 : Math.Max(2, (int)Math.Round(
             medianWidth * 0.35, MidpointRounding.AwayFromZero));
         var groups = new List<List<PdfOcrImageRegion>> { new() { components[0] } };
-        for (int index = 1; index < components.Count; index++)
+        for (int index = 1; index < components.Length; index++)
         {
             PdfOcrImageRegion component = components[index];
             List<PdfOcrImageRegion> current = groups[^1];
