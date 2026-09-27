@@ -323,8 +323,7 @@ public sealed class PdfOverprintTests
         if (none) Array.Fill(colorants, "None");
         if (registration) Array.Fill(colorants, "All");
         var resources = new PdfDictionary([
-            Entry("ColorSpace", new PdfDictionary([Entry("Named", new PdfArray(new PdfObject[]
-            {
+            Entry("ColorSpace", new PdfDictionary([Entry("Named", new PdfArray([
                 Name(paint is "separation" or "spot" || registration ? "Separation" : "DeviceN"),
                 paint is "separation" or "spot" || registration
                     ? Name(paint == "spot" ? "Custom" : colorants[0])
@@ -340,7 +339,7 @@ public sealed class PdfOverprintTests
                         : paint == "group-precision" ? "{ 10000 mul 0 0 0 }"
                         : paint.StartsWith("group-", StringComparison.Ordinal)
                         ? "{ 0 0 0 }" : paint == "namedzero" ? "{ 0 0 }" : "{ 0 exch 0 0 }")))
-            })), Entry("IndexedNamed", new PdfArray([Name("Indexed"), Name("Named"),
+            ])), Entry("IndexedNamed", new PdfArray([Name("Indexed"), Name("Named"),
                 new PdfInteger(1), new PdfString([0, 255], PdfStringForm.Hexadecimal)]))])),
             Entry("Font", new PdfDictionary([Entry("F", new PdfDictionary([
                 Entry("Type", Name("Font")), Entry("Subtype", Name("Type1")), Entry("BaseFont", Name("Helvetica"))]))])),

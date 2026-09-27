@@ -1558,12 +1558,11 @@ public sealed class PdfPageRendererTests
             .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
                 PdfImage.FromRgb(2, 1, new byte[] { 255, 0, 0, 0, 255, 0 }), 2, 3, 6, 2))
             .Build());
-        var mask = new PdfArray(new PdfObject[]
-        {
+        var mask = new PdfArray([
             new PdfInteger(250), new PdfInteger(255),
             new PdfInteger(0), new PdfInteger(5),
             new PdfInteger(0), new PdfInteger(5)
-        });
+        ]);
         PdfDocument document = AddImageDictionaryEntry(source, "Mask", mask);
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
@@ -1675,11 +1674,10 @@ public sealed class PdfPageRendererTests
             .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
                 PdfImage.FromGray(2, 1, new byte[] { 0, 1 }), 2, 3, 6, 2))
             .Build());
-        var colorSpace = new PdfArray(new PdfObject[]
-        {
+        var colorSpace = new PdfArray([
             Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
             new PdfString([255, 0, 0, 0, 0, 255], PdfStringForm.Hexadecimal)
-        });
+        ]);
         PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
@@ -1702,10 +1700,9 @@ public sealed class PdfPageRendererTests
         var lookupUpdate = new PdfIncrementalUpdateBuilder(source);
         PdfIndirectReference lookupReference = lookupUpdate.AddObject(lookup);
         source = PdfDocument.Open(lookupUpdate.Build());
-        var colorSpace = new PdfArray(new PdfObject[]
-        {
+        var colorSpace = new PdfArray([
             Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1), lookupReference
-        });
+        ]);
         PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
@@ -1768,7 +1765,7 @@ public sealed class PdfPageRendererTests
         var parameters = new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("WhitePoint"),
                 Reals(0.95047, 1, 1.08883))]);
-        var colorSpace = new PdfArray(new PdfObject[] { Name("CalGray"), parameters });
+        var colorSpace = new PdfArray([Name("CalGray"), parameters]);
         PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
@@ -1793,7 +1790,7 @@ public sealed class PdfPageRendererTests
                 0.4124564, 0.2126729, 0.0193339,
                 0.3575761, 0.7151522, 0.119192,
                 0.1804375, 0.072175, 0.9503041))]);
-        var colorSpace = new PdfArray(new PdfObject[] { Name("CalRGB"), parameters });
+        var colorSpace = new PdfArray([Name("CalRGB"), parameters]);
         PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
@@ -1814,7 +1811,7 @@ public sealed class PdfPageRendererTests
         var parameters = new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("WhitePoint"),
                 Reals(0.95047, 1, 1.08883))]);
-        var colorSpace = new PdfArray(new PdfObject[] { Name("Lab"), parameters });
+        var colorSpace = new PdfArray([Name("Lab"), parameters]);
         PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
@@ -1840,10 +1837,9 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("C0"), Reals(1, 1, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("C1"), Reals(1, 0, 0)),
             new KeyValuePair<PdfName, PdfObject>(Name("N"), new PdfInteger(1))]);
-        var colorSpace = new PdfArray(new PdfObject[]
-        {
+        var colorSpace = new PdfArray([
             Name("Separation"), Name("SpotRed"), Name("DeviceRGB"), function
-        });
+        ]);
         PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
@@ -1915,11 +1911,10 @@ public sealed class PdfPageRendererTests
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
-        var colorSpace = new PdfArray(new PdfObject[]
-        {
+        var colorSpace = new PdfArray([
             Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
             new PdfString([255, 0, 0, 0, 0, 255], PdfStringForm.Hexadecimal)
-        });
+        ]);
         var function = new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(2)),
             new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
@@ -1965,7 +1960,7 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0, 0, 10, 0)),
             new KeyValuePair<PdfName, PdfObject>(Name("Function"), function),
             new KeyValuePair<PdfName, PdfObject>(Name("Extend"),
-                new PdfArray(new PdfObject[] { new PdfBoolean(true), new PdfBoolean(true) }))]);
+                new PdfArray([new PdfBoolean(true), new PdfBoolean(true)]))]);
         PdfDocument document = AddShadingPatternResource(source, shading, Reals(1, 0, 0, 1, 2, 0));
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
@@ -2220,13 +2215,13 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0, 0, 10, 0)),
             new KeyValuePair<PdfName, PdfObject>(Name("Function"), function),
             new KeyValuePair<PdfName, PdfObject>(Name("Extend"),
-                new PdfArray(new PdfObject[] { new PdfBoolean(true), new PdfBoolean(true) }))]);
+                new PdfArray([new PdfBoolean(true), new PdfBoolean(true)]))]);
         PdfDocument document = AddShadingPatternResource(source, shading, Reals(1, 0, 0, 1, 0, 0));
         document = AddPageColorSpaceResources(document,
             new KeyValuePair<PdfName, PdfObject>(Name("CS1"),
-                new PdfArray(new PdfObject[] { Name("Pattern") })),
+                new PdfArray([Name("Pattern")])),
             new KeyValuePair<PdfName, PdfObject>(Name("CS2"),
-                new PdfArray(new PdfObject[] { Name("Pattern"), Name("DeviceRGB") })));
+                new PdfArray([Name("Pattern"), Name("DeviceRGB")])));
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
             0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
@@ -2277,7 +2272,7 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(3)),
             new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Functions"),
-                new PdfArray(new PdfObject[] { Segment(0), Segment(0.5), Segment(1) })),
+                new PdfArray([Segment(0), Segment(0.5), Segment(1)])),
             new KeyValuePair<PdfName, PdfObject>(Name("Bounds"), Reals(firstBound, secondBound)),
             new KeyValuePair<PdfName, PdfObject>(Name("Encode"), Reals(0, 1, 0, 1, 0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1))]);
@@ -2287,7 +2282,7 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0.5, 0, 9.5, 0)),
             new KeyValuePair<PdfName, PdfObject>(Name("Function"), function),
             new KeyValuePair<PdfName, PdfObject>(Name("Extend"),
-                new PdfArray(new PdfObject[] { new PdfBoolean(true), new PdfBoolean(true) }))]), []);
+                new PdfArray([new PdfBoolean(true), new PdfBoolean(true)]))]), []);
         PdfDocument document = AddShadingResource(source, shading);
 
         if (!valid)
@@ -2326,9 +2321,9 @@ public sealed class PdfPageRendererTests
         var update = new PdfIncrementalUpdateBuilder(source);
         PdfIndirectReference tintReference = update.AddObject(tint);
         source = PdfDocument.Open(update.Build());
-        var colorSpace = new PdfArray(new PdfObject[] {
+        var colorSpace = new PdfArray([
             Name("DeviceN"), new PdfArray([.. Enumerable.Range(0, channels).Select(index => (PdfObject)Name("Ink" + index))]),
-            Name("DeviceGray"), tintReference });
+            Name("DeviceGray"), tintReference]);
         var function = new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(2)),
             new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
@@ -2393,11 +2388,10 @@ public sealed class PdfPageRendererTests
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
-        var colorSpace = new PdfArray(new PdfObject[]
-        {
+        var colorSpace = new PdfArray([
             Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
             new PdfString([255, 0, 0, 0, 0, 255], PdfStringForm.Hexadecimal)
-        });
+        ]);
         var function = new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(2)),
             new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
@@ -2526,11 +2520,10 @@ public sealed class PdfPageRendererTests
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
-        var colorSpace = new PdfArray(new PdfObject[]
-        {
+        var colorSpace = new PdfArray([
             Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
             new PdfString([255, 0, 0, 0, 0, 255], PdfStringForm.Hexadecimal)
-        });
+        ]);
         var function = new PdfStream(new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(4)),
             new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
@@ -2565,10 +2558,9 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(1)),
             new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
             new KeyValuePair<PdfName, PdfObject>(Name("Matrix"), Reals(10, 0, 0, 10, 0, 0)),
-            new KeyValuePair<PdfName, PdfObject>(Name("Function"), new PdfArray(new PdfObject[]
-            {
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), new PdfArray([
                 Component("{ pop }"), Component("{ exch pop }"), Component("{ pop 0.5 }")
-            }))]);
+            ]))]);
         PdfDocument document = AddShadingResource(source, shading);
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
@@ -2654,11 +2646,10 @@ public sealed class PdfPageRendererTests
             255, 85, 255, 170, 255, 255, 170, 255,
             85, 255, 0, 255, 0, 170, 0, 85
         ];
-        var colorSpace = new PdfArray(new PdfObject[]
-        {
+        var colorSpace = new PdfArray([
             Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
             new PdfString([255, 0, 0, 0, 0, 255], PdfStringForm.Hexadecimal)
-        });
+        ]);
         var shading = new PdfStream(new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(6)),
             new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace),
@@ -2821,10 +2812,10 @@ public sealed class PdfPageRendererTests
         var page = ResolveDictionary(source, pageReference);
         var content = Assert.IsType<PdfStream>(source.Resolve(Assert.IsType<PdfIndirectReference>(page[Name("Contents")])));
         var update = new PdfIncrementalUpdateBuilder(source);
-        var childDictionary = new PdfDictionary(content.Dictionary.Concat(new KeyValuePair<PdfName, PdfObject>[] {
+        var childDictionary = new PdfDictionary(content.Dictionary.Concat([
             new(Name("Type"), Name("XObject")), new(Name("Subtype"), Name("Form")),
             new(Name("BBox"), Reals(0, 0, 10, 10)), new(Name("Resources"), page[Name("Resources")]),
-            new(Name("Group"), new PdfDictionary([new(Name("S"), Name("Transparency")), new(Name("I"), new PdfBoolean(!nestedNonisolated))])) }));
+            new(Name("Group"), new PdfDictionary([new(Name("S"), Name("Transparency")), new(Name("I"), new PdfBoolean(!nestedNonisolated))])) ]));
         if (nestedKnockout)
         {
             var group = Assert.IsType<PdfDictionary>(childDictionary[Name("Group")]);
@@ -2853,9 +2844,9 @@ public sealed class PdfPageRendererTests
             "0 0 1 rg 0 0 10 10 re f /Child Do"u8));
         var pageContent = update.AddObject(new PdfStream(new PdfDictionary([]), "/Parent Do"u8));
         var updatedPage = new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Contents")) && !pair.Key.Equals(Name("Resources")))
-            .Concat(new KeyValuePair<PdfName, PdfObject>[] {
+            .Concat([
                 new(Name("Contents"), pageContent),
-                new(Name("Resources"), new PdfDictionary([new(Name("XObject"), new PdfDictionary([new(Name("Parent"), parent)]))])) }));
+                new(Name("Resources"), new PdfDictionary([new(Name("XObject"), new PdfDictionary([new(Name("Parent"), parent)]))])) ]));
         return PdfDocument.Open(update.ReplaceObject(pageReference.ObjectNumber, updatedPage).Build());
     }
 
@@ -2892,11 +2883,10 @@ public sealed class PdfPageRendererTests
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
-        var colorSpace = new PdfArray(new PdfObject[]
-        {
+        var colorSpace = new PdfArray([
             Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
             new PdfString([255, 0, 0, 0, 0, 255], PdfStringForm.Hexadecimal)
-        });
+        ]);
         var shading = new PdfStream(new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(4)),
             new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace),
@@ -3022,11 +3012,10 @@ public sealed class PdfPageRendererTests
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
-        var colorSpace = new PdfArray(new PdfObject[]
-        {
+        var colorSpace = new PdfArray([
             Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
             new PdfString([255, 0, 0, 0, 0, 255], PdfStringForm.Hexadecimal)
-        });
+        ]);
         var shading = new PdfStream(new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(5)),
             new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace),
@@ -3121,7 +3110,7 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Size"),
-                new PdfArray(new PdfObject[] { new PdfInteger(2) })),
+                new PdfArray([new PdfInteger(2)])),
             new KeyValuePair<PdfName, PdfObject>(Name("BitsPerSample"), new PdfInteger(32))]),
             new byte[12].Concat(Enumerable.Repeat(byte.MaxValue, 12)).ToArray());
         PdfDocument document = AddSampledAxialShadingResource(source, function);
@@ -3145,7 +3134,7 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Size"),
-                new PdfArray(new PdfObject[] { new PdfInteger(2) })),
+                new PdfArray([new PdfInteger(2)])),
             new KeyValuePair<PdfName, PdfObject>(Name("BitsPerSample"), new PdfInteger(8)),
             new KeyValuePair<PdfName, PdfObject>(Name("Order"), new PdfInteger(3))]),
             [0, 0, 0, 255, 255, 255]);
@@ -3172,7 +3161,7 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Size"),
-                new PdfArray(new PdfObject[] { new PdfInteger(2) })),
+                new PdfArray([new PdfInteger(2)])),
             new KeyValuePair<PdfName, PdfObject>(Name("BitsPerSample"), new PdfInteger(8))]),
             [255, 255, 255, 255, 0, 0]);
         PdfDocument document = AddSampledSeparationColorSpace(source, function);
@@ -3198,7 +3187,7 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Size"),
-                new PdfArray(new PdfObject[] { new PdfInteger(2), new PdfInteger(2) })),
+                new PdfArray([new PdfInteger(2), new PdfInteger(2)])),
             new KeyValuePair<PdfName, PdfObject>(Name("BitsPerSample"), new PdfInteger(8)),
             new KeyValuePair<PdfName, PdfObject>(Name("Order"), new PdfInteger(3))]),
             [
@@ -5313,7 +5302,7 @@ public sealed class PdfPageRendererTests
         PdfStream image = Assert.IsType<PdfStream>(source.Resolve(imageReference));
         var update = new PdfIncrementalUpdateBuilder(source);
         PdfIndirectReference profileReference = update.AddObject(profile);
-        var colorSpace = new PdfArray(new PdfObject[] { Name("ICCBased"), profileReference });
+        var colorSpace = new PdfArray([Name("ICCBased"), profileReference]);
         var dictionary = new PdfDictionary(image.Dictionary
             .Where(entry => !entry.Key.Equals(Name("ColorSpace")))
             .Append(new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace)));
@@ -5335,10 +5324,9 @@ public sealed class PdfPageRendererTests
         PdfStream image = Assert.IsType<PdfStream>(source.Resolve(imageReference));
         var update = new PdfIncrementalUpdateBuilder(source);
         PdfIndirectReference functionReference = update.AddObject(function);
-        var colorSpace = new PdfArray(new PdfObject[]
-        {
+        var colorSpace = new PdfArray([
             Name("Separation"), Name("SpotRed"), Name("DeviceRGB"), functionReference
-        });
+        ]);
         var dictionary = new PdfDictionary(image.Dictionary
             .Where(entry => !entry.Key.Equals(Name("ColorSpace")))
             .Append(new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace)));
@@ -5360,13 +5348,12 @@ public sealed class PdfPageRendererTests
         PdfStream image = Assert.IsType<PdfStream>(source.Resolve(imageReference));
         var update = new PdfIncrementalUpdateBuilder(source);
         PdfIndirectReference functionReference = update.AddObject(function);
-        var colorSpace = new PdfArray(new PdfObject[]
-        {
+        var colorSpace = new PdfArray([
             Name("DeviceN"),
             new PdfArray(Enumerable.Range(0, componentCount)
                 .Select(index => (PdfObject)Name($"Spot{index + 1}"))),
             Name("DeviceRGB"), functionReference
-        });
+        ]);
         var dictionary = new PdfDictionary(image.Dictionary
             .Where(entry => !entry.Key.Equals(Name("ColorSpace"))
                 && !entry.Key.Equals(Name("Filter"))
@@ -5435,7 +5422,7 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0, 0, 10, 0)),
             new KeyValuePair<PdfName, PdfObject>(Name("Function"), functionReference),
             new KeyValuePair<PdfName, PdfObject>(Name("Extend"),
-                new PdfArray(new PdfObject[] { new PdfBoolean(true), new PdfBoolean(true) }))
+                new PdfArray([new PdfBoolean(true), new PdfBoolean(true)]))
         ]);
         PdfIndirectReference shadingReference = update.AddObject(shading);
         var shadings = new PdfDictionary([
@@ -5503,7 +5490,7 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Encoding"),
                 new PdfDictionary([
                     new KeyValuePair<PdfName, PdfObject>(Name("Differences"),
-                        new PdfArray(new PdfObject[] { new PdfInteger(65), Name("A") }))])),
+                        new PdfArray([new PdfInteger(65), Name("A")]))])),
             new KeyValuePair<PdfName, PdfObject>(Name("FirstChar"), new PdfInteger(65)),
             new KeyValuePair<PdfName, PdfObject>(Name("LastChar"), new PdfInteger(65)),
             new KeyValuePair<PdfName, PdfObject>(Name("Widths"), Reals(1000)),
@@ -5565,10 +5552,9 @@ public sealed class PdfPageRendererTests
             .Where(entry => !entry.Key.Equals(Name("DW2")) && !entry.Key.Equals(Name("W2")))
             .Append(new KeyValuePair<PdfName, PdfObject>(Name("DW2"), Reals(1000, -1000)))
             .Append(new KeyValuePair<PdfName, PdfObject>(Name("W2"),
-                new PdfArray(new PdfObject[]
-                {
+                new PdfArray([
                     new PdfInteger(1), Reals(-1000, 500, 1000)
-                }))));
+                ]))));
         var update = new PdfIncrementalUpdateBuilder(source);
         update.ReplaceObject(fontReference.ObjectNumber, verticalFont);
         update.ReplaceObject(descendantReference.ObjectNumber, verticalDescendant);

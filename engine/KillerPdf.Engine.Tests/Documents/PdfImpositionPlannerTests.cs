@@ -133,7 +133,7 @@ public sealed class PdfImpositionPlannerTests
         Assert.Equal(2, nup.Count);
         Assert.Equal(PdfImposedSheetFace.Front, nup[0].Face);
         Assert.Equal(PdfImposedSheetFace.Back, nup[1].Face);
-        Assert.Equal(new int?[] { 4, null, null, null }, nup[1].SourcePageIndices);
+        Assert.Equal([4, null, null, null], nup[1].SourcePageIndices);
     }
 
     [Fact]

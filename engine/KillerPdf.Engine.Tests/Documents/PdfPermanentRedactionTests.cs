@@ -169,8 +169,7 @@ public sealed class PdfPermanentRedactionTests
         var update = new PdfIncrementalUpdateBuilder(document);
         PdfObject marker = new PdfString("private"u8.ToArray(), PdfStringForm.Literal);
         update.ReplaceObject(catalogReference.ObjectNumber,
-            new PdfDictionary(catalog.Concat(new KeyValuePair<PdfName, PdfObject>[]
-            {
+            new PdfDictionary(catalog.Concat([
                 new(Name("StructTreeRoot"), marker),
                 new(Name("AF"), marker),
                 new(Name("Collection"), marker),
@@ -178,16 +177,15 @@ public sealed class PdfPermanentRedactionTests
                 new(Name("AA"), marker),
                 new(Name("OCProperties"), marker),
                 new(Name("PieceInfo"), marker)
-            })));
+            ])));
         update.ReplaceObject(pageReference.ObjectNumber,
-            new PdfDictionary(page.Concat(new KeyValuePair<PdfName, PdfObject>[]
-            {
+            new PdfDictionary(page.Concat([
                 new(Name("Metadata"), marker),
                 new(Name("PieceInfo"), marker),
                 new(Name("AA"), marker),
                 new(Name("Thumb"), marker),
                 new(Name("AF"), marker)
-            })));
+            ])));
 
         PdfRedactionVerificationReport report =
             PdfPermanentRedaction.VerifySanitizedOutput(update.Build(), 1);
