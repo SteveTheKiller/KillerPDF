@@ -37,6 +37,7 @@ a:hover { filter: brightness(1.15); }
 
 /* ---- Wordmark (rendered from the app font as SVG) ---- */
 .wm-logo { display: block; width: auto; }
+html.logo-pending .wm-logo { visibility: hidden; }
 html[data-theme="light"] .wm-logo { filter: none; }
 .wm-killer { fill: currentColor; }
 .wm-pdf { fill: var(--logo-pdf); stroke: var(--logo-pdf); stroke-width: 14; stroke-linejoin: round; }

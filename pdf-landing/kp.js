@@ -150,6 +150,7 @@
     }
     var imgs = document.querySelectorAll('img.wm-logo');
     for (var i = 0; i < imgs.length; i++) imgs[i].src = src;
+    root.classList.remove('logo-pending');
   }
 
   function setTheme(name) {
