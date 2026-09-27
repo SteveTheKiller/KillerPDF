@@ -115,12 +115,12 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal(model.Save(), PdfOcrRecognitionModel.Load(model.Save()).Save());
     }
 
-    private static readonly int[] sourceArray = [3, 5, 8, 12, 18];
+    private static readonly int[] SourceArray = [3, 5, 8, 12, 18];
 
     [Fact]
     public void ShapeBucketsSeparateCommonGlyphProportions()
     {
-        int[] buckets = [.. sourceArray.Select(glyphWidth => PdfOcrRecognitionModel.ShapeBucket(
+        int[] buckets = [.. SourceArray.Select(glyphWidth => PdfOcrRecognitionModel.ShapeBucket(
                 Glyph(glyphWidth), 20, 10))];
 
         Assert.Equal(5, buckets.Distinct().Count());
@@ -340,7 +340,7 @@ public sealed class PdfOcrRecognitionTests
             1, 1, samples.Reverse()).Save());
     }
 
-    private static readonly float[] Features = [0.5f];
+    private static readonly float[] CommonPrototypeFeatures = [0.5f];
 
     [Fact]
     public void TrainerDoesNotLetFrequencyOverrideAClearerPrototype()
@@ -348,7 +348,7 @@ public sealed class PdfOcrRecognitionTests
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(1, 1,
         [
             .. Enumerable.Repeat(
-                new PdfOcrTrainingSample("common", Features), 100),
+                new PdfOcrTrainingSample("common", CommonPrototypeFeatures), 100),
             new("rare", new float[] { 1 })
         ]);
 
@@ -358,7 +358,7 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal(1, evaluation.Accuracy);
     }
 
-    private static readonly float[] Features = [0.01f, 0.99f];
+    private static readonly float[] RepeatedSupportFeatures = [0.01f, 0.99f];
 
     [Fact]
     public void TrainerPrefersRepeatedSupportOverOneOffPrototypeNoise()
@@ -369,7 +369,7 @@ public sealed class PdfOcrRecognitionTests
             .. Enumerable.Repeat(
                 new PdfOcrTrainingSample("A", new float[] { 1, 0 }), 9),
             .. Enumerable.Repeat(
-                new PdfOcrTrainingSample("B", Features), 10)
+                new PdfOcrTrainingSample("B", RepeatedSupportFeatures), 10)
         ]);
 
         PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
@@ -378,7 +378,7 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal(1, evaluation.Accuracy);
     }
 
-    private static readonly float[] Features = [0.9f, 0.1f];
+    private static readonly float[] SupportedShapeFeatures = [0.9f, 0.1f];
 
     [Fact]
     public void TrainerDoesNotLetOneMislabeledPrototypeOverrideSupportedShape()
@@ -387,7 +387,7 @@ public sealed class PdfOcrRecognitionTests
         [
             new("A", new float[] { 0, 1 }),
             new("A", new float[] { 1, 0 }),
-            new("A", Features),
+            new("A", SupportedShapeFeatures),
             new("B", new float[] { 0, 1 }),
             new("B", new float[] { 0.1f, 0.9f })
         ]);
@@ -398,7 +398,7 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal(1, evaluation.Accuracy);
     }
 
-    private static readonly float[] Features = [0.50343f, 0.00197f];
+    private static readonly float[] AntialiasVariantFeatures = [0.50343f, 0.00197f];
 
     [Fact]
     public void TrainerAveragesAntialiasVariantsWithTheSamePrototypeHash()
@@ -408,7 +408,7 @@ public sealed class PdfOcrRecognitionTests
             new("A", new float[] { 0.5001f, 0 }),
             .. Enumerable.Repeat(new PdfOcrTrainingSample(
                 "A", new float[] { 0.5038f, 0 }), 9),
-            new("B", Features)
+            new("B", AntialiasVariantFeatures)
         ];
 
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(2, 1, samples);
@@ -420,7 +420,7 @@ public sealed class PdfOcrRecognitionTests
             2, 1, samples.Reverse()).Save());
     }
 
-    private static readonly float[] Features = [0.9f];
+    private static readonly float[] NearTieFeatures = [0.9f];
 
     [Fact]
     public void TrainerUsesVisualEvidenceToResolveANearTie()
@@ -428,7 +428,7 @@ public sealed class PdfOcrRecognitionTests
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(1, 1,
         [
             .. Enumerable.Repeat(
-                new PdfOcrTrainingSample("common", Features), 100),
+                new PdfOcrTrainingSample("common", NearTieFeatures), 100),
             new("rare", new float[] { 1 })
         ]);
 
@@ -1046,14 +1046,14 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal(compact, PdfOcrRecognitionModel.Load(compact).Save());
     }
 
-    private static readonly float[] biases = [0.25f];
+    private static readonly float[] Biases = [0.25f];
 
     [Fact]
     public void SignedLinearModelsRetainExactFloatWeights()
     {
         PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Create(
             2, 1, ["A"], new float[] { -0.1234567f, 0.7654321f },
-            biases);
+            Biases);
         byte[] saved = model.Save();
 
         Assert.Equal(saved, PdfOcrRecognitionModel.Load(saved).Save());
