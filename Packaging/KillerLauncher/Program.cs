@@ -201,6 +201,50 @@ namespace KillerLauncher
         internal static string DefaultInstallDirectory(bool machine) =>
             machine ? MachineInstallDirectory : UserInstallDirectory;
 
+        internal sealed class InstalledCopy
+        {
+            internal InstalledCopy(string directory, string executable, string version, bool machine, bool desktopShortcut)
+            {
+                Directory = directory;
+                Executable = executable;
+                Version = version;
+                Machine = machine;
+                DesktopShortcut = desktopShortcut;
+            }
+
+            internal string Directory { get; }
+            internal string Executable { get; }
+            internal string Version { get; }
+            internal bool Machine { get; }
+            internal bool DesktopShortcut { get; }
+        }
+
+        internal static InstalledCopy? FindInstalledCopy()
+        {
+            InstalledCopy? machine = FindInstalledCopy(MachineInstallDirectory, true);
+            return machine ?? FindInstalledCopy(UserInstallDirectory, false);
+        }
+
+        private static InstalledCopy? FindInstalledCopy(string directory, bool machine)
+        {
+            string executable = Path.Combine(directory, InnerExeName);
+            if (!File.Exists(executable))
+            {
+                executable = Path.Combine(directory, "KillerPDF.exe");
+                if (!File.Exists(executable)) return null;
+            }
+
+            string rawVersion = FileVersionInfo.GetVersionInfo(executable).FileVersion ?? "installed";
+            string version = Version.TryParse(rawVersion, out Version? parsed) ? parsed.ToString(3) : rawVersion;
+            string desktop = Path.Combine(Environment.GetFolderPath(machine
+                ? Environment.SpecialFolder.CommonDesktopDirectory
+                : Environment.SpecialFolder.DesktopDirectory), "KillerPDF.lnk");
+            return new InstalledCopy(directory, executable, version, machine, File.Exists(desktop));
+        }
+
+        internal static string SetupVersion =>
+            Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "unknown";
+
         // Older 1.7.x uninstallers could remove their Installed Apps entry while leaving the
         // application running and its files locked. Setup owns that migration now: ask any copy
         // running from a folder we are about to replace or remove to close normally, preserving
