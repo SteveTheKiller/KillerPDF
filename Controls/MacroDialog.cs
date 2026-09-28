@@ -88,7 +88,7 @@ internal sealed class MacroDialog : Window
         Reload();
     }
 
-    private UIElement BuildSavedPanel(params Button[] buttons)
+    private DockPanel BuildSavedPanel(params Button[] buttons)
     {
         var panel = new DockPanel();
         var actions = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
@@ -109,7 +109,7 @@ internal sealed class MacroDialog : Window
         return panel;
     }
 
-    private UIElement BuildEditorPanel(Button save, Button add, Button remove,
+    private DockPanel BuildEditorPanel(Button save, Button add, Button remove,
         Button up, Button down)
     {
         var panel = new DockPanel();

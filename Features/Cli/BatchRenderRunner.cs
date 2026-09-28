@@ -204,7 +204,7 @@ namespace KillerPDF.Features
 
         // Fits each page inside a size-by-size box through the engine render session,
         // the same as the image export path (annotations and form fields painted).
-        private static IEnumerable<RenderRow> RenderFile(string src, string dstBase, int size, int pageLimit)
+        private static List<RenderRow> RenderFile(string src, string dstBase, int size, int pageLimit)
         {
             var rows = new List<RenderRow>();
             PdfPageRenderSession session;

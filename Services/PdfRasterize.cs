@@ -98,8 +98,7 @@ namespace KillerPDF.Services
                     // /SMask alpha channel in the flattened output.
                     // #141: WithAnnotations, or flattening an annotated PDF silently dropped the
                     // markup the file carried - this path builds a NEW document from the pixels.
-                    PdfRenderedPage rendered = renderSession.RenderPage(
-                        i, removeTransparencyOnFallback: true, cancellationToken: ct);
+                    PdfRenderedPage rendered = renderSession.RenderPage(i, cancellationToken: ct);
                     rw = rendered.Width;
                     rh = rendered.Height;
                     bgra = rendered.Pixels;
@@ -158,8 +157,7 @@ namespace KillerPDF.Services
                     // alpha and produced black pages, PNG came out transparent.
                     // #141: WithAnnotations - an exported image should show the markup the file
                     // carries, the same as the page does on screen.
-                    PdfRenderedPage rendered = renderSession.RenderPage(
-                        idx, removeTransparencyOnFallback: true, cancellationToken: ct);
+                    PdfRenderedPage rendered = renderSession.RenderPage(idx, cancellationToken: ct);
                     w = rendered.Width;
                     h = rendered.Height;
                     raw = rendered.Pixels;

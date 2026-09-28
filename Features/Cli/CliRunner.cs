@@ -1312,8 +1312,7 @@ namespace KillerPDF.Features
             int digits = Math.Max(3, pageCount.ToString().Length);
             foreach (var idx in selected)
             {
-                PdfRenderedPage rendered = renderSession.RenderPage(idx, transparent,
-                    removeTransparencyOnFallback: !transparent);
+                PdfRenderedPage rendered = renderSession.RenderPage(idx, transparent);
                 byte[] raw = rendered.Pixels;
                 int w = rendered.Width, h = rendered.Height;
                 int rot = rotations != null && idx < rotations.Length ? rotations[idx] : 0;
@@ -1387,8 +1386,7 @@ namespace KillerPDF.Features
                 // Composite over white (#148): keeps the /SMask alpha channel out
                 // of the rebuilt page images entirely.
                 // #141: WithAnnotations, or the rebuild drops the file's own markup.
-                PdfRenderedPage rendered = renderSession.RenderPage(
-                    i, removeTransparencyOnFallback: true);
+                PdfRenderedPage rendered = renderSession.RenderPage(i);
                 byte[] raw = rendered.Pixels;
                 int w = rendered.Width, h = rendered.Height;
                 int rot = rotations != null && i < rotations.Length ? rotations[i] : 0;

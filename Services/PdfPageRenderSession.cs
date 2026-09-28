@@ -140,7 +140,7 @@ internal sealed class PdfPageRenderSession : IDisposable
     }
 
     internal PdfRenderedPage RenderPage(int pageIndex, bool transparentBackground = false,
-        bool includeFormFields = true, bool removeTransparencyOnFallback = false,
+        bool includeFormFields = true,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

@@ -74,7 +74,7 @@ internal sealed class ImageAssetStore
         File.Move(temporary, _manifest, overwrite: true);
     }
 
-    private static int Find(IReadOnlyList<ImageAsset> assets, string id)
+    private static int Find(List<ImageAsset> assets, string id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         for (int index = 0; index < assets.Count; index++)
