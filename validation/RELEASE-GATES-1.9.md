@@ -110,7 +110,10 @@ Four alternating baseline/warmed pairs gave baseline first-render times of
 1,503.582, 1,505.196, 1,467.895, and 1,484.795 with worker prestart.
 Every hash matched. A separate cold allocation trace sampled large byte arrays
 from Flate output and its scratch pool; it does not isolate the cause of the
-first-render latency. Raw results are under
+first-render latency. The decoder uses pooled one-megabyte blocks and then
+copies into an exact-size array. Its current cold trace ranks Flate decode
+well below area conversion, so removing that copy has no measured speed case
+yet. Raw results are under
 `C:/Users/steve/kp-bench-render/altona-thread-warm-20260929`.
 
 Before the image-cache change, the three Altona files accounted for 1,232
