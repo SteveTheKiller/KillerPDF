@@ -696,6 +696,14 @@ compatibility fallback for syntax outside the direct parser. All 4,159 engine
 tests and 484 app tests pass. Evidence is under
 `C:/Users/steve/kp-bench-render/content-number-parser-trial`.
 
+Caching each Form XObject's resolved matrix, bounds, resources, and transparency
+flags in a separate 128-entry renderer cache preserved the poster output and
+reduced sampled peak working set from 199.9 to 197.9 MiB. It nevertheless made
+12 alternating fresh-process pairs slower: median render time increased from
+1,570 to 1,598 milliseconds and mean time increased from 1,571.33 to 1,614.58
+milliseconds. The cache was removed. Evidence is under
+`C:/Users/steve/kp-bench-render/form-metadata-trial`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
