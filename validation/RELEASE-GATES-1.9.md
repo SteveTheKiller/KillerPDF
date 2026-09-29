@@ -16,7 +16,7 @@ behind an overall average.
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. Shared engine peaks range from 461.9 to 501.1 MiB; difficult peaks range from 278.6 to 288.9 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. Difficult render time is 10.356 versus 5.479 seconds and wall time is 15.749 versus 11.011 seconds. The current published payload takes 25.453 versus 22.102 seconds in the serial 1024-pixel conformance run described below. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
-| Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. This does not measure visible first-page completion, scrolling, or zoom. |
+| Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A headless technical Altona first render took 742 to 758 ms for 1.9 versus 170 ms for 1.8, although warmed 1.9 renders were faster on that page. Neither check measures visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 29: 4,150 engine tests, 482 app tests, and the Release build pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
@@ -154,6 +154,43 @@ Per-render allocation remained near 277.4 MB and all 160 page hashes matched.
 Both pairs show a substantial slowdown, so the direct-mapped cache remains.
 Raw timings and binaries are under
 `C:/Users/steve/kp-bench-render/two-way-cache-20260929`.
+
+### Altona warmup investigation (2026-09-29)
+
+Twenty identical copies of `altona_technical_1v2_x3.pdf` were rendered through
+the current application's headless batch path with one file worker. The first
+page took 742 milliseconds and the last ten averaged 155.5 milliseconds;
+the 20-page render sum was 4,413 milliseconds. In a separate run with .NET
+tiered compilation disabled, the first page took 729 milliseconds, later
+pages stabilized near 150 milliseconds, and the sum was 3,599 milliseconds.
+All 20 PNGs matched across runs. This indicates that runtime compilation
+contributes to the repeated-page warmup, but the first-page cost remains.
+
+On the 600-page shared set, reversed-order default/no-tier runs had wall times
+of 26.818/28.221 and 27.703/29.191 seconds, with summed render times of
+14,682/15,602 and 15,181/16,152 milliseconds. Every page succeeded and all
+600 PNG hashes matched in the first pair. No-tier compilation improved the
+three early Altona outliers by about 700 milliseconds combined in each pair,
+but slowed the workload overall. The global runtime setting was not retained.
+Raw results are under `C:/Users/steve/kp-bench-render/tiered-pgo-20260929`.
+
+On 20 copies of the technical Altona page, the retained 1.8 application took
+170 milliseconds for the first page and averaged 168 milliseconds for the
+last ten. The current 1.9 application took 742 and 758 milliseconds on the
+first page in two runs, while its last ten averaged 155.5 and 149.1
+milliseconds. This isolates a large cold-render gap on this page; the later
+renders do not show the same regression. It does not establish visible
+first-page timing or parity on other documents.
+
+Applying optimized-first compilation only to `ConvertArea` did not improve a
+direct one-worker probe of that page. Reversed-order baseline/trial first
+renders were 784.763/783.762 and 787.815/780.194 milliseconds; the sums of
+renders 2 through 13 were 2,545.574/2,526.922 and 2,559.204/2,571.325
+milliseconds. Steady medians were 149.877/150.115 and 146.726/152.742
+milliseconds. All 160 pixel hashes matched and allocation stayed near 54 MB
+per render. The method hint was removed. The app-batch and probe results are
+under `C:/Users/steve/kp-bench-render/altona-app-session-20260929` and
+`C:/Users/steve/kp-bench-render/area-jit-20260929`.
 
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
