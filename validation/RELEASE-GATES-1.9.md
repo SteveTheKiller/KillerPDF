@@ -92,6 +92,31 @@ pixel hashes matched. This trial
 reduced idle retention but worsened peak memory, so the original pool budget
 was restored. Both probe logs are in the same scratch folder.
 
+Allocation sampling then identified two 92,045,344-byte Flate output arrays.
+The PDF has one 3392 by 6784 image matching that decoded size, and the
+persistent decoded-image cache rejects such an image at its 64 MiB limit.
+A 128 MiB in-render limit reuses it during
+the page, including an output-profile retry, then removes entries above the
+original 64 MiB persistent limit after the final pass. On the single-page
+engine probe, render-stage allocation fell from 337.9 to 217.4 MB, working
+set immediately after rendering fell from 512.9 to 391.9 MB, and collected
+heap returned to 213.5 MB. The pixel hash was unchanged.
+
+In two 12-copy application runs, the last-six average fell from 845.8 and
+840.3 milliseconds to 742.3 and 752.2 milliseconds. The sampled process
+peak rose from baseline values of 666.9 and 667.0 MiB to trial values of
+677.9 and 678.0 MiB in that repeated
+workload. Three same-layout 600-file shared runs measured baseline peaks of
+588.8, 588.4, and 540.9 MiB versus 501.1, 501.5, and 501.0 MiB with the
+change. Summed render times were 15,404/15,517/15,215 milliseconds for
+baseline and 15,479/14,932/15,395 for the change, so whole-set speed gain
+is not established. All 600 shared PNG hashes matched. On the 74-page
+difficult set, all PNG hashes matched, render sums were 8,340 and 8,229
+milliseconds, and peaks were 209.1 and 210.4 MiB. Full checks pass with
+4,150 engine tests, 482 app tests, and a Release build without warnings.
+Raw traces, probes, applications, logs, and images are under
+`C:/Users/steve/kp-bench-render/eci-altona-repeat-20260929`.
+
 ### JPEG worker comparison (2026-09-29)
 
 The current engine rendered `22060_A1_01_Plans.pdf` at 724 by 1024 pixels in

@@ -13,6 +13,7 @@ namespace KillerPdf.Engine.Rendering;
 public sealed partial class PdfPageRenderer
 {
     private const long MaximumDecodedImageCacheBytes = 64L * 1024 * 1024;
+    private const long MaximumInRenderImageCacheBytes = 128L * 1024 * 1024;
     private const long MaximumFlattenedGlyphCacheBytes = 16L * 1024 * 1024;
     private const long MaximumRenderedPageCacheBytes = 64L * 1024 * 1024;
     private const int MaximumMeshVerticesPerRow = 65_536;
@@ -58,7 +59,7 @@ public sealed partial class PdfPageRenderer
             MaximumFlattenedGlyphCacheBytes,
             paths => paths.Sum(path => (long)path.Length * sizeof(double) * 2));
     private static BoundedCache<ImageCacheKey, DecodedImage> CreateImageCache() =>
-        new(64, maximumWeight: MaximumDecodedImageCacheBytes,
+        new(64, maximumWeight: MaximumInRenderImageCacheBytes,
             weight: image => image.Samples.LongLength + (image.Alpha?.LongLength ?? 0));
 
     /// <summary>
@@ -230,6 +231,7 @@ public sealed partial class PdfPageRenderer
         else if (pageProfile is { Components: 1 or 3 }) pixels.EnableRgb(Color.White, pageProfile);
         RasterSurface pageSurface = pixels;
         int previousParallelism = _rowParallelism;
+        bool retryForOutputProfile = false;
         _rowParallelism = Math.Max(1, options.MaximumParallelism);
         try
         {
@@ -253,11 +255,16 @@ public sealed partial class PdfPageRenderer
         catch (OutputOverprintRequiredException required)
         {
             outputProfile = required.Profile;
+            retryForOutputProfile = true;
         }
         finally
         {
             _rowParallelism = previousParallelism;
             pageSurface.ReleaseInk();
+            // Reuse a large image during a page or output-profile retry, then restore the
+            // original long-lived image budget when that page finishes.
+            if (!retryForOutputProfile)
+                _imageCache.RemoveAboveWeight(MaximumDecodedImageCacheBytes);
         }
         // Release the first pass's surfaces before replaying into the same output buffer.
         // A supplied profile disables probing, so a page can restart only once.
@@ -6914,6 +6921,25 @@ public sealed partial class PdfPageRenderer
         internal int Count
         {
             get { lock (_sync) return _entries.Count; }
+        }
+
+        internal void RemoveAboveWeight(long maximumWeight)
+        {
+            lock (_sync)
+            {
+                for (LinkedListNode<(TKey Key, TValue Value, long Weight)>? node = _usage.Last;
+                    node is not null;)
+                {
+                    LinkedListNode<(TKey Key, TValue Value, long Weight)>? previous = node.Previous;
+                    if (node.Value.Weight > maximumWeight)
+                    {
+                        _usage.Remove(node);
+                        _entries.Remove(node.Value.Key);
+                        _currentWeight -= node.Value.Weight;
+                    }
+                    node = previous;
+                }
+            }
         }
 
         internal bool TryGet(TKey key, out TValue value)
