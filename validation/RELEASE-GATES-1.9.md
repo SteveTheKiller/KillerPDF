@@ -17,9 +17,9 @@ overall average.
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch close in the latest comparison; visible interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. The latest difficult comparison peaks at 260.8 to 267.9 MiB versus 257.5 to 257.8 MiB. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. The latest difficult comparison measures 9.611 to 9.832 versus 4.917 to 5.206 seconds of rendering and 14.516 to 14.915 versus 10.014 to 10.508 seconds wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
-| Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A headless technical Altona first render took 742 to 758 ms for 1.9 versus 170 ms for 1.8, although warmed 1.9 renders were faster on that page. Neither check measures visible first-page completion, scrolling, or zoom. |
+| Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A headless technical Altona first render took 742 to 758 ms for 1.9 versus 170 ms for 1.8, although warmed 1.9 renders were faster on that page. Continuous view now schedules the visible page before neighboring work, but neither check measures visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 29: 4,154 engine tests and 482 app tests pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 29: 4,154 engine tests and 484 app tests pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -624,6 +624,16 @@ Altona renders had the same pixel hash. A general reduction in the worker
 threshold is therefore unsupported; concurrent viewer memory and a wider page
 set would still need checking before a narrower policy change. Probe output
 is under `C:/Users/steve/kp-bench-render/balloon-workers-20260929`.
+
+Skipping local-variable initialization in the three hot entropy-decoder passes
+preserved the balloon pixel hash and reduced three last-30 four-worker medians
+from 219.460, 218.790, and 215.530 milliseconds to 214.560, 212.350, and
+212.870 milliseconds. The broader 74-page difficult runs did not confirm the
+gain: candidate render totals were 11.694 and 11.503 seconds versus baseline
+totals of 11.640 and 11.479 seconds in the same measurement session. All 74 PNG
+hashes matched, and 45 focused JPEG 2000 tests passed. The hint was removed.
+Raw results are under
+`C:/Users/steve/kp-bench-render/jp2-skip-locals-init-20260929`.
 
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.

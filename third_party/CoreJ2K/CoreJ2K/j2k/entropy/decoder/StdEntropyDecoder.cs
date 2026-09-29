@@ -869,7 +869,7 @@ namespace CoreJ2K.j2k.entropy.decoder
         /// </param>
         /// <returns> True if an error was detected in the bit stream, false
         /// otherwise.
-        /// 
+        ///
         /// </returns>
         #if NET5_0_OR_GREATER || NETCOREAPP3_0_OR_GREATER
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
