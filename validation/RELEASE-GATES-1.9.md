@@ -704,6 +704,16 @@ reduced sampled peak working set from 199.9 to 197.9 MiB. It nevertheless made
 milliseconds. The cache was removed. Evidence is under
 `C:/Users/steve/kp-bench-render/form-metadata-trial`.
 
+A fresh sampled trace of the retained number parser put content parsing at
+3.85% inclusive, down from 4.90% in the preceding sampled trace, while Form
+rendering remained the largest active engine stack at 12.35% inclusive. A
+temporary diagnostic counted 84 Form calls but 56 unique Form-and-transform
+keys; the other 28 keys occurred only twice. This limited reuse, together with
+the slower metadata-cache result, does not support retaining rendered Form or
+bounding-mask surfaces. All diagnostic source was removed. Evidence is under
+`C:/Users/steve/kp-bench-render/mipeng-profile-parser-20260929` and
+`C:/Users/steve/kp-bench-render/form-key-diagnostic`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
