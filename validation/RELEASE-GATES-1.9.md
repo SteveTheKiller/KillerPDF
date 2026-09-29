@@ -135,6 +135,24 @@ well below area conversion, so removing that copy has no measured speed case
 yet. Raw results are under
 `C:/Users/steve/kp-bench-render/altona-thread-warm-20260929`.
 
+ReadyToRun was tested against the loose release payload. On one fresh Altona
+technical-page process, normal rendering took 708 to 766 milliseconds versus
+382 to 404 milliseconds with ReadyToRun, with identical PNG hashes. Across
+two alternating 600-file pairs, ReadyToRun reduced summed rendering by about
+522 milliseconds but added about 706 milliseconds to document opening, leaving
+average wall time 129 milliseconds slower. Sampled peaks were 489.5 to 491.8
+MiB versus 492.3 to 492.4 MiB. Composite ReadyToRun also rendered the 74-page
+difficult set more slowly at 10.184 versus 9.510 seconds and raised its sampled
+peak from 260.0 to 263.9 MiB. The loose payload grew by about 14.5 MB. Neither
+mode was adopted. Raw results are under
+`C:/Users/steve/kp-bench-render/r2r-payload-20260929`.
+
+A JBIG2 arithmetic-state trial reduced repeated context-array access while
+preserving all three tested scan-page hashes. Four alternating fresh-process
+runs measured median three-page rendering at about 823 milliseconds before
+and 840 milliseconds after the change, so the trial was removed. Raw results
+are under `C:/Users/steve/kp-bench-render/jbig2-state-20260929`.
+
 Before the image-cache change, the three Altona files accounted for 1,232
 milliseconds of the 2,031 millisecond summed median render gap on the 600
 shared successful pages.
