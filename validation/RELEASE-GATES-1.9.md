@@ -183,6 +183,16 @@ three `42828.pdf` page hashes matched, but paired median three-page rendering
 slowed from about 868 to 897 milliseconds. The trial was removed. Raw results
 are under `C:/Users/steve/kp-bench-render/jbig2-bytein-20260929`.
 
+A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
+DeviceCMYK display conversion as its main active costs. Reusing the converter's
+bounded color cache on the direct CMYK path preserved the page hash and passed
+43 focused color tests, but warmed renders were slower, so the trial was
+removed. Replacing the reduced transform's eight-value SIMD trailing-zero
+search with a fixed scalar scan passed 135 focused JPEG tests and preserved the
+page hash, but two reversed-order pairs did not show a repeatable gain. That
+trial was also removed. The trace and raw runs are under
+`C:/Users/steve/kp-bench-render/064034-profile-20260929`.
+
 Before the image-cache change, the three Altona files accounted for 1,232
 milliseconds of the 2,031 millisecond summed median render gap on the 600
 shared successful pages.
