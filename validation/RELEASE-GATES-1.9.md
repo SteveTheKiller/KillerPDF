@@ -104,6 +104,13 @@ pixel hashes matched and allocation stayed near 156 MB per render. The pairs
 disagree on speed, so the trial was removed. Its binaries and raw timings are
 under `C:/Users/steve/kp-bench-render/altona-weight-20260929`.
 
+A temporary counter build then measured 57,781,871 color-cache hits and
+1,755,554 misses on one four-worker render of the same page, a 97.05 percent
+hit rate. Of the misses, 1,346,118 replaced an occupied slot. The pixel hash
+matched the production engine. The counters were removed and the engine was
+rebuilt. The probe is under
+`C:/Users/steve/kp-bench-render/altona-cache-metrics-20260929`.
+
 Prestarting four thread-pool workers before a fresh render also did not help.
 Four alternating baseline/warmed pairs gave baseline first-render times of
 1,434.615, 1,432.134, 1,445.607, and 1,432.084 milliseconds versus
