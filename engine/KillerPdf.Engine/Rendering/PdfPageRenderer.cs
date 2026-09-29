@@ -6009,6 +6009,17 @@ public sealed partial class PdfPageRenderer
                 BlendChannel(pixels[offset + 1] / 255d, color.Green / 255d, blendMode),
                 BlendChannel(pixels[offset] / 255d, color.Blue / 255d, blendMode))
         };
+        if (targetAlpha == 1 && sourceAlpha == 1)
+        {
+            pixels[offset] = Opaque(blendBlue);
+            pixels[offset + 1] = Opaque(blendGreen);
+            pixels[offset + 2] = Opaque(blendRed);
+            pixels[offset + 3] = 255;
+            return;
+
+            static byte Opaque(double blended) =>
+                (byte)Math.Round(Math.Clamp(blended, 0, 1) * 255);
+        }
         pixels[offset] = Composite(color.Blue, pixels[offset], blendBlue);
         pixels[offset + 1] = Composite(color.Green, pixels[offset + 1], blendGreen);
         pixels[offset + 2] = Composite(color.Red, pixels[offset + 2], blendRed);

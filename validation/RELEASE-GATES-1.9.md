@@ -372,6 +372,19 @@ time. The focused 281 tests, all 4,160 engine tests, and all 484 app tests pass.
 Raw evidence is under
 `C:/Users/steve/kp-bench-render/resolved-image-ink-trial`.
 
+Fully opaque RGB blend paints now write the already calculated blended channels
+directly instead of running the general alpha compositor. Across seven
+alternating serialized 40-copy Color Burn runs, the render median fell from
+3,805 to 3,419 milliseconds and the wall median fell from 6,924 to 6,547
+milliseconds. Peak working set stayed within 2 MiB, at 122 and 124 MiB, and all
+280 paired output comparisons matched. Two alternating difficult-set pairs
+disagreed in direction, averaging 10,680 and 10,810.5 milliseconds, with peak
+working sets of 265.5 and 267.5 MiB. All 148 paired page comparisons matched.
+The focused 1,225 rendering tests, all 4,160 engine tests, and all 484 app tests
+pass. The broader rendering-speed gate remains open.
+Raw evidence is under
+`C:/Users/steve/kp-bench-render/colorburn-opaque-trial`.
+
 A fresh three-run comparison against the installed-layout 1.8.72 payload puts
 the retained 1.9 build at a 10,499 millisecond difficult-set render median and
 16,062 millisecond wall median, versus 5,678 and 11,292 milliseconds for 1.8.
