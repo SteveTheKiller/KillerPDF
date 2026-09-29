@@ -14,12 +14,12 @@ overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch close in the latest comparison; visible interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. The latest four-run difficult comparison peaks at 266.3 MiB versus 252.2 MiB. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. The latest four-run difficult comparison has a 10.329 versus 5.233 second median render sum and 15.781 versus 10.581 second median wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch close in the latest comparison; visible interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. The latest difficult comparison peaks at 267.1 MiB versus 252.4 MiB. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. The latest difficult comparison has a 10.499 versus 5.678 second median render sum and 16.062 versus 11.292 second median wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A headless technical Altona first render took 742 to 758 ms for 1.9 versus 170 ms for 1.8, although warmed 1.9 renders were faster on that page. Continuous view now schedules the visible page before neighboring work, but neither check measures visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 29: 4,159 engine tests and 484 app tests pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 29: 4,160 engine tests and 484 app tests pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -344,6 +344,42 @@ wall medians were both 8,031 milliseconds, and peak working sets were 113.7
 and 113.5 MiB. All 240 output hashes matched. The change had no measured
 benefit and was removed. Raw results are under
 `C:/Users/steve/kp-bench-render/radial-invariant-trial/payload-comparison`.
+
+The generic image compositor now uses the existing bounded row workers when no
+knockout state or shared matte converter makes the paint state mutable across
+rows. On 40 repeated copies of `GWG1610_Softmasks_Text_part1_X4.pdf`, three
+alternating measured runs reduced the render median from 9,329 to 7,768
+milliseconds and the wall median from 11,786 to 10,228 milliseconds. Peak
+working set stayed at 129 MiB and all 240 output hashes matched. Two alternating
+difficult-set runs with one file worker improved average render time from
+10,975.5 to 10,668.5 milliseconds and average wall time from 16,553.5 to
+16,260 milliseconds, with all 296 compared page hashes matching and peak memory
+slightly lower. At 12 file workers, average wall time improved from 5,317 to
+5,083.5 milliseconds and maximum peak working set fell from 676 to 660.6 MiB.
+All 4,160 engine tests and 484 app tests pass. Raw evidence is under
+`C:/Users/steve/kp-bench-render/gwg1610-profile-20260929` and
+`C:/Users/steve/kp-bench-render/gwg1610-row-parallel-trial`.
+
+The generic image loop now also hands its already converted destination ink to
+the compositor instead of resolving the same value again for every pixel.
+Across seven measured 40-copy runs per build, the retained row-parallel baseline
+and this addition had render medians of 7,061 and 6,955 milliseconds and means
+of 7,089.14 and 6,995.57 milliseconds. Wall medians were 9,332 and 9,246
+milliseconds. Peak working set stayed below 129 MiB and all measured hashes
+matched. Two difficult-set pairs disagreed in direction, averaging 10,493 and
+10,414.5 milliseconds of rendering and 16,060.5 and 15,946 milliseconds wall
+time. The focused 281 tests, all 4,160 engine tests, and all 484 app tests pass.
+Raw evidence is under
+`C:/Users/steve/kp-bench-render/resolved-image-ink-trial`.
+
+A fresh three-run comparison against the installed-layout 1.8.72 payload puts
+the retained 1.9 build at a 10,499 millisecond difficult-set render median and
+16,062 millisecond wall median, versus 5,678 and 11,292 milliseconds for 1.8.
+Peak working sets were 267.1 and 252.4 MiB. Both versions completed all 74
+pages without failures. This confirms that the row-parallel improvement reduces
+the current 1.9 cost without closing the overall rendering-speed gate. Raw
+results are under
+`C:/Users/steve/kp-bench-render/row-parallel-v18-v19-20260929`.
 
 Sixteen traced copies of the difficult file beginning `4387` fell from 490
 milliseconds on the first render to 48 to 69 milliseconds on the last six,

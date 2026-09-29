@@ -5054,124 +5054,132 @@ public sealed partial class PdfPageRenderer
                     });
                 return;
             }
-            for (int y = paintTop; y < paintBottom; y++)
+            void PaintRows(int rowStart, int rowEnd)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                Point first = inverse.Apply((left + 0.5) / scaleX, (targetHeight - y - 0.5) / scaleY);
-                double unitX = first.X, unitY = first.Y;
-                // Step from the unclipped left edge so clipped rows sample identically.
-                for (int x = left; x < paintRight; x++, unitX += unitStepX, unitY += unitStepY)
+                for (int y = rowStart; y < rowEnd; y++)
                 {
-                    if (x < paintLeft) continue;
-                    if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
-                    int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
-                    int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
-                    int alpha;
-                    Color color;
-                    // Full clip coverage leaves the compositor's opacity at exactly one, so the
-                    // direct ink write applies under antialiased clips as well.
-                    int clipCoverage = rectangularClips ? 255 : ClipCoverage(clips, x, y);
-                    byte imageMaskSample = softMask is null ? (byte)255
-                        : interpolateSoftMask ? softMask.SampleBilinear(unitX, 1 - unitY)
-                        : softMask.Sample(
-                            Math.Min((int)(unitX * softMask.Width), softMask.Width - 1),
-                            Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1));
-                    if (imageMaskSample == 0)
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Point first = inverse.Apply((left + 0.5) / scaleX, (targetHeight - y - 0.5) / scaleY);
+                    double unitX = first.X, unitY = first.Y;
+                    // Step from the unclipped left edge so clipped rows sample identically.
+                    for (int x = left; x < paintRight; x++, unitX += unitStepX, unitY += unitStepY)
                     {
-                        if ((knockout is not null || target.GroupShape is not null)
-                            && !alphaIsShape && !explicitMask && !imageMask && clipCoverage > 0)
-                            SetPixel(target, targetWidth, x, y, Color.Black, 0, blendMode,
-                                knockout: knockout, shape: clipCoverage / 255d);
-                        continue;
-                    }
-                    if (directInk && clipCoverage == 255 && matteConverter is null && imageMaskSample == 255
-                        && (plane is not null || directInkSamples)
-                        && (alphaPlane is null || alphaPlane[py * planeWidth + px] == 255)
-                        && target.Contains(x, y))
-                    {
-                        int targetOffset = target.Offset(x, y);
-                        uint ink = plane is not null ? ReadInk(plane, (py * planeWidth + px) * 4)
-                            : ReadInk(samples, Math.Min(py * factor, sourceHeight - 1) * rowBytes
-                                + Math.Min(px * factor, sourceWidth - 1) * 4);
-                        WriteInk(target.Ink!, targetOffset, ink);
-                        target.SetAlpha(targetOffset, 255);
-                        target.GroupAlpha?[targetOffset / 4] = 255;
-                        continue;
-                    }
-                    if (matteConverter is not null)
-                    {
-                        int sx = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
-                        int sy = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
-                        uint packed = matteConverter.ConvertMatte(sx, sy, preblendMatte!, imageMaskSample);
-                        color = target.Ink is not null ? InkColor(packed)
-                            : target.ColorFromRgb(new Color((byte)(packed >> 16), (byte)(packed >> 8), (byte)packed));
-                        alpha = 255;
-                    }
-                    else if (directInkSamples)
-                    {
-                        // Preserve the reduced plane's sampling grid without copying its bytes.
-                        int sx = Math.Min(px * factor, sourceWidth - 1);
-                        int sy = Math.Min(py * factor, sourceHeight - 1);
-                        color = InkColor(ReadInk(samples, sy * rowBytes + sx * 4));
-                        alpha = 255;
-                    }
-                    else if (directDeviceSamples)
-                    {
-                        int sourceOffset = py * factor * rowBytes + px * factor * components;
-                        byte red = samples[sourceOffset];
-                        color = components == 1 ? new Color(red, red, red)
-                            : new Color(red, samples[sourceOffset + 1], samples[sourceOffset + 2]);
-                        alpha = 255;
-                    }
-                    else if (plane is null)
-                    {
-                        if (alphaPlane is not null)
-                            alpha = alphaPlane[py * planeWidth + px];
-                        else
+                        if (x < paintLeft) continue;
+                        if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
+                        int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
+                        int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
+                        int alpha;
+                        Color color;
+                        // Full clip coverage leaves the compositor's opacity at exactly one, so the
+                        // direct ink write applies under antialiased clips as well.
+                        int clipCoverage = rectangularClips ? 255 : ClipCoverage(clips, x, y);
+                        byte imageMaskSample = softMask is null ? (byte)255
+                            : interpolateSoftMask ? softMask.SampleBilinear(unitX, 1 - unitY)
+                            : softMask.Sample(
+                                Math.Min((int)(unitX * softMask.Width), softMask.Width - 1),
+                                Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1));
+                        if (imageMaskSample == 0)
                         {
+                            if ((knockout is not null || target.GroupShape is not null)
+                                && !alphaIsShape && !explicitMask && !imageMask && clipCoverage > 0)
+                                SetPixel(target, targetWidth, x, y, Color.Black, 0, blendMode,
+                                    knockout: knockout, shape: clipCoverage / 255d);
+                            continue;
+                        }
+                        if (directInk && clipCoverage == 255 && matteConverter is null && imageMaskSample == 255
+                            && (plane is not null || directInkSamples)
+                            && (alphaPlane is null || alphaPlane[py * planeWidth + px] == 255)
+                            && target.Contains(x, y))
+                        {
+                            int targetOffset = target.Offset(x, y);
+                            uint ink = plane is not null ? ReadInk(plane, (py * planeWidth + px) * 4)
+                                : ReadInk(samples, Math.Min(py * factor, sourceHeight - 1) * rowBytes
+                                    + Math.Min(px * factor, sourceWidth - 1) * 4);
+                            WriteInk(target.Ink!, targetOffset, ink);
+                            target.SetAlpha(targetOffset, 255);
+                            target.GroupAlpha?[targetOffset / 4] = 255;
+                            continue;
+                        }
+                        if (matteConverter is not null)
+                        {
+                            int sx = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
+                            int sy = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
+                            uint packed = matteConverter.ConvertMatte(sx, sy, preblendMatte!, imageMaskSample);
+                            color = target.Ink is not null ? InkColor(packed)
+                                : target.ColorFromRgb(new Color((byte)(packed >> 16), (byte)(packed >> 8), (byte)packed));
+                            alpha = 255;
+                        }
+                        else if (directInkSamples)
+                        {
+                            // Preserve the reduced plane's sampling grid without copying its bytes.
                             int sx = Math.Min(px * factor, sourceWidth - 1);
                             int sy = Math.Min(py * factor, sourceHeight - 1);
-                            bool one = (samples[sy * rowBytes + sx / 8] & (0x80 >> (sx & 7))) != 0;
-                            if (one != stencilPaintsOne) continue;
-                            alpha = stencilCoverageByte;
+                            color = InkColor(ReadInk(samples, sy * rowBytes + sx * 4));
+                            alpha = 255;
                         }
-                        color = paintedStencil;
+                        else if (directDeviceSamples)
+                        {
+                            int sourceOffset = py * factor * rowBytes + px * factor * components;
+                            byte red = samples[sourceOffset];
+                            color = components == 1 ? new Color(red, red, red)
+                                : new Color(red, samples[sourceOffset + 1], samples[sourceOffset + 2]);
+                            alpha = 255;
+                        }
+                        else if (plane is null)
+                        {
+                            if (alphaPlane is not null)
+                                alpha = alphaPlane[py * planeWidth + px];
+                            else
+                            {
+                                int sx = Math.Min(px * factor, sourceWidth - 1);
+                                int sy = Math.Min(py * factor, sourceHeight - 1);
+                                bool one = (samples[sy * rowBytes + sx / 8] & (0x80 >> (sx & 7))) != 0;
+                                if (one != stencilPaintsOne) continue;
+                                alpha = stencilCoverageByte;
+                            }
+                            color = paintedStencil;
+                        }
+                        else
+                        {
+                            int planeOffset = (py * planeWidth + px) * 4;
+                            alpha = target.Ink is not null
+                                ? alphaPlane is not null ? alphaPlane[planeOffset / 4] : 255
+                                : plane[planeOffset + 3];
+                            color = target.Ink is not null ? InkColor(ReadInk(plane, planeOffset))
+                                : target.ColorFromRgb(new(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]));
+                        }
+                        if (alpha == 0) continue;
+                        if (softMask is not null && alpha != 0)
+                        {
+                            alpha = (alpha * imageMaskSample + 127) / 255;
+                        }
+                        if (alpha == 0) continue;
+                        if (direct && alpha == 255 && clipCoverage == 255)
+                        {
+                            int targetOffset = target.Offset(x, y);
+                            target[targetOffset] = color.Blue;
+                            target[targetOffset + 1] = color.Green;
+                            target[targetOffset + 2] = color.Red;
+                            target[targetOffset + 3] = 255;
+                            directGroupAlpha?[targetOffset / 4] = 255;
+                            continue;
+                        }
+                        double clipAlpha = rectangularClips ? 1 : clipCoverage / 255d;
+                        if (clipAlpha <= 0) continue;
+                        if (!imageMask && (colorSpace.NativeProcessMask.HasValue || colorSpace.ContainsSpotColorants))
+                            color = OverprintColor(color, colorSpace, overprint, 0);
+                        SetPixel(target, targetWidth, x, y,
+                            color,
+                            alpha / 255d * imageOpacity * clipAlpha, blendMode, graphicsSoftMask, knockout,
+                            shape: separateStencilShape ? alpha / 255d * clipAlpha : clipAlpha,
+                            alphaIsShape: alphaIsShape, resolvedInk: color.Ink);
                     }
-                    else
-                    {
-                        int planeOffset = (py * planeWidth + px) * 4;
-                        alpha = target.Ink is not null
-                            ? alphaPlane is not null ? alphaPlane[planeOffset / 4] : 255
-                            : plane[planeOffset + 3];
-                        color = target.Ink is not null ? InkColor(ReadInk(plane, planeOffset))
-                            : target.ColorFromRgb(new(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]));
-                    }
-                    if (alpha == 0) continue;
-                    if (softMask is not null && alpha != 0)
-                    {
-                        alpha = (alpha * imageMaskSample + 127) / 255;
-                    }
-                    if (alpha == 0) continue;
-                    if (direct && alpha == 255 && clipCoverage == 255)
-                    {
-                        int targetOffset = target.Offset(x, y);
-                        target[targetOffset] = color.Blue;
-                        target[targetOffset + 1] = color.Green;
-                        target[targetOffset + 2] = color.Red;
-                        target[targetOffset + 3] = 255;
-                        directGroupAlpha?[targetOffset / 4] = 255;
-                        continue;
-                    }
-                    double clipAlpha = rectangularClips ? 1 : clipCoverage / 255d;
-                    if (clipAlpha <= 0) continue;
-                    if (!imageMask && (colorSpace.NativeProcessMask.HasValue || colorSpace.ContainsSpotColorants))
-                        color = OverprintColor(color, colorSpace, overprint, 0);
-                    SetPixel(target, targetWidth, x, y,
-                        color,
-                        alpha / 255d * imageOpacity * clipAlpha, blendMode, graphicsSoftMask, knockout,
-                        shape: separateStencilShape ? alpha / 255d * clipAlpha : clipAlpha, alphaIsShape: alphaIsShape);
                 }
             }
+            if (matteConverter is null && knockout is null)
+                ForEachRow(paintTop, paintBottom,
+                    (long)(paintRight - paintLeft) * (paintBottom - paintTop), cancellationToken, PaintRows);
+            else PaintRows(paintTop, paintBottom);
         }
         finally
         {

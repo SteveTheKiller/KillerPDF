@@ -77,6 +77,33 @@ public sealed class PdfPageRendererParallelismTests
     }
 
     [Fact]
+    public void Render_ParallelMaskedImageProducesTheSequentialPixels()
+    {
+        var samples = new byte[300 * 200 * 4];
+        for (int index = 0; index < samples.Length; index += 4)
+        {
+            samples[index] = (byte)(index * 3);
+            samples[index + 1] = (byte)(index * 5);
+            samples[index + 2] = (byte)(index * 7);
+            samples[index + 3] = (byte)(32 + index / 4 % 224);
+        }
+        PdfImage image = PdfImage.FromRgba(300, 200, samples);
+        var content = new PdfContentStreamBuilder()
+            .SetFillCmyk(0.15, 0.8, 0.35, 0.1).Rectangle(0, 0, 612, 792).Fill()
+            .DrawImage(image, 30, 120, 550, 550);
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddPage(612, 792, content).Build());
+        var sequential = new PdfRenderOptions(1400, 1811, includeAnnotations: false,
+            includeFormFields: false) { CacheResult = false };
+        var parallel = sequential with { MaximumParallelism = 4 };
+
+        PdfRenderedPage expected = new PdfPageRenderer(document).Render(0, sequential);
+        PdfRenderedPage actual = new PdfPageRenderer(document).Render(0, parallel);
+
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
+    [Fact]
     public void Render_ParallelRowsHonorCancellation()
     {
         PdfDocument document = LargePage();
