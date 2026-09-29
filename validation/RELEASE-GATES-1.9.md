@@ -189,9 +189,12 @@ bounded color cache on the direct CMYK path preserved the page hash and passed
 43 focused color tests, but warmed renders were slower, so the trial was
 removed. Replacing the reduced transform's eight-value SIMD trailing-zero
 search with a fixed scalar scan passed 135 focused JPEG tests and preserved the
-page hash, but two reversed-order pairs did not show a repeatable gain. That
-trial was also removed. The trace and raw runs are under
-`C:/Users/steve/kp-bench-render/064034-profile-20260929`.
+page hash, but two reversed-order `064034.pdf` pairs did not show a repeatable
+gain. A separate trace attributed more time to that search on `363_Risk`, yet
+two reversed-order pairs slowed from 105.4 and 105.7 milliseconds to 111.9 and
+121.8 milliseconds. That trial was also removed. The traces and raw runs are
+under `C:/Users/steve/kp-bench-render/064034-profile-20260929` and
+`C:/Users/steve/kp-bench-render/363-risk-profile-20260929`.
 
 Before the image-cache change, the three Altona files accounted for 1,232
 milliseconds of the 2,031 millisecond summed median render gap on the 600
