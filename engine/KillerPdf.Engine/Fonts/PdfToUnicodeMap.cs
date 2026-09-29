@@ -303,6 +303,7 @@ public sealed class PdfToUnicodeMap
 
     private static string Unicode(byte[] bytes, bool compatibilityRecovery)
     {
+        if (bytes is [0xFF, 0xFD]) return "\uFFFD";
         if (bytes.Length == 0)
         {
             if (compatibilityRecovery) return "\uFFFD";

@@ -19,7 +19,7 @@ overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A headless technical Altona first render took 742 to 758 ms for 1.9 versus 170 ms for 1.8, although warmed 1.9 renders were faster on that page. Continuous view now schedules the visible page before neighboring work, but neither check measures visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 29: 4,154 engine tests and 484 app tests pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 29: 4,155 engine tests and 484 app tests pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -644,6 +644,17 @@ comparison. Each trial retained one pixel hash, and neither established a
 meaningful first-render gain. Raw results are under
 `C:/Users/steve/kp-bench-render/tounicode-jit-20260929` and
 `C:/Users/steve/kp-bench-render/tounicode-fastpath-20260929`.
+
+The 934,858-byte ToUnicode map on Ghent ALL page 3 contains 65,348 mappings
+to the same Unicode replacement character. Reusing that canonical string
+reduced median first-render allocation from 151,006,500 to 149,381,036 bytes
+across 24 alternating pairs. Median first-render time moved from 1,140.94 to
+1,132.84 milliseconds, which is too small to claim as a speed improvement.
+All 48 focused renders retained one pixel hash. The current app then rendered
+all 74 difficult pages successfully, and every PNG matched the preceding
+current-app baseline. All 4,155 engine tests and 484 app tests pass, and the
+Release build completes without warnings or errors. Evidence is under
+`C:/Users/steve/kp-bench-render/tounicode-replacement-20260929`.
 
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.

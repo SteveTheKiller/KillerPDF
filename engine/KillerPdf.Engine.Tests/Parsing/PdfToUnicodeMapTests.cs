@@ -19,6 +19,20 @@ public sealed class PdfToUnicodeMapTests
         Assert.Equal("\uFFFD", Assert.Single(map.Decode([0x41])).Text);
     }
 
+    [Fact]
+    public void ParseFont_ReusesTheCanonicalReplacementCharacter()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "1 begincodespacerange <00> <ff> endcodespacerange "
+            + "2 beginbfchar <41> <fffd> <42> <fffd> endbfchar");
+
+        PdfToUnicodeMap map = PdfToUnicodeMap.Parse(source);
+        string first = Assert.Single(map.Decode([0x41])).Text;
+        string second = Assert.Single(map.Decode([0x42])).Text;
+
+        Assert.Same(first, second);
+    }
+
     [Theory]
     [InlineData("", "\uFFFD")]
     [InlineData("41", "\uFFFD")]
