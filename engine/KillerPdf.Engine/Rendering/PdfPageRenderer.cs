@@ -1813,19 +1813,27 @@ public sealed partial class PdfPageRenderer
                         pixels = backdropPixels;
                         parentState.GraphicsSoftMask?.ForBounds(blendedGroupPixels.Left, blendedGroupPixels.Top,
                             blendedGroupPixels.Right, blendedGroupPixels.Bottom);
-                        for (int y = blendedGroupPixels.Top; y < blendedGroupPixels.Bottom; y++)
+                        ForEachRow(blendedGroupPixels.Top, blendedGroupPixels.Bottom,
+                            (long)(blendedGroupPixels.Right - blendedGroupPixels.Left)
+                                * (blendedGroupPixels.Bottom - blendedGroupPixels.Top),
+                            cancellationToken, CompositeRows);
+
+                        void CompositeRows(int rowStart, int rowEnd)
                         {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            for (int x = blendedGroupPixels.Left; x < blendedGroupPixels.Right; x++)
+                            for (int y = rowStart; y < rowEnd; y++)
                             {
-                                int offset = blendedGroupPixels.Offset(x, y);
-                                double alpha = blendedGroupPixels.GroupAlpha![offset / 4] / 255d;
-                                if (alpha == 0) continue;
-                                Color source = RemoveGroupBackdrop(blendedGroupPixels, offset,
-                                    backdropPixels, backdropPixels.Offset(x, y), alpha);
-                                SetPixel(backdropPixels, options.Width, x, y, source,
-                                    alpha * parentState.FillAlpha, parentState.BlendMode,
-                                    parentState.GraphicsSoftMask, parentState.Knockout);
+                                cancellationToken.ThrowIfCancellationRequested();
+                                for (int x = blendedGroupPixels.Left; x < blendedGroupPixels.Right; x++)
+                                {
+                                    int offset = blendedGroupPixels.Offset(x, y);
+                                    double alpha = blendedGroupPixels.GroupAlpha![offset / 4] / 255d;
+                                    if (alpha == 0) continue;
+                                    Color source = RemoveGroupBackdrop(blendedGroupPixels, offset,
+                                        backdropPixels, backdropPixels.Offset(x, y), alpha);
+                                    SetPixel(backdropPixels, options.Width, x, y, source,
+                                        alpha * parentState.FillAlpha, parentState.BlendMode,
+                                        parentState.GraphicsSoftMask, parentState.Knockout);
+                                }
                             }
                         }
                     }

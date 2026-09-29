@@ -385,6 +385,18 @@ pass. The broader rendering-speed gate remains open.
 Raw evidence is under
 `C:/Users/steve/kp-bench-render/colorburn-opaque-trial`.
 
+Large non-isolated transparency-group composites now use the existing bounded
+row workers because their destination rows are independent. Across seven
+alternating serialized 40-copy Color Burn runs, the render median fell from
+3,426 to 1,523 milliseconds and the wall median fell from 6,602 to 4,660
+milliseconds. Maximum peak working set fell from 122.4 to 115.8 MiB and all
+280 paired output comparisons matched. Two alternating difficult-set pairs
+averaged 10,551.5 and 10,529.5 milliseconds of rendering and 16,183 and 16,096
+milliseconds wall time. Maximum peak working set was 265.2 MiB for both builds,
+and all 148 paired page comparisons matched. The focused 1,225 rendering tests,
+all 4,160 engine tests, and all 484 app tests pass. Raw evidence is under
+`C:/Users/steve/kp-bench-render/group-composite-row-trial`.
+
 Parallel PNG output now resolves the system codec once before file workers use
 it. The previous image-format lookup lost three pages across 12 repeated
 40-file runs, each with `Value cannot be null. (Parameter 'encoder')`. Twenty
