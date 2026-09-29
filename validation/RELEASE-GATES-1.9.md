@@ -68,6 +68,19 @@ of 377.292/377.257 and 381.542/381.699 milliseconds. The candidate added
 about 0.36 MB of allocation per render, while all 160 pixel hashes remained
 identical. The current 8-bit lookup remains in the engine.
 
+Sequential JPEG decoding now carries whether a block has AC coefficients from
+its decoded symbols into reconstruction, avoiding a second scan of 63 values.
+Progressive reconstruction still checks its stored coefficients. Two
+baseline/candidate reversed-order pairs of 40 fresh-document renders, using
+the last 20 per process, gave one-worker medians of 374.004/364.895 and
+372.557/365.148 milliseconds. Four-worker medians were 336.415/323.252 and
+335.833/330.589 milliseconds. All 320 focused hashes match, with essentially
+unchanged median allocation. The 600 shared and 74 difficult application PNGs
+match the preserved baseline byte for byte. All 4,150 engine tests, 482 app
+tests, and the Release build pass. This is a page-specific speed gain, not a
+whole-corpus or interactive parity result. Evidence is under
+`C:/Users/steve/kp-bench-render/jpeg-profile-20260929`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 

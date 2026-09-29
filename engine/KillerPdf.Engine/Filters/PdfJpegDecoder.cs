@@ -756,8 +756,9 @@ internal static class PdfJpegDecoder
                         for (int column = 0; column < component.VisibleBlockColumns; column++)
                         {
                             int offset = (sourceRow * component.BlockColumns + column) * 64;
+                            ReadOnlySpan<int> block = component.Coefficients.AsSpan(offset, 64);
                             WriteBlock(component, column * blockSize, vertical * blockSize,
-                                component.Coefficients.AsSpan(offset, 64));
+                                block, block[1..].IndexOfAnyExcept(0) >= 0);
                         }
                     }
                 }
@@ -779,6 +780,7 @@ internal static class PdfJpegDecoder
             if (category > 11) throw Error("A JPEG DC coefficient is invalid.");
             component.DcPredictor += Receive(bits, category);
             coefficients[0] = component.DcPredictor;
+            bool hasAc = false;
             for (int index = 1; index < 64;)
             {
                 int value = ac.Decode(bits);
@@ -795,16 +797,17 @@ internal static class PdfJpegDecoder
                 index += run;
                 if (index >= 64 || size > 10) throw Error("A JPEG AC coefficient is invalid.");
                 coefficients[ZigZag[index++]] = Receive(bits, size);
+                hasAc = true;
             }
-            WriteBlock(component, left, top, coefficients);
+            WriteBlock(component, left, top, coefficients, hasAc);
         }
 
         private void WriteBlock(
-            Component component, int left, int top, ReadOnlySpan<int> coefficients)
+            Component component, int left, int top, ReadOnlySpan<int> coefficients, bool hasAc)
         {
             int[] quantization = _quantization[component.QuantizationTable];
             int blockSize = 8 / reduction;
-            if (coefficients[1..].IndexOfAnyExcept(0) < 0)
+            if (!hasAc)
             {
                 // Retain the full transform's operation order at rounding boundaries.
                 double dc = Scales[0] * coefficients[0] * quantization[0];
