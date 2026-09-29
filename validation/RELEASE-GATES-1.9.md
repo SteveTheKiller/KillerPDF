@@ -677,6 +677,15 @@ searches were stopped before this retained comparison; the contaminated runs
 are preserved separately and excluded. Evidence is under
 `C:/Users/steve/kp-bench-render/current-payload-clean-paired-20260929`.
 
+A sampled trace of `mipeng_poster_w24.pdf`, the next unprofiled contributor,
+attributes its largest active engine costs to repeated Form XObject rendering
+and content parsing. Increasing the parsed-stream cache from 128 to 256 entries
+kept its existing 64 MiB byte bound and preserved the output hash, but 12
+alternating fresh-process pairs measured a 1,556 millisecond baseline median
+and a slower 1,597 millisecond candidate median. The trial was removed. Raw
+results are under
+`C:/Users/steve/kp-bench-render/stream-cache-256-trial`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
