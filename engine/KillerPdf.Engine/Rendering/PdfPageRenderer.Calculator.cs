@@ -99,7 +99,10 @@ public sealed partial class PdfPageRenderer
                     case PdfTokenKind.Keyword:
                         string keyword = token.ValueAsLatin1();
                         if (Operators.TryGetValue(keyword, out Opcode code))
-                            procedure.Add(new Op(code));
+                        {
+                            // Numeric values are stored as doubles, so cvr is already satisfied.
+                            if (code != Opcode.Cvr) procedure.Add(new Op(code));
+                        }
                         else
                         {
                             _unknownOperators.Add(keyword);

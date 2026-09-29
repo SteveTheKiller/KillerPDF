@@ -58,6 +58,7 @@ public sealed class CalculatorProgramTests
     [InlineData("{ 1 3 bitshift -8 -2 bitshift }", new double[] { }, new double[] { 8, -2 })]
     [InlineData("{ 2.5 round -2.5 round 2.7 truncate 2.2 ceiling }", new double[] { },
         new double[] { 3, -3, 2, 3 })]
+    [InlineData("{ 2 cvr }", new double[] { }, new double[] { 2 })]
     [InlineData("{ 1 1 atan -1 0 atan }", new double[] { }, new double[] { 45, 270 })]
     [InlineData("{ 5 3 and 5 3 or 5 3 xor 5 not }", new double[] { }, new double[] { 1, 7, 6, -6 })]
     public void Evaluate_MatchesPostScriptOperatorSemantics(string source, double[] inputs,

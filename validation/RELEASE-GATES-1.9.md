@@ -19,7 +19,7 @@ overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A headless technical Altona first render took 742 to 758 ms for 1.9 versus 170 ms for 1.8, although warmed 1.9 renders were faster on that page. Neither check measures visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 29: 4,152 engine tests and 482 app tests pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 29: 4,154 engine tests and 482 app tests pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -281,6 +281,24 @@ fresh processes per variant measured baseline and trial medians of 678 and
 milliseconds, so the change was removed. Raw traces and runs are under
 `C:/Users/steve/kp-bench-render/gwg061-profile-20260929` and
 `C:/Users/steve/kp-bench-render/gwg061-connection-table-trial`.
+
+The calculator compiler now omits `cvr` because every numeric stack value is
+already represented as a double. Direct operator coverage and all 4,154 engine
+tests pass. Forty fresh `GWG061_Shading_x1a.pdf` processes improved from a
+668.5 millisecond median and 673.6 millisecond mean to 664 and 665.85
+milliseconds, with one identical PNG hash. After warming both builds, two
+alternating difficult-set runs per version averaged 10,033.5 milliseconds of
+rendering for the baseline and 9,850.5 for the candidate. The earlier un-warmed
+pair averaged 10,443.5 and 10,363 milliseconds. Sampled difficult-set peaks
+remained in the existing 263.4 to 269.1 MiB range. All stable page hashes
+matched; the three `response-to-fiber-concerns[1].pdf` pages varied between
+repeated runs of each build and therefore do not provide candidate-specific
+fidelity evidence. The combined small-roll trial was rejected after its
+16-copy median slowed from 2,551.5 to 2,633.5 milliseconds. Raw results are
+under `C:/Users/steve/kp-bench-render/gwg061-cvr-trial`,
+`C:/Users/steve/kp-bench-render/gwg061-cvr-warm-trial`,
+`C:/Users/steve/kp-bench-render/cvr-difficult-trial`, and
+`C:/Users/steve/kp-bench-render/cvr-difficult-warmed-trial`.
 
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
