@@ -196,6 +196,16 @@ two reversed-order pairs slowed from 105.4 and 105.7 milliseconds to 111.9 and
 under `C:/Users/steve/kp-bench-render/064034-profile-20260929` and
 `C:/Users/steve/kp-bench-render/363-risk-profile-20260929`.
 
+A table-driven DeviceCMYK interpolation trial replaced the converter's nearest
+sample, neighbor direction, and interpolation-rate arithmetic with byte-indexed
+lookups. All 96 focused renders retained one pixel hash per document and
+allocation volume stayed effectively unchanged. On `064034.pdf`, reversed-order
+baseline/candidate last-six medians were 119.786/117.758 and 125.906/121.685
+milliseconds. On `363_Risk`, they were 107.164/105.929 and 100.810/105.950
+milliseconds. The second document reversed the apparent result, so the lookup
+change was removed. Raw results are under
+`C:/Users/steve/kp-bench-render/cmyk-interpolation-trial-20260929`.
+
 Before the image-cache change, the three Altona files accounted for 1,232
 milliseconds of the 2,031 millisecond summed median render gap on the 600
 shared successful pages.
