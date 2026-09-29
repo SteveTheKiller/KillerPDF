@@ -332,6 +332,19 @@ which remains relevant to initial scrolling but is not a sustained renderer
 regression. Probe code and raw results are under
 `C:/Users/steve/kp-bench-render/ghent-page-probe-20260929`.
 
+Separate first-use traces after warming each preceding page narrow the Ghent
+work further. Page two spends most of its sampled engine time in JPEG decoding,
+image painting, ink conversion, and soft masks; font loading accounts for a
+smaller share. Page three introduces a JPEG 2000 image that does not occur on
+pages one or two, plus 42 font resources and a 913 KiB Unicode map. Several of
+its smaller Unicode maps have identical decoded content under different object
+numbers. A bounded exact-content map cache preserved every pixel and passed 803
+focused tests, but two 20-copy runs did not improve timing, so it was removed.
+The first-use gap remains distributed work with no verified memory-safe source
+change. Raw traces, resource inventories, and cache-trial timings are under
+`C:/Users/steve/kp-bench-render/ghent-firstuse-probe-20260929` and
+`C:/Users/steve/kp-bench-render/ghent-font-resources-20260929`.
+
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
 bounded color cache on the direct CMYK path preserved the page hash and passed
