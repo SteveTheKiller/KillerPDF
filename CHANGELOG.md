@@ -6,10 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.8.72] - Unreleased
 
-1.8.72 improves installation, document tabs, and Hebrew text saving.
+1.8.72 improves installation, document tabs, pen editing, and Hebrew text saving.
 
 ### Fixed
 
+- Pasted multi-selected annotations now move together, and a pen click places a dot.
 - Preserved Hebrew letter order when saving text placed on a PDF (#435).
 
 ### Changed
