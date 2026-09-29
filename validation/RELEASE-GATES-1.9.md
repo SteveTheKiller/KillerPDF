@@ -14,7 +14,7 @@ behind an overall average.
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. Shared engine peaks range from 461.9 to 501.1 MiB; difficult peaks range from 278.6 to 288.9 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. Difficult render time is 10.356 versus 5.479 seconds and wall time is 15.749 versus 11.011 seconds. A September 29 serial 1024-pixel conformance run also remains slower in 1.9, as detailed below. |
+| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. Difficult render time is 10.356 versus 5.479 seconds and wall time is 15.749 versus 11.011 seconds. The current published payload takes 25.453 versus 22.102 seconds in the serial 1024-pixel conformance run described below. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
@@ -48,6 +48,17 @@ the different successful file counts limit whole-pass comparison. The raw
 results are in `C:/Users/steve/kp-bench-render/serial-1.9-vs-1.8-20260929`.
 This run did not retain pixels and does not establish fidelity or memory parity.
 
+The current published 1.9 payload, including the JPEG block change, was then
+compared with the same 1.8 build and settings. Three alternating measured runs
+after warmup gave median wall times of 22.102 versus 25.453 seconds, with
+ranges of 21.831 to 22.357 and 25.383 to 25.491 seconds. On the 600 shared
+successful pages, sums of per-file median render times were 11,538 and 13,569
+milliseconds, a 1.176 ratio. Version 1.8 still rendered 600 files and failed
+eight; 1.9 rendered 614 and failed none. The payload's `KillerPDF.dll` SHA-256
+is `CC5E62281F368A061C49A6C7214A831C56FB823F099E08ABF0A47AD80080F0F1`.
+Raw results are in `C:/Users/steve/kp-bench-render/serial-post-jpeg-20260929`.
+The focused JPEG gain has not closed the whole-corpus speed gap.
+
 ### JPEG worker comparison (2026-09-29)
 
 The current engine rendered `22060_A1_01_Plans.pdf` at 724 by 1024 pixels in
@@ -76,9 +87,14 @@ the last 20 per process, gave one-worker medians of 374.004/364.895 and
 372.557/365.148 milliseconds. Four-worker medians were 336.415/323.252 and
 335.833/330.589 milliseconds. All 320 focused hashes match, with essentially
 unchanged median allocation. The 600 shared and 74 difficult application PNGs
-match the preserved baseline byte for byte. All 4,150 engine tests, 482 app
-tests, and the Release build pass. This is a page-specific speed gain, not a
-whole-corpus or interactive parity result. Evidence is under
+were initially compared using an older DLL in both app folders, so that result
+does not verify the change. A controlled before/after engine probe instead
+matched all 618 successfully rendered page hashes and all 52 identical failure
+records. The current published app differs from the older preserved app on 19
+shared and six difficult PNGs; those payloads include other intervening changes,
+so these differences are not attributable to this JPEG edit. All 4,150 engine
+tests, 482 app tests, and the Release build pass. This is a page-specific speed
+gain, not a whole-corpus fidelity or interactive parity result. Evidence is under
 `C:/Users/steve/kp-bench-render/jpeg-profile-20260929`.
 
 Earlier checkpoints below document individual fixes and historical measurements.
