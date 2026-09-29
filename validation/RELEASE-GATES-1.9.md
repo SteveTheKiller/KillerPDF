@@ -16,7 +16,7 @@ behind an overall average.
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. Shared engine peaks range from 461.9 to 501.1 MiB; difficult peaks range from 278.6 to 288.9 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. Difficult render time is 10.356 versus 5.479 seconds and wall time is 15.749 versus 11.011 seconds. The current published payload takes 25.453 versus 22.102 seconds in the serial 1024-pixel conformance run described below. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
-| Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
+| Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. This does not measure visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 29: 4,150 engine tests, 482 app tests, and the Release build pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
@@ -108,6 +108,20 @@ rose from about 277.4 to 291.6 MB per render. A 32,768-entry cache gave
 about 282.1 MB. All 320 page hashes matched. Neither small page gain justified
 the added allocation, so the 16,384-entry limit remains. Trial binaries and
 the probe are under `C:/Users/steve/kp-bench-render/altona-cache-20260929`.
+
+### Current startup marker comparison (2026-09-29)
+
+The retained 1.8 Release build and current published 1.9 payload each had one
+warmup, then three measured launches in alternating order. Both used the same
+opt-in `MainWindow ready` marker and a hidden-window process launch. Warm
+medians were 1,346.588 milliseconds for 1.8 and 1,201.627 for 1.9; ranges
+were 1,345.293 to 1,381.985 and 1,193.027 to 1,252.956 milliseconds.
+Main-window construction medians were 466.001 and 566.935 milliseconds,
+respectively. The current total ready marker is faster in this launch mode,
+while construction remains slower. Hidden launches and this marker do not
+establish visible startup, first-page, scrolling, or zoom parity. Raw traces
+and the launch script are under `C:/Users/steve/kp-bench-render` with
+`startup-*-20260929` names.
 
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
