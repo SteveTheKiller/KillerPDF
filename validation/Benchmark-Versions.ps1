@@ -31,7 +31,12 @@ param(
     [int] $RenderSize = 1024,
 
     [ValidateRange(1, 1000)]
-    [int] $RenderPages = 1
+    [int] $RenderPages = 1,
+
+    # Use one worker when comparing the 1.9 renderer with a serial 1.8 build.
+    # Zero keeps the candidate's own batch-render default.
+    [ValidateRange(0, 256)]
+    [int] $CandidateRenderParallelism = 0
 )
 
 $ErrorActionPreference = 'Stop'
@@ -55,7 +60,8 @@ function Invoke-BenchmarkRun {
         [Parameter(Mandatory)][string] $Label,
         [Parameter(Mandatory)][string] $Executable,
         [Parameter(Mandatory)][string] $RunName,
-        [Parameter(Mandatory)][bool] $Measured
+        [Parameter(Mandatory)][bool] $Measured,
+        [Parameter(Mandatory)][bool] $IsCandidate
     )
 
     $runOutput = Join-Path $resolvedOutput "output-$RunName"
@@ -85,6 +91,9 @@ function Invoke-BenchmarkRun {
             '--size', $RenderSize, '--pages', $RenderPages,
             '--log', $runLog, '--quiet'
         )
+        if ($IsCandidate -and $CandidateRenderParallelism -gt 0) {
+            $arguments += @('--parallel', $CandidateRenderParallelism)
+        }
     }
     else {
         $arguments = @('--batch-resave', $InputDirectory, $runOutput, '--log', $runLog)
@@ -118,22 +127,22 @@ function Invoke-BenchmarkRun {
 }
 
 Invoke-BenchmarkRun -Label $BaselineLabel -Executable $BaselineExe `
-    -RunName 'warmup-baseline' -Measured $false
+    -RunName 'warmup-baseline' -Measured $false -IsCandidate $false
 Invoke-BenchmarkRun -Label $CandidateLabel -Executable $CandidateExe `
-    -RunName 'warmup-candidate' -Measured $false
+    -RunName 'warmup-candidate' -Measured $false -IsCandidate $true
 
 for ($run = 1; $run -le $Runs; $run++) {
     if ($run % 2 -eq 1) {
         Invoke-BenchmarkRun -Label $BaselineLabel -Executable $BaselineExe `
-            -RunName "run-$run-baseline" -Measured $true
+            -RunName "run-$run-baseline" -Measured $true -IsCandidate $false
         Invoke-BenchmarkRun -Label $CandidateLabel -Executable $CandidateExe `
-            -RunName "run-$run-candidate" -Measured $true
+            -RunName "run-$run-candidate" -Measured $true -IsCandidate $true
     }
     else {
         Invoke-BenchmarkRun -Label $CandidateLabel -Executable $CandidateExe `
-            -RunName "run-$run-candidate" -Measured $true
+            -RunName "run-$run-candidate" -Measured $true -IsCandidate $true
         Invoke-BenchmarkRun -Label $BaselineLabel -Executable $BaselineExe `
-            -RunName "run-$run-baseline" -Measured $true
+            -RunName "run-$run-baseline" -Measured $true -IsCandidate $false
     }
 }
 
@@ -167,23 +176,18 @@ Write-Host ($summary | Format-Table -AutoSize | Out-String)
 # Per-file comparison (Render mode only: the resave log carries no timing).
 # For every file, take the median per-run milliseconds of each build over the
 # measured runs, then rank by the candidate's added time so the worst offenders
-# surface without a full-corpus profile. Open time is included when the build
-# logs an OpenMilliseconds column; older builds without it report render time only.
+# surface without a full-corpus profile. Compare render time alone because older
+# builds do not log open time separately.
 if ($Mode -eq 'Render') {
     $perFile = @{}
     foreach ($result in $results) {
         if (-not $result.Measured) { continue }
         $runLog = Join-Path $resolvedOutput "$($result.Run).csv"
         if (-not (Test-Path -LiteralPath $runLog)) { continue }
-        $hasOpen = $false
         $rows = Import-Csv -LiteralPath $runLog
-        if ($rows.Count -gt 0) {
-            $hasOpen = $null -ne ($rows[0].PSObject.Properties['OpenMilliseconds'])
-        }
         $byFile = @{}
         foreach ($row in $rows) {
             $ms = [double]$row.Milliseconds
-            if ($hasOpen -and $row.OpenMilliseconds -ne '') { $ms += [double]$row.OpenMilliseconds }
             if (-not $byFile.ContainsKey($row.File)) {
                 $byFile[$row.File] = @{ Ms = 0.0; Status = $row.Status }
             }
