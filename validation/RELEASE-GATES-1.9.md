@@ -322,6 +322,16 @@ painting, ink conversion, soft masks, and patch mesh shading. It does not yet
 isolate one exact, bounded change. Raw logs and trace data are under
 `C:/Users/steve/kp-bench-render/ghent-profile-20260929`.
 
+A page-specific engine probe then reused one Ghent document and renderer for
+40 uncached renders. After the first pass, page two had a 153.6 millisecond
+median with 18.72 MiB mean allocation, and page three had a 79.34 millisecond
+median with 17.48 MiB. Each page kept one pixel hash. Page two therefore
+reaches its measured 1.8 range and page three becomes faster after its own
+resources are loaded. The remaining Ghent gap is first-use page resource work,
+which remains relevant to initial scrolling but is not a sustained renderer
+regression. Probe code and raw results are under
+`C:/Users/steve/kp-bench-render/ghent-page-probe-20260929`.
+
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
 bounded color cache on the direct CMYK path preserved the page hash and passed
