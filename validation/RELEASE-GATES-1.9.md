@@ -202,6 +202,17 @@ three `42828.pdf` page hashes matched, but paired median three-page rendering
 slowed from about 868 to 897 milliseconds. The trial was removed. Raw results
 are under `C:/Users/steve/kp-bench-render/jbig2-bytein-20260929`.
 
+A current sampled trace of `42828.0001.001.pdf` attributes its largest active
+costs to JBIG2 generic-region decoding and exact one-bit image area sampling.
+A direct-reference arithmetic-context trial passed all 15 focused JBIG2 tests
+and preserved every measured page hash. Its application-level median appeared
+to improve from 822 to 809 milliseconds, but a same-process engine probe
+reversed that result: warmed baseline and candidate medians were 209.15 and
+217.61 milliseconds across 22 renders each. Median allocation was effectively
+unchanged at about 25.9 MiB. The trial was removed. Raw traces and runs are
+under `C:/Users/steve/kp-bench-render/42828-profile-20260929` and
+`C:/Users/steve/kp-bench-render/jbig2-context-ref-trial`.
+
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
 bounded color cache on the direct CMYK path preserved the page hash and passed
