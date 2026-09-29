@@ -304,6 +304,24 @@ milliseconds. Raw results are under
 determinism check is under
 `C:/Users/steve/kp-bench-render/response-fiber-determinism-20260929`.
 
+Sixteen traced copies of the difficult file beginning `4387` fell from 490
+milliseconds on the first render to 48 to 69 milliseconds on the last six,
+which matches its measured 1.8 range. The trace includes image decoding,
+one-bit area sampling, content parsing, and font loading, but no sustained
+renderer cost explains the earlier threefold comparison gap. This file is
+therefore another cold runtime and cache case rather than evidence for a safe
+steady-state engine change. Raw logs and trace data are under
+`C:/Users/steve/kp-bench-render/4387-profile-20260929`.
+
+Eight traced copies of the three-page Ghent output test show a mixed result.
+After warmup, page one reaches 130 to 148 milliseconds and matches its 1.8
+range. Pages two and three remain around 220 to 235 milliseconds versus the
+measured 1.8 ranges near 146 to 152 and 181 to 208 milliseconds. The combined
+trace spreads active time across text and font loading, image decoding and
+painting, ink conversion, soft masks, and patch mesh shading. It does not yet
+isolate one exact, bounded change. Raw logs and trace data are under
+`C:/Users/steve/kp-bench-render/ghent-profile-20260929`.
+
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
 bounded color cache on the direct CMYK path preserved the page hash and passed
