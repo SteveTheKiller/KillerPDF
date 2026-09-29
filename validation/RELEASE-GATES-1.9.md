@@ -13,7 +13,7 @@ behind an overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. The current difficult comparison peaks at 255.2 to 258.0 versus 225.2 to 225.6 MiB. The current 1024-pixel shared runs peak near 502 versus 620 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; visible interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. The current difficult comparison peaks at 255.2 to 258.0 versus 225.2 to 225.6 MiB. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. The current difficult comparison measures 9.834 to 9.881 versus 4.970 to 5.030 seconds of rendering and 15.195 to 15.249 versus 10.345 to 10.563 seconds wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A headless technical Altona first render took 742 to 758 ms for 1.9 versus 170 ms for 1.8, although warmed 1.9 renders were faster on that page. Neither check measures visible first-page completion, scrolling, or zoom. |
@@ -1254,6 +1254,19 @@ session through the published assembly, including the application font resolver
 and render parallelism. It does not measure WPF presentation or compare with
 PDFium. The measured assemblies and limits are recorded in
 `parity-20260909-ghent/app-reuse-summary.json`.
+
+The current September 29 application boundary was then sampled for process
+memory while cycling 2048, 2304, and 2560-pixel balloon renders. Two fresh
+session processes peaked at 289.8 MiB working set, while two retained-session
+processes peaked at 289.8 and 289.9 MiB. After the first render, last-nine
+medians were 38.079 and 36.011 milliseconds for fresh sessions versus 37.169
+and 37.576 milliseconds with reuse. Per-size medians ranged from 31.204 to
+46.578 milliseconds. Every size retained one matching pixel hash across all
+four processes. Current shared decoded-image caching makes later fresh sessions
+within a process nearly as fast as retained sessions on this document, without
+raising the sampled peak. This headless application-boundary result does not
+measure WPF presentation or visible scrolling. Evidence is under
+`C:/Users/steve/kp-bench-render/interactive-memory-20260929`.
 
 Continuous base rendering, continuous zoom sharpening, and secondary tiles now
 reuse sessions through exclusive task leases. Each pane retains at most one
