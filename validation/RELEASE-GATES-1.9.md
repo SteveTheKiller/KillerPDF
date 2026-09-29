@@ -232,6 +232,19 @@ and 9.299 seconds. Sampled peak working sets ranged from 258.6 to 265.2 MiB
 without a candidate-specific increase. Raw results are under
 `C:/Users/steve/kp-bench-render/binary-cancellation-trial`.
 
+A sampled trace of the first page of the difficult file beginning `382252`
+attributes 12.01 percent of inclusive CPU time to exact one-bit area sampling,
+3.54 percent exclusively to its packed-bit counter, and 3.50 percent to PNG
+row reconstruction. Precomputing vertical coverage weights preserved every
+measured `382252` and `42828` pixel hash, but the 16-page `382252` workload
+slowed from 1.832 to 1.886 seconds into a 2.079 to 2.204 second range. Moving
+the PNG filter-zero copy and invalid-filter check outside the byte loop passed
+eight focused tests, but slowed the same workload from about 1.69 seconds to
+1.81 to 1.83 seconds. Both trials were removed. The trace and raw runs are
+under `C:/Users/steve/kp-bench-render/382252-profile-20260929`,
+`C:/Users/steve/kp-bench-render/binary-row-weight-trial`, and
+`C:/Users/steve/kp-bench-render/png-unfilter-trial`.
+
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
 bounded color cache on the direct CMYK path preserved the page hash and passed
