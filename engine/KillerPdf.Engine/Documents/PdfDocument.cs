@@ -79,6 +79,15 @@ public sealed class PdfDocument
         return new PdfDocument(ownedSource, PdfCrossReferenceTable.Read(ownedSource));
     }
 
+    /// <summary>Opens a PDF while tolerating recoverable cross-reference metadata errors.</summary>
+    public static PdfDocument OpenWithCompatibilityRecovery(ReadOnlyMemory<byte> source)
+    {
+        // Own the bytes so lazy resolution cannot observe caller mutations after validation.
+        byte[] ownedSource = source.ToArray();
+        return new PdfDocument(ownedSource,
+            PdfCrossReferenceTable.Read(ownedSource, compatibilityRecovery: true));
+    }
+
     /// <summary>Opens and authenticates a password-encrypted PDF.</summary>
     public static PdfDocument Open(ReadOnlyMemory<byte> source, string password)
     {

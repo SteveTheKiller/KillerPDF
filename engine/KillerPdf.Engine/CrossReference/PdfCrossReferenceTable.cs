@@ -121,7 +121,8 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
     public PdfCrossReferenceEntry this[int key] => _entries[key];
 
     /// <summary>Reads, validates, and merges the complete cross-reference revision chain.</summary>
-    public static PdfCrossReferenceTable Read(ReadOnlyMemory<byte> source)
+    public static PdfCrossReferenceTable Read(
+        ReadOnlyMemory<byte> source, bool compatibilityRecovery = false)
     {
         PdfHeader header = PdfHeader.Parse(source.Span);
         PdfStartXref startXref = PdfStartXref.Find(source.Span);
@@ -137,7 +138,8 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
             if (!visitedOffsets.Add(currentOffset.Value))
                 throw new PdfSyntaxException("The cross-reference revision chain contains a cycle", (int)currentOffset.Value);
 
-            PdfCrossReferenceSection primary = PdfCrossReferenceReader.ReadSection(source, currentOffset.Value);
+            PdfCrossReferenceSection primary = PdfCrossReferenceReader.ReadSection(
+                source, currentOffset.Value, compatibilityRecovery);
             if (primary.PreviousOffset > currentOffset.Value
                 && !IsLinearizedForwardPrevious(primary, linearization))
                 throw new PdfSyntaxException(
@@ -154,7 +156,8 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
                     throw new PdfSyntaxException(
                         "Trailer /XRefStm must point to an earlier cross-reference stream",
                         ClampOffset(hybridOffset));
-                hybrid = PdfCrossReferenceReader.ReadSection(source, hybridOffset);
+                hybrid = PdfCrossReferenceReader.ReadSection(
+                    source, hybridOffset, compatibilityRecovery);
                 if (!hybrid.IsStream)
                     throw new PdfSyntaxException("Trailer /XRefStm must point to a cross-reference stream", (int)hybridOffset);
                 if (hybrid.PreviousOffset.HasValue)

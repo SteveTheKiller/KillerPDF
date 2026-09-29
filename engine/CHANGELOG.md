@@ -4,6 +4,14 @@ All notable changes to The KillerPDF.Engine are documented here. Application cha
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.72] - Unreleased
+
+The 1.8.72 engine package improves compatibility with malformed PDFs.
+
+### Fixed
+
+- Recovered cross-reference tables whose trailer size omits valid objects (#406).
+
 ## [1.8.71] - 2026-09-26
 
 The 1.8.71 engine package includes document compatibility fixes shipped with KillerPDF 1.8.71.

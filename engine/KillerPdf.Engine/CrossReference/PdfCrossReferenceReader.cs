@@ -20,7 +20,8 @@ public static class PdfCrossReferenceReader
     private static readonly PdfName XRefStmName = new("XRefStm"u8);
 
     /// <summary>Reads and validates one classic or stream cross-reference section at the specified offset.</summary>
-    public static PdfCrossReferenceSection ReadSection(ReadOnlyMemory<byte> source, long offset)
+    public static PdfCrossReferenceSection ReadSection(
+        ReadOnlyMemory<byte> source, long offset, bool compatibilityRecovery = false)
     {
         if (offset is < 0 or > int.MaxValue || offset >= source.Length)
             throw new PdfSyntaxException("The cross-reference offset is outside the file", ClampOffset(offset));
@@ -28,14 +29,15 @@ public static class PdfCrossReferenceReader
         var probe = new PdfTokenizer(source, (int)offset);
         PdfToken first = probe.Read();
         return IsKeyword(first, "xref")
-            ? ReadClassic(source, first, probe)
-            : ReadStream(source, (int)offset);
+            ? ReadClassic(source, first, probe, compatibilityRecovery)
+            : ReadStream(source, (int)offset, compatibilityRecovery);
     }
 
     private static PdfCrossReferenceSection ReadClassic(
         ReadOnlyMemory<byte> source,
         PdfToken xrefToken,
-        PdfTokenizer tokenizer)
+        PdfTokenizer tokenizer,
+        bool compatibilityRecovery)
     {
         var entries = new Dictionary<int, PdfCrossReferenceEntry>();
         while (true)
@@ -46,7 +48,7 @@ public static class PdfCrossReferenceReader
                 var parser = new PdfObjectParser(source, tokenizer.Position);
                 if (parser.ParseObject() is not PdfDictionary trailer)
                     throw Error("A classic xref trailer must be a dictionary", tokenizer.Position);
-                ValidateSize(trailer, entries.Values, first.Offset);
+                ValidateSize(trailer, entries.Values, first.Offset, compatibilityRecovery);
                 ValidateTrailerOffsets(trailer, source.Length, first.Offset);
                 return new PdfCrossReferenceSection(xrefToken.Offset, entries.Values, trailer, isStream: false);
             }
@@ -110,7 +112,8 @@ public static class PdfCrossReferenceReader
         throw Error("An xref entry must end with n or f", statusToken.Offset);
     }
 
-    private static PdfCrossReferenceSection ReadStream(ReadOnlyMemory<byte> source, int offset)
+    private static PdfCrossReferenceSection ReadStream(
+        ReadOnlyMemory<byte> source, int offset, bool compatibilityRecovery)
     {
         PdfIndirectObject indirect = new PdfObjectParser(source, offset).ParseIndirectObject();
         if (indirect.Generation != 0)
@@ -158,7 +161,7 @@ public static class PdfCrossReferenceReader
             }
         }
 
-        ValidateSize(stream.Dictionary, entries.Values, offset);
+        ValidateSize(stream.Dictionary, entries.Values, offset, compatibilityRecovery);
         return new PdfCrossReferenceSection(offset, entries.Values, stream.Dictionary,
             isStream: true, streamObjectNumber: indirect.ObjectNumber);
     }
@@ -267,15 +270,16 @@ public static class PdfCrossReferenceReader
     private static void ValidateSize(
         PdfDictionary trailer,
         IEnumerable<PdfCrossReferenceEntry> entries,
-        int offset)
+        int offset,
+        bool compatibilityRecovery)
     {
         int size = RequiredNonNegativeInt(trailer, SizeName, offset);
-        if (size == 0 || entries.Any(entry =>
+        if (!compatibilityRecovery && (size == 0 || entries.Any(entry =>
                 entry.Type is PdfCrossReferenceEntryType.InUse or PdfCrossReferenceEntryType.Compressed
-                && entry.ObjectNumber >= size))
+                && entry.ObjectNumber >= size)))
             throw Error("Trailer /Size must be greater than every in-use object number", offset);
-        if (entries.Any(entry => entry.Type == PdfCrossReferenceEntryType.Free
-                && entry.ObjectNumber > size))
+        if (!compatibilityRecovery && entries.Any(entry =>
+                entry.Type == PdfCrossReferenceEntryType.Free && entry.ObjectNumber > size))
             throw Error("A free cross-reference entry lies beyond trailer /Size", offset);
     }
 
