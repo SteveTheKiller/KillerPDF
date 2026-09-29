@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Globalization;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Syntax;
@@ -273,11 +274,16 @@ public static class PdfContentStreamReader
     {
         ReadOnlySpan<byte> value = token.Value.Span;
         if (token.Kind == PdfTokenKind.Integer
-            && long.TryParse(value, NumberStyles.AllowLeadingSign,
-                CultureInfo.InvariantCulture, out long integer))
+            && ((Utf8Parser.TryParse(value, out long integer, out int consumed)
+                    && consumed == value.Length)
+                || long.TryParse(value, NumberStyles.AllowLeadingSign,
+                    CultureInfo.InvariantCulture, out integer)))
             return new PdfContentNumber(integer, integer, true);
-        if (!double.TryParse(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
-                CultureInfo.InvariantCulture, out double real) || !double.IsFinite(real))
+        if ((!Utf8Parser.TryParse(value, out double real, out int realConsumed)
+                || realConsumed != value.Length)
+            && !double.TryParse(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out real)
+            || !double.IsFinite(real))
             throw new PdfSyntaxException("The real number is outside the supported finite range", token.Offset);
         return new PdfContentNumber(real, 0, false);
     }

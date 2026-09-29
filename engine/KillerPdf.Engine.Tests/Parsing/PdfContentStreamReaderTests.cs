@@ -94,6 +94,25 @@ public sealed class PdfContentStreamReaderTests
     }
 
     [Theory]
+    [InlineData(".5", 0.5)]
+    [InlineData("5.", 5.0)]
+    [InlineData("-0.5", -0.5)]
+    public void ReadsEveryLegalRealNumberForm(string value, double expected)
+    {
+        PdfContentInstruction instruction = Assert.Single(Read($"{value} 0 m"));
+
+        Assert.Equal(expected, Assert.IsType<PdfReal>(instruction.Operands[0]).Value);
+    }
+
+    [Fact]
+    public void ReadsLeadingPlusInteger()
+    {
+        PdfContentInstruction instruction = Assert.Single(Read("+1 0 m"));
+
+        Assert.Equal(1, Assert.IsType<PdfInteger>(instruction.Operands[0]).Value);
+    }
+
+    [Theory]
     [InlineData("12")]
     [InlineData("[(unterminated) TJ")]
     [InlineData("1 0 R Do")]
