@@ -62,6 +62,12 @@ trace identifies JPEG Huffman decoding, block output, and soft-mask reduction
 as the main active work. The probe and trace are under
 `C:/Users/steve/kp-bench-render/jpeg-profile-20260929`.
 
+A second 12-bit Huffman lookup was tested on the same page and removed. Two
+reversed-order, one-worker comparisons gave baseline/candidate warmed medians
+of 377.292/377.257 and 381.542/381.699 milliseconds. The candidate added
+about 0.36 MB of allocation per render, while all 160 pixel hashes remained
+identical. The current 8-bit lookup remains in the engine.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
