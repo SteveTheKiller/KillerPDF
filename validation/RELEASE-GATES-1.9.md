@@ -104,6 +104,15 @@ pixel hashes matched and allocation stayed near 156 MB per render. The pairs
 disagree on speed, so the trial was removed. Its binaries and raw timings are
 under `C:/Users/steve/kp-bench-render/altona-weight-20260929`.
 
+Prestarting four thread-pool workers before a fresh render also did not help.
+Four alternating baseline/warmed pairs gave baseline first-render times of
+1,434.615, 1,432.134, 1,445.607, and 1,432.084 milliseconds versus
+1,503.582, 1,505.196, 1,467.895, and 1,484.795 with worker prestart.
+Every hash matched. A separate cold allocation trace sampled large byte arrays
+from Flate output and its scratch pool; it does not isolate the cause of the
+first-render latency. Raw results are under
+`C:/Users/steve/kp-bench-render/altona-thread-warm-20260929`.
+
 Before the image-cache change, the three Altona files accounted for 1,232
 milliseconds of the 2,031 millisecond summed median render gap on the 600
 shared successful pages.
