@@ -48,6 +48,20 @@ the different successful file counts limit whole-pass comparison. The raw
 results are in `C:/Users/steve/kp-bench-render/serial-1.9-vs-1.8-20260929`.
 This run did not retain pixels and does not establish fidelity or memory parity.
 
+### JPEG worker comparison (2026-09-29)
+
+The current engine rendered `22060_A1_01_Plans.pdf` at 724 by 1024 pixels in
+four fresh-process runs ordered one/four/four/one workers. Each process rendered
+40 times, with the last 20 used for its median. One-worker medians were 379.667
+and 380.269 milliseconds; four-worker medians were 337.733 and 341.973
+milliseconds. Median allocations were about 40.6 and 49.5 MB per render,
+respectively. Every render retained the same SHA-256 pixel hash and reported no
+diagnostics. Four workers improve this page's latency at a memory cost, so a
+worker-count reduction is not a speed fix for this workload. The current CPU
+trace identifies JPEG Huffman decoding, block output, and soft-mask reduction
+as the main active work. The probe and trace are under
+`C:/Users/steve/kp-bench-render/jpeg-profile-20260929`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
