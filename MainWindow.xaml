@@ -97,6 +97,7 @@
 
         <!-- Toolbar button -->
         <Style x:Key="ToolbarButton" TargetType="Button">
+            <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -249,6 +250,7 @@
         </Style>
 
         <Style x:Key="ChromeButton" TargetType="Button">
+            <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource CaptionGlyphBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -366,6 +368,7 @@
              a bare muted X that turns red on hover, no caption-style hover box. 98SE swaps the
              glyph, font, metrics, and colors through the AboutClose* theme keys. -->
         <Style x:Key="OverlayCloseButton" TargetType="Button">
+            <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Foreground" Value="{DynamicResource AboutCloseFg}"/>
             <Setter Property="FontFamily" Value="{DynamicResource AboutCloseFont}"/>
@@ -420,6 +423,7 @@
 
         <!-- Tab close button: themed so hover is the danger red (not WPF's default blue chrome). -->
         <Style x:Key="TabCloseButton" TargetType="Button">
+            <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -444,6 +448,7 @@
              danger red with a soft drop shadow on hover, and a slightly deeper shadow when pressed.
              Centralised so every close X behaves identically. -->
         <Style x:Key="DangerCloseButton" TargetType="Button">
+            <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
@@ -482,6 +487,7 @@
 
         <!-- New-tab "+" button: subtle hover, no default chrome. -->
         <Style x:Key="TabNewButton" TargetType="Button">
+            <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -997,6 +1003,7 @@
         </Style>
 
         <Style x:Key="FooterNavButton" TargetType="Button">
+            <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}"/>
             <Setter Property="Width" Value="24"/>
             <Setter Property="Height" Value="20"/>
             <Setter Property="Padding" Value="0"/>
@@ -1410,7 +1417,7 @@
                            Margin="16,0,12,0" TextTrimming="CharacterEllipsis"
                            Foreground="{DynamicResource FilenameBrush}" FontFamily="Consolas" FontSize="11"/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="{DynamicResource CaptionButtonsMargin}">
-                    <Button Click="MinimizeBtn_Click" Style="{StaticResource ChromeButton}"
+                    <Button Click="MinimizeBtn_Click" Style="{StaticResource ChromeButton}" ToolTip="{DynamicResource Str_Sys_Minimize}"
                             Foreground="{DynamicResource CaptionGlyphBrush}">
                         <Grid Height="{DynamicResource CaptionButtonHeight}">
                             <TextBlock Text="&#xE921;" FontFamily="Segoe MDL2 Assets" FontSize="10"
@@ -1423,7 +1430,7 @@
                                        Visibility="{DynamicResource CaptionDrawnGlyphVisibility}"/>
                         </Grid>
                     </Button>
-                    <Button Click="MaximizeBtn_Click" Style="{StaticResource ChromeButton}"
+                    <Button Click="MaximizeBtn_Click" Style="{StaticResource ChromeButton}" ToolTip="{DynamicResource Str_Sys_Maximize}"
                             Foreground="{DynamicResource CaptionGlyphBrush}">
                         <Grid>
                             <TextBlock Text="&#xE922;" FontFamily="Segoe MDL2 Assets" FontSize="10"
@@ -1437,7 +1444,7 @@
                             </Grid>
                         </Grid>
                     </Button>
-                    <Button Click="CloseBtn_Click" Style="{StaticResource ChromeCloseButton}"/>
+                    <Button Click="CloseBtn_Click" Style="{StaticResource ChromeCloseButton}" ToolTip="{DynamicResource Str_Sys_Close}"/>
                 </StackPanel>
             </Grid>
             </Grid>
