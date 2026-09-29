@@ -635,6 +635,16 @@ hashes matched, and 45 focused JPEG 2000 tests passed. The hint was removed.
 Raw results are under
 `C:/Users/steve/kp-bench-render/jp2-skip-locals-init-20260929`.
 
+Two ToUnicode cold-path trials on Ghent ALL page 3 were also removed. Forcing
+optimized compilation on the parser produced baseline/candidate first-render
+medians of 1,077.20 and 1,072.37 milliseconds across 24 alternating pairs.
+Skipping the metadata-tokenizer pass when no removable metadata was present
+produced medians of 1,063.49 and 1,065.84 milliseconds in a second 24-pair
+comparison. Each trial retained one pixel hash, and neither established a
+meaningful first-render gain. Raw results are under
+`C:/Users/steve/kp-bench-render/tounicode-jit-20260929` and
+`C:/Users/steve/kp-bench-render/tounicode-fastpath-20260929`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
