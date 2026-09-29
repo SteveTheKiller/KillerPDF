@@ -351,6 +351,16 @@ to ten earlier pages ahead of the page being opened or navigated to. Two
 focused ordering tests cover the centered and bounded cases. This removes an
 avoidable visible-page queue delay without changing engine render time.
 
+A 24-pair alternating fresh-process probe measured time to Ghent ALL page 3
+at 1541 by 2048 pixels with four workers. The former ascending schedule had a
+2,184.401 millisecond median because pages 1 and 2 rendered first. Directly
+prioritizing the requested page had a 1,093.744 millisecond median, a 49.9
+percent reduction in time to that page. All 48 requested-page renders had the
+same SHA-256 pixel hash. This isolates the scheduling gain but does not measure
+WPF presentation, visible scrolling, zoom, memory, or parity with 1.8. Raw
+results are under
+`C:/Users/steve/kp-bench-render/continuous-visible-20260929`.
+
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
 bounded color cache on the direct CMYK path preserved the page hash and passed
