@@ -97,6 +97,18 @@ tests, 482 app tests, and the Release build pass. This is a page-specific speed
 gain, not a whole-corpus fidelity or interactive parity result. Evidence is under
 `C:/Users/steve/kp-bench-render/jpeg-profile-20260929`.
 
+### Large-image color-cache trial (2026-09-29)
+
+The large Altona page still spends most of its active CPU time in area and ICC
+color conversion. Raising its bounded conversion cache from 16,384 to 65,536
+entries gave baseline/candidate warmed medians of 727.333/704.932 and
+721.581/713.587 milliseconds in reversed-order pairs, while median allocation
+rose from about 277.4 to 291.6 MB per render. A 32,768-entry cache gave
+716.870/710.354 and 718.712/710.039 milliseconds, with allocation rising to
+about 282.1 MB. All 320 page hashes matched. Neither small page gain justified
+the added allocation, so the 16,384-entry limit remains. Trial binaries and
+the probe are under `C:/Users/steve/kp-bench-render/altona-cache-20260929`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
