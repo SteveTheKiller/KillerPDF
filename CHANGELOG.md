@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.8.72] - Unreleased
 
+1.8.72 improves installation, document tabs, and Hebrew text saving.
+
+### Fixed
+
+- Preserved Hebrew letter order when saving text placed on a PDF (#435).
+
 ### Changed
 
 - The installer now offers upgrade, reinstall, uninstall, or cancel when KillerPDF is already installed.

@@ -1,5 +1,7 @@
 using System.IO;
+using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using KillerPDF.Services;
 using KillerPdf.Engine.Authoring;
@@ -73,6 +75,33 @@ public sealed class AnnotationSaveDiagnosticTests
 
             string streams = AllDecodedStreams(PdfDocument.Open(File.ReadAllBytes(path)));
             Assert.Contains("1 J", streams);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
+    public void HebrewTextSave_PlacesGlyphsFromRightToLeft()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-hebrew-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(200, 200).Build());
+            var annotations = new Dictionary<int, List<PageAnnotation>>
+            {
+                [0] = [new TextAnnotation
+                {
+                    PageIndex = 0, Position = new Point(10, 10), Width = 120, Height = 30,
+                    Content = "\u05E9\u05DC\u05D5\u05DD", FontName = "Segoe UI", FontSize = 12
+                }]
+            };
+            PdfEngineBurn.Burn(path, annotations, new Dictionary<int, (int w, int h)> { [0] = (200, 200) });
+
+            string streams = AllDecodedStreams(PdfDocument.Open(File.ReadAllBytes(path)));
+            double[] glyphX = Regex.Matches(streams, @"1 0 0 -1 ([\d.]+) [\d.]+ Tm")
+                .Select(match => double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture))
+                .ToArray();
+            Assert.Equal(4, glyphX.Length);
+            Assert.True(glyphX.Zip(glyphX.Skip(1)).All(pair => pair.First > pair.Second));
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }
