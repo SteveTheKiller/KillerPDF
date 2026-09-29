@@ -49,6 +49,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Changed
 
+- Sampled ordinary eight-bit image soft masks directly during bilinear interpolation, reducing repeated mask work without changing pixels.
 - Parsed content-stream numbers directly from UTF-8 bytes, reducing repeated Form rendering time without changing output.
 - Reused the canonical Unicode replacement character while parsing font maps, reducing cold allocation for maps with repeated missing-character entries.
 - Preserved antialiased coverage when a painted shape exactly matches its clipping path.

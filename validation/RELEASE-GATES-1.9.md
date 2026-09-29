@@ -714,6 +714,16 @@ bounding-mask surfaces. All diagnostic source was removed. Evidence is under
 `C:/Users/steve/kp-bench-render/mipeng-profile-parser-20260929` and
 `C:/Users/steve/kp-bench-render/form-key-diagnostic`.
 
+Directly sampling ordinary eight-bit soft-mask bytes during bilinear
+interpolation reduced the poster's median first-page render time from 1,599.5
+to 1,576.5 milliseconds across 24 alternating fresh-process pairs. Mean time
+fell from 1,616.88 to 1,576.62 milliseconds. The second 12-pair sample
+independently remained faster at medians of 1,575.5 versus 1,568 milliseconds.
+All 48 renders produced one pixel hash with no failures, and sampled peak
+working set remained 194.4 versus 194.2 MiB. All 4,159 engine tests and 484 app
+tests pass. Evidence is under
+`C:/Users/steve/kp-bench-render/softmask-bilinear-trial`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 

@@ -6417,6 +6417,15 @@ public sealed partial class PdfPageRenderer
             int y1 = Math.Clamp(rawY + 1, 0, Height - 1);
             double xWeight = Math.Clamp(sourceX - rawX, 0, 1);
             double yWeight = Math.Clamp(sourceY - rawY, 0, 1);
+            if (Bits == 8 && DecodeStart == 0 && DecodeEnd == 1)
+            {
+                int topRow = y0 * Width, bottomRow = y1 * Width;
+                double topValue = Samples[topRow + x0] * (1 - xWeight)
+                    + Samples[topRow + x1] * xWeight;
+                double bottomValue = Samples[bottomRow + x0] * (1 - xWeight)
+                    + Samples[bottomRow + x1] * xWeight;
+                return (byte)Math.Round(topValue * (1 - yWeight) + bottomValue * yWeight);
+            }
             double top = Sample(x0, y0) * (1 - xWeight) + Sample(x1, y0) * xWeight;
             double bottom = Sample(x0, y1) * (1 - xWeight) + Sample(x1, y1) * xWeight;
             return (byte)Math.Round(top * (1 - yWeight) + bottom * yWeight);
