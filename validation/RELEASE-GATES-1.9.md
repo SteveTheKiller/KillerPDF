@@ -269,6 +269,19 @@ retained. Raw traces, logs, binaries, and PNGs are under
 `C:/Users/steve/kp-bench-render/210260-profile-20260929` and
 `C:/Users/steve/kp-bench-render/210260-workers-20260929`.
 
+A 16-copy profile of `GWG061_Shading_x1a.pdf` reduced from a 652 millisecond
+first render to 103 to 128 milliseconds after warmup. Its main active engine
+costs are radial shading, color-function evaluation, and profiled color
+conversion. Profiled shading table entries almost always fall back to exact
+function evaluation because their connection colors differ. A trial bypassed
+the two table samples and evaluated the exact function directly. All 83
+focused shading tests passed and all 40 measured PNG hashes matched, but 20
+fresh processes per variant measured baseline and trial medians of 678 and
+678.5 milliseconds. The trial mean was also slower at 681.35 versus 674.90
+milliseconds, so the change was removed. Raw traces and runs are under
+`C:/Users/steve/kp-bench-render/gwg061-profile-20260929` and
+`C:/Users/steve/kp-bench-render/gwg061-connection-table-trial`.
+
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
 bounded color cache on the direct CMYK path preserved the page hash and passed
