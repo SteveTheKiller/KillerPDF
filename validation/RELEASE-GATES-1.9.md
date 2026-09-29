@@ -97,8 +97,16 @@ milliseconds. Four workers therefore improve warmed page latency, while
 the cold render remains the main gap for a one-pass batch. These engine
 probes do not establish visible interaction speed or a memory bound.
 
-The three Altona files account for 1,232 milliseconds of the 2,031
-millisecond summed median render gap on the 600 shared successful pages.
+An area-sampling trial moved edge-weight multiplication outside each source
+sample loop. In two reversed-order four-worker pairs, baseline/trial warmed
+medians were 702.890/693.754 and 681.920/700.532 milliseconds. All 48
+pixel hashes matched and allocation stayed near 156 MB per render. The pairs
+disagree on speed, so the trial was removed. Its binaries and raw timings are
+under `C:/Users/steve/kp-bench-render/altona-weight-20260929`.
+
+Before the image-cache change, the three Altona files accounted for 1,232
+milliseconds of the 2,031 millisecond summed median render gap on the 600
+shared successful pages.
 The largest file was then tested as 12 repeated inputs at 1024 pixels in
 two runs per version. Version 1.8 averaged 710.3 and 731.7 milliseconds
 over each run's last six renders; version 1.9 averaged 845.8 and 840.3
@@ -106,9 +114,9 @@ milliseconds. The sampled process peak working sets were 149.5 MiB for both
 1.8 runs and 666.9 to 667.0 MiB for 1.9. A separate single-file run reached
 118.7 versus 510.4 MiB and rendered in 729 versus 1,624 milliseconds.
 Every repeated render within each version produced the same PNG hash; the
-two versions produced different hashes. This confirms both a persistent speed
-gap and a large memory gap on this file, beyond the first render. The scratch
-inputs, logs, and PNGs are under
+two versions produced different hashes. These earlier runs confirmed both a
+persistent speed gap and a large memory gap on this file, beyond the first
+render. The scratch inputs, logs, and PNGs are under
 `C:/Users/steve/kp-bench-render/eci-altona-repeat-20260929`.
 
 A separate engine probe opened that file from a stream and rendered its first
