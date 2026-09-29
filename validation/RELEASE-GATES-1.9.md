@@ -14,7 +14,7 @@ behind an overall average.
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. Shared engine peaks range from 461.9 to 501.1 MiB; difficult peaks range from 278.6 to 288.9 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. Difficult render time is 10.356 versus 5.479 seconds and wall time is 15.749 versus 11.011 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
+| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. Difficult render time is 10.356 versus 5.479 seconds and wall time is 15.749 versus 11.011 seconds. A September 29 serial 1024-pixel conformance run also remains slower in 1.9, as detailed below. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
@@ -32,6 +32,21 @@ engine and PDFium baselines. The measurements, ranges, and page rankings are in
 `stencil-area-paired-analysis.json`; the individual runs are in
 `stencil-area-paired-results.csv`. Both applications use the retained
 framework-dependent Windows payload layout. No installer or release was created.
+
+### Serial conformance comparison (2026-09-29)
+
+The benchmark runner now forces candidate parallelism to one when requested and
+compares the same per-file render timing field in both logs. On the 649-file
+conformance corpus at 1024 pixels, three alternating measured runs after warmup
+gave median wall times of 21.601 seconds for 1.8 and 24.900 seconds for 1.9.
+The ranges were 21.578 to 21.653 and 24.707 to 24.929 seconds. Across 600
+pages both versions rendered successfully, sums of per-file median render
+times were 11,303 and 13,305 milliseconds. Version 1.8 rendered 600 files,
+skipped 41, and failed eight; version 1.9 rendered 614, skipped 35, and failed
+none. These results establish a serial performance gap for this corpus, while
+the different successful file counts limit whole-pass comparison. The raw
+results are in `C:/Users/steve/kp-bench-render/serial-1.9-vs-1.8-20260929`.
+This run did not retain pixels and does not establish fidelity or memory parity.
 
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
