@@ -290,15 +290,19 @@ milliseconds, with one identical PNG hash. After warming both builds, two
 alternating difficult-set runs per version averaged 10,033.5 milliseconds of
 rendering for the baseline and 9,850.5 for the candidate. The earlier un-warmed
 pair averaged 10,443.5 and 10,363 milliseconds. Sampled difficult-set peaks
-remained in the existing 263.4 to 269.1 MiB range. All stable page hashes
-matched; the three `response-to-fiber-concerns[1].pdf` pages varied between
-repeated runs of each build and therefore do not provide candidate-specific
-fidelity evidence. The combined small-roll trial was rejected after its
-16-copy median slowed from 2,551.5 to 2,633.5 milliseconds. Raw results are
-under `C:/Users/steve/kp-bench-render/gwg061-cvr-trial`,
+remained in the existing 263.4 to 269.1 MiB range. All 74 page hashes matched
+across both runs of both builds. Twelve additional renders of each
+`response-to-fiber-concerns[1].pdf` page also kept one hash with normal and
+one-worker rendering; the earlier apparent variation came from treating its
+bracketed filename as a wildcard during hashing. The combined small-roll trial
+was rejected after its 16-copy median slowed from 2,551.5 to 2,633.5
+milliseconds. Raw results are under
+`C:/Users/steve/kp-bench-render/gwg061-cvr-trial`,
 `C:/Users/steve/kp-bench-render/gwg061-cvr-warm-trial`,
 `C:/Users/steve/kp-bench-render/cvr-difficult-trial`, and
-`C:/Users/steve/kp-bench-render/cvr-difficult-warmed-trial`.
+`C:/Users/steve/kp-bench-render/cvr-difficult-warmed-trial`. The supplemental
+determinism check is under
+`C:/Users/steve/kp-bench-render/response-fiber-determinism-20260929`.
 
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
