@@ -59,6 +59,20 @@ is `CC5E62281F368A061C49A6C7214A831C56FB823F099E08ABF0A47AD80080F0F1`.
 Raw results are in `C:/Users/steve/kp-bench-render/serial-post-jpeg-20260929`.
 The focused JPEG gain has not closed the whole-corpus speed gap.
 
+The three Altona files account for 1,232 milliseconds of the 2,031
+millisecond summed median render gap on the 600 shared successful pages.
+The largest file was then tested as 12 repeated inputs at 1024 pixels in
+two runs per version. Version 1.8 averaged 710.3 and 731.7 milliseconds
+over each run's last six renders; version 1.9 averaged 845.8 and 840.3
+milliseconds. The sampled process peak working sets were 149.5 MiB for both
+1.8 runs and 666.9 to 667.0 MiB for 1.9. A separate single-file run reached
+118.7 versus 510.4 MiB and rendered in 729 versus 1,624 milliseconds.
+Every repeated render within each version produced the same PNG hash; the
+two versions produced different hashes. This confirms both a persistent speed
+gap and a large memory gap on this file, beyond the first render. The scratch
+inputs, logs, and PNGs are under
+`C:/Users/steve/kp-bench-render/eci-altona-repeat-20260929`.
+
 ### JPEG worker comparison (2026-09-29)
 
 The current engine rendered `22060_A1_01_Plans.pdf` at 724 by 1024 pixels in
