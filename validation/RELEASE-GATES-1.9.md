@@ -123,6 +123,17 @@ establish visible startup, first-page, scrolling, or zoom parity. Raw traces
 and the launch script are under `C:/Users/steve/kp-bench-render` with
 `startup-*-20260929` names.
 
+### ICC input-curve lookup trial (2026-09-29)
+
+A 256-value input-curve lookup for four-channel ICC tables was tested on the
+large Altona page and removed. Reversed-order warmed medians were
+719.731/710.252 and 726.537/721.158 milliseconds for baseline/trial.
+Per-render allocation stayed near 277.4 MB, and all 160 page pixel hashes
+matched. The gain was small on this page and did not establish a corpus-wide
+benefit, so the extra profile allocation and lookup logic were not retained.
+Trial binaries and raw timings are under
+`C:/Users/steve/kp-bench-render/icc-curve-20260929`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
