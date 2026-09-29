@@ -14,6 +14,31 @@ namespace KillerPDF.Tests;
 
 public sealed class AnnotationSaveDiagnosticTests
 {
+    [Fact]
+    public void BurnShortInkStroke_PaintsVisibleDot()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-ink-dot-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(200, 200).Build());
+            byte[] blank;
+            using (var before = PdfPageRenderSession.OpenEngineFirst(path, 200, 200))
+                blank = before.RenderPage(0, includeFormFields: false).Pixels;
+
+            var ink = new InkAnnotation
+            {
+                PageIndex = 0, StrokeWidth = 6,
+                Points = [new Point(100, 100), new Point(100.25, 100)]
+            };
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [ink] },
+                new Dictionary<int, (int w, int h)> { [0] = (200, 200) });
+
+            using var after = PdfPageRenderSession.OpenEngineFirst(path, 200, 200);
+            Assert.False(blank.SequenceEqual(after.RenderPage(0, includeFormFields: false).Pixels));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]

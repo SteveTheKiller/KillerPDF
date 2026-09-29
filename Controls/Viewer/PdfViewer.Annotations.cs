@@ -1117,9 +1117,11 @@ namespace KillerPDF.Controls
                         // resolved on mouse-up via _txtSelClickAnnot. An already-selected annotation
                         // keeps drag priority so click-then-drag moves it. Empty page, Shift, and
                         // OCR region capture all keep the classic marquee below.
-                        bool selectedUnderPress = _selectedAnnotation is not null
-                            && _selectedAnnotation.PageIndex == pageIdx
-                            && HitTestAnnotation(_selectedAnnotation, pos, out _);
+                        bool selectedUnderPress = (_selectedAnnotation is not null
+                                && _selectedAnnotation.PageIndex == pageIdx
+                                && HitTestAnnotation(_selectedAnnotation, pos, out _))
+                            || _selectedSet.Any(a => a.PageIndex == pageIdx
+                                && HitTestAnnotation(a, pos, out _));
                         if (!_ocrRegionMode && !shiftSel && !selectedUnderPress
                             && TryBeginTextSelection(pageIdx, pos))
                         {
@@ -1155,7 +1157,17 @@ namespace KillerPDF.Controls
                                     // otherwise just this one. _dragGroupOrig holds the companions' start
                                     // positions so the group translates rigidly during the drag.
                                     _dragGroupOrig.Clear();
-                                    if (pa.GroupId.Length > 0)
+                                    if (_selectedSet.Contains(pa) && SelectionCount() > 1)
+                                    {
+                                        foreach (var m in _selectedSet)
+                                            if (!ReferenceEquals(m, pa) && m.PageIndex == pageIdx)
+                                                _dragGroupOrig.Add((m, AnnotGetPos(m)));
+                                        if (_selectedAnnotation is not null
+                                            && !ReferenceEquals(_selectedAnnotation, pa)
+                                            && _selectedAnnotation.PageIndex == pageIdx)
+                                            _dragGroupOrig.Add((_selectedAnnotation, AnnotGetPos(_selectedAnnotation)));
+                                    }
+                                    else if (pa.GroupId.Length > 0)
                                     {
                                         SelectGroup(pa);
                                         foreach (var m in _selectedSet) _dragGroupOrig.Add((m, AnnotGetPos(m)));
@@ -1845,7 +1857,7 @@ namespace KillerPDF.Controls
                     int oldPage = da.PageIndex;
                     // Released over a different page? Move it there (position was updated live during drag).
                     var drop = PageCanvasUnderPointer(e);
-                    if (drop is { } d && d.page != oldPage && _doc is not null
+                    if (_dragGroupOrig.Count == 0 && drop is { } d && d.page != oldPage && _doc is not null
                         && d.page >= 0 && d.page < _doc.PageCount)
                     {
                         var pt = e.GetPosition(d.canvas);
@@ -1864,7 +1876,12 @@ namespace KillerPDF.Controls
                     }
                     RenderAllAnnotations(da.PageIndex);
                     // Keep the whole group selected after a group move (not just the dragged member).
-                    if (da.GroupId.Length > 0) SelectGroup(da);
+                    if (_selectedSet.Contains(da) && _dragGroupOrig.Count > 0)
+                    {
+                        ReattachSelectionVisuals();
+                        ReattachMultiOutlines();
+                    }
+                    else if (da.GroupId.Length > 0) SelectGroup(da);
                     else SelectAnnotation(da, AnnotBounds(da));
                     MarkDirty();
                 }
@@ -2106,8 +2123,15 @@ namespace KillerPDF.Controls
                         }
                         ErasePartial(pageIdx, Covered, null, Math.Max(1.0, radius / 2.0), pts, radius);
                     }
-                    else if (_activeInk.Points.Count > 2)
+                    else if (_activeInk.Points.Count > 0)
                     {
+                        if (_activeInk.Points.Count == 1)
+                        {
+                            var dot = _activeInk.Points[0];
+                            double x = dot.X + 0.25 <= releaseCanvas.ActualWidth
+                                ? dot.X + 0.25 : dot.X - 0.25;
+                            _activeInk.Points.Add(new Point(x, dot.Y));
+                        }
                         // Commit, drop the preview, and render the stroke from _annotations - the same three
                         // steps the Highlight and Line cases do. Relying on the preview to "stay" only ever
                         // worked in single-page mode; continuous re-renders the overlay from _annotations,

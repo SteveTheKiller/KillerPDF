@@ -75,6 +75,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Pasted multi-selected annotations now move together, and a pen click places a dot.
 - Preserved Hebrew letter order when saving text placed on a PDF (#435).
 - Retried installation when Windows briefly keeps the previous version's files open (#434).
 
