@@ -145,6 +145,16 @@ gain. These below-normal-priority runs occurred under a higher machine load
 than the earlier Altona trials. Raw timings and binaries are under
 `C:/Users/steve/kp-bench-render/area-branch-20260929`.
 
+### Two-entry color-cache trial (2026-09-29)
+
+A two-entry set at the existing 16,384-entry cache capacity was tested on the
+large Altona page and removed. Reversed-order warmed medians were
+817.454/928.592 and 820.635/920.447 milliseconds for baseline/trial.
+Per-render allocation remained near 277.4 MB and all 160 page hashes matched.
+Both pairs show a substantial slowdown, so the direct-mapped cache remains.
+Raw timings and binaries are under
+`C:/Users/steve/kp-bench-render/two-way-cache-20260929`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
