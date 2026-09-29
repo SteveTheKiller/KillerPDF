@@ -73,6 +73,15 @@ gap and a large memory gap on this file, beyond the first render. The scratch
 inputs, logs, and PNGs are under
 `C:/Users/steve/kp-bench-render/eci-altona-repeat-20260929`.
 
+A separate engine probe opened that file from a stream and rendered its first
+page at 1024 by 1024. After opening and collecting garbage, the managed heap
+was 128.2 MB. Rendering raised it to 460.1 MB and allocated 337.9 MB during
+that stage; another collection reduced the live heap to 213.5 MB while
+working set remained 496.9 MB. The open stage therefore retains roughly the
+file's 127.7 MB of bytes, and the render stage creates substantial additional
+temporary and retained data. The probe's output hash was stable and it
+reported no diagnostics. Its source and output are in the same scratch folder.
+
 ### JPEG worker comparison (2026-09-29)
 
 The current engine rendered `22060_A1_01_Plans.pdf` at 724 by 1024 pixels in
