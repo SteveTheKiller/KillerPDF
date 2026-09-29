@@ -81,6 +81,13 @@ and its engine SHA-256 is
 Raw logs and per-file comparison are under
 `C:/Users/steve/kp-bench-render/post-image-cache-20260929`.
 
+A current one-worker engine probe of the largest Altona page kept one pixel
+hash across 12 renders. Its first render took 1,992.845 milliseconds; the
+last six had a 1,156.174 millisecond median. A sampled-thread-time trace
+attributes 31.56 percent exclusive time to area conversion and 13.52 percent
+to ICC lookup transformation, versus 0.94 percent to ink pixel compositing.
+The probe and trace are under `C:/Users/steve/kp-bench-render/altona-pages-20260929`.
+
 The three Altona files account for 1,232 milliseconds of the 2,031
 millisecond summed median render gap on the 600 shared successful pages.
 The largest file was then tested as 12 repeated inputs at 1024 pixels in
