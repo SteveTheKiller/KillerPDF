@@ -14,6 +14,17 @@ namespace KillerPDF.Services
     // ============================================================
     internal static class BitmapHelpers
     {
+        private static readonly System.Drawing.Imaging.ImageCodecInfo PngEncoder = GetPngEncoder();
+
+        private static System.Drawing.Imaging.ImageCodecInfo GetPngEncoder()
+        {
+            Guid png = System.Drawing.Imaging.ImageFormat.Png.Guid;
+            foreach (System.Drawing.Imaging.ImageCodecInfo encoder in
+                     System.Drawing.Imaging.ImageCodecInfo.GetImageEncoders())
+                if (encoder.FormatID == png) return encoder;
+            throw new InvalidOperationException("The PNG encoder is unavailable.");
+        }
+
         /// <summary>
         /// Rotates a raw BGRA (4 bytes/pixel) bitmap clockwise by degrees.
         /// Page rendering uses a pure-scaling matrix and the page's MediaBox orientation.
@@ -175,7 +186,7 @@ namespace KillerPDF.Services
                     IntPtr.Add(pin.AddrOfPinnedObject(), segment.Offset));
                 // #188: bake the render DPI into the file's metadata; GDI+ defaults to 96.
                 bmp.SetResolution((float)dpi, (float)dpi);
-                bmp.Save(output, System.Drawing.Imaging.ImageFormat.Png);
+                bmp.Save(output, PngEncoder, null);
             }
             finally { pin.Free(); }
         }

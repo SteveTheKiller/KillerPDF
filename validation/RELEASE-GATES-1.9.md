@@ -385,6 +385,15 @@ pass. The broader rendering-speed gate remains open.
 Raw evidence is under
 `C:/Users/steve/kp-bench-render/colorburn-opaque-trial`.
 
+Parallel PNG output now resolves the system codec once before file workers use
+it. The previous image-format lookup lost three pages across 12 repeated
+40-file runs, each with `Value cannot be null. (Parameter 'encoder')`. Twenty
+stress runs and seven alternating measured runs after the correction completed
+all 1,080 pages without a failure. A 40-page output comparison remained
+byte-identical. The three focused PNG tests and all 484 app tests pass. The fix
+does not serialize PNG encoding. Raw evidence is under
+`C:/Users/steve/kp-bench-render/png-encoder-race`.
+
 A fresh three-run comparison against the installed-layout 1.8.72 payload puts
 the retained 1.9 build at a 10,499 millisecond difficult-set render median and
 16,062 millisecond wall median, versus 5,678 and 11,292 milliseconds for 1.8.

@@ -78,6 +78,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Prevented parallel PNG exports from intermittently losing pages when the system encoder lookup raced.
 - Opened PDFs whose cross-reference table contains valid objects beyond an incorrect trailer size (#406).
 - Pasted multi-selected annotations now move together, and a pen click places a dot.
 - Preserved Hebrew letter order when saving text placed on a PDF (#435).
