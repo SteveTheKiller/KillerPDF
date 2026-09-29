@@ -226,6 +226,17 @@ attribution, not independent wall-clock timings. The decoder and reduction
 paths remain the main candidates for a verified speed fix. Raw logs and trace
 are under `C:/Users/steve/kp-bench-render/balloon-app-20260929`.
 
+At the application's 751 by 1023 output size, a separate 40-pass engine probe
+rendered the same page with one, two, and four workers. Two one-worker runs
+had last-20 medians of 184.331 and 180.996 milliseconds; two two-worker runs
+had 173.570 and 173.784 milliseconds; two four-worker runs had 160.771 and
+160.204 milliseconds. Median allocation rose from about 17.65 MB with one
+worker to 17.72 MB with two and 17.81 MB with four. All 240 renders had the
+same pixel hash. The application's current output-size policy selects one
+worker for this page. This focused result warrants checking other page types
+and concurrent viewer memory before changing that policy. Probe output is
+under `C:/Users/steve/kp-bench-render/balloon-workers-20260929`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
