@@ -134,6 +134,17 @@ benefit, so the extra profile allocation and lookup logic were not retained.
 Trial binaries and raw timings are under
 `C:/Users/steve/kp-bench-render/icc-curve-20260929`.
 
+### Area-loop branch trial (2026-09-29)
+
+Moving image-type checks from each source sample to each source row was tested
+on the large Altona page and removed. Reversed-order warmed medians were
+819.095/829.391 and 831.646/828.879 milliseconds for baseline/trial.
+Per-render allocation remained near 277.4 MB and all 160 page hashes matched.
+The two pairs disagree on direction, so this does not show a reliable speed
+gain. These below-normal-priority runs occurred under a higher machine load
+than the earlier Altona trials. Raw timings and binaries are under
+`C:/Users/steve/kp-bench-render/area-branch-20260929`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
