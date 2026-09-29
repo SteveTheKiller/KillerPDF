@@ -245,6 +245,16 @@ under `C:/Users/steve/kp-bench-render/382252-profile-20260929`,
 `C:/Users/steve/kp-bench-render/binary-row-weight-trial`, and
 `C:/Users/steve/kp-bench-render/png-unfilter-trial`.
 
+A sampled trace of the first two `495712.pdf` pages attributes the largest
+active renderer cost to vector stroke rasterization, including cell creation
+and per-row X sorting. A trial skipped sorting when a distributed row was
+already monotonic. All 1,223 rendering tests passed and all 32 measured PNGs
+matched the baseline. One baseline/candidate pair measured 3.541/3.753 seconds
+and the reversed pair measured 3.447/3.437 seconds, so the result was not
+repeatable and the trial was removed. Raw evidence is under
+`C:/Users/steve/kp-bench-render/495712-profile-20260929` and
+`C:/Users/steve/kp-bench-render/cell-sort-skip-trial`.
+
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
 bounded color cache on the direct CMYK path preserved the page hash and passed
