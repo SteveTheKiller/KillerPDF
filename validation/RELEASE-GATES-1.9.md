@@ -204,6 +204,28 @@ per render. The method hint was removed. The app-batch and probe results are
 under `C:/Users/steve/kp-bench-render/altona-app-session-20260929` and
 `C:/Users/steve/kp-bench-render/area-jit-20260929`.
 
+### Current balloon JPEG 2000 profile (2026-09-29)
+
+Twenty copies of `balloon_a1b_jp2k.pdf` were rendered at 1024 pixels through
+the retained 1.8 application and current 1.9 payload, with one file worker.
+In reversed-order pairs, 1.8 first-page times were 153 and 155 milliseconds
+and last-ten averages were 142.3 and 144.4 milliseconds. Version 1.9 took
+534 and 530 milliseconds first, with last-ten averages of 189.6 and 194.4
+milliseconds. All 80 batch rows succeeded. Each version produced one stable
+PNG hash across its copies and runs; the versions have different output hashes.
+This page has both cold and steady render gaps.
+
+A sampled trace of the 1.9 headless application path attributes 13.19 percent
+exclusive to JPEG 2000 significance propagation, 8.04 percent to its cleanup
+pass, 9.46 percent to inverse wavelet synthesis, 9.55 percent to buffer
+zeroing, and 8.21 percent to reduced image painting. Of 326 zeroing samples,
+282 are under `StdEntropyDecoder.GetCodeBlock`, which clears its used state
+and output ranges. PNG encoding is another 20.03 percent of sampled time but
+is outside the logged page-render interval. These sample shares are diagnostic
+attribution, not independent wall-clock timings. The decoder and reduction
+paths remain the main candidates for a verified speed fix. Raw logs and trace
+are under `C:/Users/steve/kp-bench-render/balloon-app-20260929`.
+
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
 
