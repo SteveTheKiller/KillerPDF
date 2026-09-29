@@ -17,6 +17,7 @@
                     xmlns:kui="clr-namespace:KillerPDF.Controls">
 
     <Style x:Key="OutlineButton" TargetType="Button">
+        <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}"/>
         <!-- Transparent at rest, NOT RowSelectedBrush. Filled with RowSelectedBrush while its text
              was OutlineBtnBrush, both resolve to the accent on several palettes - so the confirm
              button was a solid block of color with its caption invisible inside it. -->
@@ -66,6 +67,7 @@
     </Style>
 
     <Style x:Key="SurfaceButton" TargetType="Button">
+        <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}"/>
         <Setter Property="Background" Value="{DynamicResource PaneBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
         <Setter Property="FontSize" Value="13"/>
@@ -346,6 +348,7 @@
     </Style>
 
     <Style x:Key="PickerViewBtn" TargetType="Button">
+        <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}"/>
         <Setter Property="Width" Value="26"/>
         <Setter Property="Height" Value="22"/>
         <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
