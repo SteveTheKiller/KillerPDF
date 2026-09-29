@@ -88,6 +88,15 @@ attributes 31.56 percent exclusive time to area conversion and 13.52 percent
 to ICC lookup transformation, versus 0.94 percent to ink pixel compositing.
 The probe and trace are under `C:/Users/steve/kp-bench-render/altona-pages-20260929`.
 
+At 1024 by 1024 pixels the application selects four render workers. Two
+fresh four-worker probes of the same page took 1,367.071 and 1,460.967
+milliseconds on the first render, then 721.471 and 697.574 milliseconds
+at the median of the last six. All 24 renders kept the same pixel hash.
+The corresponding last-six one-worker medians were 1,156.174 and 1,200.998
+milliseconds. Four workers therefore improve warmed page latency, while
+the cold render remains the main gap for a one-pass batch. These engine
+probes do not establish visible interaction speed or a memory bound.
+
 The three Altona files account for 1,232 milliseconds of the 2,031
 millisecond summed median render gap on the 600 shared successful pages.
 The largest file was then tested as 12 repeated inputs at 1024 pixels in
