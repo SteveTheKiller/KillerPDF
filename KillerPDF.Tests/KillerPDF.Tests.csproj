@@ -81,6 +81,7 @@
     <Compile Include="..\Services\PageAnnotationInsertion.cs" Link="Services\PageAnnotationInsertion.cs" />
     <Compile Include="..\Services\FormOcrPolicy.cs" Link="Services\FormOcrPolicy.cs" />
     <Compile Include="..\Services\CombFieldLayout.cs" Link="Services\CombFieldLayout.cs" />
+    <Compile Include="..\Services\ContinuousRenderOrder.cs" Link="Services\ContinuousRenderOrder.cs" />
     <Compile Include="..\Services\SaveFileNamePolicy.cs" Link="Services\SaveFileNamePolicy.cs" />
     <Compile Include="..\Services\DeferredActionGate.cs" Link="Services\DeferredActionGate.cs" />
     <Compile Include="..\Services\UndoHistoryBudget.cs" Link="Services\UndoHistoryBudget.cs" />

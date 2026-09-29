@@ -345,6 +345,12 @@ change. Raw traces, resource inventories, and cache-trial timings are under
 `C:/Users/steve/kp-bench-render/ghent-firstuse-probe-20260929` and
 `C:/Users/steve/kp-bench-render/ghent-font-resources-20260929`.
 
+Continuous view now schedules its visible center page first, followed by the
+nearest forward and backward pages. The previous ascending order could put up
+to ten earlier pages ahead of the page being opened or navigated to. Two
+focused ordering tests cover the centered and bounded cases. This removes an
+avoidable visible-page queue delay without changing engine render time.
+
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
 bounded color cache on the direct CMYK path preserved the page hash and passed

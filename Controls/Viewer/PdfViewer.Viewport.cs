@@ -603,9 +603,9 @@ namespace KillerPDF.Controls
             int lo = Math.Max(0, centerPage - ContinuousKeepPages);
             int hi = Math.Min(pageCount - 1, centerPage + ContinuousKeepPages);
             var todo = new List<int>();
-            for (int i = lo; i <= hi; i++)
+            foreach (int i in ContinuousRenderOrder.Around(centerPage, lo, hi))
             {
-                if (i >= _continuousPanel.Children.Count) break;
+                if (i >= _continuousPanel.Children.Count) continue;
                 if (_continuousPanel.Children[i] is Border b && b.Child is Grid g
                     && g.Children.Count > 0 && g.Children[0] is Image img && img.Source == null)
                     todo.Add(i);

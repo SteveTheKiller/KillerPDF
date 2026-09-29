@@ -70,6 +70,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Avoided a redundant rendering pass for pages whose overprint needs the document output profile.
 - Faster soft masks, compositing, scanned pages, and function shadings without changing pixels. Large fills, image paints, function shadings, and soft-mask reductions split across a few threads.
 - Reuse decoded page data during zooming and background page rendering, with invalidation after document changes and cache flushes.
+- Prioritize the visible page and its nearest neighbors when Continuous view fills its background render window.
 - Match legacy bitmap dimensions for fractional page boxes without changing engine numeric precision.
 - Docked the comparison bar below the documents, connected it to the split divider, polished its accent-colored controls, and kept selected toolbar tools crisp.
 - Click the footer page dimensions to cycle through pixel, inch, millimeter, and point dimensions (#364).
