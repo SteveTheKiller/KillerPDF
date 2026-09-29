@@ -174,6 +174,18 @@ three early Altona outliers by about 700 milliseconds combined in each pair,
 but slowed the workload overall. The global runtime setting was not retained.
 Raw results are under `C:/Users/steve/kp-bench-render/tiered-pgo-20260929`.
 
+Enabling quick JIT for loops made the repeated technical Altona batch slower:
+its first page took 850 milliseconds and its 20-page sum was 4,833
+milliseconds. Disabling dynamic PGO improved that repeated batch to 631
+milliseconds on the first page and 3,798 milliseconds summed, but regressed
+the 600-page shared set. In reversed-order no-PGO/default runs, wall times
+were 34.593/26.935 and 27.837/26.896 seconds; summed render times were
+17,586/14,779 and 15,629/14,738 milliseconds. The first no-PGO run was an
+outlier, but both pairs favored the default. All 600 PNG hashes matched in
+the first pair. Neither runtime setting was retained. Raw results are under
+`C:/Users/steve/kp-bench-render/altona-app-session-20260929` and
+`C:/Users/steve/kp-bench-render/pgo-20260929`.
+
 On 20 copies of the technical Altona page, the retained 1.8 application took
 170 milliseconds for the first page and averaged 168 milliseconds for the
 last ten. The current 1.9 application took 742 and 758 milliseconds on the
