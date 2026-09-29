@@ -29,9 +29,9 @@ internal static class PdfBinaryAreaSampler
         long firstWeight = Math.Min((long)(firstX + 1) * outputWidth, right) - left;
         long lastWeight = right - (long)lastX * outputWidth;
         long selected = 0;
+        cancellationToken.ThrowIfCancellationRequested();
         for (int sy = bounds.First; sy <= bounds.Last; sy++)
         {
-            cancellationToken.ThrowIfCancellationRequested();
             int row = sy * rowBytes;
             long horizontal = 0;
             if (Bit(samples, row, firstX) != 0)

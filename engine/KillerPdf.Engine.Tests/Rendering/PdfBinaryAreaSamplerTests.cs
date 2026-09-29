@@ -47,4 +47,14 @@ public sealed class PdfBinaryAreaSamplerTests
         Assert.Equal(0xFF808080u, PdfBinaryAreaSampler.Sample([0x80], 1, 2, 1,
             0, 0, 1, 1, 0xFFFFFFFF, 0xFF000000, default));
     }
+
+    [Fact]
+    public void CanceledTokenStopsBeforeSampling()
+    {
+        using var source = new CancellationTokenSource();
+        source.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => PdfBinaryAreaSampler.Sample([0x80], 1, 1, 1,
+            0, 0, 1, 1, 0xFF000000, 0xFFFFFFFF, source.Token));
+    }
 }

@@ -219,6 +219,19 @@ milliseconds, while means were 196.72 and 196.49 milliseconds. Reversed-order
 pairs disagreed, so the change was removed. Raw results are under
 `C:/Users/steve/kp-bench-render/jbig2-direct-bitmap-trial`.
 
+Moving the binary area sampler's cancellation check outside its source-row
+loop retains cancellation before each destination sample and reduces repeated
+checks within that sample. Across 72 warmed same-process renders of
+`42828.0001.001.pdf`, the median fell from 190.48 to 186.43 milliseconds and
+the mean fell from 192.96 to 188.28 milliseconds, with unchanged output and
+allocation. A separate warm application comparison improved the median from
+213.5 to 207.5 milliseconds across 20 measured renders. Two reversed-order
+difficult-set runs completed all 74 pages with byte-identical PNGs; baseline
+render totals were 9.676 and 9.716 seconds, while the candidate measured 9.585
+and 9.299 seconds. Sampled peak working sets ranged from 258.6 to 265.2 MiB
+without a candidate-specific increase. Raw results are under
+`C:/Users/steve/kp-bench-render/binary-cancellation-trial`.
+
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
 bounded color cache on the direct CMYK path preserved the page hash and passed
