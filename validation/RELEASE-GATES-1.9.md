@@ -337,6 +337,14 @@ milliseconds. Raw results are under
 determinism check is under
 `C:/Users/steve/kp-bench-render/response-fiber-determinism-20260929`.
 
+A later radial-shading trial moved three geometry products outside the pixel
+loop. Three alternating 40-copy runs used identical installed-payload builds.
+The baseline and trial render medians were 5,589 and 5,607 milliseconds, their
+wall medians were both 8,031 milliseconds, and peak working sets were 113.7
+and 113.5 MiB. All 240 output hashes matched. The change had no measured
+benefit and was removed. Raw results are under
+`C:/Users/steve/kp-bench-render/radial-invariant-trial/payload-comparison`.
+
 Sixteen traced copies of the difficult file beginning `4387` fell from 490
 milliseconds on the first render to 48 to 69 milliseconds on the last six,
 which matches its measured 1.8 range. The trace includes image decoding,
