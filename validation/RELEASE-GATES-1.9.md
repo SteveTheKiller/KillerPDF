@@ -206,6 +206,16 @@ milliseconds. The second document reversed the apparent result, so the lookup
 change was removed. Raw results are under
 `C:/Users/steve/kp-bench-render/cmyk-interpolation-trial-20260929`.
 
+A reduced JPEG reconstruction trial stored the active coefficient rows once
+per block instead of testing all eight rows for every output vector. Across
+160 focused renders, every `064034.pdf` and `363_Risk` process retained one
+pixel hash and allocation volume was unchanged. Reversed-order last-ten
+baseline/candidate medians were 117.996/125.907 and 115.418/117.680
+milliseconds on `064034.pdf`, and 100.092/98.390 and 102.470/102.088
+milliseconds on `363_Risk`. The pairs do not show a repeatable improvement,
+so the trial was removed. Raw results are under
+`C:/Users/steve/kp-bench-render/jpeg-active-rows-trial-20260929`.
+
 Before the image-cache change, the three Altona files accounted for 1,232
 milliseconds of the 2,031 millisecond summed median render gap on the 600
 shared successful pages.
