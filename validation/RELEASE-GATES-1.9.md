@@ -82,6 +82,16 @@ file's 127.7 MB of bytes, and the render stage creates substantial additional
 temporary and retained data. The probe's output hash was stable and it
 reported no diagnostics. Its source and output are in the same scratch folder.
 
+Of the live data after that collection, the byte scratch pool retained
+66.6 MB. A local trial halved that pool's budget from 64 to 32 MiB. It
+lowered the collected heap from 213.5 to 179.7 MB, but raised render-stage
+allocation from 337.9 to 370.6 MB and working set immediately after render
+from 512.9 to 545.3 MB. The two baseline single-pass renders took 2,118
+and 2,175 milliseconds, versus 2,118 milliseconds in the trial; all three
+pixel hashes matched. This trial
+reduced idle retention but worsened peak memory, so the original pool budget
+was restored. Both probe logs are in the same scratch folder.
+
 ### JPEG worker comparison (2026-09-29)
 
 The current engine rendered `22060_A1_01_Plans.pdf` at 724 by 1024 pixels in
