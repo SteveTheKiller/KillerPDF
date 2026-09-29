@@ -212,6 +212,12 @@ reversed that result: warmed baseline and candidate medians were 209.15 and
 unchanged at about 25.9 MiB. The trial was removed. Raw traces and runs are
 under `C:/Users/steve/kp-bench-render/42828-profile-20260929` and
 `C:/Users/steve/kp-bench-render/jbig2-context-ref-trial`.
+Reading the fast generic-region template directly from its backing bitmap also
+passed the 15 focused tests and preserved all measured hashes. Across 144
+warmed renders, baseline and candidate medians were 193.94 and 191.76
+milliseconds, while means were 196.72 and 196.49 milliseconds. Reversed-order
+pairs disagreed, so the change was removed. Raw results are under
+`C:/Users/steve/kp-bench-render/jbig2-direct-bitmap-trial`.
 
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
