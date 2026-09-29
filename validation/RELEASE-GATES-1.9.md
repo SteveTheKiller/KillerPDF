@@ -255,6 +255,20 @@ repeatable and the trial was removed. Raw evidence is under
 `C:/Users/steve/kp-bench-render/495712-profile-20260929` and
 `C:/Users/steve/kp-bench-render/cell-sort-skip-trial`.
 
+A fresh-process profile of both `210260.pdf` pages showed a cold first copy at
+189 and 229 milliseconds, while later copies commonly rendered the first page
+in 32 to 60 milliseconds and the second in 19 to 32 milliseconds. The earlier
+large page-two gap is therefore mainly a cold runtime and cache cost. A
+temporary application build forced one row worker instead of the normal four
+at 1024 pixels. Thirty fresh processes per variant ran in alternating order.
+The normal build had a 422 millisecond median and 421.33 millisecond mean for
+both pages together. The one-worker build had a 421 millisecond median and
+422.50 millisecond mean. Each page kept one identical hash across all 60
+renders. Forcing one worker has no repeatable cold-render benefit and was not
+retained. Raw traces, logs, binaries, and PNGs are under
+`C:/Users/steve/kp-bench-render/210260-profile-20260929` and
+`C:/Users/steve/kp-bench-render/210260-workers-20260929`.
+
 A sampled CPU trace of `064034.pdf` identifies the reduced JPEG decoder and
 DeviceCMYK display conversion as its main active costs. Reusing the converter's
 bounded color cache on the direct CMYK path preserved the page hash and passed
