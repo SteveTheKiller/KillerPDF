@@ -1,13 +1,13 @@
-.engine-shell{grid-template-columns:270px minmax(0,1fr)}
+.engine-shell{grid-template-columns:180px minmax(0,1fr)}
 .engine-sidebar{min-width:0}
-.docs-nav{padding:8px 0 18px;overflow-y:auto;flex:1;min-height:0}
+.docs-nav{padding:3px 0 12px;overflow-y:auto;flex:1;min-height:0}
 .docs-nav-group{margin:0 0 10px}
-.docs-nav-label{display:block;padding:8px 18px 5px;color:var(--muted);font:10px "Courier New",monospace;letter-spacing:1px;text-transform:uppercase}
-.docs-nav a{display:block;padding:8px 16px 8px 18px;border-left:2px solid transparent;color:var(--text2);font-size:13px;line-height:1.35}
+.docs-nav-label{display:block;padding:6px 8px 4px;color:var(--muted);font:10px "Courier New",monospace;letter-spacing:1px;text-transform:uppercase}
+.docs-nav a{display:block;padding:6px 7px 6px 9px;border-left:2px solid transparent;color:var(--text2);font-size:12.5px;line-height:1.35;overflow-wrap:anywhere}
 .docs-nav a:hover{color:var(--text);background:color-mix(in srgb,var(--accent) 8%,transparent);filter:none}
 .docs-nav a.on{color:var(--accent-text);border-left-color:var(--accent);background:var(--accent)}
 .docs-nav .page-outline{margin:3px 0 8px}
-.docs-nav .page-outline a{padding:6px 14px 6px 32px;font-size:12px;opacity:.88}
+.docs-nav .page-outline a{padding:5px 7px 5px 17px;font-size:12px;opacity:.88}
 .docs-nav .page-outline a.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);border-left-color:var(--accent)}
 .engine-doc-wrap{max-width:980px;margin:0 auto;padding:34px 34px 46px}
 .engine-doc-hero{display:flex;align-items:center;gap:18px;margin:0 0 26px;padding:8px 0 4px}

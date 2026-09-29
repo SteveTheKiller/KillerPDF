@@ -56,7 +56,7 @@ html[data-theme="light"] .wm-logo { filter: none; }
 html[data-theme="light"] .page-title { text-shadow: none; }
 
 /* ---- Top bar (single app-style chrome bar) ---- */
-.topbar { position: relative; flex: 0 0 auto; z-index: 100; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 8px 16px 0; background: var(--chrome-bg); }
+.topbar { position: relative; flex: 0 0 auto; z-index: 100; display: flex; align-items: center; gap: 14px; flex-wrap: nowrap; padding: 8px 16px 0; background: var(--chrome-bg); }
 .topbar::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: url('grain.png?v=2') repeat fixed; background-size: 256px 256px; opacity: 1; }
 .topbar > * { position: relative; z-index: 1; }
 .tb-home { display: inline-flex; align-items: center; gap: 9px; color: var(--text); }
@@ -107,7 +107,26 @@ html[data-theme="light"] .page-title { text-shadow: none; }
 
 /* ---- App body: content + right-hand sidebar ---- */
 /* Chrome-toned shell: the gutter around the rounded content pane reads as grained chrome, like the app windows and killertools.net */
-.shell { display: grid; grid-template-columns: 1fr 268px; flex: 1 1 auto; min-height: 0; overflow: visible; position: relative; z-index: 2; background: var(--chrome-bg); }
+.shell { display: grid; grid-template-columns: 1fr 300px; flex: 1 1 auto; min-height: 0; overflow: visible; position: relative; z-index: 2; background: var(--chrome-bg); }
+@media (min-width: 901px) {
+  body.compact-sidebar .shell { grid-template-columns: minmax(0, 1fr) 150px; }
+  body.compact-sidebar.sidebar-first .shell { grid-template-columns: 150px minmax(0, 1fr); }
+}
+@media (min-width: 1101px) {
+  body.compact-sidebar.sidebar-first .sidebar { grid-column: 1; grid-row: 1; }
+  body.compact-sidebar.sidebar-first .content { grid-column: 2; grid-row: 1; }
+}
+body.compact-sidebar .outline { padding: 2px 0; }
+body.compact-sidebar .outline a { padding: 5px 6px 5px 8px; overflow-wrap: anywhere; }
+body.compact-sidebar .outline a.sub { padding-left: 14px; }
+body.compact-sidebar .outline a:hover { color: var(--text); background: color-mix(in srgb, var(--accent) 10%, transparent); filter: none; }
+@media (max-width: 1100px) { body.compact-sidebar.mcp-page .shell { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 1101px) { .shell:has(.mcp-page-grid) { grid-template-columns: minmax(0, 1fr) 150px; } }
+.shell:has(.mcp-page-grid) .outline { padding: 2px 0; }
+.shell:has(.mcp-page-grid) .outline a { padding: 5px 6px 5px 8px; overflow-wrap: anywhere; }
+.mcp-limit-list { display: grid; gap: 6px; margin: 8px 0; padding-left: 22px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.mcp-limit-list li::marker { color: var(--accent); }
+.shell:has(.mcp-page-grid) .outline a:hover { color: var(--text); background: color-mix(in srgb, var(--accent) 10%, transparent); filter: none; }
 .shell::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: url('grain.png?v=2') repeat fixed; background-size: 256px 256px; opacity: 1; }
 @keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
 /* Inset rounded pane (killertools.net MenuLayout treatment): 8px chrome gutter on the window edges, 2px hugging the sidebar, none above the statusbar.
@@ -205,7 +224,7 @@ html[data-theme="light"] .page-title { text-shadow: none; }
 .outline::-webkit-scrollbar-track,
 .outline::-webkit-scrollbar-track-piece { background: transparent !important; }
 
-@media (max-width: 1120px) {
+@media (max-width: 1320px) {
   .topbar { flex-wrap: nowrap; padding-bottom: 8px; }
   .theme-toggle { display: inline-flex; flex: 0 0 auto; }
   .topbar .tgrp { display: none; position: absolute; top: calc(100% + 7px); right: 12px; z-index: 120; width: 170px; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--modal) url('grain.png?v=2') repeat; background-size: 256px 256px; box-shadow: 0 10px 28px rgba(0,0,0,0.48); }
@@ -223,6 +242,14 @@ html[data-theme="light"] .page-title { text-shadow: none; }
 
 /* ---- Phones: reflow the app-chrome topbar into tidy rows + stack the statusbar ---- */
 @media (max-width: 560px) {
+  .topbar { max-width: 100vw; }
+  .tb-home .tb-wm { display: none; }
+  .hero .hero-lockup { flex-wrap: nowrap; gap: 8px; max-width: 100%; }
+  .hero .hero-icon { width: min(30vw, 110px); height: auto; }
+  .hero .hero-lockup .wm-logo { width: min(62vw, 260px); height: auto; max-width: calc(100vw - 150px); }
+  body .mcp-brand { gap: 6px; max-width: 100%; }
+  body .mcp-brand .mcp-brand-wordmark { width: min(50vw, 200px); }
+  body .mcp-brand .mcp-suffix { font-size: clamp(22px, 7vw, 28px); }
   .topbar { min-height: 0; padding: 8px 12px; gap: 8px 9px; justify-content: center; }
   .tb-icon { width: 30px; height: 30px; }
   .tb-wm { height: 18px; }
@@ -279,7 +306,7 @@ html[data-theme="light"] .tb-mcp-accent { text-shadow: none; }
 .code-block,
 .engine-doc pre,
 .doc-pager a { background: color-mix(in srgb, var(--modal) 80%, transparent) url('grain.png?v=2') repeat; background-size: 256px 256px; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); border: 1px solid var(--pane-border); border-left: 2px solid var(--tab-edge); border-right: 2px solid var(--tab-edge); border-radius: 8px; box-shadow: 0 14px 32px rgba(0,0,0,0.4); }
-.hero-info { padding: 15px 14px; font-family: Consolas, monospace; font-size: 13px; line-height: 1.9; flex: 0 0 auto; width: 336px; transition: transform 0.12s, box-shadow 0.15s, border-color 0.12s; }
+.hero-info { padding: 15px 14px; font-family: Consolas, monospace; font-size: 13px; line-height: 1.9; flex: 0 0 auto; width: 310px; transition: transform 0.12s, box-shadow 0.15s, border-color 0.12s; }
 .hero-info:hover { border-left-color: var(--accent); border-right-color: var(--accent); }
 .hero-info:hover { transform: translateY(-3px); box-shadow: 0 20px 40px rgba(0,0,0,0.5); border-top-color: var(--dragline); border-bottom-color: var(--dragline); }
 .codeblock,
@@ -296,6 +323,7 @@ html[data-theme="light"] .tb-mcp-accent { text-shadow: none; }
 
 /* ============ About page ============ */
 .about-card { background: var(--modal) url('grain.png?v=2') repeat; background-size: 256px 256px; border: 1px solid var(--pane-border); border-radius: 10px; padding: 22px 24px; margin-bottom: 18px; }
+.about-card, .hero-info, .feature-card { border-top: 2px solid var(--sel, var(--accent)); }
 .about-card h2 { font-size: 19px; font-weight: 700; margin-bottom: 12px; color: var(--text); }
 .about-card p { color: var(--muted); font-size: 14.5px; line-height: 1.7; margin-bottom: 11px; }
 .about-card p:last-child { margin-bottom: 0; }
@@ -322,6 +350,9 @@ html[data-theme="light"] .tb-mcp-accent { text-shadow: none; }
 .codeblock,
 .code-block { padding: 13px 16px; margin: 10px 0 14px; font-family: Consolas, monospace; font-size: 12.5px; line-height: 1.7; color: var(--text); white-space: pre-wrap; overflow-x: auto; }
 .codeblock .cm { color: var(--muted); }
+html:not([data-theme="light"]) .codeblock,
+html:not([data-theme="light"]) .code-block,
+html:not([data-theme="light"]) .engine-doc pre { background-color: color-mix(in srgb, var(--modal) 65%, #000); border-color: color-mix(in srgb, var(--text) 28%, var(--modal)); border-left-color: var(--accent); }
 .tok-keyword{color:#d98bd8}.tok-type{color:#55c6d9}.tok-method{color:#e5cf78}.tok-string{color:#b8d98b}.tok-comment{color:#7d9884;font-style:italic}.tok-number{color:#dfad72}.tok-xml{color:#69b7e8}.tok-attr{color:#d8bd75}.tok-punct{color:#aab4ad}
 .codeblock .syn-command,.code-block .syn-command{color:#63c7e6}
 .codeblock .syn-option,.code-block .syn-option{color:#e66bc4}
@@ -337,6 +368,7 @@ html[data-theme="light"] .tb-mcp-accent { text-shadow: none; }
 [data-theme="light"] .codeblock .syn-variable,[data-theme="light"] .code-block .syn-variable{color:#00766c}
 [data-theme="light"] .codeblock .syn-operator,[data-theme="light"] .code-block .syn-operator{color:#6842a0}
 [data-theme="light"] .codeblock .syn-comment,[data-theme="light"] .code-block .syn-comment{color:#647069}
+html[data-theme="hc"]{--panel:#000000;--modal:#050505}
 [data-theme="hc"] .codeblock .syn-command,[data-theme="hc"] .code-block .syn-command{color:#38d7ff}
 [data-theme="hc"] .codeblock .syn-option,[data-theme="hc"] .code-block .syn-option{color:#ff72d8}
 [data-theme="hc"] .codeblock .syn-string,[data-theme="hc"] .code-block .syn-string{color:#ffd15c}
@@ -390,3 +422,134 @@ html[data-theme="light"] .content p a:hover, html[data-theme="light"] .content l
 html[data-theme="light"] { --typewriter-depth: 0 1px 1px rgba(255,255,255,0.72), 0 1px 2px rgba(0,0,0,0.28); }
 :where(h1, h2, h3, h4, .page-title, .tb-nav a, .page-hero .eyebrow, .results-hero .eyebrow, .engine-kicker, .engine-lockup, .engine-title, .engine-doc-brand, .boundary strong) { text-shadow: var(--typewriter-depth) !important; }
 :where(.workflow li::before) { text-shadow: var(--typewriter-depth) !important; }
+
+
+/* Keep shared landing and MCP chrome within phone viewports. */
+@media (max-width: 560px) {
+  .topbar { flex-wrap: wrap !important; }
+
+  .topbar,
+  .shell,
+  .content,
+  .content-scroll,
+  .content-inner,
+  .hero,
+  .hero .hero-lockup,
+  .page-hero,
+  .mcp-brand {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .content-inner { width: 100%; }
+  .hero-info { width: min(310px, 100%); }
+  .hero-info .row,
+  .hero-info .v,
+  .hero-info .hash,
+  .engine-intro,
+  .engine-intro-grid,
+  .engine-copy,
+  .engine-lockup {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .hero-info .v,
+  .hero-info .hash {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .engine-lockup { flex-wrap: wrap; }
+  .mcp-page-grid,
+  .mcp-side-column,
+  .mcp-main-column,
+  .mcp-page-grid .about-card,
+  .install-state { min-width: 0; max-width: 100%; }
+
+  .package-commands {
+    grid-template-columns: 48px minmax(0, 1fr);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .topbar .tb-nav {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .hero .hero-lockup {
+    flex-direction: column;
+  }
+
+  .hero .hero-icon {
+    width: auto !important;
+    height: min(30vw, 116px) !important;
+    max-width: 100% !important;
+  }
+
+  .hero .hero-lockup .wm-logo {
+    width: min(82vw, 320px) !important;
+    height: auto !important;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  body .mcp-brand {
+    gap: 6px !important;
+  }
+
+  body .mcp-brand .mcp-icon-pair {
+    flex-basis: 56px !important;
+    width: 56px !important;
+    height: 52px !important;
+  }
+
+  body .mcp-brand .mcp-family-icon {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  body .mcp-brand .mcp-app-icon {
+    right: 4px !important;
+    bottom: 4px !important;
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  body .mcp-brand .mcp-brand-wordmark {
+    width: min(48vw, 180px) !important;
+    max-width: calc(100vw - 150px) !important;
+  }
+
+  body .mcp-brand .mcp-suffix {
+    flex: 0 0 auto;
+    font-size: clamp(19px, 6vw, 25px) !important;
+  }
+}
+/* Use the compact theme picker at every width. */
+.theme-toggle { display: inline-flex; flex: 0 0 26px; width: 26px; height: 26px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; background: none; }
+.theme-toggle:hover, .theme-toggle[aria-expanded="true"] { border-color: var(--accent); box-shadow: none; }
+.topbar .tgrp { display: none; position: absolute; top: calc(100% + 7px); right: 12px; z-index: 120; width: 170px; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--modal) url('grain.png?v=2') repeat; background-size: 256px 256px; box-shadow: 0 10px 28px rgba(0,0,0,0.48); }
+.topbar .tgrp.open { display: flex; }
+
+/* Tighten the header before switching to the intentional stacked layout. */
+@media (max-width: 900px) {
+  .topbar { gap: 7px; padding-left: 10px; padding-right: 10px; }
+  .tb-nav { gap: 0; }
+  .tb-nav a { padding-left: 8px; padding-right: 8px; }
+}
+@media (max-width: 1000px) {
+  .topbar { min-height: 0; padding: 8px 12px; gap: 8px 9px; justify-content: center; flex-wrap: wrap !important; }
+  .tb-spacer { display: none; }
+  .topbar .tb-nav { order: 1; flex-basis: 100%; justify-content: center; gap: 2px; padding-top: 7px; border-top: 1px solid var(--border); }
+  .topbar .theme-toggle { order: 2; }
+  .topbar .accent-switch { order: 3; }
+  .topbar .lang-switch { order: 4; }
+}
+
+/* Keep the app badge visually level with the lowest KillerMCP drip. */
+@media (max-width: 600px) {
+  body .mcp-brand .mcp-icon-pair { flex-basis: 72px !important; width: 72px !important; height: 64px !important; }
+  body .mcp-brand .mcp-family-icon { width: 58px !important; height: 58px !important; }
+  body .mcp-brand .mcp-app-icon { right: 10px !important; bottom: 6px !important; width: 32px !important; height: 32px !important; }
+}
