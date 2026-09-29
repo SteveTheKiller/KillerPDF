@@ -233,9 +233,13 @@ had 173.570 and 173.784 milliseconds; two four-worker runs had 160.771 and
 160.204 milliseconds. Median allocation rose from about 17.65 MB with one
 worker to 17.72 MB with two and 17.81 MB with four. All 240 renders had the
 same pixel hash. The application's current output-size policy selects one
-worker for this page. This focused result warrants checking other page types
-and concurrent viewer memory before changing that policy. Probe output is
-under `C:/Users/steve/kp-bench-render/balloon-workers-20260929`.
+worker for this page. A second 20-pass probe on the technical Altona page at
+the same output size found last-ten medians of 158.412 and 149.392 milliseconds
+with one worker, versus 158.770 and 159.760 milliseconds with four. All 80
+Altona renders had the same pixel hash. A general reduction in the worker
+threshold is therefore unsupported; concurrent viewer memory and a wider page
+set would still need checking before a narrower policy change. Probe output
+is under `C:/Users/steve/kp-bench-render/balloon-workers-20260929`.
 
 Earlier checkpoints below document individual fixes and historical measurements.
 They do not supersede the current paired results above.
