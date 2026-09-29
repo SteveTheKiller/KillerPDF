@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A headless technical Altona first render took 742 to 758 ms for 1.9 versus 170 ms for 1.8, although warmed 1.9 renders were faster on that page. Neither check measures visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 29: 4,150 engine tests, 482 app tests, and the Release build pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 29: 4,152 engine tests and 482 app tests pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -110,6 +110,18 @@ hit rate. Of the misses, 1,346,118 replaced an occupied slot. The pixel hash
 matched the production engine. The counters were removed and the engine was
 rebuilt. The probe is under
 `C:/Users/steve/kp-bench-render/altona-cache-metrics-20260929`.
+
+A headless output-profile preselection check removed a discarded first pass
+on the largest Altona page. Four alternating fresh-process probes measured
+normal renders at 1,309 to 1,339 milliseconds and preselected renders at
+894 to 1,020 milliseconds, all with the same pixel hash. In two alternating
+600-file shared pairs, the current build took 27.394 and 26.952 seconds of
+application time versus 28.231 and 27.031 seconds for the prior build.
+All 600 current PNG hashes matched the prior build, and sampled peaks were
+492.6 to 494.0 MiB versus 491.8 to 492.6 MiB. Most of the small whole-pass
+gain came from that Altona page. These paired runs do not establish parity
+with 1.8 or visible interaction speed. Raw logs are under
+`C:/Users/steve/kp-bench-render/altona-preselect-20260929`.
 
 Prestarting four thread-pool workers before a fresh render also did not help.
 Four alternating baseline/warmed pairs gave baseline first-render times of

@@ -9,6 +9,52 @@ public sealed partial class PdfPageRenderer
         internal PdfColorTransform Profile { get; } = profile;
     }
 
+    private bool HasPotentialOutputOverprint(PdfDictionary pageResources)
+    {
+        HashSet<PdfDictionary>? visited = null;
+        try
+        {
+            if (!_document.Trailer.TryGetValue(Name("Root"), out PdfObject? root)
+                || Resolve(root) is not PdfDictionary catalog
+                || !catalog.ContainsKey(Name("OutputIntents"))) return false;
+            visited = new HashSet<PdfDictionary>(ReferenceEqualityComparer.Instance);
+            return Scan(pageResources, 0);
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            // A failed hint leaves the existing render-and-retry path in charge.
+            return false;
+        }
+
+        bool Scan(PdfDictionary resources, int depth)
+        {
+            if (depth > 32 || !visited!.Add(resources)) return false;
+            if (resources.TryGetValue(Name("ExtGState"), out PdfObject? statesValue)
+                && Resolve(statesValue) is PdfDictionary states)
+                foreach (PdfObject value in states.Values)
+                {
+                    if (Resolve(value) is not PdfDictionary state) continue;
+                    if (state.TryGetValue(Name("OP"), out PdfObject? stroke)
+                        && Resolve(stroke) is PdfBoolean { Value: true }
+                        || state.TryGetValue(Name("op"), out PdfObject? fill)
+                        && Resolve(fill) is PdfBoolean { Value: true })
+                        return true;
+                }
+            if (!resources.TryGetValue(Name("XObject"), out PdfObject? objectsValue)
+                || Resolve(objectsValue) is not PdfDictionary objects) return false;
+            foreach (PdfObject value in objects.Values)
+            {
+                if (Resolve(value) is not PdfStream stream
+                    || !stream.Dictionary.TryGetValue(Name("Subtype"), out PdfObject? subtype)
+                    || Resolve(subtype) is not PdfName name || name.ValueAsLatin1() != "Form"
+                    || !stream.Dictionary.TryGetValue(Name("Resources"), out PdfObject? child)
+                    || Resolve(child) is not PdfDictionary childResources) continue;
+                if (Scan(childResources, depth + 1)) return true;
+            }
+            return false;
+        }
+    }
+
     private GraphicsState RebindNamedColors(GraphicsState state, RasterSurface destination)
     {
         if (state.FillColorSpace is { } fill && (fill.HasProcessColorants || fill.HasIccSource))

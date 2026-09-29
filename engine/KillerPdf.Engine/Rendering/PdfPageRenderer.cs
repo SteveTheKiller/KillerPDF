@@ -178,7 +178,7 @@ public sealed partial class PdfPageRenderer
     private PdfRenderedPage RenderUncached(int pageIndex, PdfRenderOptions options,
         CancellationToken cancellationToken, byte[]? destination = null,
         (int Left, int Top, int Right, int Bottom)? region = null,
-        PdfColorTransform? outputProfile = null)
+        PdfColorTransform? outputProfile = null, bool skipOutputPreselection = false)
     {
         byte background = options.TransparentBackground ? (byte)0 : (byte)255;
         var (Left, Top, Right, Bottom) = region ?? (Left: 0, Top: 0, Right: options.Width, Bottom: options.Height);
@@ -221,9 +221,17 @@ public sealed partial class PdfPageRenderer
         int recoveredFormExpansions = 0;
         IReadOnlySet<int> hiddenOptionalContentGroups = _hiddenOptionalContentGroups;
         PdfDictionary pageResources = _pageResources[pageIndex];
+        bool pageHasGroup = _tree.Pages[pageIndex].Dictionary.TryGetValue(Name("Group"), out _);
+        bool speculativeOutputProfile = false;
+        if (outputProfile is null && !skipOutputPreselection && !pageHasGroup
+            && HasPotentialOutputOverprint(pageResources))
+        {
+            outputProfile = OutputProfile(null);
+            speculativeOutputProfile = outputProfile is not null;
+        }
         PdfColorTransform? pageProfile = ReadGroupProfile(_tree.Pages[pageIndex].Dictionary, pageResources, diagnostics);
-        bool probeOutputIntent = outputProfile is null
-            && !_tree.Pages[pageIndex].Dictionary.TryGetValue(Name("Group"), out _);
+        bool probeOutputIntent = (outputProfile is null || speculativeOutputProfile) && !pageHasGroup;
+        bool outputIntentRequired = false;
         if (outputProfile is not null)
             pixels.EnableInk(Color.White, profile: outputProfile);
         else if (CmykGroup(_tree.Pages[pageIndex].Dictionary, pageResources, false))
@@ -232,6 +240,7 @@ public sealed partial class PdfPageRenderer
         RasterSurface pageSurface = pixels;
         int previousParallelism = _rowParallelism;
         bool retryForOutputProfile = false;
+        bool retryWithoutOutputProfile = false;
         _rowParallelism = Math.Max(1, options.MaximumParallelism);
         try
         {
@@ -249,8 +258,13 @@ public sealed partial class PdfPageRenderer
             Process(ReadInstructions(pageIndex, cancellationToken, diagnostics),
                 pageResources, initialState, 0);
             RenderAppearances();
-            pixels.ConvertToBgra(cancellationToken);
-            return new PdfRenderedPage(rasterWidth, rasterHeight, pixels.Data, diagnostics);
+            if (speculativeOutputProfile && !outputIntentRequired)
+                retryWithoutOutputProfile = true;
+            else
+            {
+                pixels.ConvertToBgra(cancellationToken);
+                return new PdfRenderedPage(rasterWidth, rasterHeight, pixels.Data, diagnostics);
+            }
         }
         catch (OutputOverprintRequiredException required)
         {
@@ -263,17 +277,23 @@ public sealed partial class PdfPageRenderer
             pageSurface.ReleaseInk();
             // Reuse a large image during a page or output-profile retry, then restore the
             // original long-lived image budget when that page finishes.
-            if (!retryForOutputProfile)
+            if (!retryForOutputProfile && !retryWithoutOutputProfile)
                 _imageCache.RemoveAboveWeight(MaximumDecodedImageCacheBytes);
         }
         // Release the first pass's surfaces before replaying into the same output buffer.
-        // A supplied profile disables probing, so a page can restart only once.
-        return RenderUncached(pageIndex, options, cancellationToken, pageSurface.Data, region, outputProfile);
+        // Skip preselection on replay so a page can restart only once.
+        return RenderUncached(pageIndex, options, cancellationToken, pageSurface.Data, region,
+            retryWithoutOutputProfile ? null : outputProfile, skipOutputPreselection: true);
 
         void RequireOutputIntent(GraphicsState state)
         {
             if (!probeOutputIntent || !(state.FillOverprint || state.StrokeOverprint)) return;
             probeOutputIntent = false;
+            if (speculativeOutputProfile)
+            {
+                outputIntentRequired = true;
+                return;
+            }
             if (OutputProfile(null) is { } profile)
                 throw new OutputOverprintRequiredException(profile);
         }

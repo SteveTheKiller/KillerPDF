@@ -12,16 +12,19 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfIccProfileTransformTests
 {
     [Theory]
-    [InlineData(false, false, true)]
-    [InlineData(true, false, true)]
-    [InlineData(false, true, true)]
-    [InlineData(true, true, true)]
-    [InlineData(false, false, false)]
-    public void OverprintUsesOutputIntentWithoutReplacingExplicitPageSpace(bool form, bool rgbPage, bool overprint)
+    [InlineData(false, false, true, true)]
+    [InlineData(true, false, true, true)]
+    [InlineData(false, true, true, true)]
+    [InlineData(true, true, true, true)]
+    [InlineData(false, false, false, true)]
+    [InlineData(false, false, true, false)]
+    [InlineData(true, false, true, false)]
+    public void OverprintUsesOutputIntentWithoutReplacingExplicitPageSpace(
+        bool form, bool rgbPage, bool overprint, bool useState)
     {
         PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
-        string foreground = "/OP gs 0 0 0 0 k 0 0 1 1 re f";
+        string foreground = (useState ? "/OP gs " : "") + "0 0 0 0 k 0 0 1 1 re f";
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
             Encoding.ASCII.GetBytes("1 0 0 0 k 0 0 1 1 re f " + (form ? "/F Do" : foreground))).Build());
         var root = (PdfIndirectReference)source.Trailer[Name("Root")];
@@ -55,7 +58,7 @@ public sealed class PdfIccProfileTransformTests
         foreach (bool transparent in new[] { false, true })
         {
             var options = new PdfRenderOptions(2, 1, transparentBackground: transparent) { CacheResult = false };
-            byte expected = overprint && !rgbPage ? (byte)0 : (byte)255;
+            byte expected = overprint && useState && !rgbPage ? (byte)0 : (byte)255;
             var rendered = renderer.Render(0, options);
             byte[] pixels = rendered.Pixels.ToArray();
             Assert.Equal(new byte[] { expected, expected, expected, 255 }, pixels[..4]);
