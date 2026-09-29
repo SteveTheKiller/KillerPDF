@@ -14,8 +14,8 @@ overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch close in the latest comparison; visible interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. The current difficult comparison peaks at 267.2 MiB versus 259.6 to 259.9 MiB. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. The current difficult comparison measures 10.719 to 10.814 versus 5.381 to 5.508 seconds of rendering and 16.178 to 16.187 versus 10.764 to 11.082 seconds wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch close in the latest comparison; visible interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. The latest four-run difficult comparison peaks at 266.3 MiB versus 252.2 MiB. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. The latest four-run difficult comparison has a 10.329 versus 5.233 second median render sum and 15.781 versus 10.581 second median wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A headless technical Altona first render took 742 to 758 ms for 1.9 versus 170 ms for 1.8, although warmed 1.9 renders were faster on that page. Continuous view now schedules the visible page before neighboring work, but neither check measures visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
@@ -183,6 +183,39 @@ The 1.9 application and engine SHA-256 values are
 and `BD797E08A6770BD27ECB2639D974CDB106E59D3256AE5A0B67CBA7F6F9115018`.
 Raw logs and outputs are under
 `C:/Users/steve/kp-bench-render/current-difficult-refresh-20260929`.
+
+The difficult comparison was repeated after the UTF-8 number parser and
+eight-bit soft-mask improvements with four alternating measured runs per
+version after warmup. Version 1.8.72 had a 5.233-second median render sum,
+10.581-second median wall time, and 252.2 MiB maximum sampled peak. Version
+1.9.0 had a 10.329-second median render sum, 15.781-second median wall time,
+and 266.3 MiB maximum sampled peak. Every run completed all 74 pages without
+failure. The four 1.9 runs reproduced all 74 PNG hashes, and those hashes also
+match the prior 1.9 baseline. Raw results are under
+`C:/Users/steve/kp-bench-render/latest-difficult-20260929`.
+
+The same current 1.9 payload was measured across file-worker counts on the
+difficult set. One, two, four, six, eight, and twelve workers took 15.326,
+10.392, 6.723, 5.982, 5.818, and 5.216 seconds of wall time, with sampled peaks
+of 260.8, 294.5, 394.6, 436.6, 545.2, and 631.3 MiB. Twelve workers saved only
+0.766 seconds over six while consuming about 194.7 MiB more. The default was
+not changed because this single sweep establishes the tradeoff but does not
+define the release memory boundary. The raw table is
+`C:/Users/steve/kp-bench-render/latest-difficult-20260929/worker-sweep.csv`.
+
+A shared CPU-budget trial reduced each file's row parallelism as file-worker
+count increased. It did not reduce oversubscription in practice. At twelve
+file workers, wall time increased from 5.216 to 5.510 seconds and sampled peak
+memory increased from 631.3 to 728.1 MiB. Four and six workers also slowed.
+The trial was removed. Raw results are under
+`C:/Users/steve/kp-bench-render/batch-shared-budget-trial`.
+
+A direct-CMYK cache trial reused exact `PdfDeviceCmyk` results for repeated
+four-byte samples in large photographic images. Across three alternating
+48-page runs of `064034.pdf`, baseline render sums ranged from 3.625 to 3.945
+seconds and the candidate ranged from 3.800 to 4.022 seconds. Candidate peak
+memory rose from about 145 MiB to 187 MiB. The trial was removed. Raw results
+are under `C:/Users/steve/kp-bench-render/cmyk-cache-trial`.
 
 Several runtime compilation trials were rejected. Method-level aggressive
 optimization improved the technical Altona page inconsistently but slowed the
