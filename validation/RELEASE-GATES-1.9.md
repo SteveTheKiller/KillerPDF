@@ -857,6 +857,18 @@ grew by about 8.5 MB. The cold improvement does not justify the repeated and
 whole-pass costs, so the normal payload remains selected. Evidence is under
 `C:/Users/steve/kp-bench-render/engine-only-r2r-20260929`.
 
+A September 30 hidden Continuous-view probe also compared ReadyToRun on the
+CMYK JPEG `064034.pdf`. Four alternating launches per mode attached page one
+at median 1,696 ms with the normal scratch payload and 1,509 ms with the
+full ReadyToRun payload. Median peak working set at attachment rose from
+about 311 to 343 MiB. In a separate four-launch-per-mode comparison,
+ReadyToRun for only the app or engine attached at medians of 1,645 and
+1,622 ms versus 1,661 ms for the normal payload; one app-only launch took
+2,059 ms. These are internal bitmap attachment marks, not displayed frames.
+The cold gain does not change the earlier whole-pass and memory disposition.
+Traces and payloads are under
+`C:/Users/steve/kp-bench-render/viewer-attach-20260930`.
+
 A JBIG2 arithmetic-state trial reduced repeated context-array access while
 preserving all three tested scan-page hashes. Four alternating fresh-process
 runs measured median three-page rendering at about 823 milliseconds before
