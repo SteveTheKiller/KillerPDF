@@ -53,6 +53,15 @@ do not establish visible first-page behavior and do not improve full-page
 latency. No preview or warmup change was retained. Raw probes are under
 `C:/Users/steve/kp-bench-render/cold-path-prewarm-20260930`.
 
+Sixteen fresh-process renders each of `42828` and `064034` compared one, two,
+four, and eight engine row workers in balanced order. All pixel hashes matched
+within each document. On `42828`, four workers had the lowest median at
+627.369 ms; one, two, and eight measured 678.252, 735.891, and 650.487 ms.
+On `064034`, eight workers measured 468.684 ms versus 474.553 ms for four,
+while median peak memory rose from 97.1 to 97.3 MiB. The scan regression and
+small JPEG gain do not support changing the worker policy. Raw results are
+under `C:/Users/steve/kp-bench-render/binary-worker-sweep-20260930`.
+
 ### Current difficult-set refresh (2026-09-29)
 
 The current 1.9 Release build and local 1.8.72 Release build rendered the same
