@@ -378,6 +378,14 @@ decoding and 28 through one-bit area sampling. These inclusive counts overlap
 and reinforce symbol decoding as the next cold-render target; they do not
 measure exclusive time or predict the size of a possible improvement.
 
+A scratch trial combined the arithmetic decoder's four state arrays into one
+table. The decoded scan image and 2048-pixel page hashes stayed unchanged, but
+four alternating fresh-process runs per build raised median first-image decode
+from 353 to 1,346 ms and the following page render from 643 to 2,098 ms. Process
+working set stayed near 135 to 137 MiB. The table was rejected; scratch
+source and raw runs are under
+`C:/Users/steve/kp-bench-render/jbig2-state-table-20260930`.
+
 A PDFium-inspired scratch trial updated the arithmetic decoder's packed
 context byte directly inside the template-0 symbol loop. All 15 focused
 JBIG2 tests and the scan pixel hash passed. Four alternating fresh-process
