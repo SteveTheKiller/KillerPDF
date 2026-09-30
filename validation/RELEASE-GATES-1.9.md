@@ -155,6 +155,17 @@ versus 542.76 and 540.19 ms for trial. The last-20 medians were 158.41 and
 gain, so the source change was removed. Probe source and raw runs are under
 `C:/Users/steve/kp-bench-render/j2k-empty-block-20260930`.
 
+A fresh sampled-thread trace of the current headless difficult batch completed
+all 74 pages. Every PNG hash matched the retained 1.9 batch. Among 4,867
+managed CPU samples, 3,466 include `RenderUncached`, 1,574 include
+`TryRenderImage`, 544 include `ImageSampleConverter.ConvertArea`, and 343
+include `PaintCoverage`. These inclusive counts overlap and do not measure
+wall time; the trace also includes startup, encoding, and runtime work.
+Image decoding and painting now lead the sampled renderer work, so the older
+coverage-painting profile is no longer a sound basis for the next change.
+The trace, output log, and sample-count script are in
+`C:/Users/steve/kp-bench-render` with the `current-cpu-20260930` prefix.
+
 ### Current difficult-set refresh (2026-09-29)
 
 The current 1.9 Release build and local 1.8.72 Release build rendered the same
