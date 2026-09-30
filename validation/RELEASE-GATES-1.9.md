@@ -166,6 +166,16 @@ coverage-painting profile is no longer a sound basis for the next change.
 The trace, output log, and sample-count script are in
 `C:/Users/steve/kp-bench-render` with the `current-cpu-20260930` prefix.
 
+A one-byte fast path for counting interior bits in reduced binary images
+preserved scan pixels and improved repeated direct-engine renders by a few
+milliseconds. Eight alternating hidden application runs then rendered all 74
+difficult pages with identical PNG hashes. Their baseline render sums were
+9.989, 9.616, 9.807, and 9.011 seconds; trial sums were 9.337, 9.581, 9.493,
+and 9.570 seconds. The targeted `42828` first page took 813 to 846 ms on
+baseline and 842 to 911 ms on trial. The application result does not support
+the shortcut, so no source change was retained. Scratch builds and raw runs
+are under `C:/Users/steve/kp-bench-render/binary-count-trial-20260930`.
+
 ### Current difficult-set refresh (2026-09-29)
 
 The current 1.9 Release build and local 1.8.72 Release build rendered the same
