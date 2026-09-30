@@ -483,6 +483,51 @@
       "maintenanceCommit": "a4675620bc2fce88aedf39ec0b5144f005103ac3",
       "developmentCommit": "66f72f1418a960bded8c3097fd820c9d042329a3",
       "reason": "The 1.9 policy records the matching installer smoke staging repair and its verified development commit."
+    },
+    {
+      "maintenanceCommit": "e9a92e947bbd9fc73e3869761086912452a8b287",
+      "developmentCommit": "427624ee866a32aaac918c3c6da93a14786f2881",
+      "reason": "The launcher folder-swap repair has the same functional patch; project version metadata remains 1.9.0."
+    },
+    {
+      "maintenanceCommit": "a9a3abd8d26948fdb82ecf42b2d4acde07cf7322",
+      "developmentCommit": "1e8efc4289c552cc0685fa115b22d92a6feac97c",
+      "reason": "The 1.9 print preview derives orientation from the active page, with broader invalid-dimension and mixed-page tests."
+    },
+    {
+      "maintenanceCommit": "bd93a1e7f5bf7bd336eb8ac02e801c1141284d9b",
+      "developmentCommit": "f6ddf1c028764dd4b5f8d79a0d74930219cec5ed",
+      "reason": "The Hebrew text save patch and regression test match maintenance."
+    },
+    {
+      "maintenanceCommit": "d875555cd2f15ab7530ca0f3559a400fedbaac2d",
+      "developmentCommit": "23b96badb031116dc1ffc8340bff8b898aee8f4d",
+      "reason": "The pasted-stroke and pen-dot behavior matches maintenance; 1.9 verifies the dot with an engine render."
+    },
+    {
+      "maintenanceCommit": "a17fb61180708bb294b875a6ab6503ff041280ce",
+      "developmentCommit": "e271eaa5d46d980bbd855e5a7f266a948017e470",
+      "reason": "Installer maintenance options have identical launcher, wizard, and string patches; version metadata remains 1.9.0."
+    },
+    {
+      "maintenanceCommit": "8b7708dabae6cf48c96d2edfa8a58dee09936bfa",
+      "developmentCommit": "517e2bd628217caf04ec79f451b6a0a9cac848de",
+      "reason": "The 98SE tab emphasis implementation and layout test match maintenance."
+    },
+    {
+      "maintenanceCommit": "8a038fa8cd5db4e3fddfac2cedba92daf3586aca",
+      "developmentCommit": "edba8f0fe1eb80ef66a87d3ac82b15c1b74468ff",
+      "reason": "The tab drag implementation and layout test patches match maintenance across all ten functional files."
+    },
+    {
+      "maintenanceCommit": "d7bb36ad62a3493896c51fb02210664e3ecb9b0c",
+      "developmentCommit": "a2c1df92f8bfebbedb1350cf688a377e2abb580a",
+      "reason": "MCP theme and locale scripts and styles match maintenance; the page markup adds the same controls around 1.9-specific content."
+    },
+    {
+      "maintenanceCommit": "d158706b82d8510067adfc8212d1b1b8d1651326",
+      "developmentCommit": "c4244d2bd6aac98d9bfdd2711168f4e8b5094109",
+      "reason": "The 1.9 engine already tolerates undersized trailers in compatibility mode; the desktop working-document path now uses it and opens the reporter PDF, with a focused regression test."
     }
   ]
 }
