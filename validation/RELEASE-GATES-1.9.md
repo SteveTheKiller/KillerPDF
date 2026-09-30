@@ -808,6 +808,13 @@ attribution, not independent wall-clock timings. The decoder and reduction
 paths remain the main candidates for a verified speed fix. Raw logs and trace
 are under `C:/Users/steve/kp-bench-render/balloon-app-20260929`.
 
+An `AggressiveOptimization` hint on `StdEntropyDecoder.GetCodeBlock` did not
+improve the same-version balloon batch. Across three reversed-order pairs of
+20 copies at 1024 pixels, retained/trial render medians were 4,462/4,461
+milliseconds, wall medians were 6,121/6,134 milliseconds, and maximum peak
+working sets were 120.4/120.2 MiB. All 60 paired PNGs matched. The hint was
+removed; evidence is under `C:/Users/steve/kp-bench-render/j2k-entry-opt-20260929`.
+
 At the application's 751 by 1023 output size, a separate 40-pass engine probe
 rendered the same page with one, two, and four workers. Two one-worker runs
 had last-20 medians of 184.331 and 180.996 milliseconds; two two-worker runs
