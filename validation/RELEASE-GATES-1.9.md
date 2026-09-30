@@ -85,6 +85,18 @@ for 1.8 and
 for 1.9. Raw output and the probe are under
 `C:/Users/steve/kp-bench-render/viewer-primary-20260930`.
 
+Two isolated JBIG2 decoder trials were measured against the current loose
+1.9 payload on the same first page. Reading and updating each arithmetic
+probability state through one array reference passed 15 focused tests and
+preserved the page hash, but its four-run median rose from 814.383 to
+867.362 ms. Replacing the compressed-input byte-at-a-time copy with one
+bulk copy also passed 15 focused tests and preserved the hash. In two
+reversed-order four-run pairs, its medians were 814.357 versus 822.105 ms
+for baseline and 820.717 versus 813.803 ms for baseline. The mixed result
+does not establish a speed gain. Neither trial was retained. Scratch builds
+and raw runs are under `C:/Users/steve/kp-bench-render/jbig2-state-trial-20260930`
+and `C:/Users/steve/kp-bench-render/jbig2-input-copy-20260930`.
+
 An eight-process repeat limited each process to one primary raster call. The
 four 1.8 calls took 287.973 to 307.303 ms and peaked at 69.9 to 70.1 MiB;
 the four 1.9 calls took 995.664 to 1019.805 ms and peaked at 190.0 to
