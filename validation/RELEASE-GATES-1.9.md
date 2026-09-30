@@ -46,6 +46,31 @@ Raw logs, PNGs, runner, and analysis are under
 `C:/Users/steve/kp-bench-render/difficult-refresh-after-ports-20260929`.
 This headless comparison does not measure WPF presentation or interaction.
 
+### Current cold and repeated page costs (2026-09-29)
+
+Two fresh-process runs per version used eight byte-identical copies of each
+page at 2048 pixels, one file worker, and the order 1.8/1.9/1.9/1.8. All
+renders succeeded, output dimensions matched across versions, and PNG hashes
+were stable within each version. On the JBIG2 scan, first renders took 243
+to 245 ms in 1.8 and 713 to 786 ms in 1.9. The median of the last six copies
+was 229 to 230 ms in 1.8 and 208.5 to 221 ms in 1.9. On the JPEG 2000
+balloon, first renders took 435 to 436 ms in 1.8 and 728 to 765 ms in 1.9;
+last-six medians were 435.5 to 441 ms and 369.5 to 378.5 ms. The balloon's
+sampled peaks were 321.5 to 322.2 MiB in 1.8 and 223.6 to 225.9 MiB in
+1.9. These two pages have a large first-render cost in 1.9 at this size,
+but their repeated render cost is lower than 1.8 in these focused runs.
+
+The CMYK JPEG page `064034.pdf` remains slower after warmup: first renders
+took 124 to 126 ms in 1.8 and 496 to 505 ms in 1.9; last-six medians were
+116 to 118 ms and 179.5 to 186 ms. Its sampled peaks were 143.4 to
+145.4 MiB and 184.6 to 184.8 MiB. This is the clearest persistent page
+gap in the three focused checks. Raw measurements and PNGs are under
+`C:/Users/steve/kp-bench-render/jbig2-cold-current-20260929`,
+`C:/Users/steve/kp-bench-render/balloon-cold-current-20260929`, and
+`C:/Users/steve/kp-bench-render/cmyk-cold-current-20260929`. These isolated
+pages do not explain the entire 74-page difficult-set gap or measure visible
+interaction.
+
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
 The measured engine payload includes rendering changes through `249072b`,
