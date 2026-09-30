@@ -69,7 +69,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Reduced rendering memory use through direct page storage, released sessions, a single reusable encoding buffer, direct PNG output, and runtime memory conservation.
 - Reused large decoded images within a page render and released them afterward, reducing shared-batch peak memory.
 - Avoided a redundant rendering pass for pages whose overprint needs the document output profile.
-- Faster soft masks, compositing, scanned pages, and function shadings without changing pixels. Large fills, image paints, function shadings, and soft-mask reductions split across a few threads.
+- Faster soft masks, compositing, scanned pages, and shadings without changing pixels. Large fills, image paints, function and axial shadings, and soft-mask reductions split across a few threads.
 - Reuse decoded page data during zooming and background page rendering, with invalidation after document changes and cache flushes.
 - Prioritize the visible page and its nearest neighbors when Continuous view fills its background render window.
 - Match legacy bitmap dimensions for fractional page boxes without changing engine numeric precision.

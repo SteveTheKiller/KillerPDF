@@ -15,11 +15,11 @@ overall average.
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch above 1.8; visible interactive use unverified | The current 74-page difficult comparison has a median peak of 289.4 MiB for 1.9 versus 260.0 MiB for 1.8, with measured ranges of 285.3 to 296.6 and 231.9 to 260.3 MiB. September 9 installed-layout medians were 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | The current 74-page difficult comparison has median render sums of 9.038 versus 4.933 seconds and wall times of 14.315 versus 10.274 seconds for 1.9 and 1.8. Earlier installed-layout shared medians were 15.687 versus 12.240 seconds of rendering and 27.350 versus 23.023 seconds wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
+| Rendering and whole-pass speed without regression | Open | The current 74-page difficult comparison has median render sums of 9.038 versus 4.933 seconds and wall times of 14.315 versus 10.274 seconds for 1.9 and 1.8. A later axial-shading change improves `363_Risk` but leaves the whole difficult-set total effectively tied with the preceding 1.9 build. Earlier installed-layout shared medians were 15.687 versus 12.240 seconds of rendering and 27.350 versus 23.023 seconds wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. The latest headless technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8, although warmed 1.9 renders were faster on that page. Continuous view now schedules the visible page before neighboring work, but neither check measures visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. The desktop working-document path now opens the retained #406 reporter PDF. Eleven newer maintenance commits have verified port records in this pass, and the local-branch guard lists nine still needing review, including MCP landing content and release metadata. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Its default remote refs are behind both local branches. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 29: 4,161 engine tests and 485 app tests pass, and the Release application build succeeds. The application and transitive package vulnerability check reports no vulnerable packages from current sources. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 29: 4,163 engine tests and 485 app tests pass, and the Release application build succeeds. The application and transitive package vulnerability check reports no vulnerable packages from current sources. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 ### Current difficult-set refresh (2026-09-29)
 
@@ -155,6 +155,29 @@ repeat measurement before making a corpus memory claim. This correctness fix
 does not close the speed or memory parity gates. Raw checks are under
 `C:/Users/steve/kp-bench-render/risk-repeat-20260929` and
 `C:/Users/steve/kp-bench-render/ink-alpha-fix-20260929`.
+
+A 64-render thread sample on `363_Risk` attributed 18.34 percent exclusive
+thread time to its axial shading routine, alongside JPEG decoding and CMYK
+conversion. Large axial paints now prepare one shared color table before
+splitting independent rows; profile-backed paints retain lazy serial color
+evaluation. Two alternating eight-copy pairs at 2048 pixels reduced the
+`363_Risk` last-six medians from 220.3 to 227.3 ms to 149.5 to 162.5 ms.
+All 32 focused outputs matched the prior hash, and sampled peaks stayed near
+338 to 339 MiB. A worker-local table trial also improved the page but had a
+607 MiB corpus peak in one run, so it was replaced by the shared table.
+
+Three alternating difficult-set pairs with the final shared-table path gave
+median engine render sums of 9.419 seconds before and 9.497 seconds after,
+and median wall times of 10.725 and 10.802 seconds. Sampled peaks varied from
+468.0 to 536.4 MiB before and 512.7 to 519.0 MiB after. All 444 page hashes
+and diagnostics matched. Separate alternating checks found CLLASS and Ghent
+effectively tied; their earlier apparent slowdowns were run variability.
+The Release application rendered all 74 pages and reproduced every prior PNG
+hash, with an 8.563-second render sum, 14.210-second wall time, and a 295.6 MiB
+sampled peak in one headless pass. The focused shading gain does not close the
+whole-pass speed, memory, visual, or interactive release gates. Raw profiles,
+trials, and comparisons are under
+`C:/Users/steve/kp-bench-render/axial-parallel-trial-20260929`.
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.

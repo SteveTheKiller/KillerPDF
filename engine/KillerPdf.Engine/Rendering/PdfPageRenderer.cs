@@ -3802,30 +3802,42 @@ public sealed partial class PdfPageRenderer
             double axisDeviceY = (deviceEnd.Y - deviceStart.Y) * scaleY;
             double axisPixels = Math.Sqrt(axisDeviceX * axisDeviceX + axisDeviceY * axisDeviceY);
             var colors = new ShadingColorTable(function, domain[0], domain[1], axisPixels, target.HasProfile);
-            for (int y = top; y < bottom; y++)
+            long shadedPixels = (long)(right - left) * (bottom - top);
+            // Profile-backed paints keep lazy color evaluation in the serial path.
+            bool parallelPaint = !target.HasProfile && _rowParallelism > 1
+                && shadedPixels >= ParallelPaintThreshold && bottom - top >= 2;
+            if (parallelPaint)
+                colors.Warm();
+            ForEachRow(top, bottom, shadedPixels, cancellationToken, PaintRows,
+                maximumParallelism: parallelPaint ? null : 1);
+            return true;
+
+            void PaintRows(int rowStart, int rowEnd)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                for (int x = left; x < right; x++)
+                for (int y = rowStart; y < rowEnd; y++)
                 {
-                    double pageX = (x + 0.5) / scaleX;
-                    double pageY = (targetHeight - y - 0.5) / scaleY;
-                    double clipAlpha = ClipAlpha(state.Clips, x, y);
-                    if (clipAlpha <= 0) continue;
-                    if (boundsPolygons is not null && !Contains(boundsPolygons, false, pageX, pageY)) continue;
-                    Point point = inverse.Apply(pageX, pageY);
-                    double unit = ((point.X - x0) * axisX + (point.Y - y0) * axisY)
-                        / axisLengthSquared;
-                    if (unit < 0 && !extendStart || unit > 1 && !extendEnd) continue;
-                    unit = Math.Clamp(unit, 0, 1);
-                    double input = domain[0] + unit * (domain[1] - domain[0]);
-                    Color color = OverprintColor(colors.At(input), colorSpace,
-                        state.FillOverprint, state.OverprintMode);
-                    SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
-                        state.BlendMode, state.GraphicsSoftMask, state.Knockout,
-                        shape: clipAlpha, alphaIsShape: state.AlphaIsShape);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    for (int x = left; x < right; x++)
+                    {
+                        double pageX = (x + 0.5) / scaleX;
+                        double pageY = (targetHeight - y - 0.5) / scaleY;
+                        double clipAlpha = ClipAlpha(state.Clips, x, y);
+                        if (clipAlpha <= 0) continue;
+                        if (boundsPolygons is not null && !Contains(boundsPolygons, false, pageX, pageY)) continue;
+                        Point point = inverse.Apply(pageX, pageY);
+                        double unit = ((point.X - x0) * axisX + (point.Y - y0) * axisY)
+                            / axisLengthSquared;
+                        if (unit < 0 && !extendStart || unit > 1 && !extendEnd) continue;
+                        unit = Math.Clamp(unit, 0, 1);
+                        double input = domain[0] + unit * (domain[1] - domain[0]);
+                        Color color = OverprintColor(colors.At(input), colorSpace,
+                            state.FillOverprint, state.OverprintMode);
+                        SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
+                            state.BlendMode, state.GraphicsSoftMask, state.Knockout,
+                            shape: clipAlpha, alphaIsShape: state.AlphaIsShape);
+                    }
                 }
             }
-            return true;
         }
         catch (NotSupportedException)
         {
@@ -7103,7 +7115,7 @@ public sealed partial class PdfPageRenderer
     // own input. Every jump, knot, or quantization step therefore lands exactly where
     // direct evaluation puts it; the only inputs that can differ are those under a
     // feature narrower than one step that returns to the same color on both sides.
-    // Samples fill on demand, and one shading paint uses the table from one thread.
+    // Samples fill on demand for serial paints and before workers start for parallel paints.
     private sealed class ShadingColorTable
     {
         private const int SamplesPerPixel = 8;
@@ -7146,6 +7158,11 @@ public sealed partial class PdfPageRenderer
                     && below.Ink == above.Ink && below.OverprintComponents == above.OverprintComponents
                     && ReferenceEquals(below.InkProfile, above.InkProfile);
             return same ? below : _function(input);
+        }
+
+        internal void Warm()
+        {
+            for (int index = 0; index < _colors.Length; index++) Sample(index);
         }
 
         private Color Sample(int index)
