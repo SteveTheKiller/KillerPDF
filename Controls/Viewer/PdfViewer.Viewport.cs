@@ -591,6 +591,8 @@ namespace KillerPDF.Controls
         // hits re-attach instantly).
         private const int ContinuousKeepPages    = 10;   // pages each side of the viewport that get bitmaps
         private const int ContinuousReleasePages = 15;   // release only beyond this (hysteresis, no edge churn)
+        private System.Threading.Tasks.Task? _continuousRenderTask;
+        private int _continuousRenderCenterPage = -1;
 
         internal async System.Threading.Tasks.Task RenderContinuousPages(int centerPage)
         {
@@ -616,14 +618,19 @@ namespace KillerPDF.Controls
                     && g.Children.Count > 0 && g.Children[0] is Image img && img.Source == null)
                     todo.Add(i);
             }
-            if (todo.Count == 0) return;
+            if (todo.Count == 0)
+            {
+                _continuousRenderTask = null;
+                _continuousRenderCenterPage = -1;
+                return;
+            }
 
             // Capture per-page rotations on the UI thread before going async
             var rotations = new Dictionary<int, int>(_pageRotations);
 
             var session = _active;
             var renderRequest = _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0);
-            await System.Threading.Tasks.Task.Run(() =>
+            var renderTask = System.Threading.Tasks.Task.Run(() =>
             {
                 PdfBackgroundRenderCache.Lease? renderSession = null;
                 ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
@@ -683,6 +690,9 @@ namespace KillerPDF.Controls
                 catch { /* render canceled or doc closed */ }
                 finally { renderSession?.Dispose(); contentDoc?.Dispose(); }
             }, cts.Token);
+            _continuousRenderTask = renderTask;
+            _continuousRenderCenterPage = centerPage;
+            await renderTask;
         }
 
         // Attaches a (cached or freshly built) page bitmap to its continuous slot and finalizes the slot /
@@ -794,7 +804,14 @@ namespace KillerPDF.Controls
                     missing = true;
                 }
             }
-            if (missing) _ = RenderContinuousPages((first + last) / 2);
+            if (missing)
+            {
+                int centerPage = (first + last) / 2;
+                if (_continuousRenderCts is { IsCancellationRequested: false }
+                    && _continuousRenderCenterPage == centerPage
+                    && _continuousRenderTask is { IsCompleted: false }) return;
+                _ = RenderContinuousPages(centerPage);
+            }
         }
 
         // ── Continuous zoom re-sharpen (#85) ─────────────────────────────────────────────────────────

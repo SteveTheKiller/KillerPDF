@@ -21,6 +21,16 @@ overall average.
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. The desktop working-document path now opens the retained #406 reporter PDF. Fifteen newer maintenance commits have verified port records in this pass, and the local-branch guard lists five still needing review. The 1.9 MCP page still describes merging as its main operation while the 1.8 page covers broader PDF tools; its tool content remains open. Three remaining commits concern 1.8 release metadata, and one adds a workflow that is not authorized for 1.9. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Its default remote refs are behind both local branches. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 30: 4,163 engine tests and 487 app tests pass, and the Release application build succeeds. A clean build reported 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
+The Continuous view scroll-settle timer no longer cancels an active base render
+for the same viewport center. A fresh-process headless simulation of the
+`42828.0001.001.pdf` first page compared six retained renders with six
+250-millisecond cancel-and-restart renders at 1447 by 2048 pixels. Median time
+to a completed page was 956.160 versus 1,103.766 milliseconds, and median
+peak working set was 147.0 versus 158.0 MB. All twelve pixel hashes matched.
+This isolates restart cost; it does not measure WPF presentation or establish
+1.8 first-page parity. The scratch probe is under
+`C:/Users/steve/kp-bench-render/viewer-primary-20260930`.
+
 Adjacent-page prefetch in Single and Two-Page modes omitted the display-only
 night-mode inversion that the direct and secondary render paths apply before
 rotation. The 1.9 prefetch path now uses the same inversion and picture
