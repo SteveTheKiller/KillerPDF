@@ -48,8 +48,15 @@ image decode call took 410.836 ms and its following paint took 43.429 ms;
 the marked first backend render took 521.207 ms. The overlap prevents
 attributing every image call to the first backend pass or summing them as a
 stage breakdown. It does identify JPEG decode as a priority for a controlled
-single-page probe. The trace and instrumented build are in the same scratch
-directory as the viewer attachment probe.
+single-page probe. Three fresh, isolated 1541 by 2048 page-zero renders
+then took 488 to 516 ms with one pixel hash and no diagnostics. The
+instrumented runs measured 223 to 255 ms decoding the main JPEG and 61 to
+67 ms painting it. Instruction parsing took 17 to 18 ms. A deeper decoder
+trace counted 179,352 JPEG blocks at full resolution, with 67 to 93 ms in
+entropy decoding and 74 to 93 ms in block reconstruction. These counters
+add per-block timing overhead and leave other page-processing work
+unattributed; they are diagnostic, not a baseline performance result. The
+traces, probe, and scratch build are in the viewer attachment directory.
 
 The Continuous view scroll-settle timer no longer cancels an active base render
 for the same viewport center. A fresh-process headless simulation of the
