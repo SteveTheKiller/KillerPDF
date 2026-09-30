@@ -111,6 +111,19 @@ and 649.0 ms for trial. All decoded-image and rendered-page hashes matched.
 The hint was removed because the page did not improve. Raw runs are under
 `C:/Users/steve/kp-bench-render/jbig2-arith-jit-20260930`.
 
+A same-payload `DOTNET_TieredCompilation=0` trial used alternating hidden
+application runs after warmup. On the 74-page difficult set, baseline and
+disabled-tiering medians were 10.545 and 8.720 seconds of rendering, 16.248
+and 14.643 seconds wall time, and 296.5 and 265.0 MiB sampled peak. This
+session's unchanged 1.9 baseline ran slower than the comparison above, so
+these values support only a same-session comparison. On the 600-file shared
+set, disabled tiering increased median rendering from 16.390 to 17.506
+seconds and wall time from 29.431 to 31.474 seconds, while sampled peak fell
+from 525.5 to 505.7 MiB. All 74 difficult and 600 shared output dimensions
+and PNG hashes matched across all six runs in each set. The shared-set
+regression rules out a process-wide setting change. Raw runs, scripts, and
+analyses are under `C:/Users/steve/kp-bench-render/tiered-off-20260930`.
+
 ### Current difficult-set refresh (2026-09-29)
 
 The current 1.9 Release build and local 1.8.72 Release build rendered the same
