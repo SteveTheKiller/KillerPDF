@@ -84,6 +84,17 @@ for 1.8 and
 for 1.9. Raw output and the probe are under
 `C:/Users/steve/kp-bench-render/viewer-primary-20260930`.
 
+An eight-process repeat limited each process to one primary raster call. The
+four 1.8 calls took 287.973 to 307.303 ms and peaked at 69.9 to 70.1 MiB;
+the four 1.9 calls took 995.664 to 1019.805 ms and peaked at 190.0 to
+190.3 MiB. This separates first-call memory from the 20-call cumulative
+peaks above. Four more fresh 1.9 processes timed session opening at 207.621
+to 220.142 ms and first rendering at 762.326 to 788.472 ms. The same page
+hash appeared in every run. First rendering is the larger part of this
+measured delay, while session setup also contributes. These process peaks
+include runtime and dependency loading, and neither probe measures the full
+viewer. The one-call and stage logs are in the same scratch directory.
+
 Sixteen fresh-process renders each of `42828` and `064034` compared one, two,
 four, and eight engine row workers in balanced order. All pixel hashes matched
 within each document. On `42828`, four workers had the lowest median at
