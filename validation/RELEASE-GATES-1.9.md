@@ -65,6 +65,16 @@ medians were 192.5/195, 187.5/199, and 194.5/189 ms. The experiment was
 removed. Its payload and logs are in
 `C:/Users/steve/kp-bench-render/cmyk-inline-trial`.
 
+Changing the large-page row-worker cap from four to two slowed both focused
+image pages in two alternating pairs: CMYK last-six medians rose from
+197.5/201.5 to 230/220.5 ms, and the JBIG2 scan rose from 235.5/227.5 to
+261.5/252.5 ms. The shading page was essentially unchanged, and all 48
+candidate PNGs matched the baseline. Raising the cap to six gave inconsistent
+CMYK results and slower or more variable scan and shading results in the same
+focused checks. Neither cap change was retained. Raw runs are under
+`C:/Users/steve/kp-bench-render/row-cap-two-trial` and
+`C:/Users/steve/kp-bench-render/row-cap-six-trial`.
+
 The benchmark runner now forces candidate parallelism to one when requested and
 compares the same per-file render timing field in both logs. On the 649-file
 conformance corpus at 1024 pixels, three alternating measured runs after warmup
