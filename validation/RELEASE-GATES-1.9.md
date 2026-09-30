@@ -345,6 +345,17 @@ and 113.5 MiB. All 240 output hashes matched. The change had no measured
 benefit and was removed. Raw results are under
 `C:/Users/steve/kp-bench-render/radial-invariant-trial/payload-comparison`.
 
+A numeric-only calculator stack trial removed type tags and repeated numeric
+checks from the exact operator subset used by `GWG061_Shading_x1a.pdf`. Seven
+alternating 40-copy runs improved the render median from 5,690 to 5,599
+milliseconds, with six pairs favoring the trial and all 560 measured PNGs
+matching. The matched-toolchain difficult-set check did not confirm a broad
+gain: only one of four pairs improved, while three were flat or slower. Median
+render totals were 10,962 and 10,904 milliseconds, sampled peak memory was
+266.4 MiB for both variants, and all 592 compared page hashes matched. The
+trial was removed. Raw results are under
+`C:/Users/steve/kp-bench-render/calculator-numeric-trial`.
+
 The generic image compositor now uses the existing bounded row workers when no
 knockout state or shared matte converter makes the paint state mutable across
 rows. On 40 repeated copies of `GWG1610_Softmasks_Text_part1_X4.pdf`, three
