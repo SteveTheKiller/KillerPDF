@@ -48,6 +48,23 @@ matched across two measured runs. Large page gaps include `42828.0001.001.pdf`,
 headless runner are in `C:/Users/steve/kp-bench-render/current-parity-20260929`.
 This check does not establish visual or interactive parity.
 
+Eight separate hard links to each of two difficult files isolate first-use
+cost from repeated document sessions in one process. For the JBIG2 scan
+`42828.0001.001.pdf`, 1.9 took 788 ms on the first copy and 232 to 275 ms
+on the next seven; 1.8 took 244 to 283 ms across all eight. For CMYK JPEG
+`064034.pdf`, 1.9 took 723 ms first and a 196 ms median on the last six,
+versus 131 ms first and a 126 ms last-six median for 1.8. Each build produced
+one stable PNG hash per file across its eight copies. This narrows the warm
+gap to the CMYK path while keeping first-use cost open for both files. Raw
+results are in `C:/Users/steve/kp-bench-render/session-cost-20260929`.
+
+An explicit unrolling of `PdfDeviceCmyk.ToRgb` passed 168 focused color tests
+and preserved all 24 compared CMYK page hashes, but three alternating
+eight-copy pairs did not show a repeatable speed gain. Baseline/trial last-six
+medians were 192.5/195, 187.5/199, and 194.5/189 ms. The experiment was
+removed. Its payload and logs are in
+`C:/Users/steve/kp-bench-render/cmyk-inline-trial`.
+
 The benchmark runner now forces candidate parallelism to one when requested and
 compares the same per-file render timing field in both logs. On the 649-file
 conformance corpus at 1024 pixels, three alternating measured runs after warmup
