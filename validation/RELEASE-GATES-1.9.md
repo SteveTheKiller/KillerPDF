@@ -342,6 +342,15 @@ final process peaks were about 160.0 and 164.2 MiB. Direct bulk reads also
 failed two focused decoder tests. The stream path was not retained. Source and
 raw measurements are under `C:/Users/steve/kp-bench-render/jbig2-direct-stream-20260930`.
 
+A source-size-aware row-worker trial parallelized one-bit reduction for large
+source images even when the output page was small. All 22 focused tests passed,
+and all five scan zoom sizes kept their baseline hashes. Four alternating
+fresh-process runs per build measured the first 512-pixel render at 641.22 ms
+for baseline and 675.30 ms for trial; final process peaks were 160.3 and
+160.4 MiB. Later zoom steps varied in both directions. The trial was not
+retained. Source and raw timings are under
+`C:/Users/steve/kp-bench-render/binary-source-parallel-20260930`.
+
 A one-byte fast path for counting interior bits in reduced binary images
 preserved scan pixels and improved repeated direct-engine renders by a few
 milliseconds. Eight alternating hidden application runs then rendered all 74
