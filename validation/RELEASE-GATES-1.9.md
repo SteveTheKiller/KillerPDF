@@ -19,7 +19,7 @@ overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A pre-JPEG installed-layout headless scan probe has a first-call median of 806.05 ms for 1.9 versus 248.664 ms for 1.8, including the 1.8 dimension lookup. The rebuilt current-payload five-step scan zoom sequence has a first 512-pixel median of 674.110 ms for 1.9 versus 169.543 ms for 1.8; its second 2048-pixel median is 40.599 versus 222.675 ms, with high variability in the 1.9 repeat steps. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. The earlier technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8. Continuous view now schedules the visible page before neighboring work, but these checks do not measure visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. The desktop working-document path now opens the retained #406 reporter PDF. Fifteen newer maintenance commits have verified port records in this pass, and the local-branch guard lists five still needing review. The 1.9 MCP page still describes merging as its main operation while the 1.8 page covers broader PDF tools; its tool content remains open. Three remaining commits concern 1.8 release metadata, and one adds a workflow that is not authorized for 1.9. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Its default remote refs are behind both local branches. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 30: 4,163 engine tests and 485 app tests pass, and the Release application build succeeds with 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 30: 4,163 engine tests and 487 app tests pass, and the Release application build succeeds. A clean build reported 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Adjacent-page prefetch in Single and Two-Page modes omitted the display-only
 night-mode inversion that the direct and secondary render paths apply before
@@ -32,6 +32,20 @@ with the unchanged engine. Visible night-mode navigation and the interaction
 speed effect remain unmeasured while the desktop UI is in use. Cancellation
 does not interrupt a JBIG2 stream already being decoded; it stops subsequent
 prefetch work after that decode returns.
+
+The desktop working document previously parsed a PDF for its page count, then
+the renderer opened and parsed the same file again. The viewer now offers that
+compatible parsed document to the existing weak render cache. It drops the
+working document's strong parsed reference after the first render session
+opens, and a changed file stamp still invalidates the cache. Four alternating
+fresh-process scan probes at 512 pixels measured median render-session opening
+at 22 ms with reuse versus 44 ms after a separate parse. Thread allocation
+during that opening was 4.85 versus 21.43 MiB. When each path ran first, its
+process peak was 131.3 to 131.5 versus 151.2 to 151.8 MiB. All page hashes
+matched. The full 4,163 engine and 487 app tests pass, as does the Release app
+build. This headless parse saving does not close the larger first-render or
+visible interaction gates. Probe code and raw output are under
+`C:/Users/steve/kp-bench-render/working-cache-20260930`.
 
 The forward-port guard against local 1.8.72 commit `d158706b` and current 1.9
 commit `db6fcb0` reports five unresolved 1.8.71 commits: `d444b96` (KillerMCP

@@ -66,7 +66,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Replaced PdfPig with engine-owned extraction for search, selection, region copy, text editing, and dark-mode image preservation. Removed PdfPig from the app, tests, and packaged builds.
 - Replaced PDFium and Docnet.Core with engine-owned rendering, improved damaged cross-reference and missing-catalog recovery and JPEG image rendering speed, and removed native file-repair and link-extraction fallbacks.
 - Built the JPEG 2000 decoder from vendored CoreJ2K sources instead of a package reference.
-- Reduced rendering memory use through direct page storage, released sessions, a single reusable encoding buffer, direct PNG output, and runtime memory conservation.
+- Reduced rendering memory use through shared working and render parsing, direct page storage, released sessions, a single reusable encoding buffer, direct PNG output, and runtime memory conservation.
 - Reused large decoded images within a page render and released them afterward, reducing shared-batch peak memory.
 - Avoided a redundant rendering pass for pages whose overprint needs the document output profile.
 - Faster soft masks, compositing, scanned pages, and shadings without changing pixels. Large fills, image paints, function and axial shadings, and soft-mask reductions split across a few threads.

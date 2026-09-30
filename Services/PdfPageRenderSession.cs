@@ -65,7 +65,15 @@ internal sealed class PdfPageRenderSession : IDisposable
     // Weak references let the GC reclaim documents no viewer holds. The key includes size
     // and mtime so any file rewrite invalidates automatically.
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string,
-        (long Ticks, long Size, WeakReference<EngineDocument> Ref)> _documentCache = new(StringComparer.OrdinalIgnoreCase);
+        (long Ticks, long Size, WeakReference<EngineDocument> Ref,
+            WeakReference<PdfWorkingDocument>? Working)> _documentCache = new(StringComparer.OrdinalIgnoreCase);
+
+    internal static void RegisterDocument(string normalizedPath, long ticks, long size,
+        PdfWorkingDocument working, EngineDocument document)
+    {
+        _documentCache[normalizedPath] = (ticks, size, new WeakReference<EngineDocument>(document),
+            new WeakReference<PdfWorkingDocument>(working));
+    }
 
     /// <summary>
     /// Opens a file for rendering. Files encrypted with only an owner password open with the
@@ -87,7 +95,11 @@ internal sealed class PdfPageRenderSession : IDisposable
                 && entry.Ticks == ticks && entry.Size == size
                 && entry.Ref.TryGetTarget(out EngineDocument? cached)
                 && cached is not null)
+            {
+                if (entry.Working is not null && entry.Working.TryGetTarget(out var working))
+                    working.ReleaseParsedDocument(cached);
                 return cached;
+            }
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -115,7 +127,7 @@ internal sealed class PdfPageRenderSession : IDisposable
             }
         }
         if (normalized is not null)
-            _documentCache[normalized] = (ticks, size, new WeakReference<EngineDocument>(document));
+            _documentCache[normalized] = (ticks, size, new WeakReference<EngineDocument>(document), null);
         return document;
     }
 
