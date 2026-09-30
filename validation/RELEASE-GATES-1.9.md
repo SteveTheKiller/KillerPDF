@@ -17,7 +17,7 @@ overall average.
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch close in the latest comparison; visible interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. The latest difficult comparison peaks at 265.3 MiB versus 254.0 MiB. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. The latest difficult comparison has a 10.032 versus 5.408 second median render sum and 15.567 versus 11.026 second median wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
-| Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A headless technical Altona first render took 742 to 758 ms for 1.9 versus 170 ms for 1.8, although warmed 1.9 renders were faster on that page. Continuous view now schedules the visible page before neighboring work, but neither check measures visible first-page completion, scrolling, or zoom. |
+| Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. The latest headless technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8, although warmed 1.9 renders were faster on that page. Continuous view now schedules the visible page before neighboring work, but neither check measures visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 29: 4,160 engine tests and 484 app tests pass. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
@@ -775,6 +775,21 @@ first page in two runs, while its last ten averaged 155.5 and 149.1
 milliseconds. This isolates a large cold-render gap on this page; the later
 renders do not show the same regression. It does not establish visible
 first-page timing or parity on other documents.
+
+The September 29 payload after the reduced JPEG 2000 paint change still has
+this cold gap. In three alternating 20-copy Altona pairs at 1024 pixels,
+1.8 first-page times were 187, 174, and 168 milliseconds; 1.9 took 792,
+793, and 783 milliseconds. The median last-ten average was 168.8 versus
+154.0 milliseconds, so the gap remains concentrated in first use. Median
+20-page render totals were 3,335 versus 4,389 milliseconds, with sampled
+peak working sets of 84.1 versus 149.4 MiB. Each version produced one stable
+PNG hash across its 60 measured copies. A sampled trace of the exact 1.9
+payload placed about 165 milliseconds of its first render under text display,
+89 under font reading, 131 under image rendering, and 94 under color-space
+reading; these inclusive stack times overlap. The tenth render had much less
+text and image work. No single paint loop explains the cold gap. Headless
+timing and trace evidence is under
+`C:/Users/steve/kp-bench-render/altona-cold-current-20260929`.
 
 Applying optimized-first compilation only to `ConvertArea` did not improve a
 direct one-worker probe of that page. Reversed-order baseline/trial first
