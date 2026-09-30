@@ -71,6 +71,13 @@ small warmed gain, but the complete batch did not improve and used more
 memory. The path was removed. Raw results are under
 `C:/Users/steve/kp-bench-render/binary-packed-columns-20260930`.
 
+Precomputing vertical edge weights per output row passed the same seven tests
+and preserved all 74 difficult-set PNG hashes. Three alternating application
+runs per version gave median render sums of 8.617 seconds for the baseline and
+8.581 seconds for the trial; both median wall times were 13.7 seconds. The
+small, variable difference did not justify keeping the change. Raw results
+are under `C:/Users/steve/kp-bench-render/binary-row-weights-20260930`.
+
 ### Current difficult-set refresh (2026-09-29)
 
 The current 1.9 Release build and local 1.8.72 Release build rendered the same
