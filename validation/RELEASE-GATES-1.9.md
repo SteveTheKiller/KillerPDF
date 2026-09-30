@@ -66,6 +66,18 @@ Raw logs, PNGs, runner, and analysis are under
 `C:/Users/steve/kp-bench-render/difficult-current-20260930`. This headless
 comparison does not measure WPF presentation or interaction.
 
+On `GWG061_Shading_x1a.pdf`, the declared CMYK output profile accounts for a
+visible color difference from both 1.8 and Poppler. LittleCMS conversion of
+the embedded profile independently reproduces the red-channel clipping at
+high cyan values and closely matches representative 1.9 colors. Ignoring the
+profile removes the contour but loses the declared PDF/X print conversion.
+A separate scratch trial kept the profile and forced independent axial-shading
+rows onto workers. Four alternating fresh processes per variant measured 611
+to 627 ms serial and 612 to 636 ms parallel, with identical PNG hashes and
+sampled peaks of 96.5 to 98.0 MiB. No profile or parallelism change was
+retained. Source and output are under
+`C:/Users/steve/kp-bench-render/gwg061-profile-probe-20260930`.
+
 A fresh-process `42828` probe at 1447 by 2048 pixels measured a 626.674 ms
 median without warmup and 583.592 ms after rendering a different binary-image
 page first. In a retained render session, low-resolution previews at 128, 256,
