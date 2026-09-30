@@ -85,18 +85,6 @@ for 1.8 and
 for 1.9. Raw output and the probe are under
 `C:/Users/steve/kp-bench-render/viewer-primary-20260930`.
 
-Two isolated JBIG2 decoder trials were measured against the current loose
-1.9 payload on the same first page. Reading and updating each arithmetic
-probability state through one array reference passed 15 focused tests and
-preserved the page hash, but its four-run median rose from 814.383 to
-867.362 ms. Replacing the compressed-input byte-at-a-time copy with one
-bulk copy also passed 15 focused tests and preserved the hash. In two
-reversed-order four-run pairs, its medians were 814.357 versus 822.105 ms
-for baseline and 820.717 versus 813.803 ms for baseline. The mixed result
-does not establish a speed gain. Neither trial was retained. Scratch builds
-and raw runs are under `C:/Users/steve/kp-bench-render/jbig2-state-trial-20260930`
-and `C:/Users/steve/kp-bench-render/jbig2-input-copy-20260930`.
-
 An eight-process repeat limited each process to one primary raster call. The
 four 1.8 calls took 287.973 to 307.303 ms and peaked at 69.9 to 70.1 MiB;
 the four 1.9 calls took 995.664 to 1019.805 ms and peaked at 190.0 to
@@ -126,6 +114,33 @@ for 1.8 and
 `C70693BCAF415B67C42CE77DC0AB354B63DDD2072A863C96A328E9A02700ABC5`
 for 1.9. Builds and raw measurements are under
 `C:/Users/steve/kp-bench-render/viewer-primary-20260930`.
+
+Two isolated JBIG2 decoder trials were measured against the current loose
+1.9 payload on the same first page. Reading and updating each arithmetic
+probability state through one array reference passed 15 focused tests and
+preserved the page hash, but its four-run median rose from 814.383 to
+867.362 ms. Replacing the compressed-input byte-at-a-time copy with one
+bulk copy also passed 15 focused tests and preserved the hash. In two
+reversed-order four-run pairs, its medians were 814.357 versus 822.105 ms
+for baseline and 820.717 versus 813.803 ms for baseline. The mixed result
+does not establish a speed gain. Neither trial was retained. Scratch builds
+and raw runs are under `C:/Users/steve/kp-bench-render/jbig2-state-trial-20260930`
+and `C:/Users/steve/kp-bench-render/jbig2-input-copy-20260930`.
+
+A direct-write trial for an opaque reduced binary image avoided the full
+intermediate color plane. Across two alternating first-page pairs, the
+scan's pixel hash stayed identical and median process peak fell from 133.6
+to 121.6 MiB. First-page medians were effectively unchanged at 813.697 ms
+for baseline and 813.657 ms for trial, with one slow outlier in each mode.
+Eight alternating hidden application passes then rendered all 74 difficult
+pages. Every PNG hash matched across all passes. Median render sums were
+8,708 versus 8,591 ms and wall times 13,747 versus 13,621 ms for baseline
+and trial, but median batch peak rose from 260.2 to 264.7 MiB. The target
+scan page also slowed from a median 824 to 852.5 ms in the batch. The
+local first-page memory saving did not hold across the full workload, and
+the target page did not get faster, so the path was not retained. Scratch
+source, payloads, logs, and PNGs are under
+`C:/Users/steve/kp-bench-render/binary-direct-plane-20260930`.
 
 Sixteen fresh-process renders each of `42828` and `064034` compared one, two,
 four, and eight engine row workers in balanced order. All pixel hashes matched
