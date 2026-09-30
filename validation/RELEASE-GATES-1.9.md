@@ -58,6 +58,22 @@ add per-block timing overhead and leave other page-processing work
 unattributed; they are diagnostic, not a baseline performance result. The
 traces, probe, and scratch build are in the viewer attachment directory.
 
+A direct full-resolution YCCK output loop for equal-sampled components kept
+the existing pixel conversion and added no image buffers. Four alternating
+16-copy `064034.pdf` runs per build at 2048 pixels cut median summed rendering
+from 3,853 to 3,426 ms, with sampled peak medians of 150.6 and 150.8 MiB.
+Three alternating 74-page difficult runs per build cut the median render sum
+from 10,999 to 10,618 ms and wall time from 16,895 to 16,450 ms; median
+peaks were 268.4 and 267.0 MiB. Two alternating 600-page shared runs per
+build cut median rendering from 17,197 to 16,284 ms, with median peaks of
+495.9 and 493.8 MiB. The first shared baseline wall run was unusually slow,
+so it is not used for a wall-time claim. All 128 targeted, 444 difficult, and
+2,400 shared PNGs
+matched their paired clean 1.9 baseline hashes. The Release payload built,
+135 focused JPEG tests, all 4,163 engine tests, and all 487 app tests passed.
+This is a 1.9 improvement, not proof of 1.8 parity or visible interaction.
+Raw runs and payloads are under the viewer attachment scratch directory.
+
 The Continuous view scroll-settle timer no longer cancels an active base render
 for the same viewport center. A fresh-process headless simulation of the
 `42828.0001.001.pdf` first page compared six retained renders with six

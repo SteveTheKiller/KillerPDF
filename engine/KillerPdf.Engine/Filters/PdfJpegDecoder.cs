@@ -420,6 +420,31 @@ internal static class PdfJpegDecoder
                 }
                 return;
             }
+            if (fourthComponent is not null && transform == 2
+                && firstStep == 1 && secondStep == 1 && thirdStep == 1 && fourthStep == 1)
+            {
+                int[] crRed = CrRed, cbGreen = CbGreen, crGreen = CrGreen, cbBlue = CbBlue;
+                byte[] rangeLimit = RangeLimit;
+                for (int y = 0, offset = 0; y < outputHeight; y++)
+                {
+                    ReadOnlySpan<byte> lumaRow = SampleRow(firstComponent, y, maxVertical);
+                    ReadOnlySpan<byte> cbRow = SampleRow(secondComponent, y, maxVertical);
+                    ReadOnlySpan<byte> crRow = SampleRow(thirdComponent, y, maxVertical);
+                    ReadOnlySpan<byte> blackRow = SampleRow(fourthComponent, y, maxVertical);
+                    for (int x = 0; x < outputWidth; x++)
+                    {
+                        int luma = lumaRow[x], cb = cbRow[x], cr = crRow[x];
+                        int red = luma + crRed[cr];
+                        int green = luma + ((cbGreen[cb] + crGreen[cr]) >> ChromaShift);
+                        int blue = luma + cbBlue[cb];
+                        output[offset++] = (byte)(255 - rangeLimit[red + RangeLimitOffset]);
+                        output[offset++] = (byte)(255 - rangeLimit[green + RangeLimitOffset]);
+                        output[offset++] = (byte)(255 - rangeLimit[blue + RangeLimitOffset]);
+                        output[offset++] = blackRow[x];
+                    }
+                }
+                return;
+            }
             if (components == 3 && transform == 1 && firstStep == 1
                 && secondStep == thirdStep && secondStep is 1 or 2 or 4)
             {
