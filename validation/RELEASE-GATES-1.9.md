@@ -326,6 +326,14 @@ MiB for 1.9. Each size kept one hash per version across all four runs; the
 not visible zoom or page-display latency. Raw results are in
 `C:/Users/steve/kp-bench-render/viewer-primary-20260930/42828-zoom-afterjpeg.csv`.
 
+The scan page's raw JBIG2 image stream contains an arithmetic-coded symbol
+dictionary with 1,338 new symbols and template 0, followed by a text region.
+The engine already has a specialized template-0 generic-region decode loop,
+so adding fast loops for other templates would not address this page. The
+next renderer comparison should focus on symbol-dictionary decoding and
+one-bit page painting. The extracted stream is in the same scratch directory
+as `42828-image2354.jb2`.
+
 A one-byte fast path for counting interior bits in reduced binary images
 preserved scan pixels and improved repeated direct-engine renders by a few
 milliseconds. Eight alternating hidden application runs then rendered all 74
