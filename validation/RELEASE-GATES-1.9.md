@@ -64,6 +64,26 @@ do not establish visible first-page behavior and do not improve full-page
 latency. No preview or warmup change was retained. Raw probes are under
 `C:/Users/steve/kp-bench-render/cold-path-prewarm-20260930`.
 
+A separate headless probe invoked each application's primary viewer raster
+backend for `42828.0001.001.pdf` at 1447 by 2048 pixels. Two alternating
+fresh-process runs per version measured the first 1.8 PDFium call at 305.998
+and 306.703 ms, versus 943.157 and 1003.059 ms for the first 1.9 engine
+call. Across the last ten of 20 calls per process, medians were 226.08 and
+233.05 ms for 1.8, versus 48.62 and 55.92 ms for 1.9. Each run kept one
+stable pixel hash within its version. Final process peak working sets were
+174.5 and 174.6 MiB for 1.8, versus 384.6 and 384.7 MiB for 1.9. These
+are backend calls, not full viewer timings: the 1.8 probe omits its Docnet
+dimension lookup, and both omit WPF presentation and interaction. The 1.9
+probe creates a fresh render session each call but may reuse its weakly cached
+parsed document and shared image data. The large first-call gap reinforces
+the first-page release gate; the warm calls do not establish visible viewer
+speed or memory parity. The measured application DLL hashes are
+`4AB13A69FD06146A5B963F4B5F5DBEC29761DC22940AF001700D0B0853CF05C8`
+for 1.8 and
+`C978281700C969853A09D39904EEE98505DC4AC68883D36FC2F49A0EE3739A13`
+for 1.9. Raw output and the probe are under
+`C:/Users/steve/kp-bench-render/viewer-primary-20260930`.
+
 Sixteen fresh-process renders each of `42828` and `064034` compared one, two,
 four, and eight engine row workers in balanced order. All pixel hashes matched
 within each document. On `42828`, four workers had the lowest median at
