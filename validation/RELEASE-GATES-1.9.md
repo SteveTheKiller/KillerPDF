@@ -14,12 +14,44 @@ overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch above 1.8; visible interactive use unverified | The current 74-page difficult comparison has a median peak of 289.4 MiB for 1.9 versus 260.0 MiB for 1.8, with measured ranges of 285.3 to 296.6 and 231.9 to 260.3 MiB. September 9 installed-layout medians were 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | The current 74-page difficult comparison has median render sums of 9.038 versus 4.933 seconds and wall times of 14.315 versus 10.274 seconds for 1.9 and 1.8. A later axial-shading change improves `363_Risk` but leaves the whole difficult-set total effectively tied with the preceding 1.9 build. Earlier installed-layout shared medians were 15.687 versus 12.240 seconds of rendering and 27.350 versus 23.023 seconds wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch above 1.8; visible interactive use unverified | The September 30 difficult comparison has a median peak of 286.5 MiB for 1.9 versus 258.3 MiB for 1.8, with measured ranges of 285.9 to 287.0 and 231.8 to 260.0 MiB. September 9 installed-layout medians were 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | The September 30 difficult comparison has median render sums of 8.422 versus 4.601 seconds and wall times of 13.506 versus 9.704 seconds for 1.9 and 1.8. A retained axial-shading change improves `363_Risk` locally, but broader parity remains open. Earlier installed-layout shared medians were 15.687 versus 12.240 seconds of rendering and 27.350 versus 23.023 seconds wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. The latest headless technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8, although warmed 1.9 renders were faster on that page. Continuous view now schedules the visible page before neighboring work, but neither check measures visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. The desktop working-document path now opens the retained #406 reporter PDF. Fifteen newer maintenance commits have verified port records in this pass, and the local-branch guard lists five still needing review. The 1.9 MCP page still describes merging as its main operation while the 1.8 page covers broader PDF tools; its tool content remains open. Three remaining commits concern 1.8 release metadata, and one adds a workflow that is not authorized for 1.9. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Its default remote refs are behind both local branches. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 29: 4,163 engine tests and 485 app tests pass, and the Release application build succeeds. The application and transitive package vulnerability check reports no vulnerable packages from current sources. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 30: 4,163 engine tests and 485 app tests pass, and the Release application build succeeds with 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+
+### Current difficult-set comparison (2026-09-30)
+
+The current 1.9 Release build and unchanged local 1.8.72 Release build rendered
+the same 40 difficult PDFs, 74 pages in total, at 2048 pixels and up to three
+pages per file. The 1.9 batch used one file worker to match the serial 1.8 run.
+After one warmup per version, six hidden, low-priority runs followed the order
+1.8/1.9/1.9/1.8/1.8/1.9. All six runs completed all 74 pages without errors.
+Render sums were 4.581, 4.601, and 4.671 seconds for 1.8 versus 8.309, 8.559,
+and 8.422 seconds for 1.9. Wall times were 9.704, 9.700, and 9.878 seconds
+versus 13.382, 13.627, and 13.506 seconds. Sampled peaks were 231.8, 260.0,
+and 258.3 MiB versus 285.9, 287.0, and 286.5 MiB. Each version reproduced
+all 74 of its own PNG hashes across three runs; all 74 output dimensions match
+across versions. Cross-version pixel differences remain a separate fidelity
+gate. The largest median page gaps were 587 ms on `42828.0001.001.pdf`, 332 ms
+on `064034.pdf`, 323 ms on the JPEG 2000 balloon, and 274 ms on
+`GWG061_Shading_x1a.pdf`. The 1.8 and 1.9 application DLL SHA-256 values are
+`4AB13A69FD06146A5B963F4B5F5DBEC29761DC22940AF001700D0B0853CF05C8`
+and `EDF81CF3EB095559652A29986904CC06889269389B047AE9974308E964A3E038`.
+Raw logs, PNGs, runner, and analysis are under
+`C:/Users/steve/kp-bench-render/difficult-current-20260930`. This headless
+comparison does not measure WPF presentation or interaction.
+
+A fresh-process `42828` probe at 1447 by 2048 pixels measured a 626.674 ms
+median without warmup and 583.592 ms after rendering a different binary-image
+page first. In a retained render session, low-resolution previews at 128, 256,
+and 512 pixels moved the final full render later: median combined times were
+738, 698, and 841 ms versus 633 ms for direct full rendering. All measured
+full-size pixel hashes matched. A preview may appear sooner, but these checks
+do not establish visible first-page behavior and do not improve full-page
+latency. No preview or warmup change was retained. Raw probes are under
+`C:/Users/steve/kp-bench-render/cold-path-prewarm-20260930`.
 
 ### Current difficult-set refresh (2026-09-29)
 
