@@ -334,6 +334,13 @@ next renderer comparison should focus on symbol-dictionary decoding and
 one-bit page painting. The extracted stream is in the same scratch directory
 as `42828-image2354.jb2`.
 
+A fresh-process 512-pixel sample trace of the current loose payload confirms
+the cold path spends substantial sampled time in JBIG2 generic-region line
+decoding and arithmetic decoding. One-bit area sampling also appears, but at
+a smaller share than on the 2048-pixel trace. The trace includes startup and
+assembly loading, so its percentages are not render-only timings. It is at
+`C:/Users/steve/kp-bench-render/viewer-primary-20260930/42828-first512-current.nettrace`.
+
 A scratch JBIG2 stream path read single bytes directly from the source buffer
 instead of through layered stream buffers. All 15 focused JBIG2 tests and the
 scan hashes passed. Four alternating fresh-process zoom runs per build gave
