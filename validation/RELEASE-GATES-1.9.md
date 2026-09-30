@@ -63,13 +63,30 @@ but their repeated render cost is lower than 1.8 in these focused runs.
 The CMYK JPEG page `064034.pdf` remains slower after warmup: first renders
 took 124 to 126 ms in 1.8 and 496 to 505 ms in 1.9; last-six medians were
 116 to 118 ms and 179.5 to 186 ms. Its sampled peaks were 143.4 to
-145.4 MiB and 184.6 to 184.8 MiB. This is the clearest persistent page
-gap in the three focused checks. Raw measurements and PNGs are under
+145.4 MiB and 184.6 to 184.8 MiB. Raw measurements and PNGs are under
 `C:/Users/steve/kp-bench-render/jbig2-cold-current-20260929`,
 `C:/Users/steve/kp-bench-render/balloon-cold-current-20260929`, and
 `C:/Users/steve/kp-bench-render/cmyk-cold-current-20260929`. These isolated
 pages do not explain the entire 74-page difficult-set gap or measure visible
 interaction.
+
+The same alternating eight-copy method also separated two other page gaps.
+For `363_Risk`, first renders were 140 to 144 ms in 1.8 and 672 to 674 ms
+in 1.9; last-six medians were 134 ms and 206 to 210.5 ms. For
+`GWG061_Shading_x1a.pdf`, first renders were 33 ms and 613 to 627 ms;
+last-six medians were 27.5 to 28 ms and 105.5 to 106 ms. Sampled peaks
+were 152.1 to 158.7 MiB versus 196.1 to 196.2 MiB for the risk page,
+and 110.9 to 111.1 MiB versus 164.1 to 165.3 MiB for shading. All 64
+renders succeeded, dimensions matched across versions, and each version
+kept one PNG hash per page. The first and repeated costs both need work.
+Raw results are under
+`C:/Users/steve/kp-bench-render/risk-shading-cold-current-20260929`.
+
+An unchecked-table-access trial for DeviceCMYK preserved one PNG hash across
+64 focused CMYK renders and passed 35 focused tests. In three alternating
+pairs, baseline last-six medians were 175 to 180 ms and the trial's were
+188.5 to 197 ms, without a memory reduction. The trial was removed; raw
+runs are under `C:/Users/steve/kp-bench-render/cmyk-table-ref-trial-20260929`.
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
