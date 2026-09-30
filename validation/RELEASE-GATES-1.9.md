@@ -518,6 +518,14 @@ under `C:/Users/steve/kp-bench-render/382252-profile-20260929`,
 `C:/Users/steve/kp-bench-render/binary-row-weight-trial`, and
 `C:/Users/steve/kp-bench-render/png-unfilter-trial`.
 
+Precomputing exact binary-image column bounds kept the `42828` and `382252`
+pixel hashes unchanged. Two alternating warmed `42828` pairs had baseline
+medians of 163.802 and 162.416 ms versus 160.223 and 161.445 ms for the
+trial, with about 35 KiB more allocation per render. The `382252` pairs split:
+42.882/42.354 ms and 41.830/42.604 ms (baseline/trial). The mixed result and
+extra allocation did not justify retaining the column array. The trial was
+removed; raw runs are under `C:/Users/steve/kp-bench-render/binary-column-trial`.
+
 A sampled trace of the first two `495712.pdf` pages attributes the largest
 active renderer cost to vector stroke rasterization, including cell creation
 and per-row X sorting. A trial skipped sorting when a distributed row was
