@@ -90,6 +90,19 @@ not measure WPF presentation or establish a 1.8 comparison. Source, DLL hashes,
 and raw measurements are under
 `C:/Users/steve/kp-bench-render/cold-jit-20260930`.
 
+Temporary timing around the actual first-page JBIG2 image path measured four
+fresh processes. Median time inside decoded-image retrieval was 299.9 ms on
+the first render and 0.7 ms on the second render through the same renderer.
+Time from retrieval through image painting was 227.7 and 38.5 ms. A new
+renderer on the same document spent 144.1 ms retrieving the image and 34.1 ms
+through painting. Every render retained the same pixel hash. A separate
+`NoOptimization` hint on `PaintImage` gave first-render medians of 681.1 ms
+for baseline and 671.8 ms for trial in four alternating runs each; second
+renders were 49.9 and 50.1 ms. The timing ranges overlapped, so the hint and
+temporary probes were removed. Raw data and builds are under
+`C:/Users/steve/kp-bench-render/image-phase-timing-20260930` and
+`C:/Users/steve/kp-bench-render/paint-jit-trial-20260930`.
+
 ### Current difficult-set refresh (2026-09-29)
 
 The current 1.9 Release build and local 1.8.72 Release build rendered the same
