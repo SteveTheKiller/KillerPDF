@@ -295,6 +295,14 @@ and 649.0 ms for trial. All decoded-image and rendered-page hashes matched.
 The hint was removed because the page did not improve. Raw runs are under
 `C:/Users/steve/kp-bench-render/jbig2-arith-jit-20260930`.
 
+Skipping redundant byte-input seeks in the JBIG2 arithmetic decoder kept all
+74 difficult-set PNG hashes across four alternating runs per build. Median
+render time fell from 9,425.5 to 9,233.5 milliseconds and wall time from
+14,910.5 to 14,579 milliseconds, but median peak working set rose from
+283.32 to 289.73 MiB. The trial was removed because the memory regression
+does not meet the release gate. Raw runs and payloads are under
+`C:/Users/steve/kp-bench-render/arith-bytein-20260930`.
+
 A same-payload `DOTNET_TieredCompilation=0` trial used alternating hidden
 application runs after warmup. On the 74-page difficult set, baseline and
 disabled-tiering medians were 10.545 and 8.720 seconds of rendering, 16.248
