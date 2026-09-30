@@ -373,6 +373,10 @@ decoding and arithmetic decoding. One-bit area sampling also appears, but at
 a smaller share than on the 2048-pixel trace. The trace includes startup and
 assembly loading, so its percentages are not render-only timings. It is at
 `C:/Users/steve/kp-bench-render/viewer-primary-20260930/42828-first512-current.nettrace`.
+Counting its 253 sampled CPU stacks finds 85 through symbol-dictionary
+decoding and 28 through one-bit area sampling. These inclusive counts overlap
+and reinforce symbol decoding as the next cold-render target; they do not
+measure exclusive time or predict the size of a possible improvement.
 
 A PDFium-inspired scratch trial updated the arithmetic decoder's packed
 context byte directly inside the template-0 symbol loop. All 15 focused
