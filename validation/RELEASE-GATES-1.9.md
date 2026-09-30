@@ -17,7 +17,7 @@ overall average.
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch above 1.8; visible interactive use unverified | The September 30 difficult comparison has a median peak of 286.5 MiB for 1.9 versus 258.3 MiB for 1.8, with measured ranges of 285.9 to 287.0 and 231.8 to 260.0 MiB. September 9 installed-layout medians were 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | The September 30 difficult comparison has median render sums of 8.422 versus 4.601 seconds and wall times of 13.506 versus 9.704 seconds for 1.9 and 1.8. A retained axial-shading change improves `363_Risk` locally, but broader parity remains open. Earlier installed-layout shared medians were 15.687 versus 12.240 seconds of rendering and 27.350 versus 23.023 seconds wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
-| Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A current installed-layout headless scan probe has a first-call median of 806.05 ms for 1.9 versus 248.664 ms for 1.8, including the 1.8 dimension lookup. The earlier technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8. Continuous view now schedules the visible page before neighboring work, but these checks do not measure visible first-page completion, scrolling, or zoom. |
+| Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A current installed-layout headless scan probe has a first-call median of 806.05 ms for 1.9 versus 248.664 ms for 1.8, including the 1.8 dimension lookup. A five-size headless CMYK sequence still takes 601.412 versus 99.400 ms on its first 512-pixel call, though repeat sizes favor 1.9 after caching. The earlier technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8. Continuous view now schedules the visible page before neighboring work, but these checks do not measure visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. The desktop working-document path now opens the retained #406 reporter PDF. Fifteen newer maintenance commits have verified port records in this pass, and the local-branch guard lists five still needing review. The 1.9 MCP page still describes merging as its main operation while the 1.8 page covers broader PDF tools; its tool content remains open. Three remaining commits concern 1.8 release metadata, and one adds a workflow that is not authorized for 1.9. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Its default remote refs are behind both local branches. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 30: 4,163 engine tests and 485 app tests pass, and the Release application build succeeds with 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
@@ -141,6 +141,24 @@ local first-page memory saving did not hold across the full workload, and
 the target page did not get faster, so the path was not retained. Scratch
 source, payloads, logs, and PNGs are under
 `C:/Users/steve/kp-bench-render/binary-direct-plane-20260930`.
+
+An alternating fresh-process sequence of five fitted sizes on `064034.pdf`
+used the current installed-layout application payloads. Four runs per version
+rendered 512, 1024, 2048, 1024, and 2048 pixels in that order. The 1.8
+medians were 99.400, 101.392, 115.601, 100.012, and 113.779 ms; 1.9
+medians were 601.412, 152.008, 230.260, 33.166, and 45.580 ms. Each
+version kept one pixel hash per size across all four runs, and all output
+dimensions matched across versions. Final process peak ranges were 78.8 to
+79.3 MiB for 1.8 and 120.2 to 120.4 MiB for 1.9. The first small render
+is the main delay in this sequence; the repeated sizes benefit from the
+retained engine session and shared decoded-image cache. These backend calls
+omit WPF display work, so visible zoom behavior is still unverified. The
+first 512-pixel 1.9 call was split in four more fresh processes: session
+opening took 70.627 to 73.661 ms, while rendering took 585.947 to
+597.690 ms. The measured delay is therefore mostly in first rendering,
+not opening the document. All four stage probes retained the same pixel hash.
+The probe and raw CSV are under
+`C:/Users/steve/kp-bench-render/viewer-primary-20260930`.
 
 Sixteen fresh-process renders each of `42828` and `064034` compared one, two,
 four, and eight engine row workers in balanced order. All pixel hashes matched
