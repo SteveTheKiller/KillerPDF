@@ -528,6 +528,11 @@
       "maintenanceCommit": "d158706b82d8510067adfc8212d1b1b8d1651326",
       "developmentCommit": "c4244d2bd6aac98d9bfdd2711168f4e8b5094109",
       "reason": "The 1.9 engine already tolerates undersized trailers in compatibility mode; the desktop working-document path now uses it and opens the reporter PDF, with a focused regression test."
+    },
+    {
+      "maintenanceCommit": "963b1cd3ec9f9c1a83ae98e725810766fdb5f997",
+      "developmentCommit": "8b92e94704f4943a80363c451e598d4278a08666",
+      "reason": "The 98SE recent-panel brush and its layout assertion match maintenance."
     }
   ]
 }

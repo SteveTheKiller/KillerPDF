@@ -18,7 +18,7 @@ overall average.
 | Rendering and whole-pass speed without regression | Open | The current 74-page difficult comparison has median render sums of 9.038 versus 4.933 seconds and wall times of 14.315 versus 10.274 seconds for 1.9 and 1.8. Earlier installed-layout shared medians were 15.687 versus 12.240 seconds of rendering and 27.350 versus 23.023 seconds wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. The latest headless technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8, although warmed 1.9 renders were faster on that page. Continuous view now schedules the visible page before neighboring work, but neither check measures visible first-page completion, scrolling, or zoom. |
-| Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. The desktop working-document path now opens the retained #406 reporter PDF. Nine newer maintenance commits have verified port records in this pass, and the local-branch guard lists 11 still needing review, including MCP landing content and release metadata. Its default remote refs are behind both local branches. Applicable feature workflows still need release-build verification. |
+| Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. The desktop working-document path now opens the retained #406 reporter PDF. Ten newer maintenance commits have verified port records in this pass, and the local-branch guard lists 10 still needing review, including MCP landing content and release metadata. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Its default remote refs are behind both local branches. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 29: 4,160 engine tests and 485 app tests pass, and the Release application build succeeds. The application and transitive package vulnerability check reports no vulnerable packages from current sources. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 ### Current difficult-set refresh (2026-09-29)
@@ -87,6 +87,13 @@ An unchecked-table-access trial for DeviceCMYK preserved one PNG hash across
 pairs, baseline last-six medians were 175 to 180 ms and the trial's were
 188.5 to 197 ms, without a memory reduction. The trial was removed; raw
 runs are under `C:/Users/steve/kp-bench-render/cmyk-table-ref-trial-20260929`.
+
+Inlining four calculator stack helpers passed 32 focused tests and preserved
+one PNG hash across 64 shading renders. The three alternating measured pairs
+gave baseline last-six medians of 107.5, 101, and 102.5 ms versus 105, 105,
+and 101.5 ms for the trial. The mixed result did not justify retaining the
+change. Raw runs are under
+`C:/Users/steve/kp-bench-render/calculator-inline-trial-20260929`.
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
