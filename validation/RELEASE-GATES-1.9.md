@@ -62,6 +62,15 @@ while median peak memory rose from 97.1 to 97.3 MiB. The scan regression and
 small JPEG gain do not support changing the worker policy. Raw results are
 under `C:/Users/steve/kp-bench-render/binary-worker-sweep-20260930`.
 
+A precomputed masked-column path for one-bit images passed seven focused
+sampler tests and preserved all 74 difficult-set PNG hashes. Three alternating
+application runs per version gave median render sums of 8.515 seconds for the
+baseline and 8.544 seconds for the trial, wall times of 13.619 and 13.639
+seconds, and sampled peaks of 286.4 and 290.7 MiB. The isolated scan had a
+small warmed gain, but the complete batch did not improve and used more
+memory. The path was removed. Raw results are under
+`C:/Users/steve/kp-bench-render/binary-packed-columns-20260930`.
+
 ### Current difficult-set refresh (2026-09-29)
 
 The current 1.9 Release build and local 1.8.72 Release build rendered the same
