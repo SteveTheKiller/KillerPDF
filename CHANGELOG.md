@@ -28,6 +28,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added a keyboard shortcut toggle with an always-available Ctrl+Shift+K recovery chord (#405).
 - Added structured document export from the Save menu to Word, Excel, PowerPoint, HTML, Markdown, plain text, and JSON, with page selection and loss warnings.
 - Added engine-first rendering and OCR across the viewer, thumbnails, print, export, transforms, and OCR, with lower-memory document opening, paths, shadings, font outlines, installed Courier aliases and emoji fallback, JPEG, JPEG 2000, JBIG2, fax, transparency, forms, attachment-only encrypted documents, preprocessing, layout analysis, recognition, and normalized fallback confidence.
+- Added command-line page rotation, deletion, movement, blank insertion, duplication, document information, and text search for KillerMCP.
 - Added command-line booklet and n-up imposition with sheet sizes, margins, gutters, creep, binding edge, and printer marks, and an outline built from detected headings.
 - Added command-line preflight, accessibility, and embedded-file reports, with the general, attachment safety, print production, and saved custom profiles, readable or JSON output, and embedded-file extraction.
 - Added command-line page numbering and Bates stamping, with header or footer placement, alignment, font size, page selection, number formats, prefix and suffix, and one continuous sequence across several files.

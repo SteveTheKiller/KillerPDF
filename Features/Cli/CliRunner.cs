@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Printing;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -62,7 +63,7 @@ namespace KillerPDF.Features
             "--template", "--edge", "--align", "--number-format", "--font-size",
             "--start", "--digits", "--prefix", "--suffix", "--profile",
             "--sheet", "--margin", "--gutter", "--creep", "--binding", "--grid",
-            "--min-size", "--depth", "--pattern",
+            "--min-size", "--depth", "--pattern", "--width", "--height",
         ];
 
         /// <summary>
@@ -90,7 +91,9 @@ namespace KillerPDF.Features
                 Eq(a, "--preflight") || Eq(a, "--accessibility") || Eq(a, "--attachments") ||
                 Eq(a, "--booklet") || Eq(a, "--nup") || Eq(a, "--auto-bookmarks") ||
                 Eq(a, "--decrypt") || Eq(a, "--to-image") || Eq(a, "--flatten") ||
-                Eq(a, "--print") || Eq(a, "--ocr"));
+                Eq(a, "--print") || Eq(a, "--ocr") || Eq(a, "--rotate-pages") ||
+                Eq(a, "--delete-pages") || Eq(a, "--move-pages") || Eq(a, "--insert-blank") ||
+                Eq(a, "--duplicate-page") || Eq(a, "--document-info") || Eq(a, "--search-text"));
             if (command is null) return false;
 
             var con = OpenBatchConsole();
@@ -163,6 +166,27 @@ namespace KillerPDF.Features
                         break;
                     case "--ocr":
                         exitCode = CliOcr(positionals, options, con);
+                        break;
+                    case "--rotate-pages":
+                        exitCode = CliRotatePages(positionals, con);
+                        break;
+                    case "--delete-pages":
+                        exitCode = CliDeletePages(positionals, con);
+                        break;
+                    case "--move-pages":
+                        exitCode = CliMovePages(positionals, con);
+                        break;
+                    case "--insert-blank":
+                        exitCode = CliInsertBlank(positionals, options, con);
+                        break;
+                    case "--duplicate-page":
+                        exitCode = CliDuplicatePage(positionals, con);
+                        break;
+                    case "--document-info":
+                        exitCode = CliDocumentInfo(positionals, con);
+                        break;
+                    case "--search-text":
+                        exitCode = CliSearchText(positionals, con);
                         break;
                 }
             }
@@ -237,6 +261,16 @@ namespace KillerPDF.Features
             "                                           print silently (default printer if none named)",
             "  --ocr <in.pdf> <out.pdf> [--lang <code>] add an invisible searchable text layer (default eng;",
             "                                           other languages download on first use)",
+            "  --rotate-pages <in.pdf> <pages> <degrees> <out.pdf>",
+            "                                           rotate selected pages by 90, 180, or 270 degrees",
+            "  --delete-pages <in.pdf> <pages> <out.pdf> remove selected pages",
+            "  --move-pages <in.pdf> <pages> <position> <out.pdf>",
+            "                                           move pages before a one-based position",
+            "  --insert-blank <in.pdf> <position> <out.pdf> [--width <pt>] [--height <pt>]",
+            "                                           insert a blank page before a one-based position",
+            "  --duplicate-page <in.pdf> <page> <out.pdf> duplicate one page",
+            "  --document-info <in.pdf>                 print document details as JSON",
+            "  --search-text <in.pdf> <query>            print page hits as JSON",
             "  --batch-resave <in> <out> [--log <f.csv>] [--quiet]",
             "                                           resave a file or tree through the standard",
             "                                           open/save pipeline (validation harness)",
@@ -1613,6 +1647,171 @@ namespace KillerPDF.Features
 
             con.WriteLine($"OCR complete: {pages} pages, {words} words -> {outPath}");
             return 0;
+        }
+
+        private static int CliRotatePages(List<string> pos, TextWriter con)
+        {
+            if (pos.Count != 4 || !int.TryParse(pos[2], out int degrees) || degrees is not (90 or 180 or 270))
+            {
+                con.WriteLine("Usage: KillerPDF.exe --rotate-pages <in.pdf> <pages> <90|180|270> <out.pdf>");
+                return 2;
+            }
+            if (!CliInspectEditInput(pos[0], pos[3], out string source, out string output, out int pageCount, con)) return 2;
+            List<int>? pages = CliParsePageRange(pos[1], pageCount, out string error);
+            if (pages is null) { con.WriteLine(error); return 2; }
+            CliWriteEditedCopy(source, output, path => PdfEngineIntegration.RotatePages(path, pages, degrees));
+            con.WriteLine($"Rotated {pages.Count} pages by {degrees} degrees -> {output}");
+            return 0;
+        }
+
+        private static int CliDeletePages(List<string> pos, TextWriter con)
+        {
+            if (pos.Count != 3)
+            {
+                con.WriteLine("Usage: KillerPDF.exe --delete-pages <in.pdf> <pages> <out.pdf>");
+                return 2;
+            }
+            if (!CliInspectEditInput(pos[0], pos[2], out string source, out string output, out int pageCount, con)) return 2;
+            List<int>? pages = CliParsePageRange(pos[1], pageCount, out string error);
+            if (pages is null || pages.Count >= pageCount)
+            {
+                con.WriteLine(pages is null ? error : "A PDF must retain at least one page.");
+                return 2;
+            }
+            CliWriteEditedCopy(source, output, path => PdfEngineIntegration.RemovePages(path, pages));
+            con.WriteLine($"Deleted {pages.Count} pages -> {output}");
+            return 0;
+        }
+
+        private static int CliMovePages(List<string> pos, TextWriter con)
+        {
+            if (pos.Count != 4 || !int.TryParse(pos[2], out int position))
+            {
+                con.WriteLine("Usage: KillerPDF.exe --move-pages <in.pdf> <pages> <position> <out.pdf>");
+                return 2;
+            }
+            if (!CliInspectEditInput(pos[0], pos[3], out string source, out string output, out int pageCount, con)) return 2;
+            List<int>? pages = CliParsePageRange(pos[1], pageCount, out string error);
+            if (pages is null || position < 1 || position > pageCount + 1)
+            {
+                con.WriteLine(pages is null ? error : $"Position must be between 1 and {pageCount + 1}.");
+                return 2;
+            }
+            CliWriteEditedCopy(source, output, path => PdfEngineIntegration.MovePages(path, pages, position - 1));
+            con.WriteLine($"Moved {pages.Count} pages before position {position} -> {output}");
+            return 0;
+        }
+
+        private static int CliInsertBlank(List<string> pos, Dictionary<string, string> options, TextWriter con)
+        {
+            if (pos.Count != 3 || !int.TryParse(pos[1], out int position))
+            {
+                con.WriteLine("Usage: KillerPDF.exe --insert-blank <in.pdf> <position> <out.pdf> [--width <points>] [--height <points>]");
+                return 2;
+            }
+            if (!CliInspectEditInput(pos[0], pos[2], out string source, out string output, out int pageCount, con)) return 2;
+            double width = CliPositiveDouble(options, "--width", 612);
+            double height = CliPositiveDouble(options, "--height", 792);
+            if (position < 1 || position > pageCount + 1 || width <= 0 || height <= 0)
+            {
+                con.WriteLine(position < 1 || position > pageCount + 1
+                    ? $"Position must be between 1 and {pageCount + 1}."
+                    : "Width and height must be positive numbers.");
+                return 2;
+            }
+            CliWriteEditedCopy(source, output, path => PdfEngineIntegration.InsertBlankPage(path, position - 1, width, height));
+            con.WriteLine($"Inserted a {width:0.##} x {height:0.##} point page at position {position} -> {output}");
+            return 0;
+        }
+
+        private static int CliDuplicatePage(List<string> pos, TextWriter con)
+        {
+            if (pos.Count != 3 || !int.TryParse(pos[1], out int page))
+            {
+                con.WriteLine("Usage: KillerPDF.exe --duplicate-page <in.pdf> <page> <out.pdf>");
+                return 2;
+            }
+            if (!CliInspectEditInput(pos[0], pos[2], out string source, out string output, out int pageCount, con)) return 2;
+            if (page < 1 || page > pageCount)
+            {
+                con.WriteLine($"Page must be between 1 and {pageCount}.");
+                return 2;
+            }
+            CliWriteEditedCopy(source, output, path => PdfEngineIntegration.DuplicatePage(path, page - 1));
+            con.WriteLine($"Duplicated page {page} -> {output}");
+            return 0;
+        }
+
+        private static int CliDocumentInfo(List<string> pos, TextWriter con)
+        {
+            if (pos.Count != 1 || !File.Exists(pos[0]))
+            {
+                con.WriteLine("Usage: KillerPDF.exe --document-info <in.pdf>");
+                return 2;
+            }
+            string path = Path.GetFullPath(pos[0]);
+            PdfDocumentInformation info = PdfDocumentInformation.Read(PdfDocument.Open(File.ReadAllBytes(path)));
+            con.WriteLine(JsonSerializer.Serialize(new
+            {
+                path, info.PageCount, version = info.Version.ToString(), info.Title, info.Author,
+                info.Subject, info.Keywords, info.Creator, info.Producer, info.Language,
+                info.CreationDate, info.ModificationDate, trapped = info.Trapped?.ToString()
+            }));
+            return 0;
+        }
+
+        private static int CliSearchText(List<string> pos, TextWriter con)
+        {
+            if (pos.Count != 2 || !File.Exists(pos[0]) || string.IsNullOrWhiteSpace(pos[1]))
+            {
+                con.WriteLine("Usage: KillerPDF.exe --search-text <in.pdf> <query>");
+                return 2;
+            }
+            string path = Path.GetFullPath(pos[0]);
+            SearchResult found = SearchService.Search(path, pos[1]);
+            con.WriteLine(JsonSerializer.Serialize(new
+            {
+                path, query = pos[1], totalHits = found.TotalHits,
+                pages = found.ResultPages.Select(page => page + 1).ToArray()
+            }));
+            return 0;
+        }
+
+        private static bool CliInspectEditInput(
+            string input, string destination, out string source, out string output, out int pageCount, TextWriter con)
+        {
+            source = Path.GetFullPath(input);
+            output = Path.GetFullPath(destination);
+            pageCount = 0;
+            if (!File.Exists(source)) { con.WriteLine($"Input not found: {source}"); return false; }
+            if (string.Equals(source, output, StringComparison.OrdinalIgnoreCase))
+            { con.WriteLine("Output file cannot also be the input."); return false; }
+            pageCount = PdfDocumentInformation.Read(PdfDocument.Open(File.ReadAllBytes(source))).PageCount;
+            return true;
+        }
+
+        private static void CliWriteEditedCopy(string source, string output, Action<string> edit)
+        {
+            CliEnsureParentDir(output);
+            string temporary = Path.Combine(Path.GetDirectoryName(output)!,
+                "." + Path.GetFileName(output) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            try
+            {
+                File.Copy(source, temporary);
+                edit(temporary);
+                File.Move(temporary, output, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(temporary)) File.Delete(temporary);
+            }
+        }
+
+        private static double CliPositiveDouble(Dictionary<string, string> options, string name, double fallback)
+        {
+            if (!options.TryGetValue(name, out string? raw)) return fallback;
+            return double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                && double.IsFinite(value) && value > 0 ? value : -1;
         }
 
         /// <summary>
