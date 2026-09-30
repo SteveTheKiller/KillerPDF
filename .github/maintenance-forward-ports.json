@@ -538,6 +538,26 @@
       "maintenanceCommit": "52b87e258fe3cb532bb8c8edb3a35e25fff296ed",
       "developmentCommit": "9610c33a5b6b34560f3babe82c186729b928f27b",
       "reason": "The analyzer cleanups match the 1.9 implementation; missing round-trip messages already raise InvalidOperationException with the failure code."
+    },
+    {
+      "maintenanceCommit": "1b242420b8bb61c82e8a8d4c67b062e0ebdd15be",
+      "developmentCommit": "c53d97e13c73b2b5cdd37985fa58ac4e30545b16",
+      "reason": "The original MCP landing page was carried into 1.9; the finalized page blob matches the maintenance refinement."
+    },
+    {
+      "maintenanceCommit": "a41be4f29f6482a81b5d6720d002853bc912b179",
+      "developmentCommit": "c53d97e13c73b2b5cdd37985fa58ac4e30545b16",
+      "reason": "The refined MCP page and sitemap blobs match the 1.9 landing commit exactly."
+    },
+    {
+      "maintenanceCommit": "43fbb6deeda34029729fc739bd7401cfcb9b502a",
+      "developmentCommit": "8d24d65eab36dad9c47316ff63715350d4f27714",
+      "reason": "The MCP release-facts behavior matches maintenance; the 1.9 script differs only in formatting."
+    },
+    {
+      "maintenanceCommit": "821d8cab49252ee06b116b54ae379098eb307364",
+      "developmentCommit": "5a0008b7cac6936552842a5e29d463c4b5af62ad",
+      "reason": "The shared site layout and localization changes were ported across all maintenance files, with additional 1.9 pages and page-specific content."
     }
   ]
 }
