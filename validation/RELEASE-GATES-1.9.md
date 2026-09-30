@@ -214,6 +214,22 @@ peak from 260.0 to 263.9 MiB. The loose payload grew by about 14.5 MB. Neither
 mode was adopted. Raw results are under
 `C:/Users/steve/kp-bench-render/r2r-payload-20260929`.
 
+An engine-only ReadyToRun payload used the current source and kept every other
+published file byte-identical. Three alternating Altona pairs cut first-page
+times from 743 to 756 milliseconds to 373 to 382 milliseconds, but raised the
+median 20-page render total from 4,107 to 4,809 milliseconds and wall time
+from 4,933 to 5,643 milliseconds. Peak working set was 148.5 versus 150.9
+MiB. On the 649-file conformance corpus, median render time was 14,603 versus
+14,308 milliseconds, but wall time rose from 26,783 to 27,395 milliseconds.
+Peak working set was 494.7 versus 493.8 MiB. On the 74-page difficult set,
+median render and wall times rose from 9,418/14,708 to 9,715/14,981
+milliseconds, while maximum peak working set fell from 268.5 to 267.2 MiB.
+All 60 Altona, 1,842 conformance, and 222 difficult paired PNGs matched;
+conformance had the same 614 successes and 35 skips per run. The engine DLL
+grew by about 8.5 MB. The cold improvement does not justify the repeated and
+whole-pass costs, so the normal payload remains selected. Evidence is under
+`C:/Users/steve/kp-bench-render/engine-only-r2r-20260929`.
+
 A JBIG2 arithmetic-state trial reduced repeated context-array access while
 preserving all three tested scan-page hashes. Four alternating fresh-process
 runs measured median three-page rendering at about 823 milliseconds before
