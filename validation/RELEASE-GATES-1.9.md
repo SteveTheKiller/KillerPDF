@@ -103,6 +103,14 @@ temporary probes were removed. Raw data and builds are under
 `C:/Users/steve/kp-bench-render/image-phase-timing-20260930` and
 `C:/Users/steve/kp-bench-render/paint-jit-trial-20260930`.
 
+An `AggressiveOptimization` hint on the JBIG2 arithmetic decoder shortened
+isolated first-image decode from a 332.7 ms median to 302.3 ms in four
+alternating runs per version, but raised repeat decode from 149.1 to 156.8 ms.
+In the direct first-page path, first-render medians were 626.6 ms for baseline
+and 649.0 ms for trial. All decoded-image and rendered-page hashes matched.
+The hint was removed because the page did not improve. Raw runs are under
+`C:/Users/steve/kp-bench-render/jbig2-arith-jit-20260930`.
+
 ### Current difficult-set refresh (2026-09-29)
 
 The current 1.9 Release build and local 1.8.72 Release build rendered the same
