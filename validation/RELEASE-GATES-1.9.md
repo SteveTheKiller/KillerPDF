@@ -341,6 +341,14 @@ a smaller share than on the 2048-pixel trace. The trace includes startup and
 assembly loading, so its percentages are not render-only timings. It is at
 `C:/Users/steve/kp-bench-render/viewer-primary-20260930/42828-first512-current.nettrace`.
 
+A PDFium-inspired scratch trial updated the arithmetic decoder's packed
+context byte directly inside the template-0 symbol loop. All 15 focused
+JBIG2 tests and the scan pixel hash passed. Four alternating fresh-process
+512-pixel renders had medians of 634.848 ms for the current code and
+641.668 ms for the trial; two trial peaks were about 4 MiB higher. The
+trial was not retained. Its source and raw results are under
+`C:/Users/steve/kp-bench-render/arith-packed-20260930`.
+
 A scratch JBIG2 stream path read single bytes directly from the source buffer
 instead of through layered stream buffers. All 15 focused JBIG2 tests and the
 scan hashes passed. Four alternating fresh-process zoom runs per build gave
