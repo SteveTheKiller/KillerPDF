@@ -10,7 +10,7 @@ internal sealed class PdfWorkingDocument : IDisposable
 
     private PdfWorkingDocument(byte[] source, bool isReadOnly)
     {
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(source);
         _source = source;
         PageCount = PdfPageInformation.Read(document).Count;
         IsReadOnly = isReadOnly;
