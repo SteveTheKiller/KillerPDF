@@ -104,6 +104,41 @@ public sealed class PdfPageRendererParallelismTests
     }
 
     [Fact]
+    public void Render_ParallelTranslucentCmykGroupMatchesSequentialPixelsAcrossRenders()
+    {
+        var samples = new byte[256 * 256 * 4];
+        for (int index = 0; index < samples.Length; index += 4)
+        {
+            samples[index] = (byte)(index / 4 * 3);
+            samples[index + 1] = (byte)(index / 4 * 5);
+            samples[index + 2] = (byte)(index / 4 * 7);
+            samples[index + 3] = (byte)(32 + index / 4 % 224);
+        }
+        PdfImage image = PdfImage.FromRgba(256, 256, samples);
+        var form = new PdfFormXObject(512, 512,
+            new PdfContentStreamBuilder().DrawImage(image, 0, 0, 512, 512),
+            isolatedTransparencyGroup: true,
+            transparencyGroupColorSpace: PdfTransparencyGroupColorSpace.Cmyk);
+        byte[] source = new PdfDocumentBuilder().AddPage(512, 512,
+            new PdfContentStreamBuilder().DrawForm(form, 0, 0)).Build();
+        var sequential = new PdfRenderOptions(1024, 1024, false, false)
+        {
+            CacheResult = false,
+            MaximumParallelism = 1
+        };
+        byte[] expected = new PdfPageRenderer(PdfDocument.Open(source))
+            .Render(0, sequential).Pixels.ToArray();
+
+        for (int pass = 0; pass < 12; pass++)
+        {
+            PdfRenderedPage actual = new PdfPageRenderer(PdfDocument.Open(source))
+                .Render(0, sequential with { MaximumParallelism = 4 });
+            Assert.Empty(actual.Diagnostics);
+            Assert.Equal(expected, actual.Pixels.ToArray());
+        }
+    }
+
+    [Fact]
     public void Render_ParallelRowsHonorCancellation()
     {
         PdfDocument document = LargePage();

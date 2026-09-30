@@ -19,7 +19,13 @@ public sealed partial class PdfPageRenderer
         private Color _lastInkColor;
         private uint _lastInk;
         private bool _hasInkColor;
-        internal byte[]? InkAlpha { get; private set; }
+        private readonly Lock _inkAlphaSync = new();
+        private byte[]? _inkAlpha;
+        internal byte[]? InkAlpha
+        {
+            get => System.Threading.Volatile.Read(ref _inkAlpha);
+            private set => System.Threading.Volatile.Write(ref _inkAlpha, value);
+        }
         private byte _constantAlpha;
         internal byte[]? GroupAlpha { get; private set; }
         internal byte[]? GroupShape { get; private set; }
@@ -33,8 +39,28 @@ public sealed partial class PdfPageRenderer
         // CMYK surfaces store native ink in Data and materialize alpha only when it varies.
         // Native color reads use ReadColor; RGB hot paths access Data directly.
         internal ref byte this[int offset] => ref Data[offset];
-        internal byte Alpha(int offset) => Ink is null ? Data[offset + 3]
-            : InkAlpha is null ? _constantAlpha : InkAlpha[offset / 4];
+        internal byte Alpha(int offset)
+        {
+            if (Ink is null) return Data[offset + 3];
+            byte[]? inkAlpha = InkAlpha;
+            return inkAlpha is null ? _constantAlpha : inkAlpha[offset / 4];
+        }
+        private byte[] EnsureInkAlpha()
+        {
+            byte[]? inkAlpha = InkAlpha;
+            if (inkAlpha is not null) return inkAlpha;
+            lock (_inkAlphaSync)
+            {
+                inkAlpha = InkAlpha;
+                if (inkAlpha is null)
+                {
+                    inkAlpha = RasterBuffers.Rent(Length / 4);
+                    inkAlpha.AsSpan(0, Length / 4).Fill(_constantAlpha);
+                    InkAlpha = inkAlpha;
+                }
+            }
+            return inkAlpha;
+        }
         internal void SetAlpha(int offset, byte alpha)
         {
             if (Ink is null)
@@ -42,13 +68,9 @@ public sealed partial class PdfPageRenderer
                 Data[offset + 3] = alpha;
                 return;
             }
-            if (InkAlpha is null)
-            {
-                if (alpha == _constantAlpha) return;
-                InkAlpha = RasterBuffers.Rent(Length / 4);
-                InkAlpha.AsSpan(0, Length / 4).Fill(_constantAlpha);
-            }
-            InkAlpha[offset / 4] = alpha;
+            byte[]? inkAlpha = InkAlpha;
+            if (inkAlpha is null && alpha == _constantAlpha) return;
+            (inkAlpha ?? EnsureInkAlpha())[offset / 4] = alpha;
         }
         /// <summary>Sets the alpha of <paramref name="count"/> consecutive pixels, like SetAlpha per pixel.</summary>
         internal void SetAlphaRun(int offset, int count, byte alpha)
@@ -58,13 +80,9 @@ public sealed partial class PdfPageRenderer
                 for (int index = 0; index < count; index++) Data[offset + index * 4 + 3] = alpha;
                 return;
             }
-            if (InkAlpha is null)
-            {
-                if (alpha == _constantAlpha) return;
-                InkAlpha = RasterBuffers.Rent(Length / 4);
-                InkAlpha.AsSpan(0, Length / 4).Fill(_constantAlpha);
-            }
-            InkAlpha.AsSpan(offset / 4, count).Fill(alpha);
+            byte[]? inkAlpha = InkAlpha;
+            if (inkAlpha is null && alpha == _constantAlpha) return;
+            (inkAlpha ?? EnsureInkAlpha()).AsSpan(offset / 4, count).Fill(alpha);
         }
         internal void CopyInkAlphaTo(int offset, Span<byte> destination)
         {
@@ -319,6 +337,8 @@ public sealed partial class PdfPageRenderer
             Span<ulong> colors = stackalloc ulong[4096];
             Span<uint> occupied = stackalloc uint[128];
             occupied.Clear();
+            byte[]? inkAlpha = InkAlpha;
+            byte constantAlpha = _constantAlpha;
             for (int offset = start; offset < end; offset += 4)
             {
                 if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -347,7 +367,7 @@ public sealed partial class PdfPageRenderer
                 }
                 previousInk = ink;
                 previousRgb = rgb;
-                WriteInk(Data, offset, rgb | (uint)Alpha(offset) << 24);
+                WriteInk(Data, offset, rgb | (uint)(inkAlpha is null ? constantAlpha : inkAlpha[offset / 4]) << 24);
             }
         }
 
