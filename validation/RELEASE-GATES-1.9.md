@@ -56,6 +56,13 @@ pass. Raw runs and retained payload are under
 `C:/Users/steve/kp-bench-render/cmyk-aggressive-trial`. Visible interaction
 and broader performance parity remain open.
 
+Applying the same first-compilation optimization to the JBIG2 generic-region
+fast decoder did not help the repeated scan workload. Three alternating
+eight-copy pairs gave first-render baseline/trial times of 805/875, 801/831,
+and 769/794 ms, while warmed medians varied in both directions. The trial
+was removed. Logs and its payload are under
+`C:/Users/steve/kp-bench-render/jbig2-aggressive-trial`.
+
 The latest local 1.9 candidate and 1.8.72 were also compared on the 40-file,
 74-page difficult set at 2048 pixels with one file worker. After warmup,
 three alternating measured runs gave 1.9 median render and wall times of
