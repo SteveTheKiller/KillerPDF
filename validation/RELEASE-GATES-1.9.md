@@ -146,6 +146,15 @@ The measured multi-hundred-millisecond first-page gap still needs engine and
 visible interaction work. Probe source and raw runs are under
 `C:/Users/steve/kp-bench-render/viewer-bitmap-boundary-20260930`.
 
+Moving the JPEG 2000 decoder's state clear below its empty-block return
+preserved the balloon page hash in 120 renders. Four fresh, hidden engine
+processes alternated baseline and trial builds, each opening a new document
+for 30 renders. First-render times were 545.75 and 530.98 ms for baseline
+versus 542.76 and 540.19 ms for trial. The last-20 medians were 158.41 and
+160.69 ms versus 158.59 and 160.66 ms. The trial did not establish a speed
+gain, so the source change was removed. Probe source and raw runs are under
+`C:/Users/steve/kp-bench-render/j2k-empty-block-20260930`.
+
 ### Current difficult-set refresh (2026-09-29)
 
 The current 1.9 Release build and local 1.8.72 Release build rendered the same
