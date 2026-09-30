@@ -3,6 +3,7 @@
 // BSD-3-Clause; see engine/THIRD-PARTY-NOTICES.txt for the complete notice.
 // Forward conversion and unchanged forward table from PDFium revision
 // f91ca5a72358bb0b00b4da9481b21fe668157614, core/fxge/dib/cfx_cmyk_to_srgb.cpp.
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
 namespace KillerPdf.Engine.Rendering;
@@ -10,6 +11,7 @@ namespace KillerPdf.Engine.Rendering;
 /// <summary>Converts unprofiled process inks to the legacy renderer's display colors.</summary>
 internal static class PdfDeviceCmyk
 {
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     internal static uint ToRgb(uint ink)
     {
         int c = (byte)ink, m = (byte)(ink >> 8), y = (byte)(ink >> 16), k = (byte)(ink >> 24);
