@@ -42,6 +42,15 @@ a second backend pass before attaching page one; the guarded 1.9 path started
 one pass, but that pass still took 937 to 967 ms. These hidden-process marks
 support engine work and do not establish a displayed-frame timing.
 
+A scratch 1.9 build timed image decode and paint during one hidden Continuous
+startup on `064034.pdf`. Several page-zero renders overlapped. The longest
+image decode call took 410.836 ms and its following paint took 43.429 ms;
+the marked first backend render took 521.207 ms. The overlap prevents
+attributing every image call to the first backend pass or summing them as a
+stage breakdown. It does identify JPEG decode as a priority for a controlled
+single-page probe. The trace and instrumented build are in the same scratch
+directory as the viewer attachment probe.
+
 The Continuous view scroll-settle timer no longer cancels an active base render
 for the same viewport center. A fresh-process headless simulation of the
 `42828.0001.001.pdf` first page compared six retained renders with six
