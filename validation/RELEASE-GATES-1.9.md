@@ -135,6 +135,17 @@ and PNG hashes matched across all six runs in each set. The shared-set
 regression rules out a process-wide setting change. Raw runs, scripts, and
 analyses are under `C:/Users/steve/kp-bench-render/tiered-off-20260930`.
 
+The 1.8 and 1.9 primary viewer paths use the same resolution rule and the
+same `WriteableBitmap` construction, pixel copy, and freeze sequence after
+rendering. A separate hidden WPF probe timed that sequence with synthetic
+BGRA pixels in four fresh processes. Its first bitmap creation took 117 to
+128 ms at 724 by 1024 pixels; after warmup, the median was 7.3 ms at 1447 by
+2048 pixels and 15.4 ms at 2048 by 2894 pixels. This isolates bitmap handoff
+cost, not page layout, screen presentation, or an end-to-end viewer comparison.
+The measured multi-hundred-millisecond first-page gap still needs engine and
+visible interaction work. Probe source and raw runs are under
+`C:/Users/steve/kp-bench-render/viewer-bitmap-boundary-20260930`.
+
 ### Current difficult-set refresh (2026-09-29)
 
 The current 1.9 Release build and local 1.8.72 Release build rendered the same
