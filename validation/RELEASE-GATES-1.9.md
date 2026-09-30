@@ -21,6 +21,18 @@ overall average.
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. The desktop working-document path now opens the retained #406 reporter PDF. Fifteen newer maintenance commits have verified port records in this pass, and the local-branch guard lists five still needing review. The 1.9 MCP page still describes merging as its main operation while the 1.8 page covers broader PDF tools; its tool content remains open. Three remaining commits concern 1.8 release metadata, and one adds a workflow that is not authorized for 1.9. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Its default remote refs are behind both local branches. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 30: 4,163 engine tests and 485 app tests pass, and the Release application build succeeds with 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
+Adjacent-page prefetch in Single and Two-Page modes omitted the display-only
+night-mode inversion that the direct and secondary render paths apply before
+rotation. The 1.9 prefetch path now uses the same inversion and picture
+carve-out before caching its bitmap. Version 1.8 has no adjacent-page
+prefetch path. Tab and view switches now cancel obsolete prefetch before
+starting the newly visible render. The Release build, 21 focused app tests,
+and all 485 app tests pass after this change; all 4,163 engine tests passed
+with the unchanged engine. Visible night-mode navigation and the interaction
+speed effect remain unmeasured while the desktop UI is in use. Cancellation
+does not interrupt a JBIG2 stream already being decoded; it stops subsequent
+prefetch work after that decode returns.
+
 The forward-port guard against local 1.8.72 commit `d158706b` and current 1.9
 commit `db6fcb0` reports five unresolved 1.8.71 commits: `d444b96` (KillerMCP
 CLI and site), `2d58e12` (release date), `4515ee6` (README source link),

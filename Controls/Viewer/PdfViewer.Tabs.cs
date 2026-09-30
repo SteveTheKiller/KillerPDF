@@ -484,6 +484,7 @@ namespace KillerPDF.Controls
         {
             _tabViewportRestoreGate.Cancel();
             _rerenderTimer?.Stop();
+            CancelAdjacentPrefetch();
 
             CancelAndRelease(_secondaryRenderCts);
             _secondaryRenderCts = null;

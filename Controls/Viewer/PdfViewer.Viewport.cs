@@ -62,6 +62,7 @@ namespace KillerPDF.Controls
             _prefetchCts = cts;
             var session = _active;
             string currentFile = _currentFile;
+            bool invert = DocInvert;
             long revision = session?.RenderRevision ?? 0;
             int total = _doc.PageCount;
             int forward = _viewMode == ViewMode.TwoPage
@@ -74,6 +75,7 @@ namespace KillerPDF.Controls
             _ = System.Threading.Tasks.Task.Run(() =>
             {
                 PdfBackgroundRenderCache.Lease? lease = null;
+                ContentDoc? contentDoc = null;
                 try
                 {
                     foreach (int target in targets)
@@ -88,6 +90,9 @@ namespace KillerPDF.Controls
                         int w = rendered.Width, h = rendered.Height;
                         byte[] raw = rendered.Pixels;
                         if (w <= 0 || h <= 0 || raw is null) continue;
+                        if (invert)
+                            BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h,
+                                ImageRectsFor(currentFile, target, ref contentDoc));
                         if (rot != 0)
                             (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
                         if (cancellationToken.IsCancellationRequested) return;
@@ -110,6 +115,7 @@ namespace KillerPDF.Controls
                 finally
                 {
                     lease?.Dispose();
+                    contentDoc?.Dispose();
                     cts.Dispose();
                 }
             });
@@ -2206,6 +2212,7 @@ namespace KillerPDF.Controls
         internal void ApplyViewMode(ViewMode mode, bool force = false)
         {
             if (_viewMode == mode && !force) return;
+            CancelAdjacentPrefetch();
             _primaryRenderSession.Clear();
             _backgroundRenderCache.Clear();
             _viewMode = mode;
