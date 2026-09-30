@@ -114,6 +114,15 @@ points to both decoding and painting for further work rather than another
 isolated color-table edit. The trace and scratch probe are under
 `C:/Users/steve/kp-bench-render/cmyk-profile-20260929`.
 
+An opaque-plane paint loop removed per-pixel alpha and mask checks for the
+plain CMYK image path. Eight alternating baseline/trial runs rendered eight
+copies of `064034.pdf` each at 2048 pixels. All 64 outputs shared one pixel
+hash, and sampled peaks stayed between 182.1 and 185.2 MiB. The last-six
+medians were 188.2 to 195.7 ms for baseline and 186.5 to 191.6 ms for the
+trial. The small, inconsistent difference did not justify retaining the
+extra loop. The tracked source was restored; raw runs are under
+`C:/Users/steve/kp-bench-render/cmyk-opaque-plane-trial-20260929`.
+
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
 The measured engine payload includes rendering changes through `249072b`,
