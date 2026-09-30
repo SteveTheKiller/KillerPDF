@@ -848,13 +848,16 @@ public sealed partial class PdfPageRenderer
     [ThreadStatic]
     private static int _rowParallelism;
 
+    [ThreadStatic]
+    private static int _jpeg2000PaintParallelism;
+
     private const long ParallelPaintThreshold = 262_144;
 
     /// <summary>Runs a row loop sequentially or across row ranges when large enough.</summary>
     private static void ForEachRow(int top, int bottom, long pixelCount,
-        CancellationToken cancellationToken, Action<int, int> body)
+        CancellationToken cancellationToken, Action<int, int> body, int? maximumParallelism = null)
     {
-        int parallelism = _rowParallelism;
+        int parallelism = maximumParallelism ?? _rowParallelism;
         if (parallelism <= 1 || pixelCount < ParallelPaintThreshold || bottom - top < 2)
         {
             body(top, bottom);

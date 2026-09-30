@@ -239,9 +239,11 @@ public sealed partial class PdfPageRenderer
         else if (pageProfile is { Components: 1 or 3 }) pixels.EnableRgb(Color.White, pageProfile);
         RasterSurface pageSurface = pixels;
         int previousParallelism = _rowParallelism;
+        int previousJpeg2000PaintParallelism = _jpeg2000PaintParallelism;
         bool retryForOutputProfile = false;
         bool retryWithoutOutputProfile = false;
         _rowParallelism = Math.Max(1, options.MaximumParallelism);
+        _jpeg2000PaintParallelism = Math.Max(1, options.Jpeg2000PaintParallelism);
         try
         {
             ImageColorSpace initialGray = ReadColorSpace(Name("DeviceGray"), pageResources, 0, diagnostics: diagnostics).ForDestination(pixels);
@@ -274,6 +276,7 @@ public sealed partial class PdfPageRenderer
         finally
         {
             _rowParallelism = previousParallelism;
+            _jpeg2000PaintParallelism = previousJpeg2000PaintParallelism;
             pageSurface.ReleaseInk();
             // Reuse a large image during a page or output-profile retry, then restore the
             // original long-lived image budget when that page finishes.
@@ -2733,7 +2736,7 @@ public sealed partial class PdfPageRenderer
             colorKeyMask, colorSpace, stencilColor, stencilAlpha, blendMode,
             cancellationToken, preblendMatte,
             softMask is not null || colorKeyMask is not null ? null : graphicsSoftMask, knockout, overprint, alphaIsShape,
-            explicitMask is not null);
+            explicitMask is not null, jpeg2000Shape is not null);
         return true;
     }
 
@@ -4596,7 +4599,8 @@ public sealed partial class PdfPageRenderer
         ImageColorSpace colorSpace, Color stencilColor, double stencilAlpha,
         RendererBlendMode blendMode, CancellationToken cancellationToken,
         double[]? preblendMatte, GraphicsSoftMask? graphicsSoftMask,
-        KnockoutState? knockout, bool overprint, bool alphaIsShape, bool explicitMask)
+        KnockoutState? knockout, bool overprint, bool alphaIsShape, bool explicitMask,
+        bool jpeg2000)
     {
         if (imageMask ? stencilColor.DoesNotPaint : colorSpace.DoesNotPaint) return;
         // Zero opacity on a plain RGB surface changes nothing outside a knockout group.
@@ -4722,7 +4726,9 @@ public sealed partial class PdfPageRenderer
                                 directData[targetOffset + 3] = 255;
                             }
                         }
-                    });
+                    }, jpeg2000 && areaSample
+                        ? Math.Max(_rowParallelism, _jpeg2000PaintParallelism)
+                        : null);
                 return;
             }
             Span<ulong> inkLookup = inkDirect ? stackalloc ulong[directGray ? 256 : 4096] : [];

@@ -212,12 +212,15 @@ internal sealed class PdfPageRenderSession : IDisposable
         int engineHeight = Math.Max(1, (int)(pageHeight * renderScale));
         return new EngineRenderOptions(engineWidth, engineHeight, transparentBackground,
             includeAnnotations, includeFormFields)
-        { MaximumParallelism = RenderParallelism(engineWidth, engineHeight) };
+        {
+            MaximumParallelism = RenderParallelism(engineWidth, engineHeight),
+            Jpeg2000PaintParallelism = Math.Clamp(Environment.ProcessorCount / 2, 1, 4)
+        };
     }
 
     // Large pages split their big row-independent paints across a few threads; output pixels
-    // are identical at any thread count. Small pages stay on the calling thread, and the cap
-    // leaves cores free for pages the viewer renders concurrently.
+    // are identical at any thread count. Small pages stay on the calling thread except for
+    // large reduced JPEG 2000 paints. The cap leaves cores free for concurrent viewer pages.
     private const long ParallelRenderPixels = 1_048_576;
 
     internal static int RenderParallelism(int width, int height) =>
@@ -227,7 +230,10 @@ internal sealed class PdfPageRenderSession : IDisposable
     private static EngineRenderOptions CreateExactOptions(int width, int height,
         bool transparentBackground, bool includeFormFields) =>
         new(width, height, transparentBackground, includeAnnotations: true, includeFormFields)
-        { MaximumParallelism = RenderParallelism(width, height) };
+        {
+            MaximumParallelism = RenderParallelism(width, height),
+            Jpeg2000PaintParallelism = Math.Clamp(Environment.ProcessorCount / 2, 1, 4)
+        };
 
     internal static PdfRenderedPage? RenderExactPage(
         string path, int pageIndex, int width, int height,

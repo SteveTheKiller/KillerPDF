@@ -52,6 +52,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Reduced first-render time for unprofiled DeviceCMYK content.
 - Shortened fully opaque RGB blend compositing and split large non-isolated group composites across bounded row workers, improving blend rendering without changing pixels or peak memory.
 - Split large generic image paints across bounded row workers when their mutable state is row-independent, and reused already converted destination ink during compositing, improving masked-image and mixed-page rendering without changing pixels or peak memory.
+- Split large reduced JPEG 2000 image paints across bounded row workers at smaller page sizes.
 - Sampled ordinary eight-bit image soft masks directly during bilinear interpolation, reducing repeated mask work without changing pixels.
 - Parsed content-stream numbers directly from UTF-8 bytes, reducing repeated Form rendering time without changing output.
 - Reused the canonical Unicode replacement character while parsing font maps, reducing cold allocation for maps with repeated missing-character entries.

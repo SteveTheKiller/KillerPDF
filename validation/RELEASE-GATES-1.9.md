@@ -815,6 +815,30 @@ milliseconds, wall medians were 6,121/6,134 milliseconds, and maximum peak
 working sets were 120.4/120.2 MiB. All 60 paired PNGs matched. The hint was
 removed; evidence is under `C:/Users/steve/kp-bench-render/j2k-entry-opt-20260929`.
 
+Large area-sampled JPEG 2000 image paints now use up to four bounded row
+workers even below the general page-size threshold. Three alternating
+same-version pairs of 20 balloon copies at 1024 pixels reduced median render
+time from 4,731 to 4,419 milliseconds and wall time from 6,450 to 6,224
+milliseconds. Maximum peak working set rose from 120.4 to 122.2 MiB. All 60
+paired PNGs matched. On the 649-file conformance corpus, the same three-pair
+protocol reduced median render time from 15,509 to 15,299 milliseconds and
+wall time from 28,531 to 28,205 milliseconds. Peak working set was 494.7
+versus 495.0 MiB; all 1,842 paired PNGs matched, with 614 successes and 35
+skips in each run. The 74-page difficult set at 1024 pixels varied more:
+median render time was 8,947 versus 9,129 milliseconds, wall time was 11,067
+versus 11,281 milliseconds, and peak working set was 199.5 versus 204.1 MiB.
+All 222 difficult PNGs matched. This is a focused JPEG 2000 gain and a modest
+conformance gain, not difficult-set speed parity. The 4,160 engine and 484 app
+tests pass. Raw evidence is under
+`C:/Users/steve/kp-bench-render/j2k-paint-parallel-20260929`.
+The final application-option version repeated the balloon gain in three more
+pairs: median render time was 4,318 versus 4,050 milliseconds, wall time was
+5,932 versus 5,688 milliseconds, and peak working set was 120.1 versus
+122.3 MiB. All 60 PNGs matched. The engine option defaults to one worker;
+the application explicitly requests the larger JPEG 2000 paint cap.
+A final conformance render from that exact option-based payload matched all
+614 successful PNGs from the measured trial, with the same 35 skips.
+
 At the application's 751 by 1023 output size, a separate 40-pass engine probe
 rendered the same page with one, two, and four workers. Two one-worker runs
 had last-20 medians of 184.331 and 180.996 milliseconds; two two-worker runs
@@ -822,7 +846,8 @@ had 173.570 and 173.784 milliseconds; two four-worker runs had 160.771 and
 160.204 milliseconds. Median allocation rose from about 17.65 MB with one
 worker to 17.72 MB with two and 17.81 MB with four. All 240 renders had the
 same pixel hash. The application's current output-size policy selects one
-worker for this page. A second 20-pass probe on the technical Altona page at
+worker for this page under its general policy; the focused JPEG 2000 paint cap
+was added afterward. A second 20-pass probe on the technical Altona page at
 the same output size found last-ten medians of 158.412 and 149.392 milliseconds
 with one worker, versus 158.770 and 159.760 milliseconds with four. All 80
 Altona renders had the same pixel hash. A general reduction in the worker

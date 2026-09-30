@@ -45,8 +45,10 @@ public sealed record PdfRenderOptions
     public bool CacheResult { get; init; } = true;
     /// <summary>
     /// Gets the largest number of threads the renderer may use for large row-independent
-    /// operations such as opaque fills, image placement, and JPEG 2000 reconstruction. One keeps rendering on the calling
-    /// thread. Output pixels are identical at any setting.
+    /// operations such as opaque fills, image placement, and JPEG 2000 reconstruction. One keeps
+    /// those operations on the calling thread. Output pixels are identical at any setting.
     /// </summary>
     public int MaximumParallelism { get; init; } = 1;
+    /// <summary>Gets the separate row-worker cap for large reduced JPEG 2000 image paints.</summary>
+    public int Jpeg2000PaintParallelism { get; init; } = 1;
 }
