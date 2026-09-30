@@ -334,6 +334,15 @@ next renderer comparison should focus on symbol-dictionary decoding and
 one-bit page painting. The extracted stream is in the same scratch directory
 as `42828-image2354.jb2`.
 
+The viewer's primary session renders into caller-owned pixels, so the engine's
+rendered-page cache does not retain a second page bitmap. A headless memory
+probe of the scan page found about 1.1 MiB in the reusable byte-buffer pool
+after a 512-pixel render and 16.1 MiB after a 2048-pixel render. After
+collection, managed heaps were 41.9 and 57.7 MB; the difference closely
+matches the pool. Releasing idle buffers would lower retention, but it would
+not remove their allocation from the peak. The probe is under
+`C:/Users/steve/kp-bench-render/scan-memory-20260930`.
+
 A fresh-process 512-pixel sample trace of the current loose payload confirms
 the cold path spends substantial sampled time in JBIG2 generic-region line
 decoding and arithmetic decoding. One-bit area sampling also appears, but at
