@@ -791,6 +791,14 @@ text and image work. No single paint loop explains the cold gap. Headless
 timing and trace evidence is under
 `C:/Users/steve/kp-bench-render/altona-cold-current-20260929`.
 
+Separating Type 3 text handling from the ordinary text function did not
+reduce the cold Altona render consistently. Three alternating same-version
+20-copy pairs measured first-page baseline/trial times of 762/734, 739/765,
+and 738/739 milliseconds. Median full-batch render totals were 4,149/4,608
+milliseconds. All 60 paired PNGs matched, and peak working sets stayed near
+149 MiB. The split was removed; trial evidence is under
+`C:/Users/steve/kp-bench-render/type3-cold-split-20260929`.
+
 Applying optimized-first compilation only to `ConvertArea` did not improve a
 direct one-worker probe of that page. Reversed-order baseline/trial first
 renders were 784.763/783.762 and 787.815/780.194 milliseconds; the sums of
