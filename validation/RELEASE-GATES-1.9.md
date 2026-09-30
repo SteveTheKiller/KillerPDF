@@ -567,6 +567,15 @@ trial, with about 35 KiB more allocation per render. The `382252` pairs split:
 extra allocation did not justify retaining the column array. The trial was
 removed; raw runs are under `C:/Users/steve/kp-bench-render/binary-column-trial`.
 
+A single-source-row path in the same sampler passed all seven focused tests
+and kept both measured page hashes. In two alternating `42828` pairs, warmed
+baseline/trial medians were 166.862/164.711 and 164.108/164.210 ms; both
+trial first renders were slower than their paired baselines. On `382252`,
+warmed medians were 42.660/44.249 and 42.591/43.035 ms. Allocation stayed
+effectively unchanged. The trial was removed because it did not improve cold
+rendering and slowed the second page. Raw runs are under
+`C:/Users/steve/kp-bench-render/binary-single-row-20260930`.
+
 A sampled trace of the first two `495712.pdf` pages attributes the largest
 active renderer cost to vector stroke rasterization, including cell creation
 and per-row X sorting. A trial skipped sorting when a distributed row was
