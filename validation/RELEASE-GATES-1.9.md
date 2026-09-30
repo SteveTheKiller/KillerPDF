@@ -95,6 +95,14 @@ and 101.5 ms for the trial. The mixed result did not justify retaining the
 change. Raw runs are under
 `C:/Users/steve/kp-bench-render/calculator-inline-trial-20260929`.
 
+A one-dimensional cosine lookup in reduced JPEG block output passed 135
+focused JPEG tests and preserved one PNG hash across 64 renders of `363_Risk`.
+Three alternating pairs gave baseline last-six medians of 209.5, 203.5,
+and 216 ms versus 204.5, 204, and 215 ms for the trial. The differences
+were not repeatable enough to retain it. The restored Release DLL matches
+the baseline hash. Raw runs are under
+`C:/Users/steve/kp-bench-render/jpeg-vertical-table-trial-20260929`.
+
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
 The measured engine payload includes rendering changes through `249072b`,
