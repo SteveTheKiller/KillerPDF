@@ -103,6 +103,17 @@ were not repeatable enough to retain it. The restored Release DLL matches
 the baseline hash. Raw runs are under
 `C:/Users/steve/kp-bench-render/jpeg-vertical-table-trial-20260929`.
 
+A 64-pass sampled-thread-time trace of the current 1.9 engine on `064034.pdf`
+at 2048 pixels reproduced one pixel hash with no render diagnostics. The
+largest application work in this trace appears in both JPEG decoding and the
+image-paint row worker. `PdfJpegDecoder.DecodeScan` accounts for 9.46% of all
+stack samples inclusively, while one `PaintImage` row worker accounts for
+9.52% exclusively. Most remaining samples are idle thread-pool waits, so
+these percentages are not a CPU-time split or a comparison with 1.8. This
+points to both decoding and painting for further work rather than another
+isolated color-table edit. The trace and scratch probe are under
+`C:/Users/steve/kp-bench-render/cmyk-profile-20260929`.
+
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
 The measured engine payload includes rendering changes through `249072b`,
