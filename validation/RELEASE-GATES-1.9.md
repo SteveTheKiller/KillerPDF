@@ -576,6 +576,15 @@ effectively unchanged. The trial was removed because it did not improve cold
 rendering and slowed the second page. Raw runs are under
 `C:/Users/steve/kp-bench-render/binary-single-row-20260930`.
 
+A packed-bit shortcut for spans of at most four source pixels passed the seven
+focused sampler tests and preserved both measured page hashes. The two `42828`
+warmed pairs split at 163.166/162.197 and 163.657/164.296 ms
+(baseline/trial), while both trial first renders were slower. The `382252`
+pairs also disagreed at 41.896/42.916 and 43.984/43.773 ms. Allocation was
+similar. The shortcut was removed; raw runs and a cold sampled trace are under
+`C:/Users/steve/kp-bench-render/binary-short-span-20260930` and
+`C:/Users/steve/kp-bench-render/binary-worker-sweep-20260930`.
+
 A sampled trace of the first two `495712.pdf` pages attributes the largest
 active renderer cost to vector stroke rasterization, including cell creation
 and per-row X sorting. A trial skipped sorting when a distributed row was
