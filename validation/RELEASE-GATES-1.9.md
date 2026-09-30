@@ -334,6 +334,14 @@ next renderer comparison should focus on symbol-dictionary decoding and
 one-bit page painting. The extracted stream is in the same scratch directory
 as `42828-image2354.jb2`.
 
+A scratch JBIG2 stream path read single bytes directly from the source buffer
+instead of through layered stream buffers. All 15 focused JBIG2 tests and the
+scan hashes passed. Four alternating fresh-process zoom runs per build gave
+first 512-pixel medians of 640.36 ms before and 644.01 ms after the change;
+final process peaks were about 160.0 and 164.2 MiB. Direct bulk reads also
+failed two focused decoder tests. The stream path was not retained. Source and
+raw measurements are under `C:/Users/steve/kp-bench-render/jbig2-direct-stream-20260930`.
+
 A one-byte fast path for counting interior bits in reduced binary images
 preserved scan pixels and improved repeated direct-engine renders by a few
 milliseconds. Eight alternating hidden application runs then rendered all 74
