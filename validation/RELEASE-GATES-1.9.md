@@ -78,6 +78,18 @@ runs per version gave median render sums of 8.617 seconds for the baseline and
 small, variable difference did not justify keeping the change. Raw results
 are under `C:/Users/steve/kp-bench-render/binary-row-weights-20260930`.
 
+Four fresh-process engine probes of `42828` separated document open, first
+render, and repeat work at 1447 by 2048 pixels with four row workers. Median
+first render was 656.3 ms. A second render through the same renderer took
+54.1 ms; rendering through a new renderer on the same document took 207.8 ms.
+All five renders per process produced the same pixel hash. The runtime's
+cumulative JIT compilation metric increased by a median 173 ms during the
+first render, versus 1 ms during the second. Compilation contributes to the
+cold delay but does not account for the full first-render cost. The probe does
+not measure WPF presentation or establish a 1.8 comparison. Source, DLL hashes,
+and raw measurements are under
+`C:/Users/steve/kp-bench-render/cold-jit-20260930`.
+
 ### Current difficult-set refresh (2026-09-29)
 
 The current 1.9 Release build and local 1.8.72 Release build rendered the same
