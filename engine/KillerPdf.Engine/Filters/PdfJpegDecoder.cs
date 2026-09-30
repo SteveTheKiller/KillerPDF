@@ -849,7 +849,8 @@ internal static class PdfJpegDecoder
             // and all-zero rows are skipped without changing any rounding.
             for (int v = 0; v < 8; v++)
             {
-                int lastU = coefficients.Slice(v * 8, 8).LastIndexOfAnyExcept(0);
+                int lastU = 7;
+                while (lastU >= 0 && coefficients[v * 8 + lastU] == 0) lastU--;
                 rowHasCoefficients[v] = lastU >= 0;
                 if (lastU < 0)
                 {
@@ -989,7 +990,8 @@ internal static class PdfJpegDecoder
             // row and all-zero rows are skipped without changing any rounding.
             for (int v = 0; v < 8; v++)
             {
-                int lastU = coefficients.Slice(v * 8, 8).LastIndexOfAnyExcept(0);
+                int lastU = 7;
+                while (lastU >= 0 && coefficients[v * 8 + lastU] == 0) lastU--;
                 rowHasCoefficients[v] = lastU >= 0;
                 if (lastU < 0)
                 {

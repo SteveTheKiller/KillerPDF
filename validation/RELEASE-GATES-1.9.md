@@ -17,7 +17,7 @@ overall average.
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch above 1.8; visible interactive use unverified | The September 30 difficult comparison has a median peak of 286.5 MiB for 1.9 versus 258.3 MiB for 1.8, with measured ranges of 285.9 to 287.0 and 231.8 to 260.0 MiB. September 9 installed-layout medians were 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | The September 30 difficult comparison has median render sums of 8.422 versus 4.601 seconds and wall times of 13.506 versus 9.704 seconds for 1.9 and 1.8. A retained axial-shading change improves `363_Risk` locally, but broader parity remains open. Earlier installed-layout shared medians were 15.687 versus 12.240 seconds of rendering and 27.350 versus 23.023 seconds wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
-| Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A current installed-layout headless scan probe has a first-call median of 806.05 ms for 1.9 versus 248.664 ms for 1.8, including the 1.8 dimension lookup. A five-size headless CMYK sequence still takes 601.412 versus 99.400 ms on its first 512-pixel call, though repeat sizes favor 1.9 after caching. The earlier technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8. Continuous view now schedules the visible page before neighboring work, but these checks do not measure visible first-page completion, scrolling, or zoom. |
+| Startup, first-page display, scrolling, and zoom without regression | Startup ready marker measured; other interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A current installed-layout headless scan probe has a first-call median of 806.05 ms for 1.9 versus 248.664 ms for 1.8, including the 1.8 dimension lookup. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. The earlier technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8. Continuous view now schedules the visible page before neighboring work, but these checks do not measure visible first-page completion, scrolling, or zoom. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. The desktop working-document path now opens the retained #406 reporter PDF. Fifteen newer maintenance commits have verified port records in this pass, and the local-branch guard lists five still needing review. The 1.9 MCP page still describes merging as its main operation while the 1.8 page covers broader PDF tools; its tool content remains open. Three remaining commits concern 1.8 release metadata, and one adds a workflow that is not authorized for 1.9. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Its default remote refs are behind both local branches. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 30: 4,163 engine tests and 485 app tests pass, and the Release application build succeeds with 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
@@ -159,6 +159,35 @@ opening took 70.627 to 73.661 ms, while rendering took 585.947 to
 not opening the document. All four stage probes retained the same pixel hash.
 The probe and raw CSV are under
 `C:/Users/steve/kp-bench-render/viewer-primary-20260930`.
+
+### Reduced JPEG first-render improvement (2026-09-30)
+
+A sampled first 512-pixel trace of `064034.pdf` placed reduced JPEG block
+reconstruction and its trailing-zero search above image painting. Replacing
+the eight-coefficient vector search with a scalar backward search preserved
+the exact render hashes. In four alternating fresh-process pairs, the
+`064034.pdf` first-render median fell from 594.004 to 374.444 ms and the
+`363_Risk` median fell from 543.408 to 380.060 ms. Sampled peak ranges
+were 58.9 to 59.1 versus 58.7 to 59.0 MiB on the CMYK page, and the risk
+page peaked at most 69.7 versus 69.4 MiB. Each mode kept one pixel hash
+per page. The retained-session CMYK zoom sequence confirmed a 602.910 to
+373.894 ms first 512-pixel median. Its first 1024 and 2048-pixel calls
+were variable and did not show a gain; repeated sizes were essentially
+unchanged.
+
+Three alternating measured runs per mode rendered all 74 difficult pages
+with identical PNGs. Median render sums were 8,605 versus 8,309 ms and
+wall times 13,660 versus 13,314 ms for baseline and changed builds, but
+the ranges overlap. Median sampled peaks were 263.2 versus 263.0 MiB.
+Two alternating measured runs per mode rendered all 600 shared pages with
+identical PNGs. Their render-sum medians were 13,172.5 versus 13,103 ms,
+wall medians 24,470 versus 24,486 ms, and peak ranges 494.2 to 494.6
+versus 493.8 to 494.1 MiB. The broader work is effectively tied; the
+verified gain is the cold small-page JPEG path. The full 4,163 engine and
+485 application tests pass, and the Release application build succeeds
+with 659 existing nullable warnings from vendored CoreJ2K. Raw traces,
+payloads, run logs, and PNGs are under
+`C:/Users/steve/kp-bench-render/jpeg-cold512-trial-20260930`.
 
 Sixteen fresh-process renders each of `42828` and `064034` compared one, two,
 four, and eight engine row workers in balanced order. All pixel hashes matched
