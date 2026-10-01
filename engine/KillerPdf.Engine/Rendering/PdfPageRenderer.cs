@@ -709,6 +709,18 @@ public sealed partial class PdfPageRenderer
                     extractionFont = null;
                     textSize = Number(values[1]);
                     break;
+                case "Tf" when _document.UsesCompatibilityRecovery && values.Count == 1
+                    && values[0] is PdfInteger or PdfReal:
+                    if (resources.TryGetValue(Name("Font"), out PdfObject? soleFontsValue)
+                        && Resolve(soleFontsValue) is PdfDictionary { Count: 1 } soleFonts
+                        && Resolve(soleFonts.Values.First()) is PdfDictionary soleFont)
+                    {
+                        textFont = soleFont;
+                        extractionFont = null;
+                        textSize = Number(values[0]);
+                        diagnostics.Add("Font selection without a name used the only page font resource.");
+                    }
+                    break;
                 case "Tm" when values.Count == 6:
                     textMatrix = textLineMatrix = new Matrix(
                         N(0), N(1), N(2), N(3), N(4), N(5));

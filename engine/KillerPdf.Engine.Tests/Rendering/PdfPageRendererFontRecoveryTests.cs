@@ -93,11 +93,30 @@ public sealed class PdfPageRendererFontRecoveryTests
         Assert.Empty(actual.Diagnostics);
     }
 
-    private static PdfDocument Create(string resourceName, string? declaredFont, bool widget, bool recovery,
-        PdfObject? invalidFont = null, string? encoding = null)
+    [Fact]
+    public void MissingFontNameUsesSoleDeclaredFontOnlyInRecovery()
     {
+        var options = new PdfRenderOptions(240, 160);
+        byte[] expected = new PdfPageRenderer(Create("F0", "Times-Italic", false, false))
+            .Render(0, options).Pixels.ToArray();
+        Assert.Contains(expected, value => value != 255);
+
+        PdfRenderedPage actual = new PdfPageRenderer(Create("F0", "Times-Italic", false, true,
+            missingFontName: true)).Render(0, options);
+        Assert.Equal(expected, actual.Pixels.ToArray());
+        Assert.Contains("Font selection without a name used the only page font resource.", actual.Diagnostics);
+
+        PdfRenderedPage strict = new PdfPageRenderer(Create("F0", "Times-Italic", false, false,
+            missingFontName: true)).Render(0, options);
+        Assert.All(strict.Pixels.ToArray(), value => Assert.Equal(255, value));
+    }
+
+    private static PdfDocument Create(string resourceName, string? declaredFont, bool widget, bool recovery,
+        PdfObject? invalidFont = null, string? encoding = null, bool missingFontName = false)
+    {
+        string fontSelection = missingFontName ? "18" : $"/{resourceName} 18";
         byte[] content = Encoding.ASCII.GetBytes(
-            $"BT /{resourceName} 18 Tf 10 60 Td (Several) Tj 0 -24 Td (\\244\\351\\200 Jobs) Tj ET");
+            $"BT {fontSelection} Tf 10 60 Td (Several) Tj 0 -24 Td (\\244\\351\\200 Jobs) Tj ET");
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(120, 80, widget ? [] : content).Build());
         PdfPageTreeEntry page = PdfPageTree.Read(source).Pages[0];
