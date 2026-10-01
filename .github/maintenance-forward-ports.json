@@ -583,6 +583,16 @@
       "maintenanceCommit": "7cff804bf5af124c8610bcb3596073b968a300c0",
       "developmentCommit": "78ff3777e8a82338bea8f9fb185fa133e291766e",
       "reason": "The release synchronization workflow is intentionally not carried into 1.9. This branch previously removed an unrequested maintenance workflow, and no new release automation is authorized."
+    },
+    {
+      "maintenanceCommit": "665adc3785c169369f0d65e5b8834f5b9b4ac844",
+      "developmentCommit": "91582ee62e75fe7360a7d4ae60c1107f4b78912b",
+      "reason": "Yellow and magenta accents were adapted to the 1.9 themes and landing pages."
+    },
+    {
+      "maintenanceCommit": "711f0d309f908172d9e86cd900af477868a3844a",
+      "developmentCommit": "51831c4707868c5c0f1b7919f4623dcd889824fc",
+      "reason": "The 1.8.80 maintenance version does not apply to the separate 1.9.0 development line."
     }
   ]
 }

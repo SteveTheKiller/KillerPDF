@@ -5,9 +5,9 @@ An improvement over an earlier 1.9 build does not establish parity with 1.8.
 Missing measurements are unverified, not passes. Test counts and successful
 batch completion do not establish visual or interactive equivalence.
 
-The current PDFium maintenance application reports version 1.8.72 in its local
-`KillerPDF-1.8` directory. Earlier retained comparisons identify their 1.8.5
-payload separately. Use identified application DLLs and identical inputs when
+The current PDFium maintenance checkout reports version 1.8.80 in its local
+`KillerPDF-1.8` directory. Earlier retained comparisons used 1.8.72 or 1.8.5
+payloads. Use identified application DLLs and identical inputs when
 comparing pipelines. Record all alternating runs, warmups, peaks, outliers, and
 measurement variability. Do not hide a slower or larger workload behind an
 overall average.
