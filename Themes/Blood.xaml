@@ -16,7 +16,7 @@
         <GradientStop Offset="0.55" Color="#1f000000"/>
         <GradientStop Offset="1.0" Color="#82000000"/>
     </LinearGradientBrush>
-    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#1e0a0b" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#160607" po:Freeze="True"/>
     <SolidColorBrush x:Key="CardBorderBrush" Color="#401d1d" po:Freeze="True"/>
     <!-- Blood's current family accent is warm cream; the red remains the structural highlight. -->
     <SolidColorBrush x:Key="PrimaryBrush"    Color="#f8c99e" po:Freeze="True"/>
