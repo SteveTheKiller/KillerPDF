@@ -18,7 +18,7 @@ overall average.
 | Rendering and whole-pass speed without regression | Open | The paired difficult comparisons have median render sums of 10.086 versus 5.624 seconds at 2048 pixels and 6.487 versus 3.028 seconds at 512 pixels for 1.9 and 1.8. These runs used the retained YCCK improvement; broader parity remains open. Earlier installed-layout shared medians were 15.687 versus 12.240 seconds of rendering and 27.350 versus 23.023 seconds wall time. The current 600-file shared run takes 27.314 versus 24.173 seconds at 1024 pixels. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A pre-JPEG installed-layout headless scan probe has a first-call median of 806.05 ms for 1.9 versus 248.664 ms for 1.8, including the 1.8 dimension lookup. The rebuilt current-payload five-step scan zoom sequence has a first 512-pixel median of 674.110 ms for 1.9 versus 169.543 ms for 1.8; its second 2048-pixel median is 40.599 versus 222.675 ms, with high variability in the 1.9 repeat steps. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. The earlier technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
-| Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. The desktop working-document path now opens the retained #406 reporter PDF. Fifteen newer maintenance commits have verified port records in this pass, and the local-branch guard lists five still needing review. The 1.9 MCP page still describes merging as its main operation while the 1.8 page covers broader PDF tools; its tool content remains open. Three remaining commits concern 1.8 release metadata, and one adds a workflow that is not authorized for 1.9. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Its default remote refs are behind both local branches. Applicable feature workflows still need release-build verification. |
+| Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The local-branch forward-port check passes for 194 maintenance commits, including five reviewed 1.8.71 dispositions. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. The default remote refs lag local work. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 30: 4,163 engine tests and 487 app tests pass, and the Release application build succeeds. A clean build reported 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Instrumented scratch builds from the clean 1.8.72 and 1.9.0 trees opened the
@@ -110,16 +110,17 @@ build. This headless parse saving does not close the larger first-render or
 visible interaction gates. Probe code and raw output are under
 `C:/Users/steve/kp-bench-render/working-cache-20260930`.
 
-The forward-port guard against local 1.8.72 commit `d158706b` and current 1.9
-commit `db6fcb0` reports five unresolved 1.8.71 commits: `d444b96` (KillerMCP
-CLI and site), `2d58e12` (release date), `4515ee6` (README source link),
-`25244f0` (landing release information), and `7cff804` (release synchronization
-workflow). The seven CLI operations already pass on 1.9, but the MCP page still
-needs content review. The three release metadata commits require 1.9-specific
-disposition, and the workflow is not authorized for 1.9. The guard's default
-remote-ref invocation currently stops on a valid later port record because
-GitHub `main` is 13 commits behind the local 1.8 branch. Use the local 1.8 tip
-for the current maintenance coverage check.
+The forward-port guard passes against local 1.8.72 commit `d158706b` and the
+current 1.9 checkout: 194 maintenance commits are covered. The seven 1.8.71
+KillerMCP CLI operations were adapted to the 1.9 engine in `bfb3cf6`, and
+`c38f66a` expanded the MCP page beyond merging. The 1.9 site now carries the
+published 1.8.71 date and installer digest across five page footers and 15
+localized footers. Its 1.8.70 corpus result remains historical. Active 1.9
+version metadata stays Unreleased, and its development README does not claim a
+stable source archive. The 1.8 release synchronization workflow is recorded
+as intentionally excluded because new release automation is not authorized.
+The default remote-ref check still depends on pushing both local branches;
+use the local 1.8 tip for the current coverage audit.
 
 ### Difficult-set comparison after YCCK change (2026-09-30)
 

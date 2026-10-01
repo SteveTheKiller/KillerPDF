@@ -558,6 +558,31 @@
       "maintenanceCommit": "821d8cab49252ee06b116b54ae379098eb307364",
       "developmentCommit": "5a0008b7cac6936552842a5e29d463c4b5af62ad",
       "reason": "The shared site layout and localization changes were ported across all maintenance files, with additional 1.9 pages and page-specific content."
+    },
+    {
+      "maintenanceCommit": "d444b96c7b269b6a738437924060275b3ca19a2d",
+      "developmentCommit": "c38f66a5bf074130d5946ebf2d60a9d2eb0d9840",
+      "reason": "The seven KillerMCP CLI operations were adapted to the 1.9 engine in bfb3cf6, and the later MCP page describes the full installed PDF tool set."
+    },
+    {
+      "maintenanceCommit": "2d58e1257f631153be23e97400948022ea2cd85b",
+      "developmentCommit": "5d6815abcc60bfe830cdb0bbfcb96b98523b85d0",
+      "reason": "The stable 1.8.71 release date appears with its download on the 1.9 site. The active 1.9 application, assembly, engine, and changelog remain Unreleased."
+    },
+    {
+      "maintenanceCommit": "4515ee60a8a13d8b74bd4364008f4ee91d0e76e8",
+      "developmentCommit": "a16e65272f31aa009ea230cfba48ffe0ea0f4956",
+      "reason": "The 1.9 README identifies an unreleased development branch and does not present a stable release source archive as its own source."
+    },
+    {
+      "maintenanceCommit": "25244f0ed8300caefd63b0af68416855bf8ca93e",
+      "developmentCommit": "5d6815abcc60bfe830cdb0bbfcb96b98523b85d0",
+      "reason": "All five site footers and 15 localized footers show stable 1.8.71, and the index date and installer digest match the published release. The historical 1.8.70 corpus result remains labeled correctly."
+    },
+    {
+      "maintenanceCommit": "7cff804bf5af124c8610bcb3596073b968a300c0",
+      "developmentCommit": "78ff3777e8a82338bea8f9fb185fa133e291766e",
+      "reason": "The release synchronization workflow is intentionally not carried into 1.9. This branch previously removed an unrequested maintenance workflow, and no new release automation is authorized."
     }
   ]
 }
