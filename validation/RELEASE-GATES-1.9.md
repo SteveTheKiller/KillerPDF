@@ -19,7 +19,7 @@ overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A pre-JPEG installed-layout headless scan probe has a first-call median of 806.05 ms for 1.9 versus 248.664 ms for 1.8, including the 1.8 dimension lookup. The rebuilt current-payload five-step scan zoom sequence has a first 512-pixel median of 674.110 ms for 1.9 versus 169.543 ms for 1.8; its second 2048-pixel median is 40.599 versus 222.675 ms, with high variability in the 1.9 repeat steps. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. The earlier technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The local-branch forward-port check passes for 194 maintenance commits, including five reviewed 1.8.71 dispositions. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. The default remote refs lag local work. Visible feature workflows still need verification. |
-| Builds and regression suites | Passing development checkpoint | September 30: 4,163 engine tests and 487 app tests pass, and the Release application build succeeds. A clean build reported 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 30: 4,163 engine tests and 487 app tests pass, and the Release application build succeeds. Scratch portable and installer packages pass their file inventories and payload startup checks; the installer also passes isolated installation. A clean build reported 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Instrumented scratch builds from the clean 1.8.72 and 1.9.0 trees opened the
 same PDF in separate hidden WPF processes with isolated Continuous-view settings.
@@ -1201,6 +1201,26 @@ conformance had the same 614 successes and 35 skips per run. The engine DLL
 grew by about 8.5 MB. The cold improvement does not justify the repeated and
 whole-pass costs, so the normal payload remains selected. Evidence is under
 `C:/Users/steve/kp-bench-render/engine-only-r2r-20260929`.
+
+A September 30 codec-only trial replaced just `CoreJ2K.dll` in the loose
+payload with a win-x64 ReadyToRun build. Four alternating fresh-process
+512-pixel renders of `balloon_a1b_jp2k.pdf` measured a 378.8 ms baseline
+median versus 308.4 ms with the codec replacement. At 2048 pixels the
+medians were 854.6 and 794.7 ms. The 20-file balloon batch had median
+render sums of 1,969 and 1,823.5 ms; the 74-page difficult and 600-file
+shared batches varied enough that neither showed a reliable broad gain.
+The 2048-pixel difficult batch was effectively tied. Sampled peak memory
+had no consistent increase. All 20 balloon, 74 difficult, and 600 shared
+output PNGs matched their respective baselines in every paired run. The
+standalone codec publish also passed a separate 20-file app run with matching
+page output. Scratch portable and installer packages contain the same tested
+codec DLL and pass their file inventories, payload startup checks, and 20-page
+headless renders with matching PNG hashes. The installer also passes isolated
+installation. The public portable launcher, exact signed installer, and visible
+viewer still need verification. The remaining speed gap against 1.8 is open.
+Raw runs and payloads are under
+`C:/Users/steve/kp-bench-render/corej2k-r2r-only-20260930` and
+`C:/Users/steve/kp-bench-render/corej2k-r2r-package-20260930-pass2`.
 
 A September 30 hidden Continuous-view probe also compared ReadyToRun on the
 CMYK JPEG `064034.pdf`. Four alternating launches per mode attached page one

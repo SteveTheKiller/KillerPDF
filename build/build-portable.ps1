@@ -53,6 +53,18 @@ if (-not $RepackOnly) {
         -p:PublishDir="$payloadDir\"
     if ($LASTEXITCODE -ne 0) { throw 'Payload build failed.' }
 
+    $codecProject = Join-Path $projectDir 'third_party\CoreJ2K\CoreJ2K\CoreJ2K.csproj'
+    $codecPublishDir = Join-Path $artifactRoot 'codec-r2r'
+    & dotnet publish $codecProject -c $Configuration `
+        -r win-x64 `
+        --self-contained false `
+        -p:PublishReadyToRun=true `
+        -o $codecPublishDir
+    if ($LASTEXITCODE -ne 0) { throw 'CoreJ2K ReadyToRun build failed.' }
+    $codecAssembly = Join-Path $codecPublishDir 'CoreJ2K.dll'
+    if (-not [IO.File]::Exists($codecAssembly)) { throw "CoreJ2K ReadyToRun assembly is missing: $codecAssembly" }
+    [IO.File]::Copy($codecAssembly, (Join-Path $payloadDir 'CoreJ2K.dll'), $true)
+
     if (-not $KeepSymbols) {
         foreach ($symbol in [IO.Directory]::GetFiles($payloadDir, '*.pdb', [IO.SearchOption]::AllDirectories)) {
             [IO.File]::Delete($symbol)
@@ -62,6 +74,8 @@ if (-not $RepackOnly) {
     # The PDF file-type icon is a loose installed asset even though the application also embeds it.
     [IO.File]::Copy((Join-Path $projectDir 'Resources\pdf-file.ico'),
                     (Join-Path $payloadDir 'pdf-file.ico'), $true)
+    [IO.File]::Copy((Join-Path $projectDir 'LICENSE'),
+                    (Join-Path $payloadDir 'LICENSE'), $true)
 } elseif (-not [IO.File]::Exists((Join-Path $payloadDir 'KillerPDF.App.exe'))) {
     throw 'RepackOnly requested but the prepared payload is missing.'
 }

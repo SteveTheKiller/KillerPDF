@@ -4,6 +4,7 @@ clrgc.dll
 clrgcexp.dll
 clrjit.dll
 CommunityToolkit.Mvvm.dll
+CoreJ2K.dll
 coreclr.dll
 createdump.exe
 cs/PresentationCore.resources.dll
@@ -103,6 +104,7 @@ ko/WindowsBase.resources.dll
 LICENSE
 Microsoft.CSharp.dll
 Microsoft.DiaSymReader.Native.amd64.dll
+Microsoft.ML.OnnxRuntime.dll
 Microsoft.VisualBasic.Core.dll
 Microsoft.VisualBasic.dll
 Microsoft.Win32.Primitives.dll
@@ -116,6 +118,10 @@ mscorlib.dll
 mscorrc.dll
 msquic.dll
 netstandard.dll
+onnxruntime.dll
+onnxruntime.lib
+onnxruntime_providers_shared.dll
+onnxruntime_providers_shared.lib
 pdf-file.ico
 PenImc_cor3.dll
 pl/PresentationCore.resources.dll
@@ -263,6 +269,7 @@ System.Net.WebProxy.dll
 System.Net.WebSockets.Client.dll
 System.Net.WebSockets.dll
 System.Numerics.dll
+System.Numerics.Tensors.dll
 System.Numerics.Vectors.dll
 System.ObjectModel.dll
 System.Printing.dll

@@ -1,4 +1,5 @@
 CommunityToolkit.Mvvm.dll
+CoreJ2K.dll
 KillerPDF.App.deps.json
 KillerPDF.App.dll
 KillerPDF.App.exe
@@ -6,7 +7,13 @@ KillerPDF.App.runtimeconfig.json
 KillerPdf.Engine.dll
 KillerPdf.Engine.xml
 LICENSE
+Microsoft.ML.OnnxRuntime.dll
+onnxruntime.dll
+onnxruntime.lib
+onnxruntime_providers_shared.dll
+onnxruntime_providers_shared.lib
 pdf-file.ico
 SixLabors.Fonts.dll
+System.Numerics.Tensors.dll
 Tesseract.dll
 THIRD-PARTY-NOTICES.txt
