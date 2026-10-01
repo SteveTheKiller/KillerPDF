@@ -167,6 +167,18 @@ not prove that removing any one copy improves whole-page speed. The trace,
 probe, and analysis are under
 `C:/Users/steve/kp-bench-render/balloon-trace-current-20260930`.
 
+An isolated trial raised only JPEG 2000 decode workers from four to eight.
+Two reversed-order fresh-document balloon pairs kept the same pixel hash;
+last-ten render medians were 452.22 and 447.45 ms with four workers versus
+428.61 and 421.50 ms with eight. Process peaks rose about 1 MiB in that
+probe. A separate alternating full difficult-set check was mixed: the two
+current-build render sums were 10.124 and 10.260 seconds versus 9.806 and
+10.364 seconds for the trial. The balloon page itself measured 893 and 908
+ms versus 886 and 928 ms. All 74 output PNGs matched in all four runs.
+Neither a whole-batch gain nor a first-page gain is established, so the
+eight-worker setting was not retained. Scratch source, build, and runs are
+under `C:/Users/steve/kp-bench-render/j2k-eight-workers-20260930`.
+
 ### Earlier difficult-set comparison (2026-09-30)
 
 The current 1.9 Release build and unchanged local 1.8.72 Release build rendered
