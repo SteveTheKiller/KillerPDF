@@ -93,6 +93,8 @@ generic regions totaling 23,231,936 source pixels. Every region uses
 template 0 without an override or skip mask; the largest is 3813 by 5441.
 The current decoder already sends these regions through its template 0 fast
 loop. Adding fast paths for other templates would not improve this scan.
+An ownership trace also found an existing shared context on all 1,338
+regions, ruling out a 65,536-entry allocation per symbol.
 The trace was removed from source after inspection; its scratch payload is
 under `C:/Users/steve/kp-bench-render/jbig-template-trace-20260930`.
 
