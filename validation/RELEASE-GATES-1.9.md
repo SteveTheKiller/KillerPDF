@@ -202,6 +202,7 @@ and 75 MiB of double arrays. These are sampled allocation volumes, not live
 retention or peak working sets. The largest sampled double-array owner was
 `PdfIccLut` construction at about 50 MiB. Evidence is under
 `C:/Users/steve/kp-bench-render/loose-full-gc-20260930`.
+
 The retained half of that trace attributes its largest Point-array samples
 to cubic path growth (about 37.5 MiB across three leading stacks), pixel-space
 fill conversion (12.1 MiB), and glyph outline flattening (about 22.2 MiB
@@ -222,6 +223,11 @@ retained because the measured throughput cost conflicts with the performance
 gate. Trial payloads and runs are under `icc-lut-raw-20260930`,
 `icc-lut-hybrid-20260930`, and `icc-lut-lookup-20260930` in the local
 benchmark root. Broader speed and memory parity remain open.
+
+Storing normalized ICC samples as floats instead of doubles failed seven of
+263 focused ICC tests, including curve and PCS color results. The trial was
+removed before broad benchmarking. The restored source passes all 263 focused
+tests, and no float-table change was retained.
 
 Of the retained scan trace's 253 sampled CPU stacks, 67 pass through
 `GenericRegion.DecodeTemplate0aFast` and 43 through
