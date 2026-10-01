@@ -317,6 +317,16 @@ roughly 120 MB peaks in both modes. The hint was removed because it did not
 improve the target page. The scratch payload is under
 `C:/Users/steve/kp-bench-render/jbig2-template-opt-20260930`.
 
+A scratch JBIG2 arithmetic-decoder trial reused the previously read input
+byte in the common path. Two isolated Release engines built successfully.
+The scan's six measured 512-pixel renders kept one identical PNG hash.
+Baseline render times were 787, 852, and 840 ms; trial times were 928,
+823, and 941 ms. Their medians were 840 and 928 ms, respectively. Before
+these runs, background CPU use measured 48 to 49 percent, so the timing
+is noisy. It provides no evidence of a speed gain, and the decoder change
+was not retained. Scratch sources, payloads, and logs are under
+`C:/Users/steve/kp-bench-render/jbig2-bytein-20260930`.
+
 An isolated trial used a 32-bit register for the JBIG2 arithmetic decoder's
 bounded code value. It built and passed all 15 focused JBIG2 tests. Six
 alternating 512-pixel difficult-set runs rendered all 74 pages, and every
