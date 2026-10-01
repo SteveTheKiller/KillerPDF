@@ -80,6 +80,14 @@ The change was removed; current source remains at the retained baseline.
 Scratch binaries and probe source are under
 `C:/Users/steve/kp-bench-render/jbig-packed-decode-20260930`.
 
+Precomputing exact binary-image column coverage also preserved the scan's
+512- and 2048-pixel hashes and similar peaks, with 25 focused image tests
+passing. Four alternating fresh-process renders per build measured baseline
+and trial medians of 603.040 and 606.924 ms at 512 pixels, and 638.733 and
+646.794 ms at 2048 pixels. The trial was removed because neither size
+improved. Scratch payloads are under
+`C:/Users/steve/kp-bench-render/binary-column-20260930`.
+
 A direct full-resolution YCCK output loop for equal-sampled components kept
 the existing pixel conversion and added no image buffers. Four alternating
 16-copy `064034.pdf` runs per build at 2048 pixels cut median summed rendering
