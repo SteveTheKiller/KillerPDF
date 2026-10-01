@@ -4,6 +4,7 @@ using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Rendering;
+using KillerPdf.Engine.Syntax;
 using KillerPdf.Engine.Tests.Fonts;
 using KillerPdf.Engine.Writing;
 using System.Buffers.Binary;
@@ -3965,6 +3966,28 @@ public sealed class PdfPageRendererTests
             return page.Pixels.ToArray();
         }
         Assert.Equal(Render(false), Render(true));
+    }
+
+    [Theory]
+    [InlineData(PdfBlendMode.ColorDodge, false, (byte)255)]
+    [InlineData(PdfBlendMode.ColorDodge, true, (byte)0)]
+    [InlineData(PdfBlendMode.ColorBurn, false, (byte)0)]
+    [InlineData(PdfBlendMode.ColorBurn, true, (byte)255)]
+    public void Render_DodgeAndBurnUseDocumentVersionEndpoints(
+        PdfBlendMode mode, bool pdf20, byte expected)
+    {
+        double backdrop = mode == PdfBlendMode.ColorBurn ? 1 : 0;
+        double source = 1 - backdrop;
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(backdrop, backdrop, backdrop).Rectangle(0, 0, 1, 1).Fill()
+            .SetBlendMode(mode)
+            .SetFillRgb(source, source, source).Rectangle(0, 0, 1, 1).Fill();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder(
+            pdf20 ? PdfVersion.Pdf20 : PdfVersion.Pdf17).AddPage(1, 1, content).Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(1, 1));
+
+        Assert.Equal([expected, expected, expected, (byte)255], Pixel(page, 0, 0));
     }
 
     [Theory]

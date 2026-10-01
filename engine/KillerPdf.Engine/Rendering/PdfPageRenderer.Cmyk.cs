@@ -178,7 +178,7 @@ public sealed partial class PdfPageRenderer
                 1 => 1 - blend.Green,
                 2 => 1 - blend.Blue,
                 _ => mode == RendererBlendMode.Luminosity ? s : b
-            } : 1 - BlendChannel(1 - b, 1 - s, mode);
+            } : 1 - BlendChannel(1 - b, 1 - s, mode, surface.Pdf20BlendEndpoints);
             if (spotOverprint) mixed = s + b - s * b;
             else if (overprint && (overprintComponents & (1 << channel)) != 0) mixed = b;
             double value = sourceAlpha == 1 && backdropAlpha == 1 ? mixed

@@ -3,8 +3,10 @@ namespace KillerPdf.Engine.Rendering;
 public sealed partial class PdfPageRenderer
 {
     // Drawing stays in page coordinates. Only pixel storage is local to the surface.
-    private sealed class RasterSurface(byte[] data, int left, int top, int width, int height)
+    private sealed class RasterSurface(byte[] data, int left, int top, int width, int height,
+        bool pdf20BlendEndpoints = true)
     {
+        internal bool Pdf20BlendEndpoints { get; } = pdf20BlendEndpoints;
         internal byte[] Data { get; } = data;
         internal byte[]? Ink { get; private set; }
         internal PdfColorTransform? InkProfile { get; private set; }
@@ -93,11 +95,11 @@ public sealed partial class PdfPageRenderer
         internal bool Contains(int x, int y) => x >= Left && x < Right && y >= Top && y < Bottom;
 
         internal static RasterSurface Rent((int Left, int Top, int Right, int Bottom) bounds, bool cmyk = false,
-            PdfColorTransform? profile = null)
+            PdfColorTransform? profile = null, bool pdf20BlendEndpoints = true)
         {
             int width = bounds.Right - bounds.Left, height = bounds.Bottom - bounds.Top;
             var surface = new RasterSurface(RasterBuffers.Rent(checked(width * height * 4)),
-                bounds.Left, bounds.Top, width, height);
+                bounds.Left, bounds.Top, width, height, pdf20BlendEndpoints);
             try
             {
                 if (cmyk) surface.EnableInk(Color.White, preserveAlpha: false, profile);

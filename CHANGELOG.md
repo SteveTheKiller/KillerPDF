@@ -82,6 +82,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Corrected ColorDodge and ColorBurn blending in PDF 1.x files.
 - Kept prefetched pages correctly inverted in night mode and stopped obsolete prefetch after tab or view changes.
 - Prevented parallel PNG exports from intermittently losing pages when the system encoder lookup raced.
 - Opened PDFs whose cross-reference table contains valid objects beyond an incorrect trailer size (#406).

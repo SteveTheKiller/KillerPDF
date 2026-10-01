@@ -21,6 +21,7 @@ public sealed partial class PdfPageRenderer
     private const int MaximumTransparencyTileWidth = 4096;
     private static readonly ArrayPool<byte> RasterBuffers = PdfScratchBuffers.Bytes;
     private readonly PdfDocument _document;
+    private readonly bool _pdf20BlendEndpoints;
     private readonly PdfPageContentReader _content;
     private readonly IReadOnlyList<PdfPageInformation> _pages;
     private readonly IReadOnlyList<PdfPageBoxInformation> _boxes;
@@ -104,6 +105,7 @@ public sealed partial class PdfPageRenderer
         SharedCache? sharedCache)
     {
         _document = document ?? throw new ArgumentNullException(nameof(document));
+        _pdf20BlendEndpoints = UsesPdf20BlendEndpoints(document);
         _outputProfiles = new Lazy<(PdfColorTransform? Transform, bool Unavailable)>[4];
         for (int intent = 0; intent < _outputProfiles.Length; intent++)
         {
@@ -128,6 +130,18 @@ public sealed partial class PdfPageRenderer
         _glyphPathCache = sharedCache?.GlyphPathCache ?? CreateGlyphPathCache();
         _imageCache = sharedCache?.ImageCache ?? CreateImageCache();
         _glyphMaskCache = sharedCache?.GlyphMaskCache ?? CreateGlyphMaskCache();
+    }
+
+    private static bool UsesPdf20BlendEndpoints(PdfDocument document)
+    {
+        if (document.Header.Version.CompareTo(PdfVersion.Pdf20) >= 0) return true;
+        if (!document.Trailer.TryGetValue(new PdfName("Root"u8), out PdfObject root)) return false;
+        if (root is PdfIndirectReference rootReference) root = document.Resolve(rootReference);
+        if (root is not PdfDictionary catalog
+            || !catalog.TryGetValue(new PdfName("Version"u8), out PdfObject version)) return false;
+        if (version is PdfIndirectReference versionReference) version = document.Resolve(versionReference);
+        return version is PdfName name && name.ValueAsLatin1() is "2.0" or "2.1" or "2.2"
+            or "2.3" or "2.4" or "2.5" or "2.6" or "2.7" or "2.8" or "2.9";
     }
 
     /// <summary>Renders the currently supported page operators into BGRA32 pixels.</summary>
@@ -184,7 +198,8 @@ public sealed partial class PdfPageRenderer
         var (Left, Top, Right, Bottom) = region ?? (Left: 0, Top: 0, Right: options.Width, Bottom: options.Height);
         int rasterWidth = Right - Left, rasterHeight = Bottom - Top;
         var pixels = new RasterSurface(destination ?? GC.AllocateUninitializedArray<byte>(
-            checked(rasterWidth * rasterHeight * 4)), Left, Top, rasterWidth, rasterHeight);
+            checked(rasterWidth * rasterHeight * 4)), Left, Top, rasterWidth, rasterHeight,
+            _pdf20BlendEndpoints);
         cancellationToken.ThrowIfCancellationRequested();
         System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
             pixels.Data.AsSpan(0, pixels.Length))
@@ -996,7 +1011,8 @@ public sealed partial class PdfPageRenderer
                 var bounds = GetRasterBounds(AddClip(parentState.Clips, paintClip.Mask), null,
                     options.Width, options.Height, scaleX, scaleY);
                 if (bounds.Right <= bounds.Left || bounds.Bottom <= bounds.Top) return;
-                RasterSurface group = RasterSurface.Rent(bounds, backdrop.Ink is not null, backdrop.BlendProfile);
+                RasterSurface group = RasterSurface.Rent(bounds, backdrop.Ink is not null,
+                    backdrop.BlendProfile, backdrop.Pdf20BlendEndpoints);
                 try
                 {
                     group.CopyFrom(backdrop);
@@ -1263,7 +1279,8 @@ public sealed partial class PdfPageRenderer
                             RasterSurface pagePixels = pixels;
                             try
                             {
-                                pixels = new RasterSurface(textClipMask, 0, 0, options.Width, options.Height);
+                                pixels = new RasterSurface(textClipMask, 0, 0, options.Width, options.Height,
+                                    pagePixels.Pdf20BlendEndpoints);
                                 Process(glyphInstructions, fontResources, glyphState with
                                 {
                                     FillAlpha = 1,
@@ -1467,7 +1484,8 @@ public sealed partial class PdfPageRenderer
                     int maskWidth = maskRight - maskLeft;
                     int maskHeight = maskBottom - maskTop;
                     RasterSurface pagePixels = pixels;
-                    RasterSurface maskPixels = RasterSurface.Rent((maskLeft, maskTop, maskRight, maskBottom));
+                    RasterSurface maskPixels = RasterSurface.Rent((maskLeft, maskTop, maskRight, maskBottom),
+                        pdf20BlendEndpoints: pagePixels.Pdf20BlendEndpoints);
                     GraphicsState regionState = currentState;
                     if (maskLeft != fullLeft || maskTop != fullTop || maskRight != fullRight || maskBottom != fullBottom)
                         regionState = regionState with
@@ -1717,7 +1735,7 @@ public sealed partial class PdfPageRenderer
 
                     RasterSurface nonisolatedPagePixels = pixels;
                     RasterSurface nonisolatedGroupPixels = RasterSurface.Rent(groupBounds,
-                        pixels.Ink is not null, pixels.BlendProfile);
+                        pixels.Ink is not null, pixels.BlendProfile, pixels.Pdf20BlendEndpoints);
                     try
                     {
                         nonisolatedGroupPixels.CopyFrom(nonisolatedPagePixels);
@@ -1799,7 +1817,7 @@ public sealed partial class PdfPageRenderer
                     RasterSurface backdropPixels = pixels;
                     RasterSurface blendedGroupPixels = RasterSurface.Rent(GetRasterBounds(
                         formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY),
-                        pixels.Ink is not null, pixels.BlendProfile);
+                        pixels.Ink is not null, pixels.BlendProfile, pixels.Pdf20BlendEndpoints);
                     try
                     {
                         blendedGroupPixels.CopyFrom(backdropPixels);
@@ -1859,7 +1877,7 @@ public sealed partial class PdfPageRenderer
                     (int Left, int Top, int Right, int Bottom) groupBounds = GetRasterBounds(
                         formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY);
                     RasterSurface maskedGroupPixels = RasterSurface.Rent(groupBounds,
-                        pixels.Ink is not null, pixels.BlendProfile);
+                        pixels.Ink is not null, pixels.BlendProfile, pixels.Pdf20BlendEndpoints);
                     try
                     {
                         maskedGroupPixels.CopyFrom(backdropPixels);
@@ -2025,7 +2043,8 @@ public sealed partial class PdfPageRenderer
                     (int left, int top, int right, int bottom) = renderInTiles
                         ? (tileLeft, tileTop, tileRight, tileBottom) : isolatedBounds;
                     RasterSurface groupPixels = RasterSurface.Rent(
-                        (left, top, right, bottom), cmykGroup, groupProfile);
+                        (left, top, right, bottom), cmykGroup, groupProfile,
+                        pagePixels.Pdf20BlendEndpoints);
                     try
                     {
                         Array.Clear(groupPixels.Data, 0, groupPixels.Length);
@@ -6070,9 +6089,12 @@ public sealed partial class PdfPageRenderer
                 BlendNonSeparable(pixels[offset + 2] / 255d, pixels[offset + 1] / 255d,
                     pixels[offset] / 255d, color.Red / 255d, color.Green / 255d,
                     color.Blue / 255d, blendMode),
-            _ => (BlendChannel(pixels[offset + 2] / 255d, color.Red / 255d, blendMode),
-                BlendChannel(pixels[offset + 1] / 255d, color.Green / 255d, blendMode),
-                BlendChannel(pixels[offset] / 255d, color.Blue / 255d, blendMode))
+            _ => (BlendChannel(pixels[offset + 2] / 255d, color.Red / 255d, blendMode,
+                    pixels.Pdf20BlendEndpoints),
+                BlendChannel(pixels[offset + 1] / 255d, color.Green / 255d, blendMode,
+                    pixels.Pdf20BlendEndpoints),
+                BlendChannel(pixels[offset] / 255d, color.Blue / 255d, blendMode,
+                    pixels.Pdf20BlendEndpoints))
         };
         if (targetAlpha == 1 && sourceAlpha == 1)
         {
@@ -6101,15 +6123,17 @@ public sealed partial class PdfPageRenderer
     }
 
     private static double BlendChannel(
-        double backdrop, double source, RendererBlendMode mode) => mode switch
+        double backdrop, double source, RendererBlendMode mode, bool pdf20Endpoints) => mode switch
     {
         RendererBlendMode.Multiply => backdrop * source,
         RendererBlendMode.Screen => backdrop + source - backdrop * source,
         RendererBlendMode.Overlay => HardLight(source, backdrop),
         RendererBlendMode.Darken => Math.Min(backdrop, source),
         RendererBlendMode.Lighten => Math.Max(backdrop, source),
-        RendererBlendMode.ColorDodge => backdrop <= 0 ? 0 : source >= 1 ? 1 : Math.Min(1, backdrop / (1 - source)),
-        RendererBlendMode.ColorBurn => backdrop >= 1 ? 1 : source <= 0 ? 0 : 1 - Math.Min(1, (1 - backdrop) / source),
+        RendererBlendMode.ColorDodge => pdf20Endpoints && backdrop <= 0 ? 0
+            : source >= 1 ? 1 : Math.Min(1, backdrop / (1 - source)),
+        RendererBlendMode.ColorBurn => pdf20Endpoints && backdrop >= 1 ? 1
+            : source <= 0 ? 0 : 1 - Math.Min(1, (1 - backdrop) / source),
         RendererBlendMode.HardLight => HardLight(backdrop, source),
         RendererBlendMode.SoftLight => source <= 0.5
             ? backdrop - (1 - 2 * source) * backdrop * (1 - backdrop)
