@@ -71,16 +71,19 @@ public sealed class PdfIccProfileTransformTests
         }
     }
 
-    [Fact]
-    public void OutputIntentConvertsGrayWithoutOverprintOrPageGroup()
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void OutputIntentConvertsGrayWithoutOverprintOrPageGroup(bool invalidDefaultCmyk, bool validDefaultCmyk)
     {
-        byte[] expected = Render(withOutputIntent: true, withPageGroup: true);
-        byte[] actual = Render(withOutputIntent: true, withPageGroup: false);
-        byte[] unprofiled = Render(withOutputIntent: false, withPageGroup: false);
+        byte[] expected = Render(withOutputIntent: true, withPageGroup: true, false, false);
+        byte[] actual = Render(withOutputIntent: true, withPageGroup: false, invalidDefaultCmyk, validDefaultCmyk);
+        byte[] unprofiled = Render(withOutputIntent: false, withPageGroup: false, false, false);
         Assert.Equal(expected, actual);
         Assert.NotEqual(unprofiled, actual);
 
-        static byte[] Render(bool withOutputIntent, bool withPageGroup)
+        static byte[] Render(bool withOutputIntent, bool withPageGroup, bool invalidDefaultCmyk, bool validDefaultCmyk)
         {
             PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
             KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
@@ -90,22 +93,34 @@ public sealed class PdfIccProfileTransformTests
             var catalog = (PdfDictionary)source.Resolve(root);
             var page = PdfPageTree.Read(source).Pages[0];
             var update = new PdfIncrementalUpdateBuilder(source);
+            PdfIndirectReference? profile = null;
             if (withOutputIntent)
             {
-                var profile = update.AddObject(new PdfStream(new PdfDictionary([Entry("N", new PdfInteger(4))]),
+                profile = update.AddObject(new PdfStream(new PdfDictionary([Entry("N", new PdfInteger(4))]),
                     Profile("CMYK", "Lab ", ("A2B0", Lut(true, true, false, 4)),
                         ("B2A0", NeutralReverseLut()))));
                 update.ReplaceObject(root.ObjectNumber, new PdfDictionary(catalog.Append(Entry("OutputIntents",
                     new PdfArray([new PdfDictionary([Entry("S", Name("GTS_PDFX")),
                         Entry("DestOutputProfile", profile)])])))));
             }
-            if (withPageGroup)
+            if (withPageGroup || invalidDefaultCmyk || validDefaultCmyk)
             {
                 var original = (PdfDictionary)source.Resolve(page.Reference);
-                update.ReplaceObject(page.Reference.ObjectNumber, new PdfDictionary(original.Append(Entry("Group",
-                    new PdfDictionary([Entry("S", Name("Transparency")), Entry("CS", Name("DeviceCMYK"))])))));
+                var entries = original.AsEnumerable();
+                if (withPageGroup)
+                    entries = entries.Append(Entry("Group", new PdfDictionary([
+                        Entry("S", Name("Transparency")), Entry("CS", Name("DeviceCMYK"))])));
+                if (invalidDefaultCmyk)
+                    entries = entries.Where(pair => !pair.Key.Equals(Name("Resources"))).Append(Entry("Resources",
+                        new PdfDictionary([Entry("ColorSpace", new PdfDictionary([
+                            Entry("DefaultCMYK", Name("DeviceRGB"))]))])));
+                if (validDefaultCmyk)
+                    entries = entries.Where(pair => !pair.Key.Equals(Name("Resources"))).Append(Entry("Resources",
+                        new PdfDictionary([Entry("ColorSpace", new PdfDictionary([
+                            Entry("DefaultCMYK", new PdfArray([Name("ICCBased"), profile!]))]))])));
+                update.ReplaceObject(page.Reference.ObjectNumber, new PdfDictionary(entries));
             }
-            PdfDocument document = withOutputIntent || withPageGroup
+            PdfDocument document = withOutputIntent || withPageGroup || invalidDefaultCmyk || validDefaultCmyk
                 ? PdfDocument.Open(update.Build()) : source;
             var rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(1, 1));
             Assert.Empty(rendered.Diagnostics);

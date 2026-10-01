@@ -25,6 +25,11 @@ public sealed partial class PdfPageRenderer
                 || !intent.TryGetValue(Name("DestOutputProfile"), out PdfObject? profileValue)) continue;
             declared = true;
             if (Resolve(profileValue) is not PdfStream stream
+                || stream.Dictionary.TryGetValue(Name("N"), out PdfObject? components)
+                    && Resolve(components) is not PdfInteger { Value: 4 }
+                || !stream.Dictionary.ContainsKey(Name("Filter")) && stream.EncodedData.Length >= 40
+                    && (!stream.EncodedData.Span.Slice(16, 4).SequenceEqual("CMYK"u8)
+                        || !stream.EncodedData.Span.Slice(36, 4).SequenceEqual("acsp"u8))
                 || ReadIccProfile(stream, renderingIntent) is not { Components: 4 } profile) continue;
             if (intent.TryGetValue(Name("S"), out PdfObject? subtype)
                 && Resolve(subtype) is PdfName name && name.ValueAsLatin1() == "GTS_PDFX") return (profile, false);

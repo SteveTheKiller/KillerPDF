@@ -236,9 +236,7 @@ public sealed partial class PdfPageRenderer
         IReadOnlySet<int> hiddenOptionalContentGroups = _hiddenOptionalContentGroups;
         PdfDictionary pageResources = _pageResources[pageIndex];
         bool pageHasGroup = _tree.Pages[pageIndex].Dictionary.TryGetValue(Name("Group"), out _);
-        bool hasDefaultCmyk = pageResources.TryGetValue(Name("ColorSpace"), out PdfObject? spacesValue)
-            && Resolve(spacesValue) is PdfDictionary spaces && spaces.ContainsKey(Name("DefaultCMYK"));
-        PdfColorTransform? outputProfile = pageHasGroup || hasDefaultCmyk ? null : OutputProfile(null);
+        PdfColorTransform? outputProfile = pageHasGroup ? null : OutputProfile(null);
         PdfColorTransform? pageProfile = ReadGroupProfile(_tree.Pages[pageIndex].Dictionary, pageResources, diagnostics);
         if (outputProfile is not null)
             pixels.EnableInk(Color.White, profile: outputProfile);

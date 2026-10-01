@@ -99,7 +99,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Preserved source cross-reference format when signing and supported visible appearances on existing signature widgets (#381).
 - Prevented small idle scratch buffers from forcing repeated large rendering allocations.
 - Restored missing content on large pages while keeping parsing memory bounded.
-- Applied CMYK output intents to ordinary page painting and restored process-color and spot-color overprint across paths, text, shadings, masks, and images, while keeping unused profiles lazy.
+- Applied CMYK output intents to ordinary page painting, including pages with a DefaultCMYK source replacement, and restored process-color and spot-color overprint across paths, text, shadings, masks, and images. Invalid unfiltered ICC headers are rejected before decoding.
 - Restored patterned text, corrected pattern stroke opacity and tiling transparency, and honored shading pattern backgrounds, opacity, blending, and soft masks.
 - Prevented overlapping mesh triangles and patches from accumulating shading opacity or blend effects.
 - Preserved nested non-isolated knockout groups and groups with unequal outer opacity, soft masks, or blend modes, without counting partially transparent backdrops twice.
