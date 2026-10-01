@@ -5356,24 +5356,26 @@ public sealed partial class PdfPageRenderer
                 return _lookup[sample];
             }
             if (_cacheKeys is not null)
-            {
-                uint key = ReadCacheKey(x, y);
-                int slot = (int)((key * 2654435761u) >> _cacheShift);
-                if (_cacheValid![slot] && _cacheKeys[slot] == key) return _cacheValues![slot];
-                uint color = ConvertRaw((int)(key >> (8 * (_components - 1))) & 255,
-                    _components > 1 ? (int)(key >> (8 * (_components - 2))) & 255 : 0,
-                    _components > 2 ? (int)(key >> (8 * (_components - 3))) & 255 : 0,
-                    _components > 3 ? (int)key & 255 : 0);
-                _cacheKeys[slot] = key;
-                _cacheValues![slot] = color;
-                _cacheValid[slot] = true;
-                return color;
-            }
+                return ConvertCacheKey(ReadCacheKey(x, y));
             if (_colorSpace.Palette is not null)
                 return Pack(_colorSpace.Palette[Math.Min(Raw(x, y, 0), _colorSpace.Palette.Length - 1)]);
             for (int component = 0; component < _components; component++)
                 _values[component] = Decode(component, Raw(x, y, component));
             return ConvertDecoded(_colorSpace);
+        }
+
+        private uint ConvertCacheKey(uint key)
+        {
+            int slot = (int)((key * 2654435761u) >> _cacheShift);
+            if (_cacheValid![slot] && _cacheKeys![slot] == key) return _cacheValues![slot];
+            uint color = ConvertRaw((int)(key >> (8 * (_components - 1))) & 255,
+                _components > 1 ? (int)(key >> (8 * (_components - 2))) & 255 : 0,
+                _components > 2 ? (int)(key >> (8 * (_components - 3))) & 255 : 0,
+                _components > 3 ? (int)key & 255 : 0);
+            _cacheKeys![slot] = key;
+            _cacheValues![slot] = color;
+            _cacheValid[slot] = true;
+            return color;
         }
 
         internal uint ConvertArea(int px, int py, int planeWidth, int planeHeight,
@@ -5399,47 +5401,69 @@ public sealed partial class PdfPageRenderer
             AreaSpan column = _areaColumns?[px] ?? AreaSpan.Create(px, sourceWidth, planeWidth);
             AreaSpan row = _areaRows?[py] ?? AreaSpan.Create(py, sourceHeight, planeHeight);
             double first = 0, second = 0, third = 0, fourth = 0;
-            for (int y = row.First; y < row.End; y++)
+            if (_bits == 8 && _components == 4 && _cacheKeys is not null && !_directCmyk)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                double vertical = row.Weight(y);
-                for (int x = column.First; x < column.End; x++)
+                for (int y = row.First; y < row.End; y++)
                 {
-                    double weight = vertical * column.Weight(x);
-                    if (_directRgb)
+                    cancellationToken.ThrowIfCancellationRequested();
+                    double vertical = row.Weight(y);
+                    int sampleOffset = y * _rowBytes + column.First * 4;
+                    for (int x = column.First; x < column.End; x++, sampleOffset += 4)
                     {
-                        int offset = y * _rowBytes + x * 3;
-                        first += _samples[offset + 2] * weight;
-                        second += _samples[offset + 1] * weight;
-                        third += _samples[offset] * weight;
-                        fourth += 255 * weight;
-                    }
-                    else if (_directGray)
-                    {
-                        byte gray = _samples[y * _rowBytes + x];
-                        first += gray * weight;
-                        second += gray * weight;
-                        third += gray * weight;
-                        fourth += 255 * weight;
-                    }
-                    else
-                    {
-                        uint color;
-                        if (_bits == 8 && _components == 1 && _lookup is not null)
-                        {
-                            int sample = _samples[y * _rowBytes + x];
-                            if (!_lookupSet![sample])
-                            {
-                                _lookup[sample] = ConvertRaw(sample, 0, 0, 0);
-                                _lookupSet[sample] = true;
-                            }
-                            color = _lookup[sample];
-                        }
-                        else color = Convert(x, y);
+                        double weight = vertical * column.Weight(x);
+                        uint color = ConvertCacheKey(BinaryPrimitives.ReadUInt32BigEndian(
+                            _samples.AsSpan(sampleOffset, 4)));
                         first += (byte)color * weight;
                         second += (byte)(color >> 8) * weight;
                         third += (byte)(color >> 16) * weight;
                         fourth += (byte)(color >> 24) * weight;
+                    }
+                }
+            }
+            else
+            {
+                for (int y = row.First; y < row.End; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    double vertical = row.Weight(y);
+                    for (int x = column.First; x < column.End; x++)
+                    {
+                        double weight = vertical * column.Weight(x);
+                        if (_directRgb)
+                        {
+                            int offset = y * _rowBytes + x * 3;
+                            first += _samples[offset + 2] * weight;
+                            second += _samples[offset + 1] * weight;
+                            third += _samples[offset] * weight;
+                            fourth += 255 * weight;
+                        }
+                        else if (_directGray)
+                        {
+                            byte gray = _samples[y * _rowBytes + x];
+                            first += gray * weight;
+                            second += gray * weight;
+                            third += gray * weight;
+                            fourth += 255 * weight;
+                        }
+                        else
+                        {
+                            uint color;
+                            if (_bits == 8 && _components == 1 && _lookup is not null)
+                            {
+                                int sample = _samples[y * _rowBytes + x];
+                                if (!_lookupSet![sample])
+                                {
+                                    _lookup[sample] = ConvertRaw(sample, 0, 0, 0);
+                                    _lookupSet[sample] = true;
+                                }
+                                color = _lookup[sample];
+                            }
+                            else color = Convert(x, y);
+                            first += (byte)color * weight;
+                            second += (byte)(color >> 8) * weight;
+                            third += (byte)(color >> 16) * weight;
+                            fourth += (byte)(color >> 24) * weight;
+                        }
                     }
                 }
             }
