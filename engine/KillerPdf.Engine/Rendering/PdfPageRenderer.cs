@@ -5362,7 +5362,14 @@ public sealed partial class PdfPageRenderer
             if (_directCmyk)
             {
                 int offset = y * _rowBytes + x * 4;
-                return PdfDeviceCmyk.ToRgb(ReadInk(_samples, offset)) | 0xFF000000;
+                uint ink = ReadInk(_samples, offset);
+                int slot = (int)((ink * 2654435761u) >> _cacheShift);
+                if (_cacheValid![slot] && _cacheKeys![slot] == ink) return _cacheValues![slot];
+                uint color = PdfDeviceCmyk.ToRgb(ink) | 0xFF000000;
+                _cacheKeys![slot] = ink;
+                _cacheValues![slot] = color;
+                _cacheValid[slot] = true;
+                return color;
             }
             if (_lookup is not null)
             {
