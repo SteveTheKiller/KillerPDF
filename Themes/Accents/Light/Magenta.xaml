@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options">
+
+
+    <SolidColorBrush x:Key="PrimaryBrush"        Color="#A60070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#A60070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#A60070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#A60070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush"     Color="#A60070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionAccent" Color="#A60070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#A60070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#F6DAEB" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionBg"     Color="#A60070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#88A60070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#A60070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RadioAccent"     Color="#A60070" po:Freeze="True"/>
+
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"                      Color="#F6DAEB" po:Freeze="True"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}"                  Color="#A60070" po:Freeze="True"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"     Color="#F6DAEB" po:Freeze="True"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#A60070" po:Freeze="True"/>
+
+</ResourceDictionary>

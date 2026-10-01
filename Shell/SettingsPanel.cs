@@ -390,19 +390,19 @@ namespace KillerPDF
         }
 
         // Per-family swatch colors, in each family's display order (moved here from the four
-        // retired XAML accent rows; the strip repaints these onto its six shared dots).
+        // retired XAML accent rows; the strip repaints these onto its eight shared dots).
         private static readonly (DarkAccent Accent, string Hex)[] DarkStripColors =
-            [(DarkAccent.Red, "#DD504B"), (DarkAccent.Orange, "#E8962C"), (DarkAccent.Green, "#1EA54C"),
-             (DarkAccent.Teal, "#1FB8A8"), (DarkAccent.Blue, "#4580D9"), (DarkAccent.Purple, "#B982E3")];
+            [(DarkAccent.Red, "#DD504B"), (DarkAccent.Orange, "#E8962C"), (DarkAccent.Yellow, "#EAD900"), (DarkAccent.Green, "#1EA54C"),
+             (DarkAccent.Teal, "#1FB8A8"), (DarkAccent.Blue, "#4580D9"), (DarkAccent.Purple, "#B982E3"), (DarkAccent.Magenta, "#FF52C9")];
         private static readonly (DarkAccent Accent, string Hex)[] LightStripColors =
-            [(DarkAccent.Red, "#931A1A"), (DarkAccent.Orange, "#C7710F"), (DarkAccent.Green, "#1B5E20"),
-             (DarkAccent.Teal, "#0D827E"), (DarkAccent.Blue, "#18608E"), (DarkAccent.Purple, "#5A1690")];
+            [(DarkAccent.Red, "#931A1A"), (DarkAccent.Orange, "#C7710F"), (DarkAccent.Yellow, "#EAD900"), (DarkAccent.Green, "#1B5E20"),
+             (DarkAccent.Teal, "#0D827E"), (DarkAccent.Blue, "#18608E"), (DarkAccent.Purple, "#5A1690"), (DarkAccent.Magenta, "#A60070")];
         private static readonly (DarkAccent Accent, string Hex)[] BlackStripColors =
-            [(DarkAccent.Red, "#FF2929"), (DarkAccent.Orange, "#FF910A"), (DarkAccent.Green, "#00FF66"),
-             (DarkAccent.Teal, "#0AFFE7"), (DarkAccent.Blue, "#298DFF"), (DarkAccent.Purple, "#B829FF")];
+            [(DarkAccent.Red, "#FF2929"), (DarkAccent.Orange, "#FF910A"), (DarkAccent.Yellow, "#FFEB00"), (DarkAccent.Green, "#00FF66"),
+             (DarkAccent.Teal, "#0AFFE7"), (DarkAccent.Blue, "#298DFF"), (DarkAccent.Purple, "#B829FF"), (DarkAccent.Magenta, "#FF2BBD")];
         private static readonly (DarkAccent Accent, string Hex)[] SE98StripColors =
-            [(DarkAccent.Red, "#800040"), (DarkAccent.Orange, "#A05000"), (DarkAccent.Green, "#006000"),
-             (DarkAccent.Teal, "#008080"), (DarkAccent.Blue, "#000080"), (DarkAccent.Purple, "#5A376E")];
+            [(DarkAccent.Red, "#800040"), (DarkAccent.Orange, "#A05000"), (DarkAccent.Yellow, "#EAD900"), (DarkAccent.Green, "#006000"),
+             (DarkAccent.Teal, "#008080"), (DarkAccent.Blue, "#000080"), (DarkAccent.Purple, "#5A376E"), (DarkAccent.Magenta, "#750052")];
 
         private static (DarkAccent Accent, string Hex)[] StripColorsFor(Theme family) => family switch
         {
@@ -418,7 +418,7 @@ namespace KillerPDF
         private const double AccentStripSlideMs = 180;
 
         private Border[] StripDots =>
-            [AccentStripDot0, AccentStripDot1, AccentStripDot2, AccentStripDot3, AccentStripDot4, AccentStripDot5];
+            [AccentStripDot0, AccentStripDot1, AccentStripDot2, AccentStripDot3, AccentStripDot4, AccentStripDot5, AccentStripDot6, AccentStripDot7];
 
         private void PopulateAccentStrip(Theme family)
         {
@@ -428,6 +428,9 @@ namespace KillerPDF
             {
                 var c = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(colors[i].Hex);
                 dots[i].Background = new System.Windows.Media.SolidColorBrush(c);
+                dots[i].Effect = colors[i].Accent == DarkAccent.Yellow && (family is Theme.Light or Theme.SE98)
+                    ? new System.Windows.Media.Effects.DropShadowEffect { Color = System.Windows.Media.Colors.Black, BlurRadius = 4, ShadowDepth = 1, Opacity = 0.45 }
+                    : null;
                 dots[i].Tag = colors[i].Accent.ToString();
             }
             _stripFamily = family;

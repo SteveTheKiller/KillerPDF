@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 1.8.72 improves installation, document tabs, pen editing, and Hebrew text saving.
 
+### Added
+- Added yellow and magenta accents to the neutral and 98SE themes.
+
 ### Fixed
 
 - Opened PDFs whose cross-reference table contains valid objects beyond an incorrect trailer size (#406).
