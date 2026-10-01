@@ -156,6 +156,18 @@ the batch timing alone cannot divide it among parsing, decoding, and setup.
 Raw output and analysis are under
 `C:/Users/steve/kp-bench-render/viewer-attach-20260930/current-v18-v19-difficult-512`.
 
+Separate-process 512-pixel probes of eight difficult files found 1.9 peak
+working sets 35 to 109 MiB above 1.8, depending on the document. Two small
+one-page files also showed a roughly 90 MiB gap: `ColorBurn.pdf` peaked at
+150.5 versus 61.3 MiB and `CompactedPDFSyntaxTest.pdf` at 152.1 versus
+61.3 MiB for 1.9 and 1.8. Empty batch processes peaked at 47.6 and
+50.0 MiB, respectively. The broad first-document gap therefore warrants
+profiling renderer initialization, JIT, and retained allocations before
+optimizing any one image decoder for memory. These are single cold-process
+observations, not stable medians or proof of a specific allocation source.
+Logs and outputs are under
+`C:/Users/steve/kp-bench-render/isolated-memory-512-20260930`.
+
 Of the retained scan trace's 253 sampled CPU stacks, 67 pass through
 `GenericRegion.DecodeTemplate0aFast` and 43 through
 `ArithmeticDecoder.Decode`; these inclusive counts overlap. The current
