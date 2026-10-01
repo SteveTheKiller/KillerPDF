@@ -155,6 +155,24 @@ the batch timing alone cannot divide it among parsing, decoding, and setup.
 Raw output and analysis are under
 `C:/Users/steve/kp-bench-render/viewer-attach-20260930/current-v18-v19-difficult-512`.
 
+`altona_measure_1v1a.pdf` exposes a size-specific area-sampling cost: its
+three-run page median is 339 ms at 512 pixels but 144 ms at 2048 pixels in
+1.9. Three isolated process renders per size reproduced the slower small
+render, and a sampled trace attributed about 172 ms to `ConvertArea` at 512;
+that path was absent at 2048. An isolated four-worker area trial cut the
+Altona first-page median from 473 to 370 ms. The initial broad difficult-set
+comparison had mismatched file-worker settings and is excluded. With one
+file worker on both sides, its median 74-page render sum rose from 5.926 to
+6.395 seconds. A narrower trial restricted parallelism to large, reduced,
+8-bit four-channel images and again cut Altona from 467 to 364 ms, with
+similar process peaks. Its paired difficult-set median still rose from 6.259
+to 6.568 seconds. All 74 PNGs matched across the measured runs. Diagnostics
+showed the narrower rule applied only to Altona Measure in this set; the
+other page timing changes remain unexplained variability or build effects.
+Neither trial established a whole-batch gain, so neither was retained.
+Sources and runs are under `C:/Users/steve/kp-bench-render/area-small-parallel-20260930`
+and `C:/Users/steve/kp-bench-render/area-cmyk-parallel-20260930`.
+
 An alternating fresh-process balloon probe at the 1.9 page size of 1503 by
 2047 pixels measured first renders of 481.503 and 473.333 ms through 1.8.72
 versus 927.879 and 945.253 ms through 1.9.0. Four calls in each process kept
