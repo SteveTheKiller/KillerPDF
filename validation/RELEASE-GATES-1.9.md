@@ -202,6 +202,14 @@ and 75 MiB of double arrays. These are sampled allocation volumes, not live
 retention or peak working sets. The largest sampled double-array owner was
 `PdfIccLut` construction at about 50 MiB. Evidence is under
 `C:/Users/steve/kp-bench-render/loose-full-gc-20260930`.
+The retained half of that trace attributes its largest Point-array samples
+to cubic path growth (about 37.5 MiB across three leading stacks), pixel-space
+fill conversion (12.1 MiB), and glyph outline flattening (about 22.2 MiB
+across three leading stacks). These are allocations across the batch and do
+not establish which path raises peak memory. A prior per-glyph contour buffer
+trial reduced allocations on Ghent page 2 by 1.2% without a timing gain, so
+repeating that change is not justified by this trace. The decoded stack
+summary is `difficult-stacks.json` beside the trace.
 
 Keeping large ICC lookup tables in their original bytes instead of expanding
 every sample to a double lowered isolated Ghent and Altona Technical peaks by
