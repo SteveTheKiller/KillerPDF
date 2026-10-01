@@ -237,6 +237,14 @@ adding that selection again would not address its gap. Symbol decoding still
 needs a measured comparison with 1.8. The trace is under
 `C:/Users/steve/kp-bench-render/viewer-primary-20260930`.
 
+An isolated optimized-compilation hint on that template-0 loop passed all
+15 focused JBIG2 tests and preserved the scan's 512-pixel page hash. Four
+alternating fresh-process renders per build measured 666.665 ms for baseline
+versus 672.476 ms for the hint at the median, with overlapping ranges and
+roughly 120 MB peaks in both modes. The hint was removed because it did not
+improve the target page. The scratch payload is under
+`C:/Users/steve/kp-bench-render/jbig2-template-opt-20260930`.
+
 An isolated trial used a 32-bit register for the JBIG2 arithmetic decoder's
 bounded code value. It built and passed all 15 focused JBIG2 tests. Six
 alternating 512-pixel difficult-set runs rendered all 74 pages, and every
