@@ -573,6 +573,16 @@ render time fell from 9,425.5 to 9,233.5 milliseconds and wall time from
 does not meet the release gate. Raw runs and payloads are under
 `C:/Users/steve/kp-bench-render/arith-bytein-20260930`.
 
+A loose-payload recheck of that exact byte-input change used three alternating
+measured runs per build at each of 512 and 2048 pixels. All 74 PNG hashes
+matched across every run at both sizes, and the 15 focused JBIG2 tests passed.
+At 512 pixels, baseline and trial median render sums were 6,330 and 6,250 ms;
+median peaks were about 189.3 and 188.3 MiB. At 2048 pixels, render sums
+were 9,250 and 9,115 ms, but median peaks rose from about 264.0 to 271.0 MiB.
+The second measurement again shows a roughly 7 MiB memory cost for a small,
+variable speed gain, so the source was restored. Raw runs and PNGs are under
+`C:/Users/steve/kp-bench-render/arith-bytein-recheck-20260930`.
+
 A same-payload `DOTNET_TieredCompilation=0` trial used alternating hidden
 application runs after warmup. On the 74-page difficult set, baseline and
 disabled-tiering medians were 10.545 and 8.720 seconds of rendering, 16.248
