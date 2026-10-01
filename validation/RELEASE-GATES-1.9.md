@@ -98,6 +98,15 @@ regions, ruling out a 65,536-entry allocation per symbol.
 The trace was removed from source after inspection; its scratch payload is
 under `C:/Users/steve/kp-bench-render/jbig-template-trace-20260930`.
 
+A September 30 sampled-thread profile against the retained loose engine
+opened and rendered this scan 32 times at 512 pixels, with matching hashes.
+Of 7,976 ms of sampled CPU intervals, 4,885 ms were attributed to the
+generic-region line decoder, 982 ms to binary area conversion, and 434 ms
+to unshifted JBIG2 bitmap blitting. This points the next 512-pixel scan
+investigation at the template 0 decode loop. The profile is diagnostic and
+does not measure a visible first page or a 1.8 comparison. Trace and
+summarizer are under `C:/Users/steve/kp-bench-render/current-scan-cpu-20260930`.
+
 A direct full-resolution YCCK output loop for equal-sampled components kept
 the existing pixel conversion and added no image buffers. Four alternating
 16-copy `064034.pdf` runs per build at 2048 pixels cut median summed rendering
