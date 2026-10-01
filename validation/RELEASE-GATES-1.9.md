@@ -148,6 +148,11 @@ because this probe reused the rendered page; second 1.8 calls took 444.188
 and 465.873 ms. Thus the repeated 1.9 calls do not establish faster JPEG 2000
 decoding. The first-call gap remains the useful target, while this small
 process probe cannot establish whole-batch memory parity or visible latency.
+Four additional fresh 1.9 processes split session opening from first-page
+rendering: opening took 178.636 to 187.082 ms, while rendering took 727.390
+to 808.752 ms. The page hash matched the earlier probe in every run. The
+first-render stage is the larger target; these boundaries include runtime
+initialization and do not isolate JPEG 2000 decode time.
 Its raw output is under
 `C:/Users/steve/kp-bench-render/viewer-attach-20260930/balloon-current-2048`.
 
