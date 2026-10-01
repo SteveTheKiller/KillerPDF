@@ -54,7 +54,7 @@ public static class PdfFontResourceReader
             string fontName = Name(Get(font, "BaseFont"))
                 ?? Name(Get(metrics, "BaseFont"))
                 ?? Name(Get(descriptor, "FontName"))
-                ?? "Unknown";
+                ?? (document.UsesCompatibilityRecovery && subtype == "Type1" ? "Times-Roman" : "Unknown");
             string metricsName = fontName.Length > 7 && fontName[6] == '+' ? fontName[7..] : fontName;
             string standardMetricsName = PdfStandardFontSubstitutes.CanonicalMetricsName(metricsName);
             var systemInfo = Get(metrics, "CIDSystemInfo") as PdfDictionary;

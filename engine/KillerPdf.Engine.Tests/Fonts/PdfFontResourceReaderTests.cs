@@ -342,6 +342,21 @@ public sealed class PdfFontResourceReaderTests
         Assert.Equal("ABCDEF+Calibri-Bold", font.FontName);
     }
 
+    [Fact]
+    public void MissingType1BaseFontUsesTimesRomanOnlyInRecovery()
+    {
+        var resource = D(("Subtype", N("Type1")));
+        byte[] bytes = new PdfDocumentBuilder().AddBlankPage().Build();
+        PdfDocument recovery = PdfDocument.OpenWithCompatibilityRecovery(bytes);
+        PdfExtractionFont recovered = PdfFontResourceReader.Read(recovery, resource);
+        PdfExtractionFont expected = Read(D(("Subtype", N("Type1")), ("BaseFont", N("Times-Roman"))));
+
+        Assert.Equal("Times-Roman", recovered.FontName);
+        Assert.Equal(expected.GetGlyphOutline(65)!.Contours.SelectMany(contour => contour.Points),
+            recovered.GetGlyphOutline(65)!.Contours.SelectMany(contour => contour.Points));
+        Assert.Equal("Unknown", Read(resource).FontName);
+    }
+
     [Theory]
     [InlineData("ArialMT", 667)]
     [InlineData("ABCDEF+Arial-BoldMT", 722)]
