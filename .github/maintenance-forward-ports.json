@@ -593,6 +593,21 @@
       "maintenanceCommit": "711f0d309f908172d9e86cd900af477868a3844a",
       "developmentCommit": "51831c4707868c5c0f1b7919f4623dcd889824fc",
       "reason": "The 1.8.80 maintenance version does not apply to the separate 1.9.0 development line."
+    },
+    {
+      "maintenanceCommit": "54b57cb94c63ef2dcef130db9f6c12ddecdab369",
+      "developmentCommit": "9742ad46ecd3f9e37a50123f57bcb6606510c900",
+      "reason": "Ukrainian was added in 04c0966 and Norwegian and Brazilian Portuguese in this commit. All maintenance resource keys are present; the transform tooltip reflects the expanded 1.9 tool."
+    },
+    {
+      "maintenanceCommit": "ec3a0593f5132255f533dbd4c40a16d706ee689d",
+      "developmentCommit": "8989861b4a99018f3a9d4bee6dd6d7b1d2e0c6d1",
+      "reason": "Ukrainian website strings were added in d801c69 and Norwegian and Brazilian Portuguese in this commit. Every maintenance website translation key is present in 1.9."
+    },
+    {
+      "maintenanceCommit": "6faf8bdc9b835c28bb632bb1478f03cfddc3a4c4",
+      "developmentCommit": "475980ddba111f9d4b325c64e399e9ac7f880d30",
+      "reason": "The 1.9 package and website state nineteen languages. Its development README does not list application features."
     }
   ]
 }
