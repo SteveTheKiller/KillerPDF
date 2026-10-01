@@ -5396,7 +5396,36 @@ public sealed partial class PdfPageRenderer
             AreaSpan column = _areaColumns?[px] ?? AreaSpan.Create(px, sourceWidth, planeWidth);
             AreaSpan row = _areaRows?[py] ?? AreaSpan.Create(py, sourceHeight, planeHeight);
             double first = 0, second = 0, third = 0, fourth = 0;
-            if (_bits == 8 && _components == 4 && _cacheKeys is not null && !_directCmyk)
+            if (_directCmyk)
+            {
+                for (int y = row.First; y < row.End; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    double vertical = row.Weight(y);
+                    int sampleOffset = y * _rowBytes + column.First * 4;
+                    for (int x = column.First; x < column.End; x++, sampleOffset += 4)
+                    {
+                        double weight = vertical * column.Weight(x);
+                        uint ink = ReadInk(_samples, sampleOffset);
+                        int slot = (int)((ink * 2654435761u) >> _cacheShift);
+                        uint color;
+                        if (_cacheValid![slot] && _cacheKeys![slot] == ink)
+                            color = _cacheValues![slot];
+                        else
+                        {
+                            color = PdfDeviceCmyk.ToRgb(ink) | 0xFF000000;
+                            _cacheKeys![slot] = ink;
+                            _cacheValues![slot] = color;
+                            _cacheValid[slot] = true;
+                        }
+                        first += (byte)color * weight;
+                        second += (byte)(color >> 8) * weight;
+                        third += (byte)(color >> 16) * weight;
+                        fourth += (byte)(color >> 24) * weight;
+                    }
+                }
+            }
+            else if (_bits == 8 && _components == 4 && _cacheKeys is not null)
             {
                 for (int y = row.First; y < row.End; y++)
                 {
