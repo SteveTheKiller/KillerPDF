@@ -1279,6 +1279,20 @@ The cold gain does not change the earlier whole-pass and memory disposition.
 Traces and payloads are under
 `C:/Users/steve/kp-bench-render/viewer-attach-20260930`.
 
+A separate scratch build precompiled only the current Release engine, leaving
+the application and JPEG 2000 codec unchanged. On the JBIG2 scan at 512 pixels,
+three alternating fresh-process runs per mode reduced median page rendering
+from 729 to 447 ms. Both 74-page difficult-set runs at 512 pixels improved:
+baseline render sums were 7,418 and 7,633 ms versus 6,607 and 6,371 ms with
+the precompiled engine. At 2048 pixels the two-run medians moved in the other
+direction, from 10,518 to 11,027 ms, and sampled peak medians rose from
+261.2 to 268.2 MiB. The 600-page shared set at 1024 pixels was nearly tied
+at median render sums of 17,357 and 17,451 ms. All 74 difficult and 600 shared
+PNGs matched across each measured run. The first-scan gain repeated in these
+headless runs, but the larger difficult-set speed and memory results do not
+support precompiling the whole engine for 1.9. Scratch builds and raw runs
+are under `C:/Users/steve/kp-bench-render/scan-jit-20260930`.
+
 A JBIG2 arithmetic-state trial reduced repeated context-array access while
 preserving all three tested scan-page hashes. Four alternating fresh-process
 runs measured median three-page rendering at about 823 milliseconds before
