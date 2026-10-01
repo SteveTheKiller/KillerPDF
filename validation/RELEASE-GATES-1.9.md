@@ -155,6 +155,14 @@ the batch timing alone cannot divide it among parsing, decoding, and setup.
 Raw output and analysis are under
 `C:/Users/steve/kp-bench-render/viewer-attach-20260930/current-v18-v19-difficult-512`.
 
+Of the retained scan trace's 253 sampled CPU stacks, 67 pass through
+`GenericRegion.DecodeTemplate0aFast` and 43 through
+`ArithmeticDecoder.Decode`; these inclusive counts overlap. The current
+decoder already selects the optimized template-0 path for this scan, so
+adding that selection again would not address its gap. Symbol decoding still
+needs a measured comparison with 1.8. The trace is under
+`C:/Users/steve/kp-bench-render/viewer-primary-20260930`.
+
 `altona_measure_1v1a.pdf` exposes a size-specific area-sampling cost: its
 three-run page median is 339 ms at 512 pixels but 144 ms at 2048 pixels in
 1.9. Three isolated process renders per size reproduced the slower small
