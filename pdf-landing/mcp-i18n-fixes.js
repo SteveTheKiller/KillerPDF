@@ -5,3 +5,21 @@ Object.keys(I18N).forEach(function (locale) {
     .replace(/[^.!?。！？]*Cloudflare[^.!?。！？]*[.!?。！？]?\s*/gu, " ")
     .trim();
 });
+if (I18N.uk) Object.assign(I18N.uk, {
+ "mcp_step_2": "<strong>Дозвольте інсталятору підключити вашого ШІ-асистента.</strong> Інсталятор установлює спільне середовище виконання та реєструє KillerMCP у Codex, Claude Code, Claude Desktop, Cursor, GitHub Copilot, Gemini CLI і Windsurf, коли знаходить їх.",
+ "mcp_step_3": "<strong>Відкрийте новий чат із ШІ-асистентом і поставте запитання.</strong> KillerMCP виявляє KillerPDF на вашому комп'ютері та робить його інструменти PDF доступними через те саме підключення.",
+ "mcp_examples_intro": "<code>killer</code> - це найкоротша форма. ШІ-асистент може здогадатися про KillerPDF, коли запит і вкладення явно стосуються PDF. Використовуйте <code>killerpdf</code> лише тоді, коли хочете явно вказати застосунок.",
+ "mcp_connection_body": "Встановіть KillerMCP один раз. Він виявляє підтримувані застосунки Killer на вашому комп'ютері та додає їхні інструменти до одного підключення ШІ-асистента. Коли виходять нові інтеграції застосунків, те саме середовище виконання KillerMCP може надавати їх без окремого інсталятора для кожного застосунку."
+});
+if (I18N.nb) Object.assign(I18N.nb, {
+ "mcp_step_2": "<strong>La oppsettet koble til agenten din.</strong> Det installerer den delte kjøretiden og registrerer KillerMCP i Codex, Claude Code, Claude Desktop, Cursor, GitHub Copilot, Gemini CLI og Windsurf når de blir funnet.",
+ "mcp_step_3": "<strong>Åpne en ny agentchat og spør.</strong> KillerMCP oppdager KillerPDF på datamaskinen din og gjør PDF-verktøyene tilgjengelige gjennom den samme tilkoblingen.",
+ "mcp_examples_intro": "<code>killer</code> er den korteste formen. Agenten din kan utlede KillerPDF når forespørselen og de vedlagte filene tydelig gjelder PDF-er. Bruk <code>killerpdf</code> bare når du vil gjøre programmet eksplisitt.",
+ "mcp_connection_body": "Installer KillerMCP én gang. Det oppdager støttede Killer-programmer på datamaskinen din og legger verktøyene deres til i én agenttilkobling. Etter hvert som flere programintegrasjoner utgis, kan den samme KillerMCP-kjøretiden levere dem uten et eget installasjonsprogram for hvert program."
+});
+if (I18N.pt) Object.assign(I18N.pt, {
+ "mcp_step_2": "<strong>Deixe o instalador conectar seu agente.</strong> Ele instala o runtime compartilhado e registra o KillerMCP no Codex, no Claude Code, no Claude Desktop, no Cursor, no GitHub Copilot, no Gemini CLI e no Windsurf quando os encontra.",
+ "mcp_step_3": "<strong>Abra um novo chat com o agente e pergunte.</strong> O KillerMCP detecta o KillerPDF no seu computador e disponibiliza as ferramentas de PDF dele pela mesma conexão.",
+ "mcp_examples_intro": "<code>killer</code> é a forma mais curta. Seu agente pode inferir o KillerPDF quando o pedido e os arquivos anexados são claramente sobre PDFs. Use <code>killerpdf</code> somente quando quiser deixar o aplicativo explícito.",
+ "mcp_connection_body": "Instale o KillerMCP uma única vez. Ele detecta os aplicativos Killer compatíveis no seu computador e adiciona as ferramentas deles a uma única conexão com o agente. À medida que mais integrações de aplicativos forem lançadas, o mesmo runtime do KillerMCP poderá oferecê-las sem um instalador separado para cada aplicativo."
+});
