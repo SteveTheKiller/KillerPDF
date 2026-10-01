@@ -247,6 +247,15 @@ fell from 283.1 to 279.0 MiB. The balloon page medians were 839 and 939 ms.
 The speed regression rules out this pool policy for 1.9. Scratch source and
 raw runs are under `C:/Users/steve/kp-bench-render/j2k-no-frame-pool-20260930`.
 
+A guarded contiguous-row loop in the JPEG 2000 float dequantizer avoided
+per-row index math when the source block had zero offset and a stride equal
+to its width. Three alternating 2048-pixel difficult-set runs per build kept
+all 74 PNG hashes unchanged. Median render sums were 9.137 seconds for the
+baseline and 9.227 seconds for the trial; sampled peak medians were 288.3
+and 286.1 MiB. Balloon page medians were 806 and 862 ms. The speed result
+does not support retaining the loop. Scratch source and runs are under
+`C:/Users/steve/kp-bench-render/j2k-contiguous-dequant-20260930`.
+
 ### Earlier difficult-set comparison (2026-09-30)
 
 The current 1.9 Release build and unchanged local 1.8.72 Release build rendered
