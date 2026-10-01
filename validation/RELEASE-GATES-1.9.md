@@ -163,6 +163,16 @@ adding that selection again would not address its gap. Symbol decoding still
 needs a measured comparison with 1.8. The trace is under
 `C:/Users/steve/kp-bench-render/viewer-primary-20260930`.
 
+An isolated trial used a 32-bit register for the JBIG2 arithmetic decoder's
+bounded code value. It built and passed all 15 focused JBIG2 tests. Six
+alternating 512-pixel difficult-set runs rendered all 74 pages, and every
+trial PNG matched the baseline hash. Median render sums were 6.229 seconds
+for baseline and 6.384 seconds for the trial; sampled peak medians were
+216.4 and 214.9 MiB. The scan page one medians were 572 and 564 ms, too
+small a gain to offset the slower full set. The change was not retained.
+Runs and scratch source are under
+`C:/Users/steve/kp-bench-render/jbig2-uint-register-20260930`.
+
 `altona_measure_1v1a.pdf` exposes a size-specific area-sampling cost: its
 three-run page median is 339 ms at 512 pixels but 144 ms at 2048 pixels in
 1.9. Three isolated process renders per size reproduced the slower small
