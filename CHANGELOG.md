@@ -4,9 +4,9 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.8.72] - Unreleased
+## [1.8.80] - Unreleased
 
-1.8.72 improves installation, document tabs, pen editing, and Hebrew text saving.
+1.8.80 improves installation, document tabs, pen editing, and Hebrew text saving.
 
 ### Added
 - Added yellow and magenta accents to the neutral and 98SE themes.
