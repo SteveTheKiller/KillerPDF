@@ -70,6 +70,16 @@ area-conversion work as the next targets. This standalone probe does not
 measure application startup or visible first-page presentation. Its source
 and payload reference are under `C:/Users/steve/kp-bench-render/stage-current-20260930`.
 
+A packed-state arithmetic decoder trial kept the scan's 512-pixel hash and
+similar peak memory, and all 15 focused JBIG2 tests passed. Four alternating
+fresh-process first renders per build gave median scan times of 604.365 ms
+for baseline and 599.401 ms for the trial, below the observed run variation.
+Repeated renders of the same parsed document were slightly slower with the
+trial and mostly reused decoded data, so they cannot validate a decode gain.
+The change was removed; current source remains at the retained baseline.
+Scratch binaries and probe source are under
+`C:/Users/steve/kp-bench-render/jbig-packed-decode-20260930`.
+
 A direct full-resolution YCCK output loop for equal-sampled components kept
 the existing pixel conversion and added no image buffers. Four alternating
 16-copy `064034.pdf` runs per build at 2048 pixels cut median summed rendering
