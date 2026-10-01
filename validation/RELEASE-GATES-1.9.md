@@ -536,6 +536,21 @@ coverage-painting profile is no longer a sound basis for the next change.
 The trace, output log, and sample-count script are in
 `C:/Users/steve/kp-bench-render` with the `current-cpu-20260930` prefix.
 
+Fresh whole-batch sampled-thread traces of the current Release payload at
+2048 and 512 pixels each completed all 74 difficult pages. Every output PNG
+matched the earlier 1.9 batch at the same size. At 2048 pixels, inclusive
+sampled CPU time was about 1.71 seconds in general image area conversion,
+1.16 seconds in one-bit area sampling, and 0.65 seconds in JPEG 2000 decode.
+At 512 pixels it was about 1.42 seconds in outline text, 0.72 seconds in JPEG
+decode, 0.54 seconds in general area conversion, and 0.46 seconds in JBIG2
+decode. These are overlapping method times from separate instrumented runs,
+not paired wall-time or 1.8 comparisons. They show that output-size-independent
+text and image decoding still matter at 512 pixels; another shading-only
+microchange is not supported by the whole-batch profile. The traces, batch
+logs, PNGs, and analysis are under
+`C:/Users/steve/kp-bench-render/difficult-cpu-trace-20260930` and
+`C:/Users/steve/kp-bench-render/difficult-cpu-trace-512-20260930`.
+
 A fresh first-page trace of `42828.0001.001.pdf` again showed active work
 in JBIG2 generic-region decoding and exact one-bit image averaging. A
 scratch trial prepared the two decoded display colors once per image instead
