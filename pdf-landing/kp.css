@@ -83,6 +83,7 @@ html[data-theme="light"] .page-title { text-shadow: none; }
 .sw-malaise { background:#563343; --sw-accent:#ff6f91; } .sw-sepulchre { background:#3a352f; --sw-accent:#4faaa8; }
 .sw-delirium { background:#641d25; --sw-accent:#dd8500; } .sw-mourning { background:#554c5d; --sw-accent:#ff6f91; }
 .acc { width: 17px; height: 17px; border-radius: 50%; cursor: pointer; border: 2px solid rgba(255,255,255,0.25); padding: 0; transition: transform 0.12s; }
+html[data-theme="light"] .acc[data-accent="yellow"] { background: #EAD900 !important; color: #EAD900 !important; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55)); }
 .acc:hover { transform: scale(1.18); }
 .acc[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 2px currentColor; }
 .accent-switch[hidden] { display: inline-flex; visibility: hidden; }

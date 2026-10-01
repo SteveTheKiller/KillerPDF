@@ -17,7 +17,7 @@ namespace KillerPDF.Services
 
     // Accent-hue variants of the Dark theme. Green is the base Dark.xaml (no overlay); the
     // others apply a small overlay dictionary that recolors only the accent-family keys.
-    internal enum DarkAccent { Green, Red, Blue, Purple, Orange, Teal }
+    internal enum DarkAccent { Green, Red, Blue, Purple, Orange, Teal, Yellow, Magenta }
 
     internal static partial class ThemeManager
     {
