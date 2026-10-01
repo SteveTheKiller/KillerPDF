@@ -88,6 +88,14 @@ and trial medians of 603.040 and 606.924 ms at 512 pixels, and 638.733 and
 improved. Scratch payloads are under
 `C:/Users/steve/kp-bench-render/binary-column-20260930`.
 
+Temporary tracing of scan `42828.0001.001.pdf` found 1,338 arithmetic
+generic regions totaling 23,231,936 source pixels. Every region uses
+template 0 without an override or skip mask; the largest is 3813 by 5441.
+The current decoder already sends these regions through its template 0 fast
+loop. Adding fast paths for other templates would not improve this scan.
+The trace was removed from source after inspection; its scratch payload is
+under `C:/Users/steve/kp-bench-render/jbig-template-trace-20260930`.
+
 A direct full-resolution YCCK output loop for equal-sampled components kept
 the existing pixel conversion and added no image buffers. Four alternating
 16-copy `064034.pdf` runs per build at 2048 pixels cut median summed rendering
