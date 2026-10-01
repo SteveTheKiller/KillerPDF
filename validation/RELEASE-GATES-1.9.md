@@ -551,6 +551,21 @@ logs, PNGs, and analysis are under
 `C:/Users/steve/kp-bench-render/difficult-cpu-trace-20260930` and
 `C:/Users/steve/kp-bench-render/difficult-cpu-trace-512-20260930`.
 
+Follow-up 512-pixel traces narrowed two different costs. The poster page
+`mipeng_poster_w24.pdf` spent about 314 ms of inclusive sampled CPU time
+in content parsing, with repeated Form rendering above it; its prior parser,
+Form-cache, and soft-mask trials already cover this path. On the first three
+pages of `Ghent_PDF-Output-Test-V50_ALL_X4.pdf`, the 1.9 trace attributed
+about 374 ms to outline text, including 221 ms in font loading and 154 ms
+in ToUnicode parsing. The same instrumented run recorded page render times
+of 521, 217, and 516 ms for 1.9 versus 85, 98, and 164 ms for 1.8.
+The 1.8 sampled profiler does not expose PDFium's native internals, so
+those samples cannot identify its corresponding font cost. The earlier
+ToUnicode replacement-string change reduced allocations but did not establish
+a meaningful speed gain. Trace artifacts are under
+`C:/Users/steve/kp-bench-render/mipeng-text-trace-20260930` and
+`C:/Users/steve/kp-bench-render/ghent-text-trace-20260930`.
+
 A fresh first-page trace of `42828.0001.001.pdf` again showed active work
 in JBIG2 generic-region decoding and exact one-bit image averaging. A
 scratch trial prepared the two decoded display colors once per image instead
