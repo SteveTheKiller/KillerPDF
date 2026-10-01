@@ -1418,6 +1418,25 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_OpaqueSoftMaskPreservesFineColorDetailWhenReducing()
+    {
+        PdfImage image = PdfImage.FromRgba(2, 2, new byte[] {
+            255, 0, 0, 255, 0, 0, 255, 255,
+            255, 0, 0, 255, 0, 0, 255, 255
+        });
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(1, 1, new PdfContentStreamBuilder().DrawImage(image, 0, 0, 1, 1))
+            .Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(1, 1, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([128, 0, 128, 255], Pixel(page, 0, 0));
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Fact]
     public void Render_AveragesThinSoftMaskLinesWhenReducing()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

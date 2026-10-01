@@ -2729,10 +2729,14 @@ public sealed partial class PdfPageRenderer
                 : "Masked-image rendering is not implemented.";
             return false;
         }
+        SoftMask? paintSoftMask = preblendMatte is null
+            && softMask is { Bits: 8, DecodeStart: 0, DecodeEnd: 1 } opaqueMask
+            && opaqueMask.Samples.AsSpan().IndexOfAnyExcept((byte)255) < 0
+                ? null : softMask;
         PaintImage(target, targetWidth, targetHeight, scaleX, scaleY,
             transform, samples, sampleWidth, sampleHeight,
             components, bits, clips,
-            imageMask, imageMask && StencilPaintsOne(stream.Dictionary), softMask, decode,
+            imageMask, imageMask && StencilPaintsOne(stream.Dictionary), paintSoftMask, decode,
             colorKeyMask, colorSpace, stencilColor, stencilAlpha, blendMode,
             cancellationToken, preblendMatte,
             softMask is not null || colorKeyMask is not null ? null : graphicsSoftMask, knockout, overprint, alphaIsShape,
@@ -5420,7 +5424,18 @@ public sealed partial class PdfPageRenderer
                     }
                     else
                     {
-                        uint color = Convert(x, y);
+                        uint color;
+                        if (_bits == 8 && _components == 1 && _lookup is not null)
+                        {
+                            int sample = _samples[y * _rowBytes + x];
+                            if (!_lookupSet![sample])
+                            {
+                                _lookup[sample] = ConvertRaw(sample, 0, 0, 0);
+                                _lookupSet[sample] = true;
+                            }
+                            color = _lookup[sample];
+                        }
+                        else color = Convert(x, y);
                         first += (byte)color * weight;
                         second += (byte)(color >> 8) * weight;
                         third += (byte)(color >> 16) * weight;

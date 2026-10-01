@@ -58,7 +58,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Reused the canonical Unicode replacement character while parsing font maps, reducing cold allocation for maps with repeated missing-character entries.
 - Preserved antialiased coverage when a painted shape exactly matches its clipping path.
 - Centered host-resolved Identity glyphs when their widths are omitted from the PDF.
-- Improved fine detail when reducing images with soft masks.
+- Improved fine detail when reducing images with soft masks, including fully opaque masks.
 - Used the standard identity encoding for embedded fonts when possible, improving searchable OCR text extraction compatibility.
 - Reused parsed extraction fonts across pages, reducing text extraction time on multipage documents.
 - Reduced parsed content-instruction allocation by compiling numeric path, text, matrix, and graphics-state operands directly into compact storage with unchanged rendering output.
