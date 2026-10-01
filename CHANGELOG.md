@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 1.9.0 (Overkill) moves rendering, text, and image extraction into The KillerPDF.Engine, adds advanced PDF workflows, and carries forward the latest 1.8 reliability and interface fixes.
 
 ### Added
+- Added Ukrainian localization.
 
 - Added a shared reusable image library for the Image tool, image watermarks, and imported signatures, with import, preview, rename, and delete controls (#326).
 - Added localized desktop reports for preflight, accessibility, print production, separations, layers, portfolios, and structural comparisons.
