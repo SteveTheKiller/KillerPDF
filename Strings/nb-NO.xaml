@@ -1,0 +1,1052 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ================================================================
+         KillerPDF  -  Norsk bokmål (nb-NO) strings
+         ================================================================ -->
+
+    <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_TT_Open">Åpne (Ctrl+O)</sys:String>
+    <sys:String x:Key="Str_TT_NewBlank">Nytt tomt dokument (Ctrl+N)</sys:String>
+    <sys:String x:Key="Str_TT_CloseFile">Lukk fil (Ctrl+W)</sys:String>
+    <sys:String x:Key="Str_TT_Save">Lagre (Ctrl+S)</sys:String>
+
+    <!-- ── Drop zone / empty state ──────────────────────────────────── -->
+    <sys:String x:Key="Str_Drop_Title">Slipp PDF her</sys:String>
+    <sys:String x:Key="Str_Drop_Sub">eller klikk for å bla</sys:String>
+    <sys:Double x:Key="ZoomBoxWidth">96</sys:Double>
+    <sys:String x:Key="Str_TT_SaveAs">Lagre som (Ctrl+Shift+S)</sys:String>
+    <sys:String x:Key="Str_TT_SaveFlattened">Lagre flatet PDF (rasteriserer alle sider, helt uredigerbar)</sys:String>
+    <sys:String x:Key="Str_TT_Print">Skriv ut (Ctrl+P)</sys:String>
+    <sys:String x:Key="Str_TT_MergePDFs">Slå sammen PDF-er (kombiner flere PDF-er med denne)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Trekk ut sider (lagre valgte sider i en ny PDF)</sys:String>
+    <sys:String x:Key="Str_TT_DeletePages">Slett valgte sider</sys:String>
+    <sys:String x:Key="Str_TT_MovePageUp">Flytt side opp (endre rekkefølge)</sys:String>
+    <sys:String x:Key="Str_TT_MovePageDown">Flytt side ned (endre rekkefølge)</sys:String>
+    <sys:String x:Key="Str_TT_SelectTool">Markeringsverktøy: klikk på merknader, dra for å markere tekst, dobbeltklikk for å redigere (V)</sys:String>
+    <sys:String x:Key="Str_TT_TextTool">Tekstverktøy: klikk for å legge til tekst (T)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">Fyllbart tekstfelt: opprett, velg, flytt, endre størrelse på eller slett felt; høyreklikk for å endre fyllfarge (F)</sys:String>
+    <sys:String x:Key="Str_TT_HighlightTool">Uthevingsverktøy: dra for å utheve (H)</sys:String>
+    <sys:String x:Key="Str_TT_StrikeTool">Gjennomstreking: dra over teksten</sys:String>
+    <sys:String x:Key="Str_TT_UnderlineTool">Understreking: dra over teksten</sys:String>
+    <sys:String x:Key="Str_TT_DrawTool">Tegneverktøy: frihåndstegning (D)</sys:String>
+    <sys:String x:Key="Str_TT_ShapeTool">Former: rektangel, ellipse eller fri polygon</sys:String>
+    <sys:String x:Key="Str_TT_SignatureTool">Signatur: opprett og plasser signaturer (G)</sys:String>
+    <sys:String x:Key="Str_TT_ImageTool">Bildeverktøy: klikk for å sette inn et bilde på siden (I)</sys:String>
+    <sys:String x:Key="Str_TT_CropTool">Beskjæringsverktøy: dra for å angi beskjæringsområde, og bruk det på siden eller sidene (C)</sys:String>
+    <sys:String x:Key="Str_TT_MeasureTool">Mål avstand og undersøk sidestørrelse</sys:String>
+    <sys:String x:Key="Str_TT_RotateTool">Transformer side - roter / rett opp skjevhet (skalering kommer snart) (R)</sys:String>
+    <sys:String x:Key="Str_TT_ClearAnnotations">Fjern alle merknader</sys:String>
+    <sys:String x:Key="Str_TT_Search">Søk (Ctrl+F)</sys:String>
+    <sys:String x:Key="Str_TT_UndoLast">Angre siste (Ctrl+Z)</sys:String>
+    <sys:String x:Key="Str_TT_MultiPageGrid">Rutenettvisning med flere sider (F8)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomOut">Zoom ut (Ctrl+-)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomLevel">Zoomnivå (Ctrl+rull · Ctrl++/- · Ctrl+0 = tilbakestill)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomIn">Zoom inn (Ctrl++)</sys:String>
+    <sys:String x:Key="Str_TT_GoToPage">Gå til side (Enter for å navigere)</sys:String>
+    <sys:String x:Key="Str_TT_CollapseSidebar">Skjul sidepanelet (F9)</sys:String>
+    <sys:String x:Key="Str_TT_ExpandSidebar">Vis sidepanelet (F9)</sys:String>
+    <sys:String x:Key="Str_TT_KeyboardShortcuts">Hurtigtaster (F1)</sys:String>
+    <sys:String x:Key="Str_TT_About">Om KillerPDF (F12)</sys:String>
+
+    <!-- ── About overlay ─────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_About_Version">VERSJON</sys:String>
+    <sys:String x:Key="Str_About_Publisher">UTGIVER</sys:String>
+    <sys:String x:Key="Str_About_Thumbprint">FINGERAVTRYKK</sys:String>
+    <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
+    <sys:String x:Key="Str_About_Computing">Beregner...</sys:String>
+    <sys:String x:Key="Str_Tagline">Et raskt, gratis PDF-verktøysett for Windows med merknader, sammenslåing, OCR, signering og skjemaverktøy. Et GPLv3-verktøy fra {0}.</sys:String>
+
+    <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_TabPages">SIDER</sys:String>
+    <sys:String x:Key="Str_TabOutlines">DISPOSISJON</sys:String>
+    <sys:String x:Key="Str_Outline_CollapseAll">Skjul alle</sys:String>
+    <sys:String x:Key="Str_Outline_ExpandAll">Vis alle</sys:String>
+    <sys:String x:Key="Str_PageLabel">Side {0}</sys:String>
+    <sys:String x:Key="Str_Outline_Untitled">(uten tittel)</sys:String>
+
+    <!-- ── Settings panel ───────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Theme">Tema</sys:String>
+    <sys:String x:Key="Str_Language">Språk</sys:String>
+    <sys:String x:Key="Str_Toolbar">VERKTØYLINJE</sys:String>
+    <sys:String x:Key="Str_Toolbar_Header">Verktøylinje</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextNone">Ingen tekst</sys:String>
+    <sys:String x:Key="Str_Toolbar_SmallIcons">Små ikoner</sys:String>
+    <sys:String x:Key="Str_Toolbar_LargeIcons">Store ikoner</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextBeside">Tekst ved siden av ikoner</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextUnder">Tekst under ikoner</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextOnly">Bare tekst</sys:String>
+    <sys:String x:Key="Str_Toolbar_Hide">Skjul verktøylinjen</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Verktøylinjen er skjult. Alt+M viser den igjen</sys:String>
+    <sys:String x:Key="Str_St_ToolbarShown">Verktøylinjen vises</sys:String>
+    <sys:String x:Key="Str_Lang_English">English</sys:String>
+    <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
+    <sys:String x:Key="Str_Lang_Chinese">中文 (繁體)</sys:String>
+
+    <!-- ── Keyboard shortcuts overlay ───────────────────────────────── -->
+    <sys:String x:Key="Str_KS_Title">Hurtigtaster</sys:String>
+    <sys:String x:Key="Str_KS_FormField">Fyllbart tekstfelt</sys:String>
+    <sys:String x:Key="Str_KS_File">FIL</sys:String>
+    <sys:String x:Key="Str_KS_Open">Åpne</sys:String>
+    <sys:String x:Key="Str_KS_CloseFile">Lukk fil</sys:String>
+    <sys:String x:Key="Str_KS_CloseOthers">Lukk andre faner</sys:String>
+    <sys:String x:Key="Str_KS_CloseAll">Lukk alle</sys:String>
+    <sys:String x:Key="Str_KS_NewBlank">Nytt tomt dokument</sys:String>
+    <sys:String x:Key="Str_KS_SaveAs">Lagre som</sys:String>
+    <sys:String x:Key="Str_KS_Print">Skriv ut</sys:String>
+    <sys:String x:Key="Str_KS_Navigation">NAVIGASJON</sys:String>
+    <sys:String x:Key="Str_KS_PrevNext">Forrige / neste side</sys:String>
+    <sys:String x:Key="Str_KS_ScrollView">Rull (bytter side ved kantene)</sys:String>
+    <sys:String x:Key="Str_KS_ZoomCursor">Zoom inn / ut (forankret i markøren)</sys:String>
+    <sys:String x:Key="Str_KS_ZoomInOut">Zoom inn / ut</sys:String>
+    <sys:String x:Key="Str_KS_ResetZoom">Tilbakestill zoom til 100 %</sys:String>
+    <sys:String x:Key="Str_KS_PanView">Panorer visningen</sys:String>
+    <sys:String x:Key="Str_KS_Editing">REDIGERING</sys:String>
+    <sys:String x:Key="Str_KS_Undo">Angre</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Slett valgt merknad</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Bekreft / avbryt tekst eller beskjæring</sys:String>
+    <sys:String x:Key="Str_KS_SearchSelect">SØK &amp; MARKER</sys:String>
+    <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
+
+    <!-- Document Info dialog -->
+    <sys:String x:Key="Str_TT_DocInfo">Dokumentinfo (F4)</sys:String>
+    <sys:String x:Key="Str_DocInfo_Suffix">Dokumentinfo</sys:String>
+    <sys:String x:Key="Str_DocInfo_Title">Tittel</sys:String>
+    <sys:String x:Key="Str_DocInfo_Author">Forfatter</sys:String>
+    <sys:String x:Key="Str_DocInfo_Subject">Emne</sys:String>
+    <sys:String x:Key="Str_DocInfo_Keywords">Nøkkelord</sys:String>
+    <sys:String x:Key="Str_DocInfo_Creator">Opprettet med</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">Produsent</sys:String>
+    <sys:String x:Key="Str_DocInfo_Save">Lagre</sys:String>
+    <sys:String x:Key="Str_DocInfo_Cancel">Avbryt</sys:String>
+    <sys:String x:Key="Str_KS_Find">Finn / søk</sys:String>
+    <sys:String x:Key="Str_KS_NextPrevResult">Neste / forrige treff</sys:String>
+    <sys:String x:Key="Str_KS_SelectAll">Marker all tekst på siden</sys:String>
+    <sys:String x:Key="Str_KS_CopyText">Kopier markert tekst</sys:String>
+    <sys:String x:Key="Str_KS_Help">HJELP</sys:String>
+    <sys:String x:Key="Str_KS_ThisList">Denne hurtigtastlisten</sys:String>
+    <sys:String x:Key="Str_KS_About">Om-dialogen</sys:String>
+    <sys:String x:Key="Str_KS_DocInfo">Dokumentinfo</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Full veiledning &amp; fremgangsmåter på nett</sys:String>
+    <sys:String x:Key="Str_KS_Tools">VERKTØY</sys:String>
+    <sys:String x:Key="Str_KS_Paste">Lim inn bilde / tekst</sys:String>
+    <sys:String x:Key="Str_KS_TextStyle">Fet / kursiv / understreket (tekstboks)</sys:String>
+    <sys:String x:Key="Str_KS_MultiSelect">Legg til i markeringen</sys:String>
+
+    <!-- ── Status bar ────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Ready">Klar</sys:String>
+    <sys:String x:Key="Str_Portable">BÆRBAR</sys:String>
+    <sys:String x:Key="Str_InstallBtn">Installer KillerPDF</sys:String>
+
+    <!-- ── Status messages (format strings - use string.Format) ─────── -->
+    <sys:String x:Key="Str_Opened">Åpnet {0} - {1} side(r)</sys:String>
+    <sys:String x:Key="Str_OpenedReadOnly">Åpnet {0} (skrivebeskyttet på grunn av eierbegrensninger) - {1} side(r)</sys:String>
+    <sys:String x:Key="Str_OpenedReadOnlyXRef">Åpnet {0} (skrivebeskyttet, ikke-standard XRef-tabell) - {1} side(r)</sys:String>
+    <sys:String x:Key="Str_OpenedRepaired">Åpnet {0} (reparert kopi, lagre for å beholde endringer) - {1} side(r)</sys:String>
+    <sys:String x:Key="Str_OpenedRasterRepair">Åpnet {0} (rasterisert reparasjon, lagre for å beholde endringer) - {1} side(r)</sys:String>
+    <sys:String x:Key="Str_PageOf">Side {0} av {1}</sys:String>
+    <sys:String x:Key="Str_PageOfLinks">Side {0} av {1}  ({2} lenke(r))</sys:String>
+    <sys:String x:Key="Str_PageFormFields">Side {0} av {1} - denne siden har fyllbare skjemafelt</sys:String>
+    <sys:String x:Key="Str_PageRenderError">Side {0} - kunne ikke gjengis</sys:String>
+    <sys:String x:Key="Str_RenderError">Gjengivelsesfeil: {0}</sys:String>
+    <sys:String x:Key="Str_Rotated">Roterte {0} side(r)</sys:String>
+    <sys:String x:Key="Str_Cropped">Beskar {0} side(r)</sys:String>
+    <sys:String x:Key="Str_CropFailed">Beskjæring mislyktes: {0}</sys:String>
+    <sys:String x:Key="Str_RemovedCrop">Fjernet CropBox fra {0} side(r)</sys:String>
+    <sys:String x:Key="Str_RemoveCropFailed">Kunne ikke fjerne beskjæring: {0}</sys:String>
+    <sys:String x:Key="Str_Extracted">Trakk ut {0} side(r) til {1}</sys:String>
+    <sys:String x:Key="Str_Deleted">Slettet {0} side(r) - {1} gjenstår</sys:String>
+    <sys:String x:Key="Str_Printed">Sendte {0} side(r) til skriveren</sys:String>
+    <sys:String x:Key="Str_LinkRemoved">Lenken er fjernet.</sys:String>
+    <sys:String x:Key="Str_LinkRemoveFailed">Kunne ikke fjerne lenken:</sys:String>
+    <sys:String x:Key="Str_LinkBlocked">Blokkert lenke (ikke støttet type):</sys:String>
+    <sys:String x:Key="Str_LinkOpenFailed">Kunne ikke åpne lenken</sys:String>
+    <sys:String x:Key="Str_LinkConfirmBody">Vil du åpne denne lenken i nettleseren?</sys:String>
+    <sys:String x:Key="Str_LinkConfirmTitle">Åpne lenke?</sys:String>
+    <sys:String x:Key="Str_LinkDontAsk">Ikke spør igjen</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenLink">Åpne lenke</sys:String>
+    <sys:String x:Key="Str_Ctx_CopyLink">Kopier lenkeadresse</sys:String>
+    <sys:String x:Key="Str_Ctx_CopyEmail">Kopier e-postadresse</sys:String>
+    <sys:String x:Key="Str_Ctx_RemoveLink">Fjern lenke fra PDF</sys:String>
+    <sys:String x:Key="Str_LinksSection">LENKER</sys:String>
+    <sys:String x:Key="Str_PrivacySection">PERSONVERN</sys:String>
+    <sys:String x:Key="Str_NoRecentSetting">Ikke husk nylig åpnede filer</sys:String>
+    <sys:String x:Key="Str_Menu_ExportImages">Eksporter sider som bilder...</sys:String>
+    <sys:String x:Key="Str_Menu_RemovePassword">Fjern passord</sys:String>
+    <sys:String x:Key="Str_St_SavedNoPassword">Lagret uten passordbeskyttelse - {0}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Suffix">Eksporter sider som bilder</sys:String>
+    <sys:String x:Key="Str_ExportImg_Format">Format</sys:String>
+    <sys:String x:Key="Str_ExportImg_Dpi">Oppløsning (DPI)</sys:String>
+    <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
+    <sys:String x:Key="Str_ExportImg_Export">Eksporter</sys:String>
+    <sys:String x:Key="Str_ExportImg_Done">Eksporterte {0} sider til {1}</sys:String>
+    <sys:String x:Key="Str_Print_AllPages">Alle sider</sys:String>
+    <sys:String x:Key="Str_Print_OddOnly">Bare oddetallssider</sys:String>
+    <sys:String x:Key="Str_Print_EvenOnly">Bare partallssider</sys:String>
+    <sys:String x:Key="Str_DocInvertSetting">Inverter dokumentfargene</sys:String>
+    <sys:String x:Key="Str_TT_DocInvert">Inverter dokumentfargene (N)</sys:String>
+    <sys:String x:Key="Str_TT_SplitPane">Delt panel: to dokumenter side ved side (F10)</sys:String>
+    <sys:String x:Key="Str_TT_CloseTab">Lukk fane</sys:String>
+    <sys:String x:Key="Str_TT_TabOverflow">Alle åpne faner</sys:String>
+    <sys:String x:Key="Str_InvertImagesToo">Inverter bilder også</sys:String>
+    <sys:String x:Key="Str_Font_NoGlyphs" xml:space="preserve">Ingen skrifttype på denne PC-en kan tegne disse tegnene, så de vises som bokser i den lagrede PDF-en:&#10;&#10;{0}&#10;&#10;Installer en skrifttype som dekker dem, eller velg en annen skrifttype for denne teksten.</sys:String>
+    <sys:String x:Key="Str_TT_AppSize">Rull for å endre størrelsen på hele appen (Ctrl+Shift++/-/0)</sys:String>
+    <sys:String x:Key="Str_St_AppSize">Appstørrelse {0} %</sys:String>
+    <sys:String x:Key="Str_KS_AppSize">Zoom hele appen (tilgjengelighet)</sys:String>
+    <sys:String x:Key="Str_KS_FileSize">Vis gjeldende filstørrelse</sys:String>
+    <sys:String x:Key="Str_KS_SplitPane">Delt panel: to dokumenter side ved side</sys:String>
+    <sys:String x:Key="Str_LinkConfirmSetting">Bekreft før lenker åpnes</sys:String>
+    <sys:String x:Key="Str_InvalidRange">Ugyldig område. Bruk f.eks. 1-3,5,7</sys:String>
+    <sys:String x:Key="Str_CropNoDoc">Beskjæring: ingen dokumenter er åpne</sys:String>
+    <sys:String x:Key="Str_CropNoPage">Beskjæring: ingen side er valgt</sys:String>
+    <sys:String x:Key="Str_CropNoDims">Beskjæring: sidedimensjonene er utilgjengelige</sys:String>
+    <sys:String x:Key="Str_RotateFailed">Rotering mislyktes: {0}</sys:String>
+
+    <!-- ── Dialog strings ───────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">Det andre panelet har også «{0}» åpen, med egne ulagrede endringer.
+
+Hvis du lagrer nå, overskrives filen, og disse endringene går tapt. Lagre det andre panelet først hvis du vil beholde dem.</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Delt panel er på. Trykk F10 for å lukke</sys:String>
+    <sys:String x:Key="Str_St_SplitOff">Delt panel er av</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallTitle">Installer KillerPDF</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Vil du installere KillerPDF på denne datamaskinen?
+
+Installasjonen kopierer appen til programmappen din for raskere oppstart og legger til en oppføring i Start-menyen. Du kan beholde eller slette denne bærbare filen etterpå.</sys:String>
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Vil du oppdatere den eksisterende installasjonen av KillerPDF for alle brukere?
+
+Dette erstatter kopien i Program Files med den raskere versjonen med flere filer. Eventuelle eldre kopier for enkeltbrukere fjernes slik at KillerPDF bare vises én gang. Du kan beholde eller slette denne bærbare filen etterpå.</sys:String>
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Vil du oppdatere den eksisterende installasjonen av KillerPDF?
+
+Dette erstatter den installerte kopien med den raskere versjonen med flere filer. Du kan beholde eller slette denne bærbare filen etterpå.</sys:String>
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF er allerede installert for alle på denne datamaskinen. Oppdater den installasjonen, eller avinstaller den før du velger installasjon for én bruker.
+
+KillerPDF oppretter ikke to installerte kopier.</sys:String>
+    <sys:String x:Key="Str_Btn_DoInstall">Installer</sys:String>
+    <sys:String x:Key="Str_Btn_DoUpdate">Oppdater</sys:String>
+    <sys:String x:Key="Str_Chk_Desktop">Legg til snarvei på skrivebordet</sys:String>
+    <sys:String x:Key="Str_Chk_AllUsers">Installer for alle på denne datamaskinen (krever administrator)</sys:String>
+    <sys:String x:Key="Str_Status_InstallFailed">Installasjonen ble ikke fullført. KillerPDF kjører fortsatt som bærbar.</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Vil du angi KillerPDF som standard PDF-leser?
+
+Åpner Windows-innstillinger, Standardapper.</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedClose">Du har ulagrede endringer. Vil du lukke denne filen uten å lagre?</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">Du har ulagrede endringer. Vil du lukke KillerPDF uten å lagre?</sys:String>
+    <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">Dette dokumentet har {0} side(r) med størrelse utenfor det Adobe Reader støtter (3 til 14 400 punkter per side). Adobe viser disse som tomme sider.
+
+Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og proporsjoner.</sys:String>
+    <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">Kunne ikke åpne PDF:
+{0}</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocs">Du har {0} åpne dokumenter. Vil du at KillerPDF skal lukke dem alle når du avslutter appen?</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">Du har 1 åpent dokument. Vil du at KillerPDF skal lukke det når du avslutter appen?</sys:String>
+    <sys:String x:Key="Str_Dlg_RememberChoice">Husk valget mitt</sys:String>
+
+
+    <!-- ── Theme names ────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Theme_Dark">Mørk</sys:String>
+    <sys:String x:Key="Str_Theme_Light">Lys</sys:String>
+    <sys:String x:Key="Str_Theme_Black">Svart</sys:String>
+    <sys:String x:Key="Str_Theme_Blood">Blod</sys:String>
+    <sys:String x:Key="Str_Theme_Greed">Grådighet</sys:String>
+    <sys:String x:Key="Str_Theme_Cyanotic">Cyanotisk</sys:String>
+    <sys:String x:Key="Str_Theme_98SE">98SE</sys:String>
+    <sys:String x:Key="Str_Theme_Ectoplasm">Ektoplasma</sys:String>
+    <sys:String x:Key="Str_Theme_Decay">Forfall</sys:String>
+    <sys:String x:Key="Str_Theme_Mourning">Sorg</sys:String>
+    <sys:String x:Key="Str_Theme_Sepulchre">Gravkammer</sys:String>
+    <sys:String x:Key="Str_Theme_Delirium">Delirium</sys:String>
+    <sys:String x:Key="Str_Theme_Malaise">Ubehag</sys:String>
+
+    <!-- ── Zoom dropdown ──────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Zoom_FitWidth">Tilpass bredde</sys:String>
+    <sys:String x:Key="Str_Zoom_FitPage">Tilpass side</sys:String>
+    <sys:String x:Key="Str_FitWidth">Side {0} av {1} - Tilpass bredde ({2} %)</sys:String>
+    <sys:String x:Key="Str_FitPage">Side {0} av {1} - Tilpass side ({2} %)</sys:String>
+
+    <!-- ── KS overlay font size (sys:Double) ──────────────────────────── -->
+    <sys:Double x:Key="Str_KS_FontSize">11</sys:Double>
+
+
+    <!-- ── View mode ──────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_ViewMode">VISNINGSMODUS</sys:String>
+    <sys:String x:Key="Str_View_Single">Enkeltside</sys:String>
+    <sys:String x:Key="Str_View_Continuous">Kontinuerlig</sys:String>
+    <sys:String x:Key="Str_View_TwoPage">To sider</sys:String>
+    <sys:String x:Key="Str_View_Grid">Rutenett</sys:String>
+    <sys:String x:Key="Str_View_BookMode">Bokoppsett</sys:String>
+    <sys:String x:Key="Str_Continuous_EditMsg">Bytt til Enkeltside for å bruke redigeringsverktøyene</sys:String>
+
+    <!-- ── Overflow menu + menu item labels ───────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_Merge">Slå sammen PDF-er</sys:String>
+    <sys:String x:Key="Str_Lbl_Extract">Trekk ut sider</sys:String>
+    <sys:String x:Key="Str_Lbl_Delete">Slett sider</sys:String>
+    <sys:String x:Key="Str_Lbl_MoveUp">Flytt side opp</sys:String>
+    <sys:String x:Key="Str_Lbl_MoveDown">Flytt side ned</sys:String>
+    <sys:String x:Key="Str_Lbl_Text">Tekst</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Skjema (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_Highlight">Utheving</sys:String>
+    <sys:String x:Key="Str_Lbl_Strike">Gjennomstreking</sys:String>
+    <sys:String x:Key="Str_Lbl_Underline">Understreking</sys:String>
+    <sys:String x:Key="Str_Lbl_Bold">Fet</sys:String>
+    <sys:String x:Key="Str_Lbl_Italic">Kursiv</sys:String>
+    <sys:String x:Key="Str_Lbl_Draw">Tegn</sys:String>
+    <sys:String x:Key="Str_Lbl_Shape">Former</sys:String>
+    <sys:String x:Key="Str_Lbl_Crop">Beskjær</sys:String>
+    <sys:String x:Key="Str_Lbl_Measure">Mål</sys:String>
+    <sys:String x:Key="Str_Lbl_Rotate">Transformer</sys:String>
+    <sys:String x:Key="Str_Lbl_Stamp">Stempel</sys:String>
+    <sys:String x:Key="Str_Lbl_Image">Legg til bilde</sys:String>
+    <sys:String x:Key="Str_Lbl_Signature">Signatur</sys:String>
+    <sys:String x:Key="Str_Lbl_Undo">Angre</sys:String>
+    <sys:String x:Key="Str_Lbl_Clear">Fjern alle</sys:String>
+    <sys:String x:Key="Str_Lbl_New">Ny</sys:String>
+    <sys:String x:Key="Str_Lbl_Open">Åpne</sys:String>
+    <sys:String x:Key="Str_Lbl_Close">Lukk</sys:String>
+    <sys:String x:Key="Str_Lbl_Save">Lagre</sys:String>
+    <sys:String x:Key="Str_Lbl_Flatten">Flat ut</sys:String>
+    <sys:String x:Key="Str_Lbl_Print">Skriv ut</sys:String>
+    <sys:String x:Key="Str_Lbl_Select">Marker</sys:String>
+    <sys:String x:Key="Str_Lbl_ZoomOut">Zoom ut</sys:String>
+    <sys:String x:Key="Str_Lbl_ZoomIn">Zoom inn</sys:String>
+    <sys:String x:Key="Str_Lbl_Search">Søk</sys:String>
+
+    <!-- ── Right-click menu labels ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Ctx_CopyText">Kopier tekst</sys:String>
+    <sys:String x:Key="Str_Ctx_Print">Skriv ut</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPage">OCR av side (kopier tekst)</sys:String>
+    <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
+    <sys:String x:Key="Str_TT_Ocr">OCR av side (kopier tekst) (Ctrl+Shift+O)</sys:String>
+    <sys:String x:Key="Str_Ocr_Region">OCR av område...</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdf">Lag søkbar PDF...</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractText">Trekk ut all tekst...</sys:String>
+    <sys:String x:Key="Str_Ocr_Language">Språk</sys:String>
+    <sys:String x:Key="Str_Ocr_FormAware">Skjemabevisst OCR</sys:String>
+    <sys:String x:Key="Str_Ocr_NoDoc">Åpne en PDF først</sys:String>
+    <sys:String x:Key="Str_Ocr_ComingSoon">{0} - kommer snart</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectTool">Markeringsverktøy</sys:String>
+    <sys:String x:Key="Str_Ctx_TextTool">Tekstverktøy</sys:String>
+    <sys:String x:Key="Str_Ctx_HighlightTool">Uthevingsverktøy</sys:String>
+    <sys:String x:Key="Str_Ctx_DrawTool">Tegneverktøy</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCW">Roter side med klokken</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCCW">Roter side mot klokken</sys:String>
+    <sys:String x:Key="Str_Ctx_StampNumbers">Stempl sidetall...</sys:String>
+    <sys:String x:Key="Str_Ctx_DeleteSel">Slett valgte</sys:String>
+    <sys:String x:Key="Str_Ctx_UndoLast">Angre siste</sys:String>
+    <sys:String x:Key="Str_Ctx_ClearPage">Fjern sidens merknader</sys:String>
+    <sys:String x:Key="Str_Ctx_InsertBlank">Sett inn tom side etter</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCWShort">Roter med klokken</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCCWShort">Roter mot klokken</sys:String>
+    <sys:String x:Key="Str_Ctx_ExtractPages">Trekk ut side(r)</sys:String>
+    <sys:String x:Key="Str_Ctx_ExportPageImage">Eksporter side som bilde</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePages">Slett side(r)</sys:String>
+
+    <!-- ── Stamp Page Numbers dialog ──────────────────────────────────── -->
+    <sys:String x:Key="Str_Stamp_Title">Stempl sidetall</sys:String>
+    <sys:String x:Key="Str_Stamp_StartAt">Start på</sys:String>
+    <sys:String x:Key="Str_Stamp_Format">Format</sys:String>
+    <sys:String x:Key="Str_Stamp_Hint">Bruk {n} for sidetallet og {N} for totalen</sys:String>
+    <sys:String x:Key="Str_Stamp_Hint2">Eksempel: «Side {n} av {N}»</sys:String>
+    <sys:String x:Key="Str_Stamp_Position">Plassering</sys:String>
+    <sys:String x:Key="Str_Stamp_FontSize">Skriftstørrelse (pt)</sys:String>
+    <sys:String x:Key="Str_Stamp_Cancel">Avbryt</sys:String>
+    <sys:String x:Key="Str_Stamp_Stamp">Stempl</sys:String>
+    <sys:String x:Key="Str_Stamp_Suffix">Stempl sider</sys:String>
+    <sys:String x:Key="Str_Stamp_SecNumbers">Sidetall</sys:String>
+    <sys:String x:Key="Str_Stamp_SecWatermark">Vannmerke</sys:String>
+    <sys:String x:Key="Str_Stamp_Color">Farge</sys:String>
+    <sys:String x:Key="Str_Stamp_Pages">Sider</sys:String>
+    <sys:String x:Key="Str_Stamp_WmText">Tekst</sys:String>
+    <sys:String x:Key="Str_Stamp_WmImage">Bilde</sys:String>
+    <sys:String x:Key="Str_Stamp_WmTextLabel">Vannmerketekst</sys:String>
+    <sys:String x:Key="Str_Stamp_ChooseImage">Velg bilde...</sys:String>
+    <sys:String x:Key="Str_Stamp_Scale">Skala</sys:String>
+    <sys:String x:Key="Str_Stamp_Angle">Vinkel</sys:String>
+    <sys:String x:Key="Str_Stamp_Opacity">Ugjennomsiktighet</sys:String>
+    <sys:String x:Key="Str_Stamp_Mirror">Speil på motstående sider (ytterkant)</sys:String>
+    <sys:String x:Key="Str_Stamp_Applied">Stemplet {0} side(r)</sys:String>
+    <sys:String x:Key="Str_TT_StampTool">Stempl sider (S)</sys:String>
+    <sys:String x:Key="Str_Ctx_StampPages">Stempl sider</sys:String>
+    <sys:String x:Key="Str_Pos_BottomCenter">Nederst i midten</sys:String>
+    <sys:String x:Key="Str_Pos_BottomRight">Nederst til høyre</sys:String>
+    <sys:String x:Key="Str_Pos_BottomLeft">Nederst til venstre</sys:String>
+    <sys:String x:Key="Str_Pos_TopCenter">Øverst i midten</sys:String>
+    <sys:String x:Key="Str_Pos_TopRight">Øverst til høyre</sys:String>
+    <sys:String x:Key="Str_Pos_TopLeft">Øverst til venstre</sys:String>
+
+    <!-- ── Print dialog ───────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Print_Title">KillerPDF - Skriv ut</sys:String>
+    <sys:String x:Key="Str_Print_Printer">Skriver</sys:String>
+    <sys:String x:Key="Str_Print_Paper">Papirstørrelse</sys:String>
+    <sys:String x:Key="Str_Print_PaperAuto">Tilpass dokumentet</sys:String>
+    <sys:String x:Key="Str_Print_Source">Papirkilde</sys:String>
+    <sys:String x:Key="Str_Print_SourceAuto">Skriverens standard</sys:String>
+    <sys:String x:Key="Str_Print_SecPrinter">SKRIVER</sys:String>
+    <sys:String x:Key="Str_Print_SecLayout">OPPSETT</sys:String>
+    <sys:String x:Key="Str_Print_SecOutput">UTDATA</sys:String>
+    <sys:String x:Key="Str_Print_Orientation">Retning</sys:String>
+    <sys:String x:Key="Str_Print_Portrait">Stående</sys:String>
+    <sys:String x:Key="Str_Print_Landscape">Liggende</sys:String>
+    <sys:String x:Key="Str_Print_Scale">Skala</sys:String>
+    <sys:String x:Key="Str_Print_Fit">Tilpass til siden</sys:String>
+    <sys:String x:Key="Str_Print_Actual">Faktisk størrelse (100 %)</sys:String>
+    <sys:String x:Key="Str_Print_Custom">Egendefinert %</sys:String>
+    <sys:String x:Key="Str_Print_ScaleHint">Skaleringsprosent (f.eks. 50 eller 50,23)</sys:String>
+    <sys:String x:Key="Str_Print_Copies">Antall kopier</sys:String>
+    <sys:String x:Key="Str_Print_Pages">Sider</sys:String>
+    <sys:String x:Key="Str_Print_PagesHint">f.eks. 1-3,5  (tomt = alle)</sys:String>
+    <sys:String x:Key="Str_Print_NoPages">Ingen sider</sys:String>
+    <sys:String x:Key="Str_Print_Margins">Marger</sys:String>
+    <sys:String x:Key="Str_Margin_None">Ingen</sys:String>
+    <sys:String x:Key="Str_Margin_Narrow">Smal</sys:String>
+    <sys:String x:Key="Str_Margin_Normal">Normal</sys:String>
+    <sys:String x:Key="Str_Margin_Wide">Bred</sys:String>
+    <sys:String x:Key="Str_Print_PagesPerSheet">Sider per ark</sys:String>
+    <sys:String x:Key="Str_Print_TwoSided">Skriv ut på begge sider</sys:String>
+    <sys:String x:Key="Str_Print_Color">Farge</sys:String>
+    <sys:String x:Key="Str_Print_BW">Svart-hvitt</sys:String>
+    <sys:String x:Key="Str_Pos_Center">Midtstilt</sys:String>
+    <sys:String x:Key="Str_Pos_Custom">Egendefinert (dra i forhåndsvisningen)</sys:String>
+    <sys:String x:Key="Str_Pos_Top">Øverst</sys:String>
+    <sys:String x:Key="Str_Pos_Bottom">Nederst</sys:String>
+    <sys:String x:Key="Str_Pos_Left">Venstre</sys:String>
+    <sys:String x:Key="Str_Pos_Right">Høyre</sys:String>
+
+    <!-- ── Save / recent menus + signature dialog ──────────────────── -->
+    <sys:String x:Key="Str_Menu_Save">Lagre</sys:String>
+    <sys:String x:Key="Str_Menu_SaveAs">Lagre som...</sys:String>
+    <sys:String x:Key="Str_Menu_SaveNothing">Ingenting å lagre</sys:String>
+    <sys:String x:Key="Str_Menu_RecentNone">Ingen nylige filer</sys:String>
+    <sys:String x:Key="Str_Menu_ClearList">Tøm listen</sys:String>
+    <sys:String x:Key="Str_Menu_RemoveFromRecents">Fjern fra nylige</sys:String>
+
+    <!-- Import images as PDF / Compress to ZIP -->
+    <sys:String x:Key="Str_Menu_Import">Importer bilder som PDF</sys:String>
+    <sys:String x:Key="Str_Menu_CompressZip">Komprimer til ZIP</sys:String>
+    <sys:String x:Key="Str_Filter_Images">Bilder</sys:String>
+    <sys:String x:Key="Str_Filter_AllFiles">Alle filer</sys:String>
+    <sys:String x:Key="Str_Filter_Zip">ZIP-arkiv</sys:String>
+    <sys:String x:Key="Str_Status_Imported">Importerte {0} bilde(r) - ikke lagret ennå</sys:String>
+    <sys:String x:Key="Str_Err_ImportFailed">Importen mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_NoImages">Ingen bilder kunne leses.</sys:String>
+    <sys:String x:Key="Str_Drop_Prompt">Du slapp {0} filer. Hvordan vil du åpne dem?</sys:String>
+    <sys:String x:Key="Str_Drop_Merge">Slå sammen til én PDF</sys:String>
+    <sys:String x:Key="Str_Drop_Separate">Åpne hver for seg</sys:String>
+    <sys:String x:Key="Str_Drop_NothingOpenable">Fant ingen PDF-er eller bilder å åpne.</sys:String>
+    <sys:String x:Key="Str_Drop_ManyTabs">Dette åpner {0} separate faner. Vil du fortsette?</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">Denne mappen eller dette arkivet har {0} filer. KillerPDF åpner bare de første {1}. Vil du fortsette?</sys:String>
+    <sys:String x:Key="Str_Status_Merged">Slo sammen {0} filer - ikke lagret ennå</sys:String>
+    <sys:String x:Key="Str_Drop_Merging">Slår sammen filer...</sys:String>
+    <sys:String x:Key="Str_Drop_MergeCanceled">Sammenslåingen er avbrutt</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedCloseAll">Lukke alle dokumenter? Ulagrede endringer går tapt.</sys:String>
+    <sys:String x:Key="Str_Msg_OpenFirst">Åpne en PDF først.</sys:String>
+    <sys:String x:Key="Str_Dlg_SaveBeforeZip">Lagre endringer før komprimering til ZIP?</sys:String>
+    <sys:String x:Key="Str_Status_Zipped">Komprimert til {0} - {1} (var {2})</sys:String>
+    <sys:String x:Key="Str_Err_ZipFailed">Komprimering til ZIP mislyktes:</sys:String>
+    <sys:String x:Key="Str_Sig_Title">Signaturer</sys:String>
+    <sys:String x:Key="Str_Sig_None">Ingen lagrede signaturer</sys:String>
+    <sys:String x:Key="Str_Sig_Create">Opprett signatur</sys:String>
+    <sys:String x:Key="Str_Sig_Import">Importer bilde</sys:String>
+    <sys:String x:Key="Str_Sig_DrawHere">Tegn signaturen din her</sys:String>
+    <sys:String x:Key="Str_Sig_Clear">Tøm</sys:String>
+    <sys:String x:Key="Str_Sig_SaveSig">Lagre signatur</sys:String>
+
+    <!-- Crop confirm bar tooltips -->
+    <sys:String x:Key="Str_TT_CropThisPage">Beskjær denne siden (Enter)</sys:String>
+    <sys:String x:Key="Str_TT_CropRange">Beskjær sidene i det angitte området</sys:String>
+    <sys:String x:Key="Str_TT_CropRemove">Fjern CropBox (og TrimBox) fra denne siden</sys:String>
+    <sys:String x:Key="Str_TT_CropRemoveAll">Fjern CropBox fra alle sider</sys:String>
+    <sys:String x:Key="Str_TT_CropCancel">Avbryt (Escape)</sys:String>
+
+    <!-- ── Line tool, layer / group menu (added v1.5.x) ───────────────── -->
+    <sys:String x:Key="Str_Lbl_Line">Linje</sys:String>
+    <sys:String x:Key="Str_TT_LineTool">Linje: dra for å tegne en rett linje (L)</sys:String>
+    <sys:String x:Key="Str_Ctx_Edit">Rediger</sys:String>
+    <sys:String x:Key="Str_Ctx_Raise">Hev</sys:String>
+    <sys:String x:Key="Str_Ctx_Lower">Senk</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectCover">Velg dekke</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectText">Velg tekst</sys:String>
+    <sys:String x:Key="Str_Ctx_Unpair">Fjern paring av tekst og dekke</sys:String>
+    <sys:String x:Key="Str_Ctx_Group">Grupper valgte</sys:String>
+    <sys:String x:Key="Str_Ctx_Ungroup">Opphev gruppering</sys:String>
+    <sys:String x:Key="Str_Ctx_RemoveFromGroup">Fjern fra gruppe</sys:String>
+    <sys:String x:Key="Str_Ctx_Copy">Kopier</sys:String>
+    <sys:String x:Key="Str_Ctx_Paste">Lim inn</sys:String>
+    <!-- ── Annotate-bar labels ────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Bar_Color">Farge:</sys:String>
+    <sys:String x:Key="Str_Bar_Fill">Fyll:</sys:String>
+    <sys:String x:Key="Str_Bar_Size">Størrelse:</sys:String>
+    <sys:String x:Key="Str_Bar_LetterSpacing">Avstand:</sys:String>
+    <sys:String x:Key="Str_Bar_Opacity">Ugjennomsiktighet:</sys:String>
+    <sys:String x:Key="Str_Bar_FillOpacity">Fyllets ugjennomsiktighet:</sys:String>
+    <sys:String x:Key="Str_Bar_Font">Skrifttype:</sys:String>
+    <sys:String x:Key="Str_Bar_Level">Nivå</sys:String>
+    <sys:String x:Key="Str_Bar_Eraser">Viskelær</sys:String>
+    <sys:String x:Key="Str_Bar_AnnotationEraser">Merknadsviskelær</sys:String>
+    <sys:String x:Key="Str_Bar_MoreColors">Flere farger...</sys:String>
+    <sys:String x:Key="Str_Bar_ShapeFill">Fyll</sys:String>
+    <sys:String x:Key="Str_Sig_Signatures">Signaturer</sys:String>
+    <sys:String x:Key="Str_Sig_Initials">Initialer</sys:String>
+    <sys:String x:Key="Str_Sig_Pen">Penn</sys:String>
+    <sys:String x:Key="Str_Sig_Thin">Tynn</sys:String>
+    <sys:String x:Key="Str_Sig_Medium">Middels</sys:String>
+    <sys:String x:Key="Str_Sig_Thick">Tykk</sys:String>
+    <!-- ── Digital Signature dialog ───────────────────────────────────── -->
+    <sys:String x:Key="Str_Sign_Desc">Forsegler {0} med et sertifikat og lagrer en signert kopi.</sys:String>
+    <sys:String x:Key="Str_Sign_Certificate">Sertifikat</sys:String>
+    <sys:String x:Key="Str_Sign_FromFile">Fra en fil (.pfx / .p12)</sys:String>
+    <sys:String x:Key="Str_Sign_FromStore">Fra Windows-sertifikatlageret / USB-token</sys:String>
+    <sys:String x:Key="Str_Sign_Browse">Bla gjennom...</sys:String>
+    <sys:String x:Key="Str_Sign_Password">Passord</sys:String>
+    <sys:String x:Key="Str_Sign_Reason">Årsak (valgfritt)</sys:String>
+    <sys:String x:Key="Str_Sign_Location">Sted (valgfritt)</sys:String>
+    <sys:String x:Key="Str_Sign_Contact">Kontakt (valgfritt)</sys:String>
+    <sys:String x:Key="Str_Sign_VisibleAppearance">Vis en synlig signatur</sys:String>
+    <sys:String x:Key="Str_Sign_AppearanceText">Signaturtekst</sys:String>
+    <sys:String x:Key="Str_Sign_AppearanceDefault">Digitalt signert av {name}&#10;Dato: {date}&#10;Årsak: {reason}&#10;Sted: {location}</sys:String>
+    <sys:String x:Key="Str_Sign_Page">Side</sys:String>
+    <sys:String x:Key="Str_Sign_Position">Plassering</sys:String>
+    <sys:String x:Key="Str_Sign_BottomLeft">Nederst til venstre</sys:String>
+    <sys:String x:Key="Str_Sign_BottomRight">Nederst til høyre</sys:String>
+    <sys:String x:Key="Str_Sign_TopLeft">Øverst til venstre</sys:String>
+    <sys:String x:Key="Str_Sign_TopRight">Øverst til høyre</sys:String>
+    <sys:String x:Key="Str_Sign_Width">Bredde</sys:String>
+    <sys:String x:Key="Str_Sign_Height">Høyde</sys:String>
+    <sys:String x:Key="Str_Sign_FontSize">Tekststørrelse</sys:String>
+    <sys:String x:Key="Str_Sign_PreviewSigner">Sertifikatholder</sys:String>
+    <sys:String x:Key="Str_Sign_BadAppearance">Kontroller signatursiden, dimensjonene og tekststørrelsen.</sys:String>
+    <sys:String x:Key="Str_Sign_SaveAs">Lagre signert kopi som</sys:String>
+    <sys:String x:Key="Str_Sign_Sign">Signer</sys:String>
+    <sys:String x:Key="Str_Sign_Cancel">Avbryt</sys:String>
+    <sys:String x:Key="Str_Sign_TitleSuffix">Digital signatur</sys:String>
+    <sys:String x:Key="Str_Lbl_DigitalSig">Digital signatur...</sys:String>
+    <sys:String x:Key="Str_Sidebar">SIDEPANEL</sys:String>
+    <sys:String x:Key="Str_Sidebar_Left">Venstre</sys:String>
+    <sys:String x:Key="Str_Sidebar_Right">Høyre</sys:String>
+    <sys:String x:Key="Str_KS_ToggleSidebar">Vis/skjul sidepanelet</sys:String>
+    <sys:String x:Key="Str_KS_ToolbarStyle">Verktøylinjeutseende</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Flytt sidepanelet til venstre / høyre</sys:String>
+    <sys:String x:Key="Str_KS_CycleView">Bytt mellom visningsmodi</sys:String>
+    <sys:String x:Key="Str_TT_ViewMode">Visningsmodus</sys:String>
+    <sys:String x:Key="Str_KS_NextTab">Neste fane (Shift: forrige)</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePage">Slett side</sys:String>
+    <sys:String x:Key="Str_Ctx_DuplicatePage">Dupliser side</sys:String>
+    <sys:String x:Key="Str_Ctx_AddBlankPage">Legg til tom side</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">Gjeldende side</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">Egendefinert</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">Angi en bredde og høyde mellom 0,1 og 200 tommer.</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseTab">Lukk fane</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Åpne inneholdende mappe</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseOthers">Lukk andre faner</sys:String>
+
+    <!-- Transform tool -->
+    <sys:String x:Key="Str_Tf_Suffix">Transformer</sys:String>
+    <sys:String x:Key="Str_Tf_Rotate">ROTER</sys:String>
+    <sys:String x:Key="Str_Tf_Scale">SKALER</sys:String>
+    <sys:String x:Key="Str_Tf_Flip">SPEILVEND</sys:String>
+    <sys:String x:Key="Str_Tf_Skew">SKJEVHET</sys:String>
+    <sys:String x:Key="Str_Tf_Angle">Vinkel</sys:String>
+    <sys:String x:Key="Str_Tf_Size">Størrelse</sys:String>
+    <sys:String x:Key="Str_Tf_WhenScaling">Ved skalering:</sys:String>
+    <sys:String x:Key="Str_Tf_ResizePage">Endre størrelsen på hele siden</sys:String>
+    <sys:String x:Key="Str_Tf_KeepSize">Behold sidestørrelsen (legg til marger)</sys:String>
+    <sys:String x:Key="Str_Tf_FlipH">Speilvend vannrett</sys:String>
+    <sys:String x:Key="Str_Tf_FlipV">Speilvend loddrett</sys:String>
+    <sys:String x:Key="Str_Tf_LevelLine">Tegn en vaterlinje</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">Dra langs noe som skal være vannrett (en kant, en tekstlinje). Siden roteres slik at den passer.</sys:String>
+    <sys:String x:Key="Str_Tf_Perspective">PERSPEKTIV</sys:String>
+    <sys:String x:Key="Str_Tf_Levels">NIVÅER</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsBlack">Svartpunkt</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsWhite">Hvitpunkt</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsGamma">Midttoner</sys:String>
+    <sys:String x:Key="Str_Tf_Quality">SIDEKVALITET</sys:String>
+    <sys:String x:Key="Str_Tf_ColorMode">Fargemodus</sys:String>
+    <sys:String x:Key="Str_Tf_Grayscale">Gråtoner</sys:String>
+    <sys:String x:Key="Str_Tf_BlackWhite">Svart-hvitt</sys:String>
+    <sys:String x:Key="Str_Tf_Threshold">Terskel for svart-hvitt</sys:String>
+    <sys:String x:Key="Str_Tf_SetDpi">Angi utdataoppløsning (DPI)</sys:String>
+    <sys:String x:Key="Str_Tf_UseJpeg">Bruk JPEG-komprimering</sys:String>
+    <sys:String x:Key="Str_Tf_CorrectPerspective">Korriger trapesformet forvrengning</sys:String>
+    <sys:String x:Key="Str_Tf_PerspectiveHint">Dra de fire hjørnene til omrisset av den fotograferte siden. Bruk retter den ut til et rektangel.</sys:String>
+    <sys:String x:Key="Str_Tf_ResetCorners">Tilbakestill hjørner</sys:String>
+    <sys:String x:Key="Str_Tf_Output">Utdata: {0} × {1} tommer</sys:String>
+    <sys:String x:Key="Str_Tf_ResetAll">Tilbakestill alt</sys:String>
+    <sys:String x:Key="Str_Tf_Reset">Tilbakestill</sys:String>
+    <sys:String x:Key="Str_Tf_Cancel">Avbryt</sys:String>
+    <sys:String x:Key="Str_Tf_Apply">Bruk</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Når en side transformeres (roteres eller skaleres), rasteriseres den: siden lagres på nytt som et bilde, så all markerbar tekst på den går tapt. Du kan kjøre OCR etterpå for å gjøre den søkbar igjen.</sys:String>
+    <sys:String x:Key="Str_Tf_DontWarn">Ikke advar meg igjen</sys:String>
+    <sys:String x:Key="Str_Tf_Done">Transformerte side {0}</sys:String>
+    <sys:String x:Key="Str_Tf_DoneBatch">Transformerte {0} sider</sys:String>
+    <sys:String x:Key="Str_Tf_NoRender">Kunne ikke gjengi siden. Prøv igjen om et øyeblikk.</sys:String>
+    <sys:String x:Key="Str_Tf_Failed">Transformeringen mislyktes: {0}</sys:String>
+
+    <!-- Crop bar -->
+    <sys:String x:Key="Str_Crop_Position">Plassering</sys:String>
+    <sys:String x:Key="Str_Crop_Size">Størrelse</sys:String>
+    <sys:String x:Key="Str_Crop_Pages">Sider</sys:String>
+    <sys:String x:Key="Str_Crop_All">Alle</sys:String>
+    <sys:String x:Key="Str_Crop_Apply">Beskjær</sys:String>
+    <sys:String x:Key="Str_Crop_RangeTip">Sideområde, f.eks. 1-3,5 (tomt = gjeldende side)</sys:String>
+    <sys:String x:Key="Str_Crop_AllTip">Beskjær alle sider</sys:String>
+
+    <!-- View-mode + full-screen shortcuts -->
+    <sys:String x:Key="Str_KS_View">VISNING</sys:String>
+    <sys:String x:Key="Str_KS_FullScreen">Fullskjerm</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Trykk F11 eller Esc for å avslutte fullskjerm</sys:String>
+    <!-- Quit prompt (family standard) -->
+    <sys:String x:Key="Str_Dlg_QuitMsg">Avslutte KillerPDF?</sys:String>
+    <sys:String x:Key="Str_Chk_CloseTabs">Lukk de åpne fanene mine</sys:String>
+    <sys:String x:Key="Str_Btn_Quit">Avslutt</sys:String>
+    <sys:String x:Key="Str_Btn_CancelDlg">Avbryt</sys:String>
+
+
+    <!-- Status-bar messages (extracted from code) -->
+    <sys:String x:Key="Str_St_DataCleared">Alle KillerPDF-data er tømt</sys:String>
+    <sys:String x:Key="Str_St_OcrRegionCanceled">OCR-område avbrutt</sys:String>
+    <sys:String x:Key="Str_St_Erased">Visket ut</sys:String>
+    <sys:String x:Key="Str_St_Ungrouped">Gruppering opphevet</sys:String>
+    <sys:String x:Key="Str_St_RemovedFromGroup">Fjernet fra gruppe</sys:String>
+    <sys:String x:Key="Str_St_NothingToUndo">Ingenting å angre</sys:String>
+    <sys:String x:Key="Str_St_UndidAnnotation">Angret siste merknad</sys:String>
+    <sys:String x:Key="Str_St_UndidTextEdit">Angret tekstredigering</sys:String>
+    <sys:String x:Key="Str_St_RemovedStamps">Fjernet stemplede sidetall</sys:String>
+    <sys:String x:Key="Str_St_RestoredAnnotations">Gjenopprettet fjernede merknader</sys:String>
+    <sys:String x:Key="Str_St_Undone">Angret</sys:String>
+    <sys:String x:Key="Str_St_UndidDocChange">Angret dokumentendring</sys:String>
+    <sys:String x:Key="Str_St_ClearedPageAnnotations">Fjernet merknadene på denne siden</sys:String>
+    <sys:String x:Key="Str_St_NoAnnotationsToClear">Ingen merknader å fjerne</sys:String>
+    <sys:String x:Key="Str_St_RepairCanceled">Reparasjonen er avbrutt</sys:String>
+    <sys:String x:Key="Str_St_Canceled">Avbrutt</sys:String>
+    <sys:String x:Key="Str_St_DocInfoUpdated">Dokumentinfo er oppdatert. Lagre filen for å beholde endringene</sys:String>
+    <sys:String x:Key="Str_St_FlattenCanceled">Utflatingen er avbrutt (ingen fil skrevet)</sys:String>
+    <sys:String x:Key="Str_St_FlattenPrintFailed">Kunne ikke flate ut merknader for utskrift. Skriver ut uten dem.</sys:String>
+    <sys:String x:Key="Str_St_HqDownloadCanceled">Nedlasting av høy kvalitet er avbrutt</sys:String>
+    <sys:String x:Key="Str_St_LangDownloadCanceled">Språknedlastingen er avbrutt</sys:String>
+    <sys:String x:Key="Str_St_OcrCanceled">OCR er avbrutt</sys:String>
+    <sys:String x:Key="Str_St_OcrDragBox">Dra en boks over området som skal gjenkjennes</sys:String>
+    <sys:String x:Key="Str_St_OcrRegionTooSmall">OCR-området er for lite</sys:String>
+    <sys:String x:Key="Str_St_OcrNoText">OCR: fant ingen tekst i det valgte området</sys:String>
+    <sys:String x:Key="Str_St_SearchablePdfCanceled">Søkbar PDF er avbrutt (ingen fil skrevet)</sys:String>
+    <sys:String x:Key="Str_St_TextExtractCanceled">Tekstuttrekkingen er avbrutt (ingen fil skrevet)</sys:String>
+    <sys:String x:Key="Str_St_NoTextOnPage">Fant ingen tekst på denne siden</sys:String>
+    <sys:String x:Key="Str_St_NoTextSelected">Ingen tekst er valgt. Dra for å markere tekst</sys:String>
+    <sys:String x:Key="Str_St_NoTextInSelection">Fant ingen tekst i markeringen</sys:String>
+    <sys:String x:Key="Str_St_NoTextUseShapes">Ingen tekst her. Former er på 4</sys:String>
+    <sys:String x:Key="Str_St_SignaturePlaced">Signaturen er plassert. Dra for å flytte, bruk hjørnehåndtaket for å endre størrelse</sys:String>
+    <sys:String x:Key="Str_St_FieldCleared">Feltet er tømt</sys:String>
+    <sys:String x:Key="Str_St_FieldSigned">Feltet er signert</sys:String>
+    <sys:String x:Key="Str_St_SignatureSaved">Signaturen er lagret. Klikk på siden for å plassere den</sys:String>
+    <sys:String x:Key="Str_St_ImageLoaded">Bildet er lastet. Klikk på siden for å plassere det</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Redigerer tekst. Endre størrelse/farge ovenfor, Enter for å lagre</sys:String>
+    <sys:String x:Key="Str_St_AlreadyEditHere">Det finnes allerede en redigering her. Klikk på teksten for å redigere på nytt, eller dra dekket</sys:String>
+    <sys:String x:Key="Str_St_NoTextLine">Fant ingen tekstlinje på denne posisjonen</sys:String>
+    <sys:String x:Key="Str_St_LineAlreadyEdited">Denne linjen er allerede redigert. Klikk på teksten for å endre den</sys:String>
+    <sys:String x:Key="Str_St_ImagePlaced">Bildet er plassert. Dra for å flytte, bruk hjørnehåndtaket for å endre størrelse</sys:String>
+    <sys:String x:Key="Str_St_ClipImageUnreadable">Kunne ikke lese bildet på utklippstavlen</sys:String>
+    <sys:String x:Key="Str_St_PastedImage">Limte inn bilde. Dra for å flytte, bruk hjørnehåndtaket for å endre størrelse</sys:String>
+    <sys:String x:Key="Str_St_ClipNoText">Utklippstavlen har ingen tekst å lime inn</sys:String>
+    <sys:String x:Key="Str_St_PastedText">Limte inn tekst. Dra for å flytte, Delete for å fjerne</sys:String>
+    <sys:String x:Key="Str_St_ClipEmpty">Utklippstavlen har ingenting å lime inn</sys:String>
+
+    <!-- Dialog / message-box strings (extracted from code) -->
+    <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">Lagre endringene dine før du oppdaterer.</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF er avinstallert.</sys:String>
+    <sys:String x:Key="Str_Dlg_SelectExtract">Velg sider som skal trekkes ut.</sys:String>
+    <sys:String x:Key="Str_Dlg_SelectDelete">Velg sider som skal slettes.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoPrinter">Ingen skriver er tilgjengelig.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoValidPages">Ingen gyldige sider i det området.</sys:String>
+    <sys:String x:Key="Str_Dlg_SignedSavedTo">Signert kopi lagret i:</sys:String>
+    <sys:String x:Key="Str_Dlg_DrawSignatureFirst">Tegn en signatur først.</sys:String>
+
+    <!-- ── Bookmark editing (#133, added v1.6.4) ───────────────── -->
+    <sys:String x:Key="Str_TT_AddBookmark">Legg til et bokmerke for gjeldende side</sys:String>
+    <sys:String x:Key="Str_Ctx_BmAdd">Legg til bokmerke</sys:String>
+    <sys:String x:Key="Str_Ctx_BmAddChild">Legg til underbokmerke</sys:String>
+    <sys:String x:Key="Str_Ctx_BmRename">Gi nytt navn</sys:String>
+    <sys:String x:Key="Str_Ctx_BmDelete">Slett</sys:String>
+    <sys:String x:Key="Str_Bm_DefaultTitle">Side {0}</sys:String>
+    <sys:String x:Key="Str_Bm_DeleteKids">Slette dette bokmerket og dets {0} underbokmerke(r)?</sys:String>
+    <sys:String x:Key="Str_Ctx_BmMoveUp">Flytt opp</sys:String>
+    <sys:String x:Key="Str_Ctx_BmMoveDown">Flytt ned</sys:String>
+    <sys:String x:Key="Str_Ctx_BmSetDest">Pek på gjeldende side</sys:String>
+    <sys:String x:Key="Str_Ctx_BmDeleteAll">Slett alle bokmerker</sys:String>
+    <sys:String x:Key="Str_Bm_DeleteMulti">Slette {0} bokmerker?</sys:String>
+    <sys:String x:Key="Str_Bm_DeleteAllConfirm">Fjerne alle bokmerker fra dette dokumentet?</sys:String>
+
+    <sys:String x:Key="Str_Ctx_Redo">Gjør om</sys:String>
+    <sys:String x:Key="Str_St_Redone">Gjort om</sys:String>
+    <sys:String x:Key="Str_St_NothingToRedo">Ingenting å gjøre om</sys:String>
+    <sys:String x:Key="Str_KS_FirstLast">Første / siste side</sys:String>
+    <sys:String x:Key="Str_KS_BackForward">Tilbake / fram (hoppe i loggen)</sys:String>
+    <sys:String x:Key="Str_KS_ZoomPresets">Faktisk størrelse / tilpass bredde / tilpass side</sys:String>
+    <sys:String x:Key="Str_KS_ContextMenu">Kontekstmeny ved markeringen</sys:String>
+
+    <sys:String x:Key="Str_KS_ViewList">LISTE</sys:String>
+    <sys:String x:Key="Str_KS_ViewKeyboard">TASTATUR</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Hold inne Ctrl, Shift eller Alt for å forhåndsvise det laget. Hold over en opplyst tast for å se handlingen</sys:String>
+    <sys:String x:Key="Str_Zoom_ActualSize">Faktisk størrelse</sys:String>
+    <sys:String x:Key="Str_KS_PrevTab">Forrige fane</sys:String>
+
+    <sys:String x:Key="Str_Kb_PrevPage">Forrige side</sys:String>
+    <sys:String x:Key="Str_Kb_NextPage">Neste side</sys:String>
+    <sys:String x:Key="Str_Kb_FirstPage">Første side</sys:String>
+    <sys:String x:Key="Str_Kb_LastPage">Siste side</sys:String>
+    <sys:String x:Key="Str_Kb_Back">Tilbake</sys:String>
+    <sys:String x:Key="Str_Kb_Forward">Fram</sys:String>
+    <sys:String x:Key="Str_Kb_NextResult">Neste treff</sys:String>
+    <sys:String x:Key="Str_Kb_PrevResult">Forrige treff</sys:String>
+    <sys:String x:Key="Str_Kb_Confirm">Bekreft</sys:String>
+    <sys:String x:Key="Str_Kb_Cancel">Avbryt</sys:String>
+
+    <!-- Themed Windows system menu (caption right-click / Alt+Space) -->
+    <sys:String x:Key="Str_Sys_Restore">Gjenopprett</sys:String>
+    <sys:String x:Key="Str_Sys_Move">Flytt</sys:String>
+    <sys:String x:Key="Str_Sys_Size">Størrelse</sys:String>
+    <sys:String x:Key="Str_Sys_Minimize">Minimer</sys:String>
+    <sys:String x:Key="Str_Sys_Maximize">Maksimer</sys:String>
+    <sys:String x:Key="Str_Sys_Close">Lukk</sys:String>
+    <sys:String x:Key="Str_Btn_Cancel">Avbryt</sys:String>
+
+    <!-- The app's own wordmark, split into the family's two runs: neutral first word, accent
+         second. The file picker reads these rather than hardcoding a name, so the same compiled
+         dialog names whichever app is hosting it. -->
+    <!-- Key names for the shortcuts overlay (#230). Composed into the chords by
+         ShortcutsOverlay.FillKeyInlines, so translators get the words without the syntax. -->
+    <sys:String x:Key="Str_Key_Ctrl">Ctrl</sys:String>
+    <sys:String x:Key="Str_Key_Alt">Alt</sys:String>
+    <sys:String x:Key="Str_Key_Shift">Shift</sys:String>
+    <sys:String x:Key="Str_Key_Delete">Delete</sys:String>
+    <sys:String x:Key="Str_Key_Enter">Enter</sys:String>
+    <sys:String x:Key="Str_Key_Esc">Esc</sys:String>
+    <sys:String x:Key="Str_Key_Menu">Menu</sys:String>
+    <sys:String x:Key="Str_Key_Home">Home</sys:String>
+    <sys:String x:Key="Str_Key_End">End</sys:String>
+    <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
+    <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
+    <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Scroll">Rull</sys:String>
+    <sys:String x:Key="Str_Key_Click">Klikk</sys:String>
+    <sys:String x:Key="Str_Key_Or">eller</sys:String>
+    <sys:String x:Key="Str_Key_WheelView">Hjul over visningen</sys:String>
+    <sys:String x:Key="Str_Key_WheelLogo">Hjul over logoen</sys:String>
+    <sys:String x:Key="Str_Key_MiddleDrag">Dra med midtknappen</sys:String>
+    <sys:String x:Key="Str_Key_SpaceDrag">Space + dra</sys:String>
+    <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
+    <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
+    <sys:String x:Key="Str_Btn_Open">Åpne</sys:String>
+    <sys:String x:Key="Str_Btn_Replace">Erstatt</sys:String>
+    <sys:String x:Key="Str_Btn_Save">Lagre</sys:String>
+    <sys:String x:Key="Str_Col_Modified">endret</sys:String>
+    <sys:String x:Key="Str_Col_Name">navn</sys:String>
+    <sys:String x:Key="Str_Col_Size">størrelse</sys:String>
+    <sys:String x:Key="Str_Ctx_Cut">Klipp ut</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectAll">Marker alt</sys:String>
+    <sys:String x:Key="Str_Dlg_AllFiles">Alle filer</sys:String>
+    <sys:String x:Key="Str_Dlg_FileName">Filnavn:</sys:String>
+    <sys:String x:Key="Str_Dlg_FileType">Filtype:</sys:String>
+    <sys:String x:Key="Str_Dlg_NoMatchingFiles">Ingenting her samsvarer med gjeldende filtype.</sys:String>
+    <sys:String x:Key="Str_Dlg_Preview">Forhåndsvisning</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFile">Den filen finnes ikke.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFolder">Den mappen finnes ikke.</sys:String>
+    <sys:String x:Key="Str_Dlg_OverwriteMsg">Erstatte {0}?</sys:String>
+    <sys:String x:Key="Str_Menu_PinPlace">Fest til steder</sys:String>
+    <sys:String x:Key="Str_Menu_UnpinPlace">Fjern fra steder</sys:String>
+    <sys:String x:Key="Str_QA_Desktop">Skrivebord</sys:String>
+    <sys:String x:Key="Str_QA_Documents">Dokumenter</sys:String>
+    <sys:String x:Key="Str_QA_Downloads">Nedlastinger</sys:String>
+    <sys:String x:Key="Str_QA_Home">Hjem</sys:String>
+    <sys:String x:Key="Str_QA_Pictures">Bilder</sys:String>
+    <sys:String x:Key="Str_Sum_Counts">{0} mappe(r), {1} fil(er)</sys:String>
+    <sys:String x:Key="Str_TT_RecentLocations">Nylige steder</sys:String>
+    <sys:String x:Key="Str_TT_ShowHidden">Vis skjulte elementer og systemelementer</sys:String>
+    <sys:String x:Key="Str_TT_Up">Opp én mappe</sys:String>
+    <sys:String x:Key="Str_TT_ViewDetails">Detaljvisning</sys:String>
+    <sys:String x:Key="Str_TT_ViewIcons">Ikonvisning</sys:String>
+    <sys:String x:Key="Str_TT_ViewList">Listevisning</sys:String>
+
+    <!-- 1.7.4 hardcoded-string sweep (#227): dialog titles, file-dialog filters, and defaults
+         that were English literals in code and invisible to translators. -->
+    <sys:String x:Key="Str_Color_Name">Farge</sys:String>
+    <sys:String x:Key="Str_Color_Pick">Velg en farge</sys:String>
+    <sys:String x:Key="Str_Color_Hex">Hex</sys:String>
+    <sys:String x:Key="Str_Color_Replace">Erstatt</sys:String>
+    <sys:String x:Key="Str_Color_Reset">Tilbakestill</sys:String>
+    <sys:String x:Key="Str_Color_ReplaceTT">Klikk, og klikk deretter på en fargeprøve for å sette den til gjeldende farge</sys:String>
+    <sys:String x:Key="Str_Color_ResetTT">Tilbakestill fargeprøvene til standard</sys:String>
+    <sys:String x:Key="Str_Color_EyedropTT">Velg en farge fra hvor som helst på skjermen</sys:String>
+    <sys:String x:Key="Str_Color_SwatchSetTT">Klikk for å sette denne fargeprøven til gjeldende farge</sys:String>
+    <sys:String x:Key="Str_Color_SwatchUseTT">Klikk for å bruke denne fargen</sys:String>
+    <sys:String x:Key="Str_Search_DragTT">Dra for å flytte</sys:String>
+    <sys:String x:Key="Str_Sign_Name">Digital signatur</sys:String>
+    <sys:String x:Key="Str_Sign_ChooseCert">Velg et signeringssertifikat</sys:String>
+    <sys:String x:Key="Str_Sign_ImportImage">Importer signaturbilde</sys:String>
+    <sys:String x:Key="Str_Filter_Pdf">PDF-filer</sys:String>
+    <sys:String x:Key="Str_Filter_Cert">Sertifikatfiler</sys:String>
+    <sys:String x:Key="Str_Filter_Text">Tekstfil</sys:String>
+    <sys:String x:Key="Str_Print_Sending">Sender til skriveren…</sys:String>
+    <sys:String x:Key="Str_Forms_FontSize">Skriftstørrelse:</sys:String>
+    <sys:String x:Key="Str_Ocr_SaveSearchable">Lagre søkbar PDF</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractAllText">Trekk ut all tekst</sys:String>
+    <sys:String x:Key="Str_Ocr_HighQuality">Bruk modeller med høy kvalitet</sys:String>
+    <sys:String x:Key="Str_Dlg_OpenPdf">Åpne PDF</sys:String>
+    <sys:String x:Key="Str_Dlg_SelectMerge">Velg PDF som skal slås sammen</sys:String>
+    <sys:String x:Key="Str_Dlg_SavePdfAs">Lagre PDF som</sys:String>
+    <sys:String x:Key="Str_Dlg_SaveFlattened">Lagre flatet PDF</sys:String>
+    <sys:String x:Key="Str_Dlg_SaveExtractedAs">Lagre uttrukne sider som</sys:String>
+    <sys:String x:Key="Str_Dlg_InsertImage">Sett inn bilde</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallShortcut">Opprett snarvei på skrivebordet</sys:String>
+    <sys:String x:Key="Str_Stamp_DefaultText">UTKAST</sys:String>
+    <sys:String x:Key="Str_Sign_NeedCertFile">Velg en sertifikatfil (.pfx / .p12) først.</sys:String>
+    <sys:String x:Key="Str_Sign_NoStoreCert">Det finnes ingen tilgjengelige signeringssertifikater i Windows-sertifikatlageret.</sys:String>
+    <sys:String x:Key="Str_Sign_NeedOutput">Velg hvor den signerte kopien skal lagres.</sys:String>
+    <sys:String x:Key="Str_Sign_BadCert" xml:space="preserve">Kunne ikke åpne sertifikatet.&#10;&#10;Passordet kan være feil, eller filen er ikke et gyldig .pfx / .p12-sertifikat.</sys:String>
+    <sys:String x:Key="Str_Sign_CertLoadFailed">Kunne ikke laste sertifikatet:</sys:String>
+    <sys:String x:Key="Str_Sign_Failed">Signeringen mislyktes:</sys:String>
+    <sys:String x:Key="Str_St_ShapeHint">Klikk for å legge til punkter. Klikk på det første punktet eller dobbeltklikk for å lukke, Esc avbryter, Backspace fjerner siste punkt</sys:String>
+    <sys:String x:Key="Str_St_ShapeCanceled">Formen er avbrutt</sys:String>
+
+    <!-- Error-dialog prefixes (code appends the exception detail after a newline) -->
+    <sys:String x:Key="Str_Err_PrintFailed">Utskriften mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_OcrFailed">OCR mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_PrepareDoc">Kunne ikke klargjøre dokumentet:</sys:String>
+    <sys:String x:Key="Str_Err_SearchableFailed">Søkbar PDF mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_ExtractFailed">Tekstuttrekkingen mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_DuplicateFailed">Duplisering mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_RepairFailed">Reparasjonen mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_OpenProtected">Kunne ikke åpne den beskyttede PDF-en:</sys:String>
+    <sys:String x:Key="Str_Err_NewDocFailed">Kunne ikke opprette nytt dokument:</sys:String>
+    <sys:String x:Key="Str_Err_FileNotFound">Filen ble ikke funnet:</sys:String>
+    <sys:String x:Key="Str_Err_MergeFailed">Sammenslåingen mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_SaveFailed">Lagringen mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_FlattenFailed">Utflatingen mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_ExportFailed">Eksporten mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_SplitFailed">Delingen mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_DeleteFailed">Slettingen mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_InsertFailed">Innsettingen mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_AddPageFailed">Kunne ikke legge til side:</sys:String>
+    <sys:String x:Key="Str_Err_ImportImageFailed">Kunne ikke importere bildet:</sys:String>
+    <sys:String x:Key="Str_Err_LoadImageFailed">Kunne ikke laste bildet:</sys:String>
+    <sys:String x:Key="Str_Err_PasteFailed">Kunne ikke lime inn:</sys:String>
+    <sys:String x:Key="Str_Err_HqDownloadFailed">Nedlasting av høy kvalitet mislyktes:</sys:String>
+    <sys:String x:Key="Str_Err_ModelDownloadFailed">Kunne ikke laste ned språkmodellen:</sys:String>
+    <sys:String x:Key="Str_Err_LangDataFailed">Kunne ikke laste ned språkdata for {0}:</sys:String>
+    <sys:String x:Key="Str_Dlg_DownloadTimeout">Nedlastingen av {0} fikk tidsavbrudd. Sjekk tilkoblingen og prøv igjen.</sys:String>
+    <sys:String x:Key="Str_Dlg_CancelBusy">Avbryte gjeldende {0}?</sys:String>
+    <sys:String x:Key="Str_Dlg_DeletePage1">Slette denne siden?</sys:String>
+    <sys:String x:Key="Str_Dlg_DeletePagesN">Slette {0} sider?</sys:String>
+
+    <!-- Cancellable-operation labels (fill {0} in Str_Dlg_CancelBusy) and busy-overlay messages -->
+    <sys:String x:Key="Str_Op_Repair">reparasjon</sys:String>
+    <sys:String x:Key="Str_Op_Operation">operasjon</sys:String>
+    <sys:String x:Key="Str_Op_Flatten">utflating</sys:String>
+    <sys:String x:Key="Str_Op_Export">eksport</sys:String>
+    <sys:String x:Key="Str_Op_Merge">sammenslåing</sys:String>
+    <sys:String x:Key="Str_Op_LangDownload">språknedlasting</sys:String>
+    <sys:String x:Key="Str_Op_Ocr">OCR-operasjon</sys:String>
+    <sys:String x:Key="Str_Op_OcrRegion">OCR-område</sys:String>
+    <sys:String x:Key="Str_Busy_Ocr">Kjører OCR...</sys:String>
+    <sys:String x:Key="Str_Busy_Region">Gjenkjenner område...</sys:String>
+    <sys:String x:Key="Str_Busy_Searchable">Lager søkbar PDF...</sys:String>
+    <sys:String x:Key="Str_Busy_Extracting">Trekker ut tekst...</sys:String>
+    <sys:String x:Key="Str_Busy_Repairing">Reparerer PDF...</sys:String>
+    <sys:String x:Key="Str_Busy_HqModels">Laster ned språkmodeller med høy kvalitet...</sys:String>
+    <sys:String x:Key="Str_Busy_Model">Laster ned språkmodell...</sys:String>
+
+    <!-- Status-line messages ({0}/{1}/{2} filled by string.Format) -->
+    <sys:String x:Key="Str_Print_Preparing">Klargjør side {0} av {1}…</sys:String>
+    <sys:String x:Key="Str_St_AnnotSelected">{0} valgt - {1}</sys:String>
+    <sys:String x:Key="Str_St_AnnotHowText">dra et sidehjørne for å angi bredde, dobbeltklikk for å redigere, Delete for å fjerne</sys:String>
+    <sys:String x:Key="Str_St_AnnotHowGeneric">dra et hjørne for å endre størrelse, Delete for å fjerne</sys:String>
+    <sys:String x:Key="Str_St_AnnotSelectedSimple">Valgte merknad: {0}. Trykk Delete for å fjerne</sys:String>
+    <sys:String x:Key="Str_St_SelectedOne">Valgte 1 merknad</sys:String>
+    <sys:String x:Key="Str_St_SelectedMany">Valgte {0} merknader</sys:String>
+    <sys:String x:Key="Str_St_Grouped">Grupperte {0} merknader. De flyttes nå sammen</sys:String>
+    <sys:String x:Key="Str_St_ClearedAll">Fjernet alle merknader ({0})</sys:String>
+    <sys:String x:Key="Str_St_CopiedWords">Kopierte {0} ord til utklippstavlen</sys:String>
+    <sys:String x:Key="Str_St_HighlightedLines">Uthevet {0} linje(r)</sys:String>
+    <sys:String x:Key="Str_St_StruckLines">Strøk over {0} linje(r)</sys:String>
+    <sys:String x:Key="Str_St_UnderlinedLines">Understreket {0} linje(r)</sys:String>
+    <sys:String x:Key="Str_St_SelectAllCopied">Markerte all tekst og kopierte den til utklippstavlen</sys:String>
+    <sys:String x:Key="Str_St_SelectAllError">Feil ved markering av alt: {0}</sys:String>
+    <sys:String x:Key="Str_St_Copied">Kopiert til utklippstavlen</sys:String>
+    <sys:String x:Key="Str_St_ExtractError">Feil ved tekstuttrekking: {0}</sys:String>
+    <sys:String x:Key="Str_St_AlreadyOpen">Allerede åpen: {0}</sys:String>
+    <sys:String x:Key="Str_St_TextEditError">Feil ved tekstredigering: {0}</sys:String>
+    <sys:String x:Key="Str_St_OcrNoTextPage">OCR: fant ingen tekst på side {0}</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPage">OCR: kopierte {0} tegn fra side {1} ({2} sikkerhet)</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPages">OCR: kopierte {0} tegn fra {1} sider ({2} sikkerhet)</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: kopierte {0} tegn fra området ({1} sikkerhet)</sys:String>
+    <sys:String x:Key="Str_St_SearchableSaved">Søkbar PDF lagret: {0} sider, {1} ord gjenkjent</sys:String>
+    <sys:String x:Key="Str_St_TextExtracted">Trakk ut tekst fra {0} sider -> {1}</sys:String>
+    <sys:String x:Key="Str_St_DuplicatedPage">Duplisert side {0}</sys:String>
+    <sys:String x:Key="Str_St_Merged">Slo sammen {0} fil(er) - {1} sider totalt</sys:String>
+    <sys:String x:Key="Str_St_Saved">Lagret - {0}</sys:String>
+    <sys:String x:Key="Str_St_SavedWithAnnots">Lagret med merknader til {0}</sys:String>
+    <sys:String x:Key="Str_St_SavedTo">Lagret til {0}</sys:String>
+    <sys:String x:Key="Str_St_FlattenedSaved">Flatet PDF lagret til {0}</sys:String>
+    <sys:String x:Key="Str_St_OcrLanguage">OCR-språk: {0}</sys:String>
+    <sys:String x:Key="Str_St_LangInstalled">{0} er installert - OCR-språk: {1}</sys:String>
+    <sys:String x:Key="Str_St_LangCanceled">Nedlastingen av {0} er avbrutt</sys:String>
+    <sys:String x:Key="Str_St_HqFailed">Modeller med høy kvalitet er installert, men feilet: {0}</sys:String>
+    <sys:String x:Key="Str_St_HqInstalled">Modeller med høy kvalitet er installert for: {0}</sys:String>
+    <sys:String x:Key="Str_St_InsertedBlank">Satte inn tom side på posisjon {0}</sys:String>
+    <sys:String x:Key="Str_St_AddedBlank">La til tom side (nå {0} sider)</sys:String>
+    <sys:String x:Key="Str_St_RestorePane">Kunne ikke gjenopprette det andre panelet: {0}</sys:String>
+
+    <!-- Annotation-type labels for selection status text -->
+    <sys:String x:Key="Str_Annot_Signature">Signatur</sys:String>
+    <sys:String x:Key="Str_Annot_Image">Bilde</sys:String>
+    <sys:String x:Key="Str_Annot_TextBox">Tekstboks</sys:String>
+    <sys:String x:Key="Str_Annot_Cover">Tekstdekke</sys:String>
+    <sys:String x:Key="Str_Annot_Strikethrough">Gjennomstreking</sys:String>
+    <sys:String x:Key="Str_Annot_Underline">Understreking</sys:String>
+    <sys:String x:Key="Str_Annot_Highlight">Utheving</sys:String>
+    <sys:String x:Key="Str_Annot_Drawing">Tegning</sys:String>
+    <sys:String x:Key="Str_Annot_Item">Element</sys:String>
+    <sys:String x:Key="Str_Busy_SearchablePage">Lager søkbar PDF... side {0} av {1}  (Esc for å avbryte)</sys:String>
+    <sys:String x:Key="Str_Busy_ExtractingPage">Trekker ut tekst... side {0} av {1}  (Esc for å avbryte)</sys:String>
+    <sys:String x:Key="Str_Busy_LangData">Laster ned språkdata for {0}...</sys:String>
+    <sys:String x:Key="Str_Busy_Downloading">Laster ned {0}...</sys:String>
+    <sys:String x:Key="Str_Busy_DownloadingHq">Laster ned {0} (høy kvalitet) - {1} av {2} -</sys:String>
+    <sys:String x:Key="Str_Busy_Opening">Åpner PDF...</sys:String>
+    <sys:String x:Key="Str_Busy_OpeningProtected">Åpner beskyttet PDF...</sys:String>
+    <sys:String x:Key="Str_St_HqAlready">Alle valgte språk har allerede høy kvalitet</sys:String>
+    <sys:String x:Key="Str_St_HqNextTime">Modeller med høy kvalitet brukes neste gang du kjører OCR</sys:String>
+    <sys:String x:Key="Str_Ocr_SuffixDownload">(last ned)</sys:String>
+    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(last ned, høy kvalitet)</sys:String>
+    <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Lagret søkbar PDF:&#10;{0}&#10;&#10;{1} sider behandlet, {2} ord gjenkjent.</sys:String>
+    <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">«{0}» ble reparert.&#10;&#10;Bokmerker, skjemaer og andre interaktive funksjoner kan ha gått tapt. Bruk Lagre som for å skrive den reparerte filen til et nytt sted.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">«{0}» ble reparert ved å rasterisere gjennom PDFium.&#10;&#10;Tekst kan ikke markeres i den reparerte kopien. Bruk Lagre som for å skrive den til et nytt sted.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">«{0}» har en skadet struktur og kunne ikke legges til.&#10;&#10;Vil du at KillerPDF skal prøve å reparere den? Det opprettes en reparert kopi, og originalfilen endres ikke.&#10;&#10;Merk: reparerte filer kan mangle bokmerker, skjemaer og andre interaktive funksjoner.</sys:String>
+    <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">En språkmodell ({0}) lastes ned nå slik at OCR kan kjøre.&#10;&#10;Du kan når som helst legge til flere språk eller bytte til modeller med høyere kvalitet fra OCR-menyen.</sys:String>
+    <sys:String x:Key="Str_Bar_More">Flere innstillinger</sys:String>
+    <sys:String x:Key="Str_Bar_TT_Level">Hold linjen på nærmeste akse (vannrett eller loddrett)</sys:String>
+    <sys:String x:Key="Str_Bar_TT_EraserBox">Dra en boks for å slette alle merknader inni den</sys:String>
+    <sys:String x:Key="Str_Bar_TT_EraserBrush">Børst over merknader for å slette dem</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeBox">Boks: dra et rektangel</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeEllipse">Ellipse: dra en oval</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeFreeform">Fri form: klikk punkter, klikk på det første punktet eller dobbeltklikk for å lukke, Esc avbryter, Backspace fjerner siste punkt</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeFill">Fyll innsiden av formen</sys:String>
+    <sys:String x:Key="Str_TT_RecentFiles">Nylige filer</sys:String>
+    <sys:String x:Key="Str_TT_SaveOptions">Lagringsvalg</sys:String>
+    <sys:String x:Key="Str_TT_OcrOptions">OCR-valg</sys:String>
+    <sys:String x:Key="Str_RecentHeading">NYLIG</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - Hurtigtaster</sys:String>
+    <sys:String x:Key="Str_UpdateAvailable">Oppdatering tilgjengelig: {0}</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Vil du laste ned og installere KillerPDF {0}?&#10;&#10;Appen lukkes og åpnes på nytt automatisk.</sys:String>
+    <sys:String x:Key="Str_UpdateDownloading">Laster ned...</sys:String>
+    <sys:String x:Key="Str_ClearAllData">Tøm alle data</sys:String>
+    <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Dette sletter alle lagrede innstillinger, nedlastede OCR-språkpakker og midlertidige filer.&#10;&#10;PDF-filene dine påvirkes ikke. Vil du fortsette?</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Innstillinger, språkpakker og midlertidige filer er tømt.&#10;&#10;Start KillerPDF på nytt for å fullføre tømmingen av filer som fortsatt er i bruk i denne økten.</sys:String>
+    <sys:String x:Key="Str_Crash_Title">KillerPDF - Uventet feil</sys:String>
+    <sys:String x:Key="Str_Crash_Log">Logg: {0}</sys:String>
+    <sys:String x:Key="Str_Crash_Copy">Kopier rapport</sys:String>
+    <sys:String x:Key="Str_Crash_OpenLogs">Åpne logger</sys:String>
+    <sys:String x:Key="Str_Crash_Report">Rapporter på GitHub</sys:String>
+    <sys:String x:Key="Str_Crash_Continue">Fortsett</sys:String>
+    <sys:String x:Key="Str_Crash_Quit">Avslutt</sys:String>
+    <!-- Shared text that must never bypass the active locale (#227) -->
+    <sys:String x:Key="Str_Btn_OK">OK</sys:String>
+    <sys:String x:Key="Str_Btn_Yes">Ja</sys:String>
+    <sys:String x:Key="Str_Btn_No">Nei</sys:String>
+    <sys:String x:Key="Str_RecentMissing">mangler</sys:String>
+    <sys:String x:Key="Str_St_PlaceSignature">Klikk på siden for å plassere signaturen din</sys:String>
+    <sys:String x:Key="Str_St_PlaceInitials">Klikk på siden for å plassere initialene dine</sys:String>
+    <sys:String x:Key="Str_St_SelectionCleared">Markeringen er fjernet</sys:String>
+    <sys:String x:Key="Str_St_AnnotationsSelected">{0} merknader valgt. Trykk Delete for å fjerne</sys:String>
+    <sys:String x:Key="Str_St_CopiedAnnotationOne">Kopierte 1 merknad</sys:String>
+    <sys:String x:Key="Str_St_CopiedAnnotationMany">Kopierte {0} merknader</sys:String>
+    <sys:String x:Key="Str_St_PastedAnnotationOne">Limte inn 1 merknad</sys:String>
+    <sys:String x:Key="Str_St_PastedAnnotationMany">Limte inn {0} merknader</sys:String>
+    <sys:String x:Key="Str_St_DeletedAnnotationOne">Slettet valgt merknad</sys:String>
+    <sys:String x:Key="Str_St_DeletedAnnotationMany">Slettet {0} merknader</sys:String>
+    <sys:String x:Key="Str_Search_NoMatches">Ingen treff</sys:String>
+    <sys:String x:Key="Str_Search_Error">Søkefeil</sys:String>
+    <sys:String x:Key="Str_Search_Summary">{0} treff på {1} sider</sys:String>
+    <sys:String x:Key="Str_Search_PreviousTT">Forrige treff (Shift+Enter)</sys:String>
+    <sys:String x:Key="Str_Search_NextTT">Neste treff (Enter)</sys:String>
+    <sys:String x:Key="Str_Search_CloseTT">Lukk (Esc)</sys:String>
+    <sys:String x:Key="Str_Busy_FlattenPage">Flater ut side {0} av {1}...</sys:String>
+    <sys:String x:Key="Str_Busy_ExportPage">Eksporterer side {0} av {1}...</sys:String>
+    <sys:String x:Key="Str_Busy_CancelHint">(Esc for å avbryte)</sys:String>
+    <sys:String x:Key="Str_Busy_DownloadingMany">Laster ned {0} - {1} av {2} -</sys:String>
+    <!-- PDF comparison (#160) -->
+    <sys:String x:Key="Str_TT_ComparePDFs">Sammenlign PDF-er</sys:String>
+    <sys:String x:Key="Str_TT_ExitComparison">Avslutt sammenligning</sys:String>
+    <sys:String x:Key="Str_Compare_OpenOriginal">Åpne den opprinnelige PDF-en før du starter sammenligningen.</sys:String>
+    <sys:String x:Key="Str_Compare_SelectTitle">Velg PDF som skal sammenlignes</sys:String>
+    <sys:String x:Key="Str_Compare_ChooseDifferent">Velg en annen PDF å sammenligne med.</sys:String>
+    <sys:String x:Key="Str_Compare_Ended">PDF-sammenligningen er avsluttet</sys:String>
+    <sys:String x:Key="Str_Compare_MissingRight">Ingen tilsvarende side i sammenligningens PDF</sys:String>
+    <sys:String x:Key="Str_Compare_MissingLeft">Ingen tilsvarende side i den opprinnelige PDF-en</sys:String>
+    <sys:String x:Key="Str_Compare_PageOnlyOne">Side {0} finnes bare i PDF-en for {1}</sys:String>
+    <sys:String x:Key="Str_Compare_Original">originalen</sys:String>
+    <sys:String x:Key="Str_Compare_Comparison">sammenligningen</sys:String>
+    <sys:String x:Key="Str_Compare_Changed">Side {0}: {1} endret</sys:String>
+    <sys:String x:Key="Str_Compare_NoDifferences">Side {0}: ingen visuelle forskjeller</sys:String>
+    <sys:String x:Key="Str_Compare_DimensionsDiffer">Side {0}: sidedimensjonene er forskjellige</sys:String>
+    <sys:String x:Key="Str_Compare_Failed">Sammenligningen mislyktes: {0}</sys:String>
+    <sys:String x:Key="Str_Compare_OpenTabs">Sammenlign med en åpen fane</sys:String>
+    <sys:String x:Key="Str_Compare_NoOpenTabs">Ingen andre PDF-faner er åpne</sys:String>
+    <sys:String x:Key="Str_Compare_Browse">Velg en annen PDF...</sys:String>
+    <sys:String x:Key="Str_Compare_Bar">SAMMENLIGNING</sys:String>
+    <sys:String x:Key="Str_Compare_Comparing">Sammenligner...</sys:String>
+    <sys:String x:Key="Str_Compare_ChangedAndDimensions">Side {0}: dimensjonene er forskjellige, {1} endret</sys:String>
+    <sys:String x:Key="Str_Compare_ViewLocked">Sammenligningen bruker en låst enkeltsidevisning</sys:String>
+    <sys:String x:Key="Str_Compare_ViewDetails">Vis fullstendig sammenligningsrapport</sys:String>
+    <sys:String x:Key="Str_Compare_BuildingReport">Kontrollerer hver side...</sys:String>
+    <sys:String x:Key="Str_Compare_DetailsTitle">Detaljer om PDF-sammenligning</sys:String>
+
+    <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_Failed">KillerPDF kunne ikke åpne nettleser-PDF-en.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">Den nettleserkommandoen er ukjent for KillerPDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_MissingUrl">Overleveringen inneholdt ingen PDF-adresse.</sys:String>
+    <sys:String x:Key="Str_Handoff_MalformedUrl">PDF-adressen i overleveringen kunne ikke leses.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF åpner bare nettleseroverleveringer over https.</sys:String>
+    <sys:String x:Key="Str_Handoff_Unusable">Nettleseroverleveringen kunne ikke brukes.</sys:String>
+    <sys:String x:Key="Str_Handoff_TooLarge">PDF-en er større enn grensen på 256 MB for nettleseroverlevering.</sys:String>
+    <sys:String x:Key="Str_Handoff_NotPdf">Den nedlastede filen er ikke en PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF kunne ikke laste ned PDF-en.</sys:String>
+    <sys:String x:Key="Str_Handoff_TimedOut">PDF-nedlastingen fikk tidsavbrudd.</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">KillerPDF kunne ikke lagre eller lese den nedlastede PDF-en.</sys:String>
+    <sys:String x:Key="Str_St_FormFieldDrag">Dra for å opprette et fyllbart tekstfelt</sys:String>
+    <sys:String x:Key="Str_St_FormFieldCanceled">Fyllbart tekstfelt er avbrutt</sys:String>
+    <sys:String x:Key="Str_St_FormFieldCreateFailed">Kunne ikke opprette det fyllbare tekstfeltet</sys:String>
+    <sys:String x:Key="Str_St_FormFieldCreated">Opprettet fyllbart tekstfelt {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldResizing">Endrer størrelse på fyllbart felt {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldMoving">Flytter fyllbart felt {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldDeleted">Slettet fyllbart felt {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldFillChanged">Endret fyllfarge for {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldResized">Endret størrelse på fyllbart felt {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldMoved">Flyttet fyllbart felt {0}</sys:String>
+    <sys:String x:Key="Str_St_PageCopiedHere">Kopierte 1 side til dette dokumentet.</sys:String>
+    <sys:String x:Key="Str_St_PagesCopiedHere">Kopierte {0} sider til dette dokumentet.</sys:String>
+    <sys:String x:Key="Str_Err_PageCopyFailed">Kopiering av side mislyktes:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Err_FileRepairFailed">«{0}» kunne ikke repareres.</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">Redigerer med {0}, {1} pt. Skriftmålene kan avvike fra originalen.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">Skriften {0} er ikke tilgjengelig. Redigerer med {1}, {2} pt.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">Den valgte skriveren oppgir ikke støtte for tosidig utskrift.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Klikk for å legge til initialene dine</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Klikk for å signere</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Initialer</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Forrige endrede område</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Neste endrede område</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Bærbar modus: skaff den installerte versjonen</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Kunne ikke gjengi forhåndsvisningen:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Klargjør utskrift...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">Gå til side {0}</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Måling er utilgjengelig</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Reparasjonen mislyktes: filen er for alvorlig skadet til å kunne gjenopprettes.&#10;&#10;Prøv å åpne originalen i et annet program (Adobe Acrobat eller en nettleser), som kan ha flere gjenopprettingsvalg.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Slå på hurtigtaster</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Slå hurtigtaster av eller på</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Slå alle apphurtigtaster på eller av. Ctrl+Shift+K fungerer alltid.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Hurtigtaster er slått på</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Hurtigtaster er slått av. Trykk Ctrl+Shift+K for å slå dem på.</sys:String>
+    <sys:String x:Key="Str_StartupUpdateCheck">Se etter oppdateringer ved oppstart</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} er tilgjengelig. Vil du laste den ned og installere den nå?&#10;&#10;Appen lukkes og åpnes på nytt automatisk.</sys:String>
+    <sys:String x:Key="Str_AlwaysCheckOnStartup">Se alltid etter ved oppstart</sys:String>
+    <sys:String x:Key="Str_PasswordProtected">«{0}» er passordbeskyttet.</sys:String>
+    <sys:String x:Key="Str_About_Aka">AKA</sys:String>
+    <sys:String x:Key="Str_Btn_Run">Kjør</sys:String>
+</ResourceDictionary>

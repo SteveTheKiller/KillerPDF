@@ -55,6 +55,9 @@ namespace KillerPDF
             LangZhCNRadio.IsChecked = curLoc == KillerPDF.Services.Locale.ZhCN;
             LangBnRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.Bn;
             LangTrRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.TrTR;
+            LangNbRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.NbNO;
+            LangPtRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.PtBR;
+            LangUkRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.UkUA;
             LangViRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.ViVN;
             LangDeRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.De;
             LangJaRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.JaJP;
@@ -544,6 +547,9 @@ namespace KillerPDF
         private void LangZhCNRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(KillerPDF.Services.Locale.ZhCN);
         private void LangBnRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.Bn);
         private void LangTrRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.TrTR);
+        private void LangNbRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.NbNO);
+        private void LangPtRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.PtBR);
+        private void LangUkRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.UkUA);
         private void LangViRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.ViVN);
         private void LangDeRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.De);
         private void LangJaRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.JaJP);
@@ -668,6 +674,9 @@ namespace KillerPDF
             KillerPDF.Services.Locale.ZhCN => "中文 (简体)",
             KillerPDF.Services.Locale.Bn   => "বাংলা",
             KillerPDF.Services.Locale.TrTR => "Türkçe",
+            KillerPDF.Services.Locale.NbNO => "Norsk bokmål",
+            KillerPDF.Services.Locale.PtBR => "Português (Brasil)",
+            KillerPDF.Services.Locale.UkUA => "Українська",
             KillerPDF.Services.Locale.ViVN => "Tiếng Việt",
             KillerPDF.Services.Locale.De   => "Deutsch",
             KillerPDF.Services.Locale.HuHU => "Magyar",
