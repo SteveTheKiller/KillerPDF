@@ -196,6 +196,25 @@ This release-layout run confirms that Costura accounts for part, but not
 all, of the woven 512-pixel memory gap. Raw logs and outputs are under
 `C:/Users/steve/kp-bench-render/loose-v18-v19-difficult-512-20260930`.
 
+A verbose GC allocation trace of the loose 1.9 payload over this difficult
+set sampled about 420 MiB of byte arrays, 134 MiB of renderer Point arrays,
+and 75 MiB of double arrays. These are sampled allocation volumes, not live
+retention or peak working sets. The largest sampled double-array owner was
+`PdfIccLut` construction at about 50 MiB. Evidence is under
+`C:/Users/steve/kp-bench-render/loose-full-gc-20260930`.
+
+Keeping large ICC lookup tables in their original bytes instead of expanding
+every sample to a double lowered isolated Ghent and Altona Technical peaks by
+about 12 to 14 MiB in six alternating pairs. The raw-byte version preserved
+all 74 difficult and 600 shared PNG hashes, and 11 focused ICC tests passed.
+It slowed the two-run shared-set median by about 204 ms. Small-table and
+precomputed-lookup variants still slowed that set by about 171 and 189 ms,
+respectively, despite saving roughly 8 to 11 MiB at its peak. None was
+retained because the measured throughput cost conflicts with the performance
+gate. Trial payloads and runs are under `icc-lut-raw-20260930`,
+`icc-lut-hybrid-20260930`, and `icc-lut-lookup-20260930` in the local
+benchmark root. Broader speed and memory parity remain open.
+
 Of the retained scan trace's 253 sampled CPU stacks, 67 pass through
 `GenericRegion.DecodeTemplate0aFast` and 43 through
 `ArithmeticDecoder.Decode`; these inclusive counts overlap. The current
