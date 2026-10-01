@@ -156,17 +156,32 @@ the batch timing alone cannot divide it among parsing, decoding, and setup.
 Raw output and analysis are under
 `C:/Users/steve/kp-bench-render/viewer-attach-20260930/current-v18-v19-difficult-512`.
 
-Separate-process 512-pixel probes of eight difficult files found 1.9 peak
-working sets 35 to 109 MiB above 1.8, depending on the document. Two small
-one-page files also showed a roughly 90 MiB gap: `ColorBurn.pdf` peaked at
-150.5 versus 61.3 MiB and `CompactedPDFSyntaxTest.pdf` at 152.1 versus
-61.3 MiB for 1.9 and 1.8. Empty batch processes peaked at 47.6 and
-50.0 MiB, respectively. The broad first-document gap therefore warrants
-profiling renderer initialization, JIT, and retained allocations before
-optimizing any one image decoder for memory. These are single cold-process
-observations, not stable medians or proof of a specific allocation source.
-Logs and outputs are under
-`C:/Users/steve/kp-bench-render/isolated-memory-512-20260930`.
+Separate-process 512-pixel probes of eight difficult files with the woven
+development app found 1.9 peak working sets 35 to 109 MiB above 1.8. Two
+small one-page files showed a roughly 90 MiB gap, while empty batch
+processes were nearly equal. A GC allocation trace of the small syntax file
+identified about 62 MiB of sampled byte-array allocations in Costura's
+embedded-assembly stream loading and about 19 MiB in related array creation.
+This explains why woven development builds exaggerate the release-layout
+memory gap. With the current 1.9 loose payload, the two small pages peaked
+at 79.2 versus 54.9 MiB and 83.4 versus 54.2 MiB for 1.9 and 1.8. These
+are single cold-process observations, not stable medians. Woven observations
+are under `C:/Users/steve/kp-bench-render/isolated-memory-512-20260930`;
+the GC trace and loose comparison are under
+`C:/Users/steve/kp-bench-render/first-render-gc-20260930` and
+`C:/Users/steve/kp-bench-render/loose-memory-512-20260930` and
+`C:/Users/steve/kp-bench-render/loose-current-20260930`.
+
+The current loose payload still spent about one fifth of sampled CPU time
+indexing installed fonts on the small syntax page. A shortcut for standard
+Windows font filenames reduced its 12-pair fresh-process median from 230.5
+to 150 ms, with identical PNG hashes and peak medians of 79.0 and 76.7 MiB.
+On the 74-page difficult set, the two measured render totals were 6,294 and
+6,327 ms for baseline versus 6,304 and 6,402 ms for the shortcut; all 74
+PNGs matched. The trial was removed because it would bypass the established
+precedence of a separately installed Helvetica or Courier family on other
+machines. The current source remains unchanged. Trial output is under
+`C:/Users/steve/kp-bench-render/font-fastpath-loose-20260930`.
 
 Of the retained scan trace's 253 sampled CPU stacks, 67 pass through
 `GenericRegion.DecodeTemplate0aFast` and 43 through
