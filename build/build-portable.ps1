@@ -65,6 +65,18 @@ if (-not $RepackOnly) {
     if (-not [IO.File]::Exists($codecAssembly)) { throw "CoreJ2K ReadyToRun assembly is missing: $codecAssembly" }
     [IO.File]::Copy($codecAssembly, (Join-Path $payloadDir 'CoreJ2K.dll'), $true)
 
+    $engineProject = Join-Path $projectDir 'engine\KillerPdf.Engine\KillerPdf.Engine.csproj'
+    $enginePublishDir = Join-Path $artifactRoot 'engine-r2r'
+    & dotnet publish $engineProject -c $Configuration `
+        -r win-x64 `
+        --self-contained false `
+        -p:PublishReadyToRun=true `
+        -o $enginePublishDir
+    if ($LASTEXITCODE -ne 0) { throw 'KillerPdf.Engine ReadyToRun build failed.' }
+    $engineAssembly = Join-Path $enginePublishDir 'KillerPdf.Engine.dll'
+    if (-not [IO.File]::Exists($engineAssembly)) { throw "KillerPdf.Engine ReadyToRun assembly is missing: $engineAssembly" }
+    [IO.File]::Copy($engineAssembly, (Join-Path $payloadDir 'KillerPdf.Engine.dll'), $true)
+
     if (-not $KeepSymbols) {
         foreach ($symbol in [IO.Directory]::GetFiles($payloadDir, '*.pdb', [IO.SearchOption]::AllDirectories)) {
             [IO.File]::Delete($symbol)
