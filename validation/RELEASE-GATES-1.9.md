@@ -239,6 +239,14 @@ versus 931 and 892 ms after. Sampled peaks overlapped, and the trial did not
 establish a speed gain. It was not retained. Its source, build, and runs are
 under `C:/Users/steve/kp-bench-render/j2k-copy-20260930`.
 
+A scratch JPEG 2000 trial allocated fresh zeroed reconstruction frames instead
+of renting smaller frames from the sample pool. Three alternating 74-page
+difficult-set runs per build at 2048 pixels kept all 74 PNG hashes unchanged.
+Median render sums rose from 9.191 to 9.779 seconds; sampled peak medians
+fell from 283.1 to 279.0 MiB. The balloon page medians were 839 and 939 ms.
+The speed regression rules out this pool policy for 1.9. Scratch source and
+raw runs are under `C:/Users/steve/kp-bench-render/j2k-no-frame-pool-20260930`.
+
 ### Earlier difficult-set comparison (2026-09-30)
 
 The current 1.9 Release build and unchanged local 1.8.72 Release build rendered
