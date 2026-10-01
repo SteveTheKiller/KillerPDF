@@ -140,6 +140,17 @@ These absolute timings should not be compared directly with the earlier
 batch below, which ran under different conditions. Visible interactions
 remain unverified.
 
+An alternating fresh-process balloon probe at the 1.9 page size of 1503 by
+2047 pixels measured first renders of 481.503 and 473.333 ms through 1.8.72
+versus 927.879 and 945.253 ms through 1.9.0. Four calls in each process kept
+one pixel hash per version. The second 1.9 calls took 34.088 and 28.524 ms
+because this probe reused the rendered page; second 1.8 calls took 444.188
+and 465.873 ms. Thus the repeated 1.9 calls do not establish faster JPEG 2000
+decoding. The first-call gap remains the useful target, while this small
+process probe cannot establish whole-batch memory parity or visible latency.
+Its raw output is under
+`C:/Users/steve/kp-bench-render/viewer-attach-20260930/balloon-current-2048`.
+
 ### Earlier difficult-set comparison (2026-09-30)
 
 The current 1.9 Release build and unchanged local 1.8.72 Release build rendered
