@@ -156,6 +156,17 @@ initialization and do not isolate JPEG 2000 decode time.
 Its raw output is under
 `C:/Users/steve/kp-bench-render/viewer-attach-20260930/balloon-current-2048`.
 
+A sampled thread-time trace of 20 fresh-document engine renders at 1504 by
+2048 pixels used the current Release engine and kept one page hash with no
+diagnostics. Of 13.12 seconds attributed to rendering, 10.57 seconds lie
+under JPEG 2000 decode and 2.42 seconds under image painting. Within decode,
+8.88 seconds lie under inverse reconstruction and 3.59 seconds under code-block
+entropy decoding; these inclusive times overlap. Buffer copying and clearing
+appear prominently in the trace, but their stacks include other work and do
+not prove that removing any one copy improves whole-page speed. The trace,
+probe, and analysis are under
+`C:/Users/steve/kp-bench-render/balloon-trace-current-20260930`.
+
 ### Earlier difficult-set comparison (2026-09-30)
 
 The current 1.9 Release build and unchanged local 1.8.72 Release build rendered
