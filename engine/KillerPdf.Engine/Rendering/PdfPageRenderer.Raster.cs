@@ -1197,7 +1197,10 @@ public sealed partial class PdfPageRenderer
             && pixels.GroupShape is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         byte[]? groupAlpha = pixels.GroupAlpha;
-        bool direct = alpha >= 1 && simpleBlend;
+        bool directProfiled = pixels.RgbProfile is not null && pixels.Ink is null
+            && graphicsSoftMask is null && knockout is null && pixels.GroupShape is null
+            && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        bool direct = alpha >= 1 && (simpleBlend || directProfiled);
         bool directInk = pixels.Ink is not null && alpha >= 1
             && (color.OverprintComponents & 16) == 0
             && graphicsSoftMask is null && knockout is null
@@ -1264,7 +1267,7 @@ public sealed partial class PdfPageRenderer
             }
             return;
         }
-        if (direct && !perPixelClip)
+        if (direct && !directProfiled && !perPixelClip)
         {
             PaintDirectCoverageRows(pixels, width, mask, color, alpha, blendMode,
                 graphicsSoftMask, knockout, cancellationToken, left, top, right,
@@ -1276,7 +1279,7 @@ public sealed partial class PdfPageRenderer
         // loop parallelizes by row on plain RGB surfaces. Ink and profiled RGB surfaces stay
         // serial: their per-pixel GetInk and GetRgb calls memoize into surface state.
         // A local function cannot capture the 'in' parameter, so the direct path reads a copy.
-        Color directColor = color;
+        Color directColor = directProfiled ? pixels.GetRgb(color) : color;
         if (pixels.Ink is null && pixels.RgbProfile is null)
         {
             PaintCoverageRowsParallel(pixels, width, mask, directColor, paint, alpha,
@@ -1402,7 +1405,7 @@ public sealed partial class PdfPageRenderer
                         groupAlpha?[offset / 4] = 255;
                         continue;
                     }
-                    if (pixels[offset + 3] == 255)
+                    if (pixels.RgbProfile is null && pixels[offset + 3] == 255)
                     {
                         int inverse = 255 - cover;
                         pixels[offset] = (byte)((directColor.Blue * cover + pixels[offset] * inverse + 127) / 255);
