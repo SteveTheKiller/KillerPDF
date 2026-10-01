@@ -107,6 +107,16 @@ investigation at the template 0 decode loop. The profile is diagnostic and
 does not measure a visible first page or a 1.8 comparison. Trace and
 summarizer are under `C:/Users/steve/kp-bench-render/current-scan-cpu-20260930`.
 
+A separate sampled-thread profile of the current loose 1.9 Release payload
+completed all 74 difficult pages at 512 pixels, with 9,682 ms of logged
+rendering under profiler overhead. Inclusive sampled CPU intervals included
+3,692 ms in image handling, 2,443 ms in form rendering, and 2,261 ms in
+text display; these call stacks overlap and must not be added together.
+Unlike the single scan, the batch has no one decoder loop that dominates
+every page. The largest measured 1.8 gaps remain the scan, JPEG 2000
+balloon, CMYK JPEG, and Altona pages. Trace, page outputs, and the 74-row
+log are under `C:/Users/steve/kp-bench-render/difficult-cpu-20260930`.
+
 A direct full-resolution YCCK output loop for equal-sampled components kept
 the existing pixel conversion and added no image buffers. Four alternating
 16-copy `064034.pdf` runs per build at 2048 pixels cut median summed rendering
