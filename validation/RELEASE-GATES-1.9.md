@@ -58,6 +58,18 @@ add per-block timing overhead and leave other page-processing work
 unattributed; they are diagnostic, not a baseline performance result. The
 traces, probe, and scratch build are in the viewer attachment directory.
 
+A fresh-process single-page probe against the retained loose 1.9 engine
+(`CA3B4C4E3A2F354FA674298ED2E738758DB871D7CF5400AAB7A3225C9131D3E2`)
+rendered scan `42828.0001.001.pdf` three times per square output size.
+Median engine render times were 607.674 ms at 512 pixels and 640.497 ms at
+2048 pixels; median document opening was 66.904 and 67.989 ms. The CMYK JPEG
+`064034.pdf` measured 405.648 and 477.874 ms of rendering, with 61.625 and
+62.312 ms of opening. Each size reproduced one hash with no diagnostics.
+The scan's small resolution-dependent difference reinforces decoder and
+area-conversion work as the next targets. This standalone probe does not
+measure application startup or visible first-page presentation. Its source
+and payload reference are under `C:/Users/steve/kp-bench-render/stage-current-20260930`.
+
 A direct full-resolution YCCK output loop for equal-sampled components kept
 the existing pixel conversion and added no image buffers. Four alternating
 16-copy `064034.pdf` runs per build at 2048 pixels cut median summed rendering
