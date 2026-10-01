@@ -6640,14 +6640,14 @@ public sealed partial class PdfPageRenderer
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 int row = (y - region.Top) * region.Width - region.Left;
-                for (int x = left; x < right; x++)
-                {
-                    if (samples[row + x] == 0) continue;
-                    activeLeft = Math.Min(activeLeft, x);
-                    activeTop = Math.Min(activeTop, y);
-                    activeRight = Math.Max(activeRight, x + 1);
-                    activeBottom = Math.Max(activeBottom, y + 1);
-                }
+                ReadOnlySpan<byte> values = samples.AsSpan(row + left, right - left);
+                int first = values.IndexOfAnyExcept((byte)0);
+                if (first < 0) continue;
+                int last = values.LastIndexOfAnyExcept((byte)0);
+                activeLeft = Math.Min(activeLeft, left + first);
+                activeTop = Math.Min(activeTop, y);
+                activeRight = Math.Max(activeRight, left + last + 1);
+                activeBottom = y + 1;
             }
             if (activeRight <= activeLeft || activeBottom <= activeTop) return false;
             bounds = (activeLeft, activeTop, activeRight, activeBottom);
