@@ -1845,6 +1845,8 @@ public sealed partial class PdfPageRenderer
                     RasterSurface backdropPixels = pixels;
                     (int Left, int Top, int Right, int Bottom) groupBounds = GetRasterBounds(
                         formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY);
+                    if (parentState.GraphicsSoftMask is { } mask
+                        && !mask.TryNonzeroBounds(ref groupBounds, cancellationToken)) return;
                     RasterSurface maskedGroupPixels = RasterSurface.Rent(groupBounds,
                         pixels.Ink is not null, pixels.BlendProfile, pixels.Pdf20BlendEndpoints);
                     try
@@ -6615,6 +6617,41 @@ public sealed partial class PdfPageRenderer
             if (_region is not { } region || !region.Covers(left, top, right, bottom))
                 Materialize(left, top, right, bottom);
             return this;
+        }
+
+        internal bool TryNonzeroBounds(ref (int Left, int Top, int Right, int Bottom) bounds,
+            CancellationToken cancellationToken)
+        {
+            if (Outside != 0) return true;
+            int left = Math.Max(bounds.Left, FullLeft), top = Math.Max(bounds.Top, FullTop);
+            int right = Math.Min(bounds.Right, FullRight), bottom = Math.Min(bounds.Bottom, FullBottom);
+            if (right <= left || bottom <= top) return false;
+            ForBounds(left, top, right, bottom);
+            Region region = Materialized;
+            if (region.Samples is null)
+            {
+                if (region.Constant == 0) return false;
+                bounds = (left, top, right, bottom);
+                return true;
+            }
+            byte[] samples = region.Samples;
+            int activeLeft = right, activeTop = bottom, activeRight = left, activeBottom = top;
+            for (int y = top; y < bottom; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int row = (y - region.Top) * region.Width - region.Left;
+                for (int x = left; x < right; x++)
+                {
+                    if (samples[row + x] == 0) continue;
+                    activeLeft = Math.Min(activeLeft, x);
+                    activeTop = Math.Min(activeTop, y);
+                    activeRight = Math.Max(activeRight, x + 1);
+                    activeBottom = Math.Max(activeBottom, y + 1);
+                }
+            }
+            if (activeRight <= activeLeft || activeBottom <= activeTop) return false;
+            bounds = (activeLeft, activeTop, activeRight, activeBottom);
+            return true;
         }
 
         private Region Materialize(int left, int top, int right, int bottom)

@@ -4029,6 +4029,45 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_SparseAlphaMaskPreservesBackdropOutsideNonisolatedForm()
+    {
+        var mask = new PdfSoftMask(new PdfFormXObject(10, 10,
+            new PdfContentStreamBuilder().SetFillRgb(1, 1, 1)
+                .Rectangle(0, 0, 5, 10).Fill(), isolatedTransparencyGroup: true));
+        var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0).Rectangle(0, 0, 10, 10).Fill());
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder()
+                .SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill()
+                .SetGraphicsState(new PdfGraphicsState(softMask: mask))
+                .DrawForm(form, 0, 0)).Build());
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfIndirectReference formReference = Assert.IsType<PdfIndirectReference>(
+            Assert.Single(xObjects).Value);
+        PdfStream formStream = Assert.IsType<PdfStream>(source.Resolve(formReference));
+        var group = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("S"), Name("Transparency")),
+            new KeyValuePair<PdfName, PdfObject>(Name("I"), new PdfBoolean(false))]);
+        var dictionary = new PdfDictionary(formStream.Dictionary.Append(
+            new KeyValuePair<PdfName, PdfObject>(Name("Group"), group)));
+        PdfDocument document = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(formReference.ObjectNumber,
+                new PdfStream(dictionary, formStream.EncodedData.Span)).Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 2, 5));
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 7, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_AppliesLuminositySoftMaskBackdropAndTransferFunction()
     {
         PdfDocument document = AddGraphicsSoftMask(
