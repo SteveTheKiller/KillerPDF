@@ -71,6 +71,48 @@ public sealed class PdfIccProfileTransformTests
         }
     }
 
+    [Fact]
+    public void OutputIntentConvertsGrayWithoutOverprintOrPageGroup()
+    {
+        byte[] expected = Render(withOutputIntent: true, withPageGroup: true);
+        byte[] actual = Render(withOutputIntent: true, withPageGroup: false);
+        byte[] unprofiled = Render(withOutputIntent: false, withPageGroup: false);
+        Assert.Equal(expected, actual);
+        Assert.NotEqual(unprofiled, actual);
+
+        static byte[] Render(bool withOutputIntent, bool withPageGroup)
+        {
+            PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+            KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
+            var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+                Encoding.ASCII.GetBytes("0.25 g 0 0 1 1 re f")).Build());
+            var root = (PdfIndirectReference)source.Trailer[Name("Root")];
+            var catalog = (PdfDictionary)source.Resolve(root);
+            var page = PdfPageTree.Read(source).Pages[0];
+            var update = new PdfIncrementalUpdateBuilder(source);
+            if (withOutputIntent)
+            {
+                var profile = update.AddObject(new PdfStream(new PdfDictionary([Entry("N", new PdfInteger(4))]),
+                    Profile("CMYK", "Lab ", ("A2B0", Lut(true, true, false, 4)),
+                        ("B2A0", NeutralReverseLut()))));
+                update.ReplaceObject(root.ObjectNumber, new PdfDictionary(catalog.Append(Entry("OutputIntents",
+                    new PdfArray([new PdfDictionary([Entry("S", Name("GTS_PDFX")),
+                        Entry("DestOutputProfile", profile)])])))));
+            }
+            if (withPageGroup)
+            {
+                var original = (PdfDictionary)source.Resolve(page.Reference);
+                update.ReplaceObject(page.Reference.ObjectNumber, new PdfDictionary(original.Append(Entry("Group",
+                    new PdfDictionary([Entry("S", Name("Transparency")), Entry("CS", Name("DeviceCMYK"))])))));
+            }
+            PdfDocument document = withOutputIntent || withPageGroup
+                ? PdfDocument.Open(update.Build()) : source;
+            var rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(1, 1));
+            Assert.Empty(rendered.Diagnostics);
+            return rendered.Pixels.ToArray();
+        }
+    }
+
     [Theory]
     [InlineData("Perceptual", 0)]
     [InlineData("Saturation", 0)]

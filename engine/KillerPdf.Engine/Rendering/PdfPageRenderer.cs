@@ -191,8 +191,7 @@ public sealed partial class PdfPageRenderer
 
     private PdfRenderedPage RenderUncached(int pageIndex, PdfRenderOptions options,
         CancellationToken cancellationToken, byte[]? destination = null,
-        (int Left, int Top, int Right, int Bottom)? region = null,
-        PdfColorTransform? outputProfile = null, bool skipOutputPreselection = false)
+        (int Left, int Top, int Right, int Bottom)? region = null)
     {
         byte background = options.TransparentBackground ? (byte)0 : (byte)255;
         var (Left, Top, Right, Bottom) = region ?? (Left: 0, Top: 0, Right: options.Width, Bottom: options.Height);
@@ -237,16 +236,10 @@ public sealed partial class PdfPageRenderer
         IReadOnlySet<int> hiddenOptionalContentGroups = _hiddenOptionalContentGroups;
         PdfDictionary pageResources = _pageResources[pageIndex];
         bool pageHasGroup = _tree.Pages[pageIndex].Dictionary.TryGetValue(Name("Group"), out _);
-        bool speculativeOutputProfile = false;
-        if (outputProfile is null && !skipOutputPreselection && !pageHasGroup
-            && HasPotentialOutputOverprint(pageResources))
-        {
-            outputProfile = OutputProfile(null);
-            speculativeOutputProfile = outputProfile is not null;
-        }
+        bool hasDefaultCmyk = pageResources.TryGetValue(Name("ColorSpace"), out PdfObject? spacesValue)
+            && Resolve(spacesValue) is PdfDictionary spaces && spaces.ContainsKey(Name("DefaultCMYK"));
+        PdfColorTransform? outputProfile = pageHasGroup || hasDefaultCmyk ? null : OutputProfile(null);
         PdfColorTransform? pageProfile = ReadGroupProfile(_tree.Pages[pageIndex].Dictionary, pageResources, diagnostics);
-        bool probeOutputIntent = (outputProfile is null || speculativeOutputProfile) && !pageHasGroup;
-        bool outputIntentRequired = false;
         if (outputProfile is not null)
             pixels.EnableInk(Color.White, profile: outputProfile);
         else if (CmykGroup(_tree.Pages[pageIndex].Dictionary, pageResources, false))
@@ -255,8 +248,6 @@ public sealed partial class PdfPageRenderer
         RasterSurface pageSurface = pixels;
         int previousParallelism = _rowParallelism;
         int previousJpeg2000PaintParallelism = _jpeg2000PaintParallelism;
-        bool retryForOutputProfile = false;
-        bool retryWithoutOutputProfile = false;
         _rowParallelism = Math.Max(1, options.MaximumParallelism);
         _jpeg2000PaintParallelism = Math.Max(1, options.Jpeg2000PaintParallelism);
         try
@@ -275,45 +266,15 @@ public sealed partial class PdfPageRenderer
             Process(ReadInstructions(pageIndex, cancellationToken, diagnostics),
                 pageResources, initialState, 0);
             RenderAppearances();
-            if (speculativeOutputProfile && !outputIntentRequired)
-                retryWithoutOutputProfile = true;
-            else
-            {
-                pixels.ConvertToBgra(cancellationToken);
-                return new PdfRenderedPage(rasterWidth, rasterHeight, pixels.Data, diagnostics);
-            }
-        }
-        catch (OutputOverprintRequiredException required)
-        {
-            outputProfile = required.Profile;
-            retryForOutputProfile = true;
+            pixels.ConvertToBgra(cancellationToken);
+            return new PdfRenderedPage(rasterWidth, rasterHeight, pixels.Data, diagnostics);
         }
         finally
         {
             _rowParallelism = previousParallelism;
             _jpeg2000PaintParallelism = previousJpeg2000PaintParallelism;
             pageSurface.ReleaseInk();
-            // Reuse a large image during a page or output-profile retry, then restore the
-            // original long-lived image budget when that page finishes.
-            if (!retryForOutputProfile && !retryWithoutOutputProfile)
-                _imageCache.RemoveAboveWeight(MaximumDecodedImageCacheBytes);
-        }
-        // Release the first pass's surfaces before replaying into the same output buffer.
-        // Skip preselection on replay so a page can restart only once.
-        return RenderUncached(pageIndex, options, cancellationToken, pageSurface.Data, region,
-            retryWithoutOutputProfile ? null : outputProfile, skipOutputPreselection: true);
-
-        void RequireOutputIntent(GraphicsState state)
-        {
-            if (!probeOutputIntent || !(state.FillOverprint || state.StrokeOverprint)) return;
-            probeOutputIntent = false;
-            if (speculativeOutputProfile)
-            {
-                outputIntentRequired = true;
-                return;
-            }
-            if (OutputProfile(null) is { } profile)
-                throw new OutputOverprintRequiredException(profile);
+            _imageCache.RemoveAboveWeight(MaximumDecodedImageCacheBytes);
         }
 
         void Process(IEnumerable<PdfContentInstruction> instructions,
@@ -614,7 +575,6 @@ public sealed partial class PdfPageRenderer
                     {
                         state = ApplyGraphicsStrokeSettings(state, strokeSettings!, diagnostics);
                         state = ApplyOverprintSettings(state, strokeSettings!);
-                        RequireOutputIntent(state);
                         if (strokeSettings!.TryGetValue(Name("RI"), out PdfObject? intentValue) && Resolve(intentValue) is PdfName graphicsIntent)
                             state = ApplyRenderingIntent(state, ReadRenderingIntent(graphicsIntent), pixels, diagnostics);
                         state = state with
@@ -989,7 +949,6 @@ public sealed partial class PdfPageRenderer
                             && Resolve(patternAlphaShape) is PdfBoolean { Value: true },
                         BlendMode = blendMode ?? RendererBlendMode.Normal
                     };
-                    RequireOutputIntent(contentState);
                     if (parameters.TryGetValue(Name("RI"), out PdfObject? intent)
                         && Resolve(intent) is PdfName intentName)
                         contentState = ApplyRenderingIntent(contentState, ReadRenderingIntent(intentName), pixels, diagnostics);
