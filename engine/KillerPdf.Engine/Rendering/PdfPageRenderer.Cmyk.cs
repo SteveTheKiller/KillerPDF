@@ -102,6 +102,18 @@ public sealed partial class PdfPageRenderer
             surface.SetAlpha(offset, 255);
             return;
         }
+        if (overprint && (overprintComponents & 64) == 0 && sourceAlpha == 1
+            && surface.Alpha(offset) == 255)
+        {
+            int channels = overprintComponents & 15;
+            uint preserve = (channels & 1) != 0 ? 0x000000ffu : 0;
+            if ((channels & 2) != 0) preserve |= 0x0000ff00u;
+            if ((channels & 4) != 0) preserve |= 0x00ff0000u;
+            if ((channels & 8) != 0) preserve |= 0xff000000u;
+            uint backdropInk = ReadInk(surface.Ink!, offset);
+            WriteInk(surface.Ink!, offset, source & ~preserve | backdropInk & preserve);
+            return;
+        }
         double backdropAlpha = surface.Alpha(offset) / 255d;
         double outputAlpha = sourceAlpha + backdropAlpha * (1 - sourceAlpha);
         if (outputAlpha <= 0) return;
