@@ -179,6 +179,15 @@ Neither a whole-batch gain nor a first-page gain is established, so the
 eight-worker setting was not retained. Scratch source, build, and runs are
 under `C:/Users/steve/kp-bench-render/j2k-eight-workers-20260930`.
 
+A separate scratch build replaced three reconstruction `Array.Copy` sites with
+typed span copies, preserving the copied sample ranges. Four alternating
+full difficult-set runs rendered all 74 pages with identical PNG hashes.
+Baseline render sums were 9.567 and 10.109 seconds; trial sums were 10.213
+and 10.165 seconds. The balloon first page measured 893 and 850 ms before
+versus 931 and 892 ms after. Sampled peaks overlapped, and the trial did not
+establish a speed gain. It was not retained. Its source, build, and runs are
+under `C:/Users/steve/kp-bench-render/j2k-copy-20260930`.
+
 ### Earlier difficult-set comparison (2026-09-30)
 
 The current 1.9 Release build and unchanged local 1.8.72 Release build rendered
