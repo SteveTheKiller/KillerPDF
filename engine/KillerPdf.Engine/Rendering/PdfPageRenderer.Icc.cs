@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Filters;
+using System.Security.Cryptography;
 
 namespace KillerPdf.Engine.Rendering;
 
@@ -8,6 +9,9 @@ public sealed partial class PdfPageRenderer
     private readonly Lazy<(PdfColorTransform? Transform, bool Unavailable)>[] _outputProfiles;
     private readonly BoundedCache<PdfObject, (PdfColorTransform? Transform, int Bytes)> _colorProfiles =
         new(8, ReferenceEqualityComparer.Instance, 4 * 1024 * 1024, entry => entry.Bytes);
+    private static readonly BoundedCache<string, (byte[] Encoded, byte[] Decoded)> SharedIccBytes =
+        new(8, maximumWeight: 16 * 1024 * 1024,
+            weight: entry => (long)entry.Encoded.Length + entry.Decoded.Length);
     private static readonly Func<double, double, double, Color> IccXyzToDisplay =
         CreateXyzConverter([0.9642, 1, 0.8249]);
 
@@ -113,7 +117,25 @@ public sealed partial class PdfPageRenderer
         {
             try
             {
-                byte[] bytes = _document.DecodeStream((PdfStream)value, 16 * 1024 * 1024);
+                var stream = (PdfStream)value;
+                byte[] bytes;
+                if (!_document.IsEncrypted
+                    && stream.Dictionary.TryGetValue(Name("Filter"), out PdfObject? filter)
+                    && Resolve(filter) is PdfName name && name.ValueAsLatin1() is "FlateDecode" or "Fl"
+                    && !stream.Dictionary.ContainsKey(Name("DecodeParms")))
+                {
+                    string key = $"{stream.EncodedData.Length}:"
+                        + Convert.ToHexString(SHA256.HashData(stream.EncodedData.Span));
+                    if (SharedIccBytes.TryGet(key, out var cached)
+                        && stream.EncodedData.Span.SequenceEqual(cached.Encoded))
+                        bytes = cached.Decoded;
+                    else
+                    {
+                        bytes = _document.DecodeStream(stream, 16 * 1024 * 1024);
+                        SharedIccBytes.GetOrAdd(key, _ => (stream.EncodedData.ToArray(), bytes));
+                    }
+                }
+                else bytes = _document.DecodeStream(stream, 16 * 1024 * 1024);
                 var transform = PdfIccProfileTransform.ReadAvailable(bytes);
                 return (transform, bytes.Length);
             }
