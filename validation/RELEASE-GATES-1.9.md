@@ -1222,6 +1222,41 @@ Raw runs and payloads are under
 `C:/Users/steve/kp-bench-render/corej2k-r2r-only-20260930` and
 `C:/Users/steve/kp-bench-render/corej2k-r2r-package-20260930-pass2`.
 
+An alternating same-file check against the retained 1.8.72 loose payload
+shows the remaining gap on this page. After one warmup per version, four
+fresh-process 512-pixel renders measured 59 to 75 ms for 1.8 versus 284 to
+342 ms for the packaged 1.9 codec, with medians of 62.5 and 304 ms. Both
+produced 375 by 511 pixels. In two 20-copy runs per version, later-page
+averages were 54.9 to 60.2 ms for 1.8 and 80.0 to 84.9 ms for 1.9. Thus
+both cold and repeated decoding remain slower. A separate 1.9 scratch probe
+measured about 204 to 226 ms of JIT compilation during the first render
+after renderer construction, so reducing cold compilation is a distinct
+opportunity from the remaining warm decoder cost. This probe does not
+measure visible first-page completion. Results are under
+`C:/Users/steve/kp-bench-render/r2r-v18-balloon-20260930-pass2` and
+`C:/Users/steve/kp-bench-render/r2r-balloon-jit-20260930`.
+
+A JIT event trace of the codec-only package found 87.9 ms of compilation in
+seven CoreJ2K methods during a fresh scratch render. Three entropy passes
+accounted for 83.1 ms, including 55.4 ms in cleanup. A scratch codec build
+removed the immediate-optimization annotations on five decoder passes and
+kept all 160 paired balloon PNGs byte-identical. In four alternating 20-file
+runs per mode, median first-page rendering fell from 310.5 to 231.5 ms, but
+median batch rendering rose from 1,954.5 to 2,096.5 ms; later-page averages
+also rose from a median 86.6 to 96.7 ms. The annotation change was rejected
+because it traded a cold gain for a larger repeated-render cost. The trace
+and trial are under `C:/Users/steve/kp-bench-render/r2r-balloon-jit-20260930`
+and `C:/Users/steve/kp-bench-render/j2k-annotations-r2r-20260930`.
+
+A speed-focused ReadyToRun build of the same annotation-free scratch codec
+nearly tied the baseline in its first two alternating 20-file pairs, but
+regressed in the next two pairs. The four baseline render totals were 2,009,
+1,845, 2,369, and 2,253 ms versus 1,916, 1,950, 2,718, and 3,282 ms for
+the trial. All 160 PNG hashes matched. A later system sample showed 38 to
+41 percent total CPU use, so these runs do not establish a stable gain or
+memory bound. The trial remains outside the product tree. Evidence is under
+`C:/Users/steve/kp-bench-render/j2k-r2r-optimize-time-20260930`.
+
 A September 30 hidden Continuous-view probe also compared ReadyToRun on the
 CMYK JPEG `064034.pdf`. Four alternating launches per mode attached page one
 at median 1,696 ms with the normal scratch payload and 1,509 ms with the
