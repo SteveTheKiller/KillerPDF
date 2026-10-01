@@ -14822,3 +14822,113 @@ I18N.pt = {
  "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Código-fonte no GitHub</a> &middot; GPLv3 &middot; Parte do <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.8.71</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"
 };
+
+/* Language count update: nineteen locales. */
+if (I18N["ru"]) Object.assign(I18N["ru"], {
+ "ph_312": "Интерфейс переведен на девятнадцать языков, включая итальянский, казахский и русский. У каждого языка интерфейса есть соответствующая загружаемая модель OCR.",
+ "f_themes_d_172": "13 тем и 33 варианта оформления, переключаемые без перезапуска. Интерфейс доступен на 19 языках, включая русский, казахский, польский и венгерский.",
+ "pt_243": "Интерфейс настольного приложения локализован через файлы <code>ResourceDictionary</code> для каждой локали в <code>Strings/</code>: 19 локалей, по одному файлу XAML на каждую, включая русский, казахский, итальянский, польский, венгерский, бенгальский, японский, украинский, норвежский (букмол), бразильский португальский, а также упрощенный и традиционный китайский. Построенные кодом и XAML-элементы управления получают ключи через <code>Loc(\"Str_...\")</code> или <code>DynamicResource</code>, поэтому смена языка перестраивает интерфейс на лету без перезапуска.",
+ "tech_languages_themes_value": "19 языков / 13 тем и варианты акцента"
+});
+if (I18N["it"]) Object.assign(I18N["it"], {
+ "ph_312": "L'interfaccia è tradotta in diciannove lingue, tra cui italiano, kazako e russo. Ogni lingua dell'interfaccia ha un modello OCR scaricabile corrispondente.",
+ "f_themes_d_172": "13 temi e 33 aspetti, selezionabili senza riavviare. Interfaccia disponibile in 19 lingue, tra cui italiano, russo, kazako, polacco e ungherese.",
+ "pt_243": "L'interfaccia desktop è localizzata tramite file <code>ResourceDictionary</code> per locale sotto <code>Strings/</code>: 19 locali, un file XAML ciascuno, inclusi russo, kazako, italiano, polacco, ungherese, bengalese, giapponese, ucraino, norvegese (bokmål), portoghese brasiliano e cinese semplificato e tradizionale. I controlli costruiti in codice e in XAML risolvono le chiavi tramite <code>Loc(\"Str_...\")</code> o una <code>DynamicResource</code>, quindi cambiare lingua ridispone l'interfaccia dal vivo senza riavvio.",
+ "tech_languages_themes_value": "19 lingue / 13 temi e varianti di accento"
+});
+if (I18N["vi"]) Object.assign(I18N["vi"], {
+ "ph_312": "Giao diện được dịch sang mười chín ngôn ngữ, bao gồm tiếng Ý, Kazakh và Nga. Mỗi ngôn ngữ giao diện có mô hình OCR tải xuống phù hợp.",
+ "f_themes_d_172": "Ba mươi chủ đề - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium and Mourning - tất cả có thể chuyển đổi trực tiếp. Bốn trong số đó - Dark, Light, Black và 98SE - mỗi người có một trong sáu màu sắc nhấn, vì vậy tổng cộng 33 trông. UI được định vị bằng mười chín ngôn ngữ, bao gồm Kazakh, Ba Lan, Hungary và Nga.",
+ "pt_243": "giao diện máy tính để bàn được định vị thông qua per-local<code>Nguồn Thuật ngữ</code>các tệp dưới<code>Dòng dây</code>: 19 địa điểm, mỗi tập tin XAML, bao gồm tiếng Nga, Kazakhstan, Ý, Ba Lan, Hungary, Bengali, Nhật Bản, Ukraina, Na Uy (Bokmål), Bồ Đào Nha (Brazil), và Trung Quốc đơn giản và truyền thống.<code>Loc(\"Str_...\")</code>hoặc một<code>DynamicResource</code>, để chuyển ngôn ngữ chuyển tiếp UI trực tiếp mà không cần khởi động lại.",
+ "tech_languages_themes_value": "19 ngôn ngữ / 13 giao diện cùng các biến thể màu nhấn"
+});
+if (I18N["hu"]) Object.assign(I18N["hu"], {
+ "ph_312": "A felület tizenkilenc nyelvre van lefordítva, köztük olaszra, kazahra és oroszra. Minden felületi nyelvhez tartozik letölthető OCR-modell.",
+ "f_themes_d_172": "13 téma és 33 megjelenés, újraindítás nélkül válthatók. A felület 19 nyelven érhető el, köztük magyarul, oroszul, kazahul és lengyelül.",
+ "pt_243": "Az asztali felület a <code>Strings/</code> alatti, területi beállításonkénti <code>ResourceDictionary</code> fájlokkal van honosítva: 19 nyelv, mindegyikhez egy XAML-fájl, köztük orosz, kazah, olasz, lengyel, magyar, bengáli, japán, ukrán, norvég (bokmål), brazil portugál, valamint egyszerűsített és hagyományos kínai. A kódból épített és a XAML-vezérlők a kulcsokat a <code>Loc(\"Str_...\")</code> hívással vagy <code>DynamicResource</code>-szal oldják fel, így a nyelvváltás újratördeli a felületet élőben, újraindítás nélkül.",
+ "tech_languages_themes_value": "19 nyelv / 13 téma és kiemelőszín-változatok"
+});
+if (I18N["pl"]) Object.assign(I18N["pl"], {
+ "ph_312": "Interfejs jest przetłumaczony na dziewiętnaście języków, w tym włoski, kazachski i rosyjski. Każdy język interfejsu ma odpowiadający mu model OCR do pobrania.",
+ "f_themes_d_172": "13 motywów i 33 wyglądy, przełączane bez restartu. Interfejs jest dostępny w 19 językach, w tym polskim, rosyjskim, kazachskim i węgierskim.",
+ "pt_243": "Interfejs aplikacji jest lokalizowany przez pliki <code>ResourceDictionary</code> dla poszczególnych języków w <code>Strings/</code>: 19 języków, po jednym pliku XAML, w tym rosyjski, kazachski, włoski, polski, węgierski, bengalski, japoński, ukraiński, norweski (bokmål), portugalski brazylijski oraz chiński uproszczony i tradycyjny. Kontrolki budowane w kodzie i w XAML rozwiązują klucze przez <code>Loc(\"Str_...\")</code> lub <code>DynamicResource</code>, więc zmiana języka przełącza interfejs na żywo, bez restartu.",
+ "tech_languages_themes_value": "19 języków / 13 motywów i warianty akcentu"
+});
+if (I18N["cs"]) Object.assign(I18N["cs"], {
+ "ph_312": "Rozhraní je přeloženo do devatenácti jazyků, včetně italštiny, kazaštiny a ruštiny. Každý jazyk rozhraní má odpovídající stažitelný model OCR.",
+ "f_themes_d_172": "13 motivů a 33 vzhledů, přepínatelných bez restartu. Rozhraní je dostupné v 19 jazycích, včetně češtiny, ruštiny, kazaštiny, polštiny a maďarštiny.",
+ "pt_243": "Desktopové rozhraní je lokalizováno pomocí souborů <code>ResourceDictionary</code> pro jednotlivé jazyky ve složce <code>Strings/</code>: 19 jazyků, jeden soubor XAML pro každý, včetně ruštiny, kazaštiny, italštiny, polštiny, maďarštiny, bengálštiny, japonštiny, ukrajinštiny, norštiny (bokmål), brazilské portugalštiny a zjednodušené i tradiční čínštiny. Ovládací prvky vytvářené kódem i v XAML řeší klíče přes <code>Loc(\"Str_...\")</code> nebo <code>DynamicResource</code>, takže přepnutí jazyka přeuspořádá UI živě bez restartu.",
+ "tech_languages_themes_value": "19 jazyků / 13 motivů a varianty zvýrazňující barvy"
+});
+if (I18N["es"]) Object.assign(I18N["es"], {
+ "ph_312": "La interfaz está traducida a diecinueve idiomas, incluidos italiano, kazajo y ruso. Cada idioma de la interfaz tiene un modelo de OCR descargable correspondiente.",
+ "f_themes_d_172": "13 temas y 33 apariencias, seleccionables sin reiniciar. Interfaz disponible en 19 idiomas, incluidos español, ruso, kazajo, polaco y húngaro.",
+ "pt_243": "La interfaz de escritorio se localiza mediante archivos <code>ResourceDictionary</code> por configuración regional bajo <code>Strings/</code>: 19 configuraciones regionales, un archivo XAML cada una, incluidos ruso, kazajo, italiano, polaco, húngaro, bengalí, japonés, ucraniano, noruego (bokmål), portugués de Brasil y chino simplificado y tradicional. Los controles construidos en código y en XAML resuelven las claves mediante <code>Loc(\"Str_...\")</code> o un <code>DynamicResource</code>, así que cambiar de idioma redistribuye la interfaz en vivo sin reiniciar.",
+ "tech_languages_themes_value": "19 idiomas / 13 temas y variantes de acento"
+});
+if (I18N["de"]) Object.assign(I18N["de"], {
+ "ph_312": "Die Oberfläche ist in neunzehn Sprachen übersetzt, einschließlich Italienisch, Kasachisch und Russisch. Zu jeder Oberflächensprache gibt es ein passendes herunterladbares OCR-Modell.",
+ "f_themes_d_172": "13 Designs und 33 Erscheinungsbilder, ohne Neustart umschaltbar. Die Oberfläche ist in 19 Sprachen verfügbar, darunter Deutsch, Russisch, Kasachisch, Polnisch und Ungarisch.",
+ "pt_243": "Die Desktop-Oberfläche wird über <code>ResourceDictionary</code>-Dateien je Gebietsschema unter <code>Strings/</code> lokalisiert: 19 Gebietsschemata, je eine XAML-Datei, einschließlich Russisch, Kasachisch, Italienisch, Polnisch, Ungarisch, Bengalisch, Japanisch, Ukrainisch, Norwegisch (Bokmål), Portugiesisch (Brasilien) sowie vereinfachtem und traditionellem Chinesisch. Code-erzeugte und XAML-Steuerelemente lösen Schlüssel über <code>Loc(\"Str_...\")</code> oder eine <code>DynamicResource</code> auf, sodass ein Sprachwechsel die Oberfläche live neu anordnet, ohne Neustart.",
+ "tech_languages_themes_value": "19 Sprachen / 13 Designs und Akzentvarianten"
+});
+if (I18N["fr"]) Object.assign(I18N["fr"], {
+ "ph_312": "L'interface est traduite en dix-neuf langues, dont l'italien, le kazakh et le russe. Chaque langue d'interface dispose d'un modèle OCR téléchargeable correspondant.",
+ "f_themes_d_172": "13 thèmes et 33 apparences, modifiables sans redémarrer. Interface disponible en 19 langues, dont le français, le russe, le kazakh, le polonais et le hongrois.",
+ "pt_243": "L'interface de bureau est localisée via des fichiers <code>ResourceDictionary</code> par langue sous <code>Strings/</code> : 19 langues, un fichier XAML chacune, dont le russe, le kazakh, l'italien, le polonais, le hongrois, le bengali, le japonais, l'ukrainien, le norvégien (bokmål), le portugais brésilien, et le chinois simplifié et traditionnel. Les contrôles construits en code et en XAML résolvent les clés via <code>Loc(\"Str_...\")</code> ou une <code>DynamicResource</code>, si bien que changer de langue réagence l'interface en direct sans redémarrage.",
+ "tech_languages_themes_value": "19 langues / 13 thèmes et variantes d'accent"
+});
+if (I18N["tr"]) Object.assign(I18N["tr"], {
+ "ph_312": "Arayüz, İtalyanca, Kazakça ve Rusça dahil on dokuz dile çevrilmiştir. Her arayüz dilinin indirilebilir eşleşen bir OCR modeli vardır.",
+ "f_themes_d_172": "Yeniden başlatmadan değiştirilebilen 13 tema ve 33 görünüm. Arayüz Türkçe, Rusça, Kazakça, Lehçe ve Macarca dahil 19 dilde kullanılabilir.",
+ "pt_243": "Masaüstü arayüzü, <code>Strings/</code> altındaki yerel ayara özgü <code>ResourceDictionary</code> dosyalarıyla yerelleştirilir: Rusça, Kazakça, İtalyanca, Lehçe, Macarca, Bengalce, Japonca, Ukraynaca, Norveççe (Bokmål), Brezilya Portekizcesi ile Basitleştirilmiş ve Geleneksel Çince dahil 19 yerel ayar, her biri için bir XAML dosyası. Kodla oluşturulan ve XAML denetimleri anahtarları <code>Loc(\"Str_...\")</code> veya bir <code>DynamicResource</code> üzerinden çözer, böylece dil değiştirmek arayüzü yeniden başlatma olmadan canlı olarak yeniden düzenler.",
+ "tech_languages_themes_value": "19 dil / 13 tema ve vurgu varyantları"
+});
+if (I18N["zh"]) Object.assign(I18N["zh"], {
+ "ph_312": "介面已翻譯成十九種語言，包含義大利文、哈薩克文與俄文。每一種介面語言都有對應可下載的 OCR 模型。",
+ "f_themes_d_172": "13 種佈景主題和 33 種外觀，無需重新啟動即可切換。介面支援 19 種語言，包含繁體中文、簡體中文、俄文、哈薩克文、波蘭文和匈牙利文。",
+ "pt_243": "桌面介面透過 <code>Strings/</code> 之下的各地區 <code>ResourceDictionary</code> 檔案進行在地化：19 個地區設定，各一個 XAML 檔案，包含俄文、哈薩克文、義大利文、波蘭文、匈牙利文、孟加拉文、日文、烏克蘭文、挪威文（博克馬爾文）、巴西葡萄牙文，以及簡體與繁體中文。以程式碼建立的控制項與 XAML 控制項都透過 <code>Loc(\"Str_...\")</code> 或 <code>DynamicResource</code> 解析索引鍵，因此切換語言時 UI 會即時重排，無需重新啟動。",
+ "tech_languages_themes_value": "19 種語言 / 13 種佈景主題及強調色變體"
+});
+if (I18N["zh-cn"]) Object.assign(I18N["zh-cn"], {
+ "ph_312": "界面已翻译成十九种语言，包括意大利语、哈萨克语和俄语。每一种界面语言都有对应可下载的 OCR 模型。",
+ "f_themes_d_172": "13 种主题和 33 种外观，无需重启即可切换。界面支持 19 种语言，包括简体中文、繁体中文、俄语、哈萨克语、波兰语和匈牙利语。",
+ "pt_243": "桌面界面通过 <code>Strings/</code> 下的各区域 <code>ResourceDictionary</code> 文件进行本地化：19 个区域设置，各一个 XAML 文件，包括俄语、哈萨克语、意大利语、波兰语、匈牙利语、孟加拉语、日语、乌克兰语、书面挪威语、巴西葡萄牙语，以及简体和繁体中文。代码构建的控件和 XAML 控件都通过 <code>Loc(\"Str_...\")</code> 或 <code>DynamicResource</code> 解析键，因此切换语言时 UI 会实时重排，无需重启。",
+ "tech_languages_themes_value": "19 种语言 / 13 种主题及强调色变体"
+});
+if (I18N["bn"]) Object.assign(I18N["bn"], {
+ "ph_312": "ইন্টারফেসটি ইতালীয়, কাজাখ ও রুশসহ ঊনিশটি ভাষায় অনূদিত। প্রতিটি ইন্টারফেস ভাষার জন্য ডাউনলোডযোগ্য একটি করে OCR মডেল আছে।",
+ "f_themes_d_172": "রিস্টার্ট ছাড়াই বদলানো যায় এমন ১৩টি থিম ও ৩৩টি চেহারা। ইন্টারফেস বাংলা, রুশ, কাজাখ, পোলিশ ও হাঙ্গেরিয়ানসহ ১৯টি ভাষায় পাওয়া যায়।",
+ "pt_243": "ডেস্কটপ ইন্টারফেসটি <code>Strings/</code>-এর নিচে লোকেল-প্রতি <code>ResourceDictionary</code> ফাইল দিয়ে স্থানীয়কৃত: 19টি লোকেল, প্রতিটির একটি করে XAML ফাইল - রুশ, কাজাখ, ইতালীয়, পোলিশ, হাঙ্গেরিয়ান, বাংলা, জাপানি, ইউক্রেনীয়, নরওয়েজীয় (বোকমাল), ব্রাজিলীয় পর্তুগিজ এবং সরলীকৃত ও ঐতিহ্যবাহী চীনাসহ। কোডে তৈরি ও XAML নিয়ন্ত্রণ উভয়েই <code>Loc(\"Str_...\")</code> বা <code>DynamicResource</code> দিয়ে কী খুঁজে নেয়, তাই ভাষা বদলালে UI পুনরায় চালু না করেই সঙ্গে সঙ্গে নতুন করে সাজে।",
+ "tech_languages_themes_value": "19টি ভাষা / 13টি থিম ও অ্যাকসেন্টের ভিন্নতা"
+});
+if (I18N["ja"]) Object.assign(I18N["ja"], {
+ "ph_312": "インターフェイスはイタリア語、カザフ語、ロシア語を含む 19 言語に翻訳されています。すべてのインターフェイス言語に、対応するダウンロード可能な OCR モデルがあります。",
+ "f_themes_d_172": "再起動せずに切り替えられる 13 種類のテーマと 33 通りの外観。UI は日本語、ロシア語、カザフ語、ポーランド語、ハンガリー語など 19 言語に対応しています。",
+ "pt_243": "デスクトップのインターフェイスは、<code>Strings/</code> 配下のロケール別 <code>ResourceDictionary</code> ファイルでローカライズされています。ロケールは 19 個で、各 1 つの XAML ファイルを持ち、ロシア語、カザフ語、イタリア語、ポーランド語、ハンガリー語、ベンガル語、日本語、ウクライナ語、ノルウェー語（ブークモール）、ブラジルのポルトガル語、簡体字・繁体字中国語を含みます。コードで構築したコントロールも XAML のコントロールも <code>Loc(\"Str_...\")</code> または <code>DynamicResource</code> でキーを解決するため、言語の切り替えは再起動なしで UI にライブで反映されます。",
+ "tech_languages_themes_value": "19 言語 / 13 テーマとアクセントのバリエーション"
+});
+if (I18N["kk"]) Object.assign(I18N["kk"], {
+ "ph_312": "Интерфейс он тоғыз тілге аударылған, оның ішінде итальян, қазақ және орыс тілдері бар. Әр интерфейс тілінің сәйкес жүктеп алынатын OCR үлгісі бар.",
+ "f_themes_d_172": "Қайта іске қоспай ауыстырылатын 13 тақырып пен 33 көрініс. Интерфейс қазақ, орыс, поляк және венгр тілдерін қоса алғанда 19 тілде қолжетімді.",
+ "pt_243": "Жұмыс үстелі интерфейсі <code>Strings/</code> ішіндегі әр тілдің <code>ResourceDictionary</code> файлдары арқылы локализацияланған: 19 тіл, әрқайсысына бір XAML файлы, оның ішінде орыс, қазақ, итальян, поляк, венгр, бенгал, жапон, украин, норвег (букмол), португал (Бразилия) және жеңілдетілген әрі дәстүрлі қытай тілдері бар. Кодпен құрылған және XAML басқару элементтері кілттерді <code>Loc(\"Str_...\")</code> немесе <code>DynamicResource</code> арқылы шешеді, сондықтан тілді ауыстыру интерфейсті қайта іске қоспай-ақ тірідей қайта құрады.",
+ "tech_languages_themes_value": "19 тіл / 13 тақырып және екпін нұсқалары"
+});
+if (I18N["uk"]) Object.assign(I18N["uk"], {
+ "ph_312": "Інтерфейс перекладено дев'ятнадцятьма мовами, зокрема в'єтнамською, італійською, казахською та російською. Кожна мова інтерфейсу має відповідну модель OCR для завантаження.",
+ "f_themes_d_172": "Тринадцять тем: Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium і Mourning, і всі перемикаються наживо. Чотири з них (Dark, Light, Black і 98SE) приймають по одному з шести акцентних кольорів, разом 33 вигляди. Інтерфейс локалізовано дев'ятнадцятьма мовами, зокрема в'єтнамською, казахською, польською, угорською та російською.",
+ "pt_243": "Інтерфейс для комп'ютера локалізовано через файли <code>ResourceDictionary</code> для кожної локалі в <code>Strings/</code>: 19 локалей, по одному файлу XAML на кожну, зокрема в'єтнамська, російська, казахська, італійська, польська, угорська, бенгальська, японська, українська, норвезька (букмол), бразильська португальська та китайська спрощена й традиційна. Елементи, створені кодом і XAML, визначають ключі через <code>Loc(\"Str_...\")</code> або <code>DynamicResource</code>, тож перемикання мови перекомпоновує інтерфейс наживо без перезапуску.",
+ "tech_languages_themes_value": "19 локалей / 13 тем + варіанти акценту"
+});
+if (I18N["nb"]) Object.assign(I18N["nb"], {
+ "ph_312": "Grensesnittet er oversatt til nitten språk, blant annet vietnamesisk, italiensk, kasakhisk og russisk. Hvert grensesnittspråk har en tilsvarende nedlastbar OCR-modell.",
+ "f_themes_d_172": "Tretten temaer - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium og Mourning - som alle kan byttes live. Fire av dem - Dark, Light, Black og 98SE - kan hver ta én av seks aksentfarger, så det blir 33 utseender til sammen. Grensesnittet er lokalisert til nitten språk, blant annet vietnamesisk, kasakhisk, polsk, ungarsk og russisk.",
+ "pt_243": "Skrivebordsgrensesnittet lokaliseres gjennom <code>ResourceDictionary</code>-filer per språkområde under <code>Strings/</code>: 19 språkområder, én XAML-fil hver, blant annet vietnamesisk, russisk, kasakhisk, italiensk, polsk, ungarsk, bengali, japansk, ukrainsk, norsk bokmål, brasiliansk portugisisk samt forenklet og tradisjonell kinesisk. Kontroller bygget i kode og i XAML løser nøkler via <code>Loc(\"Str_...\")</code> eller en <code>DynamicResource</code>, så et språkbytte omorganiserer grensesnittet live uten omstart.",
+ "tech_languages_themes_value": "19 språkområder / 13 temaer + aksentvarianter"
+});
+if (I18N["pt"]) Object.assign(I18N["pt"], {
+ "ph_312": "A interface está traduzida para dezenove idiomas, incluindo vietnamita, italiano, cazaque e russo. Cada idioma da interface tem um modelo de OCR para download correspondente.",
+ "f_themes_d_172": "Treze temas - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium e Mourning - todos alternáveis ao vivo. Quatro deles - Dark, Light, Black e 98SE - aceitam cada um uma de seis cores de destaque, totalizando 33 visuais. Interface localizada em dezenove idiomas, incluindo vietnamita, cazaque, polonês, húngaro e russo.",
+ "pt_243": "A interface de desktop é localizada por meio de arquivos <code>ResourceDictionary</code> por localidade em <code>Strings/</code>: 19 localidades, um arquivo XAML cada, incluindo vietnamita, russo, cazaque, italiano, polonês, húngaro, bengali, japonês, ucraniano, norueguês bokmål, português do Brasil e chinês simplificado e tradicional. Os controles criados em código e em XAML resolvem as chaves por <code>Loc(\"Str_...\")</code> ou por um <code>DynamicResource</code>, então trocar de idioma reorganiza a interface ao vivo, sem reiniciar.",
+ "tech_languages_themes_value": "19 localidades / 13 temas + variantes de destaque"
+});
