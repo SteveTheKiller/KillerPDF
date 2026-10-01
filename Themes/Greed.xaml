@@ -16,7 +16,7 @@
         <GradientStop Offset="0.55" Color="#1f000000"/>
         <GradientStop Offset="1.0" Color="#82000000"/>
     </LinearGradientBrush>
-    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#001e13" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#00140c" po:Freeze="True"/>
     <SolidColorBrush x:Key="CardBorderBrush" Color="#0f4a30" po:Freeze="True"/>
     <!-- The RGB themes take white as the accent and carry the hue in HeaderLineBrush. -->
     <SolidColorBrush x:Key="PrimaryBrush"    Color="#ffffff" po:Freeze="True"/>
