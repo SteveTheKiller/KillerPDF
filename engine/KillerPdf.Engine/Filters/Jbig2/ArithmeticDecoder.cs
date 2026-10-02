@@ -73,8 +73,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
         public int Decode(CX cx)
         {
             int d;
-            int qeValue = QeValues[cx.Cx];
             int icx = cx.Cx;
+            int qeValue = QeValues[icx];
 
             A -= qeValue;
 
