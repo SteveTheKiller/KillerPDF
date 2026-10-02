@@ -71,7 +71,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Replaced PDFium and Docnet.Core with engine-owned rendering, improved damaged cross-reference and missing-catalog recovery and JPEG image rendering speed, and removed native file-repair and link-extraction fallbacks.
 - Built the JPEG 2000 decoder from vendored CoreJ2K sources instead of a package reference.
 - Precompiled the packaged engine to reduce first-page rendering delay.
-- Reduced rendering memory use with shared page data, released sessions, a smaller scratch buffer pool, direct PNG output, and runtime memory conservation.
+- Reduced rendering memory use with shared page data, released sessions, a smaller scratch buffer pool, direct PNG output, fewer JBIG2 page buffers, and runtime memory conservation.
 - Reused large decoded images within a page render and released them afterward, reducing shared-batch peak memory.
 - Avoided a redundant rendering pass for pages whose overprint needs the document output profile.
 - Faster soft masks, masked forms, CMYK image reduction, ICC profile loading, compositing, scanned pages, and shadings without changing pixels. Large fills, image paints, function and axial shadings, and soft-mask reductions split across a few threads.

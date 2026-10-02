@@ -111,12 +111,11 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         private void CreateNormalPage(PageInformation pageInformation)
         {
-            pageBitmap = new Jbig2Bitmap(pageInformation.BitmapWidth, pageInformation.BitmapHeight);
-
             // Page 79, 3)
             // If default pixel value is not 0, byte will be filled with 0xff
             if (pageInformation.DefaultPixelValue != 0)
             {
+                pageBitmap = new Jbig2Bitmap(pageInformation.BitmapWidth, pageInformation.BitmapHeight);
                 pageBitmap.ByteArray.AsSpan().Fill(0xff);
             }
 
@@ -137,6 +136,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
                         if (r is GenericRefinementRegion refinementRegion)
                         {
+                            pageBitmap ??= new Jbig2Bitmap(pageInformation.BitmapWidth, pageInformation.BitmapHeight);
                             refinementRegion.SetPageBitmap(pageBitmap);
                         }
 
@@ -148,6 +148,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                         }
                         else
                         {
+                            pageBitmap ??= new Jbig2Bitmap(pageInformation.BitmapWidth, pageInformation.BitmapHeight);
                             RegionSegmentInformation regionInfo = r.RegionInfo;
                             CombinationOperator op = GetCombinationOperator(pageInformation,
                                     regionInfo.CombinationOperator);
@@ -158,6 +159,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
                         break;
                 }
             }
+
+            pageBitmap ??= new Jbig2Bitmap(pageInformation.BitmapWidth, pageInformation.BitmapHeight);
         }
 
         /// <summary>
