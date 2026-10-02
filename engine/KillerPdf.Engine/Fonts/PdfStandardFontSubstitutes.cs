@@ -138,8 +138,8 @@ internal static class PdfStandardFontSubstitutes
             "KillerPdf.Engine.Fonts." + fileName)
             ?? throw new InvalidOperationException(
                 $"The standard-font substitute {fileName} is missing.");
-        using var memory = new MemoryStream();
-        stream.CopyTo(memory);
-        return TrueTypeFont.LoadForExtraction(memory.ToArray());
+        byte[] data = new byte[checked((int)stream.Length)];
+        stream.ReadExactly(data);
+        return TrueTypeFont.LoadOwnedForExtraction(data);
     }, LazyThreadSafetyMode.ExecutionAndPublication);
 }

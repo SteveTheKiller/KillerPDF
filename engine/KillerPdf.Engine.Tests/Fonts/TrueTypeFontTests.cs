@@ -29,6 +29,32 @@ public sealed class TrueTypeFontTests
     }
 
     [Fact]
+    public void Load_KeepsAnIndependentCopyOfSourceBytes()
+    {
+        byte[] source = BuildTestFont(format12: false);
+        TrueTypeFont font = TrueTypeFont.Load(source);
+        byte original = font.FontData.Span[0];
+
+        source[0] ^= 0xFF;
+
+        Assert.Equal(original, font.FontData.Span[0]);
+        Assert.Equal((ushort)1, font.GetGlyphId('A'));
+    }
+
+    [Fact]
+    public void BundledSubstitutes_LoadEveryTrainingFont()
+    {
+        IReadOnlyList<TrueTypeFont> fonts = PdfStandardFontSubstitutes.OcrTrainingFonts();
+
+        Assert.Equal(12, fonts.Count);
+        Assert.All(fonts, font =>
+        {
+            Assert.True(font.FontData.Length > 0);
+            Assert.True(font.GlyphCount > 0);
+        });
+    }
+
+    [Fact]
     public void Load_ReadsFormat12SupplementaryPlaneMapping()
     {
         TrueTypeFont font = TrueTypeFont.Load(BuildTestFont(format12: true));

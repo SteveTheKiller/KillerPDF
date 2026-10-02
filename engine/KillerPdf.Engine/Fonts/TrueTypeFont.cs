@@ -79,14 +79,16 @@ public sealed class TrueTypeFont
 
     /// <summary>Loads and validates an OpenType font with TrueType or CFF outlines.</summary>
     public static TrueTypeFont Load(ReadOnlyMemory<byte> source)
-        => LoadCore(source, false);
+        => LoadCore(source.ToArray(), false);
 
     internal static TrueTypeFont LoadForExtraction(ReadOnlyMemory<byte> source)
+        => LoadCore(source.ToArray(), true);
+
+    internal static TrueTypeFont LoadOwnedForExtraction(byte[] source)
         => LoadCore(source, true);
 
-    private static TrueTypeFont LoadCore(ReadOnlyMemory<byte> source, bool extraction)
+    private static TrueTypeFont LoadCore(byte[] data, bool extraction)
     {
-        byte[] data = source.ToArray();
         if (data.Length < 12)
             throw Error("The font is shorter than an sfnt header");
         uint scaler = ReadU32(data, 0);
