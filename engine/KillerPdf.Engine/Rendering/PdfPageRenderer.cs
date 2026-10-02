@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Fonts;
@@ -5317,6 +5318,7 @@ public sealed partial class PdfPageRenderer
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         internal uint Convert(int x, int y)
         {
             if (_directRgb)
