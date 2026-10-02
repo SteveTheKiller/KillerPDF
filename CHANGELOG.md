@@ -10,7 +10,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 - Added yellow and magenta accents to the neutral and 98SE themes.
-- Added Ukrainian, Norwegian (Bokmål) and Brazilian Portuguese localization.
+- Added Ukrainian localization.
+- Added Norwegian (Bokmål) localization.
+- Added Brazilian Portuguese localization.
 
 ### Fixed
 
