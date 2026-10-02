@@ -19,8 +19,8 @@ public sealed partial class PdfPageRenderer
         {
             PushNumber, PushBoolean, PushProcedure,
             Abs, Add, And, Atan, Bitshift, Ceiling, Copy, Cos, Cvi, Cvr, Div, Dup, Eq, Exch,
-            Exp, False, Floor, Ge, Gt, Idiv, If, IfElse, Index, Le, Ln, Log, Lt, Mod, Mul,
-            Ne, Neg, Not, Or, Pop, Roll, Round, Sin, Sqrt, Sub, True, Truncate, Xor,
+            Exp, False, Floor, Ge, Gt, Idiv, If, IfElse, Index, IndexConstant, Le, Ln, Log, Lt, Mod, Mul,
+            Ne, Neg, Not, Or, Pop, Roll, RollConstant, Round, Sin, Sqrt, Sub, True, Truncate, Xor,
             // An operator this engine does not implement; it fails only when executed.
             Unknown
         }
@@ -101,7 +101,22 @@ public sealed partial class PdfPageRenderer
                         if (Operators.TryGetValue(keyword, out Opcode code))
                         {
                             // Numeric values are stored as doubles, so cvr is already satisfied.
-                            if (code != Opcode.Cvr) procedure.Add(new Op(code));
+                            if (code == Opcode.Index && procedure.Count > 0
+                                && procedure[^1].Code == Opcode.PushNumber
+                                && TryConstantInteger(procedure[^1].Number, out int constantIndex))
+                            {
+                                procedure[^1] = new Op(Opcode.IndexConstant, procedure: constantIndex);
+                            }
+                            else if (code == Opcode.Roll && procedure.Count > 1
+                                && procedure[^2].Code == Opcode.PushNumber
+                                && procedure[^1].Code == Opcode.PushNumber
+                                && TryConstantInteger(procedure[^2].Number, out int rolled)
+                                && TryConstantInteger(procedure[^1].Number, out int shift))
+                            {
+                                procedure.RemoveAt(procedure.Count - 1);
+                                procedure[^1] = new Op(Opcode.RollConstant, rolled, shift);
+                            }
+                            else if (code != Opcode.Cvr) procedure.Add(new Op(code));
                         }
                         else
                         {
@@ -120,6 +135,14 @@ public sealed partial class PdfPageRenderer
                         throw new NotSupportedException();
                 }
             }
+        }
+
+        private static bool TryConstantInteger(double value, out int result)
+        {
+            bool valid = value >= int.MinValue && value <= int.MaxValue
+                && value == Math.Truncate(value);
+            result = valid ? (int)value : 0;
+            return valid;
         }
 
         /// <summary>Evaluates the program, clamping inputs to the domain and outputs to the range.</summary>
@@ -292,6 +315,17 @@ public sealed partial class PdfPageRenderer
                         Push(stack, ref count, stack[count - index - 1]);
                         break;
                     }
+                    case Opcode.IndexConstant:
+                    {
+                        if (count >= MaximumStack)
+                            throw new FormatException($"A {_description} calculator stack is invalid.");
+                        int index = op.Procedure;
+                        if (index < 0 || index >= count)
+                            throw new FormatException($"A {_description} calculator index is invalid.");
+                        stack[count] = stack[count - index - 1];
+                        count++;
+                        break;
+                    }
                     case Opcode.If:
                     {
                         int procedureIndex = PopProcedure(stack, ref count);
@@ -375,6 +409,23 @@ public sealed partial class PdfPageRenderer
                         if (shift < 0) shift += rolled;
                         if (shift == 0) break;
                         // Rotate in place with three reversals: no copy of the rolled values.
+                        int start = count - rolled;
+                        Array.Reverse(stack, start, rolled);
+                        Array.Reverse(stack, start, shift);
+                        Array.Reverse(stack, start + shift, rolled - shift);
+                        break;
+                    }
+                    case Opcode.RollConstant:
+                    {
+                        if (count > MaximumStack - 2)
+                            throw new FormatException($"A {_description} calculator stack is invalid.");
+                        int rolled = (int)op.Number;
+                        if (rolled < 0 || rolled > count)
+                            throw new FormatException($"A {_description} calculator roll is invalid.");
+                        if (rolled == 0) break;
+                        int shift = op.Procedure % rolled;
+                        if (shift < 0) shift += rolled;
+                        if (shift == 0) break;
                         int start = count - rolled;
                         Array.Reverse(stack, start, rolled);
                         Array.Reverse(stack, start, shift);

@@ -64,7 +64,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Used the standard identity encoding for embedded fonts when possible, improving searchable OCR text extraction compatibility.
 - Reused parsed extraction fonts across pages, reducing text extraction time on multipage documents.
 - Reduced parsed content-instruction allocation by compiling numeric path, text, matrix, and graphics-state operands directly into compact storage with unchanged rendering output.
-- Removed no-op `cvr` instructions while compiling calculator functions, reducing DeviceN shading work with unchanged results.
+- Removed no-op `cvr` instructions and precompiled constant `index` and `roll` operations in calculator functions, reducing DeviceN shading work with unchanged results.
 - Faster JPEG 2000 entropy input through sealed, inlined byte reads with unchanged decoded pixels.
 - Reduced JPEG 2000 reconstruction overhead while preserving decoded pixels.
 - Reduced image reduction overhead in uniform areas, repeated rows, and ICC area sampling without changing pixels.

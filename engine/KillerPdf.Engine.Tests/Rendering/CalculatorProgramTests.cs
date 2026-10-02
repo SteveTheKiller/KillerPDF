@@ -148,6 +148,17 @@ public sealed class CalculatorProgramTests
         Assert.Contains("stack is invalid", error.Message);
     }
 
+    [Theory]
+    [InlineData(256, "0 index")]
+    [InlineData(255, "0 0 roll")]
+    public void Evaluate_ConstantStackOperationsStillRejectOverflow(int values, string operation)
+    {
+        string source = "{ " + string.Concat(Enumerable.Repeat("1 ", values)) + operation + " }";
+        var error = Assert.Throws<FormatException>(() =>
+            Compile(source).Evaluate([], [], [0, 10], new double[1]));
+        Assert.Contains("stack is invalid", error.Message);
+    }
+
     [Fact]
     public void Compile_RejectsUnterminatedAndOversizedPrograms()
     {
