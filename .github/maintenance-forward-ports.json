@@ -608,6 +608,11 @@
       "maintenanceCommit": "6faf8bdc9b835c28bb632bb1478f03cfddc3a4c4",
       "developmentCommit": "475980ddba111f9d4b325c64e399e9ac7f880d30",
       "reason": "The 1.9 package and website state nineteen languages. Its development README does not list application features."
+    },
+    {
+      "maintenanceCommit": "9ebe9ef7262f93284ce71e87fd927686aacf400c",
+      "developmentCommit": "2790caa60d54eaf2902be73c0ff2040591ee3c26",
+      "reason": "The 1.9 changelog already separates Ukrainian, Norwegian, and Brazilian Portuguese into individual entries."
     }
   ]
 }
