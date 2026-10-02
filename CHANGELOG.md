@@ -11,7 +11,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Added
 - Added yellow and magenta accents to the neutral and 98SE themes.
 - Added Ukrainian localization.
-- Added Norwegian (Bokmål) and Brazilian Portuguese localization.
+- Added Norwegian (Bokmål) localization.
+- Added Brazilian Portuguese localization.
 
 - Added a shared reusable image library for the Image tool, image watermarks, and imported signatures, with import, preview, rename, and delete controls (#326).
 - Added localized desktop reports for preflight, accessibility, print production, separations, layers, portfolios, and structural comparisons.
