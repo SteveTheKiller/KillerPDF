@@ -59,6 +59,8 @@ A sampled 512-pixel profile of all 649 conformance files completed 614 renders a
 
 A bounded initial character-list capacity also kept all 614 conformance PNG hashes at 512 pixels. The four alternating whole-tree render sums were 67,371/65,019/63,183/63,130 ms in baseline/trial/trial/baseline order. The second trial and baseline were effectively equal, so the extra allocation was not retained. Outputs and CSVs are under `C:/Users/steve/kp-bench-render/unicode-capacity-20261002/`.
 
+Moving the plain RGB and gray image-format checks outside the area sampler's pixel loop preserved all 20 Altona PNG hashes. Four alternating 512-pixel render sums were 1,526/1,578/1,614/1,649 ms in baseline/trial/trial/baseline order. The trial showed no speed gain and was removed. Outputs and CSVs are under `C:/Users/steve/kp-bench-render/direct-area-loops-20261002/`.
+
 Instrumented scratch builds from the clean 1.8.72 and 1.9.0 trees opened the
 same PDF in separate hidden WPF processes with isolated Continuous-view settings.
 The trace marks when page one's bitmap is assigned to its slot. On the JBIG2
