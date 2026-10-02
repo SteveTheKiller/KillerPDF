@@ -5588,11 +5588,25 @@ public sealed partial class PdfPageRenderer
             return ConvertDecoded(_colorSpace);
         }
 
-        private uint ConvertDecoded(ImageColorSpace space) =>
-            _targetInk && space.Components == 4 && space.Profile is not null && space.ComponentRange is null
-                && ReferenceEquals(space.Profile, _targetProfile)
-                ? Color.Cmyk(_values[0], _values[1], _values[2], _values[3]).Ink!.Value
-                : Pack(space.Convert(_values));
+        private uint ConvertDecoded(ImageColorSpace space)
+        {
+            if (_targetInk && space.Components == 4 && space.Profile is not null
+                && space.ComponentRange is null && ReferenceEquals(space.Profile, _targetProfile))
+                return Color.Cmyk(_values[0], _values[1], _values[2], _values[3]).Ink!.Value;
+            if (_targetInk && space.Components == 3 && space.Profile is not null
+                && space.Palette is null && space.Converter is null && space.MultiConverter is null
+                && space.ComponentRange is null && !space.DoesNotPaint
+                && _targetProfile is { CanConvertFromXyz: true })
+            {
+                // The ink destination consumes XYZ directly, so display RGB conversion is unnecessary.
+                Span<double> xyz = stackalloc double[3];
+                space.Profile.ToXyz(_values.AsSpan(0, 3), xyz);
+                Span<double> ink = stackalloc double[4];
+                _targetProfile.FromXyz(xyz, ink);
+                return Color.Cmyk(ink[0], ink[1], ink[2], ink[3]).Ink!.Value;
+            }
+            return Pack(space.Convert(_values));
+        }
 
         private uint Pack(Color color)
         {
