@@ -57,6 +57,8 @@ A new scratch 1.9 payload uses the same IL app and ReadyToRun engine and codec l
 
 A sampled 512-pixel profile of all 649 conformance files completed 614 renders and 35 skips. It identified installed-font indexing as a first-use cost, though sampled thread time includes parallel workers and lock waits. A trial loaded font descriptions in parallel while registering faces in the original order. Eight alternating fresh-process Altona renders measured 625/636/620/617/614/628/617/622 ms in baseline/trial/trial/baseline/trial/baseline/baseline/trial order. All eight PNG hashes matched, but the timing ranges overlap, so the trial was removed. The profile and trial outputs are under `C:/Users/steve/kp-bench-render/corpus-cpu-20261002*` and `C:/Users/steve/kp-bench-render/font-index-parallel-20261002/`.
 
+A bounded initial character-list capacity also kept all 614 conformance PNG hashes at 512 pixels. The four alternating whole-tree render sums were 67,371/65,019/63,183/63,130 ms in baseline/trial/trial/baseline order. The second trial and baseline were effectively equal, so the extra allocation was not retained. Outputs and CSVs are under `C:/Users/steve/kp-bench-render/unicode-capacity-20261002/`.
+
 Instrumented scratch builds from the clean 1.8.72 and 1.9.0 trees opened the
 same PDF in separate hidden WPF processes with isolated Continuous-view settings.
 The trace marks when page one's bitmap is assigned to its slot. On the JBIG2
