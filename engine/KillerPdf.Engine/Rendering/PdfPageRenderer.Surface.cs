@@ -323,11 +323,11 @@ public sealed partial class PdfPageRenderer
                 return;
             }
             byte[] inkData = Ink;
-            ForEachRow(0, Height, Length / 4, cancellationToken, (startRow, endRow) =>
+            ForEachRow(0, Height, Length / 4, (startRow, endRow) =>
                 {
                     ConvertInkRange(inkData, startRow * Width * 4,
                         endRow * Width * 4, cancellationToken);
-                });
+                }, null, cancellationToken);
             Ink = null;
         }
 

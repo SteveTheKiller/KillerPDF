@@ -32,7 +32,7 @@ public static class PdfXfaFormatter
     }
 
     private static PdfXfaFormatResult FormatOne(PdfXfaTemplateBehavior format,
-        IReadOnlyDictionary<string, string> values)
+        Dictionary<string, string> values)
     {
         string name = format.FieldPath;
         if (!values.TryGetValue(name, out string? source))

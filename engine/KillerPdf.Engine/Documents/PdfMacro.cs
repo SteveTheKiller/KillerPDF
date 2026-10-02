@@ -510,7 +510,7 @@ public static class PdfMacroRunner
     }
 
     private static PdfMacroStep ResolveSettings(PdfMacroStep step,
-        IReadOnlyDictionary<string, string> values)
+        Dictionary<string, string> values)
     {
         if (step.Settings is null) return step;
         var settings = new Dictionary<string, string>(StringComparer.Ordinal);

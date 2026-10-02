@@ -223,7 +223,7 @@ public sealed partial class PdfPageRenderer
         };
         var initialState = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
             1, 1, 1, RendererLineCap.Butt, RendererLineJoin.Miter, 10,
-            [], 0, RendererBlendMode.Normal, region.HasValue
+            Array.AsReadOnly(Array.Empty<double>()), 0, RendererBlendMode.Normal, region.HasValue
                 ? [new ClipRegion(CoverageMask.Rectangle(Left, Top, Right, Bottom))] : [],
             false, null, null, false, null, null,
             new ImageColorSpace(1, null), new ImageColorSpace(1, null), null, null);
@@ -261,7 +261,7 @@ public sealed partial class PdfPageRenderer
                     FillComponents = initialComponents, StrokeComponents = initialComponents
                 };
             }
-            Process(ReadInstructions(pageIndex, cancellationToken, diagnostics),
+            Process(ReadInstructions(pageIndex, diagnostics, cancellationToken),
                 pageResources, initialState, 0);
             RenderAppearances();
             pixels.ConvertToBgra(cancellationToken);
@@ -801,9 +801,9 @@ public sealed partial class PdfPageRenderer
                     {
                         if (!TryRenderImage(xObject, resources, state.Transform, state.Clips,
                             state.PaintFill, state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
-                            state.Knockout, cancellationToken, pixels, options.Width,
+                            state.Knockout, pixels, options.Width,
                             options.Height, scaleX, scaleY,
-                            out string? imageDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent, state.AlphaIsShape))
+                            out string? imageDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent, state.AlphaIsShape, cancellationToken))
                             diagnostics.Add(imageDiagnostic
                                 ?? "Image rendering is not implemented.");
                     }
@@ -816,9 +816,9 @@ public sealed partial class PdfPageRenderer
                         instruction.InlineImageData.Value);
                     if (!TryRenderImage(inlineImage, resources, state.Transform, state.Clips,
                         state.PaintFill, state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
-                        state.Knockout, cancellationToken, pixels, options.Width,
+                        state.Knockout, pixels, options.Width,
                         options.Height, scaleX, scaleY,
-                        out string? inlineDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent, state.AlphaIsShape))
+                        out string? inlineDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent, state.AlphaIsShape, cancellationToken))
                         diagnostics.Add(inlineDiagnostic
                             ?? "Inline-image rendering is not implemented.");
                     break;
@@ -1071,7 +1071,7 @@ public sealed partial class PdfPageRenderer
                         // Background and shading are distinct objects in the implicit knockout group.
                         // Both see its initial backdrop, so their overlapping opacity does not accumulate.
                         shadingState.Knockout!.BeginObject();
-                        PaintCoverage(pixels, options.Width, options.Height, paintClip.Mask, background,
+                        PaintCoverage(pixels, options.Width, paintClip.Mask, background,
                             shadingState.FillAlpha, shadingState.BlendMode, parentState.Clips,
                             shadingState.GraphicsSoftMask, shadingState.Knockout, cancellationToken,
                             shadingState.AlphaIsShape);
@@ -1320,7 +1320,7 @@ public sealed partial class PdfPageRenderer
                                 if (state.FillPattern is not null)
                                     PaintFill(glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform), false);
                                 else if (cachedFill is not null)
-                                    PaintCoverage(pixels, options.Width, options.Height,
+                                    PaintCoverage(pixels, options.Width,
                                         cachedFill, state.PaintFill, state.FillAlpha,
                                         state.BlendMode, state.Clips, state.GraphicsSoftMask,
                                         state.Knockout, cancellationToken, state.AlphaIsShape);
@@ -1806,7 +1806,7 @@ public sealed partial class PdfPageRenderer
                         ForEachRow(blendedGroupPixels.Top, blendedGroupPixels.Bottom,
                             (long)(blendedGroupPixels.Right - blendedGroupPixels.Left)
                                 * (blendedGroupPixels.Bottom - blendedGroupPixels.Top),
-                            cancellationToken, CompositeRows);
+                            CompositeRows, null, cancellationToken);
 
                         void CompositeRows(int rowStart, int rowEnd)
                         {
@@ -2240,14 +2240,14 @@ public sealed partial class PdfPageRenderer
     private static readonly double[] element = [0d, 1d];
 
     private IEnumerable<PdfContentInstruction> ReadInstructions(
-        int pageIndex, CancellationToken cancellationToken, ISet<string> diagnostics)
+        int pageIndex, HashSet<string> diagnostics, CancellationToken cancellationToken)
     {
         try
         {
             var parsed = _instructionCache.GetOrAdd(pageIndex, index =>
             {
                 var recovered = new HashSet<string>();
-                var instructions = _content.ReadInstructions(index, cancellationToken, recovered);
+                var instructions = _content.ReadInstructions(index, recovered, cancellationToken);
                 return (instructions, recovered);
             });
             diagnostics.UnionWith(parsed.Diagnostics);
@@ -2255,7 +2255,7 @@ public sealed partial class PdfPageRenderer
         }
         catch (PdfPageContentReader.ContentLimitExceededException)
         {
-            return _content.EnumerateInstructions(pageIndex, cancellationToken, diagnostics);
+            return _content.EnumerateInstructions(pageIndex, diagnostics, cancellationToken);
         }
     }
 
@@ -2508,10 +2508,10 @@ public sealed partial class PdfPageRenderer
     private bool TryRenderImage(PdfStream stream, PdfDictionary resources, Matrix transform,
         IReadOnlyList<ClipRegion> clips, Color stencilColor, double stencilAlpha,
         RendererBlendMode blendMode, GraphicsSoftMask? graphicsSoftMask,
-        KnockoutState? knockout, CancellationToken cancellationToken,
+        KnockoutState? knockout,
         RasterSurface target, int targetWidth, int targetHeight, double scaleX, double scaleY,
         out string? diagnostic, bool overprint = false, HashSet<string>? diagnostics = null, int renderingIntent = 1,
-        bool alphaIsShape = false)
+        bool alphaIsShape = false, CancellationToken cancellationToken = default)
     {
         diagnostic = null;
         cancellationToken.ThrowIfCancellationRequested();
@@ -2728,9 +2728,9 @@ public sealed partial class PdfPageRenderer
             components, bits, clips,
             imageMask, imageMask && StencilPaintsOne(stream.Dictionary), paintSoftMask, decode,
             colorKeyMask, colorSpace, stencilColor, stencilAlpha, blendMode,
-            cancellationToken, preblendMatte,
+            preblendMatte,
             softMask is not null || colorKeyMask is not null ? null : graphicsSoftMask, knockout, overprint, alphaIsShape,
-            explicitMask is not null, jpeg2000Shape is not null);
+            explicitMask is not null, jpeg2000Shape is not null, cancellationToken);
         return true;
     }
 
@@ -3733,26 +3733,26 @@ public sealed partial class PdfPageRenderer
             }
             if (shadingType.Value == 1)
                 return RenderFunctionShading(shading, resources, state, target,
-                    targetWidth, targetHeight, scaleX, scaleY, cancellationToken, diagnostics);
+                    targetWidth, targetHeight, scaleX, scaleY, diagnostics, cancellationToken);
             if (shadingType.Value == 4)
                 return resolved is PdfStream freeForm
                     ? RenderFreeFormMeshShading(freeForm, resources, state, target,
-                        targetWidth, targetHeight, scaleX, scaleY, cancellationToken, diagnostics)
+                        targetWidth, targetHeight, scaleX, scaleY, diagnostics, cancellationToken)
                     : throw new FormatException("A free-form mesh shading must be a stream.");
             if (shadingType.Value == 5)
                 return resolved is PdfStream lattice
                     ? RenderLatticeMeshShading(lattice, resources, state, target,
-                        targetWidth, targetHeight, scaleX, scaleY, cancellationToken, diagnostics)
+                        targetWidth, targetHeight, scaleX, scaleY, diagnostics, cancellationToken)
                     : throw new FormatException("A lattice mesh shading must be a stream.");
             if (shadingType.Value is 6 or 7)
                 return resolved is PdfStream patch
                     ? RenderPatchMeshShading(patch, resources, state, target,
                         targetWidth, targetHeight, scaleX, scaleY,
-                        tensorProduct: shadingType.Value == 7, cancellationToken, diagnostics)
+                        tensorProduct: shadingType.Value == 7, diagnostics, cancellationToken)
                     : throw new FormatException("A patch mesh shading must be a stream.");
             if (shadingType.Value == 3)
                 return RenderRadialShading(shading, resources, state, target,
-                    targetWidth, targetHeight, scaleX, scaleY, cancellationToken, diagnostics);
+                    targetWidth, targetHeight, scaleX, scaleY, diagnostics, cancellationToken);
             if (shadingType.Value != 2) throw new NotSupportedException();
             if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
                 throw new FormatException("An axial shading color space is missing.");
@@ -3802,8 +3802,8 @@ public sealed partial class PdfPageRenderer
                 && shadedPixels >= ParallelPaintThreshold && bottom - top >= 2;
             if (parallelPaint)
                 colors.Warm();
-            ForEachRow(top, bottom, shadedPixels, cancellationToken, PaintRows,
-                maximumParallelism: parallelPaint ? null : 1);
+            ForEachRow(top, bottom, shadedPixels, PaintRows,
+                parallelPaint ? null : 1, cancellationToken);
             return true;
 
             void PaintRows(int rowStart, int rowEnd)
@@ -3842,7 +3842,7 @@ public sealed partial class PdfPageRenderer
 
     private bool RenderFunctionShading(PdfDictionary shading, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY, CancellationToken cancellationToken, HashSet<string>? diagnostics)
+        double scaleX, double scaleY, HashSet<string>? diagnostics, CancellationToken cancellationToken)
     {
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A function shading color space is missing.");
@@ -3869,7 +3869,7 @@ public sealed partial class PdfPageRenderer
         state = state with { GraphicsSoftMask = state.GraphicsSoftMask?.ForBounds(left, top, right, bottom) };
         Point[][]? boundsPolygons = bounds is null ? null : [bounds];
         ForEachRow(top, bottom, (long)(right - left) * (bottom - top),
-            cancellationToken, PaintRows);
+            PaintRows, null, cancellationToken);
         return true;
 
         void PaintRows(int rowStart, int rowEnd)
@@ -3901,7 +3901,7 @@ public sealed partial class PdfPageRenderer
 
     private bool RenderFreeFormMeshShading(PdfStream stream, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY, CancellationToken cancellationToken, HashSet<string>? diagnostics)
+        double scaleX, double scaleY, HashSet<string>? diagnostics, CancellationToken cancellationToken)
     {
         MeshDecoder mesh = ReadMeshDecoder(
             stream, resources, hasFlags: true, state.Transform, target, diagnostics, state.RenderingIntent);
@@ -3939,7 +3939,7 @@ public sealed partial class PdfPageRenderer
 
     private bool RenderLatticeMeshShading(PdfStream stream, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY, CancellationToken cancellationToken, HashSet<string>? diagnostics)
+        double scaleX, double scaleY, HashSet<string>? diagnostics, CancellationToken cancellationToken)
     {
         int verticesPerRow = checked((int)AssertInteger(stream.Dictionary, "VerticesPerRow"));
         if (verticesPerRow is < 2 or > MaximumMeshVerticesPerRow)
@@ -4054,7 +4054,7 @@ public sealed partial class PdfPageRenderer
     private bool RenderPatchMeshShading(PdfStream stream, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
         double scaleX, double scaleY, bool tensorProduct,
-        CancellationToken cancellationToken, HashSet<string>? diagnostics)
+        HashSet<string>? diagnostics, CancellationToken cancellationToken)
     {
         PdfDictionary shading = stream.Dictionary;
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
@@ -4278,7 +4278,7 @@ public sealed partial class PdfPageRenderer
 
     private bool RenderRadialShading(PdfDictionary shading, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY, CancellationToken cancellationToken, HashSet<string>? diagnostics)
+        double scaleX, double scaleY, HashSet<string>? diagnostics, CancellationToken cancellationToken)
     {
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A radial shading color space is missing.");
@@ -4477,7 +4477,7 @@ public sealed partial class PdfPageRenderer
                 full.MaskBits, full.MaskDecodeStart, full.MaskDecodeEnd);
             var samples = new byte[checked(reducedWidth * reducedHeight)];
             ForEachRow(0, reducedHeight, (long)width * height,
-                cancellationToken, ReduceRows);
+                ReduceRows, null, cancellationToken);
             return new DecodedImage(samples, reducedWidth, reducedHeight);
 
             void ReduceRows(int rowStart, int rowEnd)
@@ -4603,10 +4603,10 @@ public sealed partial class PdfPageRenderer
         IReadOnlyList<ClipRegion> clips, bool imageMask, bool stencilPaintsOne,
         SoftMask? softMask, double[] decode, int[]? colorKeyMask,
         ImageColorSpace colorSpace, Color stencilColor, double stencilAlpha,
-        RendererBlendMode blendMode, CancellationToken cancellationToken,
+        RendererBlendMode blendMode,
         double[]? preblendMatte, GraphicsSoftMask? graphicsSoftMask,
         KnockoutState? knockout, bool overprint, bool alphaIsShape, bool explicitMask,
-        bool jpeg2000)
+        bool jpeg2000, CancellationToken cancellationToken)
     {
         if (imageMask ? stencilColor.DoesNotPaint : colorSpace.DoesNotPaint) return;
         // Zero opacity on a plain RGB surface changes nothing outside a knockout group.
@@ -4686,7 +4686,7 @@ public sealed partial class PdfPageRenderer
             if (target.Ink is null && target.GroupAlpha is null && stencilAlpha == 1)
             {
                 ForEachRow(paintTop, paintBottom,
-                    (long)(paintRight - paintLeft) * (paintBottom - paintTop), cancellationToken,
+                    (long)(paintRight - paintLeft) * (paintBottom - paintTop),
                     (rowStart, rowEnd) =>
                     {
                         for (int y = rowStart; y < rowEnd; y++)
@@ -4734,7 +4734,7 @@ public sealed partial class PdfPageRenderer
                         }
                     }, jpeg2000 && areaSample
                         ? Math.Max(_rowParallelism, _jpeg2000PaintParallelism)
-                        : null);
+                        : null, cancellationToken);
                 return;
             }
             Span<ulong> inkLookup = inkDirect ? stackalloc ulong[directGray ? 256 : 4096] : [];
@@ -4860,7 +4860,7 @@ public sealed partial class PdfPageRenderer
         ImageSampleConverter.AreaSpan[]? converterAreaRows = averagePlane
             ? ImageSampleConverter.CreateAreaSpans(sourceHeight, planeHeight) : null;
         var matteConverter = preblendMatte is not null && !imageMask
-            ? new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
+            ? new ImageSampleConverter(samples, rowBytes, components,
                 bits, decode, colorSpace, target.Ink is not null, target.InputProfile, matte: true) : null;
         byte[]? alphaPlane = null;
         try
@@ -4896,9 +4896,9 @@ public sealed partial class PdfPageRenderer
                 // Every plane sample is a pure function of its source sample, so row ranges can
                 // convert independently. Each range owns its converter because the converter
                 // keeps a small color cache.
-                ForEachRow(0, planeHeight, (long)planeWidth * planeHeight, cancellationToken, (rowStart, rowEnd) =>
+                ForEachRow(0, planeHeight, (long)planeWidth * planeHeight, (rowStart, rowEnd) =>
                 {
-                    var converter = new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
+                    var converter = new ImageSampleConverter(samples, rowBytes, components,
                         bits, decode, colorSpace, targetInk, blendProfile,
                         areaColumns: converterAreaColumns, areaRows: converterAreaRows);
                     for (int py = rowStart; py < rowEnd; py++)
@@ -4948,7 +4948,7 @@ public sealed partial class PdfPageRenderer
                             }
                         }
                     }
-                });
+                }, null, cancellationToken);
             }
 
             // Stencil opacity uses its existing byte rounding. Ordinary images apply
@@ -4980,7 +4980,7 @@ public sealed partial class PdfPageRenderer
                 int greenIndex = directDeviceSamples && components == 1 ? 0 : 1;
                 int blueIndex = directDeviceSamples && components == 3 ? 2 : 0;
                 ForEachRow(paintTop, paintBottom, (long)(paintRight - paintLeft) * (paintBottom - paintTop),
-                    cancellationToken, (rowStart, rowEnd) =>
+                    (rowStart, rowEnd) =>
                 {
                     for (int y = rowStart; y < rowEnd; y++)
                     {
@@ -5031,7 +5031,7 @@ public sealed partial class PdfPageRenderer
                                 blendMode, graphicsSoftMask, knockout);
                         }
                     }
-                });
+                }, null, cancellationToken);
                 return;
             }
             // Opaque native ink samples on an ink destination take the same direct write the
@@ -5046,7 +5046,7 @@ public sealed partial class PdfPageRenderer
                 && matteConverter is null && rectangularClips)
             {
                 ForEachRow(paintTop, paintBottom,
-                    (long)(paintRight - paintLeft) * (paintBottom - paintTop), cancellationToken,
+                    (long)(paintRight - paintLeft) * (paintBottom - paintTop),
                     (rowStart, rowEnd) =>
                     {
                         for (int y = rowStart; y < rowEnd; y++)
@@ -5071,7 +5071,7 @@ public sealed partial class PdfPageRenderer
                                 target.GroupAlpha?[targetOffset / 4] = 255;
                             }
                         }
-                    });
+                    }, null, cancellationToken);
                 return;
             }
             void PaintRows(int rowStart, int rowEnd)
@@ -5198,7 +5198,7 @@ public sealed partial class PdfPageRenderer
             }
             if (matteConverter is null && knockout is null)
                 ForEachRow(paintTop, paintBottom,
-                    (long)(paintRight - paintLeft) * (paintBottom - paintTop), cancellationToken, PaintRows);
+                    (long)(paintRight - paintLeft) * (paintBottom - paintTop), PaintRows, null, cancellationToken);
             else PaintRows(paintTop, paintBottom);
         }
         finally
@@ -5238,7 +5238,7 @@ public sealed partial class PdfPageRenderer
         private PdfBinaryAreaSampler.Row _binaryRow;
 
 
-        internal ImageSampleConverter(byte[] samples, int sourceWidth, int rowBytes,
+        internal ImageSampleConverter(byte[] samples, int rowBytes,
             int components, int bits, double[] decode, ImageColorSpace colorSpace,
             bool targetInk, PdfColorTransform? targetProfile, bool matte = false,
             AreaSpan[]? areaColumns = null, AreaSpan[]? areaRows = null)
@@ -5683,7 +5683,7 @@ public sealed partial class PdfPageRenderer
     }
 
     private GraphicsState ApplyGraphicsStrokeSettings(GraphicsState state,
-        PdfDictionary dictionary, ISet<string> diagnostics)
+        PdfDictionary dictionary, HashSet<string> diagnostics)
     {
         foreach (string key in new[] { "LW", "LC", "LJ", "ML", "D" })
         {
@@ -5828,7 +5828,7 @@ public sealed partial class PdfPageRenderer
         CoverageMask mask = RasterizeFill(paths, evenOdd, frame, rent: true);
         try
         {
-            PaintCoverage(pixels, width, height, mask, color, alpha, blendMode, clips,
+            PaintCoverage(pixels, width, mask, color, alpha, blendMode, clips,
                 graphicsSoftMask, knockout, cancellationToken, alphaIsShape);
         }
         finally
@@ -5851,7 +5851,7 @@ public sealed partial class PdfPageRenderer
             rent: true, bounds: (pixels.Left, pixels.Top, pixels.Right, pixels.Bottom));
         try
         {
-            PaintCoverage(pixels, width, height, mask, color, alpha, blendMode, clips,
+            PaintCoverage(pixels, width, mask, color, alpha, blendMode, clips,
                 graphicsSoftMask, knockout, cancellationToken, alphaIsShape);
         }
         finally
@@ -5875,7 +5875,7 @@ public sealed partial class PdfPageRenderer
         }
     }
 
-    private IReadOnlyList<List<Point>> FlattenGlyphOutline(
+    private List<List<Point>> FlattenGlyphOutline(
         PdfGlyphOutline outline, Matrix transform)
     {
         IReadOnlyList<Point[]> source = _glyphPathCache.GetOrAdd(
@@ -6417,7 +6417,7 @@ public sealed partial class PdfPageRenderer
         Matrix Transform, Color Fill, Color Stroke, double FillAlpha, double StrokeAlpha,
         double LineWidth, RendererLineCap LineCap, RendererLineJoin LineJoin,
         double MiterLimit,
-        IReadOnlyList<double> DashPattern, double DashPhase,
+        System.Collections.ObjectModel.ReadOnlyCollection<double> DashPattern, double DashPhase,
         RendererBlendMode BlendMode,
         IReadOnlyList<ClipRegion> Clips, bool FillPatternSpace,
         ImageColorSpace? FillPatternBase, PatternPaint? FillPattern,
@@ -7188,7 +7188,7 @@ public sealed partial class PdfPageRenderer
     private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)
     {
         internal static Matrix Identity => new(1, 0, 0, 1, 0, 0);
-        internal static Matrix From(IReadOnlyList<PdfObject> values) => new(
+        internal static Matrix From(PdfArray values) => new(
             Number(values[0]), Number(values[1]), Number(values[2]),
             Number(values[3]), Number(values[4]), Number(values[5]));
         internal Matrix Then(Matrix next) => new(

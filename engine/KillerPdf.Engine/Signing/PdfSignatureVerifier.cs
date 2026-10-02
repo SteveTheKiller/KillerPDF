@@ -216,7 +216,7 @@ public static class PdfSignatureVerifier
             certificate.NotBefore, certificate.NotAfter, Array.AsReadOnly(status));
     }
 
-    private static IReadOnlyList<string> SignaturePolicies(SignerInfo signer)
+    private static System.Collections.ObjectModel.ReadOnlyCollection<string> SignaturePolicies(SignerInfo signer)
     {
         const string signaturePolicyAttribute = "1.2.840.113549.1.9.16.2.15";
         var result = new List<string>();

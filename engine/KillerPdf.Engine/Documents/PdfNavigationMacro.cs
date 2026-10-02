@@ -120,15 +120,15 @@ public static partial class PdfNavigationMacro
     }
 
     private static void ValidatePageLabelRanges(
-        IReadOnlyList<PdfPageLabelMacroRange> ranges)
+        PdfPageLabelMacroRange[] ranges)
     {
-        if (ranges.Count == 0)
+        if (ranges.Length == 0)
             throw new ArgumentException("At least one page-label range is required.", nameof(ranges));
         if (ranges.Any(range => range.PageIndex < 0 || !Enum.IsDefined(range.Style)
                 || range.StartNumber < 1
                 || range.Style == PdfPageLabelStyle.None
                     && string.IsNullOrEmpty(range.Prefix))
-            || ranges.Select(range => range.PageIndex).Distinct().Count() != ranges.Count)
+            || ranges.Select(range => range.PageIndex).Distinct().Count() != ranges.Length)
             throw new ArgumentException("Page-label macro ranges are invalid.", nameof(ranges));
     }
 
@@ -182,7 +182,7 @@ public static partial class PdfNavigationMacro
         };
     }
 
-    private static IReadOnlyDictionary<int, PdfContentBounds>? PageRegions(PdfMacroStep step)
+    private static Dictionary<int, PdfContentBounds>? PageRegions(PdfMacroStep step)
     {
         if (!step.Settings!.TryGetValue("pageRegions", out string? json))
             return null;

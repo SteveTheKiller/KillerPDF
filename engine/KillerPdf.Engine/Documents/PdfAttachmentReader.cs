@@ -315,10 +315,11 @@ public static partial class PdfAttachmentReader
         };
     }
 
-    private static IReadOnlyList<PdfCollectionItemValue> ReadCollectionValues(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfCollectionItemValue> ReadCollectionValues(
         PdfDocument document, PdfDictionary specification)
     {
-        if (!specification.TryGetValue(Name("CI"), out PdfObject? itemValue)) return [];
+        if (!specification.TryGetValue(Name("CI"), out PdfObject? itemValue))
+            return Array.AsReadOnly(Array.Empty<PdfCollectionItemValue>());
         if (Resolve(document, itemValue) is not PdfDictionary item)
             throw new InvalidOperationException(
                 "A file specification /CI value is not a dictionary.");

@@ -51,12 +51,12 @@ public static class PdfXfaLocales
         return Array.AsReadOnly(locales.ToArray());
     }
 
-    private static IReadOnlyList<PdfXfaLocaleValue> Values(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfXfaLocaleValue> Values(
         XElement locale, string containerName, string valueName)
     {
         XElement? container = locale.Elements().FirstOrDefault(item =>
             item.Name.LocalName.Equals(containerName, StringComparison.OrdinalIgnoreCase));
-        if (container is null) return [];
+        if (container is null) return Array.AsReadOnly(Array.Empty<PdfXfaLocaleValue>());
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         PdfXfaLocaleValue[] values = [.. container.Elements().Where(item =>
             item.Name.LocalName.Equals(valueName, StringComparison.OrdinalIgnoreCase)).Select(item =>

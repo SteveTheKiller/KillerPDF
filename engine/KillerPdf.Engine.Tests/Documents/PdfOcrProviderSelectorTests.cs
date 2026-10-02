@@ -100,7 +100,7 @@ public sealed class PdfOcrProviderSelectorTests
             for (int column = 0; column < 32 * 4; column++)
                 pixels[row * 132 + column] = 255;
 
-        IPdfOcrRasterProvider selected = PdfOcrProviderSelector.Select([provider], options);
+        PdfEngineOcrProvider selected = PdfOcrProviderSelector.Select([provider], options);
         PdfOcrResult result = selected.RecognizeBgra(pixels, 32, 32, 132, options);
 
         Assert.Same(provider, selected);

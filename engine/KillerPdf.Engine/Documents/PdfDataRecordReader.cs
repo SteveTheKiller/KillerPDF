@@ -237,7 +237,7 @@ public static class PdfDataRecordReader
         }
     }
 
-    private static IReadOnlyDictionary<string, string?> FromFormData(
+    private static Dictionary<string, string?> FromFormData(
         PdfFormDataSet data, string format)
     {
         if (data.ContainsJavaScript)
@@ -286,7 +286,7 @@ public static class PdfDataRecordReader
     }
 
     private static string? CellValue(
-        XElement cell, XNamespace spreadsheet, IReadOnlyList<string> sharedStrings)
+        XElement cell, XNamespace spreadsheet, string[] sharedStrings)
     {
         string? type = (string?)cell.Attribute("t");
         if (type == "inlineStr")
@@ -296,7 +296,7 @@ public static class PdfDataRecordReader
         if (type == "s")
         {
             if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int index)
-                || index < 0 || index >= sharedStrings.Count)
+                || index < 0 || index >= sharedStrings.Length)
                 throw new FormatException("An XLSX cell has an invalid shared-string index.");
             return sharedStrings[index];
         }

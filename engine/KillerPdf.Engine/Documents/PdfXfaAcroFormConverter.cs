@@ -172,7 +172,7 @@ public static class PdfXfaAcroFormConverter
     }
 
     private static PdfFormDataSet ApplyBehaviors(PdfXfaInfo info, PdfXfaTemplateInfo template,
-        PdfFormDataSet data, IDictionary<string, string> values)
+        PdfFormDataSet data, Dictionary<string, string> values)
     {
         var changed = new HashSet<string>(StringComparer.Ordinal);
         if (template.Behaviors.Any(behavior =>
@@ -218,7 +218,7 @@ public static class PdfXfaAcroFormConverter
     }
 
     private static void AddImage(PdfIncrementalPageEditor editor, PdfXfaTemplateField field,
-        IReadOnlyDictionary<string, PdfXfaImageValue> images, int pageIndex,
+        Dictionary<string, PdfXfaImageValue> images, int pageIndex,
         double pageWidth, double pageHeight, double x, double bottom, double width, double height)
     {
         if (!images.TryGetValue(field.Path, out PdfXfaImageValue? image) || image.Data.IsEmpty)
@@ -271,8 +271,8 @@ public static class PdfXfaAcroFormConverter
             data += alphabet[data.Sum(character => alphabet.IndexOf(character)) % 43];
         }
         string encoded = "*" + data + "*";
-        int units = encoded.Sum((char character) => Code39Patterns[character]
-            .Sum((char mark) => mark == 'w' ? 3 : 1)) + encoded.Length - 1 + 20;
+        int units = encoded.Sum(character => Code39Patterns[character]
+            .Sum(mark => mark == 'w' ? 3 : 1)) + encoded.Length - 1 + 20;
         double module = width / units;
         double cursor = x + 10 * module;
         var content = new PdfContentStreamBuilder().SetFillRgb(0, 0, 0);
@@ -290,7 +290,7 @@ public static class PdfXfaAcroFormConverter
         editor.AppendPageContent(pageIndex, pageWidth, pageHeight, content);
     }
 
-    private static readonly IReadOnlyDictionary<char, string> Code39Patterns =
+    private static readonly Dictionary<char, string> Code39Patterns =
         new Dictionary<char, string>
         {
             ['0'] = "nnnwwnwnn", ['1'] = "wnnwnnnnw", ['2'] = "nnwwnnnnw",

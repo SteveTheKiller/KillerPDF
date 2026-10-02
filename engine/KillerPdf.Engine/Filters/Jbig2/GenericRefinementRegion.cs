@@ -198,7 +198,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                     {
                         // 6.3.5.6 - 3 c)
                         DecodeOptimized(y, regionBitmap.Width, regionBitmap.RowStride,
-                                referenceBitmap.RowStride, paddedWidth, deltaRefStride, yOffset);
+                                referenceBitmap.RowStride);
                     }
                     else
                     {
@@ -247,8 +247,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         }
 
         private void DecodeOptimized(int lineNumber, int width, int rowStride,
-                int refRowStride, int paddedWidth, int deltaRefStride,
-                int lineOffset)
+                int refRowStride)
         {
             // Offset of the reference bitmap with respect to the bitmap being decoded
             // For example: if referenceDY = -1, y is 1 HIGHER that currY
@@ -261,19 +260,18 @@ namespace KillerPdf.Engine.Filters.Jbig2
             switch (templateID)
             {
                 case 0:
-                    DecodeTemplate(lineNumber, width, rowStride, refRowStride, paddedWidth, deltaRefStride,
-                            lineOffset, byteIndex, currentLine, referenceByteIndex, T0);
+                    DecodeTemplate(lineNumber, width, rowStride, refRowStride,
+                            byteIndex, currentLine, referenceByteIndex, T0);
                     break;
                 case 1:
-                    DecodeTemplate(lineNumber, width, rowStride, refRowStride, paddedWidth, deltaRefStride,
-                            lineOffset, byteIndex, currentLine, referenceByteIndex, T1);
+                    DecodeTemplate(lineNumber, width, rowStride, refRowStride,
+                            byteIndex, currentLine, referenceByteIndex, T1);
                     break;
             }
         }
 
         private void DecodeTemplate(int lineNumber, int width, int rowStride,
-                int refRowStride, int paddedWidth, int deltaRefStride,
-                int lineOffset, int byteIndex, int currentLine, int refByteIndex,
+                int refRowStride, int byteIndex, int currentLine, int refByteIndex,
                 Template templateFormation)
         {
             short c1, c2, c3, c4, c5;

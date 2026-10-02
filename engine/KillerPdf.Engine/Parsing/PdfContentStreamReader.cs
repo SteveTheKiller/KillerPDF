@@ -29,10 +29,10 @@ public static class PdfContentStreamReader
         int maximumInstructions = 1_000_000,
         int maximumOperands = 4096,
         Func<PdfName, int?>? resolveColorComponents = null,
-        CancellationToken cancellationToken = default,
-        bool compatibilityRecovery = false)
+        bool compatibilityRecovery = false,
+        CancellationToken cancellationToken = default)
         => ReadCore(source, true, out _, maximumInstructions, maximumOperands,
-            resolveColorComponents, cancellationToken, compatibilityRecovery, true);
+            resolveColorComponents, compatibilityRecovery, true, cancellationToken);
 
     // A non-final buffer commits only complete instructions. Its unconsumed suffix
     // must be retained verbatim, including comments and pending operands.
@@ -40,18 +40,18 @@ public static class PdfContentStreamReader
         ReadOnlyMemory<byte> source, bool isFinal, out int consumed,
         int maximumInstructions = 1_000_000, int maximumOperands = 4096,
         Func<PdfName, int?>? resolveColorComponents = null,
-        CancellationToken cancellationToken = default,
-        bool compatibilityRecovery = false)
+        bool compatibilityRecovery = false,
+        CancellationToken cancellationToken = default)
         => ReadCore(source, isFinal, out consumed, maximumInstructions, maximumOperands,
-            resolveColorComponents, cancellationToken, compatibilityRecovery, false);
+            resolveColorComponents, compatibilityRecovery, false, cancellationToken);
 
     internal static IEnumerable<PdfContentInstruction> Enumerate(
         Stream source, int initialBufferBytes = 64 * 1024,
         int maximumBufferedBytes = MaximumSourceBytes,
         int maximumInstructions = 1_000_000,
         Func<PdfName, int?>? resolveColorComponents = null,
-        CancellationToken cancellationToken = default,
-        bool compatibilityRecovery = false)
+        bool compatibilityRecovery = false,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(initialBufferBytes);
@@ -107,11 +107,12 @@ public static class PdfContentStreamReader
         }
     }
 
-    private static IReadOnlyList<PdfContentInstruction> ReadCore(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfContentInstruction> ReadCore(
         ReadOnlyMemory<byte> source, bool isFinal, out int consumed,
         int maximumInstructions, int maximumOperands,
         Func<PdfName, int?>? resolveColorComponents,
-        CancellationToken cancellationToken, bool compatibilityRecovery, bool allowInstructionTruncation)
+        bool compatibilityRecovery, bool allowInstructionTruncation,
+        CancellationToken cancellationToken)
     {
         consumed = 0;
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumInstructions);
@@ -200,8 +201,8 @@ public static class PdfContentStreamReader
                 try
                 {
                     var image = PdfInlineImageReader.Read(parser, source, token.Offset,
-                        maximumOperands, resolveColorComponents, cancellationToken,
-                        compatibilityRecovery);
+                        maximumOperands, resolveColorComponents, compatibilityRecovery,
+                        cancellationToken);
                     if (!isFinal && parser.ContentPosition == source.Length)
                         return instructions.AsReadOnly();
                     instructions.Add(image);

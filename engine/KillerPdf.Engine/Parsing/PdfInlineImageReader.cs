@@ -8,7 +8,7 @@ internal static class PdfInlineImageReader
 {
     internal static PdfContentInstruction Read(PdfObjectParser parser, ReadOnlyMemory<byte> source,
         int offset, int maximumEntries, Func<PdfName, int?>? resolveColorComponents,
-        CancellationToken cancellationToken, bool compatibilityRecovery)
+        bool compatibilityRecovery, CancellationToken cancellationToken)
     {
         var entries = new Dictionary<PdfName, PdfObject>();
         while (true)

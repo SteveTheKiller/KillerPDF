@@ -59,7 +59,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             Parse(document, sis, offset, organisationType);
         }
 
-        private void Parse(Jbig2Document document, IImageInputStream subInputStr, long offset, int organisationType)
+        private void Parse(Jbig2Document document, SubInputStream subInputStr, long offset, int organisationType)
         {
             subInputStr.Seek(offset);
 

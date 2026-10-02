@@ -76,7 +76,7 @@ public sealed class PdfOnnxOcrLineSessionTests
     public void SessionDecodesCtcOutputIntoWordsWithPixelBounds()
     {
         int[] steps = [1, 1, 0, 2, 5, 3, 3, 0, 4];
-        var runner = new FakeRunner(["image"], ["logits"], input => Logits(steps, input));
+        var runner = new FakeRunner(["image"], ["logits"], _ => Logits(steps));
         PdfOnnxOcrModelDescription description = CreateDescription();
         (byte[] pixels, int width, int height) = CreateLineImage();
         var options = new PdfOcrOptions(["eng"], deskew: false, correctOrientation: false,
@@ -115,7 +115,7 @@ public sealed class PdfOnnxOcrLineSessionTests
     public void SessionHonorsCharacterWhitelistDuringDecoding()
     {
         int[] steps = [1, 1, 0, 2, 5, 3, 3, 0, 4];
-        var runner = new FakeRunner(["image"], ["logits"], input => Logits(steps, input));
+        var runner = new FakeRunner(["image"], ["logits"], _ => Logits(steps));
         (byte[] pixels, int width, int height) = CreateLineImage();
         var options = new PdfOcrOptions(["eng"], deskew: false, correctOrientation: false,
             detectPageSegments: false);
@@ -185,7 +185,7 @@ public sealed class PdfOnnxOcrLineSessionTests
         return (pixels, width, height);
     }
 
-    private static PdfOnnxOcrTensor Logits(int[] steps, PdfOnnxOcrTensor input)
+    private static PdfOnnxOcrTensor Logits(int[] steps)
     {
         int classes = Vocabulary.Length;
         var data = new float[steps.Length * classes];

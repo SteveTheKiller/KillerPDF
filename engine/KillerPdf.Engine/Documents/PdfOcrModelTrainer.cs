@@ -110,8 +110,8 @@ public static class PdfOcrModelTrainer
             if (++sampleCount > MaximumSamples)
                 throw new ArgumentException("The OCR training set exceeds the sample limit.",
                     nameof(samples));
-            ValidateLabel(sample.Label, samples);
-            ValidateFeatures(sample.Features.Span, featureCount, samples);
+            ValidateLabel(sample.Label, nameof(samples));
+            ValidateFeatures(sample.Features.Span, featureCount, nameof(samples));
             labelCounts[sample.Label] = labelCounts.GetValueOrDefault(sample.Label) + 1;
             int shape = PdfOcrRecognitionModel.ShapeBucket(
                 sample.Features.Span, width, height);
@@ -549,8 +549,8 @@ public static class PdfOcrModelTrainer
                 if (++sampleCount > MaximumSamples)
                     throw new ArgumentException(
                         "The OCR evaluation set exceeds the sample limit.", nameof(samples));
-                ValidateLabel(sample.Label, samples);
-                ValidateFeatures(sample.Features.Span, featureCount, samples);
+                ValidateLabel(sample.Label, nameof(samples));
+                ValidateFeatures(sample.Features.Span, featureCount, nameof(samples));
                 (string predicted, double confidence) = model.Classify(
                     sample.Features.Span, scores.AsSpan(0, model.LabelCount));
                 bool correct = string.Equals(
@@ -620,12 +620,11 @@ public static class PdfOcrModelTrainer
         };
     }
 
-    private static void ValidateLabel(string label,
-        IEnumerable<PdfOcrTrainingSample> samples)
+    private static void ValidateLabel(string label, string parameterName)
     {
         if (!IsValidLabel(label))
             throw new ArgumentException(
-                "OCR training labels are empty, oversized, or invalid.", nameof(samples));
+                "OCR training labels are empty, oversized, or invalid.", parameterName);
     }
 
     private static bool IsValidLabel(string label) =>
@@ -634,16 +633,16 @@ public static class PdfOcrModelTrainer
             || Rune.IsControl(rune) || Rune.IsWhiteSpace(rune));
 
     private static void ValidateFeatures(ReadOnlySpan<float> features, int featureCount,
-        IEnumerable<PdfOcrTrainingSample> samples)
+        string parameterName)
     {
         if (features.Length != featureCount)
             throw new ArgumentException(
-                "An OCR sample has the wrong feature count.", nameof(samples));
+                "An OCR sample has the wrong feature count.", parameterName);
         foreach (float value in features)
             if (!float.IsFinite(value) || value is < 0 or > 1)
                 throw new ArgumentException(
                     "OCR sample features must be finite values from zero through one.",
-                    nameof(samples));
+                    parameterName);
     }
 
     private static PdfOcrImageRegion? MapToPixels(PdfContentBounds bounds,

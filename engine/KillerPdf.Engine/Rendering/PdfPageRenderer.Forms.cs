@@ -8,7 +8,7 @@ namespace KillerPdf.Engine.Rendering;
 public sealed partial class PdfPageRenderer
 {
     private PdfStream? RequestedFieldAppearance(PdfDictionary widget, PdfStream? saved,
-        PdfDictionary pageResources, ISet<string> diagnostics, CancellationToken cancellationToken)
+        PdfDictionary pageResources, HashSet<string> diagnostics, CancellationToken cancellationToken)
     {
         PdfStream? originalSaved = saved;
         if (!_tree.Catalog.TryGetValue(Name("AcroForm"), out PdfObject? formValue)

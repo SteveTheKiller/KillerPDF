@@ -225,7 +225,7 @@ public sealed class PdfPageContent
     /// <summary>Enumerates image placements.</summary>
     public IEnumerable<PdfExtractedImage> GetImages() => Images;
 
-    private static IReadOnlyList<PdfExtractedMarkedContent> ReadMarkedContent(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfExtractedMarkedContent> ReadMarkedContent(
         IReadOnlyList<PdfContentInstruction> instructions)
     {
         var stack = new Stack<(string Tag, int Start, int Depth, string? Property,

@@ -181,9 +181,9 @@ public sealed class PdfOcrRecognitionModel
                 "OCR recognition model dimensions do not match.", nameof(models));
         int labelCount = checked(supplied.Sum(model => model._labels.Length));
         int featureCount = checked(first.Width * first.Height);
-        long labelBytes = supplied.Sum((PdfOcrRecognitionModel model) => model._labels.Sum(
-            (string label) => 1L + Encoding.UTF8.GetByteCount(label)));
-        long valueCount = supplied.Sum((PdfOcrRecognitionModel model) => (long)model._weights.Length
+        long labelBytes = supplied.Sum(model => model._labels.Sum(
+            label => 1L + Encoding.UTF8.GetByteCount(label)));
+        long valueCount = supplied.Sum(model => (long)model._weights.Length
             + model._biases.Length + model._priors.Length);
         if (labelCount > 65_536
             || !FitsSerializedSize(labelBytes, labelCount,
@@ -1066,7 +1066,7 @@ public sealed class PdfOcrRecognitionModelCatalog
         return false;
     }
 
-    private static IReadOnlyList<string> FinishConstruction(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<string> FinishConstruction(
         Dictionary<string, Lazy<PdfOcrRecognitionModel>> models, string parameterName)
     {
         if (models.Count == 0)
@@ -1122,7 +1122,7 @@ public static class PdfOcrRecognizer
             languageModel ?? throw new ArgumentNullException(nameof(languageModel)),
             CreateAllowedLabels(model, characterWhitelist), cancellationToken);
 
-    private static IReadOnlySet<string> CreateAllowedLabels(
+    private static HashSet<string> CreateAllowedLabels(
         PdfOcrRecognitionModel model, string characterWhitelist)
     {
         ArgumentNullException.ThrowIfNull(model);
@@ -1240,7 +1240,7 @@ public static class PdfOcrRecognizer
         CancellationToken cancellationToken = default) =>
         Recognize(image, layout, model, languageModel, null, cancellationToken);
 
-    private static IReadOnlyList<PdfOcrRecognizedWord> Recognize(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfOcrRecognizedWord> Recognize(
         PdfOcrPreparedImage image, PdfOcrPageLayout layout, PdfOcrRecognitionModel model,
         PdfOcrLanguageModel? languageModel, IReadOnlySet<string>? allowedLabels,
         CancellationToken cancellationToken)

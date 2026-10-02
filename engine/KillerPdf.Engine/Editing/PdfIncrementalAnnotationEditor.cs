@@ -2841,7 +2841,7 @@ public sealed class PdfIncrementalAnnotationEditor
     private static PdfDictionary TextMarkupDictionary(
         PendingTextMarkup markup, PdfIndirectReference page, PdfIndirectReference annotation,
         PdfIndirectReference appearance,
-        IReadOnlyDictionary<string, PdfIndirectReference> annotationNames)
+        Dictionary<string, PdfIndirectReference> annotationNames)
     {
         var entries = new List<(string Name, PdfObject Value)>
         {
@@ -3171,7 +3171,7 @@ public sealed class PdfIncrementalAnnotationEditor
     private static PdfDictionary ShapeDictionary(
         PendingShape shape, PdfIndirectReference page, PdfIndirectReference annotation,
         PdfIndirectReference appearance,
-        IReadOnlyDictionary<string, PdfIndirectReference> annotationNames)
+        Dictionary<string, PdfIndirectReference> annotationNames)
     {
         string subtype = shape.Type.ToString();
         var entries = CommonEntries(subtype, shape.X, shape.Y, shape.Width, shape.Height,

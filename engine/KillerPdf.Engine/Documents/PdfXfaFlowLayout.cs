@@ -179,7 +179,7 @@ public static class PdfXfaFlowLayout
     }
 
     private static string[] Repeated(XElement field, string path,
-        IReadOnlyDictionary<string, PdfFormDataField> values)
+        Dictionary<string, PdfFormDataField> values)
     {
         string dataName = BindingName(field) ?? path;
         return values.TryGetValue(dataName, out PdfFormDataField? dataField)

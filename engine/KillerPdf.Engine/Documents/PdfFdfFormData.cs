@@ -370,7 +370,7 @@ public static class PdfFdfFormData
     }
 
     private static void AddText(
-        ICollection<KeyValuePair<PdfName, PdfObject>> entries, string key, string? value)
+        List<KeyValuePair<PdfName, PdfObject>> entries, string key, string? value)
     {
         if (value is not null) entries.Add(new(Name(key), String(value)));
     }

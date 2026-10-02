@@ -103,11 +103,11 @@ public static class PdfXfaTemplate
         element?.Attributes().FirstOrDefault(attribute => string.Equals(
             attribute.Name.LocalName, name, StringComparison.OrdinalIgnoreCase))?.Value;
 
-    private static IReadOnlyList<PdfXfaChoiceOption> ChoiceOptions(XElement field, string path)
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfXfaChoiceOption> ChoiceOptions(XElement field, string path)
     {
         XElement[] sets = [.. field.Elements().Where(element =>
             element.Name.LocalName.Equals("items", StringComparison.OrdinalIgnoreCase))];
-        if (sets.Length == 0) return [];
+        if (sets.Length == 0) return Array.AsReadOnly(Array.Empty<PdfXfaChoiceOption>());
         if (sets.Length > 2)
             throw new InvalidOperationException($"XFA field '{path}' has too many item lists.");
         static string[] First(XElement set) => [.. set.Elements().Select(item => item.Value)];

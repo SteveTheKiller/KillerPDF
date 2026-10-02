@@ -39,10 +39,11 @@ public static class PdfFormDataExporter
         };
     }
 
-    private static IReadOnlyList<string> Values(IReadOnlyList<string> values, string scalar) =>
-        values.Count > 0 ? Array.AsReadOnly(values.ToArray()) : [scalar];
+    private static System.Collections.ObjectModel.ReadOnlyCollection<string> Values(
+        IReadOnlyList<string> values, string scalar) =>
+        Array.AsReadOnly(values.Count > 0 ? values.ToArray() : [scalar]);
 
-    private static IReadOnlyList<PdfFormDataAnnotation> Annotations(PdfDocument document)
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfFormDataAnnotation> Annotations(PdfDocument document)
     {
         var pending = new List<PendingAnnotation>();
         var identities = new HashSet<string>(StringComparer.Ordinal);
@@ -91,7 +92,7 @@ public static class PdfFormDataExporter
     private static bool SupportedAnnotationSubtype(string value) => value is
         "Highlight" or "Underline" or "StrikeOut" or "Squiggly" or "Square" or "Circle" or "Text";
 
-    private static string UniqueIdentity(string candidate, ISet<string> identities)
+    private static string UniqueIdentity(string candidate, HashSet<string> identities)
     {
         if (identities.Add(candidate)) return candidate;
         for (int suffix = 2; ; suffix++)
@@ -105,7 +106,7 @@ public static class PdfFormDataExporter
         annotation.TryGetValue(Name("IRT"), out PdfObject? value)
             && value is PdfIndirectReference reference ? reference.ObjectNumber : null;
 
-    private static IReadOnlyList<double> Rectangle(PdfDocument document, PdfDictionary annotation)
+    private static System.Collections.ObjectModel.ReadOnlyCollection<double> Rectangle(PdfDocument document, PdfDictionary annotation)
     {
         PdfArray rectangle = annotation.TryGetValue(Name("Rect"), out PdfObject? value)
             ? Resolve(document, value) as PdfArray

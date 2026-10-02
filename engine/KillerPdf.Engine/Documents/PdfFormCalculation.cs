@@ -229,13 +229,15 @@ public static partial class PdfFormCalculation
         return [.. result];
     }
 
-    private static IReadOnlyList<FormField> ReadFields(PdfDocument document)
+    private static System.Collections.ObjectModel.ReadOnlyCollection<FormField> ReadFields(PdfDocument document)
     {
         PdfDictionary catalog = PdfPageTree.Read(document).Catalog;
-        if (!catalog.TryGetValue(AcroFormName, out PdfObject? formValue)) return [];
+        if (!catalog.TryGetValue(AcroFormName, out PdfObject? formValue))
+            return Array.AsReadOnly(Array.Empty<FormField>());
         if (Resolve(document, formValue, "The catalog /AcroForm value") is not PdfDictionary form)
             throw new InvalidOperationException("The catalog /AcroForm value is not a dictionary.");
-        if (!form.TryGetValue(FieldsName, out PdfObject? fieldsValue)) return [];
+        if (!form.TryGetValue(FieldsName, out PdfObject? fieldsValue))
+            return Array.AsReadOnly(Array.Empty<FormField>());
         if (Resolve(document, fieldsValue, "The AcroForm /Fields value") is not PdfArray fields)
             throw new InvalidOperationException("The AcroForm /Fields value is not an array.");
         var result = new List<FormField>();

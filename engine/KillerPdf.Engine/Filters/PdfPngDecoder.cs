@@ -103,7 +103,7 @@ internal static class PdfPngDecoder
             ReadExactly(zlib, filtered);
             if (zlib.ReadByte() != -1) throw Error("PNG decoded data exceeds its dimensions.");
         }
-        byte[] rows = Unfilter(filtered, width, height, channels, bits, rowBytes);
+        byte[] rows = Unfilter(filtered, height, channels, bits, rowBytes);
         byte[] samples = new byte[sampleLength];
         byte[]? alpha = null;
         for (int y = 0; y < height; y++)
@@ -168,7 +168,7 @@ internal static class PdfPngDecoder
         return new PngDecodedImage(samples, alpha, width, height, components, 8);
     }
 
-    private static byte[] Unfilter(byte[] filtered, int width, int height,
+    private static byte[] Unfilter(byte[] filtered, int height,
         int channels, int bits, int rowBytes)
     {
         byte[] rows = new byte[checked(rowBytes * height)];

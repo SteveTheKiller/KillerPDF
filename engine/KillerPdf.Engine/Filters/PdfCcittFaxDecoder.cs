@@ -95,7 +95,7 @@ internal static class PdfCcittFaxDecoder
         return output;
     }
 
-    private static IReadOnlyList<int> DecodeOneDimensional(
+    private static List<int> DecodeOneDimensional(
         ref BitReader bits, Span<byte> output, int rowOffset, PdfCcittFaxOptions options)
     {
         var changes = new List<int>();

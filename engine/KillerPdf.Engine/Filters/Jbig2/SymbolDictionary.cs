@@ -890,7 +890,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             }
         }
 
-        private HuffmanTable GetUserTable(int tablePosition)
+        private EncodedTable GetUserTable(int tablePosition)
         {
             int tableCounter = 0;
 

@@ -40,7 +40,7 @@ public sealed class PdfPageContentReaderTests
         var document = Document("", "", "", ["<< /Length 3 /Filter /FlateDecode >>\nstream\nabc\nendstream"], "6 0 R");
         document = PdfDocument.OpenWithCompatibilityRecovery(document.Source);
         var diagnostics = new HashSet<string>();
-        Assert.Empty(new PdfPageContentReader(document).EnumerateInstructions(0, default, diagnostics));
+        Assert.Empty(new PdfPageContentReader(document).EnumerateInstructions(0, diagnostics, default));
         Assert.Contains(diagnostics, message => message.StartsWith("Page content was truncated during streaming:", StringComparison.Ordinal));
     }
 

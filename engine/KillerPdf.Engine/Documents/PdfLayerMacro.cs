@@ -314,7 +314,7 @@ public static partial class PdfLayerMacro
                 PdfOptionalContentEditor.SetPageContentGroup(
                     document, pageIndex, objectNumber),
             "instructionRange" when !string.IsNullOrWhiteSpace(value) =>
-                ApplyInstructionRange(document, objectNumber, value, step),
+                ApplyInstructionRange(document, objectNumber, value),
             "annotation" when int.TryParse(value, NumberStyles.None,
                 CultureInfo.InvariantCulture, out int annotationObjectNumber)
                 && annotationObjectNumber > 0 =>
@@ -338,7 +338,7 @@ public static partial class PdfLayerMacro
     private sealed partial class PdfLayerMacroJsonContext : JsonSerializerContext;
 
     private static byte[] ApplyInstructionRange(
-        PdfDocument document, int objectNumber, string json, PdfMacroStep step)
+        PdfDocument document, int objectNumber, string json)
     {
         InstructionRangeSettings settings;
         try
@@ -349,11 +349,11 @@ public static partial class PdfLayerMacro
         catch (JsonException exception)
         {
             throw new ArgumentException(
-                "The layer instruction range is invalid.", nameof(step), exception);
+                "The layer instruction range is invalid.", "step", exception);
         }
         if (settings.PageIndex < 0 || settings.InstructionIndex < 0
             || settings.InstructionCount <= 0)
-            throw new ArgumentException("The layer instruction range is invalid.", nameof(step));
+            throw new ArgumentException("The layer instruction range is invalid.", "step");
         return PdfOptionalContentEditor.SetPageInstructionRangeGroup(
             document, settings.PageIndex, settings.InstructionIndex,
             settings.InstructionCount, objectNumber);
@@ -387,19 +387,19 @@ public static partial class PdfLayerMacro
         };
     }
 
-    private static void ValidateNames(IReadOnlyList<string> names, string parameterName)
+    private static void ValidateNames(string[] names, string parameterName)
     {
-        if (names.Count == 0 || names.Any(string.IsNullOrWhiteSpace)
-            || names.Distinct(StringComparer.Ordinal).Count() != names.Count)
+        if (names.Length == 0 || names.Any(string.IsNullOrWhiteSpace)
+            || names.Distinct(StringComparer.Ordinal).Count() != names.Length)
             throw new ArgumentException(
                 "Layer names must be nonempty and unique.", parameterName);
     }
 
     private static void ValidateOrderTree(
-        IReadOnlyList<PdfLayerOrderItem> items, string parameterName)
+        PdfLayerOrderItem[] items, string parameterName)
     {
         var names = new HashSet<string>(StringComparer.Ordinal);
-        if (items.Count == 0 || items.Any(item => !Valid(item, 0)))
+        if (items.Length == 0 || items.Any(item => !Valid(item, 0)))
             throw new ArgumentException(
                 "The nested layer display order is invalid.", parameterName);
 
@@ -423,7 +423,7 @@ public static partial class PdfLayerMacro
             : PdfOptionalContentOrderItem.Folder(item.Label!,
                 [.. (item.Children ?? []).Select(child => Convert(document, child))]);
 
-    private static IReadOnlyCollection<int>? VisibleGroups(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<int>? VisibleGroups(
         PdfMacroStep step, PdfDocument document)
     {
         if (step.Settings is null) return null;

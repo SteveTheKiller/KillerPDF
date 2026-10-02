@@ -30,7 +30,7 @@ public enum PdfStructuredExportFormat
 /// <summary>Validated font replacements for editable structured exports.</summary>
 public sealed class PdfStructuredExportFontSubstitutions
 {
-    private readonly IReadOnlyDictionary<string, string> _replacements;
+    private readonly Dictionary<string, string> _replacements;
 
     /// <summary>Creates a case-insensitive source-to-target font map.</summary>
     public PdfStructuredExportFontSubstitutions(
@@ -347,8 +347,9 @@ public static partial class PdfStructuredExport
     /// </summary>
     public static byte[] Export(PdfDocument document, PdfStructuredExportFormat format,
         IEnumerable<int>? pageIndices = null, PdfOcrReview? ocrReview = null,
-        TrueTypeFont? ocrFont = null, CancellationToken cancellationToken = default,
-        PdfStructuredExportFontSubstitutions? fontSubstitutions = null)
+        TrueTypeFont? ocrFont = null,
+        PdfStructuredExportFontSubstitutions? fontSubstitutions = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
@@ -367,17 +368,17 @@ public static partial class PdfStructuredExport
             PdfStructuredExportFormat.PlainText => Encoding.UTF8.GetBytes(
                 ToPlainText(document, pageIndices, cancellationToken)),
             PdfStructuredExportFormat.Html => Encoding.UTF8.GetBytes(
-                ToHtml(document, pageIndices, cancellationToken, fontSubstitutions)),
+                ToHtml(document, pageIndices, fontSubstitutions, cancellationToken)),
             PdfStructuredExportFormat.Markdown => Encoding.UTF8.GetBytes(
                 ToMarkdown(document, pageIndices, cancellationToken)),
             PdfStructuredExportFormat.Json => Encoding.UTF8.GetBytes(
                 ToJson(document, pageIndices, cancellationToken)),
             PdfStructuredExportFormat.WordDocument =>
-                ToDocx(document, pageIndices, cancellationToken, fontSubstitutions),
+                ToDocx(document, pageIndices, fontSubstitutions, cancellationToken),
             PdfStructuredExportFormat.Spreadsheet =>
                 ToXlsx(document, pageIndices, cancellationToken),
             PdfStructuredExportFormat.Presentation =>
-                ToPptx(document, pageIndices, cancellationToken, fontSubstitutions),
+                ToPptx(document, pageIndices, fontSubstitutions, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
     }
@@ -447,8 +448,8 @@ public static partial class PdfStructuredExport
 
     /// <summary>Exports selected pages as a standalone semantic HTML document.</summary>
     public static string ToHtml(PdfDocument document, IEnumerable<int>? pageIndices = null,
-        CancellationToken cancellationToken = default,
-        PdfStructuredExportFontSubstitutions? fontSubstitutions = null)
+        PdfStructuredExportFontSubstitutions? fontSubstitutions = null,
+        CancellationToken cancellationToken = default)
     {
         IReadOnlyList<Page> pages = Read(document, pageIndices, cancellationToken);
         var output = new StringBuilder("<!doctype html><html><head><meta charset=\"utf-8\"><title>PDF export</title></head><body>");
@@ -559,28 +560,49 @@ public static partial class PdfStructuredExport
     }
 
     private sealed record ExportPage(
-        int page, double width, double height, ExportLine[] lines,
-        ExportImage[] images, ExportLink[] links,
-        IReadOnlyList<string> diagnostics);
+        [property: JsonPropertyName("page")] int Page,
+        [property: JsonPropertyName("width")] double Width,
+        [property: JsonPropertyName("height")] double Height,
+        [property: JsonPropertyName("lines")] ExportLine[] Lines,
+        [property: JsonPropertyName("images")] ExportImage[] Images,
+        [property: JsonPropertyName("links")] ExportLink[] Links,
+        [property: JsonPropertyName("diagnostics")] IReadOnlyList<string> Diagnostics);
     private sealed record ExportLine(
-        string text, PdfContentBounds bounds, string direction, ExportRun[] runs);
+        [property: JsonPropertyName("text")] string Text,
+        [property: JsonPropertyName("bounds")] PdfContentBounds Bounds,
+        [property: JsonPropertyName("direction")] string Direction,
+        [property: JsonPropertyName("runs")] ExportRun[] Runs);
     private sealed record ExportRun(
-        string text, string? font, double size, PdfContentBounds bounds);
+        [property: JsonPropertyName("text")] string Text,
+        [property: JsonPropertyName("font")] string? Font,
+        [property: JsonPropertyName("size")] double Size,
+        [property: JsonPropertyName("bounds")] PdfContentBounds Bounds);
     private sealed record ExportImage(
-        string? resource, bool inline, PdfContentBounds bounds);
+        [property: JsonPropertyName("resource")] string? Resource,
+        [property: JsonPropertyName("inline")] bool Inline,
+        [property: JsonPropertyName("bounds")] PdfContentBounds Bounds);
     private sealed record ExportLink(
-        int annotationIndex, int? objectNumber, int? generation,
-        ExportBounds bounds, int? destinationPage, string? namedDestination,
-        string? uri, string? description);
-    private sealed record ExportBounds(double left, double bottom, double right, double top);
+        [property: JsonPropertyName("annotationIndex")] int AnnotationIndex,
+        [property: JsonPropertyName("objectNumber")] int? ObjectNumber,
+        [property: JsonPropertyName("generation")] int? Generation,
+        [property: JsonPropertyName("bounds")] ExportBounds Bounds,
+        [property: JsonPropertyName("destinationPage")] int? DestinationPage,
+        [property: JsonPropertyName("namedDestination")] string? NamedDestination,
+        [property: JsonPropertyName("uri")] string? Uri,
+        [property: JsonPropertyName("description")] string? Description);
+    private sealed record ExportBounds(
+        [property: JsonPropertyName("left")] double Left,
+        [property: JsonPropertyName("bottom")] double Bottom,
+        [property: JsonPropertyName("right")] double Right,
+        [property: JsonPropertyName("top")] double Top);
 
     [JsonSerializable(typeof(ExportPage[]))]
     private sealed partial class PdfStructuredExportJsonContext : JsonSerializerContext;
 
     /// <summary>Exports selected pages as an editable Office Open XML Word document.</summary>
     public static byte[] ToDocx(PdfDocument document, IEnumerable<int>? pageIndices = null,
-        CancellationToken cancellationToken = default,
-        PdfStructuredExportFontSubstitutions? fontSubstitutions = null)
+        PdfStructuredExportFontSubstitutions? fontSubstitutions = null,
+        CancellationToken cancellationToken = default)
     {
         IReadOnlyList<Page> pages = Read(document, pageIndices, cancellationToken);
         using var output = new MemoryStream();
@@ -694,8 +716,8 @@ public static partial class PdfStructuredExport
 
     /// <summary>Exports selected pages as editable Office Open XML presentation slides.</summary>
     public static byte[] ToPptx(PdfDocument document, IEnumerable<int>? pageIndices = null,
-        CancellationToken cancellationToken = default,
-        PdfStructuredExportFontSubstitutions? fontSubstitutions = null)
+        PdfStructuredExportFontSubstitutions? fontSubstitutions = null,
+        CancellationToken cancellationToken = default)
     {
         IReadOnlyList<Page> pages = Read(document, pageIndices, cancellationToken);
         const long slideWidth = 9_144_000;
@@ -858,7 +880,7 @@ public static partial class PdfStructuredExport
         writer.Write(content);
     }
 
-    private static IReadOnlyList<Page> Read(PdfDocument document, IEnumerable<int>? pageIndices,
+    private static System.Collections.ObjectModel.ReadOnlyCollection<Page> Read(PdfDocument document, IEnumerable<int>? pageIndices,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(document);

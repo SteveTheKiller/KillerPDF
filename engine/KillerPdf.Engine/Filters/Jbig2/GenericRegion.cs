@@ -237,7 +237,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                     DecodeTemplate2(lineNumber, width, rowStride, paddedWidth, byteIndex, idx);
                     break;
                 case 3:
-                    DecodeTemplate3(lineNumber, width, rowStride, paddedWidth, byteIndex, idx);
+                    DecodeTemplate3(lineNumber, width, paddedWidth, byteIndex, idx);
                     break;
             }
         }
@@ -573,7 +573,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             }
         }
 
-        private void DecodeTemplate3(int lineNumber, int width, int rowStride,
+        private void DecodeTemplate3(int lineNumber, int width,
                 int paddedWidth, int byteIndex, int idx)
         {
             int context;

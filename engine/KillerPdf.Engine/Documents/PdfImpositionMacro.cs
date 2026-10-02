@@ -251,7 +251,7 @@ public static partial class PdfImpositionMacro
                 "A cut-stack preset must use simplex output.", nameof(preset));
     }
 
-    private static IReadOnlyList<int?> ReadPageSequence(PdfMacroStep step)
+    private static int?[] ReadPageSequence(PdfMacroStep step)
     {
         if (!step.Settings!.TryGetValue(PageSequenceKey, out string? json))
             throw new ArgumentException(

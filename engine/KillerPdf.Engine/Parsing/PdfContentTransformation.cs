@@ -539,7 +539,7 @@ public static class PdfContentTransformation
         return Array.AsReadOnly(result.ToArray());
     }
 
-    private static IReadOnlyList<(int Start, int End, bool Clipping)> PaintedPathRanges(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<(int Start, int End, bool Clipping)> PaintedPathRanges(
         IReadOnlyList<PdfContentInstruction> source)
     {
         var ranges = new List<(int Start, int End, bool Clipping)>();
@@ -919,7 +919,7 @@ public static class PdfContentTransformation
             "k", "K", [color.Cyan, color.Magenta, color.Yellow, color.Black],
             fill, stroke);
 
-    private static IReadOnlyList<PdfContentInstruction> RecolorDeviceRange(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfContentInstruction> RecolorDeviceRange(
         IEnumerable<PdfContentInstruction> instructions,
         int startIndex, int count, string fillOperator, string strokeOperator,
         IReadOnlyList<double> components, bool fill, bool stroke)
@@ -1003,7 +1003,7 @@ public static class PdfContentTransformation
         return Array.AsReadOnly(result);
     }
 
-    private static IReadOnlyList<(int Start, int End)> TextObjectRanges(
+    private static List<(int Start, int End)> TextObjectRanges(
         IReadOnlyList<PdfContentInstruction> source)
     {
         var ranges = new List<(int Start, int End)>();

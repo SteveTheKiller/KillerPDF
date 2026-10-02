@@ -28,7 +28,7 @@ internal sealed class PdfWorkingDocument : IDisposable
     internal static PdfWorkingDocument Open(string path, bool isReadOnly = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        FileInfo? info = null;
+        FileInfo? info;
         long ticks = 0, size = -1;
         try
         {

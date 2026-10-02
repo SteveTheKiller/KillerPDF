@@ -5827,7 +5827,7 @@ public sealed class PdfIncrementalPageEditor
         }
     }
 
-    private void RemoveXfa(IDictionary<PdfName, PdfObject> replacements)
+    private void RemoveXfa(Dictionary<PdfName, PdfObject> replacements)
     {
         PdfObject value = replacements.TryGetValue(AcroFormName, out PdfObject? replacement)
             ? replacement

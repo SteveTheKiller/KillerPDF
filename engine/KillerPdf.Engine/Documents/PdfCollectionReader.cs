@@ -118,10 +118,11 @@ public static partial class PdfCollectionReader
         };
     }
 
-    private static IReadOnlyList<PdfCollectionFolderInfo> ReadFolders(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfCollectionFolderInfo> ReadFolders(
         PdfDocument document, PdfDictionary collection)
     {
-        if (!collection.TryGetValue(Name("Folders"), out PdfObject? rootValue)) return [];
+        if (!collection.TryGetValue(Name("Folders"), out PdfObject? rootValue))
+            return Array.AsReadOnly(Array.Empty<PdfCollectionFolderInfo>());
         PdfIndirectReference rootReference = Reference(document, rootValue,
             "The collection /Folders value is not an indirect reference.");
         var result = new List<PdfCollectionFolderInfo>();
@@ -180,10 +181,11 @@ public static partial class PdfCollectionReader
         }
     }
 
-    private static IReadOnlyList<PdfCollectionFieldInfo> ReadFields(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfCollectionFieldInfo> ReadFields(
         PdfDocument document, PdfDictionary collection)
     {
-        if (!collection.TryGetValue(Name("Schema"), out PdfObject? schemaValue)) return [];
+        if (!collection.TryGetValue(Name("Schema"), out PdfObject? schemaValue))
+            return Array.AsReadOnly(Array.Empty<PdfCollectionFieldInfo>());
         PdfDictionary schema = Dictionary(document, schemaValue,
             "The collection /Schema value is not a dictionary.");
         var fields = new List<PdfCollectionFieldInfo>();
@@ -206,10 +208,11 @@ public static partial class PdfCollectionReader
             .ThenBy(field => field.Key, StringComparer.Ordinal).ToArray());
     }
 
-    private static IReadOnlyList<PdfCollectionSortInfo> ReadSort(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfCollectionSortInfo> ReadSort(
         PdfDocument document, PdfDictionary collection)
     {
-        if (!collection.TryGetValue(Name("Sort"), out PdfObject? sortValue)) return [];
+        if (!collection.TryGetValue(Name("Sort"), out PdfObject? sortValue))
+            return Array.AsReadOnly(Array.Empty<PdfCollectionSortInfo>());
         PdfDictionary sort = Dictionary(document, sortValue,
             "The collection /Sort value is not a dictionary.");
         if (!sort.TryGetValue(Name("S"), out PdfObject? keysValue))

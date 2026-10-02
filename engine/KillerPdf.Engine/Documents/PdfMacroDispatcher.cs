@@ -57,7 +57,7 @@ public sealed class PdfMacroDispatcher
         PdfMacroOperation.Save
     ];
 
-    private readonly IReadOnlyDictionary<PdfMacroOperation, PdfMacroOperationHandler> _handlers;
+    private readonly System.Collections.ObjectModel.ReadOnlyDictionary<PdfMacroOperation, PdfMacroOperationHandler> _handlers;
     private readonly IReadOnlyList<PdfMacroOperation> _supportedOperations;
 
     /// <summary>Creates a dispatcher with optional host-provided operation handlers.</summary>

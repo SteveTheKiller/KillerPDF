@@ -169,7 +169,7 @@ public static partial class PdfNavigationAudit
     }
 
     private static void InspectUnsafeActions(PdfDocument document, PdfObject root,
-        ICollection<PdfNavigationFinding> findings)
+        List<PdfNavigationFinding> findings)
     {
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
         var active = new HashSet<(int ObjectNumber, int Generation)>();

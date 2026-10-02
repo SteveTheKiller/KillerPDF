@@ -310,14 +310,14 @@ public static class PdfFormFieldFormat
         'M' => run >= 2 ? "mm" : "%m",
         's' => run >= 2 ? "ss" : "%s",
         't' => run >= 2 ? "tt" : "%t",
-        _ => Literal(character, run, picture)
+        _ => Literal(character, run, nameof(picture))
     };
 
-    private static string Literal(char character, int run, string picture)
+    private static string Literal(char character, int run, string parameterName)
     {
         if (char.IsAsciiLetter(character))
             throw new ArgumentException(
-                $"The date picture character '{character}' is not supported.", nameof(picture));
+                $"The date picture character '{character}' is not supported.", parameterName);
         var builder = new StringBuilder(run * 2);
         for (int index = 0; index < run; index++) builder.Append('\\').Append(character);
         return builder.ToString();

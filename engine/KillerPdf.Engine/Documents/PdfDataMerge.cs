@@ -88,7 +88,7 @@ public static class PdfDataMerge
             imageResolver, cancellationToken);
     }
 
-    private static IReadOnlyList<PdfDataMergeDocumentResult> RunFormBatchCore(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfDataMergeDocumentResult> RunFormBatchCore(
         PdfDocument template, IEnumerable<IReadOnlyDictionary<string, string?>> records,
         PdfDataMergeProfile profile, PdfDataMergeOutputMode outputMode,
         Func<string, PdfImage>? imageResolver, CancellationToken cancellationToken)
@@ -270,7 +270,7 @@ public static class PdfDataMerge
         }
     }
 
-    private static IReadOnlyList<PdfDataMergeImageMatch> PreviewImages(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfDataMergeImageMatch> PreviewImages(
         PdfDocument document, IReadOnlyList<PdfDataMergeMappedImage> images)
     {
         IReadOnlyList<PdfPageInformation> pages = PdfPageInformation.Read(document);
@@ -286,7 +286,7 @@ public static class PdfDataMerge
         }).ToArray());
     }
 
-    private static IReadOnlyList<PdfDataMergeTextMatch> PreviewTextReplacements(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfDataMergeTextMatch> PreviewTextReplacements(
         PdfDocument document, IReadOnlyDictionary<string, string> replacements)
     {
         var reader = new PdfPageContentReader(document);

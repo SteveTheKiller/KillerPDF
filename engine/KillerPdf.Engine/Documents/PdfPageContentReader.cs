@@ -35,10 +35,10 @@ public sealed class PdfPageContentReader
     /// <summary>Reads the unexpanded instructions in a page's decoded content streams.</summary>
     public IReadOnlyList<PdfContentInstruction> ReadInstructions(
         int pageIndex, CancellationToken cancellationToken = default)
-        => ReadInstructions(pageIndex, cancellationToken, null);
+        => ReadInstructions(pageIndex, null, cancellationToken);
 
     internal IReadOnlyList<PdfContentInstruction> ReadInstructions(
-        int pageIndex, CancellationToken cancellationToken, ISet<string>? diagnostics)
+        int pageIndex, ISet<string>? diagnostics, CancellationToken cancellationToken)
     {
         if (pageIndex < 0 || pageIndex >= PageCount) throw new ArgumentOutOfRangeException(nameof(pageIndex));
         PdfPageTreeEntry page = _tree.Pages[pageIndex];
@@ -96,7 +96,7 @@ public sealed class PdfPageContentReader
     }
 
     internal IEnumerable<PdfContentInstruction> EnumerateInstructions(
-        int pageIndex, CancellationToken cancellationToken, ISet<string> diagnostics)
+        int pageIndex, ISet<string> diagnostics, CancellationToken cancellationToken)
     {
         PdfPageTreeEntry page = _tree.Pages[pageIndex];
         if (!page.Dictionary.TryGetValue(Name("Contents"), out var content)) yield break;

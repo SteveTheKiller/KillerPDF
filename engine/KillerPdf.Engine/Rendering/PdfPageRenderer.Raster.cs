@@ -855,7 +855,7 @@ public sealed partial class PdfPageRenderer
 
     /// <summary>Runs a row loop sequentially or across row ranges when large enough.</summary>
     private static void ForEachRow(int top, int bottom, long pixelCount,
-        CancellationToken cancellationToken, Action<int, int> body, int? maximumParallelism = null)
+        Action<int, int> body, int? maximumParallelism, CancellationToken cancellationToken)
     {
         int parallelism = maximumParallelism ?? _rowParallelism;
         if (parallelism <= 1 || pixelCount < ParallelPaintThreshold || bottom - top < 2)
@@ -1161,7 +1161,7 @@ public sealed partial class PdfPageRenderer
         clips.Count == 0 ? 1 : ClipCoverage(clips, x, y) / 255d;
 
     /// <summary>Paints one color through a coverage mask, honoring clips, masks, and blending.</summary>
-    private static void PaintCoverage(RasterSurface pixels, int width, int height, CoverageMask mask,
+    private static void PaintCoverage(RasterSurface pixels, int width, CoverageMask mask,
         in Color color, double alpha, RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
         GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
         CancellationToken cancellationToken, bool alphaIsShape = false)
@@ -1270,8 +1270,8 @@ public sealed partial class PdfPageRenderer
         if (direct && !directProfiled && !perPixelClip)
         {
             PaintDirectCoverageRows(pixels, width, mask, color, alpha, blendMode,
-                graphicsSoftMask, knockout, cancellationToken, left, top, right,
-                bottom, groupAlpha, coverage);
+                graphicsSoftMask, knockout, left, top, right,
+                bottom, groupAlpha, coverage, cancellationToken);
             return;
         }
         // Row chunks write disjoint pixels, disjoint group alpha entries and disjoint knockout
@@ -1283,22 +1283,22 @@ public sealed partial class PdfPageRenderer
         if (pixels.Ink is null && pixels.RgbProfile is null)
         {
             PaintCoverageRowsParallel(pixels, width, mask, directColor, paint, alpha,
-                blendMode, clips, graphicsSoftMask, knockout, cancellationToken,
+                blendMode, clips, graphicsSoftMask, knockout,
                 alphaIsShape, left, top, right, bottom, perPixelClip, directInk,
-                ink, direct, groupAlpha, coverage, opaqueBlend);
+                ink, direct, groupAlpha, coverage, opaqueBlend, cancellationToken);
         }
         else PaintCoverageRows(pixels, width, mask, directColor, paint, alpha,
-            blendMode, clips, graphicsSoftMask, knockout, cancellationToken,
+            blendMode, clips, graphicsSoftMask, knockout,
             alphaIsShape, left, top, right, bottom, perPixelClip, directInk,
-            ink, direct, groupAlpha, coverage, opaqueBlend);
+            ink, direct, groupAlpha, coverage, opaqueBlend, cancellationToken);
         return;
     }
 
     private static void PaintDirectCoverageRows(RasterSurface pixels, int width,
         CoverageMask mask, Color fillColor, double alpha, RendererBlendMode blendMode,
         GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
-        CancellationToken cancellationToken, int left, int top, int right, int bottom,
-        byte[]? groupAlpha, byte[]? coverage)
+        int left, int top, int right, int bottom,
+        byte[]? groupAlpha, byte[]? coverage, CancellationToken cancellationToken)
     {
         // Opaque normal-blend fills on a plain RGB surface: full rows of a rectangular
         // mask are one span fill, and antialiased edges blend against opaque pixels in
@@ -1306,7 +1306,7 @@ public sealed partial class PdfPageRenderer
         byte[] data = pixels.Data;
         uint packed = fillColor.Blue | (uint)fillColor.Green << 8
             | (uint)fillColor.Red << 16 | 0xFF000000u;
-        ForEachRow(top, bottom, (long)(right - left) * (bottom - top), cancellationToken,
+        ForEachRow(top, bottom, (long)(right - left) * (bottom - top),
             (rowStart, rowEnd) =>
             {
                 for (int y = rowStart; y < rowEnd; y++)
@@ -1346,31 +1346,34 @@ public sealed partial class PdfPageRenderer
                             blendMode, graphicsSoftMask, knockout);
                     }
                 }
-            });
+            }, null, cancellationToken);
     }
 
     private static void PaintCoverageRowsParallel(RasterSurface pixels, int width,
         CoverageMask mask, Color directColor, Color paint, double alpha,
         RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
         GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
-        CancellationToken cancellationToken, bool alphaIsShape, int left, int top,
+        bool alphaIsShape, int left, int top,
         int right, int bottom, bool perPixelClip, bool directInk, uint ink,
-        bool direct, byte[]? groupAlpha, byte[]? coverage, byte[]? opaqueBlend)
+        bool direct, byte[]? groupAlpha, byte[]? coverage, byte[]? opaqueBlend,
+        CancellationToken cancellationToken)
     {
-        ForEachRow(top, bottom, (long)(right - left) * (bottom - top), cancellationToken,
+        ForEachRow(top, bottom, (long)(right - left) * (bottom - top),
             (rowStart, rowEnd) => PaintCoverageRows(pixels, width, mask, directColor,
                 paint, alpha, blendMode, clips, graphicsSoftMask, knockout,
-                cancellationToken, alphaIsShape, left, rowStart, right, rowEnd,
-                perPixelClip, directInk, ink, direct, groupAlpha, coverage, opaqueBlend));
+                alphaIsShape, left, rowStart, right, rowEnd,
+                perPixelClip, directInk, ink, direct, groupAlpha, coverage, opaqueBlend,
+                cancellationToken), null, cancellationToken);
     }
 
     private static void PaintCoverageRows(RasterSurface pixels, int width,
         CoverageMask mask, Color directColor, Color paint, double alpha,
         RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
         GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
-        CancellationToken cancellationToken, bool alphaIsShape, int left, int firstRow,
+        bool alphaIsShape, int left, int firstRow,
         int right, int lastRow, bool perPixelClip, bool directInk, uint ink,
-        bool direct, byte[]? groupAlpha, byte[]? coverage, byte[]? opaqueBlend)
+        bool direct, byte[]? groupAlpha, byte[]? coverage, byte[]? opaqueBlend,
+        CancellationToken cancellationToken)
     {
         uint directPacked = directColor.Blue | (uint)directColor.Green << 8
             | (uint)directColor.Red << 16 | 0xFF000000u;

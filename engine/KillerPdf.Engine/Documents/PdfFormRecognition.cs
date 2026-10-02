@@ -1059,7 +1059,7 @@ public sealed partial class PdfFormRecognitionReview
     }
 
     private PdfFormRecognitionReview ReplaceBounds(
-        IReadOnlyDictionary<string, PdfContentBounds> replacements) =>
+        Dictionary<string, PdfContentBounds> replacements) =>
         new(_proposals.Select(item => replacements.TryGetValue(item.Id, out PdfContentBounds bounds)
             ? item.Review(item.Status, bounds: bounds) : item));
 

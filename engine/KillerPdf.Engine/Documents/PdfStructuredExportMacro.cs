@@ -63,17 +63,17 @@ public static partial class PdfStructuredExportMacro
             PdfStructuredExportFormat.PlainText => Encoding.UTF8.GetBytes(
                 PdfStructuredExport.ToPlainText(document, pages, cancellationToken)),
             PdfStructuredExportFormat.Html => Encoding.UTF8.GetBytes(
-                PdfStructuredExport.ToHtml(document, pages, cancellationToken)),
+                PdfStructuredExport.ToHtml(document, pages, cancellationToken: cancellationToken)),
             PdfStructuredExportFormat.Markdown => Encoding.UTF8.GetBytes(
                 PdfStructuredExport.ToMarkdown(document, pages, cancellationToken)),
             PdfStructuredExportFormat.Json => Encoding.UTF8.GetBytes(
                 PdfStructuredExport.ToJson(document, pages, cancellationToken)),
             PdfStructuredExportFormat.WordDocument =>
-                PdfStructuredExport.ToDocx(document, pages, cancellationToken),
+                PdfStructuredExport.ToDocx(document, pages, cancellationToken: cancellationToken),
             PdfStructuredExportFormat.Spreadsheet =>
                 PdfStructuredExport.ToXlsx(document, pages, cancellationToken),
             PdfStructuredExportFormat.Presentation =>
-                PdfStructuredExport.ToPptx(document, pages, cancellationToken),
+                PdfStructuredExport.ToPptx(document, pages, cancellationToken: cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(step))
         };
     }

@@ -57,7 +57,7 @@ public sealed class PdfAttachmentComparison
     }
 
     private static void CompareDocumentAttachments(PdfDocument original,
-        PdfDocument changed, ICollection<PdfAttachmentChange> changes)
+        PdfDocument changed, List<PdfAttachmentChange> changes)
     {
         Dictionary<string, PdfAttachmentInfo> before = PdfAttachmentReader.Read(original)
             .ToDictionary(item => item.FileName, StringComparer.OrdinalIgnoreCase);
@@ -88,7 +88,7 @@ public sealed class PdfAttachmentComparison
     }
 
     private static void ComparePageAnnotations(PdfDocument original,
-        PdfDocument changed, ICollection<PdfAttachmentChange> changes)
+        PdfDocument changed, List<PdfAttachmentChange> changes)
     {
         int pageCount = Math.Max(PdfPageTree.Read(original).Pages.Count,
             PdfPageTree.Read(changed).Pages.Count);

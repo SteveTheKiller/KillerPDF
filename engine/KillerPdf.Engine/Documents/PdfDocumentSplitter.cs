@@ -189,7 +189,7 @@ public static class PdfDocumentSplitter
         return built;
     }
 
-    private static IReadOnlyList<PdfSplitOutput> BySize(PdfDocument document,
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfSplitOutput> BySize(PdfDocument document,
         PdfSplitOptions options, string baseName, CancellationToken cancellationToken)
     {
         if (options.MaximumBytes <= 0)

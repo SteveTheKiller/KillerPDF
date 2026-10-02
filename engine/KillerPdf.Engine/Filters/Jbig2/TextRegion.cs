@@ -898,7 +898,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             amountOfSymbols = symbols.Count;
         }
 
-        private HuffmanTable GetUserTable(int tablePosition)
+        private EncodedTable GetUserTable(int tablePosition)
         {
             int tableCounter = 0;
 

@@ -115,7 +115,7 @@ public static class PdfTextReflow
             .Build();
     }
 
-    private static IReadOnlyList<PdfReflowLine> BreakWord(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfReflowLine> BreakWord(
         string word, TrueTypeFont font, double fontSize, double maximumWidth)
     {
         var result = new List<PdfReflowLine>();

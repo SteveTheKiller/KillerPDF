@@ -372,7 +372,7 @@ public sealed partial class PdfOptimizationPlan
             entry.Type is CrossReference.PdfCrossReferenceEntryType.InUse
                 or CrossReference.PdfCrossReferenceEntryType.Compressed);
 
-    private IReadOnlyList<PdfOptimizationChangeKind> VerifySanitization(PdfDocument document)
+    private System.Collections.ObjectModel.ReadOnlyCollection<PdfOptimizationChangeKind> VerifySanitization(PdfDocument document)
     {
         PdfPageTree tree = PdfPageTree.Read(document);
         var verified = new List<PdfOptimizationChangeKind>();

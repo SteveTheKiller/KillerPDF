@@ -130,12 +130,12 @@ public sealed class PdfBookmarkOutline
                 $"Bookmark {sourceObjectNumber} was not found exactly once.");
     }
 
-    private static void Validate(IReadOnlyList<PdfBookmarkOutlineItem> items)
+    private static void Validate(PdfBookmarkOutlineItem[] items)
     {
-        if (items.Count > 0 && items[0].Level != 0)
+        if (items.Length > 0 && items[0].Level != 0)
             throw new ArgumentException("The first bookmark must be at level zero.", nameof(items));
         var sourceIds = new HashSet<int>();
-        for (int index = 0; index < items.Count; index++)
+        for (int index = 0; index < items.Length; index++)
         {
             PdfBookmarkOutlineItem item = items[index]
                 ?? throw new ArgumentException("A bookmark outline item cannot be null.", nameof(items));
