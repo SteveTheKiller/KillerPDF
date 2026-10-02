@@ -49,6 +49,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Changed
 
+- Added an optional JPEG decoder hook for compatible rendering clients.
 - Limited non-isolated form rendering to active alpha-mask bounds, speeding up masked pages without changing pixels.
 - Reduced first-render and repeated color conversion time for unprofiled DeviceCMYK content.
 - Shortened fully opaque RGB blend compositing and split large non-isolated group composites across bounded row workers, improving blend rendering without changing pixels or peak memory.

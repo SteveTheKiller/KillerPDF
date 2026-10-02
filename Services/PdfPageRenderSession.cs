@@ -38,7 +38,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         double scale)
     {
         _engineRenderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance,
-            SharedCacheFor(document));
+            SharedCacheFor(document), WicJpegDecoder.Instance);
         var boxes = KillerPdf.Engine.Documents.PdfPageBoxInformation.Read(document);
         _enginePages = [.. pages.Select((page, index) => PdfLegacyPageGeometry.Size(page, boxes[index]))];
         _maximumWidth = maximumWidth;

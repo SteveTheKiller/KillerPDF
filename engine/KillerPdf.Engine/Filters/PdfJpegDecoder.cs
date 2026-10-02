@@ -1280,6 +1280,7 @@ internal static class PdfJpegDecoder
     }
 }
 
-internal readonly record struct JpegDecodedImage(
+/// <summary>Decoded JPEG samples and source dimensions.</summary>
+public readonly record struct JpegDecodedImage(
     byte[] Samples, int Width, int Height, int Components,
     int SourceWidth, int SourceHeight);

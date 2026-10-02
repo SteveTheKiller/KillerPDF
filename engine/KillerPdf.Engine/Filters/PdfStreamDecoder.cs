@@ -55,7 +55,8 @@ public static class PdfStreamDecoder
 
     internal static JpegDecodedImage DecodeJpegImage(
         PdfStream stream, Func<PdfIndirectReference, PdfObject> resolve,
-        int maximumDecodedBytes, int reduction, bool compatibilityRecovery = false)
+        int maximumDecodedBytes, int reduction, bool compatibilityRecovery = false,
+        IPdfJpegDecoder? jpegDecoder = null)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(resolve);
@@ -85,10 +86,25 @@ public static class PdfStreamDecoder
                 Math.Max(maximumDecodedBytes, encoded.Length), 0,
                 compatibilityRecovery);
         }
+        int? colorTransform = GetDctColorTransform(parameters[^1], resolve);
+        if (compatibilityRecovery && jpegDecoder is not null
+            && (reduction is 1 or 2 or 4 or 8)
+            && jpegDecoder.TryDecode(encoded, maximumDecodedBytes, reduction,
+                colorTransform, out JpegDecodedImage accelerated)
+            && accelerated.Samples is not null
+            && accelerated.Width > 0 && accelerated.Height > 0
+            && accelerated.SourceWidth > 0 && accelerated.SourceHeight > 0
+            && accelerated.Components is 1 or 3 or 4
+            && accelerated.Width
+                == ((long)accelerated.SourceWidth + reduction - 1) / reduction
+            && accelerated.Height
+                == ((long)accelerated.SourceHeight + reduction - 1) / reduction
+            && accelerated.Samples.Length
+                == (long)accelerated.Width * accelerated.Height * accelerated.Components
+            && accelerated.Samples.Length <= maximumDecodedBytes)
+            return accelerated;
         return PdfJpegDecoder.DecodeImage(encoded,
-            maximumDecodedBytes, reduction,
-            GetDctColorTransform(parameters[^1], resolve),
-            compatibilityRecovery);
+            maximumDecodedBytes, reduction, colorTransform, compatibilityRecovery);
     }
 
     internal static Stream OpenContentStream(PdfStream stream,

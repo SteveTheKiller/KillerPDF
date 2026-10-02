@@ -1121,6 +1121,46 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void DecodeJpegImage_UsesOptionalDecoderOnlyForCompatibilityRecovery()
+    {
+        PdfStream stream = Stream([0xFF, 0xD8], Pair("Filter", Name("DCTDecode")));
+        var decoder = new TestJpegDecoder(new JpegDecodedImage([42], 1, 1, 1, 1, 1));
+
+        JpegDecodedImage recovered = PdfStreamDecoder.DecodeJpegImage(
+            stream, value => value, 1, 1, compatibilityRecovery: true, decoder);
+
+        Assert.Equal([42], recovered.Samples);
+        Assert.Equal(1, decoder.Calls);
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.DecodeJpegImage(
+            stream, value => value, 1, 1, compatibilityRecovery: false, decoder));
+        Assert.Equal(1, decoder.Calls);
+    }
+
+    [Fact]
+    public void DecodeJpegImage_InvalidOptionalResultFallsBackToEngine()
+    {
+        PdfStream stream = Stream([0xFF, 0xD8], Pair("Filter", Name("DCTDecode")));
+        var decoder = new TestJpegDecoder(new JpegDecodedImage([42, 43], 1, 1, 1, 1, 1));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.DecodeJpegImage(
+            stream, value => value, 2, 1, compatibilityRecovery: true, decoder));
+        Assert.Equal(1, decoder.Calls);
+    }
+
+    private sealed class TestJpegDecoder(JpegDecodedImage result) : IPdfJpegDecoder
+    {
+        internal int Calls { get; private set; }
+
+        public bool TryDecode(ReadOnlyMemory<byte> encoded, int maximumDecodedBytes,
+            int reduction, int? colorTransform, out JpegDecodedImage image)
+        {
+            Calls++;
+            image = result;
+            return true;
+        }
+    }
+
+    [Fact]
     public void Decode_RejectsInvalidZlibData()
     {
         PdfStream stream = Stream("not zlib"u8.ToArray(), Pair("Filter", Name("FlateDecode")));

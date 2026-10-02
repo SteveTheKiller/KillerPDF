@@ -22,6 +22,7 @@ public sealed partial class PdfPageRenderer
     private const int MaximumTransparencyTileWidth = 4096;
     private static readonly ArrayPool<byte> RasterBuffers = PdfScratchBuffers.Bytes;
     private readonly PdfDocument _document;
+    private readonly IPdfJpegDecoder? _jpegDecoder;
     private readonly bool _pdf20BlendEndpoints;
     private readonly PdfPageContentReader _content;
     private readonly IReadOnlyList<PdfPageInformation> _pages;
@@ -104,8 +105,14 @@ public sealed partial class PdfPageRenderer
     /// </summary>
     public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver,
         SharedCache? sharedCache)
+        : this(document, fontResolver, sharedCache, jpegDecoder: null) { }
+
+    /// <summary>Creates a renderer with an optional compatible JPEG decoder.</summary>
+    public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver,
+        SharedCache? sharedCache, IPdfJpegDecoder? jpegDecoder)
     {
         _document = document ?? throw new ArgumentNullException(nameof(document));
+        _jpegDecoder = jpegDecoder;
         _pdf20BlendEndpoints = UsesPdf20BlendEndpoints(document);
         _outputProfiles = new Lazy<(PdfColorTransform? Transform, bool Unavailable)>[4];
         for (int intent = 0; intent < _outputProfiles.Length; intent++)
@@ -2639,7 +2646,8 @@ public sealed partial class PdfPageRenderer
                 if (jpeg)
                 {
                     JpegDecodedImage decoded = _document.DecodeJpegImage(
-                        stream, PdfStreamDecoder.DefaultMaximumDecodedBytes, jpegReduction);
+                        stream, PdfStreamDecoder.DefaultMaximumDecodedBytes, jpegReduction,
+                        _jpegDecoder);
                     int expectedWidth = checked((width + jpegReduction - 1) / jpegReduction);
                     int expectedHeight = checked((height + jpegReduction - 1) / jpegReduction);
                     bool sizeMismatch = decoded.SourceWidth != width || decoded.SourceHeight != height

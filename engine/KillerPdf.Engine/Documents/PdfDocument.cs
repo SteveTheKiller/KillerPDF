@@ -68,11 +68,13 @@ public sealed class PdfDocument
     }
 
     internal JpegDecodedImage DecodeJpegImage(
-        PdfStream stream, int maximumDecodedBytes, int reduction)
+        PdfStream stream, int maximumDecodedBytes, int reduction,
+        IPdfJpegDecoder? jpegDecoder = null)
     {
         _unencryptedPageGuard?.EnsureUnencryptedStream(stream, Resolve);
         return PdfStreamDecoder.DecodeJpegImage(
-            stream, Resolve, maximumDecodedBytes, reduction, _compatibilityRecovery);
+            stream, Resolve, maximumDecodedBytes, reduction, _compatibilityRecovery,
+            jpegDecoder);
     }
     /// <summary>Gets whether the document declares an encryption security handler.</summary>
     public bool IsEncrypted => CrossReferences.TryGetTrailerValue(new PdfName("Encrypt"u8), out _);
