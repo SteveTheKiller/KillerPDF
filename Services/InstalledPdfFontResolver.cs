@@ -1,3 +1,4 @@
+using System.IO;
 using KillerPdf.Engine.Fonts;
 
 namespace KillerPDF.Services;
@@ -22,12 +23,40 @@ internal sealed class InstalledPdfFontResolver : IPdfFontResolver
                 || style.Family.Equals("Times New Roman", StringComparison.OrdinalIgnoreCase);
             bool bold = standardAlias ? style.Bold : IsBold(request.PostScriptName);
             bool italic = standardAlias ? style.Italic : IsItalic(request.PostScriptName);
-            byte[]? resolved = Candidates(request, standardAlias ? style.Family : null)
+            byte[]? resolved = standardAlias ? StandardWindowsFace(style.Family, bold, italic) : null;
+            resolved ??= Candidates(request, standardAlias ? style.Family : null)
                 .Select(family => FaceBytes(family, bold, italic))
                 .FirstOrDefault(bytes => bytes is not null);
             _cache[request] = resolved;
             return resolved;
         }
+    }
+
+    private static byte[]? StandardWindowsFace(string family, bool bold, bool italic)
+    {
+        string? fileName = (family, bold, italic) switch
+        {
+            ("Arial", false, false) => "arial.ttf",
+            ("Arial", true, false) => "arialbd.ttf",
+            ("Arial", false, true) => "ariali.ttf",
+            ("Arial", true, true) => "arialbi.ttf",
+            ("Times New Roman", false, false) => "times.ttf",
+            ("Times New Roman", true, false) => "timesbd.ttf",
+            ("Times New Roman", false, true) => "timesi.ttf",
+            ("Times New Roman", true, true) => "timesbi.ttf",
+            ("Courier New", false, false) => "cour.ttf",
+            ("Courier New", true, false) => "courbd.ttf",
+            ("Courier New", false, true) => "couri.ttf",
+            ("Courier New", true, true) => "courbi.ttf",
+            _ => null
+        };
+        if (fileName is null) return null;
+        string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        if (windows.Length == 0) return null;
+        string path = Path.Combine(windows, "Fonts", fileName);
+        try { return File.Exists(path) ? File.ReadAllBytes(path) : null; }
+        catch (IOException) { return null; }
+        catch (UnauthorizedAccessException) { return null; }
     }
 
     private byte[]? FaceBytes(string family, bool bold, bool italic)

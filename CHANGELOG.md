@@ -72,6 +72,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Built the JPEG 2000 decoder from vendored CoreJ2K sources instead of a package reference.
 - Precompiled the packaged engine to reduce first-page rendering delay.
 - Faster rendering of large CMYK JPEG pages at full and reduced sizes.
+- Reduced first-page font setup for standard Windows font aliases.
 - Reduced rendering memory use with shared page data, released sessions, a smaller scratch buffer pool, direct PNG output, fewer JBIG2 page buffers and bundled font copies, and runtime memory conservation.
 - Reduced copies of large inline images, reused decoded images within a page render, and released them afterward to lower peak memory.
 - Avoided a redundant rendering pass for pages whose overprint needs the document output profile.
