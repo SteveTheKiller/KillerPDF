@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <UseWPF>true</UseWPF>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Linked data-only model fields are populated by the application, not these focused tests. -->
     <NoWarn>$(NoWarn);CS0649</NoWarn>
   </PropertyGroup>
@@ -39,6 +40,7 @@
     <Compile Include="..\Services\PdfFontStyle.cs" Link="Services\PdfFontStyle.cs" />
     <Compile Include="..\Services\PdfPageRenderSession.cs" Link="Services\PdfPageRenderSession.cs" />
     <Compile Include="..\Services\WicJpegDecoder.cs" Link="Services\WicJpegDecoder.cs" />
+    <Compile Include="..\Services\NativeWicJpegDecoder.cs" Link="Services\NativeWicJpegDecoder.cs" />
     <Compile Include="..\Services\PdfWorkingDocument.cs" Link="Services\PdfWorkingDocument.cs" />
     <Compile Include="..\Services\PdfEncodingBufferPool.cs" Link="Services\PdfEncodingBufferPool.cs" />
     <Compile Include="..\Services\InstalledPdfFontResolver.cs" Link="Services\InstalledPdfFontResolver.cs" />

@@ -1,6 +1,3 @@
-using System.IO;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using KillerPdf.Engine.Filters;
 
 namespace KillerPDF.Services;
@@ -15,30 +12,26 @@ internal sealed class WicJpegDecoder : IPdfJpegDecoder
         int? colorTransform, out JpegDecodedImage image)
     {
         image = default;
-        if (reduction != 1 || encoded.Length < 300_000
+        if (reduction is not (1 or 2 or 4 or 8) || encoded.Length < 300_000
             || colorTransform is not null and not 2
             || !TryReadYcckFrame(encoded.Span, out int width, out int height))
             return false;
 
-        long sampleLength = (long)width * height * 4;
+        int reducedWidth = (width + reduction - 1) / reduction;
+        int reducedHeight = (height + reduction - 1) / reduction;
+        long sampleLength = (long)reducedWidth * reducedHeight * 4;
         if (sampleLength > maximumDecodedBytes || sampleLength > int.MaxValue)
             return false;
 
         try
         {
-            using var stream = new MemoryStream(encoded.ToArray(), writable: false);
-            BitmapDecoder decoder = BitmapDecoder.Create(stream,
-                BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.PreservePixelFormat,
-                BitmapCacheOption.OnLoad);
-            BitmapSource frame = decoder.Frames[0];
-            if (frame.PixelWidth != width || frame.PixelHeight != height
-                || frame.Format != PixelFormats.Cmyk32)
+            if (!NativeWicJpegDecoder.TryDecode(encoded, reducedWidth, reducedHeight,
+                out byte[] samples))
                 return false;
-            byte[] samples = new byte[(int)sampleLength];
-            frame.CopyPixels(samples, width * 4, 0);
             for (int index = 0; index < samples.Length; index++)
                 samples[index] = (byte)(255 - samples[index]);
-            image = new JpegDecodedImage(samples, width, height, 4, width, height);
+            image = new JpegDecodedImage(samples, reducedWidth, reducedHeight,
+                4, width, height);
             return true;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
