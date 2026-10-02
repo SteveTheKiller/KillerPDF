@@ -19,22 +19,39 @@ internal static class PdfDeviceCmyk
         int index = (729 * ci + 81 * mi + 9 * yi + ki) * 3;
         int red = Samples[index], green = Samples[index + 1], blue = Samples[index + 2];
         int r = red << 8, g = green << 8, b = blue << 8;
-        Adjust(c, ci, 729 * 3);
-        Adjust(m, mi, 81 * 3);
-        Adjust(y, yi, 9 * 3);
-        Adjust(k, ki, 3);
+        Adjust(c, 729 * 3);
+        Adjust(m, 81 * 3);
+        Adjust(y, 9 * 3);
+        Adjust(k, 3);
         return (uint)((byte)(Math.Max(r, 0) >> 8) << 16
             | (byte)(Math.Max(g, 0) >> 8) << 8 | (byte)(Math.Max(b, 0) >> 8));
 
-        void Adjust(int value, int nearest, int stride)
+        void Adjust(int value, int stride)
         {
-            int neighbor = value >> 5;
-            if (neighbor == nearest) neighbor = nearest == 8 ? nearest - 1 : nearest + 1;
-            int adjacent = index + (neighbor - nearest) * stride;
-            int rate = ((value << 8) - (nearest << 13)) * (nearest - neighbor);
+            int adjacent = index + Interpolation.Deltas[value] * stride;
+            int rate = Interpolation.Rates[value];
             r += (red - Samples[adjacent]) * rate / 32;
             g += (green - Samples[adjacent + 1]) * rate / 32;
             b += (blue - Samples[adjacent + 2]) * rate / 32;
+        }
+    }
+
+    private static class Interpolation
+    {
+        internal static readonly int[] Deltas = new int[256];
+        internal static readonly int[] Rates = new int[256];
+
+        static Interpolation()
+        {
+            for (int value = 0; value < 256; value++)
+            {
+                int nearest = (value + 16) >> 5;
+                int neighbor = value >> 5;
+                if (neighbor == nearest) neighbor = nearest == 8 ? nearest - 1 : nearest + 1;
+                int delta = neighbor - nearest;
+                Deltas[value] = delta;
+                Rates[value] = ((value << 8) - (nearest << 13)) * -delta;
+            }
         }
     }
 
