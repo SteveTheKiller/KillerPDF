@@ -5465,6 +5465,27 @@ public sealed partial class PdfPageRenderer
                     }
                 }
             }
+            else if (_bits == 8 && _components == 3 && _cacheKeys is not null
+                && !_directRgb && !_directRgbInk)
+            {
+                for (int y = row.First; y < row.End; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    double vertical = row.Weight(y);
+                    int sampleOffset = y * _rowBytes + column.First * 3;
+                    for (int x = column.First; x < column.End; x++, sampleOffset += 3)
+                    {
+                        double weight = vertical * column.Weight(x);
+                        uint key = (uint)(_samples[sampleOffset] << 16
+                            | _samples[sampleOffset + 1] << 8 | _samples[sampleOffset + 2]);
+                        uint color = ConvertCacheKey(key);
+                        first += (byte)color * weight;
+                        second += (byte)(color >> 8) * weight;
+                        third += (byte)(color >> 16) * weight;
+                        fourth += (byte)(color >> 24) * weight;
+                    }
+                }
+            }
             else
             {
                 for (int y = row.First; y < row.End; y++)
