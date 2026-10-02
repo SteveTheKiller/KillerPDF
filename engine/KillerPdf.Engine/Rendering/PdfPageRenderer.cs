@@ -826,7 +826,8 @@ public sealed partial class PdfPageRenderer
                         state.PaintFill, state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
                         state.Knockout, pixels, options.Width,
                         options.Height, scaleX, scaleY,
-                        out string? inlineDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent, state.AlphaIsShape, cancellationToken))
+                        out string? inlineDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent,
+                        state.AlphaIsShape, cancellationToken, ownedInlineImage: true))
                         diagnostics.Add(inlineDiagnostic
                             ?? "Inline-image rendering is not implemented.");
                     break;
@@ -2519,7 +2520,8 @@ public sealed partial class PdfPageRenderer
         KnockoutState? knockout,
         RasterSurface target, int targetWidth, int targetHeight, double scaleX, double scaleY,
         out string? diagnostic, bool overprint = false, HashSet<string>? diagnostics = null, int renderingIntent = 1,
-        bool alphaIsShape = false, CancellationToken cancellationToken = default)
+        bool alphaIsShape = false, CancellationToken cancellationToken = default,
+        bool ownedInlineImage = false)
     {
         diagnostic = null;
         cancellationToken.ThrowIfCancellationRequested();
@@ -2668,7 +2670,14 @@ public sealed partial class PdfPageRenderer
                 int limit = _document.UsesCompatibilityRecovery
                     ? Math.Max(expected, PdfStreamDecoder.DefaultMaximumDecodedBytes)
                     : expected;
-                byte[] decodedSamples = _document.DecodeStream(stream, limit);
+                // Inline instructions own their bytes, so unfiltered painting can reuse them.
+                byte[] decodedSamples = ownedInlineImage
+                    && !stream.Dictionary.ContainsKey(Name("Filter"))
+                    && System.Runtime.InteropServices.MemoryMarshal.TryGetArray(
+                        stream.EncodedData, out ArraySegment<byte> raw)
+                    && raw.Offset == 0 && raw.Array is { } owned
+                    && raw.Count == owned.Length && raw.Count <= limit
+                        ? owned : _document.DecodeStream(stream, limit);
                 int decodedHeight = height;
                 if (_document.UsesCompatibilityRecovery && decodedSamples.Length > expected)
                     decodedSamples = decodedSamples[..expected];
