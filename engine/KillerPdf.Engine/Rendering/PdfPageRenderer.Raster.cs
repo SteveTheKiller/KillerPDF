@@ -1203,6 +1203,7 @@ public sealed partial class PdfPageRenderer
         bool direct = alpha >= 1 && (simpleBlend || directProfiled);
         bool directInk = pixels.Ink is not null && alpha >= 1
             && (color.OverprintComponents & 16) == 0
+            && color.SpotName is null && !pixels.HasSpotPlates
             && graphicsSoftMask is null && knockout is null
             && pixels.GroupShape is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;

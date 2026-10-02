@@ -85,6 +85,30 @@ public sealed class PdfOverprintTests
     }
 
     [Theory]
+    [InlineData(0.5, 128)]
+    [InlineData(0, 0)]
+    public void RepaintingSameSpot_ReplacesItsPreviousTint(double secondTint, byte magenta)
+    {
+        var rendered = Render("spot", true, true, 1, secondSpotTint: secondTint,
+            blankBackground: true);
+        byte[] pixels = rendered.Pixels.ToArray();
+        int center = (4 * 8 + 4) * 4;
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, magenta), pixels[center..(center + 4)]);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void CmykImageBetweenSpotPaints_ClearsThePreviousSpotPlate()
+    {
+        var rendered = Render("spot", true, true, 1, secondSpotTint: 0.5,
+            blankBackground: true, blankImageBetweenSpotPaints: true);
+        byte[] pixels = rendered.Pixels.ToArray();
+        int center = (4 * 8 + 4) * 4;
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 128), pixels[center..(center + 4)]);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
     [InlineData("group-inherited", 255, 0)]
     [InlineData("group-inherited", 255, 0, true)]
     [InlineData("group-repaint", 255, 0, true)]
@@ -204,7 +228,9 @@ public sealed class PdfOverprintTests
     private static readonly string[] sourceArray = ["Custom"];
 
     private static PdfRenderedPage Render(string paint, bool? fill, bool stroke, int mode, double opacity = 1,
-        bool indexed = false, bool none = false, bool rgb = false, bool registration = false, double registrationTint = 0.5)
+        bool indexed = false, bool none = false, bool rgb = false, bool registration = false,
+        double registrationTint = 0.5, double? secondSpotTint = null, bool blankBackground = false,
+        bool blankImageBetweenSpotPaints = false)
     {
         PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
@@ -237,10 +263,16 @@ public sealed class PdfOverprintTests
         };
         string select = paint == "restored" ? "q /O gs Q" : "/O gs";
         if (registration) operation = operation.Replace("1 scn", tintNumber + " scn", StringComparison.Ordinal);
+        if (secondSpotTint is double repaintTint)
+            operation += (blankImageBetweenSpotPaints ? " q 8 0 0 8 0 0 cm /Im Do Q" : "")
+                + " /Named cs " + repaintTint.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + " scn 0 0 8 8 re f";
         if (indexed && paint.StartsWith("group-", StringComparison.Ordinal))
             operation = operation.Replace("/Named", "/IndexedNamed", StringComparison.Ordinal);
+        string backdrop = blankBackground ? "0 0 0 0 k 0 0 8 8 re f"
+            : "1 0 0 0 k 0 0 8 8 re f 0 1 0 0 k";
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(8, 8,
-            Encoding.ASCII.GetBytes($"1 0 0 0 k 0 0 8 8 re f 0 1 0 0 k {select} {operation}")).Build());
+            Encoding.ASCII.GetBytes($"{backdrop} {select} {operation}")).Build());
         var root = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
         var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)root[Name("Pages")]);
         var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
@@ -257,7 +289,8 @@ public sealed class PdfOverprintTests
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)), Entry("Height", new PdfInteger(1)),
             Entry("BitsPerComponent", new PdfInteger(paint is "stencil" or "namedstencil" ? 1 : 8))
         };
-        byte[] imageSamples = paint is "stencil" or "namedstencil" ? [0]
+        byte[] imageSamples = blankImageBetweenSpotPaints ? [0, 0, 0, 0]
+                : paint is "stencil" or "namedstencil" ? [0]
                 : paint is "namedimage" or "spotimage" ? [255]
                 : paint == "namednoneimage" ? [255, 192]
                 : paint == "namedfiveimage" ? [0, 255, 0, 0, 192]

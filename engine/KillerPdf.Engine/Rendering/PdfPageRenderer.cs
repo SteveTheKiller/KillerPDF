@@ -2060,6 +2060,7 @@ public sealed partial class PdfPageRenderer
                     // Native ink groups whose ink is consumed unchanged by the page (ColorFromInk
                     // returns the ink itself) skip the per-pixel color object for opaque pixels.
                     bool inkComposite = pagePixels.Ink is not null && groupPixels.Ink is not null
+                        && !pagePixels.HasSpotPlates && !groupPixels.HasSpotPlates
                         && pagePixels.GroupShape is null
                         && (groupPixels.InkProfile is null
                             || ReferenceEquals(groupPixels.InkProfile, pagePixels.InkProfile))
@@ -3113,7 +3114,9 @@ public sealed partial class PdfPageRenderer
                 return new ImageColorSpace(1, null, (tint, _, _, _) => Color.Gray(1 - tint),
                     RegistrationColor: true, Initial: InitialColor.FullTint);
             return new ImageColorSpace(1, null,
-                (tint, _, _, _) => tintTransform(tint),
+                (tint, _, _, _) => channel == -2
+                    ? tintTransform(tint) with { SpotName = colorant.ValueAsLatin1(), SpotTint = tint }
+                    : tintTransform(tint),
                 ProcessChannels: channel >= 0 ? [channel] : null, SuppressPainting: channel == -1,
                 Initial: InitialColor.FullTint, HasIccSource: alternate.HasIccSource,
                 HasSpotColorants: channel == -2);
@@ -5059,7 +5062,7 @@ public sealed partial class PdfPageRenderer
             }
             // Opaque native ink samples on an ink destination take the same direct write the
             // compositor performs for full opacity, without building a color per pixel.
-            bool directInk = target.Ink is not null && imageOpacity == 1
+            bool directInk = target.Ink is not null && !target.HasSpotPlates && imageOpacity == 1
                 && target.GroupShape is null
                 && graphicsSoftMask is null && knockout is null
                 && !(overprint && colorSpace.ContainsSpotColorants)
@@ -6119,9 +6122,18 @@ public sealed partial class PdfPageRenderer
         }
         if (pixels.Ink is not null)
         {
+            if (color.SpotName is not null && sourceAlpha == 1
+                && pixels.Alpha(offset) == 255 && knockout is null
+                && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
+            {
+                pixels.PaintSpot(offset, color, (color.OverprintComponents & 16) != 0,
+                    resolvedInk ?? pixels.GetInk(color));
+                return;
+            }
             if (resolvedInk is uint ink)
                 SetInkPixel(pixels, offset, ink, color.OverprintComponents, sourceAlpha, blendMode);
             else SetInkPixel(pixels, offset, color, sourceAlpha, blendMode);
+            pixels.ClearSpotPixel(offset);
             return;
         }
         if (pixels.RgbProfile is not null)
@@ -7350,6 +7362,8 @@ public sealed partial class PdfPageRenderer
         internal bool DoesNotPaint => (OverprintComponents & 32) != 0;
         internal static Color NonPainting => new(0, 0, 0) { OverprintComponents = 32 };
         internal uint? Ink { get; init; }
+        internal string? SpotName { get; init; }
+        internal double SpotTint { get; init; }
         internal PdfColorTransform? InkProfile { get; init; }
         internal (double X, double Y, double Z)? Connection { get; init; }
         internal static Color Black => new(0, 0, 0) { Ink = 0xFF000000 };
