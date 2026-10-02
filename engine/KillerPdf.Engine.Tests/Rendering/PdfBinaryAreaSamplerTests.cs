@@ -16,6 +16,7 @@ public sealed class PdfBinaryAreaSamplerTests
         const int width = 257, height = 19, rowBytes = 33;
         const uint zero = 0x12EF34CD, one = 0xFE019876;
         byte[] samples = [.. Enumerable.Range(0, rowBytes * height).Select(index => (byte)(index * 37 + 91))];
+        PdfBinaryAreaSampler.Column[] columns = PdfBinaryAreaSampler.CreateColumns(width, outputWidth);
         for (int y = 0; y < outputHeight; y++)
         for (int x = 0; x < outputWidth; x++)
         {
@@ -36,6 +37,9 @@ public sealed class PdfBinaryAreaSamplerTests
             }
             Assert.Equal(expected, PdfBinaryAreaSampler.Sample(samples, rowBytes, width, height,
                 x, y, outputWidth, outputHeight, zero, one, default));
+            Assert.Equal(expected, PdfBinaryAreaSampler.Sample(samples, rowBytes, width, height,
+                columns[x], PdfBinaryAreaSampler.Row.Create(y, height, outputHeight),
+                outputWidth, outputHeight, zero, one, default));
         }
     }
 

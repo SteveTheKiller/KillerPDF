@@ -4873,9 +4873,12 @@ public sealed partial class PdfPageRenderer
         }
         byte[]? plane = imageMask || preblendMatte is not null || directInkSamples || directDeviceSamples
             ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
-        ImageSampleConverter.AreaSpan[]? converterAreaColumns = averagePlane
+        bool binaryAverage = averagePlane && bits == 1 && components == 1;
+        PdfBinaryAreaSampler.Column[]? binaryColumns = binaryAverage || averageStencil
+            ? PdfBinaryAreaSampler.CreateColumns(sourceWidth, planeWidth) : null;
+        ImageSampleConverter.AreaSpan[]? converterAreaColumns = averagePlane && !binaryAverage
             ? ImageSampleConverter.CreateAreaSpans(sourceWidth, planeWidth) : null;
-        ImageSampleConverter.AreaSpan[]? converterAreaRows = averagePlane
+        ImageSampleConverter.AreaSpan[]? converterAreaRows = averagePlane && !binaryAverage
             ? ImageSampleConverter.CreateAreaSpans(sourceHeight, planeHeight) : null;
         var matteConverter = preblendMatte is not null && !imageMask
             ? new ImageSampleConverter(samples, rowBytes, components,
@@ -4898,7 +4901,8 @@ public sealed partial class PdfPageRenderer
                     var row = PdfBinaryAreaSampler.Row.Create(py, sourceHeight, planeHeight);
                     for (int px = 0; px < planeWidth; px++)
                         alphaPlane[py * planeWidth + px] = (byte)PdfBinaryAreaSampler.Sample(
-                            samples, rowBytes, sourceWidth, sourceHeight, px, row, planeWidth, planeHeight,
+                            samples, rowBytes, sourceWidth, sourceHeight,
+                            binaryColumns![px], row, planeWidth, planeHeight,
                             stencilPaintsOne ? 0u : stencilCoverageByte,
                             stencilPaintsOne ? stencilCoverageByte : 0u, cancellationToken);
                 }
@@ -4918,7 +4922,8 @@ public sealed partial class PdfPageRenderer
                 {
                     var converter = new ImageSampleConverter(samples, rowBytes, components,
                         bits, decode, colorSpace, targetInk, blendProfile,
-                        areaColumns: converterAreaColumns, areaRows: converterAreaRows);
+                        areaColumns: converterAreaColumns, areaRows: converterAreaRows,
+                        binaryColumns: binaryColumns);
                     for (int py = rowStart; py < rowEnd; py++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -5248,6 +5253,7 @@ public sealed partial class PdfPageRenderer
         private readonly PdfColorTransform? _targetProfile;
         private readonly AreaSpan[]? _areaColumns;
         private readonly AreaSpan[]? _areaRows;
+        private readonly PdfBinaryAreaSampler.Column[]? _binaryColumns;
         private readonly bool _directRgb;
         private readonly bool _directRgbInk;
         private readonly bool _directGray;
@@ -5259,7 +5265,8 @@ public sealed partial class PdfPageRenderer
         internal ImageSampleConverter(byte[] samples, int rowBytes,
             int components, int bits, double[] decode, ImageColorSpace colorSpace,
             bool targetInk, PdfColorTransform? targetProfile, bool matte = false,
-            AreaSpan[]? areaColumns = null, AreaSpan[]? areaRows = null)
+            AreaSpan[]? areaColumns = null, AreaSpan[]? areaRows = null,
+            PdfBinaryAreaSampler.Column[]? binaryColumns = null)
         {
             _samples = samples;
             _rowBytes = rowBytes;
@@ -5271,6 +5278,7 @@ public sealed partial class PdfPageRenderer
             _targetProfile = targetProfile;
             _areaColumns = areaColumns;
             _areaRows = areaRows;
+            _binaryColumns = binaryColumns;
             _values = new double[(colorSpace.PaletteBase ?? colorSpace).Components];
             _maximum = bits >= 31 ? int.MaxValue : (1 << bits) - 1;
             // Plain 8-bit device gray or RGB samples with the default decode convert to the
@@ -5412,7 +5420,8 @@ public sealed partial class PdfPageRenderer
                     _binaryRowIndex = py;
                 }
                 return PdfBinaryAreaSampler.Sample(_samples, _rowBytes, sourceWidth, sourceHeight,
-                    px, _binaryRow, planeWidth, planeHeight, _lookup![0], _lookup[1], cancellationToken);
+                    _binaryColumns![px], _binaryRow, planeWidth, planeHeight,
+                    _lookup![0], _lookup[1], cancellationToken);
             }
             AreaSpan column = _areaColumns?[px] ?? AreaSpan.Create(px, sourceWidth, planeWidth);
             AreaSpan row = _areaRows?[py] ?? AreaSpan.Create(py, sourceHeight, planeHeight);

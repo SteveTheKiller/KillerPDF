@@ -14,6 +14,25 @@ internal static class PdfBinaryAreaSampler
         }
     }
 
+    internal readonly record struct Column(int First, int Last, long FirstWeight, long LastWeight)
+    {
+        internal static Column Create(int x, int width, int outputWidth)
+        {
+            long left = (long)x * width, right = (long)(x + 1) * width;
+            int first = (int)(left / outputWidth), last = (int)((right - 1) / outputWidth);
+            return new(first, last, Math.Min((long)(first + 1) * outputWidth, right) - left,
+                right - (long)last * outputWidth);
+        }
+    }
+
+    internal static Column[] CreateColumns(int width, int outputWidth)
+    {
+        var columns = new Column[outputWidth];
+        for (int x = 0; x < columns.Length; x++)
+            columns[x] = Column.Create(x, width, outputWidth);
+        return columns;
+    }
+
     internal static uint Sample(byte[] samples, int rowBytes, int width, int height,
         int x, int y, int outputWidth, int outputHeight, uint zero, uint one,
         CancellationToken cancellationToken) => Sample(samples, rowBytes, width, height,
@@ -21,26 +40,28 @@ internal static class PdfBinaryAreaSampler
 
     internal static uint Sample(byte[] samples, int rowBytes, int width, int height,
         int x, in Row bounds, int outputWidth, int outputHeight, uint zero, uint one,
+        CancellationToken cancellationToken) => Sample(samples, rowBytes, width, height,
+            Column.Create(x, width, outputWidth), bounds, outputWidth, outputHeight,
+            zero, one, cancellationToken);
+
+    internal static uint Sample(byte[] samples, int rowBytes, int width, int height,
+        in Column column, in Row bounds, int outputWidth, int outputHeight, uint zero, uint one,
         CancellationToken cancellationToken)
     {
         // Integer coordinates retain exact fractional coverage on the output grid.
-        long left = (long)x * width, right = (long)(x + 1) * width;
-        int firstX = (int)(left / outputWidth), lastX = (int)((right - 1) / outputWidth);
-        long firstWeight = Math.Min((long)(firstX + 1) * outputWidth, right) - left;
-        long lastWeight = right - (long)lastX * outputWidth;
         long selected = 0;
         cancellationToken.ThrowIfCancellationRequested();
         for (int sy = bounds.First; sy <= bounds.Last; sy++)
         {
             int row = sy * rowBytes;
             long horizontal = 0;
-            if (Bit(samples, row, firstX) != 0)
-                horizontal = firstWeight;
-            if (lastX > firstX)
+            if (Bit(samples, row, column.First) != 0)
+                horizontal = column.FirstWeight;
+            if (column.Last > column.First)
             {
-                if (Bit(samples, row, lastX) != 0)
-                    horizontal += lastWeight;
-                horizontal += (long)Count(samples, row, firstX + 1, lastX) * outputWidth;
+                if (Bit(samples, row, column.Last) != 0)
+                    horizontal += column.LastWeight;
+                horizontal += (long)Count(samples, row, column.First + 1, column.Last) * outputWidth;
             }
             long vertical = Math.Min((long)(sy + 1) * outputHeight, bounds.Bottom)
                 - Math.Max((long)sy * outputHeight, bounds.Top);
