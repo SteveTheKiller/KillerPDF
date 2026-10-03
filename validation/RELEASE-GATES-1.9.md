@@ -4480,3 +4480,12 @@ tests, 14 edge-width decoder-state checks, and the target scan PNG hashes at
 The paired direction changed, so the trial stayed scratch-only. An earlier
 overlapping timing attempt was excluded. Evidence is under
 `C:/Users/steve/kp-bench-render/jbig2-template-tail-20261003/`.
+
+Two exact-output Altona trials based on `635e708` remained scratch-only. A
+coverage-alpha lookup matched x3 and x4 PNGs at 512 and 2048 pixels, but
+2048-pixel paired warm timings changed direction and first renders were slower.
+An ink-run bulk fill matched all 64 timed x3/x4 PNGs; warmed x4 averaged
+737.5 ms before and 743.9 ms after, while warmed x3 rose from 430.8 to
+474.6 ms. Neither trial justified a renderer edit. The raw checks are under
+`C:/Users/steve/kp-bench-render/coverage-alpha-trial-20261003-635e708/`
+and `C:/Users/steve/kp-bench-render/ink-run-census-20261003-635e708/`.
