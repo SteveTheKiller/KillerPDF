@@ -3922,3 +3922,20 @@ difficult pages matched status and dimensions. Overall, 1.8 rendered 600 of
 649 corpus files, skipped 41, and failed eight malformed files; 1.9 rendered
 614, skipped 35, and failed none. Evidence is under
 `C:/Users/steve/kp-bench-render/parity-final-8b2027f-v1880-20261002`.
+
+A fresh headless comparison used the current Release binaries with one file
+worker explicitly set for 1.9 (`--parallel 1`); 1.8 renders files serially.
+The 649-file conformance run used 512 pixels and one page per file. Across the
+600 pages both versions rendered, 1.8 summed 10,744/10,472 ms and 1.9 summed
+11,914/11,669 ms in 1.8/1.9/1.9/1.8 order. The paired gaps are 10.9 and
+11.4 percent. The 1.9 runs rendered 614 pages with no failures; 1.8 rendered
+600 and failed eight malformed files. At 2048 pixels and three pages per file,
+the 74-page difficult set summed 4,932/4,636 ms for 1.8 and 10,425/8,563 ms
+for 1.9 in the same order, leaving paired gaps of 111.4 and 84.7 percent.
+Altona Technical page 1 took 210/199 ms in 1.8 versus 1,258/1,166 ms in
+1.9. The first difficult pair varied more than the second, so it is not a
+single stable percentage. An earlier attempt overlapped a background file
+search and is excluded. These are summed page render times, not application
+wall time. Scratch evidence is under
+`C:/Users/steve/kp-bench-render/parity-serial-corpus-idle-20261002` and
+`C:/Users/steve/kp-bench-render/parity-serial-difficult-idle-20261002`.
