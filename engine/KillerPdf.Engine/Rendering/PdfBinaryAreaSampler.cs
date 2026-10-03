@@ -79,6 +79,66 @@ internal static class PdfBinaryAreaSampler
             | Mix((byte)(zero >> 16), (byte)(one >> 16), selected, area) << 16 | fourth << 24;
     }
 
+    internal static void SampleRow(byte[] samples, int rowBytes, int width, int height,
+        in Row bounds, ReadOnlySpan<Column> columns, int outputHeight, uint zero, uint one,
+        Span<long> coverage, Span<uint> destination, CancellationToken cancellationToken)
+    {
+        int outputWidth = columns.Length;
+        coverage = coverage[..outputWidth];
+        destination = destination[..outputWidth];
+        cancellationToken.ThrowIfCancellationRequested();
+        coverage.Clear();
+
+        // Traverse each source row once while retaining exact coverage for every output column.
+        for (int sy = bounds.First; sy <= bounds.Last; sy++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int row = sy * rowBytes;
+            long vertical = Math.Min((long)(sy + 1) * outputHeight, bounds.Bottom)
+                - Math.Max((long)sy * outputHeight, bounds.Top);
+            for (int x = 0; x < outputWidth; x++)
+            {
+                if ((x & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+                Column column = columns[x];
+                long horizontal = 0;
+                if (Bit(samples, row, column.First) != 0)
+                    horizontal = column.FirstWeight;
+                if (column.Last > column.First)
+                {
+                    if (Bit(samples, row, column.Last) != 0)
+                        horizontal += column.LastWeight;
+                    horizontal += (long)Count(samples, row, column.First + 1, column.Last) * outputWidth;
+                }
+                coverage[x] += horizontal * vertical;
+            }
+        }
+
+        long area = (long)width * height;
+        bool gray = (zero & 0xFFFFFF) == (uint)(byte)zero * 0x010101
+            && (one & 0xFFFFFF) == (uint)(byte)one * 0x010101;
+        for (int x = 0; x < outputWidth; x++)
+        {
+            if ((x & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+            long selected = coverage[x];
+            if (selected == 0)
+            {
+                destination[x] = zero;
+                continue;
+            }
+            if (selected == area)
+            {
+                destination[x] = one;
+                continue;
+            }
+            uint first = Mix((byte)zero, (byte)one, selected, area);
+            uint fourth = Mix((byte)(zero >> 24), (byte)(one >> 24), selected, area);
+            destination[x] = gray ? first * 0x010101 | fourth << 24
+                : first | Mix((byte)(zero >> 8), (byte)(one >> 8), selected, area) << 8
+                    | Mix((byte)(zero >> 16), (byte)(one >> 16), selected, area) << 16
+                    | fourth << 24;
+        }
+    }
+
     private static uint Mix(byte zero, byte one, long selected, long area)
     {
         if (zero == one) return zero;

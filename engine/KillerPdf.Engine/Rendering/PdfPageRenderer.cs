@@ -4909,6 +4909,8 @@ public sealed partial class PdfPageRenderer
         byte[]? plane = imageMask || preblendMatte is not null || directInkSamples || directDeviceSamples
             ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
         bool binaryAverage = averagePlane && bits == 1 && components == 1;
+        // Small masks keep the cheaper per-pixel path.
+        bool binaryRowAverage = binaryAverage && (long)sourceWidth * sourceHeight >= 10_000_000;
         PdfBinaryAreaSampler.Column[]? binaryColumns = binaryAverage || averageStencil
             ? PdfBinaryAreaSampler.CreateColumns(sourceWidth, planeWidth) : null;
         ImageSampleConverter.AreaSpan[]? converterAreaColumns = averagePlane && !binaryAverage
@@ -4959,6 +4961,8 @@ public sealed partial class PdfPageRenderer
                         bits, decode, colorSpace, targetInk, blendProfile,
                         areaColumns: converterAreaColumns, areaRows: converterAreaRows,
                         binaryColumns: binaryColumns);
+                    long[]? binaryCoverage = binaryRowAverage ? new long[planeWidth] : null;
+                    uint[]? binaryColors = binaryRowAverage ? new uint[planeWidth] : null;
                     for (int py = rowStart; py < rowEnd; py++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -4988,11 +4992,14 @@ public sealed partial class PdfPageRenderer
                             }
                         }
                         int sy = Math.Min((int)((long)py * factor * sourceHeight / samplingHeight), sourceHeight - 1);
+                        if (binaryColors is not null)
+                            converter.ConvertAreaRow(py, planeHeight, sourceWidth, sourceHeight,
+                                binaryCoverage!, binaryColors, cancellationToken);
                         for (int px = 0; px < planeWidth; px++)
                         {
                             int sx = Math.Min((int)((long)px * factor * sourceWidth / samplingWidth), sourceWidth - 1);
                             int offset = (py * planeWidth + px) * 4;
-                            uint color = averagePlane
+                            uint color = binaryColors is not null ? binaryColors[px] : averagePlane
                                 ? converter.ConvertArea(px, py, planeWidth, planeHeight,
                                     sourceWidth, sourceHeight, cancellationToken)
                                 : converter.Convert(sx, sy);
@@ -5510,6 +5517,21 @@ public sealed partial class PdfPageRenderer
             _cacheValues![slot] = color;
             _cacheValid[slot] = true;
             return color;
+        }
+
+        internal void ConvertAreaRow(int py, int planeHeight,
+            int sourceWidth, int sourceHeight, Span<long> coverage, Span<uint> destination,
+            CancellationToken cancellationToken)
+        {
+            for (int sample = 0; sample < 2; sample++)
+            {
+                if (_lookupSet![sample]) continue;
+                _lookup![sample] = ConvertRaw(sample, 0, 0, 0);
+                _lookupSet[sample] = true;
+            }
+            PdfBinaryAreaSampler.SampleRow(_samples, _rowBytes, sourceWidth, sourceHeight,
+                PdfBinaryAreaSampler.Row.Create(py, sourceHeight, planeHeight), _binaryColumns!,
+                planeHeight, _lookup![0], _lookup[1], coverage, destination, cancellationToken);
         }
 
         internal uint ConvertArea(int px, int py, int planeWidth, int planeHeight,

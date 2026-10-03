@@ -87,6 +87,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Removed redundant encoded-stream, inline-image, and streamed operand copies, reused common content-operator names and empty operand lists, and removed full-image JPEG scratch planes during parsing and decoding. JPEG sample rows are reused, grayscale output copies by row, and JPEG 2000 color and transparency planes persist across repeated paints.
 - Faster JPEG 2000 decoding through reusable row color conversions, specialized 8-bit rows, direct 16-bit sample output with cheaper range checks, optional parallel wavelet rows, and less redundant buffer clearing, with unchanged decoded values.
 - Faster image reduction through packed one-bit coverage counts with byte-level edge handling, reused monochrome, grayscale, and RGB row bounds, and reused horizontal and vertical averaging weights across axis-aligned rows, including binary edge coverage.
+- Faster reduction of large one-bit images by processing each output row together with exact coverage.
 - Reduced cancellation-check overhead during exact one-bit image reduction.
 - Reduced JBIG2 probability-context storage and arithmetic decoding overhead with unchanged decoded pixels.
 
