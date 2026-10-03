@@ -234,7 +234,7 @@ namespace KillerPDF.Controls
                 if (pageWidthPt  <= 0) pageWidthPt  = 595.28;
                 if (pageHeightPt <= 0) pageHeightPt = 841.89;
                 foreach (KillerPdf.Engine.Documents.PdfLinkInfo link in
-                    PdfEngineIntegration.ReadPageLinks(session.Document, pageIndex))
+                    session.LinkReader.ReadPage(pageIndex))
                 {
                     var (cx, cy, cw, ch) = PdfRectToCanvas(
                         link.Left, link.Bottom, link.Right, link.Top,

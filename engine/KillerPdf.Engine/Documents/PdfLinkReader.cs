@@ -4,7 +4,7 @@ using KillerPdf.Engine.Objects;
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Reads native link annotations and resolves their local targets.</summary>
-public static class PdfLinkReader
+public sealed class PdfLinkReader
 {
     private static readonly PdfName AnnotsName = Name("Annots");
     private static readonly PdfName SubtypeName = Name("Subtype");
@@ -20,20 +20,39 @@ public static class PdfLinkReader
     private static readonly PdfName NamesName = Name("Names");
     private static readonly PdfName DestsName = Name("Dests");
 
-    /// <summary>Reads the native link annotations on one zero-based page.</summary>
-    public static IReadOnlyList<PdfLinkInfo> ReadPage(PdfDocument document, int pageIndex)
+    private readonly PdfDocument _document;
+    private readonly PdfPageTree _tree;
+    private readonly Lazy<Dictionary<(int ObjectNumber, int Generation), int>> _pageIndices;
+    private readonly Lazy<Dictionary<string, PdfObject>> _namedDestinations;
+
+    /// <summary>Creates a reusable link reader for one parsed document.</summary>
+    public PdfLinkReader(PdfDocument document)
     {
-        ArgumentNullException.ThrowIfNull(document);
-        PdfPageTree tree = PdfPageTree.Read(document);
-        if (pageIndex < 0 || pageIndex >= tree.Pages.Count)
+        _document = document ?? throw new ArgumentNullException(nameof(document));
+        _tree = PdfPageTree.Read(document);
+        _pageIndices = new Lazy<Dictionary<(int ObjectNumber, int Generation), int>>(() =>
+            _tree.Pages.ToDictionary(item =>
+                (item.Reference.ObjectNumber, item.Reference.Generation), item => item.Index));
+        _namedDestinations = new Lazy<Dictionary<string, PdfObject>>(() =>
+            ReadNamedDestinations(document, _tree.Catalog));
+    }
+
+    /// <summary>Reads the native link annotations on one zero-based page.</summary>
+    public static IReadOnlyList<PdfLinkInfo> ReadPage(PdfDocument document, int pageIndex) =>
+        new PdfLinkReader(document).ReadPage(pageIndex);
+
+    /// <summary>Reads one page without rebuilding the document's page tree.</summary>
+    public IReadOnlyList<PdfLinkInfo> ReadPage(int pageIndex)
+    {
+        if (pageIndex < 0 || pageIndex >= _tree.Pages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
-        PdfPageTreeEntry page = tree.Pages[pageIndex];
+        PdfDocument document = _document;
+        PdfPageTreeEntry page = _tree.Pages[pageIndex];
         if (!page.Dictionary.TryGetValue(AnnotsName, out PdfObject? annotationsValue)) return [];
         PdfArray annotations = Resolve(document, annotationsValue, "A page /Annots value") as PdfArray
             ?? throw new InvalidOperationException("A page /Annots value is not an array.");
-        var pages = tree.Pages.ToDictionary(
-            item => (item.Reference.ObjectNumber, item.Reference.Generation), item => item.Index);
-        Dictionary<string, PdfObject> named = ReadNamedDestinations(document, tree.Catalog);
+        Dictionary<(int ObjectNumber, int Generation), int> pages = _pageIndices.Value;
+        Dictionary<string, PdfObject> named = _namedDestinations.Value;
         var result = new List<PdfLinkInfo>();
         for (int index = 0; index < annotations.Count; index++)
         {
