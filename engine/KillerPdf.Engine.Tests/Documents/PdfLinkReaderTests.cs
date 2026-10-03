@@ -41,6 +41,29 @@ public sealed class PdfLinkReaderTests
     }
 
     [Fact]
+    public void ReusableReader_ResolvesLinksAcrossPages()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(300, 400).AddBlankPage(300, 400).AddBlankPage(300, 400)
+            .AddNamedDestination("start", 0, PdfDestination.FitWidth(350))
+            .AddPageLink(0, 10, 20, 80, 15, 2)
+            .AddNamedDestinationLink(2, 20, 30, 70, 15, "start")
+            .AddUriLink(2, 100, 40, 50, 20, "https://example.com")
+            .Build());
+        var reader = new PdfLinkReader(document);
+
+        Assert.Equal(2, reader.ReadPage(0)[0].DestinationPageIndex);
+        Assert.Empty(reader.ReadPage(1));
+        IReadOnlyList<PdfLinkInfo> lastPageLinks = reader.ReadPage(2);
+        Assert.Equal(2, lastPageLinks.Count);
+        Assert.Equal(0, lastPageLinks[0].DestinationPageIndex);
+        Assert.Equal("start", lastPageLinks[0].NamedDestination);
+        Assert.Equal("https://example.com/", lastPageLinks[1].Uri);
+        Assert.Equal(2, reader.ReadPage(0)[0].DestinationPageIndex);
+        Assert.Throws<ArgumentOutOfRangeException>(() => reader.ReadPage(3));
+    }
+
+    [Fact]
     public void ReadPage_ResolvesLinksStoredInObjectStreams()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

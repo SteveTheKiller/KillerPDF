@@ -6,17 +6,21 @@ namespace KillerPDF.Services;
 /// <summary>Immutable engine view of the active serialized working document.</summary>
 internal sealed class PdfEngineDocumentSession
 {
+    private readonly Lazy<PdfLinkReader> _linkReader;
+
     private PdfEngineDocumentSession(string path, PdfDocument document,
         IReadOnlyList<PdfPageInformation> pages)
     {
         Path = path;
         Document = document;
         Pages = pages;
+        _linkReader = new Lazy<PdfLinkReader>(() => new PdfLinkReader(document));
     }
 
     internal string Path { get; }
     internal PdfDocument Document { get; }
     internal IReadOnlyList<PdfPageInformation> Pages { get; }
+    internal PdfLinkReader LinkReader => _linkReader.Value;
     internal int PageCount => Pages.Count;
 
     internal static PdfEngineDocumentSession Open(string path)
