@@ -140,6 +140,32 @@ mean peak working set rose from 243.6 to 254.3 MiB. The trial was rejected.
 Evidence is under `C:/Users/steve/kp-bench-render/map-current-cold-alloc-jit-20261003-x3/`
 and `C:/Users/steve/kp-bench-render/map-inline-pool-trial-20261003-x3/`.
 
+A later scratch raster cell-array swap passed 1,253 rendering tests and kept
+all eight 512-pixel map PNG hashes exact. Four fresh runs per variant averaged
+1,864.25 ms for the current payload and 1,951.0 ms for the candidate. The
+swap was rejected. Evidence is under
+`C:/Users/steve/kp-bench-render/map-cell-swap-trial-20261003/`.
+
+Parallelizing the direct ink row loop on Altona x3 reached one large masked
+paint per render. Its 27 focused tests and 64 paired PNG hashes passed, but
+four-process means worsened from 888.25 to 918.25 ms cold and from 444.68 to
+466.50 ms per repeated page. The scratch change was rejected. Evidence is
+under `C:/Users/steve/kp-bench-render/altona-directink-rowparallel-trial-20261003-x3/`.
+
+A scratch RGB named-spot sidecar passed 110 overprint tests and corrected a
+synthetic indexed overlap. Both GWG080 and GWG081 ReadMe pages still lacked
+the checkmark on the colorized image and showed the unwanted X when compared
+with the retained Poppler overprint renders. The sidecar was not promoted;
+evidence is under `C:/Users/steve/kp-bench-render/rgb-spot-sidecar-trial-20261003/`.
+
+A scratch terminal invisible-text shortcut passed eight focused tests and
+preserved the JBIG2 scan PNG hashes at 512 and 2048 pixels. A matched
+ReadyToRun four-process comparison averaged 329.5 versus 310.5 ms on the
+first 512-pixel page, while later copies averaged 196.35 versus 194.65 ms.
+The small first-page signal needs confirmation, and bypassing font loading can
+suppress malformed-font diagnostics. The shortcut was not promoted. Evidence
+is under `C:/Users/steve/kp-bench-render/terminal-invisible-text-trial-20261003/`.
+
 A focused Ghent probe found that the GWG080 and GWG081 ReadMe pages use RGB
 surfaces. Their indexed spot images take the direct RGB copy path, which
 drops the named spot information; neither page calls the spot-plate painter.
