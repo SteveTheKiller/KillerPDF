@@ -49,6 +49,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Changed
 
+- Sorted dense raster cell rows by bounded X counts, reducing complex vector page render time without changing pixels.
 - Added an optional JPEG decoder hook for compatible rendering clients.
 - Limited non-isolated form rendering to active alpha-mask bounds, speeding up masked pages without changing pixels.
 - Reduced color conversion time for profiled CMYK display, unprofiled DeviceCMYK content, and ICC RGB images on CMYK pages.

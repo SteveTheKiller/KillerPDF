@@ -146,6 +146,20 @@ all eight 512-pixel map PNG hashes exact. Four fresh runs per variant averaged
 swap was rejected. Evidence is under
 `C:/Users/steve/kp-bench-render/map-cell-swap-trial-20261003/`.
 
+Guarded row-local counting sort for dense raster cells passed 1,253 focused
+rendering tests and preserved the 512-pixel map PNG in every run. Four fresh
+processes per variant averaged 1,982.0 ms for the current payload and 1,845.25
+ms for the candidate, a 6.90% map gain; focused mean peak working set rose by
+4.57 MiB. Two alternating full-corpus passes at each size preserved all 614
+rendered PNG hashes, statuses, and dimensions across 649 inputs. Summed render
+time improved by 133 ms (1.09%) at 512 pixels and worsened by 56 ms (0.29%)
+at 2048 pixels, within run variation; broad sampled peaks did not increase.
+The production engine has the measured guard, and 4,193 engine and 487 app
+tests plus the Release build pass. The installed-layout comparison with 1.8.80
+predates this change and must be repeated before claiming parity. Scratch
+evidence is under
+`C:/Users/steve/kp-bench-render/map-row-countsort-trial-20261003-x3/`.
+
 Parallelizing the direct ink row loop on Altona x3 reached one large masked
 paint per render. Its 27 focused tests and 64 paired PNG hashes passed, but
 four-process means worsened from 888.25 to 918.25 ms cold and from 444.68 to

@@ -243,6 +243,7 @@ public sealed partial class PdfPageRenderer
 
         private Cell[] _sorted = new Cell[1024];
         private int[] _starts = new int[256];
+        private readonly int[] _xCounts = new int[1024];
 
         internal CellRasterizer(int width, int height)
         {
@@ -772,10 +773,48 @@ public sealed partial class PdfPageRenderer
             for (int row = 0; row < rows; row++)
             {
                 int start = starts[row], end = starts[row + 1];
-                if (end - start > 1)
-                    sorted.AsSpan(start, end - start).Sort(CompareCellX);
+                int length = end - start;
+                if (length == 1)
+                {
+                    _cells[start] = sorted[start];
+                    continue;
+                }
+                if (length >= 16)
+                {
+                    int minimumX = sorted[start].X;
+                    int maximumX = minimumX;
+                    for (int index = start + 1; index < end; index++)
+                    {
+                        int x = sorted[index].X;
+                        if (x < minimumX) minimumX = x;
+                        if (x > maximumX) maximumX = x;
+                    }
+                    long span = (long)maximumX - minimumX + 1;
+                    if (span <= _xCounts.Length && span <= length * 4L)
+                    {
+                        int slots = (int)span;
+                        Array.Clear(_xCounts, 0, slots);
+                        for (int index = start; index < end; index++)
+                            _xCounts[sorted[index].X - minimumX]++;
+                        int next = start;
+                        for (int slot = 0; slot < slots; slot++)
+                        {
+                            int count = _xCounts[slot];
+                            _xCounts[slot] = next;
+                            next += count;
+                        }
+                        for (int index = start; index < end; index++)
+                        {
+                            Cell cell = sorted[index];
+                            _cells[_xCounts[cell.X - minimumX]++] = cell;
+                        }
+                        continue;
+                    }
+                }
+                if (length > 1)
+                    sorted.AsSpan(start, length).Sort(CompareCellX);
+                sorted.AsSpan(start, length).CopyTo(_cells.AsSpan(start, length));
             }
-            Array.Copy(sorted, _cells, _count);
         }
 
         private static readonly Comparison<Cell> CompareCellX =
