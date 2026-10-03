@@ -3862,3 +3862,27 @@ warranted. Validation passes with 4,142 engine tests, 431 app tests, and a
 Release application build with no warnings or errors. Evidence is retained in
 `C:/Users/steve/kp-bench-render/ccitt-recovery-20260924` and
 `C:/Users/steve/kp-bench-render/mask-recovery-20260924`.
+
+### CMYK mode 0 spot overprint and parity checkpoint (2026-10-02)
+
+Opaque CMYK mode 0 overprints now preserve named spot ink while replacing all
+four process inks. Two focused regressions failed before the fix and pass now.
+The 108 overprint tests, 4,192 engine tests, 487 app tests, and Release app build
+pass, with no build warnings or errors.
+
+The 512-pixel corpus rendered 614 of 649 files, skipped 35, and failed none.
+Exactly four PNGs changed, all in Altona and Ghent spot tests; the other 610
+are byte-identical. Each changed region moved closer to Poppler's overprint
+rendering. The Ghent OPM0 patches no longer show the incorrect solid X, though
+a thin X outline remains. Evidence is in
+`C:/Users/steve/kp-bench-render/cmyk-opm0-20261002`.
+
+The latest matched pre-fix 512-pixel pair across 600 common pages measured
+14,252/14,202 ms for 1.8.80 and 15,063/14,667 ms for 1.9, leaving 1.9
+3.3 to 5.7 percent slower. At 2048 pixels, the 74-page difficult set measured
+4,769/4,792 ms for 1.8.80 and 8,892/8,593 ms for 1.9. Its Altona technical
+page measured 215/212 ms versus 1,229/1,127 ms. Those matched measurements
+predate the current overprint correction; its separate corpus pass does not
+establish a speed change. The integer spot-mixing trial produced identical
+pixels but mixed alternating timings and was removed. Rendering performance,
+full-page fidelity, and interactive parity remain open.

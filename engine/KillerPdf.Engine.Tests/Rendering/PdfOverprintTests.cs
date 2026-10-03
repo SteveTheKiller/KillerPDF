@@ -136,6 +136,27 @@ public sealed class PdfOverprintTests
     }
 
     [Theory]
+    [InlineData(0d, 0)]
+    [InlineData(0.5d, 128)]
+    public void CmykModeZeroOverprint_PreservesNamedSpotAndReplacesProcessInk(
+        double blackTint, byte black)
+    {
+        var overprint = Render("spot", true, true, 0, cmykBlackOverlay: blackTint);
+        var noOverprint = Render("spot", false, true, 0, cmykBlackOverlay: blackTint);
+        int covered = (4 * 8 + 2) * 4;
+        int uncovered = (4 * 8 + 6) * 4;
+
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 255, 0, black),
+            overprint.Pixels.Span[covered..(covered + 4)].ToArray());
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(255, 255, 0, 0),
+            overprint.Pixels.Span[uncovered..(uncovered + 4)].ToArray());
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 0, 0, black),
+            noOverprint.Pixels.Span[covered..(covered + 4)].ToArray());
+        Assert.Empty(overprint.Diagnostics);
+        Assert.Empty(noOverprint.Diagnostics);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SpotImage_ReplacesEarlierTintOfSameColorant(bool indexed)
@@ -297,7 +318,7 @@ public sealed class PdfOverprintTests
         double registrationTint = 0.5, double? secondSpotTint = null, bool blankBackground = false,
         bool blankImageBetweenSpotPaints = false, bool initialSpotBeforeImage = false,
         byte? spotImageTint = null, bool reducedImage = false, bool alternatingImageSamples = false,
-        bool grayWhiteOverlay = false)
+        bool grayWhiteOverlay = false, double? cmykBlackOverlay = null)
     {
         PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
@@ -338,6 +359,9 @@ public sealed class PdfOverprintTests
                 + " /Named cs " + repaintTint.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 + " scn 0 0 8 8 re f";
         if (grayWhiteOverlay) operation += " q 1 g 0 0 4 8 re f Q";
+        if (cmykBlackOverlay is double blackTint)
+            operation += " q 0 0 0 " + blackTint.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + " k 0 0 4 8 re f Q";
         if (indexed && paint.StartsWith("group-", StringComparison.Ordinal))
             operation = operation.Replace("/Named", "/IndexedNamed", StringComparison.Ordinal);
         string backdrop = blankBackground ? "0 0 0 0 k 0 0 8 8 re f"

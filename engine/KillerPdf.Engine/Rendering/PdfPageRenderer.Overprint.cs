@@ -73,6 +73,9 @@ public sealed partial class PdfPageRenderer
             ? color with { OverprintComponents = (byte)(color.OverprintComponents | 16 | 64) }
         : enabled && space is { Components: 1, RegistrationColor: false, Palette: null }
             ? color with { OverprintComponents = PreserveNamedSpots }
+        : enabled && mode == 0 && space is { Components: 4, IsIccBased: false, Palette: null,
+            Converter: null, MultiConverter: null }
+            ? color with { OverprintComponents = PreserveNamedSpots }
         : enabled && mode == 1 && space is { Components: 4, IsIccBased: false, Palette: null,
             Converter: null, MultiConverter: null }
             ? color with { OverprintComponents = (byte)(color.OverprintComponents | 16) } : color;
