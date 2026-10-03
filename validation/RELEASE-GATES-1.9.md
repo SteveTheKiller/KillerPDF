@@ -105,6 +105,15 @@ reduce peak memory, so it was rejected. These focused repeats do not replace
 the whole-corpus first-page comparison. Artifacts are under
 `C:/Users/steve/kp-bench-render/altona-hotpath-current-20261003/`.
 
+Three scratch changes to the x3 spot path preserved exact output and passed
+109 focused spot tests, but none had a repeatable speed gain. Bulk opaque
+coverage and deferred image spot clearing were slower in paired runs. Bulk
+non-overprint spot filling initially saved 12.6 ms per warm render, but its
+confirmation saved only 1.9 ms. All three were rejected. Evidence is under
+`C:/Users/steve/kp-bench-render/altona-spot-clear-trial-20261003-x3/`,
+`altona-spot-image-clear-trial-20261003-x3/`, and
+`altona-spotrun-bulkfill-20261003-x3/` in the same scratch root.
+
 An October 3 current-payload trace of the map's first 512-pixel render took
 2,243 ms. Its discarded 64 MiB decoded prefix finished about 45 ms after
 rendering began, so that prefix is not the main cold gap. Sampled allocations
@@ -117,6 +126,19 @@ fresh-process renders averaged 2,098 ms before and 2,099 ms after, with
 similar peak memory. The pool change was rejected. Trace and trial results
 are under `C:/Users/steve/kp-bench-render/map-current-first-trace-20261003/`
 and `C:/Users/steve/kp-bench-render/map-stream-buffer-pool-trial-20261003/`.
+
+A new trace from the exact current installer payload attributes 161 MB of
+sampled allocation to the map's inline-image instruction copies and 782 ms
+of exclusive samples to GC polling during its first 512-pixel render. Image
+area conversion was the largest direct engine leaf at 317 ms. Foreground JIT
+summed 56 ms; most recorded compilation ran on a background thread. These
+profiled durations include tracing overhead. A bounded leased-buffer trial
+for the internal streaming render path passed 38 focused tests and preserved
+all 12 map PNG hashes. Six paired fresh-process runs averaged 1,944.7 ms for
+baseline versus 1,896.8 ms for the candidate, but two pairs regressed and
+mean peak working set rose from 243.6 to 254.3 MiB. The trial was rejected.
+Evidence is under `C:/Users/steve/kp-bench-render/map-current-cold-alloc-jit-20261003-x3/`
+and `C:/Users/steve/kp-bench-render/map-inline-pool-trial-20261003-x3/`.
 
 A focused Ghent probe found that the GWG080 and GWG081 ReadMe pages use RGB
 surfaces. Their indexed spot images take the direct RGB copy path, which
