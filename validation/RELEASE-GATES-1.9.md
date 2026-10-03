@@ -21,6 +21,22 @@ overall average.
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 1 local-branch forward-port check passes for 201 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
 | Builds and regression suites | Passing development checkpoint | October 1: 4,176 engine tests and 487 app tests pass, and the Release application build succeeds with zero warnings and errors. The earlier scratch portable and installer packages pass their file inventories and payload startup checks; the installer also passes isolated installation. A clean build reported 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
+The packaged 512-pixel comparison averages 11,689 ms for 1.8.80 and 12,599 ms
+for 1.9 across the 600 shared pages, a 910 ms (7.8%) gap. Its largest page
+gaps, slower in both paired passes, are `447403.pdf` (+418.5 ms),
+`CompactedPDFSyntaxTest.pdf` (+109.5 ms), the `42828.0001.001.pdf` JBIG2 scan
+(+99.5 ms), the Ghent ALL reference (+93.5 ms), and
+`UnknownFilter-Linearized.pdf` (+85.5 ms). Those five sum to 806.5 ms before
+faster 1.9 pages offset other regressions. The large Altona technical page
+is 95.5 ms faster in this packaged 512-pixel run, despite its large gap in
+the separate loose serial comparison. These rankings come from the four
+`mask-bounds-final-parity-512-*.csv` files under
+`C:/Users/steve/kp-bench-render/release-payload-parity-20261001/`.
+On eight packaged map copies, 1.9 was slower on the first copy and faster
+on the next seven, so its single-page gap is concentrated in first use.
+Both versions show the complete map at matching dimensions, but their
+pixels differ; the timing result does not establish map fidelity parity.
+
 An October 2 change avoids retaining decoded inline images whose fresh stream
 keys cannot be reused. Two balanced eight-copy map pairs at 512 pixels sampled
 peak memory at 393.7/388.8 MiB before and 333.3/342.4 MiB after. Their render
