@@ -1,5 +1,6 @@
 using KillerPDF.Services;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Documents;
 using System.IO;
 using Xunit;
 
@@ -20,7 +21,9 @@ public sealed class PdfEngineDocumentSessionTests
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(612, 792).Build());
 
             Assert.Equal(path, session.Path);
-            Assert.Equal(original, session.Source.ToArray());
+            var originalPage = Assert.Single(PdfPageInformation.Read(session.Document));
+            Assert.Equal(320, originalPage.Width);
+            Assert.Equal(480, originalPage.Height);
             var page = Assert.Single(session.Pages);
             Assert.Equal(320, page.Width);
             Assert.Equal(480, page.Height);

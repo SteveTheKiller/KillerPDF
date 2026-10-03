@@ -1,4 +1,5 @@
 using System.Text;
+using System.IO.Compression;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
@@ -10,6 +11,44 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfDocumentTests
 {
+    [Fact]
+    public void OpenStream_ReadsFromCurrentPositionAndOwnsBytes()
+    {
+        byte[] pdf = ObjectStreamPdf();
+        using var source = new MemoryStream(new byte[pdf.Length + 4], writable: true);
+        source.Position = 4;
+        source.Write(pdf);
+        source.Position = 4;
+
+        PdfDocument document = PdfDocument.Open(source);
+
+        Assert.True(source.CanRead);
+        Assert.Equal(source.Length, source.Position);
+        source.Position = 4;
+        source.Write(new byte[pdf.Length]);
+        source.Dispose();
+        Assert.Equal("hello", Text(Assert.IsType<PdfString>(document.Resolve(1))));
+    }
+
+    [Fact]
+    public void OpenStream_ReadsNonSeekableInputWithoutClosingIt()
+    {
+        byte[] pdf = ObjectStreamPdf();
+        using var compressed = new MemoryStream();
+        using (var compressor = new DeflateStream(compressed, CompressionLevel.Fastest,
+            leaveOpen: true))
+            compressor.Write(pdf);
+        compressed.Position = 0;
+        using var source = new DeflateStream(compressed, CompressionMode.Decompress,
+            leaveOpen: true);
+
+        Assert.False(source.CanSeek);
+        PdfDocument document = PdfDocument.Open(source);
+
+        Assert.True(source.CanRead);
+        Assert.Equal("hello", Text(Assert.IsType<PdfString>(document.Resolve(1))));
+    }
+
     [Fact]
     public void Open_ResolvesClassicObjectsAndIndirectStreamLengths()
     {
