@@ -63,6 +63,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - The installer now offers upgrade, reinstall, uninstall, or cancel when KillerPDF is already installed.
 - Document tabs now use complete 98SE geometry and themed drag previews, and can be moved into a new window without losing their live editing state.
+- Split the language picker into two columns for 19 locales.
 - Kept Select mode non-editing and moved existing PDF text changes behind the explicit Text tool (#411).
 - Arrow keys move selected editable objects one precise step instead of scrolling the page (#368).
 - Routed desktop OCR provider selection through the engine's explicit or automatic provider contract, including complete installed-language checks for engine and Tesseract model sets.
