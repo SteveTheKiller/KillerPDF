@@ -109,6 +109,33 @@ public sealed class PdfOverprintTests
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void GrayWhiteOverprint_PreservesNamedSpotButReplacesProcessInk(int mode)
+    {
+        var spot = Render("spot", true, true, mode, blankBackground: true);
+        var overSpot = Render("spot", true, true, mode, blankBackground: true,
+            grayWhiteOverlay: true);
+        var withoutOverprint = Render("spot", false, true, mode, blankBackground: true,
+            grayWhiteOverlay: true);
+        var overProcess = Render("fill", true, true, mode, grayWhiteOverlay: true);
+        int covered = (4 * 8 + 2) * 4;
+        int uncovered = (4 * 8 + 6) * 4;
+
+        Assert.Equal(spot.Pixels.Span[covered..(covered + 4)].ToArray(),
+            overSpot.Pixels.Span[covered..(covered + 4)].ToArray());
+        Assert.Equal(spot.Pixels.Span[uncovered..(uncovered + 4)].ToArray(),
+            overSpot.Pixels.Span[uncovered..(uncovered + 4)].ToArray());
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 0),
+            withoutOverprint.Pixels.Span[covered..(covered + 4)].ToArray());
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 0),
+            overProcess.Pixels.Span[covered..(covered + 4)].ToArray());
+        Assert.Empty(overSpot.Diagnostics);
+        Assert.Empty(withoutOverprint.Diagnostics);
+        Assert.Empty(overProcess.Diagnostics);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SpotImage_ReplacesEarlierTintOfSameColorant(bool indexed)
@@ -269,7 +296,8 @@ public sealed class PdfOverprintTests
         bool indexed = false, bool none = false, bool rgb = false, bool registration = false,
         double registrationTint = 0.5, double? secondSpotTint = null, bool blankBackground = false,
         bool blankImageBetweenSpotPaints = false, bool initialSpotBeforeImage = false,
-        byte? spotImageTint = null, bool reducedImage = false, bool alternatingImageSamples = false)
+        byte? spotImageTint = null, bool reducedImage = false, bool alternatingImageSamples = false,
+        bool grayWhiteOverlay = false)
     {
         PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
@@ -309,6 +337,7 @@ public sealed class PdfOverprintTests
             operation += (blankImageBetweenSpotPaints ? " q 8 0 0 8 0 0 cm /Im Do Q" : "")
                 + " /Named cs " + repaintTint.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 + " scn 0 0 8 8 re f";
+        if (grayWhiteOverlay) operation += " q 1 g 0 0 4 8 re f Q";
         if (indexed && paint.StartsWith("group-", StringComparison.Ordinal))
             operation = operation.Replace("/Named", "/IndexedNamed", StringComparison.Ordinal);
         string backdrop = blankBackground ? "0 0 0 0 k 0 0 8 8 re f"

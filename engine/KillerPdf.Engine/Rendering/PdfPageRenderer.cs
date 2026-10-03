@@ -6260,6 +6260,12 @@ public sealed partial class PdfPageRenderer
                     resolvedInk ?? pixels.GetInk(color));
                 return;
             }
+            if ((color.OverprintComponents & PreserveNamedSpots) != 0 && pixels.HasSpotPlates
+                && sourceAlpha == 1
+                && pixels.Alpha(offset) == 255 && knockout is null
+                && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible
+                && pixels.TryReplaceProcessInkKeepingSpots(offset, resolvedInk ?? pixels.GetInk(color)))
+                return;
             if (resolvedInk is uint ink)
                 SetInkPixel(pixels, offset, ink, color.OverprintComponents, sourceAlpha, blendMode);
             else SetInkPixel(pixels, offset, color, sourceAlpha, blendMode);

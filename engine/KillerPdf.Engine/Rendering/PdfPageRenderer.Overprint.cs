@@ -4,6 +4,8 @@ namespace KillerPdf.Engine.Rendering;
 
 public sealed partial class PdfPageRenderer
 {
+    private const byte PreserveNamedSpots = 128;
+
     private GraphicsState RebindNamedColors(GraphicsState state, RasterSurface destination)
     {
         if (state.FillColorSpace is { } fill && (fill.HasProcessColorants || fill.HasIccSource))
@@ -69,6 +71,8 @@ public sealed partial class PdfPageRenderer
             ? color with { OverprintComponents = (byte)((~mask & 15) | 16) }
         : enabled && space?.ContainsSpotColorants == true
             ? color with { OverprintComponents = (byte)(color.OverprintComponents | 16 | 64) }
+        : enabled && space is { Components: 1, RegistrationColor: false, Palette: null }
+            ? color with { OverprintComponents = PreserveNamedSpots }
         : enabled && mode == 1 && space is { Components: 4, IsIccBased: false, Palette: null,
             Converter: null, MultiConverter: null }
             ? color with { OverprintComponents = (byte)(color.OverprintComponents | 16) } : color;

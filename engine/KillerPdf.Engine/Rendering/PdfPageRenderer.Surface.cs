@@ -330,24 +330,41 @@ public sealed partial class PdfPageRenderer
                     _spotPlates.Add(color.SpotName!, plate);
                 }
                 WriteInk(plate, offset, color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk);
-                uint combined = ReadInk(_spotBaseInk, offset);
-                foreach (byte[] current in _spotPlates.Values)
-                {
-                    uint spot = ReadInk(current, offset);
-                    if (spot == 0) continue;
-                    uint mixed = 0;
-                    for (int channel = 0; channel < 4; channel++)
-                    {
-                        double baseValue = (byte)(combined >> (channel * 8)) / 255d;
-                        double spotValue = (byte)(spot >> (channel * 8)) / 255d;
-                        mixed |= (uint)(byte)Math.Round((baseValue + spotValue
-                            - baseValue * spotValue) * 255) << (channel * 8);
-                    }
-                    combined = mixed;
-                }
-                WriteInk(Data, offset, combined);
-                SetAlpha(offset, 255);
+                ComposeSpotPixel(offset);
             }
+        }
+
+        internal bool TryReplaceProcessInkKeepingSpots(int offset, uint processInk)
+        {
+            if (_spotBaseInk is null) return false;
+            lock (_spotSync)
+            {
+                if (_spotBaseInk is null) return false;
+                WriteInk(_spotBaseInk, offset, processInk);
+                ComposeSpotPixel(offset);
+                return true;
+            }
+        }
+
+        private void ComposeSpotPixel(int offset)
+        {
+            uint combined = ReadInk(_spotBaseInk!, offset);
+            foreach (byte[] current in _spotPlates!.Values)
+            {
+                uint spot = ReadInk(current, offset);
+                if (spot == 0) continue;
+                uint mixed = 0;
+                for (int channel = 0; channel < 4; channel++)
+                {
+                    double baseValue = (byte)(combined >> (channel * 8)) / 255d;
+                    double spotValue = (byte)(spot >> (channel * 8)) / 255d;
+                    mixed |= (uint)(byte)Math.Round((baseValue + spotValue
+                        - baseValue * spotValue) * 255) << (channel * 8);
+                }
+                combined = mixed;
+            }
+            WriteInk(Data, offset, combined);
+            SetAlpha(offset, 255);
         }
 
         internal void ClearSpotPixel(int offset)

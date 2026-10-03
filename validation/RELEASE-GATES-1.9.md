@@ -53,6 +53,18 @@ raster, image, color, text, and font work, without one dominant parser cost.
 All 2048-pixel raw output hashes matched. Evidence is under
 `C:/Users/steve/kp-bench-render/altona-sequence-20261002/`.
 
+An opaque grayscale overprint correction now preserves named spot ink on CMYK
+surfaces. The 649-file 512-pixel run rendered 614 pages, skipped 35, and failed
+none. Against the preceding 1.9 build, 610 PNGs were unchanged; the four
+changed Altona and Ghent images moved closer to Poppler's overprint output.
+A repeat with the final build matched all 614 candidate PNG hashes. Separate
+single-run render sums were 12,414 ms before and 12,883/13,486 ms after, so
+there is no measured speed gain. The final Altona 2048-pixel first render took
+1,396 ms and its last eight averaged 365 ms. The Release build, 4,190 engine
+tests, and 487 app tests pass. Altona and Ghent overprint fidelity and the 1.8
+speed gate remain open. Results are under
+`C:/Users/steve/kp-bench-render/altona-sequence-20261002/`.
+
 An October 2 large binary-image sampling change reduced the focused JBIG2
 scan's first 512-pixel page from 634/637 ms to 539/521 ms in balanced
 runs. All 614 conformance PNGs at 512 pixels and all 74 difficult-set PNGs at
