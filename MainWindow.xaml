@@ -2100,7 +2100,8 @@
                                         <ContextMenu.ItemContainerStyle>
                                             <Style TargetType="MenuItem" BasedOn="{StaticResource PanelMenuItem}"/>
                                         </ContextMenu.ItemContainerStyle>
-                        <StackPanel x:Name="LangSubmenu" Margin="12,10,14,10">
+                        <StackPanel x:Name="LangSubmenu" Orientation="Horizontal" Margin="12,10,14,10">
+                            <StackPanel Width="200">
                                     <RadioButton x:Name="LangEnRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
                                                  Checked="LangEnRadio_Checked">
                                         <Grid>
@@ -2231,6 +2232,8 @@
                                                        Foreground="{DynamicResource MutedTextBrush}"/>
                                         </Grid>
                                     </RadioButton>
+                            </StackPanel>
+                            <StackPanel Width="200" Margin="14,0,0,0">
                                     <RadioButton x:Name="LangNbRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
                                                  Checked="LangNbRadio_Checked">
                                         <Grid>
@@ -2348,6 +2351,7 @@
                                                        Foreground="{DynamicResource MutedTextBrush}"/>
                                         </Grid>
                                     </RadioButton>
+                            </StackPanel>
                         </StackPanel>
                                     </ContextMenu>
                                 </Button.ContextMenu>
