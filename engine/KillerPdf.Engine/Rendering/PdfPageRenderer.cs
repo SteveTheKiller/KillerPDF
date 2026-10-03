@@ -5341,6 +5341,26 @@ public sealed partial class PdfPageRenderer
                     }, null, cancellationToken);
                 return;
             }
+            RasterSurface.PreparedSpotPaint? preparedSpotPaint = null;
+            if (target.Ink is not null && !directInk && !imageMask && matteConverter is null
+                && knockout is null && target.GroupShape is null
+                && graphicsSoftMask is null && softMask is null && alphaPlane is null
+                && imageOpacity == 1
+                && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible
+                && (long)(paintRight - paintLeft) * (paintBottom - paintTop) >= ParallelPaintThreshold)
+            {
+                string? spotName = null;
+                if (spotPalette is { Length: > 0 } && (spotPlane is not null || factor == 1))
+                {
+                    spotName = spotPalette[0].SpotName;
+                    for (int index = 1; spotName is not null && index < spotPalette.Length; index++)
+                        if (!string.Equals(spotName, spotPalette[index].SpotName, StringComparison.Ordinal))
+                            spotName = null;
+                }
+                else if (factor == 1) spotName = imageSpotName;
+                if (spotName is not null)
+                    preparedSpotPaint = target.PrepareSpotPaint(spotName);
+            }
             void PaintRows(int rowStart, int rowEnd)
             {
                 for (int y = rowStart; y < rowEnd; y++)
@@ -5493,7 +5513,8 @@ public sealed partial class PdfPageRenderer
                             color,
                             alpha / 255d * imageOpacity * clipAlpha, blendMode, graphicsSoftMask, knockout,
                             shape: separateStencilShape ? alpha / 255d * clipAlpha : clipAlpha,
-                            alphaIsShape: alphaIsShape, resolvedInk: color.Ink);
+                            alphaIsShape: alphaIsShape, resolvedInk: color.Ink,
+                            preparedSpotPaint: preparedSpotPaint);
                     }
                 }
             }
@@ -6392,7 +6413,8 @@ public sealed partial class PdfPageRenderer
     private static void SetPixel(RasterSurface pixels, int width, int x, int y,
         in Color color, double opacity, RendererBlendMode blendMode,
         GraphicsSoftMask? graphicsSoftMask = null, KnockoutState? knockout = null, double shape = 1,
-        bool alphaIsShape = false, bool recordShape = true, uint? resolvedInk = null)
+        bool alphaIsShape = false, bool recordShape = true, uint? resolvedInk = null,
+        RasterSurface.PreparedSpotPaint? preparedSpotPaint = null)
     {
         if (color.DoesNotPaint || !pixels.Contains(x, y)) return;
         int offset = pixels.Offset(x, y);
@@ -6450,8 +6472,13 @@ public sealed partial class PdfPageRenderer
                 && pixels.Alpha(offset) == 255 && knockout is null
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
             {
-                pixels.PaintSpot(offset, color, (color.OverprintComponents & 16) != 0,
-                    resolvedInk ?? pixels.GetInk(color));
+                if (preparedSpotPaint is not null
+                    && string.Equals(color.SpotName, preparedSpotPaint.Name, StringComparison.Ordinal))
+                    pixels.PaintSpotPrepared(offset, color, (color.OverprintComponents & 16) != 0,
+                        resolvedInk ?? pixels.GetInk(color), preparedSpotPaint);
+                else
+                    pixels.PaintSpot(offset, color, (color.OverprintComponents & 16) != 0,
+                        resolvedInk ?? pixels.GetInk(color));
                 return;
             }
             if ((color.OverprintComponents & PreserveNamedSpots) != 0 && pixels.HasSpotPlates

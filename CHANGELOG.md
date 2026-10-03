@@ -61,6 +61,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
+- Sped up large named-spot images in print-production PDFs.
 - The installer now offers upgrade, reinstall, uninstall, or cancel when KillerPDF is already installed.
 - Document tabs now use complete 98SE geometry and themed drag previews, and can be moved into a new window without losing their live editing state.
 - Split the language picker into two columns for 19 locales.

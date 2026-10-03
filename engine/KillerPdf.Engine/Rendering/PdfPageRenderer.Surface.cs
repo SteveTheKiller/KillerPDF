@@ -376,6 +376,50 @@ public sealed partial class PdfPageRenderer
             return true;
         }
 
+        internal sealed record PreparedSpotPaint(string Name, byte[] Plate);
+
+        internal PreparedSpotPaint PrepareSpotPaint(string name)
+        {
+            lock (_spotSync)
+            {
+                if (_spotBaseInk is null)
+                {
+                    _spotBaseInk = RasterBuffers.Rent(Length);
+                    Data.AsSpan(0, Length).CopyTo(_spotBaseInk);
+                    _spotPlates = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+                }
+                if (!_spotPlates!.TryGetValue(name, out byte[]? plate))
+                {
+                    plate = RasterBuffers.Rent(Length);
+                    Array.Clear(plate, 0, Length);
+                    _spotPlates.Add(name, plate);
+                }
+                return new PreparedSpotPaint(name, plate);
+            }
+        }
+
+        internal void PaintSpotPrepared(int offset, in Color color, bool overprint,
+            uint sourceInk, PreparedSpotPaint prepared)
+        {
+            if (!overprint)
+            {
+                WriteInk(_spotBaseInk!, offset, 0);
+                foreach (byte[] existing in _spotPlates!.Values)
+                    WriteInk(existing, offset, 0);
+            }
+            if (color.ProcessInk is uint processInk)
+            {
+                uint mask = 0;
+                for (int channel = 0; channel < 4; channel++)
+                    if ((color.SpotProcessMask & (1 << channel)) != 0)
+                        mask |= 0xffu << (channel * 8);
+                uint baseInk = ReadInk(_spotBaseInk!, offset);
+                WriteInk(_spotBaseInk!, offset, baseInk & ~mask | processInk & mask);
+            }
+            WriteInk(prepared.Plate, offset, color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk);
+            ComposeSpotPixel(offset);
+        }
+
         internal void PaintSpot(int offset, in Color color, bool overprint, uint sourceInk)
         {
             lock (_spotSync)

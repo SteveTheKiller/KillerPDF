@@ -15,7 +15,7 @@ overall average.
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch above 1.8; visible interactive use unverified | The October 1 installed-payload difficult set peaked at 194.3/194.1 MiB for 1.9 versus 130.2/124.5 MiB for 1.8.80 at 512 pixels, and 274.7/278.7 versus 252.0/252.0 MiB at 2048 pixels. All 74 pages completed in every run. Earlier woven builds inflated the small-file gap. September 9 installed-layout medians were 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | The latest October 3 installed-layout comparison after the spot fixes found 1.9 slower on 600 shared first pages by 3.10% at 512 pixels and 10.12% at 2048 pixels. An earlier same-day comparison measured gaps of 11.55% and 14.89%; run times shifted on both versions, so the smaller latest gaps do not establish a speed gain from the spot fixes. Altona x4 and x3 remain the largest 2048-pixel outliers. The 1.9 payload rendered 614 pages without failure at both sizes; 1.8.80 rendered 600 and failed on eight. A fresh eight-copy CMYK JPEG test found warmed times near parity, while the first 1.9 page remained slower. Whole-pass parity is not established. |
+| Rendering and whole-pass speed without regression | Open | The current matched ReadyToRun 2048-pixel comparison is 13.45% slower for 1.9 across 600 shared successful pages, despite the focused Ghent Patch improvement. Altona x3 and x4 remain the largest gaps. An earlier installed-layout comparison found 1.9 slower by 3.10% at 512 and 10.12% at 2048 pixels; layout and run conditions differ, so neither result establishes whole-pass parity. The current 1.9 payload rendered 614 pages without failure; 1.8.80 rendered 600 and failed on eight. A fresh eight-copy CMYK JPEG test found warmed times near parity, while the first 1.9 page remained slower. Whole-pass parity is not established. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The bounded-mask optimization preserved the packaged 1.9 PNG hashes for all 614 successful conformance first pages at both 512 and 2048 pixels. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. The guarded RGB spot path restores the GWG080 ReadMe right image check, while GWG081 changes are small; both pages still need full visual conformance. The right-hand X example is intentional. At 1024 pixels, 1.8.80 omits image marks. At tested scales, Poppler omits the recovered green check even though the PDF's printed criterion calls for it. Native CMYK spot preservation remains in place. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. Four alternating current-payload scan zoom runs averaged 314.339 ms for 1.9 versus 176.023 ms for 1.8.80 on the first 512-pixel render. The later 2048-pixel step averaged 56.372 versus 224.385 ms, with decoded image state retained by 1.9. The earlier scan figures used older payloads. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 3 local-branch forward-port check passes for 203 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
@@ -71,6 +71,29 @@ overprint tests, 4,215 engine tests, 487 app tests, and Release app build pass.
 The retained Poppler reference is 770 pixels wide, so exact reference parity
 is unverified. Scratch evidence is under
 `C:/Users/steve/kp-bench-render/gwg-readme-fidelity-20261003-live-fd92290/`.
+
+A prepared native-ink spot plate reduces synchronization while painting large
+named-spot images. Matched ReadyToRun payloads based on the committed OPM1 fix
+used identical app and codec binaries. Two balanced fresh-process passes at
+2048 pixels averaged 967.8 versus 757.0 ms on GWG081 Patch (21.8% faster)
+and 812.8 versus 721.5 ms on GWG080 Patch (11.2% faster). All 16 timed PNGs
+matched. Separate 20 ms memory sampling put both builds within about 1 MiB on
+each page. At 512 and 2048 pixels, all 649 corpus statuses, dimensions, and
+diagnostics and all 614 successful PNG hashes match the OPM1 baseline. These
+fidelity passes do not establish whole-corpus speed or memory parity with 1.8.
+Evidence is under
+`C:/Users/steve/kp-bench-render/ghent081-combined-20261003-69263d7/`.
+
+Two balanced 2048-pixel corpus passes compared the same current 1.8.80 source
+and the combined 1.9 payload. On the 600 pages successful in all four runs,
+mean summed page render times were 18,161.5 ms for 1.8 and 20,605.0 ms for
+1.9, a 13.45% gap. Both 1.8 runs had 600 rendered, 41 skipped, and eight
+failed files; both 1.9 runs had 614 rendered, 35 skipped, and none failed.
+Shared output dimensions matched. The 97 color pages added 4,203 ms to the
+gap, led by Altona x3 (+1,035 ms) and x4 (+929.5 ms). These are page render
+sums from headless CLI pipelines, not visible app latency. Earlier comparisons
+used different payload layouts and had different timings. Evidence is under
+`C:/Users/steve/kp-bench-render/ghent081-combined-20261003-69263d7/`.
 
 An October 3 sampled DeviceN shading fix passes 4,194 engine tests, 487 app
 tests, and the Release app build. On the GWG081 ReadMe at 1024 pixels, mean
