@@ -6,17 +6,15 @@ namespace KillerPDF.Services;
 /// <summary>Immutable engine view of the active serialized working document.</summary>
 internal sealed class PdfEngineDocumentSession
 {
-    private PdfEngineDocumentSession(string path, byte[] source, PdfDocument document,
+    private PdfEngineDocumentSession(string path, PdfDocument document,
         IReadOnlyList<PdfPageInformation> pages)
     {
         Path = path;
-        Source = source;
         Document = document;
         Pages = pages;
     }
 
     internal string Path { get; }
-    internal ReadOnlyMemory<byte> Source { get; }
     internal PdfDocument Document { get; }
     internal IReadOnlyList<PdfPageInformation> Pages { get; }
     internal int PageCount => Pages.Count;
@@ -24,9 +22,9 @@ internal sealed class PdfEngineDocumentSession
     internal static PdfEngineDocumentSession Open(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        byte[] source = File.ReadAllBytes(path);
+        using FileStream source = File.OpenRead(path);
         PdfDocument document = PdfDocument.Open(source);
-        return new PdfEngineDocumentSession(path, source, document,
+        return new PdfEngineDocumentSession(path, document,
             PdfPageInformation.Read(document));
     }
 

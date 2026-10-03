@@ -21,6 +21,18 @@ overall average.
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 1 local-branch forward-port check passes for 201 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
 | Builds and regression suites | Passing development checkpoint | October 3: 4,212 engine tests and 487 app tests pass, and the Release application build succeeds with zero warnings or errors. The earlier scratch portable and installer packages pass their file inventories and payload startup checks; the installer also passes isolated installation. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
+The viewer session now opens a file through the engine's stream-opening path,
+so it does not retain both the original file read and the engine's copy. Four
+alternating fresh-process opens of a 127,724,771-byte Altona PDF averaged
+101.065 ms with the former path and 83.547 ms with the current path. Current
+thread allocation fell by about 127.73 MB, live managed memory after full GC
+by about 127.72 MB, and isolated process peak by about 121.9 MiB. Both paths
+found 17 pages. Four focused session tests and all 487 app tests pass, including
+a document snapshot check after the file changes on disk. The Release app
+build passes with zero warnings or errors. This measures opening only, not
+whole viewer rendering or visible interaction. Scratch evidence is under
+`C:/Users/steve/kp-bench-render/session-open-copy-probe-20261003/`.
+
 A guarded RGB spot shadow partially restores the GWG080 ReadMe right image
 check. Matched 649-input comparisons at 512 and 2048 pixels rendered 614,
 skipped 35, and changed only the GWG080 and GWG081 ReadMe PNGs. The
