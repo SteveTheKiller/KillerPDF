@@ -105,6 +105,15 @@ its timings are attribution only. No further production shortcut follows from
 this census. Evidence is under
 `C:/Users/steve/kp-bench-render/altona-coverage-census-20261003/`.
 
+A scratch Altona x4 trial streamed its 92 MB Flate image into a bounded
+destination area plane. The active path kept all 64 timed PNG hashes and
+diagnostics identical. Sampled process peak fell by 65.45 MiB, but two
+balanced pairs increased first-page render time by 31.8% and later-page time
+by 28.8%. This serial plane construction loses the current parallel area
+conversion benefit. The trial was not promoted, and malformed-image fallback
+controls were not run after the performance gate failed. Evidence is under
+`C:/Users/steve/kp-bench-render/x4-stream-plane-20261003-c563d61/`.
+
 An October 3 sampled DeviceN shading fix passes 4,194 engine tests, 487 app
 tests, and the Release app build. On the GWG081 ReadMe at 1024 pixels, mean
 per-channel RGB error in the gradient strip (x 145-334, y 748-764) against
