@@ -92,6 +92,19 @@ set was 489 to 523 MiB for 1.9 versus 602 to 638 MiB for 1.8. The focused
 Altona gain did not produce corpus-wide parity. Raw comparisons are under
 `C:/Users/steve/kp-bench-render/parity-e67f161-v1880-installer-20261003/`.
 
+A focused 2048-pixel ABBA run of eight copies per Altona page separates first
+render from repeat costs. For x3, 1.9 averaged 895.0 versus 208.0 ms on the
+first copy and 445.4 versus 200.9 ms on each later copy. Its peak working set
+was 242.1 versus 142.7 MiB. For ECI x4, 1.9 averaged 1,180.5 versus 803.5 ms
+on the first copy but 743.9 versus 832.3 ms on later copies; its peak was
+590.9 versus 242.0 MiB. All repeat PNGs were stable within each version. An
+exact-payload x3 trace attributed overlapping work to coverage painting, ink
+conversion, spot painting, and image painting. A bounded shared ICC transform
+cache preserved all 32 trial PNGs but slowed both paired x3 runs and did not
+reduce peak memory, so it was rejected. These focused repeats do not replace
+the whole-corpus first-page comparison. Artifacts are under
+`C:/Users/steve/kp-bench-render/altona-hotpath-current-20261003/`.
+
 An October 3 current-payload trace of the map's first 512-pixel render took
 2,243 ms. Its discarded 64 MiB decoded prefix finished about 45 ms after
 rendering began, so that prefix is not the main cold gap. Sampled allocations
