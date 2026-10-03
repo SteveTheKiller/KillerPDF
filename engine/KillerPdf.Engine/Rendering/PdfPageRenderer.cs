@@ -4037,6 +4037,15 @@ public sealed partial class PdfPageRenderer
                 && shadedPixels >= ParallelPaintThreshold && bottom - top >= 2;
             if (parallelPaint)
                 colors.Warm();
+            bool reuseColumns = !parallelPaint && axisY == 0 && inverse.C == 0
+                && right > left && bottom > top + 1 && right - left <= 8192
+                && shadedPixels >= 8192 && double.IsFinite(scaleX) && double.IsFinite(scaleY)
+                && double.IsFinite(inverse.A) && double.IsFinite(inverse.B)
+                && double.IsFinite(inverse.D) && double.IsFinite(inverse.E)
+                && double.IsFinite(inverse.F) && double.IsFinite(x0) && double.IsFinite(y0);
+            Color[]? columnColors = reuseColumns ? new Color[right - left] : null;
+            long[]? columnInputs = reuseColumns ? new long[right - left] : null;
+            bool[]? columnFilled = reuseColumns ? new bool[right - left] : null;
             ForEachRow(top, bottom, shadedPixels, PaintRows,
                 parallelPaint ? null : 1, cancellationToken);
             return true;
@@ -4059,7 +4068,26 @@ public sealed partial class PdfPageRenderer
                         if (unit < 0 && !extendStart || unit > 1 && !extendEnd) continue;
                         unit = Math.Clamp(unit, 0, 1);
                         double input = domain[0] + unit * (domain[1] - domain[0]);
-                        Color color = OverprintColor(colors.At(input), colorSpace,
+                        Color color;
+                        if (columnColors is not null && double.IsFinite(input))
+                        {
+                            int column = x - left;
+                            long bits = BitConverter.DoubleToInt64Bits(input);
+                            if (columnFilled![column] && columnInputs![column] == bits)
+                                color = columnColors[column];
+                            else
+                            {
+                                color = OverprintColor(colors.At(input), colorSpace,
+                                    state.FillOverprint, state.OverprintMode);
+                                if (!columnFilled[column])
+                                {
+                                    columnColors[column] = color;
+                                    columnInputs![column] = bits;
+                                    columnFilled[column] = true;
+                                }
+                            }
+                        }
+                        else color = OverprintColor(colors.At(input), colorSpace,
                             state.FillOverprint, state.OverprintMode);
                         SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
                             state.BlendMode, state.GraphicsSoftMask, state.Knockout,

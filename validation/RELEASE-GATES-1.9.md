@@ -15,7 +15,7 @@ overall average.
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch above 1.8; visible interactive use unverified | The October 1 installed-payload difficult set peaked at 194.3/194.1 MiB for 1.9 versus 130.2/124.5 MiB for 1.8.80 at 512 pixels, and 274.7/278.7 versus 252.0/252.0 MiB at 2048 pixels. All 74 pages completed in every run. Earlier woven builds inflated the small-file gap. September 9 installed-layout medians were 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | The current matched ReadyToRun 2048-pixel comparison is 13.45% slower for 1.9 across 600 shared successful pages, despite the focused Ghent Patch improvement. Altona x3 and x4 remain the largest gaps. An earlier installed-layout comparison found 1.9 slower by 3.10% at 512 and 10.12% at 2048 pixels; layout and run conditions differ, so neither result establishes whole-pass parity. The current 1.9 payload rendered 614 pages without failure; 1.8.80 rendered 600 and failed on eight. A fresh eight-copy CMYK JPEG test found warmed times near parity, while the first 1.9 page remained slower. Whole-pass parity is not established. |
+| Rendering and whole-pass speed without regression | Open | The latest balanced ReadyToRun 2048-pixel comparison has 1.9 slower by 4.94% across 600 shared successful pages: 19,143 versus 18,242 ms in mean summed page rendering. Altona x3 and x4 remain the largest gaps. An earlier 1.9 payload measured 13.45% slower with the same 1.8.80 payload and input; variation on other pages prevents assigning that entire change to the axial optimization. The current 1.9 payload rendered 614 pages without failure; 1.8.80 rendered 600 and failed on eight. These headless results do not establish visible app latency or whole-pass parity. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The bounded-mask optimization preserved the packaged 1.9 PNG hashes for all 614 successful conformance first pages at both 512 and 2048 pixels. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. The guarded RGB spot path restores the GWG080 ReadMe right image check, while GWG081 changes are small; both pages still need full visual conformance. The right-hand X example is intentional. At 1024 pixels, 1.8.80 omits image marks. At tested scales, Poppler omits the recovered green check even though the PDF's printed criterion calls for it. Native CMYK spot preservation remains in place. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. Four alternating current-payload scan zoom runs averaged 314.339 ms for 1.9 versus 176.023 ms for 1.8.80 on the first 512-pixel render. The later 2048-pixel step averaged 56.372 versus 224.385 ms, with decoded image state retained by 1.9. The earlier scan figures used older payloads. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 3 local-branch forward-port check passes for 203 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
@@ -83,6 +83,34 @@ diagnostics and all 614 successful PNG hashes match the OPM1 baseline. These
 fidelity passes do not establish whole-corpus speed or memory parity with 1.8.
 Evidence is under
 `C:/Users/steve/kp-bench-render/ghent081-combined-20261003-69263d7/`.
+
+A serial axial-shading path now reuses a color within a device column only
+when the computed input matches the first eligible pixel bit for bit. A GWG081
+Patch probe found 207,594 repeat inputs among 209,415 eligible pixels with no
+input mismatch. Matched ReadyToRun B-C-C-B runs at 2048 pixels averaged
+859.5 ms before and 334.25 ms after, a 61.1% reduction on that page. Sampled
+peak fell from about 119 to 113 MiB. Clipped and sheared synthetic controls,
+595 focused tests, and both Ghent Patch and ReadMe outputs matched their
+controls. At 512 and 2048 pixels, all 649 corpus rows and all 614 successful
+PNG hashes matched the prior 1.9 build. The live checkout passes 4,215 engine
+tests, 487 app tests, and a Release build with zero warnings or errors. This
+focused gain does not establish whole-corpus parity with 1.8. Evidence is under
+`C:/Users/steve/kp-bench-render/ghent081-axial-column-trial-20261003-c563d61/`.
+
+The latest balanced 2048-pixel B-C-C-B corpus run used the same retained
+1.8.80 payload and 649-file input as the earlier comparison, paired with the
+axial 1.9 ReadyToRun payload. All four runs kept stable statuses and details
+within each version; all 600 shared successful pages had matching dimensions.
+The two 1.8.80 runs rendered 600 pages, skipped 41, and failed eight. The two
+1.9 runs rendered 614 pages, skipped 35, and failed none. Mean summed page
+render times on the shared pages were 18,242 and 19,143 ms respectively, a
+901 ms (4.94%) 1.9 gap. Process times were 53.813/53.255 seconds for 1.8.80
+and 55.921/56.812 seconds for 1.9. Altona x3 (+961.5 ms) and x4 (+480.5 ms)
+remain the largest positive page gaps. The earlier 13.45% corpus gap used a
+different 1.9 payload; variation outside the target page means the corpus
+change cannot be attributed entirely to the axial cache. These are headless
+page-render sums, not visible app latency. Raw runs and the per-file comparison
+are under `C:/Users/steve/kp-bench-render/ghent081-axial-column-trial-20261003-c563d61/parity-2048-v18-v19-axial/`.
 
 Two balanced 2048-pixel corpus passes compared the same current 1.8.80 source
 and the combined 1.9 payload. On the 600 pages successful in all four runs,
@@ -4444,3 +4472,11 @@ trial. At 2048 pixels they took 1,259/1,333 ms and 1,346/1,333 ms. First-render
 times overlapped at both sizes. The larger-page result did not establish a gain,
 so the code trial was removed. Scratch payloads and CSVs are under
 `C:/Users/steve/kp-bench-render/jbig2-intacc-trial-20261002`.
+
+A separate template-0 full-byte and final-byte loop trial matched 15 focused
+tests, 14 edge-width decoder-state checks, and the target scan PNG hashes at
+512 and 2048 pixels. Isolated 2048 cold control times were 353/352 ms versus
+351/371 ms for the trial; warmed medians were 207/188 versus 181/201 ms.
+The paired direction changed, so the trial stayed scratch-only. An earlier
+overlapping timing attempt was excluded. Evidence is under
+`C:/Users/steve/kp-bench-render/jbig2-template-tail-20261003/`.
