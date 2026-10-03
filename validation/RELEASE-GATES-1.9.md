@@ -337,6 +337,19 @@ listed first. The earlier 11.36% and 16.25% gaps show run variability; the
 new source has not reached whole-pass speed parity. Evidence is under
 `C:/Users/steve/kp-bench-render/parity-v1880-v19-countsort-20261003/`.
 
+Fresh installer-layout payloads built from exact commits `2427c7a` (1.8.80)
+and `6cd20b7` (1.9.0) were compared in two serial runs per version, in
+1.8, 1.9, 1.9, 1.8 order. Across the 600 commonly rendered
+first pages, mean page-render sums were 10,429 versus 11,387 ms at 512 pixels
+(1.9 slower by 9.19%) and 16,969 versus 19,005 ms at 2048 pixels (12.00%).
+At 2048 pixels, the 97 color pages added 3,794 ms, led by Altona x3 and x4
+and the GWG080/081 spot pages; other categories partly offset that gap. The
+1.9 payload rendered 614 pages without failure; 1.8 rendered 600 and failed
+eight. This measurement predates the exact-page JPEG decoder correction, which
+does not change the benchmark's normal render path. The benchmark did not
+sample memory or compare PNG hashes. CSVs and built payloads are under
+`C:/Users/steve/kp-bench-render/parity-head-20261003-1219/`.
+
 Parallelizing the direct ink row loop on Altona x3 reached one large masked
 paint per render. Its 27 focused tests and 64 paired PNG hashes passed, but
 four-process means worsened from 888.25 to 918.25 ms cold and from 444.68 to

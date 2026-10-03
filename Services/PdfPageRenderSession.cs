@@ -257,7 +257,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         {
             EngineDocument document = OpenDocument(path);
             var renderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance,
-                SharedCacheFor(document));
+                SharedCacheFor(document), WicJpegDecoder.Instance);
             return RenderOwnedPage(renderer, pageIndex,
                 CreateExactOptions(width, height, transparentBackground, includeFormFields), cancellationToken);
         }
