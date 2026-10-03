@@ -3138,13 +3138,32 @@ public sealed partial class PdfPageRenderer
                 && channels.Where(channel => channel >= 0).Distinct().Count() == activeChannels;
             string? singleSpot = channels is [-2]
                 ? ((PdfName)Resolve(names[0])).ValueAsLatin1() : null;
+            int spotIndex = Array.IndexOf(channels, -2);
+            bool mixedSpot = alternate.Components == 4 && spotIndex >= 0
+                && channels.Count(channel => channel == -2) == 1 && activeChannels > 0
+                && channels.All(channel => channel >= 0 || channel == -2)
+                && channels.Where(channel => channel >= 0).Distinct().Count() == activeChannels;
+            byte processMask = (byte)channels.Where(channel => channel >= 0)
+                .Aggregate(0, (mask, channel) => mask | (1 << channel));
+            string? mixedSpotName = mixedSpot ? ((PdfName)Resolve(names[spotIndex])).ValueAsLatin1() : null;
             return new ImageColorSpace(names.Count, null,
-                MultiConverter: singleSpot is null ? tintTransform
+                MultiConverter: mixedSpot ? values =>
+                {
+                    var spotValues = new double[values.Length];
+                    spotValues[spotIndex] = values[spotIndex];
+                    Color spot = tintTransform(spotValues);
+                    return tintTransform(values) with
+                    {
+                        SpotName = mixedSpotName, SpotTint = values[spotIndex],
+                        SpotInk = spot.Ink, ProcessInk = ProcessColor(channels, values).Ink,
+                        SpotProcessMask = processMask
+                    };
+                } : singleSpot is null ? tintTransform
                     : values => tintTransform(values) with
                     { SpotName = singleSpot, SpotTint = values[0] },
                 ProcessChannels: supported ? channels : null, SuppressPainting: channels.All(channel => channel == -1),
                 Initial: InitialColor.FullTint, HasIccSource: alternate.HasIccSource,
-                HasSpotColorants: channels is [-2]);
+                HasSpotColorants: channels is [-2] || mixedSpot);
         }
         if (kind.ValueAsLatin1() != "Indexed" || array.Count != 4
             || Resolve(array[2]) is not PdfInteger highValue
@@ -4859,7 +4878,7 @@ public sealed partial class PdfPageRenderer
             > 4_000_000L) factor++;
         int planeWidth = (samplingWidth + factor - 1) / factor;
         int planeHeight = (samplingHeight + factor - 1) / factor;
-        Color[]? spotPalette = target.Ink is not null && factor == 1
+        Color[]? spotPalette = target.Ink is not null
             && colorSpace.PaletteBase?.HasSpotColorants == true ? colorSpace.Palette : null;
         string? imageSpotName = target.Ink is not null && factor == 1 && !imageMask
             && colorSpace.HasSpotColorants && colorSpace.Components == 1 && colorSpace.Palette is null
@@ -4884,6 +4903,9 @@ public sealed partial class PdfPageRenderer
             planeWidth = Math.Min(planeWidth, destinationWidth);
             planeHeight = Math.Min(planeHeight, destinationHeight);
         }
+        SpotInkSample[]? spotPlane = averagePlane && spotPalette is { Length: > 0 }
+            && spotPalette[0].ProcessInk is not null
+            ? new SpotInkSample[checked(planeWidth * planeHeight)] : null;
         byte[]? plane = imageMask || preblendMatte is not null || directInkSamples || directDeviceSamples
             ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
         bool binaryAverage = averagePlane && bits == 1 && components == 1;
@@ -4959,6 +4981,9 @@ public sealed partial class PdfPageRenderer
                             {
                                 planeData.AsSpan((py - 1) * planeWidth * 4, planeWidth * 4)
                                     .CopyTo(planeData.AsSpan(py * planeWidth * 4, planeWidth * 4));
+                                if (spotPlane is not null)
+                                    spotPlane.AsSpan((py - 1) * planeWidth, planeWidth)
+                                        .CopyTo(spotPlane.AsSpan(py * planeWidth, planeWidth));
                                 continue;
                             }
                         }
@@ -4971,6 +4996,10 @@ public sealed partial class PdfPageRenderer
                                 ? converter.ConvertArea(px, py, planeWidth, planeHeight,
                                     sourceWidth, sourceHeight, cancellationToken)
                                 : converter.Convert(sx, sy);
+                            if (spotPlane is not null)
+                                spotPlane[py * planeWidth + px] = AverageSpotPalette(samples,
+                                    rowBytes, bits, sourceWidth, sourceHeight, px, py,
+                                    planeWidth, planeHeight, spotPalette!);
                             int alpha = colorKeyMask is not null && converter.MatchesColorKey(sx, sy, colorKeyMask)
                                 ? 0 : 255;
                             if (targetInk)
@@ -5205,7 +5234,17 @@ public sealed partial class PdfPageRenderer
                                 : target.ColorFromRgb(new(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]));
                         }
                         if (alpha == 0) continue;
-                        if (plane is not null && bits is > 0 and <= 16
+                        if (spotPlane is not null)
+                        {
+                            SpotInkSample spot = spotPlane[py * planeWidth + px];
+                            color = color with
+                            {
+                                SpotName = spotPalette![0].SpotName, SpotTint = spot.Tint / 255d,
+                                SpotInk = spot.SpotInk, ProcessInk = spot.ProcessInk,
+                                SpotProcessMask = spotPalette[0].SpotProcessMask
+                            };
+                        }
+                        else if (factor == 1 && plane is not null && bits is > 0 and <= 16
                             && (spotPalette is not null || imageSpotName is not null))
                         {
                             int sx = Math.Min(px, sourceWidth - 1);
@@ -5215,7 +5254,12 @@ public sealed partial class PdfPageRenderer
                             if (spotPalette is not null)
                             {
                                 Color spot = spotPalette[Math.Min(sample, spotPalette.Length - 1)];
-                                color = color with { SpotName = spot.SpotName, SpotTint = spot.SpotTint };
+                                color = color with
+                                {
+                                    SpotName = spot.SpotName, SpotTint = spot.SpotTint,
+                                    SpotInk = spot.SpotInk, ProcessInk = spot.ProcessInk,
+                                    SpotProcessMask = spot.SpotProcessMask
+                                };
                             }
                             else
                             {
@@ -5261,6 +5305,40 @@ public sealed partial class PdfPageRenderer
             if (alphaPlane is not null) RasterBuffers.Return(alphaPlane);
             if (plane is not null) RasterBuffers.Return(plane);
         }
+    }
+
+    private readonly record struct SpotInkSample(uint SpotInk, uint ProcessInk, byte Tint);
+
+    private static SpotInkSample AverageSpotPalette(byte[] samples, int rowBytes, int bits,
+        int sourceWidth, int sourceHeight, int px, int py, int planeWidth, int planeHeight,
+        Color[] palette)
+    {
+        var column = ImageSampleConverter.AreaSpan.Create(px, sourceWidth, planeWidth);
+        var row = ImageSampleConverter.AreaSpan.Create(py, sourceHeight, planeHeight);
+        Span<double> channels = stackalloc double[9];
+        for (int y = row.First; y < row.End; y++)
+            for (int x = column.First; x < column.End; x++)
+            {
+                int bitOffset = checked(y * rowBytes * 8 + x * bits);
+                int sample = checked((int)ReadPackedSample(samples, bitOffset, bits));
+                Color color = palette[Math.Min(sample, palette.Length - 1)];
+                double weight = row.Weight(y) * column.Weight(x) / (row.Length * column.Length);
+                uint spot = color.SpotInk ?? 0;
+                uint process = color.ProcessInk ?? 0;
+                for (int channel = 0; channel < 4; channel++)
+                {
+                    channels[channel] += (byte)(spot >> (channel * 8)) * weight;
+                    channels[channel + 4] += (byte)(process >> (channel * 8)) * weight;
+                }
+                channels[8] += color.SpotTint * 255 * weight;
+            }
+        uint spotInk = 0, processInk = 0;
+        for (int channel = 0; channel < 4; channel++)
+        {
+            spotInk |= (uint)(byte)Math.Round(channels[channel]) << (channel * 8);
+            processInk |= (uint)(byte)Math.Round(channels[channel + 4]) << (channel * 8);
+        }
+        return new SpotInkSample(spotInk, processInk, (byte)Math.Round(channels[8]));
     }
 
     /// <summary>Reads packed image samples and converts them to device colors with a small cache.</summary>
@@ -7393,6 +7471,9 @@ public sealed partial class PdfPageRenderer
         internal uint? Ink { get; init; }
         internal string? SpotName { get; init; }
         internal double SpotTint { get; init; }
+        internal uint? SpotInk { get; init; }
+        internal uint? ProcessInk { get; init; }
+        internal byte SpotProcessMask { get; init; }
         internal PdfColorTransform? InkProfile { get; init; }
         internal (double X, double Y, double Z)? Connection { get; init; }
         internal static Color Black => new(0, 0, 0) { Ink = 0xFF000000 };

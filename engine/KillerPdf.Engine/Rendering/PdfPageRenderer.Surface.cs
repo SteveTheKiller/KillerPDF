@@ -314,13 +314,22 @@ public sealed partial class PdfPageRenderer
                     foreach (byte[] existing in _spotPlates!.Values)
                         WriteInk(existing, offset, 0);
                 }
+                if (color.ProcessInk is uint processInk)
+                {
+                    uint mask = 0;
+                    for (int channel = 0; channel < 4; channel++)
+                        if ((color.SpotProcessMask & (1 << channel)) != 0)
+                            mask |= 0xffu << (channel * 8);
+                    uint baseInk = ReadInk(_spotBaseInk, offset);
+                    WriteInk(_spotBaseInk, offset, baseInk & ~mask | processInk & mask);
+                }
                 if (!_spotPlates!.TryGetValue(color.SpotName!, out byte[]? plate))
                 {
                     plate = RasterBuffers.Rent(Length);
                     Array.Clear(plate, 0, Length);
                     _spotPlates.Add(color.SpotName!, plate);
                 }
-                WriteInk(plate, offset, color.SpotTint <= 0 ? 0 : sourceInk);
+                WriteInk(plate, offset, color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk);
                 uint combined = ReadInk(_spotBaseInk, offset);
                 foreach (byte[] current in _spotPlates.Values)
                 {

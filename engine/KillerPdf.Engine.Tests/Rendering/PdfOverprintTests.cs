@@ -122,6 +122,31 @@ public sealed class PdfOverprintTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MixedBlackAndSpotImage_PreservesEarlierDifferentSpot(bool reducedImage)
+    {
+        var rendered = Render("mixedspotimage", true, true, 1, indexed: true,
+            blankBackground: true, initialSpotBeforeImage: true, reducedImage: reducedImage);
+        byte[] pixels = rendered.Pixels.ToArray();
+        int center = (4 * 8 + 4) * 4;
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(255, 128, 0, 128), pixels[center..(center + 4)]);
+    }
+
+    [Fact]
+    public void MixedBlackAndSpotImage_AveragesBothColorantsDuringReduction()
+    {
+        var rendered = Render("mixedspotimage", true, true, 1, indexed: true,
+            blankBackground: true, initialSpotBeforeImage: true,
+            reducedImage: true, alternatingImageSamples: true);
+        byte[] pixels = rendered.Pixels.ToArray();
+        int center = (4 * 8 + 4) * 4;
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(255, 64, 0, 64), pixels[center..(center + 4)]);
+    }
+
+    [Theory]
     [InlineData("group-inherited", 255, 0)]
     [InlineData("group-inherited", 255, 0, true)]
     [InlineData("group-repaint", 255, 0, true)]
@@ -244,7 +269,7 @@ public sealed class PdfOverprintTests
         bool indexed = false, bool none = false, bool rgb = false, bool registration = false,
         double registrationTint = 0.5, double? secondSpotTint = null, bool blankBackground = false,
         bool blankImageBetweenSpotPaints = false, bool initialSpotBeforeImage = false,
-        byte? spotImageTint = null)
+        byte? spotImageTint = null, bool reducedImage = false, bool alternatingImageSamples = false)
     {
         PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
@@ -255,7 +280,7 @@ public sealed class PdfOverprintTests
             "stroke" => "0 1 0 0 K 8 w 0 4 m 8 4 l S",
             "allreference" => (rgb ? grayNumber + " g" : $"{tintNumber} {tintNumber} {tintNumber} {tintNumber} k") + " 0 0 8 8 re f",
             "rgbgrayreference" => $"{grayNumber} {grayNumber} {grayNumber} rg 0 0 8 8 re f",
-            "image" or "stencil" or "namedimage" or "spotimage" or "namednoneimage" or "namedfiveimage" => "8 0 0 8 0 0 cm /Im Do",
+            "image" or "stencil" or "namedimage" or "spotimage" or "mixedspotimage" or "namednoneimage" or "namedfiveimage" => "8 0 0 8 0 0 cm /Im Do",
             "tiny" => "0.0001 1 0 0 k 0 0 8 8 re f",
             "separation" or "spot" or "devicen" => "/Named cs 1 scn 0 0 8 8 re f",
             "namedzero" => "/Named cs 0 1 scn 0 0 8 8 re f",
@@ -278,7 +303,8 @@ public sealed class PdfOverprintTests
         string select = paint == "restored" ? "q /O gs Q" : "/O gs";
         if (registration) operation = operation.Replace("1 scn", tintNumber + " scn", StringComparison.Ordinal);
         if (initialSpotBeforeImage)
-            operation = "/Named cs 1 scn 0 0 8 8 re f q " + operation + " Q";
+            operation = (paint == "mixedspotimage" ? "/SpotA cs 1 scn" : "/Named cs 1 scn")
+                + " 0 0 8 8 re f q " + operation + " Q";
         if (secondSpotTint is double repaintTint)
             operation += (blankImageBetweenSpotPaints ? " q 8 0 0 8 0 0 cm /Im Do Q" : "")
                 + " /Named cs " + repaintTint.ToString(System.Globalization.CultureInfo.InvariantCulture)
@@ -302,10 +328,13 @@ public sealed class PdfOverprintTests
         if (fill.HasValue) settings.Add(Entry("op", new PdfBoolean(fill.Value)));
         var imageEntries = new List<KeyValuePair<PdfName, PdfObject>>
         {
-            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)), Entry("Height", new PdfInteger(1)),
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(reducedImage ? 16 : 1)),
+            Entry("Height", new PdfInteger(reducedImage ? 16 : 1)),
             Entry("BitsPerComponent", new PdfInteger(paint is "stencil" or "namedstencil" ? 1 : 8))
         };
-        byte[] imageSamples = spotImageTint is byte tint ? [tint]
+        byte[] imageSamples = paint == "mixedspotimage"
+                ? alternatingImageSamples ? [128, 128, 0, 0] : [128, 128]
+                : spotImageTint is byte tint ? [tint]
                 : blankImageBetweenSpotPaints ? [0, 0, 0, 0]
                 : paint is "stencil" or "namedstencil" ? [0]
                 : paint is "namedimage" or "spotimage" ? [255]
@@ -315,10 +344,15 @@ public sealed class PdfOverprintTests
         if (registration && paint == "namedimage") imageSamples = [(byte)Math.Round(registrationTint * 255)];
         if (paint is "stencil" or "namedstencil") imageEntries.Add(Entry("ImageMask", new PdfBoolean(true)));
         else imageEntries.Add(Entry("ColorSpace", indexed
-            ? new PdfArray([Name("Indexed"), Name("Named"), new PdfInteger(0),
+            ? new PdfArray([Name("Indexed"), Name("Named"), new PdfInteger(alternatingImageSamples ? 1 : 0),
                 new PdfString(imageSamples, PdfStringForm.Hexadecimal)])
-            : Name(paint is "namedimage" or "spotimage" or "namednoneimage" or "namedfiveimage" ? "Named" : "DeviceCMYK")));
-        var image = update.AddObject(new PdfStream(new PdfDictionary(imageEntries), indexed ? [0] : imageSamples));
+            : Name(paint is "namedimage" or "spotimage" or "mixedspotimage" or "namednoneimage" or "namedfiveimage" ? "Named" : "DeviceCMYK")));
+        byte[] reducedSamples = new byte[256];
+        if (alternatingImageSamples)
+            for (int index = 0; index < reducedSamples.Length; index++)
+                reducedSamples[index] = (byte)(index % 2);
+        var image = update.AddObject(new PdfStream(new PdfDictionary(imageEntries),
+            indexed ? reducedImage ? reducedSamples : [0] : imageSamples));
         PdfArray Numbers(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));
         var function = new PdfDictionary([
             Entry("FunctionType", new PdfInteger(2)), Entry("Domain", Numbers(0, 1)),
@@ -366,6 +400,7 @@ public sealed class PdfOverprintTests
         string[] colorants = paint switch
         {
             "namedzero" => ["Cyan", "Magenta"],
+            "mixedspotimage" => ["Black", "Custom"],
             "namednone" or "namednoneimage" => ["Magenta", "None"],
             "namedfive" or "namedfiveimage" => ["Cyan", "Magenta", "Yellow", "Black", "None"],
             _ => ["Magenta"]
@@ -384,12 +419,18 @@ public sealed class PdfOverprintTests
                     Entry("Domain", Numbers([.. Enumerable.Range(0, colorants.Length * 2).Select(index => index % 2)])),
                     Entry("Range", Numbers(0, 1, 0, 1, 0, 1, 0, 1))]),
                     Encoding.ASCII.GetBytes(none ? "{ " + string.Concat(Enumerable.Repeat("pop ", colorants.Length)) + "0 1 0 0 }"
+                        : paint == "mixedspotimage" ? "{ 0 exch 0 4 -1 roll }"
                         : paint is "namednone" or "namednoneimage" ? "{ pop pop 1 0 0 0 }"
                         : paint is "namedfive" or "namedfiveimage" ? "{ pop pop pop pop pop 1 0 0 0 }"
                         : paint == "group-precision" ? "{ 10000 mul 0 0 0 }"
                         : paint.StartsWith("group-", StringComparison.Ordinal)
                         ? "{ 0 0 0 }" : paint == "namedzero" ? "{ 0 0 }" : "{ 0 exch 0 0 }")))
-            ])), Entry("IndexedNamed", new PdfArray([Name("Indexed"), Name("Named"),
+            ])), Entry("SpotA", new PdfArray([Name("Separation"), Name("FirstSpot"),
+                Name("DeviceCMYK"), update.AddObject(new PdfStream(new PdfDictionary([
+                    Entry("FunctionType", new PdfInteger(4)), Entry("Domain", Numbers(0, 1)),
+                    Entry("Range", Numbers(0, 1, 0, 1, 0, 1, 0, 1))]),
+                    Encoding.ASCII.GetBytes("{ 0 0 0 }")))])),
+            Entry("IndexedNamed", new PdfArray([Name("Indexed"), Name("Named"),
                 new PdfInteger(1), new PdfString([0, 255], PdfStringForm.Hexadecimal)]))])),
             Entry("Font", new PdfDictionary([Entry("F", new PdfDictionary([
                 Entry("Type", Name("Font")), Entry("Subtype", Name("Type1")), Entry("BaseFont", Name("Helvetica"))]))])),
