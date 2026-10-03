@@ -246,11 +246,14 @@ public sealed partial class PdfPageRenderer
         bool pageHasGroup = _tree.Pages[pageIndex].Dictionary.TryGetValue(Name("Group"), out _);
         PdfColorTransform? outputProfile = pageHasGroup ? null : OutputProfile(null);
         PdfColorTransform? pageProfile = ReadGroupProfile(_tree.Pages[pageIndex].Dictionary, pageResources, diagnostics);
+        bool considerRgbSpotShadow = false;
         if (outputProfile is not null)
             pixels.EnableInk(Color.White, profile: outputProfile);
         else if (CmykGroup(_tree.Pages[pageIndex].Dictionary, pageResources, false))
             pixels.EnableInk(Color.White, profile: pageProfile);
         else if (pageProfile is { Components: 1 or 3 }) pixels.EnableRgb(Color.White, pageProfile);
+        else if (!pageHasGroup)
+            considerRgbSpotShadow = true;
         RasterSurface pageSurface = pixels;
         int previousParallelism = _rowParallelism;
         int previousJpeg2000PaintParallelism = _jpeg2000PaintParallelism;
@@ -258,6 +261,9 @@ public sealed partial class PdfPageRenderer
         _jpeg2000PaintParallelism = Math.Max(1, options.Jpeg2000PaintParallelism);
         try
         {
+            if (considerRgbSpotShadow && RequiresRgbSpotShadow(pageIndex, pageResources,
+                _tree.Pages[pageIndex].Dictionary, diagnostics, cancellationToken))
+                pixels.EnableRgbSpotShadow();
             ImageColorSpace initialGray = ReadColorSpace(Name("DeviceGray"), pageResources, 0, diagnostics: diagnostics).ForDestination(pixels);
             if (initialGray.IsDefault)
             {
@@ -2246,6 +2252,182 @@ public sealed partial class PdfPageRenderer
             return appearance is not null;
         }
     }
+
+    private bool ResourcesContainNamedColorants(PdfDictionary resources)
+    {
+        if (!resources.TryGetValue(Name("ColorSpace"), out PdfObject? value)
+            || Resolve(value) is not PdfDictionary spaces) return false;
+        foreach (KeyValuePair<PdfName, PdfObject> entry in spaces)
+            if (ContainsNamedColorants(entry.Value, 0)) return true;
+        return false;
+    }
+
+    private bool ContainsNamedColorants(PdfObject value, int depth)
+    {
+        if (depth > 8 || Resolve(value) is not PdfArray array || array.Count == 0
+            || Resolve(array[0]) is not PdfName family) return false;
+        string name = family.ValueAsLatin1();
+        if (name is "Separation" or "DeviceN") return true;
+        return name == "Indexed" && array.Count > 1 && ContainsNamedColorants(array[1], depth + 1);
+    }
+
+    private bool RequiresRgbSpotShadow(int pageIndex, PdfDictionary resources, PdfDictionary page,
+        HashSet<string> diagnostics, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return ProbeRgbSpotShadow(pageIndex, resources, page, diagnostics, cancellationToken);
+        }
+        catch (Exception error) when (error is FormatException or PdfFilterException
+            or NotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    private bool ProbeRgbSpotShadow(int pageIndex, PdfDictionary resources, PdfDictionary page,
+        HashSet<string> diagnostics, CancellationToken cancellationToken)
+    {
+        if (!ResourcesContainNamedColorants(resources)
+            || page.TryGetValue(Name("Annots"), out _)
+            || resources.TryGetValue(Name("Pattern"), out _)
+            || (resources.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue)
+                && Resolve(colorSpaceValue) is PdfDictionary colorSpaces
+                && colorSpaces.TryGetValue(Name("DefaultCMYK"), out _))
+            || !resources.TryGetValue(Name("XObject"), out PdfObject? xObjectValue)
+            || Resolve(xObjectValue) is not PdfDictionary xObjects
+            || !resources.TryGetValue(Name("ExtGState"), out PdfObject? stateValue)
+            || Resolve(stateValue) is not PdfDictionary states) return false;
+
+        var namedImages = new HashSet<PdfName>();
+        foreach (KeyValuePair<PdfName, PdfObject> entry in xObjects)
+        {
+            if (Resolve(entry.Value) is not PdfStream image
+                || !IsName(image.Dictionary, "Subtype", "Image")
+                || image.Dictionary.TryGetValue(Name("ImageMask"), out _)
+                || image.Dictionary.TryGetValue(Name("Mask"), out _)
+                || image.Dictionary.TryGetValue(Name("SMask"), out _)
+                || !image.Dictionary.TryGetValue(Name("ColorSpace"), out PdfObject? space)
+                || !TryRgbSpotImageColorSpace(space, resources, 0, out bool named)) return false;
+            if (named) namedImages.Add(entry.Key);
+        }
+        if (namedImages.Count == 0) return false;
+
+        foreach (KeyValuePair<PdfName, PdfObject> entry in states)
+        {
+            if (Resolve(entry.Value) is not PdfDictionary settings) return false;
+            if (settings.TryGetValue(Name("SMask"), out PdfObject? mask)
+                && (Resolve(mask) is not PdfName maskName
+                    || maskName.ValueAsLatin1() != "None")) return false;
+            if (settings.TryGetValue(Name("BM"), out PdfObject? blend)
+                && (Resolve(blend) is not PdfName blendName
+                    || blendName.ValueAsLatin1() is not ("Normal" or "Compatible"))) return false;
+            if (settings.TryGetValue(Name("AIS"), out PdfObject? alphaShape)
+                && Resolve(alphaShape) is PdfBoolean { Value: true }) return false;
+            foreach (string key in new[] { "ca", "CA" })
+            {
+                if (!settings.TryGetValue(Name(key), out PdfObject? alpha)) continue;
+                PdfObject resolved = Resolve(alpha);
+                if (resolved is not PdfInteger and not PdfReal || Number(resolved) != 1) return false;
+            }
+        }
+
+        IEnumerable<PdfContentInstruction> instructions = ReadInstructions(pageIndex, diagnostics,
+            cancellationToken);
+        if (instructions is not IReadOnlyList<PdfContentInstruction>) return false;
+
+        bool fillOverprint = false, namedImageOverprint = false;
+        var savedOverprint = new Stack<bool>();
+        foreach (PdfContentInstruction instruction in instructions)
+        {
+            switch (instruction.Operator)
+            {
+                case "q":
+                    savedOverprint.Push(fillOverprint);
+                    break;
+                case "Q":
+                    if (!savedOverprint.TryPop(out fillOverprint)) return false;
+                    break;
+                case "gs":
+                    if (instruction.Operands.Count != 1 || instruction.Operands[0] is not PdfName stateName
+                        || !states.TryGetValue(stateName, out PdfObject? state)
+                        || Resolve(state) is not PdfDictionary settings) return false;
+                    if (settings.TryGetValue(Name("OP"), out PdfObject? strokeValue))
+                    {
+                        if (Resolve(strokeValue) is not PdfBoolean stroke) return false;
+                        fillOverprint = stroke.Value;
+                    }
+                    if (settings.TryGetValue(Name("op"), out PdfObject? fillValue))
+                    {
+                        if (Resolve(fillValue) is not PdfBoolean fill) return false;
+                        fillOverprint = fill.Value;
+                    }
+                    break;
+                case "Do":
+                    if (instruction.Operands.Count != 1 || instruction.Operands[0] is not PdfName imageName
+                        || !xObjects.TryGetValue(imageName, out _)) return false;
+                    namedImageOverprint |= fillOverprint && namedImages.Contains(imageName);
+                    break;
+                case "BI":
+                    return false;
+            }
+        }
+        return savedOverprint.Count == 0 && namedImageOverprint;
+    }
+
+    private bool TryRgbSpotImageColorSpace(PdfObject value, PdfDictionary resources, int depth,
+        out bool named)
+    {
+        named = false;
+        if (depth > 8) return false;
+        if (Resolve(value) is PdfName name)
+        {
+            if (name.ValueAsLatin1() == "DeviceCMYK") return true;
+            return resources.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaces)
+                && Resolve(colorSpaces) is PdfDictionary spaces
+                && spaces.TryGetValue(name, out PdfObject? resourceSpace)
+                && TryRgbSpotImageColorSpace(resourceSpace, resources, depth + 1, out named);
+        }
+        if (Resolve(value) is not PdfArray array || array.Count == 0
+            || Resolve(array[0]) is not PdfName family) return false;
+        switch (family.ValueAsLatin1())
+        {
+            case "Indexed":
+                return array.Count > 1
+                    && TryRgbSpotImageColorSpace(array[1], resources, depth + 1, out named);
+            case "Separation":
+                if (array.Count != 4 || Resolve(array[1]) is not PdfName separation
+                    || Resolve(array[2]) is not PdfName separationAlternate
+                    || separationAlternate.ValueAsLatin1() != "DeviceCMYK") return false;
+                if (separation.ValueAsLatin1() is "None" or "All") return false;
+                named = IsNamedSpotColorant(separation.ValueAsLatin1());
+                return true;
+            case "DeviceN":
+                if (array.Count is not (4 or 5) || Resolve(array[1]) is not PdfArray colorants
+                    || colorants.Count is < 1 or > 32
+                    || Resolve(array[2]) is not PdfName alternate
+                    || alternate.ValueAsLatin1() != "DeviceCMYK") return false;
+                var processNames = new HashSet<string>(StringComparer.Ordinal);
+                int spotCount = 0;
+                foreach (PdfObject colorant in colorants)
+                {
+                    if (Resolve(colorant) is not PdfName component) return false;
+                    string componentName = component.ValueAsLatin1();
+                    if (componentName is "None" or "All") return false;
+                    if (IsNamedSpotColorant(componentName)) spotCount++;
+                    else if (!processNames.Add(componentName)) return false;
+                }
+                if (spotCount != 1) return false;
+                if (processNames.Count == 0 && colorants.Count != 1) return false;
+                named = true;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsNamedSpotColorant(string name) =>
+        name is not ("Cyan" or "Magenta" or "Yellow" or "Black" or "None" or "All");
 
     private static readonly double[] element = [0d, 1d];
 
@@ -4783,6 +4965,7 @@ public sealed partial class PdfPageRenderer
                                     directData[targetOffset + 2] = (byte)(rgb >> 16);
                                 }
                                 directData[targetOffset + 3] = 255;
+                                target.InvalidateRgbSpotPixel(targetOffset);
                             }
                         }
                     }, jpeg2000 && areaSample
@@ -4867,6 +5050,7 @@ public sealed partial class PdfPageRenderer
                         directData[targetOffset + 2] = (byte)(rgb >> 16);
                     }
                     directData[targetOffset + 3] = 255;
+                    target.InvalidateRgbSpotPixel(targetOffset);
                 }
             }
             return;
@@ -4886,9 +5070,10 @@ public sealed partial class PdfPageRenderer
             > 4_000_000L) factor++;
         int planeWidth = (samplingWidth + factor - 1) / factor;
         int planeHeight = (samplingHeight + factor - 1) / factor;
-        Color[]? spotPalette = target.Ink is not null
+        bool preserveRgbSpots = target.HasRgbSpotShadow && colorSpace.ContainsSpotColorants;
+        Color[]? spotPalette = (target.Ink is not null || preserveRgbSpots)
             && colorSpace.PaletteBase?.HasSpotColorants == true ? colorSpace.Palette : null;
-        string? imageSpotName = target.Ink is not null && factor == 1 && !imageMask
+        string? imageSpotName = (target.Ink is not null || preserveRgbSpots) && factor == 1 && !imageMask
             && colorSpace.HasSpotColorants && colorSpace.Components == 1 && colorSpace.Palette is null
             ? colorSpace.Convert(new double[] { 1 }).SpotName : null;
         bool averagePlane = factor > 1 && !imageMask && preblendMatte is null
@@ -4912,7 +5097,7 @@ public sealed partial class PdfPageRenderer
             planeHeight = Math.Min(planeHeight, destinationHeight);
         }
         SpotInkSample[]? spotPlane = averagePlane && spotPalette is { Length: > 0 }
-            && spotPalette[0].ProcessInk is not null
+            && (spotPalette[0].ProcessInk is not null || target.HasRgbSpotShadow)
             ? new SpotInkSample[checked(planeWidth * planeHeight)] : null;
         byte[]? plane = imageMask || preblendMatte is not null || directInkSamples || directDeviceSamples
             ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
@@ -5040,7 +5225,8 @@ public sealed partial class PdfPageRenderer
             // Antialiased clips only change pixels with partial clip coverage; fully covered
             // pixels take the same direct write, and partially covered ones use the compositor
             // with the same clip factor as the general loop.
-            bool direct = target.Ink is null && target.RgbProfile is null && imageOpacity == 1 && graphicsSoftMask is null && knockout is null
+            bool direct = target.Ink is null && target.RgbProfile is null && !preserveRgbSpots
+                && imageOpacity == 1 && graphicsSoftMask is null && knockout is null
                 && target.GroupShape is null
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
             bool perPixelClip = !rectangularClips;
@@ -5102,6 +5288,7 @@ public sealed partial class PdfPageRenderer
                                 data[targetOffset + 1] = planeData[planeOffset + greenIndex];
                                 data[targetOffset + 2] = planeData[planeOffset + redIndex];
                                 data[targetOffset + 3] = 255;
+                                target.InvalidateRgbSpotPixel(targetOffset);
                                 directGroupAlpha?[targetOffset / 4] = 255;
                                 continue;
                             }
@@ -5272,7 +5459,7 @@ public sealed partial class PdfPageRenderer
                                 color = color with
                                 {
                                     SpotName = spot.SpotName, SpotTint = spot.SpotTint,
-                                    SpotInk = spot.SpotInk, ProcessInk = spot.ProcessInk,
+                                    SpotInk = spot.SpotInk ?? spot.Ink, ProcessInk = spot.ProcessInk,
                                     SpotProcessMask = spot.SpotProcessMask
                                 };
                             }
@@ -5338,7 +5525,7 @@ public sealed partial class PdfPageRenderer
                 int sample = checked((int)ReadPackedSample(samples, bitOffset, bits));
                 Color color = palette[Math.Min(sample, palette.Length - 1)];
                 double weight = row.Weight(y) * column.Weight(x) / (row.Length * column.Length);
-                uint spot = color.SpotInk ?? 0;
+                uint spot = color.SpotInk ?? color.Ink ?? 0;
                 uint process = color.ProcessInk ?? 0;
                 for (int channel = 0; channel < 4; channel++)
                 {
@@ -6279,6 +6466,18 @@ public sealed partial class PdfPageRenderer
             pixels.ClearSpotPixel(offset);
             return;
         }
+        if (pixels.HasRgbSpotShadow)
+        {
+            bool supported = sourceAlpha == 1 && pixels.Alpha(offset) == 255
+                && graphicsSoftMask is null && knockout is null && pixels.GroupShape is null
+                && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+            if (supported && color.SpotName is not null
+                && pixels.TryPaintRgbSpot(offset, color, (color.OverprintComponents & 16) != 0,
+                    resolvedInk ?? pixels.GetInk(color))) return;
+            if (supported && color.SpotName is null)
+                pixels.TrackRgbProcessPixel(offset, color, resolvedInk);
+            else pixels.InvalidateRgbSpotPixel(offset);
+        }
         if (pixels.RgbProfile is not null)
             SetRgbPixel(pixels, offset, pixels.GetRgb(color), sourceAlpha, blendMode);
         else SetRgbPixel(pixels, offset, color, sourceAlpha, blendMode);
@@ -7192,11 +7391,12 @@ public sealed partial class PdfPageRenderer
         }
 
         internal ImageColorSpace ForDestination(RasterSurface destination) =>
-            NativeProcessMask.HasValue && destination.Ink is not null ? this
+            NativeProcessMask.HasValue && (destination.Ink is not null || destination.HasRgbSpotShadow) ? this
             : Profile is null && SourceSpace is { Components: 4, Profile: not null } original
                 && destination.Ink is not null && ReferenceEquals(original.Profile, destination.InkProfile) ? this
             : SourceSpace is not null ? SourceSpace.ForDestination(destination)
-            : PaletteBase is { HasProcessColorants: true } && destination.Ink is not null
+            : PaletteBase is { HasProcessColorants: true }
+                && (destination.Ink is not null || destination.HasRgbSpotShadow)
                 ? BindProcessPalette(destination)
             : RegistrationColor && destination.Ink is not null
                 ? this with
@@ -7205,7 +7405,8 @@ public sealed partial class PdfPageRenderer
                     NativeProcessMask = 15,
                     SourceSpace = this
                 }
-            : ProcessChannels is { } channels && destination.Ink is not null
+            : ProcessChannels is { } channels
+                && (destination.Ink is not null || destination.HasRgbSpotShadow)
                 ? this with
                 {
                     Converter = channels.Length <= 4

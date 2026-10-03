@@ -1239,7 +1239,9 @@ public sealed partial class PdfPageRenderer
         bool directProfiled = pixels.RgbProfile is not null && pixels.Ink is null
             && graphicsSoftMask is null && knockout is null && pixels.GroupShape is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
-        bool direct = alpha >= 1 && (simpleBlend || directProfiled);
+        bool rgbShadowSpot = pixels.HasRgbSpotShadow && color.SpotName is not null;
+        bool direct = alpha >= 1 && (simpleBlend || directProfiled) && !rgbShadowSpot
+            && (!pixels.HasRgbSpotShadow || (color.OverprintComponents & ~15) == 0);
         bool directInk = pixels.Ink is not null && alpha >= 1
             && (color.OverprintComponents & 16) == 0
             && color.SpotName is null && !pixels.HasSpotPlates
@@ -1249,7 +1251,7 @@ public sealed partial class PdfPageRenderer
         bool directSpot = pixels.Ink is not null && color.SpotName is not null && alpha >= 1
             && graphicsSoftMask is null && knockout is null && pixels.GroupShape is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
-        uint ink = pixels.Ink is not null ? pixels.GetInk(color) : 0;
+        uint ink = pixels.Ink is not null || pixels.HasRgbSpotShadow ? pixels.GetInk(color) : 0;
         // On ink surfaces the compositor resolves the paint's ink through GetInk for every
         // pixel; a color that already carries this surface's ink resolves to the same value
         // without the per-pixel color comparison.
@@ -1321,7 +1323,8 @@ public sealed partial class PdfPageRenderer
         {
             PaintDirectCoverageRows(pixels, width, mask, color, alpha, blendMode,
                 graphicsSoftMask, knockout, left, top, right,
-                bottom, groupAlpha, coverage, cancellationToken);
+                bottom, groupAlpha, coverage,
+                pixels.HasRgbSpotShadow ? ink : null, cancellationToken);
             return;
         }
         // Row chunks write disjoint pixels, disjoint group alpha entries and disjoint knockout
@@ -1392,7 +1395,8 @@ public sealed partial class PdfPageRenderer
         CoverageMask mask, Color fillColor, double alpha, RendererBlendMode blendMode,
         GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
         int left, int top, int right, int bottom,
-        byte[]? groupAlpha, byte[]? coverage, CancellationToken cancellationToken)
+        byte[]? groupAlpha, byte[]? coverage, uint? rgbShadowInk,
+        CancellationToken cancellationToken)
     {
         // Opaque normal-blend fills on a plain RGB surface: full rows of a rectangular
         // mask are one span fill, and antialiased edges blend against opaque pixels in
@@ -1411,6 +1415,8 @@ public sealed partial class PdfPageRenderer
                     {
                         System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
                             data.AsSpan(rowOffset, (right - left) * 4)).Fill(packed);
+                        if (rgbShadowInk is uint rowInk)
+                            pixels.TrackRgbProcessRun(rowOffset, right - left, rowInk);
                         groupAlpha?.AsSpan(rowOffset / 4, right - left).Fill(255);
                         continue;
                     }
@@ -1423,11 +1429,14 @@ public sealed partial class PdfPageRenderer
                         if (cover == 255)
                         {
                             Unsafe.WriteUnaligned(ref data[offset], packed);
+                            if (rgbShadowInk is uint pixelInk)
+                                pixels.TrackRgbProcessRun(offset, 1, pixelInk);
                             groupAlpha?[offset / 4] = 255;
                             continue;
                         }
                         if (data[offset + 3] == 255)
                         {
+                            pixels.InvalidateRgbSpotPixel(offset);
                             int inverse = 255 - cover;
                             data[offset] = (byte)((fillColor.Blue * cover + data[offset] * inverse + 127) / 255);
                             data[offset + 1] = (byte)((fillColor.Green * cover + data[offset + 1] * inverse + 127) / 255);
@@ -1499,11 +1508,14 @@ public sealed partial class PdfPageRenderer
                     if (cover == 255)
                     {
                         Unsafe.WriteUnaligned(ref pixels.Data[offset], directPacked);
+                        if (pixels.HasRgbSpotShadow)
+                            pixels.TrackRgbProcessPixel(offset, paint, ink);
                         groupAlpha?[offset / 4] = 255;
                         continue;
                     }
                     if (pixels.RgbProfile is null && pixels[offset + 3] == 255)
                     {
+                        pixels.InvalidateRgbSpotPixel(offset);
                         int inverse = 255 - cover;
                         pixels[offset] = (byte)((directColor.Blue * cover + pixels[offset] * inverse + 127) / 255);
                         pixels[offset + 1] = (byte)((directColor.Green * cover + pixels[offset + 1] * inverse + 127) / 255);
@@ -1517,6 +1529,7 @@ public sealed partial class PdfPageRenderer
                     int offset = pixels.Offset(x, y);
                     if (pixels[offset + 3] == 255)
                     {
+                        pixels.InvalidateRgbSpotPixel(offset);
                         pixels[offset] = opaqueBlend[pixels[offset] * 4];
                         pixels[offset + 1] = opaqueBlend[pixels[offset + 1] * 4 + 1];
                         pixels[offset + 2] = opaqueBlend[pixels[offset + 2] * 4 + 2];
@@ -1526,7 +1539,7 @@ public sealed partial class PdfPageRenderer
                 }
                 SetPixel(pixels, width, x, y, paint, alpha * cover / 255d, blendMode,
                     graphicsSoftMask, knockout, shape: cover / 255d, alphaIsShape: alphaIsShape,
-                    resolvedInk: pixels.Ink is not null ? ink : null);
+                    resolvedInk: pixels.Ink is not null || pixels.HasRgbSpotShadow ? ink : null);
             }
         }
     }

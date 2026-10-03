@@ -109,6 +109,156 @@ public sealed class PdfOverprintTests
     }
 
     [Fact]
+    public void DefaultRgbSurface_VectorOnlySpotPageKeepsPriorRendering()
+    {
+        PdfRenderedPage rendered = RenderRgbSpotShadow(withSpots: true);
+        PdfRenderedPage control = RenderRgbSpotShadow(withSpots: false);
+        int firstSpot = (4 * 8 + 3) * 4;
+        int repaintedSpot = (4 * 8 + 4) * 4;
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Empty(control.Diagnostics);
+        for (int y = 0; y < 8; y++)
+            for (int x = 0; x < 2; x++)
+            {
+                int rgbControl = (y * 8 + x) * 4;
+                Assert.Equal(control.Pixels.Span[rgbControl..(rgbControl + 4)].ToArray(),
+                    rendered.Pixels.Span[rgbControl..(rgbControl + 4)].ToArray());
+                Assert.Equal(new byte[] { 0, 0, 255, 255 },
+                    rendered.Pixels.Span[rgbControl..(rgbControl + 4)].ToArray());
+            }
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(255, 0, 255, 64),
+            rendered.Pixels.Span[firstSpot..(firstSpot + 4)].ToArray());
+        Assert.Equal(new byte[] { 156, 202, 128, 255 },
+            rendered.Pixels.Span[repaintedSpot..(repaintedSpot + 4)].ToArray());
+    }
+
+    [Fact]
+    public void DefaultRgbSurface_PreservesMixedProcessInkAcrossSameSpotImage()
+    {
+        PdfRenderedPage rendered = RenderRgbSpotShadow(withSpots: true, useImages: true);
+        PdfRenderedPage control = RenderRgbSpotShadow(withSpots: false);
+        PdfRenderedPage cleared = RenderRgbSpotShadow(withSpots: true,
+            useImages: true, greenImageTint: 0);
+        int firstSpot = (4 * 8 + 3) * 4;
+        int repaintedSpot = (4 * 8 + 4) * 4;
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Empty(control.Diagnostics);
+        Assert.Empty(cleared.Diagnostics);
+        for (int y = 0; y < 8; y++)
+            Assert.Equal(control.Pixels.Span[(y * 8 * 4)..((y * 8 + 2) * 4)].ToArray(),
+                rendered.Pixels.Span[(y * 8 * 4)..((y * 8 + 2) * 4)].ToArray());
+        Assert.NotEqual(control.Pixels.Span[firstSpot..(firstSpot + 4)].ToArray(),
+            rendered.Pixels.Span[firstSpot..(firstSpot + 4)].ToArray());
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 0, 0, 64),
+            cleared.Pixels.Span[repaintedSpot..(repaintedSpot + 4)].ToArray());
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(128, 0, 128, 64),
+            rendered.Pixels.Span[repaintedSpot..(repaintedSpot + 4)].ToArray());
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public void DefaultRgbSurface_PureSpotImage_HonorsProcessOverprint(
+        bool reducedImage, bool overprint)
+    {
+        PdfRenderedPage rendered = RenderRgbSpotShadow(withSpots: true,
+            pureImageOverProcess: true, reducedPureSpotImage: reducedImage,
+            enableSpotOverprint: overprint);
+        int center = (4 * 8 + 4) * 4;
+        byte[] expected = overprint
+            ? PdfDeviceCmykTests.RenderInk(128, 255, 128, 128)
+            : PdfDeviceCmykTests.RenderInk(128, 0, 128, 0);
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(expected, rendered.Pixels.Span[center..(center + 4)].ToArray());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DefaultRgbSurface_OrdinaryRgbImageExcludesSpotShadow(bool afterSpot)
+    {
+        PdfRenderedPage rendered = RenderRgbSpotShadow(withSpots: true,
+            pureImageOverProcess: true, addRgbImage: true, rgbImageAfterSpot: afterSpot);
+        int center = (4 * 8 + 4) * 4;
+        byte[] expected = afterSpot ? [150, 90, 20, 255]
+            : PdfDeviceCmykTests.RenderInk(128, 0, 128, 0);
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(expected, rendered.Pixels.Span[center..(center + 4)].ToArray());
+    }
+
+    [Fact]
+    public void DefaultRgbSurface_TransparencyFormExcludesSpotShadow()
+    {
+        PdfRenderedPage rendered = RenderRgbSpotShadow(withSpots: true,
+            pureImageOverProcess: true, addTransparencyForm: true);
+        int center = (4 * 8 + 4) * 4;
+        int left = (4 * 8 + 1) * 4;
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(128, 0, 128, 0),
+            rendered.Pixels.Span[center..(center + 4)].ToArray());
+        Assert.Equal(new byte[] { 255, 0, 0, 255 },
+            rendered.Pixels.Span[left..(left + 4)].ToArray());
+    }
+
+    [Fact]
+    public void DefaultRgbSurface_ProcessOverprintAfterSpotFallsBackWithoutResurrectingInk()
+    {
+        PdfRenderedPage rendered = RenderRgbSpotShadow(withSpots: true,
+            pureImageOverProcess: true, processOverprintAfterSpot: true);
+        int center = (4 * 8 + 4) * 4;
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(255, 0, 0, 0),
+            rendered.Pixels.Span[center..(center + 4)].ToArray());
+    }
+
+    [Fact]
+    public void DefaultRgbSurface_UnbalancedGraphicsStateExcludesSpotShadow()
+    {
+        PdfRenderedPage rendered = RenderRgbSpotShadow(withSpots: true,
+            pureImageOverProcess: true, unbalancedState: true);
+        int center = (4 * 8 + 4) * 4;
+
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(128, 0, 128, 0),
+            rendered.Pixels.Span[center..(center + 4)].ToArray());
+    }
+
+    [Theory]
+    [InlineData("none")]
+    [InlineData("multiple")]
+    [InlineData("duplicate")]
+    [InlineData("rgbAlternate")]
+    public void DefaultRgbSurface_UnsupportedDeviceNImageExcludesSpotShadow(string colorants)
+    {
+        PdfRenderedPage rendered = RenderRgbSpotShadow(withSpots: true,
+            pureImageOverProcess: true, unsupportedDeviceN: colorants);
+        int center = (4 * 8 + 4) * 4;
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(128, 0, 128, 0),
+            rendered.Pixels.Span[center..(center + 4)].ToArray());
+    }
+
+    [Fact]
+    public void DefaultRgbSurface_DefaultCmykOverrideExcludesSpotShadow()
+    {
+        PdfRenderedPage rendered = RenderRgbSpotShadow(withSpots: true,
+            pureImageOverProcess: true, defaultCmykOverride: true);
+        int center = (4 * 8 + 4) * 4;
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(128, 0, 128, 0),
+            rendered.Pixels.Span[center..(center + 4)].ToArray());
+    }
+
+    [Fact]
     public void OpaqueProcessFillBetweenNamedSpots_ClearsEarlierPlate()
     {
         var rendered = Render("spot", true, true, 1, blankBackground: true,
@@ -340,6 +490,142 @@ public sealed class PdfOverprintTests
         var update = new PdfIncrementalUpdateBuilder(source).ReplaceObject(page.Reference.ObjectNumber,
             new PdfDictionary(dictionary.Append(new KeyValuePair<PdfName, PdfObject>(new PdfName("Group"u8), group))));
         return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(1, 1)).Pixels.ToArray();
+    }
+
+    private static PdfRenderedPage RenderRgbSpotShadow(bool withSpots, bool useImages = false,
+        byte greenImageTint = 128, bool pureImageOverProcess = false,
+        bool reducedPureSpotImage = false, bool enableSpotOverprint = true,
+        bool addRgbImage = false, bool rgbImageAfterSpot = false,
+        bool addTransparencyForm = false, bool processOverprintAfterSpot = false,
+        bool unbalancedState = false, string? unsupportedDeviceN = null,
+        bool defaultCmykOverride = false)
+    {
+        PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
+        KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
+        PdfArray Numbers(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));
+        string content = "1 0 0 rg 0 0 2 8 re f";
+        if (addTransparencyForm) content += " /Fm Do";
+        if (unsupportedDeviceN is not null)
+            content += " q 2 0 0 8 0 0 cm /ImUnsupported Do Q";
+        if (withSpots && pureImageOverProcess)
+            content += " 0 1 0 0.5 k 2 0 6 8 re f /O gs"
+                + (addRgbImage && !rgbImageAfterSpot ? " q 6 0 0 8 2 0 cm /Im2 Do Q" : "")
+                + " q 6 0 0 8 2 0 cm /Im1 Do Q"
+                + (addRgbImage && rgbImageAfterSpot ? " q 6 0 0 8 2 0 cm /Im2 Do Q" : "")
+                + (processOverprintAfterSpot
+                    ? " 0 0 0 0.5 k 2 0 6 8 re f q 6 0 0 8 2 0 cm /Im3 Do Q" : "");
+        else if (withSpots && useImages)
+            content += " /O gs q 6 0 0 8 2 0 cm /Im0 Do Q"
+                + " /Green cs 0.75 scn 6 0 2 8 re f"
+                + " q 2 0 0 8 4 0 cm /Im1 Do Q";
+        else if (withSpots)
+            content += " 0 0 0 0.75 k 2 0 6 8 re f /O gs"
+                + " /Mixed cs 0.25 1 scn 2 0 6 8 re f"
+                + " /Green cs 0.5 scn 4 0 2 8 re f";
+        if (unbalancedState) content += " Q";
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(8, 8, Encoding.ASCII.GetBytes(content)).Build());
+        if (!withSpots)
+            return new PdfPageRenderer(source).Render(0, new PdfRenderOptions(8, 8));
+
+        var root = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
+        var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)root[Name("Pages")]);
+        var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+        var page = (PdfDictionary)source.Resolve(reference);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        var mixedFunction = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("FunctionType", new PdfInteger(4)), Entry("Domain", Numbers(0, 1, 0, 1)),
+            Entry("Range", Numbers(0, 1, 0, 1, 0, 1, 0, 1))]),
+            Encoding.ASCII.GetBytes("{ dup 0 3 -1 roll 4 -1 roll }")));
+        var greenFunction = new PdfDictionary([
+            Entry("FunctionType", new PdfInteger(2)), Entry("Domain", Numbers(0, 1)),
+            Entry("C0", Numbers(0, 0, 0, 0)), Entry("C1", Numbers(1, 0, 1, 0)),
+            Entry("N", new PdfInteger(1))]);
+        var blueFunction = new PdfDictionary([
+            Entry("FunctionType", new PdfInteger(2)), Entry("Domain", Numbers(0, 1)),
+            Entry("C0", Numbers(0, 0, 0, 0)), Entry("C1", Numbers(1, 0, 0, 0)),
+            Entry("N", new PdfInteger(1))]);
+        var mixedImage = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)),
+            Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)),
+            Entry("ColorSpace", new PdfArray([Name("Indexed"), Name("Mixed"),
+                new PdfInteger(0), new PdfString([64, 255], PdfStringForm.Hexadecimal)]))]), [0]));
+        var greenImage = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(reducedPureSpotImage ? 16 : 1)),
+            Entry("Height", new PdfInteger(reducedPureSpotImage ? 16 : 1)),
+            Entry("BitsPerComponent", new PdfInteger(8)),
+            Entry("ColorSpace", new PdfArray([Name("Indexed"), Name("Green"),
+                new PdfInteger(0), new PdfString([greenImageTint], PdfStringForm.Hexadecimal)]))]),
+             reducedPureSpotImage ? new byte[256] : [0]));
+        var xObjects = new List<KeyValuePair<PdfName, PdfObject>>
+        {
+            Entry("Im0", mixedImage), Entry("Im1", greenImage)
+        };
+        if (addRgbImage)
+            xObjects.Add(Entry("Im2", update.AddObject(new PdfStream(new PdfDictionary([
+                Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)),
+                Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)),
+                Entry("ColorSpace", Name("DeviceRGB"))]), [20, 90, 150]))));
+        if (processOverprintAfterSpot)
+            xObjects.Add(Entry("Im3", update.AddObject(new PdfStream(new PdfDictionary([
+                Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)),
+                Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)),
+                Entry("ColorSpace", new PdfArray([Name("Indexed"), Name("Blue"),
+                    new PdfInteger(0), new PdfString([255], PdfStringForm.Hexadecimal)]))]), [0]))));
+        if (unsupportedDeviceN is not null)
+        {
+            string[] colorants = unsupportedDeviceN switch
+            {
+                "none" => ["Black", "GWG Green", "None"],
+                "multiple" => ["GWG Green", "GWG Blue"],
+                "duplicate" => ["Black", "Black", "GWG Green"],
+                "rgbAlternate" => ["Black", "GWG Green"],
+                _ => throw new ArgumentOutOfRangeException(nameof(unsupportedDeviceN))
+            };
+            int alternateComponents = unsupportedDeviceN == "rgbAlternate" ? 3 : 4;
+            int[] domain = Enumerable.Repeat(new[] { 0, 1 }, colorants.Length).SelectMany(value => value).ToArray();
+            int[] range = Enumerable.Repeat(new[] { 0, 1 }, alternateComponents).SelectMany(value => value).ToArray();
+            string program = "{ " + string.Concat(Enumerable.Repeat("pop ", colorants.Length))
+                + string.Concat(Enumerable.Repeat("0 ", alternateComponents)) + "}";
+            var function = update.AddObject(new PdfStream(new PdfDictionary([
+                Entry("FunctionType", new PdfInteger(4)), Entry("Domain", Numbers(domain)),
+                Entry("Range", Numbers(range))]), Encoding.ASCII.GetBytes(program)));
+            xObjects.Add(Entry("ImUnsupported", update.AddObject(new PdfStream(new PdfDictionary([
+                Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)),
+                Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)),
+                Entry("ColorSpace", new PdfArray([Name("Indexed"), new PdfArray([
+                    Name("DeviceN"), new PdfArray(colorants.Select(value => (PdfObject)Name(value))),
+                    Name(alternateComponents == 3 ? "DeviceRGB" : "DeviceCMYK"), function]),
+                    new PdfInteger(0), new PdfString(new byte[colorants.Length], PdfStringForm.Hexadecimal)]))]), [0]))));
+        }
+        if (addTransparencyForm)
+            xObjects.Add(Entry("Fm", update.AddObject(new PdfStream(new PdfDictionary([
+                Entry("Subtype", Name("Form")), Entry("BBox", Numbers(0, 0, 8, 8)),
+                Entry("Group", new PdfDictionary([Entry("S", Name("Transparency")),
+                    Entry("CS", Name("DeviceRGB")), Entry("I", new PdfBoolean(true))]))]),
+                Encoding.ASCII.GetBytes("0 0 1 rg 0 0 2 8 re f")))));
+        var resources = new PdfDictionary([
+            Entry("ColorSpace", new PdfDictionary([
+                Entry("Mixed", new PdfArray([Name("DeviceN"),
+                    new PdfArray([Name("Black"), Name("GWG Green")]),
+                    Name("DeviceCMYK"), mixedFunction])),
+                Entry("Green", new PdfArray([Name("Separation"), Name("GWG Green"),
+                    Name("DeviceCMYK"), greenFunction])),
+                Entry("Blue", new PdfArray([Name("Separation"), Name("GWG Blue"),
+                    Name("DeviceCMYK"), blueFunction])),
+                ..(defaultCmykOverride
+                    ? new[] { Entry("DefaultCMYK", Name("DeviceCMYK")) }
+                    : Array.Empty<KeyValuePair<PdfName, PdfObject>>())])),
+            Entry("ExtGState", new PdfDictionary([Entry("O", new PdfDictionary([
+                Entry("op", new PdfBoolean(enableSpotOverprint)),
+                Entry("OP", new PdfBoolean(enableSpotOverprint)),
+                Entry("OPM", new PdfInteger(0)), Entry("ca", new PdfInteger(1)),
+                Entry("CA", new PdfInteger(1)), Entry("BM", Name("Normal"))]))])),
+            Entry("XObject", new PdfDictionary(xObjects))]);
+        update.ReplaceObject(reference.ObjectNumber,
+            new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Resources")))
+                .Append(Entry("Resources", resources))));
+        return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(8, 8));
     }
 
     private static readonly string[] sourceArray = ["Custom"];

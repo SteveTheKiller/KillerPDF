@@ -95,6 +95,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Fixed
 
+- Preserved process ink beneath supported named spot images on RGB pages.
 - Kept antialiased spot-color edges on their named plate when a later overprint replaces that color.
 - Applied sampled shading colors through their DeviceN tint transforms instead of interpreting tint values as CMYK channels.
 - Recovered cross-reference tables whose trailer size omits valid objects (#406).

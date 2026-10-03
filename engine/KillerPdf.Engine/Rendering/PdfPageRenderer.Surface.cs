@@ -25,7 +25,10 @@ public sealed partial class PdfPageRenderer
         private readonly Lock _spotSync = new();
         private byte[]? _spotBaseInk;
         private Dictionary<string, byte[]>? _spotPlates;
-        internal bool HasSpotPlates => _spotBaseInk is not null;
+        private byte[]? _rgbSpotValid;
+        private bool _rgbSpotShadow;
+        internal bool HasSpotPlates => _spotPlates is { Count: > 0 };
+        internal bool HasRgbSpotShadow => _rgbSpotShadow;
         private byte[]? _inkAlpha;
         internal byte[]? InkAlpha
         {
@@ -298,6 +301,59 @@ public sealed partial class PdfPageRenderer
             return _lastInk;
         }
 
+        internal void EnableRgbSpotShadow()
+        {
+            if (Ink is not null || _rgbSpotShadow) return;
+            _rgbSpotShadow = true;
+            _spotBaseInk = RasterBuffers.Rent(Length);
+            Array.Clear(_spotBaseInk, 0, Length);
+            _spotPlates = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+            _rgbSpotValid = RasterBuffers.Rent(Length / 4);
+            _rgbSpotValid.AsSpan(0, Length / 4).Fill(1);
+        }
+
+        internal void TrackRgbProcessPixel(int offset, in Color color, uint? resolvedInk)
+        {
+            if (!_rgbSpotShadow) return;
+            lock (_spotSync)
+            {
+                uint? sourceInk = resolvedInk ?? color.Ink;
+                if (sourceInk is not uint ink || (color.OverprintComponents & ~15) != 0)
+                {
+                    _rgbSpotValid![offset / 4] = 0;
+                    return;
+                }
+                WriteInk(_spotBaseInk!, offset, ink);
+                foreach (byte[] plate in _spotPlates!.Values) WriteInk(plate, offset, 0);
+                _rgbSpotValid![offset / 4] = 1;
+            }
+        }
+
+        internal void TrackRgbProcessRun(int offset, int count, uint ink)
+        {
+            if (!_rgbSpotShadow) return;
+            lock (_spotSync)
+            {
+                System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
+                    _spotBaseInk!.AsSpan(offset, count * 4)).Fill(ink);
+                foreach (byte[] plate in _spotPlates!.Values)
+                    plate.AsSpan(offset, count * 4).Clear();
+                _rgbSpotValid!.AsSpan(offset / 4, count).Fill(1);
+            }
+        }
+
+        internal void InvalidateRgbSpotPixel(int offset)
+        {
+            if (_rgbSpotShadow) _rgbSpotValid![offset / 4] = 0;
+        }
+
+        internal bool TryPaintRgbSpot(int offset, in Color color, bool overprint, uint sourceInk)
+        {
+            if (!_rgbSpotShadow || _rgbSpotValid![offset / 4] == 0) return false;
+            PaintSpot(offset, color, overprint, sourceInk);
+            return true;
+        }
+
         internal void PaintSpot(int offset, in Color color, bool overprint, uint sourceInk)
         {
             lock (_spotSync)
@@ -426,7 +482,14 @@ public sealed partial class PdfPageRenderer
                 }
                 combined = mixed;
             }
-            WriteInk(Data, offset, combined);
+            if (_rgbSpotShadow)
+            {
+                uint rgb = PdfDeviceCmyk.ToRgb(combined);
+                Data[offset] = (byte)rgb;
+                Data[offset + 1] = (byte)(rgb >> 8);
+                Data[offset + 2] = (byte)(rgb >> 16);
+            }
+            else WriteInk(Data, offset, combined);
             SetAlpha(offset, 255);
         }
 
@@ -445,6 +508,9 @@ public sealed partial class PdfPageRenderer
         {
             if (_spotBaseInk is not null) RasterBuffers.Return(_spotBaseInk);
             _spotBaseInk = null;
+            if (_rgbSpotValid is not null) RasterBuffers.Return(_rgbSpotValid);
+            _rgbSpotValid = null;
+            _rgbSpotShadow = false;
             if (_spotPlates is null) return;
             foreach (byte[] plate in _spotPlates.Values) RasterBuffers.Return(plate);
             _spotPlates = null;
