@@ -211,6 +211,21 @@ public sealed class PdfOverprintTests
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SpotImage_ClearsAntialiasedEdgesOfEarlierSameSpot(bool indexed)
+    {
+        var reference = Render("spotimage", true, true, 1, indexed: indexed,
+            blankBackground: true, spotImageTint: 0);
+        var rendered = Render("spotimage", true, true, 1, indexed: indexed,
+            blankBackground: true, spotImageTint: 0, spotEdgeBeforeImage: true);
+
+        Assert.Equal(reference.Pixels.ToArray(), rendered.Pixels.ToArray());
+        Assert.Empty(reference.Diagnostics);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
     [InlineData("group-inherited", 255, 0)]
     [InlineData("group-inherited", 255, 0, true)]
     [InlineData("group-repaint", 255, 0, true)]
@@ -335,7 +350,7 @@ public sealed class PdfOverprintTests
         bool blankImageBetweenSpotPaints = false, bool initialSpotBeforeImage = false,
         byte? spotImageTint = null, bool reducedImage = false, bool alternatingImageSamples = false,
         bool grayWhiteOverlay = false, double? cmykBlackOverlay = null,
-        bool processFillBetweenSpots = false)
+        bool processFillBetweenSpots = false, bool spotEdgeBeforeImage = false)
     {
         PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
@@ -371,6 +386,9 @@ public sealed class PdfOverprintTests
         if (processFillBetweenSpots)
             operation = "/SpotA cs 1 scn 0 0 8 8 re f q /N gs 0 0 0 0 k 2.25 0 3.5 8 re f Q"
                 + " /Named cs 1 scn 3 0 2 8 re f";
+        if (spotEdgeBeforeImage)
+            operation = "/Named cs 1 scn 0.25 0.25 m 7.75 7.75 l 7.75 0.25 l h f q "
+                + operation + " Q";
         if (initialSpotBeforeImage)
             operation = (paint == "mixedspotimage" ? "/SpotA cs 1 scn" : "/Named cs 1 scn")
                 + " 0 0 8 8 re f q " + operation + " Q";

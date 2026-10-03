@@ -334,6 +334,28 @@ public sealed partial class PdfPageRenderer
             }
         }
 
+        internal void PaintSpotCoverage(int offset, in Color color, uint sourceInk, byte coverage)
+        {
+            lock (_spotSync)
+            {
+                if (_spotBaseInk is null)
+                {
+                    _spotBaseInk = RasterBuffers.Rent(Length);
+                    Data.AsSpan(0, Length).CopyTo(_spotBaseInk);
+                    _spotPlates = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+                }
+                if (!_spotPlates!.TryGetValue(color.SpotName!, out byte[]? plate))
+                {
+                    plate = RasterBuffers.Rent(Length);
+                    Array.Clear(plate, 0, Length);
+                    _spotPlates.Add(color.SpotName!, plate);
+                }
+                uint spotInk = color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk;
+                WriteInk(plate, offset, BlendCoverageInk(spotInk, ReadInk(plate, offset), coverage));
+                ComposeSpotPixel(offset);
+            }
+        }
+
         internal void PaintSpotRun(int offset, int count, in Color color, bool overprint, uint sourceInk)
         {
             lock (_spotSync)

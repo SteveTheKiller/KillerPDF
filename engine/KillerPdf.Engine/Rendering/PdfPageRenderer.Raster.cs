@@ -1370,9 +1370,19 @@ public sealed partial class PdfPageRenderer
                     continue;
                 }
                 if (cover != 0)
-                    SetPixel(pixels, width, x, y, paint, alpha * cover / 255d,
-                        blendMode, shape: cover / 255d, alphaIsShape: alphaIsShape,
-                        resolvedInk: ink);
+                {
+                    if (overprint && paint.ProcessInk is null && pixels.Alpha(offset) == 255)
+                    {
+                        pixels.PaintSpotCoverage(offset, paint, ink, (byte)cover);
+                        if (groupAlpha is not null)
+                            groupAlpha[offset / 4] = (byte)Math.Round(cover
+                                + groupAlpha[offset / 4] * (1 - cover / 255d));
+                    }
+                    else
+                        SetPixel(pixels, width, x, y, paint, alpha * cover / 255d,
+                            blendMode, shape: cover / 255d, alphaIsShape: alphaIsShape,
+                            resolvedInk: ink);
+                }
                 x++;
             }
         }
