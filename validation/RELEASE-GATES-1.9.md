@@ -3877,7 +3877,7 @@ rendering. The Ghent OPM0 patches no longer show the incorrect solid X, though
 a thin X outline remains. Evidence is in
 `C:/Users/steve/kp-bench-render/cmyk-opm0-20261002`.
 
-The latest matched pre-fix 512-pixel pair across 600 common pages measured
+An earlier matched pre-fix 512-pixel pair across 600 common pages measured
 14,252/14,202 ms for 1.8.80 and 15,063/14,667 ms for 1.9, leaving 1.9
 3.3 to 5.7 percent slower. At 2048 pixels, the 74-page difficult set measured
 4,769/4,792 ms for 1.8.80 and 8,892/8,593 ms for 1.9. Its Altona technical
@@ -3886,3 +3886,39 @@ predate the current overprint correction; its separate corpus pass does not
 establish a speed change. The integer spot-mixing trial produced identical
 pixels but mixed alternating timings and was removed. Rendering performance,
 full-page fidelity, and interactive parity remain open.
+
+### Opaque spot-run performance checkpoint (2026-10-02)
+
+Altona's 2048-pixel technical page makes 960,294 eligible opaque, full-cover
+named-spot pixel paints across 105,705 scanline runs. The renderer now shares
+spot plate lookup, process mask preparation, and synchronization across each
+run while leaving partially covered edges on the original path. A scratch
+control and trial rendered 614 of 649 conformance pages at 512 pixels with
+identical decoded image hashes and matching skips and dimensions. All 128
+images from the focused timing sequences also matched exactly.
+
+Eight alternating fresh processes measured last-eight warm Altona renders at
+371.1 ms control versus 344.5 ms trial on average, a 7.2 percent reduction.
+First renders averaged 1,211.5 versus 1,192.5 ms with overlapping ranges, so
+no cold-render gain is established. Four matched pairs of the 74-page
+2048-pixel difficult set produced trial-minus-control totals of +14, +176,
+-168, and +54 ms. Their sign changes; no whole-set gain or slowdown is
+established. Altona alone averaged 26.75 ms faster in those pairs. All 74 page
+hashes and statuses matched across the eight runs. The production branch
+passes 4,192 engine tests, 487 app tests, and a Release build with zero
+warnings and errors. Evidence is retained under
+`C:/Users/steve/kp-bench-render/spot-eligibility-20261002` and
+`C:/Users/steve/kp-bench-render/spot-run-74-controlled-reverse-20261002`.
+
+The post-commit matched comparison used current 1.8.80 and 1.9 Release
+binaries. Across 600 common corpus pages at 512 pixels, 1.8 render sums were
+10,666/10,420 ms and 1.9 sums were 11,666/11,702 ms, leaving 1.9
+9.4/12.3 percent slower in the two pairs. The 74-page difficult set at 2048
+pixels measured 4,599/4,689 ms in 1.8 and 8,364/8,444 ms in 1.9, a
+81.9/80.1 percent gap. Altona Technical page 1 measured 201/244 ms versus
+1,080/1,013 ms. The sums cover page rendering in fresh headless processes,
+not whole-app wall time or interaction. All 600 shared corpus pages and all 74
+difficult pages matched status and dimensions. Overall, 1.8 rendered 600 of
+649 corpus files, skipped 41, and failed eight malformed files; 1.9 rendered
+614, skipped 35, and failed none. Evidence is under
+`C:/Users/steve/kp-bench-render/parity-final-8b2027f-v1880-20261002`.

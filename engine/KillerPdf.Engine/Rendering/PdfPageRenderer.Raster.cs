@@ -1207,6 +1207,9 @@ public sealed partial class PdfPageRenderer
             && graphicsSoftMask is null && knockout is null
             && pixels.GroupShape is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        bool directSpot = pixels.Ink is not null && color.SpotName is not null && alpha >= 1
+            && graphicsSoftMask is null && knockout is null && pixels.GroupShape is null
+            && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         uint ink = pixels.Ink is not null ? pixels.GetInk(color) : 0;
         // On ink surfaces the compositor resolves the paint's ink through GetInk for every
         // pixel; a color that already carries this surface's ink resolves to the same value
@@ -1217,6 +1220,13 @@ public sealed partial class PdfPageRenderer
             && (long)(right - left) * (bottom - top) >= 4096
             ? CreateOpaqueBlendLookup(color, alpha * 255 / 255d, blendMode) : null;
         byte[]? coverage = mask.Coverage;
+        if (directSpot && !perPixelClip)
+        {
+            PaintSpotCoverageRows(pixels, width, mask, paint, alpha, blendMode,
+                alphaIsShape, left, top, right, bottom, coverage, ink, groupAlpha,
+                cancellationToken);
+            return;
+        }
         if (directInk && !perPixelClip)
         {
             // Opaque interiors share bulk ink and alpha writes; partial edges keep the compositor.
@@ -1293,6 +1303,40 @@ public sealed partial class PdfPageRenderer
             alphaIsShape, left, top, right, bottom, perPixelClip, directInk,
             ink, direct, groupAlpha, coverage, opaqueBlend, cancellationToken);
         return;
+    }
+
+    private static void PaintSpotCoverageRows(RasterSurface pixels, int width,
+        CoverageMask mask, Color paint, double alpha, RendererBlendMode blendMode,
+        bool alphaIsShape, int left, int top, int right, int bottom,
+        byte[]? coverage, uint ink, byte[]? groupAlpha,
+        CancellationToken cancellationToken)
+    {
+        bool overprint = (paint.OverprintComponents & 16) != 0;
+        for (int y = top; y < bottom; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int maskRow = coverage is null ? 0 : mask.RowOffset(y) - mask.Left;
+            for (int x = left; x < right;)
+            {
+                int cover = coverage is null ? 255 : coverage[maskRow + x];
+                int offset = pixels.Offset(x, y);
+                if (cover == 255 && pixels.Alpha(offset) == 255)
+                {
+                    int start = x++;
+                    while (x < right && (coverage is null || coverage[maskRow + x] == 255)
+                        && pixels.Alpha(pixels.Offset(x, y)) == 255) x++;
+                    int count = x - start;
+                    pixels.PaintSpotRun(offset, count, paint, overprint, ink);
+                    groupAlpha?.AsSpan(offset / 4, count).Fill(255);
+                    continue;
+                }
+                if (cover != 0)
+                    SetPixel(pixels, width, x, y, paint, alpha * cover / 255d,
+                        blendMode, shape: cover / 255d, alphaIsShape: alphaIsShape,
+                        resolvedInk: ink);
+                x++;
+            }
+        }
     }
 
     private static void PaintDirectCoverageRows(RasterSurface pixels, int width,

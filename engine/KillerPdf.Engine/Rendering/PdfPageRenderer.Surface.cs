@@ -334,6 +334,47 @@ public sealed partial class PdfPageRenderer
             }
         }
 
+        internal void PaintSpotRun(int offset, int count, in Color color, bool overprint, uint sourceInk)
+        {
+            lock (_spotSync)
+            {
+                if (_spotBaseInk is null)
+                {
+                    _spotBaseInk = RasterBuffers.Rent(Length);
+                    Data.AsSpan(0, Length).CopyTo(_spotBaseInk);
+                    _spotPlates = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+                }
+                if (!_spotPlates!.TryGetValue(color.SpotName!, out byte[]? plate))
+                {
+                    plate = RasterBuffers.Rent(Length);
+                    Array.Clear(plate, 0, Length);
+                    _spotPlates.Add(color.SpotName!, plate);
+                }
+                uint mask = 0;
+                if (color.ProcessInk is not null)
+                    for (int channel = 0; channel < 4; channel++)
+                        if ((color.SpotProcessMask & (1 << channel)) != 0)
+                            mask |= 0xffu << (channel * 8);
+                uint spotInk = color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk;
+                for (int index = 0; index < count; index++, offset += 4)
+                {
+                    if (!overprint)
+                    {
+                        WriteInk(_spotBaseInk, offset, 0);
+                        foreach (byte[] existing in _spotPlates.Values)
+                            WriteInk(existing, offset, 0);
+                    }
+                    if (color.ProcessInk is uint processInk)
+                    {
+                        uint baseInk = ReadInk(_spotBaseInk, offset);
+                        WriteInk(_spotBaseInk, offset, baseInk & ~mask | processInk & mask);
+                    }
+                    WriteInk(plate, offset, spotInk);
+                    ComposeSpotPixel(offset);
+                }
+            }
+        }
+
         internal bool TryReplaceProcessInkKeepingSpots(int offset, uint processInk)
         {
             if (_spotBaseInk is null) return false;
