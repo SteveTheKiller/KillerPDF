@@ -623,6 +623,11 @@
       "maintenanceCommit": "2880454e398a24c2d6c4c7863f1763bac31e2ee3",
       "developmentCommit": "7b928e89af50fa76cf7d4565c8505a82171d5cde",
       "reason": "Both WinGet manifest generators request elevation for the machine-wide silent installer and describe its install scope accurately. Each generated manifest passes winget validate."
+    },
+    {
+      "maintenanceCommit": "33fac4b155e435b35666b2f7a4a9087dd2e6f115",
+      "developmentCommit": "11b3991aff925bf603a820a1605b303fcac46749",
+      "reason": "Both viewers reuse one parsed page tree and lazy destination lookup for page links in each document session. The static page-link API remains available."
     }
   ]
 }
