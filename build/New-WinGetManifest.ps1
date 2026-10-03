@@ -37,7 +37,7 @@ $date = ([datetime]$release.published_at).ToUniversalTime().ToString('yyyy-MM-dd
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 
 # The launcher installs machine-wide with /silent. Its interactive wizard can
-# select a user install, so this machine-scoped manifest advertises silent modes only.
+# select a user install. WinGet must request elevation for the silent path.
 $installer = @"
 # Created by the KillerPDF release workflow
 # yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
@@ -46,6 +46,7 @@ PackageIdentifier: SteveTheKiller.KillerPDF
 PackageVersion: $version
 InstallerType: exe
 Scope: machine
+ElevationRequirement: elevationRequired
 InstallModes:
 - silent
 - silentWithProgress
@@ -92,7 +93,7 @@ License: GPL-3.0
 LicenseUrl: https://github.com/SteveTheKiller/KillerPDF/blob/HEAD/LICENSE
 Copyright: Copyright (c) 2026 Steve the Killer
 ShortDescription: PDF editor for Windows. No account, no subscription, no telemetry.
-Description: KillerPDF is a lightweight PDF viewer and toolkit for Windows. View, merge, split, and manage PDF files. Runs portable or installs to your user profile without admin rights. No account, no subscription, no telemetry. Open source under GPLv3.
+Description: KillerPDF is a lightweight PDF viewer and toolkit for Windows. View, merge, split, and manage PDF files. WinGet installs machine-wide; the downloadable installer also supports per-user installation, and a separate portable build is available. No account, no subscription, no telemetry. Open source under GPLv3.
 Moniker: killerpdf
 Tags:
 - dotnet
