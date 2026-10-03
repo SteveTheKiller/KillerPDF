@@ -43,6 +43,16 @@ the largest gap at 215/212 versus 1,229/1,127 ms. This direct Release-DLL
 comparison does not establish packaged installer or visible-interaction parity.
 Raw outputs are under `C:/Users/steve/kp-bench-render/inline-cache-trial-20261002/`.
 
+An October 2 same-DLL Altona probe measured direct first 2048-pixel renders at
+1,147/1,210/1,183 ms. Later fresh-document copies in those processes averaged
+351/362/354 ms over their last eight renders. A preceding 512-pixel render took
+693/666 ms and reduced the next 2048-pixel render to 630/614 ms, but increased
+total work. Pre-reading 28,806 page instructions took 85/81 ms and left the
+next 2048-pixel render at 1,103/1,094 ms. A sampled trace found overlapping
+raster, image, color, text, and font work, without one dominant parser cost.
+All 2048-pixel raw output hashes matched. Evidence is under
+`C:/Users/steve/kp-bench-render/altona-sequence-20261002/`.
+
 An October 2 large binary-image sampling change reduced the focused JBIG2
 scan's first 512-pixel page from 634/637 ms to 539/521 ms in balanced
 runs. All 614 conformance PNGs at 512 pixels and all 74 difficult-set PNGs at
