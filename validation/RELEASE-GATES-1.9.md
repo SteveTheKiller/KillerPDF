@@ -19,7 +19,7 @@ overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The bounded-mask optimization preserved the packaged 1.9 PNG hashes for all 614 successful conformance first pages at both 512 and 2048 pixels. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. The Ghent GWG080 and GWG081 ReadMe pages require checks on both images and the gradient with no Xs. At 1024 pixels, 1.8.80 omits the image marks, while 1.9 draws a checkmark with a visible X beneath it on the colorized image. Neither branch passes. Native CMYK surfaces now preserve named spots under mixed Black and spot images, but the Ghent pages use the default RGB surface and remain incorrect. Spot plates must survive that surface before either branch can claim those patches pass. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A pre-JPEG installed-layout headless scan probe has a first-call median of 806.05 ms for 1.9 versus 248.664 ms for 1.8, including the 1.8 dimension lookup. The rebuilt current-payload five-step scan zoom sequence has a first 512-pixel median of 674.110 ms for 1.9 versus 169.543 ms for 1.8; its second 2048-pixel median is 40.599 versus 222.675 ms, with high variability in the 1.9 repeat steps. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. The earlier technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 1 local-branch forward-port check passes for 201 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
-| Builds and regression suites | Passing development checkpoint | October 1: 4,176 engine tests and 487 app tests pass, and the Release application build succeeds with zero warnings and errors. The earlier scratch portable and installer packages pass their file inventories and payload startup checks; the installer also passes isolated installation. A clean build reported 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | October 3: 4,193 engine tests and 487 app tests pass, and the Release application build succeeds with zero errors and 659 nullable warnings from vendored CoreJ2K. The earlier scratch portable and installer packages pass their file inventories and payload startup checks; the installer also passes isolated installation. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 An October 3 comparison built both installer payloads from the current
 1.8.80 and 1.9.0 checkouts, at commits `9ebe9ef` and `2207e82`. Both are
@@ -51,6 +51,32 @@ between pairs. The earlier large warmed gap did not recur in this check.
 All eight page dimensions matched, and PNG hashes matched within each
 version across both repeats. The versions' pixels differ. Raw results are
 under `C:/Users/steve/kp-bench-render/cmyk-eight-current-20261003/`.
+
+An October 3 eight-copy run of the ECI Altona technical PDF at 2048 pixels
+used those same current installer payloads. Its first render averaged 809 ms
+in 1.8.80 and 1,264 ms in 1.9; the later seven averaged 817 and 726 ms per
+copy. The repeated 1.9 process peaked near 591 MiB versus 242 MiB for 1.8.
+All PNGs matched within each version, while the versions' pixels differ.
+The same 46-file prefix produced 1.9 render times of 1,121 and 1,848 ms for
+the large page in fresh processes, so the late-corpus slowdown is variable.
+Four slow traced prefix runs spent only 4.3 to 5.0 ms in GC pauses during that
+render. These results do not establish the cause of its cold speed or peak
+memory. Evidence is under `C:/Users/steve/kp-bench-render/altona-x4-current-eight-20261003/`,
+`altona-prefix-state-20261003-01/`, and `altona-prefix-gc-current-20261003-01/`.
+
+A scratch trial enlarged the final profiled CMYK display cache from 4,096 to
+16,384 entries per row worker. The four adjacent warmed eight-copy Altona
+comparisons favored the larger cache; first renders varied. A 2048-pixel
+conformance ABBA pass summed 29,001/20,189/18,475/19,685 ms for
+old/new/new/old. The first old run was an outlier; the later adjacent pair
+favored new by 1,210 ms (6.1%), including 793 ms on the two Altona pages.
+At 512 pixels, sums were 12,098/12,086/12,051/12,168 ms, effectively tied.
+All 614 successful PNG hashes matched at each size; all 649 status and
+dimension rows matched. Sampled peaks showed no consistent increase. The
+actual edited Release output reproduced the Altona PNG hash, and 4,193
+engine and 487 app tests pass. This improves a measured hot path but does not
+close 1.8 performance parity or establish a repeatable whole-corpus gain.
+Scratch evidence is under `C:/Users/steve/kp-bench-render/altona-output-cache-trial-20261003/`.
 
 The October 1 packaged 512-pixel comparison averages 11,689 ms for 1.8.80
 and 12,599 ms for 1.9 across the 600 shared pages, a 910 ms (7.8%) gap.

@@ -472,8 +472,8 @@ public sealed partial class PdfPageRenderer
         {
             uint previousInk = 0;
             uint previousRgb = 0;
-            Span<ulong> colors = stackalloc ulong[4096];
-            Span<uint> occupied = stackalloc uint[128];
+            Span<ulong> colors = stackalloc ulong[16384];
+            Span<uint> occupied = stackalloc uint[512];
             occupied.Clear();
             byte[]? inkAlpha = InkAlpha;
             byte constantAlpha = _constantAlpha;
@@ -485,7 +485,7 @@ public sealed partial class PdfPageRenderer
                 if (offset > start && ink == previousInk) rgb = previousRgb;
                 else
                 {
-                    int slot = (int)((ink * 2654435761u) >> 20);
+                    int slot = (int)((ink * 2654435761u) >> 18);
                     uint bit = 1u << (slot & 31);
                     if ((occupied[slot >> 5] & bit) != 0 && (uint)(colors[slot] >> 32) == ink)
                     {
