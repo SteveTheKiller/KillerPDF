@@ -67,6 +67,20 @@ at that size or 27.1 MiB at 2048 pixels, before per-pixel work. The trial
 remains scratch-only under
 `C:/Users/steve/kp-bench-render/rgb-spot-shadow-feasibility-20261003/`.
 
+A scratch lazy ICC table trial passed 184 profile tests and kept 64 focused
+Altona x3 and x4 PNGs byte-identical. Its alternating runs changed direction
+without a consistent speed or memory gain, so it was not promoted. Evidence
+is under `C:/Users/steve/kp-bench-render/icc-lut-lazy-20261003/`.
+
+A guarded direct CMYK area-sampling trial kept exact hashes on all 600 shared
+pages at both 512 and 2048 pixels. Instrumentation confirmed 2,097,152 uses
+of the fast path on the 2048-pixel Altona x4 page and none on x3. An isolated
+helper version cut the first x4 render by 364 ms on average, but its later
+seven renders averaged 30.4 ms slower with two large outliers. Corpus timing
+and 512-pixel memory peaks varied between alternating runs. The trial remains
+scratch-only until a stable no-regression result is measured. Evidence is under
+`C:/Users/steve/kp-bench-render/altona-x4-direct-cmyk-area-agent-20261003/`.
+
 Focused Altona x4 trials showed a cold versus warm compilation tradeoff.
 Disabling tiered compilation reduced first-render time from 1,196/1,256 to
 941/935 ms in paired runs, but raised the last-four sums from 2,468/2,462
