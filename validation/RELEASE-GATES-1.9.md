@@ -15,20 +15,52 @@ overall average.
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch above 1.8; visible interactive use unverified | The October 1 installed-payload difficult set peaked at 194.3/194.1 MiB for 1.9 versus 130.2/124.5 MiB for 1.8.80 at 512 pixels, and 274.7/278.7 versus 252.0/252.0 MiB at 2048 pixels. All 74 pages completed in every run. Earlier woven builds inflated the small-file gap. September 9 installed-layout medians were 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult. The current 1024-pixel shared runs peak near 502 versus 620 MiB. A headless three-size balloon zoom sequence peaks at 289.8 to 289.9 MiB with either fresh or retained application sessions. Verify representative visible interaction and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | The current installed-layout 1.8.80 versus packaged 1.9 ReadyToRun comparison rendered 600 common first pages in 1.8/1.9/1.9/1.8 order. At 512 pixels, summed render times were 11.894/12.776/12.422/11.484 seconds, leaving 1.9 about 8% slower. At 2048 pixels, the sums were 22.008/20.928/20.097/21.580 seconds, putting 1.9 about 6% faster. The 1.9 payload rendered 614 pages without failure at both sizes; 1.8 rendered 600 and failed on eight. All 614 current 1.9 PNG hashes matched between its two 2048-pixel runs. Bounding non-isolated form work by active alpha-mask pixels reduced the eight-copy poster render sums from 7.608 and 7.021 seconds in surrounding 1.9 baseline runs to 6.055 and 6.057 seconds. A fresh comparison still measured the poster's last seven pages at 3.204/4.700/4.857/3.158 seconds. The eight-copy CMYK JPEG page also remains slower in 1.9 at 1.899 and 2.058 seconds versus 0.703 and 0.684 seconds. Whole-pass parity is not established. |
+| Rendering and whole-pass speed without regression | Open | The October 3 comparison of current-source installer payloads found 1.9 slower on 600 shared first pages by 11.4% at 512 pixels and 15.3% at 2048 pixels. The map contributes about 646 ms to the 512-pixel gap; two Altona technical pages contribute about 2.27 seconds to the 2048-pixel gap. The 1.9 payload rendered 614 pages without failure at both sizes; 1.8.80 rendered 600 and failed on eight. A fresh eight-copy CMYK JPEG test found warmed times near parity, while the first 1.9 page remained slower. Whole-pass parity is not established. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The bounded-mask optimization preserved the packaged 1.9 PNG hashes for all 614 successful conformance first pages at both 512 and 2048 pixels. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. The Ghent GWG080 and GWG081 ReadMe pages require checks on both images and the gradient with no Xs. At 1024 pixels, 1.8.80 omits the image marks, while 1.9 draws a checkmark with a visible X beneath it on the colorized image. Neither branch passes. Native CMYK surfaces now preserve named spots under mixed Black and spot images, but the Ghent pages use the default RGB surface and remain incorrect. Spot plates must survive that surface before either branch can claim those patches pass. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A pre-JPEG installed-layout headless scan probe has a first-call median of 806.05 ms for 1.9 versus 248.664 ms for 1.8, including the 1.8 dimension lookup. The rebuilt current-payload five-step scan zoom sequence has a first 512-pixel median of 674.110 ms for 1.9 versus 169.543 ms for 1.8; its second 2048-pixel median is 40.599 versus 222.675 ms, with high variability in the 1.9 repeat steps. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. The earlier technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 1 local-branch forward-port check passes for 201 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
 | Builds and regression suites | Passing development checkpoint | October 1: 4,176 engine tests and 487 app tests pass, and the Release application build succeeds with zero warnings and errors. The earlier scratch portable and installer packages pass their file inventories and payload startup checks; the installer also passes isolated installation. A clean build reported 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
-The packaged 512-pixel comparison averages 11,689 ms for 1.8.80 and 12,599 ms
-for 1.9 across the 600 shared pages, a 910 ms (7.8%) gap. Its largest page
+An October 3 comparison built both installer payloads from the current
+1.8.80 and 1.9.0 checkouts, at commits `9ebe9ef` and `2207e82`. Both are
+framework-dependent. The 1.9 engine and codec use ReadyToRun, as its
+installer script specifies; the 1.8 engine uses its ordinary publish output.
+Four serial headless traversals in 1.8/1.9/1.9/1.8 order covered 649 inputs
+and 600 common rendered first pages at each size. At 512 pixels, their
+shared-page render sums were 10,587/11,954/11,791/10,723 ms. The mean was
+10,655 ms for 1.8.80 and 11,872.5 ms for 1.9, an 11.4% gap. At 2048 pixels,
+the sums were 17,113/19,187/19,692/16,611 ms, or 16,862 versus 19,439.5 ms
+on average, a 15.3% gap. Each 1.9 pass rendered 614 pages with no failures;
+each 1.8 pass rendered 600, skipped 41, and failed on eight. The paired mean
+gap for `447403.pdf` was 645.5 ms at 512 pixels. At 2048 pixels, the two
+Altona technical pages contributed 1,280 and 987.5 ms. Raw outputs are under
+`C:/Users/steve/kp-bench-render/packaged-parity-installer-20261003/`.
+
+Within each version, repeat PNG hashes and dimensions matched on all
+600 1.8.80 and 614 1.9 outputs at both sizes. Observed peak working sets,
+sampled every 100 ms, were 612.5 to 613.3 MiB for 1.8.80 versus 521.8 to
+524.4 MiB for 1.9 at 512 pixels, and 640.8 to 641.4 versus 492.4 to
+493.0 MiB at 2048 pixels. These batch peaks do not close the difficult-set
+or visible-interaction memory gates.
+
+An October 3 eight-copy CMYK JPEG check at 2048 pixels used the same current
+installer payloads. The first page took 120/120 ms in 1.8.80 versus
+206/233 ms in 1.9. The last seven summed to 802/806 versus 852/780 ms,
+so their means were 804 versus 816 ms, a 1.5% gap that changed direction
+between pairs. The earlier large warmed gap did not recur in this check.
+All eight page dimensions matched, and PNG hashes matched within each
+version across both repeats. The versions' pixels differ. Raw results are
+under `C:/Users/steve/kp-bench-render/cmyk-eight-current-20261003/`.
+
+The October 1 packaged 512-pixel comparison averages 11,689 ms for 1.8.80
+and 12,599 ms for 1.9 across the 600 shared pages, a 910 ms (7.8%) gap.
+Those older payload DLLs differ from the current checkouts. The largest page
 gaps, slower in both paired passes, are `447403.pdf` (+418.5 ms),
 `CompactedPDFSyntaxTest.pdf` (+109.5 ms), the `42828.0001.001.pdf` JBIG2 scan
 (+99.5 ms), the Ghent ALL reference (+93.5 ms), and
 `UnknownFilter-Linearized.pdf` (+85.5 ms). Those five sum to 806.5 ms before
 faster 1.9 pages offset other regressions. The large Altona technical page
-is 95.5 ms faster in this packaged 512-pixel run, despite its large gap in
+is 95.5 ms faster in that packaged 512-pixel run, despite its large gap in
 the separate loose serial comparison. These rankings come from the four
 `mask-bounds-final-parity-512-*.csv` files under
 `C:/Users/steve/kp-bench-render/release-payload-parity-20261001/`.
@@ -38,13 +70,19 @@ on the next seven, so its single-page gap is concentrated in first use.
 Both versions show the complete map at matching dimensions, but their
 pixels differ; the timing result does not establish map fidelity parity.
 
-A packaged 1.9 cold trace of that map reproduced the saved 512-pixel PNG and
-logged a 1,933 ms render. It recorded 1,982 completed JIT method loads with
-590.1 ms of summed start-to-load latency across threads, plus about 127 ms
-of GC suspension intervals. Sampled allocations included about 553 MB of
-byte arrays and 93 MB of `PdfContentInstruction` objects. These process-wide
-trace measurements cannot be subtracted from page time, but they point to
-first-use compilation and materialization as the next paths to isolate.
+A cold trace of the October 1 packaged 1.9 payload reproduced the saved
+512-pixel map PNG and logged a 1,933 ms render. It recorded 1,982 completed
+JIT method loads with 590.1 ms of summed start-to-load latency across
+threads, plus about 127 ms of GC suspension intervals. Allocation-tick
+intervals totaling about 553 MB were tagged `System.Byte[]`, and 93 MB
+were tagged `PdfContentInstruction`.
+The tag identifies the last allocation in each sampled interval, not the
+exact bytes allocated by that type ([event definition](https://learn.microsoft.com/en-us/dotnet/fundamentals/diagnostics/runtime-garbage-collection-events#gcallocationtick_v3-event)).
+These process-wide trace measurements cannot be subtracted from page time,
+but they point to first-use compilation and materialization as the next
+paths to isolate.
+The traced payload predates the October 2 inline-image change, so its image
+allocation path does not profile the current source.
 The trace and inspector are under
 `C:/Users/steve/kp-bench-render/map-cold-breakdown-20261002/`.
 
