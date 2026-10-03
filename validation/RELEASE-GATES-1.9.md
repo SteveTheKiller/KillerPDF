@@ -95,6 +95,16 @@ sums from headless CLI pipelines, not visible app latency. Earlier comparisons
 used different payload layouts and had different timings. Evidence is under
 `C:/Users/steve/kp-bench-render/ghent081-combined-20261003-69263d7/`.
 
+An exact-hash scratch census of Altona x3 at 2048 pixels found 1,964,881
+general-path `SetPixel` calls per page. Active spot plates alone disqualified
+the direct ink path for 1,248,701 nonzero mask paint events; other overlapping
+spot and clip conditions accounted for most remaining general calls. This is
+the same spot/process interaction targeted by prior bulk-clear and tile trials
+that did not show a repeatable gain. Instrumentation increased render time, so
+its timings are attribution only. No further production shortcut follows from
+this census. Evidence is under
+`C:/Users/steve/kp-bench-render/altona-coverage-census-20261003/`.
+
 An October 3 sampled DeviceN shading fix passes 4,194 engine tests, 487 app
 tests, and the Release app build. On the GWG081 ReadMe at 1024 pixels, mean
 per-channel RGB error in the gradient strip (x 145-334, y 748-764) against
