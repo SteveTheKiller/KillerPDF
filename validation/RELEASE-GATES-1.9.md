@@ -231,6 +231,16 @@ pixel hashes were stable. These headless results do not verify visible
 first-page display. Raw sequences are under
 `C:/Users/steve/kp-bench-render/scan-postspot-20261003/`.
 
+A guarded process-image spot-clear trial removed per-pixel locking only while
+row workers owned disjoint pixels and the named-spot plate set stayed fixed.
+The guard reached 903,032 clears across two x3 pages and none on eight x4
+pages. All 140 focused overprint tests passed; all 64 timed x3 PNGs matched
+the current 1.9 hash. Four alternating eight-copy runs per variant averaged
+928.25 ms baseline versus 922.75 ms trial on the first page, and 445.29
+versus 450.50 ms per later page. The warm path was slower, so the change
+remains scratch-only under
+`C:/Users/steve/kp-bench-render/x3-spot-clear-lock-trial-20261003/`.
+
 An October 3 current-payload trace of the map's first 512-pixel render took
 2,243 ms. Its discarded 64 MiB decoded prefix finished about 45 ms after
 rendering began, so that prefix is not the main cold gap. Sampled allocations
