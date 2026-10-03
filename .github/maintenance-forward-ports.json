@@ -613,6 +613,11 @@
       "maintenanceCommit": "9ebe9ef7262f93284ce71e87fd927686aacf400c",
       "developmentCommit": "2790caa60d54eaf2902be73c0ff2040591ee3c26",
       "reason": "The 1.9 changelog already separates Ukrainian, Norwegian, and Brazilian Portuguese into individual entries."
+    },
+    {
+      "maintenanceCommit": "2a1c3384c176635b3824d402a8fc1cc740a376f8",
+      "developmentCommit": "806507ba055a61297920afa8307a2ffb61e3d6ed",
+      "reason": "Both viewer sessions keep one document-owned file copy. The 1.8 engine gained the stream overload already present in 1.9; snapshot tests and isolated large-file opening probes pass on both lines."
     }
   ]
 }
