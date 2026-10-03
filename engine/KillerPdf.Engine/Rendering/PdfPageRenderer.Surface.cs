@@ -546,17 +546,19 @@ public sealed partial class PdfPageRenderer
                 return;
             }
             byte[] inkData = Ink;
+            long[]? sharedRgb = InkProfile is PdfIccProfileTransform && Length >= 4_000_000
+                ? new long[65536] : null;
             ForEachRow(0, Height, Length / 4, (startRow, endRow) =>
                 {
                     ConvertInkRange(inkData, startRow * Width * 4,
-                        endRow * Width * 4, cancellationToken);
+                        endRow * Width * 4, sharedRgb, cancellationToken);
                 }, null, cancellationToken);
             ReleaseSpotPlates();
             Ink = null;
         }
 
         private void ConvertInkRange(byte[] inkData, int start, int end,
-            CancellationToken cancellationToken)
+            long[]? sharedRgb, CancellationToken cancellationToken)
         {
             uint previousInk = 0;
             uint previousRgb = 0;
@@ -581,11 +583,24 @@ public sealed partial class PdfPageRenderer
                     }
                     else
                     {
-                        if (InkProfile is null) rgb = PdfDeviceCmyk.ToRgb(ink);
+                        int sharedSlot = sharedRgb is null ? 0 : (int)((ink * 2654435761u) >> 16);
+                        long sharedEntry = sharedRgb is null ? 0 : Volatile.Read(ref sharedRgb[sharedSlot]);
+                        if (sharedEntry != 0 && (uint)(sharedEntry >> 32) == ink)
+                        {
+                            rgb = (uint)sharedEntry;
+                        }
                         else
                         {
-                            Color color = ProfileInkToDisplay(ink, InkProfile);
-                            rgb = (uint)(color.Red << 16 | color.Green << 8 | color.Blue);
+                            if (InkProfile is null) rgb = PdfDeviceCmyk.ToRgb(ink);
+                            else
+                            {
+                                Color color = ProfileInkToDisplay(ink, InkProfile);
+                                rgb = (uint)(color.Red << 16 | color.Green << 8 | color.Blue);
+                            }
+                            // Keep the ink key and RGB value together for concurrent rows.
+                            if (sharedRgb is not null)
+                                Interlocked.Exchange(ref sharedRgb[sharedSlot],
+                                    unchecked((long)(((ulong)ink << 32) | rgb)));
                         }
                         colors[slot] = ((ulong)ink << 32) | rgb;
                         occupied[slot >> 5] |= bit;

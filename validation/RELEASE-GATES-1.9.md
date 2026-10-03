@@ -253,6 +253,20 @@ versus 450.50 ms per later page. The warm path was slower, so the change
 remains scratch-only under
 `C:/Users/steve/kp-bench-render/x3-spot-clear-lock-trial-20261003/`.
 
+A per-surface shared ICC ink-to-RGB lookup improves the first 2048-pixel
+Altona x4 render in two balanced scratch checks. The first averaged 1,233.5
+ms baseline versus 1,115.8 ms trial; an independent confirmation averaged
+1,241.8 versus 1,105.0 ms. Repeated x4 pages averaged 656.6 versus 655.1
+ms, while repeated x3 pages averaged 410.0 versus 405.5 ms with mixed pairs.
+The 366 focused ICC and overprint tests, 4,212 engine tests, 487 app tests,
+and Release app build pass. At both 512 and 2048 pixels, all 614 rendered
+corpus PNG hashes and all 649 statuses and dimensions matched the control.
+The paired corpus render sums varied in both directions, so no broader speed
+gain is established. The 2048-pixel corpus peak stayed near 491 to 493 MiB.
+This narrows one x4 cold outlier but does not close x3 or whole-pass parity.
+Scratch evidence is under
+`C:/Users/steve/kp-bench-render/x3-cross-chunk-rgb-cache-trial-20261003/`.
+
 An October 3 current-payload trace of the map's first 512-pixel render took
 2,243 ms. Its discarded 64 MiB decoded prefix finished about 45 ms after
 rendering began, so that prefix is not the main cold gap. Sampled allocations
