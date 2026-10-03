@@ -3121,6 +3121,42 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_UsesDeviceNTintTransformForSampledAxialShading()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var tint = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(4)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1))]),
+            Encoding.ASCII.GetBytes("{ exch 0 }"));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference tintReference = update.AddObject(tint);
+        source = PdfDocument.Open(update.Build());
+        var colorSpace = new PdfArray([
+            Name("DeviceN"), new PdfArray([Name("Green"), Name("Red")]),
+            Name("DeviceRGB"), tintReference]);
+        var function = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Size"), new PdfArray([new PdfInteger(2)])),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerSample"), new PdfInteger(8))]),
+            [255, 0, 0, 255]);
+        var shading = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace),
+            new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0.5, 0, 9.5, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), function)]);
+        PdfRenderedPage rendered = new PdfPageRenderer(AddShadingResource(source, shading)).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 255, 0, 255], Pixel(rendered, 0, 5));
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 9, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_PaintsThirtyTwoBitSampledShadings()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

@@ -19,7 +19,30 @@ overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The bounded-mask optimization preserved the packaged 1.9 PNG hashes for all 614 successful conformance first pages at both 512 and 2048 pixels. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. The Ghent GWG080 and GWG081 ReadMe pages require checks on both images and the gradient with no Xs. At 1024 pixels, 1.8.80 omits the image marks, while 1.9 draws a checkmark with a visible X beneath it on the colorized image. Neither branch passes. Native CMYK surfaces now preserve named spots under mixed Black and spot images, but the ReadMe pages use the default RGB surface and remain incorrect. Spot plates must survive that surface before either branch can claim those pages pass. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. A pre-JPEG installed-layout headless scan probe has a first-call median of 806.05 ms for 1.9 versus 248.664 ms for 1.8, including the 1.8 dimension lookup. The rebuilt current-payload five-step scan zoom sequence has a first 512-pixel median of 674.110 ms for 1.9 versus 169.543 ms for 1.8; its second 2048-pixel median is 40.599 versus 222.675 ms, with high variability in the 1.9 repeat steps. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. The earlier technical Altona first render took 783 to 793 ms for 1.9 versus 168 to 187 ms for 1.8. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 1 local-branch forward-port check passes for 201 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
-| Builds and regression suites | Passing development checkpoint | October 3: 4,193 engine tests and 487 app tests pass, and the Release application build succeeds with zero errors and 659 nullable warnings from vendored CoreJ2K. The earlier scratch portable and installer packages pass their file inventories and payload startup checks; the installer also passes isolated installation. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | October 3: 4,194 engine tests and 487 app tests pass, and the Release application build succeeds with zero errors and 659 nullable warnings from vendored CoreJ2K. The earlier scratch portable and installer packages pass their file inventories and payload startup checks; the installer also passes isolated installation. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+
+An October 3 sampled DeviceN shading fix passes 4,194 engine tests, 487 app
+tests, and the Release app build. On the GWG081 ReadMe at 1024 pixels, mean
+per-channel RGB error in the gradient strip (x 145-334, y 748-764) against
+Poppler fell from 53.12 to 11.01. The checkmarks still show faint X outlines,
+so the Ghent fidelity gate remains open. A full 649-input rerun at 512 and
+2048 pixels kept 614 rendered, 35 skipped, and zero failed at each size. Only
+the GWG081 ReadMe PNG changed among the 614 outputs at either size. Evidence
+is under `C:/Users/steve/kp-bench-render/ghent-sampled-devicen-fix-20261003/`.
+Matched ReadyToRun eight-copy runs of that page averaged 455.5 ms before and
+527.5 ms after at 1024 pixels, and 676.5 versus 758 ms at 2048 pixels. The
+correct color transform adds about 9-10 ms per page in this focused case;
+whole-corpus timing for this change remains unmeasured.
+
+Two later scratch map parser trials were not promoted. Reusing instruction
+lists averaged 1,847.5 ms versus 1,815.5 ms for the same-HEAD baseline in
+eight alternating cold renders. The revised inline-number candidate preserved
+all 600 shared-corpus PNG hashes at 512 and 2048 pixels. Its 512-pixel mean
+render sum was 12,601 ms versus 12,598 ms for baseline; the map itself was
+slower at both sizes. Its 2048-pixel corpus mean improved by 410.5 ms, mostly
+from one variable Altona page, so a repeatable broad gain was not established.
+Evidence is under `C:/Users/steve/kp-bench-render/map-instruction-list-reuse-20261003/`
+and `C:/Users/steve/kp-bench-render/map-compact-number-20261003/`.
 
 An October 3 comparison built both installer payloads from the current
 1.8.80 and 1.9.0 checkouts, at commits `9ebe9ef` and `2207e82`. Both are

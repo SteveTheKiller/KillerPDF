@@ -3422,6 +3422,13 @@ public sealed partial class PdfPageRenderer
                     * (decode[component * 2 + 1] - decode[component * 2]);
                 return Math.Clamp(decoded, range[component * 2], range[component * 2 + 1]);
             }
+            if (colorSpace.MultiConverter is not null)
+            {
+                var components = new double[colorSpace.Components];
+                for (int component = 0; component < components.Length; component++)
+                    components[component] = Component(component);
+                return colorSpace.Convert(components);
+            }
             return colorSpace.Convert(Component(0),
                 colorSpace.Components > 1 ? Component(1) : 0,
                 colorSpace.Components > 2 ? Component(2) : 0,
