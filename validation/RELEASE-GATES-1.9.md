@@ -32,10 +32,21 @@ is 95.5 ms faster in this packaged 512-pixel run, despite its large gap in
 the separate loose serial comparison. These rankings come from the four
 `mask-bounds-final-parity-512-*.csv` files under
 `C:/Users/steve/kp-bench-render/release-payload-parity-20261001/`.
+
 On eight packaged map copies, 1.9 was slower on the first copy and faster
 on the next seven, so its single-page gap is concentrated in first use.
 Both versions show the complete map at matching dimensions, but their
 pixels differ; the timing result does not establish map fidelity parity.
+
+A packaged 1.9 cold trace of that map reproduced the saved 512-pixel PNG and
+logged a 1,933 ms render. It recorded 1,982 completed JIT method loads with
+590.1 ms of summed start-to-load latency across threads, plus about 127 ms
+of GC suspension intervals. Sampled allocations included about 553 MB of
+byte arrays and 93 MB of `PdfContentInstruction` objects. These process-wide
+trace measurements cannot be subtracted from page time, but they point to
+first-use compilation and materialization as the next paths to isolate.
+The trace and inspector are under
+`C:/Users/steve/kp-bench-render/map-cold-breakdown-20261002/`.
 
 An October 2 change avoids retaining decoded inline images whose fresh stream
 keys cannot be reused. Two balanced eight-copy map pairs at 512 pixels sampled
