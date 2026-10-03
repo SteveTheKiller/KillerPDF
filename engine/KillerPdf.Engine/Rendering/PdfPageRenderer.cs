@@ -3136,7 +3136,12 @@ public sealed partial class PdfPageRenderer
             int activeChannels = channels.Count(channel => channel >= 0);
             bool supported = activeChannels > 0 && channels.All(channel => channel >= -1)
                 && channels.Where(channel => channel >= 0).Distinct().Count() == activeChannels;
-            return new ImageColorSpace(names.Count, null, MultiConverter: tintTransform,
+            string? singleSpot = channels is [-2]
+                ? ((PdfName)Resolve(names[0])).ValueAsLatin1() : null;
+            return new ImageColorSpace(names.Count, null,
+                MultiConverter: singleSpot is null ? tintTransform
+                    : values => tintTransform(values) with
+                    { SpotName = singleSpot, SpotTint = values[0] },
                 ProcessChannels: supported ? channels : null, SuppressPainting: channels.All(channel => channel == -1),
                 Initial: InitialColor.FullTint, HasIccSource: alternate.HasIccSource,
                 HasSpotColorants: channels is [-2]);
@@ -4854,6 +4859,11 @@ public sealed partial class PdfPageRenderer
             > 4_000_000L) factor++;
         int planeWidth = (samplingWidth + factor - 1) / factor;
         int planeHeight = (samplingHeight + factor - 1) / factor;
+        Color[]? spotPalette = target.Ink is not null && factor == 1
+            && colorSpace.PaletteBase?.HasSpotColorants == true ? colorSpace.Palette : null;
+        string? imageSpotName = target.Ink is not null && factor == 1 && !imageMask
+            && colorSpace.HasSpotColorants && colorSpace.Components == 1 && colorSpace.Palette is null
+            ? colorSpace.Convert(new double[] { 1 }).SpotName : null;
         bool averagePlane = factor > 1 && !imageMask && preblendMatte is null
             && colorKeyMask is null && softMask is null;
         bool averageStencil = factor > 1 && imageMask;
@@ -5195,6 +5205,25 @@ public sealed partial class PdfPageRenderer
                                 : target.ColorFromRgb(new(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]));
                         }
                         if (alpha == 0) continue;
+                        if (plane is not null && bits is > 0 and <= 16
+                            && (spotPalette is not null || imageSpotName is not null))
+                        {
+                            int sx = Math.Min(px, sourceWidth - 1);
+                            int sy = Math.Min(py, sourceHeight - 1);
+                            int bitOffset = checked(sy * rowBytes * 8 + sx * bits);
+                            int sample = checked((int)ReadPackedSample(samples, bitOffset, bits));
+                            if (spotPalette is not null)
+                            {
+                                Color spot = spotPalette[Math.Min(sample, spotPalette.Length - 1)];
+                                color = color with { SpotName = spot.SpotName, SpotTint = spot.SpotTint };
+                            }
+                            else
+                            {
+                                double tint = decode[0] + sample / (double)((1 << bits) - 1)
+                                    * (decode[1] - decode[0]);
+                                color = color with { SpotName = imageSpotName, SpotTint = tint };
+                            }
+                        }
                         if (softMask is not null && alpha != 0)
                         {
                             alpha = (alpha * imageMaskSample + 127) / 255;

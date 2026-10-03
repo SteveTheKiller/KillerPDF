@@ -86,7 +86,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
-- Repainting a named spot color now replaces its earlier tint in native CMYK rendering.
+- Repainting a named spot color, including through single-colorant images, now replaces its earlier tint in native CMYK rendering.
 - Corrected ColorDodge and ColorBurn blending in PDF 1.x files.
 - Kept prefetched pages correctly inverted in night mode and stopped obsolete prefetch after tab or view changes.
 - Prevented parallel PNG exports from intermittently losing pages when the system encoder lookup raced.

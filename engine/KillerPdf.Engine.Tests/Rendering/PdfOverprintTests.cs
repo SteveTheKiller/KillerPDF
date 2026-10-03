@@ -104,8 +104,21 @@ public sealed class PdfOverprintTests
             blankBackground: true, blankImageBetweenSpotPaints: true);
         byte[] pixels = rendered.Pixels.ToArray();
         int center = (4 * 8 + 4) * 4;
-        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 128), pixels[center..(center + 4)]);
         Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 128), pixels[center..(center + 4)]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SpotImage_ReplacesEarlierTintOfSameColorant(bool indexed)
+    {
+        var rendered = Render("spotimage", true, true, 1, indexed: indexed,
+            blankBackground: true, initialSpotBeforeImage: true, spotImageTint: 128);
+        byte[] pixels = rendered.Pixels.ToArray();
+        int center = (4 * 8 + 4) * 4;
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 128), pixels[center..(center + 4)]);
     }
 
     [Theory]
@@ -230,7 +243,8 @@ public sealed class PdfOverprintTests
     private static PdfRenderedPage Render(string paint, bool? fill, bool stroke, int mode, double opacity = 1,
         bool indexed = false, bool none = false, bool rgb = false, bool registration = false,
         double registrationTint = 0.5, double? secondSpotTint = null, bool blankBackground = false,
-        bool blankImageBetweenSpotPaints = false)
+        bool blankImageBetweenSpotPaints = false, bool initialSpotBeforeImage = false,
+        byte? spotImageTint = null)
     {
         PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
@@ -263,6 +277,8 @@ public sealed class PdfOverprintTests
         };
         string select = paint == "restored" ? "q /O gs Q" : "/O gs";
         if (registration) operation = operation.Replace("1 scn", tintNumber + " scn", StringComparison.Ordinal);
+        if (initialSpotBeforeImage)
+            operation = "/Named cs 1 scn 0 0 8 8 re f q " + operation + " Q";
         if (secondSpotTint is double repaintTint)
             operation += (blankImageBetweenSpotPaints ? " q 8 0 0 8 0 0 cm /Im Do Q" : "")
                 + " /Named cs " + repaintTint.ToString(System.Globalization.CultureInfo.InvariantCulture)
@@ -289,7 +305,8 @@ public sealed class PdfOverprintTests
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)), Entry("Height", new PdfInteger(1)),
             Entry("BitsPerComponent", new PdfInteger(paint is "stencil" or "namedstencil" ? 1 : 8))
         };
-        byte[] imageSamples = blankImageBetweenSpotPaints ? [0, 0, 0, 0]
+        byte[] imageSamples = spotImageTint is byte tint ? [tint]
+                : blankImageBetweenSpotPaints ? [0, 0, 0, 0]
                 : paint is "stencil" or "namedstencil" ? [0]
                 : paint is "namedimage" or "spotimage" ? [255]
                 : paint == "namednoneimage" ? [255, 192]
