@@ -59,6 +59,27 @@ peak working sets were 606.9 versus 508.5 MiB at 512 pixels and 634.7 versus
 these runs do not establish a speed gain from the spot fixes. Evidence is under
 `C:/Users/steve/kp-bench-render/parity-v1880-v19-spot-20261003/`.
 
+A guarded RGB spot-shadow trial passed 111 focused overprint tests and exact
+synthetic image checks, but it did not improve the actual GWG081 ReadMe.
+At 1024 pixels, full-page Poppler error stayed 5.6031 and the target crop
+worsened from 11.011 to 11.032. One spot plate would also add about 6.75 MiB
+at that size or 27.1 MiB at 2048 pixels, before per-pixel work. The trial
+remains scratch-only under
+`C:/Users/steve/kp-bench-render/rgb-spot-shadow-feasibility-20261003/`.
+
+Focused Altona x4 trials showed a cold versus warm compilation tradeoff.
+Disabling tiered compilation reduced first-render time from 1,196/1,256 to
+941/935 ms in paired runs, but raised the last-four sums from 2,468/2,462
+to 3,907/3,810 ms. Disabling dynamic PGO gave no consistent cold gain.
+A method-level area-conversion optimization gained 25/36 ms cold but lost
+84/187 ms on the last four. A four-chunk color-conversion trial preserved all
+64 x3 and x4 PNGs but slowed later x3 renders by 18.29 ms and x4 renders by
+35.78 ms on average. All remain scratch-only. Evidence is under
+`C:/Users/steve/kp-bench-render/altona-x4-tiering-agent-20261003/`,
+`C:/Users/steve/kp-bench-render/altona-x4-pgo-agent-20261003/`,
+`C:/Users/steve/kp-bench-render/altona-x4-aggressive-area-agent-20261003/`,
+and `C:/Users/steve/kp-bench-render/altona-convert-chunks-20261003-x3/`.
+
 Two later scratch map parser trials were not promoted. Reusing instruction
 lists averaged 1,847.5 ms versus 1,815.5 ms for the same-HEAD baseline in
 eight alternating cold renders. The revised inline-number candidate preserved
