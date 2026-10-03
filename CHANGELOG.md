@@ -87,6 +87,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Preserved process overprint colors on RGB pages with named spot images.
 - Kept PDF comparison colors consistent with the viewer for large Adobe YCCK JPEGs.
 - Reduced page-link loading work for large PDFs (#438).
 - Native CMYK rendering now repaints named spots through single-colorant images and preserves other spots under mixed Black and spot images.

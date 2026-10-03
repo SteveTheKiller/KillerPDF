@@ -347,6 +347,28 @@ public sealed partial class PdfPageRenderer
             if (_rgbSpotShadow) _rgbSpotValid![offset / 4] = 0;
         }
 
+        internal bool TryPaintRgbProcessOverprint(int offset, in Color color, uint sourceInk)
+        {
+            int components = color.OverprintComponents;
+            if (!_rgbSpotShadow || (components & 16) == 0 || (components & ~31) != 0)
+                return false;
+            lock (_spotSync)
+            {
+                if (_rgbSpotValid![offset / 4] == 0) return false;
+                foreach (byte[] plate in _spotPlates!.Values)
+                    if (ReadInk(plate, offset) != 0) return false;
+                int channels = components & 15;
+                uint preserve = (channels & 1) != 0 ? 0x000000ffu : 0;
+                if ((channels & 2) != 0) preserve |= 0x0000ff00u;
+                if ((channels & 4) != 0) preserve |= 0x00ff0000u;
+                if ((channels & 8) != 0) preserve |= 0xff000000u;
+                uint backdropInk = ReadInk(_spotBaseInk!, offset);
+                WriteInk(_spotBaseInk!, offset, sourceInk & ~preserve | backdropInk & preserve);
+                ComposeSpotPixel(offset);
+                return true;
+            }
+        }
+
         internal bool TryPaintRgbSpot(int offset, in Color color, bool overprint, uint sourceInk)
         {
             if (!_rgbSpotShadow || _rgbSpotValid![offset / 4] == 0) return false;

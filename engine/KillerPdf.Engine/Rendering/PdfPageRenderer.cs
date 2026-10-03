@@ -6474,6 +6474,10 @@ public sealed partial class PdfPageRenderer
             if (supported && color.SpotName is not null
                 && pixels.TryPaintRgbSpot(offset, color, (color.OverprintComponents & 16) != 0,
                     resolvedInk ?? pixels.GetInk(color))) return;
+            if (supported && color.SpotName is null
+                && (color.OverprintComponents & 16) != 0
+                && pixels.TryPaintRgbProcessOverprint(offset, color,
+                    resolvedInk ?? pixels.GetInk(color))) return;
             if (supported && color.SpotName is null)
                 pixels.TrackRgbProcessPixel(offset, color, resolvedInk);
             else pixels.InvalidateRgbSpotPixel(offset);

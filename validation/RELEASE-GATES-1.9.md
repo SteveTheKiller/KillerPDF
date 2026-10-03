@@ -19,7 +19,7 @@ overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The bounded-mask optimization preserved the packaged 1.9 PNG hashes for all 614 successful conformance first pages at both 512 and 2048 pixels. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. A parallel CMYK alpha race is fixed and the 74 difficult pages match their prior serial hashes at one and four render workers. Installed-font aliases and pattern fixes are also retained. The guarded RGB spot path restores the GWG080 ReadMe right image check, while GWG081 changes are small; both pages still need full visual conformance. The right-hand X example is intentional. At 1024 pixels, 1.8.80 omits image marks. At tested scales, Poppler omits the recovered green check even though the PDF's printed criterion calls for it. Native CMYK spot preservation remains in place. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. Four alternating current-payload scan zoom runs averaged 314.339 ms for 1.9 versus 176.023 ms for 1.8.80 on the first 512-pixel render. The later 2048-pixel step averaged 56.372 versus 224.385 ms, with decoded image state retained by 1.9. The earlier scan figures used older payloads. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 3 local-branch forward-port check passes for 203 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
-| Builds and regression suites | Passing development checkpoint | October 3: 4,212 engine tests and 487 app tests pass, and the Release application build succeeds with zero warnings or errors. The earlier scratch portable and installer packages pass their file inventories and payload startup checks; the installer also passes isolated installation. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | October 3: 4,215 engine tests and 487 app tests pass, and the Release application build succeeds with zero warnings or errors. The earlier scratch portable and installer packages pass their file inventories and payload startup checks; the installer also passes isolated installation. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 The viewer session now opens a file through the engine's stream-opening path,
 so it does not retain both the original file read and the engine's copy. Four
@@ -56,6 +56,21 @@ and 126.21 MiB after (+39.07 MiB); the eight-worker corpus peak was
 and corpus times were 17.03/17.71 seconds before/after; RDP makes timing
 provisional. Scratch evidence is under
 `C:/Users/steve/kp-bench-render/rgb-spot-realcase-trace-20261003/`.
+
+An OPM1 process-overprint correction on the RGB spot shadow preserves earlier
+CMYK channels under the GWG080 and GWG081 ReadMe right-hand X examples.
+Synthetic OPM1 and OPM0 controls now match the native CMYK surface. Fresh live
+Release renders match the scratch correction pixel for pixel at 769 by 1024.
+Each ReadMe page changes 642 pixels, all inside the intended right-hand X row;
+the good left example is unchanged. At both 512 and 2048 pixels, a 649-file
+conformance rerun kept all 649 statuses, dimensions, and diagnostics and
+changed only those two ReadMe images among the 614 rendered pages. Two fresh
+2048-pixel timing samples per page suggest a small cost of about 4% to 8%; the
+sample is too small to establish a stable speed change. The 129 focused
+overprint tests, 4,215 engine tests, 487 app tests, and Release app build pass.
+The retained Poppler reference is 770 pixels wide, so exact reference parity
+is unverified. Scratch evidence is under
+`C:/Users/steve/kp-bench-render/gwg-readme-fidelity-20261003-live-fd92290/`.
 
 An October 3 sampled DeviceN shading fix passes 4,194 engine tests, 487 app
 tests, and the Release app build. On the GWG081 ReadMe at 1024 pixels, mean

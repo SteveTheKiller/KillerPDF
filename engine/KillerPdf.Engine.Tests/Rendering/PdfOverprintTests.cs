@@ -219,6 +219,24 @@ public sealed class PdfOverprintTests
             rendered.Pixels.Span[center..(center + 4)].ToArray());
     }
 
+    [Theory]
+    [InlineData(1, 255, 128)]
+    [InlineData(0, 0, 0)]
+    public void DefaultRgbSurface_CmykShadingOverprint_PreservesOnlyOpm1ZeroChannels(
+        int mode, byte yellow, byte black)
+    {
+        PdfRenderedPage rendered = RenderRgbProcessOverprintShading(mode);
+        PdfRenderedPage nativeCmyk = RenderRgbProcessOverprintShading(mode, nativeCmyk: true);
+        int center = (4 * 8 + 4) * 4;
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Empty(nativeCmyk.Diagnostics);
+        Assert.Equal(nativeCmyk.Pixels.Span[center..(center + 4)].ToArray(),
+            rendered.Pixels.Span[center..(center + 4)].ToArray());
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(128, 0, yellow, black),
+            rendered.Pixels.Span[center..(center + 4)].ToArray());
+    }
+
     [Fact]
     public void DefaultRgbSurface_UnbalancedGraphicsStateExcludesSpotShadow()
     {
@@ -490,6 +508,64 @@ public sealed class PdfOverprintTests
         var update = new PdfIncrementalUpdateBuilder(source).ReplaceObject(page.Reference.ObjectNumber,
             new PdfDictionary(dictionary.Append(new KeyValuePair<PdfName, PdfObject>(new PdfName("Group"u8), group))));
         return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(1, 1)).Pixels.ToArray();
+    }
+
+    private static PdfRenderedPage RenderRgbProcessOverprintShading(int mode, bool nativeCmyk = false)
+    {
+        PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
+        KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
+        PdfArray Numbers(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));
+        string content = "0 0 0 0 k 0 0 8 8 re f"
+            + " 1 0 1 0.5 k 2 0 4 8 re f"
+            + " /O gs q 2 0 0 8 6 0 cm /Im1 Do Q"
+            + " /Op gs /Sh1 sh";
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(8, 8, Encoding.ASCII.GetBytes(content)).Build());
+        var root = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
+        var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)root[Name("Pages")]);
+        var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+        var page = (PdfDictionary)source.Resolve(reference);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        var greenFunction = new PdfDictionary([
+            Entry("FunctionType", new PdfInteger(2)), Entry("Domain", Numbers(0, 1)),
+            Entry("C0", Numbers(0, 0, 0, 0)), Entry("C1", Numbers(0, 1, 0, 0)),
+            Entry("N", new PdfInteger(1))]);
+        var greenImage = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)),
+            Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)),
+            Entry("ColorSpace", new PdfArray([Name("Indexed"), Name("Green"),
+                new PdfInteger(0), new PdfString([255], PdfStringForm.Hexadecimal)]))]), [0]));
+        var halfCyan = new PdfArray([new PdfReal(0.5), new PdfInteger(0),
+            new PdfInteger(0), new PdfInteger(0)]);
+        var shadingFunction = new PdfDictionary([
+            Entry("FunctionType", new PdfInteger(2)), Entry("Domain", Numbers(0, 1)),
+            Entry("C0", halfCyan), Entry("C1", halfCyan),
+            Entry("N", new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            Entry("ShadingType", new PdfInteger(2)), Entry("ColorSpace", Name("DeviceCMYK")),
+            Entry("Coords", Numbers(0, 0, 1, 0)), Entry("Function", shadingFunction),
+            Entry("Extend", new PdfArray([new PdfBoolean(true), new PdfBoolean(true)])),
+            Entry("BBox", Numbers(2, 0, 6, 8))]);
+        var resources = new PdfDictionary([
+            Entry("ColorSpace", new PdfDictionary([
+                Entry("Green", new PdfArray([Name("Separation"), Name("GWG Green"),
+                    Name("DeviceCMYK"), greenFunction]))])),
+            Entry("ExtGState", new PdfDictionary([
+                Entry("O", new PdfDictionary([
+                    Entry("op", new PdfBoolean(true)), Entry("OP", new PdfBoolean(true)),
+                    Entry("OPM", new PdfInteger(0))])),
+                Entry("Op", new PdfDictionary([
+                    Entry("op", new PdfBoolean(true)), Entry("OP", new PdfBoolean(true)),
+                    Entry("OPM", new PdfInteger(mode))]))])),
+            Entry("XObject", new PdfDictionary([Entry("Im1", greenImage)])),
+            Entry("Shading", new PdfDictionary([Entry("Sh1", shading)]))]);
+        var pageEntries = page.Where(pair => !pair.Key.Equals(Name("Resources"))
+            && !pair.Key.Equals(Name("Group"))).Append(Entry("Resources", resources));
+        if (nativeCmyk)
+            pageEntries = pageEntries.Append(Entry("Group", new PdfDictionary([
+                Entry("S", Name("Transparency")), Entry("CS", Name("DeviceCMYK"))])));
+        update.ReplaceObject(reference.ObjectNumber, new PdfDictionary(pageEntries));
+        return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(8, 8));
     }
 
     private static PdfRenderedPage RenderRgbSpotShadow(bool withSpots, bool useImages = false,
