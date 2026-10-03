@@ -108,6 +108,22 @@ public sealed class PdfOverprintTests
         Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 128), pixels[center..(center + 4)]);
     }
 
+    [Fact]
+    public void OpaqueProcessFillBetweenNamedSpots_ClearsEarlierPlate()
+    {
+        var rendered = Render("spot", true, true, 1, blankBackground: true,
+            processFillBetweenSpots: true);
+        byte[] pixels = rendered.Pixels.ToArray();
+        int center = (4 * 8 + 4) * 4;
+        int outside = (4 * 8 + 1) * 4;
+        int edge = (4 * 8 + 2) * 4;
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 255), pixels[center..(center + 4)]);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(255, 0), pixels[outside..(outside + 4)]);
+        Assert.Equal(new byte[] { 250, 229, 186, 255 }, pixels[edge..(edge + 4)]);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
@@ -318,7 +334,8 @@ public sealed class PdfOverprintTests
         double registrationTint = 0.5, double? secondSpotTint = null, bool blankBackground = false,
         bool blankImageBetweenSpotPaints = false, bool initialSpotBeforeImage = false,
         byte? spotImageTint = null, bool reducedImage = false, bool alternatingImageSamples = false,
-        bool grayWhiteOverlay = false, double? cmykBlackOverlay = null)
+        bool grayWhiteOverlay = false, double? cmykBlackOverlay = null,
+        bool processFillBetweenSpots = false)
     {
         PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
@@ -351,6 +368,9 @@ public sealed class PdfOverprintTests
         };
         string select = paint == "restored" ? "q /O gs Q" : "/O gs";
         if (registration) operation = operation.Replace("1 scn", tintNumber + " scn", StringComparison.Ordinal);
+        if (processFillBetweenSpots)
+            operation = "/SpotA cs 1 scn 0 0 8 8 re f q /N gs 0 0 0 0 k 2.25 0 3.5 8 re f Q"
+                + " /Named cs 1 scn 3 0 2 8 re f";
         if (initialSpotBeforeImage)
             operation = (paint == "mixedspotimage" ? "/SpotA cs 1 scn" : "/Named cs 1 scn")
                 + " 0 0 8 8 re f q " + operation + " Q";
@@ -488,7 +508,9 @@ public sealed class PdfOverprintTests
             Entry("Font", new PdfDictionary([Entry("F", new PdfDictionary([
                 Entry("Type", Name("Font")), Entry("Subtype", Name("Type1")), Entry("BaseFont", Name("Helvetica"))]))])),
             Entry("Shading", new PdfDictionary([Entry("Sh", update.AddObject(shading))])),
-            Entry("ExtGState", new PdfDictionary([Entry("O", new PdfDictionary(settings))])),
+            Entry("ExtGState", new PdfDictionary([Entry("O", new PdfDictionary(settings)),
+                Entry("N", new PdfDictionary([Entry("op", new PdfBoolean(false)),
+                    Entry("OP", new PdfBoolean(false)), Entry("OPM", new PdfInteger(0))]))])),
             Entry("XObject", new PdfDictionary([Entry("Im", image), Entry("Fm", form)]))]);
         var group = new PdfDictionary([Entry("S", Name("Transparency")),
             Entry("CS", Name(rgb || paint == "group-to-cmyk" ? "DeviceRGB" : "DeviceCMYK"))]);

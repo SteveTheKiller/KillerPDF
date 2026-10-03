@@ -3939,3 +3939,31 @@ search and is excluded. These are summed page render times, not application
 wall time. Scratch evidence is under
 `C:/Users/steve/kp-bench-render/parity-serial-corpus-idle-20261002` and
 `C:/Users/steve/kp-bench-render/parity-serial-difficult-idle-20261002`.
+
+An opaque process-color run trial batched spot-plate clearing after named spot
+paints. Sixteen repeated Altona pages at 2048 pixels took 6,432/6,508 ms in
+control runs and 6,480/6,404 ms in trial runs. The last 15 pages favored the
+trial by about 90 ms per run, while first-page times overlapped. The 74-page
+difficult set took 8,648/9,264 ms in control runs and 8,809/8,748 ms in trial
+runs, changing direction between pairs. All 16 Altona and 74 difficult PNGs
+matched their controls. The broad speed gain was not established, so the
+renderer trial was removed. A regression test now covers a process fill
+between two named spots, including its fractional edge. Scratch results are
+under `C:/Users/steve/kp-bench-render/spot-process-run-compare-20261002` and
+`C:/Users/steve/kp-bench-render/spot-process-run-difficult-20261002`.
+
+A 64 KiB lookup table reproduced the current named-spot mixing formula exactly
+on all 16 repeated Altona PNGs. At 2048 pixels, control render sums were
+6,508/6,643 ms and trial sums were 6,480/6,562 ms in balanced order. The
+first trial render was slower in one pair and effectively tied in the other;
+the last 15 pages favored the trial by 179/36 ms. This did not establish a
+useful cold-render improvement, so the table was removed. Evidence is under
+`C:/Users/steve/kp-bench-render/spot-blend-table-compare-20261002`.
+
+A current cold trace of `42828.0001.001.pdf` page 1 at 2048 pixels took
+513 ms to render. Of the 511 ms sampled inside `RenderUncached`, stream decode
+occupied 313 ms, including 307 ms in JBIG2 decode. Main-thread image painting
+occupied 60 ms and text handling 74 ms. These are inclusive intervals from one
+profiled run, so they are not an untraced parity result. The next focused target
+is JBIG2 symbol decoding. Trace and render CSV are under
+`C:/Users/steve/kp-bench-render/jbig2-current-cold-profile-20261002`.
