@@ -3967,3 +3967,12 @@ occupied 60 ms and text handling 74 ms. These are inclusive intervals from one
 profiled run, so they are not an untraced parity result. The next focused target
 is JBIG2 symbol decoding. Trace and render CSV are under
 `C:/Users/steve/kp-bench-render/jbig2-current-cold-profile-20261002`.
+
+A template-0 JBIG2 trial accumulated each output byte as an integer and narrowed
+it only when stored. Fifteen focused JBIG2 tests passed, and all eight scan PNGs
+matched the control at both 512 and 2048 pixels. In two 512-pixel pairs, the
+later seven renders took 1,238/1,241 ms for control and 1,197/1,217 ms for the
+trial. At 2048 pixels they took 1,259/1,333 ms and 1,346/1,333 ms. First-render
+times overlapped at both sizes. The larger-page result did not establish a gain,
+so the code trial was removed. Scratch payloads and CSVs are under
+`C:/Users/steve/kp-bench-render/jbig2-intacc-trial-20261002`.
