@@ -2614,8 +2614,9 @@ public sealed partial class PdfPageRenderer
             int cacheLevel = recoveredPng ? -2
                 : jpeg ? -10 - jpegReduction
                 : resolutionLevel;
-            DecodedImage decodedImage = _imageCache.GetOrAdd(
-                new ImageCacheKey(stream, cacheLevel), _ => DecodeImage());
+            // Inline instructions create a fresh stream for each paint, so the cache cannot reuse it.
+            DecodedImage decodedImage = ownedInlineImage ? DecodeImage()
+                : _imageCache.GetOrAdd(new ImageCacheKey(stream, cacheLevel), _ => DecodeImage());
             samples = decodedImage.Samples;
             sampleWidth = decodedImage.Width;
             sampleHeight = decodedImage.Height;

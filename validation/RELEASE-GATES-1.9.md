@@ -21,6 +21,28 @@ overall average.
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 1 local-branch forward-port check passes for 201 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
 | Builds and regression suites | Passing development checkpoint | October 1: 4,176 engine tests and 487 app tests pass, and the Release application build succeeds with zero warnings and errors. The earlier scratch portable and installer packages pass their file inventories and payload startup checks; the installer also passes isolated installation. A clean build reported 659 nullable warnings from vendored CoreJ2K. The earlier application and transitive package vulnerability check reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
+An October 2 change avoids retaining decoded inline images whose fresh stream
+keys cannot be reused. Two balanced eight-copy map pairs at 512 pixels sampled
+peak memory at 393.7/388.8 MiB before and 333.3/342.4 MiB after. Their render
+sums were 9,357/9,329 ms before and 9,290/9,340 ms after, so speed is tied.
+At 2048 pixels, one reversed-order pair peaked at 402.4 versus 365.6 MiB and
+took 11,469 versus 11,150 ms. All eight map PNG hashes matched at both sizes.
+The 649-file conformance run rendered 614 pages, skipped 35, failed none, and
+matched all 614 saved 1.9 PNG hashes at 512 pixels. The Release build, all
+4,188 engine tests, and all 487 app tests pass. Raw results are under
+`C:/Users/steve/kp-bench-render/inline-cache-trial-20261002/`. The 1.8
+performance, difficult-set memory, and visible-interaction gates remain open.
+
+A fresh headless 1.8.80/1.9/1.9/1.8 comparison of the same 74 difficult pages
+at 2048 pixels measured render sums of 4,769/4,792 ms for 1.8 and
+8,892/8,593 ms for 1.9. Sampled peaks were 256.9/228.5 MiB versus
+295.6/303.5 MiB. Both builds rendered all 74 pages; all 74 current 1.9 PNG
+hashes matched the prior 1.9 build. The application DLL hashes begin
+`5FA47515A` and `B645A4B6`, respectively. Altona technical page 1 remains
+the largest gap at 215/212 versus 1,229/1,127 ms. This direct Release-DLL
+comparison does not establish packaged installer or visible-interaction parity.
+Raw outputs are under `C:/Users/steve/kp-bench-render/inline-cache-trial-20261002/`.
+
 An October 2 large binary-image sampling change reduced the focused JBIG2
 scan's first 512-pixel page from 634/637 ms to 539/521 ms in balanced
 runs. All 614 conformance PNGs at 512 pixels and all 74 difficult-set PNGs at
