@@ -264,6 +264,14 @@ versus 450.50 ms per later page. The warm path was slower, so the change
 remains scratch-only under
 `C:/Users/steve/kp-bench-render/x3-spot-clear-lock-trial-20261003/`.
 
+A scratch Altona x3 probe found 746,002 of 903,465 eligible opaque process
+coverage pixels (82.6%) in 32-pixel tiles never touched by spot ink. A
+guarded tile fill passed 127 spot tests and preserved all 80 paired x3 PNGs
+and both GWG080/081 PNGs. Its first-page and repeated-page timings varied
+across paired runs; one Ghent pair slowed on both pages. Peak memory was not
+captured. The prototype was not promoted. Evidence is under
+`C:/Users/steve/kp-bench-render/spot-occupancy-probe-20261003-6cd20b7/`.
+
 A per-surface shared ICC ink-to-RGB lookup improves the first 2048-pixel
 Altona x4 render in two balanced scratch checks. The first averaged 1,233.5
 ms baseline versus 1,115.8 ms trial; an independent confirmation averaged
