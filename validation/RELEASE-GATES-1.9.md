@@ -4923,3 +4923,11 @@ retained. The trace is under
 `C:/Users/steve/kp-bench-render/binary-grid-trial-20261004/`; the trial source,
 payload hashes, and paired results are under
 `C:/Users/steve/kp-bench-render/patch-grid-trial-20261004/`.
+
+A separate scratch trial precomputed the five Bernstein weight sets once per
+shading instead of rebuilding them for every patch sample. All 20 repeated
+Ghent page-1 PNG hashes matched the control. Eight alternating fresh-process
+runs averaged 3,042.75 ms for the control and 3,147.25 ms for the trial across
+20 pages, while sampled peak working set averaged 157.99 and 158.96 MiB.
+The trial was not retained. Source, payload hashes, and paired runs are under
+`C:/Users/steve/kp-bench-render/patch-weights-trial-20261004/`.
