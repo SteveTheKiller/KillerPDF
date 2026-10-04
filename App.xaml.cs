@@ -81,6 +81,10 @@ namespace KillerPDF
             base.OnStartup(e);
             StartupTrace.Mark("Application base startup complete");
 
+            // The app-level grain tile normally comes from the main window. Install, uninstall
+            // and install-repair dialogs can open before one exists, so publish it now.
+            EnsureCrashPreviewGrain();
+
             // Private launcher hand-off. The verified launcher has already staged the complete
             // payload; this fast headless pass only registers shortcuts, associations, protocol,
             // and uninstall metadata from the final installed path.

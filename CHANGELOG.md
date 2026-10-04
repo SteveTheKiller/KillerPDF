@@ -21,6 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Opened PDFs whose cross-reference table contains valid objects beyond an incorrect trailer size (#406).
 - Pasted multi-selected annotations now move together, and a pen click places a dot.
 - Preserved Hebrew letter order when saving text placed on a PDF (#435).
+- Install and uninstall windows now show the film grain and the app icon in the title bar.
 
 ### Changed
 

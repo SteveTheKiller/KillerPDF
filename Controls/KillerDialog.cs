@@ -26,6 +26,22 @@ namespace KillerPDF
         private static string L(string key, string fallback)
             => Application.Current.TryFindResource(key) as string ?? fallback;
 
+        // The app icon that leads the wordmark, at the main title bar's size and spacing.
+        private static Image TitleIcon()
+        {
+            var icon = new Image
+            {
+                Source = new System.Windows.Media.Imaging.BitmapImage(
+                    new System.Uri("pack://application:,,,/Resources/kp-icon.png")),
+                Width = Application.Current.TryFindResource("TitleIconSize") is double size ? size : 25.0,
+                Height = Application.Current.TryFindResource("TitleIconSize") is double size2 ? size2 : 25.0,
+                Margin = Application.Current.TryFindResource("TitleIconMargin") is Thickness margin ? margin : new Thickness(0, 0, 7, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.HighQuality);
+            return icon;
+        }
+
         // Carries the checkbox state of the last Show() call back to ShowWithCheckbox. Dialogs are
         // modal and UI-thread only, so a shared field is safe and avoids a duplicate dialog body.
         private static bool _lastCheckboxChecked;
@@ -83,6 +99,7 @@ namespace KillerPDF
             if (title == "KillerPDF" || title.StartsWith("KillerPDF ", System.StringComparison.Ordinal))
             {
                 var wm = new StackPanel { Orientation = Orientation.Horizontal };
+                wm.Children.Add(TitleIcon());
                 var wmTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
                 wmTb.Inlines.Add(new System.Windows.Documents.Run("Killer") { FontFamily = UiKit.WordmarkFont, FontWeight = FontWeights.Normal, FontSize = 15, Foreground = R("TextBrush") });
                 wmTb.Inlines.Add(new System.Windows.Documents.Run("PDF") { FontFamily = UiKit.WordmarkFontPdf, FontWeight = FontWeights.Bold, FontSize = 19.5, Foreground = R("AccentLogo") });
@@ -254,7 +271,10 @@ namespace KillerPDF
                 var wmTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
                 wmTb.Inlines.Add(new System.Windows.Documents.Run("Killer") { FontFamily = UiKit.WordmarkFont, FontWeight = FontWeights.Normal, FontSize = 15, Foreground = R("TextBrush") });
                 wmTb.Inlines.Add(new System.Windows.Documents.Run("PDF") { FontFamily = UiKit.WordmarkFontPdf, FontWeight = FontWeights.Bold, FontSize = 19.5, Foreground = R("AccentLogo") });
-                titleBar.Child = wmTb;
+                var wm = new StackPanel { Orientation = Orientation.Horizontal };
+                wm.Children.Add(TitleIcon());
+                wm.Children.Add(wmTb);
+                titleBar.Child = wm;
             }
             else
             {
@@ -398,6 +418,7 @@ namespace KillerPDF
             };
             titleBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) win.DragMove(); };
             var wm = new StackPanel { Orientation = Orientation.Horizontal };
+            wm.Children.Add(TitleIcon());
             var wmTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
             wmTb.Inlines.Add(new System.Windows.Documents.Run("Killer") { FontFamily = UiKit.WordmarkFont, FontWeight = FontWeights.Normal, FontSize = 15, Foreground = R("TextBrush") });
             wmTb.Inlines.Add(new System.Windows.Documents.Run("PDF") { FontFamily = UiKit.WordmarkFontPdf, FontWeight = FontWeights.Bold, FontSize = 18, Foreground = R("AccentLogo") });
