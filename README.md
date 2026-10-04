@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://killerpdf.net"><img src="docs/wordmark.png" width="640" alt="KillerPDF wordmark: a free, open-source PDF editor for Windows"></a>
+  <a href="https://killerpdf.net"><img src="docs/wordmark.png" height="180" alt="KillerPDF wordmark: a free, open-source PDF editor for Windows"></a>
 </p>
 
 # KillerPDF 1.9 "Overkill"
