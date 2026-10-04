@@ -4756,8 +4756,30 @@ sides and render timing varied. The trial was not promoted. Evidence is under
 `C:/Users/steve/kp-bench-render/memory-pages-20261004/` and
 `C:/Users/steve/kp-bench-render/spot-exact-buffer-trial-20261004/`.
 
+An instrumented Altona render counted 1,623,158 process-coverage calls after
+spot plates became active. Of 1,411,449 eligible opaque full-coverage calls,
+1,228,817 addressed pixels with no spot ink. A scratch shortcut for the
+non-overprint subset kept the 2048-pixel PNG identical, but two balanced
+Altona pairs averaged 1,224 ms versus 1,194.5 ms for the control, with peak
+memory at 188.9 versus 189.1 MiB. The slower shortcut was not promoted.
+Evidence is under `C:/Users/steve/kp-bench-render/empty-spot-fast-trial-20261004/`.
+
 At 2048 by 1137 pixels, the current GWG081 Patch render visibly has both
 turtle checks and all gradient checks without the failure X. Poppler with
 overprint enabled shows the same check shapes. The colors differ, so absolute
 color fidelity remains open. The paired images are under
 `C:/Users/steve/kp-bench-render/ghent081-2048-audit-20261004/`.
+The current 1.8.80 build also rendered this page at the same dimensions but
+omitted the checks. Against that Poppler image, mean absolute RGB error was
+10.169 for 1.9 and 7.507 for 1.8 across the full page. On the left duotone
+image it was 17.253 versus 7.623; on the gradient it was 15.039 versus
+18.586. These are reference-image comparisons, not a determination of which
+color transform follows the embedded output profile correctly.
+A scratch probe captured native CMYK ink at four page pixels before 1.9's
+final display conversion. Independent LittleCMS conversion through the PDF's
+embedded ISO Coated v2 300% profile at relative colorimetric intent matched
+the final 1.9 RGB values exactly or within one channel level. This supports
+the final profile conversion at those pixels; source DeviceN ink formation
+and the renderer reference disagreement remain open. Probe output and an
+exact-matching page PNG are under
+`C:/Users/steve/kp-bench-render/ghent-color-ink-probe-20261004/`.
