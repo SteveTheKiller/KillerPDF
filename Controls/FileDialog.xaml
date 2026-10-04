@@ -250,6 +250,10 @@
                     <ListBox x:Name="PlacesList" Grid.Row="2" Background="Transparent" BorderThickness="0" Padding="2,4"
                              ItemContainerStyle="{StaticResource PickerPlaceRow}" SelectionChanged="Places_SelectionChanged"
                              ContextMenuOpening="Places_ContextMenuOpening"
+                             PreviewMouseLeftButtonDown="Places_PreviewMouseLeftButtonDown"
+                             PreviewMouseMove="Places_PreviewMouseMove"
+                             PreviewMouseLeftButtonUp="Places_PreviewMouseLeftButtonUp"
+                             LostMouseCapture="Places_LostMouseCapture"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ListBox.ContextMenu>
                             <ContextMenu>

@@ -9,6 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 1.9.0 (Overkill) moves rendering, text, and image extraction into The KillerPDF.Engine, adds advanced PDF workflows, and carries forward the latest 1.8 reliability and interface fixes.
 
 ### Added
+- Added drag ordering for pinned places in the file picker.
 - Added yellow and magenta accents to the neutral and 98SE themes.
 - Added Ukrainian localization.
 - Added Norwegian (Bokmål) localization.
