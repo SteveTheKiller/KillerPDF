@@ -4881,10 +4881,14 @@ public sealed partial class PdfPageRenderer
             transform.Apply(0, 0), transform.Apply(1, 0),
             transform.Apply(0, 1), transform.Apply(1, 1)
         ];
-        int left = Math.Clamp((int)Math.Floor(corners.Min(p => p.X) * scaleX), 0, targetWidth);
-        int right = Math.Clamp((int)Math.Ceiling(corners.Max(p => p.X) * scaleX), 0, targetWidth);
-        int top = Math.Clamp(targetHeight - (int)Math.Ceiling(corners.Max(p => p.Y) * scaleY), 0, targetHeight);
-        int bottom = Math.Clamp(targetHeight - (int)Math.Floor(corners.Min(p => p.Y) * scaleY), 0, targetHeight);
+        double fullLeft = Math.Floor(corners.Min(p => p.X) * scaleX);
+        double fullRight = Math.Ceiling(corners.Max(p => p.X) * scaleX);
+        double fullBottom = Math.Floor(corners.Min(p => p.Y) * scaleY);
+        double fullTop = Math.Ceiling(corners.Max(p => p.Y) * scaleY);
+        int left = Math.Clamp((int)fullLeft, 0, targetWidth);
+        int right = Math.Clamp((int)fullRight, 0, targetWidth);
+        int top = Math.Clamp(targetHeight - (int)fullTop, 0, targetHeight);
+        int bottom = Math.Clamp(targetHeight - (int)fullBottom, 0, targetHeight);
         if (!transform.TryInverse(out Matrix inverse)) return;
         // A rectangular clip is fully applied by shrinking the painted bounds, so it does not
         // disqualify the direct paths; only antialiased clip masks need per-pixel coverage.
@@ -5085,19 +5089,24 @@ public sealed partial class PdfPageRenderer
         }
         int destinationWidth = right - left, destinationHeight = bottom - top;
         if (destinationWidth <= 0 || destinationHeight <= 0) return;
+        // A page crop limits painting, not the image's sampling scale or source grid.
+        static int FullExtent(double extent, int fallback) => double.IsFinite(extent) && extent > 0
+            ? (int)Math.Min(extent, int.MaxValue) : fallback;
+        int fullDestinationWidth = FullExtent(fullRight - fullLeft, destinationWidth);
+        int fullDestinationHeight = FullExtent(fullTop - fullBottom, destinationHeight);
         bool interpolateSoftMask = softMask is not null
-            && (sourceWidth > destinationWidth || sourceHeight > destinationHeight);
+            && (sourceWidth > fullDestinationWidth || sourceHeight > fullDestinationHeight);
 
         // Build a bounded plane in destination colors. Average unmasked reduced images
         // across their source footprints so thin features survive the final nearest lookup.
         int samplingWidth = sourceWidth;
         int samplingHeight = sourceHeight;
         int factor = Math.Max(1, (int)Math.Floor(Math.Min(
-            samplingWidth / (double)destinationWidth, samplingHeight / (double)destinationHeight)));
-        while ((long)((samplingWidth + factor - 1) / factor) * ((samplingHeight + factor - 1) / factor)
+            samplingWidth / (double)fullDestinationWidth, samplingHeight / (double)fullDestinationHeight)));
+        while (((long)samplingWidth + factor - 1) / factor * (((long)samplingHeight + factor - 1) / factor)
             > 4_000_000L) factor++;
-        int planeWidth = (samplingWidth + factor - 1) / factor;
-        int planeHeight = (samplingHeight + factor - 1) / factor;
+        int planeWidth = (int)(((long)samplingWidth + factor - 1) / factor);
+        int planeHeight = (int)(((long)samplingHeight + factor - 1) / factor);
         bool preserveRgbSpots = target.HasRgbSpotShadow && colorSpace.ContainsSpotColorants;
         Color[]? spotPalette = (target.Ink is not null || preserveRgbSpots)
             && colorSpace.PaletteBase?.HasSpotColorants == true ? colorSpace.Palette : null;
@@ -5129,8 +5138,8 @@ public sealed partial class PdfPageRenderer
             && (components == 1 && decode is [0, 1] || components == 3 && decode is [0, 1, 0, 1, 0, 1]);
         if (averagePlane || averageStencil)
         {
-            planeWidth = Math.Min(planeWidth, destinationWidth);
-            planeHeight = Math.Min(planeHeight, destinationHeight);
+            planeWidth = Math.Min(planeWidth, pixelAlignedPlane ? destinationWidth : fullDestinationWidth);
+            planeHeight = Math.Min(planeHeight, pixelAlignedPlane ? destinationHeight : fullDestinationHeight);
         }
         SpotInkSample[]? spotPlane = averagePlane && spotPalette is { Length: > 0 }
             && (spotPalette[0].ProcessInk is not null || target.HasRgbSpotShadow)

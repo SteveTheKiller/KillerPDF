@@ -82,10 +82,128 @@ public sealed class PdfImageAreaSamplingTests
         Assert.Equal(new byte[] { 0, 0, 0, 255 }, rendered.Pixels.Slice(0, 4).ToArray());
     }
 
-    private static PdfRenderedPage RenderGray(byte[] samples, int bits, int imageSize, int pageSize, string matrix)
+    [Theory]
+    [InlineData(1, 6, false)]
+    [InlineData(8, 6, false)]
+    [InlineData(16, 6, false)]
+    [InlineData(1, 3, false)]
+    [InlineData(8, 3, false)]
+    [InlineData(16, 3, false)]
+    [InlineData(1, 6, true)]
+    [InlineData(8, 6, true)]
+    [InlineData(16, 6, true)]
+    [InlineData(1, 3, true)]
+    [InlineData(8, 3, true)]
+    [InlineData(16, 3, true)]
+    public void PageCropDoesNotChangeImageSamplingScale(int bits, int drawnSize, bool rowStripe)
     {
-        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(pageSize, pageSize,
-            Encoding.ASCII.GetBytes(matrix + " cm /Image Do")).Build());
+        byte[] values = [.. Enumerable.Range(0, 36).Select(pixel =>
+            (rowStripe ? pixel / 6 == 4 : pixel % 6 == 1) ? (byte)255 : (byte)0)];
+        byte[] samples = bits == 1 ? rowStripe ? [0, 0, 0, 0, 0xFC, 0]
+                : [0x40, 0x40, 0x40, 0x40, 0x40, 0x40]
+            : bits == 8 ? values : [.. values.SelectMany(value => new byte[] { value, value })];
+        var rendered = RenderGray(samples, bits, 6, 2, $"{drawnSize} 0 0 {drawnSize} 0 0");
+        // Native pixels retain black/white; a twofold reduction averages pairs.
+        byte[] expected = rowStripe ? drawnSize == 6 ? [255, 0] : [0, 128]
+            : drawnSize == 6 ? [0, 255] : [128, 0];
+        for (int y = 0; y < 2; y++)
+        for (int x = 0; x < 2; x++)
+        {
+            byte gray = expected[rowStripe ? y : x];
+            Assert.Equal(new byte[] { gray, gray, gray, 255 },
+                rendered.Pixels.Slice((y * 2 + x) * 4, 4).ToArray());
+        }
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(8)]
+    [InlineData(16)]
+    public void FractionalNativeSizeCropMatchesUncroppedSamples(int bits)
+    {
+        byte[] values = [.. Enumerable.Range(0, 36).Select(pixel => pixel % 6 == 1 ? (byte)255 : (byte)0)];
+        byte[] samples = bits == 1 ? [0x40, 0x40, 0x40, 0x40, 0x40, 0x40]
+            : bits == 8 ? values : [.. values.SelectMany(value => new byte[] { value, value })];
+        var cropped = RenderGray(samples, bits, 6, 3, "6 0 0 6 -.25 1", pageHeight: 8);
+        var full = RenderGray(samples, bits, 6, 10, "6 0 0 6 3.75 1", pageHeight: 8);
+        for (int y = 1; y < 7; y++)
+        for (int x = 0; x < 3; x++)
+            Assert.Equal(full.Pixels.Slice((y * 10 + x + 4) * 4, 4).ToArray(),
+                cropped.Pixels.Slice((y * 3 + x) * 4, 4).ToArray());
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, cropped.Pixels.Slice((3 * 3 + 1) * 4, 4).ToArray());
+    }
+
+    [Fact]
+    public void FractionalNativeSizeCropDoesNotInterpolateSoftMask()
+    {
+        byte[] rgba = [.. Enumerable.Range(0, 36).SelectMany(pixel =>
+            new byte[] { 255, 0, 0, pixel % 6 == 1 ? (byte)0 : (byte)255 })];
+        PdfRenderedPage Render(int pageWidth, double x)
+        {
+            var content = new PdfContentStreamBuilder().DrawImage(PdfImage.FromRgba(6, 6, rgba), x, 1, 6, 6);
+            var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(pageWidth, 8, content).Build());
+            var result = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(pageWidth, 8));
+            Assert.Empty(result.Diagnostics);
+            return result;
+        }
+        var cropped = Render(3, -.25);
+        var full = Render(10, 3.75);
+        for (int y = 1; y < 7; y++)
+        for (int x = 0; x < 3; x++)
+            Assert.Equal(full.Pixels.Slice((y * 10 + x + 4) * 4, 4).ToArray(),
+                cropped.Pixels.Slice((y * 3 + x) * 4, 4).ToArray());
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, cropped.Pixels.Slice((3 * 3 + 1) * 4, 4).ToArray());
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, cropped.Pixels.Slice(3 * 3 * 4, 4).ToArray());
+    }
+
+    [Fact]
+    public void FractionalNativeSizeStencilCropMatchesUncroppedSamples()
+    {
+        byte[] samples = [0x40, 0x40, 0x40, 0x40, 0x40, 0x40];
+        var cropped = RenderGray(samples, 1, 6, 3, "6 0 0 6 -.25 1", pageHeight: 8, imageMask: true);
+        var full = RenderGray(samples, 1, 6, 10, "6 0 0 6 3.75 1", pageHeight: 8, imageMask: true);
+        for (int y = 1; y < 7; y++)
+        for (int x = 0; x < 3; x++)
+            Assert.Equal(full.Pixels.Slice((y * 10 + x + 4) * 4, 4).ToArray(),
+                cropped.Pixels.Slice((y * 3 + x) * 4, 4).ToArray());
+        Assert.NotEqual(cropped.Pixels.Slice(3 * 3 * 4, 4).ToArray(),
+            cropped.Pixels.Slice((3 * 3 + 1) * 4, 4).ToArray());
+    }
+
+    [Fact]
+    public void ReducedStencilCroppedInBothDimensionsUsesFullImagePlane()
+    {
+        byte[] samples = [0x30, 0x30, 0x30, 0x30, 0x30, 0x30];
+        var cropped = RenderGray(samples, 1, 6, 2, "3 0 0 3 -1 -1", imageMask: true);
+        var full = RenderGray(samples, 1, 6, 8, "3 0 0 3 3 3", imageMask: true);
+        for (int y = 0; y < 2; y++)
+        for (int x = 0; x < 2; x++)
+            Assert.Equal(full.Pixels.Slice(((y + 2) * 8 + x + 4) * 4, 4).ToArray(),
+                cropped.Pixels.Slice((y * 2 + x) * 4, 4).ToArray());
+        Assert.NotEqual(cropped.Pixels.Slice(0, 4).ToArray(), cropped.Pixels.Slice(4, 4).ToArray());
+    }
+
+    [Fact]
+    public void FractionalReductionWithPageCropKeepsRectangularClipSamplesAligned()
+    {
+        byte[] samples = [.. Enumerable.Range(0, 64).SelectMany(pixel =>
+            new byte[] { (byte)(pixel % 8 * 32), (byte)(pixel % 8 * 32) })];
+        const string matrix = "6.4 0 0 6.4 -2.25 0";
+        var full = RenderGray(samples, 16, 8, 4, matrix);
+        var clipped = RenderGray(samples, 16, 8, 4, matrix, contentPrefix: "1 0 2 4 re W n ");
+        for (int y = 0; y < 4; y++)
+        for (int x = 1; x < 3; x++)
+            Assert.Equal(full.Pixels.Slice((y * 4 + x) * 4, 4).ToArray(),
+                clipped.Pixels.Slice((y * 4 + x) * 4, 4).ToArray());
+        Assert.NotEqual(full.Pixels.Slice(4, 4).ToArray(), full.Pixels.Slice(8, 4).ToArray());
+    }
+
+    private static PdfRenderedPage RenderGray(byte[] samples, int bits, int imageSize, int pageSize,
+        string matrix, int? pageHeight = null, bool imageMask = false, string contentPrefix = "")
+    {
+        int height = pageHeight ?? pageSize;
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(pageSize, height,
+            Encoding.ASCII.GetBytes(contentPrefix + matrix + " cm /Image Do")).Build());
         PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
         KeyValuePair<PdfName, PdfObject> Entry(string name, PdfObject value) => new(Name(name), value);
         var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
@@ -93,14 +211,16 @@ public sealed class PdfImageAreaSamplingTests
         var pageReference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
         var page = (PdfDictionary)source.Resolve(pageReference);
         var update = new PdfIncrementalUpdateBuilder(source);
-        var image = update.AddObject(new PdfStream(new PdfDictionary([
+        var imageEntries = new List<KeyValuePair<PdfName, PdfObject>>([
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(imageSize)),
-            Entry("Height", new PdfInteger(imageSize)), Entry("ColorSpace", Name("DeviceGray")),
-            Entry("BitsPerComponent", new PdfInteger(bits))]), samples));
+            Entry("Height", new PdfInteger(imageSize)), Entry("BitsPerComponent", new PdfInteger(bits))]);
+        imageEntries.Add(imageMask ? Entry("ImageMask", new PdfBoolean(true))
+            : Entry("ColorSpace", Name("DeviceGray")));
+        var image = update.AddObject(new PdfStream(new PdfDictionary(imageEntries), samples));
         var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Image", image)]))]);
         update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page
             .Where(pair => !pair.Key.Equals(Name("Resources"))).Append(Entry("Resources", resources))));
-        var rendered = new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(pageSize, pageSize));
+        var rendered = new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(pageSize, height));
         Assert.Empty(rendered.Diagnostics);
         return rendered;
     }

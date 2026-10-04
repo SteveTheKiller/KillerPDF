@@ -97,7 +97,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Fixed
 
-- Preserved image detail during mild grayscale and color reductions, including fractional placement and flipped axes.
+- Preserved image detail during reductions and page crops, including fractional placement, masks, and flipped axes.
 - Kept existing CMYK channels under OPM1 process overprint on RGB spot pages.
 - Preserved process ink beneath supported named spot images on RGB pages.
 - Preserved antialiased named-spot overprints, including clipped paths on RGB pages.
