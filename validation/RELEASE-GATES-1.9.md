@@ -5006,3 +5006,29 @@ working set averaged 157.03 and 155.13 MiB. The small memory saving did
 not close Ghent's gap, and rendering was slightly slower overall, so the
 trial was not retained. Source, hashes, and measurements are under
 `C:/Users/steve/kp-bench-render/patch-buffers-trial-20261004/`.
+
+### Difficult-page reference screening (2026-10-04)
+
+Poppler 26.07.0 with overprint enabled rendered all 74 difficult pages at
+the matching 512-pixel dimensions. Comparing these references with paired
+1.8.80 and 1.9 PNGs found large whole-page RGB gaps on GWG1610 and GWG1611.
+On those pages the test objects and embedded reference images can also be
+compared within each render. At a fixed 88-pixel vertical offset, their mean
+RGB differences were 2.525 and 1.876 for 1.9, versus 2.476 and 1.914 for
+Poppler. The current 1.9 payload reproduced both retained 1.9 PNG hashes.
+These pages do not establish a soft-mask regression from whole-page color
+error alone.
+
+Poppler drew a large X on GWG182, although that test page says a correct
+render has no visible X; both KillerPDF branches hid it. The ColorBurn page
+uses the newer color-burn endpoint formula already covered by regression
+tests, so matching Poppler's different result would reverse that correction.
+The small JPEG 2000 image in UnknownFilter-Linearized has no `/Interpolate`
+entry. [PDF 32000-1](https://opensource.adobe.com/dc-acrobat-sdk-docs/standards/pdfstandards/pdf/PDF32000_2008.pdf)
+sets its default to false; Poppler's smoother scaling does not by itself
+make the sharper 1.9 result incorrect. The current 1.9 payload repeated the
+retained PNG hashes for these two pages and GWG182. This screening narrows
+the reference disagreements but does not prove absolute color, fine-detail,
+or full-corpus fidelity. The source-matched PNGs, exact-size references,
+scores, and focused output checks are under
+`C:/Users/steve/kp-bench-render/scan-memory-stage-20261004/`.
