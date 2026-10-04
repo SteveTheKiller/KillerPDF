@@ -4749,6 +4749,15 @@ for 1.9 versus 91.6 MiB for 1.8.80, with render times of 1,213.5 versus
 210 ms. The scan `42828.0001.001.pdf` peaked at 154.8 versus 99.9 MiB;
 the JPEG 2000 balloon page peaked at 152.9 versus 236.1 MiB. These isolated
 pages locate memory pressure but do not replace the 74-page parity gate.
+Four fresh-process runs per version instrumented the same Altona page at
+2048 pixels. The 1.8.80 and 1.9 mean working sets after document open were
+66.63 and 72.93 MiB, a 6.30 MiB gap. Mean peak working sets after rendering
+were 93.02 and 176.48 MiB, an 83.47 MiB gap. Each version repeated its own
+PNG hash; the two versions produced different images. The much larger
+render-stage gap directs memory work to raster and spot-plate storage.
+Instrumentation changes timing, and these readings are not a full-batch
+parity result. Raw stages and payload hashes are under
+`C:/Users/steve/kp-bench-render/scan-memory-stage-20261004/`.
 A GC allocation trace of Altona found three 16 MiB buffers allocated through
 spot-coverage painting. A scratch trial rented exact-size large byte buffers;
 its Altona PNG stayed identical, but paired peak memory was 189.3 MiB on both
