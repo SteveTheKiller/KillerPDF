@@ -838,7 +838,7 @@ namespace KillerPDF
         private void SizePreviewImage()
         {
             if (_previewArea is null || _preview.Source is not BitmapSource bmp || _srcW <= 0 || _srcH <= 0) return;
-            const double m = 36;   // breathing room inside the box
+            const double m = 48;   // match the page's 24px margin on each side
             double areaW = Math.Max(1, _previewArea.ActualWidth - m);
             double areaH = Math.Max(1, _previewArea.ActualHeight - m);
             double baseFit = Math.Min(areaW / _srcW, areaH / _srcH);   // scale that fits the original page
