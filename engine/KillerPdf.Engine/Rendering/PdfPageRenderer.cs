@@ -3331,19 +3331,39 @@ public sealed partial class PdfPageRenderer
             string? singleSpot = channels is [-2]
                 ? ((PdfName)Resolve(names[0])).ValueAsLatin1() : null;
             int spotIndex = Array.IndexOf(channels, -2);
+            string? spotName = spotIndex >= 0 ? ((PdfName)Resolve(names[spotIndex])).ValueAsLatin1() : null;
+            ImageColorSpace? definedSpot = null;
+            if (array.Count == 5 && alternate.IsLab && channels.Contains(-1)
+                && spotName is not null && channels.Count(channel => channel == -2) == 1
+                && activeChannels > 0
+                && channels.Where(channel => channel >= 0).Distinct().Count() == activeChannels
+                && Resolve(array[4]) is PdfDictionary attributes
+                && attributes.TryGetValue(Name("Colorants"), out PdfObject? colorantsValue)
+                && Resolve(colorantsValue) is PdfDictionary colorants
+                && colorants.TryGetValue(Name(spotName), out PdfObject? spotDefinition))
+            {
+                ImageColorSpace candidate = ReadColorSpace(spotDefinition, resources,
+                    depth + 1, useDefaults, diagnostics, intent);
+                if (candidate.Components == 1 && candidate.HasSpotColorants
+                    && candidate.Palette is null && candidate.Convert(1, 0, 0, 0).Ink is not null)
+                    definedSpot = candidate;
+            }
             bool mixedSpot = alternate.Components == 4 && spotIndex >= 0
                 && channels.Count(channel => channel == -2) == 1 && activeChannels > 0
                 && channels.All(channel => channel >= 0 || channel == -2)
-                && channels.Where(channel => channel >= 0).Distinct().Count() == activeChannels;
+                && channels.Where(channel => channel >= 0).Distinct().Count() == activeChannels
+                || definedSpot is not null;
             byte processMask = (byte)channels.Where(channel => channel >= 0)
                 .Aggregate(0, (mask, channel) => mask | (1 << channel));
-            string? mixedSpotName = mixedSpot ? ((PdfName)Resolve(names[spotIndex])).ValueAsLatin1() : null;
+            string? mixedSpotName = mixedSpot ? spotName : null;
             return new ImageColorSpace(names.Count, null,
                 MultiConverter: mixedSpot ? values =>
                 {
                     var spotValues = new double[values.Length];
                     spotValues[spotIndex] = values[spotIndex];
-                    Color spot = tintTransform(spotValues);
+                    Color spot = definedSpot is not null
+                        ? definedSpot.Convert(values[spotIndex], 0, 0, 0)
+                        : tintTransform(spotValues);
                     return tintTransform(values) with
                     {
                         SpotName = mixedSpotName, SpotTint = values[spotIndex],
@@ -5126,6 +5146,8 @@ public sealed partial class PdfPageRenderer
         bool preserveRgbSpots = target.HasRgbSpotShadow && colorSpace.ContainsSpotColorants;
         Color[]? spotPalette = (target.Ink is not null || preserveRgbSpots)
             && colorSpace.PaletteBase?.HasSpotColorants == true ? colorSpace.Palette : null;
+        string? reducedPaletteSpotName = spotPalette is { Length: > 0 }
+            && spotPalette[0].ProcessInk is null ? spotPalette[0].SpotName : null;
         string? imageSpotName = (target.Ink is not null || preserveRgbSpots)
             && (factor == 1 || opaqueInkImage) && !imageMask
             && colorSpace.HasSpotColorants && colorSpace.Components == 1 && colorSpace.Palette is null
@@ -5139,7 +5161,8 @@ public sealed partial class PdfPageRenderer
             && samplingWidth > destinationWidth && samplingHeight > destinationHeight;
         bool averagePlane = reducedPlane && !imageMask && preblendMatte is null
             && colorKeyMask is null && softMask is null;
-        bool preserveReducedSpot = averagePlane && opaqueInkImage && imageSpotName is not null;
+        bool preserveReducedSpot = averagePlane && opaqueInkImage
+            && (imageSpotName is not null || reducedPaletteSpotName is not null);
         bool pixelAlignedPlane = averagePlane && factor == 1;
         bool averageStencil = factor > 1 && imageMask;
         bool directInkSamples = !averagePlane && target.Ink is not null && !imageMask && preblendMatte is null
@@ -5560,7 +5583,8 @@ public sealed partial class PdfPageRenderer
                         {
                             // The plane already averages this single spot's destination ink.
                             // A positive marker retains that ink, including an all-zero plate.
-                            color = color with { SpotName = imageSpotName, SpotTint = 1, SpotInk = color.Ink };
+                            color = color with
+                            { SpotName = imageSpotName ?? reducedPaletteSpotName, SpotTint = 1, SpotInk = color.Ink };
                         }
                         else if (factor == 1 && plane is not null && bits is > 0 and <= 16
                             && (spotPalette is not null || imageSpotName is not null))

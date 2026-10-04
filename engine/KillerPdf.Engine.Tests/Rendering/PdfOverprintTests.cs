@@ -436,6 +436,75 @@ public sealed class PdfOverprintTests
     }
 
     [Theory]
+    [InlineData((byte)0)]
+    [InlineData((byte)128)]
+    public void ReducedIndexedSpotImage_ReplacesEarlierTintOfSameColorant(byte imageTint)
+    {
+        var rendered = Render("spotimage", true, true, 1, indexed: true,
+            blankBackground: true, initialSpotBeforeImage: true,
+            spotImageTint: imageTint, reducedImage: true);
+        int center = (4 * 8 + 4) * 4;
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, imageTint),
+            rendered.Pixels.Span[center..(center + 4)].ToArray());
+    }
+
+    [Fact]
+    public void IndexedLabDeviceN_IgnoresNoneChannelsAndPreservesOtherSpot()
+    {
+        static PdfName N(string value) => new(Encoding.ASCII.GetBytes(value));
+        static KeyValuePair<PdfName, PdfObject> E(string key, PdfObject value) => new(N(key), value);
+        static PdfArray A(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(8, 8,
+            Encoding.ASCII.GetBytes("0 0 0 0 k 0 0 8 8 re f /O gs /Other cs 1 scn 0 0 8 8 re f "
+                + "8 0 0 8 0 0 cm /Im Do")).Build());
+        var root = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[N("Root")]);
+        var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)root[N("Pages")]);
+        var pageReference = (PdfIndirectReference)((PdfArray)pages[N("Kids")])[0];
+        var page = (PdfDictionary)source.Resolve(pageReference);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfObject Spot(string name, int cyan, int magenta) => new PdfArray([
+            N("Separation"), N(name), N("DeviceCMYK"), new PdfDictionary([
+                E("FunctionType", new PdfInteger(2)), E("Domain", A(0, 1)),
+                E("C0", A(0, 0, 0, 0)), E("C1", A(cyan, magenta, 0, 0)),
+                E("N", new PdfInteger(1))])]);
+        var labFunction = update.AddObject(new PdfStream(new PdfDictionary([
+            E("FunctionType", new PdfInteger(4)),
+            E("Domain", A(0, 1, 0, 1, 0, 1, 0, 1, 0, 1)),
+            E("Range", A(0, 100, -100, 100, -100, 100))]),
+            Encoding.ASCII.GetBytes("{ pop pop pop pop pop 50 0 0 }")));
+        PdfObject deviceN = new PdfArray([N("DeviceN"),
+            new PdfArray([N("Black"), N("Custom"), N("None"), N("None"), N("None")]),
+            new PdfArray([N("Lab"), new PdfDictionary([E("WhitePoint", A(1, 1, 1))])]),
+            labFunction,
+            new PdfDictionary([E("Colorants", new PdfDictionary([
+                E("Custom", Spot("Custom", 1, 0))]))])]);
+        var image = update.AddObject(new PdfStream(new PdfDictionary([
+            E("Subtype", N("Image")), E("Width", new PdfInteger(1)),
+            E("Height", new PdfInteger(1)), E("BitsPerComponent", new PdfInteger(8)),
+            E("ColorSpace", new PdfArray([N("Indexed"), deviceN, new PdfInteger(0),
+                new PdfString([0, 0, 255, 255, 255], PdfStringForm.Hexadecimal)]))]), [0]));
+        var resources = new PdfDictionary([
+            E("ColorSpace", new PdfDictionary([E("Other", Spot("OtherSpot", 0, 1))])),
+            E("ExtGState", new PdfDictionary([E("O", new PdfDictionary([
+                E("op", new PdfBoolean(true)), E("OP", new PdfBoolean(true))]))])),
+            E("XObject", new PdfDictionary([E("Im", image)]))]);
+        update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page
+            .Where(pair => !pair.Key.Equals(N("Resources")))
+            .Append(E("Resources", resources))
+            .Append(E("Group", new PdfDictionary([
+                E("S", N("Transparency")), E("CS", N("DeviceCMYK"))])))));
+
+        PdfRenderedPage rendered = new PdfPageRenderer(PdfDocument.Open(update.Build()))
+            .Render(0, new PdfRenderOptions(8, 8));
+        int center = (4 * 8 + 4) * 4;
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 255),
+            rendered.Pixels.Span[center..(center + 4)].ToArray());
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void MixedBlackAndSpotImage_PreservesEarlierDifferentSpot(bool reducedImage)
