@@ -84,11 +84,7 @@ namespace KillerLauncher
                 Application.SetCompatibleTextRenderingDefault(false);
                 return InstallerWizard.ShowFailure(ex.Message);
 #else
-                MessageBox.Show(
-                    LauncherStrings.Format("StartFailed", ex.Message),
-                    ProductName,
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
+                LauncherDialog.ShowError(LauncherStrings.Format("StartFailed", ex.Message));
                 return 1;
 #endif
             }

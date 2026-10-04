@@ -245,7 +245,7 @@ namespace KillerLauncher
         private void Website_Click(object sender, RoutedEventArgs e) =>
             Process.Start(new ProcessStartInfo("https://thekiller.net") { UseShellExecute = true });
 
-        private static ImageBrush CreateGrain()
+        internal static ImageBrush CreateGrain()
         {
             const int size = 128;
             var pixels = new byte[size * size * 4];
