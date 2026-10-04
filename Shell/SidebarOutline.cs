@@ -458,7 +458,7 @@ namespace KillerPDF
                         bd.Background = UiKit.Brush("SelectionBg");
                         bd.BorderBrush = UiKit.Brush("PrimaryBrush");
                     }
-                    it.Foreground = Brushes.White;   // matches the IsSelected trigger
+                    it.Foreground = UiKit.Brush("SelectionFg");
                 }
                 else
                 {

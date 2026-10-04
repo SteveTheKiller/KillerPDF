@@ -4,40 +4,37 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.8.80] - Unreleased
+## [1.8.80] - 2026-10-04
 
-1.8.80 improves installation, document tabs, pen editing, and Hebrew text saving.
+1.8.80 adds Ukrainian, Norwegian (Bokmål), and Brazilian Portuguese support, makes document tabs detachable, and improves large PDF handling and installation.
 
 ### Added
-- Added drag ordering for pinned places in the file picker.
-- Added yellow and magenta accents to the neutral and 98SE themes.
 - Added Ukrainian localization.
 - Added Norwegian (Bokmål) localization.
 - Added Brazilian Portuguese localization.
+- Added yellow and magenta accents to the neutral and 98SE themes.
+- Added drag ordering for pinned places in the file picker.
 
 ### Fixed
 
 - Prevented the app window from going black when minimizing and restoring (#415).
-- Reduced page-link loading work for large PDFs (#438).
-- WinGet now requests elevation for its machine-wide installation (#439).
+- Saved completed forms in PDFs with empty creation dates and unlisted fields.
 - Opened PDFs whose cross-reference table contains valid objects beyond an incorrect trailer size (#406).
-- Pasted multi-selected annotations now move together, and a pen click places a dot.
+- Reduced page-link loading work for large PDFs (#438).
 - Preserved Hebrew letter order when saving text placed on a PDF (#435).
+- Pasted multi-selected annotations now move together, and a pen click places a dot.
+- WinGet now requests elevation for its machine-wide installation (#439).
 - Install and uninstall windows now show the film grain and the app icon in the title bar.
 - The installer and uninstaller have their own taskbar buttons, labeled "KillerPDF Installer" and "Uninstall KillerPDF", with the app icon.
 - The portable package reports a start failure in a KillerPDF-styled dialog instead of a plain Windows message box.
-- Kept the Transform preview page shadow visible at the top and bottom.
-- Selected language and theme rows keep the active accent on hover.
 
 ### Changed
 - Menu rows now show accent text and icons on the theme's hover color.
-
-- The installer now offers upgrade, reinstall, uninstall, or cancel when KillerPDF is already installed.
 - Document tabs now use complete 98SE geometry and themed drag previews, and can be moved into a new window without losing their live editing state.
+- Reduced memory use when opening large PDFs.
+- The installer now offers upgrade, reinstall, uninstall, or cancel when KillerPDF is already installed.
 - Split the language picker into two columns for 19 locales.
 - Selected states now use subtle gradients outside 98SE, Light buttons have softer gray borders, and yellow wordmarks match their accent.
-- Reduced memory use when opening large PDFs.
-- Slider handles now carry an accent outline.
 
 ## [1.8.71] - 2026-09-26
 

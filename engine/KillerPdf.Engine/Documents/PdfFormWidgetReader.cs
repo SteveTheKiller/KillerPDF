@@ -159,10 +159,12 @@ public static class PdfFormWidgetReader
             || Resolve(document, characteristicsValue, "A widget /MK value") is not PdfDictionary characteristics
             || !characteristics.TryGetValue(colorName, out PdfObject? colorValue)
             || Resolve(document, colorValue, $"A widget {description} color") is not PdfArray color
-            || color.Count != 3) return null;
+            || color.Count is not (1 or 3)) return null;
         double red = Number(document, color[0], $"A widget {description} color component");
-        double green = Number(document, color[1], $"A widget {description} color component");
-        double blue = Number(document, color[2], $"A widget {description} color component");
+        double green = color.Count == 1 ? red
+            : Number(document, color[1], $"A widget {description} color component");
+        double blue = color.Count == 1 ? red
+            : Number(document, color[2], $"A widget {description} color component");
         if (red is < 0 or > 1 || green is < 0 or > 1 || blue is < 0 or > 1) return null;
         return new PdfRgbColor(red, green, blue);
     }

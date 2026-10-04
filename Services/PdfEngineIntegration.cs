@@ -7,6 +7,7 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Signing;
 using KillerPdf.Engine.Writing;
 using DrawingBitmap = System.Drawing.Bitmap;
@@ -67,7 +68,7 @@ internal static class PdfEngineIntegration
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
-        int pageCount = PdfDocumentInformation.Read(document).PageCount;
+        int pageCount = PdfPageInformation.Read(document).Count;
         return
         [
             .. Enumerable.Range(0, pageCount).Select(index =>
@@ -198,14 +199,15 @@ internal static class PdfEngineIntegration
             && edits.CheckBoxValues.Count == 0 && edits.RadioValues.Count == 0)
             return;
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
-        var editor = new PdfIncrementalPageEditor(document);
         var fonts = new Dictionary<string, TrueTypeFont>(StringComparer.OrdinalIgnoreCase);
         IReadOnlyList<PdfFormWidgetInfo> widgets =
         [
             .. Enumerable.Range(
-                0, PdfDocumentInformation.Read(document).PageCount)
+                0, PdfPageInformation.Read(document).Count)
                 .SelectMany(pageIndex => PdfFormWidgetReader.ReadPage(document, pageIndex))
         ];
+        document = AttachUnlistedFormFields(document, widgets);
+        var editor = new PdfIncrementalPageEditor(document);
         foreach ((string name, string value) in edits.TextValues.OrderBy(item => item.Key))
             editor.SetTextFieldValue(name, value, EmbeddedFormFont(value, fonts), fontSize:
                 edits.TextFontSizes.TryGetValue(name, out double size) ? size : null);
@@ -235,6 +237,42 @@ internal static class PdfEngineIntegration
         foreach ((string name, string value) in edits.RadioValues.OrderBy(item => item.Key))
             editor.SetRadioButtonValue(name, value.TrimStart('/'));
         ReplaceWithBuiltResult(path, editor.Build());
+    }
+
+    private static PdfDocument AttachUnlistedFormFields(
+        PdfDocument document, IReadOnlyList<PdfFormWidgetInfo> widgets)
+    {
+        var rootName = new PdfName("Root"u8);
+        var acroFormName = new PdfName("AcroForm"u8);
+        if (!document.CrossReferences.TryGetTrailerValue(rootName, out PdfObject rootValue)
+            || rootValue is not PdfIndirectReference catalogReference
+            || document.Resolve(catalogReference) is not PdfDictionary catalog)
+            throw new InvalidOperationException("The PDF has no valid document catalog.");
+        if (catalog.ContainsKey(acroFormName) || widgets.Count == 0) return document;
+
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var fields = new List<PdfObject>(widgets.Count);
+        foreach (PdfFormWidgetInfo widget in widgets)
+        {
+            if (widget.ObjectNumber == 0 || !names.Add(widget.FieldName))
+                throw new NotSupportedException(
+                    "This PDF has unlisted form fields that cannot be saved safely.");
+            var reference = new PdfIndirectReference(widget.ObjectNumber, widget.Generation);
+            if (document.Resolve(reference) is not PdfDictionary field
+                || field.ContainsKey(new PdfName("Parent"u8)))
+                throw new NotSupportedException(
+                    "This PDF has unlisted form fields that cannot be saved safely.");
+            fields.Add(reference);
+        }
+
+        var update = new PdfIncrementalUpdateBuilder(document);
+        PdfIndirectReference formReference = update.AddObject(new PdfDictionary(
+        [
+            new(new PdfName("Fields"u8), new PdfArray(fields))
+        ]));
+        update.ReplaceObject(catalogReference.ObjectNumber, new PdfDictionary(
+            catalog.Append(new KeyValuePair<PdfName, PdfObject>(acroFormName, formReference))));
+        return PdfDocument.Open(update.Build());
     }
 
     private static TrueTypeFont? EmbeddedFormFont(

@@ -3564,12 +3564,15 @@ public sealed class PdfIncrementalPageEditor
         if (!dictionary.TryGetValue(key, out PdfObject? value)) return null;
         PdfArray array = ResolveArray(
             _document, value, $"The text field '{fieldName}' /MK /{key.ValueAsLatin1()} value");
-        if (array.Count != 3)
-            throw new InvalidOperationException("A form-field RGB color does not have three components.");
+        if (array.Count is not (0 or 1 or 3))
+            throw new InvalidOperationException("A form-field color must have zero, one, or three components.");
+        if (array.Count == 0) return null;
         double[] components = [.. array.Select(item => NumberValue(ResolveCatalogValue(
-            _document, item, "A form-field RGB color component")))];
+            _document, item, "A form-field color component")))];
         if (components.Any(component => component is < 0 or > 1))
-            throw new InvalidOperationException("A form-field RGB color component is outside 0 through 1.");
+            throw new InvalidOperationException("A form-field color component is outside 0 through 1.");
+        if (components.Length == 1)
+            return new PdfRgbColor(components[0], components[0], components[0]);
         return new PdfRgbColor(components[0], components[1], components[2]);
     }
 

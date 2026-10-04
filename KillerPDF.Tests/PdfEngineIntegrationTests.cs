@@ -442,6 +442,73 @@ public sealed class PdfEngineIntegrationTests
         }
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void ApplyFormValues_SavesUnlistedWidgetWithEmptyCreationDate(int colorComponents)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-unlisted-form-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+                .SetMetadata(new PdfDocumentMetadata { Title = "Form" })
+                .AddBlankPage()
+                .AddTextField(0, "Name", 20, 20, 140, 24, "Original")
+                .Build());
+            var rootName = new PdfName("Root"u8);
+            var infoName = new PdfName("Info"u8);
+            var acroFormName = new PdfName("AcroForm"u8);
+            var root = (PdfIndirectReference)original.Trailer[rootName];
+            var info = (PdfIndirectReference)original.Trailer[infoName];
+            var catalog = (PdfDictionary)original.Resolve(root);
+            var update = new PdfIncrementalUpdateBuilder(original);
+            update.ReplaceObject(root.ObjectNumber, new PdfDictionary(
+                catalog.Where(entry => !entry.Key.Equals(acroFormName))));
+            update.ReplaceObject(info.ObjectNumber, new PdfDictionary(
+            [
+                new(new PdfName("CreationDate"u8),
+                    new PdfString([], PdfStringForm.Literal))
+            ]));
+            PdfFormWidgetInfo originalWidget = Assert.Single(PdfFormWidgetReader.ReadPage(original, 0));
+            var widgetReference = new PdfIndirectReference(
+                originalWidget.ObjectNumber, originalWidget.Generation);
+            var widget = (PdfDictionary)original.Resolve(widgetReference);
+            var mkName = new PdfName("MK"u8);
+            var color = new PdfArray(Enumerable.Repeat<PdfObject>(
+                new PdfInteger(1), colorComponents));
+            var mk = new PdfDictionary(
+            [
+                new(new PdfName("BG"u8), color),
+                new(new PdfName("BC"u8), color)
+            ]);
+            update.ReplaceObject(widgetReference.ObjectNumber, new PdfDictionary(
+                widget.Where(entry => !entry.Key.Equals(mkName))
+                    .Append(new KeyValuePair<PdfName, PdfObject>(mkName, mk))));
+            byte[] source = update.Build();
+            File.WriteAllBytes(path, source);
+
+            Assert.Single(Assert.Single(PdfEngineIntegration.ReadAllPageFormWidgets(path)));
+            PdfEngineIntegration.ApplyFormValues(path, new PdfEngineIntegration.FormEdits(
+                new Dictionary<string, string> { ["Name"] = "Updated" },
+                new Dictionary<string, string>(),
+                new Dictionary<string, IReadOnlyList<string>>(),
+                new Dictionary<string, bool>(),
+                new Dictionary<string, string>(),
+                new Dictionary<string, double>()));
+
+            byte[] result = File.ReadAllBytes(path);
+            Assert.True(result.AsSpan(0, source.Length).SequenceEqual(source));
+            PdfDocument saved = PdfDocument.Open(result);
+            Assert.True(((PdfDictionary)saved.Resolve(root)).ContainsKey(acroFormName));
+            Assert.Equal("Updated", Assert.Single(PdfFormWidgetReader.ReadPage(saved, 0)).Value);
+            Assert.Single(PdfPageInformation.Read(saved));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     [Fact]
     public void ApplyFormValues_WritesABatchOfOnlyMultiSelectValues()
     {
