@@ -916,7 +916,7 @@ namespace KillerPDF
             _drawSettingsBar.SetResourceReference(Border.CornerRadiusProperty, "AnnotationBarCornerRadius");
             // Match the Text bar's pane-integrated edge. BarEdgeBrush is white in 98SE and made
             // this one bar look like a separate raised slab even though both use the same host.
-            _drawSettingsBar.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
+            _drawSettingsBar.SetResourceReference(Border.BorderBrushProperty, "AnnotationBarBorderBrush");
             _drawSettingsBar.SetResourceReference(Border.BorderThicknessProperty, "BarEdgeThickness");
             _drawSettingsBar.SetResourceReference(Border.PaddingProperty, "BarPadding");
 

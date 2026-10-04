@@ -36,6 +36,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The installer now offers upgrade, reinstall, uninstall, or cancel when KillerPDF is already installed.
 - Split the language picker into two columns for 19 locales.
 - Selected states now use subtle gradients outside 98SE, Light buttons have softer gray borders, and yellow wordmarks match their accent.
+- Ectoplasm menus and annotation bars now have softer borders.
 
 ## [1.8.71] - 2026-09-26
 

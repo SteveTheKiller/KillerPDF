@@ -676,7 +676,7 @@ namespace KillerPDF
                 Margin = new Thickness(0, 0, 0, 0)
             };
             _textSettingsBar.SetResourceReference(Border.BackgroundProperty, "AnnotationBarBrush");
-            _textSettingsBar.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
+            _textSettingsBar.SetResourceReference(Border.BorderBrushProperty, "AnnotationBarBorderBrush");
             _textSettingsBar.SetResourceReference(Border.CornerRadiusProperty, "AnnotationBarCornerRadius");
 
             var previewArea = PagePreviewPanel.Parent as Grid;
