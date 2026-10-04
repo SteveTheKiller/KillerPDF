@@ -459,7 +459,8 @@ public sealed partial class PdfPageRenderer
             }
         }
 
-        internal void PaintSpotCoverage(int offset, in Color color, uint sourceInk, byte coverage)
+        internal void PaintSpotCoverage(int offset, in Color color, uint sourceInk, byte coverage,
+            bool overprint = true)
         {
             lock (_spotSync)
             {
@@ -476,6 +477,13 @@ public sealed partial class PdfPageRenderer
                     _spotPlates.Add(color.SpotName!, plate);
                 }
                 uint spotInk = color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk;
+                if (!overprint)
+                {
+                    WriteInk(_spotBaseInk, offset, BlendCoverageInk(0, ReadInk(_spotBaseInk, offset), coverage));
+                    foreach (byte[] existing in _spotPlates.Values)
+                        if (!ReferenceEquals(existing, plate))
+                            WriteInk(existing, offset, BlendCoverageInk(0, ReadInk(existing, offset), coverage));
+                }
                 WriteInk(plate, offset, BlendCoverageInk(spotInk, ReadInk(plate, offset), coverage));
                 ComposeSpotPixel(offset);
             }
@@ -522,13 +530,14 @@ public sealed partial class PdfPageRenderer
             }
         }
 
-        internal bool TryReplaceProcessInkKeepingSpots(int offset, uint processInk)
+        internal bool TryReplaceProcessInkKeepingSpots(int offset, uint processInk, int coverage = 255)
         {
             if (_spotBaseInk is null) return false;
             lock (_spotSync)
             {
                 if (_spotBaseInk is null) return false;
-                WriteInk(_spotBaseInk, offset, processInk);
+                WriteInk(_spotBaseInk, offset, coverage == 255 ? processInk
+                    : BlendCoverageInk(processInk, ReadInk(_spotBaseInk, offset), coverage));
                 ComposeSpotPixel(offset);
                 return true;
             }

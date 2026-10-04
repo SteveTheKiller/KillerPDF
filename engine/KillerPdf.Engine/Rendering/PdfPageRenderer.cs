@@ -3126,7 +3126,7 @@ public sealed partial class PdfPageRenderer
                 "DeviceGray" or "G" => new ImageColorSpace(1, null),
                 "DeviceRGB" or "RGB" => new ImageColorSpace(3, null),
                 "DeviceCMYK" or "CMYK" => new ImageColorSpace(4, null,
-                    Initial: InitialColor.BlackInk),
+                    Initial: InitialColor.BlackInk, IsDeviceCmyk: true),
                 _ => null
             };
             if (standard is not null)
@@ -3145,7 +3145,8 @@ public sealed partial class PdfPageRenderer
                     if (mapped.Components != standard.Components || mapped.Palette is not null || mapped.IsLab)
                         return BindDeviceProfile(standard, diagnostics, intent);
                     // Device samples retain their original ranges and initial component values.
-                    return mapped with { DefaultDecode = null, Initial = standard.Initial, IsDefault = true };
+                    return mapped with { DefaultDecode = null, Initial = standard.Initial,
+                        IsDefault = true, IsDeviceCmyk = false };
                 }
                 catch (Exception exception) when (exception is NotSupportedException or FormatException)
                 {
@@ -3213,7 +3214,7 @@ public sealed partial class PdfPageRenderer
             else if (effectiveRange is null && (alternate.Converter is not null || alternate.MultiConverter is not null))
                 effectiveRange = [.. Enumerable.Range(0, (int)count.Value * 2).Select(index => (double)(index % 2))];
             return alternate with { DefaultDecode = componentRange, ComponentRange = effectiveRange,
-                Initial = InitialColor.Zero, HasIccSource = true };
+                Initial = InitialColor.Zero, HasIccSource = true, IsDeviceCmyk = false };
         }
         if (kind.ValueAsLatin1() == "CalGray")
         {
@@ -4876,6 +4877,7 @@ public sealed partial class PdfPageRenderer
         // Zero opacity on a plain RGB surface changes nothing outside a knockout group.
         if (stencilAlpha <= 0 && knockout is null && target.GroupShape is null
             && target.Ink is null && target.RgbProfile is null) return;
+        bool deviceCmykImage = colorSpace.IsDeviceCmyk || colorSpace.PaletteBase?.IsDeviceCmyk == true;
         colorSpace = colorSpace.ForDestination(target);
         Point[] corners =
         [
@@ -5108,10 +5110,17 @@ public sealed partial class PdfPageRenderer
             > 4_000_000L) factor++;
         int planeWidth = (int)(((long)samplingWidth + factor - 1) / factor);
         int planeHeight = (int)(((long)samplingHeight + factor - 1) / factor);
+        // Opaque page painting can retain separate inks through sampling and clip coverage.
+        bool opaqueInkImage = !imageMask && target.Ink is not null && target.GroupAlpha is null
+            && target.GroupShape is null && knockout is null && graphicsSoftMask is null
+            && softMask is null && colorKeyMask is null && preblendMatte is null
+            && Math.Clamp(stencilAlpha, 0, 1) == 1
+            && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         bool preserveRgbSpots = target.HasRgbSpotShadow && colorSpace.ContainsSpotColorants;
         Color[]? spotPalette = (target.Ink is not null || preserveRgbSpots)
             && colorSpace.PaletteBase?.HasSpotColorants == true ? colorSpace.Palette : null;
-        string? imageSpotName = (target.Ink is not null || preserveRgbSpots) && factor == 1 && !imageMask
+        string? imageSpotName = (target.Ink is not null || preserveRgbSpots)
+            && (factor == 1 || opaqueInkImage) && !imageMask
             && colorSpace.HasSpotColorants && colorSpace.Components == 1 && colorSpace.Palette is null
             ? colorSpace.Convert(new double[] { 1 }).SpotName : null;
         // Below twofold reduction, bounds describe source-axis footprints only without
@@ -5123,6 +5132,7 @@ public sealed partial class PdfPageRenderer
             && samplingWidth > destinationWidth && samplingHeight > destinationHeight;
         bool averagePlane = reducedPlane && !imageMask && preblendMatte is null
             && colorKeyMask is null && softMask is null;
+        bool preserveReducedSpot = averagePlane && opaqueInkImage && imageSpotName is not null;
         bool pixelAlignedPlane = averagePlane && factor == 1;
         bool averageStencil = factor > 1 && imageMask;
         bool directInkSamples = !averagePlane && target.Ink is not null && !imageMask && preblendMatte is null
@@ -5218,7 +5228,7 @@ public sealed partial class PdfPageRenderer
                     var converter = new ImageSampleConverter(samples, rowBytes, components,
                         bits, decode, colorSpace, targetInk, blendProfile,
                         areaColumns: converterAreaColumns, areaRows: converterAreaRows,
-                        binaryColumns: binaryColumns);
+                        binaryColumns: binaryColumns, preserveSpotZero: preserveReducedSpot);
                     long[]? binaryCoverage = binaryRowAverage ? new long[planeWidth] : null;
                     uint[]? binaryColors = binaryRowAverage ? new uint[planeWidth] : null;
                     for (int py = rowStart; py < rowEnd; py++)
@@ -5285,6 +5295,9 @@ public sealed partial class PdfPageRenderer
             // nonstroking opacity after their image mask, without another byte rounding.
             double imageOpacity = imageMask ? separateStencilShape ? stencilAlphaByte / 255d : 1
                 : Math.Clamp(stencilAlpha, 0, 1);
+            // Sampled CMYK replaces all process channels in either OPM mode, retaining spot ink.
+            bool preserveProcessImageSpots = deviceCmykImage && overprint && opaqueInkImage
+                && target.HasSpotPlates;
             // Group alpha is compatible with the direct writes: an opaque pixel sets it to
             // 255, which is what the compositor computes for full opacity.
             // Antialiased clips only change pixels with partial clip coverage; fully covered
@@ -5373,6 +5386,7 @@ public sealed partial class PdfPageRenderer
             bool directInk = target.Ink is not null && !target.HasSpotPlates && imageOpacity == 1
                 && target.GroupShape is null
                 && graphicsSoftMask is null && knockout is null
+                && !(opaqueInkImage && imageSpotName is not null)
                 && !(overprint && colorSpace.ContainsSpotColorants)
                 && (imageMask || !colorSpace.NativeProcessMask.HasValue)
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
@@ -5424,7 +5438,7 @@ public sealed partial class PdfPageRenderer
                         if (!string.Equals(spotName, spotPalette[index].SpotName, StringComparison.Ordinal))
                             spotName = null;
                 }
-                else if (factor == 1) spotName = imageSpotName;
+                else if (factor == 1 || preserveReducedSpot) spotName = imageSpotName;
                 if (spotName is not null)
                     preparedSpotPaint = target.PrepareSpotPaint(spotName);
             }
@@ -5535,6 +5549,12 @@ public sealed partial class PdfPageRenderer
                                 SpotProcessMask = spotPalette[0].SpotProcessMask
                             };
                         }
+                        else if (preserveReducedSpot)
+                        {
+                            // The plane already averages this single spot's destination ink.
+                            // A positive marker retains that ink, including an all-zero plate.
+                            color = color with { SpotName = imageSpotName, SpotTint = 1, SpotInk = color.Ink };
+                        }
                         else if (factor == 1 && plane is not null && bits is > 0 and <= 16
                             && (spotPalette is not null || imageSpotName is not null))
                         {
@@ -5576,7 +5596,31 @@ public sealed partial class PdfPageRenderer
                         }
                         double clipAlpha = rectangularClips ? 1 : clipCoverage / 255d;
                         if (clipAlpha <= 0) continue;
-                        if (!imageMask && (colorSpace.NativeProcessMask.HasValue || colorSpace.ContainsSpotColorants))
+                        if (opaqueInkImage && imageSpotName is not null && color.SpotName is not null
+                            && color.ProcessInk is null && clipCoverage < 255 && alpha == 255
+                            && target.Contains(x, y))
+                        {
+                            int offset = target.Offset(x, y);
+                            if (target.Alpha(offset) == 255)
+                            {
+                                target.PaintSpotCoverage(offset, color, color.Ink ?? target.GetInk(color),
+                                    (byte)clipCoverage, overprint);
+                                continue;
+                            }
+                        }
+                        if (preserveProcessImageSpots)
+                        {
+                            // Clip edges blend the process plate without erasing the underlying spot.
+                            if (clipCoverage < 255 && alpha == 255 && target.Contains(x, y))
+                            {
+                                int offset = target.Offset(x, y);
+                                if (target.Alpha(offset) == 255
+                                    && target.TryReplaceProcessInkKeepingSpots(offset,
+                                        color.Ink ?? target.GetInk(color), clipCoverage)) continue;
+                            }
+                            color = color with { OverprintComponents = (byte)(color.OverprintComponents | PreserveNamedSpots) };
+                        }
+                        else if (!imageMask && (colorSpace.NativeProcessMask.HasValue || colorSpace.ContainsSpotColorants))
                             color = OverprintColor(color, colorSpace, overprint, 0);
                         SetPixel(target, targetWidth, x, y,
                             color,
@@ -5660,6 +5704,7 @@ public sealed partial class PdfPageRenderer
         private readonly bool _directRgbInk;
         private readonly bool _directGray;
         private readonly bool _directCmyk;
+        private readonly bool _preserveSpotZero;
         private int _binaryRowIndex = -1;
         private PdfBinaryAreaSampler.Row _binaryRow;
 
@@ -5668,7 +5713,7 @@ public sealed partial class PdfPageRenderer
             int components, int bits, double[] decode, ImageColorSpace colorSpace,
             bool targetInk, PdfColorTransform? targetProfile, bool matte = false,
             AreaSpan[]? areaColumns = null, AreaSpan[]? areaRows = null,
-            PdfBinaryAreaSampler.Column[]? binaryColumns = null)
+            PdfBinaryAreaSampler.Column[]? binaryColumns = null, bool preserveSpotZero = false)
         {
             _samples = samples;
             _rowBytes = rowBytes;
@@ -5681,6 +5726,7 @@ public sealed partial class PdfPageRenderer
             _areaColumns = areaColumns;
             _areaRows = areaRows;
             _binaryColumns = binaryColumns;
+            _preserveSpotZero = preserveSpotZero;
             _values = new double[(colorSpace.PaletteBase ?? colorSpace).Components];
             _maximum = bits >= 31 ? int.MaxValue : (1 << bits) - 1;
             // Plain 8-bit device gray or RGB samples with the default decode convert to the
@@ -6041,6 +6087,7 @@ public sealed partial class PdfPageRenderer
 
         private uint Pack(Color color)
         {
+            if (_preserveSpotZero && color.SpotTint <= 0) return 0;
             if (_targetInk) return ColorInk(color, _targetProfile);
             color = ColorRgb(color, _targetProfile);
             return (uint)(color.Blue | color.Green << 8 | color.Red << 16) | 0xFF000000;
@@ -7473,7 +7520,8 @@ public sealed partial class PdfPageRenderer
         int[]? ProcessChannels = null, byte? NativeProcessMask = null, ImageColorSpace? SourceSpace = null,
         bool SuppressPainting = false, bool RegistrationColor = false, InitialColor Initial = InitialColor.Zero,
         bool IsLab = false, bool IsDefault = false, bool HasIccSource = false, bool HasSpotColorants = false,
-        PdfObject? Definition = null, PdfDictionary? SourceResources = null, int Intent = 1)
+        PdfObject? Definition = null, PdfDictionary? SourceResources = null, int Intent = 1,
+        bool IsDeviceCmyk = false)
     {
         internal bool DoesNotPaint => SuppressPainting || PaletteBase?.SuppressPainting == true;
         internal bool HasProcessColorants => RegistrationColor || ProcessChannels is not null
