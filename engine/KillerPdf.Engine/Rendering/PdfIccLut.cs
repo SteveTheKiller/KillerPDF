@@ -6,9 +6,8 @@ namespace KillerPdf.Engine.Rendering;
 // and profile connection belong to the caller, outside this table evaluator.
 internal sealed class PdfIccLut : PdfIccTable
 {
-    // Every table sample is decoded to its normalized double once at construction; the
-    // offsets below index that array, so evaluation does no byte decoding per pixel.
-    private readonly double[] _samples;
+    private readonly ushort[] _samples;
+    private readonly double[] _normalized;
     private readonly int _sampleBytes;
     private readonly int _grid;
     private readonly int _inputEntries;
@@ -54,17 +53,18 @@ internal sealed class PdfIccLut : PdfIccTable
         _inputOffset = 0;
         _gridOffset = (int)inputSamples;
         _outputOffset = (int)(inputSamples + gridSamples);
-        _samples = new double[totalSamples];
+        _samples = new ushort[totalSamples];
+        _normalized = _sampleBytes == 1 ? NormalizedSamples.EightBit : NormalizedSamples.SixteenBit;
         ReadOnlySpan<byte> table = bytes[tableStart..(int)end];
         if (_sampleBytes == 1)
         {
             for (int index = 0; index < _samples.Length; index++)
-                _samples[index] = table[index] / 255d;
+                _samples[index] = table[index];
         }
         else
         {
             for (int index = 0; index < _samples.Length; index++)
-                _samples[index] = BinaryPrimitives.ReadUInt16BigEndian(table[(index * 2)..]) / 65535d;
+                _samples[index] = BinaryPrimitives.ReadUInt16BigEndian(table[(index * 2)..]);
         }
         _cornerOffsets = new int[1 << InputChannels];
         for (int corner = 0; corner < _cornerOffsets.Length; corner++)
@@ -110,7 +110,8 @@ internal sealed class PdfIccLut : PdfIccTable
             fraction[channel] = value - lower;
         }
         output.Clear();
-        double[] samples = _samples;
+        ushort[] samples = _samples;
+        double[] normalized = _normalized;
         int baseOffset = _gridOffset + baseCell * OutputChannels;
         int corners = 1 << InputChannels;
         int outputs = OutputChannels;
@@ -150,7 +151,7 @@ internal sealed class PdfIccLut : PdfIccTable
             if (weight == 0) continue;
             int offset = baseOffset + _cornerOffsets[corner];
             for (int channel = 0; channel < outputs; channel++)
-                output[channel] += weight * samples[offset + channel];
+                output[channel] += weight * normalized[samples[offset + channel]];
         }
         for (int channel = 0; channel < outputs; channel++)
             output[channel] = Curve(_outputOffset + channel * _outputEntries,
@@ -162,7 +163,20 @@ internal sealed class PdfIccLut : PdfIccTable
         double position = value * (count - 1);
         int lower = Math.Min((int)position, count - 2);
         double fraction = position - lower;
-        double first = _samples[offset + lower];
-        return first + fraction * (_samples[offset + lower + 1] - first);
+        double first = _normalized[_samples[offset + lower]];
+        return first + fraction * (_normalized[_samples[offset + lower + 1]] - first);
+    }
+
+    private static class NormalizedSamples
+    {
+        internal static readonly double[] EightBit = Build(256, 255d);
+        internal static readonly double[] SixteenBit = Build(65536, 65535d);
+
+        private static double[] Build(int count, double maximum)
+        {
+            var samples = new double[count];
+            for (int index = 0; index < count; index++) samples[index] = index / maximum;
+            return samples;
+        }
     }
 }

@@ -76,7 +76,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Precompiled the packaged engine to reduce first-page rendering delay.
 - Faster rendering of large CMYK JPEG pages at full and reduced sizes.
 - Reduced first-page font setup for standard Windows font aliases.
-- Reduced rendering memory use with shared page data, released sessions, a smaller scratch buffer pool, direct PNG output, fewer JBIG2 page buffers and bundled font copies, and runtime memory conservation.
+- Reduced rendering memory use with shared page data, released sessions, smaller scratch and ICC buffers, direct PNG output, fewer JBIG2 page buffers and bundled font copies, and runtime memory conservation.
 - Reduced peak rendering memory for pages with large inline images and repeated image paints.
 - Avoided a redundant rendering pass for pages whose overprint needs the document output profile.
 - Faster soft masks, masked forms, black-and-white, CMYK, and ICC image reduction, color conversion, profile loading, compositing, scanned pages, and shadings without changing pixels. Large fills, image paints, function and axial shadings, and soft-mask reductions split across a few threads.

@@ -17,8 +17,8 @@ overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Conformance batch lower; smaller difficult batch above 1.8; visible interaction unverified | Earlier paired 1.9 versus 1.8.80 conformance peaks averaged 535.4 versus 621.5 MiB at 512 pixels (-13.86%) and 508.5 versus 652.8 MiB at 2048 (-22.10%). The latest 74-page difficult comparison averaged 223.3 versus 147.7 MiB (+51.19%) and 288.9 versus 267.9 MiB (+7.83%). Difficult workloads and representative visible interaction must meet the 2% tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Across 600 shared successful pages, earlier 1.9 versus 1.8.80 mean rendering was 11,137.5 versus 10,105.5 ms at 512 pixels (+10.21%) and 17,671 versus 16,288.5 ms at 2048 (+8.49%). The latest 74-page difficult comparison averaged 5,709.5 versus 2,754.5 ms (+107.28%) and 8,712.5 versus 4,675.5 ms (+86.34%). The 1.9 conformance payload renders 614 pages without failure; 1.8 renders 600 and fails on eight. Batch wall times include those different completion counts. Headless page sums do not establish visible app latency or whole-pass parity. |
+| Memory at parity or close to the PDFium pipeline | Conformance batch lower; smaller difficult batch above 1.8; visible interaction unverified | Latest paired 1.9 versus 1.8.80 conformance peaks averaged 479.17 versus 618.66 MiB at 512 pixels, with different success counts. An earlier 2048 conformance pair measured 508.5 versus 652.8 MiB. The latest 74-page difficult comparison averaged 222.54 versus 148.02 MiB (+50.34%) at 512 and 295.86 versus 267.69 MiB (+10.53%) at 2048. Difficult workloads and representative visible interaction must meet the 2% tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Across 600 shared successful pages, latest 1.9 versus 1.8.80 mean rendering was 11,054.5 versus 9,996 ms at 512 pixels (+10.59%). An earlier 2048 pair measured 17,671 versus 16,288.5 ms (+8.49%). The latest 74-page difficult comparison averaged 5,703 versus 2,731 ms (+108.82%) at 512 and 8,568.5 versus 4,565.5 ms (+87.68%) at 2048. The 1.9 conformance payload renders 614 pages without failure; 1.8 renders 600 and fails on eight. Batch wall times include those different completion counts. Headless page sums do not establish visible app latency or whole-pass parity. |
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium, and repeated runs have identical status, dimensions, details, and PNGs per payload. The initial opaque-fill correction repaired standalone GWG041. The October 4 nested-Form correction removed the remaining pale X from the combined SPOT_X4 page. The Ghent spot-image correction restored both turtle-image checkmarks without X marks on GWG080 and GWG081 patches. The two-ink DeviceN correction restored GWG080's gradient checkmarks at 512 and 2048 pixels. GWG164's faint Luminosity X matches its source's permitted color-management variation; this is a bounded disposition. Output-intent black mapping on GWG090 differs from PDFium and Poppler but matches independent conversion through its embedded profile. Absolute color conformance, fonts, compositing, fine detail, native layer dialog inspection, and representative visible interaction remain open. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. Four alternating current-payload scan zoom runs averaged 314.339 ms for 1.9 versus 176.023 ms for 1.8.80 on the first 512-pixel render. The later 2048-pixel step averaged 56.372 versus 224.385 ms, with decoded image state retained by 1.9. The earlier scan figures used older payloads. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 3 local-branch forward-port check passes for 203 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
@@ -4823,3 +4823,40 @@ between versions, and 71 page images differ across versions. This paired
 check confirms the difficult-set speed and memory gates remain open; the
 cross-version pixel differences still require accuracy review. Raw results
 are in the same scratch directory.
+
+### Compact ICC lookup tables (2026-10-04)
+
+An Altona allocation trace found several 1 to 2 MiB `double[]` ICC lookup
+tables alongside the larger spot buffers. The engine now stores the table's
+original integer samples and uses shared exact normalized values during
+evaluation. In eight alternating fresh-process Altona runs at 512 pixels,
+sampled peak working set averaged 145.43 MiB before and 133.96 MiB after.
+At 2048 pixels it averaged 189.22 and 177.67 MiB. Mean page render times
+were 696.25/695 ms at 512 and 1,187.75/1,195.25 ms at 2048. PNG hashes
+matched at both sizes.
+
+The 74-page difficult set kept all PNG hashes, statuses, and dimensions at
+512 and 2048 pixels. In one balanced fresh-process pair, mean render sums
+were 5,837.5/5,710.5 ms at 512 and 8,410/8,013 ms at 2048, before/after.
+Its sampled peak working sets were 220.81/218.50 and 288.10/288.69 MiB;
+whole-set peak variation limits a memory claim beyond the isolated Altona
+case. All 614 conformance PNGs and 35 skips matched at 512 pixels. The 195
+focused ICC tests, all 4,393 engine tests, all 490 app tests, and the Release
+app build pass; the build reports zero warnings or errors. Cross-version
+rendering, speed, memory, and interaction parity remain open. Evidence is
+under `C:/Users/steve/kp-bench-render/icc-lut-compact-trial-20261004/`.
+
+The post-change 1.8.80 comparison used 1.8/1.9/1.9/1.8 order and one file
+worker. On the 74 difficult pages, 1.8/1.9 mean render sums were
+2,731/5,703 ms at 512 pixels and 4,565.5/8,568.5 ms at 2048. Sampled
+peak working sets were 148.02/222.54 and 267.69/295.86 MiB. All statuses
+and dimensions matched; each version repeated its own PNG hashes, while
+71 pages differed between versions. On the 649-file conformance set at 512
+pixels, 1.8 rendered 600, skipped 41, and failed eight; 1.9 rendered 614,
+skipped 35, and failed none. Across the 600 common successful pages, mean
+render sums were 9,996 versus 11,054.5 ms, a 10.59% 1.9 gap. Full-pass
+peak working set was 618.66 versus 479.17 MiB, but the different success
+counts prevent a like-for-like memory conclusion. Of the 600 common pages,
+577 PNGs differed across versions; reference-based accuracy review remains
+necessary. These results do not meet the 2% speed or difficult-set memory
+targets. Raw paired runs are in the same scratch directory.
