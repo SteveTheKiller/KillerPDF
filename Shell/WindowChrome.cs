@@ -593,10 +593,8 @@ namespace KillerPDF
                 // snapped window keeps it so it still reads against the window beside it.
                 RootBorder.BorderThickness = new Thickness(max || ThemeManager.Current == Theme.SE98 ? 0 : 1);
             }
-            if (TitleBarBorder != null)
-                TitleBarBorder.CornerRadius = new CornerRadius(0);
-            if (FooterBorder != null)
-                FooterBorder.CornerRadius = new CornerRadius(0);
+            TitleBarBorder?.CornerRadius = new CornerRadius(0);
+            FooterBorder?.CornerRadius = new CornerRadius(0);
             Resources["ChromeCloseCorner"] = new CornerRadius(0);
 
             // Retired: native OS shadow replaces the hand-cast one.
