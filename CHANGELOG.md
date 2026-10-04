@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Prevented the app window from going black when minimizing and restoring (#415).
 - Reduced page-link loading work for large PDFs (#438).
 - WinGet now requests elevation for its machine-wide installation (#439).
 - Opened PDFs whose cross-reference table contains valid objects beyond an incorrect trailer size (#406).

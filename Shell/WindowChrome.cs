@@ -559,6 +559,10 @@ namespace KillerPDF
         private bool? _appliedSquared;   // last state pushed to the chrome; guards per-frame churn
         private void UpdateWindowChrome()
         {
+            // Keep the last visible frame while minimized. Recalculate it when Windows restores
+            // the window, after WPF has a surface to paint again.
+            if (WindowState == WindowState.Minimized) return;
+
             bool max     = WindowState == WindowState.Maximized || _fullScreen;
             // Only Windows 11 rounds the HWND; on Windows 10 rounded content would show a notch.
             bool nativeCorners = OsRoundsCorners();

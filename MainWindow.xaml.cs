@@ -458,8 +458,10 @@ namespace KillerPDF
                     contentRevealed = true;
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
                     {
+                        RootClipGrid.Opacity = 1;
                         var reveal = new System.Windows.Media.Animation.DoubleAnimation(0, 1,
-                            new Duration(TimeSpan.FromMilliseconds(140)));
+                            new Duration(TimeSpan.FromMilliseconds(140)))
+                        { FillBehavior = FillBehavior.Stop };
                         RootClipGrid.BeginAnimation(OpacityProperty, reveal);
                         Services.StartupTrace.Mark("MainWindow ready");
                     }));
