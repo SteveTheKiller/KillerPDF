@@ -42,7 +42,7 @@
          pressed state of an outline button can diverge. -->
     <SolidColorBrush x:Key="RowSelectedBrush"    Color="#0d2a18" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlinePressedBrush" Color="#0d2a18" po:Freeze="True"/>
-    <LinearGradientBrush x:Key="SelectionBg" po:Freeze="True" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#2E6B48" Offset="0"/><GradientStop Color="#1A5835" Offset="1"/></LinearGradientBrush>
+    <LinearGradientBrush x:Key="SelectionBg" po:Freeze="True" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#387552" Offset="0"/><GradientStop Color="#104E2B" Offset="1"/></LinearGradientBrush>
     <SolidColorBrush x:Key="SelectionFg" Color="#ffffff" po:Freeze="True"/>
     <!-- Background of an open settings row. Solid hover tint here; the RGB themes override it with their
          translucent-white SelectionBg so the accent row text reads on it like a selected page/tool. -->

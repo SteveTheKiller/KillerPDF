@@ -13,7 +13,7 @@
     <SolidColorBrush x:Key="SelectionAccent" Color="#0D827E" po:Freeze="True"/>
     <SolidColorBrush x:Key="RowSelectedBrush"    Color="#0D827E" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlinePressedBrush" Color="#D5F1F0" po:Freeze="True"/>
-    <LinearGradientBrush x:Key="SelectionBg"     po:Freeze="True" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#0D827E" Offset="0"/><GradientStop Color="#0C7A76" Offset="1"/></LinearGradientBrush>
+    <LinearGradientBrush x:Key="SelectionBg"     po:Freeze="True" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#1D928E" Offset="0"/><GradientStop Color="#006A66" Offset="1"/></LinearGradientBrush>
     <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#880D827E" po:Freeze="True"/>
     <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#0D827E" po:Freeze="True"/>
     <SolidColorBrush x:Key="RadioAccent"     Color="#0D827E" po:Freeze="True"/>
