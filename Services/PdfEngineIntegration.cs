@@ -138,7 +138,7 @@ internal static class PdfEngineIntegration
                 result = PdfOptionalContentEditor.RenameGroup(document, edit.ObjectNumber, edit.Name);
                 document = PdfDocument.Open(result);
             }
-            if (edit.IsVisible != group.IsInitiallyVisible)
+            if (edit.IsVisible != original.ViewVisibleGroupObjectNumbers.Contains(edit.ObjectNumber))
             {
                 result = PdfOptionalContentEditor.SetInitialVisibility(
                     document, edit.ObjectNumber, edit.IsVisible);

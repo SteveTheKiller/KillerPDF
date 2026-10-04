@@ -13,8 +13,7 @@ internal sealed class LayerEditorDialog : Window
 
     internal IReadOnlyList<PdfEngineIntegration.LayerEdit> Edits { get; private set; } = [];
 
-    internal LayerEditorDialog(
-        Window owner, IReadOnlyList<PdfOptionalContentGroupInfo> groups)
+    internal LayerEditorDialog(Window owner, PdfOptionalContentInfo layers)
     {
         Title = "KillerPDF - " + L("Str_DocumentTools_EditLayers");
         Width = 560;
@@ -31,7 +30,7 @@ internal sealed class LayerEditorDialog : Window
         body.Children.Add(header);
 
         var rows = new StackPanel();
-        foreach (PdfOptionalContentGroupInfo group in groups)
+        foreach (PdfOptionalContentGroupInfo group in layers.Groups)
         {
             var grid = CreateGrid();
             var name = UiKit.Field();
@@ -40,7 +39,7 @@ internal sealed class LayerEditorDialog : Window
             Grid.SetColumn(name, 0);
             grid.Children.Add(name);
             var visible = UiKit.CheckBox(string.Empty);
-            visible.IsChecked = group.IsInitiallyVisible;
+            visible.IsChecked = layers.ViewVisibleGroupObjectNumbers.Contains(group.ObjectNumber);
             visible.HorizontalAlignment = HorizontalAlignment.Center;
             Grid.SetColumn(visible, 1);
             grid.Children.Add(visible);

@@ -17,6 +17,8 @@ public static class PdfOptionalContentEditor
     private static readonly PdfName BaseStateKey = new("BaseState"u8);
     private static readonly PdfName OnKey = new("ON"u8);
     private static readonly PdfName OffKey = new("OFF"u8);
+    private static readonly PdfName AutoStateKey = new("AS"u8);
+    private static readonly PdfName EventKey = new("Event"u8);
     private static readonly PdfName LockedKey = new("Locked"u8);
     private static readonly PdfName OrderKey = new("Order"u8);
     private static readonly PdfName CreatorKey = new("Creator"u8);
@@ -1001,9 +1003,8 @@ public static class PdfOptionalContentEditor
                 "The optional-content properties");
         if (!properties.TryGetValue(DefaultConfigurationKey, out PdfObject? configurationValue))
             throw new InvalidOperationException("The document has no default optional-content configuration.");
-        (PdfDictionary configuration, PdfIndirectReference? configurationReference) =
-            ResolveDictionaryWithReference(document, configurationValue,
-                "The default optional-content configuration");
+        PdfDictionary configuration = ResolveDictionaryWithReference(document, configurationValue,
+            "The default optional-content configuration").Dictionary;
         var reference = new PdfIndirectReference(group.ObjectNumber, group.Generation);
         var configurationEntries = configuration.ToDictionary(
             entry => entry.Key, entry => entry.Value);
@@ -1015,24 +1016,20 @@ public static class PdfOptionalContentEditor
             off = [.. off, reference];
         SetArray(configurationEntries, OnKey, on);
         SetArray(configurationEntries, OffKey, off);
+        RemoveViewAutoStateReferences(document, configurationEntries, reference);
         var replacementConfiguration = new PdfDictionary(configurationEntries);
         var update = new PdfIncrementalUpdateBuilder(document);
-        if (configurationReference is not null)
-            update.ReplaceObject(configurationReference.ObjectNumber, replacementConfiguration);
+        var propertiesEntries = properties.ToDictionary(entry => entry.Key, entry => entry.Value);
+        propertiesEntries[DefaultConfigurationKey] = replacementConfiguration;
+        var replacementProperties = new PdfDictionary(propertiesEntries);
+        if (propertiesReference is not null)
+            update.ReplaceObject(propertiesReference.ObjectNumber, replacementProperties);
         else
         {
-            var propertiesEntries = properties.ToDictionary(entry => entry.Key, entry => entry.Value);
-            propertiesEntries[DefaultConfigurationKey] = replacementConfiguration;
-            var replacementProperties = new PdfDictionary(propertiesEntries);
-            if (propertiesReference is not null)
-                update.ReplaceObject(propertiesReference.ObjectNumber, replacementProperties);
-            else
-            {
-                var catalogEntries = tree.Catalog.ToDictionary(entry => entry.Key, entry => entry.Value);
-                catalogEntries[OptionalContentPropertiesKey] = replacementProperties;
-                update.ReplaceObject(tree.CatalogReference.ObjectNumber,
-                    new PdfDictionary(catalogEntries));
-            }
+            var catalogEntries = tree.Catalog.ToDictionary(entry => entry.Key, entry => entry.Value);
+            catalogEntries[OptionalContentPropertiesKey] = replacementProperties;
+            update.ReplaceObject(tree.CatalogReference.ObjectNumber,
+                new PdfDictionary(catalogEntries));
         }
         return update.Build();
     }
@@ -1386,6 +1383,60 @@ public static class PdfOptionalContentEditor
         return [.. array.Where(item => item is not PdfIndirectReference candidate
             || candidate.ObjectNumber != excluded.ObjectNumber
             || candidate.Generation != excluded.Generation)];
+    }
+
+    private static void RemoveViewAutoStateReferences(PdfDocument document,
+        Dictionary<PdfName, PdfObject> configurationEntries, PdfIndirectReference excluded)
+    {
+        if (!configurationEntries.TryGetValue(AutoStateKey, out PdfObject? autoStateValue)
+            || ResolveAutoState(document, autoStateValue) is not PdfArray applications)
+            return;
+
+        var rewritten = new PdfObject[applications.Count];
+        bool changed = false;
+        for (int index = 0; index < applications.Count; index++)
+        {
+            PdfObject item = applications[index];
+            rewritten[index] = item;
+            if (ResolveAutoState(document, item) is not PdfDictionary application
+                || !application.TryGetValue(EventKey, out PdfObject? eventValue)
+                || ResolveAutoState(document, eventValue) is not PdfName eventName
+                || eventName.ValueAsLatin1() != "View"
+                || !application.TryGetValue(GroupsKey, out PdfObject? groupsValue)
+                || ResolveAutoState(document, groupsValue) is not PdfArray groups)
+                continue;
+
+            PdfObject[] retained = [.. groups.Where(value => value is not PdfIndirectReference group
+                || group.ObjectNumber != excluded.ObjectNumber
+                || group.Generation != excluded.Generation)];
+            if (retained.Length == groups.Count) continue;
+            var entries = application.ToDictionary(entry => entry.Key, entry => entry.Value);
+            entries[GroupsKey] = new PdfArray(retained);
+            rewritten[index] = new PdfDictionary(entries);
+            changed = true;
+        }
+
+        if (changed)
+            configurationEntries[AutoStateKey] = new PdfArray(rewritten);
+    }
+
+    private static PdfObject? ResolveAutoState(PdfDocument document, PdfObject value)
+    {
+        var visited = new HashSet<(int, int)>();
+        try
+        {
+            while (value is PdfIndirectReference reference)
+            {
+                if (!visited.Add((reference.ObjectNumber, reference.Generation)))
+                    return null;
+                value = document.Resolve(reference);
+            }
+            return value;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or FormatException)
+        {
+            return null;
+        }
     }
 
     private static PdfObject[] ResolvedArray(

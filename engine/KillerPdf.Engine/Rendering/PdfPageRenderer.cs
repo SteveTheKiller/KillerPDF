@@ -128,8 +128,9 @@ public sealed partial class PdfPageRenderer
         _pages = PdfPageInformation.Read(document);
         _boxes = PdfPageBoxInformation.Read(document);
         _pageResources = [.. Enumerable.Range(0, _pages.Count).Select(PageResources)];
-        _hiddenOptionalContentGroups = PdfOptionalContentReader.Read(_document).Groups
-            .Where(group => !group.IsInitiallyVisible)
+        PdfOptionalContentInfo optionalContent = PdfOptionalContentReader.Read(_document);
+        _hiddenOptionalContentGroups = optionalContent.Groups
+            .Where(group => !optionalContent.ViewVisibleGroupObjectNumbers.Contains(group.ObjectNumber))
             .Select(group => group.ObjectNumber).ToHashSet();
         _fontCache = sharedCache?.FontCache ?? CreateFontCache();
         _instructionCache = sharedCache?.InstructionCache ?? CreateInstructionCache();

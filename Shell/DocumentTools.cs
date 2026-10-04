@@ -290,7 +290,7 @@ public partial class MainWindow
                 return;
             }
 
-            var dialog = new LayerEditorDialog(this, layers.Groups);
+            var dialog = new LayerEditorDialog(this, layers);
             if (dialog.ShowDialog() != true) return;
             UndoEntry? documentUndo = CaptureDocumentUndo();
             SaveTempAndReload(

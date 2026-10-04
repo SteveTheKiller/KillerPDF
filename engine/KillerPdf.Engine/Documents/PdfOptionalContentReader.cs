@@ -83,8 +83,69 @@ public static class PdfOptionalContentReader
         return new PdfOptionalContentInfo
         {
             Groups = Array.AsReadOnly(groups),
-            Configurations = Array.AsReadOnly(configurations.ToArray())
+            Configurations = Array.AsReadOnly(configurations.ToArray()),
+            ViewVisibleGroupObjectNumbers = ReadViewVisibility(document, defaultValue as PdfDictionary,
+                groupReferences, selected?.VisibleGroupObjectNumbers
+                    ?? groupReferences.Select(group => group.ObjectNumber).ToHashSet())
         };
+    }
+
+    private static IReadOnlySet<int> ReadViewVisibility(PdfDocument document,
+        PdfDictionary? configuration, IReadOnlyList<PdfIndirectReference> groups,
+        IReadOnlySet<int> initialVisible)
+    {
+        if (configuration is null || Value(configuration, "AS") is not PdfArray applications)
+            return initialVisible;
+        var registered = groups.ToDictionary(group => (group.ObjectNumber, group.Generation));
+        var recommendations = new Dictionary<int, bool>();
+        var unsupported = new HashSet<int>();
+        foreach (PdfObject item in applications)
+        {
+            if (Resolved(item) is not PdfDictionary application
+                || Value(application, "Event") is not PdfName eventName
+                || eventName.ValueAsLatin1() != "View"
+                || Value(application, "OCGs") is not PdfArray affected) continue;
+            bool supported = Value(application, "Category") is PdfArray { Count: > 0 } categories
+                && categories.All(category => Resolved(category) is PdfName name
+                    && name.ValueAsLatin1() == "View");
+            foreach (PdfObject groupValue in affected)
+            {
+                if (groupValue is not PdfIndirectReference reference
+                    || !registered.ContainsKey((reference.ObjectNumber, reference.Generation))) continue;
+                if (!supported)
+                {
+                    // A context-dependent recommendation could override a static ON state.
+                    unsupported.Add(reference.ObjectNumber);
+                    continue;
+                }
+                if (Resolved(reference) is not PdfDictionary group
+                    || Value(group, "Usage") is not PdfDictionary usage
+                    || Value(usage, "View") is not PdfDictionary view
+                    || Value(view, "ViewState") is not PdfName state
+                    || state.ValueAsLatin1() is not ("ON" or "OFF")) continue;
+                bool visible = state.ValueAsLatin1() == "ON";
+                recommendations[reference.ObjectNumber] = visible
+                    && (!recommendations.TryGetValue(reference.ObjectNumber, out bool previous) || previous);
+            }
+        }
+        var result = initialVisible.ToHashSet();
+        foreach ((int objectNumber, bool visible) in recommendations)
+        {
+            if (unsupported.Contains(objectNumber)) continue;
+            if (visible) result.Add(objectNumber); else result.Remove(objectNumber);
+        }
+        return result;
+
+        PdfObject? Value(PdfDictionary dictionary, string key) =>
+            dictionary.TryGetValue(Name(key), out PdfObject? value) ? Resolved(value) : null;
+
+        PdfObject? Resolved(PdfObject value)
+        {
+            // Invalid optional usage hints must not prevent otherwise valid content rendering.
+            try { return Resolve(document, value); }
+            catch (Exception exception) when (exception is InvalidOperationException or FormatException)
+            { return null; }
+        }
     }
 
     private static PdfOptionalContentConfigurationInfo ReadConfiguration(PdfDocument document,
@@ -257,6 +318,8 @@ public sealed partial record PdfOptionalContentInfo
     public IReadOnlyList<PdfOptionalContentGroupInfo> Groups { get; init; } = [];
     /// <summary>Gets the default and alternate optional-content configurations.</summary>
     public IReadOnlyList<PdfOptionalContentConfigurationInfo> Configurations { get; init; } = [];
+    /// <summary>Gets default visibility after supported static View usage applications.</summary>
+    public IReadOnlySet<int> ViewVisibleGroupObjectNumbers { get; init; } = new HashSet<int>();
 
     /// <summary>Formats layer identities and configuration state for review.</summary>
     public string ToText()
