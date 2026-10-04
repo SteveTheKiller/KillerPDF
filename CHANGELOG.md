@@ -173,6 +173,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Restored toolbar captions for fillable text fields and the measuring tool.
 - Localized the remaining validation messages and audited interface text across all 15 languages. The localization gate now rejects hardcoded UI labels and tooltips (#227).
 - Added installer file details and the installed size in Windows' program list (#361).
+- Install and uninstall windows now show the film grain and the app icon in the title bar.
 
 ## [1.8.5] - 2026-09-14
 

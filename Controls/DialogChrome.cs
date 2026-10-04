@@ -112,8 +112,28 @@ namespace KillerPDF
                 title.Children.Add(shadowLayer);
                 title.Children.Add(BuildWordmark(false));
             }
-            Grid.SetColumn(title, 0);
-            grid.Children.Add(title);
+            // The app icon leads the caption, at the main title bar's size and spacing.
+            var titleRow = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = title.Margin
+            };
+            title.Margin = new Thickness(0);
+            var icon = new Image
+            {
+                Source = new System.Windows.Media.Imaging.BitmapImage(
+                    new Uri("pack://application:,,,/Resources/kp-icon.png")),
+                Width = Value(owner, "TitleIconSize", 25.0),
+                Height = Value(owner, "TitleIconSize", 25.0),
+                Margin = Value(owner, "TitleIconMargin", new Thickness(0, 0, 7, 0)),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.HighQuality);
+            titleRow.Children.Add(icon);
+            titleRow.Children.Add(title);
+            Grid.SetColumn(titleRow, 0);
+            grid.Children.Add(titleRow);
 
             // The close glyph and its complete raised/pressed face live in ChromeCloseButton.
             // Supplying another glyph/font/background here was overriding that canonical style and
