@@ -22,7 +22,7 @@ overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium, and repeated runs have identical status, dimensions, details, and PNGs per payload. The initial opaque-fill correction repaired standalone GWG041. The October 4 nested-Form correction removed the remaining pale X from the combined SPOT_X4 page. The Ghent spot-image correction restored both turtle-image checkmarks without X marks on GWG080 and GWG081 patches. The two-ink DeviceN correction restored GWG080's gradient checkmarks at 512 and 2048 pixels. GWG164's faint Luminosity X matches its source's permitted color-management variation; this is a bounded disposition. Output-intent black mapping on GWG090 differs from PDFium and Poppler but matches independent conversion through its embedded profile. Absolute color conformance, fonts, compositing, fine detail, native layer dialog inspection, and representative visible interaction remain open. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. Four alternating current-payload scan zoom runs averaged 314.339 ms for 1.9 versus 176.023 ms for 1.8.80 on the first 512-pixel render. The later 2048-pixel step averaged 56.372 versus 224.385 ms, with decoded image state retained by 1.9. The earlier scan figures used older payloads. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 3 local-branch forward-port check passes for 203 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
-| Builds and regression suites | Passing development checkpoint | October 4: 4,392 engine tests and 490 app tests pass. The focused overprint suite covers reduced indexed spot images, Lab DeviceN images with `/None` channels, and two-ink DeviceN fills and shadings. The Release application build passes. Earlier scratch portable and installer packages passed their file inventories and payload startup checks; the installer also passed isolated installation. Earlier application and transitive package vulnerability checks reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also passed. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | October 4: 4,393 engine tests and 490 app tests pass. The focused overprint suite covers reduced indexed spot images, Lab DeviceN images with `/None` channels, and two-ink DeviceN fills and shadings. The Release application build passes. Earlier scratch portable and installer packages passed their file inventories and payload startup checks; the installer also passed isolated installation. Earlier application and transitive package vulnerability checks reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also passed. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 The opaque-fill correction combines consecutive identical opaque DeviceCMYK
 path paints before applying their shared antialiased coverage. It retains one
@@ -4739,3 +4739,25 @@ claim. All 4,393 engine tests and 490 app tests pass, and the Release app
 build has no warnings or errors. Scratch comparisons are under
 `C:/Users/steve/kp-bench-render/altona-spot-stroke-fix-20261004/`. The
 2% parity target and full-page accuracy gate remain open.
+
+### Isolated memory and Ghent 8.1 audit (2026-10-04)
+
+Alternating fresh-process first-page runs at 2048 pixels used the current
+1.8.80 and 1.9 payloads with one file worker. Each side repeated its own PNG
+hash and all output dimensions matched. Altona technical averaged 189.6 MiB
+for 1.9 versus 91.6 MiB for 1.8.80, with render times of 1,213.5 versus
+210 ms. The scan `42828.0001.001.pdf` peaked at 154.8 versus 99.9 MiB;
+the JPEG 2000 balloon page peaked at 152.9 versus 236.1 MiB. These isolated
+pages locate memory pressure but do not replace the 74-page parity gate.
+A GC allocation trace of Altona found three 16 MiB buffers allocated through
+spot-coverage painting. A scratch trial rented exact-size large byte buffers;
+its Altona PNG stayed identical, but paired peak memory was 189.3 MiB on both
+sides and render timing varied. The trial was not promoted. Evidence is under
+`C:/Users/steve/kp-bench-render/memory-pages-20261004/` and
+`C:/Users/steve/kp-bench-render/spot-exact-buffer-trial-20261004/`.
+
+At 2048 by 1137 pixels, the current GWG081 Patch render visibly has both
+turtle checks and all gradient checks without the failure X. Poppler with
+overprint enabled shows the same check shapes. The colors differ, so absolute
+color fidelity remains open. The paired images are under
+`C:/Users/steve/kp-bench-render/ghent081-2048-audit-20261004/`.
