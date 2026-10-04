@@ -4893,3 +4893,22 @@ These single-page results do not replace whole-corpus or visible-interaction
 validation. Inputs, payload hashes, PNGs, scripts, and paired measurements
 are under `C:/Users/steve/kp-bench-render/binary-grid-trial-20261004/` and
 `C:/Users/steve/kp-bench-render/binary-grid-product-20261004/`.
+
+### Difficult-page memory attribution (2026-10-04)
+
+Fresh single-file 512-pixel runs over all 40 difficult PDFs put Ghent ALL x4
+highest for 1.9 at 174.04 MiB sampled peak. The same file measured 116.43
+MiB on the current 1.8.80 payload. The scan measured 142.45 versus 87.58
+MiB, and GWG130 measured 135.59 versus 99.56 MiB. These single-file peaks
+must not be substituted for the full-batch peaks, which also include retained
+state between files.
+
+Two alternating 1.8/1.9/1.9/1.8 runs of Ghent ALL x4 at 512 pixels isolated
+its page prefixes. Page 1 alone averaged 78.58 versus 121.13 MiB peak and
+84 versus 520.5 ms rendering (1.8 versus 1.9). Through page 2, peaks were
+86.73 versus 131.82 MiB; through page 3, 116.41 versus 174.06 MiB. This
+identifies page 1 as a major cost before later pages add memory. A sampled
+first-page trace includes startup work and does not yet isolate a safe buffer
+or rendering change. Per-file logs, payload hashes, page-prefix runs, and
+that trace are under
+`C:/Users/steve/kp-bench-render/binary-grid-trial-20261004/`.
