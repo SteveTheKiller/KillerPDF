@@ -26,6 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The installer and uninstaller have their own taskbar buttons, labeled "KillerPDF Installer" and "Uninstall KillerPDF", with the app icon.
 - The portable package reports a start failure in a KillerPDF-styled dialog instead of a plain Windows message box.
 - Kept the Transform preview page shadow visible at the top and bottom.
+- Selected language and theme rows keep the active accent on hover.
 
 ### Changed
 - Menu rows now show accent text and icons on the theme's hover color.
