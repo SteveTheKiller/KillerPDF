@@ -3353,11 +3353,47 @@ public sealed partial class PdfPageRenderer
                 && channels.All(channel => channel >= 0 || channel == -2)
                 && channels.Where(channel => channel >= 0).Distinct().Count() == activeChannels
                 || definedSpot is not null;
+            ImageColorSpace? firstDefinedSpot = null, secondDefinedSpot = null;
+            string? firstSpotName = null, secondSpotName = null;
+            if (array.Count == 5 && alternate.Components == 4 && channels is [-2, -2])
+            {
+                firstSpotName = ((PdfName)Resolve(names[0])).ValueAsLatin1();
+                secondSpotName = ((PdfName)Resolve(names[1])).ValueAsLatin1();
+                if (firstSpotName != secondSpotName
+                    && Resolve(array[4]) is PdfDictionary spotAttributes
+                    && spotAttributes.TryGetValue(Name("Colorants"), out PdfObject? spotsValue)
+                    && Resolve(spotsValue) is PdfDictionary spots
+                    && spots.TryGetValue(Name(firstSpotName), out PdfObject? firstDefinition)
+                    && spots.TryGetValue(Name(secondSpotName), out PdfObject? secondDefinition))
+                {
+                    ImageColorSpace first = ReadColorSpace(firstDefinition, resources,
+                        depth + 1, useDefaults, diagnostics, intent);
+                    ImageColorSpace second = ReadColorSpace(secondDefinition, resources,
+                        depth + 1, useDefaults, diagnostics, intent);
+                    if (first.Components == 1 && second.Components == 1
+                        && first.Palette is null && second.Palette is null
+                        && first.Convert(1, 0, 0, 0) is { Ink: not null, SpotName: var firstName }
+                        && firstName == firstSpotName
+                        && second.Convert(1, 0, 0, 0) is { Ink: not null, SpotName: var secondName }
+                        && secondName == secondSpotName)
+                    {
+                        firstDefinedSpot = first;
+                        secondDefinedSpot = second;
+                    }
+                }
+            }
+            bool twoSpots = firstDefinedSpot is not null && secondDefinedSpot is not null;
             byte processMask = (byte)channels.Where(channel => channel >= 0)
                 .Aggregate(0, (mask, channel) => mask | (1 << channel));
             string? mixedSpotName = mixedSpot ? spotName : null;
             return new ImageColorSpace(names.Count, null,
-                MultiConverter: mixedSpot ? values =>
+                MultiConverter: twoSpots ? values => tintTransform(values) with
+                {
+                    SpotName = firstSpotName, SpotTint = values[0],
+                    SpotInk = firstDefinedSpot!.Convert(values[0], 0, 0, 0).Ink,
+                    AdditionalSpot = new SpotColorant(secondSpotName!, values[1],
+                        secondDefinedSpot!.Convert(values[1], 0, 0, 0).Ink!.Value)
+                } : mixedSpot ? values =>
                 {
                     var spotValues = new double[values.Length];
                     spotValues[spotIndex] = values[spotIndex];
@@ -3375,7 +3411,7 @@ public sealed partial class PdfPageRenderer
                     { SpotName = singleSpot, SpotTint = values[0] },
                 ProcessChannels: supported ? channels : null, SuppressPainting: channels.All(channel => channel == -1),
                 Initial: InitialColor.FullTint, HasIccSource: alternate.HasIccSource,
-                HasSpotColorants: channels is [-2] || mixedSpot);
+                HasSpotColorants: channels is [-2] || mixedSpot || twoSpots);
         }
         if (kind.ValueAsLatin1() != "Indexed" || array.Count != 4
             || Resolve(array[2]) is not PdfInteger highValue
@@ -6628,7 +6664,7 @@ public sealed partial class PdfPageRenderer
                 && pixels.Alpha(offset) == 255 && knockout is null
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
             {
-                if (preparedSpotPaint is not null
+                if (preparedSpotPaint is not null && color.AdditionalSpot is null
                     && string.Equals(color.SpotName, preparedSpotPaint.Name, StringComparison.Ordinal))
                     pixels.PaintSpotPrepared(offset, color, (color.OverprintComponents & 16) != 0,
                         resolvedInk ?? pixels.GetInk(color), preparedSpotPaint);
@@ -7881,6 +7917,11 @@ public sealed partial class PdfPageRenderer
                 : below.Red == above.Red && below.Green == above.Green && below.Blue == above.Blue
                     && below.Ink == above.Ink && below.OverprintComponents == above.OverprintComponents
                     && ReferenceEquals(below.InkProfile, above.InkProfile);
+            if (same && (below.SpotName is not null || above.SpotName is not null))
+                same = below.SpotName == above.SpotName && below.SpotTint == above.SpotTint
+                    && below.SpotInk == above.SpotInk && below.ProcessInk == above.ProcessInk
+                    && below.SpotProcessMask == above.SpotProcessMask
+                    && Equals(below.AdditionalSpot, above.AdditionalSpot);
             return same ? below : _function(input);
         }
 
@@ -7900,6 +7941,8 @@ public sealed partial class PdfPageRenderer
         }
     }
 
+    private sealed record SpotColorant(string Name, double Tint, uint Ink);
+
     private readonly record struct Color(byte Red, byte Green, byte Blue)
     {
         internal byte OverprintComponents { get; init; }
@@ -7909,6 +7952,7 @@ public sealed partial class PdfPageRenderer
         internal string? SpotName { get; init; }
         internal double SpotTint { get; init; }
         internal uint? SpotInk { get; init; }
+        internal SpotColorant? AdditionalSpot { get; init; }
         internal uint? ProcessInk { get; init; }
         internal byte SpotProcessMask { get; init; }
         internal PdfColorTransform? InkProfile { get; init; }

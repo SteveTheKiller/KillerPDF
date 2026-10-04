@@ -456,6 +456,16 @@ public sealed partial class PdfPageRenderer
                     _spotPlates.Add(color.SpotName!, plate);
                 }
                 WriteInk(plate, offset, color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk);
+                if (color.AdditionalSpot is { } additional)
+                {
+                    if (!_spotPlates.TryGetValue(additional.Name, out byte[]? otherPlate))
+                    {
+                        otherPlate = RasterBuffers.Rent(Length);
+                        Array.Clear(otherPlate, 0, Length);
+                        _spotPlates.Add(additional.Name, otherPlate);
+                    }
+                    WriteInk(otherPlate, offset, additional.Tint <= 0 ? 0 : additional.Ink);
+                }
                 ComposeSpotPixel(offset);
             }
         }
@@ -477,15 +487,31 @@ public sealed partial class PdfPageRenderer
                     Array.Clear(plate, 0, Length);
                     _spotPlates.Add(color.SpotName!, plate);
                 }
+                byte[]? additionalPlate = null;
+                if (color.AdditionalSpot is { } additional
+                    && !_spotPlates.TryGetValue(additional.Name, out additionalPlate))
+                {
+                    additionalPlate = RasterBuffers.Rent(Length);
+                    Array.Clear(additionalPlate, 0, Length);
+                    _spotPlates.Add(additional.Name, additionalPlate);
+                }
                 uint spotInk = color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk;
                 if (!overprint)
                 {
                     WriteInk(_spotBaseInk, offset, BlendCoverageInk(0, ReadInk(_spotBaseInk, offset), coverage));
                     foreach (byte[] existing in _spotPlates.Values)
-                        if (!ReferenceEquals(existing, plate))
+                        if (!ReferenceEquals(existing, plate)
+                            && !ReferenceEquals(existing, additionalPlate))
                             WriteInk(existing, offset, BlendCoverageInk(0, ReadInk(existing, offset), coverage));
                 }
                 WriteInk(plate, offset, BlendCoverageInk(spotInk, ReadInk(plate, offset), coverage));
+                if (additionalPlate is not null)
+                {
+                    SpotColorant secondSpot = color.AdditionalSpot!;
+                    uint additionalInk = secondSpot.Tint <= 0 ? 0 : secondSpot.Ink;
+                    WriteInk(additionalPlate, offset,
+                        BlendCoverageInk(additionalInk, ReadInk(additionalPlate, offset), coverage));
+                }
                 ComposeSpotPixel(offset);
             }
         }
@@ -506,12 +532,22 @@ public sealed partial class PdfPageRenderer
                     Array.Clear(plate, 0, Length);
                     _spotPlates.Add(color.SpotName!, plate);
                 }
+                byte[]? additionalPlate = null;
+                if (color.AdditionalSpot is { } additional
+                    && !_spotPlates.TryGetValue(additional.Name, out additionalPlate))
+                {
+                    additionalPlate = RasterBuffers.Rent(Length);
+                    Array.Clear(additionalPlate, 0, Length);
+                    _spotPlates.Add(additional.Name, additionalPlate);
+                }
                 uint mask = 0;
                 if (color.ProcessInk is not null)
                     for (int channel = 0; channel < 4; channel++)
                         if ((color.SpotProcessMask & (1 << channel)) != 0)
                             mask |= 0xffu << (channel * 8);
                 uint spotInk = color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk;
+                uint additionalInk = color.AdditionalSpot is { } other && other.Tint > 0
+                    ? other.Ink : 0;
                 for (int index = 0; index < count; index++, offset += 4)
                 {
                     if (!overprint)
@@ -526,6 +562,8 @@ public sealed partial class PdfPageRenderer
                         WriteInk(_spotBaseInk, offset, baseInk & ~mask | processInk & mask);
                     }
                     WriteInk(plate, offset, spotInk);
+                    if (additionalPlate is not null)
+                        WriteInk(additionalPlate, offset, additionalInk);
                     ComposeSpotPixel(offset);
                 }
             }

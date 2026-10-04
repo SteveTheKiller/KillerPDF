@@ -505,6 +505,81 @@ public sealed class PdfOverprintTests
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void TwoSpotDeviceNPaint_MatchesSeparateSpotPaints(bool gradient, bool useShading)
+    {
+        static PdfName N(string value) => new(Encoding.ASCII.GetBytes(value));
+        static KeyValuePair<PdfName, PdfObject> E(string key, PdfObject value) => new(N(key), value);
+        static PdfArray A(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));
+        static PdfObject Spot(string name, int cyan, int magenta) => new PdfArray([
+            N("Separation"), N(name), N("DeviceCMYK"), new PdfDictionary([
+                E("FunctionType", new PdfInteger(2)), E("Domain", A(0, 1)),
+                E("C0", A(0, 0, 0, 0)), E("C1", A(cyan, magenta, 0, 0)),
+                E("N", new PdfInteger(1))])]);
+
+        PdfRenderedPage RenderPaint(bool separate)
+        {
+            string content = separate
+                ? gradient
+                    ? "/O gs" + string.Concat(Enumerable.Range(0, 8).Select(column =>
+                        FormattableString.Invariant(
+                            $" /A cs {(column + 0.5) / 8} scn {column} 0 1 8 re f")
+                        + FormattableString.Invariant(
+                            $" /B cs {1 - (column + 0.5) / 8} scn {column} 0 1 8 re f")))
+                    : "/O gs /A cs 0.5 scn 0 0 8 8 re f /B cs 0.25 scn 0 0 8 8 re f"
+                : useShading ? "/O gs /Sh sh"
+                    : "/O gs /D cs 0.5 0.25 scn 0 0 8 8 re f";
+            var source = PdfDocument.Open(new PdfDocumentBuilder()
+                .AddPage(8, 8, Encoding.ASCII.GetBytes(content)).Build());
+            var root = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[N("Root")]);
+            var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)root[N("Pages")]);
+            var pageReference = (PdfIndirectReference)((PdfArray)pages[N("Kids")])[0];
+            var page = (PdfDictionary)source.Resolve(pageReference);
+            var update = new PdfIncrementalUpdateBuilder(source);
+            PdfObject first = Spot("First", 1, 0), second = Spot("Second", 0, 1);
+            var transform = update.AddObject(new PdfStream(new PdfDictionary([
+                E("FunctionType", new PdfInteger(4)), E("Domain", A(0, 1, 0, 1)),
+                E("Range", A(0, 1, 0, 1, 0, 1, 0, 1))]),
+                Encoding.ASCII.GetBytes("{ pop pop 0 0 0 0 }")));
+            var deviceN = new PdfArray([N("DeviceN"), new PdfArray([N("First"), N("Second")]),
+                N("DeviceCMYK"), transform,
+                new PdfDictionary([E("Colorants", new PdfDictionary([
+                    E("First", first), E("Second", second)]))])]);
+            var shadeFunction = new PdfDictionary([
+                E("FunctionType", new PdfInteger(2)), E("Domain", A(0, 1)),
+                E("C0", gradient ? A(0, 1)
+                    : new PdfArray([new PdfReal(0.5), new PdfReal(0.25)])),
+                E("C1", gradient ? A(1, 0)
+                    : new PdfArray([new PdfReal(0.5), new PdfReal(0.25)])),
+                E("N", new PdfInteger(1))]);
+            var shading = new PdfDictionary([
+                E("ShadingType", new PdfInteger(2)), E("ColorSpace", deviceN),
+                E("Coords", A(0, 0, 8, 0)), E("Function", shadeFunction),
+                E("Extend", new PdfArray([new PdfBoolean(true), new PdfBoolean(true)]))]);
+            var resources = new PdfDictionary([
+                E("ColorSpace", new PdfDictionary([E("A", first), E("B", second),
+                    E("D", deviceN)])),
+                E("ExtGState", new PdfDictionary([E("O", new PdfDictionary([
+                    E("op", new PdfBoolean(true))]))])),
+                E("Shading", new PdfDictionary([E("Sh", shading)]))]);
+            update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page
+                .Where(pair => !pair.Key.Equals(N("Resources")))
+                .Append(E("Resources", resources))
+                .Append(E("Group", new PdfDictionary([
+                    E("S", N("Transparency")), E("CS", N("DeviceCMYK"))])))));
+            return new PdfPageRenderer(PdfDocument.Open(update.Build()))
+                .Render(0, new PdfRenderOptions(8, 8));
+        }
+
+        PdfRenderedPage actual = RenderPaint(false), expected = RenderPaint(true);
+        Assert.Empty(actual.Diagnostics);
+        Assert.Empty(expected.Diagnostics);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void MixedBlackAndSpotImage_PreservesEarlierDifferentSpot(bool reducedImage)
