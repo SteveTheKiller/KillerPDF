@@ -349,11 +349,11 @@ public static partial class PdfLayerMacro
         catch (JsonException exception)
         {
             throw new ArgumentException(
-                "The layer instruction range is invalid.", "step", exception);
+                "The layer instruction range is invalid.", nameof(json), exception);
         }
         if (settings.PageIndex < 0 || settings.InstructionIndex < 0
             || settings.InstructionCount <= 0)
-            throw new ArgumentException("The layer instruction range is invalid.", "step");
+            throw new ArgumentException("The layer instruction range is invalid.", nameof(json));
         return PdfOptionalContentEditor.SetPageInstructionRangeGroup(
             document, settings.PageIndex, settings.InstructionIndex,
             settings.InstructionCount, objectNumber);

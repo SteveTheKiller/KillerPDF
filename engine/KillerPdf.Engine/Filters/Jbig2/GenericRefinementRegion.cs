@@ -183,7 +183,6 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
                 int paddedWidth = regionBitmap.Width + 7 & -8;
                 int deltaRefStride = isTPGROn ? -referenceDY * referenceBitmap.RowStride : 0;
-                int yOffset = deltaRefStride + 1;
 
                 // 6.3.5.6 - 3)
                 for (int y = 0; y < regionBitmap.Height; y++)

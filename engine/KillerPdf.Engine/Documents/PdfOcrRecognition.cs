@@ -181,8 +181,8 @@ public sealed class PdfOcrRecognitionModel
                 "OCR recognition model dimensions do not match.", nameof(models));
         int labelCount = checked(supplied.Sum(model => model._labels.Length));
         int featureCount = checked(first.Width * first.Height);
-        long labelBytes = supplied.Sum(model => model._labels.Sum(
-            label => 1L + Encoding.UTF8.GetByteCount(label)));
+        long labelBytes = supplied.Sum((PdfOcrRecognitionModel model) => model._labels.Sum(
+            (string label) => 1L + Encoding.UTF8.GetByteCount(label)));
         long valueCount = supplied.Sum(model => (long)model._weights.Length
             + model._biases.Length + model._priors.Length);
         if (labelCount > 65_536

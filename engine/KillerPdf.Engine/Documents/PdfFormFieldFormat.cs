@@ -294,13 +294,13 @@ public static class PdfFormFieldFormat
             }
             int run = 1;
             while (index + run < picture.Length && picture[index + run] == character) run++;
-            builder.Append(Token(character, run, picture));
+            builder.Append(Token(character, run, nameof(picture)));
             index += run;
         }
         return builder.ToString();
     }
 
-    private static string Token(char character, int run, string picture) => character switch
+    private static string Token(char character, int run, string parameterName) => character switch
     {
         'y' => run >= 4 ? "yyyy" : "yy",
         'm' => run switch { 1 => "%M", 2 => "MM", 3 => "MMM", _ => "MMMM" },
@@ -310,7 +310,7 @@ public static class PdfFormFieldFormat
         'M' => run >= 2 ? "mm" : "%m",
         's' => run >= 2 ? "ss" : "%s",
         't' => run >= 2 ? "tt" : "%t",
-        _ => Literal(character, run, nameof(picture))
+        _ => Literal(character, run, parameterName)
     };
 
     private static string Literal(char character, int run, string parameterName)
