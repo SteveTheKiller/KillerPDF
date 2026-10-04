@@ -184,6 +184,7 @@ namespace KillerPDF
         public static void Configure(Window win, Window? owner, bool resizable = false, bool fade = true)
         {
             win.Owner = owner;
+            TaskbarIdentity.Track(win);
             win.WindowStyle = WindowStyle.None;
             win.AllowsTransparency = true;
             win.Background = Brushes.Transparent;
