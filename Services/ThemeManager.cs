@@ -376,6 +376,7 @@ namespace KillerPDF.Services
             Alias("BgRecentPanel", "SurfaceBrush");
             Alias("BgFlyout", "MenuBackgroundBrush");
             Alias("AnnotationBarBrush", "BgFlyout");
+            Alias("AnnotationBarBorderBrush", "PaneBorderBrush");
             // Match KillerNotes: the inner About grouping panel uses the content pane color.
             Alias("AboutPanelBrush", "PaneBrush");
             Alias("SelectionAccent", "PrimaryBrush");

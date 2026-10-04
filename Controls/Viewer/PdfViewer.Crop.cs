@@ -449,7 +449,7 @@ namespace KillerPDF.Controls
                 Child               = BuildBarHost(outer)
             };
             bar.SetResourceReference(Border.BackgroundProperty,  "AnnotationBarBrush");
-            bar.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
+            bar.SetResourceReference(Border.BorderBrushProperty, "AnnotationBarBorderBrush");
             _cropConfirmBar = bar;
 
             var previewArea = PagePreviewPanel.Parent as Grid;

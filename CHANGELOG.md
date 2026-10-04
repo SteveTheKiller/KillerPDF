@@ -90,6 +90,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Transform and image export DPI previews show the output scale (#365).
 - Selected states now use subtle gradients outside 98SE, Light buttons have softer gray borders, and yellow wordmarks match their accent.
 - Slider handles now carry an accent outline.
+- Ectoplasm menus and annotation bars now have softer borders.
 
 ### Fixed
 
