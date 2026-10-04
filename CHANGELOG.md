@@ -27,6 +27,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Install and uninstall windows now show the film grain and the app icon in the title bar.
 - The installer and uninstaller have their own taskbar buttons, labeled "KillerPDF Installer" and "Uninstall KillerPDF", with the app icon.
 - The portable package reports a start failure in a KillerPDF-styled dialog instead of a plain Windows message box.
+- The Document Info text menu now follows the active theme.
 
 ### Changed
 - Menu rows now show accent text and icons on the theme's hover color.
