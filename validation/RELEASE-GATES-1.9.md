@@ -4783,3 +4783,14 @@ the final profile conversion at those pixels; source DeviceN ink formation
 and the renderer reference disagreement remain open. Probe output and an
 exact-matching page PNG are under
 `C:/Users/steve/kp-bench-render/ghent-color-ink-probe-20261004/`.
+An exact-size, lossless Poppler CMYK overprint render provides a comparison
+before display conversion. Mean absolute CMYK error against 1.9's native ink
+was 1.940 in the duotone image and 0.990 in the colorized image. Converting
+that reference CMYK through the embedded profile reduced their RGB errors
+from 17.253 and 12.241 to 2.808 and 1.288. Their earlier RGB gap therefore
+does not establish incorrect 1.9 ink. The gradient still differs: native
+CMYK error was 6.791, mainly in cyan. At x 1025, y 785, 1.9 has C 159 and
+Y 128 while Poppler has C 191 and Y 128. The 1.9 value follows the PDF's
+combined DeviceN tint transform; Poppler's value is consistent with adding
+the individual green and cyan colorants. The PDF contains NChannel colorant and
+process definitions, so gradient preview accuracy remains unresolved.
