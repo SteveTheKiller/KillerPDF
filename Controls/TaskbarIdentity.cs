@@ -79,11 +79,11 @@ namespace KillerPDF
             }
         }
 
-        private static readonly Guid AppModel = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
-        private static readonly PropertyKey RelaunchCommandKey = new PropertyKey(AppModel, 2);
-        private static readonly PropertyKey RelaunchIconKey = new PropertyKey(AppModel, 3);
-        private static readonly PropertyKey RelaunchNameKey = new PropertyKey(AppModel, 4);
-        private static readonly PropertyKey AppIdKey = new PropertyKey(AppModel, 5);
+        private static readonly Guid AppModel = new("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3");
+        private static readonly PropertyKey RelaunchCommandKey = new(AppModel, 2);
+        private static readonly PropertyKey RelaunchIconKey = new(AppModel, 3);
+        private static readonly PropertyKey RelaunchNameKey = new(AppModel, 4);
+        private static readonly PropertyKey AppIdKey = new(AppModel, 5);
 
         private static void Set(IPropertyStore store, PropertyKey key, string? value)
         {
@@ -98,11 +98,10 @@ namespace KillerPDF
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct PropertyKey
+        private struct PropertyKey(Guid formatId, uint propertyId)
         {
-            public Guid FormatId;
-            public uint PropertyId;
-            public PropertyKey(Guid formatId, uint propertyId) { FormatId = formatId; PropertyId = propertyId; }
+            public Guid FormatId = formatId;
+            public uint PropertyId = propertyId;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 24)]

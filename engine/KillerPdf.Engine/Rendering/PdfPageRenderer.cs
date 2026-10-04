@@ -823,7 +823,8 @@ public sealed partial class PdfPageRenderer
                             state.PaintFill, state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
                             state.Knockout, pixels, options.Width,
                             options.Height, scaleX, scaleY,
-                            out string? imageDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent, state.AlphaIsShape, cancellationToken))
+                            out string? imageDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent, state.AlphaIsShape,
+                            cancellationToken: cancellationToken))
                             diagnostics.Add(imageDiagnostic
                                 ?? "Image rendering is not implemented.");
                     }
@@ -839,7 +840,7 @@ public sealed partial class PdfPageRenderer
                         state.Knockout, pixels, options.Width,
                         options.Height, scaleX, scaleY,
                         out string? inlineDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent,
-                        state.AlphaIsShape, cancellationToken, ownedInlineImage: true))
+                        state.AlphaIsShape, ownedInlineImage: true, cancellationToken: cancellationToken))
                         diagnostics.Add(inlineDiagnostic
                             ?? "Inline-image rendering is not implemented.");
                     break;
@@ -2711,8 +2712,8 @@ public sealed partial class PdfPageRenderer
         KnockoutState? knockout,
         RasterSurface target, int targetWidth, int targetHeight, double scaleX, double scaleY,
         out string? diagnostic, bool overprint = false, HashSet<string>? diagnostics = null, int renderingIntent = 1,
-        bool alphaIsShape = false, CancellationToken cancellationToken = default,
-        bool ownedInlineImage = false)
+        bool alphaIsShape = false, bool ownedInlineImage = false,
+        CancellationToken cancellationToken = default)
     {
         diagnostic = null;
         cancellationToken.ThrowIfCancellationRequested();

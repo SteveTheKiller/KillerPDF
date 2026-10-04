@@ -271,8 +271,12 @@ public static class PdfXfaAcroFormConverter
             data += alphabet[data.Sum(character => alphabet.IndexOf(character)) % 43];
         }
         string encoded = "*" + data + "*";
-        int units = encoded.Sum((char character) => Code39Patterns[character]
-            .Sum((char mark) => mark == 'w' ? 3 : 1)) + encoded.Length - 1 + 20;
+        int units = encoded.Length - 1 + 20;
+        foreach (char character in encoded)
+        {
+            foreach (char mark in Code39Patterns[character])
+                units = checked(units + (mark == 'w' ? 3 : 1));
+        }
         double module = width / units;
         double cursor = x + 10 * module;
         var content = new PdfContentStreamBuilder().SetFillRgb(0, 0, 0);
