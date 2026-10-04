@@ -5771,6 +5771,7 @@ public sealed partial class PdfPageRenderer
         private readonly bool _directRgbInk;
         private readonly bool _directGray;
         private readonly bool _directCmyk;
+        private readonly bool _directCmykInk;
         private readonly bool _preserveSpotZero;
         private int _binaryRowIndex = -1;
         private PdfBinaryAreaSampler.Row _binaryRow;
@@ -5807,6 +5808,8 @@ public sealed partial class PdfPageRenderer
             _directRgbInk = plainRgb && targetInk;
             _directGray = plainSpace && !targetInk && components == 1 && decode is [0, 1];
             _directCmyk = plainSpace && !targetInk && components == 4 && decode is [0, 1, 0, 1, 0, 1, 0, 1];
+            _directCmykInk = plainSpace && targetInk && components == 4
+                && decode is [0, 1, 0, 1, 0, 1, 0, 1];
             if (components == 1 && bits <= 16)
             {
                 _lookup = new uint[1 << bits];
@@ -5872,6 +5875,8 @@ public sealed partial class PdfPageRenderer
                 uint gray = _samples[y * _rowBytes + x];
                 return gray | gray << 8 | gray << 16 | 0xFF000000;
             }
+            if (_directCmykInk)
+                return ReadInk(_samples, y * _rowBytes + x * 4);
             if (_directCmyk)
             {
                 int offset = y * _rowBytes + x * 4;
@@ -5957,7 +5962,25 @@ public sealed partial class PdfPageRenderer
             AreaSpan row = _areaRows?[py] ?? AreaSpan.Create(py, sourceHeight, planeHeight);
             if (column.Length <= 0 || row.Length <= 0) return 0;
             double first = 0, second = 0, third = 0, fourth = 0;
-            if (_directCmyk)
+            if (_directCmykInk)
+            {
+                for (int y = row.First; y < row.End; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    double vertical = row.Weight(y);
+                    int sampleOffset = y * _rowBytes + column.First * 4;
+                    for (int x = column.First; x < column.End; x++, sampleOffset += 4)
+                    {
+                        double weight = vertical * column.Weight(x);
+                        uint ink = ReadInk(_samples, sampleOffset);
+                        first += (byte)ink * weight;
+                        second += (byte)(ink >> 8) * weight;
+                        third += (byte)(ink >> 16) * weight;
+                        fourth += (byte)(ink >> 24) * weight;
+                    }
+                }
+            }
+            else if (_directCmyk)
             {
                 for (int y = row.First; y < row.End; y++)
                 {

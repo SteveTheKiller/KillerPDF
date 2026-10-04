@@ -4794,3 +4794,21 @@ Y 128 while Poppler has C 191 and Y 128. The 1.9 value follows the PDF's
 combined DeviceN tint transform; Poppler's value is consistent with adding
 the individual green and cyan colorants. The PDF contains NChannel colorant and
 process definitions, so gradient preview accuracy remains unresolved.
+
+### Direct CMYK ink sampling checkpoint (2026-10-04)
+
+A sampled trace of the groundwater cover placed much of its 1.9 rendering
+work in area sampling of an 8-bit DeviceCMYK JPEG. In an unprofiled balanced
+fresh-process comparison, reading eligible source CMYK bytes directly into
+the existing weighted area average reduced that page's mean render time from
+335.5 to 312 ms at 512 pixels and from 658.75 to 537.25 ms at 2048 pixels.
+Its PNG hash remained identical at both sizes. The 74-page difficult set
+kept all PNG hashes, statuses, and dimensions at both sizes. Paired render
+sums changed from 5,744.5 to 5,569.5 ms at 512 pixels and from 8,731.5 to
+8,592.5 ms at 2048 pixels. Sampled peak memory varied within the control
+range. The 649-file conformance tree at 512 pixels kept all 614 rendered PNG
+hashes and 35 skip statuses. All 4,393 engine tests and 490 app tests pass,
+and the Release app build has zero warnings or errors. The current 1.8 speed,
+memory, accuracy, and visible-interaction gates remain open. Profile, paired
+measurements, and image checks are under
+`C:/Users/steve/kp-bench-render/groundwater-row-cache-trial-20261004/`.
