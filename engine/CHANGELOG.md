@@ -97,6 +97,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Fixed
 
+- Preserved fractional knockout spot strokes beneath later white overprints.
 - Restored green checks in Ghent DeviceN gradients by painting both named inks.
 - Preserved spot checkmarks and cleared false X marks in reduced indexed images on Ghent DeviceN pages.
 - Honored static layer View rules in rendering and layer controls, preserving explicit visibility edits and alternate configurations.

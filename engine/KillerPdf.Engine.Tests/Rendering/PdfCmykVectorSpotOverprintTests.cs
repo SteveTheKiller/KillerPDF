@@ -130,6 +130,22 @@ public sealed class PdfCmykVectorSpotOverprintTests
         }
     }
 
+    [Fact]
+    public void FractionalKnockoutSpotStroke_RemainsVisibleUnderWhiteProcessOverprint()
+    {
+        string background = "0 0 0 0 k 0 0 5 1 re f ";
+        string spot = "q /Off gs /Green cs 1 scn 0 0 5 1 re f "
+            + "/Green CS .5 SCN .75 w 2.25 0 m 2.25 1 l S Q ";
+        PdfRenderedPage expected = RenderContent(background + spot, 0);
+        PdfRenderedPage actual = RenderContent(background + spot
+            + "q /WhiteOn gs 1 g 0 0 5 1 re f Q", 0);
+
+        Assert.NotEqual([255, 255, 255, 255], Pixel(expected, 2));
+        Assert.Equal(Pixel(expected, 2), Pixel(actual, 2));
+        Assert.Empty(expected.Diagnostics);
+        Assert.Empty(actual.Diagnostics);
+    }
+
     private static void AssertVectorPaint(int overprintMode, int referenceMagenta, bool deviceN)
     {
         PdfRenderedPage rendered = Render(overprintMode, referenceMagenta, deviceN);

@@ -4708,3 +4708,25 @@ improved warmed x4 from 671.00 to 632.57 ms, but x3 slowed from 400.36 to
 gate, so both remained scratch-only. Evidence is under
 `C:/Users/steve/kp-bench-render/x4-area-adjacency-20261003-8a3d6a7/`
 and `C:/Users/steve/kp-bench-render/x4-area-adjacency-noinline-20261003-8a3d6a7/`.
+
+### Fractional spot stroke correction (2026-10-04)
+
+The Altona technical page must be compared with Poppler's `-overprint` option.
+Its default output and 1.8.80 both omit the overprinted color bars in rows I
+and J. With overprint enabled, the remaining row H mismatch exposed a
+fractionally covered spot stroke that lost its named ink plate. Later white
+overprint then erased the visible stroke. A reduced regression failed before
+the correction and passes now. Row H retains more spot detail, while row K
+and other output differences still require accuracy work.
+
+The 512-pixel conformance run rendered 614 of 649 pages, skipped 35, and
+failed none. Five PNGs changed: Altona technical and four Ghent spot pages;
+the other 609 matched the saved 1.9 baseline exactly. In paired 74-page
+difficult runs with one file worker, only Altona changed at both sizes.
+Mean render sums were 5,707.5/5,710.5 ms at 512 and 8,502/8,484 ms at
+2048 (baseline/correction). Sampled peak working sets were 226.5/221.3 MiB
+and 289.1/290.4 MiB, respectively; first-run variation limits a memory
+claim. All 4,393 engine tests and 490 app tests pass, and the Release app
+build has no warnings or errors. Scratch comparisons are under
+`C:/Users/steve/kp-bench-render/altona-spot-stroke-fix-20261004/`. The
+2% parity target and full-page accuracy gate remain open.
