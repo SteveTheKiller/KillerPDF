@@ -20,6 +20,7 @@ namespace KillerLauncher
         private InstallerWizard()
         {
             InitializeComponent();
+            TaskbarIdentity.Track(this);
             SetupVersionLabel.Text = LauncherStrings.Format("SetupVersion",
                 typeof(InstallerWizard).Assembly.GetName().Version!.ToString(3));
             _existing = Program.FindInstalledCopy();

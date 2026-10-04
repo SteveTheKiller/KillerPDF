@@ -36,6 +36,7 @@ namespace KillerLauncher
             try
             {
 #if INSTALLER_PACKAGE
+                TaskbarIdentity.UseInstaller();
                 if (args.Any(a => string.Equals(a, "/install-user", StringComparison.OrdinalIgnoreCase)))
                 {
                     // KillerPDF 1.7.x uses /install-user for its F12 update handoff. Keep that
