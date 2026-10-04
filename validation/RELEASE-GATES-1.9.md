@@ -4931,3 +4931,12 @@ runs averaged 3,042.75 ms for the control and 3,147.25 ms for the trial across
 20 pages, while sampled peak working set averaged 157.99 and 158.96 MiB.
 The trial was not retained. Source, payload hashes, and paired runs are under
 `C:/Users/steve/kp-bench-render/patch-weights-trial-20261004/`.
+
+A third scratch trial reused patch grids, sampled values, and triangle
+components across sequential patches. All 20 Ghent page-1 PNG hashes stayed
+identical. Eight alternating fresh-process runs averaged 3,074.75 ms for
+the control and 3,094 ms for the trial across 20 pages, while sampled peak
+working set averaged 157.03 and 155.13 MiB. The small memory saving did
+not close Ghent's gap, and rendering was slightly slower overall, so the
+trial was not retained. Source, hashes, and measurements are under
+`C:/Users/steve/kp-bench-render/patch-buffers-trial-20261004/`.
