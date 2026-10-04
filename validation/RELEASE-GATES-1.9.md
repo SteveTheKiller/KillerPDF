@@ -4774,6 +4774,13 @@ occupy most tiles, and the unchanged process plate also consumes memory.
 This probe does not establish a speed or peak-memory gain. Its source,
 output, and counts are under
 `C:/Users/steve/kp-bench-render/scan-memory-stage-20261004/`.
+The same lossless probe counted 132 and 204 distinct nonzero ink values in
+Altona's two plates. Four Ghent spot pages included plates with 276, 325,
+324, 382, and 383 values, above an 8-bit index. Each instrumented Ghent
+PNG matched the source-matched control. A one-byte plate representation
+would therefore require a wider exact fallback; these counts alone do not
+justify a storage change. Per-page counts and PNG hashes are in the same
+scratch directory.
 
 An instrumented Altona render counted 1,623,158 process-coverage calls after
 spot plates became active. Of 1,411,449 eligible opaque full-coverage calls,
