@@ -1,14 +1,110 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
+using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Rendering;
+using KillerPdf.Engine.Writing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfImageAreaSamplingTests
 {
+    [Theory]
+    [InlineData(1)]
+    [InlineData(8)]
+    [InlineData(16)]
+    public void SlightlyReducedCheckerboardPreservesAverageGray(int bits)
+    {
+        byte[] samples = bits switch
+        {
+            1 => [0x40, 0xA0, 0x40],
+            8 => [0, 255, 0, 255, 0, 255, 0, 255, 0],
+            _ => [.. Enumerable.Range(0, 9).SelectMany(pixel =>
+                new byte[] { pixel % 2 == 0 ? (byte)0 : (byte)255,
+                    pixel % 2 == 0 ? (byte)0 : (byte)255 })]
+        };
+        var rendered = RenderGray(samples, bits, 3, 2, "2 0 0 2 0 0");
+        // Each 1.5 by 1.5 footprint contains white area 1 out of total area 2.25.
+        for (int pixel = 0; pixel < 4; pixel++)
+            Assert.Equal(new byte[] { 113, 113, 113, 255 }, rendered.Pixels.Slice(pixel * 4, 4).ToArray());
+    }
+
+    [Theory]
+    [InlineData(1, false, false)]
+    [InlineData(1, true, false)]
+    [InlineData(1, false, true)]
+    [InlineData(8, false, false)]
+    [InlineData(16, false, false)]
+    [InlineData(16, true, false)]
+    [InlineData(16, false, true)]
+    public void SlightReductionUsesTheActualFractionalPixelFootprint(int bits, bool flipX, bool flipY)
+    {
+        byte[] values = [.. Enumerable.Range(0, 25).Select(pixel => pixel % 5 == 1 ? (byte)255 : (byte)0)];
+        byte[] samples = bits == 1 ? [0x40, 0x40, 0x40, 0x40, 0x40]
+            : bits == 8 ? values : [.. values.SelectMany(value => new byte[] { value, value })];
+        string matrix = $"{(flipX ? "-3" : "3")} 0 0 {(flipY ? "-3" : "3")} {(flipX ? "3.75" : "0.25")} {(flipY ? "3.25" : "0.25")}";
+        var rendered = RenderGray(samples, bits, 5, 4, matrix);
+        int x = flipX ? 2 : 1;
+        // White contributes 0.75 source pixels to a footprint of width 5/3.
+        Assert.Equal(new byte[] { 115, 115, 115, 255 }, rendered.Pixels.Slice((4 + x) * 4, 4).ToArray());
+    }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(8, false)]
+    [InlineData(8, true)]
+    [InlineData(16, false)]
+    [InlineData(16, true)]
+    public void SlightReductionUsesTheActualFractionalRowFootprint(int bits, bool flipY)
+    {
+        byte[] values = [.. Enumerable.Range(0, 25).Select(pixel => pixel / 5 == 1 ? (byte)255 : (byte)0)];
+        byte[] samples = bits == 1 ? [0, 0xF8, 0, 0, 0]
+            : bits == 8 ? values : [.. values.SelectMany(value => new byte[] { value, value })];
+        var rendered = RenderGray(samples, bits, 5, 4, flipY ? "3 0 0 -3 .25 3.25" : "3 0 0 3 .25 .75");
+        int y = flipY ? 2 : 1;
+        Assert.Equal(new byte[] { 115, 115, 115, 255 }, rendered.Pixels.Slice((y * 4 + 1) * 4, 4).ToArray());
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(8)]
+    [InlineData(16)]
+    public void CroppedNativeSizeImageDoesNotBecomeAReducedImage(int bits)
+    {
+        byte[] values = [.. Enumerable.Range(0, 25).Select(pixel => pixel % 5 == 1 ? (byte)255 : (byte)0)];
+        byte[] samples = bits == 1 ? [0x40, 0x40, 0x40, 0x40, 0x40]
+            : bits == 8 ? values : [.. values.SelectMany(value => new byte[] { value, value })];
+        var rendered = RenderGray(samples, bits, 5, 3, "5 0 0 5 -.25 -.25");
+        Assert.Equal(new byte[] { 0, 0, 0, 255 }, rendered.Pixels.Slice(0, 4).ToArray());
+    }
+
+    private static PdfRenderedPage RenderGray(byte[] samples, int bits, int imageSize, int pageSize, string matrix)
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(pageSize, pageSize,
+            Encoding.ASCII.GetBytes(matrix + " cm /Image Do")).Build());
+        PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+        KeyValuePair<PdfName, PdfObject> Entry(string name, PdfObject value) => new(Name(name), value);
+        var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
+        var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+        var pageReference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+        var page = (PdfDictionary)source.Resolve(pageReference);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        var image = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(imageSize)),
+            Entry("Height", new PdfInteger(imageSize)), Entry("ColorSpace", Name("DeviceGray")),
+            Entry("BitsPerComponent", new PdfInteger(bits))]), samples));
+        var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Image", image)]))]);
+        update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page
+            .Where(pair => !pair.Key.Equals(Name("Resources"))).Append(Entry("Resources", resources))));
+        var rendered = new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(pageSize, pageSize));
+        Assert.Empty(rendered.Diagnostics);
+        return rendered;
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
@@ -126,6 +222,7 @@ public sealed class PdfImageAreaSamplingTests
     }
 
     [Theory]
+    [InlineData(17, 19, 12, 14)]
     [InlineData(17, 19, 5, 7)]
     [InlineData(32768, 14, 16384, 2)]
     [InlineData(32768, 15, 16384, 2)]

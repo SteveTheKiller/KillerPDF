@@ -5104,8 +5104,16 @@ public sealed partial class PdfPageRenderer
         string? imageSpotName = (target.Ink is not null || preserveRgbSpots) && factor == 1 && !imageMask
             && colorSpace.HasSpotColorants && colorSpace.Components == 1 && colorSpace.Palette is null
             ? colorSpace.Convert(new double[] { 1 }).SpotName : null;
-        bool averagePlane = factor > 1 && !imageMask && preblendMatte is null
+        // Below twofold reduction, bounds describe source-axis footprints only without
+        // rotation or shear. Spot metadata still addresses the unreduced source samples.
+        bool reducedPlane = factor > 1 || inverse.B == 0 && inverse.C == 0
+            && !colorSpace.ContainsSpotColorants
+            && Math.Abs(inverse.A / scaleX) * sourceWidth > 1
+            && Math.Abs(inverse.D / scaleY) * sourceHeight > 1
+            && samplingWidth > destinationWidth && samplingHeight > destinationHeight;
+        bool averagePlane = reducedPlane && !imageMask && preblendMatte is null
             && colorKeyMask is null && softMask is null;
+        bool pixelAlignedPlane = averagePlane && factor == 1;
         bool averageStencil = factor > 1 && imageMask;
         bool directInkSamples = !averagePlane && target.Ink is not null && !imageMask && preblendMatte is null
             && colorKeyMask is null && bits == 8 && components == 4 && colorSpace.Components == 4
@@ -5127,9 +5135,7 @@ public sealed partial class PdfPageRenderer
         SpotInkSample[]? spotPlane = averagePlane && spotPalette is { Length: > 0 }
             && (spotPalette[0].ProcessInk is not null || target.HasRgbSpotShadow)
             ? new SpotInkSample[checked(planeWidth * planeHeight)] : null;
-        byte[]? plane = imageMask || preblendMatte is not null || directInkSamples || directDeviceSamples
-            ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
-        bool binaryAverage = averagePlane && bits == 1 && components == 1;
+        bool binaryAverage = averagePlane && !pixelAlignedPlane && bits == 1 && components == 1;
         // Small masks keep the cheaper per-pixel path.
         bool binaryRowAverage = binaryAverage && (long)sourceWidth * sourceHeight >= 10_000_000;
         PdfBinaryAreaSampler.Column[]? binaryColumns = binaryAverage || averageStencil
@@ -5138,9 +5144,30 @@ public sealed partial class PdfPageRenderer
             ? ImageSampleConverter.CreateAreaSpans(sourceWidth, planeWidth) : null;
         ImageSampleConverter.AreaSpan[]? converterAreaRows = averagePlane && !binaryAverage
             ? ImageSampleConverter.CreateAreaSpans(sourceHeight, planeHeight) : null;
+        if (pixelAlignedPlane)
+        {
+            double footprintWidth = Math.Abs(inverse.A / scaleX) * sourceWidth;
+            double footprintHeight = Math.Abs(inverse.D / scaleY) * sourceHeight;
+            for (int px = 0; px < planeWidth; px++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                double center = inverse.Apply((left + px + .5) / scaleX, 0).X * sourceWidth;
+                converterAreaColumns![px] = ImageSampleConverter.AreaSpan.FromFootprint(
+                    center, footprintWidth, sourceWidth);
+            }
+            for (int py = 0; py < planeHeight; py++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                double center = (1 - inverse.Apply(0, (targetHeight - top - py - .5) / scaleY).Y) * sourceHeight;
+                converterAreaRows![py] = ImageSampleConverter.AreaSpan.FromFootprint(
+                    center, footprintHeight, sourceHeight);
+            }
+        }
         var matteConverter = preblendMatte is not null && !imageMask
             ? new ImageSampleConverter(samples, rowBytes, components,
                 bits, decode, colorSpace, target.Ink is not null, target.InputProfile, matte: true) : null;
+        byte[]? plane = imageMask || preblendMatte is not null || directInkSamples || directDeviceSamples
+            ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
         byte[]? alphaPlane = null;
         try
         {
@@ -5187,7 +5214,7 @@ public sealed partial class PdfPageRenderer
                     for (int py = rowStart; py < rowEnd; py++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        if (averagePlane && bits == 1 && components == 1 && py > rowStart)
+                        if (binaryAverage && py > rowStart)
                         {
                             int firstRow = (int)((long)(py - 1) * sourceHeight / planeHeight);
                             int lastRow = (int)(((long)(py + 1) * sourceHeight - 1) / planeHeight);
@@ -5286,8 +5313,10 @@ public sealed partial class PdfPageRenderer
                         {
                             if (x < paintLeft) continue;
                             if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
-                            int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
-                            int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
+                            int px = pixelAlignedPlane ? x - left
+                                : Math.Min((int)(unitX * planeWidth), planeWidth - 1);
+                            int py = pixelAlignedPlane ? y - top
+                                : Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
                             int planeOffset = directDeviceSamples
                                 ? py * factor * rowBytes + px * factor * components
                                 : (py * planeWidth + px) * 4;
@@ -5401,8 +5430,10 @@ public sealed partial class PdfPageRenderer
                     {
                         if (x < paintLeft) continue;
                         if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
-                        int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
-                        int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
+                        int px = pixelAlignedPlane ? x - left
+                            : Math.Min((int)(unitX * planeWidth), planeWidth - 1);
+                        int py = pixelAlignedPlane ? y - top
+                            : Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
                         int alpha;
                         Color color;
                         // Full clip coverage leaves the compositor's opacity at exactly one, so the
@@ -5781,7 +5812,7 @@ public sealed partial class PdfPageRenderer
         internal uint ConvertArea(int px, int py, int planeWidth, int planeHeight,
             int sourceWidth, int sourceHeight, CancellationToken cancellationToken)
         {
-            if (_bits == 1 && _components == 1)
+            if (_binaryColumns is not null)
             {
                 for (int sample = 0; sample < 2; sample++)
                 {
@@ -5801,6 +5832,7 @@ public sealed partial class PdfPageRenderer
             }
             AreaSpan column = _areaColumns?[px] ?? AreaSpan.Create(px, sourceWidth, planeWidth);
             AreaSpan row = _areaRows?[py] ?? AreaSpan.Create(py, sourceHeight, planeHeight);
+            if (column.Length <= 0 || row.Length <= 0) return 0;
             double first = 0, second = 0, third = 0, fourth = 0;
             if (_directCmyk)
             {
@@ -5956,6 +5988,10 @@ public sealed partial class PdfPageRenderer
                 double end = (index + 1) * (double)sourceLength / destinationLength;
                 return new AreaSpan(start, end);
             }
+
+            internal static AreaSpan FromFootprint(double center, double length, int sourceLength)
+                => new(Math.Clamp(center - length / 2, 0, sourceLength),
+                    Math.Clamp(center + length / 2, 0, sourceLength));
 
             internal double Weight(int index) => index == First
                 ? _firstWeight : index == End - 1 ? _lastWeight : 1;
