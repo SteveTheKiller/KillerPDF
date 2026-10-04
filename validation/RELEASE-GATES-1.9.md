@@ -4716,8 +4716,17 @@ Its default output and 1.8.80 both omit the overprinted color bars in rows I
 and J. With overprint enabled, the remaining row H mismatch exposed a
 fractionally covered spot stroke that lost its named ink plate. Later white
 overprint then erased the visible stroke. A reduced regression failed before
-the correction and passes now. Row H retains more spot detail, while row K
-and other output differences still require accuracy work.
+the correction and passes now. Row H retains more spot detail. Other output
+differences still require accuracy work.
+
+The page's `/Cs13` color space is `Separation /All`, and its lower registration
+samples use zero tint. PDF Reference 1.7 specifies that `/All` applies its tint
+to every available colorant, including process inks; overprint mode 1 changes
+zero-tint behavior only for `DeviceCMYK`. Thus zero-tint `/All` clears the prior
+ink. The white 1.9 row K result has specification support, while Poppler's
+`-overprint` image retains color there. A focused regression now asserts white
+after two named spots at zero tint. This reference disagreement is not evidence
+for changing the renderer; remaining visual differences are still open.
 
 The 512-pixel conformance run rendered 614 of 649 pages, skipped 35, and
 failed none. Five PNGs changed: Altona technical and four Ghent spot pages;

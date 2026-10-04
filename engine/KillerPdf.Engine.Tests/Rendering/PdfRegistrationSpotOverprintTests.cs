@@ -37,6 +37,8 @@ public sealed class PdfRegistrationSpotOverprintTests
             Assert.Empty(overprint.Diagnostics);
             Assert.NotEqual([255, 255, 255, 255], Pixel(knockout, 0));
             Assert.Equal(knockout.Pixels.ToArray(), overprint.Pixels.ToArray());
+            if (tint == 0 && !fractional)
+                Assert.Equal([255, 255, 255, 255], Pixel(overprint, 1));
             if (followWithWhiteImage)
                 Assert.Equal([255, 255, 255, 255], Pixel(overprint, 2));
         }
