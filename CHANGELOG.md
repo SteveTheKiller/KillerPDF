@@ -9,11 +9,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 1.9.0 (Overkill) moves rendering, text, and image extraction into The KillerPDF.Engine, adds advanced PDF workflows, and carries forward the latest 1.8 reliability and interface fixes.
 
 ### Added
-- Added drag ordering for pinned places in the file picker.
-- Added yellow and magenta accents to the neutral and 98SE themes.
 - Added Ukrainian localization.
 - Added Norwegian (Bokmål) localization.
 - Added Brazilian Portuguese localization.
+- Added yellow and magenta accents to the neutral and 98SE themes.
+- Added drag ordering for pinned places in the file picker.
 
 - Added a shared reusable image library for the Image tool, image watermarks, and imported signatures, with import, preview, rename, and delete controls (#326).
 - Added localized desktop reports for preflight, accessibility, print production, separations, layers, portfolios, and structural comparisons.
@@ -94,6 +94,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Prevented the app window from going black when minimizing and restoring (#415).
+- Saved completed forms in PDFs with empty creation dates and unlisted fields.
 - Preserved native black-and-white scan pixels when page bounds clip a source column.
 - Preserved process overprint colors on RGB pages with named spot images.
 - Kept PDF comparison colors consistent with the viewer for large Adobe YCCK JPEGs.

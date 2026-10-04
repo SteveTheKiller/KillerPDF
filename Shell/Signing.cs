@@ -739,7 +739,7 @@ namespace KillerPDF
                 for (int bi = 0; bi < penBtns.Count; bi++)
                 {
                     bool active = Math.Abs(penOptions[bi].W - penWidth) < 0.01;
-                    penBtns[bi].Background  = active ? (SolidColorBrush)FindResource("SelectionBg") : (SolidColorBrush)FindResource("PaneBrush");
+                    penBtns[bi].Background  = active ? (Brush)FindResource("SelectionBg") : (Brush)FindResource("PaneBrush");
                     penBtns[bi].Foreground  = active ? (SolidColorBrush)FindResource("SelectionFg") : (SolidColorBrush)FindResource("TextBrush");
                     penBtns[bi].BorderBrush = active ? (SolidColorBrush)FindResource("PrimaryBrush")      : (SolidColorBrush)FindResource("CardBorderBrush");
                 }
