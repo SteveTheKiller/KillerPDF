@@ -753,18 +753,14 @@
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <!-- SELECTION, not a gray wash. BgHover is #404040 in every theme, so
-                                 the menu was the one place in the product where "this is the one"
-                                 rendered in neutral gray - and KillerPDF is the app the others
-                                 copy. Now the family's selected treatment: SelectionBg fill with
-                                 SelectionFg text. The gesture and chevron are recolored too, as
-                                 TextSecondary is unreadable on a saturated fill. -->
+                            <!-- Hover uses the menu wash and its contrast text brush. -->
                             <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="MenuBd" Property="Background" Value="{DynamicResource SelectionBg}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
-                                <Setter TargetName="Gesture" Property="Foreground" Value="{DynamicResource SelectionFg}"/>
-                                <Setter TargetName="SubArrow" Property="Foreground" Value="{DynamicResource SelectionFg}"/>
-                                <Setter TargetName="IconPresenter" Property="TextElement.Foreground" Value="{DynamicResource SelectionFg}"/>
+                                <Setter TargetName="MenuBd" Property="Background" Value="{DynamicResource MenuHoverBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ComboHighlightTextBrush}"/>
+                                <Setter TargetName="Check" Property="Foreground" Value="{DynamicResource ComboHighlightTextBrush}"/>
+                                <Setter TargetName="Gesture" Property="Foreground" Value="{DynamicResource ComboHighlightTextBrush}"/>
+                                <Setter TargetName="SubArrow" Property="Foreground" Value="{DynamicResource ComboHighlightTextBrush}"/>
+                                <Setter TargetName="IconPresenter" Property="TextElement.Foreground" Value="{DynamicResource ComboHighlightTextBrush}"/>
                             </Trigger>
                             <!-- Collapse the shortcut column when there is no gesture, so items without a
                                  shortcut do not reserve its 24px left margin as phantom right padding. -->

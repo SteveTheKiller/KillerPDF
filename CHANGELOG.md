@@ -61,6 +61,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added a `--batch-render` command that renders pages of a file or tree to PNG with a per-page render and open timing log, and a per-file comparison in the benchmark script. Recorded shared-input timing, memory, and multipage rendering validation.
 
 ### Changed
+- Menu rows now show accent text and icons on the theme's hover color.
 
 - Sped up DeviceN gradients on eligible print-production pages.
 - Sped up large named-spot images in print-production PDFs.

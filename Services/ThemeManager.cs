@@ -243,6 +243,8 @@ namespace KillerPDF.Services
             // zero radius actually reaches panes, tabs, flyouts, and dialogs.
             var appResources = Application.Current.Resources;
             var liveResources = merged[0];
+            if (theme != Theme.SE98 && theme != Theme.Mourning)
+                liveResources["ComboHighlightTextBrush"] = liveResources["PrimaryBrush"];
             ApplyComparisonBarPalette(liveResources, theme);
             // One semantic role for the two window-like overlays. This is assigned after the
             // palette and accent overlay are fully merged so gradient BackgroundBrush values are
