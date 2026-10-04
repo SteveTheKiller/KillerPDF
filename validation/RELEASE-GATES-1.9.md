@@ -4922,6 +4922,18 @@ changes timing and these runs do not replace the earlier parity benchmark.
 Payload identities, raw stage readings, and PNG hashes are under
 `C:/Users/steve/kp-bench-render/scan-memory-stage-20261004/`.
 
+A sampled native-scan trace located sustained work in JBIG2 generic-region
+decoding. A scratch arithmetic-context rewrite kept the scan PNG identical
+and passed 15 focused JBIG2 tests. Its first eight-run comparison appeared
+faster, but the control used an older engine DLL. Rebuilding the unchanged
+engine with the same ReadyToRun settings removed that build difference.
+In a further 16 alternating fresh-process runs, matched rebuilt control and
+trial render means were 344.625 and 343.125 ms, and sampled peak working sets
+were 268.162 and 268.009 MiB. All 16 PNG hashes matched. The 0.44% render
+change did not justify the decoder rewrite, which remains scratch-only.
+Scripts, source snapshots, payload hashes, and results are under
+`C:/Users/steve/kp-bench-render/scan-memory-stage-20261004/`.
+
 ### Difficult-page memory attribution (2026-10-04)
 
 Fresh single-file 512-pixel runs over all 40 difficult PDFs put Ghent ALL x4
