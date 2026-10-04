@@ -4489,3 +4489,25 @@ An ink-run bulk fill matched all 64 timed x3/x4 PNGs; warmed x4 averaged
 474.6 ms. Neither trial justified a renderer edit. The raw checks are under
 `C:/Users/steve/kp-bench-render/coverage-alpha-trial-20261003-635e708/`
 and `C:/Users/steve/kp-bench-render/ink-run-census-20261003-635e708/`.
+
+A current release-layout Altona x3 trace at 2048 pixels measured 945 and
+583 ms for first and second 1.9 renders of identical PDF bytes; a matched
+1.8.80 control took 231 and 208 ms. Of the first render, 99.1 ms was
+foreground JIT, including only 14.2 ms in engine methods. Painting held the
+largest sampled share at 494 and 292 ms across the two 1.9 renders. GC polling
+stacks are not measured GC pauses, and fresh 1.9 run times varied. The trace
+does not support a JIT hint or a single safe renderer edit. The ordinary
+publish trace was excluded because it did not match the release layout.
+Evidence is under
+`C:/Users/steve/kp-bench-render/x3-first-phase-jit-20261003-8a3d6a7/`.
+
+An x4 cached-area probe found identical adjacent raw color keys in 79.68% of
+within-row comparisons. Local key reuse preserved exact x3/x4 PNGs at 512
+and 2048 pixels. Balanced warmed x4 renders improved from 707.21 to 678.57
+ms, but x3 slowed from 406.07 to 416.57 ms despite never entering that
+branch. Moving the branch into a no-inline helper kept exact output and
+improved warmed x4 from 671.00 to 632.57 ms, but x3 slowed from 400.36 to
+420.57 ms. Neither trial showed a cold x4 gain or passed the x3 regression
+gate, so both remained scratch-only. Evidence is under
+`C:/Users/steve/kp-bench-render/x4-area-adjacency-20261003-8a3d6a7/`
+and `C:/Users/steve/kp-bench-render/x4-area-adjacency-noinline-20261003-8a3d6a7/`.
