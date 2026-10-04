@@ -93,6 +93,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Prevented the app window from going black when minimizing and restoring (#415).
 - Preserved native black-and-white scan pixels when page bounds clip a source column.
 - Preserved process overprint colors on RGB pages with named spot images.
 - Kept PDF comparison colors consistent with the viewer for large Adobe YCCK JPEGs.
