@@ -40,7 +40,7 @@
          Light's selection is DARK on light. -->
     <SolidColorBrush x:Key="RowSelectedBrush"    Color="#1b5e20" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlinePressedBrush" Color="#c8f5d8" po:Freeze="True"/>
-    <SolidColorBrush x:Key="SelectionBg" Color="#1b5e20" po:Freeze="True"/>
+    <LinearGradientBrush x:Key="SelectionBg" po:Freeze="True" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#2D6B32" Offset="0"/><GradientStop Color="#19581E" Offset="1"/></LinearGradientBrush>
     <SolidColorBrush x:Key="SelectionFg" Color="#ffffff" po:Freeze="True"/>
     <SolidColorBrush x:Key="SettingsOpenRowBg" Color="#b2b2b2" po:Freeze="True"/>
     <SolidColorBrush x:Key="TextBrush"      Color="#1a1a1a" po:Freeze="True"/>
@@ -98,4 +98,6 @@
     <CornerRadius x:Key="FlyoutCornerRadius">4</CornerRadius>
     <CornerRadius x:Key="AccentSwatchCornerRadius">9</CornerRadius>
 
+    <SolidColorBrush x:Key="OutlineRestBrush" Color="#777777" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionButtonBorderBrush" Color="#777777" po:Freeze="True"/>
 </ResourceDictionary>

@@ -479,7 +479,7 @@ namespace KillerPDF
                 return button;
             }
             var themed = accent
-                ? Make(content, Brush("SelectionBg"), Brush("PrimaryBrush"), Brush("SelectionFg"), Brush("OnPrimaryBrush"), Brush("PrimaryBrush"))
+                ? Make(content, Brush("SelectionBg"), Brush("PrimaryBrush"), Brush("SelectionFg"), Brush("OnPrimaryBrush"), Brush("SelectionButtonBorderBrush"))
                 : Make(content, Brush("PaneBrush"), Brush("SurfaceHoverBrush"), Brush("TextBrush"), Brush("TextBrush"), Brush("CardBorderBrush"));
 
             // Make(object,bool) is used by long-lived annotation bars and modeless tool windows.
@@ -490,13 +490,13 @@ namespace KillerPDF
             {
                 themed.SetResourceReference(Control.BackgroundProperty, accent ? "SelectionBg" : "PaneBrush");
                 themed.SetResourceReference(Control.ForegroundProperty, accent ? "SelectionFg" : "TextBrush");
-                themed.SetResourceReference(Control.BorderBrushProperty, accent ? "PrimaryBrush" : "CardBorderBrush");
+                themed.SetResourceReference(Control.BorderBrushProperty, accent ? "SelectionButtonBorderBrush" : "CardBorderBrush");
             }
             void ApplyHover()
             {
                 themed.SetResourceReference(Control.BackgroundProperty, accent ? "PrimaryBrush" : "SurfaceHoverBrush");
                 themed.SetResourceReference(Control.ForegroundProperty, accent ? "OnPrimaryBrush" : "TextBrush");
-                themed.SetResourceReference(Control.BorderBrushProperty, accent ? "PrimaryBrush" : "CardBorderBrush");
+                themed.SetResourceReference(Control.BorderBrushProperty, accent ? "SelectionButtonBorderBrush" : "CardBorderBrush");
             }
 
             // These handlers are registered after the explicit-color factory's handlers, so the

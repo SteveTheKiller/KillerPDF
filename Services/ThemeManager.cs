@@ -162,6 +162,7 @@ namespace KillerPDF.Services
             // 98SE owns the entire classic button treatment. Other themes derive these roles from
             // their accent; record ownership before CompleteAppPalette fills the fallback keys.
             bool themeOwnsOutlineRest = newDict.Contains("OutlineRestBrush");
+            bool themeOwnsSelectionButtonBorder = newDict.Contains("SelectionButtonBorderBrush");
             bool themeOwnsOutlineText = newDict.Contains("OutlineTextBrush");
             bool themeOwnsOutlineHover = newDict.Contains("OutlineHoverBrush");
             bool themeOwnsOutlineHoverText = newDict.Contains("OutlineHoverTextBrush");
@@ -223,6 +224,8 @@ namespace KillerPDF.Services
                     : accentDict.Contains("PrimaryBrush") ? accentDict["PrimaryBrush"] : target["OutlineRestBrush"];
                 if (!themeOwnsOutlineRest && !accentDict.Contains("OutlineRestBrush"))
                     target["OutlineRestBrush"] = outlineAccent;
+                if (!themeOwnsSelectionButtonBorder && !accentDict.Contains("SelectionButtonBorderBrush"))
+                    target["SelectionButtonBorderBrush"] = target["PrimaryBrush"];
                 if (!themeOwnsOutlineText && !accentDict.Contains("OutlineTextBrush"))
                     target["OutlineTextBrush"] = outlineAccent;
                 if (!themeOwnsOutlineHover && !accentDict.Contains("OutlineHoverBrush"))
@@ -485,6 +488,7 @@ namespace KillerPDF.Services
             // (LoadDict) is what keeps them on the chosen accent, not this line - the green
             // Install outline on teal-accent Black was fixed THERE.
             if (!d.Contains("OutlineRestBrush")) d["OutlineRestBrush"] = Pick("OutlineBtnBrush", "PrimaryBrush");
+            if (!d.Contains("SelectionButtonBorderBrush")) d["SelectionButtonBorderBrush"] = Pick("PrimaryBrush", "OutlineBtnBrush");
             if (!d.Contains("ButtonEdgeBrush")) d["ButtonEdgeBrush"] = Pick("MenuBorderBrush", "PaneBrush");
             Alias("SurfaceHoverBrush", "RowHoverBrush");
             // The confirm button remains accent-led in modern themes. 98SE supplies classic gray
