@@ -1484,6 +1484,15 @@ public sealed partial class PdfPageRenderer
         bool direct, byte[]? groupAlpha, byte[]? coverage, byte[]? opaqueBlend,
         CancellationToken cancellationToken)
     {
+        bool processOverprint = pixels.Ink is not null && pixels.HasSpotPlates
+            && paint.SpotName is null && alpha == 1
+            && ((paint.OverprintComponents & PreserveNamedSpots) != 0
+                || (paint.OverprintComponents & (16 | 64)) == 16)
+            && graphicsSoftMask is null && knockout is null
+            && pixels.GroupAlpha is null && pixels.GroupShape is null
+            && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        int preserveComponents = (paint.OverprintComponents & 16) != 0
+            ? paint.OverprintComponents & 15 : 0;
         uint directPacked = directColor.Blue | (uint)directColor.Green << 8
             | (uint)directColor.Red << 16 | 0xFF000000u;
         for (int y = firstRow; y < lastRow; y++)
@@ -1507,6 +1516,13 @@ public sealed partial class PdfPageRenderer
                     pixels.SetAlpha(offset, 255);
                     pixels.GroupAlpha?[offset / 4] = 255;
                     continue;
+                }
+                if (processOverprint && cover < 255)
+                {
+                    int offset = pixels.Offset(x, y);
+                    if (pixels.Alpha(offset) == 255
+                        && pixels.TryReplaceProcessInkKeepingSpots(offset, ink, cover, preserveComponents))
+                        continue;
                 }
                 if (direct)
                 {

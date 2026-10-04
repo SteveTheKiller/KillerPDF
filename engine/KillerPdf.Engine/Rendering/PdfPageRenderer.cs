@@ -1083,7 +1083,7 @@ public sealed partial class PdfPageRenderer
                         if (components.Any(value => !double.IsFinite(value)))
                             throw new FormatException("A shading background component is invalid.");
                         Color background = OverprintColor(colorSpace.Convert(components), colorSpace,
-                            shadingState.FillOverprint, shadingState.OverprintMode);
+                            shadingState.FillOverprint, 0);
                         // Background and shading are distinct objects in the implicit knockout group.
                         // Both see its initial backdrop, so their overlapping opacity does not accumulate.
                         shadingState.Knockout!.BeginObject();
@@ -4080,7 +4080,7 @@ public sealed partial class PdfPageRenderer
                             else
                             {
                                 color = OverprintColor(colors.At(input), colorSpace,
-                                    state.FillOverprint, state.OverprintMode);
+                                    state.FillOverprint, 0);
                                 if (!columnFilled[column])
                                 {
                                     columnColors[column] = color;
@@ -4090,7 +4090,7 @@ public sealed partial class PdfPageRenderer
                             }
                         }
                         else color = OverprintColor(colors.At(input), colorSpace,
-                            state.FillOverprint, state.OverprintMode);
+                            state.FillOverprint, 0);
                         SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
                             state.BlendMode, state.GraphicsSoftMask, state.Knockout,
                             shape: clipAlpha, alphaIsShape: state.AlphaIsShape);
@@ -4154,7 +4154,7 @@ public sealed partial class PdfPageRenderer
                     if (point.X < domain[0] || point.X > domain[1]
                         || point.Y < domain[2] || point.Y > domain[3]) continue;
                     Color color = OverprintColor(function([point.X, point.Y]), colorSpace,
-                        state.FillOverprint, state.OverprintMode);
+                        state.FillOverprint, 0);
                     SetPixel(target, targetWidth, x, y, color,
                         state.FillAlpha * clipAlpha, state.BlendMode,
                         state.GraphicsSoftMask, state.Knockout, shape: clipAlpha,
@@ -4305,7 +4305,7 @@ public sealed partial class PdfPageRenderer
                     values[component] = first.Values[component] * a
                         + second.Values[component] * b + third.Values[component] * c;
                 Color color = OverprintColor(mesh.Convert(values), mesh.ColorSpace,
-                    state.FillOverprint, state.OverprintMode);
+                    state.FillOverprint, 0);
                 SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
                     state.BlendMode, state.GraphicsSoftMask, state.Knockout,
                     shape: clipAlpha, alphaIsShape: state.AlphaIsShape);
@@ -4502,7 +4502,7 @@ public sealed partial class PdfPageRenderer
                         components[component] = firstValues[component] * a
                             + secondValues[component] * b + thirdValues[component] * c;
                     Color color = OverprintColor(Convert(components), colorSpace,
-                        state.FillOverprint, state.OverprintMode);
+                        state.FillOverprint, 0);
                     SetPixel(target, targetWidth, x, y, color,
                         state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
                         state.Knockout, alphaIsShape: state.AlphaIsShape);
@@ -4611,7 +4611,7 @@ public sealed partial class PdfPageRenderer
                 unit = Math.Clamp(unit, 0, 1);
                 double input = domain[0] + unit * (domain[1] - domain[0]);
                 Color color = OverprintColor(colors.At(input), colorSpace,
-                    state.FillOverprint, state.OverprintMode);
+                    state.FillOverprint, 0);
                 SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
                     state.BlendMode, state.GraphicsSoftMask, state.Knockout,
                     shape: clipAlpha, alphaIsShape: state.AlphaIsShape);
@@ -6589,6 +6589,10 @@ public sealed partial class PdfPageRenderer
         }
         if (pixels.Ink is not null)
         {
+            if (sourceAlpha == 0 && color.SpotName is null && pixels.HasSpotPlates
+                && graphicsSoftMask is null && knockout is null
+                && pixels.GroupAlpha is null && pixels.GroupShape is null)
+                return;
             if (color.SpotName is not null && sourceAlpha == 1
                 && pixels.Alpha(offset) == 255 && knockout is null
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
@@ -6602,11 +6606,23 @@ public sealed partial class PdfPageRenderer
                         resolvedInk ?? pixels.GetInk(color));
                 return;
             }
-            if ((color.OverprintComponents & PreserveNamedSpots) != 0 && pixels.HasSpotPlates
+            if (((color.OverprintComponents & PreserveNamedSpots) != 0
+                    || (color.OverprintComponents & (16 | 64)) == 16) && pixels.HasSpotPlates
                 && sourceAlpha == 1
                 && pixels.Alpha(offset) == 255 && knockout is null
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible
-                && pixels.TryReplaceProcessInkKeepingSpots(offset, resolvedInk ?? pixels.GetInk(color)))
+                && pixels.TryReplaceProcessInkKeepingSpots(offset, resolvedInk ?? pixels.GetInk(color),
+                    preserveComponents: (color.OverprintComponents & 16) != 0
+                        ? color.OverprintComponents & 15 : 0))
+                return;
+            if (color.SpotName is null && sourceAlpha > 0 && sourceAlpha < 1
+                && ((color.OverprintComponents & PreserveNamedSpots) != 0
+                    || (color.OverprintComponents & (16 | 64)) == 16) && pixels.HasSpotPlates
+                && pixels.Alpha(offset) == 255 && knockout is null && graphicsSoftMask is null
+                && pixels.GroupAlpha is null && pixels.GroupShape is null
+                && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible
+                && pixels.TryBlendProcessInkKeepingSpots(offset, resolvedInk ?? pixels.GetInk(color), sourceAlpha,
+                    (color.OverprintComponents & 16) != 0 ? color.OverprintComponents & 15 : 0))
                 return;
             if (resolvedInk is uint ink)
                 SetInkPixel(pixels, offset, ink, color.OverprintComponents, sourceAlpha, blendMode);
@@ -6623,7 +6639,7 @@ public sealed partial class PdfPageRenderer
                 && pixels.TryPaintRgbSpot(offset, color, (color.OverprintComponents & 16) != 0,
                     resolvedInk ?? pixels.GetInk(color))) return;
             if (supported && color.SpotName is null
-                && (color.OverprintComponents & 16) != 0
+                && (color.OverprintComponents & (16 | PreserveNamedSpots)) != 0
                 && pixels.TryPaintRgbProcessOverprint(offset, color,
                     resolvedInk ?? pixels.GetInk(color))) return;
             if (supported && color.SpotName is null)

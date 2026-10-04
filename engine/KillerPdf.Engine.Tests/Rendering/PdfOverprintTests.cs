@@ -22,14 +22,14 @@ public sealed class PdfOverprintTests
     [InlineData("image", true, true, 1, 255)]
     [InlineData("restored", true, true, 1, 255)]
     [InlineData("tiny", true, true, 1, 255)]
-    [InlineData("axial", true, false, 1, 0)]
-    [InlineData("radial", true, false, 1, 0)]
+    [InlineData("axial", true, false, 1, 255)]
+    [InlineData("radial", true, false, 1, 255)]
     [InlineData("axial", false, true, 1, 255)]
     [InlineData("radial", true, true, 0, 255)]
-    [InlineData("function", true, false, 1, 0)]
-    [InlineData("lattice", true, false, 1, 0)]
-    [InlineData("coons", true, false, 1, 0)]
-    [InlineData("tensor", true, false, 1, 0)]
+    [InlineData("function", true, false, 1, 255)]
+    [InlineData("lattice", true, false, 1, 255)]
+    [InlineData("coons", true, false, 1, 255)]
+    [InlineData("tensor", true, false, 1, 255)]
     [InlineData("function", false, true, 1, 255)]
     [InlineData("lattice", false, true, 1, 255)]
     [InlineData("coons", true, true, 0, 255)]
@@ -220,9 +220,9 @@ public sealed class PdfOverprintTests
     }
 
     [Theory]
-    [InlineData(1, 255, 128)]
+    [InlineData(1, 0, 0)]
     [InlineData(0, 0, 0)]
-    public void DefaultRgbSurface_CmykShadingOverprint_PreservesOnlyOpm1ZeroChannels(
+    public void DefaultRgbSurface_CmykShadingOverprint_ReplacesZeroProcessChannelsInBothModes(
         int mode, byte yellow, byte black)
     {
         PdfRenderedPage rendered = RenderRgbProcessOverprintShading(mode);

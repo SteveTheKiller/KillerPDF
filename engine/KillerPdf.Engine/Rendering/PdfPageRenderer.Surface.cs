@@ -350,14 +350,15 @@ public sealed partial class PdfPageRenderer
         internal bool TryPaintRgbProcessOverprint(int offset, in Color color, uint sourceInk)
         {
             int components = color.OverprintComponents;
-            if (!_rgbSpotShadow || (components & 16) == 0 || (components & ~31) != 0)
+            if (!_rgbSpotShadow || (components & (16 | PreserveNamedSpots)) == 0
+                || (components & ~(31 | PreserveNamedSpots)) != 0)
                 return false;
             lock (_spotSync)
             {
                 if (_rgbSpotValid![offset / 4] == 0) return false;
                 foreach (byte[] plate in _spotPlates!.Values)
                     if (ReadInk(plate, offset) != 0) return false;
-                int channels = components & 15;
+                int channels = (components & 16) != 0 ? components & 15 : 0;
                 uint preserve = (channels & 1) != 0 ? 0x000000ffu : 0;
                 if ((channels & 2) != 0) preserve |= 0x0000ff00u;
                 if ((channels & 4) != 0) preserve |= 0x00ff0000u;
@@ -530,17 +531,43 @@ public sealed partial class PdfPageRenderer
             }
         }
 
-        internal bool TryReplaceProcessInkKeepingSpots(int offset, uint processInk, int coverage = 255)
+        internal bool TryReplaceProcessInkKeepingSpots(int offset, uint processInk, int coverage = 255,
+            int preserveComponents = 0)
         {
             if (_spotBaseInk is null) return false;
             lock (_spotSync)
             {
                 if (_spotBaseInk is null) return false;
+                processInk = MergeProcessComponents(processInk, ReadInk(_spotBaseInk, offset), preserveComponents);
                 WriteInk(_spotBaseInk, offset, coverage == 255 ? processInk
                     : BlendCoverageInk(processInk, ReadInk(_spotBaseInk, offset), coverage));
                 ComposeSpotPixel(offset);
                 return true;
             }
+        }
+
+        internal bool TryBlendProcessInkKeepingSpots(int offset, uint processInk, double opacity,
+            int preserveComponents)
+        {
+            if (_spotBaseInk is null) return false;
+            lock (_spotSync)
+            {
+                if (_spotBaseInk is null) return false;
+                uint baseInk = ReadInk(_spotBaseInk, offset);
+                processInk = MergeProcessComponents(processInk, baseInk, preserveComponents);
+                WriteInk(_spotBaseInk, offset, BlendOpaqueInk(processInk, baseInk, opacity, 1));
+                ComposeSpotPixel(offset);
+                return true;
+            }
+        }
+
+        private static uint MergeProcessComponents(uint processInk, uint baseInk, int preserveComponents)
+        {
+            uint preserve = (preserveComponents & 1) != 0 ? 0x000000ffu : 0;
+            if ((preserveComponents & 2) != 0) preserve |= 0x0000ff00u;
+            if ((preserveComponents & 4) != 0) preserve |= 0x00ff0000u;
+            if ((preserveComponents & 8) != 0) preserve |= 0xff000000u;
+            return processInk & ~preserve | baseInk & preserve;
         }
 
         private void ComposeSpotPixel(int offset)
