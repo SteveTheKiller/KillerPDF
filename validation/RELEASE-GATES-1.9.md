@@ -2,7 +2,7 @@
 
 Pristine rendering takes precedence over speed and memory. Release remains
 blocked by any unresolved visual defect or unverified rendering difference.
-Both speed and memory must be within 5% of the current 1.8 pipeline or
+Both speed and memory must be within 2% of the current 1.8 pipeline or
 better; this tolerance never permits reduced rendering quality.
 An improvement over an earlier 1.9 build does not establish parity with 1.8.
 Missing measurements are unverified, not passes. Test counts and successful
@@ -17,24 +17,36 @@ overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Conformance batch lower; smaller difficult batch above 1.8; visible interaction unverified | Opaque-fill benchmarks average 523.1 versus 625.7 MiB at 512 pixels and 498.5 versus 653.6 MiB at 2048 for 1.9 versus refreshed 1.8.80. The 74-page difficult set averages 210.8 versus 148.9 MiB (+41.59%) and 281.9 versus 269.0 MiB (+4.77%). Within-1.9 means are essentially unchanged at both sizes. Difficult workloads and representative visible interaction must meet the 5% tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Across 600 shared successful pages, mean rendering is 12,572.5 versus 11,687.5 ms at 512 pixels (+7.57%) and 20,285 versus 18,053 ms at 2048 (+12.36%) for 1.9 versus refreshed 1.8.80. The 74-page difficult set averages 5,999 versus 2,823.5 ms (+112.47%) and 8,885.5 versus 4,979 ms (+78.46%). Within-1.9 render means change +1.53% and +0.24%. The 512 trial shared sums range from 11,943 to 13,202 ms; all runs remain included. These measurements do not establish overall parity. The conformance payload renders 614 pages without failure; 1.8 renders 600 and fails on eight. Batch wall times include those different completion counts. Headless page sums do not establish visible app latency or whole-pass parity. |
-| Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium, and repeated runs have identical status, dimensions, details, and PNGs per payload. The opaque-fill correction changes only standalone GWG041 at 512 and 2048; the other 613 conformance pages and all 74 difficult pages remain identical to the process-overprint checkpoint. Its 526 and 1,742 fringe pixels now match the surrounding panel; page labels, borders, and the other panel remain exact. Both normal Release app renders match the frozen payload. The combined SPOT_X4 page still shows the GWG4.1 panel b fringe at both sizes and needs separate source tracing. GWG164's faint Luminosity X matches its source's permitted color-management variation; this is a bounded disposition. Output-intent black mapping on GWG090 differs from PDFium and Poppler but matches independent conversion through its embedded profile. Absolute color conformance, fonts, compositing, fine detail, native layer dialog inspection, and representative visible interaction remain open. |
+| Memory at parity or close to the PDFium pipeline | Conformance batch lower; smaller difficult batch above 1.8; visible interaction unverified | Current normal payloads average 539.3 versus 628.8 MiB at 512 pixels and 513.2 versus 656.2 MiB at 2048 for 1.9 versus 1.8.80. The 74-page difficult set averages 224.6 versus 148.5 MiB (+51.26%) and 290.2 versus 268.9 MiB (+7.90%). Difficult workloads and representative visible interaction must meet the 2% tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Across 600 shared successful pages, current 1.9 mean rendering is 11,826.5 versus 10,628 ms at 512 pixels (+11.28%) and 18,432 versus 17,017.5 ms at 2048 (+8.31%). The 74-page difficult set averages 5,665.5 versus 2,768 ms (+104.68%) and 8,715 versus 4,688.5 ms (+85.88%). The 1.9 conformance payload renders 614 pages without failure; 1.8 renders 600 and fails on eight. Batch wall times include those different completion counts. Headless page sums do not establish visible app latency or whole-pass parity. |
+| Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium, and repeated runs have identical status, dimensions, details, and PNGs per payload. The initial opaque-fill correction repaired standalone GWG041. The October 4 nested-Form correction removed the remaining pale X from the combined SPOT_X4 page. Only that page changed in the 614-page 1.9 conformance comparison at both tested sizes; the 2048 result matches a controlled source edit with the red fill removed. GWG164's faint Luminosity X matches its source's permitted color-management variation; this is a bounded disposition. Output-intent black mapping on GWG090 differs from PDFium and Poppler but matches independent conversion through its embedded profile. Absolute color conformance, fonts, compositing, fine detail, native layer dialog inspection, and representative visible interaction remain open. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. Four alternating current-payload scan zoom runs averaged 314.339 ms for 1.9 versus 176.023 ms for 1.8.80 on the first 512-pixel render. The later 2048-pixel step averaged 56.372 versus 224.385 ms, with decoded image state retained by 1.9. The earlier scan figures used older payloads. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 3 local-branch forward-port check passes for 203 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
-| Builds and regression suites | Passing development checkpoint | October 3: 4,385 engine tests and 490 app tests pass. Thirty new opaque-fill cases cover exact geometry, separate graphics-state scopes, overprint channels, nonzero spots, transparency, clips, changed state, intervening paint, and end-of-stream flushing. The prior engine fails 13 of these cases; all 30 pass with the correction. A separate red test established the DefaultCMYK exclusion before its guard. The final Release application build and engine publish have zero warnings or errors. Earlier scratch portable and installer packages passed their file inventories and payload startup checks; the installer also passed isolated installation. Earlier application and transitive package vulnerability checks reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also passed. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | October 4: 4,386 engine tests and 490 app tests pass. Thirty-one focused opaque-fill tests include the nested-Form regression. The Release application build and engine publish pass. Earlier scratch portable and installer packages passed their file inventories and payload startup checks; the installer also passed isolated installation. Earlier application and transitive package vulnerability checks reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also passed. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 The opaque-fill correction combines consecutive identical opaque DeviceCMYK
 path paints before applying their shared antialiased coverage. It retains one
 owned mask and bounded copied geometry, resolves ink in the original input
 profile scope, and flushes before intervening paint. Transparency, groups,
 soft masks, knockout, nonrectangular clips, DefaultCMYK replacements, and mixed
-spot-retention policies keep their existing paths. The combined SPOT_X4 fringe
-is still open; this increment does not establish general edge conformance.
+spot-retention policies keep their existing paths. This initial increment left
+the combined SPOT_X4 fringe open.
 
-The table uses all four balanced fresh-process runs per set, with no excluded
-warmups, one file worker, and 20 ms peak sampling. Final comparison evidence,
-repeatability checks, normal-app agreement, and reviews are under
+The October 4 nested-Form correction retains an ancestor clip until the
+opaque CMYK fill flushes. It removes the remaining pale X on the combined
+SPOT_X4 page. At 512 and 2048 pixels, only that page changed among 614
+successful 1.9 conformance renders, by 150 and 521 pixels respectively. The
+new 2048 PNG matches the controlled version of the PDF with the red fill
+removed. A nested-Form regression test passes, as do the full engine and app
+suites. Current normal-payload parity measurements, exact input hashes, and
+visual evidence are under
+`C:/Users/steve/kp-bench-render/gwg041-nested-20261004/`. General edge
+conformance and the other fidelity checks remain open.
+
+The October 3 opaque-fill checkpoint used four balanced fresh-process runs
+per set, with no excluded warmups, one file worker, and 20 ms peak sampling.
+Its comparison evidence, repeatability checks, normal-app agreement, and
+reviews are under
 `C:/Users/steve/kp-bench-render/gwg041-opaque-fills-final-20261003/`.
 The initial reproduction, measured pixel trace, and first draft are retained
 under `C:/Users/steve/kp-bench-render/gwg041-white-overprint-20261003/`.
