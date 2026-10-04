@@ -296,6 +296,7 @@ public sealed partial class PdfPageRenderer
         {
             if (depth > 32) throw new FormatException("Form XObject nesting limit exceeded.");
             using var clipScratch = new ClipScratchScope();
+            using var opaqueFills = new OpaqueFillSequence(pixels, frame, cancellationToken);
             GraphicsState state = RebindNamedColors(initial, pixels);
             ImageColorSpace? deviceGray = null, deviceRgb = null, deviceCmyk = null;
             ImageColorSpace DeviceSpace(int components)
@@ -349,6 +350,9 @@ public sealed partial class PdfPageRenderer
                     continue;
                 }
                 if (!contentVisible) continue;
+                if (IsPaintingOperation(instruction)
+                    && (instruction.Operator is not ("f" or "F" or "f*") || state.Knockout is not null))
+                    opaqueFills.Flush();
                 if (beginKnockoutObjects && IsPaintingOperation(instruction))
                     state.Knockout?.BeginObject();
                 switch (instruction.Operator)
@@ -586,6 +590,7 @@ public sealed partial class PdfPageRenderer
                         out bool unsupportedBlend, out PdfObject? softMaskValue,
                         out PdfObject? graphicsFontValue, out PdfDictionary? strokeSettings))
                     {
+                        if (softMaskValue is not null) opaqueFills.Flush();
                         state = ApplyGraphicsStrokeSettings(state, strokeSettings!, diagnostics);
                         state = ApplyOverprintSettings(state, strokeSettings!);
                         if (strokeSettings!.TryGetValue(Name("RI"), out PdfObject? intentValue) && Resolve(intentValue) is PdfName graphicsIntent)
@@ -661,7 +666,7 @@ public sealed partial class PdfPageRenderer
                     subpath.Add(state.Transform.Apply(x, y));
                     break;
                 case "f" or "F" or "f*" when path.Count > 0:
-                    PaintFill(path, instruction.Operator == "f*");
+                    PaintFill(path, instruction.Operator == "f*", combineOpaque: true);
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd, frame);
                     ClearPath();
                     break;
@@ -905,8 +910,10 @@ public sealed partial class PdfPageRenderer
                 return EvaluateOptionalContent(property, hiddenOptionalContentGroups, 0);
             }
 
-            void PaintFill(IReadOnlyList<List<Point>> fillPath, bool evenOdd)
+            void PaintFill(IReadOnlyList<List<Point>> fillPath, bool evenOdd, bool combineOpaque = false)
             {
+                if (combineOpaque && opaqueFills.TryPaint(fillPath, evenOdd, state)) return;
+                opaqueFills.Flush();
                 if (state.FillPattern is null)
                 {
                     FillPaths(pixels, options.Width, options.Height,
