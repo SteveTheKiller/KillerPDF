@@ -175,6 +175,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added installer file details and the installed size in Windows' program list (#361).
 - Install and uninstall windows now show the film grain and the app icon in the title bar.
 - The installer and uninstaller have their own taskbar buttons, labeled "KillerPDF Installer" and "Uninstall KillerPDF", with the app icon.
+- The portable package reports a start failure in a KillerPDF-styled dialog instead of a plain Windows message box.
 
 ## [1.8.5] - 2026-09-14
 
