@@ -26,6 +26,13 @@ public sealed partial class PdfPageRenderer
 
         internal void Track(CoverageMask mask) => _masks.Add(mask);
 
+        internal bool IsTrackedByAncestor(CoverageMask mask)
+        {
+            for (ClipScratchScope? scope = _parent; scope is not null; scope = scope._parent)
+                if (scope._masks.Contains(mask)) return true;
+            return false;
+        }
+
         internal void ReleaseTemporary(CoverageMask mask)
         {
             int start = _saved.Count == 0 ? 0 : _saved.Peek();

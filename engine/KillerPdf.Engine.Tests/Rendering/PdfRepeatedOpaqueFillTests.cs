@@ -82,6 +82,20 @@ public sealed class PdfRepeatedOpaqueFillTests
     }
 
     [Fact]
+    public void NestedFractionalFormClip_IdenticalOpaqueFillsMatchFinalOnly()
+    {
+        string prefix = Background + "q /SpotOn gs /Spot cs 0 scn 0 0 32 32 re f Q ";
+        string final = "q /Paint gs " + Final + "Q ";
+        PdfRenderedPage expected = RenderContent(prefix + final, 1,
+            nestedFractionalForms: true);
+        PdfRenderedPage actual = RenderContent(prefix
+            + "q /Paint gs " + Red + "Q " + final, 1,
+            nestedFractionalForms: true);
+
+        AssertSame(expected, actual);
+    }
+
+    [Fact]
     public void HarmlessStrokeBarrier_DoesNotChangeReferencePixels()
     {
         PdfRenderedPage expected = RenderContent(Background + Final, 1);
@@ -218,10 +232,11 @@ public sealed class PdfRepeatedOpaqueFillTests
     }
 
     private static PdfRenderedPage RenderContent(string content, int overprintMode,
-        bool defaultCmykReplacement = false)
+        bool defaultCmykReplacement = false, bool nestedFractionalForms = false)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
-            .AddPage(32, 32, Encoding.ASCII.GetBytes(content)).Build());
+            .AddPage(32, 32, Encoding.ASCII.GetBytes(
+                nestedFractionalForms ? "/Outer Do" : content)).Build());
         PdfPageTreeEntry page = PdfPageTree.Read(source).Pages[0];
         PdfDictionary original = Assert.IsType<PdfDictionary>(source.Resolve(page.Reference));
         var update = new PdfIncrementalUpdateBuilder(source);
@@ -261,6 +276,25 @@ public sealed class PdfRepeatedOpaqueFillTests
             ])),
             Entry("XObject", new PdfDictionary([Entry("Im", image), Entry("Fm", form)]))
         ]);
+        if (nestedFractionalForms)
+        {
+            PdfArray bounds = new PdfArray([
+                new PdfReal(0.1), new PdfReal(0.1), new PdfReal(31.9), new PdfReal(31.9)
+            ]);
+            PdfIndirectReference inner = update.AddObject(new PdfStream(new PdfDictionary([
+                Entry("Subtype", Name("Form")), Entry("BBox", bounds),
+                Entry("Resources", resources)
+            ]), Encoding.ASCII.GetBytes(content)));
+            PdfIndirectReference outer = update.AddObject(new PdfStream(new PdfDictionary([
+                Entry("Subtype", Name("Form")), Entry("BBox", bounds),
+                Entry("Resources", new PdfDictionary([
+                    Entry("XObject", new PdfDictionary([Entry("Inner", inner)]))
+                ]))
+            ]), Encoding.ASCII.GetBytes("/Inner Do")));
+            resources = new PdfDictionary([
+                Entry("XObject", new PdfDictionary([Entry("Outer", outer)]))
+            ]);
+        }
         PdfDictionary group = new([
             Entry("S", Name("Transparency")), Entry("CS", Name("DeviceCMYK"))
         ]);
@@ -268,7 +302,9 @@ public sealed class PdfRepeatedOpaqueFillTests
             .Where(entry => !entry.Key.Equals(Name("Resources")) && !entry.Key.Equals(Name("Group")))
             .Append(Entry("Resources", resources)).Append(Entry("Group", group))));
         return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0,
-            new PdfRenderOptions(32, 32, includeAnnotations: false, includeFormFields: false));
+            new PdfRenderOptions(nestedFractionalForms ? 512 : 32,
+                nestedFractionalForms ? 512 : 32,
+                includeAnnotations: false, includeFormFields: false));
     }
 
     private static void AssertSame(PdfRenderedPage expected, PdfRenderedPage actual)

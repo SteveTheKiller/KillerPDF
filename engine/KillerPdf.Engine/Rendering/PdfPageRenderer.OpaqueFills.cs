@@ -18,6 +18,7 @@ public sealed partial class PdfPageRenderer
         private PdfColorTransform? _inputProfile;
         private (int Left, int Top, int Right, int Bottom) _bounds;
         private IReadOnlyList<ClipRegion> _clips = [];
+        private bool _fractionalClips;
 
         internal bool TryPaint(IReadOnlyList<List<Point>> path, bool evenOdd, GraphicsState state)
         {
@@ -38,9 +39,16 @@ public sealed partial class PdfPageRenderer
                 points += subpath.Count;
             }
             var bounds = (Left: pixels.Left, Top: pixels.Top, Right: pixels.Right, Bottom: pixels.Bottom);
+            bool fractionalClips = false;
             foreach (ClipRegion clip in state.Clips)
             {
-                if (clip.Mask.Coverage is not null) return false;
+                if (clip.Mask.Coverage is not null)
+                {
+                    // A parent render cannot release its clip until this stream finishes.
+                    if (ClipScratchScope.Current?.IsTrackedByAncestor(clip.Mask) != true)
+                        return false;
+                    fractionalClips = true;
+                }
                 bounds.Left = Math.Max(bounds.Left, clip.Mask.Left);
                 bounds.Top = Math.Max(bounds.Top, clip.Mask.Top);
                 bounds.Right = Math.Min(bounds.Right, clip.Mask.Right);
@@ -51,6 +59,8 @@ public sealed partial class PdfPageRenderer
             // later, including after Q, must not reinterpret this paint's native ink.
             color = color with { Ink = pixels.GetInk(color), InkProfile = pixels.InkProfile };
             if (_mask is not null && _evenOdd == evenOdd && _bounds == bounds
+                && _fractionalClips == fractionalClips
+                && (!fractionalClips || SameClips(state.Clips))
                 && _blendMode == state.BlendMode && _intent == state.RenderingIntent
                 && ReferenceEquals(_inputProfile, pixels.InputProfile)
                 && (_color.OverprintComponents & ~15) == (color.OverprintComponents & ~15)
@@ -89,8 +99,9 @@ public sealed partial class PdfPageRenderer
                 _intent = state.RenderingIntent;
                 _inputProfile = pixels.InputProfile;
                 _bounds = bounds;
-                // Never borrow clip storage: Q can return its buffer before this fill flushes.
-                _clips = [new ClipRegion(CoverageMask.Rectangle(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom))];
+                _fractionalClips = fractionalClips;
+                _clips = fractionalClips ? state.Clips :
+                    [new ClipRegion(CoverageMask.Rectangle(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom))];
                 _mask = mask;
             }
             finally
@@ -102,6 +113,14 @@ public sealed partial class PdfPageRenderer
 
         private static int PreservedChannels(Color color) =>
             (color.OverprintComponents & 16) != 0 ? color.OverprintComponents & 15 : 0;
+
+        private bool SameClips(IReadOnlyList<ClipRegion> clips)
+        {
+            if (_clips.Count != clips.Count) return false;
+            for (int index = 0; index < clips.Count; index++)
+                if (!ReferenceEquals(_clips[index].Mask, clips[index].Mask)) return false;
+            return true;
+        }
 
         private bool SamePath(IReadOnlyList<List<Point>> path)
         {
@@ -132,6 +151,7 @@ public sealed partial class PdfPageRenderer
             {
                 mask.Return();
                 _clips = [];
+                _fractionalClips = false;
                 _inputProfile = null;
             }
         }
