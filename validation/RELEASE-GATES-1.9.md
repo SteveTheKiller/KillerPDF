@@ -4906,6 +4906,22 @@ validation. Inputs, payload hashes, PNGs, scripts, and paired measurements
 are under `C:/Users/steve/kp-bench-render/binary-grid-trial-20261004/` and
 `C:/Users/steve/kp-bench-render/binary-grid-product-20261004/`.
 
+Eight alternating fresh-process native scan runs traced open, render, and
+PNG encoding stages in scratch instrumented app payloads, four runs per
+version. Both retained their respective production engine DLL and produced
+the same PNG hash. Before opening, mean working sets were 65.43 MiB for
+1.8.80 and 65.60 MiB for 1.9. After opening, they were 66.77 and 91.39
+MiB. Peak working sets after rendering were 246.32 and 268.45 MiB, and
+after PNG encoding 246.32 and 272.51 MiB. The 24.62 MiB open-stage gap
+is close to the 26.19 MiB final peak gap. The 1.9 document retains its
+13.35 MiB source byte array, while 1.8 opens through PDFium; after-open
+managed memory was 16.48 versus 1.93 MiB. These stage readings identify
+document opening as a major memory target, but do not establish that
+removing the source array alone would close the peak gap. Instrumentation
+changes timing and these runs do not replace the earlier parity benchmark.
+Payload identities, raw stage readings, and PNG hashes are under
+`C:/Users/steve/kp-bench-render/scan-memory-stage-20261004/`.
+
 ### Difficult-page memory attribution (2026-10-04)
 
 Fresh single-file 512-pixel runs over all 40 difficult PDFs put Ghent ALL x4
