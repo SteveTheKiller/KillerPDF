@@ -4795,6 +4795,18 @@ combined DeviceN tint transform; Poppler's value is consistent with adding
 the individual green and cyan colorants. The PDF contains NChannel colorant and
 process definitions, so gradient preview accuracy remains unresolved.
 
+The inspected GWG081 color space names `GWG Green` and `Cyan`, uses a
+combined DeviceCMYK tint transform, and declares an NChannel `/Colorants`
+definition for green plus a `/Process` definition for CMYK. The green
+separation maps full tint to 50% cyan and 100% yellow. The renderer combines
+its green and process cyan preview plates with `a + b - a*b`; the measured
+159 versus 191 cyan levels are consistent with that formula versus additive
+combination near half tint. PDF Reference 1.7 section 4.5.5 permits NChannel
+consumers to use custom blending with the attributes dictionary, so the
+Poppler difference alone does not establish which preview is correct.
+The decoded PDF objects used for this check are under
+`C:/Users/steve/kp-bench-render/ghent-nchannel-audit-20261004/`.
+
 ### Direct CMYK ink sampling checkpoint (2026-10-04)
 
 A sampled trace of the groundwater cover placed much of its 1.9 rendering
