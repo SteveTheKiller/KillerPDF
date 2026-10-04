@@ -6,13 +6,13 @@
   var THEMES = ['dark','light','hc','blood','greed','cyanotic','ectoplasm','decay','malaise','sepulchre','delirium','mourning'];
   var NEUTRAL = ['dark','light','hc'];
   var THEMED = ['blood','greed','cyanotic','ectoplasm','decay','malaise','sepulchre','delirium','mourning'];  // fixed-color wordmark art
-  // Per-family palette copied from the app: [ Accent (bright: text/links/logo/outlines), SelectionBg (darker fill: solid buttons, selected tab edges) ].
+  // Website link and button tones follow each app accent. Preview swatches can use the brighter selected-surface gradient.
   var ACCENTS = {
     dark:  { red:['#DD504B','#5E1C1C'], orange:['#E8962C','#F29A28'], yellow:['#EAD900','#F2E500'], green:['#1EA54C','#1C5E38'], teal:['#1FB8A8','#1C5E5C'], blue:['#50AEE8','#1C3B5E'], purple:['#B982E3','#411C5E'], magenta:['#FF52C9','#FF2BBD'] },
     light: { red:['#931A1A','#931A1A'], orange:['#C7710F','#C7710F'], yellow:['#766600','#766600'], green:['#1B5E20','#1B5E20'], teal:['#0D827E','#0D827E'], blue:['#18608E','#18608E'], purple:['#5A1690','#5A1690'], magenta:['#A60070','#A60070'] },
     hc:    { red:['#FF2929','#FF2929'], orange:['#FF910A','#FF910A'], yellow:['#FFEB00','#FFEB00'], green:['#00FF66','#00FF66'], teal:['#0AFFE7','#0AFFE7'], blue:['#298DFF','#298DFF'], purple:['#B829FF','#B829FF'], magenta:['#FF2BBD','#FF2BBD'] }
   };
-  // SelectionBg (muted accent) for inactive tab/card edges; brightens to accent on hover. Mirrors KillerTools themes.ts.
+  // Muted accent for inactive tab and card edges; brightens on hover.
   var SEL = {
     dark:  { red:'#5E1C1C', orange:'#5E3B16', yellow:'#2A2908', green:'#1C5E38', teal:'#1C5E5C', blue:'#1C3B5E', purple:'#411C5E', magenta:'#2A0D24' },
     light: { red:'#931A1A', orange:'#C7710F', yellow:'#766600', green:'#1B5E20', teal:'#0D827E', blue:'#18608E', purple:'#5A1690', magenta:'#A60070' },
@@ -110,7 +110,7 @@
     ['dark', 'light', 'hc'].forEach(function (neutralTheme) {
       var preview = ACCENTS[neutralTheme][name];
       if (preview) document.querySelectorAll('.sw-' + neutralTheme).forEach(function (dot) {
-        dot.style.setProperty('--sw-accent', preview[0]);
+        dot.style.setProperty('--sw-accent', neutralTheme === 'light' && name === 'yellow' ? 'linear-gradient(#FFF5A3, #FFD43B)' : preview[0]);
       });
     });
     curAccent = name;
@@ -128,10 +128,14 @@
     }
     accDots.forEach(function (d) {
       var p = ACCENTS[fam][d.dataset.accent];
-      if (p) { d.style.background = p[0]; d.style.color = p[0]; }
+      if (p) {
+        var previewColor = fam === 'light' && d.dataset.accent === 'yellow' ? '#EAD900' : p[0];
+        d.style.background = previewColor;
+        d.style.color = previewColor;
+      }
       d.setAttribute('aria-pressed', d.dataset.accent === name ? 'true' : 'false');
     });
-    if (accToggle) { accToggle.style.background = pair[0]; accToggle.title = 'Accent color'; }
+    if (accToggle) { accToggle.style.background = fam === 'light' && name === 'yellow' ? '#EAD900' : pair[0]; accToggle.title = 'Accent color'; }
     try { localStorage.setItem('kpdf-accent', name); } catch (e) {}
     updateLogos();
     syncLocalPreviewLinks();
@@ -144,7 +148,7 @@
       // AccentLogo resource (make-logo-svgs.py --themes).
       src = scriptBase + 'brand/killerpdf-logo-' + theme + '.svg';
     } else {
-      var variant = (theme === 'light') ? 'light' : 'dark';
+      var variant = theme === 'light' ? 'light' : theme === 'hc' ? 'black' : 'dark';
       var color = (NEUTRAL.indexOf(theme) >= 0) ? curAccent : 'green';
       src = scriptBase + 'brand/killerpdf-logo-' + variant + '-' + color + '.svg';
     }

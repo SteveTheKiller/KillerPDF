@@ -134,7 +134,6 @@
 <a href="#temp-files" class="sub" data-i18n="pt_50">Temp files</a>
 <a href="#clear-all-data" class="sub" data-i18n="pt_52">Clear all data</a>
 <a href="#arch" data-i18n="pt_6">Architecture</a>
-<a href="#source-size" class="sub" data-i18n="pt_219">Source size</a>
 <a href="#two-render-pipelines" class="sub" data-i18n="pt_56">Two render pipelines</a>
 <a href="#per-tab-sessions-an-lru-cache" class="sub" data-i18n="pt_58">Per-tab sessions &amp; an LRU cache</a>
 <a href="#canvas-overlay-maps" class="sub" data-i18n="pt_60">Canvas &amp; overlay maps</a>
@@ -223,8 +222,6 @@
 <div class="tech-sec" id="arch">
 <h2 data-i18n="pt_54">Architecture</h2>
 <p data-i18n="pt_218"><b>MainWindow</b> is a composed application shell rather than one giant code-behind. Its partials under <code>Shell/</code> own the shared toolbar, sidebar, dialogs and application workflows, while each document pane is a reusable <b>PdfViewer</b> with independent tabs, view state, render surfaces, thumbnails and interaction state. Two viewer instances create split pane without opening a second window. Thin host adapters connect the shell and viewers; reusable application policy lives under <code>Services/</code>; focused controllers live under <code>Features/</code>; and all PDF structure and serialization crosses the independent <a href="./engine/index.html">KillerPDF.Engine boundary</a>.</p>
-<h3 id="source-size" data-i18n="pt_219">Source size</h3>
-<p data-i18n="pt_220">As measured from the current 1.8.2 development tree, KillerPDF contains <b>418 C# files and 139,519 physical source lines</b>. Production code accounts for 314 files and 100,609 lines: 155 application files (49,711 lines), 151 engine-library files (47,792 lines), two corpus-runner files (2,200 lines), and six packaging files (906 lines). The remaining 104 files and 38,910 lines are application and engine tests. Generated build output is excluded.</p>
 <h3 id="two-render-pipelines" data-i18n="pt_56">Two render pipelines</h3>
 <p data-i18n="pt_57">KillerPDF has a primary-page renderer (<b>RenderPage</b>) and a multi-page streaming renderer used by Continuous, Grid and Two-Page layouts. Single view uses the primary tile; multi-page layouts create per-page tiles and replace their bitmaps progressively as work completes. RenderPage is deliberately switched off during Continuous so a primary-page repaint cannot clear the live multi-page overlay map.</p>
 <h3 id="per-tab-sessions-an-lru-cache" data-i18n="pt_58">Per-tab sessions &amp; an LRU cache</h3>
@@ -420,15 +417,13 @@
 <h3 id="how-the-test-works" data-i18n="pt_conf_2">How the test works</h3>
 <p data-i18n="pt_conf_8">Every corpus file is validated pristine, resaved through KillerPDF's normal open/save pipeline (headlessly, via <code>--batch-resave</code>), and validated again. A comparison script then flags any file that fails a rule after the resave that it did not fail before. The bar for release is zero regressions. A second pass runs <code>qpdf --check</code> on every original/resave pair and flags any file whose structural health worsened.</p>
 <h3 id="the-numbers" data-i18n="pt_223">The 1.8 validation gates</h3>
+<p>Documented 1.8.1 standards run, August 29, 2026. See <a href="https://github.com/SteveTheKiller/KillerPDF/blob/main/validation/RESULTS.md" target="_blank" rel="noopener">the validation report</a> for the method and full results.</p>
 <table class="spec-table"><tr><th data-i18n="pt_conf_9">Outcome</th><th data-i18n="pt_conf_10">Files</th></tr>
-<tr><td data-i18n="pt_conf_11">Corpus total</td><td>47,024</td></tr>
-<tr><td data-i18n="pt_224">Incremental structural corpus</td><td data-i18n="pt_225">2,907 files</td></tr>
-<tr><td data-i18n="pt_226">Selected-page import corpus</td><td data-i18n="pt_227">2,907 files, zero unexpected failures</td></tr>
+<tr><td data-i18n="pt_conf_11">Corpus total</td><td>2,907</td></tr>
 <tr><td data-i18n="pt_228">Full rewrite corpus</td><td data-i18n="pt_229">2,898 saved, 9 safe skips, zero veraPDF regressions</td></tr>
 <tr><td data-i18n="pt_230">qpdf structural comparison</td><td data-i18n="pt_231">2,898 pairs, zero worsened</td></tr>
-<tr><td data-i18n="pt_232">Engine tests</td><td>1,437</td></tr>
+<tr><td data-i18n="pt_232">Engine tests</td><td>1,436 passed</td></tr>
 <tr><td data-i18n="pt_233">Build quality gate</td><td data-i18n="pt_234">Release build, zero warnings</td></tr>
-<tr><td data-i18n="pt_235">Independent validators</td><td>qpdf, veraPDF and OpenSSL</td></tr>
 </table>
 <h3 id="patching-the-write-engine" data-i18n="pt_236">Owning the document engine</h3>
 <p data-i18n="pt_237">KillerPDF 1.8 replaces its legacy PdfSharpCore document pipeline with The KillerPDF.Engine, built in this repository from PDF syntax upward. Validation is performed at parser, object-graph, writer, application-integration and public-corpus levels. The engine can preserve existing bytes through incremental revisions or produce deterministic full rewrites, and it fails closed when required structure cannot be interpreted safely.</p>
@@ -460,7 +455,7 @@
 <tr><td data-i18n="pt_149">Signature reservation</td><td data-i18n="pt_150">16,384 bytes, SHA-256, whole chain</td></tr>
 <tr><td data-i18n="tech_languages_themes">Languages / themes</td><td data-i18n="tech_languages_themes_value">19 locales / 13 themes + accent variants</td></tr>
 </table>
-<p style="margin-top:14px" data-i18n="pt_153_172">A full 50-page technical brochure (the same facts, with the interactive forms and theme gallery) ships in the repo as <a href="https://github.com/SteveTheKiller/KillerPDF/blob/main/KillerPDF.pdf" target="_blank" rel="noopener"><code style="color:inherit">KillerPDF.pdf</code></a> - open it in KillerPDF itself.</p>
+<p style="margin-top:14px" data-i18n="pt_153_172">A designed 15-page guide with the current shortcuts, all themes and languages, and an interactive sample form ships in the repo as <a href="https://github.com/SteveTheKiller/KillerPDF/blob/main/KillerPDF.pdf" target="_blank" rel="noopener"><code style="color:inherit">KillerPDF.pdf</code></a>. Open it in KillerPDF itself.</p>
 </div>
 
 <div class="tech-sec" id="glossary">

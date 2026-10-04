@@ -52,6 +52,7 @@
 *.pdb       binary
 *.snk       binary
 *.pfx       binary
+*.pdf       binary
 
 # Vendored third-party sources: keep byte-identical to upstream, no EOL normalization.
 # Six of the PdfSharpCore files are UTF-16LE, and the explicit "*.cs text eol=crlf" above
