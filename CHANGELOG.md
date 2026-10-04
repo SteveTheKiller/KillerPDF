@@ -27,6 +27,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The portable package reports a start failure in a KillerPDF-styled dialog instead of a plain Windows message box.
 
 ### Changed
+- Menu rows now show accent text and icons on the theme's hover color.
 
 - The installer now offers upgrade, reinstall, uninstall, or cancel when KillerPDF is already installed.
 - Document tabs now use complete 98SE geometry and themed drag previews, and can be moved into a new window without losing their live editing state.
