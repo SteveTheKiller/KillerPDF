@@ -22,7 +22,7 @@ overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium, and repeated runs have identical status, dimensions, details, and PNGs per payload. The initial opaque-fill correction repaired standalone GWG041. The October 4 nested-Form correction removed the remaining pale X from the combined SPOT_X4 page. The Ghent spot-image correction restored both turtle-image checkmarks without X marks on GWG080 and GWG081 patches. The two-ink DeviceN correction restored GWG080's gradient checkmarks at 512 and 2048 pixels. GWG164's faint Luminosity X matches its source's permitted color-management variation; this is a bounded disposition. Output-intent black mapping on GWG090 differs from PDFium and Poppler but matches independent conversion through its embedded profile. Absolute color conformance, fonts, compositing, fine detail, native layer dialog inspection, and representative visible interaction remain open. |
 | Startup, first-page display, scrolling, and zoom without regression | Startup ready and hidden first bitmap attachment measured; visible interactions unverified | September 29 hidden-window warm launches reached the ready marker at 1,201.627 ms for 1.9 versus 1,346.588 ms for 1.8. Four alternating current-payload scan zoom runs averaged 314.339 ms for 1.9 versus 176.023 ms for 1.8.80 on the first 512-pixel render. The later 2048-pixel step averaged 56.372 versus 224.385 ms, with decoded image state retained by 1.9. The earlier scan figures used older payloads. On a separate CMYK page, the reduced-JPEG change cut the first 512-pixel render from 594.004 to 374.444 ms; 1.8 measured 99.400 ms in its earlier five-size sequence. Continuous view now schedules the visible page before neighboring work. Hidden bitmap attachment is slower on two measured pages; visible first-page completion, scrolling, and zoom remain unverified. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | The seven 1.8 KillerMCP CLI operations pass headless checks on 1.9. A Release CLI smoke covers PDF editing, conversion, inspection, and reporting commands, including rendered page-order checks. The 1.9 MCP page covers the installed PDF tool set, and the site now shows the released 1.8.71 download facts. The desktop working-document path opens the retained #406 reporter PDF. The October 3 local-branch forward-port check passes for 203 maintenance commits. The release synchronization workflow is intentionally excluded. The 98SE recent panel matches maintenance in source and tests; visible inspection remains open. Visible feature workflows still need verification. |
-| Builds and regression suites | Passing development checkpoint | October 4: 4,393 engine tests and 490 app tests pass. The focused overprint suite covers reduced indexed spot images, Lab DeviceN images with `/None` channels, and two-ink DeviceN fills and shadings. The Release application build passes. Earlier scratch portable and installer packages passed their file inventories and payload startup checks; the installer also passed isolated installation. Earlier application and transitive package vulnerability checks reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also passed. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | October 4: 4,394 engine tests and 490 app tests pass. The focused overprint suite covers reduced indexed spot images, Lab DeviceN images with `/None` channels, and two-ink DeviceN fills and shadings. The Release application build passes. Earlier scratch portable and installer packages passed their file inventories and payload startup checks; the installer also passed isolated installation. Earlier application and transitive package vulnerability checks reported no vulnerable packages. Earlier hardware-intrinsics-disabled RGB coverage and isolated JPEG 2000 consumer checks also passed. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 The opaque-fill correction combines consecutive identical opaque DeviceCMYK
 path paints before applying their shared antialiased coverage. It retains one
@@ -4860,3 +4860,36 @@ counts prevent a like-for-like memory conclusion. Of the 600 common pages,
 577 PNGs differed across versions; reference-based accuracy review remains
 necessary. These results do not meet the 2% speed or difficult-set memory
 targets. Raw paired runs are in the same scratch directory.
+
+### Native bitonal scan alignment (2026-10-04)
+
+The 42828.0001.001 scan contains a 4958 by 7016 JBIG2 image that paints into
+a 4957 by 7016 native page raster. Replacing the JBIG2 stream with its decoded
+bits produced identical output within each renderer, and removing the page's
+invisible OCR text also changed no pixels. The discrepancy was in sampling:
+the 1.9 intermediate-plane limit reduced this nearly native image, then
+rescaled it. A guarded path now copies aligned one-bit source pixels directly
+when the page clips at most one source column. Images with masks, opacity,
+color conversion, rotation, or larger reductions retain the existing path.
+
+At native size the updated 1.9 PNG matches the current 1.8.80 PNG exactly.
+Mean absolute grayscale error against an exact-size Poppler render fell from
+3.671 to 0.922, the same as 1.8. A separate 512 by 512 synthetic image
+painted into a 511 by 512 page differed from 1.8 at 43,520 pixels before
+the change and matches it exactly after. Its Poppler error fell from 54.666
+to 18.356. The native scan's 512 and 2048 pixel outputs did not change.
+All 74 difficult-page PNGs at both sizes and all 614 rendered conformance
+PNGs at 512 pixels retain their previous hashes and statuses. The new
+regression test failed before the correction and passes now. All 4,394
+engine tests and 490 app tests pass, and the Release payload builds.
+
+In eight alternating fresh-process native scan runs, the corrected 1.9
+averaged 479.25 ms rendering and 271.899 MiB sampled peak working set,
+versus 575 ms and 281.247 MiB for the prior 1.9 payload. In a separate
+1.8/1.9/1.9/1.8 pair repeated twice, the corrected 1.9 averaged 496.75 ms
+and 271.835 MiB, versus 415.25 ms and 246.182 MiB for 1.8.80. The native
+scan still misses the 2% speed and memory requirements by 19.63% and 10.42%.
+These single-page results do not replace whole-corpus or visible-interaction
+validation. Inputs, payload hashes, PNGs, scripts, and paired measurements
+are under `C:/Users/steve/kp-bench-render/binary-grid-trial-20261004/` and
+`C:/Users/steve/kp-bench-render/binary-grid-product-20261004/`.

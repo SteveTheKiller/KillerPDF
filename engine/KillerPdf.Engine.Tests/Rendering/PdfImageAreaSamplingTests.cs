@@ -311,6 +311,34 @@ public sealed class PdfImageAreaSamplingTests
     }
 
     [Fact]
+    public void NativeBitonalImageClipsTrailingSourceColumn()
+    {
+        byte[] values = [.. Enumerable.Range(0, 512 * 512).Select(index =>
+            (byte)(((index % 512 / 3 + index / 512 / 7) & 1) == 0 ? 0 : 255))];
+        var content = new PdfContentStreamBuilder().DrawImage(
+            PdfImage.FromBitonal(512, 512, values), 0, 0, 511.0002, 512);
+        var document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(511, 512, content).Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(511, 512));
+
+        byte[] expected = new byte[511 * 512 * 4];
+        for (int y = 0; y < 512; y++)
+        for (int x = 0; x < 511; x++)
+        {
+            byte gray = values[y * 512 + x];
+            int offset = (y * 511 + x) * 4;
+            expected[offset] = gray;
+            expected[offset + 1] = gray;
+            expected[offset + 2] = gray;
+            expected[offset + 3] = 255;
+        }
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(expected, rendered.Pixels.ToArray());
+    }
+
+    [Fact]
     public void SmallFootprintsMatchRetainedScalarBoundaryDigest()
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);

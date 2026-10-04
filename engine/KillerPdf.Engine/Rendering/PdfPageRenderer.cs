@@ -4975,6 +4975,63 @@ public sealed partial class PdfPageRenderer
         if (paintRight <= paintLeft || paintBottom <= paintTop) return;
         graphicsSoftMask = graphicsSoftMask?.ForBounds(paintLeft, paintTop, paintRight, paintBottom);
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
+        // Page bounds can clip one source column from an otherwise native-sized bitmap.
+        // Copy aligned packed pixels directly so the clip does not rescale the other columns.
+        bool directBitonal = target.Ink is null && target.RgbProfile is null
+            && target.GroupAlpha is null && target.GroupShape is null
+            && !target.HasRgbSpotShadow && !imageMask && bits == 1 && components == 1
+            && sourceWidth >= 512 && sourceHeight >= 512
+            && sourceWidth >= right - left && sourceWidth <= right - left + 1
+            && sourceHeight == bottom - top && fullLeft == left
+            && targetHeight - fullTop == top
+            && Math.Abs(fullRight - fullLeft - sourceWidth) < .01
+            && Math.Abs(fullTop - fullBottom - sourceHeight) < .01
+            && Math.Abs(corners[0].X * scaleX - left) < .01
+            && Math.Abs(targetHeight - corners[2].Y * scaleY - top) < .01
+            && inverse.B == 0 && inverse.C == 0
+            && softMask is null && colorKeyMask is null && rectangularClips
+            && graphicsSoftMask is null && knockout is null && preblendMatte is null
+            && colorSpace.Palette is null && colorSpace.Converter is null
+            && colorSpace.Profile is null && colorSpace.ComponentRange is null
+            && colorSpace.MultiConverter is null && decode is [0, 1]
+            && samples.Length >= (long)rowBytes * sourceHeight && stencilAlpha == 1
+            && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        if (directBitonal)
+        {
+            byte[] data = target.Data;
+            double unitStepX = inverse.A / scaleX;
+            ForEachRow(paintTop, paintBottom,
+                (long)(paintRight - paintLeft) * (paintBottom - paintTop),
+                (rowStart, rowEnd) =>
+                {
+                    for (int y = rowStart; y < rowEnd; y++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        Point first = inverse.Apply((left + .5) / scaleX,
+                            (targetHeight - y - .5) / scaleY);
+                        double unitX = first.X;
+                        double unitY = first.Y;
+                        int rowOffset = target.Offset(left, y);
+                        for (int x = left; x < paintRight; x++, unitX += unitStepX)
+                        {
+                            if (x < paintLeft || unitX < 0 || unitX >= 1
+                                || unitY < 0 || unitY >= 1) continue;
+                            int sourceX = x - left;
+                            int sourceY = y - top;
+                            int bit = samples[sourceY * rowBytes + (sourceX >> 3)]
+                                >> (7 - (sourceX & 7)) & 1;
+                            byte gray = (byte)(bit * 255);
+                            int offset = rowOffset + (x - left) * 4;
+                            data[offset] = gray;
+                            data[offset + 1] = gray;
+                            data[offset + 2] = gray;
+                            data[offset + 3] = 255;
+                            target.InvalidateRgbSpotPixel(offset);
+                        }
+                    }
+                }, null, cancellationToken);
+            return;
+        }
         bool directRgb = target.RgbProfile is null && !imageMask && bits == 8 && components == 3
             && target.GroupShape is null
             && softMask is null && colorKeyMask is null && rectangularClips
