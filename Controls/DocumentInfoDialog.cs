@@ -28,18 +28,18 @@ namespace KillerPDF
             SizeToContent = SizeToContent.Height;
             UseLayoutRounding = true;
             DialogChrome.Configure(this, owner);
-            BuildUi(filePath);
+            BuildUi(owner, filePath);
         }
 
-        private void BuildUi(string? filePath)
+        private void BuildUi(Window owner, string? filePath)
         {
             var body = new StackPanel { Margin = new Thickness(20, 6, 20, 16) };
 
-            _title    = AddField(body, L("Str_DocInfo_Title"),    _info.Title);
-            _author   = AddField(body, L("Str_DocInfo_Author"),   _info.Author);
-            _subject  = AddField(body, L("Str_DocInfo_Subject"),  _info.Subject);
-            _keywords = AddField(body, L("Str_DocInfo_Keywords"), _info.Keywords, wrap: true);
-            _creator  = AddField(body, L("Str_DocInfo_Creator"),  _info.Creator);
+            _title    = AddField(owner, body, L("Str_DocInfo_Title"),    _info.Title);
+            _author   = AddField(owner, body, L("Str_DocInfo_Author"),   _info.Author);
+            _subject  = AddField(owner, body, L("Str_DocInfo_Subject"),  _info.Subject);
+            _keywords = AddField(owner, body, L("Str_DocInfo_Keywords"), _info.Keywords, wrap: true);
+            _creator  = AddField(owner, body, L("Str_DocInfo_Creator"),  _info.Creator);
 
             body.Children.Add(new TextBlock
             {
@@ -66,7 +66,7 @@ namespace KillerPDF
             Loaded += (_, _2) => _title.Focus();
         }
 
-        private static TextBox AddField(StackPanel host, string label, string? value, bool wrap = false)
+        private static TextBox AddField(Window owner, StackPanel host, string label, string? value, bool wrap = false)
         {
             host.Children.Add(UiKit.GroupLabel(label));
             var f = UiKit.Field();
@@ -80,6 +80,22 @@ namespace KillerPDF
             f.VerticalContentAlignment = VerticalAlignment.Top;
             f.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
             f.MaxHeight = wrap ? 110 : 72;   // grow up to ~5 lines (keywords) / ~3 lines (others), then scroll
+            var menu = (ContextMenu)owner.FindResource("TextInputContextMenu");
+            menu.Style = (Style)owner.FindResource(typeof(ContextMenu));
+            menu.Resources["GrainBrushShared"] = owner.FindResource("GrainBrushShared");
+            Style itemStyle = (Style)owner.FindResource(typeof(MenuItem));
+            Style separatorStyle = (Style)owner.FindResource(typeof(Separator));
+            foreach (object item in menu.Items)
+            {
+                if (item is MenuItem menuItem)
+                {
+                    menuItem.Style = itemStyle;
+                    menuItem.CommandTarget = f;
+                }
+                else if (item is Separator separator)
+                    separator.Style = separatorStyle;
+            }
+            f.ContextMenu = menu;
             host.Children.Add(f);
             return f;
         }

@@ -108,6 +108,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Preserved Hebrew letter order when saving text placed on a PDF (#435).
 - Retried installation when Windows briefly keeps the previous version's files open (#434).
 - WinGet now requests elevation for its machine-wide installation (#439).
+- The Document Info text menu now follows the active theme.
 
 - Hardened native library loading and release artifact verification.
 - Preserved descriptor font names and source baselines when editing existing PDF text (#431).
