@@ -42,7 +42,7 @@
     <SolidColorBrush x:Key="AppBorderBrush"  Color="#2a2a2a" po:Freeze="True"/>
     <SolidColorBrush x:Key="RowSelectedBrush"    Color="#003322" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlinePressedBrush" Color="#003322" po:Freeze="True"/>
-    <LinearGradientBrush x:Key="SelectionBg" po:Freeze="True" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#144327" Offset="0"/><GradientStop Color="#003013" Offset="1"/></LinearGradientBrush>
+    <LinearGradientBrush x:Key="SelectionBg" po:Freeze="True" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#1E4D31" Offset="0"/><GradientStop Color="#002609" Offset="1"/></LinearGradientBrush>
     <SolidColorBrush x:Key="SelectionFg" Color="#ffffff" po:Freeze="True"/>
     <SolidColorBrush x:Key="SettingsOpenRowBg" Color="#333333" po:Freeze="True"/>
     <SolidColorBrush x:Key="TextBrush"      Color="#ffffff" po:Freeze="True"/>
