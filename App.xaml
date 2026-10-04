@@ -47,9 +47,9 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Thumb">
-                            <!-- Solid at rest (the scrollbar's active color) so it's always visible,
-                                 brightening to the accent while hovered/dragged. -->
-                            <Border x:Name="tb" Background="{DynamicResource ScrollThumbHoverBrush}" CornerRadius="3"/>
+                            <!-- Keep the scrollbar color while tying the thumb to the active accent. -->
+                            <Border x:Name="tb" Background="{DynamicResource ScrollThumbHoverBrush}"
+                                    BorderBrush="{DynamicResource RadioAccent}" BorderThickness="1.5" CornerRadius="3"/>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="tb" Property="Background" Value="{DynamicResource PrimaryBrush}"/>
