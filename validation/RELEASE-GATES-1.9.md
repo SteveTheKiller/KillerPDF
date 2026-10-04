@@ -4912,3 +4912,14 @@ first-page trace includes startup work and does not yet isolate a safe buffer
 or rendering change. Per-file logs, payload hashes, page-prefix runs, and
 that trace are under
 `C:/Users/steve/kp-bench-render/binary-grid-trial-20261004/`.
+
+A repeated 20-copy page-1 CPU trace places 452.5 ms of sampled time in
+rectangular-array creation under patch mesh subdivision during the retained
+half. An isolated trial replaced those temporary grids with flat arrays and
+kept all 20 PNG hashes identical. In eight alternating fresh-process runs,
+however, mean 20-page render sums rose from 3,100.75 to 3,152 ms and sampled
+peak working set rose from 157.72 to 162.25 MiB. The array trial was not
+retained. The trace is under
+`C:/Users/steve/kp-bench-render/binary-grid-trial-20261004/`; the trial source,
+payload hashes, and paired results are under
+`C:/Users/steve/kp-bench-render/patch-grid-trial-20261004/`.
