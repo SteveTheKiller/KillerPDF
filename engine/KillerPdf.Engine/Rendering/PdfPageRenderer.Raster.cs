@@ -1248,7 +1248,8 @@ public sealed partial class PdfPageRenderer
             && graphicsSoftMask is null && knockout is null
             && pixels.GroupShape is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
-        bool directSpot = pixels.Ink is not null && color.SpotName is not null && alpha >= 1
+        bool directSpot = (pixels.Ink is not null || pixels.HasRgbSpotShadow)
+            && color.SpotName is not null && alpha >= 1
             && graphicsSoftMask is null && knockout is null && pixels.GroupShape is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         uint ink = pixels.Ink is not null || pixels.HasRgbSpotShadow ? pixels.GetInk(color) : 0;
@@ -1261,11 +1262,11 @@ public sealed partial class PdfPageRenderer
             && (long)(right - left) * (bottom - top) >= 4096
             ? CreateOpaqueBlendLookup(color, alpha * 255 / 255d, blendMode) : null;
         byte[]? coverage = mask.Coverage;
-        if (directSpot && !perPixelClip)
+        if (directSpot)
         {
             PaintSpotCoverageRows(pixels, width, mask, paint, alpha, blendMode,
                 alphaIsShape, left, top, right, bottom, coverage, ink, groupAlpha,
-                cancellationToken);
+                clips, perPixelClip, cancellationToken);
             return;
         }
         if (directInk && !perPixelClip)
@@ -1351,7 +1352,7 @@ public sealed partial class PdfPageRenderer
         CoverageMask mask, Color paint, double alpha, RendererBlendMode blendMode,
         bool alphaIsShape, int left, int top, int right, int bottom,
         byte[]? coverage, uint ink, byte[]? groupAlpha,
-        CancellationToken cancellationToken)
+        IReadOnlyList<ClipRegion> clips, bool perPixelClip, CancellationToken cancellationToken)
     {
         bool overprint = (paint.OverprintComponents & 16) != 0;
         for (int y = top; y < bottom; y++)
@@ -1361,12 +1362,16 @@ public sealed partial class PdfPageRenderer
             for (int x = left; x < right;)
             {
                 int cover = coverage is null ? 255 : coverage[maskRow + x];
+                if (perPixelClip && cover != 0)
+                    cover = (cover * ClipCoverage(clips, x, y) + 127) / 255;
                 int offset = pixels.Offset(x, y);
-                if (cover == 255 && pixels.Alpha(offset) == 255)
+                if (cover == 255 && pixels.Alpha(offset) == 255 && pixels.CanPaintSpot(offset))
                 {
                     int start = x++;
                     while (x < right && (coverage is null || coverage[maskRow + x] == 255)
-                        && pixels.Alpha(pixels.Offset(x, y)) == 255) x++;
+                        && (!perPixelClip || ClipCoverage(clips, x, y) == 255)
+                        && pixels.Alpha(pixels.Offset(x, y)) == 255
+                        && pixels.CanPaintSpot(pixels.Offset(x, y))) x++;
                     int count = x - start;
                     pixels.PaintSpotRun(offset, count, paint, overprint, ink);
                     groupAlpha?.AsSpan(offset / 4, count).Fill(255);
@@ -1374,7 +1379,8 @@ public sealed partial class PdfPageRenderer
                 }
                 if (cover != 0)
                 {
-                    if (overprint && paint.ProcessInk is null && pixels.Alpha(offset) == 255)
+                    if (overprint && paint.ProcessInk is null && pixels.Alpha(offset) == 255
+                        && pixels.CanPaintSpot(offset))
                     {
                         pixels.PaintSpotCoverage(offset, paint, ink, (byte)cover);
                         if (groupAlpha is not null)

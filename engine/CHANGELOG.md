@@ -99,7 +99,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 - Kept existing CMYK channels under OPM1 process overprint on RGB spot pages.
 - Preserved process ink beneath supported named spot images on RGB pages.
-- Kept antialiased spot-color edges on their named plate when a later overprint replaces that color.
+- Preserved antialiased named-spot overprints, including clipped paths on RGB pages.
 - Applied sampled shading colors through their DeviceN tint transforms instead of interpreting tint values as CMYK channels.
 - Recovered cross-reference tables whose trailer size omits valid objects (#406).
 - Preserved descriptor font names when a PDF omits the font resource's top-level name (#431).

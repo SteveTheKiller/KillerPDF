@@ -238,6 +238,88 @@ public sealed class PdfOverprintTests
     }
 
     [Fact]
+    public void DefaultRgbSurface_SpotAfterInvalidProcessShadowDoesNotReviveOldInk()
+    {
+        PdfRenderedPage rendered = RenderRgbSpotShadow(withSpots: true,
+            pureImageOverProcess: true, processOverprintAfterSpot: true,
+            spotAfterInvalidProcess: true);
+        int center = (4 * 8 + 4) * 4;
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(255, 0, 255, 0),
+            rendered.Pixels.Span[center..(center + 4)].ToArray());
+    }
+
+    [Fact]
+    public void DefaultRgbSurface_SpotPathEdgesAfterCmykShading_MatchNativeCmyk()
+    {
+        PdfRenderedPage rendered = RenderRgbProcessOverprintShading(1, spotPathAfterShading: true);
+        PdfRenderedPage nativeCmyk = RenderRgbProcessOverprintShading(1,
+            nativeCmyk: true, spotPathAfterShading: true);
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Empty(nativeCmyk.Diagnostics);
+        int interior = (4 * 8 + 4) * 4;
+        Assert.Equal(nativeCmyk.Pixels.Span[interior..(interior + 4)].ToArray(),
+            rendered.Pixels.Span[interior..(interior + 4)].ToArray());
+        for (int y = 1; y < 7; y++)
+            for (int x = 2; x < 6; x++)
+            {
+                int offset = (y * 8 + x) * 4;
+                Assert.Equal(nativeCmyk.Pixels.Span[offset..(offset + 4)].ToArray(),
+                    rendered.Pixels.Span[offset..(offset + 4)].ToArray());
+            }
+    }
+
+    [Fact]
+    public void DefaultRgbSurface_RepaintedSpotPathEdgesAfterCmykShading_MatchNativeCmyk()
+    {
+        PdfRenderedPage rendered = RenderRgbProcessOverprintShading(1,
+            spotPathAfterShading: true, repaintSpotPath: true);
+        PdfRenderedPage nativeCmyk = RenderRgbProcessOverprintShading(1,
+            nativeCmyk: true, spotPathAfterShading: true, repaintSpotPath: true);
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Empty(nativeCmyk.Diagnostics);
+        for (int y = 1; y < 7; y++)
+            for (int x = 2; x < 6; x++)
+            {
+                int offset = (y * 8 + x) * 4;
+                Assert.Equal(nativeCmyk.Pixels.Span[offset..(offset + 4)].ToArray(),
+                    rendered.Pixels.Span[offset..(offset + 4)].ToArray());
+            }
+    }
+
+    [Fact]
+    public void DefaultRgbSurface_ClippedDiagonalSpotEdgesAfterCmykShading_MatchNativeCmyk()
+    {
+        PdfRenderedPage rendered = RenderRgbProcessOverprintShading(1,
+            spotPathAfterShading: true, diagonalSpotPath: true, clipSpotPath: true);
+        PdfRenderedPage nativeCmyk = RenderRgbProcessOverprintShading(1,
+            nativeCmyk: true, spotPathAfterShading: true, diagonalSpotPath: true,
+            clipSpotPath: true);
+        PdfRenderedPage unclipped = RenderRgbProcessOverprintShading(1,
+            spotPathAfterShading: true, diagonalSpotPath: true);
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Empty(nativeCmyk.Diagnostics);
+        Assert.Empty(unclipped.Diagnostics);
+        int exterior = (2 * 8 + 2) * 4;
+        int intersection = (2 * 8 + 3) * 4;
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(128, 0, 0, 0),
+            rendered.Pixels.Span[exterior..(exterior + 4)].ToArray());
+        Assert.NotEqual(unclipped.Pixels.Span[intersection..(intersection + 4)].ToArray(),
+            rendered.Pixels.Span[intersection..(intersection + 4)].ToArray());
+        for (int y = 1; y < 7; y++)
+            for (int x = 2; x < 6; x++)
+            {
+                int offset = (y * 8 + x) * 4;
+                Assert.Equal(nativeCmyk.Pixels.Span[offset..(offset + 4)].ToArray(),
+                    rendered.Pixels.Span[offset..(offset + 4)].ToArray());
+            }
+    }
+
+    [Fact]
     public void DefaultRgbSurface_UnbalancedGraphicsStateExcludesSpotShadow()
     {
         PdfRenderedPage rendered = RenderRgbSpotShadow(withSpots: true,
@@ -510,12 +592,25 @@ public sealed class PdfOverprintTests
         return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(1, 1)).Pixels.ToArray();
     }
 
-    private static PdfRenderedPage RenderRgbProcessOverprintShading(int mode, bool nativeCmyk = false)
+    private static PdfRenderedPage RenderRgbProcessOverprintShading(int mode, bool nativeCmyk = false,
+        bool spotPathAfterShading = false, bool repaintSpotPath = false,
+        bool diagonalSpotPath = false, bool clipSpotPath = false)
     {
         PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
         PdfArray Numbers(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));
-        string content = "0 0 0 0 k 0 0 8 8 re f"
+        string spotPath = diagonalSpotPath
+            ? " 2.25 1 m 3.25 1 l 5.75 7 l 4.75 7 l h f"
+            : " 2.25 0 3.5 8 re f";
+        string content = spotPathAfterShading
+            ? "0 0 0 0 k 0 0 8 8 re f"
+                + " /O gs q 1 0 0 1 0 0 cm /Im1 Do Q"
+                + " /Op gs /Sh1 sh"
+                + (clipSpotPath ? " q 3.375 0.125 2.5 7.75 re W n" : "")
+                + (repaintSpotPath ? " /Green cs 0.5 scn /O gs" + spotPath : "")
+                + " /Green cs 1 scn /O gs" + spotPath
+                + (clipSpotPath ? " Q" : "")
+            : "0 0 0 0 k 0 0 8 8 re f"
             + " 1 0 1 0.5 k 2 0 4 8 re f"
             + " /O gs q 2 0 0 8 6 0 cm /Im1 Do Q"
             + " /Op gs /Sh1 sh";
@@ -574,7 +669,7 @@ public sealed class PdfOverprintTests
         bool addRgbImage = false, bool rgbImageAfterSpot = false,
         bool addTransparencyForm = false, bool processOverprintAfterSpot = false,
         bool unbalancedState = false, string? unsupportedDeviceN = null,
-        bool defaultCmykOverride = false)
+        bool defaultCmykOverride = false, bool spotAfterInvalidProcess = false)
     {
         PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
@@ -598,6 +693,8 @@ public sealed class PdfOverprintTests
             content += " 0 0 0 0.75 k 2 0 6 8 re f /O gs"
                 + " /Mixed cs 0.25 1 scn 2 0 6 8 re f"
                 + " /Green cs 0.5 scn 4 0 2 8 re f";
+        if (spotAfterInvalidProcess)
+            content += " /Green cs 1 scn 3.25 0 2.5 8 re f";
         if (unbalancedState) content += " Q";
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(8, 8, Encoding.ASCII.GetBytes(content)).Build());

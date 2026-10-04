@@ -376,6 +376,9 @@ public sealed partial class PdfPageRenderer
             return true;
         }
 
+        internal bool CanPaintSpot(int offset) => Ink is not null
+            || _rgbSpotShadow && _rgbSpotValid![offset / 4] != 0;
+
         internal sealed record PreparedSpotPaint(string Name, byte[] Plate);
 
         internal PreparedSpotPaint PrepareSpotPaint(string name)
