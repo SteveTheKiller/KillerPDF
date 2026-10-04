@@ -159,6 +159,7 @@ namespace KillerPDF.Services
             // is readable, and the accent overlay below needs it to know whether re-deriving the
             // ring from the overlay's accent would honor the theme or clobber it.
             bool themeOwnsTabRing = newDict.Contains("TabActiveRingBrush");
+            bool themeOwnsRadioHover = newDict.Contains("RadioHoverFgBrush");
             // 98SE owns the entire classic button treatment. Other themes derive these roles from
             // their accent; record ownership before CompleteAppPalette fills the fallback keys.
             bool themeOwnsOutlineRest = newDict.Contains("OutlineRestBrush");
@@ -215,6 +216,8 @@ namespace KillerPDF.Services
                     foreach (string aliased in new[] { "AccentLogo", "InstallBtnBg", "SelectionAccent", "RadioAccent" })
                         if (!accentDict.Contains(aliased))
                             target[aliased] = accentDict["PrimaryBrush"];
+                if (!themeOwnsRadioHover && !accentDict.Contains("RadioHoverFgBrush"))
+                    target["RadioHoverFgBrush"] = target["RadioAccent"];
                 // The outline-button roles were materialized against the BASE palette before this
                 // overlay ran. Re-derive every accent-led role together; otherwise the Install
                 // button gets (for example) a red outline with the base green text. A theme that
