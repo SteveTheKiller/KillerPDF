@@ -4765,6 +4765,16 @@ sides and render timing varied. The trial was not promoted. Evidence is under
 `C:/Users/steve/kp-bench-render/memory-pages-20261004/` and
 `C:/Users/steve/kp-bench-render/spot-exact-buffer-trial-20261004/`.
 
+A scratch plate-occupancy probe on the same 1452 by 2048 raster found two
+named spot plates. MyRed had 625,917 nonzero pixels in 144 of 192 possible
+128-pixel tiles; MyBlue had 386,634 in 135 tiles. Both extended from row 227
+through row 1974. The instrumented engine reproduced the original 1.9 PNG
+hash exactly. Tile storage could avoid some empty area, but these plates
+occupy most tiles, and the unchanged process plate also consumes memory.
+This probe does not establish a speed or peak-memory gain. Its source,
+output, and counts are under
+`C:/Users/steve/kp-bench-render/scan-memory-stage-20261004/`.
+
 An instrumented Altona render counted 1,623,158 process-coverage calls after
 spot plates became active. Of 1,411,449 eligible opaque full-coverage calls,
 1,228,817 addressed pixels with no spot ink. A scratch shortcut for the
