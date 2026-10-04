@@ -558,7 +558,8 @@ namespace KillerPDF
         {
             bool max     = WindowState == WindowState.Maximized || _fullScreen;
             // Only Windows 11 rounds the HWND; on Windows 10 rounded content would show a notch.
-            bool squared = max || IsSnapped() || ThemeManager.Current == Theme.SE98 || !OsRoundsCorners();
+            bool nativeCorners = OsRoundsCorners();
+            bool squared = max || IsSnapped() || ThemeManager.Current == Theme.SE98 || !nativeCorners;
             _chromeSquared = squared;
 
             // The chrome treatment depends ONLY on the maximized/snapped state, not on the live size
@@ -573,33 +574,23 @@ namespace KillerPDF
             // so internal corners stay square to avoid dark nubs peeking past the rounded window edge.
             if (RootBorder != null)
             {
-                if (squared)
-                    RootBorder.CornerRadius = new CornerRadius(0);
+                RootBorder.CornerRadius = new CornerRadius(0);
+                // DWM owns the curved outer line. A second WPF line has a different pixel
+                // radius and makes the window corner look kinked.
+                if (nativeCorners)
+                    RootBorder.BorderBrush = Brushes.Transparent;
                 else
-                    RootBorder.SetResourceReference(Border.CornerRadiusProperty, "WindowCornerRadius");
+                    RootBorder.SetResourceReference(Border.BorderBrushProperty, "AppBorderBrush");
                 RootBorder.Margin         = new Thickness(0);
                 // Only a maximized window drops the 1px frame (it's flush to every screen edge); a
                 // snapped window keeps it so it still reads against the window beside it.
                 RootBorder.BorderThickness = new Thickness(max || ThemeManager.Current == Theme.SE98 ? 0 : 1);
             }
             if (TitleBarBorder != null)
-            {
-                if (squared) TitleBarBorder.CornerRadius = new CornerRadius(0);
-                else TitleBarBorder.SetResourceReference(Border.CornerRadiusProperty, "TitleBarCornerRadius");
-            }
+                TitleBarBorder.CornerRadius = new CornerRadius(0);
             if (FooterBorder != null)
-            {
-                if (squared) FooterBorder.CornerRadius = new CornerRadius(0);
-                else FooterBorder.SetResourceReference(Border.CornerRadiusProperty, "FooterCornerRadius");
-            }
-            // The close tile owns only the window's top-right corner. Reusing the title bar's
-            // full (top-left + top-right) radius rounded the tile's interior left edge too,
-            // making its hover state look like a detached red cap instead of the window corner.
-            var titleCorners = TryFindResource("TitleBarCornerRadius") is CornerRadius tc
-                ? tc : new CornerRadius(0, 7, 0, 0);
-            Resources["ChromeCloseCorner"] = squared
-                ? new CornerRadius(0)
-                : new CornerRadius(0, titleCorners.TopRight, 0, 0);
+                FooterBorder.CornerRadius = new CornerRadius(0);
+            Resources["ChromeCloseCorner"] = new CornerRadius(0);
 
             // Retired: native OS shadow replaces the hand-cast one.
             if (WindowShadowBorder != null)
