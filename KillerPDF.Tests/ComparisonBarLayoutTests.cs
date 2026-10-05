@@ -1,6 +1,12 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Interop;
+using System.Windows.Markup;
+using System.Windows.Media;
 using System.Xml.Linq;
 using Xunit;
 
@@ -8,6 +14,158 @@ namespace KillerPDF.Tests;
 
 public sealed class ComparisonBarLayoutTests
 {
+    [Fact]
+    public void ComparisonCloseButtonIsClickableAcrossItsWholeBounds()
+    {
+        string root = FindRepositoryRoot();
+        var document = XDocument.Load(Path.Combine(root, "MainWindow.xaml"));
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        XElement style = document.Descendants().Single(element =>
+            (string?)element.Attribute(x + "Key") == "ComparisonCloseButton");
+        XElement template = style.Descendants().Single(element =>
+            element.Name.LocalName == "ControlTemplate");
+        XElement close = document.Descendants().Single(element =>
+            (string?)element.Attribute(x + "Name") == "ComparisonCloseButtonControl");
+        XElement content = close.Elements().Single(element => element.Name.LocalName == "Grid");
+
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var button = new Button
+                {
+                    Width = (double)close.Attribute("Width")!,
+                    Height = (double)close.Attribute("Height")!,
+                    Background = Brushes.Transparent,
+                    Foreground = Brushes.White,
+                    Template = (ControlTemplate)XamlReader.Parse(template.ToString()),
+                    Content = XamlReader.Parse(content.ToString())
+                };
+                button.Measure(new Size(button.Width, button.Height));
+                button.Arrange(new Rect(0, 0, button.Width, button.Height));
+                button.UpdateLayout();
+
+                for (double y = 0.5; y < button.Height; y++)
+                for (double horizontal = 0.5; horizontal < button.Width; horizontal++)
+                {
+                    DependencyObject? hit = VisualTreeHelper.HitTest(button, new Point(horizontal, y))?.VisualHit;
+                    while (hit is not null && !ReferenceEquals(hit, button))
+                        hit = VisualTreeHelper.GetParent(hit);
+                    Assert.Same(button, hit);
+                }
+            }
+            catch (Exception ex) { failure = ex; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "Comparison close-button layout timed out.");
+        if (failure is not null)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+    }
+
+    [Theory]
+    [InlineData(648, true)]
+    [InlineData(800, true)]
+    [InlineData(1000, true)]
+    [InlineData(1000, false)]
+    public void ComparisonBarKeepsCloseVisibleAndClickable(int width, bool longFileNames)
+    {
+        var document = XDocument.Load(Path.Combine(FindRepositoryRoot(), "MainWindow.xaml"));
+        Exception? failure = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                Grid root = LoadComparisonBar(document);
+                var files = (TextBlock)root.FindName("ComparisonFilesText");
+                files.Text = longFileNames
+                    ? "Original document with a long descriptive filename.pdf  <->  Comparison document with a long descriptive filename.pdf"
+                    : "A.pdf  <->  B.pdf";
+                ((TextBlock)root.FindName("ComparisonResultText")).Text = "Page 1: 15.25% changed";
+                ((FrameworkElement)root.FindName("ComparisonRegionNavigation")).Visibility = Visibility.Visible;
+                ((TextBlock)root.FindName("ComparisonRegionText")).Text = "1/20";
+
+                // InputHitTest needs a presentation source. WS_POPUP without WS_VISIBLE
+                // creates an isolated source that never displays or activates a window.
+                using var presentation = new HwndSource(new HwndSourceParameters("ComparisonBarLayoutTest")
+                {
+                    WindowStyle = unchecked((int)0x80000000),
+                    Width = width,
+                    Height = 40
+                });
+                presentation.RootVisual = root;
+                root.Measure(new Size(width, 40));
+                root.Arrange(new Rect(0, 0, width, 40));
+                root.UpdateLayout();
+
+                var bar = (Border)root.FindName("ComparisonBar");
+                var close = (Button)root.FindName("ComparisonCloseButtonControl");
+                Point origin = close.TransformToAncestor(bar).Transform(new Point());
+                Assert.InRange(origin.X, 0, bar.ActualWidth - close.ActualWidth);
+                Assert.InRange(origin.Y, 0, bar.ActualHeight - close.ActualHeight);
+                Assert.True(close.IsVisible);
+
+                for (double y = 0.5; y < close.ActualHeight; y++)
+                for (double horizontal = 0.5; horizontal < close.ActualWidth; horizontal++)
+                {
+                    Point point = close.TransformToAncestor(root).Transform(new Point(horizontal, y));
+                    DependencyObject? hit = root.InputHitTest(point) as DependencyObject;
+                    while (hit is not null && !ReferenceEquals(hit, close))
+                        hit = VisualTreeHelper.GetParent(hit);
+                    Assert.Same(close, hit);
+                }
+
+                if (!longFileNames)
+                {
+                    Grid controls = ((Grid)bar.Child).Children.OfType<Grid>().Single();
+                    Point controlsOrigin = controls.TransformToAncestor(bar).Transform(new Point());
+                    Assert.True(controls.ActualWidth < bar.ActualWidth);
+                    Assert.Equal((bar.ActualWidth - controls.ActualWidth) / 2, controlsOrigin.X, 3);
+                    Assert.InRange(Math.Abs(files.ActualWidth - files.DesiredSize.Width), 0, 0.01);
+                }
+            }
+            catch (Exception ex) { failure = ex; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "Comparison bar layout timed out.");
+        if (failure is not null)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+    }
+
+    private static Grid LoadComparisonBar(XDocument document)
+    {
+        XNamespace p = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var resources = new XElement(p + "ResourceDictionary",
+            new XElement(p + "SolidColorBrush", new XAttribute(x + "Key", "ComparisonBarHoverBrush"),
+                new XAttribute("Color", "#26FFFFFF")),
+            new XElement(p + "SolidColorBrush", new XAttribute(x + "Key", "GrainBrushShared"),
+                new XAttribute("Color", "Transparent")));
+        foreach (string key in new[] { "ToolbarButton", "ComparisonBarButton", "OverlayCloseButton", "ComparisonCloseButton" })
+            resources.Add(new XElement(document.Descendants().Single(element =>
+                (string?)element.Attribute(x + "Key") == key)));
+
+        var bar = new XElement(document.Descendants().Single(element =>
+            (string?)element.Attribute(x + "Name") == "ComparisonBar"));
+        foreach (XAttribute handler in bar.DescendantsAndSelf().Attributes("Click").ToList())
+            handler.Remove();
+        bar.SetAttributeValue("Visibility", "Visible");
+        bar.SetAttributeValue("Grid.Row", null);
+        bar.SetAttributeValue("Grid.ColumnSpan", null);
+        var markup = new XElement(p + "Grid", new XAttribute(XNamespace.Xmlns + "x", x),
+            new XAttribute("Background", "Transparent"),
+            new XElement(p + "Grid.Resources", resources), bar);
+        var root = (Grid)XamlReader.Parse(markup.ToString());
+        root.Resources["ComparisonBarForegroundBrush"] = Brushes.White;
+        root.Resources["ComparisonBarCloseHoverBrush"] = Brushes.Red;
+        root.Resources["MenuFontFamily"] = new FontFamily("Segoe UI");
+        root.Resources["MenuFontSize"] = 12.0;
+        root.Resources["Str_Compare_Bar"] = "COMPARISON";
+        return root;
+    }
+
     [Fact]
     public void ComparisonBarUsesReservedBottomRowAndDetailsOpenUpward()
     {

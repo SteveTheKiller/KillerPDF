@@ -407,7 +407,9 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Foreground" Value="{DynamicResource ComparisonBarCloseHoverBrush}"/>
@@ -2651,7 +2653,7 @@
                                         Opacity="{DynamicResource GrainOpacity}"/>
                             </Grid>
                         </Border>
-                        <Grid HorizontalAlignment="Center">
+                        <Grid HorizontalAlignment="Center" MaxWidth="{Binding ActualWidth, ElementName=ComparisonBar}">
                             <Grid.Resources>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Foreground" Value="{DynamicResource ComparisonBarForegroundBrush}"/>
@@ -2660,7 +2662,7 @@
                             </Grid.Resources>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Border Grid.Column="0" Padding="8,0" Margin="0,2,6,2">
                                 <StackPanel Orientation="Horizontal">
@@ -2679,11 +2681,18 @@
                                 </StackPanel>
                             </Border>
                             <Border Grid.Column="1" Padding="6,2,4,2">
-                                <StackPanel Orientation="Horizontal">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock x:Name="ComparisonFilesText" Foreground="{DynamicResource ComparisonBarForegroundBrush}"
                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="390"/>
-                                    <Rectangle Width="1" Margin="10,2" Fill="{DynamicResource ComparisonBarForegroundBrush}" Opacity="0.6"/>
-                                    <Button x:Name="ComparisonResultButton" Width="300" Height="24" Margin="0" Padding="5,1"
+                                    <Rectangle Grid.Column="1" Width="1" Margin="10,2" Fill="{DynamicResource ComparisonBarForegroundBrush}" Opacity="0.6"/>
+                                    <Button x:Name="ComparisonResultButton" Grid.Column="2" Width="300" Height="24" Margin="0" Padding="5,1"
                                             Style="{StaticResource ComparisonBarButton}" Click="ComparisonDetails_Click"
                                             Foreground="{DynamicResource ComparisonBarForegroundBrush}"
                                             ToolTip="{DynamicResource Str_Compare_ViewDetails}">
@@ -2695,7 +2704,7 @@
                                                        Foreground="{DynamicResource ComparisonBarForegroundBrush}" Margin="8,0,1,0" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
-                                    <StackPanel x:Name="ComparisonRegionNavigation" Orientation="Horizontal" Margin="5,0,0,0" Visibility="Collapsed">
+                                    <StackPanel x:Name="ComparisonRegionNavigation" Grid.Column="3" Orientation="Horizontal" Margin="5,0,0,0" Visibility="Collapsed">
                                         <Button Width="24" Height="24" Padding="0" Style="{StaticResource ComparisonBarButton}"
                                                 Foreground="{DynamicResource ComparisonBarForegroundBrush}"
                                                 Click="ComparisonPreviousDifference_Click" ToolTip="{DynamicResource Str_Compare_PreviousRegion}">
@@ -2710,7 +2719,7 @@
                                             <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
                                         </Button>
                                     </StackPanel>
-                                    <Button x:Name="ComparisonCloseButtonControl" Width="25" Height="24" Margin="10,0,0,0"
+                                    <Button x:Name="ComparisonCloseButtonControl" Grid.Column="4" Width="25" Height="24" Margin="10,0,0,0"
                                             Style="{StaticResource ComparisonCloseButton}" Click="ComparisonClose_Click">
                                         <Button.ToolTip>
                                             <TextBlock Foreground="{DynamicResource TextBrush}" Effect="{x:Null}">
@@ -2723,7 +2732,7 @@
                                                   StrokeThickness="1.5" StrokeStartLineCap="Square" StrokeEndLineCap="Square"/>
                                         </Grid>
                                     </Button>
-                                </StackPanel>
+                                </Grid>
                             </Border>
                             <Border Grid.ColumnSpan="2" IsHitTestVisible="False"
                                     Background="{StaticResource GrainBrushShared}"
