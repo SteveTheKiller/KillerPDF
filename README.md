@@ -51,8 +51,8 @@ Full reference on the [help page](https://killerpdf.net/help.html).
 
 | | |
 | --- | --- |
-| ![KillerPDF comparing two PDFs side by side, with highlighted changes and a page-difference summary open](pdf-landing/screenshots/03.png)<br>**PDF comparison.** Review highlighted differences and a summary of changed and missing pages. | ![KillerPDF Transform preview with levels, color mode, DPI, output pixel dimensions, and JPEG compression controls](pdf-landing/screenshots/02.png)<br>**Transform output.** Adjust page quality and see the output pixel dimensions for your chosen DPI. |
-| ![KillerPDF in Two-Page view with highlighted text and a fillable text field on the right page](pdf-landing/screenshots/06.png)<br>**Fillable fields and annotations.** Add and move text fields alongside highlighted document text. | ![KillerPDF in Grid view with four view-mode buttons and the zoom menu in the footer](pdf-landing/screenshots/01.png)<br>**View and zoom controls.** Switch layouts and choose a zoom level directly from the footer. |
+| ![KillerPDF in Grid view showing the brochure and view and zoom controls along the footer](pdf-landing/screenshots/01.png)<br>**Grid view.** Browse many pages at once and switch layouts or zoom from the footer. | ![KillerPDF comparing two PDFs side by side with highlighted changes and a page-difference summary](pdf-landing/screenshots/03.png)<br>**PDF comparison.** Review highlighted differences and a summary of changed and missing pages. |
+| ![KillerPDF Stamp Pages dialog previewing a DRAFT text watermark and page number controls](pdf-landing/screenshots/06.png)<br>**Watermarks and page numbers.** Preview a text watermark and set page numbers before applying. | ![KillerPDF OCR menu with a list of downloadable languages in the Portuguese interface and 98SE theme](pdf-landing/screenshots/08.png)<br>**OCR languages.** Select an OCR language from the list, with extra languages available to download. |
 
 ## Requirements
 
