@@ -31,7 +31,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Main window, dialog, and launcher title bar icons now use sharp size-matched images.
 - Annotation bars now show an aligned hand cursor only over draggable areas.
 - Tool option checkboxes now change without flashing the annotation bar.
-- Window caption controls now use the arrow cursor.
+- Aligned the sidebar divider with the thumbnail edge and restored arrow cursors on window caption controls.
 
 ### Changed
 - Menu rows now show accent text and icons on the theme's hover color.
