@@ -5245,7 +5245,7 @@ public sealed partial class PdfPageRenderer
         string? imageSpotName = (target.Ink is not null || preserveRgbSpots)
             && (factor == 1 || opaqueInkImage) && !imageMask
             && colorSpace.HasSpotColorants && colorSpace.Components == 1 && colorSpace.Palette is null
-            ? colorSpace.Convert([1]).SpotName : null;
+            ? colorSpace.Convert(new double[] { 1 }).SpotName : null;
         // Below twofold reduction, bounds describe source-axis footprints only without
         // rotation or shear. Spot metadata still addresses the unreduced source samples.
         bool reducedPlane = factor > 1 || inverse.B == 0 && inverse.C == 0
