@@ -3,31 +3,32 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
-## KillerPDF 1.8.2 through 1.8.70 release benchmarks
+## KillerPDF 1.8.2 through 1.8.80 release benchmarks
 
-Five measured open/save passes were recorded for each release. These are separate
-release sessions, not an alternating same-session comparison.
+KillerPDF 1.8.71 and 1.8.80 received one warmup and five measured open/save passes
+per collection in the same session, with run order alternated. Earlier releases were
+measured in separate release sessions.
 
-| Collection | Inputs | 1.8.2 median seconds | 1.8.3 median seconds | 1.8.4 median seconds | 1.8.6 median seconds | 1.8.70 median seconds |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Public regression | 16,696 | 167.891 | 182.093 | 207.099 | 169.360 | 172.706 |
-| Standards and color | 649 | 5.695 | 5.666 | 5.635 | 5.527 | 5.583 |
-| Private stress | 29,599 | 512.967 | 523.400 | 556.740 | 538.026 | 516.800 |
+| Collection | Inputs | 1.8.2 median seconds | 1.8.3 median seconds | 1.8.4 median seconds | 1.8.6 median seconds | 1.8.70 median seconds | 1.8.71 median seconds | 1.8.80 median seconds |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Public regression | 16,696 | 167.891 | 182.093 | 207.099 | 169.360 | 172.706 | 234.392 | 236.493 |
+| Standards and color | 649 | 5.695 | 5.666 | 5.635 | 5.527 | 5.583 | 5.765 | 5.785 |
+| Private stress | 29,599 | 512.967 | 523.400 | 556.740 | 538.026 | 516.800 | 566.869 | 563.538 |
 
 Version 1.8.3 saved 1,485 additional files without losing any previously successful
 input. Versions 1.8.4 and 1.8.6 reproduced every prior outcome and diagnostic detail.
-Version 1.8.70 reproduced every 1.8.6 file outcome and diagnostic detail, and every
-path, status, diagnostic, and exit code agreed across all six current-run passes. All five releases recorded zero
-crashes and timeouts in the separate damaged-file safety
+Version 1.8.70 reproduced every 1.8.6 file outcome and diagnostic detail. Version
+1.8.80 reproduced every 1.8.71 outcome and diagnostic detail across the paired
+warmups and measured passes. All recorded releases had zero crashes and timeouts in the separate damaged-file safety
 collection. See the
 [1.8.2 release record](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.2.md)
 and the reports and measured runs for [1.8.3](benchmarks/1.8.3/CORPUS.md) and
-[1.8.4](benchmarks/1.8.4/CORPUS.md), [1.8.6](benchmarks/1.8.6/CORPUS.md), and
-[1.8.70](benchmarks/1.8.70/CORPUS.md).
+[1.8.4](benchmarks/1.8.4/CORPUS.md), [1.8.6](benchmarks/1.8.6/CORPUS.md),
+[1.8.70](benchmarks/1.8.70/CORPUS.md), and [1.8.80](benchmarks/1.8.80/CORPUS.md).
 
-Compared with 1.8.6, the 1.8.70 medians were 2.0% longer for regression, 1.0%
-longer for standards, and 3.9% shorter for stress. All changes remain below the
-10% investigation threshold.
+Compared directly with 1.8.71 in the alternating session, the 1.8.80 medians were
+0.90% longer for regression, 0.35% longer for standards, and 0.59% shorter for
+stress. All changes remain below the 10% investigation threshold.
 
 ## KillerPDF 1.8.1 compared with 1.8.0
 
