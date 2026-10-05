@@ -643,6 +643,36 @@
       "maintenanceCommit": "30467b132b4e51f6970723f9a4781bc53e2aae24",
       "developmentCommit": "d1364757f6f20f06846c7fc5b0d515ff7f61cb76",
       "reason": "Inactive-tab closing and its regression check match exactly; changelog entries remain in their respective version sections."
+    },
+    {
+      "maintenanceCommit": "aa467e52792b41fe8bb76e9d0c42b6efc635f39b",
+      "developmentCommit": "9b7a550e049723fcd1469683b4264798d44c354f",
+      "reason": "Tool option checkbox updates have identical functional patches on both lines."
+    },
+    {
+      "maintenanceCommit": "245338cece7d3898c7960562ff3f92bc4b0efc1d",
+      "developmentCommit": "fbeb0cd23ddd41d1039431c85fd9757bc12761f0",
+      "reason": "Window caption arrow cursors have identical functional patches on both lines."
+    },
+    {
+      "maintenanceCommit": "021b7428203cad49a4a590ad6472b2d40069882a",
+      "developmentCommit": "011b3988dddc4a6404be73c4e1f5ead9e1cef6f8",
+      "reason": "Sidebar divider alignment has identical functional patches on both lines."
+    },
+    {
+      "maintenanceCommit": "c478be33578f6d50ca35722ba7f45402853f068d",
+      "developmentCommit": "6bb42fddebe5d405f29356799d487c71093d6a47",
+      "reason": "Each branch orders its current changelog by importance while preserving its own version-specific entries."
+    },
+    {
+      "maintenanceCommit": "48a088c5b5fde229905899126ed94a52a4e7aaf3",
+      "developmentCommit": "f07c32d201104c07f419ce817d066a883066d6c1",
+      "reason": "Delirium menu divider colors and regression checks have identical functional patches on both lines."
+    },
+    {
+      "maintenanceCommit": "b184fa796a060f0c632a72885aabb6a4be2d3ec7",
+      "developmentCommit": "8aa8c139723737f479d508a6f6e65a26bfc655f8",
+      "reason": "Theme and accent contrast corrections have identical functional patches on both lines, including all palette values, resource ownership, and control bindings."
     }
   ]
 }
