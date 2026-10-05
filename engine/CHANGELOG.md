@@ -55,7 +55,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Added an optional JPEG decoder hook for compatible rendering clients.
 - Limited non-isolated form rendering to active alpha-mask bounds, speeding up masked pages without changing pixels.
 - Reduced color conversion time for profiled CMYK display, unprofiled DeviceCMYK content, and ICC RGB images on CMYK pages.
-- Reduced repeated named-spot painting overhead on opaque CMYK pages.
+- Reduced repeated named-spot painting and compositing work.
 - Shortened fully opaque RGB blend compositing and split large non-isolated group composites across bounded row workers, improving blend rendering without changing pixels or peak memory.
 - Split large generic image paints across bounded row workers when their mutable state is row-independent, and reused already converted destination ink during compositing, improving masked-image and mixed-page rendering without changing pixels or peak memory.
 - Split large reduced JPEG 2000 image paints across bounded row workers at smaller page sizes.

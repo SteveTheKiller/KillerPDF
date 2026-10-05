@@ -615,6 +615,11 @@ public sealed partial class PdfPageRenderer
             {
                 uint spot = ReadInk(current, offset);
                 if (spot == 0) continue;
+                if (combined == 0)
+                {
+                    combined = spot;
+                    continue;
+                }
                 uint mixed = 0;
                 for (int channel = 0; channel < 4; channel++)
                 {

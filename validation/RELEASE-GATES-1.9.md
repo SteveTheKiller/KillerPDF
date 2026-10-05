@@ -5058,3 +5058,25 @@ single-colorant metadata query selecting an unsupported span overload.
 Selecting the existing array converter explicitly restored all 139 overprint
 tests and all 4,394 engine tests. All 503 application tests also passed.
 The correction adds one small array per affected image, not per pixel.
+
+### Zero-base spot compositing checkpoint (2026-10-05)
+
+The compositor copies the first nonzero spot contribution when its process-ink
+base is zero, avoiding four channel calculations without changing the remaining
+mixing arithmetic. All 4,394 engine tests and 503 application tests passed.
+The Release build passed with zero errors and existing vendored warnings.
+All 614 conformance images
+and all 74 difficult images at both 512 and 2048 matched the unchanged 1.9
+engine, including statuses and dimensions.
+
+After full corpus warmups and eight balanced runs, difficult rendering changed
+by -1.75% at 512 and -1.55% at 2048; peak working set changed by -0.18% and
++0.71%. Conformance rendering changed by +1.41%, with peak working set -0.22%.
+These are small effects near the measurement variation, not a broad speed gain.
+Four-worker repeated Altona renders also matched the single-worker pixels;
+their mean warm gain was inflated by a control outlier. An identical-binary
+control check differed by -0.96% in time after warmups and eight balanced runs.
+The shared-pool, split-pool, integer-composition, and prepared-row experiments
+were not retained. Parity with 1.8 and full rendering-quality gates remain open.
+Scratch sources, hashes, and measurements are under
+`C:/Users/steve/kp-bench-render/decoder-capacity-20261005/`.
