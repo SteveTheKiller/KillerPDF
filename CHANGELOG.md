@@ -166,6 +166,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Opened PDF comparison with equal document pane widths, excluding the sidebar (#359).
 - Restored toolbar captions for fillable text fields and the measuring tool.
 - Kept comparison controls visible in narrower windows and restored the Close button's full click area.
+- Closing inactive tabs now preserves the active document and sidebar.
 - Tool option checkboxes now change without flashing the annotation bar.
 - Localized the remaining validation messages and audited interface text across all 15 languages. The localization gate now rejects hardcoded UI labels and tooltips (#227).
 - Kept localized toolbar captions and website Help key names complete and visible (#230).
