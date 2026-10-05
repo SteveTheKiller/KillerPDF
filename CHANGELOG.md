@@ -30,6 +30,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The Document Info text menu now follows the active theme.
 - Main window, dialog, and launcher title bar icons now use sharp size-matched images.
 - Annotation bars now show an aligned hand cursor only over draggable areas.
+- Tool option checkboxes now change without flashing the annotation bar.
 
 ### Changed
 - Menu rows now show accent text and icons on the theme's hover color.
