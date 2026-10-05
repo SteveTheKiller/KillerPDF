@@ -12,33 +12,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added Ukrainian localization.
 - Added Norwegian (Bokmål) localization.
 - Added Brazilian Portuguese localization.
-- Added yellow and magenta accents to the neutral and 98SE themes.
 - Added drag ordering for pinned places in the file picker.
+- Added yellow and magenta accents to the neutral and 98SE themes.
 
 ### Fixed
 
 - Prevented the app window from going black when minimizing and restoring (#415).
 - Saved completed forms in PDFs with empty creation dates and unlisted fields.
 - Opened PDFs whose cross-reference table contains valid objects beyond an incorrect trailer size (#406).
-- Reduced page-link loading work for large PDFs (#438).
 - Preserved Hebrew letter order when saving text placed on a PDF (#435).
-- Pasted multi-selected annotations now move together, and a pen click places a dot.
 - WinGet now requests elevation for its machine-wide installation (#439).
-- Install and uninstall windows now show the film grain and the app icon in the title bar.
+- Reduced page-link loading work for large PDFs (#438).
+- Pasted multi-selected annotations now move together, and a pen click places a dot.
+- Tool option checkboxes now change without flashing the annotation bar.
+- Aligned the sidebar divider with the thumbnail edge and restored arrow cursors on window caption controls.
+- Annotation bars now show an aligned hand cursor only over draggable areas.
 - The installer and uninstaller have their own taskbar buttons, labeled "KillerPDF Installer" and "Uninstall KillerPDF", with the app icon.
 - The portable package reports a start failure in a KillerPDF-styled dialog instead of a plain Windows message box.
 - The Document Info text menu now follows the active theme.
 - Main window, dialog, and launcher title bar icons now use sharp size-matched images.
-- Annotation bars now show an aligned hand cursor only over draggable areas.
-- Tool option checkboxes now change without flashing the annotation bar.
-- Aligned the sidebar divider with the thumbnail edge and restored arrow cursors on window caption controls.
+- Install and uninstall windows now show the film grain and the app icon in the title bar.
 
 ### Changed
-- Menu rows now show accent text and icons on the theme's hover color.
 - Document tabs now use complete 98SE geometry and themed drag previews, and can be moved into a new window without losing their live editing state.
 - Reduced memory use when opening large PDFs.
 - The installer now offers upgrade, reinstall, uninstall, or cancel when KillerPDF is already installed.
 - Split the language picker into two columns for 19 locales.
+- Menu rows now show accent text and icons on the theme's hover color.
 - Selected states now use subtle gradients outside 98SE, Light buttons have softer gray borders, and yellow wordmarks match their accent.
 - Ectoplasm menus and annotation bars now have softer borders.
 
