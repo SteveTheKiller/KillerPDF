@@ -633,6 +633,11 @@
       "maintenanceCommit": "2427c7ad5f7be8ced06d0d61fe7878f793154ac0",
       "developmentCommit": "b107ac8f7d0d2b6c00ba624e5a4f1a772d613496",
       "reason": "Both language pickers show the same 19 locales in two columns with ten choices on the left and nine on the right."
+    },
+    {
+      "maintenanceCommit": "34470c859ab0889104da33a98ac78c4275120ccf",
+      "developmentCommit": "2e7525a2a4608f7d8edabf5cabb8dc625f43fe39",
+      "reason": "Comparison control layout, close-button hit testing, and regression tests match exactly; changelog entries remain in their respective version sections."
     }
   ]
 }
