@@ -87,7 +87,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="b" Property="Background" Value="{DynamicResource PaneBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource PaneBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -1021,7 +1021,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource FooterAccentBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -1048,11 +1048,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource FooterAccentBrush}"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource FooterAccentBrush}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource FooterAccentBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

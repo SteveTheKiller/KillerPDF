@@ -11,7 +11,7 @@
     <DropShadowEffect x:Key="TextStrokeSoft" Color="Black" BlurRadius="2" ShadowDepth="0.6" Direction="270" Opacity="0.45"/>
 
     <!-- Chrome the shared layer leaves to the app -->
-    <SolidColorBrush x:Key="TextFooter"          Color="#b5ad9e" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TextFooter"          Color="#CFC9BF" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuTextBrush"       Color="#d8cfb5" po:Freeze="True"/>
     <SolidColorBrush x:Key="TreeLineBrush"       Color="#5c554c" po:Freeze="True"/>
     <!-- A faint wash, NOT the base layer's SelectionBg - see the note in Sepulchre.xaml.
@@ -74,7 +74,7 @@
 
     <SolidColorBrush x:Key="RowHoverBrush" Color="#5f6258" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
-    <LinearGradientBrush x:Key="SelectionBg" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"  StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#828674" Offset="0"/><GradientStop Color="#5A5E4B" Offset="1"/></LinearGradientBrush>
+    <LinearGradientBrush x:Key="SelectionBg" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"  StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#6C6F60" Offset="0"/><GradientStop Color="#5A5E4B" Offset="1"/></LinearGradientBrush>
 
     <SolidColorBrush x:Key="SelectionFg" Color="#f2f4f3" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
@@ -100,4 +100,6 @@
 
     <LinearGradientBrush x:Key="TitleBarBrush" StartPoint="0,0.5" EndPoint="1,0.5" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"><GradientStop Color="#3b3f46" Offset="0" /><GradientStop Color="#50564b" Offset="1" /></LinearGradientBrush>
 
+    <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#F2F4F3"/>
+    <SolidColorBrush x:Key="FooterAccentBrush" Color="#D2CAAD"/>
 </ResourceDictionary>

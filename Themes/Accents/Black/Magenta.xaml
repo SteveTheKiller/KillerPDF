@@ -12,7 +12,7 @@
     <SolidColorBrush x:Key="RowSelectedBrush"    Color="#2E0022" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlinePressedBrush" Color="#2E0022" po:Freeze="True"/>
     <LinearGradientBrush x:Key="SelectionBg"     po:Freeze="True" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#FF48CE" Offset="0"/><GradientStop Color="#F31FB1" Offset="1"/></LinearGradientBrush>
-    <SolidColorBrush x:Key="SelectionFg"     Color="#1E1F22" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionFg"     Color="#17171B" po:Freeze="True"/>
     <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#88FF2BBD" po:Freeze="True"/>
     <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#FF2BBD" po:Freeze="True"/>
     <SolidColorBrush x:Key="RadioAccent"     Color="#FF2BBD" po:Freeze="True"/>
@@ -22,4 +22,5 @@
     <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"     Color="#2E0022" po:Freeze="True"/>
     <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#FF2BBD" po:Freeze="True"/>
 
+    <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#FFFFFF"/>
 </ResourceDictionary>

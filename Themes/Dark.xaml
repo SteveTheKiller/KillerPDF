@@ -53,7 +53,7 @@
     <SolidColorBrush x:Key="ChromeTextBrush" Color="#b6b6b6" po:Freeze="True"/>
     <SolidColorBrush x:Key="FilenameBrush"  Color="#a0a0a0" po:Freeze="True"/>
     <SolidColorBrush x:Key="DimTextBrush"   Color="#6a6a6a" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextFooter"     Color="#6a6a6a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TextFooter"     Color="#858585" po:Freeze="True"/>
     <SolidColorBrush x:Key="DangerRed"      Color="#ef4444" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgDragHandle"   Color="#555555" po:Freeze="True"/>
     <SolidColorBrush x:Key="DragLine"       Color="#363636" po:Freeze="True"/>
@@ -100,4 +100,5 @@
     <CornerRadius x:Key="FlyoutCornerRadius">4</CornerRadius>
     <CornerRadius x:Key="AccentSwatchCornerRadius">9</CornerRadius>
 
+    <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#E0E0E0"/>
 </ResourceDictionary>

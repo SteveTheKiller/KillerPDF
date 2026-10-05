@@ -78,7 +78,7 @@
 
     <LinearGradientBrush x:Key="SelectionBg" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"  StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#FF86A5" Offset="0"/><GradientStop Color="#E55D7D" Offset="1"/></LinearGradientBrush>
 
-    <SolidColorBrush x:Key="SelectionFg" Color="#292c31" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="SelectionFg" Color="#17171B" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <SolidColorBrush x:Key="InputBorderBrush" Color="#756b79" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
@@ -87,7 +87,7 @@
     <SolidColorBrush x:Key="MenuBorderBrush" Color="#756b79" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <SolidColorBrush x:Key="MenuHoverBrush" Color="#b2556c" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
-    <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#f4f4f0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#FFFFFF" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <CornerRadius x:Key="WindowCornerRadius" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">7</CornerRadius>
 
@@ -103,4 +103,5 @@
 
     <SolidColorBrush x:Key="TitleBarBrush" Color="#3b3642" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
+    <SolidColorBrush x:Key="FooterAccentBrush" Color="#FF7696"/>
 </ResourceDictionary>

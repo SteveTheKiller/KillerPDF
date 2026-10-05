@@ -167,6 +167,8 @@ namespace KillerPDF.Services
             bool themeOwnsOutlineText = newDict.Contains("OutlineTextBrush");
             bool themeOwnsOutlineHover = newDict.Contains("OutlineHoverBrush");
             bool themeOwnsOutlineHoverText = newDict.Contains("OutlineHoverTextBrush");
+            bool themeOwnsComboHighlightText = newDict.Contains("ComboHighlightTextBrush");
+            bool themeOwnsFooterAccent = newDict.Contains("FooterAccentBrush");
             CompleteAppPalette(newDict);
             var merged  = Application.Current.Resources.MergedDictionaries;
 
@@ -208,6 +210,8 @@ namespace KillerPDF.Services
                 var target = merged[0];
                 foreach (object key in accentDict.Keys)
                     target[key] = accentDict[key];
+                themeOwnsComboHighlightText |= accentDict.Contains("ComboHighlightTextBrush");
+                themeOwnsFooterAccent |= accentDict.Contains("FooterAccentBrush");
                 // Aliases derived from PrimaryBrush were materialized against the BASE palette
                 // (CompleteAppPalette runs before this overlay), so an overlay that recolors
                 // PrimaryBrush without carrying the alias left them on the base hue - the green
@@ -249,8 +253,10 @@ namespace KillerPDF.Services
             // zero radius actually reaches panes, tabs, flyouts, and dialogs.
             var appResources = Application.Current.Resources;
             var liveResources = merged[0];
-            if (theme != Theme.SE98 && theme != Theme.Mourning)
+            if (!themeOwnsComboHighlightText)
                 liveResources["ComboHighlightTextBrush"] = liveResources["PrimaryBrush"];
+            if (!themeOwnsFooterAccent)
+                liveResources["FooterAccentBrush"] = liveResources["PrimaryBrush"];
             ApplyComparisonBarPalette(liveResources, theme);
             // One semantic role for the two window-like overlays. This is assigned after the
             // palette and accent overlay are fully merged so gradient BackgroundBrush values are
@@ -270,7 +276,6 @@ namespace KillerPDF.Services
         {
             object background = resources["PrimaryBrush"];
             object foreground = resources["OnPrimaryBrush"];
-            object closeHover = resources["AboutCloseHoverFg"];
             object? effect = null;
             DarkAccent accent = AccentFor(theme);
 
@@ -284,18 +289,20 @@ namespace KillerPDF.Services
             switch (theme)
             {
                 case Theme.Dark:
-                case Theme.Light:
-                    foreground = Brushes.White;
-                    effect = resources["TextStroke"];
-                    break;
                 case Theme.Black:
-                    if (accent is DarkAccent.Green or DarkAccent.Teal)
+                    if (accent == DarkAccent.Red || (theme == Theme.Black && accent == DarkAccent.Purple))
                     {
-                        foreground = Brushes.Black;
+                        background = resources["SelectionBg"];
+                        foreground = Brushes.White;
+                        effect = resources["TextStroke"];
                     }
+                    else foreground = Solid(0x24, 0x21, 0x2b);
+                    break;
+                case Theme.Light:
+                    if (accent == DarkAccent.Orange) foreground = Solid(0x1e, 0x1f, 0x22);
                     else
                     {
-                        foreground = Brushes.White;
+                        foreground = resources["OnPrimaryBrush"];
                         effect = resources["TextStroke"];
                     }
                     break;
@@ -316,29 +323,12 @@ namespace KillerPDF.Services
                     break;
                 case Theme.Ectoplasm:
                     foreground = Solid(0x5e, 0x17, 0x64);
-                    effect = resources.Contains("TextStrokeSoft") ? resources["TextStrokeSoft"] : resources["TextStroke"];
-                    break;
-                case Theme.Decay:
-                    background = resources["SelectionBg"];
-                    foreground = Brushes.White;
-                    effect = resources["TextStroke"];
-                    break;
-                case Theme.Delirium:
-                case Theme.Mourning:
-                case Theme.Sepulchre:
-                case Theme.Malaise:
-                    foreground = Brushes.White;
-                    effect = resources["TextStroke"];
                     break;
             }
 
-            if ((HasAccents(theme) && accent == DarkAccent.Red) ||
-                theme is Theme.Blood or Theme.Delirium or Theme.Mourning or Theme.Malaise)
-                closeHover = foreground;
-
             resources["ComparisonBarBrush"] = background;
             resources["ComparisonBarForegroundBrush"] = foreground;
-            resources["ComparisonBarCloseHoverBrush"] = closeHover;
+            resources["ComparisonBarCloseHoverBrush"] = foreground;
             resources["ComparisonBarTextEffect"] = effect;
             resources["ComparisonBarVerticalMask"] = BuildComparisonBarVerticalMask(theme);
         }
