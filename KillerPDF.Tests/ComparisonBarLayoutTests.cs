@@ -214,7 +214,7 @@ public sealed class ComparisonBarLayoutTests
         Assert.Contains(comparisonHoverTrigger.Descendants(), element =>
             element.Name.LocalName == "Setter" &&
             (string?)element.Attribute("Property") == "Background" &&
-            (string?)element.Attribute("Value") == "{StaticResource ComparisonBarHoverBrush}");
+            (string?)element.Attribute("Value") == "{DynamicResource ComparisonBarHoverBrush}");
 
         XElement comparisonCloseStyle = document.Descendants()
             .Single(element => element.Name.LocalName == "Style" &&
@@ -259,18 +259,15 @@ public sealed class ComparisonBarLayoutTests
         Assert.Contains("case Theme.Dark:", themeManager);
         Assert.Contains("case Theme.Light:", themeManager);
         Assert.Contains("case Theme.Black:", themeManager);
-        Assert.Contains("accent is DarkAccent.Green or DarkAccent.Teal", themeManager);
+        Assert.Contains("else foreground = Solid(0x24, 0x21, 0x2b);", themeManager);
         Assert.Contains("case Theme.Blood:", themeManager);
         Assert.Contains("case Theme.Greed:", themeManager);
         Assert.Contains("case Theme.Cyanotic:", themeManager);
         Assert.Contains("case Theme.Ectoplasm:", themeManager);
-        Assert.Contains("case Theme.Decay:", themeManager);
         Assert.Contains("background = resources[\"SelectionBg\"];", themeManager);
-        Assert.Contains("case Theme.Delirium:", themeManager);
-        Assert.Contains("case Theme.Mourning:", themeManager);
-        Assert.Contains("case Theme.Sepulchre:", themeManager);
-        Assert.Contains("case Theme.Malaise:", themeManager);
-        Assert.Contains("resources[\"ComparisonBarCloseHoverBrush\"] = closeHover;", themeManager);
+        Assert.Contains("object foreground = resources[\"OnPrimaryBrush\"];", themeManager);
+        Assert.Contains("resources[\"ComparisonBarCloseHoverBrush\"] = foreground;", themeManager);
+        Assert.Contains("resources[\"ComparisonBarHoverBrush\"] =", themeManager);
         Assert.Contains("resources[\"ComparisonBarVerticalMask\"] = BuildComparisonBarVerticalMask(theme);", themeManager);
         Assert.Contains("if (theme == Theme.SE98) return Brushes.Black;", themeManager);
 
