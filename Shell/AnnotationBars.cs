@@ -568,8 +568,7 @@ namespace KillerPDF
             panel.Children.Add(drawGrip);
 
             // A small checkbox + label for the bar (Level on the Line tool, Eraser on Highlight / Draw).
-            // Toggling rebuilds the bar to reflect the new state.
-            StackPanel BarCheck(string label, bool active, string tip, Action onClick)
+            StackPanel BarCheck(string label, bool active, string tip, Action<bool> onChanged)
             {
                 var p = new StackPanel
                 {
@@ -589,22 +588,25 @@ namespace KillerPDF
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(0, 0, 5, 0)
                 };
-                if (active)
+                var mark = new TextBlock
                 {
-                    // Live theme reference (not a snapshot) so the checked fill tracks the current theme's
-                    // accent - the old AccentBrush() snapshot kept whatever accent was active when the bar
-                    // was first built, so it showed the wrong (often green) color after a theme switch.
-                    box.SetResourceReference(Border.BackgroundProperty, "SelectionAccent");
-                    box.Child = new TextBlock
-                    {
-                        Text = "✓",
-                        Foreground = Brushes.White,
-                        FontSize = 10,
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    };
+                    Text = "✓",
+                    Foreground = Brushes.White,
+                    FontSize = 10,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                box.Child = mark;
+                box.BorderBrush = _swatchDimBorder;
+                void UpdateCheckVisual()
+                {
+                    box.BorderThickness = new Thickness(active ? 0 : 1);
+                    mark.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
+                    // Keep the checked fill live so it follows theme changes.
+                    if (active) box.SetResourceReference(Border.BackgroundProperty, "SelectionAccent");
+                    else box.Background = Brushes.Transparent;
                 }
-                else box.BorderBrush = _swatchDimBorder;
+                UpdateCheckVisual();
                 var lbl = new TextBlock
                 {
                     Text = label,
@@ -615,7 +617,12 @@ namespace KillerPDF
                 lbl.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
                 p.Children.Add(box);
                 p.Children.Add(lbl);
-                p.MouseLeftButtonDown += (_, _) => onClick();
+                p.MouseLeftButtonDown += (_, _) =>
+                {
+                    active = !active;
+                    onChanged(active);
+                    UpdateCheckVisual();
+                };
                 return p;
             }
             // Built here, added at the END of the bar (after Opacity) where there's more room than
@@ -624,13 +631,13 @@ namespace KillerPDF
             {
                 EditTool.Line => BarCheck(Loc("Str_Bar_Level"), _lineLevel,
                     Loc("Str_Bar_TT_Level"),
-                    () => { _lineLevel = !_lineLevel; ShowDrawSettings(tool); }),
+                    value => _lineLevel = value),
                 EditTool.Highlight => BarCheck(Loc("Str_Bar_AnnotationEraser"), _highlightErase,
                     Loc("Str_Bar_TT_EraserBox"),
-                    () => { _highlightErase = !_highlightErase; ShowDrawSettings(tool); }),
+                    value => _highlightErase = value),
                 EditTool.Draw => BarCheck(Loc("Str_Bar_Eraser"), _drawErase,
                     Loc("Str_Bar_TT_EraserBrush"),
-                    () => { _drawErase = !_drawErase; ShowDrawSettings(tool); }),
+                    value => _drawErase = value),
                 EditTool.Shape => ShapeKindPicker(),
                 _ => null
             };
@@ -688,7 +695,7 @@ namespace KillerPDF
 
                 var fillCheck = BarCheck(Loc("Str_Bar_ShapeFill"), _shapeFill,
                     Loc("Str_Bar_TT_ShapeFill"),
-                    () => { _shapeFill = !_shapeFill; ShowDrawSettings(tool); });
+                    value => _shapeFill = value);
                 fillCheck.Margin = new Thickness(10, 0, 18, 0);
                 row.Children.Add(fillCheck);
                 return row;
