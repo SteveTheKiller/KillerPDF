@@ -79,7 +79,7 @@ public sealed class PdfImageAreaSamplingTests
         byte[] samples = bits == 1 ? [0x40, 0x40, 0x40, 0x40, 0x40]
             : bits == 8 ? values : [.. values.SelectMany(value => new byte[] { value, value })];
         var rendered = RenderGray(samples, bits, 5, 3, "5 0 0 5 -.25 -.25");
-        Assert.Equal(new byte[] { 0, 0, 0, 255 }, rendered.Pixels.Slice(0, 4).ToArray());
+        Assert.Equal(new byte[] { 0, 0, 0, 255 }, rendered.Pixels[..4].ToArray());
     }
 
     [Theory]
@@ -180,7 +180,7 @@ public sealed class PdfImageAreaSamplingTests
         for (int x = 0; x < 2; x++)
             Assert.Equal(full.Pixels.Slice(((y + 2) * 8 + x + 4) * 4, 4).ToArray(),
                 cropped.Pixels.Slice((y * 2 + x) * 4, 4).ToArray());
-        Assert.NotEqual(cropped.Pixels.Slice(0, 4).ToArray(), cropped.Pixels.Slice(4, 4).ToArray());
+        Assert.NotEqual(cropped.Pixels[..4].ToArray(), cropped.Pixels.Slice(4, 4).ToArray());
     }
 
     [Fact]
@@ -213,9 +213,11 @@ public sealed class PdfImageAreaSamplingTests
         var update = new PdfIncrementalUpdateBuilder(source);
         var imageEntries = new List<KeyValuePair<PdfName, PdfObject>>([
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(imageSize)),
-            Entry("Height", new PdfInteger(imageSize)), Entry("BitsPerComponent", new PdfInteger(bits))]);
-        imageEntries.Add(imageMask ? Entry("ImageMask", new PdfBoolean(true))
-            : Entry("ColorSpace", Name("DeviceGray")));
+            Entry("Height", new PdfInteger(imageSize)), Entry("BitsPerComponent", new PdfInteger(bits))])
+        {
+            imageMask ? Entry("ImageMask", new PdfBoolean(true))
+            : Entry("ColorSpace", Name("DeviceGray"))
+        };
         var image = update.AddObject(new PdfStream(new PdfDictionary(imageEntries), samples));
         var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Image", image)]))]);
         update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page

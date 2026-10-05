@@ -10,6 +10,8 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfOverprintTests
 {
+    private static readonly int[] UnitInterval = [0, 1];
+
     [Theory]
     [InlineData("fill", true, false, 1, 0)]
     [InlineData("fill", false, true, 1, 255)]
@@ -464,7 +466,7 @@ public sealed class PdfOverprintTests
         var pageReference = (PdfIndirectReference)((PdfArray)pages[N("Kids")])[0];
         var page = (PdfDictionary)source.Resolve(pageReference);
         var update = new PdfIncrementalUpdateBuilder(source);
-        PdfObject Spot(string name, int cyan, int magenta) => new PdfArray([
+        static PdfObject Spot(string name, int cyan, int magenta) => new PdfArray([
             N("Separation"), N(name), N("DeviceCMYK"), new PdfDictionary([
                 E("FunctionType", new PdfInteger(2)), E("Domain", A(0, 1)),
                 E("C0", A(0, 0, 0, 0)), E("C1", A(cyan, magenta, 0, 0)),
@@ -900,8 +902,8 @@ public sealed class PdfOverprintTests
                 _ => throw new ArgumentOutOfRangeException(nameof(unsupportedDeviceN))
             };
             int alternateComponents = unsupportedDeviceN == "rgbAlternate" ? 3 : 4;
-            int[] domain = Enumerable.Repeat(new[] { 0, 1 }, colorants.Length).SelectMany(value => value).ToArray();
-            int[] range = Enumerable.Repeat(new[] { 0, 1 }, alternateComponents).SelectMany(value => value).ToArray();
+            int[] domain = [.. Enumerable.Repeat(UnitInterval, colorants.Length).SelectMany(value => value)];
+            int[] range = [.. Enumerable.Repeat(UnitInterval, alternateComponents).SelectMany(value => value)];
             string program = "{ " + string.Concat(Enumerable.Repeat("pop ", colorants.Length))
                 + string.Concat(Enumerable.Repeat("0 ", alternateComponents)) + "}";
             var function = update.AddObject(new PdfStream(new PdfDictionary([
@@ -931,7 +933,7 @@ public sealed class PdfOverprintTests
                 Entry("Blue", new PdfArray([Name("Separation"), Name("GWG Blue"),
                     Name("DeviceCMYK"), blueFunction])),
                 ..(defaultCmykOverride
-                    ? new[] { Entry("DefaultCMYK", Name("DeviceCMYK")) }
+                    ? [Entry("DefaultCMYK", Name("DeviceCMYK"))]
                     : Array.Empty<KeyValuePair<PdfName, PdfObject>>())])),
             Entry("ExtGState", new PdfDictionary([Entry("O", new PdfDictionary([
                 Entry("op", new PdfBoolean(enableSpotOverprint)),

@@ -1194,7 +1194,7 @@ public static class PdfOcrRecognizer
                     bgra, width, height, rotation, pipelineOptions, cancellationToken);
             PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
                 prepared, pipelineOptions.DetectPageSegments, cancellationToken);
-            IReadOnlyList<PdfOcrRecognizedWord> recognized = Recognize(
+            var recognized = Recognize(
                 prepared, layout, model, languageModel, allowedLabels, cancellationToken);
             double score = recognized.Count == 0
                 ? -1 : CalculateMeanConfidence(recognized);

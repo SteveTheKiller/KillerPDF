@@ -38,7 +38,7 @@ public sealed partial class PdfPageRenderer
                 if (subpath.Count > MaximumPoints - points) return false;
                 points += subpath.Count;
             }
-            var bounds = (Left: pixels.Left, Top: pixels.Top, Right: pixels.Right, Bottom: pixels.Bottom);
+            var bounds = (pixels.Left, pixels.Top, pixels.Right, pixels.Bottom);
             bool fractionalClips = false;
             foreach (ClipRegion clip in state.Clips)
             {
@@ -91,7 +91,7 @@ public sealed partial class PdfPageRenderer
                     return true;
                 }
                 Point[][] savedPath = new Point[path.Count][];
-                for (int index = 0; index < path.Count; index++) savedPath[index] = path[index].ToArray();
+                for (int index = 0; index < path.Count; index++) savedPath[index] = [.. path[index]];
                 _path = savedPath;
                 _color = color;
                 _evenOdd = evenOdd;

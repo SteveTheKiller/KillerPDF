@@ -216,9 +216,8 @@ public sealed class PdfSpotImageOverprintTests
         int spotWidth = 4 * sourceScale;
         int spotHeight = sourceScale;
         byte[] spotSamples = alternatingTints
-            ? Enumerable.Range(0, spotWidth * spotHeight)
-                .Select(index => (byte)(index % 2 == 0 ? 0 : 255)).ToArray()
-            : Enumerable.Repeat(uniformTint, spotWidth * spotHeight).ToArray();
+            ? [.. Enumerable.Range(0, spotWidth * spotHeight).Select(index => (byte)(index % 2 == 0 ? 0 : 255))]
+            : [.. Enumerable.Repeat(uniformTint, spotWidth * spotHeight)];
         PdfIndirectReference spotImage = update.AddObject(new PdfStream(new PdfDictionary([
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(spotWidth)),
             Entry("Height", new PdfInteger(spotHeight)),

@@ -245,7 +245,7 @@ public sealed class PdfRepeatedOpaqueFillTests
             Entry("C0", Numbers(0, 0, 0, 0)), Entry("C1", Numbers(1, 0, 1, 0)),
             Entry("N", new PdfInteger(1))
         ]);
-        PdfDictionary Overprint(bool enabled, int mode) => new([
+        static PdfDictionary Overprint(bool enabled, int mode) => new([
             Entry("OP", new PdfBoolean(enabled)), Entry("op", new PdfBoolean(enabled)),
             Entry("OPM", new PdfInteger(mode))
         ]);
@@ -278,7 +278,7 @@ public sealed class PdfRepeatedOpaqueFillTests
         ]);
         if (nestedFractionalForms)
         {
-            PdfArray bounds = new PdfArray([
+            PdfArray bounds = new([
                 new PdfReal(0.1), new PdfReal(0.1), new PdfReal(31.9), new PdfReal(31.9)
             ]);
             PdfIndirectReference inner = update.AddObject(new PdfStream(new PdfDictionary([

@@ -83,7 +83,7 @@ public sealed class PdfShadingProcessOverprintTests
             Entry("Extend", new PdfArray([new PdfBoolean(true), new PdfBoolean(true)])),
             Entry("BBox", Numbers(0, 0, 2, 1))
         ]);
-        PdfDictionary Overprint(bool enabled, int overprintMode) => new([
+        static PdfDictionary Overprint(bool enabled, int overprintMode) => new([
             Entry("OP", new PdfBoolean(enabled)), Entry("op", new PdfBoolean(enabled)),
             Entry("OPM", new PdfInteger(overprintMode))
         ]);

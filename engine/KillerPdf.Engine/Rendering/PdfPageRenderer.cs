@@ -5245,7 +5245,7 @@ public sealed partial class PdfPageRenderer
         string? imageSpotName = (target.Ink is not null || preserveRgbSpots)
             && (factor == 1 || opaqueInkImage) && !imageMask
             && colorSpace.HasSpotColorants && colorSpace.Components == 1 && colorSpace.Palette is null
-            ? colorSpace.Convert(new double[] { 1 }).SpotName : null;
+            ? colorSpace.Convert([1]).SpotName : null;
         // Below twofold reduction, bounds describe source-axis footprints only without
         // rotation or shear. Spot metadata still addresses the unreduced source samples.
         bool reducedPlane = factor > 1 || inverse.B == 0 && inverse.C == 0
@@ -5377,8 +5377,7 @@ public sealed partial class PdfPageRenderer
                             {
                                 planeData.AsSpan((py - 1) * planeWidth * 4, planeWidth * 4)
                                     .CopyTo(planeData.AsSpan(py * planeWidth * 4, planeWidth * 4));
-                                if (spotPlane is not null)
-                                    spotPlane.AsSpan((py - 1) * planeWidth, planeWidth)
+                                spotPlane?.AsSpan((py - 1) * planeWidth, planeWidth)
                                         .CopyTo(spotPlane.AsSpan(py * planeWidth, planeWidth));
                                 continue;
                             }
@@ -5395,8 +5394,7 @@ public sealed partial class PdfPageRenderer
                                 ? converter.ConvertArea(px, py, planeWidth, planeHeight,
                                     sourceWidth, sourceHeight, cancellationToken)
                                 : converter.Convert(sx, sy);
-                            if (spotPlane is not null)
-                                spotPlane[py * planeWidth + px] = AverageSpotPalette(samples,
+                            spotPlane?[py * planeWidth + px] = AverageSpotPalette(samples,
                                     rowBytes, bits, sourceWidth, sourceHeight, px, py,
                                     planeWidth, planeHeight, spotPalette!);
                             int alpha = colorKeyMask is not null && converter.MatchesColorKey(sx, sy, colorKeyMask)
@@ -6979,7 +6977,8 @@ public sealed partial class PdfPageRenderer
 
     private static IReadOnlyList<List<Point>> CreateDashedPaths(
         IReadOnlyList<List<Point>> paths, Matrix transform,
-        IReadOnlyList<double> suppliedPattern, double suppliedPhase, CancellationToken cancellationToken)
+        System.Collections.ObjectModel.ReadOnlyCollection<double> suppliedPattern,
+        double suppliedPhase, CancellationToken cancellationToken)
     {
         if (!transform.TryInverse(out Matrix inverse)) return paths;
         double[] pattern = suppliedPattern.Count % 2 == 0

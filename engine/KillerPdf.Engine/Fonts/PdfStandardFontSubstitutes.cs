@@ -18,7 +18,7 @@ internal static class PdfStandardFontSubstitutes
     private static readonly Lazy<TrueTypeFont> MonoBoldItalic = Font("LiberationMono-BoldItalic.ttf");
 
     private static readonly Dictionary<string, Lazy<TrueTypeFont>> Fonts =
-        new Dictionary<string, Lazy<TrueTypeFont>>(StringComparer.Ordinal)
+        new(StringComparer.Ordinal)
         {
             ["Helvetica"] = SansRegular,
             ["Helvetica-Bold"] = SansBold,

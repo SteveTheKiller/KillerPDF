@@ -105,7 +105,7 @@ public sealed class PdfRegistrationSpotOverprintTests
         ]), [indexed ? (byte)0 : sample]));
         PdfDictionary redTint = Tint(0.5, 0, 0, 0);
         PdfDictionary blueTint = Tint(0.5, 0.2, 0, 0);
-        PdfDictionary Overprint(bool enabled, int mode) => new([
+        static PdfDictionary Overprint(bool enabled, int mode) => new([
             Entry("OP", new PdfBoolean(enabled)), Entry("op", new PdfBoolean(enabled)),
             Entry("OPM", new PdfInteger(mode))
         ]);

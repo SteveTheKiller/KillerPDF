@@ -1383,8 +1383,7 @@ public sealed partial class PdfPageRenderer
                         && pixels.CanPaintSpot(offset))
                     {
                         pixels.PaintSpotCoverage(offset, paint, ink, (byte)cover, overprint);
-                        if (groupAlpha is not null)
-                            groupAlpha[offset / 4] = (byte)Math.Round(cover
+                        groupAlpha?[offset / 4] = (byte)Math.Round(cover
                                 + groupAlpha[offset / 4] * (1 - cover / 255d));
                     }
                     else

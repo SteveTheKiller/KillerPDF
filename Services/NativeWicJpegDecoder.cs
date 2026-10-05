@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace KillerPDF.Services;
 
-internal static class NativeWicJpegDecoder
+internal static partial class NativeWicJpegDecoder
 {
     private static readonly Guid FactoryClass = new("cacaf262-9370-4615-a13b-9f5539da4c0a");
     private static readonly Guid FactoryInterface = new("ec5ec8a9-c395-4314-9c77-54d7a935ff70");
@@ -61,12 +61,12 @@ internal static class NativeWicJpegDecoder
         Marshal.GetDelegateForFunctionPointer<T>(Marshal.ReadIntPtr(
             Marshal.ReadIntPtr(unknown), slot * IntPtr.Size));
 
-    [DllImport("ole32.dll")]
-    private static extern int CoCreateInstance(ref Guid classId, nint outer, uint context,
+    [LibraryImport("ole32.dll")]
+    private static partial int CoCreateInstance(ref Guid classId, nint outer, uint context,
         ref Guid interfaceId, out nint result);
 
-    [DllImport("shlwapi.dll")]
-    private static extern nint SHCreateMemStream(byte[] data, uint length);
+    [LibraryImport("shlwapi.dll")]
+    private static partial nint SHCreateMemStream(byte[] data, uint length);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int CreateDecoderFromStream(nint self, nint stream, nint vendor,

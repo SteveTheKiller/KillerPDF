@@ -225,7 +225,7 @@ public static class PdfContentTransformation
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(textObjectIndexes);
         PdfContentInstruction[] source = [.. instructions];
-        IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
+        var ranges = TextObjectRanges(source);
 
         int[] requested = [.. textObjectIndexes];
         if (requested.Any(index => index < 0 || index >= ranges.Count)
@@ -261,7 +261,7 @@ public static class PdfContentTransformation
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(replacements);
         PdfContentInstruction[] source = [.. instructions];
-        IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
+        var ranges = TextObjectRanges(source);
         if (replacements.Keys.Any(index => index < 0 || index >= ranges.Count))
             throw new ArgumentException(
                 "Replacement text-object indexes must be valid.", nameof(replacements));
@@ -317,7 +317,7 @@ public static class PdfContentTransformation
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(textObjectIndexes);
         PdfContentInstruction[] source = [.. instructions];
-        IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
+        var ranges = TextObjectRanges(source);
         int[] requested = [.. textObjectIndexes];
         if (requested.Any(index => index < 0 || index >= ranges.Count)
             || requested.Distinct().Count() != requested.Length)
@@ -364,7 +364,7 @@ public static class PdfContentTransformation
             throw new ArgumentOutOfRangeException(nameof(renderingMode),
                 "Text rendering mode must be between zero and seven.");
         PdfContentInstruction[] source = [.. instructions];
-        IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
+        var ranges = TextObjectRanges(source);
         int[] requested = [.. textObjectIndexes];
         if (requested.Any(index => index < 0 || index >= ranges.Count)
             || requested.Distinct().Count() != requested.Length)
@@ -417,7 +417,7 @@ public static class PdfContentTransformation
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(pathIndexes);
         PdfContentInstruction[] source = [.. instructions];
-        IReadOnlyList<(int Start, int End, bool Clipping)> ranges = PaintedPathRanges(source);
+        var ranges = PaintedPathRanges(source);
 
         int[] requested = [.. pathIndexes];
         if (requested.Any(index => index < 0 || index >= ranges.Count)
@@ -450,7 +450,7 @@ public static class PdfContentTransformation
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(replacements);
         PdfContentInstruction[] source = [.. instructions];
-        IReadOnlyList<(int Start, int End, bool Clipping)> ranges = PaintedPathRanges(source);
+        var ranges = PaintedPathRanges(source);
         if (replacements.Keys.Any(index => index < 0 || index >= ranges.Count))
             throw new ArgumentException(
                 "Replacement painted-path indexes must be valid.", nameof(replacements));
@@ -506,7 +506,7 @@ public static class PdfContentTransformation
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(pathIndexes);
         PdfContentInstruction[] source = [.. instructions];
-        IReadOnlyList<(int Start, int End, bool Clipping)> ranges = PaintedPathRanges(source);
+        var ranges = PaintedPathRanges(source);
         int[] requested = [.. pathIndexes];
         if (requested.Any(index => index < 0 || index >= ranges.Count)
             || requested.Distinct().Count() != requested.Length)

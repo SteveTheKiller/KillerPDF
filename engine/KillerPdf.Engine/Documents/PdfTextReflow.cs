@@ -60,7 +60,7 @@ public static class PdfTextReflow
                     continue;
                 }
 
-                IReadOnlyList<PdfReflowLine> fragments = BreakWord(
+                var fragments = BreakWord(
                     word, font, fontSize, maximumWidth);
                 for (int index = 0; index + 1 < fragments.Count; index++)
                     lines.Add(fragments[index]);

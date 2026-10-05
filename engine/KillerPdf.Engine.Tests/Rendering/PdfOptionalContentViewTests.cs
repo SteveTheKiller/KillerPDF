@@ -93,10 +93,10 @@ public sealed class PdfOptionalContentViewTests
             new PdfRenderOptions(2, 1, includeAnnotations: false, includeFormFields: false));
 
         Assert.Empty(page.Diagnostics);
-        Assert.Equal(leftVisible ? new byte[] { 0, 0, 255, 255 }
-            : new byte[] { 255, 255, 255, 255 }, Pixel(page, 0));
-        Assert.Equal(rightVisible ? new byte[] { 255, 0, 0, 255 }
-            : new byte[] { 255, 255, 255, 255 }, Pixel(page, 1));
+        Assert.Equal(leftVisible ? [0, 0, 255, 255]
+            : [255, 255, 255, 255], Pixel(page, 0));
+        Assert.Equal(rightVisible ? [255, 0, 0, 255]
+            : [255, 255, 255, 255], Pixel(page, 1));
     }
 
     private static byte[] Pixel(PdfRenderedPage page, int x) =>

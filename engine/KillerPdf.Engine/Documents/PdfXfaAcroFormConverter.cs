@@ -295,7 +295,7 @@ public static class PdfXfaAcroFormConverter
     }
 
     private static readonly Dictionary<char, string> Code39Patterns =
-        new Dictionary<char, string>
+        new()
         {
             ['0'] = "nnnwwnwnn", ['1'] = "wnnwnnnnw", ['2'] = "nnwwnnnnw",
             ['3'] = "wnwwnnnnn", ['4'] = "nnnwwnnnw", ['5'] = "wnnwwnnnn",

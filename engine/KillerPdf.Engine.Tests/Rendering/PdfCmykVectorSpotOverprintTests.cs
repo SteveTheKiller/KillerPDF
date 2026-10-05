@@ -219,7 +219,7 @@ public sealed class PdfCmykVectorSpotOverprintTests
                 new PdfInteger(1), new PdfInteger(0)])),
             Entry("N", new PdfInteger(1))
         ]);
-        PdfDictionary Overprint(bool enabled, int mode) => new([
+        static PdfDictionary Overprint(bool enabled, int mode) => new([
             Entry("OP", new PdfBoolean(enabled)), Entry("op", new PdfBoolean(enabled)),
             Entry("OPM", new PdfInteger(mode))
         ]);

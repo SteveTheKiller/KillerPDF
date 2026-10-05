@@ -88,7 +88,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <summary>
         /// 7.2.2 Segment number
         /// </summary>
-        private void ReadSegmentNumber(IImageInputStream subInputStr)
+        private void ReadSegmentNumber(SubInputStream subInputStr)
         {
             SegmentNumber = (int)(subInputStr.ReadBits(32) & 0xffffffff);
         }
@@ -96,7 +96,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <summary>
         /// 7.2.3 Segment header flags
         /// </summary>
-        private void ReadSegmentHeaderFlag(IImageInputStream subInputStr)
+        private void ReadSegmentHeaderFlag(SubInputStream subInputStr)
         {
             // Bit 7: Retain Flag, if 1, this segment is flagged as retained;
             IsRetained = subInputStr.ReadBit() == 1;
@@ -111,7 +111,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <summary>
         /// 7.2.4 Amount of referred-to segments
         /// </summary>
-        private static int ReadAmountOfReferredToSegments(IImageInputStream subInputStr)
+        private static int ReadAmountOfReferredToSegments(SubInputStream subInputStr)
         {
             int countOfRTS = (int)(subInputStr.ReadBits(3) & 0xf);
 
@@ -150,7 +150,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <param name="subInputStr">Wrapped source data input stream.</param>
         /// <param name="countOfReferredToSegments">The number of referred - to segments.</param>
         /// <returns>An array with the segment number of all referred - to segments.</returns>
-        private int[] ReadReferredToSegmentsNumbers(IImageInputStream subInputStr, int countOfReferredToSegments)
+        private int[] ReadReferredToSegmentsNumbers(SubInputStream subInputStr, int countOfReferredToSegments)
         {
             int[] result = new int[countOfReferredToSegments];
 
@@ -180,7 +180,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <summary>
         /// 7.2.6 Segment page association
         /// </summary>
-        private void ReadSegmentPageAssociation(Jbig2Document document, IImageInputStream subInputStr,
+        private void ReadSegmentPageAssociation(Jbig2Document document, SubInputStream subInputStr,
                 int countOfReferredToSegments, int[] referredToSegmentNumbers)
         {
             if (pageAssociationFieldSize == 0)
@@ -208,7 +208,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <summary>
         /// 7.2.7 Segment data length. Reads the length of the data part in bytes.
         /// </summary>
-        private void ReadSegmentDataLength(IImageInputStream subInputStr)
+        private void ReadSegmentDataLength(SubInputStream subInputStr)
         {
             SegmentDataLength = subInputStr.ReadBits(32) & 0xffffffff;
         }
@@ -217,7 +217,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// Sets the offset only if organization type is SEQUENTIAL. If random, data starts after segment headers and can be
         /// determined when all segment headers are parsed and allocated.
         /// </summary>
-        private void ReadDataStartOffset(IImageInputStream subInputStr, int organisationType)
+        private void ReadDataStartOffset(SubInputStream subInputStr, int organisationType)
         {
             if (organisationType == Jbig2Document.SEQUENTIAL)
             {
@@ -225,7 +225,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             }
         }
 
-        private void ReadSegmentHeaderLength(IImageInputStream subInputStr, long offset)
+        private void ReadSegmentHeaderLength(SubInputStream subInputStr, long offset)
         {
             SegmentHeaderLength = subInputStr.Position - offset;
         }
