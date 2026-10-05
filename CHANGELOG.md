@@ -188,6 +188,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Kept the Transform preview page shadow visible at the top and bottom.
 - Selected language and theme rows keep the active accent on hover.
 - The title bar icon now uses a sharp size-matched image.
+- Annotation bars now show an aligned hand cursor only over draggable areas.
 
 ## [1.8.5] - 2026-09-14
 
