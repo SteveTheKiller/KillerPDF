@@ -321,6 +321,7 @@ namespace KillerPDF.Features
                 var psi = new ProcessStartInfo("cmd.exe", $"/c \"{bat}\"")
                 {
                     WindowStyle     = ProcessWindowStyle.Hidden,
+                    WorkingDirectory = Path.GetTempPath(),
                     UseShellExecute = true
                 };
                 if (needsElevation) psi.Verb = "runas";   // triggers the UAC prompt

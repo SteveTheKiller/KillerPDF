@@ -36,6 +36,9 @@ namespace KillerLauncher
             try
             {
 #if INSTALLER_PACKAGE
+                // An inherited installation-folder working directory prevents Windows from
+                // renaming that folder, even after the installed application has exited.
+                Directory.SetCurrentDirectory(Path.GetTempPath());
                 TaskbarIdentity.UseInstaller();
                 if (args.Any(a => string.Equals(a, "/install-user", StringComparison.OrdinalIgnoreCase)))
                 {

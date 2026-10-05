@@ -94,6 +94,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Kept update helpers and setup from locking the installation folder through their working directory (#434).
 - Hardened native library loading and release artifact verification.
 - Restored saving markup to tagged PDFs while preserving their structure, and finished markup processing before overwriting the destination.
 - Preserved pasted images and other unsaved annotations when inserting blank pages (#388).
