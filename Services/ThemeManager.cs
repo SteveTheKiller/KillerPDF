@@ -279,9 +279,9 @@ namespace KillerPDF.Services
             object? effect = null;
             DarkAccent accent = AccentFor(theme);
 
-            static SolidColorBrush Solid(byte red, byte green, byte blue)
+            static SolidColorBrush Solid(byte red, byte green, byte blue, byte alpha = 0xff)
             {
-                var brush = new SolidColorBrush(Color.FromRgb(red, green, blue));
+                var brush = new SolidColorBrush(Color.FromArgb(alpha, red, green, blue));
                 brush.Freeze();
                 return brush;
             }
@@ -329,6 +329,9 @@ namespace KillerPDF.Services
             resources["ComparisonBarBrush"] = background;
             resources["ComparisonBarForegroundBrush"] = foreground;
             resources["ComparisonBarCloseHoverBrush"] = foreground;
+            resources["ComparisonBarHoverBrush"] = foreground is SolidColorBrush text && text.Color == Colors.White
+                ? Solid(0, 0, 0, 0x26)
+                : Solid(0xff, 0xff, 0xff, 0x26);
             resources["ComparisonBarTextEffect"] = effect;
             resources["ComparisonBarVerticalMask"] = BuildComparisonBarVerticalMask(theme);
         }
