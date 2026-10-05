@@ -83,6 +83,7 @@
     <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#24212b" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <SolidColorBrush x:Key="MenuBorderBrush" Color="#5c527d" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="MenuSeparatorBrush" Color="#666666" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="MenuHoverBrush" Color="#9c630e" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 

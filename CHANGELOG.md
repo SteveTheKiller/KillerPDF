@@ -185,6 +185,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added installer file details and the installed size in Windows' program list (#361).
 - The portable package reports a start failure in a KillerPDF-styled dialog instead of a plain Windows message box.
 - The Document Info text menu now follows the active theme.
+- Delirium context menus now use subtle gray dividers.
 - Standalone uninstall dialogs use the default Dark/Green theme, and installation errors use themed dialogs.
 - Main window, dialog, and launcher title bar icons now use sharp size-matched images.
 - Install and uninstall windows now show the film grain and the app icon in the title bar.
