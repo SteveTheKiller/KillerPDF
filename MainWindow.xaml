@@ -2517,7 +2517,7 @@
                         <!-- Transparent, not empty: a Border with no Background is not hit-testable
                              and the grip would be unusable (KillerShell's note). -->
                         <Border Background="Transparent">
-                            <Border x:Name="line" Width="1" HorizontalAlignment="Center"
+                            <Border x:Name="line" Width="1" HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
                                     Background="{DynamicResource CardBorderBrush}" Margin="0,12" Opacity="0"/>
                         </Border>
                         <ControlTemplate.Triggers>

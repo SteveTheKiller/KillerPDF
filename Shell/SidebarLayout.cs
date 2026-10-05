@@ -76,10 +76,9 @@ namespace KillerPDF
                 Grid.SetColumn(sbContent, 1);
             }
 
-            // The splitter's edge-line and the SidebarShadow gradient were both handled here. The
-            // splitter draws a single centered line now, which is symmetric and so needs no side
-            // handling, and the fake elevation gradient is gone - DocPaneBorder casts a real
-            // PaneShadow on all four sides. (2026-07-31.)
+            // The splitter's edge line follows its alignment at the content/rail boundary.
+            // The old SidebarShadow gradient is gone; DocPaneBorder casts a real PaneShadow
+            // on all four sides.
 
             // The DocTopAccent / DocBottomAccent repositioning was here. Those two 1px rules are
             // gone with the squared layout - the card carries its own border on all four sides now,
