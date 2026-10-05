@@ -110,7 +110,7 @@
     ['dark', 'light', 'hc'].forEach(function (neutralTheme) {
       var preview = ACCENTS[neutralTheme][name];
       if (preview) document.querySelectorAll('.sw-' + neutralTheme).forEach(function (dot) {
-        dot.style.setProperty('--sw-accent', preview[0]);
+        dot.style.setProperty('--sw-accent', neutralTheme === 'light' && name === 'yellow' ? 'linear-gradient(#FFF5A3, #FFD43B)' : preview[0]);
       });
     });
     curAccent = name;
@@ -144,7 +144,7 @@
       // AccentLogo resource (make-logo-svgs.py --themes).
       src = scriptBase + 'brand/killerpdf-logo-' + theme + '.svg';
     } else {
-      var variant = (theme === 'light') ? 'light' : 'dark';
+      var variant = theme === 'light' ? 'light' : theme === 'hc' ? 'black' : 'dark';
       var color = (NEUTRAL.indexOf(theme) >= 0) ? curAccent : 'green';
       src = scriptBase + 'brand/killerpdf-logo-' + variant + '-' + color + '.svg';
     }
