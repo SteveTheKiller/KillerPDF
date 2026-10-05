@@ -121,6 +121,34 @@ public sealed class DocumentTabLayoutTests
         Assert.Equal("{DynamicResource BarShadowEffect}", (string?)ghost.Attribute("Effect"));
     }
 
+    [Fact]
+    public void InactiveTabCloseDoesNotSwitchTheActiveDocument()
+    {
+        string source = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Controls", "Viewer", "PdfViewer.Tabs.cs"))
+            .Replace("\r\n", "\n", StringComparison.Ordinal);
+        int start = source.IndexOf("private void CloseTabCore(DocumentSession s)", StringComparison.Ordinal);
+        int focus = source.IndexOf("Host?.FocusViewer(this);", start, StringComparison.Ordinal);
+        Assert.True(start >= 0 && focus > start);
+        string inactiveClose = source[start..focus];
+
+        Assert.Contains("if (!ReferenceEquals(s, _active))", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("if (s.IsDirty)", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("if (res != MessageBoxResult.Yes) return;", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("if (!_sessions.Contains(s) || ReferenceEquals(s, _active)) return;", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("CancelAndRelease(s.ThumbCts);", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("s.ThumbCts = null;", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("s.Doc?.Close();", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("_sessions.Remove(s);", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("_renderLru.Remove(s);", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("s.RenderCache.Clear();", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("s.RenderCacheSize.Clear();", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("RebuildTabStrip();\n                return;", inactiveClose, StringComparison.Ordinal);
+        foreach (string activeMutation in new[] { "CommitActiveTextBox(", "CancelTransientForSwitch(",
+            "CaptureSessionState(", "SetActiveSession(", "ApplySessionState(", "RenderActiveSession(",
+            "ShowEmptyState(", "CancelRenderWork(" })
+            Assert.DoesNotContain(activeMutation, inactiveClose, StringComparison.Ordinal);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

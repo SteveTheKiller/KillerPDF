@@ -834,28 +834,41 @@ namespace KillerPDF.Controls
             EnsureInitialSession();
             if (!_sessions.Contains(s)) return;
 
+            // An inactive session already owns its saved state. Closing it must not replace
+            // the live document or render a deferred tab as the empty state.
+            if (!ReferenceEquals(s, _active))
+            {
+                if (s.IsDirty)
+                {
+                    var res = KillerDialog.Show(Host!.Window,
+                        Loc("Str_Dlg_UnsavedClose"),
+                        "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    if (res != MessageBoxResult.Yes) return;
+                }
+                if (!_sessions.Contains(s) || ReferenceEquals(s, _active)) return;
+
+                CancelAndRelease(s.ThumbCts);
+                s.ThumbCts = null;
+                try { s.Doc?.Close(); } catch { }
+                _sessions.Remove(s);
+                _renderLru.Remove(s);
+                s.RenderCache.Clear();
+                s.RenderCacheSize.Clear();
+                CompactLohSoon();
+                RebuildTabStrip();
+                return;
+            }
+
             // Same reason as the top of SwitchToTab: claim the shared fields for this pane before
             // touching them below, in case this pane is not (yet) ActiveViewer - e.g. the tab
             // context menu's Close Tab / Close Other Tabs, invoked directly on this pane's own
             // instance. No-ops when already focused.
             Host?.FocusViewer(this);
 
-            // Make the target the live working set so its dirty flag / document are current.
+            // The active session's live edits must be captured before checking its dirty state.
             if (!_sessions.Contains(s)) return;
-            if (s != _active)
-            {
-                CommitActiveTextBox();
-                CancelTransientForSwitch();
-                if (_active != null) CaptureSessionState(_active);
-                SetActiveSession(s);
-                ApplySessionState(s);
-                RenderActiveSession();
-            }
-            else
-            {
-                CommitActiveTextBox();
-                CaptureSessionState(s);
-            }
+            CommitActiveTextBox();
+            CaptureSessionState(s);
 
             if (_isDirty)
             {

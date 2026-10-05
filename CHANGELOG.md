@@ -25,6 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Reduced page-link loading work for large PDFs (#438).
 - Pasted multi-selected annotations now move together, and a pen click places a dot.
 - Kept comparison controls visible in narrower windows and restored the Close button's full click area.
+- Closing inactive tabs now preserves the active document and sidebar.
 - Tool option checkboxes now change without flashing the annotation bar.
 - Aligned the sidebar divider with the thumbnail edge and restored arrow cursors on window caption controls.
 - Annotation bars now show an aligned hand cursor only over draggable areas.
