@@ -156,7 +156,7 @@ namespace KillerPDF
                 // button in the 40px caption left a visible 7px strip above it.
                 VerticalAlignment = VerticalAlignment.Top,
                 Background = Brushes.Transparent,
-                Cursor = Cursors.Hand,
+                Cursor = Cursors.Arrow,
                 FocusVisualStyle = null,
                 SnapsToDevicePixels = true,
                 UseLayoutRounding = true
@@ -174,7 +174,7 @@ namespace KillerPDF
                 close.Foreground = Brush(owner, "DangerRed", Brushes.Red);
                 close.Background = Brushes.Transparent;
                 close.BorderThickness = new Thickness(0);
-                close.Cursor = Cursors.Hand;
+                close.Cursor = Cursors.Arrow;
             }
             close.SetResourceReference(FrameworkElement.WidthProperty, "DialogCloseWidth");
             close.SetResourceReference(FrameworkElement.HeightProperty, "DialogCloseHeight");

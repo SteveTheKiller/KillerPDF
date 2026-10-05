@@ -111,6 +111,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - WinGet now requests elevation for its machine-wide installation (#439).
 - The Document Info text menu now follows the active theme.
 - Tool option checkboxes now change without flashing the annotation bar.
+- Window caption controls now use the arrow cursor.
 
 - Hardened native library loading and release artifact verification.
 - Preserved descriptor font names and source baselines when editing existing PDF text (#431).
