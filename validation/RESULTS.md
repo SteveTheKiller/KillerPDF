@@ -2,15 +2,17 @@
 
 ## Release records
 
-- **1.8.80:** [Corpus benchmark and alternating 1.8.71 comparison](benchmarks/1.8.80/CORPUS.md),
+- **1.8.80:** [Corpus benchmark and alternating 1.8.71 comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.80.md),
   including five measured passes per version and collection.
-- **1.8.70:** [Corpus benchmark and release comparison](benchmarks/1.8.70/CORPUS.md),
+- **1.8.71:** [Corpus baseline from the alternating 1.8.80 comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.71.md),
+  including this version's own five measured passes per collection.
+- **1.8.70:** [Corpus benchmark and release comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.70.md),
   including five measured passes and comparison with 1.8.6.
-- **1.8.6:** [Corpus benchmark and release comparison](benchmarks/1.8.6/CORPUS.md),
+- **1.8.6:** [Corpus benchmark and release comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.6.md),
   including five measured passes and exact comparison with 1.8.4.
-- **1.8.4:** [Corpus benchmark and release comparison](benchmarks/1.8.4/CORPUS.md),
+- **1.8.4:** [Corpus benchmark and release comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.4.md),
   including five measured passes of the official release payload and exact comparison with 1.8.3.
-- **1.8.3:** [Corpus benchmark and release comparison](benchmarks/1.8.3/CORPUS.md),
+- **1.8.3:** [Corpus benchmark and release comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.3.md),
   including five measured passes and the comparison with 1.8.2.
 - **1.8.2:** [Corpus release record](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.2.md),
   including complete per-file logs and five measured passes.
