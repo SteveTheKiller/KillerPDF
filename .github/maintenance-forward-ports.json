@@ -638,6 +638,11 @@
       "maintenanceCommit": "34470c859ab0889104da33a98ac78c4275120ccf",
       "developmentCommit": "2e7525a2a4608f7d8edabf5cabb8dc625f43fe39",
       "reason": "Comparison control layout, close-button hit testing, and regression tests match exactly; changelog entries remain in their respective version sections."
+    },
+    {
+      "maintenanceCommit": "30467b132b4e51f6970723f9a4781bc53e2aae24",
+      "developmentCommit": "d1364757f6f20f06846c7fc5b0d515ff7f61cb76",
+      "reason": "Inactive-tab closing and its regression check match exactly; changelog entries remain in their respective version sections."
     }
   ]
 }
