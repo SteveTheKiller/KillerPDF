@@ -2,21 +2,26 @@
 
 ## Release records
 
-- **1.8.70:** [Corpus benchmark and release comparison](benchmarks/1.8.70/CORPUS.md),
+- **1.8.80:** [Corpus benchmark and alternating 1.8.71 comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.80.md),
+  including five measured passes per version and collection.
+- **1.8.71:** [Corpus baseline from the alternating 1.8.80 comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.71.md),
+  including this version's own five measured passes per collection.
+- **1.8.70:** [Corpus benchmark and release comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.70.md),
   including five measured passes and comparison with 1.8.6.
-- **1.8.6:** [Corpus benchmark and release comparison](benchmarks/1.8.6/CORPUS.md),
+- **1.8.6:** [Corpus benchmark and release comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.6.md),
   including five measured passes and exact comparison with 1.8.4.
-- **1.8.4:** [Corpus benchmark and release comparison](benchmarks/1.8.4/CORPUS.md),
+- **1.8.4:** [Corpus benchmark and release comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.4.md),
   including five measured passes of the official release payload and exact comparison with 1.8.3.
-- **1.8.3:** [Corpus benchmark and release comparison](benchmarks/1.8.3/CORPUS.md),
+- **1.8.3:** [Corpus benchmark and release comparison](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.3.md),
   including five measured passes and the comparison with 1.8.2.
 - **1.8.2:** [Corpus release record](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.2.md),
   including complete per-file logs and five measured passes.
 - **1.8.1:** The standards-conformance run is preserved below.
 
-The 1.8.70 benchmark reproduced every 1.8.6 file outcome and diagnostic detail
-across 46,944 normal inputs and 80 damaged inputs. Every current-run pass also
-agreed on each path, status, diagnostic, and exit code. These open/save benchmarks
+The 1.8.80 benchmark reproduced every 1.8.71 file outcome and diagnostic detail
+across 46,944 normal inputs and 80 damaged inputs. Each version received one warmup
+and five measured passes in alternating order, and every paired pass agreed on each
+path, status, diagnostic, and exit code. These open/save benchmarks
 and the standards checks below measure different things.
 
 ## Standards-conformance validation: KillerPDF 1.8.1
