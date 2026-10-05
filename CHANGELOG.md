@@ -28,7 +28,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The installer and uninstaller have their own taskbar buttons, labeled "KillerPDF Installer" and "Uninstall KillerPDF", with the app icon.
 - The portable package reports a start failure in a KillerPDF-styled dialog instead of a plain Windows message box.
 - The Document Info text menu now follows the active theme.
-- The title bar icon now uses a sharp size-matched image.
+- Main window, dialog, and launcher title bar icons now use sharp size-matched images.
 - Annotation bars now show an aligned hand cursor only over draggable areas.
 
 ### Changed

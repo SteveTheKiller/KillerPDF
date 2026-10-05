@@ -28,19 +28,7 @@ namespace KillerPDF
 
         // The app icon that leads the wordmark, at the main title bar's size and spacing.
         private static Image TitleIcon()
-        {
-            var icon = new Image
-            {
-                Source = new System.Windows.Media.Imaging.BitmapImage(
-                    new System.Uri("pack://application:,,,/Resources/kp-icon.png")),
-                Width = Application.Current.TryFindResource("TitleIconSize") is double size ? size : 25.0,
-                Height = Application.Current.TryFindResource("TitleIconSize") is double size2 ? size2 : 25.0,
-                Margin = Application.Current.TryFindResource("TitleIconMargin") is Thickness margin ? margin : new Thickness(0, 0, 7, 0),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.HighQuality);
-            return icon;
-        }
+            => DialogChrome.TitleIcon();
 
         // Carries the checkbox state of the last Show() call back to ShowWithCheckbox. Dialogs are
         // modal and UI-thread only, so a shared field is safe and avoids a duplicate dialog body.
