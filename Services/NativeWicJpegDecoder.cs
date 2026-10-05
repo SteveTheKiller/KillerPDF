@@ -62,11 +62,11 @@ internal static partial class NativeWicJpegDecoder
             Marshal.ReadIntPtr(unknown), slot * IntPtr.Size));
 
     [LibraryImport("ole32.dll")]
-    private static partial int CoCreateInstance(ref Guid classId, nint outer, uint context,
-        ref Guid interfaceId, out nint result);
+    private static partial int CoCreateInstance(ref Guid _, nint _1, uint _2,
+        ref Guid _3, out nint _4);
 
     [LibraryImport("shlwapi.dll")]
-    private static partial nint SHCreateMemStream(byte[] data, uint length);
+    private static partial nint SHCreateMemStream(byte[] _, uint _1);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int CreateDecoderFromStream(nint self, nint stream, nint vendor,
