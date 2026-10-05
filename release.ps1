@@ -305,6 +305,13 @@ $siteI18nRaw = Get-Content -Path (Join-Path $landingDir 'kp-i18n.js') -Raw
 $siteI18nMatch = [regex]::Match($siteI18nRaw, '(?s)^var I18N = (?<json>\{.*?\n\});')
 if (-not $siteI18nMatch.Success) { throw "Could not read the landing page translation dictionary." }
 $siteI18n = $siteI18nMatch.Groups['json'].Value | ConvertFrom-Json
+foreach ($patch in [regex]::Matches($siteI18nRaw, '(?s)Object\.assign\(I18N\["(?<loc>[^"]+)"\],\s*\{(?<body>.*?)\}\);')) {
+    $target = $siteI18n.PSObject.Properties[$patch.Groups['loc'].Value]
+    if (-not $target) { continue }
+    foreach ($pair in [regex]::Matches($patch.Groups['body'].Value, '(?:"(?<k>[^"]+)"|(?<k>[A-Za-z_][A-Za-z0-9_]*))\s*:\s*"(?<v>(?:[^"\\]|\\.)*)"')) {
+        $target.Value | Add-Member -NotePropertyName $pair.Groups['k'].Value -NotePropertyValue $pair.Groups['v'].Value -Force
+    }
+}
 $siteLocales = @($siteI18n.PSObject.Properties)
 if ($siteLocales.Count -eq 0) { throw "Landing page translation dictionary contains no locales." }
 $requiredSiteKeys = New-Object 'System.Collections.Generic.HashSet[string]'
@@ -496,7 +503,7 @@ $lines.Add("KillerPDF.exe           $installerHash")
 $lines.Add("KillerPDF-Portable.exe  $portableHash")
 if ($srcZip) {
     $srcHash = (Get-FileHash $srcZip.FullName -Algorithm SHA256).Hash
-    $lines.Add("$($srcZip.Name.PadRight(24))$srcHash")
+    $lines.Add("$($srcZip.Name.PadRight(23)) $srcHash")
 }
 [System.IO.File]::WriteAllLines($sumsPath, $lines, [System.Text.UTF8Encoding]::new($false))
 Write-Host "`n==> SHA256SUMS.txt written to: $sumsPath" -ForegroundColor Green
