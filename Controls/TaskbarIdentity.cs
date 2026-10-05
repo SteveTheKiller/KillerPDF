@@ -125,6 +125,6 @@ namespace KillerPDF
         }
 
         [LibraryImport("shell32.dll")]
-        private static partial int SHGetPropertyStoreForWindow(nint handle, in Guid iid, out nint store);
+        private static partial int SHGetPropertyStoreForWindow(nint _, in Guid _1, out nint _2);
     }
 }
