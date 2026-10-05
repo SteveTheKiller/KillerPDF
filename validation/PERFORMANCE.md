@@ -424,9 +424,9 @@ Version 1.8.70 reproduced every 1.8.6 file outcome and diagnostic detail. Versio
 warmups and measured passes. All recorded releases had zero crashes and timeouts in the separate damaged-file safety
 collection. See the
 [1.8.2 release record](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.2.md)
-and the reports and measured runs for [1.8.3](benchmarks/1.8.3/CORPUS.md) and
-[1.8.4](benchmarks/1.8.4/CORPUS.md), [1.8.6](benchmarks/1.8.6/CORPUS.md),
-[1.8.70](benchmarks/1.8.70/CORPUS.md), and [1.8.80](benchmarks/1.8.80/CORPUS.md).
+and the reports and measured runs for [1.8.3](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.3.md) and
+[1.8.4](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.4.md), [1.8.6](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.6.md),
+[1.8.70](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.70.md), and [1.8.80](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.80.md).
 
 Compared directly with 1.8.71 in the alternating session, the 1.8.80 medians were
 0.90% longer for regression, 0.35% longer for standards, and 0.59% shorter for
@@ -494,9 +494,9 @@ Every measured run processed all 2,236 files and returned exit code 0.
 | KillerPDF 1.8.1 | 5 | 7.057 seconds | 6.815 seconds | 7.326 seconds | 316.86 |
 
 The raw measurements are preserved in
-[`benchmarks/1.8.1/benchmark-results.csv`](benchmarks/1.8.1/benchmark-results.csv),
+[`benchmarks/1.8.1/benchmark-results.csv`](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/shared-subset/1.8.1/benchmark-results.csv),
 with the calculated medians in
-[`benchmarks/1.8.1/benchmark-summary.csv`](benchmarks/1.8.1/benchmark-summary.csv).
+[`benchmarks/1.8.1/benchmark-summary.csv`](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/shared-subset/1.8.1/benchmark-summary.csv).
 
 ## KillerPDF 1.8.0 compared with 1.7.5
 
@@ -530,9 +530,9 @@ so those files were excluded from both runs to keep the comparison equivalent.
 | KillerPDF 1.8.0 | 5 | 10.013 seconds | 9.451 seconds | 11.518 seconds | 223.32 |
 
 The raw measurements are preserved in
-[`benchmarks/1.8.0/benchmark-results.csv`](benchmarks/1.8.0/benchmark-results.csv),
+[`benchmarks/1.8.0/benchmark-results.csv`](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/shared-subset/1.8.0/benchmark-results.csv),
 with the calculated medians in
-[`benchmarks/1.8.0/benchmark-summary.csv`](benchmarks/1.8.0/benchmark-summary.csv).
+[`benchmarks/1.8.0/benchmark-summary.csv`](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/shared-subset/1.8.0/benchmark-summary.csv).
 
 ## Reproducing the benchmark
 
