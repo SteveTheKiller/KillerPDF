@@ -46,7 +46,7 @@
             <Border x:Name="GrainLayer" CornerRadius="7" IsHitTestVisible="False" Opacity="0.40"/>
             <StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="16,10,16,10">
-                    <Image Source="Resources/kp-icon.png" Width="27" Height="27" Margin="0,0,7,0" VerticalAlignment="Center"
+                    <Image x:Name="TitleIcon" Width="27" Height="27" Margin="0,0,7,0" VerticalAlignment="Center"
                            RenderOptions.BitmapScalingMode="HighQuality"/>
                     <TextBlock VerticalAlignment="Center"><Run Text="Killer" FontFamily="{StaticResource Wordmark}" FontSize="15"/><Run Text="PDF" FontFamily="{StaticResource Wordmark}" FontSize="19.5" FontWeight="Bold" Foreground="{StaticResource Green}"/></TextBlock>
                 </StackPanel>

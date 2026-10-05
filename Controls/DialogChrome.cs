@@ -1,9 +1,11 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
 
 namespace KillerPDF
 {
@@ -21,6 +23,25 @@ namespace KillerPDF
             => (owner?.TryFindResource(key) ?? Application.Current?.TryFindResource(key)) as Brush ?? fallback;
         private static T Value<T>(Window? owner, string key, T fallback)
             => (owner?.TryFindResource(key) ?? Application.Current?.TryFindResource(key)) is T value ? value : fallback;
+
+        internal static Image TitleIcon(Window? owner = null)
+        {
+            var frames = BitmapDecoder.Create(new Uri("pack://application:,,,/Resources/kp-icon.ico"),
+                BitmapCreateOptions.None, BitmapCacheOption.OnLoad).Frames;
+            var icon = new Image
+            {
+                Width = Value(owner, "TitleIconSize", 25.0),
+                Height = Value(owner, "TitleIconSize", 25.0),
+                Margin = Value(owner, "TitleIconMargin", new Thickness(0, 0, 7, 0)),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            void Refresh() => icon.Source = frames.OrderBy(frame =>
+                Math.Abs(frame.PixelWidth - icon.ActualWidth * VisualTreeHelper.GetDpi(icon).DpiScaleX)).First();
+            icon.Loaded += (_, _) => Refresh();
+            icon.SizeChanged += (_, _) => Refresh();
+            RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.HighQuality);
+            return icon;
+        }
 
         internal static ImageSource? GrainTexture(Window? owner)
         {
@@ -120,17 +141,7 @@ namespace KillerPDF
                 Margin = title.Margin
             };
             title.Margin = new Thickness(0);
-            var icon = new Image
-            {
-                Source = new System.Windows.Media.Imaging.BitmapImage(
-                    new Uri("pack://application:,,,/Resources/kp-icon.png")),
-                Width = Value(owner, "TitleIconSize", 25.0),
-                Height = Value(owner, "TitleIconSize", 25.0),
-                Margin = Value(owner, "TitleIconMargin", new Thickness(0, 0, 7, 0)),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            RenderOptions.SetBitmapScalingMode(icon, BitmapScalingMode.HighQuality);
-            titleRow.Children.Add(icon);
+            titleRow.Children.Add(TitleIcon(owner));
             titleRow.Children.Add(title);
             Grid.SetColumn(titleRow, 0);
             grid.Children.Add(titleRow);
