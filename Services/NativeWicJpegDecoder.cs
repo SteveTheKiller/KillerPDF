@@ -66,7 +66,7 @@ internal static partial class NativeWicJpegDecoder
         ref Guid _3, out nint _4);
 
     [LibraryImport("shlwapi.dll")]
-    private static partial nint SHCreateMemStream(byte[] _, uint _1);
+    private static partial nint SHCreateMemStream([In] byte[] _, uint _1);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int CreateDecoderFromStream(nint self, nint stream, nint vendor,
