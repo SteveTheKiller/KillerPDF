@@ -162,16 +162,18 @@ namespace KillerPDF
         {
             if (backgroundOnly)
             {
-                // The content panel's children are sliders, swatches and combos - real controls that
-                // are NOT draggable. Cursor resolution walks UP the tree, so setting the hand on the
-                // panel would put it on all of them; instead it is switched per move, on exactly the
-                // same "did this hit the panel's own background" test the drag itself uses.
-                grip.MouseMove += (s, e) =>
-                    grip.Cursor = ReferenceEquals(e.OriginalSource, grip) ? DragCursors.Open : null;
+                // Only empty panel space is draggable. Query the current hit target so controls
+                // immediately keep their own cursor when the pointer leaves that space.
+                grip.QueryCursor += (_, e) =>
+                {
+                    if (!ReferenceEquals(e.OriginalSource, grip)) return;
+                    e.Cursor = Cursors.Hand;
+                    e.Handled = true;
+                };
             }
-            else grip.Cursor = DragCursors.Open;
+            else grip.Cursor = Cursors.Hand;
             // A capture lost to an alt-tab or a dialog never reaches the button-up handler, which
-            // would strand the closed hand on screen for the rest of the session.
+            // would strand the drag cursor on screen for the rest of the session.
             grip.LostMouseCapture += (s, e) => DragCursors.EndDrag();
             grip.MouseLeftButtonDown += (s, e) =>
             {
@@ -193,7 +195,7 @@ namespace KillerPDF
                 bar.Margin = new Thickness(curLeft, bar.Margin.Top, 0, 0);
                 bar.Tag = (e.GetPosition(bounds).X, curLeft);   // (startX, origLeft)
                 grip.CaptureMouse();
-                DragCursors.BeginDrag();
+                DragCursors.BeginDrag(Cursors.Hand);
                 e.Handled = true;
             };
             grip.MouseMove += (s, e) =>

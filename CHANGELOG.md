@@ -29,6 +29,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The portable package reports a start failure in a KillerPDF-styled dialog instead of a plain Windows message box.
 - The Document Info text menu now follows the active theme.
 - The title bar icon now uses a sharp size-matched image.
+- Annotation bars now show an aligned hand cursor only over draggable areas.
 
 ### Changed
 - Menu rows now show accent text and icons on the theme's hover color.
