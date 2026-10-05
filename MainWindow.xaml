@@ -139,8 +139,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <SolidColorBrush x:Key="ComparisonBarHoverBrush" Color="#26FFFFFF"/>
-        <!-- Comparison controls use a light translucent hover wash over the accent face. -->
+        <!-- Comparison controls use a contrast-aware translucent hover wash over the accent face. -->
         <Style x:Key="ComparisonBarButton" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
             <Setter Property="Template">
                 <Setter.Value>
@@ -155,7 +154,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="{StaticResource ComparisonBarHoverBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource ComparisonBarHoverBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.4"/>
