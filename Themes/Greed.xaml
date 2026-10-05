@@ -34,7 +34,7 @@
     <SolidColorBrush x:Key="AppBorderBrush"  Color="#0f4a30" po:Freeze="True"/>
     <SolidColorBrush x:Key="RowSelectedBrush"    Color="#44ffffff" po:Freeze="True"/>
     <SolidColorBrush x:Key="OutlinePressedBrush" Color="#44ffffff" po:Freeze="True"/>
-    <LinearGradientBrush x:Key="SelectionBg" po:Freeze="True" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#60FFFFFF" Offset="0"/><GradientStop Color="#30FFFFFF" Offset="1"/></LinearGradientBrush>
+    <LinearGradientBrush x:Key="SelectionBg" po:Freeze="True" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#57FFFFFF" Offset="0"/><GradientStop Color="#30FFFFFF" Offset="1"/></LinearGradientBrush>
     <SolidColorBrush x:Key="SelectionFg" Color="#ffffff" po:Freeze="True"/>
     <!-- Open settings row uses the translucent-white SelectionBg (matches selected page/tool). -->
     <SolidColorBrush x:Key="SettingsOpenRowBg" Color="#44ffffff" po:Freeze="True"/>
@@ -44,7 +44,7 @@
     <SolidColorBrush x:Key="ChromeTextBrush" Color="#cfd6c2" po:Freeze="True"/>
     <SolidColorBrush x:Key="FilenameBrush"  Color="#a6a99a" po:Freeze="True"/>
     <SolidColorBrush x:Key="DimTextBrush"   Color="#c0aa68" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextFooter"     Color="#3a8a5a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TextFooter"     Color="#499367" po:Freeze="True"/>
     <SolidColorBrush x:Key="DangerRed"      Color="#ff6666" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgDragHandle"   Color="#4a8a64" po:Freeze="True"/>
     <SolidColorBrush x:Key="DragLine"       Color="#0f3f27" po:Freeze="True"/>

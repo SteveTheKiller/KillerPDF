@@ -101,4 +101,5 @@
 
     <LinearGradientBrush x:Key="TitleBarBrush" StartPoint="0,0.5" EndPoint="1,0.5" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"><GradientStop Color="#5e1764" Offset="0" /><GradientStop Color="#25232b" Offset="1" /></LinearGradientBrush>
 
+    <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#F4F4F0"/>
 </ResourceDictionary>

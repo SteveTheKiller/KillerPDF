@@ -11,7 +11,7 @@
     <DropShadowEffect x:Key="TextStrokeSoft" Color="Black" BlurRadius="2" ShadowDepth="0.6" Direction="270" Opacity="0.45"/>
 
     <!-- Chrome the shared layer leaves to the app -->
-    <SolidColorBrush x:Key="TextFooter"          Color="#b4b6b1" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TextFooter"          Color="#BFC1BD" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuTextBrush"       Color="#d7d7cf" po:Freeze="True"/>
     <SolidColorBrush x:Key="TreeLineBrush"       Color="#4d3d2b" po:Freeze="True"/>
     <!-- A faint wash for selected rows and pressed outline buttons, rather than a solid accent
@@ -74,7 +74,7 @@
 
     <SolidColorBrush x:Key="DimTextBrush" Color="#b4b6b1" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
-    <SolidColorBrush x:Key="RowHoverBrush" Color="#4faaa8" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="RowHoverBrush" Color="#387877" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
     <!-- Selected-row text while hovered: RadioAccent here IS the hover teal, so the checked
          label vanished into its own highlight. -->
     <SolidColorBrush x:Key="RadioHoverFgBrush" Color="#ffffff" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
@@ -105,4 +105,6 @@
 
     <LinearGradientBrush x:Key="TitleBarBrush" StartPoint="0,0.5" EndPoint="1,0.5" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"><GradientStop Color="#25282b" Offset="0" /><GradientStop Color="#2c5458" Offset="1" /></LinearGradientBrush>
 
+    <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="FooterAccentBrush" Color="#93CBC9"/>
 </ResourceDictionary>
