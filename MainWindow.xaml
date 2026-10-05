@@ -1385,7 +1385,7 @@
                         MouseWheel="LogoBar_MouseWheel"
                         MouseLeftButtonDown="LogoBar_MouseLeftButtonDown">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="{DynamicResource TitleBarPadding}">
-                    <Image Source="pack://application:,,,/Resources/kp-icon.png"
+                    <Image x:Name="TitleIcon"
                            Width="{DynamicResource TitleIconSize}" Height="{DynamicResource TitleIconSize}" Margin="{DynamicResource TitleIconMargin}" VerticalAlignment="Center"
                            RenderOptions.BitmapScalingMode="HighQuality">
                         <Image.Effect>
