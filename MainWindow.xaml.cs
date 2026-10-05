@@ -308,6 +308,14 @@ namespace KillerPDF
         {
             _startupTearOutSession = startupTearOutSession;
             InitializeComponent();
+            var titleFrames = BitmapDecoder.Create(
+                new Uri("pack://application:,,,/Resources/kp-icon.ico"),
+                BitmapCreateOptions.None, BitmapCacheOption.OnLoad).Frames;
+            void RefreshTitleIcon() => TitleIcon.Source = titleFrames
+                .OrderBy(frame => Math.Abs(frame.PixelWidth - TitleIcon.ActualWidth * VisualTreeHelper.GetDpi(TitleIcon).DpiScaleX))
+                .First();
+            TitleIcon.Loaded += (_, _) => RefreshTitleIcon();
+            TitleIcon.SizeChanged += (_, _) => RefreshTitleIcon();
             VersionLabel.Text = $"v{AppVersion.Display}";
             // Accept dropped files/folders/archives anywhere on the window (not just the empty drop zone),
             // so dropping onto an open document works too. The empty-state DropZone marks its own drop
