@@ -4758,6 +4758,25 @@ render-stage gap directs memory work to raster and spot-plate storage.
 Instrumentation changes timing, and these readings are not a full-batch
 parity result. Raw stages and payload hashes are under
 `C:/Users/steve/kp-bench-render/scan-memory-stage-20261004/`.
+
+### Font-map decoding allocation checkpoint (2026-10-05)
+
+Replaced the per-character capturing range predicate with a direct loop.
+Eight alternating decoder runs averaged 263.48 versus 176.37 ms for
+1.28 million characters, with allocated bytes falling from 165,440,080
+to 42,560,080. Decoded checksums matched. This is a scoped decoder gain;
+whole-page timing did not establish an improvement.
+
+All 614 rendered conformance PNGs across 649 files, and all 74 difficult
+PNGs at both 512 and 2048, matched the unchanged engine exactly, including
+statuses and dimensions. Conformance rendering changed by +0.42% and
+sampled peak working set by +0.70%. Difficult rendering changed by +4.19%
+at 512 and -1.09% at 2048, with substantial control timing variation.
+The engine suite passed 4,390 of 4,394 tests. The four spot-image failures
+also reproduced with the unchanged engine in an isolated test payload.
+Parity and rendering-quality gates remain open. Scratch measurements,
+trial sources, and baseline test payload are under
+`C:/Users/steve/kp-bench-render/triangle-spans-20261005/`.
 A GC allocation trace of Altona found three 16 MiB buffers allocated through
 spot-coverage painting. A scratch trial rented exact-size large byte buffers;
 its Altona PNG stayed identical, but paired peak memory was 189.3 MiB on both

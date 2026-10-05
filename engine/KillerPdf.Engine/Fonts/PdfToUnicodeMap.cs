@@ -212,7 +212,14 @@ public sealed class PdfToUnicodeMap
             for (int length = 1; length <= 4 && offset + length <= source.Length; length++)
             {
                 code = (code << 8) | source[offset + length - 1];
-                if (!_spaces.Any(s => s.Length == length && code >= s.Low && code <= s.High)) continue;
+                bool inCodeSpace = false;
+                foreach (var space in _spaces)
+                {
+                    if (space.Length != length || code < space.Low || code > space.High) continue;
+                    inCodeSpace = true;
+                    break;
+                }
+                if (!inCodeSpace) continue;
                 if (!_characters.TryGetValue((code, length), out string? text))
                 {
                     if (!replaceMissing) throw new NotSupportedException($"No Unicode mapping for character code {code:X}.");

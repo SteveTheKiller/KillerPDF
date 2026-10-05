@@ -61,7 +61,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Split large reduced JPEG 2000 image paints across bounded row workers at smaller page sizes.
 - Sampled ordinary eight-bit image soft masks directly during bilinear interpolation, reducing repeated mask work without changing pixels.
 - Parsed content-stream numbers directly from UTF-8 bytes, reducing repeated Form rendering time without changing output.
-- Reused the canonical Unicode replacement character while parsing font maps, reducing cold allocation for maps with repeated missing-character entries.
+- Reduced font-map parsing and text-decoding allocations.
 - Preserved antialiased coverage for matching clipping paths and consecutive identical opaque CMYK fills.
 - Centered host-resolved Identity glyphs when their widths are omitted from the PDF.
 - Improved fine detail when reducing images with soft masks, including fully opaque masks.
