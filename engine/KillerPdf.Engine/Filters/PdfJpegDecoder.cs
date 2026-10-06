@@ -881,8 +881,8 @@ internal static class PdfJpegDecoder
                     double row = 0;
                     for (int u = 0; u <= lastU; u++)
                         row += Scales[u] * coefficients[v * 8 + u]
-                            * quantization[v * 8 + u] * ReducedCosines[reductionIndex, 0, u];
-                    sum += Scales[v] * row * ReducedCosines[reductionIndex, 0, v];
+                            * quantization[v * 8 + u] * VectorCosines[reductionIndex * 64 + u * 8];
+                    sum += Scales[v] * row * VectorCosines[reductionIndex * 64 + v * 8];
                 }
                 component.Samples[top * component.Stride + left] = Clamp(128 + sum / 4);
                 return;
@@ -919,7 +919,7 @@ internal static class PdfJpegDecoder
                 {
                     double sum = 0;
                     for (int u = 0; u <= lastU; u++)
-                        sum += dequantized[u] * ReducedCosines[reductionIndex, x, u];
+                        sum += dequantized[u] * VectorCosines[reductionIndex * 64 + u * 8 + x];
                     horizontal[v * blockSize + x] = Scales[v] * sum;
                 }
             }
@@ -930,7 +930,7 @@ internal static class PdfJpegDecoder
                     for (int v = 0; v < 8; v++)
                         if (rowHasCoefficients[v])
                             sum += horizontal[v * blockSize + x]
-                                * ReducedCosines[reductionIndex, y, v];
+                                * VectorCosines[reductionIndex * 64 + v * 8 + y];
                     component.Samples[(top + y) * component.Stride + left + x]
                         = Clamp(128 + sum / 4);
                 }
@@ -1071,7 +1071,7 @@ internal static class PdfJpegDecoder
                 for (int v = 0; v < 8; v++)
                     if (rowHasCoefficients[v])
                         sum += new Vector<double>(horizontal.Slice(v * blockSize + x, lanes))
-                            * new Vector<double>(ReducedCosines[reductionIndex, y, v]);
+                            * new Vector<double>(VectorCosines[reductionIndex * 64 + v * 8 + y]);
                 for (int lane = 0; lane < lanes; lane++)
                     component.Samples[(top + y) * component.Stride + left + x + lane]
                         = Clamp(128 + sum[lane] / 4);
