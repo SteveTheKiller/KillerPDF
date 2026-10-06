@@ -1123,6 +1123,10 @@ namespace KillerPDF.Controls
         /// </summary>
         private void ApplyView()
         {
+            Resources["PickerIconSize"] = (double)_pickerIconSize;
+            Resources["PickerIconContentWidth"] = (double)Math.Max(84, _pickerIconSize + 24);
+            Resources["PickerIconTileWidth"] = (double)Math.Max(96, _pickerIconSize + 36);
+            Resources["PickerIconTileHeight"] = (double)(_pickerIconSize + 44);
             switch (_viewMode)
             {
                 case 1:  // icons: grid, wraps across, scrolls down
@@ -1158,8 +1162,32 @@ namespace KillerPDF.Controls
         /// only asks WPF to scroll vertically, which is disabled in this view, so translate the
         /// wheel delta to the horizontal scrollbar. Icon and details views remain vertical.
         /// </summary>
+        private int _pickerIconSize = 32;
+        private int _pickerWheelDelta;
+        private static readonly int[] PickerIconSizes = { 16, 32, 48, 96 };
+
+        private void ChangePickerView(int delta)
+        {
+            _pickerWheelDelta += delta;
+            int steps = _pickerWheelDelta / 120;
+            _pickerWheelDelta %= 120;
+            if (steps == 0) return;
+            int current = _viewMode == 2 ? 0 : _viewMode == 0 ? 1 :
+                Array.IndexOf(PickerIconSizes, _pickerIconSize) + 2;
+            int next = Math.Max(0, Math.Min(PickerIconSizes.Length + 1, current + steps));
+            if (next >= 2) _pickerIconSize = PickerIconSizes[next - 2];
+            SetView(next == 0 ? 2 : next == 1 ? 0 : 1);
+        }
+
         private void FileList_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
+            if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
+            {
+                ChangePickerView(e.Delta);
+                e.Handled = true;
+                return;
+            }
+            _pickerWheelDelta = 0;
             if (_viewMode != 0) return;
             var sv = FindDescendant<ScrollViewer>(FileList);
             if (sv is null) return;
