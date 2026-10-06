@@ -53,7 +53,7 @@ namespace KillerPDF.Controls
 
         private static double Round(double value, double scale) => Math.Round(value * scale) / scale;
 
-        private static Geometry RoundedGeometry(Rect bounds, Size tl, Size tr, Size br, Size bl)
+        private static StreamGeometry RoundedGeometry(Rect bounds, Size tl, Size tr, Size br, Size bl)
         {
             double x = bounds.X, y = bounds.Y, w = bounds.Width, h = bounds.Height;
             Fit(ref tl, ref tr, w, true);
