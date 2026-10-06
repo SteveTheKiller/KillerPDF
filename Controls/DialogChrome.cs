@@ -239,32 +239,37 @@ namespace KillerPDF
                 Margin = haloMargin ?? Value(owner, "DialogHaloMargin", new Thickness(12))
             };
             var radius = Value(owner, "WindowCornerRadius", new CornerRadius(7));
+            var stroke = Value(owner, "DialogFrameThickness", new Thickness(1));
+            var shadowFill = Brush(owner, "WindowFrameBrush", UiKit.Brush("MenuBackgroundBrush"));
             host.Children.Add(new Border
             {
-                Background = Brush(owner, "WindowFrameBrush", UiKit.Brush("MenuBackgroundBrush")),
+                Background = shadowFill,
+                BorderBrush = shadowFill,
+                BorderThickness = stroke,
                 CornerRadius = radius,
                 IsHitTestVisible = false,
                 Effect = UiKit.ShadowDialog()
             });
-            var card = new Grid();
-            card.Children.Add(new Border
+            // Preserve content positions while the frame clips to its inner stroke edge.
+            var layers = new Grid
+            {
+                Margin = new Thickness(-stroke.Left, -stroke.Top, -stroke.Right, -stroke.Bottom)
+            };
+            layers.Children.Add(new Border
             {
                 Background = Brush(owner, "BackgroundBrush", UiKit.Brush("BackgroundBrush")),
-                CornerRadius = radius,
                 Margin = Value(owner, "DialogWindowFramePadding", new Thickness(0)),
                 Child = content
             });
-            card.Children.Add(WindowFrame(owner));
-            // The 1px window outline every dialog was missing: same DialogFrameBrush the file
-            // picker draws (defaults to AppBorderBrush, the main window's DWM border tone).
-            card.Children.Add(new Border
+            layers.Children.Add(WindowFrame(owner));
+            host.Children.Add(new Controls.PickerBorder
             {
+                Background = Brush(owner, "BackgroundBrush", UiKit.Brush("BackgroundBrush")),
                 BorderBrush = Brush(owner, "DialogFrameBrush", UiKit.Brush("MenuBorderBrush")),
-                BorderThickness = Value(owner, "DialogFrameThickness", new Thickness(1)),
+                BorderThickness = stroke,
                 CornerRadius = radius,
-                IsHitTestVisible = false,
+                Child = layers
             });
-            host.Children.Add(card);
             return host;
         }
 

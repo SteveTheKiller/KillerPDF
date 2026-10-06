@@ -76,7 +76,7 @@ namespace KillerPDF
             }
             else
             {
-            var card = new Border
+            var card = new Controls.PickerBorder
             {
                 Background = R("MenuBackgroundBrush"),
                 BorderBrush = UiKit.Brush("DialogFrameBrush"),

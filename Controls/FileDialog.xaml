@@ -57,7 +57,8 @@
           MouseMove="Resize_MouseMove" MouseLeftButtonDown="Resize_MouseDown">
 
         <!-- Shadow layer: same geometry, NO content, not hit-testable. -->
-        <Border Margin="{DynamicResource DialogHaloMargin}" CornerRadius="{DynamicResource PanelCornerRadius}" Background="{DynamicResource BackgroundBrush}"
+<Border Margin="{DynamicResource DialogHaloMargin}" CornerRadius="{DynamicResource PanelCornerRadius}" Background="{DynamicResource BackgroundBrush}"
+                BorderBrush="{DynamicResource BackgroundBrush}" BorderThickness="{DynamicResource DialogFrameThickness}"
                 IsHitTestVisible="False">
             <Border.Effect>
                 <!-- RenderingBias Quality: at radius 18 the default Performance bias renders the

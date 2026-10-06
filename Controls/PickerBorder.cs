@@ -5,42 +5,91 @@ using System.Windows.Media;
 
 namespace KillerPDF.Controls
 {
-    // Border rounds its own paint but does not clip child layers to those corners.
+    // Clip content to the inner stroke edge without clipping the border's own paint.
     public sealed class PickerBorder : Border
     {
-        protected override void OnPropertyChanged(DependencyPropertyChangedEventArgs e)
+        private UIElement? _clippedChild;
+        private Geometry? _originalClip;
+        private Geometry? _appliedClip;
+
+        protected override Size ArrangeOverride(Size finalSize)
         {
-            base.OnPropertyChanged(e);
-            if (e.Property == CornerRadiusProperty) InvalidateArrange();
+            Size result = base.ArrangeOverride(finalSize);
+            UIElement? child = Child;
+            if (_clippedChild != child)
+            {
+                if (_clippedChild != null && _clippedChild.Clip == _appliedClip)
+                    _clippedChild.SetCurrentValue(ClipProperty, _originalClip);
+                _clippedChild = child;
+                _originalClip = child?.Clip;
+            }
+            if (child == null) return result;
+            if (child.Clip != _appliedClip) _originalClip = child.Clip;
+
+            Thickness stroke = BorderThickness;
+            if (UseLayoutRounding)
+            {
+                DpiScale dpi = VisualTreeHelper.GetDpi(this);
+                stroke = new Thickness(Round(stroke.Left, dpi.DpiScaleX), Round(stroke.Top, dpi.DpiScaleY),
+                    Round(stroke.Right, dpi.DpiScaleX), Round(stroke.Bottom, dpi.DpiScaleY));
+            }
+            Vector offset = VisualTreeHelper.GetOffset(child);
+            var bounds = new Rect(stroke.Left - offset.X, stroke.Top - offset.Y,
+                Math.Max(0, finalSize.Width - stroke.Left - stroke.Right),
+                Math.Max(0, finalSize.Height - stroke.Top - stroke.Bottom));
+            CornerRadius radius = CornerRadius;
+            Geometry clip = RoundedGeometry(bounds,
+                new Size(Math.Max(0, radius.TopLeft - stroke.Left / 2), Math.Max(0, radius.TopLeft - stroke.Top / 2)),
+                new Size(Math.Max(0, radius.TopRight - stroke.Right / 2), Math.Max(0, radius.TopRight - stroke.Top / 2)),
+                new Size(Math.Max(0, radius.BottomRight - stroke.Right / 2), Math.Max(0, radius.BottomRight - stroke.Bottom / 2)),
+                new Size(Math.Max(0, radius.BottomLeft - stroke.Left / 2), Math.Max(0, radius.BottomLeft - stroke.Bottom / 2)));
+            if (_originalClip != null)
+                clip = new CombinedGeometry(GeometryCombineMode.Intersect, _originalClip, clip);
+            clip.Freeze();
+            _appliedClip = clip;
+            child.SetCurrentValue(ClipProperty, clip);
+            return result;
         }
 
-        protected override Geometry GetLayoutClip(Size layoutSlotSize)
+        private static double Round(double value, double scale) => Math.Round(value * scale) / scale;
+
+        private static Geometry RoundedGeometry(Rect bounds, Size tl, Size tr, Size br, Size bl)
         {
-            double w = RenderSize.Width, h = RenderSize.Height;
-            double limit = Math.Min(w, h) / 2;
-            double tl = Math.Min(CornerRadius.TopLeft, limit), tr = Math.Min(CornerRadius.TopRight, limit);
-            double br = Math.Min(CornerRadius.BottomRight, limit), bl = Math.Min(CornerRadius.BottomLeft, limit);
+            double x = bounds.X, y = bounds.Y, w = bounds.Width, h = bounds.Height;
+            Fit(ref tl, ref tr, w, true);
+            Fit(ref bl, ref br, w, true);
+            Fit(ref tl, ref bl, h, false);
+            Fit(ref tr, ref br, h, false);
             var geometry = new StreamGeometry();
             using (var context = geometry.Open())
             {
-                context.BeginFigure(new Point(tl, 0), true, true);
-                context.LineTo(new Point(w - tr, 0), true, false);
-                Corner(context, new Point(w, tr), tr);
-                context.LineTo(new Point(w, h - br), true, false);
-                Corner(context, new Point(w - br, h), br);
-                context.LineTo(new Point(bl, h), true, false);
-                Corner(context, new Point(0, h - bl), bl);
-                context.LineTo(new Point(0, tl), true, false);
-                Corner(context, new Point(tl, 0), tl);
+                context.BeginFigure(new Point(x + tl.Width, y), true, true);
+                context.LineTo(new Point(x + w - tr.Width, y), true, false);
+                Corner(context, new Point(x + w, y + tr.Height), tr);
+                context.LineTo(new Point(x + w, y + h - br.Height), true, false);
+                Corner(context, new Point(x + w - br.Width, y + h), br);
+                context.LineTo(new Point(x + bl.Width, y + h), true, false);
+                Corner(context, new Point(x, y + h - bl.Height), bl);
+                context.LineTo(new Point(x, y + tl.Height), true, false);
+                Corner(context, new Point(x + tl.Width, y), tl);
             }
-            geometry.Freeze();
             return geometry;
         }
 
-        private static void Corner(StreamGeometryContext context, Point end, double radius)
+        private static void Fit(ref Size first, ref Size second, double length, bool horizontal)
         {
-            if (radius == 0) context.LineTo(end, true, false);
-            else context.ArcTo(end, new Size(radius, radius), 0, false, SweepDirection.Clockwise, true, false);
+            double a = horizontal ? first.Width : first.Height;
+            double b = horizontal ? second.Width : second.Height;
+            if (a + b <= length) return;
+            double ratio = length / (a + b);
+            if (horizontal) { first.Width = a * ratio; second.Width = b * ratio; }
+            else { first.Height = a * ratio; second.Height = b * ratio; }
+        }
+
+        private static void Corner(StreamGeometryContext context, Point end, Size radius)
+        {
+            if (radius.Width == 0 || radius.Height == 0) context.LineTo(end, true, false);
+            else context.ArcTo(end, radius, 0, false, SweepDirection.Clockwise, true, false);
         }
     }
 }
