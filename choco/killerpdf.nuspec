@@ -21,7 +21,7 @@
 
 **Features:**
 
-- PDF rendering and text extraction through The KillerPDF.Engine
+- PDF rendering and text extraction through the KillerPDF.Engine
 - Four view modes (Single, Continuous, Two-Page, Grid) and tabbed documents, each restoring its page, zoom, and view mode; split pane (F10) shows two documents side by side
 - Inline text editing with font matching against the original document
 - Text boxes, freehand drawing, straight lines, and highlights, with a full RGB color picker and screen eyedropper
