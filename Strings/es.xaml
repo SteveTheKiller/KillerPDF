@@ -111,7 +111,7 @@
     <sys:String x:Key="Str_KS_ThisList">Esta lista de atajos</sys:String>
     <sys:String x:Key="Str_KS_About">Cuadro Acerca de</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Información del documento</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Guía de atajos de teclado en línea</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Guía completa y tutoriales en línea</sys:String>
     <sys:String x:Key="Str_KS_Tools">HERRAMIENTAS</sys:String>
     <sys:String x:Key="Str_KS_Paste">Pegar imagen / texto</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Negrita / cursiva / subrayado (cuadro de texto)</sys:String>

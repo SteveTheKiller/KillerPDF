@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">Cette liste de raccourcis clavier</sys:String>
     <sys:String x:Key="Str_KS_About">Boîte de dialogue À propos</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Informations du document</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Guide des raccourcis clavier en ligne</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Guide complet et tutoriels en ligne</sys:String>
     <sys:String x:Key="Str_KS_Tools">OUTILS</sys:String>
     <sys:String x:Key="Str_KS_Paste">Coller image / texte</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Gras / italique / souligné (zone de texte)</sys:String>

@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">Questo elenco scorciatoie</sys:String>
     <sys:String x:Key="Str_KS_About">Finestra informazioni</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Info documento</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Guida online alle scorciatoie da tastiera</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Guida online completa e come-fare</sys:String>
     <sys:String x:Key="Str_KS_Tools">STRUMENTI</sys:String>
     <sys:String x:Key="Str_KS_Paste">Incolla immagine/testo</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Grassetto/corsivo/sottolineato (casella testo)</sys:String>

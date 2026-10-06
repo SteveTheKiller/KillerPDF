@@ -180,7 +180,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Refined Italian application and installer translations. (Thanks @bovirus)
 - Corrected Italian translations (#395). (Thanks @bovirus)
 - Kept the footer page number current during Continuous navigation and scaled footer controls with the interface (#354, #355).
-- Moved the keyboard shortcut toggle to the footer and linked both shortcut views directly to the online guide.
+- Aligned the shortcut title, view toggle, and online guide link, preserving the original help wording in every language.
 - Aligned the sidebar divider with the thumbnail edge and restored arrow cursors on window caption controls.
 - Annotation bars now show an aligned hand cursor only over draggable areas.
 - Kept the KillerPDF icon visible on Windows 11 taskbar buttons throughout slower portable launches.

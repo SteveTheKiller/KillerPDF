@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">Tento seznam zkratek</sys:String>
     <sys:String x:Key="Str_KS_About">Dialog O aplikaci</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Informace o dokumentu</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Online průvodce klávesovými zkratkami</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Kompletní příručka &amp; návody online</sys:String>
     <sys:String x:Key="Str_KS_Tools">NÁSTROJE</sys:String>
     <sys:String x:Key="Str_KS_Paste">Vložit obrázek / text</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Tučné / kurzíva / podtržení (textové pole)</sys:String>

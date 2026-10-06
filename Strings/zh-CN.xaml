@@ -111,7 +111,7 @@
     <sys:String x:Key="Str_KS_ThisList">此快速键清单</sys:String>
     <sys:String x:Key="Str_KS_About">关于对话框</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">文档信息</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">在线键盘快捷键指南</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">完整指南和在线教程</sys:String>
     <sys:String x:Key="Str_KS_Tools">工具</sys:String>
     <sys:String x:Key="Str_KS_Paste">粘贴图片／文本</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">粗体／斜体／下划线（文本框）</sys:String>

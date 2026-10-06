@@ -3069,6 +3069,11 @@
                               CanContentScroll="False">
                 <StackPanel Margin="18,14,18,18">
                     <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
                         <!-- Family overlay title, KillerShell's SectionHeader recipe: Consolas 13
                              SemiBold in PrimaryBrush. HeaderLineBrush was the rule color, dark on
                              dark and unreadable, and the shadow rasterized the text. -->
@@ -3078,19 +3083,18 @@
                                    HorizontalAlignment="Left" VerticalAlignment="Center"
                                    Visibility="{DynamicResource ShortcutModernHeaderVisibility}"/>
                         <!-- LIST / KEYBOARD view toggle (#keyboard-map) -->
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12,0">
                             <Button x:Name="KsViewListBtn" Style="{StaticResource SidebarTabBtn}"
                                     Content="{DynamicResource Str_KS_ViewList}" Click="KsViewList_Click"
                                     Margin="0,0,12,0"/>
                             <Button x:Name="KsViewKeyboardBtn" Style="{StaticResource SidebarTabBtn}"
                                     Content="{DynamicResource Str_KS_ViewKeyboard}" Click="KsViewKeyboard_Click"/>
                         </StackPanel>
+                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" MaxWidth="210" TextAlignment="Right" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap">
+                            <Hyperlink Click="OnlineHelp_Click" Foreground="{DynamicResource PrimaryBrush}"
+                                       Focusable="True" ToolTip="https://killerpdf.net/help.html#shortcuts"><Run Text="{DynamicResource Str_KS_OnlineHelp}"/></Hyperlink>
+                        </TextBlock>
                     </Grid>
-
-                    <TextBlock Margin="0,0,0,12" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap">
-                        <Hyperlink Click="OnlineHelp_Click" Foreground="{DynamicResource PrimaryBrush}"
-                                   Focusable="True" ToolTip="https://killerpdf.net/help.html#shortcuts"><Run Text="{DynamicResource Str_KS_OnlineHelp}"/></Hyperlink>
-                    </TextBlock>
 
                     <!-- Column layout (LIST view) -->
                     <Grid x:Name="ShortcutListHost">

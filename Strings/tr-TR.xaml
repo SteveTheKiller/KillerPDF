@@ -111,7 +111,7 @@
     <sys:String x:Key="Str_KS_ThisList">Bu kısayol listesi</sys:String>
     <sys:String x:Key="Str_KS_About">Hakkında penceresi</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Belge bilgisi</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Çevrimiçi klavye kısayolu kılavuzu</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Tam kılavuz ve çevrimiçi rehber</sys:String>
     <sys:String x:Key="Str_KS_Tools">ARAÇLAR</sys:String>
     <sys:String x:Key="Str_KS_Paste">Görsel / metin yapıştır</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Kalın / italik / altı çizili (metin kutusu)</sys:String>

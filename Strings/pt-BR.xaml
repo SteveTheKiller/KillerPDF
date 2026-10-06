@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">Esta lista de atalhos</sys:String>
     <sys:String x:Key="Str_KS_About">Caixa Sobre</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Informações do documento</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Guia online de atalhos de teclado</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Guia completo &amp; tutoriais online</sys:String>
     <sys:String x:Key="Str_KS_Tools">FERRAMENTAS</sys:String>
     <sys:String x:Key="Str_KS_Paste">Colar imagem / texto</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Negrito / itálico / sublinhado (caixa de texto)</sys:String>

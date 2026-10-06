@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">Цей список комбінацій</sys:String>
     <sys:String x:Key="Str_KS_About">Вікно «Про програму»</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Відомості про документ</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Онлайн-посібник із клавіатурних скорочень</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Повний посібник &amp; настанови онлайн</sys:String>
     <sys:String x:Key="Str_KS_Tools">ІНСТРУМЕНТИ</sys:String>
     <sys:String x:Key="Str_KS_Paste">Вставити зображення / текст</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Напівжирний / курсив / підкреслений (текстове поле)</sys:String>
