@@ -107,4 +107,5 @@
 
     <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="FooterAccentBrush" Color="#93CBC9"/>
+  <LinearGradientBrush x:Key="FooterBackgroundBrush" StartPoint="0,0.5" EndPoint="1,0.5"><GradientStop Color="#25282b" Offset="0"/><GradientStop Color="#293b3d" Offset="1"/></LinearGradientBrush>
 </ResourceDictionary>

@@ -366,6 +366,7 @@ namespace KillerPDF.Services
                 if (!d.Contains(key)) d[key] = Pick(fallback, "PaneBrush");
             }
 
+            Alias("FooterBackgroundBrush", "BackgroundBrush");
             Alias("BgRecentPanel", "SurfaceBrush");
             Alias("BgFlyout", "MenuBackgroundBrush");
             Alias("MenuSeparatorBrush", "CardBorderBrush");

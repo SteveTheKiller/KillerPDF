@@ -16,7 +16,7 @@
     <x:Null x:Key="TextStrokeSoft"/>
 
     <!-- Chrome the shared layer leaves to the app -->
-    <SolidColorBrush x:Key="TextFooter"          Color="#000000" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TextFooter"          Color="#303030" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuTextBrush" Color="#000000" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
     <SolidColorBrush x:Key="TreeLineBrush"       Color="#808080" po:Freeze="True"/>
     <!-- A faint wash, NOT the base layer's SelectionBg - see the note in Sepulchre.xaml. A

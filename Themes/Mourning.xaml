@@ -11,7 +11,7 @@
     <DropShadowEffect x:Key="TextStrokeSoft" Color="Black" BlurRadius="2" ShadowDepth="0.6" Direction="270" Opacity="0.45"/>
 
     <!-- Chrome the shared layer leaves to the app -->
-    <SolidColorBrush x:Key="TextFooter"          Color="#b4b6b1" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TextFooter"          Color="#a9c6c3" po:Freeze="True"/>
     <SolidColorBrush x:Key="MenuTextBrush"       Color="#d7d7cf" po:Freeze="True"/>
     <SolidColorBrush x:Key="TreeLineBrush"       Color="#756b79" po:Freeze="True"/>
     <!-- A faint wash, NOT the base layer's SelectionBg - see the note in Sepulchre.xaml.
@@ -104,4 +104,5 @@
     <SolidColorBrush x:Key="TitleBarBrush" Color="#3b3642" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <SolidColorBrush x:Key="FooterAccentBrush" Color="#FF7696"/>
+  <SolidColorBrush x:Key="FooterBackgroundBrush" Color="#3b3642"/>
 </ResourceDictionary>

@@ -2779,7 +2779,7 @@
              lifting the content keeps the About overlay - declared later still - on top of both.
              (Family rule; see KillerShell and Killendar.) -->
         <Border Grid.Row="4" x:Name="FooterBorder" Panel.ZIndex="-1"
-                MinHeight="24" Background="{DynamicResource BackgroundBrush}">
+                MinHeight="24" Background="{DynamicResource FooterBackgroundBrush}">
             <Grid>
             <Grid Margin="{DynamicResource FooterPadding}">
                 <Grid.ColumnDefinitions>
