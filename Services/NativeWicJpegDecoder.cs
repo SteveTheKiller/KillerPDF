@@ -13,8 +13,12 @@ internal static partial class NativeWicJpegDecoder
         int expectedWidth, int expectedHeight, out byte[] samples)
     {
         samples = [];
-        nint stream = SHCreateMemStream(encoded.ToArray(), checked((uint)encoded.Length));
+        if (encoded.IsEmpty) return false;
+        nint stream;
+        fixed (byte* source = encoded.Span)
+            stream = SHCreateMemStream((nint)source, checked((uint)encoded.Length));
         if (stream == 0) return false;
+        GC.AddMemoryPressure(encoded.Length);
         nint factory = 0, decoder = 0, frame = 0, transform = 0;
         try
         {
@@ -54,6 +58,7 @@ internal static partial class NativeWicJpegDecoder
             if (decoder != 0) Marshal.Release(decoder);
             if (factory != 0) Marshal.Release(factory);
             Marshal.Release(stream);
+            GC.RemoveMemoryPressure(encoded.Length);
         }
     }
 
@@ -66,7 +71,7 @@ internal static partial class NativeWicJpegDecoder
         ref Guid _3, out nint _4);
 
     [LibraryImport("shlwapi.dll")]
-    private static partial nint SHCreateMemStream([In] byte[] _, uint _1);
+    private static partial nint SHCreateMemStream(nint _, uint _1);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int CreateDecoderFromStream(nint self, nint stream, nint vendor,
