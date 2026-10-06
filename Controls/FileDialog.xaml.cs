@@ -1164,7 +1164,7 @@ namespace KillerPDF.Controls
         /// </summary>
         private int _pickerIconSize = 32;
         private int _pickerWheelDelta;
-        private static readonly int[] PickerIconSizes = { 16, 32, 48, 96 };
+        private static readonly int[] PickerIconSizes = [16, 32, 48, 96];
 
         private void ChangePickerView(int delta)
         {
