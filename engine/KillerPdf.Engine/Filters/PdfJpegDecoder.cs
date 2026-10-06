@@ -848,8 +848,11 @@ internal static class PdfJpegDecoder
                 double sum = 0;
                 for (int v = 0; v < 8; v++)
                 {
+                    int lastU = 7;
+                    while (lastU >= 0 && coefficients[v * 8 + lastU] == 0) lastU--;
+                    if (lastU < 0) continue;
                     double row = 0;
-                    for (int u = 0; u < 8; u++)
+                    for (int u = 0; u <= lastU; u++)
                         row += Scales[u] * coefficients[v * 8 + u]
                             * quantization[v * 8 + u] * ReducedCosines[reductionIndex, 0, u];
                     sum += Scales[v] * row * ReducedCosines[reductionIndex, 0, v];
