@@ -113,7 +113,7 @@
     <sys:String x:Key="Str_KS_ThisList">此快速鍵清單</sys:String>
     <sys:String x:Key="Str_KS_About">關於對話方塊</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">文件資訊</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">完整指南與線上教學</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">線上鍵盤快速鍵指南</sys:String>
     <sys:String x:Key="Str_KS_Tools">工具</sys:String>
     <sys:String x:Key="Str_KS_Paste">貼上圖片／文字</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">粗體／斜體／底線（文字方塊）</sys:String>

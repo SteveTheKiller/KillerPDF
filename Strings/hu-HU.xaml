@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">Ez a billentyűparancs-lista</sys:String>
     <sys:String x:Key="Str_KS_About">Névjegy ablak</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Dokumentum adatai</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Teljes útmutató és leírás online</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Online billentyűparancs-útmutató</sys:String>
     <sys:String x:Key="Str_KS_Tools">ESZKÖZÖK</sys:String>
     <sys:String x:Key="Str_KS_Paste">Kép / szöveg beillesztése</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Félkövér / dőlt / aláhúzott (szövegmező)</sys:String>

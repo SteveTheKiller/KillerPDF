@@ -759,7 +759,7 @@ namespace KillerPDF
         // Opens the online help / how-to page in the user's default browser.
         private void OnlineHelp_Click(object sender, RoutedEventArgs e)
         {
-            try { Process.Start(new ProcessStartInfo("https://killerpdf.net/help.html") { UseShellExecute = true }); }
+            try { Process.Start(new ProcessStartInfo("https://killerpdf.net/help.html#shortcuts") { UseShellExecute = true }); }
             catch { }
         }
     }

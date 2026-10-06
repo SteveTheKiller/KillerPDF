@@ -111,7 +111,7 @@
     <sys:String x:Key="Str_KS_ThisList">এই শর্টকাট তালিকা</sys:String>
     <sys:String x:Key="Str_KS_About">সম্পর্কে ডায়ালগ</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">ডকুমেন্টের তথ্য</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">সম্পূর্ণ গাইড ও অনলাইন নির্দেশিকা</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">অনলাইন কীবোর্ড শর্টকাট নির্দেশিকা</sys:String>
     <sys:String x:Key="Str_KS_Tools">টুল</sys:String>
     <sys:String x:Key="Str_KS_Paste">ছবি / টেক্সট পেস্ট করুন</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">গাঢ় / তির্যক / নিম্নরেখা (টেক্সট বক্স)</sys:String>

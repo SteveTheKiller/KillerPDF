@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">This shortcut list</sys:String>
     <sys:String x:Key="Str_KS_About">About dialog</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Document info</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Full guide &amp; how-to online</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Online shortcut guide</sys:String>
     <sys:String x:Key="Str_KS_Tools">TOOLS</sys:String>
     <sys:String x:Key="Str_KS_Paste">Paste image / text</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Bold / italic / underline (text box)</sys:String>

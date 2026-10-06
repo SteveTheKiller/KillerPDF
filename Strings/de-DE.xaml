@@ -111,7 +111,7 @@
     <sys:String x:Key="Str_KS_ThisList">Diese Liste der Tastenkürzel</sys:String>
     <sys:String x:Key="Str_KS_About">Info-Dialog</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Dokumentinfo</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Vollständige Anleitung &amp; Tutorials online</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Online-Anleitung zu Tastenkürzeln</sys:String>
     <sys:String x:Key="Str_KS_Tools">WERKZEUGE</sys:String>
     <sys:String x:Key="Str_KS_Paste">Bild / Text einfügen</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Fett / kursiv / unterstrichen (Textfeld)</sys:String>

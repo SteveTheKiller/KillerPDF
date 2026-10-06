@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">Этот список сокращений</sys:String>
     <sys:String x:Key="Str_KS_About">О документе</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Информация о документе</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Полное руководство &amp; инструкция по работе в Интернете</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Онлайн-руководство по сочетаниям клавиш</sys:String>
     <sys:String x:Key="Str_KS_Tools">ИНСТРУМЕНТЫ</sys:String>
     <sys:String x:Key="Str_KS_Paste">Вставить изображение / текст</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Жирный шрифт / курсив / подчеркивание (текстовое поле)</sys:String>

@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">Denne hurtigtastlisten</sys:String>
     <sys:String x:Key="Str_KS_About">Om-dialogen</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Dokumentinfo</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Full veiledning &amp; fremgangsmåter på nett</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Nettveiledning for hurtigtaster</sys:String>
     <sys:String x:Key="Str_KS_Tools">VERKTØY</sys:String>
     <sys:String x:Key="Str_KS_Paste">Lim inn bilde / tekst</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Fet / kursiv / understreket (tekstboks)</sys:String>

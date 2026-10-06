@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">Lista skrótów</sys:String>
     <sys:String x:Key="Str_KS_About">O oknie dialogowym</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Dokument info</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Pełny przewodnik &amp; poradniki online</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Internetowy przewodnik po skrótach klawiaturowych</sys:String>
     <sys:String x:Key="Str_KS_Tools">NARZĘDZIA</sys:String>
     <sys:String x:Key="Str_KS_Paste">Wklej obraz / tekst</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Pogrubienie / kursywa / podkreślenie (pole tekstowe)</sys:String>

@@ -127,7 +127,7 @@
     <sys:String x:Key="Str_KS_ThisList">Осы тіркесім тізімі</sys:String>
     <sys:String x:Key="Str_KS_About">Бағдарлама туралы терезе</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Құжат туралы мәлімет</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Толық нұсқаулық пен онлайн көмек</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Пернетақта тіркесімдерінің онлайн нұсқаулығы</sys:String>
     <sys:String x:Key="Str_KS_Tools">ҚҰРАЛДАР</sys:String>
     <sys:String x:Key="Str_KS_Paste">Сурет / мәтін қою</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Қалың / курсив / астын сызу (мәтін өрісі)</sys:String>

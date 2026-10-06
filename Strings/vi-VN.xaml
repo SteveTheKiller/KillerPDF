@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">Danh sách phím tắt này</sys:String>
     <sys:String x:Key="Str_KS_About">Hộp thoại giới thiệu</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Thông tin tài liệu</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">Hướng dẫn đầy đủ &amp; cách sử dụng trực tuyến</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Hướng dẫn phím tắt trực tuyến</sys:String>
     <sys:String x:Key="Str_KS_Tools">CÔNG CỤ</sys:String>
     <sys:String x:Key="Str_KS_Paste">Dán hình ảnh / văn bản</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">Đậm / nghiêng / gạch chân (hộp văn bản)</sys:String>

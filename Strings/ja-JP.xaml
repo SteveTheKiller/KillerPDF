@@ -128,7 +128,7 @@
     <sys:String x:Key="Str_KS_ThisList">このショートカット一覧</sys:String>
     <sys:String x:Key="Str_KS_About">バージョン情報</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">ドキュメント情報</sys:String>
-    <sys:String x:Key="Str_KS_OnlineHelp">完全ガイド &amp; 使い方 (オンライン)</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">オンラインのキーボードショートカットガイド</sys:String>
     <sys:String x:Key="Str_KS_Tools">ツール</sys:String>
     <sys:String x:Key="Str_KS_Paste">画像 / テキストを貼り付け</sys:String>
     <sys:String x:Key="Str_KS_TextStyle">太字 / 斜体 / 下線（テキストボックス）</sys:String>
