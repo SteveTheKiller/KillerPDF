@@ -5,16 +5,17 @@ namespace KillerPdf.Engine.Tests.Filters;
 
 public sealed class PdfJpegHuffmanTests
 {
+    public static IEnumerable<object[]> CodeLengths()
+    {
+        for (int length = 1; length <= 16; length++)
+        {
+            yield return [length, false];
+            yield return [length, true];
+        }
+    }
+
     [Theory]
-    [InlineData(1, false)]
-    [InlineData(2, false)]
-    [InlineData(8, false)]
-    [InlineData(9, false)]
-    [InlineData(16, false)]
-    [InlineData(1, true)]
-    [InlineData(8, true)]
-    [InlineData(9, true)]
-    [InlineData(16, true)]
+    [MemberData(nameof(CodeLengths))]
     public void Decode_PreservesShortAndLongCodesAtMarkers(int codeLength, bool restart)
     {
         byte[] jpeg = GrayJpeg(codeLength, restart);

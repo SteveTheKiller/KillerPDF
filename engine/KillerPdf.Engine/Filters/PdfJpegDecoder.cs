@@ -1216,6 +1216,8 @@ internal static class PdfJpegDecoder
 
         internal int Decode(BitReader bits)
         {
+            int code = 0;
+            int firstLength = 1;
             // Lookahead must not consume a marker when a short code ends the scan.
             if (bits.TryPeekBits(8, out int prefix))
             {
@@ -1225,9 +1227,11 @@ internal static class PdfJpegDecoder
                     bits.SkipBits(entry >> 8);
                     return entry & 255;
                 }
+                code = prefix;
+                bits.SkipBits(8);
+                firstLength = 9;
             }
-            int code = 0;
-            for (int length = 1; length <= 16; length++)
+            for (int length = firstLength; length <= 16; length++)
             {
                 code = code << 1 | bits.ReadBits(1);
                 int offset = code - _firstCode[length];
