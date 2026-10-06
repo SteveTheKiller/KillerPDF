@@ -285,7 +285,31 @@ public sealed partial class PdfPageRenderer
             foreach (Point[] polygon in polygons)
             {
                 if (polygon.Length < 2) continue;
-                Point[] clipped = ClipToRaster(polygon);
+                ReadOnlySpan<Point> clipped = ClipToRaster(polygon);
+                if (clipped.Length < 2) continue;
+                for (int index = 0; index < clipped.Length; index++)
+                {
+                    Point from = clipped[index];
+                    Point to = clipped[(index + 1) % clipped.Length];
+                    Line(Fixed(from.X), Fixed(from.Y), Fixed(to.X), Fixed(to.Y));
+                }
+            }
+        }
+
+        internal void AddPagePolygons(IReadOnlyList<List<Point>> polygons, RasterFrame frame)
+        {
+            Span<Point> scratch = stackalloc Point[128];
+            foreach (List<Point> polygon in polygons)
+            {
+                if (polygon.Count < 3) continue;
+                Span<Point> transformed = polygon.Count <= scratch.Length
+                    ? scratch[..polygon.Count] : new Point[polygon.Count];
+                for (int index = 0; index < polygon.Count; index++)
+                {
+                    Point point = polygon[index];
+                    transformed[index] = new Point(frame.PixelX(point.X), frame.PixelY(point.Y));
+                }
+                ReadOnlySpan<Point> clipped = ClipToRaster(transformed);
                 if (clipped.Length < 2) continue;
                 for (int index = 0; index < clipped.Length; index++)
                 {
@@ -387,7 +411,7 @@ public sealed partial class PdfPageRenderer
         [ThreadStatic]
         private static CellRasterizer? _rectangleRasterizer;
 
-        private Point[] ClipToRaster(Point[] polygon)
+        private ReadOnlySpan<Point> ClipToRaster(ReadOnlySpan<Point> polygon)
         {
             const double margin = 1;
             double left = -margin, top = -margin, right = _width + margin, bottom = _height + margin;
@@ -411,7 +435,7 @@ public sealed partial class PdfPageRenderer
                 (a, b) => Intersect(a, b, top, false));
             current = ClipEdge(current, point => point.Y <= bottom,
                 (a, b) => Intersect(a, b, bottom, false));
-            return [.. current];
+            return current.ToArray();
 
             static List<Point> ClipEdge(List<Point> input, Func<Point, bool> inside,
                 Func<Point, Point, Point> intersect)
@@ -1002,8 +1026,26 @@ public sealed partial class PdfPageRenderer
 
     /// <summary>Rasterizes page-space paths into a coverage mask.</summary>
     private static CoverageMask RasterizeFill(IReadOnlyList<List<Point>> paths, bool evenOdd,
-        RasterFrame frame, bool rent = false) =>
-        RasterizePolygons(frame.ToPixels(paths, 3), evenOdd, frame.Width, frame.Height, rent);
+        RasterFrame frame, bool rent = false)
+    {
+        List<Point>? single = null;
+        int count = 0;
+        foreach (List<Point> path in paths)
+            if (path.Count >= 3)
+            {
+                single = path;
+                count++;
+            }
+        if (count == 1 && single!.Count is 4 or 5
+            && CellRasterizer.TryRectangle(frame.ToPixels(single), frame.Width, frame.Height) is { } rectangle)
+            return rectangle;
+        CellRasterizer? rasterizer = _sharedRasterizer;
+        if (rasterizer is null || rasterizer.Width != frame.Width || rasterizer.Height != frame.Height)
+            _sharedRasterizer = rasterizer = new CellRasterizer(frame.Width, frame.Height);
+        rasterizer.Reset();
+        rasterizer.AddPagePolygons(paths, frame);
+        return rasterizer.Sweep(evenOdd, rent);
+    }
 
     private static CoverageMask RasterizeFill(IReadOnlyList<Point[]> polygons, bool evenOdd,
         RasterFrame frame) =>
