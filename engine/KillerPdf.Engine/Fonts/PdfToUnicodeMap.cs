@@ -213,7 +213,7 @@ public sealed class PdfToUnicodeMap
             {
                 code = (code << 8) | source[offset + length - 1];
                 bool inCodeSpace = false;
-                foreach (var (spaceLength, low, high) in _spaces)
+                foreach (var (low, high, spaceLength) in _spaces)
                 {
                     if (spaceLength != length || code < low || code > high) continue;
                     inCodeSpace = true;

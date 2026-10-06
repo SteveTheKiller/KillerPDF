@@ -130,7 +130,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Allowed page extraction to ignore malformed optional thumbnail images (#423).
 - Recovered malformed JPEG filter chains and used a valid media box when a crop box is unusable.
 - Recovered undeclared CCITT scan-line markers and one-bit grayscale image masks in malformed PDFs.
-- Restored missing page text, corrected pattern placement, and repaired missing or corrupt JPEG 2000 image tiles.
+- Restored valid font-code decoding and missing page text, corrected pattern placement, and repaired missing or corrupt JPEG 2000 image tiles.
 - Preserved native black-and-white scan pixels when page bounds clip a source column.
 - Preserved process overprint colors on RGB pages with named spot images.
 - Native CMYK rendering now repaints named spots through single-colorant images, fixes their color-conversion failure, and preserves other spots under mixed Black and spot images.

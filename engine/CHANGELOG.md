@@ -128,7 +128,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Skipped images with unknown compression filters instead of painting corrupted pixels over page content.
 - Preserved thin detail in reduced images and stencil masks, including clipped and translucent artwork.
 
-- Recovered text when font resources are missing or omit a selection or base-font name in compatibility mode.
+- Restored valid font-code decoding and recovered text when font resources are missing or omit a selection or base-font name in compatibility mode.
 - Fixed broken Type 1 letter outlines when a contour continues after a flex curve.
 - Honored font descriptor traits and declared glyph widths when using bundled fallback fonts, preserving known sans-serif families with misleading flags.
 - Included the vendored JPEG 2000 decoder in the engine NuGet package.
