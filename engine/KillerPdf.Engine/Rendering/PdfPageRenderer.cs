@@ -55,7 +55,7 @@ public sealed partial class PdfPageRenderer
     private static BoundedCache<int, (IReadOnlyList<PdfContentInstruction> Instructions,
         IReadOnlySet<string> Diagnostics)> CreateInstructionCache() => new(32);
     private static BoundedCache<PdfStream, ParsedStream> CreateStreamInstructionCache() => new(
-        128, ReferenceEqualityComparer.Instance,
+        512, ReferenceEqualityComparer.Instance,
         PdfContentStreamReader.MaximumSourceBytes, parsed => parsed.SourceBytes);
     private static BoundedCache<PdfGlyphOutline, IReadOnlyList<Point[]>> CreateGlyphPathCache() =>
         new(4096, ReferenceEqualityComparer.Instance,

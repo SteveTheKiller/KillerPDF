@@ -52,7 +52,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Reused JPEG Huffman lookahead for long codes and flattened transform lookups, preserving decoded samples, markers, and restart handling.
 - Reused exact 16-bit image colors in a bounded cache, preserving full sample keys and decode ranges.
 - Vectorized named-spot ink blending with unchanged arithmetic and rounding, retaining scalar blending on unsupported CPUs.
-- Repeated renders and sibling renderers remember when oversized page content requires streaming, reducing temporary buffering without changing pixels.
+- Repeated renders and sibling renderers retain more parsed form and glyph streams and remember when oversized page content requires streaming, reducing temporary work without changing pixels.
 - Large Flate images and eligible embedded fonts inflate into their final buffer when the decoded length matches, with unchanged recovery for damaged streams.
 
 - Reused exact axial shading colors across eligible device columns.
