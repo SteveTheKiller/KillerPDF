@@ -5889,6 +5889,13 @@ public sealed partial class PdfPageRenderer
                 _cacheValid = new bool[cacheSize];
                 if (matte) _matteAlpha = new byte[cacheSize];
             }
+            else if (bits == 16 && components is >= 2 and <= 4 && !matte)
+            {
+                const int cacheSize = 8192;
+                _cacheKeys = new uint[cacheSize * 2];
+                _cacheValues = new uint[cacheSize];
+                _cacheValid = new bool[cacheSize];
+            }
         }
 
         internal int Raw(int x, int y, int component)
@@ -5908,6 +5915,8 @@ public sealed partial class PdfPageRenderer
                 if (_components == 3)
                     return (uint)(_samples[offset] << 16 | _samples[offset + 1] << 8 | _samples[offset + 2]);
             }
+            if (_bits == 16)
+                return checked((uint)(y * _rowBytes + x * _components * 2));
             uint key = 0;
             for (int component = 0; component < _components; component++)
                 key = (key << 8) | (uint)Raw(x, y, component);
@@ -5972,8 +5981,33 @@ public sealed partial class PdfPageRenderer
             return ConvertDecoded(_colorSpace);
         }
 
+        private uint ConvertWideCacheKey(int offset)
+        {
+            ulong key = _components switch
+            {
+                4 => BinaryPrimitives.ReadUInt64BigEndian(_samples.AsSpan(offset, 8)),
+                3 => ((ulong)BinaryPrimitives.ReadUInt32BigEndian(_samples.AsSpan(offset, 4)) << 16)
+                    | BinaryPrimitives.ReadUInt16BigEndian(_samples.AsSpan(offset + 4, 2)),
+                _ => BinaryPrimitives.ReadUInt32BigEndian(_samples.AsSpan(offset, 4))
+            };
+            int slot = (int)(unchecked(key * 11400714819323198485UL) >> 51);
+            int keySlot = slot * 2;
+            if (_cacheValid![slot] && _cacheKeys![keySlot] == (uint)key
+                && _cacheKeys[keySlot + 1] == (uint)(key >> 32)) return _cacheValues![slot];
+            uint color = ConvertRaw((int)(key >> (16 * (_components - 1))) & 65535,
+                (int)(key >> (16 * (_components - 2))) & 65535,
+                _components > 2 ? (int)(key >> (16 * (_components - 3))) & 65535 : 0,
+                _components > 3 ? (int)key & 65535 : 0);
+            _cacheKeys![keySlot] = (uint)key;
+            _cacheKeys[keySlot + 1] = (uint)(key >> 32);
+            _cacheValues![slot] = color;
+            _cacheValid[slot] = true;
+            return color;
+        }
+
         private uint ConvertCacheKey(uint key)
         {
+            if (_bits == 16) return ConvertWideCacheKey(checked((int)key));
             int slot = (int)((key * 2654435761u) >> _cacheShift);
             if (_cacheValid![slot] && _cacheKeys![slot] == key) return _cacheValues![slot];
             uint color = ConvertRaw((int)(key >> (8 * (_components - 1))) & 255,

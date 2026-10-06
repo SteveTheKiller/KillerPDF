@@ -12,6 +12,53 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfDeviceImageStorageTests
 {
     [Theory]
+    [InlineData(3, false, false)]
+    [InlineData(3, false, true)]
+    [InlineData(3, true, false)]
+    [InlineData(3, true, true)]
+    [InlineData(4, false, false)]
+    [InlineData(4, false, true)]
+    [InlineData(4, true, false)]
+    [InlineData(4, true, true)]
+    public void WideSampleCache_PreservesFullKeysAndDecodeRanges(int components, bool targetInk, bool reverse)
+    {
+        const int width = 128, height = 96;
+        byte[] samples = new byte[width * height * components * 2];
+        new Random(17331).NextBytes(samples);
+        double[] decode = Enumerable.Range(0, components)
+            .SelectMany(_ => reverse ? new[] { 1d, 0d } : new[] { 0d, 1d }).ToArray();
+        const System.Reflection.BindingFlags nested = System.Reflection.BindingFlags.NonPublic;
+        var spaceType = typeof(PdfPageRenderer).GetNestedType("ImageColorSpace", nested)!;
+        var spaceConstructor = spaceType.GetConstructors().Single();
+        object?[] spaceArguments = spaceConstructor.GetParameters()
+            .Select(parameter => parameter.HasDefaultValue ? parameter.DefaultValue : null).ToArray();
+        spaceArguments[0] = components;
+        object space = spaceConstructor.Invoke(spaceArguments);
+        var converterType = typeof(PdfPageRenderer).GetNestedType("ImageSampleConverter", nested)!;
+        var constructor = converterType.GetConstructors(System.Reflection.BindingFlags.Instance
+            | System.Reflection.BindingFlags.NonPublic).Single();
+        Func<int, int, uint> Create(bool matte)
+        {
+            object?[] arguments = constructor.GetParameters()
+                .Select(parameter => parameter.HasDefaultValue ? parameter.DefaultValue : null).ToArray();
+            object?[] supplied = [samples, width * components * 2, components, 16, decode, space,
+                targetInk, null, matte];
+            supplied.CopyTo(arguments, 0);
+            object converter = constructor.Invoke(arguments);
+            return converterType.GetMethod("Convert", System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic)!.CreateDelegate<Func<int, int, uint>>(converter);
+        }
+        var cached = Create(false);
+        var uncached = Create(true);
+        for (int pass = 0; pass < 2; pass++)
+        for (int index = 0; index < width * height; index++)
+        {
+            int pixel = pass == 0 ? index : width * height - index - 1;
+            Assert.Equal(uncached(pixel % width, pixel / width), cached(pixel % width, pixel / width));
+        }
+    }
+
+    [Theory]
     [InlineData(1)]
     [InlineData(3)]
     public void MaskedDeviceImageDoesNotAllocateAColorPlane(int components)
