@@ -25,6 +25,7 @@ public sealed partial class PdfPageRenderer
         private readonly Lock _spotSync = new();
         private byte[]? _spotBaseInk;
         private Dictionary<string, byte[]>? _spotPlates;
+        private byte[][] _spotPlateValues = [];
         private byte[]? _rgbSpotValid;
         private bool _rgbSpotShadow;
         internal bool HasSpotPlates => _spotPlates is { Count: > 0 };
@@ -324,7 +325,7 @@ public sealed partial class PdfPageRenderer
                     return;
                 }
                 WriteInk(_spotBaseInk!, offset, ink);
-                foreach (byte[] plate in _spotPlates!.Values) WriteInk(plate, offset, 0);
+                foreach (byte[] plate in _spotPlateValues) WriteInk(plate, offset, 0);
                 _rgbSpotValid![offset / 4] = 1;
             }
         }
@@ -336,7 +337,7 @@ public sealed partial class PdfPageRenderer
             {
                 System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
                     _spotBaseInk!.AsSpan(offset, count * 4)).Fill(ink);
-                foreach (byte[] plate in _spotPlates!.Values)
+                foreach (byte[] plate in _spotPlateValues)
                     plate.AsSpan(offset, count * 4).Clear();
                 _rgbSpotValid!.AsSpan(offset / 4, count).Fill(1);
             }
@@ -356,7 +357,7 @@ public sealed partial class PdfPageRenderer
             lock (_spotSync)
             {
                 if (_rgbSpotValid![offset / 4] == 0) return false;
-                foreach (byte[] plate in _spotPlates!.Values)
+                foreach (byte[] plate in _spotPlateValues)
                     if (ReadInk(plate, offset) != 0) return false;
                 int channels = (components & 16) != 0 ? components & 15 : 0;
                 uint preserve = (channels & 1) != 0 ? 0x000000ffu : 0;
@@ -397,6 +398,7 @@ public sealed partial class PdfPageRenderer
                     plate = RasterBuffers.Rent(Length);
                     Array.Clear(plate, 0, Length);
                     _spotPlates.Add(name, plate);
+                    _spotPlateValues = [.. _spotPlates.Values];
                 }
                 return new PreparedSpotPaint(name, plate);
             }
@@ -408,7 +410,7 @@ public sealed partial class PdfPageRenderer
             if (!overprint)
             {
                 WriteInk(_spotBaseInk!, offset, 0);
-                foreach (byte[] existing in _spotPlates!.Values)
+                foreach (byte[] existing in _spotPlateValues)
                     WriteInk(existing, offset, 0);
             }
             if (color.ProcessInk is uint processInk)
@@ -437,7 +439,7 @@ public sealed partial class PdfPageRenderer
                 if (!overprint)
                 {
                     WriteInk(_spotBaseInk, offset, 0);
-                    foreach (byte[] existing in _spotPlates!.Values)
+                    foreach (byte[] existing in _spotPlateValues)
                         WriteInk(existing, offset, 0);
                 }
                 if (color.ProcessInk is uint processInk)
@@ -454,6 +456,7 @@ public sealed partial class PdfPageRenderer
                     plate = RasterBuffers.Rent(Length);
                     Array.Clear(plate, 0, Length);
                     _spotPlates.Add(color.SpotName!, plate);
+                    _spotPlateValues = [.. _spotPlates.Values];
                 }
                 WriteInk(plate, offset, color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk);
                 if (color.AdditionalSpot is { } additional)
@@ -463,6 +466,7 @@ public sealed partial class PdfPageRenderer
                         otherPlate = RasterBuffers.Rent(Length);
                         Array.Clear(otherPlate, 0, Length);
                         _spotPlates.Add(additional.Name, otherPlate);
+                        _spotPlateValues = [.. _spotPlates.Values];
                     }
                     WriteInk(otherPlate, offset, additional.Tint <= 0 ? 0 : additional.Ink);
                 }
@@ -486,6 +490,7 @@ public sealed partial class PdfPageRenderer
                     plate = RasterBuffers.Rent(Length);
                     Array.Clear(plate, 0, Length);
                     _spotPlates.Add(color.SpotName!, plate);
+                    _spotPlateValues = [.. _spotPlates.Values];
                 }
                 byte[]? additionalPlate = null;
                 if (color.AdditionalSpot is { } additional
@@ -494,12 +499,13 @@ public sealed partial class PdfPageRenderer
                     additionalPlate = RasterBuffers.Rent(Length);
                     Array.Clear(additionalPlate, 0, Length);
                     _spotPlates.Add(additional.Name, additionalPlate);
+                    _spotPlateValues = [.. _spotPlates.Values];
                 }
                 uint spotInk = color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk;
                 if (!overprint)
                 {
                     WriteInk(_spotBaseInk, offset, BlendCoverageInk(0, ReadInk(_spotBaseInk, offset), coverage));
-                    foreach (byte[] existing in _spotPlates.Values)
+                    foreach (byte[] existing in _spotPlateValues)
                         if (!ReferenceEquals(existing, plate)
                             && !ReferenceEquals(existing, additionalPlate))
                             WriteInk(existing, offset, BlendCoverageInk(0, ReadInk(existing, offset), coverage));
@@ -531,6 +537,7 @@ public sealed partial class PdfPageRenderer
                     plate = RasterBuffers.Rent(Length);
                     Array.Clear(plate, 0, Length);
                     _spotPlates.Add(color.SpotName!, plate);
+                    _spotPlateValues = [.. _spotPlates.Values];
                 }
                 byte[]? additionalPlate = null;
                 if (color.AdditionalSpot is { } additional
@@ -539,6 +546,7 @@ public sealed partial class PdfPageRenderer
                     additionalPlate = RasterBuffers.Rent(Length);
                     Array.Clear(additionalPlate, 0, Length);
                     _spotPlates.Add(additional.Name, additionalPlate);
+                    _spotPlateValues = [.. _spotPlates.Values];
                 }
                 uint mask = 0;
                 if (color.ProcessInk is not null)
@@ -553,7 +561,7 @@ public sealed partial class PdfPageRenderer
                     if (!overprint)
                     {
                         WriteInk(_spotBaseInk, offset, 0);
-                        foreach (byte[] existing in _spotPlates.Values)
+                        foreach (byte[] existing in _spotPlateValues)
                             WriteInk(existing, offset, 0);
                     }
                     if (color.ProcessInk is uint processInk)
@@ -611,7 +619,7 @@ public sealed partial class PdfPageRenderer
         private void ComposeSpotPixel(int offset)
         {
             uint combined = ReadInk(_spotBaseInk!, offset);
-            foreach (byte[] current in _spotPlates!.Values)
+            foreach (byte[] current in _spotPlateValues)
             {
                 uint spot = ReadInk(current, offset);
                 if (spot == 0) continue;
@@ -647,7 +655,7 @@ public sealed partial class PdfPageRenderer
             lock (_spotSync)
             {
                 WriteInk(_spotBaseInk, offset, ReadInk(Data, offset));
-                foreach (byte[] plate in _spotPlates!.Values)
+                foreach (byte[] plate in _spotPlateValues)
                     WriteInk(plate, offset, 0);
             }
         }
@@ -660,8 +668,9 @@ public sealed partial class PdfPageRenderer
             _rgbSpotValid = null;
             _rgbSpotShadow = false;
             if (_spotPlates is null) return;
-            foreach (byte[] plate in _spotPlates.Values) RasterBuffers.Return(plate);
+            foreach (byte[] plate in _spotPlateValues) RasterBuffers.Return(plate);
             _spotPlates = null;
+            _spotPlateValues = [];
         }
 
         internal void ReleaseInk()
@@ -816,6 +825,7 @@ public sealed partial class PdfPageRenderer
                         sourcePlate.AsSpan(source.Offset(Left, y), Width * 4)
                             .CopyTo(plate.AsSpan(Offset(Left, y), Width * 4));
                     _spotPlates.Add(name, plate);
+                    _spotPlateValues = [.. _spotPlates.Values];
                 }
             }
         }
