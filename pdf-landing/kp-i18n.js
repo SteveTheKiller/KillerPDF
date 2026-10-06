@@ -156,7 +156,7 @@ var I18N = {
   "f_print_t": "Печать &amp; сведение",
   "f_print_d_172": "Настоящий предпросмотр печати в приложении с управлением бумагой принтера и источником, сворачиваемыми разделами макета и вывода, масштабом, полями, режимом N-up, диапазонами, двусторонней печатью и живым прогрессом подготовки и отправки в очередь при 300 DPI. Или сведите либо экспортируйте страницы как изображения.",
   "f_themes_t": "Темы &amp; языки",
-  "f_themes_d_172": "13 тем и 33 варианта оформления, переключаемые без перезапуска. Интерфейс доступен на 16 языках, включая русский, казахский, польский и венгерский.",
+  "f_themes_d_172": "13 тем и 41 вариант оформления, переключаемые без перезапуска. Интерфейс доступен на 16 языках, включая русский, казахский, польский и венгерский.",
   "f_cli_t": "Автоматизация &amp; командная строка",
   "f_cli_d": "Объединяйте, разделяйте, расшифровывайте, изменяйте размер, сводите, печатайте, распознавайте или пакетно пересохраняйте файлы из PowerShell или cmd без открытия окна. Каждая команда возвращает удобный для скриптов код выхода.",
   "f_docinfo_t": "Сведения о документе",
@@ -358,7 +358,7 @@ var I18N = {
   "ph_310": "<b>KillerPDF-Portable.exe</b> содержит собственную среду выполнения и может работать без установки, в том числе на компьютере без интернета.",
   "ph_311": "Установки для одного пользователя живут в <code>%LOCALAPPDATA%\\Programs\\KillerPDF</code>. Установки для всех - в <code>%ProgramFiles%\\KillerPDF</code>. Установщик не позволяет двум вариантам оставаться установленными одновременно.",
   "ph_142": "Темы &amp; языки<span class=\"chev\">&#9656;</span>",
-  "ph_143_172": "Тринадцать тем - Темная, Светлая, Черная, 98SE, Кровь, Алчность, Цианоз, Эктоплазма, Распад, Недуг, Гробница, Бред и Траур - переключаются на лету, а четыре из них - Темная, Светлая, Черная и 98SE - принимают один из шести акцентных цветов, итого 33 варианта оформления.",
+  "ph_143_172": "Тринадцать тем - Темная, Светлая, Черная, 98SE, Кровь, Алчность, Цианоз, Эктоплазма, Распад, Недуг, Гробница, Бред и Траур - переключаются на лету, а четыре из них - Темная, Светлая, Черная и 98SE - принимают один из 8 акцентных цветов, итого 41 вариант оформления.",
   "ph_144": "Боковая панель закрепляется слева или справа.",
   "ph_312": "Интерфейс переведен на шестнадцать языков, включая итальянский, казахский и русский. У каждого языка интерфейса есть соответствующая загружаемая модель OCR.",
   "ph_224_172": "<b>Инверсия цветов документа:</b> переключатель-луна внизу рейки боковой панели (или клавиша <code>N</code>) отображает документ с инвертированными цветами для чтения в темном режиме. В разделенном виде эта настройка принадлежит активной панели. Она влияет только на отображение - сохранение, печать, экспорт, OCR и миниатюры сохраняют настоящие цвета документа - и запоминается между запусками.",
@@ -917,7 +917,7 @@ var I18N = {
   "f_split_d_172": "F10 mostra due documenti affiancati in un'unica finestra, che condividono la stessa barra strumenti e la stessa barra laterale ma mantengono impostazioni di visualizzazione e di inversione indipendenti. Trascina una scheda da un riquadro all'altro; F10 di nuovo chiude la divisione.",
   "f_transform_d_172": "Ruota, scala, capovolgi, raddrizza con una linea di livello, correggi la prospettiva e regola i livelli, tutto con anteprima in tempo reale e con le annotazioni che seguono la pagina.",
   "f_print_d_172": "Una vera anteprima di stampa nell'applicazione, con controlli per formato e origine della carta, sezioni layout e output richiudibili, scala, margini, più pagine per foglio, sottoinsiemi, fronte/retro e avanzamento in tempo reale di preparazione e coda a 300 DPI. Oppure appiattisci o esporta le pagine come immagini.",
-  "f_themes_d_172": "13 temi e 33 aspetti, selezionabili senza riavviare. Interfaccia disponibile in 16 lingue, tra cui italiano, russo, kazako, polacco e ungherese.",
+  "f_themes_d_172": "13 temi e 41 aspetti, selezionabili senza riavviare. Interfaccia disponibile in 16 lingue, tra cui italiano, russo, kazako, polacco e ungherese.",
   "f_cli_t": "Automazione e riga di comando",
   "f_cli_d": "Unisci, dividi, decifra, ridimensiona, appiattisci, stampa, esegui l'OCR o risalva in blocco i file da PowerShell o cmd senza aprire alcuna finestra. Ogni comando restituisce un codice di uscita adatto agli script.",
   "f_search_t": "Cerca e seleziona il testo",
@@ -940,7 +940,7 @@ var I18N = {
   "ph_136_172": "Scegli formato e origine della carta della stampante, poi stampa <b>1, 2, 4, 6 o 9 pagine per foglio</b>, con scala (Adatta / Reale / Personalizzata %), un allineamento a 9 posizioni, margini, un intervallo di pagine, colore o bianco e nero, copie e stampa fronte/retro quando la stampante la supporta.",
   "ph_260": "L'avanzamento in tempo reale di preparazione e coda mostra esattamente a che punto è un lavoro di stampa grande, e l'annullamento resta disponibile mentre viene preparato.",
   "ph_261": "Fai clic sulla riga di stato nel piè di pagina oppure premi <code>Shift+F4</code> per vedere brevemente la dimensione attuale del file.",
-  "ph_143_172": "Tredici temi (Scuro, Chiaro, Nero, 98SE, Sangue, Avidità, Cianotico, Ectoplasma, Decadimento, Malessere, Sepolcro, Delirio e Lutto) si cambiano al volo, e quattro di essi, Scuro, Chiaro, Nero e 98SE, accettano uno di sei colori di accento, per un totale di 33 aspetti.",
+  "ph_143_172": "Tredici temi (Scuro, Chiaro, Nero, 98SE, Sangue, Avidità, Cianotico, Ectoplasma, Decadimento, Malessere, Sepolcro, Delirio e Lutto) si cambiano al volo, e quattro di essi, Scuro, Chiaro, Nero e 98SE, accettano uno di 8 colori di accento, per un totale di 41 aspetti.",
   "ph_145_172": "L'interfaccia è tradotta in dodici lingue, polacco e ungherese compresi.",
   "ph_224_172": "<b>Inverti colori documento:</b> l'interruttore a forma di luna in fondo alla guida della barra laterale (o il tasto <code>N</code>) disegna il documento con i colori invertiti per leggere in modalità scura. Nella vista divisa questa impostazione appartiene al riquadro attivo. Riguarda solo la visualizzazione (salvataggio, stampa, esportazione, OCR e miniature mantengono i colori reali del documento) e viene ricordata tra un avvio e l'altro.",
   "ph_262": "Usare la riga di comando<span class=\"chev\">&#9656;</span>",
@@ -1760,7 +1760,7 @@ var I18N = {
   "f_split_d_172": "F10 hiển thị hai tài liệu bên cạnh nhau trong một cửa sổ, chia sẻ cùng thanh công cụ và thanh bên trong khi giữ cho lập trình xem độc lập và đảo ngược. Hành kéo một tab từ một bảng tính đến một bảng tính khác, và F10 một lần nữa đóng chia.",
   "f_transform_d_172": "Chuyển, quy mô, xoay, thẳng bằng đường thẳng, quan điểm chính xác và các mức âm nhạc - tất cả đều có bản xem trước trực tiếp, trong khi các chú thích theo sau trang.",
   "f_print_d_172": "Một bản xem trước bản in-app thực sự với giấy in-app và điều khiển nguồn, bố cục và phần xuất có thể lắp ráp, quy mô, biên, N-up, tiểu tập hợp, duplex, và chuẩn bị trực tiếp và spool tiến bộ ở 300 DPI. hoặc phẳng hoặc xuất các trang như hình ảnh.",
-  "f_themes_d_172": "Ba mươi chủ đề - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium and Mourning - tất cả có thể chuyển đổi trực tiếp. Bốn trong số đó - Dark, Light, Black và 98SE - mỗi người có một trong sáu màu sắc nhấn, vì vậy tổng cộng 33 trông. UI được định vị bằng mười sáu ngôn ngữ, bao gồm Kazakh, Ba Lan, Hungary và Nga.",
+  "f_themes_d_172": "Mười ba chủ đề - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium and Mourning - tất cả có thể chuyển đổi trực tiếp. Bốn trong số đó - Dark, Light, Black và 98SE - mỗi người có một trong 8 màu sắc nhấn, vì vậy tổng cộng 41 trông. UI được định vị bằng mười sáu ngôn ngữ, bao gồm Kazakh, Ba Lan, Hungary và Nga.",
   "f_cli_t": "Tự động hóa & dòng lệnh",
   "f_cli_d": "Thêm vào, chia, giải mã, thay đổi kích thước, phẳng, in, OCR, hoặc phân tích hàng loạt các tệp từ PowerShell hoặc cmd mà không mở cửa sổ. Mỗi lệnh trả lại mã thoát thân thiện với kịch bản.",
   "f_search_t": "Tìm & chọn văn bản",
@@ -1783,7 +1783,7 @@ var I18N = {
   "ph_136_172": "Chọn kích thước giấy của máy in và nguồn giấy, sau đó in<b>1, 2, 4, 6 hoặc 9 trang cho mỗi tờ</b>(N-up), với quy mô (Fit / Actual / Custom %), một sự sắp xếp 9 chiều, biên, một phạm vi trang, màu hoặc trắng đen, bản sao, và xuất hai mặt khi máy in của bạn hỗ trợ nó.",
   "ph_260": "Việc chuẩn bị trực tiếp và tiến trình spool cho thấy chính xác nơi một công việc in lớn là, và hủy vẫn có sẵn trong khi nó đang được chuẩn bị.",
   "ph_261": "Nhấp vào dòng trạng thái chân hoặc nhấn<code>Thay đổi + F4</code>để hiển thị kích thước tập tin hiện tại một cách ngắn gọn.",
-  "ph_143_172": "Ba mươi chủ đề - Đen, Ánh sáng, Đen, 98SE, Máu, Thèm tham, Hình ảnh, Tăng bạch, Hủy hoại, Khủng hoảng, Quân, Tân thần và Lão thương - chuyển sang trực tiếp, và bốn trong số chúng - Đen, Ánh sáng, Đen và 98SE - mỗi một trong sáu màu sắc nhấn, vì vậy tổng cộng 33 trông.",
+  "ph_143_172": "Mười ba chủ đề - Đen, Ánh sáng, Đen, 98SE, Máu, Thèm tham, Hình ảnh, Tăng bạch, Hủy hoại, Khủng hoảng, Quân, Tân thần và Lão thương - chuyển sang trực tiếp, và bốn trong số chúng - Đen, Ánh sáng, Đen và 98SE - mỗi một trong 8 màu sắc nhấn, vì vậy tổng cộng 41 trông.",
   "ph_145_172": "Giao diện được dịch sang mười hai ngôn ngữ, bao gồm tiếng Ba Lan và tiếng Hungary.",
   "ph_224_172": "<b>Chuyển đổi màu sắc tài liệu:</b>Mặt trăng chuyển đổi ở dưới cùng của đường ray thanh bên (hoặc<code>N</code>Key) cho thấy tài liệu với màu đảo ngược để đọc chế độ tối. Trong dạng xem chia rẽ, thiết lập này thuộc về bảng điều khiển tập trung. Nó chỉ hiển thị - lưu, in, xuất khẩu, OCR và hình ảnh nhỏ giữ màu sắc thực của tài liệu - và được ghi nhớ trong suốt các lần khởi động.",
   "ph_262": "Sử dụng dòng lệnh<span class=\"chev\">▸</span>",
@@ -2647,7 +2647,7 @@ var I18N = {
   "f_print_d": "Valódi nyomtatási előnézet az alkalmazásban a lépték, pozíció, margók, laponkénti oldalak, páros és páratlan oldalak, színes és kétoldalas nyomtatás szabályozásával, 300 DPI felbontással. Menthet egy lapított másolatot vagy exportálhat oldalakat PNG/JPEG képként.",
   "f_print_d_172": "Valódi alkalmazáson belüli nyomtatási előnézet nyomtatópapírral és forrásvezérlőkkel, összecsukható elrendezéssel és kimeneti részekkel, léptékkel, margókkal, N-up, részhalmazokkal, duplex, valamint élő előkészítéssel és 300 DPI-s spool folyamattal. Vagy lapítsa ki vagy exportálja az oldalakat képként.",
   "f_themes_t": "Témák és nyelvek",
-  "f_themes_d_172": "13 téma és 33 megjelenés, újraindítás nélkül válthatók. A felület 16 nyelven érhető el, köztük magyarul, oroszul, kazahul és lengyelül.",
+  "f_themes_d_172": "13 téma és 41 megjelenés, újraindítás nélkül válthatók. A felület 16 nyelven érhető el, köztük magyarul, oroszul, kazahul és lengyelül.",
   "f_look_t": "Új megjelenés",
   "f_look_d": "A Dokumentumnézet egy lekerekített, magasított tabulátor, amely összhangban van más Killer Tools-alkalmazásokkal, kiemelő színnel kiemelt elválasztóval. Kattintson a jobb gombbal a címsorra egy olyan rendszermenü megnyitásához, amely megfelel az alkalmazás témájának a szabványos Windows keret helyett.",
   "f_cli_t": "Automatizálás és parancssor",
@@ -2749,7 +2749,7 @@ var I18N = {
   "ph_140": "Az <code>F4</code> megnyitja a Dokumentumadatokat.",
   "ph_141": "Tekintse meg és szerkessze a PDF címét, szerzőjét, tárgyát, kulcsszavait és készítőjét, mindezt visszamentve a fájlba.",
   "ph_142": "Témák és nyelvek<span class=\"chev\">▸</span>",
-  "ph_143_172": "Tizenhárom téma - sötét, világos, fekete, 98SE, vér, kapzsiság, cianotikus, ektoplazma, bomlás, rossz közérzet, sír, delírium és gyász - élőben váltható, és ezek közül négy - Sötét, Világos, Fekete és 98SE - mindegyik hat kiemelő szín valamelyikét veszi fel, így összesen 33 kinézetű.",
+  "ph_143_172": "Tizenhárom téma - sötét, világos, fekete, 98SE, vér, kapzsiság, cianotikus, ektoplazma, bomlás, rossz közérzet, sír, delírium és gyász - élőben váltható, és ezek közül négy - Sötét, Világos, Fekete és 98SE - mindegyik 8 kiemelő szín valamelyikét veszi fel, így összesen 41 kinézetű.",
   "ph_144": "Az oldalsáv a bal vagy a jobb oldalon dokkol.",
   "ph_145_172": "A felület tizenkét nyelvre van lefordítva, beleértve a lengyelt és a magyart is.",
   "ph_146": "Billentyűparancsok",
@@ -3593,7 +3593,7 @@ var I18N = {
   "ph_237": "Na współdzielonym komputerze lista ostatnich plików jest jedynym śladem tego, co otwierałeś. <b>Wyczyść listę</b> znajduje się w panelu Ostatnie na ekranie startowym oraz w rozwijanym menu Otwórz, a okno O programie (<code>F12</code>) ma przełącznik <b>„Nie zapamiętuj ostatnio otwieranych plików”</b> obok Wyczyść wszystkie dane - jego włączenie od razu opróżnia też istniejącą listę.",
   "ph_238": "<b>Wyczyść wszystkie dane</b> w oknie O programie usuwa za jednym razem każde zapisane ustawienie i każdy zachowany podpis.",
   "ph_142": "Motywy i języki<span class=\"chev\">&#9656;</span>",
-  "ph_143_172": "Trzynaście motywów - Ciemny, Jasny, Czarny, 98SE, Krew, Chciwość, Sinica, Ektoplazma, Rozkład, Marazm, Grobowiec, Delirium i Żałoba - przełącza się na żywo, a cztery z nich - Ciemny, Jasny, Czarny i 98SE - przyjmują jeden z sześciu kolorów wiodących, co daje łącznie 33 wyglądy.",
+  "ph_143_172": "Trzynaście motywów - Ciemny, Jasny, Czarny, 98SE, Krew, Chciwość, Sinica, Ektoplazma, Rozkład, Marazm, Grobowiec, Delirium i Żałoba - przełącza się na żywo, a cztery z nich - Ciemny, Jasny, Czarny i 98SE - przyjmują jeden z 8 kolorów wiodących, co daje łącznie 41 wyglądów.",
   "ph_144": "Panel boczny dokuje się po lewej lub po prawej stronie.",
   "ph_145_172": "Interfejs jest przetłumaczony na dwanaście języków, w tym polski i węgierski.",
   "ph_224_172": "<b>Odwróć kolory dokumentu:</b> przełącznik księżyca na dole listwy panelu bocznego (albo klawisz <code>N</code>) wyświetla dokument w odwróconych kolorach do czytania w trybie ciemnym. W widoku podzielonym to ustawienie należy do aktywnego panelu. Dotyczy wyłącznie wyświetlania - zapis, druk, eksport, OCR i miniatury zachowują prawdziwe kolory dokumentu - i jest pamiętane między uruchomieniami.",
@@ -4081,7 +4081,7 @@ var I18N = {
   "f_print_d": "Prawdziwy podgląd wydruku w aplikacji z kontrolą skali, położenia, marginesów, liczby stron na arkusz, stron parzystych i nieparzystych, koloru oraz druku dwustronnego, renderowany w 300 DPI. Możesz też zapisać spłaszczoną kopię lub wyeksportować strony jako obrazy PNG/JPEG.",
   "f_print_d_172": "Prawdziwy podgląd wydruku z wyborem rozmiaru i źródła papieru, zwijanymi sekcjami układu i wyjścia, skalą, marginesami, drukiem wielu stron na arkusz, podzbiorami, dupleksem oraz postępem przygotowania i buforowania w 300 DPI. Możesz też spłaszczyć plik lub wyeksportować strony jako obrazy.",
   "f_themes_t": "Motywy i języki",
-  "f_themes_d_172": "13 motywów i 33 wyglądy, przełączane bez restartu. Interfejs jest dostępny w 16 językach, w tym polskim, rosyjskim, kazachskim i węgierskim.",
+  "f_themes_d_172": "13 motywów i 41 wyglądów, przełączane bez restartu. Interfejs jest dostępny w 16 językach, w tym polskim, rosyjskim, kazachskim i węgierskim.",
   "f_look_t": "Nowy wygląd",
   "f_look_d": "Widok dokumentu jest zaokrągloną, uniesioną kartą pasującą do pozostałych aplikacji Killer Tools, z separatorem rozświetlanym kolorem akcentu. Kliknij prawym przyciskiem pasek tytułu, aby otworzyć systemowe menu dopasowane do motywu aplikacji zamiast standardowej ramki Windows.",
   "f_cli_t": "Automatyzacja i wiersz poleceń",
@@ -4254,7 +4254,7 @@ var I18N = {
   "f_split_d_172": "F10 zobrazí dva dokumenty vedle sebe v jednom okně, se sdílenou lištou nástrojů i postranním panelem, ale s nezávislým nastavením zobrazení a invertování. Přetáhněte kartu z jednoho podokna do druhého; dalším <b>F10</b> rozdělení zavřete.",
   "f_transform_d_172": "Otáčejte, měňte měřítko, převracejte, narovnávejte pomocí vodicí čáry, opravujte perspektivu a ladte úrovně - vše s živým náhledem, přičemž anotace sledují stránku.",
   "f_print_d_172": "Skutečný náhled tisku přímo v aplikaci, s ovládáním papíru a zásobníku tiskárny, sbalitelnými sekcemi rozvržení a výstupu, měřítkem, okraji, N-up, podmnožinami, oboustranným tiskem a živým průběhem přípravy i fronty při 300 DPI. Nebo stránky slučte či exportujte jako obrázky.",
-  "f_themes_d_172": "13 motivů a 33 vzhledů, přepínatelných bez restartu. Rozhraní je dostupné v 16 jazycích, včetně češtiny, ruštiny, kazaštiny, polštiny a maďarštiny.",
+  "f_themes_d_172": "13 motivů a 41 vzhledů, přepínatelných bez restartu. Rozhraní je dostupné v 16 jazycích, včetně češtiny, ruštiny, kazaštiny, polštiny a maďarštiny.",
   "f_cli_t": "Automatizace a příkazový řádek",
   "f_cli_d": "Slučujte, dělte, dešifrujte, měňte velikost, slučujte vrstvy, tiskněte, provádějte OCR nebo dávkově přeukládejte soubory z PowerShellu či cmd, aniž by se otevřelo okno. Každý příkaz vrací návratový kód vhodný pro skriptování.",
   "f_search_t": "Hledání a výběr textu",
@@ -4277,7 +4277,7 @@ var I18N = {
   "ph_136_172": "Zvolte formát a zdroj papíru tiskárny a pak tiskněte <b>1, 2, 4, 6 nebo 9 stránek na list</b> (N-up), s měřítkem (Přizpůsobit / Skutečné / Vlastní %), devítisměrným zarovnáním, okraji, rozsahem stránek, barevně nebo černobíle, s počtem kopií a oboustranným výstupem, pokud jej tiskárna podporuje.",
   "ph_260": "Živý průběh přípravy a fronty přesně ukazuje, kde se velká tisková úloha nachází, a zrušení zůstává dostupné i během přípravy.",
   "ph_261": "Kliknutím na stavový řádek v zápatí nebo stisknutím <code>Shift+F4</code> krátce zobrazíte aktuální velikost souboru.",
-  "ph_143_172": "Třináct motivů - Tmavý, Světlý, Černý, 98SE, Krvavý, Chamtivost, Cyanotický, Ektoplazma, Rozklad, Malátnost, Hrobka, Delirium a Smutek - se přepíná za běhu a čtyři z nich - Tmavý, Světlý, Černý a 98SE - přijímají jednu ze šesti akcentových barev, dohromady tedy 33 vzhledů.",
+  "ph_143_172": "Třináct motivů - Tmavý, Světlý, Černý, 98SE, Krvavý, Chamtivost, Cyanotický, Ektoplazma, Rozklad, Malátnost, Hrobka, Delirium a Smutek - se přepíná za běhu a čtyři z nich - Tmavý, Světlý, Černý a 98SE - přijímají jednu ze 8 akcentových barev, dohromady tedy 41 vzhledů.",
   "ph_145_172": "Rozhraní je přeloženo do dvanácti jazyků, včetně polštiny a maďarštiny.",
   "ph_224_172": "<b>Invertovat barvy dokumentu:</b> přepínač měsíce dole na liště postranního panelu (nebo klávesa <code>N</code>) vykreslí dokument s invertovanými barvami pro čtení v tmavém režimu. V rozděleném zobrazení patří toto nastavení zaměřenému podoknu. Týká se pouze zobrazení - ukládání, tisk, export, OCR i náhledy zachovají skutečné barvy dokumentu - a pamatuje se mezi spuštěními.",
   "ph_262": "Použití příkazového řádku<span class=\"chev\">&#9656;</span>",
@@ -5097,7 +5097,7 @@ var I18N = {
   "f_split_d_172": "F10 muestra dos documentos uno al lado del otro en una misma ventana, compartiendo la barra de herramientas y la barra lateral pero manteniendo ajustes de vista e inversión independientes. Arrastre una pestaña de un panel al otro; F10 vuelve a cerrar la división.",
   "f_transform_d_172": "Gire, escale, voltee, enderece con una línea de nivel, corrija la perspectiva y ajuste los niveles, todo con vista previa en vivo y con las anotaciones siguiendo a la página.",
   "f_print_d_172": "Una vista previa de impresión real dentro de la aplicación, con controles de papel y origen de la impresora, secciones de diseño y salida plegables, escala, márgenes, N-up, subconjuntos, dúplex y progreso en vivo de preparación y cola a 300 PPP. O aplane o exporte las páginas como imágenes.",
-  "f_themes_d_172": "13 temas y 33 apariencias, seleccionables sin reiniciar. Interfaz disponible en 16 idiomas, incluidos español, ruso, kazajo, polaco y húngaro.",
+  "f_themes_d_172": "13 temas y 41 apariencias, seleccionables sin reiniciar. Interfaz disponible en 16 idiomas, incluidos español, ruso, kazajo, polaco y húngaro.",
   "f_cli_t": "Automatización y línea de comandos",
   "f_cli_d": "Combine, divida, descifre, redimensione, aplane, imprima, aplique OCR o vuelva a guardar archivos por lotes desde PowerShell o cmd sin abrir una ventana. Cada comando devuelve un código de salida apto para scripts.",
   "f_search_t": "Buscar y seleccionar texto",
@@ -5120,7 +5120,7 @@ var I18N = {
   "ph_136_172": "Elija el tamaño y el origen del papel de la impresora y luego imprima <b>1, 2, 4, 6 o 9 páginas por hoja</b> (N-up), con escala (Ajustar / Real / Personalizado %), alineación en 9 direcciones, márgenes, un intervalo de páginas, color o blanco y negro, copias y salida a doble cara cuando su impresora lo admita.",
   "ph_260": "El progreso en vivo de preparación y cola muestra exactamente en qué punto está un trabajo de impresión grande, y la cancelación sigue disponible mientras se prepara.",
   "ph_261": "Haga clic en la línea de estado del pie o pulse <code>Mayús+F4</code> para mostrar brevemente el tamaño actual del archivo.",
-  "ph_143_172": "Trece temas: Oscuro, Claro, Negro, 98SE, Sangre, Codicia, Cianótico, Ectoplasma, Descomposición, Malestar, Sepulcro, Delirio y Luto, que cambian en vivo, y cuatro de ellos (Oscuro, Claro, Negro y 98SE) admiten uno de seis colores de acento, así que 33 aspectos en total.",
+  "ph_143_172": "Trece temas: Oscuro, Claro, Negro, 98SE, Sangre, Codicia, Cianótico, Ectoplasma, Descomposición, Malestar, Sepulcro, Delirio y Luto, que cambian en vivo, y cuatro de ellos (Oscuro, Claro, Negro y 98SE) admiten uno de 8 colores de acento, así que 41 aspectos en total.",
   "ph_145_172": "La interfaz está traducida a doce idiomas, incluidos polaco y húngaro.",
   "ph_224_172": "<b>Invertir los colores del documento:</b> el interruptor de luna al final del raíl de la barra lateral (o la tecla <code>N</code>) muestra el documento con los colores invertidos para leer en modo oscuro. En la vista dividida este ajuste pertenece al panel enfocado. Solo afecta a la pantalla: guardar, imprimir, exportar, el OCR y las miniaturas conservan los colores reales del documento, y se recuerda entre sesiones.",
   "ph_262": "Usar la línea de comandos<span class=\"chev\">&#9656;</span>",
@@ -5940,7 +5940,7 @@ var I18N = {
   "f_split_d_172": "F10 zeigt zwei Dokumente nebeneinander in einem Fenster, mit gemeinsamer Symbolleiste und Seitenleiste, aber unabhängigen Ansichts- und Invertierungseinstellungen. Ziehen Sie eine Registerkarte von einem Bereich in den anderen; F10 schließt die Teilung wieder.",
   "f_transform_d_172": "Drehen, skalieren, spiegeln, mit einer Ausrichtungslinie begradigen, Perspektive korrigieren und Tonwerte anpassen - alles mit Live-Vorschau, während die Anmerkungen der Seite folgen.",
   "f_print_d_172": "Eine echte Druckvorschau in der App mit Papier- und Zufuhrsteuerung des Druckers, einklappbaren Layout- und Ausgabebereichen, Skalierung, Rändern, N-up, Teilmengen, Duplex sowie Live-Fortschritt bei Vorbereitung und Spooling mit 300 DPI. Oder Seiten reduzieren beziehungsweise als Bilder exportieren.",
-  "f_themes_d_172": "13 Designs und 33 Erscheinungsbilder, ohne Neustart umschaltbar. Die Oberfläche ist in 16 Sprachen verfügbar, darunter Deutsch, Russisch, Kasachisch, Polnisch und Ungarisch.",
+  "f_themes_d_172": "13 Designs und 41 Erscheinungsbilder, ohne Neustart umschaltbar. Die Oberfläche ist in 16 Sprachen verfügbar, darunter Deutsch, Russisch, Kasachisch, Polnisch und Ungarisch.",
   "f_cli_t": "Automatisierung &amp; Befehlszeile",
   "f_cli_d": "Zusammenführen, teilen, entschlüsseln, Größe ändern, reduzieren, drucken, OCR oder Dateien stapelweise neu speichern - aus PowerShell oder cmd, ohne ein Fenster zu öffnen. Jeder Befehl liefert einen skriptfreundlichen Exitcode.",
   "f_search_t": "Text suchen &amp; auswählen",
@@ -5963,7 +5963,7 @@ var I18N = {
   "ph_136_172": "Wählen Sie Papierformat und Papierzufuhr des Druckers und drucken Sie dann <b>1, 2, 4, 6 oder 9 Seiten pro Blatt</b> (N-up), mit Skalierung (Einpassen / Original / Benutzerdefiniert %), einer 9-Wege-Ausrichtung, Rändern, einem Seitenbereich, Farbe oder Schwarzweiß, Kopien und beidseitiger Ausgabe, sofern Ihr Drucker das unterstützt.",
   "ph_260": "Live-Fortschritt bei Vorbereitung und Spooling zeigt genau, wo ein großer Druckauftrag steht, und der Abbruch bleibt während der Vorbereitung möglich.",
   "ph_261": "Klicken Sie auf die Statuszeile in der Fußzeile oder drücken Sie <code>Umschalt+F4</code>, um die aktuelle Dateigröße kurz anzuzeigen.",
-  "ph_143_172": "Dreizehn Designs - Dunkel, Hell, Schwarz, 98SE, Blut, Gier, Zyanotisch, Ektoplasma, Verfall, Unwohlsein, Grabmal, Delirium und Trauer - wechseln live, und vier davon - Dunkel, Hell, Schwarz und 98SE - nehmen je eine von sechs Akzentfarben an, also 33 Erscheinungsbilder insgesamt.",
+  "ph_143_172": "Dreizehn Designs - Dunkel, Hell, Schwarz, 98SE, Blut, Gier, Zyanotisch, Ektoplasma, Verfall, Unwohlsein, Grabmal, Delirium und Trauer - wechseln live, und vier davon - Dunkel, Hell, Schwarz und 98SE - nehmen je eine von 8 Akzentfarben an, also 41 Erscheinungsbilder insgesamt.",
   "ph_145_172": "Die Oberfläche ist in zwölf Sprachen übersetzt, einschließlich Polnisch und Ungarisch.",
   "ph_224_172": "<b>Dokumentfarben invertieren:</b> Der Mondschalter unten an der Seitenleiste (oder die Taste <code>N</code>) stellt das Dokument mit invertierten Farben für das Lesen im Dunkelmodus dar. In der geteilten Ansicht gehört diese Einstellung zum fokussierten Bereich. Sie betrifft nur die Anzeige - Speichern, Drucken, Exportieren, OCR und Miniaturansichten behalten die echten Farben des Dokuments - und wird über Neustarts hinweg gemerkt.",
   "ph_262": "Die Befehlszeile verwenden<span class=\"chev\">&#9656;</span>",
@@ -6783,7 +6783,7 @@ var I18N = {
   "f_split_d_172": "F10 affiche deux documents côte à côte dans une même fenêtre, avec la même barre d'outils et le même volet latéral, mais des réglages d'affichage et d'inversion indépendants. Faites glisser un onglet d'un volet à l'autre ; F10 referme la division.",
   "f_transform_d_172": "Pivotez, mettez à l'échelle, retournez, redressez à l'aide d'une ligne de niveau, corrigez la perspective et ajustez les niveaux, le tout avec un aperçu en direct et des annotations qui suivent la page.",
   "f_print_d_172": "Un véritable aperçu avant impression intégré, avec les commandes de papier et d'alimentation de l'imprimante, des sections Disposition et Sortie repliables, l'échelle, les marges, le N-up, les sous-ensembles, le recto verso et la progression en direct de la préparation et de la file d'attente à 300 ppp. Ou aplatissez les pages, ou exportez-les en images.",
-  "f_themes_d_172": "13 thèmes et 33 apparences, modifiables sans redémarrer. Interface disponible en 16 langues, dont le français, le russe, le kazakh, le polonais et le hongrois.",
+  "f_themes_d_172": "13 thèmes et 41 apparences, modifiables sans redémarrer. Interface disponible en 16 langues, dont le français, le russe, le kazakh, le polonais et le hongrois.",
   "f_cli_t": "Automatisation et ligne de commande",
   "f_cli_d": "Fusionnez, divisez, déchiffrez, redimensionnez, aplatissez, imprimez, appliquez l'OCR ou réenregistrez des fichiers par lots depuis PowerShell ou cmd, sans ouvrir de fenêtre. Chaque commande renvoie un code de sortie exploitable en script.",
   "f_search_t": "Rechercher et sélectionner du texte",
@@ -6806,7 +6806,7 @@ var I18N = {
   "ph_136_172": "Choisissez le format et l'alimentation du papier de l'imprimante, puis imprimez <b>1, 2, 4, 6 ou 9 pages par feuille</b> (N-up), avec l'échelle (Ajuster / Réelle / Personnalisée %), un alignement à 9 positions, des marges, une plage de pages, la couleur ou le noir et blanc, le nombre de copies et le recto verso si votre imprimante le permet.",
   "ph_260": "La progression en direct de la préparation et de la file d'attente indique précisément où en est une grosse impression, et l'annulation reste possible pendant la préparation.",
   "ph_261": "Cliquez sur la ligne d'état du pied de page ou appuyez sur <code>Maj+F4</code> pour afficher brièvement la taille du fichier.",
-  "ph_143_172": "Treize thèmes - Sombre, Clair, Noir, 98SE, Sang, Avarice, Cyanotique, Ectoplasme, Décomposition, Malaise, Sépulcre, Délire et Deuil - changent en direct, et quatre d'entre eux - Sombre, Clair, Noir et 98SE - acceptent chacun l'une des six couleurs d'accentuation, soit 33 apparences au total.",
+  "ph_143_172": "Treize thèmes - Sombre, Clair, Noir, 98SE, Sang, Avarice, Cyanotique, Ectoplasme, Décomposition, Malaise, Sépulcre, Délire et Deuil - changent en direct, et quatre d'entre eux - Sombre, Clair, Noir et 98SE - acceptent chacun l'une des 8 couleurs d'accentuation, soit 41 apparences au total.",
   "ph_145_172": "L'interface est traduite en douze langues, dont le polonais et le hongrois.",
   "ph_224_172": "<b>Inverser les couleurs du document :</b> le bouton lune en bas du rail latéral (ou la touche <code>N</code>) affiche le document en couleurs inversées pour une lecture en mode sombre. En affichage divisé, ce réglage appartient au volet actif. Il n'agit que sur l'affichage - l'enregistrement, l'impression, l'export, l'OCR et les miniatures conservent les vraies couleurs du document - et il est mémorisé d'une session à l'autre.",
   "ph_262": "Utiliser la ligne de commande<span class=\"chev\">&#9656;</span>",
@@ -7626,7 +7626,7 @@ var I18N = {
   "f_split_d_172": "F10, iki belgeyi tek pencerede yan yana gösterir; araç çubuğu ve kenar çubuğu ortaktır, görünüm ve tersine çevirme ayarları ise bağımsız kalır. Bir sekmeyi bir bölmeden diğerine sürükleyin; F10 bölmeyi yeniden kapatır.",
   "f_transform_d_172": "Döndürün, ölçekleyin, çevirin, bir hizalama çizgisiyle düzeltin, perspektifi düzeltin ve seviyeleri ayarlayın; hepsi canlı önizlemeyle ve açıklamalar sayfayı izlerken.",
   "f_print_d_172": "Uygulama içinde gerçek bir yazdırma önizlemesi: yazıcı kağıdı ve kaynak denetimleri, katlanabilir düzen ve çıktı bölümleri, ölçek, kenar boşlukları, N-up, alt kümeler, çift taraflı baskı ve 300 DPI'da canlı hazırlık ve kuyruk ilerlemesi. Ya da sayfaları düzleştirin veya görüntü olarak dışa aktarın.",
-  "f_themes_d_172": "Yeniden başlatmadan değiştirilebilen 13 tema ve 33 görünüm. Arayüz Türkçe, Rusça, Kazakça, Lehçe ve Macarca dahil 16 dilde kullanılabilir.",
+  "f_themes_d_172": "Yeniden başlatmadan değiştirilebilen 13 tema ve 41 görünüm. Arayüz Türkçe, Rusça, Kazakça, Lehçe ve Macarca dahil 16 dilde kullanılabilir.",
   "f_cli_t": "Otomasyon ve komut satırı",
   "f_cli_d": "PowerShell veya cmd üzerinden pencere açmadan dosyaları birleştirin, bölün, şifresini çözün, yeniden boyutlandırın, düzleştirin, yazdırın, OCR uygulayın veya toplu olarak yeniden kaydedin. Her komut, betiklere uygun bir çıkış kodu döndürür.",
   "f_search_t": "Metin arama ve seçme",
@@ -7649,7 +7649,7 @@ var I18N = {
   "ph_136_172": "Yazıcının kağıt boyutunu ve kaynağını seçin, ardından <b>yaprak başına 1, 2, 4, 6 veya 9 sayfa</b> (N-up) yazdırın; ölçek (Sığdır / Gerçek / Özel %), 9 yönlü hizalama, kenar boşlukları, sayfa aralığı, renkli veya siyah beyaz, kopya sayısı ve yazıcınız destekliyorsa çift taraflı çıktı ile.",
   "ph_260": "Canlı hazırlık ve kuyruk ilerlemesi, büyük bir yazdırma işinin tam olarak nerede olduğunu gösterir ve hazırlanırken iptal etme seçeneği açık kalır.",
   "ph_261": "Geçerli dosya boyutunu kısaca görmek için alt bilgi durum satırına tıklayın veya <code>Shift+F4</code> tuşlarına basın.",
-  "ph_143_172": "On üç tema - Koyu, Açık, Siyah, 98SE, Kan, Hırs, Siyanotik, Ektoplazma, Çürüme, Halsizlik, Kabir, Hezeyan ve Yas - anında değişir ve bunlardan dördü - Koyu, Açık, Siyah ve 98SE - altı vurgu renginden birini alır, yani toplam 33 görünüm.",
+  "ph_143_172": "On üç tema - Koyu, Açık, Siyah, 98SE, Kan, Hırs, Siyanotik, Ektoplazma, Çürüme, Halsizlik, Kabir, Hezeyan ve Yas - anında değişir ve bunlardan dördü - Koyu, Açık, Siyah ve 98SE - 8 vurgu renginden birini alır, yani toplam 41 görünüm.",
   "ph_145_172": "Arayüz, Lehçe ve Macarca dahil on iki dile çevrilmiştir.",
   "ph_224_172": "<b>Belge renklerini tersine çevir:</b> kenar çubuğu rayının altındaki ay düğmesi (veya <code>N</code> tuşu) belgeyi koyu modda okumak için ters renklerle gösterir. Bölünmüş görünümde bu ayar odaklanmış bölmeye aittir. Yalnızca görüntüyü etkiler - kaydetme, yazdırma, dışa aktarma, OCR ve küçük resimler belgenin gerçek renklerini korur - ve açılışlar arasında hatırlanır.",
   "ph_262": "Komut satırını kullanma<span class=\"chev\">&#9656;</span>",
@@ -8469,7 +8469,7 @@ var I18N = {
   "f_split_d_172": "F10 會在同一個視窗中並排顯示兩份文件，共用工具列與側邊欄，但檢視與反轉設定各自獨立。可將分頁從一個窗格拖到另一個窗格；再按一次 F10 即可關閉分割。",
   "f_transform_d_172": "旋轉、縮放、翻轉、以水平線校正傾斜、修正透視並調整色階，全部都有即時預覽，且註解會跟著頁面一起變動。",
   "f_print_d_172": "應用程式內真正的列印預覽，具備印表機紙張與紙匣控制、可摺疊的版面與輸出區塊、縮放、邊界、N-up、頁面子集、雙面列印，以及 300 DPI 下的即時準備與多工緩衝處理進度。也可以將頁面平面化或匯出為影像。",
-  "f_themes_d_172": "13 種佈景主題和 33 種外觀，無需重新啟動即可切換。介面支援 16 種語言，包含繁體中文、簡體中文、俄文、哈薩克文、波蘭文和匈牙利文。",
+  "f_themes_d_172": "13 種佈景主題和 41 種外觀，無需重新啟動即可切換。介面支援 16 種語言，包含繁體中文、簡體中文、俄文、哈薩克文、波蘭文和匈牙利文。",
   "f_cli_t": "自動化與命令列",
   "f_cli_d": "可從 PowerShell 或 cmd 合併、分割、解密、調整大小、平面化、列印、執行 OCR 或批次重新儲存檔案，完全不需開啟視窗。每個命令都會回傳適合指令碼判讀的結束代碼。",
   "f_search_t": "搜尋與選取文字",
@@ -8492,7 +8492,7 @@ var I18N = {
   "ph_136_172": "選擇印表機的紙張大小與紙匣，然後以<b>每張 1、2、4、6 或 9 頁</b>（N-up）列印，並可設定縮放（符合 / 實際 / 自訂 %）、九向對齊、邊界、頁面範圍、彩色或黑白、份數，以及印表機支援時的雙面輸出。",
   "ph_260": "即時的準備與多工緩衝處理進度會清楚顯示大型列印工作的進度，且在準備期間仍可取消。",
   "ph_261": "點選頁尾的狀態列或按 <code>Shift+F4</code>，即可短暫顯示目前的檔案大小。",
-  "ph_143_172": "十三種佈景主題：深色、淺色、黑色、98SE、血紅、貪婪綠、藍紫、靈質、腐朽、倦怠、陵墓、譫妄與哀悼，可即時切換；其中四種（深色、淺色、黑色與 98SE）各可搭配六種強調色之一，因此共有 33 種外觀。",
+  "ph_143_172": "十三種佈景主題：深色、淺色、黑色、98SE、血紅、貪婪綠、藍紫、靈質、腐朽、倦怠、陵墓、譫妄與哀悼，可即時切換；其中四種（深色、淺色、黑色與 98SE）各可搭配8種強調色之一，因此共有 41 種外觀。",
   "ph_145_172": "介面已翻譯成十二種語言，包含波蘭文與匈牙利文。",
   "ph_224_172": "<b>反轉文件色彩：</b>側邊欄軌道底部的月亮切換鈕（或 <code>N</code> 鍵）會以反轉色彩顯示文件，方便在深色模式下閱讀。在分割檢視中，此設定屬於目前作用中的窗格。這只影響顯示，儲存、列印、匯出、OCR 與縮圖都會保留文件原本的色彩，而且設定會在下次啟動時記住。",
   "ph_262": "使用命令列<span class=\"chev\">&#9656;</span>",
@@ -9312,7 +9312,7 @@ var I18N = {
   "f_split_d_172": "F10 会在同一个窗口中并排显示两份文档，共用工具栏和侧边栏，但视图与反转设置各自独立。可将标签页从一个窗格拖到另一个窗格；再按一次 F10 即可关闭分屏。",
   "f_transform_d_172": "旋转、缩放、翻转、用水平线校正倾斜、修正透视并调整色阶，全部都有实时预览，且批注会跟随页面一起变化。",
   "f_print_d_172": "应用内真正的打印预览，具备打印机纸张与纸盒控制、可折叠的版式与输出区块、缩放、页边距、N-up、页面子集、双面打印，以及 300 DPI 下的实时准备与后台打印进度。也可以将页面平面化或导出为图像。",
-  "f_themes_d_172": "13 种主题和 33 种外观，无需重启即可切换。界面支持 16 种语言，包括简体中文、繁体中文、俄语、哈萨克语、波兰语和匈牙利语。",
+  "f_themes_d_172": "13 种主题和 41 种外观，无需重启即可切换。界面支持 16 种语言，包括简体中文、繁体中文、俄语、哈萨克语、波兰语和匈牙利语。",
   "f_cli_t": "自动化与命令行",
   "f_cli_d": "可从 PowerShell 或 cmd 合并、拆分、解密、调整大小、平面化、打印、执行 OCR 或批量重新保存文件，完全无需打开窗口。每个命令都会返回便于脚本判断的退出码。",
   "f_search_t": "搜索与选择文本",
@@ -9335,7 +9335,7 @@ var I18N = {
   "ph_136_172": "选择打印机的纸张大小和纸盒，然后以<b>每张 1、2、4、6 或 9 页</b>（N-up）打印，并可设置缩放（适合 / 实际 / 自定义 %）、九向对齐、页边距、页面范围、彩色或黑白、份数，以及打印机支持时的双面输出。",
   "ph_260": "实时的准备与后台打印进度会清楚显示大型打印作业的进展，并且在准备期间仍可取消。",
   "ph_261": "点击页脚的状态行或按 <code>Shift+F4</code>，即可短暂显示当前文件大小。",
-  "ph_143_172": "十三种主题：深色、浅色、黑色、98SE、血色、贪婪、发绀、灵质、腐朽、倦怠、陵墓、谵妄和哀悼，可实时切换；其中四种（深色、浅色、黑色和 98SE）各可搭配六种强调色之一，因此共有 33 种外观。",
+  "ph_143_172": "十三种主题：深色、浅色、黑色、98SE、血色、贪婪、发绀、灵质、腐朽、倦怠、陵墓、谵妄和哀悼，可实时切换；其中四种（深色、浅色、黑色和 98SE）各可搭配8种强调色之一，因此共有 41 种外观。",
   "ph_145_172": "界面已翻译成十二种语言，包括波兰语和匈牙利语。",
   "ph_224_172": "<b>反转文档颜色：</b>侧边栏导轨底部的月亮开关（或 <code>N</code> 键）会以反转颜色显示文档，便于在深色模式下阅读。在分屏视图中，此设置属于当前聚焦的窗格。它只影响显示，保存、打印、导出、OCR 和缩略图都会保留文档本来的颜色，而且该设置会在下次启动时记住。",
   "ph_262": "使用命令行<span class=\"chev\">&#9656;</span>",
@@ -10155,7 +10155,7 @@ var I18N = {
   "f_split_d_172": "F10 একই উইন্ডোতে দুটি নথি পাশাপাশি দেখায়, একই টুলবার ও সাইডবার ভাগ করে নিয়ে, তবে ভিউ ও উল্টে দেওয়ার সেটিং আলাদা রেখে। একটি ট্যাব এক প্যান থেকে অন্যটিতে টেনে নিন; আবার F10 চাপলে বিভাজন বন্ধ হয়।",
   "f_transform_d_172": "ঘোরান, মাপ বদলান, উল্টান, সমতল রেখা দিয়ে সোজা করুন, দৃষ্টিকোণ ঠিক করুন এবং লেভেল সমন্বয় করুন - সবই সরাসরি প্রিভিউসহ, আর টীকা পৃষ্ঠার সঙ্গেই চলে।",
   "f_print_d_172": "অ্যাপের ভেতরেই সত্যিকারের প্রিন্ট প্রিভিউ, প্রিন্টারের কাগজ ও উৎস নিয়ন্ত্রণ, ভাঁজযোগ্য লেআউট ও আউটপুট অংশ, স্কেল, মার্জিন, N-up, উপসেট, দ্বিমুখী ছাপা এবং 300 DPI-তে প্রস্তুতি ও স্পুলের সরাসরি অগ্রগতিসহ। অথবা পৃষ্ঠাগুলিকে সমতল করুন বা ছবি হিসেবে রপ্তানি করুন।",
-  "f_themes_d_172": "রিস্টার্ট ছাড়াই বদলানো যায় এমন ১৩টি থিম ও ৩৩টি চেহারা। ইন্টারফেস বাংলা, রুশ, কাজাখ, পোলিশ ও হাঙ্গেরিয়ানসহ ১৬টি ভাষায় পাওয়া যায়।",
+  "f_themes_d_172": "রিস্টার্ট ছাড়াই বদলানো যায় এমন ১৩টি থিম ও ৪১টি চেহারা। ইন্টারফেস বাংলা, রুশ, কাজাখ, পোলিশ ও হাঙ্গেরিয়ানসহ ১৬টি ভাষায় পাওয়া যায়।",
   "f_cli_t": "স্বয়ংক্রিয়করণ ও কমান্ড লাইন",
   "f_cli_d": "PowerShell বা cmd থেকে উইন্ডো না খুলেই ফাইল একত্র করুন, ভাগ করুন, ডিক্রিপ্ট করুন, আকার বদলান, সমতল করুন, ছাপুন, OCR চালান বা একসঙ্গে অনেক ফাইল আবার সংরক্ষণ করুন। প্রতিটি কমান্ড স্ক্রিপ্টের উপযোগী একটি এক্সিট কোড ফেরত দেয়।",
   "f_search_t": "লেখা খোঁজা ও নির্বাচন",
@@ -10178,7 +10178,7 @@ var I18N = {
   "ph_136_172": "প্রিন্টারের কাগজের আকার ও উৎস বেছে নিন, তারপর <b>প্রতি পাতায় ১, ২, ৪, ৬ বা ৯ পৃষ্ঠা</b> (N-up) ছাপুন, সঙ্গে স্কেল (মানানসই / প্রকৃত / নিজস্ব %), নয় দিকের সারিবদ্ধকরণ, মার্জিন, পৃষ্ঠার পরিসর, রঙিন বা সাদা-কালো, কপির সংখ্যা এবং প্রিন্টার সমর্থন করলে দুই পিঠে ছাপা।",
   "ph_260": "প্রস্তুতি ও স্পুলের সরাসরি অগ্রগতি দেখায় বড় প্রিন্ট কাজটি ঠিক কোথায় আছে, আর প্রস্তুতির সময়ও বাতিল করার সুযোগ থাকে।",
   "ph_261": "বর্তমান ফাইলের আকার অল্প সময়ের জন্য দেখতে ফুটারের স্ট্যাটাস লাইনে ক্লিক করুন বা <code>Shift+F4</code> চাপুন।",
-  "ph_143_172": "তেরোটি থিম - গাঢ়, হালকা, কালো, 98SE, রক্ত, লোভ, নীলাভ, এক্টোপ্লাজম, ক্ষয়, অস্বস্তি, সমাধি, প্রলাপ ও শোক - সঙ্গে সঙ্গে বদলায়, আর এর চারটি - গাঢ়, হালকা, কালো ও 98SE - ছয়টি অ্যাকসেন্ট রঙের একটি নিতে পারে, ফলে মোট ৩৩টি চেহারা।",
+  "ph_143_172": "তেরোটি থিম - গাঢ়, হালকা, কালো, 98SE, রক্ত, লোভ, নীলাভ, এক্টোপ্লাজম, ক্ষয়, অস্বস্তি, সমাধি, প্রলাপ ও শোক - সঙ্গে সঙ্গে বদলায়, আর এর চারটি - গাঢ়, হালকা, কালো ও 98SE - ৮টি অ্যাকসেন্ট রঙের একটি নিতে পারে, ফলে মোট ৪১টি চেহারা।",
   "ph_145_172": "ইন্টারফেসটি পোলিশ ও হাঙ্গেরিয়ানসহ বারোটি ভাষায় অনূদিত।",
   "ph_224_172": "<b>নথির রং উল্টে দিন:</b> সাইডবার রেলের নিচের চাঁদ টগলটি (বা <code>N</code> কী) গাঢ় মোডে পড়ার জন্য নথিটিকে উল্টানো রঙে দেখায়। বিভক্ত ভিউতে এই সেটিংটি সক্রিয় প্যানের। এটি শুধু প্রদর্শনের - সংরক্ষণ, ছাপা, রপ্তানি, OCR ও থাম্বনেইল নথির আসল রংই ধরে রাখে - এবং পরের বার চালু করলেও মনে থাকে।",
   "ph_262": "কমান্ড লাইন ব্যবহার<span class=\"chev\">&#9656;</span>",
@@ -10998,7 +10998,7 @@ var I18N = {
   "f_split_d_172": "F10 で 1 つのウィンドウに 2 つの文書を並べて表示します。ツールバーとサイドバーは共有しつつ、表示と反転の設定はペインごとに独立します。タブは一方のペインからもう一方へドラッグでき、もう一度 F10 を押すと分割を閉じます。",
   "f_transform_d_172": "回転、拡大縮小、反転、水平線を引いての傾き補正、遠近補正、レベル調整。すべてライブプレビュー付きで、注釈もページに追従します。",
   "f_print_d_172": "アプリ内の本物の印刷プレビュー。プリンターの用紙と給紙の設定、折りたためるレイアウトと出力のセクション、拡大縮小、余白、N-up、範囲指定、両面印刷、そして 300 DPI での準備とスプールの進捗をリアルタイムに表示します。ページを画像として書き出したり、フラット化したりもできます。",
-  "f_themes_d_172": "再起動せずに切り替えられる 13 種類のテーマと 33 通りの外観。UI は日本語、ロシア語、カザフ語、ポーランド語、ハンガリー語など 16 言語に対応しています。",
+  "f_themes_d_172": "再起動せずに切り替えられる 13 種類のテーマと 41 通りの外観。UI は日本語、ロシア語、カザフ語、ポーランド語、ハンガリー語など 16 言語に対応しています。",
   "f_cli_t": "自動化とコマンドライン",
   "f_cli_d": "PowerShell や cmd から、ウィンドウを開かずに結合、分割、復号、リサイズ、フラット化、印刷、OCR、一括再保存を実行できます。どのコマンドもスクリプトで扱いやすい終了コードを返します。",
   "f_search_t": "テキストの検索と選択",
@@ -11021,7 +11021,7 @@ var I18N = {
   "ph_136_172": "プリンターの用紙サイズと給紙を選び、<b>1 枚に 1、2、4、6、9 ページ</b>（N-up）で印刷できます。拡大縮小（合わせる／実寸／カスタム %）、9 方向の配置、余白、ページ範囲、カラーまたは白黒、部数、そしてプリンターが対応していれば両面出力も指定できます。",
   "ph_260": "準備とスプールの進捗がリアルタイムに表示されるので、大きな印刷ジョブがどこまで進んだかが正確にわかり、準備中もキャンセルできます。",
   "ph_261": "フッターのステータス行をクリックするか <code>Shift+F4</code> を押すと、現在のファイルサイズが短時間表示されます。",
-  "ph_143_172": "13 種類のテーマ（ダーク、ライト、ブラック、98SE、ブラッド、グリード、シアノティック、エクトプラズム、ディケイ、マレーズ、セパルカー、デリリウム、モーニング）をその場で切り替えられ、そのうち 4 つ（ダーク、ライト、ブラック、98SE）は 6 色のアクセントカラーから 1 つを選べるため、合計 33 通りの外観になります。",
+  "ph_143_172": "13 種類のテーマ（ダーク、ライト、ブラック、98SE、ブラッド、グリード、シアノティック、エクトプラズム、ディケイ、マレーズ、セパルカー、デリリウム、モーニング）をその場で切り替えられ、そのうち 4 つ（ダーク、ライト、ブラック、98SE）は 8 色のアクセントカラーから 1 つを選べるため、合計 41 通りの外観になります。",
   "ph_145_172": "インターフェイスはポーランド語とハンガリー語を含む 12 言語に翻訳されています。",
   "ph_224_172": "<b>文書の色を反転：</b>サイドバーのレール下部にある月のトグル（または <code>N</code> キー）で、ダークモード読書用に文書を反転色で表示します。分割表示ではこの設定はフォーカスされているペインに属します。表示だけの機能で、保存、印刷、書き出し、OCR、サムネイルは文書本来の色を保ち、設定は次回起動時にも記憶されます。",
   "ph_262": "コマンドラインの使い方<span class=\"chev\">&#9656;</span>",
@@ -11990,7 +11990,7 @@ var I18N = {
   "ph_310": "<b>KillerPDF-Portable.exe</b> өз ортасын қамтиды және орнатусыз, тіпті желіден тыс компьютерде де жұмыс істей алады.",
   "ph_311": "Бір пайдаланушыға орнатылған нұсқа <code>%LOCALAPPDATA%\\Programs\\KillerPDF</code> ішінде, барлық пайдаланушыға орнатылғаны <code>%ProgramFiles%\\KillerPDF</code> ішінде орналасады. Орнатқыш екі ауқымның бір мезгілде орнатылып қалуына жол бермейді.",
   "ph_142": "Тақырыптар және тілдер<span class=\"chev\">&#9656;</span>",
-  "ph_143_172": "Он үш тақырып - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium және Mourning - қолданба жұмыс істеп тұрғанда ауысады, ал олардың төртеуі - Dark, Light, Black және 98SE - алты акцент түсінің бірін алады, барлығы 33 көрініс.",
+  "ph_143_172": "Он үш тақырып - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium және Mourning - қолданба жұмыс істеп тұрғанда ауысады, ал олардың төртеуі - Dark, Light, Black және 98SE - 8 акцент түсінің бірін алады, барлығы 41 көрініс.",
   "ph_144": "Бүйірлік тақта солға немесе оңға бекітіледі.",
   "ph_312": "Интерфейс он алты тілге аударылған, оның ішінде итальян, қазақ және орыс тілдері бар. Әр интерфейс тілінің сәйкес жүктеп алынатын OCR үлгісі бар.",
   "ph_224_172": "<b>Құжат түстерін терістеу:</b> бүйірлік тақта жолағының төменгі жағындағы ай ауыстырғышы (немесе <code>N</code> пернесі) қараңғы режимде оқу үшін құжатты терістелген түстермен көрсетеді. Бөлінген көріністе бұл параметр фокустағы панельге тиесілі. Бұл тек көрсету үшін - сақтау, басып шығару, экспорттау, OCR және нобайлар құжаттың шын түстерін сақтайды - және әр іске қосу арасында есте сақталады.",
@@ -12436,7 +12436,7 @@ var I18N = {
   "f_print_t": "Басып шығару және тегістеу",
   "f_print_d_172": "Қолданбаның ішінде принтер қағазы мен дереккөз басқару элементтері бар толық басып шығару көрінісі ұсынылады. Орналасу мен шығыс бөлімдерін жинауға болады. Масштаб, жиектер, бір парақтағы бірнеше бет, бет жиындары, екі жақты басып шығару және 300 DPI кезінде дайындау мен кезек барысы көрсетіледі. Беттерді тегістеуге немесе кескін ретінде экспорттауға да болады.",
   "f_themes_t": "Тақырыптар және тілдер",
-  "f_themes_d_172": "Қайта іске қоспай ауыстырылатын 13 тақырып пен 33 көрініс. Интерфейс қазақ, орыс, поляк және венгр тілдерін қоса алғанда 16 тілде қолжетімді.",
+  "f_themes_d_172": "Қайта іске қоспай ауыстырылатын 13 тақырып пен 41 көрініс. Интерфейс қазақ, орыс, поляк және венгр тілдерін қоса алғанда 16 тілде қолжетімді.",
   "f_cli_t": "Автоматтандыру және пәрмен жолы",
   "f_cli_d": "Терезе ашпай, PowerShell немесе cmd арқылы файлдарды біріктіріңіз, бөліңіз, шифрын шешіңіз, өлшемін өзгертіңіз, тегістеңіз, басып шығарыңыз, OCR жасаңыз немесе топтап қайта сақтаңыз. Әр пәрмен сценарийлерге ыңғайлы шығу кодын қайтарады.",
   "f_docinfo_t": "Құжат туралы ақпарат",
@@ -12624,7 +12624,7 @@ I18N.uk = {
  "f_print_t": "Друк &amp; зведення",
  "f_print_d_172": "Справжній попередній перегляд друку в застосунку з керуванням папером і джерелом принтера, згортними розділами розташування та виводу, масштабом, полями, N-up, підмножинами, двостороннім друком і поточним прогресом підготовки та спулу на 300 DPI. Або зводьте чи експортуйте сторінки як зображення.",
  "f_themes_t": "Теми &amp; мови",
- "f_themes_d_172": "Тринадцять тем: Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium і Mourning, і всі перемикаються наживо. Чотири з них (Dark, Light, Black і 98SE) приймають по одному з шести акцентних кольорів, разом 33 вигляди. Інтерфейс локалізовано шістнадцятьма мовами, зокрема в'єтнамською, казахською, польською, угорською та російською.",
+ "f_themes_d_172": "Тринадцять тем: Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium і Mourning, і всі перемикаються наживо. Чотири з них (Dark, Light, Black і 98SE) приймають по одному з 8 акцентних кольорів, разом 41 вигляд. Інтерфейс локалізовано шістнадцятьма мовами, зокрема в'єтнамською, казахською, польською, угорською та російською.",
  "f_cli_t": "Автоматизація &amp; командний рядок",
  "f_cli_d": "Об'єднуйте, розділяйте, розшифровуйте, змінюйте розмір, зводьте, друкуйте, розпізнавайте (OCR) або пакетно пересохраняйте файли з PowerShell чи cmd без відкриття вікна. Кожна команда повертає код завершення, зручний для скриптів.",
  "f_docinfo_t": "Відомості про документ",
@@ -12826,7 +12826,7 @@ I18N.uk = {
  "ph_310": "<b>KillerPDF-Portable.exe</b> містить власне середовище виконання та може працювати без встановлення, зокрема на комп'ютері без мережі.",
  "ph_311": "Встановлення для одного користувача розташовується в <code>%LOCALAPPDATA%\\Programs\\KillerPDF</code>. Встановлення для всіх розташовується в <code>%ProgramFiles%\\KillerPDF</code>. Інсталятор не допускає одночасного залишення обох варіантів.",
  "ph_142": "Теми &amp; мови<span class=\"chev\">&#9656;</span>",
- "ph_143_172": "Тринадцять тем: Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium і Mourning, і всі перемикаються наживо, а чотири з них (Dark, Light, Black і 98SE) приймають по одному з шести акцентних кольорів, разом 33 вигляди.",
+ "ph_143_172": "Тринадцять тем: Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium і Mourning, і всі перемикаються наживо, а чотири з них (Dark, Light, Black і 98SE) приймають по одному з 8 акцентних кольорів, разом 41 вигляд.",
  "ph_144": "Бічна панель прикріплюється ліворуч або праворуч.",
  "ph_312": "Інтерфейс перекладено шістнадцятьма мовами, зокрема в'єтнамською, італійською, казахською та російською. Кожна мова інтерфейсу має відповідну модель OCR для завантаження.",
  "ph_224_172": "<b>Інвертувати кольори документа:</b> перемикач-місяць унизу рейки бічної панелі (або клавіша <code>N</code>) відображає документ з інвертованими кольорами для читання в темному режимі. У розділеному вигляді це налаштування належить панелі у фокусі. Воно лише для відображення: збереження, друк, експорт, OCR і мініатюри зберігають справжні кольори документа, і воно запам'ятовується між запусками.",
@@ -13451,7 +13451,7 @@ I18N.nb = {
  "f_print_t": "Skriv ut &amp; flat ut",
  "f_print_d_172": "En ekte forhåndsvisning av utskrift i programmet med kontroller for skriverpapir og kilde, sammenleggbare seksjoner for oppsett og utdata, skala, marger, N-opp, delmengder, tosidig utskrift og live fremdrift for klargjøring og spooling ved 300 DPI. Eller flat ut eller eksporter sider som bilder.",
  "f_themes_t": "Temaer &amp; språk",
- "f_themes_d_172": "Tretten temaer - Mørk, Lys, Svart, 98SE, Blod, Grådighet, Cyanotisk, Ektoplasma, Forfall, Ubehag, Gravkammer, Delirium og Sorg - alle kan byttes live. Fire av dem - Mørk, Lys, Svart og 98SE - støtter hver én av seks aksentfarger, så det blir 33 uttrykk til sammen. Grensesnittet er oversatt til seksten språk, blant annet vietnamesisk, kasakhisk, polsk, ungarsk og russisk.",
+ "f_themes_d_172": "Tretten temaer - Mørk, Lys, Svart, 98SE, Blod, Grådighet, Cyanotisk, Ektoplasma, Forfall, Ubehag, Gravkammer, Delirium og Sorg - alle kan byttes live. Fire av dem - Mørk, Lys, Svart og 98SE - støtter hver én av 8 aksentfarger, så det blir 41 uttrykk til sammen. Grensesnittet er oversatt til seksten språk, blant annet vietnamesisk, kasakhisk, polsk, ungarsk og russisk.",
  "f_cli_t": "Automatisering &amp; kommandolinje",
  "f_cli_d": "Slå sammen, del, dekrypter, endre størrelse, flat ut, skriv ut, OCR-behandle eller lagre filer på nytt i batch fra PowerShell eller cmd uten å åpne et vindu. Hver kommando returnerer en skriptvennlig avslutningskode.",
  "f_docinfo_t": "Dokumentinfo",
@@ -13653,7 +13653,7 @@ I18N.nb = {
  "ph_310": "<b>KillerPDF-Portable.exe</b> inneholder sin egen kjøretid og kan kjøres uten installasjon, også på en frakoblet datamaskin.",
  "ph_311": "Installasjoner per bruker ligger under <code>%LOCALAPPDATA%\\Programs\\KillerPDF</code>. Installasjoner for alle brukere ligger under <code>%ProgramFiles%\\KillerPDF</code>. Installasjonsprogrammet hindrer at begge omfangene er installert samtidig.",
  "ph_142": "Temaer &amp; språk<span class=\"chev\">&#9656;</span>",
- "ph_143_172": "Tretten temaer - Mørk, Lys, Svart, 98SE, Blod, Grådighet, Cyanotisk, Ektoplasma, Forfall, Ubehag, Gravkammer, Delirium og Sorg - byttes live, og fire av dem - Mørk, Lys, Svart og 98SE - støtter hver én av seks aksentfarger, så det blir 33 uttrykk til sammen.",
+ "ph_143_172": "Tretten temaer - Mørk, Lys, Svart, 98SE, Blod, Grådighet, Cyanotisk, Ektoplasma, Forfall, Ubehag, Gravkammer, Delirium og Sorg - byttes live, og fire av dem - Mørk, Lys, Svart og 98SE - støtter hver én av 8 aksentfarger, så det blir 41 uttrykk til sammen.",
  "ph_144": "Sidepanelet kan forankres til venstre eller høyre.",
  "ph_312": "Grensesnittet er oversatt til seksten språk, blant annet vietnamesisk, italiensk, kasakhisk og russisk. Hvert grensesnittspråk har en tilsvarende nedlastbar OCR-modell.",
  "ph_224_172": "<b>Inverter dokumentfarger:</b> månebryteren nederst i sidepanelets list (eller <code>N</code>-tasten) gjengir dokumentet med inverterte farger for lesing i mørk modus. I delt visning tilhører denne innstillingen ruten som har fokus. Den gjelder bare visningen - lagring, utskrift, eksport, OCR og miniatyrbilder beholder dokumentets ekte farger - og huskes mellom oppstartene.",
@@ -14215,7 +14215,7 @@ I18N.pt = {
  "f_print_t": "Imprimir &amp; nivelar",
  "f_print_d_172": "Uma prévia de impressão de verdade dentro do aplicativo, com controles de papel e origem da impressora, seções de layout e saída recolhíveis, escala, margens, várias páginas por folha, subconjuntos, frente e verso e progresso ao vivo da preparação e do spool a 300 DPI. Ou nivele ou exporte páginas como imagens.",
  "f_themes_t": "Temas &amp; idiomas",
- "f_themes_d_172": "Treze temas - Escuro, Claro, Preto, 98SE, Sangue, Ganância, Cianótico, Ectoplasma, Decadência, Mal-estar, Sepulcro, Delírio e Luto - todos alternáveis ao vivo. Quatro deles - Escuro, Claro, Preto e 98SE - aceitam cada um seis cores de destaque, somando 33 visuais. Interface localizada em dezesseis idiomas, incluindo vietnamita, cazaque, polonês, húngaro e russo.",
+ "f_themes_d_172": "Treze temas - Escuro, Claro, Preto, 98SE, Sangue, Ganância, Cianótico, Ectoplasma, Decadência, Mal-estar, Sepulcro, Delírio e Luto - todos alternáveis ao vivo. Quatro deles - Escuro, Claro, Preto e 98SE - aceitam cada um 8 cores de destaque, somando 41 visuais. Interface localizada em dezesseis idiomas, incluindo vietnamita, cazaque, polonês, húngaro e russo.",
  "f_cli_t": "Automação &amp; linha de comando",
  "f_cli_d": "Mescle, divida, descriptografe, redimensione, nivele, imprima, faça OCR ou salve em lote novamente os arquivos pelo PowerShell ou pelo cmd, sem abrir uma janela. Todo comando retorna um código de saída amigável para scripts.",
  "f_docinfo_t": "Informações do documento",
@@ -14417,7 +14417,7 @@ I18N.pt = {
  "ph_310": "O <b>KillerPDF-Portable.exe</b> contém seu próprio runtime e pode ser executado sem instalação, inclusive em um computador offline.",
  "ph_311": "As instalações por usuário ficam em <code>%LOCALAPPDATA%\\Programs\\KillerPDF</code>. As instalações para todos os usuários ficam em <code>%ProgramFiles%\\KillerPDF</code>. O instalador impede que os dois escopos permaneçam instalados ao mesmo tempo.",
  "ph_142": "Temas &amp; idiomas<span class=\"chev\">&#9656;</span>",
- "ph_143_172": "Treze temas - Escuro, Claro, Preto, 98SE, Sangue, Ganância, Cianótico, Ectoplasma, Decadência, Mal-estar, Sepulcro, Delírio e Luto - mudam ao vivo, e quatro deles - Escuro, Claro, Preto e 98SE - aceitam cada um seis cores de destaque, somando 33 visuais.",
+ "ph_143_172": "Treze temas - Escuro, Claro, Preto, 98SE, Sangue, Ganância, Cianótico, Ectoplasma, Decadência, Mal-estar, Sepulcro, Delírio e Luto - mudam ao vivo, e quatro deles - Escuro, Claro, Preto e 98SE - aceitam cada um 8 cores de destaque, somando 41 visuais.",
  "ph_144": "A barra lateral pode ser acoplada à esquerda ou à direita.",
  "ph_312": "A interface é traduzida para dezesseis idiomas, incluindo vietnamita, italiano, cazaque e russo. Cada idioma da interface tem um modelo de OCR correspondente para download.",
  "ph_224_172": "<b>Inverter as cores do documento:</b> o botão de lua na parte inferior do trilho da barra lateral (ou a tecla <code>N</code>) renderiza o documento com as cores invertidas para leitura em modo escuro. Na exibição dividida, essa configuração pertence ao painel em foco. Ela afeta apenas a exibição: salvar, imprimir, exportar, OCR e miniaturas mantêm as cores reais do documento, e a escolha é lembrada entre as execuções.",
@@ -14826,109 +14826,109 @@ I18N.pt = {
 /* Language count update: nineteen locales. */
 if (I18N["ru"]) Object.assign(I18N["ru"], {
  "ph_312": "Интерфейс переведен на девятнадцать языков, включая итальянский, казахский и русский. У каждого языка интерфейса есть соответствующая загружаемая модель OCR.",
- "f_themes_d_172": "13 тем и 33 варианта оформления, переключаемые без перезапуска. Интерфейс доступен на 19 языках, включая русский, казахский, польский и венгерский.",
+ "f_themes_d_172": "13 тем и 41 вариант оформления, переключаемые без перезапуска. Интерфейс доступен на 19 языках, включая русский, казахский, польский и венгерский.",
  "pt_243": "Интерфейс настольного приложения локализован через файлы <code>ResourceDictionary</code> для каждой локали в <code>Strings/</code>: 19 локалей, по одному файлу XAML на каждую, включая русский, казахский, итальянский, польский, венгерский, бенгальский, японский, украинский, норвежский (букмол), бразильский португальский, а также упрощенный и традиционный китайский. Построенные кодом и XAML-элементы управления получают ключи через <code>Loc(\"Str_...\")</code> или <code>DynamicResource</code>, поэтому смена языка перестраивает интерфейс на лету без перезапуска.",
  "tech_languages_themes_value": "19 языков / 13 тем и варианты акцента"
 });
 if (I18N["it"]) Object.assign(I18N["it"], {
  "ph_312": "L'interfaccia è tradotta in diciannove lingue, tra cui italiano, kazako e russo. Ogni lingua dell'interfaccia ha un modello OCR scaricabile corrispondente.",
- "f_themes_d_172": "13 temi e 33 aspetti, selezionabili senza riavviare. Interfaccia disponibile in 19 lingue, tra cui italiano, russo, kazako, polacco e ungherese.",
+ "f_themes_d_172": "13 temi e 41 aspetti, selezionabili senza riavviare. Interfaccia disponibile in 19 lingue, tra cui italiano, russo, kazako, polacco e ungherese.",
  "pt_243": "L'interfaccia desktop è localizzata tramite file <code>ResourceDictionary</code> per locale sotto <code>Strings/</code>: 19 locali, un file XAML ciascuno, inclusi russo, kazako, italiano, polacco, ungherese, bengalese, giapponese, ucraino, norvegese (bokmål), portoghese brasiliano e cinese semplificato e tradizionale. I controlli costruiti in codice e in XAML risolvono le chiavi tramite <code>Loc(\"Str_...\")</code> o una <code>DynamicResource</code>, quindi cambiare lingua ridispone l'interfaccia dal vivo senza riavvio.",
  "tech_languages_themes_value": "19 lingue / 13 temi e varianti di accento"
 });
 if (I18N["vi"]) Object.assign(I18N["vi"], {
  "ph_312": "Giao diện được dịch sang mười chín ngôn ngữ, bao gồm tiếng Ý, Kazakh và Nga. Mỗi ngôn ngữ giao diện có mô hình OCR tải xuống phù hợp.",
- "f_themes_d_172": "Ba mươi chủ đề - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium and Mourning - tất cả có thể chuyển đổi trực tiếp. Bốn trong số đó - Dark, Light, Black và 98SE - mỗi người có một trong sáu màu sắc nhấn, vì vậy tổng cộng 33 trông. UI được định vị bằng mười chín ngôn ngữ, bao gồm Kazakh, Ba Lan, Hungary và Nga.",
+ "f_themes_d_172": "Mười ba chủ đề - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium and Mourning - tất cả có thể chuyển đổi trực tiếp. Bốn trong số đó - Dark, Light, Black và 98SE - mỗi người có một trong 8 màu sắc nhấn, vì vậy tổng cộng 41 trông. UI được định vị bằng mười chín ngôn ngữ, bao gồm Kazakh, Ba Lan, Hungary và Nga.",
  "pt_243": "giao diện máy tính để bàn được định vị thông qua per-local<code>Nguồn Thuật ngữ</code>các tệp dưới<code>Dòng dây</code>: 19 địa điểm, mỗi tập tin XAML, bao gồm tiếng Nga, Kazakhstan, Ý, Ba Lan, Hungary, Bengali, Nhật Bản, Ukraina, Na Uy (Bokmål), Bồ Đào Nha (Brazil), và Trung Quốc đơn giản và truyền thống.<code>Loc(\"Str_...\")</code>hoặc một<code>DynamicResource</code>, để chuyển ngôn ngữ chuyển tiếp UI trực tiếp mà không cần khởi động lại.",
  "tech_languages_themes_value": "19 ngôn ngữ / 13 giao diện cùng các biến thể màu nhấn"
 });
 if (I18N["hu"]) Object.assign(I18N["hu"], {
  "ph_312": "A felület tizenkilenc nyelvre van lefordítva, köztük olaszra, kazahra és oroszra. Minden felületi nyelvhez tartozik letölthető OCR-modell.",
- "f_themes_d_172": "13 téma és 33 megjelenés, újraindítás nélkül válthatók. A felület 19 nyelven érhető el, köztük magyarul, oroszul, kazahul és lengyelül.",
+ "f_themes_d_172": "13 téma és 41 megjelenés, újraindítás nélkül válthatók. A felület 19 nyelven érhető el, köztük magyarul, oroszul, kazahul és lengyelül.",
  "pt_243": "Az asztali felület a <code>Strings/</code> alatti, területi beállításonkénti <code>ResourceDictionary</code> fájlokkal van honosítva: 19 nyelv, mindegyikhez egy XAML-fájl, köztük orosz, kazah, olasz, lengyel, magyar, bengáli, japán, ukrán, norvég (bokmål), brazil portugál, valamint egyszerűsített és hagyományos kínai. A kódból épített és a XAML-vezérlők a kulcsokat a <code>Loc(\"Str_...\")</code> hívással vagy <code>DynamicResource</code>-szal oldják fel, így a nyelvváltás újratördeli a felületet élőben, újraindítás nélkül.",
  "tech_languages_themes_value": "19 nyelv / 13 téma és kiemelőszín-változatok"
 });
 if (I18N["pl"]) Object.assign(I18N["pl"], {
  "ph_312": "Interfejs jest przetłumaczony na dziewiętnaście języków, w tym włoski, kazachski i rosyjski. Każdy język interfejsu ma odpowiadający mu model OCR do pobrania.",
- "f_themes_d_172": "13 motywów i 33 wyglądy, przełączane bez restartu. Interfejs jest dostępny w 19 językach, w tym polskim, rosyjskim, kazachskim i węgierskim.",
+ "f_themes_d_172": "13 motywów i 41 wyglądów, przełączane bez restartu. Interfejs jest dostępny w 19 językach, w tym polskim, rosyjskim, kazachskim i węgierskim.",
  "pt_243": "Interfejs aplikacji jest lokalizowany przez pliki <code>ResourceDictionary</code> dla poszczególnych języków w <code>Strings/</code>: 19 języków, po jednym pliku XAML, w tym rosyjski, kazachski, włoski, polski, węgierski, bengalski, japoński, ukraiński, norweski (bokmål), portugalski brazylijski oraz chiński uproszczony i tradycyjny. Kontrolki budowane w kodzie i w XAML rozwiązują klucze przez <code>Loc(\"Str_...\")</code> lub <code>DynamicResource</code>, więc zmiana języka przełącza interfejs na żywo, bez restartu.",
  "tech_languages_themes_value": "19 języków / 13 motywów i warianty akcentu"
 });
 if (I18N["cs"]) Object.assign(I18N["cs"], {
  "ph_312": "Rozhraní je přeloženo do devatenácti jazyků, včetně italštiny, kazaštiny a ruštiny. Každý jazyk rozhraní má odpovídající stažitelný model OCR.",
- "f_themes_d_172": "13 motivů a 33 vzhledů, přepínatelných bez restartu. Rozhraní je dostupné v 19 jazycích, včetně češtiny, ruštiny, kazaštiny, polštiny a maďarštiny.",
+ "f_themes_d_172": "13 motivů a 41 vzhledů, přepínatelných bez restartu. Rozhraní je dostupné v 19 jazycích, včetně češtiny, ruštiny, kazaštiny, polštiny a maďarštiny.",
  "pt_243": "Desktopové rozhraní je lokalizováno pomocí souborů <code>ResourceDictionary</code> pro jednotlivé jazyky ve složce <code>Strings/</code>: 19 jazyků, jeden soubor XAML pro každý, včetně ruštiny, kazaštiny, italštiny, polštiny, maďarštiny, bengálštiny, japonštiny, ukrajinštiny, norštiny (bokmål), brazilské portugalštiny a zjednodušené i tradiční čínštiny. Ovládací prvky vytvářené kódem i v XAML řeší klíče přes <code>Loc(\"Str_...\")</code> nebo <code>DynamicResource</code>, takže přepnutí jazyka přeuspořádá UI živě bez restartu.",
  "tech_languages_themes_value": "19 jazyků / 13 motivů a varianty zvýrazňující barvy"
 });
 if (I18N["es"]) Object.assign(I18N["es"], {
  "ph_312": "La interfaz está traducida a diecinueve idiomas, incluidos italiano, kazajo y ruso. Cada idioma de la interfaz tiene un modelo de OCR descargable correspondiente.",
- "f_themes_d_172": "13 temas y 33 apariencias, seleccionables sin reiniciar. Interfaz disponible en 19 idiomas, incluidos español, ruso, kazajo, polaco y húngaro.",
+ "f_themes_d_172": "13 temas y 41 apariencias, seleccionables sin reiniciar. Interfaz disponible en 19 idiomas, incluidos español, ruso, kazajo, polaco y húngaro.",
  "pt_243": "La interfaz de escritorio se localiza mediante archivos <code>ResourceDictionary</code> por configuración regional bajo <code>Strings/</code>: 19 configuraciones regionales, un archivo XAML cada una, incluidos ruso, kazajo, italiano, polaco, húngaro, bengalí, japonés, ucraniano, noruego (bokmål), portugués de Brasil y chino simplificado y tradicional. Los controles construidos en código y en XAML resuelven las claves mediante <code>Loc(\"Str_...\")</code> o un <code>DynamicResource</code>, así que cambiar de idioma redistribuye la interfaz en vivo sin reiniciar.",
  "tech_languages_themes_value": "19 idiomas / 13 temas y variantes de acento"
 });
 if (I18N["de"]) Object.assign(I18N["de"], {
  "ph_312": "Die Oberfläche ist in neunzehn Sprachen übersetzt, einschließlich Italienisch, Kasachisch und Russisch. Zu jeder Oberflächensprache gibt es ein passendes herunterladbares OCR-Modell.",
- "f_themes_d_172": "13 Designs und 33 Erscheinungsbilder, ohne Neustart umschaltbar. Die Oberfläche ist in 19 Sprachen verfügbar, darunter Deutsch, Russisch, Kasachisch, Polnisch und Ungarisch.",
+ "f_themes_d_172": "13 Designs und 41 Erscheinungsbilder, ohne Neustart umschaltbar. Die Oberfläche ist in 19 Sprachen verfügbar, darunter Deutsch, Russisch, Kasachisch, Polnisch und Ungarisch.",
  "pt_243": "Die Desktop-Oberfläche wird über <code>ResourceDictionary</code>-Dateien je Gebietsschema unter <code>Strings/</code> lokalisiert: 19 Gebietsschemata, je eine XAML-Datei, einschließlich Russisch, Kasachisch, Italienisch, Polnisch, Ungarisch, Bengalisch, Japanisch, Ukrainisch, Norwegisch (Bokmål), Portugiesisch (Brasilien) sowie vereinfachtem und traditionellem Chinesisch. Code-erzeugte und XAML-Steuerelemente lösen Schlüssel über <code>Loc(\"Str_...\")</code> oder eine <code>DynamicResource</code> auf, sodass ein Sprachwechsel die Oberfläche live neu anordnet, ohne Neustart.",
  "tech_languages_themes_value": "19 Sprachen / 13 Designs und Akzentvarianten"
 });
 if (I18N["fr"]) Object.assign(I18N["fr"], {
  "ph_312": "L'interface est traduite en dix-neuf langues, dont l'italien, le kazakh et le russe. Chaque langue d'interface dispose d'un modèle OCR téléchargeable correspondant.",
- "f_themes_d_172": "13 thèmes et 33 apparences, modifiables sans redémarrer. Interface disponible en 19 langues, dont le français, le russe, le kazakh, le polonais et le hongrois.",
+ "f_themes_d_172": "13 thèmes et 41 apparences, modifiables sans redémarrer. Interface disponible en 19 langues, dont le français, le russe, le kazakh, le polonais et le hongrois.",
  "pt_243": "L'interface de bureau est localisée via des fichiers <code>ResourceDictionary</code> par langue sous <code>Strings/</code> : 19 langues, un fichier XAML chacune, dont le russe, le kazakh, l'italien, le polonais, le hongrois, le bengali, le japonais, l'ukrainien, le norvégien (bokmål), le portugais brésilien, et le chinois simplifié et traditionnel. Les contrôles construits en code et en XAML résolvent les clés via <code>Loc(\"Str_...\")</code> ou une <code>DynamicResource</code>, si bien que changer de langue réagence l'interface en direct sans redémarrage.",
  "tech_languages_themes_value": "19 langues / 13 thèmes et variantes d'accent"
 });
 if (I18N["tr"]) Object.assign(I18N["tr"], {
  "ph_312": "Arayüz, İtalyanca, Kazakça ve Rusça dahil on dokuz dile çevrilmiştir. Her arayüz dilinin indirilebilir eşleşen bir OCR modeli vardır.",
- "f_themes_d_172": "Yeniden başlatmadan değiştirilebilen 13 tema ve 33 görünüm. Arayüz Türkçe, Rusça, Kazakça, Lehçe ve Macarca dahil 19 dilde kullanılabilir.",
+ "f_themes_d_172": "Yeniden başlatmadan değiştirilebilen 13 tema ve 41 görünüm. Arayüz Türkçe, Rusça, Kazakça, Lehçe ve Macarca dahil 19 dilde kullanılabilir.",
  "pt_243": "Masaüstü arayüzü, <code>Strings/</code> altındaki yerel ayara özgü <code>ResourceDictionary</code> dosyalarıyla yerelleştirilir: Rusça, Kazakça, İtalyanca, Lehçe, Macarca, Bengalce, Japonca, Ukraynaca, Norveççe (Bokmål), Brezilya Portekizcesi ile Basitleştirilmiş ve Geleneksel Çince dahil 19 yerel ayar, her biri için bir XAML dosyası. Kodla oluşturulan ve XAML denetimleri anahtarları <code>Loc(\"Str_...\")</code> veya bir <code>DynamicResource</code> üzerinden çözer, böylece dil değiştirmek arayüzü yeniden başlatma olmadan canlı olarak yeniden düzenler.",
  "tech_languages_themes_value": "19 dil / 13 tema ve vurgu varyantları"
 });
 if (I18N["zh"]) Object.assign(I18N["zh"], {
  "ph_312": "介面已翻譯成十九種語言，包含義大利文、哈薩克文與俄文。每一種介面語言都有對應可下載的 OCR 模型。",
- "f_themes_d_172": "13 種佈景主題和 33 種外觀，無需重新啟動即可切換。介面支援 19 種語言，包含繁體中文、簡體中文、俄文、哈薩克文、波蘭文和匈牙利文。",
+ "f_themes_d_172": "13 種佈景主題和 41 種外觀，無需重新啟動即可切換。介面支援 19 種語言，包含繁體中文、簡體中文、俄文、哈薩克文、波蘭文和匈牙利文。",
  "pt_243": "桌面介面透過 <code>Strings/</code> 之下的各地區 <code>ResourceDictionary</code> 檔案進行在地化：19 個地區設定，各一個 XAML 檔案，包含俄文、哈薩克文、義大利文、波蘭文、匈牙利文、孟加拉文、日文、烏克蘭文、挪威文（博克馬爾文）、巴西葡萄牙文，以及簡體與繁體中文。以程式碼建立的控制項與 XAML 控制項都透過 <code>Loc(\"Str_...\")</code> 或 <code>DynamicResource</code> 解析索引鍵，因此切換語言時 UI 會即時重排，無需重新啟動。",
  "tech_languages_themes_value": "19 種語言 / 13 種佈景主題及強調色變體"
 });
 if (I18N["zh-cn"]) Object.assign(I18N["zh-cn"], {
  "ph_312": "界面已翻译成十九种语言，包括意大利语、哈萨克语和俄语。每一种界面语言都有对应可下载的 OCR 模型。",
- "f_themes_d_172": "13 种主题和 33 种外观，无需重启即可切换。界面支持 19 种语言，包括简体中文、繁体中文、俄语、哈萨克语、波兰语和匈牙利语。",
+ "f_themes_d_172": "13 种主题和 41 种外观，无需重启即可切换。界面支持 19 种语言，包括简体中文、繁体中文、俄语、哈萨克语、波兰语和匈牙利语。",
  "pt_243": "桌面界面通过 <code>Strings/</code> 下的各区域 <code>ResourceDictionary</code> 文件进行本地化：19 个区域设置，各一个 XAML 文件，包括俄语、哈萨克语、意大利语、波兰语、匈牙利语、孟加拉语、日语、乌克兰语、书面挪威语、巴西葡萄牙语，以及简体和繁体中文。代码构建的控件和 XAML 控件都通过 <code>Loc(\"Str_...\")</code> 或 <code>DynamicResource</code> 解析键，因此切换语言时 UI 会实时重排，无需重启。",
  "tech_languages_themes_value": "19 种语言 / 13 种主题及强调色变体"
 });
 if (I18N["bn"]) Object.assign(I18N["bn"], {
  "ph_312": "ইন্টারফেসটি ইতালীয়, কাজাখ ও রুশসহ ঊনিশটি ভাষায় অনূদিত। প্রতিটি ইন্টারফেস ভাষার জন্য ডাউনলোডযোগ্য একটি করে OCR মডেল আছে।",
- "f_themes_d_172": "রিস্টার্ট ছাড়াই বদলানো যায় এমন ১৩টি থিম ও ৩৩টি চেহারা। ইন্টারফেস বাংলা, রুশ, কাজাখ, পোলিশ ও হাঙ্গেরিয়ানসহ ১৯টি ভাষায় পাওয়া যায়।",
+ "f_themes_d_172": "রিস্টার্ট ছাড়াই বদলানো যায় এমন ১৩টি থিম ও ৪১টি চেহারা। ইন্টারফেস বাংলা, রুশ, কাজাখ, পোলিশ ও হাঙ্গেরিয়ানসহ ১৯টি ভাষায় পাওয়া যায়।",
  "pt_243": "ডেস্কটপ ইন্টারফেসটি <code>Strings/</code>-এর নিচে লোকেল-প্রতি <code>ResourceDictionary</code> ফাইল দিয়ে স্থানীয়কৃত: 19টি লোকেল, প্রতিটির একটি করে XAML ফাইল - রুশ, কাজাখ, ইতালীয়, পোলিশ, হাঙ্গেরিয়ান, বাংলা, জাপানি, ইউক্রেনীয়, নরওয়েজীয় (বোকমাল), ব্রাজিলীয় পর্তুগিজ এবং সরলীকৃত ও ঐতিহ্যবাহী চীনাসহ। কোডে তৈরি ও XAML নিয়ন্ত্রণ উভয়েই <code>Loc(\"Str_...\")</code> বা <code>DynamicResource</code> দিয়ে কী খুঁজে নেয়, তাই ভাষা বদলালে UI পুনরায় চালু না করেই সঙ্গে সঙ্গে নতুন করে সাজে।",
  "tech_languages_themes_value": "19টি ভাষা / 13টি থিম ও অ্যাকসেন্টের ভিন্নতা"
 });
 if (I18N["ja"]) Object.assign(I18N["ja"], {
  "ph_312": "インターフェイスはイタリア語、カザフ語、ロシア語を含む 19 言語に翻訳されています。すべてのインターフェイス言語に、対応するダウンロード可能な OCR モデルがあります。",
- "f_themes_d_172": "再起動せずに切り替えられる 13 種類のテーマと 33 通りの外観。UI は日本語、ロシア語、カザフ語、ポーランド語、ハンガリー語など 19 言語に対応しています。",
+ "f_themes_d_172": "再起動せずに切り替えられる 13 種類のテーマと 41 通りの外観。UI は日本語、ロシア語、カザフ語、ポーランド語、ハンガリー語など 19 言語に対応しています。",
  "pt_243": "デスクトップのインターフェイスは、<code>Strings/</code> 配下のロケール別 <code>ResourceDictionary</code> ファイルでローカライズされています。ロケールは 19 個で、各 1 つの XAML ファイルを持ち、ロシア語、カザフ語、イタリア語、ポーランド語、ハンガリー語、ベンガル語、日本語、ウクライナ語、ノルウェー語（ブークモール）、ブラジルのポルトガル語、簡体字・繁体字中国語を含みます。コードで構築したコントロールも XAML のコントロールも <code>Loc(\"Str_...\")</code> または <code>DynamicResource</code> でキーを解決するため、言語の切り替えは再起動なしで UI にライブで反映されます。",
  "tech_languages_themes_value": "19 言語 / 13 テーマとアクセントのバリエーション"
 });
 if (I18N["kk"]) Object.assign(I18N["kk"], {
  "ph_312": "Интерфейс он тоғыз тілге аударылған, оның ішінде итальян, қазақ және орыс тілдері бар. Әр интерфейс тілінің сәйкес жүктеп алынатын OCR үлгісі бар.",
- "f_themes_d_172": "Қайта іске қоспай ауыстырылатын 13 тақырып пен 33 көрініс. Интерфейс қазақ, орыс, поляк және венгр тілдерін қоса алғанда 19 тілде қолжетімді.",
+ "f_themes_d_172": "Қайта іске қоспай ауыстырылатын 13 тақырып пен 41 көрініс. Интерфейс қазақ, орыс, поляк және венгр тілдерін қоса алғанда 19 тілде қолжетімді.",
  "pt_243": "Жұмыс үстелі интерфейсі <code>Strings/</code> ішіндегі әр тілдің <code>ResourceDictionary</code> файлдары арқылы локализацияланған: 19 тіл, әрқайсысына бір XAML файлы, оның ішінде орыс, қазақ, итальян, поляк, венгр, бенгал, жапон, украин, норвег (букмол), португал (Бразилия) және жеңілдетілген әрі дәстүрлі қытай тілдері бар. Кодпен құрылған және XAML басқару элементтері кілттерді <code>Loc(\"Str_...\")</code> немесе <code>DynamicResource</code> арқылы шешеді, сондықтан тілді ауыстыру интерфейсті қайта іске қоспай-ақ тірідей қайта құрады.",
  "tech_languages_themes_value": "19 тіл / 13 тақырып және екпін нұсқалары"
 });
 if (I18N["uk"]) Object.assign(I18N["uk"], {
  "ph_312": "Інтерфейс перекладено дев'ятнадцятьма мовами, зокрема в'єтнамською, італійською, казахською та російською. Кожна мова інтерфейсу має відповідну модель OCR для завантаження.",
- "f_themes_d_172": "Тринадцять тем: Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium і Mourning, і всі перемикаються наживо. Чотири з них (Dark, Light, Black і 98SE) приймають по одному з шести акцентних кольорів, разом 33 вигляди. Інтерфейс локалізовано дев'ятнадцятьма мовами, зокрема в'єтнамською, казахською, польською, угорською та російською.",
+ "f_themes_d_172": "Тринадцять тем: Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium і Mourning, і всі перемикаються наживо. Чотири з них (Dark, Light, Black і 98SE) приймають по одному з 8 акцентних кольорів, разом 41 вигляд. Інтерфейс локалізовано дев'ятнадцятьма мовами, зокрема в'єтнамською, казахською, польською, угорською та російською.",
  "pt_243": "Інтерфейс для комп'ютера локалізовано через файли <code>ResourceDictionary</code> для кожної локалі в <code>Strings/</code>: 19 локалей, по одному файлу XAML на кожну, зокрема в'єтнамська, російська, казахська, італійська, польська, угорська, бенгальська, японська, українська, норвезька (букмол), бразильська португальська та китайська спрощена й традиційна. Елементи, створені кодом і XAML, визначають ключі через <code>Loc(\"Str_...\")</code> або <code>DynamicResource</code>, тож перемикання мови перекомпоновує інтерфейс наживо без перезапуску.",
  "tech_languages_themes_value": "19 локалей / 13 тем + варіанти акценту"
 });
 if (I18N["nb"]) Object.assign(I18N["nb"], {
  "ph_312": "Grensesnittet er oversatt til nitten språk, blant annet vietnamesisk, italiensk, kasakhisk og russisk. Hvert grensesnittspråk har en tilsvarende nedlastbar OCR-modell.",
- "f_themes_d_172": "Tretten temaer - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium og Mourning - som alle kan byttes live. Fire av dem - Dark, Light, Black og 98SE - kan hver ta én av seks aksentfarger, så det blir 33 utseender til sammen. Grensesnittet er lokalisert til nitten språk, blant annet vietnamesisk, kasakhisk, polsk, ungarsk og russisk.",
+ "f_themes_d_172": "Tretten temaer - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium og Mourning - som alle kan byttes live. Fire av dem - Dark, Light, Black og 98SE - kan hver ta én av 8 aksentfarger, så det blir 41 utseender til sammen. Grensesnittet er lokalisert til nitten språk, blant annet vietnamesisk, kasakhisk, polsk, ungarsk og russisk.",
  "pt_243": "Skrivebordsgrensesnittet lokaliseres gjennom <code>ResourceDictionary</code>-filer per språkområde under <code>Strings/</code>: 19 språkområder, én XAML-fil hver, blant annet vietnamesisk, russisk, kasakhisk, italiensk, polsk, ungarsk, bengali, japansk, ukrainsk, norsk bokmål, brasiliansk portugisisk samt forenklet og tradisjonell kinesisk. Kontroller bygget i kode og i XAML løser nøkler via <code>Loc(\"Str_...\")</code> eller en <code>DynamicResource</code>, så et språkbytte omorganiserer grensesnittet live uten omstart.",
  "tech_languages_themes_value": "19 språkområder / 13 temaer + aksentvarianter"
 });
 if (I18N["pt"]) Object.assign(I18N["pt"], {
  "ph_312": "A interface está traduzida para dezenove idiomas, incluindo vietnamita, italiano, cazaque e russo. Cada idioma da interface tem um modelo de OCR para download correspondente.",
- "f_themes_d_172": "Treze temas - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium e Mourning - todos alternáveis ao vivo. Quatro deles - Dark, Light, Black e 98SE - aceitam cada um uma de seis cores de destaque, totalizando 33 visuais. Interface localizada em dezenove idiomas, incluindo vietnamita, cazaque, polonês, húngaro e russo.",
+ "f_themes_d_172": "Treze temas - Dark, Light, Black, 98SE, Blood, Greed, Cyanotic, Ectoplasm, Decay, Malaise, Sepulchre, Delirium e Mourning - todos alternáveis ao vivo. Quatro deles - Dark, Light, Black e 98SE - aceitam cada um uma de 8 cores de destaque, totalizando 41 visuais. Interface localizada em dezenove idiomas, incluindo vietnamita, cazaque, polonês, húngaro e russo.",
  "pt_243": "A interface de desktop é localizada por meio de arquivos <code>ResourceDictionary</code> por localidade em <code>Strings/</code>: 19 localidades, um arquivo XAML cada, incluindo vietnamita, russo, cazaque, italiano, polonês, húngaro, bengali, japonês, ucraniano, norueguês bokmål, português do Brasil e chinês simplificado e tradicional. Os controles criados em código e em XAML resolvem as chaves por <code>Loc(\"Str_...\")</code> ou por um <code>DynamicResource</code>, então trocar de idioma reorganiza a interface ao vivo, sem reiniciar.",
  "tech_languages_themes_value": "19 localidades / 13 temas + variantes de destaque"
 });
