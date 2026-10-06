@@ -3101,7 +3101,7 @@
                             <Button x:Name="KsViewKeyboardBtn" Style="{StaticResource SidebarTabBtn}"
                                     Content="{DynamicResource Str_KS_ViewKeyboard}" Click="KsViewKeyboard_Click"/>
                         </StackPanel>
-                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" MaxWidth="210" TextAlignment="Right" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap">
+                        <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" MaxWidth="210" TextAlignment="Right" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" Margin="0,0,24,0">
                             <Hyperlink Click="OnlineHelp_Click" Foreground="{DynamicResource PrimaryBrush}"
                                        Focusable="True" ToolTip="https://killerpdf.net/help.html#shortcuts"><Run Text="{DynamicResource Str_KS_OnlineHelp}"/></Hyperlink>
                         </TextBlock>
