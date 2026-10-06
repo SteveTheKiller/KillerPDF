@@ -16,6 +16,21 @@ internal static class PdfJpegDecoder
     private static readonly double[,,] ReducedCosines = CreateReducedCosines();
     private static readonly double[] VectorCosines = CreateVectorCosines();
     private static readonly double[] Scales = [1 / Math.Sqrt(2), 1, 1, 1, 1, 1, 1, 1];
+    private static readonly double ReducedSingleAcBound = CreateReducedSingleAcBound();
+
+    private static double CreateReducedSingleAcBound()
+    {
+        double bound = 0;
+        // Baseline AC magnitudes are at most 1023 and quantization entries at most 65535.
+        for (int v = 0; v < 8; v++)
+            for (int u = 0; u < 8; u++)
+                if (u != 0 || v != 0)
+                    bound += 1023d * 65535 * Math.Abs(Scales[u] * ReducedCosines[3, 0, u]
+                        * Scales[v] * ReducedCosines[3, 0, v]) / 4;
+        // Cover floating-point accumulation error for the bounded sample interval below.
+        return bound + 1e-9;
+    }
+
     private const int ChromaShift = 16;
     private const int ChromaHalf = 1 << (ChromaShift - 1);
     // Red and blue tables carry their rounding; the two green tables are summed before one
@@ -845,6 +860,18 @@ internal static class PdfJpegDecoder
             int reductionIndex = reduction switch { 1 => 0, 2 => 1, 4 => 2, _ => 3 };
             if (blockSize == 1)
             {
+                if (!_progressive)
+                {
+                    double dc = Scales[0] * coefficients[0] * quantization[0];
+                    double sample = 128 + Scales[0] * dc / 4;
+                    // Keep the full calculation wherever an AC term could affect rounding.
+                    if (sample is >= -256 and <= 512
+                        && Math.Abs(sample - Math.Round(sample)) < 0.5 - ReducedSingleAcBound)
+                    {
+                        component.Samples[top * component.Stride + left] = Clamp(sample);
+                        return;
+                    }
+                }
                 double sum = 0;
                 for (int v = 0; v < 8; v++)
                 {
