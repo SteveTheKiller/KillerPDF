@@ -72,7 +72,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Precompiled the packaged engine to reduce first-page rendering delay.
 - Faster JPEG thumbnails and large CMYK JPEG pages, with lower memory use for large Flate images.
 - Sped up DeviceN gradients on eligible print-production pages.
-- Sped up large named-spot images and repeated spot-color painting and compositing.
+- Sped up large named-spot images and repeated spot-color painting and compositing with vectorized ink blending.
 - Reduced first-page font setup for standard Windows font aliases.
 - Avoided a redundant rendering pass for pages whose overprint needs the document output profile.
 - Built the JPEG 2000 decoder from vendored CoreJ2K sources instead of a package reference.

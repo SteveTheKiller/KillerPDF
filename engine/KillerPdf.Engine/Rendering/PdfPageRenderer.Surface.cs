@@ -1,3 +1,5 @@
+using System.Runtime.Intrinsics;
+
 namespace KillerPdf.Engine.Rendering;
 
 public sealed partial class PdfPageRenderer
@@ -628,15 +630,7 @@ public sealed partial class PdfPageRenderer
                     combined = spot;
                     continue;
                 }
-                uint mixed = 0;
-                for (int channel = 0; channel < 4; channel++)
-                {
-                    double baseValue = (byte)(combined >> (channel * 8)) / 255d;
-                    double spotValue = (byte)(spot >> (channel * 8)) / 255d;
-                    mixed |= (uint)(byte)Math.Round((baseValue + spotValue
-                        - baseValue * spotValue) * 255) << (channel * 8);
-                }
-                combined = mixed;
+                combined = CombineSpotInk(combined, spot);
             }
             if (_rgbSpotShadow)
             {
@@ -647,6 +641,46 @@ public sealed partial class PdfPageRenderer
             }
             else WriteInk(Data, offset, combined);
             SetAlpha(offset, 255);
+        }
+
+        private static uint CombineSpotInk(uint combined, uint spot)
+        {
+            if (System.Runtime.Intrinsics.X86.Avx.IsSupported)
+            {
+                var zero = System.Runtime.Intrinsics.Vector128<byte>.Zero;
+                var first = System.Runtime.Intrinsics.X86.Sse2.UnpackLow(
+                    System.Runtime.Intrinsics.Vector128.CreateScalar(combined).AsByte(), zero);
+                var second = System.Runtime.Intrinsics.X86.Sse2.UnpackLow(
+                    System.Runtime.Intrinsics.Vector128.CreateScalar(spot).AsByte(), zero);
+                var a = System.Runtime.Intrinsics.X86.Avx.ConvertToVector256Double(
+                    System.Runtime.Intrinsics.X86.Sse2.UnpackLow(first.AsUInt16(),
+                        System.Runtime.Intrinsics.Vector128<ushort>.Zero).AsInt32());
+                var b = System.Runtime.Intrinsics.X86.Avx.ConvertToVector256Double(
+                    System.Runtime.Intrinsics.X86.Sse2.UnpackLow(second.AsUInt16(),
+                        System.Runtime.Intrinsics.Vector128<ushort>.Zero).AsInt32());
+                var divisor = System.Runtime.Intrinsics.Vector256.Create(255d);
+                a = System.Runtime.Intrinsics.X86.Avx.Divide(a, divisor);
+                b = System.Runtime.Intrinsics.X86.Avx.Divide(b, divisor);
+                var mixed = System.Runtime.Intrinsics.X86.Avx.Multiply(
+                    System.Runtime.Intrinsics.X86.Avx.Subtract(
+                        System.Runtime.Intrinsics.X86.Avx.Add(a, b),
+                        System.Runtime.Intrinsics.X86.Avx.Multiply(a, b)), divisor);
+                var integers = System.Runtime.Intrinsics.X86.Avx.ConvertToVector128Int32(
+                    System.Runtime.Intrinsics.X86.Avx.RoundToNearestInteger(mixed));
+                var words = System.Runtime.Intrinsics.X86.Sse2.PackSignedSaturate(integers,
+                    System.Runtime.Intrinsics.Vector128<int>.Zero);
+                return System.Runtime.Intrinsics.X86.Sse2.PackUnsignedSaturate(words,
+                    System.Runtime.Intrinsics.Vector128<short>.Zero).AsUInt32().GetElement(0);
+            }
+            uint result = 0;
+            for (int channel = 0; channel < 4; channel++)
+            {
+                double baseValue = (byte)(combined >> (channel * 8)) / 255d;
+                double spotValue = (byte)(spot >> (channel * 8)) / 255d;
+                result |= (uint)(byte)Math.Round((baseValue + spotValue
+                    - baseValue * spotValue) * 255) << (channel * 8);
+            }
+            return result;
         }
 
         internal void ClearSpotPixel(int offset)

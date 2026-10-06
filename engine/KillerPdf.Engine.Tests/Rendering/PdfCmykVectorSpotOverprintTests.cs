@@ -10,6 +10,30 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfCmykVectorSpotOverprintTests
 {
+    [Fact]
+    public void SpotInkBlending_PreservesRoundingForEveryChannelPair()
+    {
+        var surface = typeof(PdfPageRenderer).GetNestedType("RasterSurface",
+            System.Reflection.BindingFlags.NonPublic)!;
+        var blend = surface.GetMethod("CombineSpotInk",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            .CreateDelegate<Func<uint, uint, uint>>();
+        for (uint first = 0; first < 256; first++)
+        for (uint second = 0; second < 256; second++)
+        {
+            uint combined = first | ((first ^ 85) << 8) | ((first ^ 170) << 16) | ((255 - first) << 24);
+            uint spot = second | ((second ^ 170) << 8) | ((255 - second) << 16) | ((second ^ 85) << 24);
+            uint expected = 0;
+            for (int shift = 0; shift < 32; shift += 8)
+            {
+                double a = ((combined >> shift) & 255) / 255d;
+                double b = ((spot >> shift) & 255) / 255d;
+                expected |= (uint)Math.Round((a + b - a * b) * 255d) << shift;
+            }
+            Assert.Equal(expected, blend(combined, spot));
+        }
+    }
+
     [Theory]
     [InlineData(0, 0)]
     [InlineData(1, 1)]
