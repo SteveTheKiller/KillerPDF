@@ -74,7 +74,7 @@
 
         <!-- Corner radius follows the theme, not a hardcoded 6: a square-cornered palette was
              getting a rounded card, and its square bevel then cut across the corners. -->
-        <Border x:Name="RootBorder" BorderBrush="{DynamicResource DialogFrameBrush}" BorderThickness="{DynamicResource DialogFrameThickness}"
+        <kui:PickerBorder x:Name="RootBorder" BorderBrush="{DynamicResource DialogFrameBrush}" BorderThickness="{DynamicResource DialogFrameThickness}"
                 Background="{DynamicResource BackgroundBrush}"
                 CornerRadius="{DynamicResource PanelCornerRadius}" Margin="{DynamicResource DialogHaloMargin}"
                 Padding="{DynamicResource DialogWindowFramePadding}">
@@ -118,7 +118,6 @@
                             Width="{DynamicResource DialogCloseWidth}" Height="{DynamicResource DialogCloseHeight}"
                             Margin="{DynamicResource DialogCaptionButtonsMargin}"
                             FontSize="10" FontFamily="Segoe MDL2 Assets"
-                            Foreground="{DynamicResource CaptionCloseBrush}"
                             Background="Transparent" BorderThickness="0" Cursor="Hand"/>
                 </Grid>
                 </Grid>
@@ -558,7 +557,7 @@
             </Grid>
 
             </Grid>
-        </Border>
+        </kui:PickerBorder>
 
         <!-- The same directional 98SE window frame used by DialogChrome. Modern themes set these
              thicknesses to zero, so their existing card treatment is unchanged. -->

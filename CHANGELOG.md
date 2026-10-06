@@ -93,6 +93,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Ectoplasm menus and annotation bars now have softer borders.
 
 ### Fixed
+- Fixed picker corners and kept the close X white over its red hover background.
 
 - Kept update helpers and setup from locking the installation folder through their working directory (#434).
 - Hardened native library loading and release artifact verification.
