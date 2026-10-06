@@ -2870,7 +2870,7 @@ public sealed partial class PdfPageRenderer
                         stream.EncodedData, out ArraySegment<byte> raw)
                     && raw.Offset == 0 && raw.Array is { } owned
                     && raw.Count == owned.Length && raw.Count <= limit
-                        ? owned : _document.DecodeStream(stream, limit);
+                        ? owned : _document.DecodeImageSamples(stream, limit, expected);
                 int decodedHeight = height;
                 if (_document.UsesCompatibilityRecovery && decodedSamples.Length > expected)
                     decodedSamples = decodedSamples[..expected];

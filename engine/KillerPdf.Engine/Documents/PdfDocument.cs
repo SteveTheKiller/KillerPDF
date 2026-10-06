@@ -67,6 +67,13 @@ public sealed class PdfDocument
             maximumBufferedBytes, _compatibilityRecovery);
     }
 
+    internal byte[] DecodeImageSamples(PdfStream stream, int maximumDecodedBytes, int expectedBytes)
+    {
+        _unencryptedPageGuard?.EnsureUnencryptedStream(stream, Resolve);
+        return PdfStreamDecoder.DecodeImageSamples(stream, Resolve, maximumDecodedBytes,
+            expectedBytes, _compatibilityRecovery);
+    }
+
     internal JpegDecodedImage DecodeJpegImage(
         PdfStream stream, int maximumDecodedBytes, int reduction,
         IPdfJpegDecoder? jpegDecoder = null)

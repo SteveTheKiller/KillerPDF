@@ -53,6 +53,45 @@ public static class PdfStreamDecoder
         return DecodeCore(stream, resolve, maximumDecodedBytes, 0, true);
     }
 
+    internal static byte[] DecodeImageSamples(PdfStream stream,
+        Func<PdfIndirectReference, PdfObject> resolve, int maximumDecodedBytes,
+        int expectedBytes, bool compatibilityRecovery)
+    {
+        // Large images with an exact Flate payload can inflate into their final array.
+        // Any mismatch or damaged stream retains the ordinary recovery path.
+        if (expectedBytes >= 1024 * 1024 && expectedBytes <= maximumDecodedBytes)
+        {
+            List<PdfName> filters = ReadFilters(stream.Dictionary, resolve);
+            if (filters.Count == 1 && filters[0].ValueAsLatin1() is "FlateDecode" or "Fl")
+            {
+                PdfDictionary?[] parameters = ReadParameters(stream.Dictionary, 1, resolve,
+                    compatibilityRecovery);
+                if (parameters[0] is not { } predictor
+                    || GetInteger(predictor, PredictorName, 1, resolve) == 1)
+                {
+                    byte[] samples = new byte[expectedBytes];
+                    try
+                    {
+                        using var input = ReadEncodedStream(stream.EncodedData);
+                        using var inflater = new ZLibStream(input, CompressionMode.Decompress);
+                        int offset = 0;
+                        while (offset < samples.Length)
+                        {
+                            int read = inflater.Read(samples, offset, samples.Length - offset);
+                            if (read == 0) break;
+                            offset += read;
+                        }
+                        if (offset == samples.Length && inflater.ReadByte() == -1) return samples;
+                    }
+                    catch (InvalidDataException)
+                    {
+                    }
+                }
+            }
+        }
+        return DecodeCore(stream, resolve, maximumDecodedBytes, 0, compatibilityRecovery);
+    }
+
     internal static JpegDecodedImage DecodeJpegImage(
         PdfStream stream, Func<PdfIndirectReference, PdfObject> resolve,
         int maximumDecodedBytes, int reduction, bool compatibilityRecovery = false,

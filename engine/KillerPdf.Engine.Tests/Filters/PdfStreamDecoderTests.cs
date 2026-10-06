@@ -10,6 +10,45 @@ namespace KillerPdf.Engine.Tests.Filters;
 public sealed class PdfStreamDecoderTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DecodeImageSamples_PreservesFlateRecoveryAndSizeLimits(bool recovery)
+    {
+        byte[] samples = new byte[2 * 1024 * 1024];
+        new Random(182).NextBytes(samples);
+        byte[] encoded = Compress(samples);
+        byte[] badChecksum = (byte[])encoded.Clone();
+        badChecksum[^1] ^= 1;
+        byte[][] cases = [encoded, encoded[..^1], encoded[..^4],
+            encoded[..(encoded.Length / 2)], encoded[2..^4],
+            [32, 32, .. encoded], [.. encoded, 13, 10], [], badChecksum];
+        foreach (byte[] data in cases)
+        foreach (int expected in new[] { 1024 * 1024 - 1, 1024 * 1024,
+            samples.Length, samples.Length + 17 })
+        foreach (int limit in new[] { expected - 1, samples.Length + 32 })
+        foreach (int predictor in new[] { 1, 2 })
+        {
+            PdfStream stream = Stream(data, Pair("Filter", Name("FlateDecode")),
+                Pair("DecodeParms", new PdfDictionary([
+                    Pair("Predictor", new PdfInteger(predictor)),
+                    Pair("Columns", new PdfInteger(1024))])));
+            var ordinary = Capture(() => recovery
+                ? PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, value => value, limit)
+                : PdfStreamDecoder.Decode(stream, value => value, limit));
+            var direct = Capture(() => PdfStreamDecoder.DecodeImageSamples(stream,
+                value => value, limit, expected, recovery));
+            Assert.Equal(ordinary.Error, direct.Error);
+            Assert.True(ordinary.Bytes.AsSpan().SequenceEqual(direct.Bytes));
+        }
+
+        static (byte[] Bytes, Type? Error) Capture(Func<byte[]> action)
+        {
+            try { return (action(), null); }
+            catch (PdfFilterException error) { return ([], error.GetType()); }
+        }
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
