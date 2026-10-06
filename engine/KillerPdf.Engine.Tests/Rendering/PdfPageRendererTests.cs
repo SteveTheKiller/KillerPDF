@@ -16,6 +16,44 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPageRendererTests
 {
+    [Fact]
+    public void Render_SharedCacheAvoidsRepeatedBufferingOfOversizedContent()
+    {
+        int limit = KillerPdf.Engine.Parsing.PdfContentStreamReader.MaximumSourceBytes;
+        byte[] content = new byte[limit + 128];
+        Array.Fill(content, (byte)' ');
+        "1 0 0 rg 0 0 8 8 re f %"u8.CopyTo(content);
+        using var encoded = new MemoryStream();
+        using (var compressor = new ZLibStream(encoded, CompressionLevel.Fastest, true))
+            compressor.Write(content);
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(8, 8, "0 0 m"u8.ToArray()).Build());
+        PdfDictionary dictionary = ResolveDictionary(source, PdfPageTree.Read(source).Pages[0].Reference);
+        PdfIndirectReference reference = Assert.IsType<PdfIndirectReference>(dictionary[Name("Contents")]);
+        var stream = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Filter"), Name("FlateDecode"))]), encoded.ToArray());
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            new PdfIncrementalUpdateBuilder(source).ReplaceObject(reference.ObjectNumber, stream).Build());
+        var shared = new PdfPageRenderer.SharedCache();
+        var renderer = new PdfPageRenderer(document, null, shared);
+        var options = new PdfRenderOptions(8, 8, includeAnnotations: false, includeFormFields: false)
+            { CacheResult = false };
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        PdfRenderedPage first = renderer.Render(0, options);
+        long firstAllocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        var sibling = new PdfPageRenderer(document, null, shared);
+        before = GC.GetAllocatedBytesForCurrentThread();
+        PdfRenderedPage second = sibling.Render(0, options);
+        long secondAllocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(first.Pixels.Span.SequenceEqual(second.Pixels.Span));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(first, 4, 4));
+        Assert.Equal(first.Diagnostics, second.Diagnostics);
+        Assert.Contains(first.Diagnostics, diagnostic => diagnostic.Contains("streaming"));
+        Assert.True(firstAllocated - secondAllocated >= limit,
+            $"Repeated render saved {firstAllocated - secondAllocated} bytes.");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

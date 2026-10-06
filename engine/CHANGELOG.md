@@ -48,6 +48,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Added integration guides for reading, rendering, fonts, authoring, editing, OCR, forms, XFA, annotations and review comments, accessibility, structured export, macros, imposition, page furniture, data merge, structural comparison, permanent redaction, calibrated measurement, separation preview planning, print-production reports, RFC 3161 timestamping, navigation, layers, attachments, optimization, preflight, encryption, and signature inspection.
 
 ### Changed
+- Repeated renders and sibling renderers remember when oversized page content requires streaming, reducing temporary buffering without changing pixels.
 - Large Flate images inflate into their final sample buffer when the decoded length matches, with unchanged recovery for damaged streams.
 
 - Reused exact axial shading colors across eligible device columns.

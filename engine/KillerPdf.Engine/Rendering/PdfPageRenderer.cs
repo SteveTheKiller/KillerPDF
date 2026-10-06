@@ -2440,24 +2440,31 @@ public sealed partial class PdfPageRenderer
 
     private static readonly double[] element = [0d, 1d];
 
+    // This distinct empty list marks pages that exceeded the buffered content limit.
+    private static readonly IReadOnlyList<PdfContentInstruction> StreamingInstructions =
+        Array.AsReadOnly(Array.Empty<PdfContentInstruction>());
+
     private IEnumerable<PdfContentInstruction> ReadInstructions(
         int pageIndex, HashSet<string> diagnostics, CancellationToken cancellationToken)
     {
-        try
+        var parsed = _instructionCache.GetOrAdd(pageIndex, index =>
         {
-            var parsed = _instructionCache.GetOrAdd(pageIndex, index =>
+            var recovered = new HashSet<string>();
+            try
             {
-                var recovered = new HashSet<string>();
                 var instructions = _content.ReadInstructions(index, recovered, cancellationToken);
                 return (instructions, recovered);
-            });
-            diagnostics.UnionWith(parsed.Diagnostics);
-            return parsed.Instructions;
-        }
-        catch (PdfPageContentReader.ContentLimitExceededException)
-        {
+            }
+            catch (PdfPageContentReader.ContentLimitExceededException)
+            {
+                // An immutable page that needs streaming will still need it on later renders.
+                return (StreamingInstructions, new HashSet<string>());
+            }
+        });
+        if (ReferenceEquals(parsed.Instructions, StreamingInstructions))
             return _content.EnumerateInstructions(pageIndex, diagnostics, cancellationToken);
-        }
+        diagnostics.UnionWith(parsed.Diagnostics);
+        return parsed.Instructions;
     }
 
     private PdfExtractionFont ReadFont(PdfDictionary font) =>
