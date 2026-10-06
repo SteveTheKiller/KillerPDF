@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.IO.Compression;
 using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
@@ -11,6 +12,47 @@ namespace KillerPdf.Engine.Tests.Fonts;
 public sealed class PdfFontResourceReaderTests
 {
     private static readonly PdfDocument Document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    public void EmbeddedFlateFont_PreservesGlyphsWithMissingOrIncorrectLengthHints(int hintKind)
+    {
+        byte[] bytes = new byte[65536];
+        TrueTypeFontTests.BuildTestFont(false, includeOutlines: true).CopyTo(bytes, 0);
+        using var compressed = new MemoryStream();
+        using (var zlib = new ZLibStream(compressed, CompressionMode.Compress, leaveOpen: true))
+            zlib.Write(bytes);
+        PdfObject? hint = hintKind switch
+        {
+            0 => null,
+            1 => new PdfInteger(bytes.Length),
+            2 => new PdfInteger(bytes.Length - 1),
+            3 => new PdfInteger(bytes.Length + 1),
+            4 => new PdfInteger(16383),
+            5 => new PdfInteger(33554433),
+            6 => new PdfIndirectReference(123456, 0),
+            _ => N("InvalidLength")
+        };
+        PdfDictionary metadata = hint is null ? D(("Filter", N("FlateDecode")))
+            : D(("Filter", N("FlateDecode")), ("Length1", hint));
+        PdfExtractionFont ReadEmbedded(PdfStream stream) => Read(D(
+            ("Subtype", N("TrueType")), ("BaseFont", N("UninstalledFamily")),
+            ("FontDescriptor", D(("FontFile2", stream)))));
+        PdfExtractionFont expected = ReadEmbedded(new PdfStream(D(), bytes));
+        PdfExtractionFont actual = ReadEmbedded(new PdfStream(metadata, compressed.ToArray()));
+        Assert.Equal(expected.GetWidth(65), actual.GetWidth(65));
+        Assert.Equal(Assert.IsType<PdfGlyphOutline>(expected.GetGlyphOutline(65))
+                .Contours.SelectMany(contour => contour.Points),
+            Assert.IsType<PdfGlyphOutline>(actual.GetGlyphOutline(65))
+                .Contours.SelectMany(contour => contour.Points));
+    }
 
     [Theory]
     [InlineData("UninstalledFamily", 2, "Times-Roman")]

@@ -56,10 +56,16 @@ public static class PdfStreamDecoder
     internal static byte[] DecodeImageSamples(PdfStream stream,
         Func<PdfIndirectReference, PdfObject> resolve, int maximumDecodedBytes,
         int expectedBytes, bool compatibilityRecovery)
+        => DecodeKnownLengthStream(stream, resolve, maximumDecodedBytes, expectedBytes,
+            compatibilityRecovery, 1024 * 1024);
+
+    internal static byte[] DecodeKnownLengthStream(PdfStream stream,
+        Func<PdfIndirectReference, PdfObject> resolve, int maximumDecodedBytes,
+        int expectedBytes, bool compatibilityRecovery, int minimumExpectedBytes)
     {
         // Large images with an exact Flate payload can inflate into their final array.
         // Any mismatch or damaged stream retains the ordinary recovery path.
-        if (expectedBytes >= 1024 * 1024 && expectedBytes <= maximumDecodedBytes)
+        if (expectedBytes >= minimumExpectedBytes && expectedBytes <= maximumDecodedBytes)
         {
             List<PdfName> filters = ReadFilters(stream.Dictionary, resolve);
             if (filters.Count == 1 && filters[0].ValueAsLatin1() is "FlateDecode" or "Fl")

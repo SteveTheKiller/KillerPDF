@@ -63,7 +63,7 @@ public static class PdfFontResourceReader
             string ordering = Get(systemInfo, "Ordering") is PdfString orderingText
                 ? Encoding.Latin1.GetString(orderingText.Bytes.Span) : "Identity";
             byte[]? embeddedData = (Get(descriptor, "FontFile2") ?? Get(descriptor, "FontFile3")) is PdfStream embeddedStream
-                ? Decode(embeddedStream) : null;
+                ? DecodeEmbeddedFont(embeddedStream) : null;
             PdfStream? type1Stream = Get(descriptor, "FontFile") as PdfStream;
             PdfCffGlyphReader? standardSymbols = !composite && subtype != "Type3"
                 && embeddedData is null && type1Stream is null
@@ -605,6 +605,15 @@ public static class PdfFontResourceReader
 
         private PdfObject? Get(PdfDictionary? dictionary, string key) => dictionary is not null
             && dictionary.TryGetValue(new PdfName(Encoding.ASCII.GetBytes(key)), out var value) ? Resolve(value) : null;
+        private byte[] DecodeEmbeddedFont(PdfStream stream)
+        {
+            if (stream.Dictionary.TryGetValue(new PdfName("Length1"u8), out PdfObject hint)
+                && hint is PdfInteger { Value: >= 16384 and <= 33554432 } length
+                && length.Value <= Math.Max(65536L, stream.EncodedData.Length * 1024L))
+                return document.DecodeFontStream(stream, checked((int)length.Value));
+            return Decode(stream);
+        }
+
         private byte[] Decode(PdfStream stream) =>
             document.DecodeStream(stream, 32 * 1024 * 1024);
     }

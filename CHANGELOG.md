@@ -70,7 +70,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Reuse decoded page data during zooming and background page rendering, and avoid repeated buffering attempts for oversized pages, with invalidation after document changes and cache flushes.
 - Prioritize the visible page and its nearest neighbors in Continuous view without restarting an active render for the same viewport.
 - Precompiled the packaged engine to reduce first-page rendering delay.
-- Faster JPEG thumbnails, transform lookups, Huffman decoding, and large CMYK JPEG pages, with lower memory use for large Flate images and native JPEG buffers.
+- Faster JPEG thumbnails, transform lookups, Huffman decoding, and large CMYK JPEG pages, with lower memory use for large Flate images, embedded fonts, and native JPEG buffers.
 - Sped up DeviceN gradients and repeated 16-bit image colors on eligible print-production pages.
 - Sped up large named-spot images and repeated spot-color painting and compositing with vectorized ink blending.
 - Reduced first-page font setup for standard Windows font aliases.
