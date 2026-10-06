@@ -213,9 +213,9 @@ public sealed class PdfToUnicodeMap
             {
                 code = (code << 8) | source[offset + length - 1];
                 bool inCodeSpace = false;
-                foreach (var space in _spaces)
+                foreach (var (spaceLength, low, high) in _spaces)
                 {
-                    if (space.Length != length || code < space.Low || code > space.High) continue;
+                    if (spaceLength != length || code < low || code > high) continue;
                     inCodeSpace = true;
                     break;
                 }
