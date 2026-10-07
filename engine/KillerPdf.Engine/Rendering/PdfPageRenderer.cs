@@ -2948,7 +2948,8 @@ public sealed partial class PdfPageRenderer
             colorKeyMask, colorSpace, stencilColor, stencilAlpha, blendMode,
             preblendMatte,
             softMask is not null || colorKeyMask is not null ? null : graphicsSoftMask, knockout, overprint, alphaIsShape,
-            explicitMask is not null, jpeg2000Shape is not null, cancellationToken);
+            explicitMask is not null, jpeg2000Shape is not null,
+            ReadImageInterpolation(stream.Dictionary), cancellationToken);
         return true;
     }
 
@@ -4942,7 +4943,7 @@ public sealed partial class PdfPageRenderer
         RendererBlendMode blendMode,
         double[]? preblendMatte, GraphicsSoftMask? graphicsSoftMask,
         KnockoutState? knockout, bool overprint, bool alphaIsShape, bool explicitMask,
-        bool jpeg2000, CancellationToken cancellationToken)
+        bool jpeg2000, bool interpolate, CancellationToken cancellationToken)
     {
         if (imageMask ? stencilColor.DoesNotPaint : colorSpace.DoesNotPaint) return;
         // Zero opacity on a plain RGB surface changes nothing outside a knockout group.
@@ -4983,6 +4984,12 @@ public sealed partial class PdfPageRenderer
         if (paintRight <= paintLeft || paintBottom <= paintTop) return;
         graphicsSoftMask = graphicsSoftMask?.ForBounds(paintLeft, paintTop, paintRight, paintBottom);
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
+        if (interpolate && !imageMask && colorKeyMask is null && preblendMatte is null
+            && TryPaintInterpolatedDeviceImage(target, targetWidth, targetHeight, scaleX, scaleY,
+                inverse, samples, sourceWidth, sourceHeight, components, bits, decode,
+                colorSpace, softMask, clips, stencilAlpha, blendMode, graphicsSoftMask,
+                knockout, alphaIsShape, paintLeft, paintTop, paintRight, paintBottom,
+                cancellationToken)) return;
         // Page bounds can clip one source column from an otherwise native-sized bitmap.
         // Copy aligned packed pixels directly so the clip does not rescale the other columns.
         bool directBitonal = target.Ink is null && target.RgbProfile is null
