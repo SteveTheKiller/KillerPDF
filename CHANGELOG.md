@@ -61,7 +61,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added yellow and magenta accents to the neutral and 98SE themes.
 
 ### Changed
-- Hovered outline buttons and accent picker pills use gradients outside 98SE, and accent swatches lift on hover.
 - Replaced PDFium and Docnet.Core with engine-owned rendering, improved damaged cross-reference and missing-catalog recovery and JPEG image rendering speed, and removed native file-repair and link-extraction fallbacks.
 
 - Replaced PdfPig with engine-owned extraction for search, selection, region copy, text editing, and dark-mode image preservation. Removed PdfPig from the app, tests, and packaged builds.
@@ -88,23 +87,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Transform and image export DPI previews show the output scale (#365).
 - Click the footer page dimensions to cycle through pixel, inch, millimeter, and point dimensions (#364).
 - Split the language picker into two columns for 19 locales.
-- Menu rows now show accent text and icons on the theme's hover color.
-- Selected states now use subtle gradients outside 98SE, Light buttons have softer gray borders, and yellow wordmarks match their accent.
-- Slider handles now carry an accent outline.
-- Ectoplasm menus and annotation bars now have softer borders.
+- Updated menu, button, slider and selection states with accent colors, subtle gradients and hover lift outside 98SE.
 
 ### Fixed
-- Light/Yellow uses true yellow for the wordmark, accent lines and radio buttons, with neutral dark text instead of olive brown.
-- 98SE Red is a true maroon again, so it no longer looks like Magenta.
-- Delirium, Ectoplasm and Sepulchre footers match the window background again.
-- Shared theme colors, control states, title styling and shadows match the family palette, including cream Blood, Greed and Cyanotic wordmarks.
-- Moved the shortcuts guide link away from the close button.
-- Added a faint divider with fading ends between the language menu columns.
-- Ctrl+wheel changes picker views and icon sizes.
-- Fixed picker and dialog frame corners and kept the close X white over its red hover background.
-
-- Kept update helpers and setup from locking the installation folder through their working directory (#434).
 - Hardened native library loading and release artifact verification.
+- Kept update helpers and setup from locking the installation folder through their working directory (#434).
 - Restored saving markup to tagged PDFs while preserving their structure, and finished markup processing before overwriting the destination.
 - Preserved pasted images and other unsaved annotations when inserting blank pages (#388).
 - Preserved shapes and other annotations on retained pages when deleting PDF pages (#429).
@@ -187,7 +174,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Refined Italian application and installer translations. (Thanks @bovirus)
 - Corrected Italian translations (#395). (Thanks @bovirus)
 - Kept the footer page number current during Continuous navigation and scaled footer controls with the interface (#354, #355).
-- Aligned the shortcut title, view toggle, and online guide link, preserving the original help wording in every language.
+- Ctrl+wheel changes picker views and icon sizes.
+- Aligned the shortcuts panel and language menu.
 - Aligned the sidebar divider with the thumbnail edge and restored arrow cursors on window caption controls.
 - Annotation bars now show an aligned hand cursor only over draggable areas.
 - Kept the KillerPDF icon visible on Windows 11 taskbar buttons throughout slower portable launches.
@@ -195,11 +183,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added installer file details and the installed size in Windows' program list (#361).
 - The portable package reports a start failure in a KillerPDF-styled dialog instead of a plain Windows message box.
 - The Document Info text menu now follows the active theme.
-- Improved text contrast across themes and accents, softened material-theme footers and 98SE footer text, and replaced Delirium's red menu dividers with gray.
+- Corrected theme colors, wordmarks, footers and dialog controls, including Light/Yellow, 98SE Red and cream Blood, Greed and Cyanotic accents.
 - Standalone uninstall dialogs use the default Dark/Green theme, and installation errors use themed dialogs.
 - Main window, dialog, and launcher title bar icons now use sharp size-matched images.
 - Install and uninstall windows now show the film grain and the app icon in the title bar.
-- Selected language and theme rows keep the active accent on hover.
 - Kept the Transform preview page shadow visible at the top and bottom.
 - Evenly spaced About options, moved startup update checks to the bottom, and aligned Clear all Data with the top row.
 - Marked 1.9 development builds as unreleased in the About card.
