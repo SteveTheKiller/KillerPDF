@@ -1262,18 +1262,31 @@ internal static class PdfJpegDecoder
 
         internal void SkipBits(int count) => _bits -= count;
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         internal bool TryPeekBits(int count, out int result)
         {
-            result = 0;
+            if (_bits < count && !TryFillBits(count))
+            {
+                result = 0;
+                return false;
+            }
+            result = _buffer >> (_bits - count) & ((1 << count) - 1);
+            return true;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private bool TryFillBits(int count)
+        {
+            ReadOnlySpan<byte> bytes = source.Span;
             while (_bits < count)
             {
-                if (_position >= source.Length) return false;
-                int value = source.Span[_position++];
+                if (_position >= bytes.Length) return false;
+                int value = bytes[_position++];
                 if (value == 0xFF)
                 {
                     int markerPosition = _position - 1;
-                    while (_position < source.Length && source.Span[_position] == 0xFF) _position++;
-                    if (_position >= source.Length || source.Span[_position++] != 0)
+                    while (_position < bytes.Length && bytes[_position] == 0xFF) _position++;
+                    if (_position >= bytes.Length || bytes[_position++] != 0)
                     {
                         _position = markerPosition;
                         return false;
@@ -1282,7 +1295,6 @@ internal static class PdfJpegDecoder
                 _buffer = _buffer << 8 | value;
                 _bits += 8;
             }
-            result = _buffer >> (_bits - count) & ((1 << count) - 1);
             return true;
         }
 

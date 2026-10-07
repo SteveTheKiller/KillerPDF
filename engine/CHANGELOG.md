@@ -49,7 +49,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Changed
 
-- Reused JPEG Huffman lookahead for long codes and flattened transform lookups, preserving decoded samples, markers, and restart handling.
+- Reused JPEG Huffman lookahead for long codes, sped up buffered bit reads, and flattened transform lookups, preserving decoded samples, markers, and restart handling.
 - Reused exact 16-bit image colors in a bounded cache, preserving full sample keys and decode ranges.
 - Vectorized named-spot ink blending with unchanged arithmetic and rounding, retaining scalar blending on unsupported CPUs.
 - Repeated renders and sibling renderers retain more parsed form and glyph streams and remember when oversized page content requires streaming, reducing temporary work without changing pixels.
