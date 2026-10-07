@@ -16,6 +16,10 @@ public sealed class PdfFillGeometryTests
     [InlineData(128)]
     [InlineData(129)]
     [InlineData(257)]
+    [InlineData(511)]
+    [InlineData(512)]
+    [InlineData(513)]
+    [InlineData(1025)]
     public void PageFills_MatchPixelPolygonCoverage(int points)
     {
         const BindingFlags members = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
@@ -33,7 +37,7 @@ public sealed class PdfFillGeometryTests
         object frame = Activator.CreateInstance(frameType, 96, 80, 0.75, 1.25)!;
 
         foreach (bool evenOdd in new[] { false, true })
-        for (int variant = 0; variant < 6; variant++)
+        for (int variant = 0; variant < 8; variant++)
         {
             var paths = (IList)Activator.CreateInstance(pathsType)!;
             paths.Add(CreatePolygon(points, variant >= 3 ? 75 : 22, reverse: false));
@@ -43,6 +47,12 @@ public sealed class PdfFillGeometryTests
             {
                 paths.Insert(0, CreatePolygon(1, 1, reverse: false));
                 paths.Add(CreatePolygon(2, 2, reverse: false));
+            }
+            if (variant >= 6)
+            {
+                paths.Add(CreatePolygon(513, 10, reverse: !evenOdd));
+                paths.Add(CreatePolygon(129, 5, reverse: false));
+                paths.Add(CreatePolygon(257, 2, reverse: !evenOdd));
             }
             object pixelPolygons = convert.Invoke(frame, [paths, 3])!;
             var expected = (PdfPageRenderer.CoverageMask)reference.Invoke(null,

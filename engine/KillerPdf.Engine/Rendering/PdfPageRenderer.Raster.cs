@@ -6,6 +6,7 @@ namespace KillerPdf.Engine.Rendering;
 
 public sealed partial class PdfPageRenderer
 {
+    private static readonly PdfScratchBufferPool<Point> FillPointBuffers = new(4 * 1024 * 1024);
     internal static void MultiplyCoverage(ReadOnlySpan<byte> first, ReadOnlySpan<byte> second,
         Span<byte> destination)
     {
@@ -299,24 +300,43 @@ public sealed partial class PdfPageRenderer
         internal void AddPagePolygons(IReadOnlyList<List<Point>> polygons, RasterFrame frame)
         {
             Span<Point> scratch = stackalloc Point[128];
-            foreach (List<Point> polygon in polygons)
+            Point[]? rented = null;
+            try
             {
-                if (polygon.Count < 3) continue;
-                Span<Point> transformed = polygon.Count <= scratch.Length
-                    ? scratch[..polygon.Count] : new Point[polygon.Count];
-                for (int index = 0; index < polygon.Count; index++)
+                foreach (List<Point> polygon in polygons)
                 {
-                    Point point = polygon[index];
-                    transformed[index] = new Point(frame.PixelX(point.X), frame.PixelY(point.Y));
+                    if (polygon.Count < 3) continue;
+                    scoped Span<Point> transformed;
+                    if (polygon.Count <= scratch.Length)
+                        transformed = scratch[..polygon.Count];
+                    else
+                    {
+                        if (rented is null || rented.Length < polygon.Count)
+                        {
+                            Point[] next = FillPointBuffers.Rent(polygon.Count);
+                            if (rented is not null) FillPointBuffers.Return(rented);
+                            rented = next;
+                        }
+                        transformed = rented.AsSpan(0, polygon.Count);
+                    }
+                    for (int index = 0; index < polygon.Count; index++)
+                    {
+                        Point point = polygon[index];
+                        transformed[index] = new Point(frame.PixelX(point.X), frame.PixelY(point.Y));
+                    }
+                    ReadOnlySpan<Point> clipped = ClipToRaster(transformed);
+                    if (clipped.Length < 2) continue;
+                    for (int index = 0; index < clipped.Length; index++)
+                    {
+                        Point from = clipped[index];
+                        Point to = clipped[(index + 1) % clipped.Length];
+                        Line(Fixed(from.X), Fixed(from.Y), Fixed(to.X), Fixed(to.Y));
+                    }
                 }
-                ReadOnlySpan<Point> clipped = ClipToRaster(transformed);
-                if (clipped.Length < 2) continue;
-                for (int index = 0; index < clipped.Length; index++)
-                {
-                    Point from = clipped[index];
-                    Point to = clipped[(index + 1) % clipped.Length];
-                    Line(Fixed(from.X), Fixed(from.Y), Fixed(to.X), Fixed(to.Y));
-                }
+            }
+            finally
+            {
+                if (rented is not null) FillPointBuffers.Return(rented);
             }
         }
 

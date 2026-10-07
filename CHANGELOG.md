@@ -64,7 +64,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Replaced PDFium and Docnet.Core with engine-owned rendering, improved damaged cross-reference and missing-catalog recovery and JPEG image rendering speed, and removed native file-repair and link-extraction fallbacks.
 
 - Replaced PdfPig with engine-owned extraction for search, selection, region copy, text editing, and dark-mode image preservation. Removed PdfPig from the app, tests, and packaged builds.
-- Reduced rendering memory use with shared page data, released sessions, smaller scratch and ICC buffers, reusable fill-path buffers, direct PNG output, fewer JBIG2 page buffers and bundled font copies, and runtime memory conservation.
+- Reduced rendering memory use with shared page data, released sessions, smaller scratch and ICC buffers, bounded reusable fill-path buffers, direct PNG output, fewer JBIG2 page buffers and bundled font copies, and runtime memory conservation.
 - Reduced peak rendering memory for pages with large inline images and repeated image paints, and reduced font-map decoding allocations.
 - Faster soft masks, masked forms, black-and-white, CMYK, and ICC image reduction, color conversion, profile loading, compositing, scanned pages, and shadings without changing pixels. Large fills, image paints, function and axial shadings, and soft-mask reductions split across a few threads.
 - Reuse decoded page data and more parsed form and glyph streams during zooming and background page rendering, and avoid repeated buffering attempts for oversized pages, with invalidation after document changes and cache flushes.
