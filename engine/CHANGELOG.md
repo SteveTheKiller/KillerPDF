@@ -129,7 +129,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Prevented overlapping mesh triangles and patches from accumulating shading opacity or blend effects.
 - Preserved nested non-isolated knockout groups and groups with unequal outer opacity, soft masks, or blend modes, without counting partially transparent backdrops twice.
 - Preserved alpha-as-shape, partial coverage, and transparent content in nested knockout groups, shading patterns, image masks, and stencils.
-- Restored zero-length dash caps and tiny transformed dashes, with bounded, cancellable dash expansion.
+- Restored zero-length dash caps and tiny transformed dashes with bounded, cancellable expansion, and aligned requested orthogonal strokes to pixels.
 - Corrected Color Dodge and Color Burn blending at black and white endpoints.
 - Skipped images with unknown compression filters instead of painting corrupted pixels over page content.
 - Preserved thin detail in reduced images and stencil masks, including clipped and translucent artwork.

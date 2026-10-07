@@ -1082,7 +1082,7 @@ public sealed partial class PdfPageRenderer
     private static CoverageMask RasterizeStroke(IReadOnlyList<List<Point>> paths,
         double pageLineWidth, RendererLineCap lineCap, RendererLineJoin lineJoin,
         double miterLimit, RasterFrame frame, bool rent = false,
-        (int Left, int Top, int Right, int Bottom)? bounds = null)
+        (int Left, int Top, int Right, int Bottom)? bounds = null, bool strokeAdjust = false)
     {
         double radius = Math.Max(pageLineWidth * frame.StrokeScale / 2, 0.5);
         var polygons = new List<Point[]>();
@@ -1107,9 +1107,53 @@ public sealed partial class PdfPageRenderer
                     new Point(center.X - ux - uy, center.Y - uy + ux)]));
                 continue;
             }
-            StrokeOutline(pixels, radius, lineCap, lineJoin, miterLimit, polygons);
+            double pathRadius = radius;
+            if (strokeAdjust) TryAdjustOrthogonalStroke(pixels, pageLineWidth * frame.StrokeScale, ref pathRadius);
+            StrokeOutline(pixels, pathRadius, lineCap, lineJoin, miterLimit, polygons);
         }
         return RasterizePolygons(polygons, false, frame.Width, frame.Height, rent, bounds);
+    }
+
+    // Snap only the normal coordinates of orthogonal segments. Tangential
+    // endpoints keep their length, and mixed or curved paths keep their geometry.
+    private static void TryAdjustOrthogonalStroke(Point[] points, double width, ref double radius)
+    {
+        if (points.Length < 2 || !double.IsFinite(width)) return;
+        bool anySegment = false;
+        for (int index = 1; index < points.Length; index++)
+        {
+            Point from = points[index - 1], to = points[index];
+            if (!double.IsFinite(from.X) || !double.IsFinite(from.Y)
+                || !double.IsFinite(to.X) || !double.IsFinite(to.Y)) return;
+            double dx = to.X - from.X, dy = to.Y - from.Y;
+            if (dx != 0 && dy != 0) return;
+            anySegment |= dx != 0 || dy != 0;
+        }
+        if (!anySegment) return;
+        Span<byte> coordinates = points.Length <= 256 ? stackalloc byte[points.Length] : new byte[points.Length];
+        coordinates.Clear();
+        for (int index = 1; index < points.Length; index++)
+        {
+            byte flag = points[index].X != points[index - 1].X ? (byte)2
+                : points[index].Y != points[index - 1].Y ? (byte)1 : (byte)0;
+            coordinates[index - 1] |= flag;
+            coordinates[index] |= flag;
+        }
+        // A duplicated closing vertex shares both adjacent normal constraints.
+        if (points[0] == points[^1]) coordinates[0] = coordinates[^1] = (byte)(coordinates[0] | coordinates[^1]);
+        double pixels = Math.Max(1, Math.Floor(width + 0.5));
+        double offset = pixels % 2 == 1 ? 0.5 : 0;
+        for (int index = 1; index < points.Length; index++)
+            if (points[index] != points[index - 1]
+                && Adjusted(points[index], coordinates[index]) == Adjusted(points[index - 1], coordinates[index - 1]))
+                return;
+        for (int index = 0; index < points.Length; index++)
+            points[index] = Adjusted(points[index], coordinates[index]);
+        radius = pixels / 2;
+
+        Point Adjusted(Point point, byte coordinate) => new(
+            (coordinate & 1) != 0 ? Math.Floor(point.X + 0.5 - offset) + offset : point.X,
+            (coordinate & 2) != 0 ? Math.Floor(point.Y + 0.5 - offset) + offset : point.Y);
     }
 
     /// <summary>Emits consistently oriented outline polygons for one stroked polyline.</summary>

@@ -940,11 +940,11 @@ public sealed partial class PdfPageRenderer
                         paintedPath, state.PaintStroke, state.StrokeAlpha, lineWidth,
                         state.LineCap, state.LineJoin, state.MiterLimit,
                         state.BlendMode, state.Clips, state.GraphicsSoftMask, state.Knockout,
-                        cancellationToken, state.AlphaIsShape);
+                        cancellationToken, state.AlphaIsShape, state.StrokeAdjust);
                     return;
                 }
                 var strokeClip = new ClipRegion(RasterizeStroke(paintedPath, lineWidth,
-                    state.LineCap, state.LineJoin, state.MiterLimit, frame));
+                    state.LineCap, state.LineJoin, state.MiterLimit, frame, strokeAdjust: state.StrokeAdjust));
                 RenderPattern(state.StrokePattern, paintedPath, strokeClip,
                     resources, state, depth, state.StrokeAlpha);
             }
@@ -1369,7 +1369,7 @@ public sealed partial class PdfPageRenderer
                                     state.LineCap, state.LineJoin, state.MiterLimit,
                                     state.BlendMode, state.Clips, state.GraphicsSoftMask,
                                     state.Knockout,
-                                    cancellationToken, state.AlphaIsShape);
+                                    cancellationToken, state.AlphaIsShape, state.StrokeAdjust);
                             }
                             if (clipsText)
                             {
@@ -6412,11 +6412,18 @@ public sealed partial class PdfPageRenderer
     private GraphicsState ApplyGraphicsStrokeSettings(GraphicsState state,
         PdfDictionary dictionary, HashSet<string> diagnostics)
     {
-        foreach (string key in new[] { "LW", "LC", "LJ", "ML", "D" })
+        foreach (string key in new[] { "LW", "LC", "LJ", "ML", "D", "SA" })
         {
             if (!dictionary.TryGetValue(Name(key), out PdfObject? value)) continue;
             try
             {
+                if (key == "SA")
+                {
+                    if (Resolve(value) is not PdfBoolean adjustment)
+                        throw new FormatException("A graphics-state stroke adjustment flag is invalid.");
+                    state = state with { StrokeAdjust = adjustment.Value };
+                    continue;
+                }
                 if (key == "D")
                 {
                     PdfArray dash = ResolveArray(value, 2, "A graphics-state dash pattern");
@@ -6583,12 +6590,12 @@ public sealed partial class PdfPageRenderer
         double miterLimit, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips, GraphicsSoftMask? graphicsSoftMask,
         KnockoutState? knockout,
-        CancellationToken cancellationToken, bool alphaIsShape = false)
+        CancellationToken cancellationToken, bool alphaIsShape = false, bool strokeAdjust = false)
     {
         if (color.DoesNotPaint) return;
         var frame = new RasterFrame(width, height, scaleX, scaleY);
         CoverageMask mask = RasterizeStroke(paths, lineWidth, lineCap, lineJoin, miterLimit, frame,
-            rent: true, bounds: (pixels.Left, pixels.Top, pixels.Right, pixels.Bottom));
+            rent: true, bounds: (pixels.Left, pixels.Top, pixels.Right, pixels.Bottom), strokeAdjust: strokeAdjust);
         try
         {
             PaintCoverage(pixels, width, mask, color, alpha, blendMode, clips,
@@ -7224,7 +7231,7 @@ public sealed partial class PdfPageRenderer
         KnockoutState? Knockout, bool FillOverprint = false, bool StrokeOverprint = false,
         int OverprintMode = 0, double[]? FillComponents = null, double[]? StrokeComponents = null,
         int RenderingIntent = 1, IReadOnlyList<PdfObject>? FillOperands = null, IReadOnlyList<PdfObject>? StrokeOperands = null,
-        bool AlphaIsShape = false)
+        bool AlphaIsShape = false, bool StrokeAdjust = false)
     {
         internal Color PaintFill => OverprintColor(Fill, FillColorSpace, FillOverprint, OverprintMode);
         internal Color PaintStroke => OverprintColor(Stroke, StrokeColorSpace, StrokeOverprint, OverprintMode);
