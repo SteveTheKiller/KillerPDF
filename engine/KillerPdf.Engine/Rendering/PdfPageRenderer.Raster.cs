@@ -1594,12 +1594,14 @@ public sealed partial class PdfPageRenderer
                     pixels.GroupAlpha?[offset / 4] = 255;
                     continue;
                 }
-                if (processOverprint && cover < 255)
+                if (processOverprint)
                 {
                     int offset = pixels.Offset(x, y);
-                    if (pixels.Alpha(offset) == 255
-                        && pixels.TryReplaceProcessInkKeepingSpots(offset, ink, cover, preserveComponents))
+                    if (pixels.Alpha(offset) == 255)
+                    {
+                        pixels.ReplaceProcessInkKeepingSpotsPrepared(offset, ink, cover, preserveComponents);
                         continue;
+                    }
                 }
                 if (direct)
                 {

@@ -594,12 +594,20 @@ public sealed partial class PdfPageRenderer
             lock (_spotSync)
             {
                 if (_spotBaseInk is null) return false;
-                processInk = MergeProcessComponents(processInk, ReadInk(_spotBaseInk, offset), preserveComponents);
-                WriteInk(_spotBaseInk, offset, coverage == 255 ? processInk
-                    : BlendCoverageInk(processInk, ReadInk(_spotBaseInk, offset), coverage));
-                ComposeSpotPixel(offset);
+                ReplaceProcessInkKeepingSpotsPrepared(offset, processInk, coverage, preserveComponents);
                 return true;
             }
+        }
+
+        internal void ReplaceProcessInkKeepingSpotsPrepared(int offset, uint processInk,
+            int coverage, int preserveComponents)
+        {
+            byte[] baseInk = _spotBaseInk!;
+            uint previous = ReadInk(baseInk, offset);
+            processInk = MergeProcessComponents(processInk, previous, preserveComponents);
+            WriteInk(baseInk, offset, coverage == 255 ? processInk
+                : BlendCoverageInk(processInk, previous, coverage));
+            ComposeSpotPixel(offset);
         }
 
         internal bool TryBlendProcessInkKeepingSpots(int offset, uint processInk, double opacity,
