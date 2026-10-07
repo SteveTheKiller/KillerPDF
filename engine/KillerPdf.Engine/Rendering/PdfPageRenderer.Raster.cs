@@ -446,6 +446,13 @@ public sealed partial class PdfPageRenderer
                 }
             }
             if (inside) return polygon;
+            return ClipOutsideRaster(polygon, left, top, right, bottom);
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static ReadOnlySpan<Point> ClipOutsideRaster(ReadOnlySpan<Point> polygon,
+            double left, double top, double right, double bottom)
+        {
             List<Point> current = [.. polygon];
             current = ClipEdge(current, point => point.X >= left,
                 (a, b) => Intersect(a, b, left, true));
