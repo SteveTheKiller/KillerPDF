@@ -420,17 +420,57 @@ namespace KillerPDF
         private Border[] StripDots =>
             [AccentStripDot0, AccentStripDot1, AccentStripDot2, AccentStripDot3, AccentStripDot4, AccentStripDot5, AccentStripDot6, AccentStripDot7];
 
+        // Each pill shows its accent the way a selection does: the palette's own SelectionBg
+        // gradient, read from that accent's theme file. 98SE keeps its flat Win98 swatches.
+        private static readonly Dictionary<(Theme, DarkAccent), System.Windows.Media.Brush> AccentStripBrushes = new();
+
+        private static System.Windows.Media.Brush AccentStripBrush(Theme family, DarkAccent accent, string flatHex)
+        {
+            if (AccentStripBrushes.TryGetValue((family, accent), out var cached)) return cached;
+            System.Windows.Media.Brush brush;
+            if (family == Theme.SE98)
+                brush = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(flatHex));
+            else
+            {
+                string path = accent == DarkAccent.Green
+                    ? $"Themes/{family}.xaml"
+                    : $"Themes/Accents/{family}/{accent}.xaml";
+                var palette = new ResourceDictionary
+                {
+                    Source = new Uri($"/KillerPDF;component/{path}", UriKind.Relative)
+                };
+                brush = ((System.Windows.Media.Brush)palette["SelectionBg"]).CloneCurrentValue();
+            }
+            brush.Freeze();
+            AccentStripBrushes[(family, accent)] = brush;
+            return brush;
+        }
+
+        private bool _stripHoverWired;
+
+        // The pills lift a little under the mouse (KillerNotes). The dots are declared in
+        // MainWindow.xaml, so the transform and the hover hooks are attached once, here.
+        private void WireAccentStripHover()
+        {
+            if (_stripHoverWired) return;
+            _stripHoverWired = true;
+            foreach (var dot in StripDots)
+            {
+                dot.RenderTransformOrigin = new Point(0.5, 0.5);
+                dot.RenderTransform = new ScaleTransform();
+                dot.MouseEnter += (_, _) => RingAccentStrip();
+                dot.MouseLeave += (_, _) => RingAccentStrip();
+            }
+        }
+
         private void PopulateAccentStrip(Theme family)
         {
+            WireAccentStripHover();
             var colors = StripColorsFor(family);
             var dots = StripDots;
             for (int i = 0; i < dots.Length; i++)
             {
-                var c = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(colors[i].Hex);
-                dots[i].Background = new System.Windows.Media.SolidColorBrush(c);
-                dots[i].Effect = colors[i].Accent == DarkAccent.Yellow && (family is Theme.Light or Theme.SE98)
-                    ? new System.Windows.Media.Effects.DropShadowEffect { Color = System.Windows.Media.Colors.Black, BlurRadius = 4, ShadowDepth = 1, Opacity = 0.45 }
-                    : null;
+                dots[i].Background = AccentStripBrush(family, colors[i].Accent, colors[i].Hex);
                 dots[i].Tag = colors[i].Accent.ToString();
             }
             _stripFamily = family;
@@ -452,7 +492,19 @@ namespace KillerPDF
             foreach (var dot in StripDots)
             {
                 bool sel = dot.Tag is string t && Enum.TryParse<DarkAccent>(t, out var a) && a == chosen;
-                dot.BorderBrush = sel ? ring : System.Windows.Media.Brushes.Transparent;
+                dot.BorderBrush = dot.IsMouseOver || sel ? ring : System.Windows.Media.Brushes.Transparent;
+                bool pop = dot.IsMouseOver && _stripFamily != Theme.SE98;
+                if (dot.RenderTransform is ScaleTransform scale)
+                {
+                    scale.BeginAnimation(ScaleTransform.ScaleXProperty,
+                        new DoubleAnimation(pop ? 1.06 : 1, TimeSpan.FromMilliseconds(100)));
+                    scale.BeginAnimation(ScaleTransform.ScaleYProperty,
+                        new DoubleAnimation(pop ? 1.03 : 1, TimeSpan.FromMilliseconds(100)));
+                }
+                dot.Effect = pop
+                    ? new System.Windows.Media.Effects.DropShadowEffect
+                    { Color = System.Windows.Media.Colors.Black, BlurRadius = 4, ShadowDepth = 1, Opacity = 0.25 }
+                    : null;
             }
         }
 
