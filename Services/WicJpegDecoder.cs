@@ -12,26 +12,37 @@ internal sealed class WicJpegDecoder : IPdfJpegDecoder
         int? colorTransform, out JpegDecodedImage image)
     {
         image = default;
-        if (reduction is not (1 or 2 or 4 or 8) || encoded.Length < 300_000
-            || colorTransform is not null and not 2
-            || !TryReadYcckFrame(encoded.Span, out int width, out int height))
+        if (reduction is not (1 or 2 or 4 or 8) || encoded.Length < 16_384
+            || !TryReadFrame(encoded.Span, out int width, out int height, out int components)
+            || (components == 4 ? encoded.Length < 300_000 || colorTransform is not null and not 2
+                : (long)width * height < 1_048_576 || colorTransform is not null and not 1))
             return false;
 
         int reducedWidth = (width + reduction - 1) / reduction;
         int reducedHeight = (height + reduction - 1) / reduction;
-        long sampleLength = (long)reducedWidth * reducedHeight * 4;
+        long sampleLength = (long)reducedWidth * reducedHeight * components;
         if (sampleLength > maximumDecodedBytes || sampleLength > int.MaxValue)
             return false;
 
         try
         {
-            if (!NativeWicJpegDecoder.TryDecode(encoded, reducedWidth, reducedHeight,
-                out byte[] samples))
-                return false;
-            for (int index = 0; index < samples.Length; index++)
-                samples[index] = (byte)(255 - samples[index]);
+            byte[] samples;
+            bool decoded = components == 4
+                ? NativeWicJpegDecoder.TryDecode(encoded, reducedWidth, reducedHeight, out samples)
+                : NativeWicJpegDecoder.TryDecodeRgb(encoded, reducedWidth, reducedHeight, out samples);
+            if (!decoded) return false;
+            if (components == 4)
+            {
+                for (int index = 0; index < samples.Length; index++)
+                    samples[index] = (byte)(255 - samples[index]);
+            }
+            else
+            {
+                for (int index = 0; index < samples.Length; index += 3)
+                    (samples[index], samples[index + 2]) = (samples[index + 2], samples[index]);
+            }
             image = new JpegDecodedImage(samples, reducedWidth, reducedHeight,
-                4, width, height);
+                components, width, height);
             return true;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
@@ -40,13 +51,14 @@ internal sealed class WicJpegDecoder : IPdfJpegDecoder
         }
     }
 
-    private static bool TryReadYcckFrame(ReadOnlySpan<byte> encoded, out int width, out int height)
+    private static bool TryReadFrame(ReadOnlySpan<byte> encoded, out int width, out int height, out int components)
     {
-        width = height = 0;
+        width = height = components = 0;
         if (encoded.Length < 4 || encoded[0] != 0xFF || encoded[1] != 0xD8)
             return false;
 
-        bool adobeYcck = false;
+        int? adobeTransform = null;
+        bool jfif = false;
         bool hasScan = false;
         int position = 2;
         while (position + 4 <= encoded.Length)
@@ -69,12 +81,15 @@ internal sealed class WicJpegDecoder : IPdfJpegDecoder
             int end = position + length;
             if (marker == 0xEE && end - payload >= 12
                 && encoded.Slice(payload, 5).SequenceEqual("Adobe"u8))
-                adobeYcck = encoded[payload + 11] == 2;
+                adobeTransform = encoded[payload + 11];
+            if (marker == 0xE0 && end - payload >= 5
+                && encoded.Slice(payload, 5).SequenceEqual("JFIF\0"u8)) jfif = true;
             if (marker is 0xC0 or 0xC1)
             {
                 if (end - payload < 6 || encoded[payload] != 8
-                    || encoded[payload + 5] != 4)
+                    || encoded[payload + 5] is not (3 or 4))
                     return false;
+                components = encoded[payload + 5];
                 height = encoded[payload + 1] << 8 | encoded[payload + 2];
                 width = encoded[payload + 3] << 8 | encoded[payload + 4];
             }
@@ -82,6 +97,7 @@ internal sealed class WicJpegDecoder : IPdfJpegDecoder
                 return false;
             position = end;
         }
-        return hasScan && adobeYcck && width > 0 && height > 0;
+        return hasScan && width > 0 && height > 0 && (components == 4
+            ? adobeTransform == 2 : adobeTransform == 1 || (adobeTransform is null && jfif));
     }
 }

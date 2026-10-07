@@ -9,8 +9,18 @@ internal static partial class NativeWicJpegDecoder
     private static readonly Guid SourceTransformInterface = new("3b16811b-6a43-4ec9-b713-3d5a0c13b940");
     private static readonly Guid CmykFormat = new("6fddc324-4e03-4bfe-b185-3d77768dc91c");
 
-    internal static unsafe bool TryDecode(ReadOnlyMemory<byte> encoded,
-        int expectedWidth, int expectedHeight, out byte[] samples)
+    private static readonly Guid BgrFormat = new("6fddc324-4e03-4bfe-b185-3d77768dc90c");
+
+    internal static bool TryDecode(ReadOnlyMemory<byte> encoded,
+        int expectedWidth, int expectedHeight, out byte[] samples) =>
+        TryDecodeCore(encoded, expectedWidth, expectedHeight, CmykFormat, 4, out samples);
+
+    internal static bool TryDecodeRgb(ReadOnlyMemory<byte> encoded,
+        int expectedWidth, int expectedHeight, out byte[] samples) =>
+        TryDecodeCore(encoded, expectedWidth, expectedHeight, BgrFormat, 3, out samples);
+
+    private static unsafe bool TryDecodeCore(ReadOnlyMemory<byte> encoded,
+        int expectedWidth, int expectedHeight, Guid requestedFormat, int components, out byte[] samples)
     {
         samples = [];
         if (encoded.IsEmpty) return false;
@@ -30,7 +40,7 @@ internal static partial class NativeWicJpegDecoder
             Marshal.ThrowExceptionForHR(Get<GetFrame>(decoder, 13)(decoder, 0, out frame));
             Marshal.ThrowExceptionForHR(Get<GetPixelFormat>(frame, 4)(
                 frame, out Guid sourceFormat));
-            if (sourceFormat != CmykFormat) return false;
+            if (sourceFormat != requestedFormat) return false;
             Guid transformId = SourceTransformInterface;
             Marshal.ThrowExceptionForHR(Marshal.QueryInterface(
                 frame, in transformId, out transform));
@@ -39,14 +49,14 @@ internal static partial class NativeWicJpegDecoder
             Marshal.ThrowExceptionForHR(Get<GetClosestSize>(transform, 4)(
                 transform, ref width, ref height));
             if (width != expectedWidth || height != expectedHeight) return false;
-            Guid outputFormat = CmykFormat;
+            Guid outputFormat = requestedFormat;
             Marshal.ThrowExceptionForHR(Get<GetClosestPixelFormat>(transform, 5)(
                 transform, ref outputFormat));
-            if (outputFormat != CmykFormat) return false;
-            byte[] decoded = new byte[checked(expectedWidth * expectedHeight * 4)];
+            if (outputFormat != requestedFormat) return false;
+            byte[] decoded = new byte[checked(expectedWidth * expectedHeight * components)];
             fixed (byte* destination = decoded)
                 Marshal.ThrowExceptionForHR(Get<CopyPixels>(transform, 3)(
-                    transform, 0, width, height, ref outputFormat, 0, width * 4,
+                    transform, 0, width, height, ref outputFormat, 0, width * (uint)components,
                     checked((uint)decoded.Length), (nint)destination));
             samples = decoded;
             return true;
