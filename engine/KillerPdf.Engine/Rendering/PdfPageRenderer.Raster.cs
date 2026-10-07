@@ -1423,6 +1423,8 @@ public sealed partial class PdfPageRenderer
         byte[]? coverage, uint ink, byte[]? groupAlpha,
         IReadOnlyList<ClipRegion> clips, bool perPixelClip, CancellationToken cancellationToken)
     {
+        RasterSurface.PreparedSpotPaint? prepared = null;
+        RasterSurface.PreparedSpotPaint? additional = null;
         bool overprint = (paint.OverprintComponents & 16) != 0;
         for (int y = top; y < bottom; y++)
         {
@@ -1451,7 +1453,14 @@ public sealed partial class PdfPageRenderer
                     if (paint.ProcessInk is null && pixels.Alpha(offset) == 255
                         && pixels.CanPaintSpot(offset))
                     {
-                        pixels.PaintSpotCoverage(offset, paint, ink, (byte)cover, overprint);
+                        if (prepared is null)
+                        {
+                            prepared = pixels.PrepareSpotPaint(paint.SpotName!);
+                            if (paint.AdditionalSpot is { } second)
+                                additional = pixels.PrepareSpotPaint(second.Name);
+                        }
+                        pixels.PaintSpotCoveragePrepared(offset, paint, ink, (byte)cover,
+                            overprint, prepared.Plate, additional?.Plate);
                         groupAlpha?[offset / 4] = (byte)Math.Round(cover
                                 + groupAlpha[offset / 4] * (1 - cover / 255d));
                     }

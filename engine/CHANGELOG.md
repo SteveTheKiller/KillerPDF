@@ -56,7 +56,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Large Flate images and eligible embedded fonts inflate into their final buffer when the decoded length matches, with unchanged recovery for damaged streams.
 
 - Reused exact axial shading colors across eligible device columns.
-- Prepared spot plates once for large opaque images to reduce pixel synchronization.
+- Prepared spot plates once for large opaque images and antialiased paths to reduce pixel synchronization.
 - Faster resource resolution, vector page rendering, and path clipping with bounded cell sorting and reusable fill-path and large polygon conversion buffers, preserving pixels.
 - Added an optional JPEG decoder hook for compatible rendering clients.
 - Limited non-isolated form rendering to active alpha-mask bounds, speeding up masked pages without changing pixels.

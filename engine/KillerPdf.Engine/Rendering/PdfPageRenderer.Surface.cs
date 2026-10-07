@@ -503,25 +503,33 @@ public sealed partial class PdfPageRenderer
                     _spotPlates.Add(additional.Name, additionalPlate);
                     _spotPlateValues = [.. _spotPlates.Values];
                 }
-                uint spotInk = color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk;
-                if (!overprint)
-                {
-                    WriteInk(_spotBaseInk, offset, BlendCoverageInk(0, ReadInk(_spotBaseInk, offset), coverage));
-                    foreach (byte[] existing in _spotPlateValues)
-                        if (!ReferenceEquals(existing, plate)
-                            && !ReferenceEquals(existing, additionalPlate))
-                            WriteInk(existing, offset, BlendCoverageInk(0, ReadInk(existing, offset), coverage));
-                }
-                WriteInk(plate, offset, BlendCoverageInk(spotInk, ReadInk(plate, offset), coverage));
-                if (additionalPlate is not null)
-                {
-                    SpotColorant secondSpot = color.AdditionalSpot!;
-                    uint additionalInk = secondSpot.Tint <= 0 ? 0 : secondSpot.Ink;
-                    WriteInk(additionalPlate, offset,
-                        BlendCoverageInk(additionalInk, ReadInk(additionalPlate, offset), coverage));
-                }
-                ComposeSpotPixel(offset);
+                PaintSpotCoveragePrepared(offset, color, sourceInk, coverage, overprint,
+                    plate, additionalPlate);
             }
+        }
+
+        internal void PaintSpotCoveragePrepared(int offset, in Color color, uint sourceInk,
+            byte coverage, bool overprint, byte[] plate, byte[]? additionalPlate)
+        {
+            byte[] baseInk = _spotBaseInk!;
+            uint spotInk = color.SpotTint <= 0 ? 0 : color.SpotInk ?? sourceInk;
+            if (!overprint)
+            {
+                WriteInk(baseInk, offset, BlendCoverageInk(0, ReadInk(baseInk, offset), coverage));
+                foreach (byte[] existing in _spotPlateValues)
+                    if (!ReferenceEquals(existing, plate)
+                        && !ReferenceEquals(existing, additionalPlate))
+                        WriteInk(existing, offset, BlendCoverageInk(0, ReadInk(existing, offset), coverage));
+            }
+            WriteInk(plate, offset, BlendCoverageInk(spotInk, ReadInk(plate, offset), coverage));
+            if (additionalPlate is not null)
+            {
+                SpotColorant secondSpot = color.AdditionalSpot!;
+                uint additionalInk = secondSpot.Tint <= 0 ? 0 : secondSpot.Ink;
+                WriteInk(additionalPlate, offset,
+                    BlendCoverageInk(additionalInk, ReadInk(additionalPlate, offset), coverage));
+            }
+            ComposeSpotPixel(offset);
         }
 
         internal void PaintSpotRun(int offset, int count, in Color color, bool overprint, uint sourceInk)
