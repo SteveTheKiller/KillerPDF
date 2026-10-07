@@ -93,6 +93,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Ectoplasm menus and annotation bars now have softer borders.
 
 ### Fixed
+- 98SE Red is a true maroon again, so it no longer looks like Magenta.
 - Moved the shortcuts guide link away from the close button.
 - Added a faint divider with fading ends between the language menu columns.
 - Ctrl+wheel changes picker views and icon sizes.

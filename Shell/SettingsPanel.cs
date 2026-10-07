@@ -401,7 +401,7 @@ namespace KillerPDF
             [(DarkAccent.Red, "#FF2929"), (DarkAccent.Orange, "#FF910A"), (DarkAccent.Yellow, "#FFEB00"), (DarkAccent.Green, "#00FF66"),
              (DarkAccent.Teal, "#0AFFE7"), (DarkAccent.Blue, "#298DFF"), (DarkAccent.Purple, "#B829FF"), (DarkAccent.Magenta, "#FF2BBD")];
         private static readonly (DarkAccent Accent, string Hex)[] SE98StripColors =
-            [(DarkAccent.Red, "#800040"), (DarkAccent.Orange, "#A05000"), (DarkAccent.Yellow, "#EAD900"), (DarkAccent.Green, "#006000"),
+            [(DarkAccent.Red, "#800000"), (DarkAccent.Orange, "#A05000"), (DarkAccent.Yellow, "#EAD900"), (DarkAccent.Green, "#006000"),
              (DarkAccent.Teal, "#008080"), (DarkAccent.Blue, "#000080"), (DarkAccent.Purple, "#5A376E"), (DarkAccent.Magenta, "#750052")];
 
         private static (DarkAccent Accent, string Hex)[] StripColorsFor(Theme family) => family switch
