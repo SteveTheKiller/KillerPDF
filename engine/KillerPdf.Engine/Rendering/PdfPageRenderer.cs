@@ -6491,12 +6491,25 @@ public sealed partial class PdfPageRenderer
 
     private PdfObject Resolve(PdfObject value)
     {
-        if (value is not PdfIndirectReference) return value;
-        var visited = new HashSet<(int, int)>();
+        if (value is not PdfIndirectReference reference) return value;
+        PdfObject resolved = _document.Resolve(reference);
+        return resolved is not PdfIndirectReference ? resolved : ResolveReferenceChain(reference, resolved);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private PdfObject ResolveReferenceChain(PdfIndirectReference first, PdfObject value)
+    {
+        Span<(int Number, int Generation)> visited = stackalloc (int, int)[32];
+        visited[0] = (first.ObjectNumber, first.Generation);
+        int count = 1;
         while (value is PdfIndirectReference reference)
         {
-            if (!visited.Add((reference.ObjectNumber, reference.Generation)) || visited.Count > 32)
+            if (count == visited.Length)
                 throw new FormatException("An image resource contains an invalid reference chain.");
+            for (int index = 0; index < count; index++)
+                if (visited[index].Number == reference.ObjectNumber && visited[index].Generation == reference.Generation)
+                    throw new FormatException("An image resource contains an invalid reference chain.");
+            visited[count++] = (reference.ObjectNumber, reference.Generation);
             value = _document.Resolve(reference);
         }
         return value;
