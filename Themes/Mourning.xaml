@@ -104,5 +104,4 @@
     <SolidColorBrush x:Key="TitleBarBrush" Color="#3b3642" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <SolidColorBrush x:Key="FooterAccentBrush" Color="#FF7696"/>
-  <SolidColorBrush x:Key="FooterBackgroundBrush" Color="#3b3642"/>
 </ResourceDictionary>
