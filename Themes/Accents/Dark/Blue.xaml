@@ -3,8 +3,7 @@
                     xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options">
 
     <!-- Dark family - BLUE accent overlay. Text keys are a lighter cyan-blue so they read on the
-         dark panels; the selection-background keys stay deep navy. Fixed greens (InstallBtnBg,
-         AccentLogo) come from Dark.xaml. -->
+         dark panels; the selection-background keys stay deep navy. The wordmark follows this overlay's accent. -->
     <SolidColorBrush x:Key="PrimaryBrush"        Color="#50AEE8" po:Freeze="True"/>
     <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#50AEE8" po:Freeze="True"/>
     <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#50AEE8" po:Freeze="True"/>
@@ -24,4 +23,5 @@
     <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#50AEE8" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#E0E0E0"/>
+    <SolidColorBrush x:Key="AccentLogo"        Color="#50AEE8" po:Freeze="True"/>
 </ResourceDictionary>

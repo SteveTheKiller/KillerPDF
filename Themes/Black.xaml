@@ -103,4 +103,14 @@
     <CornerRadius x:Key="AccentSwatchCornerRadius">9</CornerRadius>
     <SolidColorBrush x:Key="TitleBarBrush" Color="#000000" po:Freeze="True"/>
 
+    <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#FF00FF66" po:Freeze="True"/>
+    <SolidColorBrush x:Key="DialogTitleBarBrush" Color="#FF000000" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#FF333333" po:Freeze="True"/>
+    <SolidColorBrush x:Key="FooterBackgroundBrush" Color="#FF000000" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuSeparatorBrush" Color="#FF2A2A2A" po:Freeze="True"/>
+    <sys:Double x:Key="TitleBarHeight" xmlns:sys="clr-namespace:System;assembly=mscorlib">36</sys:Double>
+    <!-- Modern wordmark sizes preserve the existing title typography. -->
+    <sys:Double x:Key="TitleWordmarkSize" xmlns:sys="clr-namespace:System;assembly=mscorlib">16.5</sys:Double>
+    <sys:Double x:Key="TitleWordmarkBoldSize" xmlns:sys="clr-namespace:System;assembly=mscorlib">21.45</sys:Double>
+    <sys:Double x:Key="WordmarkShadowOpacity" xmlns:sys="clr-namespace:System;assembly=mscorlib">0.45</sys:Double>
 </ResourceDictionary>

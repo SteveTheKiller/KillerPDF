@@ -2,4 +2,5 @@
   <LinearGradientBrush x:Key="TitleBarBrush" StartPoint="0,0" EndPoint="1,0" po:Freeze="True"><GradientStop Color="#700000" Offset="0"/><GradientStop Color="#B05050" Offset="1"/></LinearGradientBrush>
   <LinearGradientBrush x:Key="DialogTitleBarBrush" StartPoint="0,0" EndPoint="1,0" po:Freeze="True"><GradientStop Color="#700000" Offset="0"/><GradientStop Color="#B05050" Offset="1"/></LinearGradientBrush>
   <SolidColorBrush x:Key="PrimaryBrush" Color="#800000"/><SolidColorBrush x:Key="PrimaryHoverBrush" Color="#A00000"/><SolidColorBrush x:Key="PrimaryPressedBrush" Color="#580000"/><SolidColorBrush x:Key="OutlineBtnBrush" Color="#800000"/><SolidColorBrush x:Key="HeaderLineBrush" Color="#800000"/><SolidColorBrush x:Key="SelectionBg" Color="#800000"/><SolidColorBrush x:Key="SelectionAccent" Color="#800000"/><SolidColorBrush x:Key="RadioAccent" Color="#800000"/><SolidColorBrush x:Key="RowSelectedBrush" Color="#800000"/><SolidColorBrush x:Key="TextSelectionBrush" Color="#800000"/>
+    <SolidColorBrush x:Key="AccentLogo" Color="#800000"/>
 </ResourceDictionary>

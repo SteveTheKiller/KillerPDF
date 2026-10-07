@@ -97,7 +97,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Light/Yellow uses true yellow for the wordmark, accent lines and radio buttons, with neutral dark text instead of olive brown.
 - 98SE Red is a true maroon again, so it no longer looks like Magenta.
 - Delirium, Ectoplasm and Sepulchre footers match the window background again.
-- Greed and Cyanotic wordmarks use their cream accent again.
+- Shared theme colors, control states, title styling and shadows match the family palette, including cream Blood, Greed and Cyanotic wordmarks.
 - Moved the shortcuts guide link away from the close button.
 - Added a faint divider with fading ends between the language menu columns.
 - Ctrl+wheel changes picker views and icon sizes.

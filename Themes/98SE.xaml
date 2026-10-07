@@ -597,4 +597,9 @@
 
     <SolidColorBrush x:Key="SortButtonBrush" Color="#c0c0c0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
+    <SolidColorBrush x:Key="AccentLogo" Color="#FF004F00" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionAccent" Color="#FF004F00" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RadioAccent" Color="#FF004F00" po:Freeze="True"/>
+    <SolidColorBrush x:Key="FooterBackgroundBrush" Color="#FFC0C0C0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuSeparatorBrush" Color="#FF808080" po:Freeze="True"/>
 </ResourceDictionary>

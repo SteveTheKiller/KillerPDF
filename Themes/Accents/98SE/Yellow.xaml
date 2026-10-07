@@ -6,4 +6,5 @@
   <SolidColorBrush x:Key="SelectionFg" Color="#24231C"/><SolidColorBrush x:Key="ChromeTextBrush" Color="#24231C"/>
   <SolidColorBrush x:Key="FilenameBrush" Color="#24231C"/>
   <SolidColorBrush x:Key="TextSelectionTextBrush" Color="#24231C"/>
+    <SolidColorBrush x:Key="AccentLogo" Color="#2B2A24"/>
 </ResourceDictionary>

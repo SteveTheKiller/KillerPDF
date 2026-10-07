@@ -103,4 +103,18 @@
 
     <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#F4F4F0"/>
     <SolidColorBrush x:Key="FooterAccentBrush" Color="#E08E13"/>
+    <SolidColorBrush x:Key="AccentLogo" Color="#FFDD8500" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SelectionAccent" Color="#FFDD8500" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RadioAccent" Color="#FFDD8500" po:Freeze="True"/>
+    <LinearGradientBrush x:Key="DialogTitleBarBrush" StartPoint="0,0.5" EndPoint="1,0.5" MappingMode="RelativeToBoundingBox" SpreadMethod="Pad" ColorInterpolationMode="SRgbLinearInterpolation" po:Freeze="True"><GradientStop Color="#FF641D25" Offset="0"/><GradientStop Color="#FF2F2853" Offset="1"/></LinearGradientBrush>
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#FF312958" po:Freeze="True"/>
+    <LinearGradientBrush x:Key="FooterBackgroundBrush" StartPoint="0,0.5" EndPoint="1,0.5" MappingMode="RelativeToBoundingBox" SpreadMethod="Pad" ColorInterpolationMode="SRgbLinearInterpolation" po:Freeze="True"><GradientStop Color="#FF641D25" Offset="0"/><GradientStop Color="#FF2F2853" Offset="1"/></LinearGradientBrush>
+    <sys:Double x:Key="TitleBarHeight" xmlns:sys="clr-namespace:System;assembly=mscorlib">36</sys:Double>
+    <!-- Modern wordmark sizes preserve the existing title typography. -->
+    <sys:Double x:Key="TitleWordmarkSize" xmlns:sys="clr-namespace:System;assembly=mscorlib">16.5</sys:Double>
+    <sys:Double x:Key="TitleWordmarkBoldSize" xmlns:sys="clr-namespace:System;assembly=mscorlib">21.45</sys:Double>
+    <sys:Double x:Key="WordmarkShadowOpacity" xmlns:sys="clr-namespace:System;assembly=mscorlib">0.45</sys:Double>
+    <sys:Double x:Key="PaneShadowOpacity" xmlns:sys="clr-namespace:System;assembly=mscorlib">0.6</sys:Double>
+    <sys:Double x:Key="BarShadowOpacity" xmlns:sys="clr-namespace:System;assembly=mscorlib">0.38</sys:Double>
+    <sys:Double x:Key="FlyoutShadowOpacity" xmlns:sys="clr-namespace:System;assembly=mscorlib">0.55</sys:Double>
 </ResourceDictionary>

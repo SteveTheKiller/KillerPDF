@@ -24,4 +24,5 @@
 
     <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#E0E0E0"/>
     <SolidColorBrush x:Key="FooterAccentBrush" Color="#DF5954"/>
+    <SolidColorBrush x:Key="AccentLogo"        Color="#DD504B" po:Freeze="True"/>
 </ResourceDictionary>

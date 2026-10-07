@@ -23,4 +23,6 @@
     <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"     Color="#08332e" po:Freeze="True"/>
     <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#0AFFE7" po:Freeze="True"/>
 
+    <SolidColorBrush x:Key="AccentLogo"        Color="#0AFFE7" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ComboHighlightTextBrush" Color="#FF0AFFE7" po:Freeze="True"/>
 </ResourceDictionary>
