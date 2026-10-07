@@ -6840,16 +6840,19 @@ public sealed partial class PdfPageRenderer
         }
         if (pixels.HasRgbSpotShadow)
         {
-            bool supported = sourceAlpha == 1 && pixels.Alpha(offset) == 255
+            bool opaqueBackdrop = pixels.Alpha(offset) == 255
                 && graphicsSoftMask is null && knockout is null && pixels.GroupShape is null
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+            bool supported = sourceAlpha == 1 && opaqueBackdrop;
             if (supported && color.SpotName is not null
                 && pixels.TryPaintRgbSpot(offset, color, (color.OverprintComponents & 16) != 0,
                     resolvedInk ?? pixels.GetInk(color))) return;
-            if (supported && color.SpotName is null
+            if (sourceAlpha > 0 && opaqueBackdrop
+                && (sourceAlpha == 1 || pixels.GroupAlpha is null)
+                && color.SpotName is null
                 && (color.OverprintComponents & (16 | PreserveNamedSpots)) != 0
                 && pixels.TryPaintRgbProcessOverprint(offset, color,
-                    resolvedInk ?? pixels.GetInk(color))) return;
+                    resolvedInk ?? pixels.GetInk(color), sourceAlpha)) return;
             if (supported && color.SpotName is null)
                 pixels.TrackRgbProcessPixel(offset, color, resolvedInk);
             else pixels.InvalidateRgbSpotPixel(offset);

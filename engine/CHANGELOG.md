@@ -109,7 +109,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Preserved spot checkmarks and cleared false X marks in reduced indexed images on Ghent DeviceN pages.
 - Honored static layer View rules in rendering and layer controls, preserving explicit visibility edits and alternate configurations.
 - Preserved image detail during reductions and page crops, including fractional placement, masks, and flipped axes, and honored requested smoothing for enlarged grayscale and RGB images.
-- Kept existing CMYK channels under OPM1 process overprint on RGB spot pages.
+- Kept existing CMYK channels and antialiased process overprint edges on RGB spot pages.
 - Preserved process ink beneath supported named spot images on RGB pages and fixed single-colorant spot-image conversion failures.
 - Preserved antialiased named-spot overprints, including clipped paths on RGB pages.
 - Removed pale edges from repeated opaque CMYK fills inside nested clipped Forms.

@@ -273,6 +273,73 @@ public sealed class PdfOverprintTests
             }
     }
 
+    [Theory]
+    [InlineData(0, false, false, false)]
+    [InlineData(1, false, false, false)]
+    [InlineData(0, false, true, false)]
+    [InlineData(1, false, true, false)]
+    [InlineData(0, false, true, true)]
+    [InlineData(1, false, true, true)]
+    [InlineData(0, true, false, false)]
+    [InlineData(1, true, false, false)]
+    [InlineData(0, true, true, true)]
+    [InlineData(1, true, true, true)]
+    [InlineData(0, false, false, false, true)]
+    [InlineData(1, false, false, false, true)]
+    [InlineData(0, false, true, false, true)]
+    [InlineData(1, false, true, false, true)]
+    [InlineData(0, false, true, true, true)]
+    [InlineData(1, false, true, true, true)]
+    [InlineData(0, true, false, false, true)]
+    [InlineData(1, true, false, false, true)]
+    [InlineData(0, true, true, true, true)]
+    [InlineData(1, true, true, true, true)]
+    public void DefaultRgbSurface_ProcessPathEdgesAfterCmykShading_MatchNativeCmyk(
+        int mode, bool stroke, bool diagonal, bool clipped, bool followingSpot = false)
+    {
+        PdfRenderedPage rendered = RenderRgbProcessOverprintShading(mode,
+            spotPathAfterShading: true, diagonalSpotPath: diagonal, clipSpotPath: clipped,
+            processPathAfterShading: true, strokeProcessPath: stroke,
+            spotAfterProcessPath: followingSpot);
+        PdfRenderedPage nativeCmyk = RenderRgbProcessOverprintShading(mode, nativeCmyk: true,
+            spotPathAfterShading: true, diagonalSpotPath: diagonal, clipSpotPath: clipped,
+            processPathAfterShading: true, strokeProcessPath: stroke,
+            spotAfterProcessPath: followingSpot);
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Empty(nativeCmyk.Diagnostics);
+        for (int y = 1; y < 7; y++)
+            for (int x = 2; x < 6; x++)
+            {
+                int offset = (y * 8 + x) * 4;
+                Assert.Equal(nativeCmyk.Pixels.Span[offset..(offset + 4)].ToArray(),
+                    rendered.Pixels.Span[offset..(offset + 4)].ToArray());
+            }
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    public void DefaultRgbSurface_LargeProcessEdgesMatchSerialAndNativeCmyk(int mode, bool clipped)
+    {
+        PdfRenderedPage serial = RenderRgbProcessOverprintShading(mode,
+            spotPathAfterShading: true, diagonalSpotPath: clipped, clipSpotPath: clipped,
+            processPathAfterShading: true, spotAfterProcessPath: true, renderPixels: 1024);
+        PdfRenderedPage parallel = RenderRgbProcessOverprintShading(mode,
+            spotPathAfterShading: true, diagonalSpotPath: clipped, clipSpotPath: clipped,
+            processPathAfterShading: true, spotAfterProcessPath: true,
+            renderPixels: 1024, parallelism: 4);
+        PdfRenderedPage native = RenderRgbProcessOverprintShading(mode, nativeCmyk: true,
+            spotPathAfterShading: true, diagonalSpotPath: clipped, clipSpotPath: clipped,
+            processPathAfterShading: true, spotAfterProcessPath: true, renderPixels: 1024);
+        Assert.Empty(serial.Diagnostics);
+        Assert.Empty(parallel.Diagnostics);
+        Assert.Empty(native.Diagnostics);
+        Assert.Equal(serial.Pixels.ToArray(), parallel.Pixels.ToArray());
+        Assert.Equal(native.Pixels.ToArray(), serial.Pixels.ToArray());
+    }
+
     [Fact]
     public void DefaultRgbSurface_RepaintedSpotPathEdgesAfterCmykShading_MatchNativeCmyk()
     {
@@ -740,7 +807,9 @@ public sealed class PdfOverprintTests
 
     private static PdfRenderedPage RenderRgbProcessOverprintShading(int mode, bool nativeCmyk = false,
         bool spotPathAfterShading = false, bool repaintSpotPath = false,
-        bool diagonalSpotPath = false, bool clipSpotPath = false)
+        bool diagonalSpotPath = false, bool clipSpotPath = false,
+        bool processPathAfterShading = false, bool strokeProcessPath = false,
+        bool spotAfterProcessPath = false, int renderPixels = 8, int parallelism = 1)
     {
         PdfName Name(string name) => new(Encoding.ASCII.GetBytes(name));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
@@ -754,7 +823,11 @@ public sealed class PdfOverprintTests
                 + " /Op gs /Sh1 sh"
                 + (clipSpotPath ? " q 3.375 0.125 2.5 7.75 re W n" : "")
                 + (repaintSpotPath ? " /Green cs 0.5 scn /O gs" + spotPath : "")
-                + " /Green cs 1 scn /O gs" + spotPath
+                + (processPathAfterShading
+                    ? " 0 0.5 0 0 k 0 0.5 0 0 K /Op gs"
+                        + (strokeProcessPath ? " 0.75 w" + spotPath[..^1] + "S" : spotPath)
+                    : " /Green cs 1 scn /O gs" + spotPath)
+                + (spotAfterProcessPath ? " /Green cs 0.5 scn /O gs" + spotPath : "")
                 + (clipSpotPath ? " Q" : "")
             : "0 0 0 0 k 0 0 8 8 re f"
             + " 1 0 1 0.5 k 2 0 4 8 re f"
@@ -806,7 +879,8 @@ public sealed class PdfOverprintTests
             pageEntries = pageEntries.Append(Entry("Group", new PdfDictionary([
                 Entry("S", Name("Transparency")), Entry("CS", Name("DeviceCMYK"))])));
         update.ReplaceObject(reference.ObjectNumber, new PdfDictionary(pageEntries));
-        return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(8, 8));
+        return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0,
+            new PdfRenderOptions(renderPixels, renderPixels) { MaximumParallelism = parallelism });
     }
 
     private static PdfRenderedPage RenderRgbSpotShadow(bool withSpots, bool useImages = false,
