@@ -10,18 +10,21 @@ internal static class PrintJobTicket
     private static readonly XNamespace Framework = "http://schemas.microsoft.com/windows/2003/08/printing/printschemaframework";
     private static readonly XNamespace Keywords = "http://schemas.microsoft.com/windows/2003/08/printing/printschemakeywords";
 
-    /// <summary>The settings the print window has controls for.</summary>
+    /// <summary>The settings the print window has controls for. ShortEdge picks the binding
+    /// side while TwoSided is on: long edge for books, short edge for notepads.</summary>
     internal readonly record struct Settings(
-        bool Landscape, bool TwoSided, bool Grayscale, PageMediaSize? Media, InputBin? Source);
+        bool Landscape, bool TwoSided, bool Grayscale, PageMediaSize? Media, InputBin? Source,
+        bool ShortEdge = false);
 
     /// <summary>What a driver ticket says about those same settings; null where it is silent.</summary>
     internal readonly record struct DriverChoices(
-        bool? Landscape, bool? TwoSided, bool? Grayscale, int? Copies, PageMediaSize? Media);
+        bool? Landscape, bool? TwoSided, bool? Grayscale, int? Copies, PageMediaSize? Media,
+        bool? ShortEdge = null);
 
     /// <summary>Writes the print window's settings onto a ticket. A ticket that came from the
-    /// driver dialog keeps the driver's exact variant (reverse landscape, short-edge binding,
-    /// monochrome) wherever it already agrees with the window. Use the returned ticket,
-    /// which replaces the XML when the driver uses document-level duplex.</summary>
+    /// driver dialog keeps the driver's exact variant (reverse landscape, monochrome) wherever
+    /// it already agrees with the window. Use the returned ticket, which replaces the XML when
+    /// the driver uses document-level duplex.</summary>
     internal static PrintTicket Apply(PrintTicket ticket, Settings settings, int copies, bool fromDriverDialog,
         bool documentDuplex = false)
     {
@@ -30,10 +33,11 @@ internal static class PrintJobTicket
         if (!fromDriverDialog || IsLandscape(ticket.PageOrientation) != settings.Landscape)
             ticket.PageOrientation = settings.Landscape
                 ? PageOrientation.Landscape : PageOrientation.Portrait;
-        Duplexing? driverDuplex = ReadDocumentDuplex(ticket) ?? ticket.Duplexing;
-        Duplexing duplex = fromDriverDialog && driverDuplex is { } chosen && chosen != Duplexing.Unknown
-            && IsTwoSided(chosen) == settings.TwoSided
-                ? chosen : settings.TwoSided ? Duplexing.TwoSidedLongEdge : Duplexing.OneSided;
+        // The window names the binding side itself now, so the job asks for that exact duplex
+        // variant instead of inheriting whatever the driver's dialog last picked.
+        Duplexing duplex = settings.TwoSided
+            ? settings.ShortEdge ? Duplexing.TwoSidedShortEdge : Duplexing.TwoSidedLongEdge
+            : Duplexing.OneSided;
         if (!fromDriverDialog || IsGrayscale(ticket.OutputColor) != settings.Grayscale)
             ticket.OutputColor = settings.Grayscale ? OutputColor.Grayscale : OutputColor.Color;
         if (settings.Media is not null) ticket.PageMediaSize = settings.Media;
@@ -73,16 +77,17 @@ internal static class PrintJobTicket
     internal static DriverChoices Read(PrintTicket ticket)
     {
         ArgumentNullException.ThrowIfNull(ticket);
+        Duplexing? duplexing = ReadDocumentDuplex(ticket)
+            ?? (ticket.Duplexing is { } jobDuplex && jobDuplex != Duplexing.Unknown ? jobDuplex : null);
         return new DriverChoices(
             ticket.PageOrientation is { } orientation && orientation != PageOrientation.Unknown
                 ? IsLandscape(orientation) : null,
-            ReadDocumentDuplex(ticket) is { } documentDuplex ? IsTwoSided(documentDuplex)
-                : ticket.Duplexing is { } duplexing && duplexing != Duplexing.Unknown
-                ? IsTwoSided(duplexing) : null,
+            duplexing is { } duplex ? IsTwoSided(duplex) : null,
             ticket.OutputColor is { } color && color != OutputColor.Unknown
                 ? IsGrayscale(color) : null,
             ticket.CopyCount is { } copies && copies >= 1 ? copies : null,
-            ticket.PageMediaSize);
+            ticket.PageMediaSize,
+            duplexing is { } bound ? bound == Duplexing.TwoSidedShortEdge : null);
     }
 
     /// <summary>Recognizes the document-level duplex feature that WPF's typed capability omits.</summary>

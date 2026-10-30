@@ -534,6 +534,11 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Margin_Wide">Bred</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Sider per ark</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Skriv ut på begge sider</sys:String>
+    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
+    <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Short edge</sys:String>
     <sys:String x:Key="Str_Print_Color">Farge</sys:String>
     <sys:String x:Key="Str_Print_BW">Svart-hvitt</sys:String>
     <sys:String x:Key="Str_Pos_Center">Midtstilt</sys:String>

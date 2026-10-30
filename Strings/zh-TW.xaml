@@ -454,6 +454,11 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Margin_Wide">寬</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">每張頁數</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">雙面列印</sys:String>
+    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
+    <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Short edge</sys:String>
     <sys:String x:Key="Str_Print_Color">彩色</sys:String>
     <sys:String x:Key="Str_Print_BW">黑白</sys:String>
     <sys:String x:Key="Str_Pos_Center">置中</sys:String>

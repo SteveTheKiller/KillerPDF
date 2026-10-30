@@ -534,6 +534,11 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Margin_Wide">Широкие</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Страниц на листе</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Двухсторонняя печать</sys:String>
+    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
+    <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Short edge</sys:String>
     <sys:String x:Key="Str_Print_Color">Цвет</sys:String>
     <sys:String x:Key="Str_Print_BW">Черный &amp; белый</sys:String>
     <sys:String x:Key="Str_Pos_Center">Центр</sys:String>

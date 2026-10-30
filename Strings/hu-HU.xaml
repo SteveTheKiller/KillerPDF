@@ -534,6 +534,11 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Margin_Wide">Széles</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Oldal laponként</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Nyomtatás mindkét oldalra</sys:String>
+    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
+    <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Short edge</sys:String>
     <sys:String x:Key="Str_Print_Color">Színes</sys:String>
     <sys:String x:Key="Str_Print_BW">Fekete-fehér</sys:String>
     <sys:String x:Key="Str_Pos_Center">Középen</sys:String>

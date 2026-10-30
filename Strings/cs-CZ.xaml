@@ -525,6 +525,11 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Margin_Wide">Široké</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Stránek na list</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Oboustranný tisk</sys:String>
+    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
+    <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Short edge</sys:String>
     <sys:String x:Key="Str_Print_Color">Barevně</sys:String>
     <sys:String x:Key="Str_Print_BW">Černobíle</sys:String>
     <sys:String x:Key="Str_Pos_Center">Uprostřed</sys:String>

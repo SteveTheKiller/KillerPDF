@@ -452,6 +452,11 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Margin_Wide">চওড়া</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">প্রতি শীটে পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">উভয় পাশে প্রিন্ট করুন</sys:String>
+    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
+    <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Short edge</sys:String>
     <sys:String x:Key="Str_Print_Color">রঙিন</sys:String>
     <sys:String x:Key="Str_Print_BW">সাদা-কালো</sys:String>
     <sys:String x:Key="Str_Pos_Center">মাঝখানে</sys:String>

@@ -452,6 +452,11 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Margin_Wide">Breit</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Seiten pro Blatt</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Beidseitig drucken</sys:String>
+    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
+    <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Short edge</sys:String>
     <sys:String x:Key="Str_Print_Color">Farbe</sys:String>
     <sys:String x:Key="Str_Print_BW">Schwarz-weiß</sys:String>
     <sys:String x:Key="Str_Pos_Center">Mitte</sys:String>

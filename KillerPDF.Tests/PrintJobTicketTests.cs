@@ -39,12 +39,13 @@ public sealed class PrintJobTicketTests
     }
 
     [Theory]
-    [InlineData("TwoSidedLongEdge", false, false, "OneSided")]
-    [InlineData("OneSided", true, false, "TwoSidedLongEdge")]
-    [InlineData("TwoSidedShortEdge", true, true, "TwoSidedShortEdge")]
-    [InlineData("TwoSidedShortEdge", false, true, "OneSided")]
+    [InlineData("TwoSidedLongEdge", false, false, false, "OneSided")]
+    [InlineData("OneSided", true, false, false, "TwoSidedLongEdge")]
+    [InlineData("TwoSidedShortEdge", true, true, true, "TwoSidedShortEdge")]
+    [InlineData("TwoSidedShortEdge", false, false, true, "OneSided")]
+    [InlineData("TwoSidedShortEdge", true, false, true, "TwoSidedLongEdge")]
     public void Apply_OverridesDocumentDuplexDefaultAndPreservesDriverSettings(
-        string initial, bool twoSided, bool fromDriverDialog, string expected)
+        string initial, bool twoSided, bool shortEdge, bool fromDriverDialog, string expected)
     {
         using var xml = new MemoryStream(Encoding.UTF8.GetBytes($"""
             <f:PrintTicket xmlns:f="http://schemas.microsoft.com/windows/2003/08/printing/printschemaframework"
@@ -59,7 +60,7 @@ public sealed class PrintJobTicketTests
         var ticket = new PrintTicket(xml);
 
         ticket = PrintJobTicket.Apply(ticket,
-            new PrintJobTicket.Settings(false, twoSided, false, null, null),
+            new PrintJobTicket.Settings(false, twoSided, false, null, null, shortEdge),
             copies: 1, fromDriverDialog: fromDriverDialog);
 
         Assert.Equal(twoSided, PrintJobTicket.Read(ticket).TwoSided);
@@ -130,7 +131,7 @@ public sealed class PrintJobTicketTests
         };
 
         PrintJobTicket.Apply(ticket,
-            new PrintJobTicket.Settings(true, true, true, null, null),
+            new PrintJobTicket.Settings(true, true, true, null, null, ShortEdge: true),
             copies: 1, fromDriverDialog: true);
 
         Assert.Equal(PageOrientation.ReverseLandscape, ticket.PageOrientation);
@@ -187,6 +188,49 @@ public sealed class PrintJobTicketTests
         Assert.Null(choices.Grayscale);
         Assert.Null(choices.Copies);
         Assert.Null(choices.Media);
+        Assert.Null(choices.ShortEdge);
+    }
+
+    [Fact]
+    public void Apply_WritesTheBindingSideTheWindowAskedFor()
+    {
+        var ticket = new PrintTicket();
+
+        PrintJobTicket.Apply(ticket,
+            new PrintJobTicket.Settings(false, true, false, null, null, ShortEdge: true),
+            copies: 1, fromDriverDialog: false);
+
+        Assert.Equal(Duplexing.TwoSidedShortEdge, ticket.Duplexing);
+    }
+
+    [Fact]
+    public void Apply_DocumentScope_WritesTheShortEdgeOption()
+    {
+        var ticket = new PrintTicket { Duplexing = Duplexing.TwoSidedLongEdge };
+        ticket = PrintJobTicket.Apply(ticket,
+            new PrintJobTicket.Settings(false, true, false, null, null, ShortEdge: true),
+            copies: 1, fromDriverDialog: false, documentDuplex: true);
+
+        using var xml = ticket.GetXmlStream();
+        XDocument document = XDocument.Load(xml);
+        Assert.Contains(document.Descendants().Where(element => element.Name.LocalName == "Option"),
+            element => ((string?)element.Attribute("name"))?.EndsWith(":TwoSidedShortEdge") == true);
+        Assert.Null(ticket.Duplexing);
+    }
+
+    [Theory]
+    [InlineData("OneSided", false)]
+    [InlineData("TwoSidedLongEdge", false)]
+    [InlineData("TwoSidedShortEdge", true)]
+    public void Read_ReportsTheBindingSideTheDriverPicked(string option, bool shortEdge)
+    {
+        using var xml = new MemoryStream(Encoding.UTF8.GetBytes($"""
+            <f:PrintTicket xmlns:f="http://schemas.microsoft.com/windows/2003/08/printing/printschemaframework"
+                xmlns:k="http://schemas.microsoft.com/windows/2003/08/printing/printschemakeywords" version="1">
+              <f:Feature name="k:DocumentDuplex"><f:Option name="k:{option}" /></f:Feature>
+            </f:PrintTicket>
+            """));
+        Assert.Equal(shortEdge, PrintJobTicket.Read(new PrintTicket(xml)).ShortEdge);
     }
 
     [Fact]

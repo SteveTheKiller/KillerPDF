@@ -534,6 +534,11 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Margin_Wide">Rộng</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Số trang trên mỗi tờ</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">In hai mặt</sys:String>
+    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
+    <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Short edge</sys:String>
     <sys:String x:Key="Str_Print_Color">Màu</sys:String>
     <sys:String x:Key="Str_Print_BW">Đen trắng</sys:String>
     <sys:String x:Key="Str_Pos_Center">Giữa</sys:String>

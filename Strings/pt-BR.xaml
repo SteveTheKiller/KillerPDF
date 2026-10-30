@@ -534,6 +534,11 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Margin_Wide">Largas</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Páginas por folha</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Imprimir nos dois lados</sys:String>
+    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
+    <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Short edge</sys:String>
     <sys:String x:Key="Str_Print_Color">Colorido</sys:String>
     <sys:String x:Key="Str_Print_BW">Preto &amp; branco</sys:String>
     <sys:String x:Key="Str_Pos_Center">Centro</sys:String>

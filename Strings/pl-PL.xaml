@@ -516,6 +516,11 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Margin_Wide">Szeroki</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Strony na arkusz</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Drukuj po obu stronach</sys:String>
+    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
+    <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Short edge</sys:String>
     <sys:String x:Key="Str_Print_Color">Kolor</sys:String>
     <sys:String x:Key="Str_Print_BW">Czarno &amp; biała</sys:String>
     <sys:String x:Key="Str_Pos_Center">Środek</sys:String>

@@ -57,9 +57,12 @@ namespace KillerPDF
         private double _marginPx;            // extra inset inside the printable area (DIPs)
         private int _nUp = 1;                // pages per sheet (1, 2, 4, 6, 9)
         private bool _duplex;                // two-sided printing (when the printer supports it)
+        private bool _duplexShort;           // flip on short edge instead of long edge
         private bool _documentDuplex;        // driver advertises document-level duplex instead of job-level
         private CheckBox _duplexCheck = null!;
+        private ComboBox _flipCombo = null!;     // long-edge / short-edge binding; only meaningful while duplex is on
         private ComboBox _subsetCombo = null!;   // all / odd only / even only (#134, manual duplex)
+        private bool _reverse;               // last page first - trays hate this, people love it
         private bool _grayscale;             // send the job as grayscale/B&W rather than color
 
         // Immutable copy of every layout choice used while composing a print job. The progress
@@ -68,11 +71,11 @@ namespace KillerPDF
         // changes halfway through (especially N-up, which controls the page-loop increment).
         private readonly record struct PrintLayout(
             bool Landscape, int AlignH, int AlignV, int ScaleMode, double CustomPct,
-            double MarginPx, int NUp, bool Duplex, bool Grayscale);
+            double MarginPx, int NUp, bool Duplex, bool Grayscale, bool DuplexShort);
 
         private PrintLayout CurrentLayout() => new(
             _landscape, _alignH, _alignV, _scaleMode, _customPct, _marginPx,
-            _nUp, _duplex, _grayscale);
+            _nUp, _duplex, _grayscale, _duplexShort);
 
         // Printable area in DIPs for the currently selected printer + orientation.
         private double _areaW = 816;   // Letter portrait fallback (8.5in * 96)
@@ -386,6 +389,9 @@ namespace KillerPDF
                     if ((i % 2 == 0) == (subset == 1)) filtered.Add(i);   // 0-based even index = odd page number
                 list = filtered;
             }
+            // Reverse applies after the subset, so "odds reversed" reads 99, 97, 95, ... The preview
+            // walks this same list, so sheet 1 shows the last page when this is on.
+            if (_reverse) list.Reverse();
             return list;
         }
 
@@ -478,6 +484,15 @@ namespace KillerPDF
             if (!ok) { _duplexCheck.IsChecked = false; _duplex = false; }
             _duplexCheck.Opacity = ok ? 1.0 : 0.4;
             _duplexCheck.ToolTip = ok ? null : S("Str_Print_NoTwoSidedSupport");
+            UpdateFlipAvailability();
+        }
+
+        // The binding side only means something on a two-sided job, so the picker follows the checkbox.
+        private void UpdateFlipAvailability()
+        {
+            if (_flipCombo is null) return;
+            _flipCombo.IsEnabled = _duplexCheck.IsEnabled && _duplex;
+            _flipCombo.Opacity = _flipCombo.IsEnabled ? 1.0 : 0.4;
         }
 
         // ---- UI construction -------------------------------------------------
@@ -562,6 +577,41 @@ namespace KillerPDF
             };
             panel.Children.Add(source);
             WrapSection(panel, secPrinter, S("Str_Print_SecPrinter"), expanded: true);
+            int secPages = panel.Children.Count;
+
+            // Pages to print: the typed range plus the odd/even subset (#134) that Word-style
+            // manual duplex lives in - print the odds, flip the stack, print the evens.
+            panel.Children.Add(Label(S("Str_Print_Pages")));
+            _pagesBox = UiKit.Field();
+            _pagesBox.Text = "";
+            _pagesBox.Margin = new Thickness(0, 4, 0, 2);
+            // Typing a range re-filters the preview to just those pages (jump back to the first one).
+            _pagesBox.TextChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
+            panel.Children.Add(_pagesBox);
+            panel.Children.Add(new TextBlock
+            {
+                Text         = S("Str_Print_PagesHint"),
+                Foreground   = R("MutedTextBrush"),
+                FontSize     = 11,
+                Margin       = new Thickness(0, 0, 0, 8),
+                TextWrapping = TextWrapping.Wrap
+            });
+
+            _subsetCombo = new ComboBox { Margin = new Thickness(0, 0, 0, 4), Height = 26 };
+            ApplyComboStyle(_subsetCombo);
+            _subsetCombo.Items.Add(S("Str_Print_AllPages"));
+            _subsetCombo.Items.Add(S("Str_Print_OddOnly"));
+            _subsetCombo.Items.Add(S("Str_Print_EvenOnly"));
+            _subsetCombo.SelectedIndex = 0;
+            _subsetCombo.SelectionChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
+            panel.Children.Add(_subsetCombo);
+
+            var reverseCheck = UiKit.CheckBox(S("Str_Print_Reverse"));
+            reverseCheck.Margin = new Thickness(0, 2, 0, 12);
+            reverseCheck.Checked   += (_, _) => { _reverse = true;  _previewIndex = 0; UpdatePreview(); };
+            reverseCheck.Unchecked += (_, _) => { _reverse = false; _previewIndex = 0; UpdatePreview(); };
+            panel.Children.Add(reverseCheck);
+            WrapSection(panel, secPages, S("Str_Print_SecPages"), expanded: true);
             int secLayout = panel.Children.Count;
 
             panel.Children.Add(Label(S("Str_Print_Orientation")));
@@ -713,23 +763,6 @@ namespace KillerPDF
             WrapSection(panel, secLayout, S("Str_Print_SecLayout"), expanded: false);
             int secOutput = panel.Children.Count;
 
-            // Color vs black & white. Sent on the print ticket so color-restricted print policies
-            // (e.g. "B&W needs no password") see the job correctly instead of treating it as color.
-            panel.Children.Add(Label(S("Str_Print_Color")));
-            var colorMode = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
-            ApplyComboStyle(colorMode);
-            colorMode.Items.Add(S("Str_Print_Color"));
-            colorMode.Items.Add(S("Str_Print_BW"));
-            _grayscale = App.GetSetting("PrintGrayscale") == "1";   // restore last color choice
-            colorMode.SelectedIndex = _grayscale ? 1 : 0;
-            colorMode.SelectionChanged += (s, _) =>
-            {
-                _grayscale = ((ComboBox)s).SelectedIndex == 1;
-                UpdatePreview();
-            };
-            _colorCombo = colorMode;
-            panel.Children.Add(colorMode);
-
             panel.Children.Add(Label(S("Str_Print_Copies")));
             _copiesBox = UiKit.Field();
             _copiesBox.Text = "1";
@@ -746,40 +779,44 @@ namespace KillerPDF
             copiesRow.Children.Add(_copiesBox);   // fills the rest of the column width
             panel.Children.Add(copiesRow);
 
-            panel.Children.Add(Label(S("Str_Print_Pages")));
-            _pagesBox = UiKit.Field();
-            _pagesBox.Text = "";
-            _pagesBox.Margin = new Thickness(0, 4, 0, 2);
-            // Typing a range re-filters the preview to just those pages (jump back to the first one).
-            _pagesBox.TextChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
-            panel.Children.Add(_pagesBox);
-            panel.Children.Add(new TextBlock
-            {
-                Text         = S("Str_Print_PagesHint"),
-                Foreground   = R("MutedTextBrush"),
-                FontSize     = 11,
-                Margin       = new Thickness(0, 0, 0, 8),
-                TextWrapping = TextWrapping.Wrap
-            });
-
-            // Odd/even subset (#134): Word-style manual duplex - print the odd pages, flip the
-            // stack, print the even pages. Applies on top of the Pages range above.
-            _subsetCombo = new ComboBox { Margin = new Thickness(0, 0, 0, 14), Height = 26 };
-            ApplyComboStyle(_subsetCombo);
-            _subsetCombo.Items.Add(S("Str_Print_AllPages"));
-            _subsetCombo.Items.Add(S("Str_Print_OddOnly"));
-            _subsetCombo.Items.Add(S("Str_Print_EvenOnly"));
-            _subsetCombo.SelectedIndex = 0;
-            _subsetCombo.SelectionChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
-            panel.Children.Add(_subsetCombo);
-
             // Two-sided: the printer does the flipping; we just set the ticket when it's supported.
             _duplexCheck = UiKit.CheckBox(S("Str_Print_TwoSided"));
-            _duplexCheck.Margin = new Thickness(0, 2, 0, 14);
-            _duplexCheck.Checked   += (_, _) => _duplex = true;
-            _duplexCheck.Unchecked += (_, _) => _duplex = false;
+            _duplexCheck.Margin = new Thickness(0, 2, 0, 4);
+            _duplexCheck.Checked   += (_, _) => { _duplex = true;  UpdateFlipAvailability(); };
+            _duplexCheck.Unchecked += (_, _) => { _duplex = false; UpdateFlipAvailability(); };
             _duplexCheck.IsChecked = App.GetSetting("PrintDuplex") == "1";   // restore; cleared below if unsupported
             panel.Children.Add(_duplexCheck);
+
+            // Long edge (books) or short edge (notepads): which side the back of the sheet lands on.
+            panel.Children.Add(Label(S("Str_Print_FlipOn")));
+            _flipCombo = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            ApplyComboStyle(_flipCombo);
+            _flipCombo.Items.Add(S("Str_Print_FlipLong"));
+            _flipCombo.Items.Add(S("Str_Print_FlipShort"));
+            _flipCombo.SelectedIndex = App.GetSetting("PrintDuplexBinding") == "1" ? 1 : 0;   // restore
+            _flipCombo.SelectionChanged += (_, _) =>
+            {
+                _duplexShort = _flipCombo.SelectedIndex == 1;
+                UpdatePreview();
+            };
+            panel.Children.Add(_flipCombo);
+
+            // Color vs black & white. Sent on the print ticket so color-restricted print policies
+            // (e.g. "B&W needs no password") see the job correctly instead of treating it as color.
+            panel.Children.Add(Label(S("Str_Print_Color")));
+            var colorMode = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            ApplyComboStyle(colorMode);
+            colorMode.Items.Add(S("Str_Print_Color"));
+            colorMode.Items.Add(S("Str_Print_BW"));
+            _grayscale = App.GetSetting("PrintGrayscale") == "1";   // restore last color choice
+            colorMode.SelectedIndex = _grayscale ? 1 : 0;
+            colorMode.SelectionChanged += (s, _) =>
+            {
+                _grayscale = ((ComboBox)s).SelectedIndex == 1;
+                UpdatePreview();
+            };
+            _colorCombo = colorMode;
+            panel.Children.Add(colorMode);
             WrapSection(panel, secOutput, S("Str_Print_SecOutput"), expanded: true);
             UpdateDuplexAvailability();
 
@@ -1294,14 +1331,16 @@ namespace KillerPDF
             try
             {
                 if (_queue != null) App.SetSetting("PrintPrinter", _queue.FullName);
-                App.SetSetting("PrintGrayscale", _grayscale ? "1" : "0");
-                App.SetSetting("PrintDuplex",    _duplex     ? "1" : "0");
+                App.SetSetting("PrintGrayscale",     _grayscale    ? "1" : "0");
+                App.SetSetting("PrintDuplex",        _duplex       ? "1" : "0");
+                App.SetSetting("PrintDuplexBinding", _duplexShort  ? "1" : "0");
             }
             catch { /* settings are best-effort */ }
         }
 
         private PrintJobTicket.Settings JobSettings() => new(
-            _landscape, _duplex, _grayscale, _paperOverride ?? MediaSizeForDocument(), _sourceOverride);
+            _landscape, _duplex, _grayscale, _paperOverride ?? MediaSizeForDocument(),
+            _sourceOverride, _duplexShort);
 
         // Opens the printer driver's own preferences dialog, seeded with the current job
         // settings, then carries what was chosen there into the job and back into this window.
@@ -1364,6 +1403,7 @@ namespace KillerPDF
             if (choices.Landscape is { } landscape) _orientCombo.SelectedIndex = landscape ? 1 : 0;
             if (choices.Grayscale is { } grayscale) _colorCombo.SelectedIndex = grayscale ? 1 : 0;
             if (choices.TwoSided is { } twoSided && _duplexCheck.IsEnabled) _duplexCheck.IsChecked = twoSided;
+            if (choices.ShortEdge is { } shortEdge) _flipCombo.SelectedIndex = shortEdge ? 1 : 0;
             if (choices.Copies is { } chosenCopies)
                 _copiesBox.Text = chosenCopies.ToString(System.Globalization.CultureInfo.InvariantCulture);
             SelectPaper(choices.Media);

@@ -477,6 +477,11 @@
     <sys:String x:Key="Str_Margin_Wide">Široki</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Strani na list</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Tiskaj obojestransko</sys:String>
+    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
+    <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Short edge</sys:String>
     <sys:String x:Key="Str_Print_Color">Barva</sys:String>
     <sys:String x:Key="Str_Print_BW">Črno-belo</sys:String>
     <sys:String x:Key="Str_Pos_Center">Sredina</sys:String>
