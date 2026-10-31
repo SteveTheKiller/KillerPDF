@@ -126,7 +126,11 @@ namespace KillerFamily.Layout
         {
             if (show) return ShortcutSuffix.Replace(text, "\n$1");
             string withoutSuffix = UnbracketedSuffix.Replace(ExtraHintClause.Replace(ParenthesizedHints.Replace(text, ""), ""), "");
-            return string.Join("\n", withoutSuffix.Replace("\r\n", "\n").Split('\n').Where(line => !ShortcutLine.IsMatch(line))).TrimEnd();
+            string kept = string.Join("\n", withoutSuffix.Replace("\r\n", "\n").Split('\n').Where(line => !ShortcutLine.IsMatch(line))).TrimEnd();
+            // A label that is itself a key name ("Delete (Enter)") would be filtered away with its hint.
+            // Only text that carried a hint falls back; a bare shortcut row is still dropped.
+            return kept.Length == 0 && withoutSuffix.Trim().Length > 0 && withoutSuffix.Trim() != text.Trim()
+                ? withoutSuffix.TrimEnd() : kept;
         }
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
