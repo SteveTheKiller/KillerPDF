@@ -272,7 +272,7 @@ namespace KillerPDF.Features.About
             // verifies the release, which takes seconds.
             string version = tag!.TrimStart('v', 'V');
             try { await System.Threading.Tasks.Task.Run(() => UpdateService.StartSwap(newExe, version)); }
-            catch
+            catch (Exception ex)
             {
                 AfterUpdateHandoff(false);
                 UpdateShutdownCanceled();
@@ -280,6 +280,7 @@ namespace KillerPDF.Features.About
                 _updating           = false;
                 _host.UpdateEnabled = true;
                 _host.UpdateText    = string.Format(_host.Loc("Str_About_UpdateAvailable"), tag);
+                UpdateHandoffFailed(ex);
                 return;
             }
             // From here the helper is waiting for this process to exit and will replace its exe,
@@ -298,5 +299,9 @@ namespace KillerPDF.Features.About
         /// <summary>Tells the user a downloaded update was refused by its checksum or signature. Each app
         /// implements it in its own AboutController.Extras.cs; an app that does not still compiles.</summary>
         partial void UpdateNotVerified(Exception failure);
+
+        /// <summary>Tells the user the update could not start, which a declined UAC prompt also lands on.
+        /// Each app implements it in its own AboutController.Extras.cs; an app that does not still compiles.</summary>
+        partial void UpdateHandoffFailed(Exception failure);
     }
 }

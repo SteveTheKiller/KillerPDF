@@ -97,8 +97,7 @@ namespace KillerPDF.Services
         /// they would keep the folder at uninstall. They go once the installed exe is in place and
         /// they are over a day old, so a recovery copy from a failed update is never taken while
         /// it could still matter. The trusted staging (TrustedUpdate.Stage) runs this with the
-        /// installed exe once its own copy is verified; a per-user publication runs it on the exe
-        /// it replaces.
+        /// installed exe once its own copy is verified.
         /// </summary>
         internal static void RemovePublicationLeftovers(string installedExe) => RemovePublicationLeftovers(installedExe, new FileOperations());
 
@@ -113,17 +112,7 @@ namespace KillerPDF.Services
             catch (UnauthorizedAccessException) { return; }
             foreach (string path in all)
             {
-                string name = Path.GetFileName(path);
-                bool leftover = false;
-                foreach (string marker in new[] { ".old-", ".new-", ".restore-" })
-                    if (name.Length == exe.Length + marker.Length + 32 && name.StartsWith(exe + marker, StringComparison.OrdinalIgnoreCase)
-                        && Guid.TryParseExact(name.Substring(exe.Length + marker.Length), "N", out _))
-                        leftover = true;
-                string staged = name.EndsWith(".recovery.txt", StringComparison.OrdinalIgnoreCase) ? name.Substring(0, name.Length - ".recovery.txt".Length) : name;
-                if (staged.Length == ".update-".Length + 32 + ".exe".Length && staged.StartsWith(".update-", StringComparison.OrdinalIgnoreCase)
-                    && staged.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && Guid.TryParseExact(staged.Substring(8, 32), "N", out _))
-                    leftover = true;
-                if (!leftover) continue;
+                if (!IsPublicationLeftover(Path.GetFileName(path), exe)) continue;
                 try
                 {
                     if ((File.GetAttributes(path) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != 0) continue;
@@ -133,6 +122,53 @@ namespace KillerPDF.Services
                 catch { continue; }
                 TryDelete(path, files);
             }
+        }
+
+        private static bool IsPublicationLeftover(string name, string exe)
+        {
+            foreach (string marker in new[] { ".old-", ".new-", ".restore-" })
+                if (name.Length == exe.Length + marker.Length + 32 && name.StartsWith(exe + marker, StringComparison.OrdinalIgnoreCase)
+                    && Guid.TryParseExact(name.Substring(exe.Length + marker.Length), "N", out _))
+                    return true;
+            string staged = name.EndsWith(".recovery.txt", StringComparison.OrdinalIgnoreCase) ? name.Substring(0, name.Length - ".recovery.txt".Length) : name;
+            return staged.Length == ".update-".Length + 32 + ".exe".Length && staged.StartsWith(".update-", StringComparison.OrdinalIgnoreCase)
+                && staged.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && Guid.TryParseExact(staged.Substring(8, 32), "N", out _);
+        }
+
+        private static bool IsRetiredBackup(string name, string exe)
+        {
+            string prefix = exe + ".";
+            return name.Length == prefix.Length + 32 + 4 && name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                && name.EndsWith(".bak", StringComparison.OrdinalIgnoreCase)
+                && Guid.TryParseExact(name.Substring(prefix.Length, 32), "N", out _);
+        }
+
+        /// <summary>
+        /// The update working files in an install folder, by name, for an uninstall to take along with
+        /// the installed files. Age does not matter here: nothing is coming back to recover from them,
+        /// and they would keep the folder. A recovery copy marked to keep stays, since a failed
+        /// publication told the user it was there.
+        /// </summary>
+        internal static string[] UninstallLeftovers(string directory, string exe)
+        {
+            string[] all;
+            try { all = Directory.GetFiles(directory); }
+            catch (IOException) { return []; }
+            catch (UnauthorizedAccessException) { return []; }
+            var leftovers = new System.Collections.Generic.List<string>();
+            foreach (string path in all)
+            {
+                string name = Path.GetFileName(path);
+                if (!IsPublicationLeftover(name, exe) && !IsRetiredBackup(name, exe)) continue;
+                try
+                {
+                    if ((File.GetAttributes(path) & (FileAttributes.ReparsePoint | FileAttributes.Directory)) != 0) continue;
+                    if (File.Exists(path + KeepMarker)) continue;
+                }
+                catch { continue; }
+                leftovers.Add(name);
+            }
+            return leftovers.ToArray();
         }
 
         private static void Publish(string staged, string destination, FileOperations files, ref bool retainStaged)
