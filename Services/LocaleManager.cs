@@ -199,8 +199,8 @@ namespace KillerPDF.Services
         // ---- Internal ----
 
         /// <summary>Leave the thread cultures alone, so dates and numbers keep the Windows region
-        /// format whatever the interface language. On by default for every app (Steve,
-        /// 2026-10-27); set it to false before <see cref="Initialize"/> to make the cultures follow
+        /// format whatever the interface language. On by default for every app; set it to false
+        /// before <see cref="Initialize"/> to make the cultures follow
         /// the chosen language instead.</summary>
         internal static bool KeepRegionFormats { get; set; } = true;
 

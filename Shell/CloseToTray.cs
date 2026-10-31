@@ -305,7 +305,7 @@ namespace KillerFamily.Shell
         /// MousePoint placement did not do this. It drops a menu below the pointer when it fits and
         /// flips it above when it does not, and the ContextMenu style's shadow-halo offsets are only
         /// right for the downward case, so a short menu covered the icons while a taller one floated
-        /// about 40px above them: one placement, different in every app (Steve, 2026-10-27).
+        /// about 40px above them: one placement, different in every app.
         ///
         /// With no PlacementTarget, a Custom placement is measured from the screen's top-left, in
         /// device pixels, so the candidates are the pointer itself less the card's halo.

@@ -14,7 +14,7 @@ namespace KillerPDF.Controls
     /// The bottom buttons' menus sit in the pane's corner, eight pixels in from the rail and from
     /// the pane's foot. A menu opened from a button higher up rises with it: its visible bottom
     /// edge lines up with the button's bottom, so a one-item menu sits beside its button instead
-    /// of stranded down in the corner (Steve, 2026-10-26). It never drops below the corner and
+    /// of stranded down in the corner. It never drops below the corner and
     /// never rises past the pane's top. With the sidebar on the right the same rule mirrors; on
     /// the top or bottom the menu takes the pane's near corner, as before.
     ///
