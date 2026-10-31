@@ -358,7 +358,6 @@ html[data-theme="light"] .tb-mcp-accent { text-shadow: none; }
 
 /* ============ About page ============ */
 .about-card { background: var(--modal) var(--grain-img) repeat; background-size: 256px 256px; border: 1px solid var(--pane-border); border-radius: 10px; padding: 22px 24px; margin-bottom: 18px; }
-.about-card, .hero-info, .feature-card { border-top: 2px solid var(--sel, var(--accent)); }
 .about-card h2 { font-size: 19px; font-weight: 700; margin-bottom: 12px; color: var(--text); }
 .about-card p { color: var(--muted); font-size: 14.5px; line-height: 1.7; margin-bottom: 11px; }
 .about-card p:last-child { margin-bottom: 0; }
@@ -944,6 +943,36 @@ html[data-grain="off"] { --grain-img:none; }
 .tgrp-grain { flex-basis: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-family: var(--kt-font-ui); font-size: 14px; color: var(--text); cursor: pointer; user-select: none; }
 .tgrp-grain input { width: 15px; height: 15px; margin: 0; accent-color: var(--accent); cursor: pointer; }
 
-/* Hero info box: one plain border at rest; on hover it lifts and the whole border turns accent. */
-.hero-info { border: 1px solid var(--pane-border); }
-.hero-info:hover { border-color: var(--accent); }
+/* Pane border and a separate one-pixel perimeter glow. */
+html[data-theme] body .content .hero-info,
+html[data-theme] body .content .about-card,
+html[data-theme] body .content .codeblock,
+html[data-theme] body .content .code-block,
+html[data-theme] body .content .engine-doc pre,
+html[data-theme] body .content .doc-pager a,
+html[data-theme] body .content .feature-stage,
+html[data-theme] body .content .engine-intro,
+html[data-theme] body .content .result,
+html[data-theme] body .content .metric,
+html[data-theme] body .content .provenance-group,
+html[data-theme] body .content .source-links a {
+  border: 1px solid var(--pane-border);
+  box-shadow: 0 0 0 1px var(--tab-edge), 0 12px 26px rgba(0,0,0,.26);
+  transition: transform .12s, box-shadow .15s;
+}
+html[data-theme] body .content .hero-info:hover,
+html[data-theme] body .content .about-card:hover,
+html[data-theme] body .content .codeblock:hover,
+html[data-theme] body .content .code-block:hover,
+html[data-theme] body .content .engine-doc pre:hover,
+html[data-theme] body .content .doc-pager a:hover,
+html[data-theme] body .content .feature-stage:hover,
+html[data-theme] body .content .engine-intro:hover,
+html[data-theme] body .content .result:hover,
+html[data-theme] body .content .metric:hover,
+html[data-theme] body .content .provenance-group:hover,
+html[data-theme] body .content .source-links a:hover {
+  border-color: var(--pane-border);
+  transform: translateY(-3px);
+  box-shadow: 0 0 0 1px var(--accent), 0 20px 40px rgba(0,0,0,.5);
+}
