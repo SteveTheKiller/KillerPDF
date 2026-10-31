@@ -60,7 +60,6 @@ namespace KillerPDF.Services
             Value(script, "Version", version ?? ""); Value(script, "Hive", hive ?? "");
             Value(script, "Reopen", reopen ?? "");
             Value(script, "Signer", AppInfo.SignerName); Value(script, "Thumb", verified.Signer);
-            Value(script, "Explorer", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"));
             script.AppendLine("Elevated = " + (elevated ? "$true" : "$false"));
             script.AppendLine("ShowReport = " + (showReport ? "$true" : "$false")).AppendLine("}");
             if (!guardEmitted) script.AppendLine(Guard);
@@ -116,6 +115,7 @@ $ErrorActionPreference = 'Stop'
 function Invoke-UpdateImagePublication {
     param($plan, $ops)
     $stageVerified = $false
+    $published = $false
     $parents = $null
     $image = $null
     try {
@@ -146,6 +146,7 @@ function Invoke-UpdateImagePublication {
         if ((& $ops.HashStream $image) -ne $plan.Hash) { throw 'The published image failed SHA-256 verification.' }
         if (-not (& $ops.Publisher $plan.Target $plan)) { throw 'The published image is not signed by the publisher.' }
         & $ops.Metadata $plan
+        $published = $true
     }
     catch {
         $failure = $_.Exception.ToString()
@@ -165,16 +166,23 @@ function Invoke-UpdateImagePublication {
         return $false
     }
     finally {
-        if ($null -ne $image) { $image.Dispose() }
-        if ($null -ne $parents) { $parents.Dispose() }
+        if (-not $published) {
+            if ($null -ne $image) { $image.Dispose() }
+            if ($null -ne $parents) { $parents.Dispose() }
+        }
     }
     foreach ($path in @($plan.Download, $plan.Staged, $plan.Backup, $plan.Restore, $plan.Report)) {
         try { & $ops.Delete $path } catch { }
     }
     # Reopening comes after the update is complete and cleaned up. It can fail on its own (an
     # administrator from another account, no desktop), and that must never report a finished
-    # update as failed or leave its backup behind (2026-10-28 review, DEP-002).
+    # update as failed or leave its backup behind (2026-10-28 review, DEP-002). The verified image
+    # and its parents stay held until the launch has created a process or definitively failed.
     try { & $ops.Relaunch $plan } catch { }
+    finally {
+        $image.Dispose()
+        $parents.Dispose()
+    }
     return $true
 }
 
@@ -265,7 +273,7 @@ $ops = @{
         }
     }
     Relaunch = { param($plan)
-        [KillerUpdateGuard]::Launch($plan.Target, $plan.Reopen, $plan.Elevated)
+        Start-KillerUpdatedApp $plan.Target $plan.Reopen $plan.Elevated
     }
 }
 """;
@@ -500,7 +508,8 @@ public static class KillerUpdateGuard {
             CloseHandle(processHandle);
         }
     }
-    private static string Quote(string value) {
+    public static uint ConsoleSession() { return WTSGetActiveConsoleSessionId(); }
+    public static string Quote(string value) {
         if (value.IndexOf('"') >= 0 || value.IndexOf('\r') >= 0 || value.IndexOf('\n') >= 0) throw new IOException("The launch path is invalid.");
         int trailingSlashes = 0;
         for (int i = value.Length - 1; i >= 0 && value[i] == '\\'; i--) trailingSlashes++;
@@ -524,6 +533,7 @@ public static class KillerUpdateGuard {
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("kernel32.dll", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode, SetLastError = true)] private static extern SafeFileHandle CreateFile(string path, uint access, uint share, IntPtr security, uint disposition, uint flags, IntPtr template);
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("kernel32.dll", SetLastError = true)] private static extern bool GetFileInformationByHandle(SafeFileHandle file, out FileInformation information);
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("wintrust.dll", ExactSpelling = true, CharSet = CharSet.Unicode)] private static extern uint WinVerifyTrust(IntPtr window, ref Guid action, IntPtr data);
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("kernel32.dll")] private static extern uint WTSGetActiveConsoleSessionId();
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("user32.dll")] private static extern IntPtr GetShellWindow();
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("user32.dll", SetLastError = true)] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint pid);
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
@@ -540,6 +550,38 @@ public static class KillerUpdateGuard {
     $env:TMP = $killerSaved[0]; $env:TEMP = $killerSaved[1]
     if ($null -ne $killerTemp) { Remove-Item -LiteralPath $killerTemp -Recurse -Force -ErrorAction SilentlyContinue }
 }
+}
+# Reopens the updated app for the person at this desktop. Someone who elevated with another
+# administrator's account has no shell token this helper can use, and that account must never
+# start the app itself, so a one-time task for the Users group starts it in this session, as
+# whoever is signed in there and at normal rights. Task Scheduler needs no password for that.
+function Start-KillerUpdatedApp {
+    param($target, $reopen, $elevated)
+    try { [KillerUpdateGuard]::Launch($target, $reopen, $elevated); return }
+    catch { if (-not $elevated) { throw } }
+    $session = [Diagnostics.Process]::GetCurrentProcess().SessionId
+    if ($session -eq 0) { $session = [KillerUpdateGuard]::ConsoleSession() }
+    $name = 'KillerUpdate-' + [Guid]::NewGuid().ToString('N')
+    $service = New-Object -ComObject Schedule.Service
+    $service.Connect()
+    $folder = $service.GetFolder('')
+    $task = $service.NewTask(0)
+    $task.Settings.Hidden = $true
+    $task.Settings.DisallowStartIfOnBatteries = $false
+    $task.Settings.StopIfGoingOnBatteries = $false
+    $task.Settings.ExecutionTimeLimit = 'PT0S'
+    $task.Principal.GroupId = 'S-1-5-32-545'
+    $task.Principal.RunLevel = 0
+    $action = $task.Actions.Create(0)
+    $action.Path = $target
+    $action.WorkingDirectory = [IO.Path]::GetDirectoryName($target)
+    if ($reopen) { $action.Arguments = [KillerUpdateGuard]::Quote($reopen) }
+    $registered = $folder.RegisterTaskDefinition($name, $task, 2, $null, $null, 4)
+    try {
+        $null = $registered.RunEx($null, 4, $session, $null)
+        for ($wait = 0; $wait -lt 50 -and $registered.State -eq 2; $wait++) { Start-Sleep -Milliseconds 100 }
+    }
+    finally { $folder.DeleteTask($name, 0) }
 }
 """;
     }
