@@ -23,8 +23,10 @@ namespace KillerPDF.Services
                 + Convert.ToBase64String(buffer.ToArray())
                 + "'));$reader=[IO.StreamReader]::new([IO.Compression.GZipStream]::new($stream,[IO.Compression.CompressionMode]::Decompress));"
                 + "try{&([scriptblock]::Create($reader.ReadToEnd()))}finally{$reader.Dispose();$stream.Dispose()}";
-            string arguments = "-NoLogo -NoProfile -NonInteractive -EncodedCommand "
-                + Convert.ToBase64String(Encoding.Unicode.GetBytes(bootstrap));
+            // Plain text in double quotes rather than -EncodedCommand, whose UTF-16 and second Base64
+            // nearly triple the length of a command line that has a hard limit. The bootstrap holds
+            // no double quote or backslash, and the script itself is safely inside the Base64.
+            string arguments = "-NoLogo -NoProfile -NonInteractive -Command \"" + bootstrap + "\"";
             if (arguments.Length > 30000) throw new IOException("The immutable helper exceeds the Windows command limit.");
             return arguments;
         }
