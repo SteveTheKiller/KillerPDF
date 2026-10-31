@@ -166,7 +166,14 @@ namespace KillerFamily.Shell
             // Later SessionEnding work (an app's own unsaved-changes check) can still cancel the
             // session end. Windows then carries on, so the tray must too: once the request is over
             // and the app is not shutting down, Exit, the icon and hiding work again.
-            Application.Current?.Dispatcher.InvokeAsync(() => { if (!_disposed && !AppShuttingDown()) _exiting = false; });
+            Application.Current?.Dispatcher.InvokeAsync(() => { if (!_disposed && !AppShuttingDown()) EndExit(); });
+        }
+
+        // The icon was left as it stood while the exit was on, and the window may have come back.
+        private void EndExit()
+        {
+            _exiting = false;
+            RefreshIcon();
         }
 
         private void ApplicationExit(object sender, ExitEventArgs e) => Dispose();
@@ -270,7 +277,7 @@ namespace KillerFamily.Shell
             // WM_ENDSESSION with wParam FALSE: the session end was canceled (by this app's own check
             // or another one), so the tray works again at once. The queued reset in SessionEnding
             // covers a cancel that arrives without this message.
-            else if (msg == WM_ENDSESSION && wParam == IntPtr.Zero && !_disposed) _exiting = false;
+            else if (msg == WM_ENDSESSION && wParam == IntPtr.Zero && !_disposed) EndExit();
             return IntPtr.Zero;
         }
 

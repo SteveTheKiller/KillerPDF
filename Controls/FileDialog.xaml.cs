@@ -469,23 +469,77 @@ namespace KillerPDF.Controls
         /// </summary>
         private void BuildPlaces()
         {
+            int build = ++_placesBuild;
+            _ = FillPlacesAsync(build, PinnedPaths());
+        }
+
+        private int _placesBuild;
+
+        /// <summary>
+        /// Drive readiness and folder existence are probed on a worker: a dropped mapped drive or an
+        /// unreachable pinned share blocks for the network timeout, and on the UI thread that would
+        /// keep the dialog from ever appearing. The list fills in when the probe is done, and a newer
+        /// build supersedes an older one.
+        /// </summary>
+        private async Task FillPlacesAsync(int build, List<string> pinnedPaths)
+        {
+            List<(string? Label, string Path, bool Pinned)> found;
+            try { found = await OnStaWorker(() => ProbePlaces(pinnedPaths)); }
+            catch { return; }
+            if (build != _placesBuild) return;
+
             Places.Clear();
+            foreach (var place in found)
+                Places.Add(new PickerPlace(place.Label ?? LabelFor(place.Path), place.Path, place.Pinned));
+            SyncPlacesSelection();
+        }
+
+        /// <summary>Runs on a worker, so it touches no WPF state; a null label means "name it from the path".</summary>
+        private static List<(string? Label, string Path, bool Pinned)> ProbePlaces(List<string> pinnedPaths)
+        {
+            var found = new List<(string? Label, string Path, bool Pinned)>();
             var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var p in PinnedPaths())
-                if (added.Add(p.TrimEnd('\\'))) AddPlace(LabelFor(p), p, pinned: true);
+            foreach (var p in pinnedPaths)
+                if (added.Add(p.TrimEnd('\\')) && PlaceExists(p)) found.Add((null, p, true));
 
             foreach (var place in ExplorerQuickAccessPlaces())
-                if (added.Add(place.Path.TrimEnd('\\'))) AddPlace(place.Label, place.Path);
+                if (added.Add(place.Path.TrimEnd('\\'))) found.Add((place.Label.Length > 0 ? place.Label : null, place.Path, false));
 
-            foreach (var d in DriveInfo.GetDrives().Where(d => d.IsReady))
+            try
             {
-                string label;
-                try { label = string.IsNullOrWhiteSpace(d.VolumeLabel) ? d.DriveType.ToString() : d.VolumeLabel.Trim(); }
-                catch { label = d.DriveType.ToString(); }
-                if (added.Add(d.RootDirectory.FullName.TrimEnd('\\')))
-                    AddPlace($"{d.Name.TrimEnd('\\')}  {label}", d.RootDirectory.FullName);
+                foreach (var d in DriveInfo.GetDrives().Where(d => d.IsReady))
+                {
+                    string label;
+                    try { label = string.IsNullOrWhiteSpace(d.VolumeLabel) ? d.DriveType.ToString() : d.VolumeLabel.Trim(); }
+                    catch { label = d.DriveType.ToString(); }
+                    if (added.Add(d.RootDirectory.FullName.TrimEnd('\\')) && PlaceExists(d.RootDirectory.FullName))
+                        found.Add(($"{d.Name.TrimEnd('\\')}  {label}", d.RootDirectory.FullName, false));
+                }
             }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return found;
+        }
+
+        private static bool PlaceExists(string path) => !string.IsNullOrEmpty(path) && Directory.Exists(path);
+
+        /// <summary>
+        /// Runs <paramref name="work"/> on its own background thread in a single-threaded apartment:
+        /// the Shell.Application COM object behind Quick Access is apartment-bound, and a pool
+        /// thread would marshal it back to the UI thread, which is the thread being kept free.
+        /// </summary>
+        private static Task<T> OnStaWorker<T>(Func<T> work)
+        {
+            var done = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var thread = new System.Threading.Thread(() =>
+            {
+                try { done.SetResult(work()); }
+                catch (Exception error) { done.SetException(error); }
+            }) { IsBackground = true };
+            thread.SetApartmentState(System.Threading.ApartmentState.STA);
+            thread.Start();
+            return done.Task;
         }
 
         /// <summary>
@@ -524,7 +578,7 @@ namespace KillerPDF.Controls
                         if (!Convert.ToBoolean(quickItem.IsFolder)) continue;
                         string path = Convert.ToString(quickItem.Path) ?? "";
                         string name = Convert.ToString(quickItem.Name) ?? "";
-                        if (Directory.Exists(path)) places.Add((name.Length > 0 ? name : LabelFor(path), path));
+                        if (Directory.Exists(path)) places.Add((name, path));
                     }
                     catch { /* one unreadable entry must not lose the rest */ }
                     finally { if (item != null && Marshal.IsComObject(item)) Marshal.FinalReleaseComObject(item); }
@@ -576,12 +630,6 @@ namespace KillerPDF.Controls
 
             var name = Path.GetFileName(p);
             return name.Length == 0 ? p : name;
-        }
-
-        private void AddPlace(string label, string path, bool pinned = false)
-        {
-            if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
-                Places.Add(new PickerPlace(label, path, pinned));
         }
 
         private void PinPlace(string path)
@@ -683,24 +731,15 @@ namespace KillerPDF.Controls
         // ── Folder tree (ported from KillerShell, see Controls/FolderTree.cs) ────
 
         /// <summary>Ready drives only - an empty optical drive or a dropped mapping would sit
-        /// there as a node that throws the moment anyone touches it.</summary>
+        /// there as a node that throws the moment anyone touches it. The drives are probed on a
+        /// worker, because a dropped mapping can block for the network timeout, and the roots fill
+        /// in when it is done.</summary>
         private void InitTree()
         {
-            if (TreeRoots.Count > 0) return;
+            if (TreeRoots.Count > 0 || _treeStarted) return;
+            _treeStarted = true;
             FolderTreeCtl.ItemsSource = TreeRoots;
-
-            DriveInfo[] drives;
-            try { drives = DriveInfo.GetDrives(); }
-            catch (IOException) { return; }
-
-            foreach (var d in drives)
-            {
-                bool ready;
-                try { ready = d.IsReady; }
-                catch (IOException) { continue; }
-                catch (UnauthorizedAccessException) { continue; }
-                if (ready) TreeRoots.Add(new FolderNode(d));
-            }
+            _ = FillTreeRootsAsync();
 
             // Edge fades follow the scroll position (KillerShell TreePanel.cs). ScrollChanged is
             // handled at the TreeView rather than dug out of its template: it bubbles, so the
@@ -717,6 +756,37 @@ namespace KillerPDF.Controls
                 new ScrollChangedEventHandler((_, _) => SyncPlacesEdgeFades()));
             PlacesList.SizeChanged += (_, _) => SyncPlacesEdgeFades();
             PlacesList.Loaded      += (_, _) => SyncPlacesEdgeFades();
+        }
+
+        private bool _treeStarted;
+
+        private async Task FillTreeRootsAsync()
+        {
+            List<FolderNode> roots;
+            try { roots = await OnStaWorker(ReadyDriveNodes); }
+            catch { return; }
+            foreach (var root in roots) TreeRoots.Add(root);
+            // The first listing may have finished before the roots existed, leaving nothing revealed.
+            if (_currentDir.Length > 0) _ = RevealInTree(_currentDir, _navigationVersion);
+        }
+
+        /// <summary>Runs on a worker; FolderNode is plain data, so the nodes can be built there.</summary>
+        private static List<FolderNode> ReadyDriveNodes()
+        {
+            var roots = new List<FolderNode>();
+            DriveInfo[] drives;
+            try { drives = DriveInfo.GetDrives(); }
+            catch (IOException) { return roots; }
+
+            foreach (var d in drives)
+            {
+                bool ready;
+                try { ready = d.IsReady; }
+                catch (IOException) { continue; }
+                catch (UnauthorizedAccessException) { continue; }
+                if (ready) roots.Add(new FolderNode(d));
+            }
+            return roots;
         }
 
         /// <summary>Places-list twin of SyncTreeEdgeFades: same ramp, same rules.</summary>
@@ -1064,6 +1134,9 @@ namespace KillerPDF.Controls
 
         private void Files_DoubleClick(object sender, MouseButtonEventArgs e)
         {
+            // A double-click on the scroll bars or the blank space under the last row is raised by
+            // the list too, and must not open whatever row is still highlighted.
+            if (ItemUnder<PickerEntry>(e.OriginalSource as DependencyObject) == null) return;
             if (FileList.SelectedItem is not PickerEntry en) return;
             if (en.IsFolder) NavigateTo(en.FullPath);
             else Accept();
@@ -1402,7 +1475,9 @@ namespace KillerPDF.Controls
             // Windows into its sticky keyboard-style size loop: the window chases the mouse,
             // resizing, until a click. (2026-07-30)
             e.Handled = true;
-            DragMove();
+            if (e.ButtonState != MouseButtonState.Pressed) return;
+            try { DragMove(); }
+            catch (InvalidOperationException) { }   // the button was already up
         }
 
         protected override void OnKeyDown(KeyEventArgs e)

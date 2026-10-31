@@ -565,6 +565,13 @@ function Start-KillerUpdatedApp {
     $service = New-Object -ComObject Schedule.Service
     $service.Connect()
     $folder = $service.GetFolder('')
+    # An earlier helper killed before its cleanup leaves its hidden task behind; tasks still queued
+    # or running belong to a start in progress and stay.
+    foreach ($old in @($folder.GetTasks(1))) {
+        if ($old.Name -like 'KillerUpdate-*' -and $old.State -ne 2 -and $old.State -ne 4) {
+            try { $folder.DeleteTask($old.Name, 0) } catch { }
+        }
+    }
     $task = $service.NewTask(0)
     $task.Settings.Hidden = $true
     $task.Settings.DisallowStartIfOnBatteries = $false
@@ -579,9 +586,11 @@ function Start-KillerUpdatedApp {
     $registered = $folder.RegisterTaskDefinition($name, $task, 2, $null, $null, 4)
     try {
         $null = $registered.RunEx($null, 4, $session, $null)
-        for ($wait = 0; $wait -lt 50 -and $registered.State -eq 2; $wait++) { Start-Sleep -Milliseconds 100 }
+        # Task Scheduler can be slow just after an update, and deleting the task while it is still
+        # queued loses the start, so the wait is long and a task still queued is left to run.
+        for ($wait = 0; $wait -lt 600 -and $registered.State -eq 2; $wait++) { Start-Sleep -Milliseconds 100 }
     }
-    finally { $folder.DeleteTask($name, 0) }
+    finally { if ($registered.State -ne 2) { $folder.DeleteTask($name, 0) } }
 }
 """;
     }

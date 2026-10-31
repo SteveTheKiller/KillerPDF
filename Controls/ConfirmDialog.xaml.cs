@@ -230,6 +230,9 @@ namespace KillerPDF.Controls
         }
 
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-            => DragMove();
+        {
+            try { DragMove(); }
+            catch (System.InvalidOperationException) { }   // the button was already up
+        }
     }
 }

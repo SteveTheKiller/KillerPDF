@@ -1,5 +1,7 @@
 using System;
+using System.ComponentModel;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Windows;
 
 namespace KillerPDF.Controls
@@ -23,7 +25,7 @@ namespace KillerPDF.Controls
         {
             try
             {
-                bool max = w.WindowState == WindowState.Maximized;
+                bool max = IsMaximized(w);
                 Rect r = w.WindowState == WindowState.Normal
                     ? new Rect(w.Left, w.Top, w.Width, w.Height)
                     : w.RestoreBounds;
@@ -39,8 +41,34 @@ namespace KillerPDF.Controls
             catch { /* best-effort: a lost window position is not worth an exception */ }
         }
 
+        // A window minimized from maximized reports Minimized, and by the time it closes the state it
+        // will restore to is gone, so the last state it showed is kept as it changes.
+        private sealed class LastShown { public WindowState State; }
+        private static readonly ConditionalWeakTable<Window, LastShown> Shown = new ConditionalWeakTable<Window, LastShown>();
+
+        private static void Track(Window w)
+        {
+            if (Shown.TryGetValue(w, out _)) return;
+            var last = Shown.GetOrCreateValue(w);
+            last.State = w.WindowState == WindowState.Maximized ? WindowState.Maximized : WindowState.Normal;
+            // The property is watched rather than StateChanged, which a window raises only once it has a handle.
+            var state = DependencyPropertyDescriptor.FromProperty(Window.WindowStateProperty, typeof(Window));
+            EventHandler changed = (_, _) =>
+            {
+                if (w.WindowState != WindowState.Minimized) last.State = w.WindowState;
+            };
+            state.AddValueChanged(w, changed);
+            w.Closed += (_, _) => state.RemoveValueChanged(w, changed);
+        }
+
+        /// <summary>True when the window is maximized, or minimized from a maximized state.</summary>
+        internal static bool IsMaximized(Window w)
+            => w.WindowState == WindowState.Maximized
+                || (w.WindowState == WindowState.Minimized && Shown.TryGetValue(w, out var last) && last.State == WindowState.Maximized);
+
         internal static void Restore(Window w, Func<string, string?> getSetting)
         {
+            Track(w);
             string? s = getSetting(Key);
             if (string.IsNullOrWhiteSpace(s)) return;
             try

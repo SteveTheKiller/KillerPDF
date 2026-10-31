@@ -33,17 +33,22 @@ namespace KillerPDF.Controls
             try
             {
                 await _workers.WaitAsync(token);
+                // A read that hangs on a dead network path cannot be interrupted, so the slot goes
+                // back when the request is abandoned, not only when the read returns.
+                int released = 0;
+                void ReleaseSlot() { if (Interlocked.Exchange(ref released, 1) == 0) _workers.Release(); }
                 Task<T> reading;
                 try
                 {
                     reading = Task.Run(() =>
                     {
                         try { token.ThrowIfCancellationRequested(); return read(token); }
-                        finally { _workers.Release(); }
+                        finally { ReleaseSlot(); }
                     });
                 }
-                catch { _workers.Release(); throw; }
+                catch { ReleaseSlot(); throw; }
                 var finished = await Task.WhenAny(reading, Task.Delay(Timeout.Infinite, token));
+                if (!ReferenceEquals(finished, reading)) ReleaseSlot();
                 token.ThrowIfCancellationRequested();
                 T result = await reading;
                 if (!_closed && ReferenceEquals(_pending, request)) await publish(result, token);

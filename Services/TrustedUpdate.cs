@@ -181,8 +181,10 @@ namespace KillerPDF.Services
         /// default, exit 1618) if it is still running.</summary>
         internal static string Wait(int id, long ticks, string onTimeout = "exit 1618") =>
             "$p=$null;try{$p=[Diagnostics.Process]::GetProcessById(" + id.ToString(CultureInfo.InvariantCulture)
-            + ")}catch [ArgumentException]{};if($null -ne $p -and $p.StartTime.ToUniversalTime().Ticks -eq "
-            + ticks.ToString(CultureInfo.InvariantCulture) + " -and -not $p.WaitForExit(60000)){" + onTimeout + "};";
+            // The start time is read inside the try: a process that exits between the lookup and
+            // this read has finished, and must not abort the update under ErrorActionPreference Stop.
+            + ");if($p.StartTime.ToUniversalTime().Ticks -ne " + ticks.ToString(CultureInfo.InvariantCulture)
+            + "){$p=$null}}catch{$p=$null};if($null -ne $p -and -not $p.WaitForExit(60000)){" + onTimeout + "};";
 
         /// <summary>The protected publication's timeout: thrown, so its catch writes the reason into
         /// the recovery report beside the staged copy instead of leaving it with no word of why.</summary>
