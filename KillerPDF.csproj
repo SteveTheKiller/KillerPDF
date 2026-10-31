@@ -13,12 +13,12 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\kp-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.9.1</Version>
+    <Version>1.9.2</Version>
 
-    <AssemblyVersion>1.9.1.0</AssemblyVersion>
+    <AssemblyVersion>1.9.2.0</AssemblyVersion>
     <Authors>Steve the Killer</Authors>
     <Copyright>Copyright (c) 2026 Steve the Killer</Copyright>
-    <FileVersion>1.9.1.0</FileVersion>
+    <FileVersion>1.9.2.0</FileVersion>
     <!-- Shown in the About card beside the version so a user can tell how old their build.
          Keep this as Unreleased during development. A final release must use the date on its
          CHANGELOG section; release.ps1 enforces that before packaging. -->

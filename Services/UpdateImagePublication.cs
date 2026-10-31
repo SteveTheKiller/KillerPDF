@@ -474,7 +474,7 @@ public static class KillerUpdateGuard {
         if (shell == IntPtr.Zero || GetWindowThreadProcessId(shell, out shellPid) == 0) throw new IOException("The normal desktop shell is unavailable.");
         using (var shellProcess = Process.GetProcessById((int)shellPid))
             if (shellProcess.SessionId != Process.GetCurrentProcess().SessionId) throw new IOException("The shell is in another session.");
-        IntPtr processHandle = OpenProcess(0x1000, false, shellPid), token = IntPtr.Zero, environment = IntPtr.Zero;
+        IntPtr processHandle = OpenProcess(0x1000, false, shellPid), token = IntPtr.Zero, primary = IntPtr.Zero, environment = IntPtr.Zero;
         if (processHandle == IntPtr.Zero) throw new Win32Exception(Marshal.GetLastWin32Error());
         try {
             if (!OpenProcessToken(processHandle, 0xB, out token)) throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -484,14 +484,18 @@ public static class KillerUpdateGuard {
             int elevation, returned;
             if (!GetTokenInformation(token, 20, out elevation, sizeof(int), out returned) || returned != sizeof(int) || elevation != 0)
                 throw new IOException("A normal-integrity shell token could not be established.");
-            if (!CreateEnvironmentBlock(out environment, token, false)) throw new Win32Exception(Marshal.GetLastWin32Error());
+            // Windows refuses the shell's own token here with access denied; a primary copy that can
+            // adjust its session and defaults is what CreateProcessWithToken accepts.
+            if (!DuplicateTokenEx(token, 0x18B, IntPtr.Zero, 2, 1, out primary)) throw new Win32Exception(Marshal.GetLastWin32Error());
+            if (!CreateEnvironmentBlock(out environment, primary, false)) throw new Win32Exception(Marshal.GetLastWin32Error());
             var startup = new StartupInfo(); startup.Size = Marshal.SizeOf(typeof(StartupInfo)); startup.Desktop = @"winsta0\default";
             ProcessInfo info;
-            if (!CreateProcessWithToken(token, 0, target, new StringBuilder(Quote(target) + " " + arguments), 0x400, environment, Path.GetDirectoryName(target), ref startup, out info))
+            if (!CreateProcessWithToken(primary, 0, target, new StringBuilder(Quote(target) + " " + arguments), 0x400, environment, Path.GetDirectoryName(target), ref startup, out info))
                 throw new Win32Exception(Marshal.GetLastWin32Error());
             CloseHandle(info.Thread); CloseHandle(info.Process);
         } finally {
             if (environment != IntPtr.Zero) DestroyEnvironmentBlock(environment);
+            if (primary != IntPtr.Zero) CloseHandle(primary);
             if (token != IntPtr.Zero) CloseHandle(token);
             CloseHandle(processHandle);
         }
@@ -525,6 +529,7 @@ public static class KillerUpdateGuard {
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("advapi32.dll", SetLastError = true)] private static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("advapi32.dll", SetLastError = true)] private static extern bool DuplicateTokenEx(IntPtr token, uint access, IntPtr attributes, int impersonation, int type, out IntPtr duplicate);
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("advapi32.dll", SetLastError = true)] private static extern bool GetTokenInformation(IntPtr token, int kind, out int value, int length, out int returned);
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("userenv.dll", SetLastError = true)] private static extern bool CreateEnvironmentBlock(out IntPtr environment, IntPtr token, bool inherit);
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)] [DllImport("userenv.dll")] private static extern bool DestroyEnvironmentBlock(IntPtr environment);
