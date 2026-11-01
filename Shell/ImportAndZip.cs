@@ -312,9 +312,7 @@ namespace KillerPDF.Shell
 
             try
             {
-                if (File.Exists(dlg.FileName)) File.Delete(dlg.FileName);
-                using (var zip = ZipFile.Open(dlg.FileName, ZipArchiveMode.Create))
-                    zip.CreateEntryFromFile(sourcePdf, Path.GetFileName(sourcePdf), CompressionLevel.Optimal);
+                PdfZipExport.Write(sourcePdf, dlg.FileName);
 
                 long before = new FileInfo(sourcePdf).Length;
                 long after  = new FileInfo(dlg.FileName).Length;
