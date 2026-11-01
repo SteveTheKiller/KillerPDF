@@ -191,7 +191,7 @@
                                             <DockPanel x:Name="tabContents" LastChildFill="True" VerticalAlignment="Center"
                                                        RenderTransform="{DynamicResource TabPlacementTransform}" RenderTransformOrigin="0.5,0.5">
                                                 <Button x:Name="tabClose" DockPanel.Dock="Right" Content="x"
-                                                        Style="{DynamicResource ToolbarButtonDanger}"
+                                                        Style="{DynamicResource TabCloseButton}"
                                                         FontFamily="{DynamicResource UiFont}" FontSize="{DynamicResource TabCloseFontSize}"
                                                         Width="24" Height="24" Margin="{DynamicResource TabCloseMargin}" Padding="0"
                                                         VerticalAlignment="Center" FocusVisualStyle="{x:Null}"

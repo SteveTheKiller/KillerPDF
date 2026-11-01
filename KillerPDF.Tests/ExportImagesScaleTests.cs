@@ -15,6 +15,15 @@ public sealed class ExportImagesScaleTests
     }
 
     [Fact]
+    public void TabCloseIsOnlyRedOnHover()
+    {
+        string viewer = Read("Controls", "Viewer", "PdfViewer.xaml");
+        int tag = viewer.IndexOf("x:Name=\"tabClose\"", StringComparison.Ordinal);
+        Assert.Contains("Style=\"{DynamicResource TabCloseButton}\"",
+            viewer[tag..viewer.IndexOf("/>", tag, StringComparison.Ordinal)], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OneTimesIsTheRealImageSizeWhenThePageIsOneImage()
     {
         Assert.Contains("OutputPixelDimensions.ScaleBase(", Read("Controls", "ExportImagesDialog.cs"), StringComparison.Ordinal);
