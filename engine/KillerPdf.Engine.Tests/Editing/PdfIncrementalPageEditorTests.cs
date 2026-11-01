@@ -4965,40 +4965,67 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
-    public void Build_RejectsDuplicateImportedAnnotationNames()
+    public void Build_RenamesLaterDuplicateImportedNamesAndKeepsPopupLinks()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage(200, 300)
             .Build());
         (_, PdfIndirectReference[] references, PdfDictionary[] pages) = FlatPages(source);
         var update = new PdfIncrementalUpdateBuilder(source);
-        PdfDictionary Annotation() => new([
-            new(Name("Type"), Name("Annot")),
-            new(Name("Subtype"), Name("Text")),
-            new(Name("Rect"), new PdfArray([
-                new PdfInteger(0), new PdfInteger(0),
-                new PdfInteger(10), new PdfInteger(10)
-            ])),
-            new(Name("P"), references[0]),
-            new(Name("NM"), new PdfString("duplicate"u8, PdfStringForm.Literal))
+        PdfArray Rect() => new([
+            new PdfInteger(0), new PdfInteger(0),
+            new PdfInteger(10), new PdfInteger(10)
         ]);
-        PdfIndirectReference first = update.AddObject(Annotation());
-        PdfIndirectReference second = update.AddObject(Annotation());
-        PdfDocument malformed = PdfDocument.Open(update
+        (PdfIndirectReference Stamp, PdfIndirectReference Popup) Stamp(string name)
+        {
+            PdfIndirectReference stamp = update.ReserveObject();
+            PdfIndirectReference popup = update.AddObject(new PdfDictionary([
+                new(Name("Type"), Name("Annot")),
+                new(Name("Subtype"), Name("Popup")),
+                new(Name("Rect"), Rect()),
+                new(Name("P"), references[0]),
+                new(Name("Parent"), stamp),
+                new(Name("NM"), new PdfString("same-popup"u8, PdfStringForm.Literal))
+            ]));
+            update.SetObject(stamp, new PdfDictionary([
+                new(Name("Type"), Name("Annot")),
+                new(Name("Subtype"), Name("Stamp")),
+                new(Name("Rect"), Rect()),
+                new(Name("P"), references[0]),
+                new(Name("Popup"), popup),
+                new(Name("NM"), new PdfString(
+                    Encoding.Latin1.GetBytes(name), PdfStringForm.Literal))
+            ]));
+            return (stamp, popup);
+        }
+        (PdfIndirectReference first, PdfIndirectReference firstPopup) = Stamp("stamp-a");
+        (PdfIndirectReference second, PdfIndirectReference secondPopup) = Stamp("stamp-b");
+        PdfDocument authored = PdfDocument.Open(update
             .ReplaceObject(references[0].ObjectNumber,
                 new PdfDictionary(pages[0].Append(
                     new KeyValuePair<PdfName, PdfObject>(Name("Annots"),
-                        new PdfArray([first, second])))))
+                        new PdfArray([first, firstPopup, second, secondPopup])))))
             .Build());
 
-        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-            new PdfIncrementalPageEditor(
+        PdfDocument merged = PdfDocument.Open(new PdfIncrementalPageEditor(
                 PdfDocument.Open(new PdfDocumentBuilder().Build()))
-                .AddImportedPage(malformed, 0)
-                .Build());
+            .AddImportedPage(authored, 0)
+            .Build());
 
-        Assert.Contains("/NM value is not unique on the imported page",
-            error.Message, StringComparison.Ordinal);
+        (_, _, PdfDictionary[] mergedPages) = FlatPages(merged);
+        PdfDictionary[] annotations = [.. ((PdfArray)mergedPages[0][Name("Annots")])
+            .Select(value => (PdfDictionary)merged.Resolve((PdfIndirectReference)value))];
+        Assert.Equal(4, annotations.Length);
+        Assert.Equal(4, annotations.Select(annotation => Encoding.Latin1.GetString(
+            ((PdfString)annotation[Name("NM")]).Bytes.Span)).Distinct().Count());
+        foreach (PdfDictionary stamp in annotations.Where(annotation =>
+            annotation[Name("Subtype")].Equals(Name("Stamp"))))
+        {
+            var popup = (PdfDictionary)merged.Resolve((PdfIndirectReference)stamp[Name("Popup")]);
+            var parent = (PdfDictionary)merged.Resolve((PdfIndirectReference)popup[Name("Parent")]);
+            Assert.Equal(((PdfString)stamp[Name("NM")]).Bytes.ToArray(),
+                ((PdfString)parent[Name("NM")]).Bytes.ToArray());
+        }
     }
 
     [Fact]

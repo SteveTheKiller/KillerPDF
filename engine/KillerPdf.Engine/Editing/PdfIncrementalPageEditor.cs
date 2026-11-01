@@ -12503,11 +12503,54 @@ public sealed class PdfIncrementalPageEditor
                     ValidateImportedAnnotationActions(document, annotation, source.Reference,
                         annotationIdentities, annotationNames,
                         "An imported page /Annots entry");
-                retained.Add(importer.Import(annotation));
             }
+            if (key.Equals(AnnotsName))
+                RenameDuplicateAnnotations(document, annotations, annotationNames, importer);
+            foreach (PdfObject annotation in annotations)
+                if (ResolveCatalogValue(document, annotation,
+                        $"{arrayDescription} entry") is not PdfNull)
+                    retained.Add(importer.Import(annotation));
             return retained.Count == 0 ? null
                 : new KeyValuePair<PdfName, PdfObject>(
                     key, new PdfArray(retained));
+        }
+    }
+
+    // Authoring tools copy a popup's /NM along with a pasted stamp. The first holder keeps the
+    // name; later ones get a fresh one before import, so links to them stay intact.
+    private static void RenameDuplicateAnnotations(PdfDocument document, PdfArray annotations,
+        HashSet<string> pageNames, PdfObjectGraphImporter importer)
+    {
+        const string description = "An imported page /Annots entry";
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (PdfObject item in annotations)
+        {
+            var resolved = ResolveCatalogWithIdentity(document, item, description);
+            if (resolved.Value is not PdfDictionary annotation
+                || !annotation.TryGetValue(Name("NM"), out PdfObject? nameValue))
+                continue;
+            string name = PdfUnicodeEncoding.DecodeTextString(
+                ((PdfString)ResolveCatalogValue(document, nameValue, description)).Bytes.Span,
+                $"{description} /NM value");
+            if (seen.Add(name)) continue;
+            PdfIndirectReference reference = resolved.FinalReference
+                ?? throw new InvalidOperationException(
+                    $"{description} /NM value is not unique on the imported page.");
+            int suffix = 2;
+            string unique;
+            do unique = $"{name}-{suffix++}"; while (!pageNames.Add(unique));
+            seen.Add(unique);
+            (int, int) identity = (reference.ObjectNumber, reference.Generation);
+            if (importer.HasSourceObjectOverride(identity)) continue;
+            byte[] text = [0xFE, 0xFF, .. System.Text.Encoding.BigEndianUnicode.GetBytes(unique)];
+            importer.AddSourceObjectOverrides(
+                new Dictionary<(int ObjectNumber, int Generation), PdfDictionary>
+                {
+                    [identity] = new PdfDictionary(annotation
+                        .Where(entry => !entry.Key.Equals(Name("NM")))
+                        .Append(new KeyValuePair<PdfName, PdfObject>(
+                            Name("NM"), new PdfString(text, PdfStringForm.Hexadecimal))))
+                });
         }
     }
 
@@ -15450,9 +15493,8 @@ public sealed class PdfIncrementalPageEditor
         {
             string decodedName = DecodeAnnotationText(
                 (PdfString)Resolve(annotationName), $"{description} /NM value");
-            if (!pageAnnotationNames.Add(decodedName))
-                throw new InvalidOperationException(
-                    $"{description} /NM value is not unique on the imported page.");
+            // The caller renames later duplicates before anything is imported.
+            pageAnnotationNames.Add(decodedName);
         }
         if (annotation.TryGetValue(Name("Lang"), out PdfObject? language))
             ValidateLanguageTag(document, language,
