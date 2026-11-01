@@ -3,7 +3,7 @@
 Publishing a stable GitHub app release triggers `nuget-engine-release.yml`. It checks out the
 release tag, verifies matching app, engine, and release versions, runs the engine tests, packs
 the library and symbols, and publishes through the existing NuGet trusted publisher.
-The Overkill development branch is not a publishing trigger.
+A development branch is not a publishing trigger.
 
 Update both project versions together. The engine build and `release.ps1` reject mismatches
 before packaging. Maintain both changelogs when engine behavior changes.

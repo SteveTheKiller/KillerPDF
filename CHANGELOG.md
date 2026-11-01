@@ -87,7 +87,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.0] - 2026-10-29
 
-1.9.0 "Overkill" replaces PDFium with KillerPDF's own engine and expands document editing, conversion, security and automation.
+1.9.0 replaces PDFium with KillerPDF's own engine and expands document editing, conversion, security and automation.
 
 ### Security
 

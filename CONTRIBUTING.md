@@ -2,12 +2,11 @@
 
 KillerPDF welcomes features, fixes, experiments, tests, translations, documentation, and interface improvements.
 
-## 1.9.0 Overkill development
+## 1.9 development
 
-KillerPDF 1.9 "Overkill" lives on `main`. The branch is open to pull requests across just about every part of KillerPDF, including the engine. New tools, larger features, workflow improvements, performance work, and experimental ideas are welcome alongside smaller fixes.
+KillerPDF 1.9 lives on `main`. The branch is open to pull requests across just about every part of KillerPDF, including the engine. New tools, larger features, workflow improvements, performance work, and experimental ideas are welcome alongside smaller fixes.
 
-Base your work on `main` and target `main` when opening the pull request. The earlier `dev/1.9-overkill` branch has been merged into `main` and is no longer the place for new work.
-
+Base your work on `main` and target `main` when opening the pull request.
 You do not need an assigned issue or advance permission to open a PR. Early draft PRs are welcome, especially when you want feedback on an approach before finishing it. For architectural changes, new dependencies, or work that could take weeks, start a discussion early so we can coordinate. That is an invitation to collaborate, not a prerequisite for submitting work.
 
 Keep each PR focused on one coherent change, explain what it does, and state what you tested. Reuse the existing interface styles and preserve the engine's platform-independent boundary. Contributions still receive review; opening a PR does not guarantee inclusion in a given release.

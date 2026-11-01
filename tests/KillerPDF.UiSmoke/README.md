@@ -41,7 +41,7 @@ when an interactive desktop is unavailable; it does not count as a FlaUI pass. T
 build/Test-ColorPickerDialog.ps1 covers all 45 theme/accent resource states and brush shapes in its
 compatible PowerShell runtime. Pass `-Configuration Release` for the same assemblies used above.
 Keep that check as separate evidence. Maintenance uses its actual app PDFium renderer;
-development uses the Overkill engine renderer. This tooling preserves that architecture difference.
+development uses the KillerPDF engine renderer. This tooling preserves that architecture difference.
 
 ## Field preset selection regression
 
