@@ -1079,7 +1079,24 @@ public sealed class PdfIncrementalAnnotationEditor
             || ReplyTargetKey(known, pageIndex, inReplyTo) is null))
             throw new ArgumentException(
                 "A reply target must name an existing or earlier annotation.", nameof(inReplyTo));
+        if (name is null) return;
+        (int PageIndex, string Name)[] withName = [.. known, (pageIndex, name)];
+        foreach (PendingAnnotation annotation in _annotations)
+            if (PendingReplyTarget(annotation) is string target
+                && target == name
+                && ReplyTargetKey(known, annotation.PageIndex, target)
+                    != ReplyTargetKey(withName, annotation.PageIndex, target))
+                throw new ArgumentException(
+                    "This name would change what an earlier reply points at.", nameof(name));
     }
+
+    private static string? PendingReplyTarget(PendingAnnotation annotation) => annotation switch
+    {
+        PendingTextNote note => note.InReplyTo,
+        PendingTextMarkup markup => markup.InReplyTo,
+        PendingShape shape => shape.InReplyTo,
+        _ => null
+    };
 
     // /NM is page-scoped: prefer the reply's own page, and accept another page only when
     // exactly one annotation in the document carries the name.

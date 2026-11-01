@@ -706,6 +706,20 @@ public sealed class PdfIncrementalAnnotationEditorTests
             ((PdfIndirectReference)reply[Name("IRT")]).ObjectNumber);
     }
 
+    [Theory]
+    [InlineData(2)]
+    [InlineData(1)]
+    public void NewName_CannotChangeWhatAnEarlierReplyPointsAt(int laterPage)
+    {
+        var editor = new PdfIncrementalAnnotationEditor(PdfDocument.Open(new PdfDocumentBuilder()
+                .AddBlankPage().AddBlankPage().AddBlankPage().Build()))
+            .AddTextNote(0, 50, 50, "Target", name: "target")
+            .AddTextNote(1, 50, 50, "Reply", name: "reply", inReplyTo: "target");
+
+        Assert.Throws<ArgumentException>(() =>
+            editor.AddTextNote(laterPage, 80, 80, "Clash", name: "target"));
+    }
+
     [Fact]
     public void Reply_RejectsAnAmbiguousTargetOnAnotherPage()
     {
