@@ -41,7 +41,10 @@ public sealed class PrimaryRenderSessionTests
         {
             File.WriteAllBytes(path, Document(100, 200));
             Assert.Equal(64, retained.Render(path, 0, 0, 128).Width);
+            DateTime written = File.GetLastWriteTimeUtc(path);
             File.WriteAllBytes(path, Document(200, 100));
+            // A same-size rewrite inside one clock tick leaves the timestamp unchanged.
+            File.SetLastWriteTimeUtc(path, written);
             if (clear) retained.Clear();
             var changed = retained.Render(path, clear ? 0 : 1, 0, 128);
             Assert.Equal(128, changed.Width);
