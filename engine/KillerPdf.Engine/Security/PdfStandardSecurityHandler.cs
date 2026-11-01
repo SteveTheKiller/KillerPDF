@@ -474,6 +474,9 @@ internal sealed class PdfStandardSecurityHandler
         if (_compatibilityRecovery && method == CryptMethod.Aes256 && data.Length == 16
             && (_encryptMetadata || !isMetadata))
             return new PdfStream(dictionary, []);
+        // Some writers leave XMP in the clear without declaring /EncryptMetadata false.
+        if (_compatibilityRecovery && isMetadata && data.StartsWith("<?xpacket"u8))
+            return new PdfStream(dictionary, data);
         return new PdfStream(dictionary,
             method != CryptMethod.Identity && (_encryptMetadata || !isMetadata)
                 ? DecryptBytes(data, method, objectNumber, generation) : data);
@@ -1002,7 +1005,7 @@ internal sealed class PdfStandardSecurityHandler
     private static byte[] DecryptAes(ReadOnlySpan<byte> encrypted, byte[] key)
     {
         if (encrypted.Length < 32 || encrypted.Length % 16 != 0)
-            throw new CryptographicException("An AES-256 encrypted PDF value has an invalid length.");
+            throw new CryptographicException("An AES encrypted PDF value has an invalid length.");
         using Aes aes = Aes.Create();
         aes.KeySize = key.Length * 8;
         aes.BlockSize = 128;

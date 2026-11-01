@@ -898,6 +898,30 @@ public sealed class PdfEncryptionTests
     }
 
     [Fact]
+    public void CompatibilityKeepsCleartextXmpThatTheFileDeclaresEncrypted()
+    {
+        const string xmp = "<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?><x:xmpmeta/>";
+        byte[] fixture = Revision4Fixture();
+        string text = Encoding.Latin1.GetString(fixture);
+        System.Text.RegularExpressions.Match trailer = System.Text.RegularExpressions.Regex.Match(text,
+            @"trailer\s*<<(.*)>>\s*startxref\s*(\d+)", System.Text.RegularExpressions.RegexOptions.Singleline
+                | System.Text.RegularExpressions.RegexOptions.RightToLeft);
+        Assert.True(trailer.Success);
+        string entries = System.Text.RegularExpressions.Regex.Replace(
+            trailer.Groups[1].Value, @"/(Size|Prev)\s+\d+", "");
+        string body = $"99 0 obj\n<</Length {xmp.Length}/Subtype/XML/Type/Metadata>>stream\n{xmp}\nendstream\nendobj\n";
+        int xref = fixture.Length + body.Length;
+        byte[] appended = [.. fixture, .. Encoding.Latin1.GetBytes(body + "xref\n99 1\n"
+            + $"{fixture.Length:D10} 00000 n \ntrailer\n<<{entries}/Size 100/Prev {trailer.Groups[2].Value}>>\n"
+            + $"startxref\n{xref}\n%%EOF\n")];
+
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(appended, "user-password");
+
+        PdfStream metadata = Assert.IsType<PdfStream>(document.Resolve(99));
+        Assert.Equal(xmp, Encoding.ASCII.GetString(metadata.EncodedData.Span));
+    }
+
+    [Fact]
     public void Open_RejectsNonBooleanLegacyEncryptMetadataValue()
     {
         PdfDocument document = PdfDocument.Open(Revision4Fixture(), "owner-password");
