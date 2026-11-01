@@ -12,6 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
 
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
+- Merge accepts images with single-element device color-space arrays. (#469)
 - Form buttons and signed signature fields redraw correctly when their visibility changes.
 - Comment export and import preserve PDF dates with time zone offsets.
 - Repeated content appends keep PDF drawing instructions separate.

@@ -12760,6 +12760,11 @@ public sealed class PdfIncrementalPageEditor
             throw new InvalidOperationException(
                 $"{description} has no color-space family name.");
         string family = familyName.ValueAsLatin1();
+        if (family is "DeviceGray" or "DeviceRGB" or "DeviceCMYK")
+        {
+            RequireCount(1);
+            return;
+        }
         if (family is "CalGray" or "CalRGB" or "Lab")
         {
             RequireCount(2);
@@ -13272,6 +13277,9 @@ public sealed class PdfIncrementalPageEditor
             || Resolve(colorSpace[0]) is not PdfName familyName) return null;
         return familyName.ValueAsLatin1() switch
         {
+            "DeviceGray" when colorSpace.Count == 1 => 1,
+            "DeviceRGB" when colorSpace.Count == 1 => 3,
+            "DeviceCMYK" when colorSpace.Count == 1 => 4,
             "CalGray" or "Indexed" or "Separation" => 1,
             "CalRGB" or "Lab" => 3,
             "ICCBased" when colorSpace.Count > 1
