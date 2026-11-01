@@ -23,6 +23,14 @@ public sealed class ExportImagesScaleTests
     }
 
     [Fact]
+    public void BothContextMenusOfferTheOwnerPassword()
+    {
+        string menu = Read("Shell", "ContextMenu.cs");
+        Assert.Contains("_ctxMenu.Items.Clear();\r\n            AddOwnerPasswordItem(_ctxMenu);".ReplaceLineEndings(), menu.ReplaceLineEndings(), StringComparison.Ordinal);
+        Assert.Contains("AddOwnerPasswordItem(menu);", menu, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TheRestrictionNoticeCanBeDismissedAndTheTitleStaysReadOnly()
     {
         string notice = Read("Controls", "Viewer", "PdfViewer.Restriction.cs");

@@ -50,6 +50,17 @@ namespace KillerPDF.Shell
         // under the cursor (a specific annotation -> per-type actions; empty page -> page-level actions).
         private ContextMenu _ctxMenu = null!;
 
+        // A closed restriction notice still leaves the owner password one right-click away.
+        private void AddOwnerPasswordItem(ContextMenu menu)
+        {
+            if (!IsOwnerRestricted || _restrictedByCertificate
+                || menu.Items.OfType<MenuItem>().Any(item => Equals(item.Tag, nameof(UnlockOwnerRestrictions)))) return;
+            var unlock = MakeMenuItem(Loc("Str_Restricted_EnterPassword"), (_, _) => UnlockOwnerRestrictions(), glyph: "");
+            unlock.Tag = nameof(UnlockOwnerRestrictions);
+            menu.Items.Add(unlock);
+            menu.Items.Add(new Separator());
+        }
+
         private void BuildContextMenu()
         {
             _ctxMenu = MakeThemedMenu();
@@ -67,6 +78,7 @@ namespace KillerPDF.Shell
         internal void PopulateContextMenu(Point pt, int pageIdx)
         {
             _ctxMenu.Items.Clear();
+            AddOwnerPasswordItem(_ctxMenu);
             var hit = AnnotationAt(pt, pageIdx);
             if (hit is not null)
             {
@@ -814,6 +826,7 @@ namespace KillerPDF.Shell
         // area below the thumbnails, or the gray area around the page in the document pane.
         private void FillPageAgnosticMenu(ContextMenu menu)
         {
+            AddOwnerPasswordItem(menu);
             AddNavRow(menu);
             menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_AddBlankPage"), (s, e) => AddBlankPageAtEnd(), glyph: ""));
             menu.Items.Add(MakeMenuItem(Loc("Str_Pages_Reverse"), (s, e) => ReversePageOrder(), glyph: "\uE8CB"));
