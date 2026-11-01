@@ -62,6 +62,7 @@
     <Compile Include="..\Services\SvgPathData.cs" Link="Services\SvgPathData.cs" />
     <Compile Include="..\Services\SignatureInk.cs" Link="Services\SignatureInk.cs" />
     <Compile Include="..\Services\SignaturePlacementScale.cs" Link="Services\SignaturePlacementScale.cs" />
+    <Compile Include="..\Services\ScanEditSpan.cs" Link="Services\ScanEditSpan.cs" />
     <Compile Include="..\Services\SearchService.cs" Link="Services\SearchService.cs" />
     <Compile Include="..\Services\TextReplacePlanner.cs" Link="Services\TextReplacePlanner.cs" />
     <Compile Include="..\Services\PdfContentDocument.cs" Link="Services\PdfContentDocument.cs" />

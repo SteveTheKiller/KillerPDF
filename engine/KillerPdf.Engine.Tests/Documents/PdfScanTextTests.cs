@@ -54,6 +54,41 @@ public sealed class PdfScanTextTests
     }
 
     [Fact]
+    public void MeasureLineReadsTheLineItWasGiven()
+    {
+        Scan scan = Render(PdfStandardFontSubstitutes.Find("Times-Roman"), "the reading lamp stood by the window");
+
+        PdfScanLineLook look = Assert.IsType<PdfScanLineLook>(
+            PdfScanTextAnalyzer.MeasureLine(scan.Pixels, scan.Width, scan.Height, scan.Words));
+
+        Assert.True(look.BackgroundColor.Red > 200 && look.BackgroundColor.Green > 200 && look.BackgroundColor.Blue > 200);
+        Assert.True(look.InkColor.Red < 120 && look.InkColor.Green < 120 && look.InkColor.Blue < 120);
+        Assert.True(look.XHeight > 3);
+        Assert.False(look.Bold);
+        Assert.Equal(scan.Words.Count, look.Words.Count);
+    }
+
+    [Fact]
+    public void MeasureLineHasNothingToSayWithoutWords()
+    {
+        Scan scan = Render(PdfStandardFontSubstitutes.Find("Times-Roman"), "the lamp");
+
+        Assert.Null(PdfScanTextAnalyzer.MeasureLine(scan.Pixels, scan.Width, scan.Height, []));
+    }
+
+    [Fact]
+    public void FontSizeForTurnsMeasuredHeightsBackIntoPoints()
+    {
+        PdfScanTextFace face = PdfScanTextWriter.BundledFaces()[0];
+        double ratio = PdfScanTextWriter.XHeightRatio(face.Regular);
+
+        Assert.Equal(12, PdfScanTextWriter.FontSizeFor(face, 12 * ratio, 0, capitalsOnly: false, pointsPerPixel: 1), 6);
+        Assert.Equal(24, PdfScanTextWriter.FontSizeFor(face, 12 * ratio, 0, capitalsOnly: false, pointsPerPixel: 2), 6);
+        Assert.Equal(10, PdfScanTextWriter.FontSizeFor(face, 0,
+            10 * PdfScanTextWriter.CapHeightRatio(face.Regular), capitalsOnly: true, pointsPerPixel: 1), 6);
+    }
+
+    [Fact]
     public void AMisreadWordStaysInTheImage()
     {
         Scan scan = Render(PdfStandardFontSubstitutes.Find("Times-Roman"),

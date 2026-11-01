@@ -108,6 +108,12 @@ public sealed class PdfScanTextWord
     };
 }
 
+/// <summary>The typical look of one scanned line of text.</summary>
+public sealed record PdfScanLineLook(
+    (byte Red, byte Green, byte Blue) BackgroundColor, (byte Red, byte Green, byte Blue) InkColor,
+    double XHeight, double CapHeight, bool CapitalsOnly, double Baseline, bool Bold,
+    IReadOnlyList<PdfScanTextWord> Words);
+
 /// <summary>The measured words of one scanned page.</summary>
 public sealed record PdfScanTextPageAnalysis(
     int PixelWidth, int PixelHeight, bool Bitonal, IReadOnlyList<PdfScanTextWord> Words);
@@ -118,6 +124,40 @@ public sealed record PdfScanTextPageAnalysis(
 /// </summary>
 public static class PdfScanTextAnalyzer
 {
+    /// <summary>Measures one line's colors and size from its words on an opaque BGRA image.</summary>
+    public static PdfScanLineLook? MeasureLine(ReadOnlySpan<byte> bgra, int width, int height,
+        IReadOnlyList<PdfOcrPixelWord> words, PdfScanTextOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(words);
+        if (words.Count == 0) return null;
+        PdfScanTextPageAnalysis analysis = Analyze(bgra, width, height, words, options);
+        List<PdfScanTextWord> measured = [.. analysis.Words.Where(word => word.HasClearInk)];
+        if (measured.Count == 0) return null;
+        static byte Middle(IEnumerable<byte> values)
+        {
+            byte[] sorted = [.. values.Order()];
+            return sorted[sorted.Length / 2];
+        }
+        static double MiddleOf(IEnumerable<double> values)
+        {
+            double[] sorted = [.. values.Order()];
+            return sorted[sorted.Length / 2];
+        }
+        return new PdfScanLineLook(
+            (Middle(measured.Select(word => word.BackgroundColor.Red)),
+                Middle(measured.Select(word => word.BackgroundColor.Green)),
+                Middle(measured.Select(word => word.BackgroundColor.Blue))),
+            (Middle(measured.Select(word => word.InkColor.Red)),
+                Middle(measured.Select(word => word.InkColor.Green)),
+                Middle(measured.Select(word => word.InkColor.Blue))),
+            MiddleOf(measured.Select(word => word.XHeight)),
+            MiddleOf(measured.Select(word => word.CapHeight)),
+            measured.All(word => word.CapitalsOnly),
+            MiddleOf(measured.Select(word => word.Baseline)),
+            measured.Count(word => word.Bold) * 2 > measured.Count,
+            analysis.Words);
+    }
+
     /// <summary>Measures every recognized word on an opaque BGRA page.</summary>
     public static PdfScanTextPageAnalysis Analyze(ReadOnlySpan<byte> bgra, int width, int height,
         IReadOnlyList<PdfOcrPixelWord> words, PdfScanTextOptions? options = null)
