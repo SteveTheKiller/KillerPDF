@@ -13,6 +13,8 @@
     <LangVersion>7.1</LangVersion>
     <IsPackable>false</IsPackable>
     <NeutralLanguage>en-US</NeutralLanguage>
+    <!-- Vendored source: these obsolete-API warnings are upstream's, not KillerPDF's. -->
+    <NoWarn>$(NoWarn);CS0618;CS0649;CS0672;SYSLIB0003;SYSLIB0051</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -34,6 +34,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- Nullable warnings are surfaced but not errors, matching upstream. -->
     <WarningsNotAsErrors>CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8619;CS8620;CS8621;CS8625;CS8629</WarningsNotAsErrors>
+    <!-- The vendored sources stay unmodified, so upstream's nullable warnings are not ours to fix. -->
+    <NoWarn>$(NoWarn);CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8619;CS8620;CS8621;CS8625;CS8629</NoWarn>
   </PropertyGroup>
 
 </Project>
