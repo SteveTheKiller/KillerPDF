@@ -168,6 +168,30 @@ namespace KillerPDF.Services
             return reordered;
         }
 
+        // Splits vertical lines into top-to-bottom sections wherever their Y spans do not touch,
+        // keeping the given order inside each section.
+        private static List<List<List<KillerPdf.Engine.Documents.PdfExtractedWord>>> VerticalSections(
+            List<List<KillerPdf.Engine.Documents.PdfExtractedWord>> lines)
+        {
+            var sections = new List<(List<List<KillerPdf.Engine.Documents.PdfExtractedWord>> Lines, double Top, double Bottom)>();
+            foreach (var line in lines)
+            {
+                double top = line.Max(w => w.BoundingBox.Top), bottom = line.Min(w => w.BoundingBox.Bottom);
+                var members = new List<List<KillerPdf.Engine.Documents.PdfExtractedWord>>();
+                for (int i = sections.Count - 1; i >= 0; i--)
+                {
+                    if (sections[i].Top < bottom || sections[i].Bottom > top) continue;
+                    members.InsertRange(0, sections[i].Lines);
+                    top = Math.Max(top, sections[i].Top);
+                    bottom = Math.Min(bottom, sections[i].Bottom);
+                    sections.RemoveAt(i);
+                }
+                members.Add(line);
+                sections.Add((members, top, bottom));
+            }
+            return [.. sections.OrderByDescending(section => section.Top).Select(section => section.Lines)];
+        }
+
         private static PageTextRuns Build(KillerPdf.Engine.Documents.PdfPageContent page)
         {
             var result = new PageTextRuns { PdfWidth = page.Width, PdfHeight = page.Height };
@@ -226,7 +250,11 @@ namespace KillerPDF.Services
                     double left = line.Min(w => w.BoundingBox.Left);
                     double right = line.Max(w => w.BoundingBox.Right);
                     double overlap = Math.Min(right, bounds.Right) - Math.Max(left, bounds.Left);
-                    return overlap >= Math.Min(right - left, bounds.Width) * 0.5;
+                    double thickness = Math.Min(right - left, bounds.Width);
+                    // A long gap along the baseline means a separate run in the same column.
+                    double gap = Math.Max(bounds.Bottom - line.Max(w => w.BoundingBox.Top),
+                        line.Min(w => w.BoundingBox.Bottom) - bounds.Top);
+                    return overlap >= thickness * 0.5 && gap <= thickness * 6;
                 });
                 if (group is null) verticalLines.Add([word]);
                 else group.Add(word);
@@ -245,8 +273,15 @@ namespace KillerPDF.Services
                     if (orderedVertical[i][0].Letters[0].WritingDirection == direction)
                         orderedVertical[i] = parallel[next++];
             }
-            foreach (var group in orderedVertical)
-                lineWords.Add((group, group.Max(w => w.BoundingBox.Top), group.Min(w => w.BoundingBox.Bottom)));
+            // Each vertical section reads after every line not wholly below it, so a footer keeps
+            // its place. A section stays whole, so its columns never interleave with other lines.
+            foreach (var section in VerticalSections(orderedVertical))
+            {
+                double sectionBottom = section.Min(group => group.Min(w => w.BoundingBox.Bottom));
+                int insertAt = lineWords.FindLastIndex(line => line.Top > sectionBottom) + 1;
+                lineWords.InsertRange(insertAt, section.Select(group =>
+                    (group, group.Max(w => w.BoundingBox.Top), group.Min(w => w.BoundingBox.Bottom))));
+            }
 
             int wordOrdinal = 0;
             for (int li = 0; li < lineWords.Count; li++)

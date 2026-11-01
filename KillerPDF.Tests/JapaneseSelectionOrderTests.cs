@@ -32,6 +32,39 @@ public sealed class JapaneseSelectionOrderTests
     }
 
     [Fact]
+    public void AHorizontalFooterFollowsVerticalBodyText()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"kp-mixed-order-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, PhrasePdfWithContent("AB CD EF", "1 0 0 1 40 340",
+                "BT /F1 12 Tf 0 1 -1 0 100 150 Tm (AB) Tj ET "
+                + "BT /F1 12 Tf 0 1 -1 0 120 150 Tm (DE) Tj ET "
+                + "BT /F1 12 Tf 1 0 0 1 40 40 Tm (GH) Tj ET"));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            const string expected = "AB CD EF\nAB\nCD\nEF";
+            Assert.Equal(expected, TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
+            Assert.Equal(expected, PageReadingText.Build(runs.Chars.Select(c => (c.Value, c.Word, c.Line)).ToArray()).Text);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void HorizontalTextBetweenVerticalSectionsKeepsItsPlace()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"kp-mixed-sections-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, PhrasePdfWithContent("AB CD EF", "0 1 -1 0 100 300",
+                "BT /F1 12 Tf 1 0 0 1 40 220 Tm (GH) Tj ET "
+                + "BT /F1 12 Tf 0 1 -1 0 100 60 Tm (DE) Tj ET"));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            Assert.Equal("AB CD EF\nEF\nCD", TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public void HorizontalColumnsRetainTheirReadingOrderAndHitTargets()
     {
         string path = Path.Combine(Path.GetTempPath(), $"kp-column-control-{Guid.NewGuid():N}.pdf");
