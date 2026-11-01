@@ -5046,6 +5046,7 @@ public sealed class PdfIncrementalPageEditor
                 importer.SeedPage(state.ImportedEntry!.Reference, references[state]);
                 importers[state] = importer;
             }
+            RenameDuplicateAnnotations(group, importer);
         }
         var kids = new PdfArray(_pages.Select(page => (PdfObject)references[page]));
         update.SetObject(newRoot, Dictionary(
@@ -12504,8 +12505,6 @@ public sealed class PdfIncrementalPageEditor
                         annotationIdentities, annotationNames,
                         "An imported page /Annots entry");
             }
-            if (key.Equals(AnnotsName))
-                RenameDuplicateAnnotations(document, annotations, annotationNames, importer);
             foreach (PdfObject annotation in annotations)
                 if (ResolveCatalogValue(document, annotation,
                         $"{arrayDescription} entry") is not PdfNull)
@@ -12518,40 +12517,64 @@ public sealed class PdfIncrementalPageEditor
 
     // Authoring tools copy a popup's /NM along with a pasted stamp. The first holder keeps the
     // name; later ones get a fresh one before import, so links to them stay intact.
-    private static void RenameDuplicateAnnotations(PdfDocument document, PdfArray annotations,
-        HashSet<string> pageNames, PdfObjectGraphImporter importer)
+    // A transform applies whenever the object is populated, so a structure tree or form import
+    // that reaches the annotation first still writes the new name.
+    private static void RenameDuplicateAnnotations(
+        PageState[] group, PdfObjectGraphImporter importer)
     {
         const string description = "An imported page /Annots entry";
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (PdfObject item in annotations)
+        var renamed = new Dictionary<(int ObjectNumber, int Generation), string>();
+        foreach (PageState state in group)
         {
-            var resolved = ResolveCatalogWithIdentity(document, item, description);
-            if (resolved.Value is not PdfDictionary annotation
-                || !annotation.TryGetValue(Name("NM"), out PdfObject? nameValue))
-                continue;
-            string name = PdfUnicodeEncoding.DecodeTextString(
-                ((PdfString)ResolveCatalogValue(document, nameValue, description)).Bytes.Span,
-                $"{description} /NM value");
-            if (seen.Add(name)) continue;
-            PdfIndirectReference reference = resolved.FinalReference
-                ?? throw new InvalidOperationException(
-                    $"{description} /NM value is not unique on the imported page.");
-            int suffix = 2;
-            string unique;
-            do unique = $"{name}-{suffix++}"; while (!pageNames.Add(unique));
-            seen.Add(unique);
-            (int, int) identity = (reference.ObjectNumber, reference.Generation);
-            if (importer.HasSourceObjectOverride(identity)) continue;
-            byte[] text = [0xFE, 0xFF, .. System.Text.Encoding.BigEndianUnicode.GetBytes(unique)];
-            importer.AddSourceObjectOverrides(
-                new Dictionary<(int ObjectNumber, int Generation), PdfDictionary>
+            PdfDocument document = state.ImportedDocument!;
+            var entries = new List<(PdfIndirectReference? Reference, string Name)>();
+            try
+            {
+                if (!state.ImportedEntry!.Dictionary.TryGetValue(AnnotsName, out PdfObject? value)
+                    || ResolveCatalogValue(document, value, description) is not PdfArray annotations)
+                    continue;
+                foreach (PdfObject item in annotations)
                 {
-                    [identity] = new PdfDictionary(annotation
-                        .Where(entry => !entry.Key.Equals(Name("NM")))
-                        .Append(new KeyValuePair<PdfName, PdfObject>(
-                            Name("NM"), new PdfString(text, PdfStringForm.Hexadecimal))))
-                });
+                    var resolved = ResolveCatalogWithIdentity(document, item, description);
+                    if (resolved.Value is PdfDictionary annotation
+                        && annotation.TryGetValue(Name("NM"), out PdfObject? nameValue)
+                        && ResolveCatalogValue(document, nameValue, description) is PdfString name)
+                        entries.Add((resolved.FinalReference, PdfUnicodeEncoding.DecodeTextString(
+                            name.Bytes.Span, $"{description} /NM value")));
+                }
+            }
+            // Import validation reports a malformed page with its specific error.
+            catch (Exception error) when (error is InvalidOperationException
+                or FormatException or ArgumentException)
+            {
+                continue;
+            }
+            var taken = entries.Select(entry => entry.Name).ToHashSet(StringComparer.Ordinal);
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach ((PdfIndirectReference? reference, string name) in entries)
+            {
+                if (seen.Add(name)) continue;
+                if (reference is null)
+                    throw new InvalidOperationException(
+                        $"{description} /NM value is not unique on the imported page.");
+                (int, int) identity = (reference.ObjectNumber, reference.Generation);
+                if (renamed.ContainsKey(identity)) continue;
+                int suffix = 2;
+                string unique;
+                do unique = $"{name}-{suffix++}"; while (!taken.Add(unique));
+                renamed[identity] = unique;
+            }
         }
+        if (renamed.Count == 0) return;
+        importer.AddDictionaryTransform((reference, dictionary) =>
+            reference is null
+            || !renamed.TryGetValue((reference.ObjectNumber, reference.Generation), out string? unique)
+                ? dictionary
+                : new PdfDictionary(dictionary
+                    .Where(entry => !entry.Key.Equals(Name("NM")))
+                    .Append(new KeyValuePair<PdfName, PdfObject>(Name("NM"), new PdfString(
+                        [0xFE, 0xFF, .. System.Text.Encoding.BigEndianUnicode.GetBytes(unique)],
+                        PdfStringForm.Hexadecimal)))));
     }
 
     private static void ValidatePageRectangle(

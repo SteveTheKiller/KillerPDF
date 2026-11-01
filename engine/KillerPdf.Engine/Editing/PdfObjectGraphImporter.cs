@@ -63,10 +63,6 @@ internal sealed class PdfObjectGraphImporter
             : (reference, dictionary) => transform(reference, previous(reference, dictionary));
     }
 
-    internal bool HasSourceObjectOverride((int ObjectNumber, int Generation) identity) =>
-        _sourceObjectOverrides?.ContainsKey(
-            new SourceReference(identity.ObjectNumber, identity.Generation)) == true;
-
     internal void AddSourceObjectOverrides(
         IReadOnlyDictionary<(int ObjectNumber, int Generation), PdfDictionary> overrides)
     {
