@@ -14,6 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
 - Form buttons and signed signature fields redraw correctly when their visibility changes.
 - Comment export and import preserve PDF dates with time zone offsets.
+- Repeated content appends keep PDF drawing instructions separate.
 
 - An all-users update reopens KillerPDF for the signed-in user at normal rights, whether it finishes or stops early. Windows was refusing that relaunch, so the app stayed closed.
 

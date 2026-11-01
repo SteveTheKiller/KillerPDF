@@ -1875,7 +1875,9 @@ public sealed class PdfIncrementalPageEditor
         PageState page = _pages[pageIndex];
         page.Content = page.Content is null
             ? content.ToArray()
-            : [.. page.Content, .. content.Span];
+            : page.Content.Length == 0 || page.Content[^1] is (byte)'\n' or (byte)'\r'
+            ? [.. page.Content, .. content.Span]
+            : [.. page.Content, (byte)'\n', .. content.Span];
         if (page.Entry is not null || page.ImportedEntry is not null)
             page.ContentUpdate = page.ContentUpdate == PageContentUpdate.Replace
                 ? PageContentUpdate.Replace : PageContentUpdate.Append;
