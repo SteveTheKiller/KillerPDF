@@ -226,7 +226,8 @@ public sealed partial class PdfPageRenderer
         var key = new RenderCacheKey(pageIndex, options.Width, options.Height,
             options.TransparentBackground, options.IncludeAnnotations,
             options.IncludeFormFields, options.IncludeRedactionMarks,
-            options.IncludeMeasurementAnnotations, options.ForPrinting);
+            options.IncludeMeasurementAnnotations, options.ForPrinting,
+            options.IncludePushButtonFields, options.IncludeSignedSignatureFields);
         return _renderCache.GetOrAdd(key,
             _ => RenderUncached(pageIndex, options, cancellationToken));
     }
@@ -9317,7 +9318,8 @@ public sealed partial class PdfPageRenderer
     private readonly record struct RenderCacheKey(
         int PageIndex, int Width, int Height, bool TransparentBackground,
         bool IncludeAnnotations, bool IncludeFormFields, bool IncludeRedactionMarks,
-        bool IncludeMeasurementAnnotations, bool ForPrinting);
+        bool IncludeMeasurementAnnotations, bool ForPrinting,
+        bool IncludePushButtonFields, bool IncludeSignedSignatureFields);
 
     // A dimension line, polyline, or polygon, or one of those carrying a /Measure dictionary:
     // what PdfMeasurementAnnotationReader reads back as a measurement.
