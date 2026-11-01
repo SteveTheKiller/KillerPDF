@@ -31,6 +31,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Repeated content appends keep PDF drawing instructions separate.
 - Saved signatures support mouse drag, click placement, and keyboard selection, with visible placement instructions.
 - Late page rendering preserves focus in open pickers and other windows.
+- Tab close buttons sit evenly from the tab's right edge, matching the rest of the family.
 - Keyboard focus cues respect the theme, Windows contrast refreshes are coalesced and restore frame colors, and picker selections keep text and icons shadow-free.
 
 ### Added

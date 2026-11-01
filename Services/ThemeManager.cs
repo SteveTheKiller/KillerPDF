@@ -785,6 +785,8 @@ namespace KillerPDF.Services
             SetIfAbsent("TabChamfer", 0.0);
             // The tab's own padding: 2px from the tab's left edge to its icon. A flat theme
             // supplies its compact horizontal inset and state-aligned vertical padding.
+            // Pulls the X into the tab's right padding, leaving 8px from the glyph to the edge.
+            SetIfAbsent("TabCloseMargin", new Thickness(4, -4, -4, 0));
             SetIfAbsent("TabPadding", new Thickness(2, 6, 5, 3));   // 2px lower: see TabFocusPadding
             // No PageBevel* keys: the tab page reuses the PaneBevel* set the sidebar well already
             // uses, so the two recesses are the same four Borders and cannot drift apart. A

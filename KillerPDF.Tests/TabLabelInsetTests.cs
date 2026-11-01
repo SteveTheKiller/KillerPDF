@@ -29,7 +29,7 @@ public sealed class TabLabelInsetTests
     public void EveryThemeButNinetyEightSeGetsTheInset()
     {
         string theme = File.ReadAllText(Path.Combine(FindRepositoryRoot(), "Services", "AppTheme.cs"));
-        Assert.Contains("d[\"TabLabelInset\"] = theme == Theme.SE98 ? new Thickness(0) : new Thickness(6, 0, 0, 0);",
+        Assert.Contains("d[\"TabLabelInset\"] = theme == Theme.SE98 ? new Thickness(0) : new Thickness(7, 0, 0, 0);",
             theme, StringComparison.Ordinal);
     }
 

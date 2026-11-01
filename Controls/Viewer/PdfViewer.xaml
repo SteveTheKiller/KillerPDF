@@ -193,7 +193,7 @@
                                                 <Button x:Name="tabClose" DockPanel.Dock="Right" Content="x"
                                                         Style="{DynamicResource ToolbarButtonDanger}"
                                                         FontFamily="{DynamicResource UiFont}" FontSize="{DynamicResource TabCloseFontSize}"
-                                                        Width="24" Height="24" Margin="4,-2,0,-2" Padding="0"
+                                                        Width="24" Height="24" Margin="{DynamicResource TabCloseMargin}" Padding="0"
                                                         VerticalAlignment="Center" FocusVisualStyle="{x:Null}"
                                                         ToolTip="{DynamicResource Str_TT_CloseTab}"
                                                         Tag="{Binding}" Click="CloseTab_Click"/>
