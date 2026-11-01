@@ -16,8 +16,8 @@ namespace KillerPDF.Shell
         internal IReadOnlyList<string> RecoveryNotes { get; private set; } = [];
 
         /// <summary>
-        /// Writes each unsaved document, as it is on screen, to a recovery folder and remembers the
-        /// open tabs. Returns the recovery manifest, or null when nothing needed saving.
+        /// Writes each unsaved document in every document window to one recovery folder and
+        /// remembers the open tabs. Returns the manifest, or null when nothing needed saving.
         /// Nothing here draws, so it still works after the render thread has failed.
         /// </summary>
         internal string? PrepareRenderFailureRecovery()
@@ -26,70 +26,76 @@ namespace KillerPDF.Shell
             string? folder = null;
             bool folderUnavailable = false;
             var unrecovered = new List<Controls.PdfViewer.DocumentSession>();
-            Controls.PdfViewer activeViewer = ActiveViewer;
-            try
+            MainWindow[] windows = Application.Current.Windows.OfType<MainWindow>().ToArray();
+            foreach (MainWindow window in windows) CaptureWindow(window);
+
+            void CaptureWindow(MainWindow window)
             {
-                foreach (Controls.PdfViewer pane in new[] { Viewer, ViewerB })
+                Controls.PdfViewer activeViewer = window.ActiveViewer;
+                try
                 {
-                    // One pane that cannot capture its live edits must not stop the other pane's
-                    // unsaved documents from being written.
-                    Controls.PdfViewer.PendingTextRecovery? pending = null;
-                    try { pending = pane.CapturePendingTextForRecovery(); }
-                    catch (Exception ex) when (ex is not OutOfMemoryException) { CrashReporter.Capture(ex, "Recovery pending text"); }
-                    var pendingSession = pane.ActiveSessionExt;
-                    try { pane.CaptureActiveIfAny(); }
-                    catch (Exception ex) when (ex is not OutOfMemoryException) { CrashReporter.Capture(ex, "Recovery tab capture"); }
-                    foreach (var session in pane.SessionsRef.Where(s => s.Doc is not null
-                        && (s.IsDirty || pending is not null && ReferenceEquals(s, pendingSession))).ToList())
+                    foreach (Controls.PdfViewer pane in new[] { window.Viewer, window.ViewerB })
                     {
-                        if (folder is null && !folderUnavailable)
+                        // One pane that cannot capture its live edits must not stop the other pane's
+                        // unsaved documents from being written.
+                        Controls.PdfViewer.PendingTextRecovery? pending = null;
+                        try { pending = pane.CapturePendingTextForRecovery(); }
+                        catch (Exception ex) when (ex is not OutOfMemoryException) { CrashReporter.Capture(ex, "Recovery pending text"); }
+                        var pendingSession = pane.ActiveSessionExt;
+                        try { pane.CaptureActiveIfAny(); }
+                        catch (Exception ex) when (ex is not OutOfMemoryException) { CrashReporter.Capture(ex, "Recovery tab capture"); }
+                        foreach (var session in pane.SessionsRef.Where(s => s.Doc is not null
+                            && (s.IsDirty || pending is not null && ReferenceEquals(s, pendingSession))).ToList())
                         {
-                            folder = RenderFailureRecovery.CreateFolder(RenderFailureRecovery.FolderRoots(
-                                AppDataPaths.UserRoot, AppDataPaths.LocalRoot, Path.GetTempPath()));
-                            folderUnavailable = folder is null;
-                        }
-                        if (folder is null)
-                        {
-                            unrecovered.Add(session);
-                            continue;
-                        }
-                        string name = session.SuggestedName ?? Path.GetFileName(session.OriginalFile ?? "document.pdf");
-                        string copy = RenderFailureRecovery.CopyPath(folder, name, recovered.Count);
-                        string working = Path.ChangeExtension(copy, ".working.pdf");
-                        string state = Path.ChangeExtension(copy, ".state.json");
-                        var edit = ReferenceEquals(session, pendingSession) ? pending : null;
-                        var backupErrors = new List<string>();
-                        // Preserve what is available before attempting the full save pipeline.
-                        try { session.Doc!.Save(working); }
-                        catch (Exception ex) when (ex is not OutOfMemoryException) { backupErrors.Add(ex.Message); }
-                        ActiveViewer = pane;
-                        try
-                        {
-                            pane.WithSessionLive(session, () =>
+                            if (folder is null && !folderUnavailable)
                             {
-                                try { WriteRecoveryState(state, session, edit); }
-                                catch (Exception ex) when (ex is not OutOfMemoryException) { backupErrors.Add(ex.Message); }
-                                string snapshot = pane.WriteRecoverySnapshot(edit, () => WriteSavedCopyToTemp());
-                                File.Copy(snapshot, copy, overwrite: false);
-                            });
-                            recovered.Add(new RecoveredDocument(session.OriginalFile, copy, session.SuggestedName,
-                                session.LoadedRevision));
-                            // The unedited working copy and state exist only for a failed copy; beside a
-                            // complete one they could be opened by mistake.
-                            foreach (string backup in new[] { working, state })
-                                try { File.Delete(backup); } catch (Exception ex) when (ex is not OutOfMemoryException) { }
-                        }
-                        catch (Exception ex) when (ex is not OutOfMemoryException)
-                        {
-                            App.RetainRenderRecoveryTemps(null);
-                            backupErrors.Insert(0, ex.Message);
-                            recovered.Add(new RecoveredDocument(session.OriginalFile, working, session.SuggestedName,
-                                session.LoadedRevision, string.Join("\n", backupErrors), File.Exists(state) ? state : null));
+                                folder = RenderFailureRecovery.CreateFolder(RenderFailureRecovery.FolderRoots(
+                                    AppDataPaths.UserRoot, AppDataPaths.LocalRoot, Path.GetTempPath()));
+                                folderUnavailable = folder is null;
+                            }
+                            if (folder is null)
+                            {
+                                unrecovered.Add(session);
+                                continue;
+                            }
+                            string name = session.SuggestedName ?? Path.GetFileName(session.OriginalFile ?? "document.pdf");
+                            string copy = RenderFailureRecovery.CopyPath(folder, name, recovered.Count);
+                            string working = Path.ChangeExtension(copy, ".working.pdf");
+                            string state = Path.ChangeExtension(copy, ".state.json");
+                            var edit = ReferenceEquals(session, pendingSession) ? pending : null;
+                            var backupErrors = new List<string>();
+                            // Preserve what is available before attempting the full save pipeline.
+                            try { session.Doc!.Save(working); }
+                            catch (Exception ex) when (ex is not OutOfMemoryException) { backupErrors.Add(ex.Message); }
+                            window.ActiveViewer = pane;
+                            try
+                            {
+                                pane.WithSessionLive(session, () =>
+                                {
+                                    try { window.WriteRecoveryState(state, session, edit); }
+                                    catch (Exception ex) when (ex is not OutOfMemoryException) { backupErrors.Add(ex.Message); }
+                                    string snapshot = pane.WriteRecoverySnapshot(edit, () => window.WriteSavedCopyToTemp());
+                                    File.Copy(snapshot, copy, overwrite: false);
+                                });
+                                recovered.Add(new RecoveredDocument(session.OriginalFile, copy, session.SuggestedName,
+                                    session.LoadedRevision));
+                                // The unedited working copy and state exist only for a failed copy; beside a
+                                // complete one they could be opened by mistake.
+                                foreach (string backup in new[] { working, state })
+                                    try { File.Delete(backup); } catch (Exception ex) when (ex is not OutOfMemoryException) { }
+                            }
+                            catch (Exception ex) when (ex is not OutOfMemoryException)
+                            {
+                                App.RetainRenderRecoveryTemps(null);
+                                backupErrors.Insert(0, ex.Message);
+                                recovered.Add(new RecoveredDocument(session.OriginalFile, working, session.SuggestedName,
+                                    session.LoadedRevision, string.Join("\n", backupErrors), File.Exists(state) ? state : null));
+                            }
                         }
                     }
                 }
+                finally { window.ActiveViewer = activeViewer; }
             }
-            finally { ActiveViewer = activeViewer; }
             if (folderUnavailable)
             {
                 // Nowhere to write copies: keep the session's working files for a manual recovery.
@@ -99,7 +105,8 @@ namespace KillerPDF.Shell
 
             // The snapshots are written, so a line being edited can give the tool its own look back. The
             // settings saved next would otherwise keep the page's ink as the default for new text.
-            foreach (Controls.PdfViewer pane in new[] { Viewer, ViewerB })
+            foreach (MainWindow window in windows)
+            foreach (Controls.PdfViewer pane in new[] { window.Viewer, window.ViewerB })
                 try { pane.RestoreTextToolDefaultsForExit(); }
                 catch (Exception ex) when (ex is not OutOfMemoryException) { CrashReporter.Capture(ex, "Recovery text defaults"); }
 
