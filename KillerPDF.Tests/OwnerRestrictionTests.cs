@@ -114,6 +114,29 @@ public sealed class OwnerRestrictionTests
     }
 
     [Fact]
+    public void UnlockingRefusesASourceWithNoEncryptionToCheckThePasswordAgainst()
+    {
+        string source = WriteOwnerRestricted("reader");
+        string copy = source + ".view.pdf";
+        string output = source + ".unlocked.pdf";
+        try
+        {
+            PdfEngineIntegration.WriteViewingCopy(source, copy, "reader");
+
+            Assert.ThrowsAny<Exception>(() => PdfEngineIntegration.UnlockWithPassword(copy, output, "reader"));
+            Assert.False(File.Exists(output));
+            PdfEngineIntegration.UnlockWithPassword(source, output, "owner");
+            Assert.False(PdfDocument.Open(File.ReadAllBytes(output)).IsEncrypted);
+        }
+        finally
+        {
+            File.Delete(source);
+            if (File.Exists(copy)) File.Delete(copy);
+            if (File.Exists(output)) File.Delete(output);
+        }
+    }
+
+    [Fact]
     public void TheWriterStillRefusesAUserRewriteByDefault()
     {
         string source = WriteOwnerRestricted("reader");

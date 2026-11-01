@@ -299,6 +299,17 @@ internal static partial class PdfEngineIntegration
     }
 
     /// <summary>Authenticates and fully rewrites a PDF without password encryption.</summary>
+    /// <summary>Lifts an owner restriction. A source with no encryption cannot prove the password,
+    /// so unlocking refuses it rather than accepting anything.</summary>
+    internal static void UnlockWithPassword(string sourcePath, string destinationPath, string password)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(File.ReadAllBytes(sourcePath));
+        if (!document.IsEncrypted)
+            throw new InvalidOperationException("The unlock source carries no encryption.");
+        RemoveEncryption(sourcePath, destinationPath, password);
+    }
+
     /// <summary>Writes a decrypted copy for reading a PDF its user password may not edit. The caller
     /// opens it read-only; only the owner password makes the document editable.</summary>
     internal static void WriteViewingCopy(string sourcePath, string destinationPath, string password)

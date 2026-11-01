@@ -594,8 +594,8 @@ namespace KillerPDF.Shell
                 _doc = null;
                 _doc = PdfWorkingDocument.Open(tempDec, isReadOnly: true);
                 _currentFile = tempDec;
-                ViewingCopySources[tempDec] = srcPath;
                 FinishOpenFile(displayPath, tempDec);
+                ViewingCopySources[_currentFile!] = srcPath;   // finishing can move the working path
                 _openedFromProtected = true;   // #149: the source still carries its encryption
                 ActiveViewer.UpdateRestrictionNotice();
                 SetStatus(string.Format(Loc("Str_OpenedReadOnly"),
@@ -639,6 +639,7 @@ namespace KillerPDF.Shell
             if (string.IsNullOrEmpty(_currentFile) || string.IsNullOrEmpty(_originalFile)) return false;
             string sourcePath = _currentFile;
             string displayPath = _originalFile;
+            string encryptedPath = ViewingCopySources.GetValueOrDefault(sourcePath, sourcePath);
             string? password = KillerDialog.PromptPassword(this, displayPath,
                 Loc("Str_Restricted_Prompt"), Loc("Str_Restricted_Unlock"));
             if (password is null) return false;
@@ -646,8 +647,7 @@ namespace KillerPDF.Shell
             string unlockedPath = App.MakeTempFile("dec");
             try
             {
-                PdfEngineIntegration.RemoveEncryption(
-                    ViewingCopySources.GetValueOrDefault(sourcePath, sourcePath), unlockedPath, password);
+                PdfEngineIntegration.UnlockWithPassword(encryptedPath, unlockedPath, password);
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
@@ -698,6 +698,9 @@ namespace KillerPDF.Shell
 
             void CarryOverlays()
             {
+                // A failed unlock reopens the viewing copy; it still unlocks from the original.
+                if (_doc?.IsReadOnly == true && _currentFile is not null)
+                    ViewingCopySources[_currentFile] = encryptedPath;
                 foreach (var pair in annotations) _annotations[pair.Key] = pair.Value;
                 foreach (var pair in rotations) _pageRotations[pair.Key] = pair.Value;
                 foreach (var pair in textValues) _formTextValues[pair.Key] = pair.Value;
