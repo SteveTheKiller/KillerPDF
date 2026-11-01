@@ -445,6 +445,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Print_Scale">缩放</sys:String>
     <sys:String x:Key="Str_Print_Fit">符合页面</sys:String>
     <sys:String x:Key="Str_Print_Actual">实际大小 (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">缩小过大的页面</sys:String>
     <sys:String x:Key="Str_Print_Custom">自定义 %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">缩放百分比（例如 50 或 50.23）</sys:String>
     <sys:String x:Key="Str_Print_Copies">份数</sys:String>

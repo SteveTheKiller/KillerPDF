@@ -33,6 +33,17 @@ public sealed class PrintBindingPickerTests
     }
 
     [Fact]
+    public void ScaleChoicesAreRememberedAndShrinkIsOffered()
+    {
+        string source = Preview();
+        Assert.Contains("S(\"Str_Print_Shrink\")", source, StringComparison.Ordinal);
+        Assert.Contains("PrintJobTicket.ShrinkOversized(", source, StringComparison.Ordinal);
+        Assert.Contains("App.SetSetting(\"PrintScaleMode\"", source, StringComparison.Ordinal);
+        Assert.Contains("App.SetSetting(\"PrintCustomPct\"", source, StringComparison.Ordinal);
+        Assert.Contains("App.GetSetting(\"PrintScaleMode\")", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BindingPickerHasTheVisibleLabelAsItsAccessibleName()
     {
         Assert.Contains("System.Windows.Automation.AutomationProperties.SetName(_flipCombo, S(\"Str_Print_FlipOn\"));",

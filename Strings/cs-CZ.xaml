@@ -519,6 +519,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Print_Scale">Měřítko</sys:String>
     <sys:String x:Key="Str_Print_Fit">Přizpůsobit stránce</sys:String>
     <sys:String x:Key="Str_Print_Actual">Skutečná velikost (100 %)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Zmenšit příliš velké stránky</sys:String>
     <sys:String x:Key="Str_Print_Custom">Vlastní %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Procento měřítka (např. 50 nebo 50,23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Kopie</sys:String>

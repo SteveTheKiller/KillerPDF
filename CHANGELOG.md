@@ -37,6 +37,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Added
 
 - Printing adds reverse order and long-edge or short-edge duplex binding, and page selection moves to its own Pages to print section. (Thanks @Rafie-kun)
+- Placing a signature shows a faint copy at the pointer, and the mouse wheel resizes it before you click. (#468)
+- Printing adds a Shrink oversized pages scale, and the print window remembers the scale and custom percentage. (#464)
 - New commands: `set-metadata`, `set-bookmarks`, `add-comment`, `delete-comments`, and `crop`, which can also resize pages.
 - The print command accepts `--duplex` and `--reverse`, command-line help lists where `--password` works, and the help page has a full command reference.
 

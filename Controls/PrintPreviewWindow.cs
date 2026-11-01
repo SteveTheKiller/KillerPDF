@@ -352,6 +352,7 @@ namespace KillerPDF
             {
                 1 => actual,
                 2 => actual * (layout.CustomPct / 100.0),
+                3 => PrintJobTicket.ShrinkOversized(actual, Math.Min(areaW / rw[idx], areaH / rh[idx])),
                 _ => Math.Min(areaW / rw[idx], areaH / rh[idx])
             };
         }
@@ -696,7 +697,13 @@ namespace KillerPDF
             scale.Items.Add(S("Str_Print_Fit"));
             scale.Items.Add(S("Str_Print_Actual"));
             scale.Items.Add(S("Str_Print_Custom"));
-            scale.SelectedIndex = 0;
+            scale.Items.Add(S("Str_Print_Shrink"));
+            if (int.TryParse(App.GetSetting("PrintScaleMode"), out int savedScale) && savedScale is >= 0 and <= 3)
+                _scaleMode = savedScale;
+            if (double.TryParse(App.GetSetting("PrintCustomPct"), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double savedPct) && savedPct > 0)
+                _customPct = savedPct;
+            scale.SelectedIndex = _scaleMode;
             panel.Children.Add(scale);
 
             // Custom percentage: a compact box (always 1-100ish) with a "%" suffix, revealed only
@@ -737,6 +744,11 @@ namespace KillerPDF
             scaleRow.Children.Add(_scaleBox);   // fills the rest of the column width
             var scaleSlide = new TranslateTransform();
             scaleRow.RenderTransform = scaleSlide;
+            if (_scaleMode == 2)
+            {
+                _scaleBox.Text = _customPct.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                scaleRow.Visibility = Visibility.Visible;
+            }
 
             scale.SelectionChanged += (s, _) =>
             {
@@ -1334,6 +1346,8 @@ namespace KillerPDF
             {
                 if (_queue != null) App.SetSetting("PrintPrinter", _queue.FullName);
                 App.SetSetting("PrintGrayscale",     _grayscale    ? "1" : "0");
+                App.SetSetting("PrintScaleMode",     _scaleMode.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                App.SetSetting("PrintCustomPct",     _customPct.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 App.SetSetting("PrintDuplex",        _duplex       ? "1" : "0");
                 App.SetSetting("PrintDuplexBinding", _duplexShort  ? "1" : "0");
             }

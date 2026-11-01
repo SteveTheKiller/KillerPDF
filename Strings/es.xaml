@@ -445,6 +445,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Print_Scale">Escala</sys:String>
     <sys:String x:Key="Str_Print_Fit">Ajustar a la página</sys:String>
     <sys:String x:Key="Str_Print_Actual">Tamaño real (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Reducir páginas demasiado grandes</sys:String>
     <sys:String x:Key="Str_Print_Custom">Personalizado %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Porcentaje de escala (ej. 50 o 50.23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Copias</sys:String>

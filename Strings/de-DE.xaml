@@ -445,6 +445,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Print_Scale">Skalierung</sys:String>
     <sys:String x:Key="Str_Print_Fit">An Seite anpassen</sys:String>
     <sys:String x:Key="Str_Print_Actual">Tatsächliche Größe (100 %)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Übergroße Seiten verkleinern</sys:String>
     <sys:String x:Key="Str_Print_Custom">Benutzerdefiniert %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Skalierungsprozentsatz (z. B. 50 oder 50,23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Kopien</sys:String>

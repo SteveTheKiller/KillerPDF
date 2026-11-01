@@ -73,6 +73,9 @@ internal static class PrintJobTicket
         return new PrintTicket(rewritten);
     }
 
+    /// <summary>The scale that fits an oversized page but never enlarges a smaller one.</summary>
+    internal static double ShrinkOversized(double actual, double fit) => Math.Min(actual, fit);
+
     /// <summary>Reads a command-line duplex choice: none, long or short.</summary>
     internal static bool TryParseDuplex(string text, out bool twoSided, out bool shortEdge)
     {

@@ -528,6 +528,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Print_Scale">Scala</sys:String>
     <sys:String x:Key="Str_Print_Fit">Adatta alla pagina</sys:String>
     <sys:String x:Key="Str_Print_Actual">Dimensione attuale (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Riduci le pagine troppo grandi</sys:String>
     <sys:String x:Key="Str_Print_Custom">Personalizzata %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Percentuale scala (es. 50 o 50.23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Copie</sys:String>

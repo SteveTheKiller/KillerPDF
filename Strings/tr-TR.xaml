@@ -445,6 +445,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Print_Scale">Ölçek</sys:String>
     <sys:String x:Key="Str_Print_Fit">Sayfaya Sığdır</sys:String>
     <sys:String x:Key="Str_Print_Actual">Gerçek boyut (%100)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Büyük sayfaları küçült</sys:String>
     <sys:String x:Key="Str_Print_Custom">Özel %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Ölçek yüzdesi (örn. 50 veya 50.23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Kopya</sys:String>

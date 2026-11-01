@@ -528,6 +528,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Print_Scale">Escala</sys:String>
     <sys:String x:Key="Str_Print_Fit">Ajustar à página</sys:String>
     <sys:String x:Key="Str_Print_Actual">Tamanho real (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Reduzir páginas grandes demais</sys:String>
     <sys:String x:Key="Str_Print_Custom">% personalizada</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Porcentagem de escala (ex.: 50 ou 50,23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Cópias</sys:String>

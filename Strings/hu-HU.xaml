@@ -528,6 +528,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Print_Scale">Méretezés</sys:String>
     <sys:String x:Key="Str_Print_Fit">Oldalhoz igazítás</sys:String>
     <sys:String x:Key="Str_Print_Actual">Tényleges méret (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Túlméretes oldalak kicsinyítése</sys:String>
     <sys:String x:Key="Str_Print_Custom">Egyéni %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Méretezési százalék (pl. 50 vagy 50,23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Példányszám</sys:String>

@@ -448,6 +448,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Print_Scale">Масштаб</sys:String>
     <sys:String x:Key="Str_Print_Fit">Бетке сыйғызу</sys:String>
     <sys:String x:Key="Str_Print_Actual">Нақты өлшем (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Үлкен беттерді кішірейту</sys:String>
     <sys:String x:Key="Str_Print_Custom">Реттелетін %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Масштаб пайызы (мысалы, 50 немесе 50.23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Көшірме</sys:String>

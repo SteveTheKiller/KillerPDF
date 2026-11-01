@@ -528,6 +528,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Print_Scale">Tỷ lệ</sys:String>
     <sys:String x:Key="Str_Print_Fit">Vừa trang</sys:String>
     <sys:String x:Key="Str_Print_Actual">Kích thước thực (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Thu nhỏ trang quá khổ</sys:String>
     <sys:String x:Key="Str_Print_Custom">Tùy chỉnh %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Phần trăm tỷ lệ (ví dụ: 50 hoặc 50.23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Số bản in</sys:String>

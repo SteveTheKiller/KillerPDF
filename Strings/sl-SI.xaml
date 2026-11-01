@@ -471,6 +471,7 @@
     <sys:String x:Key="Str_Print_Scale">Merilo</sys:String>
     <sys:String x:Key="Str_Print_Fit">Prilagodi strani</sys:String>
     <sys:String x:Key="Str_Print_Actual">Dejanska velikost (100 %)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Pomanjšaj prevelike strani</sys:String>
     <sys:String x:Key="Str_Print_Custom">Po meri (%)</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Odstotek merila (npr. 50 ali 50,23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Kopije</sys:String>

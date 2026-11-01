@@ -510,6 +510,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Print_Scale">Skala</sys:String>
     <sys:String x:Key="Str_Print_Fit">Dopasuj do strony</sys:String>
     <sys:String x:Key="Str_Print_Actual">Rzeczywisty rozmiar (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Zmniejsz zbyt duże strony</sys:String>
     <sys:String x:Key="Str_Print_Custom">Własny %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Skala procentowa (np. 50 lub 50,23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Kopie</sys:String>

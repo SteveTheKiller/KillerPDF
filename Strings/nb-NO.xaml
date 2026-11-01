@@ -528,6 +528,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Print_Scale">Skala</sys:String>
     <sys:String x:Key="Str_Print_Fit">Tilpass til siden</sys:String>
     <sys:String x:Key="Str_Print_Actual">Faktisk størrelse (100 %)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Forminsk for store sider</sys:String>
     <sys:String x:Key="Str_Print_Custom">Egendefinert %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Skaleringsprosent (f.eks. 50 eller 50,23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Antall kopier</sys:String>

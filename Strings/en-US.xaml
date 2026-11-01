@@ -529,6 +529,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Print_Scale">Scale</sys:String>
     <sys:String x:Key="Str_Print_Fit">Fit to page</sys:String>
     <sys:String x:Key="Str_Print_Actual">Actual size (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Shrink oversized pages</sys:String>
     <sys:String x:Key="Str_Print_Custom">Custom %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Scale percentage (e.g. 50 or 50.23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Copies</sys:String>

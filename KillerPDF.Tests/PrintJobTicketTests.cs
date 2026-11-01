@@ -119,6 +119,15 @@ public sealed class PrintJobTicketTests
         Assert.False(PrintJobTicket.TryParseDuplex("sideways", out _, out _));
     }
 
+    [Theory]
+    [InlineData(1.0, 0.5, 0.5)]   // oversized page shrinks to fit
+    [InlineData(1.0, 2.0, 1.0)]   // smaller page is not enlarged
+    [InlineData(1.0, 1.0, 1.0)]
+    public void ShrinkOversized_OnlyEverReducesAPage(double actual, double fit, double expected)
+    {
+        Assert.Equal(expected, PrintJobTicket.ShrinkOversized(actual, fit));
+    }
+
     [Fact]
     public void Sheets_ForwardGroupsPagesInOrder()
     {

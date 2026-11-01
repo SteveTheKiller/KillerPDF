@@ -445,6 +445,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Print_Scale">স্কেল</sys:String>
     <sys:String x:Key="Str_Print_Fit">পৃষ্ঠায় ফিট</sys:String>
     <sys:String x:Key="Str_Print_Actual">প্রকৃত আকার (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">বড় পৃষ্ঠা ছোট করুন</sys:String>
     <sys:String x:Key="Str_Print_Custom">কাস্টম %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">স্কেল শতাংশ (যেমন 50 বা 50.23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">কপি</sys:String>

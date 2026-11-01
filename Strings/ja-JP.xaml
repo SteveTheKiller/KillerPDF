@@ -528,6 +528,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Print_Scale">拡大率</sys:String>
     <sys:String x:Key="Str_Print_Fit">ページに合わせる</sys:String>
     <sys:String x:Key="Str_Print_Actual">実際のサイズ (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">大きいページを縮小</sys:String>
     <sys:String x:Key="Str_Print_Custom">カスタム %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">拡大率 (例 : 50 または 50.23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">部数</sys:String>

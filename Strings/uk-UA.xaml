@@ -528,6 +528,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Print_Scale">Масштаб</sys:String>
     <sys:String x:Key="Str_Print_Fit">Вписати в сторінку</sys:String>
     <sys:String x:Key="Str_Print_Actual">Фактичний розмір (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Зменшувати завеликі сторінки</sys:String>
     <sys:String x:Key="Str_Print_Custom">Власний %</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Масштаб у відсотках (наприклад, 50 або 50.23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Копії</sys:String>

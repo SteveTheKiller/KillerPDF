@@ -528,6 +528,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Print_Scale">Échelle</sys:String>
     <sys:String x:Key="Str_Print_Fit">Ajuster à la page</sys:String>
     <sys:String x:Key="Str_Print_Actual">Taille réelle (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Shrink">Réduire les pages trop grandes</sys:String>
     <sys:String x:Key="Str_Print_Custom">% personnalisé</sys:String>
     <sys:String x:Key="Str_Print_ScaleHint">Pourcentage d'échelle (p. ex. 50 ou 50,23)</sys:String>
     <sys:String x:Key="Str_Print_Copies">Copies</sys:String>
