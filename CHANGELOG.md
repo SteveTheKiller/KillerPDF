@@ -16,7 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
 - Reopening PDFs preserves zoom across view modes, and fit and zoom stay accurate while pages load or switch layouts.
-- Corrected Japanese character order and vertical-text selection, hit testing, and accessible text ranges. (#465)
+- Corrected Japanese character order, rotated paragraph line order, vertical-text selection, hit testing, and accessible text ranges. (#465)
 - Merge accepts images with single-element device color-space arrays. (#469)
 - Rasterize Region detects unsupported tagged PDFs before region selection and explains why. (#369)
 - Form buttons and signed signature fields redraw correctly when their visibility changes.

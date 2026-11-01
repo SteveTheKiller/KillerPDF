@@ -7,6 +7,30 @@ namespace KillerPDF.Tests;
 
 public sealed class JapaneseSelectionOrderTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void RotatedLinesKeepParagraphOrderWhenTheirLengthsDiffer(bool downward, bool reverseDrawingOrder)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"kp-rotated-paragraph-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            string first = downward ? "0 -1 1 0 120 350" : "0 1 -1 0 100 40";
+            string second = downward ? "0 -1 1 0 100 350" : "0 1 -1 0 120 40";
+            string shortLine = $"BT /F1 12 Tf {first} Tm (AB) Tj ET";
+            string longLine = $"BT /F1 12 Tf {second} Tm (ABCDEFGH) Tj ET";
+            File.WriteAllBytes(path, PhrasePdfWithContent("AB CD EF", first,
+                reverseDrawingOrder ? longLine + " " + shortLine : shortLine + " " + longLine,
+                omitInitialLine: true));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            Assert.Equal("AB\nAB CD EF", TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
+            Assert.Equal("AB\nAB CD EF", PageReadingText.Build(runs.Chars.Select(c => (c.Value, c.Word, c.Line)).ToArray()).Text);
+        }
+        finally { File.Delete(path); }
+    }
+
     [Fact]
     public void HorizontalColumnsRetainTheirReadingOrderAndHitTargets()
     {
@@ -150,14 +174,14 @@ public sealed class JapaneseSelectionOrderTests
     // transverse ink bounds without depending on fonts installed on the test machine.
     private static byte[] PhrasePdf(string phrase, string matrix) => PhrasePdfWithContent(phrase, matrix, "");
 
-    private static byte[] PhrasePdfWithContent(string phrase, string matrix, string extraContent)
+    private static byte[] PhrasePdfWithContent(string phrase, string matrix, string extraContent, bool omitInitialLine = false)
     {
         string codes = string.Concat(Enumerable.Range(0, phrase.Length).Select(i => ((char)('A' + i)).ToString()));
         string map = "1 begincodespacerange <00> <FF> endcodespacerange\n"
             + phrase.Length + " beginbfchar\n"
             + string.Join("\n", phrase.Select((c, i) => $"<{i + 65:X2}> <{(int)c:X4}>"))
             + "\nendbfchar";
-        string content = $"BT /F1 12 Tf {matrix} Tm ({codes}) Tj ET {extraContent}";
+        string content = omitInitialLine ? extraContent : $"BT /F1 12 Tf {matrix} Tm ({codes}) Tj ET {extraContent}";
         string[] objects =
         [
             "<< /Type /Catalog /Pages 2 0 R >>",

@@ -231,8 +231,21 @@ namespace KillerPDF.Services
                 if (group is null) verticalLines.Add([word]);
                 else group.Add(word);
             }
-            foreach (var group in verticalLines.OrderByDescending(g => g.Max(w => w.BoundingBox.Top))
-                .ThenBy(g => g.Min(w => w.BoundingBox.Left)))
+            // Order parallel lines across their baseline, not by their ink length along it.
+            // A counterclockwise paragraph progresses rightward; clockwise text progresses leftward.
+            var orderedVertical = verticalLines.OrderByDescending(g => g.Max(w => w.BoundingBox.Top))
+                .ThenBy(g => g.Min(w => w.BoundingBox.Left)).ToList();
+            foreach (var direction in orderedVertical.Select(g => g[0].Letters[0].WritingDirection).Distinct().ToArray())
+            {
+                var parallel = orderedVertical.Where(g => g[0].Letters[0].WritingDirection == direction)
+                    .OrderBy(g => direction == KillerPdf.Engine.Documents.PdfWritingDirection.BottomToTop
+                        ? g.Min(w => w.BoundingBox.Left) : -g.Max(w => w.BoundingBox.Right)).ToArray();
+                int next = 0;
+                for (int i = 0; i < orderedVertical.Count; i++)
+                    if (orderedVertical[i][0].Letters[0].WritingDirection == direction)
+                        orderedVertical[i] = parallel[next++];
+            }
+            foreach (var group in orderedVertical)
                 lineWords.Add((group, group.Max(w => w.BoundingBox.Top), group.Min(w => w.BoundingBox.Bottom)));
 
             int wordOrdinal = 0;
