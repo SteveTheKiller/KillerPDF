@@ -6,6 +6,14 @@ namespace KillerPDF.Services
     /// <summary>Keeps newest-first undo histories within both a depth and memory budget.</summary>
     internal static class UndoHistoryBudget
     {
+        internal static bool TryApply<T>(Stack<T> history, Func<T, bool> apply)
+        {
+            if (history.Count == 0) return false;
+            if (!apply(history.Peek())) return false;
+            history.Pop();
+            return true;
+        }
+
         internal static void PushBounded<T>(Stack<T> history, T entry,
             Func<T, long> sizeOf, int maximumEntries, long maximumBytes)
         {

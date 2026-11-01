@@ -2725,12 +2725,15 @@ namespace KillerPDF.Controls
                 return;
             }
 
-            var entry = _undoStack.Pop();
-            // Capture what this undo is about to overwrite, so Ctrl+Y can bring it back.
-            var inverse = CaptureInverse(entry);
-            if (ApplyHistoryEntry(entry) && inverse is { } inv)
-                Services.UndoHistoryBudget.PushBounded(_redoStack, inv, EstimateHistoryBytes,
-                    maximumEntries: 20, maximumBytes: 256L * 1024 * 1024);
+            Services.UndoHistoryBudget.TryApply(_undoStack, entry =>
+            {
+                var inverse = CaptureInverse(entry);
+                if (!ApplyHistoryEntry(entry)) return false;
+                if (inverse is { } inv)
+                    Services.UndoHistoryBudget.PushBounded(_redoStack, inv, EstimateHistoryBytes,
+                        maximumEntries: 20, maximumBytes: 256L * 1024 * 1024);
+                return true;
+            });
         }
 
         /// <summary>Redo (Ctrl+Y / Ctrl+Shift+Z): re-applies the last undone action. Any new edit
@@ -2744,13 +2747,15 @@ namespace KillerPDF.Controls
                 SetStatus(Loc("Str_St_NothingToRedo"));
                 return;
             }
-            var entry = _redoStack.Pop();
-            var inverse = CaptureInverse(entry);
-            // Straight onto the undo stack - NOT PushUndo, which would clear the redo chain.
-            if (ApplyHistoryEntry(entry) && inverse is { } inv)
-                Services.UndoHistoryBudget.PushBounded(_undoStack, inv, EstimateHistoryBytes,
-                    maximumEntries: 20, maximumBytes: 256L * 1024 * 1024);
-            SetStatus(Loc("Str_St_Redone"));
+            if (Services.UndoHistoryBudget.TryApply(_redoStack, entry =>
+            {
+                var inverse = CaptureInverse(entry);
+                if (!ApplyHistoryEntry(entry)) return false;
+                if (inverse is { } inv)
+                    Services.UndoHistoryBudget.PushBounded(_undoStack, inv, EstimateHistoryBytes,
+                        maximumEntries: 20, maximumBytes: 256L * 1024 * 1024);
+                return true;
+            })) SetStatus(Loc("Str_St_Redone"));
         }
 
         /// <summary>The state that applying <paramref name="entry"/> will overwrite, captured as a
@@ -2869,18 +2874,13 @@ namespace KillerPDF.Controls
                 int selectedIdx = _currentPage;
                 var tempPath = App.MakeTempFile("undo");
                 System.IO.File.WriteAllBytes(tempPath, entry.DocBytes);
-                CloseEngineDocumentSession();
-                _secondaryRenderCts?.Cancel();
-                _continuousRenderCts?.Cancel();
-                _continuousSharpenCts?.Cancel();
-                InvalidateRenderCache(_active);
-                _doc?.Close();
                 // PdfSharpCore can write a snapshot whose xref offset points at the xref table,
                 // producing "Unexpected token 'xref'" on reopen. Repair via Import (preserves
                 // rotations) then PDFium, mirroring the save/reload path, instead of crashing.
+                PdfWorkingDocument replacement;
                 try
                 {
-                    _doc = PdfWorkingDocument.Open(tempPath);
+                    replacement = PdfWorkingDocument.Open(tempPath);
                 }
                 catch (Exception undoOpenEx) when (PdfImport.IsXRefException(undoOpenEx))
                 {
@@ -2889,8 +2889,15 @@ namespace KillerPDF.Controls
                         && !PdfEngineIntegration.TryCreateZeroRotationCopy(tempPath, fixedPath))
                         throw;
                     tempPath = fixedPath;
-                    _doc = PdfWorkingDocument.Open(tempPath);
+                    replacement = PdfWorkingDocument.Open(tempPath);
                 }
+                CloseEngineDocumentSession();
+                _secondaryRenderCts?.Cancel();
+                _continuousRenderCts?.Cancel();
+                _continuousSharpenCts?.Cancel();
+                InvalidateRenderCache(_active);
+                _doc?.Close();
+                _doc = replacement;
                 _currentFile = tempPath;
                 _annotations.Clear();
                 if (entry.AnnotSnapshot is not null)
