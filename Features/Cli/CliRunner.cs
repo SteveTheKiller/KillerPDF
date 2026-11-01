@@ -101,9 +101,10 @@ namespace KillerPDF.Features
             ], "--") ?? args;
 
             // The validation resave keeps its dedicated runner in BatchMode.cs.
-            if (args.Any(a => Eq(a, "--batch-resave")))
+            // Only the command position counts, so an option value can say anything.
+            if (args.Length > 0 && Eq(args[0], "--batch-resave"))
                 return BatchRunner.TryRunBatch(args, out exitCode);
-            if (args.Any(a => Eq(a, "--batch-render")))
+            if (args.Length > 0 && Eq(args[0], "--batch-render"))
                 return BatchRenderRunner.TryRunBatchRender(args, out exitCode);
 
             string? command = args.FirstOrDefault(a =>

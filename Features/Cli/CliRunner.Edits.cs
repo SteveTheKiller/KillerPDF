@@ -84,9 +84,23 @@ namespace KillerPDF.Features
                 if (CliParsePageRange(range, pageCount, out string error) is not { } parsed) { con.WriteLine(error); return 2; }
                 pages = [.. parsed];
             }
-            CommentEdit[] removals = [.. PdfCommentReader.Read(PdfEngineIntegration.OpenForReading(File.ReadAllBytes(source)))
-                .Where(comment => pages is null || pages.Contains(comment.PageIndex))
-                .Select(comment => new CommentRemoval(comment))];
+            // Links and form fields can carry a description, but they are not comments. Replies go
+            // with their parent wherever they sit, or removing the parent would orphan them.
+            PdfCommentInfo[] annotations = [.. PdfCommentReader.Read(
+                    PdfEngineIntegration.OpenForReading(File.ReadAllBytes(source)), includeMarkupWithoutText: true)
+                .Where(comment => comment.Subtype is not ("Popup" or "Link" or "Widget"))];
+            List<PdfCommentInfo> chosen = [.. annotations.Where(comment =>
+                !string.IsNullOrEmpty(comment.Contents) && (pages is null || pages.Contains(comment.PageIndex)))];
+            for (int added = 1; added > 0;)
+            {
+                HashSet<int> parents = [.. chosen.Where(comment => comment.ObjectNumber is not null)
+                    .Select(comment => comment.ObjectNumber!.Value)];
+                PdfCommentInfo[] replies = [.. annotations.Where(comment => !chosen.Contains(comment)
+                    && comment.ReplyToObjectNumber is int parent && parents.Contains(parent))];
+                chosen.AddRange(replies);
+                added = replies.Length;
+            }
+            CommentEdit[] removals = [.. chosen.Select(comment => new CommentRemoval(comment))];
             CliWriteEditedCopy(source, output, path =>
             {
                 if (removals.Length > 0) PdfEngineIntegration.ApplyCommentEdits(path, removals, null);
@@ -120,6 +134,13 @@ namespace KillerPDF.Features
             {
                 if (CliParsePageRange(range, pageCount, out string error) is not { } parsed) { con.WriteLine(error); return 2; }
                 pages = parsed;
+            }
+            if (box is { } crop && !media)
+            {
+                var sizes = PdfPageInformation.Read(PdfEngineIntegration.OpenForReading(File.ReadAllBytes(source)));
+                if (pages.Any(page => crop.X >= sizes[page].Width || crop.Y >= sizes[page].Height
+                    || crop.X + crop.Width <= 0 || crop.Y + crop.Height <= 0))
+                { con.WriteLine("--box does not overlap the page."); return 2; }
             }
             CliWriteEditedCopy(source, output, path =>
             {

@@ -2365,7 +2365,13 @@ internal static partial class PdfEngineIntegration
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(pages);
         var editor = new PdfIncrementalPageEditor(PdfDocument.Open(File.ReadAllBytes(path)));
-        foreach (int pageIndex in pages) editor.SetMediaBox(pageIndex, box.X, box.Y, box.Width, box.Height);
+        foreach (int pageIndex in pages)
+        {
+            editor.SetMediaBox(pageIndex, box.X, box.Y, box.Width, box.Height);
+            // Older boxes would keep the page at its old visible size, or leave nothing visible.
+            foreach (PdfPageBox stale in new[] { PdfPageBox.Crop, PdfPageBox.Trim, PdfPageBox.Bleed, PdfPageBox.Art })
+                editor.ClearPageBox(pageIndex, stale);
+        }
         ReplaceWithBuiltResult(path, editor.Build());
     }
 

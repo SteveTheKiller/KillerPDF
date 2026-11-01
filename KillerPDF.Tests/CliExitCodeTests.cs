@@ -167,6 +167,15 @@ public sealed class CliExitCodeTests : IDisposable
     }
 
     [Fact]
+    public void AnOptionValueNamingABatchCommandStaysLiteralText()
+    {
+        string output = Path.Combine(folder, "literal.pdf");
+        Assert.Equal(0, Run("--add-comment", Blank("l.pdf"), output, "--page", "1", "--text", "--batch-resave"));
+        Assert.Equal("--batch-resave", Assert.Single(
+            KillerPdf.Engine.Documents.PdfCommentReader.Read(Open(output))).Contents);
+    }
+
+    [Fact]
     public void AddCommentOutsideTheDocumentIsBadUsage()
     {
         Assert.Equal(2, Run("--add-comment", Blank("p.pdf"), Path.Combine(folder, "p2.pdf"), "--page", "9", "--text", "x"));
@@ -189,6 +198,7 @@ public sealed class CliExitCodeTests : IDisposable
     [InlineData("0,0,100")]
     [InlineData("0,0,-5,10")]
     [InlineData("a,b,c,d")]
+    [InlineData("100000,100000,10,10")]
     public void CropWithAnUnusableBoxIsBadUsage(string box)
     {
         Assert.Equal(2, Run("--crop", Blank("b.pdf"), Path.Combine(folder, "b2.pdf"), "--box", box));
