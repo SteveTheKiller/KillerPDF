@@ -72,6 +72,7 @@ namespace KillerPDF.Features
             "--regex", "--find", "--whole-pages", "--fill", "--overlay", "--sanitize",
             "--pfx", "--pfx-password", "--cert", "--reason", "--location", "--contact", "--timestamp-server",
             "--appearance", "--appearance-text", "--scanned-look", "--scanner", "--review", "--keep-scanned",
+            "--author", "--subject", "--keywords", "--creator", "--x", "--y", "--box",
         ];
 
         /// <summary>
@@ -95,7 +96,8 @@ namespace KillerPDF.Features
                 "measurements", "separations", "repair-links", "toc", "page-labels", "initial-view",
                 "set-layer", "add-attachment", "edit-attachment", "portfolio-view", "redact", "protect",
                 "export", "convert-office", "data-merge", "replace-text", "export-form-data", "import-form-data",
-                "recognize-fields", "xfa-to-acroform", "flatten-forms", "macro", "sign", "scan"
+                "recognize-fields", "xfa-to-acroform", "flatten-forms", "macro", "sign", "scan",
+                "set-metadata", "set-bookmarks", "add-comment", "delete-comments", "crop"
             ], "--") ?? args;
 
             // The validation resave keeps its dedicated runner in BatchMode.cs.
@@ -122,6 +124,8 @@ namespace KillerPDF.Features
                 Eq(a, "--portfolio") || Eq(a, "--comments") || Eq(a, "--navigation-audit") ||
                 Eq(a, "--compare-structure") || Eq(a, "--measurements") || Eq(a, "--separations") ||
                 Eq(a, "--repair-links") || Eq(a, "--toc") || Eq(a, "--page-labels") ||
+                Eq(a, "--set-metadata") || Eq(a, "--set-bookmarks") || Eq(a, "--add-comment") ||
+                Eq(a, "--delete-comments") || Eq(a, "--crop") ||
                 Eq(a, "--initial-view") || Eq(a, "--set-layer") || Eq(a, "--add-attachment") ||
                 Eq(a, "--edit-attachment") || Eq(a, "--portfolio-view") ||
                 Eq(a, "--redact") || Eq(a, "--protect") || Eq(a, "--export") || Eq(a, "--convert-office") ||
@@ -279,6 +283,21 @@ namespace KillerPDF.Features
                     case "--page-labels":
                         exitCode = CliPageLabels(positionals, options, con);
                         break;
+                    case "--set-metadata":
+                        exitCode = CliSetMetadata(positionals, options, con);
+                        break;
+                    case "--set-bookmarks":
+                        exitCode = CliSetBookmarks(positionals, options, con);
+                        break;
+                    case "--add-comment":
+                        exitCode = CliAddComment(positionals, options, con);
+                        break;
+                    case "--delete-comments":
+                        exitCode = CliDeleteComments(positionals, options, con);
+                        break;
+                    case "--crop":
+                        exitCode = CliCrop(positionals, options, con);
+                        break;
                     case "--initial-view":
                         exitCode = CliInitialView(positionals, options, con);
                         break;
@@ -420,7 +439,7 @@ namespace KillerPDF.Features
             "  killerpdf print <in.pdf> [--printer <name>] [--pages <range>] [--copies <n>]",
             "                                           [--duplex none|long|short] [--reverse]",
             "                                           print silently (default printer if none named)",
-            "  --password <p> also works on to-image, flatten, print, ocr, scan-to-text, fix-orientation,",
+            "  --password <p> works on preflight, decrypt, to-image, flatten, print, ocr, scan-to-text, fix-orientation,",
             "                                           straighten and separations; other commands need an unprotected file",
             "  killerpdf scan <out.pdf> [--scanner <name>] [--show-settings]",
             "                                           scan through a TWAIN scanner into a PDF; --scan --list shows scanners",
@@ -500,6 +519,14 @@ namespace KillerPDF.Features
             "                                           find form fields; with an output, add the text fields and check boxes",
             "  killerpdf xfa-to-acroform <in.pdf> <out.pdf> [--flatten]   convert an XFA form to standard fields",
             "  killerpdf flatten-forms <in.pdf> <out.pdf>      turn form fields into page content",
+            "  killerpdf set-metadata <in.pdf> <out.pdf> [--title <t>] [--author <a>] [--subject <s>] [--keywords <k>] [--creator <c>]",
+            "                                           change document properties; fields not named stay as they are",
+            "  killerpdf set-bookmarks <in.pdf> <out.pdf> <bookmarks.json> [--replace]",
+            "                                           import bookmarks from a bookmark data file",
+            "  killerpdf add-comment <in.pdf> <out.pdf> --page <n> --text <t> [--x <pt>] [--y <pt>] [--author <name>]",
+            "  killerpdf delete-comments <in.pdf> <out.pdf> [--pages <range>]",
+            "  killerpdf crop <in.pdf> <out.pdf> --box <x,y,w,h> [--pages <range>] [--media]   or --clear",
+            "                                           crop pages in PDF points; --media resizes the page itself",
             "  killerpdf macro <in.pdf> <saved name | macro.json | starter:<name>> <out.pdf> [--lang <code>]",
             "                                           [--text <phrase>] [--terms <file>] [--rasterize] [--json]",
             "                                           run a macro; --macro --list shows the saved ones",

@@ -2359,6 +2359,16 @@ internal static partial class PdfEngineIntegration
         ReplaceWithBuiltResult(path, editor.Build());
     }
 
+    /// <summary>Resizes pages by setting their media box.</summary>
+    internal static void ApplyMediaBoxes(string path, IReadOnlyList<int> pages, PageRectangle box)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(pages);
+        var editor = new PdfIncrementalPageEditor(PdfDocument.Open(File.ReadAllBytes(path)));
+        foreach (int pageIndex in pages) editor.SetMediaBox(pageIndex, box.X, box.Y, box.Width, box.Height);
+        ReplaceWithBuiltResult(path, editor.Build());
+    }
+
     /// <summary>Decides, without changing anything, which marked pages can be redacted in place.</summary>
     internal static PdfContentRedactionPlan AnalyzeRedaction(
         PdfDocument document, IReadOnlyList<PdfRedactionRegion> regions)

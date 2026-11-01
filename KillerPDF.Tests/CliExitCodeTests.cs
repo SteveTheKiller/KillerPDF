@@ -127,6 +127,102 @@ public sealed class CliExitCodeTests : IDisposable
             source, StringComparison.Ordinal);
     }
 
+    private string Blank(string name)
+    {
+        string path = Path.Combine(folder, name);
+        File.WriteAllBytes(path, BlankPdf());
+        return path;
+    }
+
+    private static KillerPdf.Engine.Documents.PdfDocument Open(string path) =>
+        KillerPdf.Engine.Documents.PdfDocument.Open(File.ReadAllBytes(path));
+
+    [Fact]
+    public void SetMetadataChangesOnlyTheNamedFields()
+    {
+        string first = Path.Combine(folder, "meta1.pdf"), second = Path.Combine(folder, "meta2.pdf");
+        Assert.Equal(0, Run("--set-metadata", Blank("m.pdf"), first, "--title", "Report", "--author", "Ann"));
+        Assert.Equal(0, Run("--set-metadata", first, second, "--subject", "Q3"));
+
+        var info = KillerPdf.Engine.Documents.PdfDocumentInformation.Read(Open(second));
+        Assert.Equal(("Report", "Ann", "Q3"), (info.Title, info.Author, info.Subject));
+    }
+
+    [Fact]
+    public void SetMetadataWithNothingToSetIsBadUsage()
+    {
+        Assert.Equal(2, Run("--set-metadata", Blank("n.pdf"), Path.Combine(folder, "n2.pdf")));
+    }
+
+    [Fact]
+    public void CommentsCanBeAddedAndDeleted()
+    {
+        string noted = Path.Combine(folder, "noted.pdf"), cleared = Path.Combine(folder, "cleared.pdf");
+        Assert.Equal(0, Run("--add-comment", Blank("c.pdf"), noted, "--page", "1", "--text", "Check this"));
+        Assert.Equal("Check this", Assert.Single(
+            KillerPdf.Engine.Documents.PdfCommentReader.Read(Open(noted))).Contents);
+
+        Assert.Equal(0, Run("--delete-comments", noted, cleared));
+        Assert.Empty(KillerPdf.Engine.Documents.PdfCommentReader.Read(Open(cleared)));
+    }
+
+    [Fact]
+    public void AddCommentOutsideTheDocumentIsBadUsage()
+    {
+        Assert.Equal(2, Run("--add-comment", Blank("p.pdf"), Path.Combine(folder, "p2.pdf"), "--page", "9", "--text", "x"));
+    }
+
+    [Theory]
+    [InlineData("--box")]
+    [InlineData("--media")]
+    public void CropReachesThePage(string mode)
+    {
+        string output = Path.Combine(folder, "crop" + mode.Trim('-') + ".pdf");
+        string[] arguments = mode == "--media"
+            ? ["--crop", Blank("k.pdf"), output, "--box", "0,0,100,200", "--media"]
+            : ["--crop", Blank("k.pdf"), output, "--box", "0,0,100,200"];
+        Assert.Equal(0, Run(arguments));
+        Assert.NotEqual(File.ReadAllBytes(Path.Combine(folder, "k.pdf")).Length, new FileInfo(output).Length);
+    }
+
+    [Theory]
+    [InlineData("0,0,100")]
+    [InlineData("0,0,-5,10")]
+    [InlineData("a,b,c,d")]
+    public void CropWithAnUnusableBoxIsBadUsage(string box)
+    {
+        Assert.Equal(2, Run("--crop", Blank("b.pdf"), Path.Combine(folder, "b2.pdf"), "--box", box));
+    }
+
+    [Fact]
+    public void SetBookmarksImportsAnExchangeFile()
+    {
+        string json = Path.Combine(folder, "marks.json");
+        File.WriteAllText(json, KillerPdf.Engine.Documents.PdfBookmarkExchange.ToJson(
+            KillerPdf.Engine.Documents.PdfDocument.Open(new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
+                .AddBlankPage().AddBookmark("Start", 0).Build())));
+        Assert.Equal(0, Run("--set-bookmarks", Blank("s.pdf"), Path.Combine(folder, "s2.pdf"), json));
+    }
+
+    [Fact]
+    public void EveryCommandIsDocumentedOnTheHelpPage()
+    {
+        string runner = ReadSource("Features", "Cli", "CliRunner.cs");
+        int start = runner.IndexOf("\"accessibility\", \"attachments\"", StringComparison.Ordinal);
+        string list = runner[start..runner.IndexOf("], \"--\")", start, StringComparison.Ordinal)];
+        string page = ReadSource("pdf-landing", "help.html");
+        string[] verbs = [.. System.Text.RegularExpressions.Regex.Matches(list, "\"([a-z-]+)\"").Select(match => match.Groups[1].Value)];
+        Assert.NotEmpty(verbs);
+        Assert.Empty(verbs.Where(verb => !page.Contains("killerpdf " + verb, StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void SetBookmarksRefusesAMissingFile()
+    {
+        Assert.Equal(2, Run("--set-bookmarks", Blank("t.pdf"), Path.Combine(folder, "t2.pdf"),
+            Path.Combine(folder, "none.json")));
+    }
+
     [Fact]
     public void PrintWithAnUnusableDuplexIsBadUsage()
     {

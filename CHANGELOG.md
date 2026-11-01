@@ -37,7 +37,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Added
 
 - Printing adds reverse order and long-edge or short-edge duplex binding, and page selection moves to its own Pages to print section. (Thanks @Rafie-kun)
-- The print command accepts `--duplex` and `--reverse`, and command-line help lists where `--password` works.
+- New commands: `set-metadata`, `set-bookmarks`, `add-comment`, `delete-comments`, and `crop`, which can also resize pages.
+- The print command accepts `--duplex` and `--reverse`, command-line help lists where `--password` works, and the help page has a full command reference.
 
 ## [1.9.1] - 2026-10-31
 

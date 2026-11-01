@@ -224,12 +224,183 @@ html[data-theme="light"] .help-cat, html[data-theme="light"] .kbd-group h4 { tex
 <div class="acc-item"><button class="acc-head" data-i18n="ph19_watch_head">Automatic folders<span class="kbd">Alt+Shift+W</span><span class="chev">&#9656;</span></button><div class="acc-body"><div class="acc-body-inner"><p data-i18n="ph19_watch_1"><b>Automatic folders</b> watch an input folder and run a saved macro on every PDF that lands there, writing the result to an output folder (the two must differ) while KillerPDF is open, including from the system tray. Set a file name filter (<code>*.pdf</code> by default; subfolders are not scanned) and pick the macro. Originals and existing outputs are kept.</p><p data-i18n="ph19_watch_2">Save and start, Pause, Resume and Retry failed files sit on the dialog with a live status per file (Waiting, Processing, Completed, Needs attention), and <b>Pause when a file fails</b> stops the queue at the first problem. Limits: PDFs up to 64 MB, 2,000 queued files, and a file that needs a password or a step that needs input is set aside for a manual run. New copies do not keep existing digital signatures, OCR models must be installed before you start, and editing the macro later does not change a running task.</p></div></div></div>
 <div class="acc-item"><button class="acc-head" data-i18n="ph19_merge_head">Data merge<span class="kbd">Ctrl+Shift+D, D</span><span class="chev">&#9656;</span></button><div class="acc-body"><div class="acc-body-inner"><p data-i18n="ph19_merge_1"><b>Data merge</b> fills the open PDF form once per record from a <b>CSV</b>, <b>JSON</b> or <b>XLSX</b> file and writes one PDF per record into a folder you choose. Columns map to fields of the same name automatically, or to <code>{{placeholder}}</code> text in the page; the mapping dialog sets each value as Text, Number or Date with a format and default, adds an include-when condition, places images from a column of file paths, and loads or saves the whole mapping as a JSON profile.</p><p data-i18n="ph19_merge_2">Choose Editable output (fields stay fillable) or Flattened. A review lists the mappings and destination files first, existing outputs ask before they are replaced, nothing can overwrite the template, and one failing record does not stop the rest. From a script, <code>data-merge template.pdf data.csv outDir\ --flatten</code>.</p></div></div></div>
 <h2 class="help-cat" id="cli" data-i18n="ph_255">Command line</h2>
-<div class="acc-item"><button class="acc-head" data-i18n="ph_262">Using the command line<span class="chev">&#9656;</span></button><div class="acc-body"><div class="acc-body-inner"><p data-i18n="ph_317">In an installed copy, run <code>killerpdf</code> from any new terminal. It waits for the result and returns the exit code. Run <code>KillerPDF-Portable.exe</code> directly, or use the installed <code>KillerPDF.App.exe</code> under <code>%LOCALAPPDATA%\Programs\KillerPDF</code> or <code>%ProgramFiles%\KillerPDF</code>.</p><p data-i18n="ph19_cli_exit"><b>Exit codes</b> are the scripting contract: <code>0</code> success, <code>1</code> the operation failed, <code>2</code> bad usage, and <code>3</code> from the report commands (<code>preflight</code>, <code>accessibility</code>, <code>navigation-audit</code>, <code>compare-structure</code>) when the file was read and findings were reported. Check <code>$LASTEXITCODE</code> in PowerShell.</p><p data-i18n="ph_266"><code>.\KillerPDF.App.exe --help</code> prints the full reference; <code>--version</code> prints the version. Because KillerPDF is a windowed app, console text can interleave with your prompt - that is normal.</p><p data-i18n="ph_267">Page ranges are written like <code>1-3,5,9-12</code>. Encrypted inputs are unlocked automatically where possible; pass <code>--password &lt;p&gt;</code> for password-protected files.</p></div></div></div>
+<div class="acc-item"><button class="acc-head" data-i18n="ph_262">Using the command line<span class="chev">&#9656;</span></button><div class="acc-body"><div class="acc-body-inner"><p data-i18n="ph_317">In an installed copy, run <code>killerpdf</code> from any new terminal. It waits for the result and returns the exit code. Run <code>KillerPDF-Portable.exe</code> directly, or use the installed <code>KillerPDF.App.exe</code> under <code>%LOCALAPPDATA%\Programs\KillerPDF</code> or <code>%ProgramFiles%\KillerPDF</code>.</p><p data-i18n="ph19_cli_exit"><b>Exit codes</b> are the scripting contract: <code>0</code> success, <code>1</code> the operation failed, <code>2</code> bad usage, and <code>3</code> from the report commands (<code>preflight</code>, <code>accessibility</code>, <code>navigation-audit</code>, <code>compare-structure</code>) when the file was read and findings were reported. Check <code>$LASTEXITCODE</code> in PowerShell.</p><p data-i18n="ph_266"><code>.\KillerPDF.App.exe --help</code> prints the full reference; <code>--version</code> prints the version. Because KillerPDF is a windowed app, console text can interleave with your prompt - that is normal.</p><p data-i18n="ph_267">Page ranges are written like <code>1-3,5,9-12</code>. Encrypted inputs are unlocked automatically where possible; pass <code>--password &lt;p&gt;</code> on the commands that list it.</p></div></div></div>
 <div class="acc-item"><button class="acc-head" data-i18n="ph_268">Merge, extract &amp; split<span class="chev">&#9656;</span></button><div class="acc-body"><div class="acc-body-inner"><p data-i18n="ph_269"><code>.\KillerPDF.App.exe --merge out.pdf a.pdf b.pdf scan.jpg</code> merges PDFs <b>and images</b> into one file, in the order given.</p><p data-i18n="ph_270">Merges rewrite named-destination links, so internal cross-references and TOC links keep working in the combined file.</p><p data-i18n="ph_271"><code>.\KillerPDF.App.exe --extract-pages in.pdf 1-3,5 out.pdf</code> pulls a page range into a new PDF.</p><p data-i18n="ph_272"><code>.\KillerPDF.App.exe --split in.pdf pages\</code> writes one PDF per page, named <code>in-page-001.pdf</code> and so on.</p><p data-i18n="ph19_cli_split"><code>--every n</code>, <code>--parts n</code>, <code>--bookmarks level</code> or <code>--max-size 5MB</code> choose a different rule (one at a time), <code>--name</code> sets a template with <code>{name}</code>, <code>{index}</code>, <code>{first}</code>, <code>{last}</code> and <code>{title}</code>, and <code>--overwrite</code> replaces existing parts, never the source.</p></div></div></div>
 <div class="acc-item"><button class="acc-head" data-i18n="ph_273">Decrypt, flatten &amp; render to images<span class="chev">&#9656;</span></button><div class="acc-body"><div class="acc-body-inner"><p data-i18n="ph_274"><code>.\KillerPDF.App.exe --decrypt locked.pdf open.pdf</code> removes encryption losslessly (bookmarks and forms survive). Add <code>--password &lt;p&gt;</code> if the file needs a password to open.</p><p data-i18n="ph_275"><code>.\KillerPDF.App.exe --flatten in.pdf flat.pdf</code> rasterizes every page into an uneditable PDF, the same 150 DPI output as Save Flattened in the app. <code>--dpi</code> overrides the resolution.</p><p data-i18n="ph_276"><code>.\KillerPDF.App.exe --to-image in.pdf imgs\ --dpi 300 --format jpg</code> renders pages to PNG (default) or JPG files. <code>--pages</code> limits the range.</p><p data-i18n="ph_277">Rotated pages come out in their viewed orientation in all three.</p></div></div></div>
 <div class="acc-item"><button class="acc-head" data-i18n="ph_278">Print &amp; OCR from scripts<span class="chev">&#9656;</span></button><div class="acc-body"><div class="acc-body-inner"><p data-i18n="ph_279"><code>.\KillerPDF.App.exe --print in.pdf --printer "HP LaserJet" --pages 1-4 --copies 2</code> prints silently at 300 DPI, fit-scaled and centered. Without <code>--printer</code> it uses the Windows default; a partial printer name matches too, and a bad name lists what is available.</p><p data-i18n="ph_280"><code>.\KillerPDF.App.exe --ocr scan.pdf searchable.pdf --lang eng</code> lays an invisible, selectable text layer over a scan - the same on-device OCR as the app, nothing uploaded.</p><p data-i18n="ph_318">Language models (<code>eng</code>, <code>spa</code>, <code>fra</code>, <code>deu</code>, <code>ces</code>, <code>hun</code>, <code>ita</code>, <code>jpn</code>, <code>kaz</code>, <code>pol</code>, <code>rus</code>, <code>slv</code>, <code>tur</code>, <code>ben</code>, <code>nor</code>, <code>por</code>, <code>ukr</code>, <code>vie</code>, <code>chi_sim</code>, <code>chi_tra</code>) download automatically on first use and remain cached.</p></div></div></div>
 <div class="acc-item"><button class="acc-head" data-i18n="ph_282">Batch resave (validation harness)<span class="chev">&#9656;</span></button><div class="acc-body"><div class="acc-body-inner"><p data-i18n="ph_283"><code>.\KillerPDF.App.exe --batch-resave inDir\ outDir\ --log report.csv</code> resaves a file or a whole folder tree through the standard open/save pipeline, mirroring the folder structure.</p><p data-i18n="ph_284">Each file reports <code>OK</code>, <code>SKIP</code> (with a reason), or <code>FAIL</code>, to the console and the optional CSV log.</p><p data-i18n="ph_285">This powers KillerPDF's standards-conformance testing: resave a validation corpus, run veraPDF over input and output, and diff the results with <code>validation/Compare-VeraPDF.ps1</code> from the repo. The claim it verifies: a KillerPDF save does not degrade PDF/A conformance.</p></div></div></div>
-<div class="acc-item"><button class="acc-head" data-i18n="ph19_cli_more_head">Every command, by group<span class="chev">&#9656;</span></button><div class="acc-body"><div class="acc-body-inner"><p data-i18n="ph19_cli_more_1">Two spellings work for every command: the bare word (<code>killerpdf merge ...</code>) and the older <code>--merge</code> flag. There are 66 commands; <code>killerpdf help</code> lists them all with their options. <code>--json</code> turns a report into machine-readable output, and <code>--allow-incomplete</code> keeps a page whose content cannot be drawn exactly instead of failing <code>to-image</code>, <code>flatten</code> or <code>print</code>.</p><p data-i18n="ph19_cli_more_2"><b>Pages:</b> rotate-pages, delete-pages, move-pages, insert-blank, duplicate-page, reverse-pages, fix-orientation, straighten, divide-spreads, rasterize-region. <b>Documents:</b> optimize, number-pages, bates, booklet, nup, toc, page-labels, auto-bookmarks, initial-view, repair-links, set-layer, portfolio-view, add-attachment, edit-attachment, replace-text. <b>Security:</b> protect, decrypt, sign, redact. <b>Convert and forms:</b> export, convert-office, scan, scan-to-text, data-merge, export-form-data, import-form-data, recognize-fields, xfa-to-acroform, flatten-forms. <b>Reports:</b> document-info, search-text, preflight, accessibility, attachments, print-production, signatures, layers, portfolio, comments, measurements, separations, compare-structure, navigation-audit. <b>Automation:</b> macro, batch-resave, batch-render.</p><p data-i18n="ph19_cli_more_3"><code>--secrets-stdin</code> reads <code>password</code>, <code>user-password</code>, <code>owner-password</code> and <code>pfx-password</code> as one JSON object from standard input, so no password sits in a process list or shell history. Edits made from the command line honor the permissions of a PDF opened with its user password; the owner password lifts them.</p></div></div></div>
+<div class="acc-item"><button class="acc-head" data-i18n="ph19_cli_more_head">Every command, by group<span class="chev">&#9656;</span></button><div class="acc-body"><div class="acc-body-inner"><p data-i18n="ph19_cli_more_1">Two spellings work for every command: the bare word (<code>killerpdf merge ...</code>) and the older <code>--merge</code> flag. There are 71 commands; <code>killerpdf help</code> lists them all with their options. <code>--json</code> turns a report into machine-readable output, and <code>--allow-incomplete</code> keeps a page whose content cannot be drawn exactly instead of failing <code>to-image</code>, <code>flatten</code> or <code>print</code>.</p><p data-i18n="ph19_cli_more_2"><b>Pages:</b> rotate-pages, delete-pages, move-pages, insert-blank, duplicate-page, reverse-pages, fix-orientation, straighten, divide-spreads, rasterize-region, crop. <b>Documents:</b> optimize, number-pages, bates, booklet, nup, toc, page-labels, auto-bookmarks, set-bookmarks, set-metadata, add-comment, delete-comments, initial-view, repair-links, set-layer, portfolio-view, add-attachment, edit-attachment, replace-text. <b>Security:</b> protect, decrypt, sign, redact. <b>Convert and forms:</b> export, convert-office, scan, scan-to-text, data-merge, export-form-data, import-form-data, recognize-fields, xfa-to-acroform, flatten-forms. <b>Reports:</b> document-info, search-text, preflight, accessibility, attachments, print-production, signatures, layers, portfolio, comments, measurements, separations, compare-structure, navigation-audit. <b>Automation:</b> macro, batch-resave, batch-render.</p><p data-i18n="ph19_cli_more_3"><code>--secrets-stdin</code> reads <code>password</code>, <code>user-password</code>, <code>owner-password</code> and <code>pfx-password</code> as one JSON object from standard input, so no password sits in a process list or shell history. Edits made from the command line honor the permissions of a PDF opened with its user password; the owner password lifts them.</p></div></div></div>
+<div class="acc-item"><button class="acc-head">Full command reference<span class="chev">&#9656;</span></button><div class="acc-body"><div class="acc-body-inner"><p>Every command with all of its options, exactly as <code>killerpdf help</code> prints it.</p><pre style="overflow-x:auto;white-space:pre;font-size:12px;line-height:1.45">KillerPDF &quot; + AppVersion.Display + &quot; command line usage
+Existing --command forms stay compatible.
+
+  killerpdf &lt;file.pdf&gt;                                    open in the app
+  killerpdf version | -v                                print version
+  killerpdf help | -h | /?                              this text
+  killerpdf verify | /verify                            verify every installed payload file
+
+  killerpdf merge &lt;out.pdf&gt; &lt;in1&gt; &lt;in2&gt; ...        merge PDFs (and images) into one PDF
+  killerpdf extract-pages &lt;in.pdf&gt; &lt;pages&gt; &lt;out.pdf&gt;
+                                           pull pages into a new PDF (pages like 1-3,5,9-12)
+  killerpdf split &lt;in.pdf&gt; &lt;outDir&gt;                write one PDF per page
+                                           [--every &lt;n&gt;] fixed page count per part
+                                           [--parts &lt;n&gt;] equal parts
+                                           [--bookmarks &lt;level&gt;] a part per bookmark at that level
+                                           [--max-size &lt;n[KB|MB]&gt;] grow parts up to a size budget
+                                           [--name &lt;template&gt;] {name} {index} {first} {last} {title}
+                                           [--overwrite] replace existing parts, never the source
+  killerpdf optimize &lt;in.pdf&gt; &lt;out.pdf&gt; [--strip &lt;list&gt;] [--images &lt;dpi&gt;] [--jpeg-quality &lt;n&gt;]
+                                           [--invalidate-signatures] [--report]
+                                           reduce file size; --images resamples images drawn
+                                           above 1.5 times that resolution; strip takes any of metadata,
+                                           attachments, javascript, comments, thumbnails,
+                                           bookmarks, forms, xfa, openaction, layers;
+                                           a signed file or one with Reader usage rights is refused
+                                           unless --invalidate-signatures gives those up
+  killerpdf number-pages &lt;in.pdf&gt; &lt;out.pdf&gt; [--template &lt;text&gt;] [--pages &lt;range&gt;]
+                                           [--edge header|footer] [--align left|center|right]
+                                           [--number-format decimal|upper-roman|lower-roman|
+                                           upper-letters|lower-letters] [--font-size &lt;n&gt;]
+                                           tokens: {page} {pages} {label} {filename} {title}
+                                           {author} {date}
+  killerpdf bates &lt;outDir&gt; &lt;in1.pdf&gt; [in2.pdf ...] [--start &lt;n&gt;] [--digits &lt;n&gt;]
+                                           [--prefix &lt;text&gt;] [--suffix &lt;text&gt;] [--edge ...]
+                                           [--align ...] [--font-size &lt;n&gt;]
+                                           stamp one continuous Bates sequence across files
+  killerpdf booklet &lt;in.pdf&gt; &lt;out.pdf&gt; [--sheet &lt;name|WxH&gt;] [--margin &lt;n&gt;] [--gutter &lt;n&gt;]
+                                           [--creep &lt;n&gt;] [--binding long|short] [--marks]
+                                           two-up saddle-stitch imposition
+  killerpdf nup &lt;in.pdf&gt; &lt;out.pdf&gt; --grid &lt;cols&gt;x&lt;rows&gt; [--sheet &lt;name|WxH&gt;] [--margin &lt;n&gt;]
+                                           [--gutter &lt;n&gt;] [--marks]   place several pages per sheet
+  killerpdf auto-bookmarks &lt;in.pdf&gt; &lt;out.pdf&gt; [--min-size &lt;pt&gt;] [--depth &lt;n&gt;] [--pattern &lt;regex&gt;]
+                                           build an outline from detected headings; exit 3 when no headings are found
+  killerpdf preflight &lt;in.pdf&gt; [--profile general|attachments|print|&lt;profile.json&gt;]
+                                           [--json] [--password &lt;p&gt;]   exit 3 when findings
+  killerpdf accessibility &lt;in.pdf&gt; [--json]        report accessibility findings; exit 3 when found
+  killerpdf attachments &lt;in.pdf&gt; [&lt;outDir&gt;] [--json]
+                                           list embedded files, or extract them to a folder
+  killerpdf decrypt &lt;in.pdf&gt; &lt;out.pdf&gt; [--password &lt;p&gt;]
+                                           remove encryption (lossless when possible)
+  killerpdf to-image &lt;in.pdf&gt; &lt;outDir&gt; [--dpi &lt;n&gt;] [--format png|jpg] [--pages &lt;range&gt;] [--transparent] [--overwrite]
+                                           render pages to images (default 150 dpi, png;
+                                           background composites to white unless --transparent, png only)
+  killerpdf flatten &lt;in.pdf&gt; &lt;out.pdf&gt; [--dpi &lt;n&gt;] [--color-mode color|grayscale|black-white]
+                                           [--threshold &lt;0-255&gt;] [--compression lossless|jpeg]
+                                           [--jpeg-quality &lt;1-100&gt;] [--scanned-look all|tilt,paper,grain,soft-focus,shadow]
+                                           rasterize into an uneditable PDF, optionally looking scanned
+  killerpdf print &lt;in.pdf&gt; [--printer &lt;name&gt;] [--pages &lt;range&gt;] [--copies &lt;n&gt;]
+                                           [--duplex none|long|short] [--reverse]
+                                           print silently (default printer if none named)
+  --password &lt;p&gt; works on preflight, decrypt, to-image, flatten, print, ocr, scan-to-text, fix-orientation,
+                                           straighten and separations; other commands need an unprotected file
+  killerpdf scan &lt;out.pdf&gt; [--scanner &lt;name&gt;] [--show-settings]
+                                           scan through a TWAIN scanner into a PDF; --scan --list shows scanners
+  killerpdf ocr &lt;in.pdf&gt; &lt;out.pdf&gt; [--lang &lt;code&gt;] add an invisible searchable text layer (default eng;
+                                           other languages download on first use)
+  killerpdf scan-to-text &lt;in.pdf&gt; &lt;out.pdf&gt; [--lang &lt;code&gt;] [--review &lt;folder&gt;] [--keep-scanned &lt;file&gt;]
+                                           turn scanned pages into real text in a matching typeface;
+                                           --review writes each word as scanned beside it as text
+  killerpdf rotate-pages &lt;in.pdf&gt; &lt;pages&gt; &lt;degrees&gt; &lt;out.pdf&gt;
+                                           rotate selected pages by 90, 180, or 270 degrees
+  killerpdf delete-pages &lt;in.pdf&gt; &lt;pages&gt; &lt;out.pdf&gt; remove selected pages
+  killerpdf move-pages &lt;in.pdf&gt; &lt;pages&gt; &lt;position&gt; &lt;out.pdf&gt;
+                                           move pages before a one-based position
+  killerpdf insert-blank &lt;in.pdf&gt; &lt;position&gt; &lt;out.pdf&gt; [--width &lt;pt&gt;] [--height &lt;pt&gt;]
+                                           insert a blank page before a one-based position
+  killerpdf duplicate-page &lt;in.pdf&gt; &lt;page&gt; &lt;out.pdf&gt; duplicate one page
+  killerpdf reverse-pages &lt;in.pdf&gt; &lt;out.pdf&gt; [--pages &lt;range&gt;]
+                                           reverse the order of all or the selected pages
+  killerpdf fix-orientation &lt;in.pdf&gt; &lt;out.pdf&gt; [--pages &lt;range&gt;] [--lang &lt;code&gt;]
+                                           turn pages to read upright (OCR reads scans)
+  killerpdf straighten &lt;in.pdf&gt; &lt;out.pdf&gt; [--pages &lt;range&gt;]
+                                           level tilted scans that have no text layer
+  killerpdf divide-spreads &lt;in.pdf&gt; &lt;out.pdf&gt; [--pages &lt;range&gt;] [--direction vertical|horizontal]
+                                           [--position &lt;0.1-0.9&gt;]   split two-page spreads
+  killerpdf rasterize-region &lt;in.pdf&gt; &lt;page&gt; &lt;left,bottom,right,top&gt; &lt;out.pdf&gt; [--dpi &lt;n&gt;]
+                                           turn one box (points, unrotated page) into an image
+  killerpdf print-production &lt;in.pdf&gt; [--json]    page boxes, inks and output intents
+  killerpdf signatures &lt;in.pdf&gt; [--json]          each signature&#39;s signer, time, trust and changes
+  killerpdf layers &lt;in.pdf&gt; [--json]              list layers and their visibility and locks
+  killerpdf set-layer &lt;in.pdf&gt; &lt;out.pdf&gt; &lt;layer|#object&gt; [--name &lt;new&gt;] [--visible on|off] [--locked on|off]
+  killerpdf portfolio &lt;in.pdf&gt; [--json]           portfolio presentation, fields and folders
+  killerpdf portfolio-view &lt;in.pdf&gt; &lt;out.pdf&gt; (--view details|tile|hidden [--initial &lt;name&gt;] | --clear)
+  killerpdf add-attachment &lt;in.pdf&gt; &lt;out.pdf&gt; &lt;file&gt; [&lt;file&gt; ...] [--description &lt;text&gt;]
+                                           [--relationship data|source|alternative|supplement|unspecified]
+  killerpdf edit-attachment &lt;in.pdf&gt; &lt;out.pdf&gt; &lt;name&gt; [--rename &lt;new&gt;] [--description &lt;text&gt;]
+                                           [--mime &lt;type&gt;] [--relationship &lt;name&gt;] [--remove]
+  killerpdf comments &lt;in.pdf&gt; [--json]            list review comments and their replies
+  killerpdf measurements &lt;in.pdf&gt; [--json | --csv] report the saved measurements
+  killerpdf separations &lt;in.pdf&gt; [&lt;outDir&gt;] [--pages &lt;range&gt;] [--dpi &lt;n&gt;] [--json] [--overwrite]
+                                           list inks, or write each page&#39;s plates as images
+  killerpdf compare-structure &lt;original.pdf&gt; &lt;changed.pdf&gt; [--json]
+                                           compare content, resources and geometry; exit 3 when they differ
+  killerpdf navigation-audit &lt;in.pdf&gt; [--json]    check links, bookmarks and destinations; exit 3 when found
+  killerpdf repair-links &lt;in.pdf&gt; &lt;out.pdf&gt; [--unsafe] [--unresolved]
+                                           remove unsafe or broken links (both by default)
+  killerpdf toc &lt;in.pdf&gt; &lt;out.pdf&gt; [--title &lt;text&gt;] [--depth &lt;1-6&gt;]
+                                           insert clickable contents pages built from the bookmarks
+  killerpdf page-labels &lt;in.pdf&gt; &lt;out.pdf&gt; &lt;page:style[:prefix[:start]],...&gt;
+                                           set page-label ranges, such as 1:lower-roman,5:decimal
+  killerpdf initial-view &lt;in.pdf&gt; &lt;out.pdf&gt; [--page &lt;n&gt;] [--zoom fit-page|fit-width|fit-height|actual|&lt;percent&gt;]
+                                           [--layout &lt;name&gt;] [--panel &lt;name&gt;] [--hide-toolbar on|off]
+                                           [--hide-menu on|off] [--hide-window-ui on|off] [--fit-window on|off]
+                                           [--center-window on|off] [--show-title on|off]
+  killerpdf redact &lt;in.pdf&gt; &lt;out.pdf&gt; [--text &lt;phrase&gt;] [--terms &lt;file&gt;] [--regex &lt;pattern&gt;]
+                                           [--find email,phone,ssn,card,iban] [--whole-pages &lt;range&gt;] [--marked]
+                                           [--match-case] [--fill &lt;color&gt;] [--overlay &lt;text&gt;] [--rasterize]
+                                           [--sanitize all|&lt;list&gt;] [--dry-run]   permanently remove content;
+                                           exit 3 and no output when pages could not be read
+  killerpdf protect &lt;in.pdf&gt; &lt;out.pdf&gt; [--user-password &lt;p&gt;] [--owner-password &lt;p&gt;] [--allow print,copy,edit]
+                                           [--recipients &lt;cert.cer&gt;,...] [--invalidate-signatures]   AES-256 copy
+  killerpdf sign &lt;in.pdf&gt; &lt;out.pdf&gt; (--pfx &lt;file&gt; [--pfx-password &lt;p&gt;] | --cert &lt;thumbprint or name&gt;)
+                                           [--reason &lt;text&gt;] [--location &lt;text&gt;] [--contact &lt;text&gt;]
+                                           [--timestamp] [--timestamp-server &lt;url&gt;] [--appearance &lt;page&gt;[:&lt;corner&gt;]]
+                                           [--appearance-text &lt;text&gt;] [--width &lt;pt&gt;] [--height &lt;pt&gt;] [--font-size &lt;pt&gt;]
+                                           add a digital signature, optionally timestamped and visible
+  killerpdf export &lt;in.pdf&gt; &lt;out.docx|.xlsx|.pptx|.html|.md|.txt|.json&gt; [--pages &lt;range&gt;] [--report]
+                                           export to Office, web and text formats
+  killerpdf convert-office &lt;in.docx|.xlsx|.doc|.xls&gt; &lt;out.pdf&gt;
+                                           convert a Word or Excel file to PDF
+  killerpdf data-merge &lt;template.pdf&gt; &lt;data.csv|.json|.xlsx&gt; &lt;outDir&gt; [--name &lt;file name&gt;] [--flatten] [--overwrite]
+                                           fill one copy of the form per record
+  killerpdf replace-text &lt;in.pdf&gt; &lt;out.pdf&gt; &lt;find&gt; &lt;replace&gt; [--match-case] [--whole-word]
+                                           rewrite matching lines in their own fonts
+  killerpdf export-form-data &lt;in.pdf&gt; &lt;out.fdf|.xfdf|.json&gt; [--no-comments]
+  killerpdf import-form-data &lt;in.pdf&gt; &lt;data.fdf|.xfdf&gt; &lt;out.pdf&gt; [--flatten]
+  killerpdf recognize-fields &lt;in.pdf&gt; [&lt;out.pdf&gt;] [--json]
+                                           find form fields; with an output, add the text fields and check boxes
+  killerpdf xfa-to-acroform &lt;in.pdf&gt; &lt;out.pdf&gt; [--flatten]   convert an XFA form to standard fields
+  killerpdf flatten-forms &lt;in.pdf&gt; &lt;out.pdf&gt;      turn form fields into page content
+  killerpdf set-metadata &lt;in.pdf&gt; &lt;out.pdf&gt; [--title &lt;t&gt;] [--author &lt;a&gt;] [--subject &lt;s&gt;] [--keywords &lt;k&gt;] [--creator &lt;c&gt;]
+                                           change document properties; fields not named stay as they are
+  killerpdf set-bookmarks &lt;in.pdf&gt; &lt;out.pdf&gt; &lt;bookmarks.json&gt; [--replace]
+                                           import bookmarks from a bookmark data file
+  killerpdf add-comment &lt;in.pdf&gt; &lt;out.pdf&gt; --page &lt;n&gt; --text &lt;t&gt; [--x &lt;pt&gt;] [--y &lt;pt&gt;] [--author &lt;name&gt;]
+  killerpdf delete-comments &lt;in.pdf&gt; &lt;out.pdf&gt; [--pages &lt;range&gt;]
+  killerpdf crop &lt;in.pdf&gt; &lt;out.pdf&gt; --box &lt;x,y,w,h&gt; [--pages &lt;range&gt;] [--media]   or --clear
+                                           crop pages in PDF points; --media resizes the page itself
+  killerpdf macro &lt;in.pdf&gt; &lt;saved name | macro.json | starter:&lt;name&gt;&gt; &lt;out.pdf&gt; [--lang &lt;code&gt;]
+                                           [--text &lt;phrase&gt;] [--terms &lt;file&gt;] [--rasterize] [--json]
+                                           run a macro; --macro --list shows the saved ones
+  killerpdf document-info &lt;in.pdf&gt;                 print document details as JSON
+  killerpdf search-text &lt;in.pdf&gt; &lt;query&gt;            print page hits as JSON; exit 3 when pages
+                                           could not be read (listed as unreadablePages)
+  killerpdf batch-resave &lt;in&gt; &lt;out&gt; [--log &lt;f.csv&gt;] [--quiet]
+                                           resave a file or tree through the standard
+                                           open/save pipeline (validation harness)
+  killerpdf batch-render &lt;in&gt; &lt;outDir&gt; [--size &lt;px&gt;] [--pages &lt;n&gt;] [--log &lt;f.csv&gt;] [--quiet]
+                                           render the first pages of a file or tree to PNG
+                                           with per-page timings (render benchmark)
+                                           --allow-incomplete also writes pages with omitted
+                                           content (release-gate comparisons)
+  --secrets-stdin                          read password, user-password, owner-password and
+                                           pfx-password from standard input as one JSON object
+                                           instead of the command line, where other programs can see them
+  --allow-incomplete                       keep a page whose content cannot be drawn exactly instead of
+                                           failing: to-image, flatten and print name it; batch-render
+                                           marks it INCOMPLETE and counts it, keeping its log row OK
+
+Exit codes: 0 success, 1 operation failed, 2 bad usage, 3 findings or nothing to do (where noted).
+Runs headless and works while the KillerPDF window is open.</pre></div></div></div>
 <h2 class="help-cat" id="shortcuts" data-i18n="ph_146">Keyboard shortcuts</h2>
 <p data-i18n="release_185_shortcuts">At the bottom of the shortcut list, you can turn off all application keyboard shortcuts. Ctrl+Shift+K always works to turn them on or off, even when the others are disabled.</p>
 <p data-i18n="release_185_rotation">Ctrl+R rotates selected pages 90° clockwise. Ctrl+Shift+R rotates them 90° counterclockwise.</p>
