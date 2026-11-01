@@ -105,7 +105,17 @@ internal static class Program
                 return CertificateCatalogSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]));
             if (args.Length == 5 && args[0] == "--verify-toolbar-availability" && args[4] == "--startup-smoke")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]), toolbarAvailability: true);
-            if (args.Length == 5 && (args[0] is "--verify-render-recovery" or "--verify-pending-text-recovery") && args[4] == "--startup-smoke")
+            if (args.Length == 5 && (args[0] is "--verify-render-recovery" or "--verify-pending-text-recovery" or "--verify-multiwindow-recovery" or "--verify-signature-keyboard" or "--verify-undo-storage-failure" or "--verify-japanese-selection" or "--verify-dirty-open-viewport" or "--verify-cross-mode-zoom"
+                or "--verify-cross-mode-zoom-reverse" or "--verify-cross-mode-zoom-twopage" or "--verify-cross-mode-fit-page"
+                or "--verify-cross-mode-fit-width" or "--verify-cross-mode-grid" or "--verify-zoom-close-writer"
+                or "--verify-cross-mode-zoom-clamp" or "--verify-cross-mode-zoom-reassert"
+                or "--verify-cross-mode-zoom-navigate" or "--verify-cross-mode-zoom-wheel"
+                or "--verify-cross-mode-zoom-button" or "--verify-cross-mode-zoom-sequence"
+                or "--verify-cross-mode-fit-page-pending" or "--verify-cross-mode-fit-width-pending"
+                or "--verify-cross-mode-fit-zoom-pending" or "--verify-cross-mode-zoom-fit-pending"
+                or "--verify-cached-fit-zoom-pending" or "--verify-cross-mode-zoom-compare-fit"
+                or "--verify-cross-mode-fit-page-twopage-pending" or "--verify-two-page-fit-after-mode-switch"
+                or "--verify-two-page-zoom-after-mode-switch") && args[4] == "--startup-smoke")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]), renderRecovery: true);
             if (args.Length == 5 && args[0] == "--verify-reference-repair-notice" && args[4] == "--startup-smoke")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]), referenceRepairNotice: true);

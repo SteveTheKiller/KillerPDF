@@ -404,3 +404,82 @@ isolated data root.
 `--verify-paragraph-refusal` checks rotated-page guidance through actual tool search.
 It requires ordinary fixture candidates, refusal for the unsupported fixture and
 unchanged source bytes, and uses a fresh process and evidence directory.
+
+## Recovery, signature and text-selection regressions
+
+Build the app and this tool first. Use an owned, unlocked lab VM for every case
+below, a fresh output directory, and no other running test window. The signature
+keyboard case requires SN01 or SN02; the current Japanese clipboard case requires
+SN01. Pass arguments in this order:
+
+```text
+KillerPDF.UiSmoke.exe MODE APP_DLL APP_XAML FRESH_OUTPUT --startup-smoke
+```
+
+- `--verify-multiwindow-recovery` opens main panes A/B and a torn-out window,
+  checks live editors or their committed unsaved annotations, then requires all
+  three exact markers in recovery PDFs. It also checks unchanged originals and
+  clean-tab restore settings. It does not induce a hardware crash or restart.
+- `--verify-undo-storage-failure` denies snapshot creation only in its isolated
+  session folder, restores the access rule, and checks real Undo/Redo retries and
+  saved source preservation through the public buttons.
+- `--verify-dirty-open-viewport` waits for the actual initial raster and layout,
+  chooses page four and the real 200% preset, then closes and reopens the fixture.
+  Page, zoom and original bytes must survive.
+- `--verify-cross-mode-zoom` saves Continuous at 200%, changes the global mode
+  through another document, and reopens in Single. The `-reverse` and `-twopage`
+  suffixes check Single to Continuous and a mixed-size selected right page.
+  The modes `--verify-cross-mode-fit-page`, `--verify-cross-mode-fit-width` and
+  `--verify-cross-mode-grid` check fit and three-column grid precedence.
+- `--verify-zoom-close-writer` closes the owning window before reopening through
+  a new window. `--verify-cross-mode-zoom-clamp` uses the actual 50% preset and
+  two Zoom Out clicks to request 20%; Single's existing internal minimum yields
+  38% on this fixture. That case records the clamp rather than claiming exact
+  percentage preservation. All zoom cases require unchanged source bytes.
+- `--verify-cross-mode-zoom-reassert` reasserts the public Single view command
+  while reopen restoration is pending. `--verify-cross-mode-zoom-navigate`
+  selects page three at that same point. Each requires its timing trigger to
+  fire, the requested page, restored 200% and unchanged original bytes.
+- `--verify-cross-mode-zoom-wheel` raises the toolbar's real preview wheel event
+  while restoration is pending. It requires page four at 220%, matching the
+  independent rendered-page width, and unchanged original bytes.
+- `--verify-cross-mode-zoom-button` measures one Zoom In click after Single mode
+  settles at 200%, then requires the same public zoom and rendered width when
+  that click occurs during pending restoration before the first raster completes.
+- `--verify-cross-mode-fit-page-pending` and `--verify-cross-mode-fit-width-pending`
+  compare each pending fit command with its settled public fit tag and rendered
+  page width. `--verify-cross-mode-zoom-sequence` similarly measures real Zoom Out,
+  Out, In clicks after settling, then compares the same pending sequence. These
+  cases require a positive pending restore and incomplete initial primary render.
+- `--verify-cross-mode-fit-zoom-pending` compares Fit Width followed by Zoom In
+  with the same settled commands. `--verify-cross-mode-zoom-fit-pending` reverses
+  those commands and requires Fit Width to win. Both compare public page geometry
+  and zoom controls, preserving the source bytes.
+- `--verify-cached-fit-zoom-pending` warms page three, returns to page four, then
+  watches the actual primary image clear during navigation back to page three.
+  Its synchronous Fit Width and Zoom In commands must match the settled control.
+  It requires the null image, warmed page, positive fit request and new generation.
+- `--verify-cross-mode-zoom-compare-fit` uses a real separate same-size owning
+  window at Fit Page as the source for the viewer's comparison module API while
+  the target is pending. It compares actual page geometry and the fit marker;
+  this covers module integration, not a physical Compare UI gesture.
+- `--verify-cross-mode-fit-page-twopage-pending` measures settled Fit Page on a
+  mixed-size selected right page, then compares pending Fit Page in Two-Page mode.
+- `--verify-two-page-fit-after-mode-switch` opens the mixed right page in
+  Continuous, switches to Two-Page, then requires Fit Page to contain the actual
+  spread within its public viewport. `--verify-two-page-zoom-after-mode-switch`
+  instead requires the 200% preset to render the 300pt right page 800 DIP wide.
+  Both wait for actual page images and stable public layout and preserve source bytes.
+- `--verify-signature-keyboard` uses native G, Tab, Enter, Space and Escape, plus
+  guided selection, deletion and automation semantics. It also checks ordinary
+  external-open page navigation and another owned window's keyboard focus.
+- `--verify-japanese-selection` needs the exact reporter attachment named
+  `issue465-japanese.pdf` beside the output directory. Its SHA256 must be
+  `F8A583B46B47612417BC72C677EB6BC01961E76C69BB810D89EC598D439E7C18`.
+  It selects the reported phrase through the public text automation provider,
+  checks screen bounds and native Ctrl+C, and restores the prior clipboard.
+
+Native keys are sent only when the expected owned window has foreground focus.
+Keep the exit result, assembly hashes and output files together. These cases do
+not certify printer hardware, installers, native updater execution or a complete
+screen-reader acceptance matrix.
