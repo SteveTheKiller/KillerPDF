@@ -132,6 +132,7 @@
     <Compile Include="..\Services\CommandSearch.cs" Link="Services\CommandSearch.cs" />
     <Compile Include="..\Services\ToolbarAvailability.cs" Link="Services\ToolbarAvailability.cs" />
     <Compile Include="..\Services\VisibleTextGeometry.cs" Link="Services\VisibleTextGeometry.cs" />
+    <Compile Include="..\Services\ReadingAnnotationText.cs" Link="Services\ReadingAnnotationText.cs" />
     <Compile Include="..\Services\MeasurementUnits.cs" Link="Services\MeasurementUnits.cs" />
     <Compile Include="..\Services\MeasurementGeometry.cs" Link="Services\MeasurementGeometry.cs" />
     <Compile Include="..\Services\EditableTextShortcutPolicy.cs" Link="Services\EditableTextShortcutPolicy.cs" />

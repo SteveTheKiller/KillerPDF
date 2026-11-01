@@ -288,22 +288,11 @@ namespace KillerPDF.Controls
 
             int rotation = EffectiveRotation(page);
 
-            int i = start;
-            while (i < end)
+            foreach (var bounds in TextRunService.SelectionBounds(runs, start, end))
             {
-                var line = runs.Lines[runs.Chars[i].Line];
-                int segEnd = Math.Min(end, line.End);
-
-                // A selected caret slice runs left-to-right for LTR and right-to-left for RTL.
-                // Use its physical extremes rather than assuming the first glyph is on the left.
-                double left = runs.Chars.Skip(i).Take(segEnd - i).Min(c => c.Left);
-                double right = runs.Chars.Skip(i).Take(segEnd - i).Max(c => c.Right);
-                double pad = (line.Top - line.Bottom) * 0.12;   // a touch of breathing room; tighter than search's 0.30
-
-                Rect quad = RedactionGeometry.PageToCanvas(left, line.Bottom - pad, right, line.Top + pad,
+                Rect quad = RedactionGeometry.PageToCanvas(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top,
                     runs.PdfWidth, runs.PdfHeight, rd.w, rd.h, rotation);
                 result.Add(new Rect(quad.X, quad.Y, Math.Max(quad.Width, 2), Math.Max(quad.Height, 2)));
-                i = segEnd;
             }
             return result;
         }

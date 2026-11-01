@@ -27,7 +27,8 @@ internal static class VisibleTextGeometry
             RunChar character = runs.Chars[caret];
             if (character.Line < 0 || character.Line >= runs.Lines.Count) continue;
             RunLine line = runs.Lines[character.Line];
-            Rect rect = RedactionGeometry.PageToCanvas(character.Left, line.Bottom, character.Right, line.Top,
+            var bounds = TextRunService.CharacterBounds(character, line);
+            Rect rect = RedactionGeometry.PageToCanvas(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top,
                 runs.PdfWidth, runs.PdfHeight, canvasWidth, canvasHeight, rotation);
             Rect visible = Rect.Intersect(viewport, Rect.Transform(rect, matrix));
             if (visible.IsEmpty || visible.Width <= 0 || visible.Height <= 0) continue;

@@ -5,11 +5,14 @@ namespace KillerPDF.Services
 {
     /// <summary>One selectable character on a page, in reading order. Coordinates are PDF space
     /// (points, bottom-left origin), matching SearchService and ExtractTextFromRegion.</summary>
-    internal readonly struct RunChar(string value, double left, double right, int word, int line, int? markedContentId = null)
+    internal readonly struct RunChar(string value, double left, double right, int word, int line,
+        int? markedContentId = null, double bottom = double.NaN, double top = double.NaN)
     {
         public readonly string Value = value;   // engine letters can be multi-char (ligatures)
         public readonly double Left = left;
         public readonly double Right = right;
+        public readonly double Bottom = bottom;
+        public readonly double Top = top;
         public readonly int Word = word;       // ordinal of the word this char belongs to (for word counts / spacing)
         public readonly int Line = line;       // ordinal of the line this char belongs to
         public readonly int? MarkedContentId = markedContentId;   // its tagged-content MCID, for structure reading order
@@ -27,6 +30,9 @@ namespace KillerPDF.Services
         public double Left;
         public double Right;
         public bool RightToLeft;
+        public KillerPdf.Engine.Documents.PdfWritingDirection WritingDirection;
+        public bool Vertical => WritingDirection is KillerPdf.Engine.Documents.PdfWritingDirection.BottomToTop
+            or KillerPdf.Engine.Documents.PdfWritingDirection.TopToBottom;
         public int End => Start + Count;
     }
 
@@ -171,7 +177,8 @@ namespace KillerPDF.Services
             // Group words into lines: a word joins a line when its vertical band overlaps the line's
             // band by at least half the smaller height. Bands grow as members join.
             var lineWords = new List<(List<KillerPdf.Engine.Documents.PdfExtractedWord> Words, double Top, double Bottom)>();
-            foreach (var w in words)
+            var verticalWords = words.Where(w => IsVertical(w.Letters[0].WritingDirection)).ToList();
+            foreach (var w in words.Except(verticalWords))
             {
                 var bb = w.BoundingBox;
                 double wTop = bb.Top, wBottom = bb.Bottom;
@@ -207,12 +214,38 @@ namespace KillerPDF.Services
             // one cluster and comes out in exactly the old order.
             lineWords = OrderColumnAware(lineWords);
 
+            // Vertical baselines share an X band, not a Y band. Keep their directions separate
+            // so crossing or oppositely rotated text cannot become one selectable line.
+            var verticalLines = new List<List<KillerPdf.Engine.Documents.PdfExtractedWord>>();
+            foreach (var word in verticalWords)
+            {
+                var bounds = word.BoundingBox;
+                var group = verticalLines.FirstOrDefault(line =>
+                {
+                    if (line[0].Letters[0].WritingDirection != word.Letters[0].WritingDirection) return false;
+                    double left = line.Min(w => w.BoundingBox.Left);
+                    double right = line.Max(w => w.BoundingBox.Right);
+                    double overlap = Math.Min(right, bounds.Right) - Math.Max(left, bounds.Left);
+                    return overlap >= Math.Min(right - left, bounds.Width) * 0.5;
+                });
+                if (group is null) verticalLines.Add([word]);
+                else group.Add(word);
+            }
+            foreach (var group in verticalLines.OrderByDescending(g => g.Max(w => w.BoundingBox.Top))
+                .ThenBy(g => g.Min(w => w.BoundingBox.Left)))
+                lineWords.Add((group, group.Max(w => w.BoundingBox.Top), group.Min(w => w.BoundingBox.Bottom)));
+
             int wordOrdinal = 0;
             for (int li = 0; li < lineWords.Count; li++)
             {
                 var (ws, top, bottom) = lineWords[li];
                 bool rtl = IsRightToLeftText(ws.Select(w => w.Text));
-                ws.Sort(rtl
+                var lineDirection = ws[0].Letters[0].WritingDirection;
+                ws.Sort(IsVertical(lineDirection)
+                    ? lineDirection == KillerPdf.Engine.Documents.PdfWritingDirection.BottomToTop
+                        ? (a, b) => a.BoundingBox.Bottom.CompareTo(b.BoundingBox.Bottom)
+                        : (a, b) => b.BoundingBox.Top.CompareTo(a.BoundingBox.Top)
+                    : rtl
                     ? (a, b) => b.BoundingBox.Right.CompareTo(a.BoundingBox.Right)
                     : (a, b) => a.BoundingBox.Left.CompareTo(b.BoundingBox.Left));
 
@@ -222,17 +255,27 @@ namespace KillerPDF.Services
                     Top = top,
                     Bottom = bottom,
                     RightToLeft = rtl,
+                    WritingDirection = lineDirection,
                 };
                 foreach (var w in ws)
                 {
                     var letters = w.Letters.ToList();
-                    letters.Sort(rtl
-                        ? (a, b) => b.BoundingBox.Right.CompareTo(a.BoundingBox.Right)
-                        : (a, b) => a.BoundingBox.Left.CompareTo(b.BoundingBox.Left));
+                    // Rotated and vertical text advances along Y. Sorting its ink bounds by X
+                    // permutes characters according to glyph shape instead of reading order.
+                    var direction = letters[0].WritingDirection;
+                    if (direction == KillerPdf.Engine.Documents.PdfWritingDirection.BottomToTop)
+                        letters.Sort((a, b) => a.StartBaseLine.Y.CompareTo(b.StartBaseLine.Y));
+                    else if (direction == KillerPdf.Engine.Documents.PdfWritingDirection.TopToBottom)
+                        letters.Sort((a, b) => b.StartBaseLine.Y.CompareTo(a.StartBaseLine.Y));
+                    else
+                        letters.Sort(rtl
+                            ? (a, b) => b.BoundingBox.Right.CompareTo(a.BoundingBox.Right)
+                            : (a, b) => a.BoundingBox.Left.CompareTo(b.BoundingBox.Left));
                     foreach (var letter in letters)
                     {
                         var g = letter.BoundingBox;
-                        result.Chars.Add(new RunChar(letter.Value, g.Left, g.Right, wordOrdinal, li, letter.MarkedContentId));
+                        result.Chars.Add(new RunChar(letter.Value, g.Left, g.Right, wordOrdinal, li,
+                            letter.MarkedContentId, g.Bottom, g.Top));
                     }
                     wordOrdinal++;
                 }
@@ -244,6 +287,10 @@ namespace KillerPDF.Services
             }
             return result;
         }
+
+        private static bool IsVertical(KillerPdf.Engine.Documents.PdfWritingDirection direction)
+            => direction is KillerPdf.Engine.Documents.PdfWritingDirection.BottomToTop
+                or KillerPdf.Engine.Documents.PdfWritingDirection.TopToBottom;
 
         internal static bool IsRightToLeftText(IEnumerable<string> values)
         {
@@ -290,6 +337,7 @@ namespace KillerPDF.Services
                     : y < line.Bottom ? line.Bottom - y : 0;
                 double horizontal = x < line.Left ? line.Left - x
                     : x > line.Right ? x - line.Right : 0;
+                if (line.Vertical) (vertical, horizontal) = (horizontal, vertical);
                 if (vertical < bestVertical
                     || (vertical == bestVertical && horizontal < bestHorizontal))
                 {
@@ -301,9 +349,20 @@ namespace KillerPDF.Services
             // Above the first line entirely -> caret 0; below the last -> caret N.
             var first = runs.Lines[0];
             var last = runs.Lines[^1];
+            if (target is null) return 0;
+            if (target.Vertical)
+            {
+                bool upward = target.WritingDirection == KillerPdf.Engine.Documents.PdfWritingDirection.BottomToTop;
+                for (int i = target.Start; i < target.End; i++)
+                {
+                    var c = runs.Chars[i];
+                    double mid = (c.Bottom + c.Top) / 2;
+                    if (upward ? y < mid : y > mid) return i;
+                }
+                return target.End;
+            }
             if (y > first.Top && target == first && x < first.Left) return 0;
             if (y < last.Bottom && target == last && x > last.Right) return runs.Chars.Count;
-            if (target is null) return 0;
 
             if (target.RightToLeft)
             {
@@ -341,10 +400,17 @@ namespace KillerPDF.Services
             {
                 RunChar character = runs.Chars[i];
                 RunLine line = runs.Lines[character.Line];
-                if (y < line.Bottom - 2 || y > line.Top + 2) continue;
+                if (y < line.Bottom - 2 || y > line.Top + 2
+                    || x < line.Left - 2 || x > line.Right + 2) continue;
 
                 double distance = x < character.Left ? character.Left - x
                     : x > character.Right ? x - character.Right : 0;
+                if (line.Vertical)
+                {
+                    double vertical = y < character.Bottom ? character.Bottom - y
+                        : y > character.Top ? y - character.Top : 0;
+                    distance = distance * distance + vertical * vertical;
+                }
                 if (distance < bestDistance)
                 {
                     bestDistance = distance;
@@ -359,6 +425,44 @@ namespace KillerPDF.Services
             while (start > 0 && runs.Chars[start - 1].Word == word) start--;
             while (end < runs.Chars.Count && runs.Chars[end].Word == word) end++;
             return (start, end);
+        }
+
+        /// <summary>Unpadded character bounds, retaining the line band for horizontal and legacy runs.</summary>
+        public static KillerPdf.Engine.Documents.PdfContentBounds CharacterBounds(RunChar character, RunLine line)
+        {
+            bool hasVerticalBounds = line.Vertical && double.IsFinite(character.Bottom)
+                && double.IsFinite(character.Top) && character.Bottom <= character.Top;
+            return new(character.Left, hasVerticalBounds ? character.Bottom : line.Bottom,
+                character.Right, hasVerticalBounds ? character.Top : line.Top);
+        }
+
+        /// <summary>Page-space selection bounds shared by painting, highlights and reading ranges.</summary>
+        public static List<KillerPdf.Engine.Documents.PdfContentBounds> SelectionBounds(PageTextRuns runs, int start, int end)
+        {
+            var result = new List<KillerPdf.Engine.Documents.PdfContentBounds>();
+            int i = Math.Max(0, start);
+            end = Math.Min(end, runs.Chars.Count);
+            while (i < end)
+            {
+                var line = runs.Lines[runs.Chars[i].Line];
+                int segEnd = Math.Min(end, line.End);
+                var chars = runs.Chars.Skip(i).Take(segEnd - i).ToArray();
+                double left = chars.Min(c => c.Left);
+                double right = chars.Max(c => c.Right);
+                if (line.Vertical)
+                {
+                    double pad = (line.Right - line.Left) * 0.12;
+                    var bounds = chars.Select(c => CharacterBounds(c, line)).ToArray();
+                    result.Add(new(left - pad, bounds.Min(c => c.Bottom), right + pad, bounds.Max(c => c.Top)));
+                }
+                else
+                {
+                    double pad = (line.Top - line.Bottom) * 0.12;
+                    result.Add(new(left, line.Bottom - pad, right, line.Top + pad));
+                }
+                i = segEnd;
+            }
+            return result;
         }
 
         /// <summary>Text for the caret range [start, end): spaces between words, newlines between

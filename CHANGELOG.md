@@ -9,12 +9,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 1.9.2 protects unsaved work and exports and fixes rendering, signatures, text selection, and update relaunches.
 
 ### Fixed
+- Render-failure recovery preserves unsaved edits from detached windows as well as the main window.
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
 - Undo and Redo preserve retryable history and the open document when snapshot storage fails.
-- Render-failure recovery preserves unsaved edits from detached windows as well as the main window.
 - Damaged signature libraries are preserved and reported instead of crashing the signature picker.
 
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
+- Corrected Japanese character order and vertical-text selection, hit testing, and accessible text ranges. (#465)
 - Merge accepts images with single-element device color-space arrays. (#469)
 - Rasterize Region detects unsupported tagged PDFs before region selection and explains why. (#369)
 - Form buttons and signed signature fields redraw correctly when their visibility changes.
