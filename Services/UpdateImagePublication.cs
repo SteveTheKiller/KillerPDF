@@ -590,7 +590,7 @@ function Start-KillerUpdatedApp {
         # queued loses the start, so the wait is long and a task still queued is left to run.
         for ($wait = 0; $wait -lt 600 -and $registered.State -eq 2; $wait++) { Start-Sleep -Milliseconds 100 }
     }
-    finally { if ($registered.State -ne 2) { $folder.DeleteTask($name, 0) } }
+    finally { if ($registered.State -ne 2 -and $registered.State -ne 4) { $folder.DeleteTask($name, 0) } }
 }
 """;
     }

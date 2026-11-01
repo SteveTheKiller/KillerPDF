@@ -484,8 +484,9 @@ namespace KillerPDF.Controls
         private async Task FillPlacesAsync(int build, List<string> pinnedPaths)
         {
             List<(string? Label, string Path, bool Pinned)> found;
-            try { found = await OnStaWorker(() => ProbePlaces(pinnedPaths)); }
-            catch { return; }
+            // A probe that fails or hangs still leaves the pinned folders to choose from.
+            try { found = await OnStaWorker(() => ProbePlaces(pinnedPaths), ProbeTimeout); }
+            catch { found = pinnedPaths.Select(path => ((string?)null, path, true)).ToList(); }
             if (build != _placesBuild) return;
 
             Places.Clear();
@@ -529,7 +530,9 @@ namespace KillerPDF.Controls
         /// the Shell.Application COM object behind Quick Access is apartment-bound, and a pool
         /// thread would marshal it back to the UI thread, which is the thread being kept free.
         /// </summary>
-        private static Task<T> OnStaWorker<T>(Func<T> work)
+        private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(8);
+
+        public static Task<T> OnStaWorker<T>(Func<T> work, TimeSpan timeout)
         {
             var done = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
             var thread = new System.Threading.Thread(() =>
@@ -539,7 +542,13 @@ namespace KillerPDF.Controls
             }) { IsBackground = true };
             thread.SetApartmentState(System.Threading.ApartmentState.STA);
             thread.Start();
-            return done.Task;
+            return WithTimeout(done.Task, timeout);
+        }
+
+        private static async Task<T> WithTimeout<T>(Task<T> work, TimeSpan timeout)
+        {
+            if (await Task.WhenAny(work, Task.Delay(timeout)) != work) throw new TimeoutException();
+            return await work;
         }
 
         /// <summary>
@@ -763,8 +772,8 @@ namespace KillerPDF.Controls
         private async Task FillTreeRootsAsync()
         {
             List<FolderNode> roots;
-            try { roots = await OnStaWorker(ReadyDriveNodes); }
-            catch { return; }
+            try { roots = await OnStaWorker(ReadyDriveNodes, ProbeTimeout); }
+            catch { _treeStarted = false; return; }
             foreach (var root in roots) TreeRoots.Add(root);
             // The first listing may have finished before the roots existed, leaving nothing revealed.
             if (_currentDir.Length > 0) _ = RevealInTree(_currentDir, _navigationVersion);
