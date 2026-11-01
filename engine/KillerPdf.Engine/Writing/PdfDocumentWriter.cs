@@ -93,6 +93,7 @@ public static class PdfDocumentWriter
             throw new InvalidOperationException(
                 "An encrypted PDF must be opened with a password before it can be rewritten.");
         if (document.PasswordAuthenticationRole == PdfPasswordAuthenticationRole.User
+            && !options.ForRestrictedViewing
             && (document.DeclaredPermissions is not PdfDocumentPermissions permissions
                 || !permissions.AllowDocumentModification))
             throw new InvalidOperationException(

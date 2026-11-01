@@ -81,6 +81,51 @@ public sealed class OwnerRestrictionTests
         }
     }
 
+    [Fact]
+    public void TheUserPassword_WritesAViewingCopyButNeverAnUnlock()
+    {
+        string source = WriteOwnerRestricted("reader");
+        string output = source + ".view.pdf";
+        try
+        {
+            PdfEngineIntegration.WriteViewingCopy(source, output, "reader");
+
+            Assert.Single(PdfPageInformation.Read(PdfDocument.Open(File.ReadAllBytes(output))));
+            Assert.ThrowsAny<Exception>(() => PdfEngineIntegration.RemoveEncryption(source, output + ".2", "reader"));
+        }
+        finally
+        {
+            File.Delete(source);
+            if (File.Exists(output)) File.Delete(output);
+        }
+    }
+
+    [Fact]
+    public void AWrongPassword_WritesNoViewingCopy()
+    {
+        string source = WriteOwnerRestricted("reader");
+        string output = source + ".view.pdf";
+        try
+        {
+            Assert.ThrowsAny<Exception>(() => PdfEngineIntegration.WriteViewingCopy(source, output, "wrong"));
+            Assert.False(File.Exists(output));
+        }
+        finally { File.Delete(source); }
+    }
+
+    [Fact]
+    public void TheWriterStillRefusesAUserRewriteByDefault()
+    {
+        string source = WriteOwnerRestricted("reader");
+        try
+        {
+            PdfDocument document = PdfDocument.Open(File.ReadAllBytes(source), "reader");
+            Assert.Throws<InvalidOperationException>(() => KillerPdf.Engine.Writing.PdfDocumentWriter.Write(
+                document, new KillerPdf.Engine.Writing.PdfDocumentWriteOptions { RemoveEncryption = true }));
+        }
+        finally { File.Delete(source); }
+    }
+
     [Theory]
     [InlineData("", "", true)]
     [InlineData("user", "user", true)]

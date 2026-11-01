@@ -318,7 +318,7 @@ public sealed class MergeRepairFlowTests : IDisposable
     {
         string source = ShellSource("FileOperations.cs");
 
-        foreach (string method in new[] { "TryRepairAndOpen", "OpenCertificateProtected", "StripEncryptionAndOpen", "OpenWithOwnerPassword" })
+        foreach (string method in new[] { "TryRepairAndOpen", "OpenCertificateProtected", "StripEncryptionAndOpen", "OpenViewingCopy" })
         {
             string body = MethodBody(source, method);
             Match finalCatch = Regex.Match(body, @"catch \(Exception[^)]*\)\s*(when \([^)]*\)\s*)?\{(?<handler>.*?)\n            \}", RegexOptions.Singleline);

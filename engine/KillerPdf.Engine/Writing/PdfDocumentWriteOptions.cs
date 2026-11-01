@@ -28,6 +28,10 @@ public sealed class PdfDocumentWriteOptions
     /// <summary>Removes password encryption from an authenticated source during the full rewrite.</summary>
     public bool RemoveEncryption { get; init; }
 
+    /// <summary>Allows a user-password rewrite the permissions would otherwise refuse, to produce a
+    /// copy for on-screen reading. The caller must keep that copy read-only.</summary>
+    public bool ForRestrictedViewing { get; init; }
+
     /// <summary>
     /// Permits a full rewrite of a document containing signed signature fields. Full rewrites
     /// necessarily invalidate their byte ranges, so this must be selected explicitly.

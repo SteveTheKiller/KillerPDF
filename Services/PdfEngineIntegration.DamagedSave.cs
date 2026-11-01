@@ -299,6 +299,19 @@ internal static partial class PdfEngineIntegration
     }
 
     /// <summary>Authenticates and fully rewrites a PDF without password encryption.</summary>
+    /// <summary>Writes a decrypted copy for reading a PDF its user password may not edit. The caller
+    /// opens it read-only; only the owner password makes the document editable.</summary>
+    internal static void WriteViewingCopy(string sourcePath, string destinationPath, string password)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        ArgumentNullException.ThrowIfNull(password);
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            File.ReadAllBytes(sourcePath), password);
+        ReplaceWithBuiltResult(destinationPath, PdfDocumentWriter.Write(document,
+            new PdfDocumentWriteOptions { RemoveEncryption = true, ForRestrictedViewing = true }));
+    }
+
     internal static void RemoveEncryption(
         string sourcePath, string destinationPath, string password)
     {

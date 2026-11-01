@@ -119,9 +119,9 @@ namespace KillerPDF.Shell
                 }
                 catch (Exception) when (PdfEngineIntegration.IsRestrictedForPassword(srcPath, pw))
                 {
-                    // The user password opens the file, but its owner forbids editing, and KillerPDF
-                    // works on a decrypted copy, so only the owner password can open it here.
-                    OpenWithOwnerPassword(srcPath, path);
+                    // The user password opens the file but its owner forbids editing, so it opens
+                    // read-only with the notice that offers the owner password.
+                    OpenViewingCopy(srcPath, path, pw);
                 }
                 catch (Exception ex2)
                 {
@@ -577,23 +577,29 @@ namespace KillerPDF.Shell
             }
         }
 
-        // Opens a PDF whose user password forbids editing by asking for its owner password.
-        private void OpenWithOwnerPassword(string srcPath, string displayPath)
+        // The encrypted original behind each viewing copy. A viewing copy has no encryption left to
+        // check a password against, so unlocking must always go back to the original.
+        private static readonly Dictionary<string, string> ViewingCopySources =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        // Opens a PDF whose user password forbids editing as a read-only viewing copy.
+        private void OpenViewingCopy(string srcPath, string displayPath, string password)
         {
-            string? ownerPassword = KillerDialog.PromptPassword(this, displayPath,
-                Loc("Str_Restricted_OwnerRequired"), Loc("Str_Btn_Open"));
-            if (ownerPassword is null) return;
             var before = _doc;
             try
             {
                 string tempDec = App.MakeTempFile("dec");
-                PdfEngineIntegration.RemoveEncryption(srcPath, tempDec, ownerPassword);
+                PdfEngineIntegration.WriteViewingCopy(srcPath, tempDec, password);
                 _doc?.Close();
                 _doc = null;
-                _doc = PdfWorkingDocument.Open(tempDec);
+                _doc = PdfWorkingDocument.Open(tempDec, isReadOnly: true);
                 _currentFile = tempDec;
+                ViewingCopySources[tempDec] = srcPath;
                 FinishOpenFile(displayPath, tempDec);
-                _openedFromProtected = true;   // #149: unlocked with the owner password
+                _openedFromProtected = true;   // #149: the source still carries its encryption
+                ActiveViewer.UpdateRestrictionNotice();
+                SetStatus(string.Format(Loc("Str_OpenedReadOnly"),
+                    System.IO.Path.GetFileName(displayPath), _doc.PageCount));
             }
             catch (WorkingCopyUnavailableException copy)
             {
@@ -602,8 +608,8 @@ namespace KillerPDF.Shell
             catch (Exception error) when (error is not OutOfMemoryException)
             {
                 if (!ReferenceEquals(_doc, before)) AbandonFailedOpen();
-                KillerDialog.Show(this, Loc("Str_Restricted_WrongPassword"), "KillerPDF",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                KillerDialog.Show(this, string.Format(Loc("Str_Dlg_FailedOpen"), error.Message),
+                    Loc("Str_Dlg_AppTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -640,7 +646,8 @@ namespace KillerPDF.Shell
             string unlockedPath = App.MakeTempFile("dec");
             try
             {
-                PdfEngineIntegration.RemoveEncryption(sourcePath, unlockedPath, password);
+                PdfEngineIntegration.RemoveEncryption(
+                    ViewingCopySources.GetValueOrDefault(sourcePath, sourcePath), unlockedPath, password);
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
