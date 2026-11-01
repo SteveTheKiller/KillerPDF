@@ -243,6 +243,8 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_Restricted_EnterPassword">Nhập mật khẩu chủ sở hữu</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">“{0}” hạn chế chỉnh sửa. Nhập mật khẩu chủ sở hữu để chỉnh sửa.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Mở khóa</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Chỉ đọc</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Đóng</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">Đã mở khóa {0} để chỉnh sửa</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Đây không phải mật khẩu chủ sở hữu của PDF này.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” hạn chế chỉnh sửa, nên KillerPDF cần mật khẩu chủ sở hữu để mở.</sys:String>

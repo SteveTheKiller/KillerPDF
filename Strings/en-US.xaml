@@ -244,6 +244,8 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_Restricted_EnterPassword">Enter Owner Password</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">“{0}” restricts editing. Enter the owner password to edit it.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Unlock</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Read Only</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Dismiss</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">Unlocked {0} for editing</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">That is not the owner password for this PDF.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” restricts editing, so KillerPDF needs its owner password to open it.</sys:String>

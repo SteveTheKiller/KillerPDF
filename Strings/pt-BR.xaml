@@ -243,6 +243,8 @@ A página pode ser substituída por uma imagem dela mesma com as áreas marcadas
     <sys:String x:Key="Str_Restricted_EnterPassword">Inserir senha do proprietário</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">“{0}” restringe a edição. Insira a senha do proprietário para editá-lo.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Desbloquear</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Somente leitura</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Fechar</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} desbloqueado para edição</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Essa não é a senha do proprietário deste PDF.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” restringe a edição, então o KillerPDF precisa da senha do proprietário para abri-lo.</sys:String>

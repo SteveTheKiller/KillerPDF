@@ -15,6 +15,24 @@ public sealed class ExportImagesScaleTests
     }
 
     [Fact]
+    public void TheRestrictionNoticeIsAnnouncedToScreenReaders()
+    {
+        string notice = Read("Controls", "Viewer", "PdfViewer.Restriction.cs");
+        Assert.Contains("AutomationProperties.SetLiveSetting(message, AutomationLiveSetting.Assertive)", notice, StringComparison.Ordinal);
+        Assert.Contains("AutomationEvents.LiveRegionChanged", notice, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheRestrictionNoticeCanBeDismissedAndTheTitleStaysReadOnly()
+    {
+        string notice = Read("Controls", "Viewer", "PdfViewer.Restriction.cs");
+        Assert.Contains("\"OverlayCloseButton\"", notice, StringComparison.Ordinal);
+        Assert.Contains("_restrictionDismissed.TryGetValue(_doc", notice, StringComparison.Ordinal);
+        Assert.Contains("\"Str_Restricted_TitleSuffix\"", notice, StringComparison.Ordinal);
+        Assert.Contains("Str_Restricted_TitleSuffix", Read("Strings", "en-US.xaml"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TabCloseIsOnlyRedOnHover()
     {
         string viewer = Read("Controls", "Viewer", "PdfViewer.xaml");

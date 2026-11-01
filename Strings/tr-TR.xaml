@@ -225,6 +225,8 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_Restricted_EnterPassword">Sahip Parolasını Gir</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">“{0}” düzenlemeyi kısıtlıyor. Düzenlemek için sahip parolasını girin.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Kilidi Aç</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Salt okunur</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Kapat</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} düzenleme için açıldı</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Bu, bu PDF’nin sahip parolası değil.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” düzenlemeyi kısıtlıyor, bu yüzden KillerPDF’nin açmak için sahip parolasına ihtiyacı var.</sys:String>

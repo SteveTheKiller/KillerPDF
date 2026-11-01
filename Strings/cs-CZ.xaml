@@ -243,6 +243,8 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_Restricted_EnterPassword">Zadat heslo vlastníka</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">Soubor „{0}“ omezuje úpravy. Pro úpravy zadejte heslo vlastníka.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Odemknout</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Jen pro čtení</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Zavřít</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">Soubor {0} je odemčen pro úpravy</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Toto není heslo vlastníka tohoto PDF.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">Soubor „{0}“ omezuje úpravy, proto KillerPDF k jeho otevření potřebuje heslo vlastníka.</sys:String>

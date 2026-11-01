@@ -225,6 +225,8 @@
     <sys:String x:Key="Str_Restricted_EnterPassword">输入拥有者密码</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">“{0}”限制了编辑。输入拥有者密码即可编辑。</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">解锁</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">只读</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">关闭</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">已解锁 {0}，可以编辑</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">这不是此 PDF 的拥有者密码。</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}”限制了编辑，因此 KillerPDF 需要拥有者密码才能打开它。</sys:String>

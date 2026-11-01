@@ -225,6 +225,8 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_Restricted_EnterPassword">Eigentümerpasswort eingeben</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">„{0}“ schränkt die Bearbeitung ein. Geben Sie das Eigentümerpasswort ein, um es zu bearbeiten.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Entsperren</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Schreibgeschützt</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Schließen</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} zum Bearbeiten entsperrt</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Das ist nicht das Eigentümerpasswort dieses PDFs.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">„{0}“ schränkt die Bearbeitung ein, daher benötigt KillerPDF zum Öffnen das Eigentümerpasswort.</sys:String>

@@ -243,6 +243,8 @@
     <sys:String x:Key="Str_Restricted_EnterPassword">Ввести пароль владельца</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">«{0}» ограничивает редактирование. Введите пароль владельца, чтобы редактировать его.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Разблокировать</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Только чтение</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Закрыть</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} разблокирован для редактирования</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Это не пароль владельца этого PDF.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» ограничивает редактирование, поэтому KillerPDF нужен пароль владельца, чтобы открыть его.</sys:String>

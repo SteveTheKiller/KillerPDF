@@ -243,6 +243,8 @@ La page peut être remplacée par une image d'elle-même avec les zones marquée
     <sys:String x:Key="Str_Restricted_EnterPassword">Saisir le mot de passe propriétaire</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">« {0} » restreint la modification. Saisissez le mot de passe propriétaire pour le modifier.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Déverrouiller</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Lecture seule</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Fermer</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} déverrouillé pour modification</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Ce n’est pas le mot de passe propriétaire de ce PDF.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">« {0} » restreint la modification, KillerPDF a donc besoin du mot de passe propriétaire pour l’ouvrir.</sys:String>

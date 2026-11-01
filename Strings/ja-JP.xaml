@@ -243,6 +243,8 @@
     <sys:String x:Key="Str_Restricted_EnterPassword">所有者パスワードを入力</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">「{0}」は編集が制限されています。編集するには所有者パスワードを入力してください。</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">ロック解除</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">読み取り専用</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">閉じる</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} の編集制限を解除しました</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">この PDF の所有者パスワードではありません。</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">「{0}」は編集が制限されているため、KillerPDF で開くには所有者パスワードが必要です。</sys:String>

@@ -243,6 +243,8 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_Restricted_EnterPassword">Tulajdonosi jelszó megadása</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">A(z) „{0}” korlátozza a szerkesztést. A szerkesztéshez adja meg a tulajdonosi jelszót.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Feloldás</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Csak olvasható</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Bezárás</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} feloldva szerkesztésre</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Ez nem a PDF tulajdonosi jelszava.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">A(z) „{0}” korlátozza a szerkesztést, ezért a KillerPDF-nek a megnyitásához a tulajdonosi jelszó kell.</sys:String>

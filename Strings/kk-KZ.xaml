@@ -165,6 +165,8 @@
     <sys:String x:Key="Str_Restricted_EnterPassword">Иесінің құпиясөзін енгізу</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">«{0}» өңдеуді шектейді. Өңдеу үшін иесінің құпиясөзін енгізіңіз.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Құлпын ашу</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Тек оқу үшін</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Жабу</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} өңдеу үшін ашылды</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Бұл осы PDF иесінің құпиясөзі емес.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» өңдеуді шектейді, сондықтан KillerPDF оны ашу үшін иесінің құпиясөзін қажет етеді.</sys:String>

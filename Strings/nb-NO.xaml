@@ -243,6 +243,8 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_Restricted_EnterPassword">Skriv inn eierpassord</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">«{0}» begrenser redigering. Skriv inn eierpassordet for å redigere den.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Lås opp</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Skrivebeskyttet</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Lukk</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} er låst opp for redigering</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Det er ikke eierpassordet for denne PDF-en.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» begrenser redigering, så KillerPDF trenger eierpassordet for å åpne den.</sys:String>

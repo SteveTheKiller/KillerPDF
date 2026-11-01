@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using KillerFamily.Accessibility;
 
@@ -17,9 +19,33 @@ namespace KillerPDF.Controls
         /// restricts editing.</summary>
         internal bool IsOwnerRestricted => _doc?.IsReadOnly == true && _openedFromProtected;
 
+        // Closing the notice lasts for that document; the title keeps saying it is read-only.
+        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> _restrictionDismissed = [];
+        private string? _titleBeforeRestriction;
+
+        private void UpdateReadOnlyTitle()
+        {
+            if (Window.GetWindow(this) is not Window window) return;
+            if (IsOwnerRestricted)
+            {
+                string name = System.IO.Path.GetFileName(_originalFile ?? "");
+                string suffix = Host?.Loc("Str_Restricted_TitleSuffix") ?? "";
+                FileNameLabel.Text = $"{name} - {suffix}";
+                _titleBeforeRestriction ??= window.Title;
+                window.Title = $"{name} - {suffix} - {_titleBeforeRestriction}";
+            }
+            else if (_titleBeforeRestriction is not null)
+            {
+                window.Title = _titleBeforeRestriction;
+                _titleBeforeRestriction = null;
+                FileNameLabel.Text = System.IO.Path.GetFileName(_originalFile ?? "");
+            }
+        }
+
         internal void UpdateRestrictionNotice()
         {
-            if (!IsOwnerRestricted)
+            UpdateReadOnlyTitle();
+            if (!IsOwnerRestricted || _restrictionDismissed.TryGetValue(_doc!, out _))
             {
                 if (_restrictionNotice is not null) _restrictionNotice.Visibility = Visibility.Collapsed;
                 return;
@@ -28,7 +54,11 @@ namespace KillerPDF.Controls
             {
                 // Hosted where the annotation bars live, above the document and below the pane bevel.
                 if (PagePreviewPanel.Parent is not Grid previewArea || Host is null) return;
-                (_restrictionNotice, _restrictionMessage, _restrictionUnlock) = BuildRestrictionNotice(Host);
+                (_restrictionNotice, _restrictionMessage, _restrictionUnlock) = BuildRestrictionNotice(Host, () =>
+                {
+                    if (_doc is not null) _restrictionDismissed.AddOrUpdate(_doc, _doc);
+                    UpdateRestrictionNotice();
+                });
                 previewArea.Children.Add(_restrictionNotice);
             }
             // A certificate recipient's permissions have no owner password to lift them.
@@ -36,12 +66,19 @@ namespace KillerPDF.Controls
                 _restrictedByCertificate ? "Str_Restricted_CertificateNotice" : "Str_Restricted_Notice");
             if (_restrictionUnlock is not null)
                 _restrictionUnlock.Visibility = _restrictedByCertificate ? Visibility.Collapsed : Visibility.Visible;
+            bool appearing = _restrictionNotice.Visibility != Visibility.Visible;
             _restrictionNotice.Visibility = Visibility.Visible;
+            if (appearing && _restrictionMessage is not null)
+                Dispatcher.BeginInvoke(() =>
+                    UIElementAutomationPeer.CreatePeerForElement(_restrictionMessage)
+                        ?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged),
+                    System.Windows.Threading.DispatcherPriority.Background);
         }
 
         // Same surface tokens, grain host and shadow as the floating annotation bars, centered at
         // the top of the pane.
-        private static (Border Bar, TextBlock Message, Button Unlock) BuildRestrictionNotice(Features.IViewerHost host)
+        private static (Border Bar, TextBlock Message, Button Unlock) BuildRestrictionNotice(
+            Features.IViewerHost host, Action dismiss)
         {
             var lockGlyph = new Glyph
             {
@@ -62,6 +99,7 @@ namespace KillerPDF.Controls
             };
             message.SetResourceReference(TextBlock.TextProperty, "Str_Restricted_Notice");
             message.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            AutomationProperties.SetLiveSetting(message, AutomationLiveSetting.Assertive);
 
             var unlock = UiKit.Make(host.Loc("Str_Restricted_EnterPassword"), accent: true);
             unlock.SetResourceReference(ContentControl.ContentProperty, "Str_Restricted_EnterPassword");
@@ -69,10 +107,19 @@ namespace KillerPDF.Controls
             unlock.VerticalAlignment = VerticalAlignment.Center;
             unlock.Click += (_, _) => host.UnlockOwnerRestrictions();
 
+            var close = new Button { Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            close.SetResourceReference(FrameworkElement.StyleProperty, "OverlayCloseButton");
+            close.SetResourceReference(ContentControl.ContentProperty, "AboutCloseGlyph");
+            close.SetResourceReference(FrameworkElement.ToolTipProperty, "Str_Restricted_Dismiss");
+            AutomationProperties.SetName(close, host.Loc("Str_Restricted_Dismiss"));
+            close.Click += (_, _) => dismiss();
+
             var row = new DockPanel { LastChildFill = true, Margin = new Thickness(6, 2, 2, 2) };
             DockPanel.SetDock(lockGlyph, Dock.Left);
+            DockPanel.SetDock(close, Dock.Right);
             DockPanel.SetDock(unlock, Dock.Right);
             row.Children.Add(lockGlyph);
+            row.Children.Add(close);
             row.Children.Add(unlock);
             row.Children.Add(message);
 

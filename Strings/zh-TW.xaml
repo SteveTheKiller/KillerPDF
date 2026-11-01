@@ -227,6 +227,8 @@
     <sys:String x:Key="Str_Restricted_EnterPassword">輸入擁有者密碼</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">「{0}」限制了編輯。輸入擁有者密碼即可編輯。</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">解除鎖定</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">唯讀</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">關閉</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">已解除 {0} 的編輯限制</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">這不是此 PDF 的擁有者密碼。</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">「{0}」限制了編輯，因此 KillerPDF 需要擁有者密碼才能開啟。</sys:String>

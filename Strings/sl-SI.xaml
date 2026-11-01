@@ -221,6 +221,8 @@
     <sys:String x:Key="Str_Restricted_EnterPassword">Vnesi geslo lastnika</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">Dokument »{0}« omejuje urejanje. Za urejanje vnesite geslo lastnika.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Odkleni</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Samo za branje</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Zapri</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">Dokument {0} je odklenjen za urejanje</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">To ni geslo lastnika tega dokumenta PDF.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">Dokument »{0}« omejuje urejanje, zato KillerPDF za odpiranje potrebuje geslo lastnika.</sys:String>

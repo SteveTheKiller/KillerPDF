@@ -243,6 +243,8 @@
     <sys:String x:Key="Str_Restricted_EnterPassword">Ввести пароль власника</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">«{0}» обмежує редагування. Введіть пароль власника, щоб редагувати його.</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">Розблокувати</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">Лише читання</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">Закрити</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} розблоковано для редагування</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Це не пароль власника цього PDF.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» обмежує редагування, тому KillerPDF потрібен пароль власника, щоб відкрити його.</sys:String>

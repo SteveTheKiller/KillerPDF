@@ -225,6 +225,8 @@
     <sys:String x:Key="Str_Restricted_EnterPassword">মালিকের পাসওয়ার্ড দিন</sys:String>
     <sys:String x:Key="Str_Restricted_Prompt">“{0}” সম্পাদনা সীমিত করে। সম্পাদনা করতে মালিকের পাসওয়ার্ড দিন।</sys:String>
     <sys:String x:Key="Str_Restricted_Unlock">আনলক করুন</sys:String>
+    <sys:String x:Key="Str_Restricted_TitleSuffix">শুধু পঠনযোগ্য</sys:String>
+    <sys:String x:Key="Str_Restricted_Dismiss">বন্ধ করুন</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} সম্পাদনার জন্য আনলক হয়েছে</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">এটি এই PDF-এর মালিকের পাসওয়ার্ড নয়।</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” সম্পাদনা সীমিত করে, তাই এটি খুলতে KillerPDF-এর মালিকের পাসওয়ার্ড প্রয়োজন।</sys:String>
