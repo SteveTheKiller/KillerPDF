@@ -63,6 +63,8 @@ namespace KillerPDF.Shell
             Viewer.AttachHost(this);
             ViewerB.AttachHost(this);
             ActiveViewer  = Viewer;
+            InitializeSignaturePlacement(Viewer);
+            InitializeSignaturePlacement(ViewerB);
 
             // Each pane builds its own tile tree. Routing this through ActiveViewer would build
             // pane A twice and leave pane B with a null annotation canvas.
@@ -561,6 +563,7 @@ namespace KillerPDF.Shell
             SyncPickerState();
             UpdatePageSizeDisplay();
             SetTool(_currentTool, restoringPane: true);
+            UpdateSignaturePlacementHint();
             UpdateStampIndicator();
 
             // No render here. Each pane keeps its own tile tree, so its document stays painted

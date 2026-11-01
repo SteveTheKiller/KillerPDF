@@ -230,7 +230,11 @@ namespace KillerPDF.Shell
 
         // Signatures
         private readonly SignatureStore _signatureStore = new();
-        private SavedSignature? _pendingSignature { get => ActiveViewer.PendingSignatureRef; set => ActiveViewer.PendingSignatureRef = value; }
+        private SavedSignature? _pendingSignature
+        {
+            get => ActiveViewer.PendingSignatureRef;
+            set { ActiveViewer.PendingSignatureRef = value; UpdateSignaturePlacementHint(); }
+        }
         private Border? _signaturePopup;
         // Guided AcroForm signing: "pick once, reuse" - the chosen signature/initials are remembered
         // and dropped into every matching field. _pendingSignField, when set, routes the next pick from

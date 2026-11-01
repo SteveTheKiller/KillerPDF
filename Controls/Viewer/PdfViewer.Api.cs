@@ -327,6 +327,23 @@ namespace KillerPDF.Controls
         internal Stack<int> NavForwardRef => _navForward;
         internal bool OcrRegionModeRef { get => _ocrRegionMode; set => _ocrRegionMode = value; }
         internal SavedSignature? PendingSignatureRef { get => _pendingSignature; set => _pendingSignature = value; }
+        internal bool TryGetSignatureDropTargetExt(DragEventArgs e, out Canvas? canvas, out int page, out Point position)
+        {
+            IEnumerable<Canvas> candidates = _viewMode != ViewMode.Single && _continuousCanvases.Count > 0
+                ? _continuousCanvases.Values : [_annotationCanvas];
+            foreach (Canvas candidate in candidates)
+            {
+                Point point = e.GetPosition(candidate);
+                if (candidate.ActualWidth <= 0 || candidate.ActualHeight <= 0
+                    || point.X < 0 || point.Y < 0 || point.X > candidate.ActualWidth || point.Y > candidate.ActualHeight) continue;
+                canvas = candidate;
+                page = candidate.Tag is int index ? index : _currentPage;
+                position = point;
+                return page >= 0;
+            }
+            canvas = null; page = -1; position = default;
+            return false;
+        }
         internal List<Point> ShapePolyPointsRef => _shapePolyPoints;
         internal EditTool? AnnotBarToolRef { get => _annotBarTool; set => _annotBarTool = value; }
         internal bool AnnotBarMinimizedRef { get => _annotBarMinimized; set => _annotBarMinimized = value; }

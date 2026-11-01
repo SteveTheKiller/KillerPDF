@@ -131,6 +131,7 @@ namespace KillerPDF.Shell
             // Hide signature popup when switching away
             if (tool != EditTool.Signature)
             {
+                _signatureDragOrigin = null;
                 HideSignaturePopup();
                 _pendingSignature = null;
             }

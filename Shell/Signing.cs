@@ -487,6 +487,7 @@ namespace KillerPDF.Shell
                         return;
                     }
                     _pendingSignature = sigCopy;
+                    ArmSignaturePickerDrag(sigCopy, e);
                     _annotationCanvas.Cursor = Cursors.Cross;
                     SetStatus(sigCopy.Kind == SignatureKind.Initials
                         ? Loc("Str_St_PlaceInitials")

@@ -6,12 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.2] - Unreleased
 
-1.9.2 reopens KillerPDF after an all-users update.
+1.9.2 improves signature placement, keyboard focus, and update relaunches.
 
 ### Fixed
-- Keyboard focus cues respect the theme, Windows contrast refreshes are coalesced and restore frame colors, and picker selections keep text and icons shadow-free.
-
 - An all-users update reopens KillerPDF for the signed-in user at normal rights, whether it finishes or stops early. Windows was refusing that relaunch, so the app stayed closed.
+
+- Saved signatures can be dragged onto a page or selected and placed with a click, with a visible placement instruction above the document.
+
+- Keyboard focus cues respect the theme, Windows contrast refreshes are coalesced and restore frame colors, and picker selections keep text and icons shadow-free.
 
 ## [1.9.1] - 2026-10-31
 
