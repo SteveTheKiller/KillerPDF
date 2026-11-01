@@ -23,6 +23,15 @@ public sealed class ExportImagesScaleTests
     }
 
     [Fact]
+    public void AScreenReaderStartsOnTheReadableDocument()
+    {
+        string api = Read("Controls", "Viewer", "PdfViewer.Api.cs");
+        Assert.Contains("AutomationEvents.AutomationFocusChanged", api, StringComparison.Ordinal);
+        Assert.Contains("DocSurfacePad.Focus()", api, StringComparison.Ordinal);
+        Assert.Contains("FocusDocumentView();", Read("Controls", "Viewer", "PdfViewer.Viewport.cs"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BothContextMenusOfferTheOwnerPassword()
     {
         string menu = Read("Shell", "ContextMenu.cs");

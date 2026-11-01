@@ -366,8 +366,18 @@ namespace KillerPDF.Controls
         internal void FocusReadingSurfaceExt()
         {
             if (IsKeyboardFocusWithin) return;
-            if (PagePreviewPanel.IsVisible) PagePreviewPanel.Focus();
+            if (PagePreviewPanel.IsVisible) FocusDocumentView();
             else Focus();
+        }
+
+        // The scroll panel keeps PageDown and the arrows scrolling. A screen reader needs the
+        // reading surface instead, because only that exposes the page text.
+        private void FocusDocumentView()
+        {
+            bool screenReader = System.Windows.Automation.Peers.AutomationPeer.ListenerExists(
+                System.Windows.Automation.Peers.AutomationEvents.AutomationFocusChanged);
+            if (!screenReader || DocSurfacePad.Source is null || !DocSurfacePad.Focus())
+                PagePreviewPanel.Focus();
         }
         internal void PageListSelectionChangedExt(object sender, SelectionChangedEventArgs e)
             => PageList_SelectionChanged(sender, e);

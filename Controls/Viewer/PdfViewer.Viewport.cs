@@ -1548,7 +1548,7 @@ namespace KillerPDF.Controls
                         if (Window.GetWindow(this) is { IsActive: true }
                             && ReferenceEquals(Keyboard.FocusedElement, focusBeforeInitialRender)
                             && Keyboard.FocusedElement is not TextBox { IsReadOnly: false })
-                            PagePreviewPanel.Focus();
+                            FocusDocumentView();
                         if (restoreHorizontalOffset.HasValue || restoreVerticalOffset.HasValue)
                         {
                             await Dispatcher.InvokeAsync(UpdateLayout, System.Windows.Threading.DispatcherPriority.ContextIdle);
