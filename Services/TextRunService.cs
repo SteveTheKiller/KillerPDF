@@ -281,8 +281,11 @@ namespace KillerPDF.Services
                 int insertAt = lineWords.FindLastIndex(line => line.Top > sectionBottom) + 1;
                 // Top only rises again at a column break, so a rise means the slot is inside a
                 // later column. Finish that column first rather than splitting it.
-                bool inLaterColumn = Enumerable.Range(1, Math.Max(0, insertAt - 1))
-                    .Any(i => lineWords[i].Top > lineWords[i - 1].Top);
+                double[] tops = [.. lineWords.Take(insertAt)
+                    .Where(line => !IsVertical(line.Words[0].Letters[0].WritingDirection))
+                    .Select(line => line.Top)];
+                bool inLaterColumn = Enumerable.Range(1, Math.Max(0, tops.Length - 1))
+                    .Any(i => tops[i] > tops[i - 1]);
                 while (inLaterColumn && insertAt < lineWords.Count
                     && lineWords[insertAt].Words.Min(w => w.BoundingBox.Left)
                         < lineWords[insertAt - 1].Words.Max(w => w.BoundingBox.Right)

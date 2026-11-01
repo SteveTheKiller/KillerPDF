@@ -93,8 +93,13 @@ internal sealed class PdfPageRenderSession : IDisposable
 
     // A same-size rewrite inside one clock tick keeps the cache key, so a caller that knows the
     // file changed drops the parsed document instead of trusting the timestamp.
-    internal static void ForgetDocument(string path) =>
-        _documentCache.TryRemove(Path.GetFullPath(path), out _);
+    // A working document's registered parse is known current and stays shared.
+    internal static void ForgetDocument(string path)
+    {
+        string normalized = Path.GetFullPath(path);
+        if (_documentCache.TryGetValue(normalized, out var entry) && entry.Working is null)
+            _documentCache.TryRemove(normalized, out _);
+    }
 
     /// <summary>
     /// Opens a file for rendering. Files encrypted with only an owner password open with the

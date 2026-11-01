@@ -28,7 +28,7 @@ public sealed class PrintBindingPickerTests
     [Fact]
     public void LoadedPagesAreMatchedAgainstTheSheetActuallyShown()
     {
-        Assert.Contains("SelectedSheets().ElementAtOrDefault(_previewIndex)?.Contains(index) == true",
+        Assert.Contains("bool onCurrentSheet = _shownPages.Contains(index);",
             Preview(), StringComparison.Ordinal);
     }
 

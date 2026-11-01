@@ -475,7 +475,12 @@ internal sealed class PdfStandardSecurityHandler
             && (_encryptMetadata || !isMetadata))
             return new PdfStream(dictionary, []);
         // Some writers leave XMP in the clear without declaring /EncryptMetadata false.
-        if (_compatibilityRecovery && isMetadata && data.StartsWith("<?xpacket"u8))
+        ReadOnlySpan<byte> unmarked = data.StartsWith("﻿"u8) ? data[3..] : data;
+        if (_compatibilityRecovery && isMetadata
+            && dictionary.TryGetValue(new PdfName("Subtype"u8), out PdfObject? subtype)
+            && ResolveStreamValue(subtype, resolve, "stream /Subtype") is PdfName subtypeName
+            && subtypeName.Equals(new PdfName("XML"u8))
+            && unmarked.TrimStart(" \t\r\n"u8).StartsWith("<?xpacket"u8))
             return new PdfStream(dictionary, data);
         return new PdfStream(dictionary,
             method != CryptMethod.Identity && (_encryptMetadata || !isMetadata)

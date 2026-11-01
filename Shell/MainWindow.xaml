@@ -469,6 +469,9 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
                             </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>

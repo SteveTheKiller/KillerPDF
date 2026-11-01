@@ -12524,6 +12524,9 @@ public sealed class PdfIncrementalPageEditor
     {
         const string description = "An imported page /Annots entry";
         var renamed = new Dictionary<(int ObjectNumber, int Generation), string>();
+        // An object can sit on several pages, so a fresh name must be free across the batch.
+        var taken = new HashSet<string>(StringComparer.Ordinal);
+        var pages = new List<List<(PdfIndirectReference? Reference, string Name)>>();
         foreach (PageState state in group)
         {
             PdfDocument document = state.ImportedDocument!;
@@ -12549,16 +12552,25 @@ public sealed class PdfIncrementalPageEditor
             {
                 continue;
             }
-            var taken = entries.Select(entry => entry.Name).ToHashSet(StringComparer.Ordinal);
+            taken.UnionWith(entries.Select(entry => entry.Name));
+            pages.Add(entries);
+        }
+        foreach (var entries in pages)
+        {
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach ((PdfIndirectReference? reference, string name) in entries)
             {
+                if (reference is not null && renamed.TryGetValue(
+                        (reference.ObjectNumber, reference.Generation), out string? given))
+                {
+                    seen.Add(given);
+                    continue;
+                }
                 if (seen.Add(name)) continue;
                 if (reference is null)
                     throw new InvalidOperationException(
                         $"{description} /NM value is not unique on the imported page.");
                 (int, int) identity = (reference.ObjectNumber, reference.Generation);
-                if (renamed.ContainsKey(identity)) continue;
                 int suffix = 2;
                 string unique;
                 do unique = $"{name}-{suffix++}"; while (!taken.Add(unique));

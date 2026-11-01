@@ -5029,6 +5029,39 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void Build_RenamedDuplicateCannotCollideWithANameOnAnotherImportedPage()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(200, 300).AddBlankPage(200, 300).Build());
+        (_, PdfIndirectReference[] references, PdfDictionary[] pages) = FlatPages(source);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        // /P is optional, and only an annotation without it can sit on two pages.
+        PdfIndirectReference Note(string name) => update.AddObject(new PdfDictionary([
+            new(Name("Type"), Name("Annot")),
+            new(Name("Subtype"), Name("Text")),
+            new(Name("Rect"), new PdfArray([
+                new PdfInteger(0), new PdfInteger(0), new PdfInteger(10), new PdfInteger(10)
+            ])),
+            new(Name("NM"), new PdfString(Encoding.Latin1.GetBytes(name), PdfStringForm.Literal))
+        ]));
+        PdfIndirectReference first = Note("a");
+        PdfIndirectReference shared = Note("a");
+        PdfIndirectReference other = Note("a-2");
+        update.ReplaceObject(references[0].ObjectNumber, new PdfDictionary(pages[0].Append(
+            new KeyValuePair<PdfName, PdfObject>(Name("Annots"), new PdfArray([first, shared])))));
+        update.ReplaceObject(references[1].ObjectNumber, new PdfDictionary(pages[1].Append(
+            new KeyValuePair<PdfName, PdfObject>(Name("Annots"), new PdfArray([shared, other])))));
+        PdfDocument authored = PdfDocument.Open(update.Build());
+
+        byte[] merged = new PdfIncrementalPageEditor(PdfDocument.Open(new PdfDocumentBuilder().Build()))
+            .AddImportedPages(authored, [0, 1])
+            .Build();
+
+        PdfIncrementalAnnotationEditor editor = new(PdfDocument.Open(merged));
+        Assert.NotEmpty(editor.AddTextNote(1, 50, 50, "Still editable").Build());
+    }
+
+    [Fact]
     public void Build_RejectsMalformedImportedAnnotationText()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

@@ -63,6 +63,7 @@ namespace KillerPDF
         private ComboBox _flipCombo = null!;     // long-edge / short-edge binding; only meaningful while duplex is on
         private ComboBox _subsetCombo = null!;   // all / odd only / even only (#134, manual duplex)
         private bool _reverse;               // last page first - trays hate this, people love it
+        private HashSet<int> _shownPages = [];   // source pages on the sheet the preview shows
         private bool _grayscale;             // send the job as grayscale/B&W rather than color
 
         // Immutable copy of every layout choice used while composing a print job. The progress
@@ -1194,6 +1195,7 @@ namespace KillerPDF
 
             // Source pages on this sheet, taken from the SELECTED set (one for 1-up, up to _nUp for N-up).
             List<int> idxs = SelectedSheets()[sheet];
+            _shownPages = [.. idxs];
 
             // Page/sheet nav label is always shown; the "Rendering X / Y" line above it appears only while
             // pages are still streaming in. 1-up shows the real page number (so a filtered preview reads
@@ -1263,7 +1265,7 @@ namespace KillerPDF
             _rasterH[index] = h;
             _loadedCount++;
 
-            bool onCurrentSheet = SelectedSheets().ElementAtOrDefault(_previewIndex)?.Contains(index) == true;
+            bool onCurrentSheet = _shownPages.Contains(index);
             if (onCurrentSheet)
                 UpdatePreview();                 // reveal the page (or keep spinner if sheet incomplete)
             else if (_isLoading)
