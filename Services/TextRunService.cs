@@ -286,7 +286,10 @@ namespace KillerPDF.Services
                     .Select(line => line.Top)];
                 bool inLaterColumn = Enumerable.Range(1, Math.Max(0, tops.Length - 1))
                     .Any(i => tops[i] > tops[i - 1]);
+                // A line starting left of the column is a footer or title, so the column ended.
                 while (inLaterColumn && insertAt < lineWords.Count
+                    && lineWords[insertAt].Words.Min(w => w.BoundingBox.Left)
+                        >= lineWords[insertAt - 1].Words.Min(w => w.BoundingBox.Left) - 2
                     && lineWords[insertAt].Words.Min(w => w.BoundingBox.Left)
                         < lineWords[insertAt - 1].Words.Max(w => w.BoundingBox.Right)
                     && lineWords[insertAt - 1].Words.Min(w => w.BoundingBox.Left)
