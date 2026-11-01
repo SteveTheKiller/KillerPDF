@@ -721,6 +721,15 @@ public sealed class PdfIncrementalAnnotationEditorTests
     }
 
     [Fact]
+    public void RemoveAnnotation_CannotRetargetAPendingReply()
+    {
+        var editor = new PdfIncrementalAnnotationEditor(TwoPagesSharingAnnotationName())
+            .AddTextNote(0, 50, 50, "Reply", inReplyTo: "shared-name");
+
+        Assert.Throws<ArgumentException>(() => editor.RemoveAnnotation(0, "shared-name"));
+    }
+
+    [Fact]
     public void Reply_RejectsAnAmbiguousTargetOnAnotherPage()
     {
         PdfDocument source = TwoPagesSharingAnnotationName(blankPageAfter: true);

@@ -128,6 +128,9 @@ public sealed class PdfIncrementalAnnotationEditor
                 $"Annotation '{name}' is already scheduled for removal.", nameof(name));
         PendingRemoval removal = FindNamedAnnotation(pageIndex, name);
         EnsureNotPendingUpdate(removal);
+        if (_annotations.Any(annotation => PendingReplyTarget(annotation) == name))
+            throw new ArgumentException(
+                "A pending reply points at this annotation name.", nameof(name));
         _removals.Add(removal);
         return this;
     }
