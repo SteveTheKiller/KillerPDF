@@ -57,7 +57,7 @@ namespace KillerPDF.Features
         // Options that consume the next argument as their value.
         private static readonly string[] CliValueOptions =
         [
-            "--log", "--dpi", "--format", "--pages", "--printer", "--lang", "--password", "--copies",
+            "--log", "--dpi", "--format", "--pages", "--printer", "--lang", "--password", "--copies", "--duplex",
             "--color-mode", "--threshold", "--compression", "--jpeg-quality",
             "--every", "--parts", "--bookmarks", "--max-size", "--name", "--strip",
             "--template", "--edge", "--align", "--number-format", "--font-size",
@@ -418,7 +418,10 @@ namespace KillerPDF.Features
             "                                           [--jpeg-quality <1-100>] [--scanned-look all|tilt,paper,grain,soft-focus,shadow]",
             "                                           rasterize into an uneditable PDF, optionally looking scanned",
             "  killerpdf print <in.pdf> [--printer <name>] [--pages <range>] [--copies <n>]",
+            "                                           [--duplex none|long|short] [--reverse]",
             "                                           print silently (default printer if none named)",
+            "  --password <p> also works on to-image, flatten, print, ocr, scan-to-text, fix-orientation,",
+            "                                           straighten and separations; other commands need an unprotected file",
             "  killerpdf scan <out.pdf> [--scanner <name>] [--show-settings]",
             "                                           scan through a TWAIN scanner into a PDF; --scan --list shows scanners",
             "  killerpdf ocr <in.pdf> <out.pdf> [--lang <code>] add an invisible searchable text layer (default eng;",
@@ -1907,7 +1910,7 @@ namespace KillerPDF.Features
         {
             if (pos.Count != 1)
             {
-                con.WriteLine("Usage: KillerPDF.exe --print <in.pdf> [--printer <name>] [--pages <range>] [--copies <n>] [--allow-incomplete]");
+                con.WriteLine("Usage: KillerPDF.exe --print <in.pdf> [--printer <name>] [--pages <range>] [--copies <n>] [--duplex none|long|short] [--reverse] [--password <p>] [--allow-incomplete]");
                 return 2;
             }
             string inPath = Path.GetFullPath(pos[0]);
@@ -1917,6 +1920,11 @@ namespace KillerPDF.Features
             if (options.TryGetValue("--copies", out var copiesRaw) &&
                 (!int.TryParse(copiesRaw, out copies) || copies < 1 || copies > 99))
             { con.WriteLine("--copies must be 1-99"); return 2; }
+            bool twoSided = false, shortEdge = false;
+            bool setDuplex = options.TryGetValue("--duplex", out var duplexRaw);
+            if (setDuplex && !PrintJobTicket.TryParseDuplex(duplexRaw!, out twoSided, out shortEdge))
+            { con.WriteLine("--duplex must be none, long or short"); return 2; }
+            bool reverse = options.ContainsKey("--reverse");
             bool allowIncomplete = options.ContainsKey("--allow-incomplete");
             var incomplete = new IncompletePageLog();
 
@@ -1964,6 +1972,7 @@ namespace KillerPDF.Features
                 {
                     selected = [.. Enumerable.Range(0, pageCount)];
                 }
+                if (reverse) selected.Reverse();
                 foreach (var idx in selected)
                 {
                     PdfRenderedPage rendered = renderSession.RenderPage(idx, requireComplete: !allowIncomplete);
@@ -1985,6 +1994,9 @@ namespace KillerPDF.Features
             var ticket = pd.PrintTicket;
             ticket.CopyCount = 1;
             ticket.PageOrientation = landscape ? PageOrientation.Landscape : PageOrientation.Portrait;
+            if (setDuplex)
+                ticket.Duplexing = !twoSided ? Duplexing.OneSided
+                    : shortEdge ? Duplexing.TwoSidedShortEdge : Duplexing.TwoSidedLongEdge;
             pd.PrintTicket = ticket;
             double aw = pd.PrintableAreaWidth, ah = pd.PrintableAreaHeight;
             if (landscape && ah > aw) (aw, ah) = (ah, aw);

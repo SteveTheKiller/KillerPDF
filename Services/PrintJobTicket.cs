@@ -73,6 +73,15 @@ internal static class PrintJobTicket
         return new PrintTicket(rewritten);
     }
 
+    /// <summary>Reads a command-line duplex choice: none, long or short.</summary>
+    internal static bool TryParseDuplex(string text, out bool twoSided, out bool shortEdge)
+    {
+        string choice = text.Trim().ToLowerInvariant();
+        twoSided = choice is "long" or "short";
+        shortEdge = choice == "short";
+        return twoSided || choice == "none";
+    }
+
     /// <summary>Groups pages into sheets. Reverse flips the order of the sheets and leaves the
     /// pages on each sheet in reading order.</summary>
     internal static List<List<int>> Sheets(IReadOnlyList<int> pages, int pagesPerSheet, bool reverse)

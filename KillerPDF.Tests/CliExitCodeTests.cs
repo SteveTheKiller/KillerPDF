@@ -127,6 +127,14 @@ public sealed class CliExitCodeTests : IDisposable
             source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void PrintWithAnUnusableDuplexIsBadUsage()
+    {
+        string pdf = Path.Combine(folder, "print.pdf");
+        File.WriteAllBytes(pdf, BlankPdf());
+        Assert.Equal(2, Run("--print", pdf, "--duplex", "sideways"));
+    }
+
     private int Run(params string[] arguments)
     {
         string exe = Path.Combine(RepositoryRoot(), "bin", "Release", "net10.0-windows", "KillerPDF.exe");

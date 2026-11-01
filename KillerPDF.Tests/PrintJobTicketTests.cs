@@ -103,6 +103,22 @@ public sealed class PrintJobTicketTests
         Assert.Equal([[4], [2, 3], [0, 1]], sheets);
     }
 
+    [Theory]
+    [InlineData("none", false, false)]
+    [InlineData("long", true, false)]
+    [InlineData("SHORT", true, true)]
+    public void TryParseDuplex_ReadsTheCliChoices(string text, bool twoSided, bool shortEdge)
+    {
+        Assert.True(PrintJobTicket.TryParseDuplex(text, out bool parsedTwoSided, out bool parsedShortEdge));
+        Assert.Equal((twoSided, shortEdge), (parsedTwoSided, parsedShortEdge));
+    }
+
+    [Fact]
+    public void TryParseDuplex_RefusesAnythingElse()
+    {
+        Assert.False(PrintJobTicket.TryParseDuplex("sideways", out _, out _));
+    }
+
     [Fact]
     public void Sheets_ForwardGroupsPagesInOrder()
     {
