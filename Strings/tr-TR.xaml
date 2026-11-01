@@ -1999,4 +1999,5 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_Macro_OutputNameDrift">Makro çıktısının adı onaylanan plandan farklı.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">İndirilen güncelleştirme doğrulanamadı ve silindi. Hiçbir şey yüklenmedi.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Belge değişti. Bu karartma işaretlerini temizleyip yeniden arayın.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">Erişilebilirlik etiketlerinin korunması gerektiğinden etiketli PDF dosyalarında bölge rasterleştirme henüz kullanılamıyor. Belge değiştirilmedi.</sys:String>
 </ResourceDictionary>

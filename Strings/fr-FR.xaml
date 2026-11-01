@@ -2019,4 +2019,5 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_Macro_OutputNameDrift">Le nom de sortie de la macro diffère du plan approuvé.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">La mise à jour téléchargée n'a pas pu être vérifiée et a été supprimée. Rien n'a été installé.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Le document a changé. Effacez ces marques de caviardage et relancez la recherche.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">La rastérisation d’une zone n’est pas encore disponible pour les PDF balisés, car leurs balises d’accessibilité doivent être conservées. Le document n’a pas été modifié.</sys:String>
 </ResourceDictionary>

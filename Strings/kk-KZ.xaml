@@ -2022,4 +2022,5 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Macro_OutputNameDrift">Макрос шығысының атауы бекітілген жоспардан өзгеше.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Жүктелген жаңартуды тексеру мүмкін болмады, сондықтан ол жойылды. Ештеңе орнатылған жоқ.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Құжат өзгерді. Осы жасыру белгілерін өшіріп, қайта іздеңіз.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">Белгіленген PDF файлдарында қолжетімділік тегтерін сақтау қажет болғандықтан, аймақты растрлау әзірге қолжетімсіз. Құжат өзгертілген жоқ.</sys:String>
 </ResourceDictionary>

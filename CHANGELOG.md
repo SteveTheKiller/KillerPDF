@@ -16,6 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
 - Merge accepts images with single-element device color-space arrays. (#469)
+- Rasterize Region detects unsupported tagged PDFs before region selection and explains why. (#369)
 - Form buttons and signed signature fields redraw correctly when their visibility changes.
 - Comment export and import preserve PDF dates with time zone offsets.
 - Repeated content appends keep PDF drawing instructions separate.

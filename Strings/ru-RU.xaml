@@ -2022,4 +2022,5 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Macro_OutputNameDrift">Имя выходного файла макроса отличается от утверждённого плана.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Не удалось проверить загруженное обновление, поэтому оно было удалено. Ничего не установлено.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Документ изменился. Удалите эти отметки удаления содержимого и выполните поиск заново.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">Растеризация области пока недоступна для PDF с тегами, поскольку необходимо сохранить их теги доступности. Документ не изменен.</sys:String>
 </ResourceDictionary>

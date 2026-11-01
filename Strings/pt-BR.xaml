@@ -2019,4 +2019,5 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_Macro_OutputNameDrift">O nome de saída da macro é diferente do plano aprovado.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Não foi possível verificar a atualização baixada, e ela foi descartada. Nada foi instalado.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">O documento mudou. Limpe estas marcações de ocultação e pesquise novamente.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">A rasterização de regiões ainda não está disponível para PDFs marcados porque suas tags de acessibilidade precisam ser preservadas. O documento não foi alterado.</sys:String>
 </ResourceDictionary>

@@ -2006,4 +2006,5 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_Macro_OutputNameDrift">A makró kimenetének neve eltér a jóváhagyott tervtől.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">A letöltött frissítést nem sikerült ellenőrizni, ezért elvetettük. Semmi sem lett telepítve.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">A dokumentum megváltozott. Törölje ezeket a kitakarási jelöléseket, és keressen újra.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">A területraszterezés még nem érhető el címkézett PDF-ekhez, mert meg kell őrizni az akadálymentesítési címkéiket. A dokumentum nem módosult.</sys:String>
 </ResourceDictionary>

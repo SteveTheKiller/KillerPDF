@@ -2007,4 +2007,5 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_Macro_OutputNameDrift">Nazwa wyjścia makra różni się od zatwierdzonego planu.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Nie udało się zweryfikować pobranej aktualizacji, więc została odrzucona. Nic nie zostało zainstalowane.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Dokument się zmienił. Usuń te oznaczenia zaczernienia i wyszukaj ponownie.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">Rasteryzacja obszaru nie jest jeszcze dostępna dla oznakowanych plików PDF, ponieważ ich znaczniki dostępności muszą zostać zachowane. Dokument nie został zmieniony.</sys:String>
 </ResourceDictionary>

@@ -2004,4 +2004,5 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_Macro_OutputNameDrift">Název výstupu makra se liší od schváleného plánu.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Staženou aktualizaci nebylo možné ověřit, proto byla zahozena. Nic nebylo nainstalováno.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Dokument se změnil. Vymažte tyto značky redakce a hledejte znovu.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">Rasterizace oblasti zatím není dostupná pro tagované PDF, protože je nutné zachovat jejich tagy přístupnosti. Dokument nebyl změněn.</sys:String>
 </ResourceDictionary>

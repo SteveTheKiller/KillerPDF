@@ -2001,4 +2001,5 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Macro_OutputNameDrift">巨集輸出名稱與已核准的計畫不一致。</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">無法驗證已下載的更新，已將其捨棄。未安裝任何內容。</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">文件已變更。請清除這些遮蔽標記，然後重新搜尋。</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">含標籤的 PDF 必須保留其無障礙標籤，因此尚不支援區域點陣化。文件未被變更。</sys:String>
 </ResourceDictionary>

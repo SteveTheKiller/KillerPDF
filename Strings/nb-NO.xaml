@@ -2019,4 +2019,5 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_Macro_OutputNameDrift">Utdatanavnet for makroen avviker fra den godkjente planen.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Den nedlastede oppdateringen kunne ikke bekreftes og ble forkastet. Ingenting ble installert.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Dokumentet er endret. Fjern disse sladdemarkeringene og søk på nytt.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">Rasterisering av områder er ennå ikke tilgjengelig for taggede PDF-filer fordi tilgjengelighetstaggene må bevares. Dokumentet er ikke endret.</sys:String>
 </ResourceDictionary>

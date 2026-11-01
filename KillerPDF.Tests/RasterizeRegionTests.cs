@@ -9,6 +9,24 @@ namespace KillerPDF.Tests;
 public sealed class RasterizeRegionTests
 {
     [Fact]
+    public void TaggedDocumentIsRefusedDuringPlanningBeforeRasterWork()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-tagged-region-{Guid.NewGuid():N}.pdf");
+        byte[] original = new PdfDocumentBuilder()
+            .AddPage(200, 200, new PdfContentStreamBuilder()
+                .BeginMarkedContent(PdfStructureType.Paragraph, 0).Rectangle(20, 20, 60, 60).Fill().EndMarkedContent())
+            .AddStructureElement(PdfStructureType.Paragraph, 0, 0).Build();
+        try
+        {
+            File.WriteAllBytes(path, original);
+            Assert.Throws<NotSupportedException>(() => PdfEngineIntegration.PlanPartialRasterization(
+                path, 0, new PdfContentBounds(10, 10, 90, 90), 72));
+            Assert.Equal(original, File.ReadAllBytes(path));
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public void RasterizeRegion_ReplacesOnlyTheBoxWithAnImage()
     {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-raster-region-{Guid.NewGuid():N}.pdf");

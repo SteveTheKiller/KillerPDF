@@ -2019,4 +2019,5 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Macro_OutputNameDrift">Назва виходу макросу відрізняється від затвердженого плану.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Не вдалося перевірити завантажене оновлення, тому його відхилено. Нічого не встановлено.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Документ змінився. Очистьте ці позначки вилучення вмісту та повторіть пошук.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">Растеризація області поки що недоступна для PDF із тегами, оскільки необхідно зберегти їхні теги доступності. Документ не змінено.</sys:String>
 </ResourceDictionary>

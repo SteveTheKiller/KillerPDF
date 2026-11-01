@@ -1908,4 +1908,5 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_Macro_OutputNameDrift">Ime izhoda makra se razlikuje od odobrenega načrta.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Prenesene posodobitve ni bilo mogoče preveriti, zato je bila zavržena. Nič ni bilo nameščeno.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Dokument se je spremenil. Počistite te oznake za prekrivanje in znova poiščite.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">Rasterizacija območja še ni na voljo za označene datoteke PDF, ker je treba ohraniti njihove oznake dostopnosti. Dokument ni bil spremenjen.</sys:String>
 </ResourceDictionary>

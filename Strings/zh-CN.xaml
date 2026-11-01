@@ -2003,4 +2003,5 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Macro_OutputNameDrift">宏输出名称与已批准的计划不一致。</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">无法验证已下载的更新，已将其丢弃。未安装任何内容。</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">文档已更改。请清除这些遮盖标记，然后重新搜索。</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">带标签的 PDF 必须保留其无障碍标签，因此暂不支持区域栅格化。文档未被更改。</sys:String>
 </ResourceDictionary>

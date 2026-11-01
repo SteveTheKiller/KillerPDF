@@ -2020,4 +2020,5 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_Macro_OutputNameDrift">Il nome di output della macro differisce dal piano approvato.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Non è stato possibile verificare l'aggiornamento scaricato, che è stato scartato. Non è stato installato nulla.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Il documento è cambiato. Cancella questi contrassegni di oscuramento e ripeti la ricerca.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">La rasterizzazione di un’area non è ancora disponibile per i PDF con tag perché i tag di accessibilità devono essere conservati. Il documento non è stato modificato.</sys:String>
 </ResourceDictionary>

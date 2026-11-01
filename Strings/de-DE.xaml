@@ -2008,4 +2008,5 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_Macro_OutputNameDrift">Der Name der Makroausgabe weicht vom genehmigten Plan ab.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Das heruntergeladene Update konnte nicht überprüft werden und wurde verworfen. Es wurde nichts installiert.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Das Dokument wurde geändert. Entfernen Sie diese Schwärzungsmarkierungen und suchen Sie erneut.</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">Die Bereichsrasterung ist für getaggte PDFs noch nicht verfügbar, da ihre Barrierefreiheits-Tags erhalten bleiben müssen. Das Dokument wurde nicht geändert.</sys:String>
 </ResourceDictionary>

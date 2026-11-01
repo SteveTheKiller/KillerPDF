@@ -698,8 +698,21 @@ internal static partial class PdfEngineIntegration
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
+        EnsurePartialRasterizationSupported(document);
         PdfPageContent page = new PdfPageContentReader(document).Read(pageIndex, cancellationToken);
         return PdfPartialRasterization.Plan(page, region, dpi);
+    }
+
+    internal static void EnsurePartialRasterizationSupported(string path) =>
+        EnsurePartialRasterizationSupported(PdfDocument.Open(File.ReadAllBytes(path)));
+
+    private static void EnsurePartialRasterizationSupported(PdfDocument document)
+    {
+        if (document.CrossReferences.TryGetTrailerValue(new PdfName("Root"u8), out PdfObject root)
+            && root is PdfIndirectReference reference
+            && document.Resolve(reference) is PdfDictionary catalog
+            && catalog.ContainsKey(new PdfName("StructTreeRoot"u8)))
+            throw new NotSupportedException("Region rasterization cannot yet preserve this document's accessibility tags.");
     }
 
     /// <summary>

@@ -1999,4 +1999,5 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_Macro_OutputNameDrift">ম্যাক্রোর আউটপুট নাম অনুমোদিত পরিকল্পনা থেকে আলাদা।</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">ডাউনলোড করা আপডেটটি যাচাই করা যায়নি এবং এটি বাতিল করা হয়েছে। কিছুই ইনস্টল করা হয়নি।</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">নথিটি পরিবর্তিত হয়েছে। এই রিড্যাকশন চিহ্নগুলো মুছে আবার অনুসন্ধান করুন।</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">ট্যাগযুক্ত PDF-এর অ্যাক্সেসিবিলিটি ট্যাগ সংরক্ষণ করতে হয়, তাই এখনো এগুলোর কোনো অঞ্চলকে ছবিতে রূপান্তর করা যায় না। নথিটি পরিবর্তন করা হয়নি।</sys:String>
 </ResourceDictionary>

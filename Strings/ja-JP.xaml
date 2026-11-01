@@ -2019,4 +2019,5 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_Macro_OutputNameDrift">マクロの出力名が、承認された計画と異なります。</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">ダウンロードした更新を検証できなかったため、破棄しました。何もインストールされていません。</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">文書が変更されました。これらの墨消しマークをクリアして、もう一度検索してください。</sys:String>
+    <sys:String x:Key="Str_Raster_TaggedUnsupported">タグ付きPDFではアクセシビリティタグを保持する必要があるため、領域のラスタライズはまだ利用できません。文書は変更されていません。</sys:String>
 </ResourceDictionary>
