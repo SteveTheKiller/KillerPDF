@@ -2680,7 +2680,7 @@ namespace KillerPDF.Controls
         private PageAnnotation? CloneHistoryAnnotation(PageAnnotation annotation)
         {
             var clone = CloneAnnotation(annotation);
-            if (clone is not null) clone.HistoryId = annotation.HistoryId;
+            clone?.CopyHistoryIdentityFrom(annotation);
             return clone;
         }
 
@@ -2698,7 +2698,6 @@ namespace KillerPDF.Controls
         // Snapshot one page's annotations (deep clones) onto the undo stack so an in-place edit - erase,
         // group/ungroup, layer reorder, unpair, delete - reverts with a single Ctrl+Z. Call BEFORE mutating.
         private void PushPageSnapshotUndo(int pageIdx) => PushPagesSnapshotUndo([pageIdx]);
-
         // Multi-page variant (e.g. deleting a selection that spans pages).
         private void PushPagesSnapshotUndo(IEnumerable<int> pages)
         {

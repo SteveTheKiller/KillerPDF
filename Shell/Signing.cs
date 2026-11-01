@@ -124,7 +124,7 @@ namespace KillerPDF.Shell
             menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
             menu.Items.Add(MakeMenuItem(Loc(initials ? "Str_Sig_ChangeInitials" : "Str_Sig_ChangeSignature"), (_, _) =>
             {
-                RemoveSignedField(objNum, pageIndex);
+                // The current signature stays until a replacement is picked.
                 _pendingSignField = (initials, objNum, pageIndex, x, y, w, h);
                 _pendingSignDocument = _doc;
                 _pendingSignViewer = ActiveViewer;
@@ -135,23 +135,20 @@ namespace KillerPDF.Shell
             menu.IsOpen = true;
         }
 
-        // A field counts as signed only while its signature is still on that page of the
-        // document now shown. Object numbers repeat across documents and change after page
-        // edits, so an entry whose annotation is gone is stale and is dropped.
-        private bool IsFieldSigned(int objNum, int pageIndex)
-        {
-            if (!_signedFields.TryGetValue(objNum, out var annot)) return false;
-            if (_annotations.TryGetValue(pageIndex, out var list) && list.Contains(annot)) return true;
-            _signedFields.Remove(objNum);
-            return false;
-        }
+        // The association lives on the annotation, so each document keeps its own and history
+        // restores it with the signature.
+        private SignatureAnnotation? SignatureInField(int objNum, int pageIndex) =>
+            SignatureAnnotation.ForField(_annotations.GetValueOrDefault(pageIndex), objNum);
 
-        // Deletes the signature placed in a field and clears its signed state.
+        private bool IsFieldSigned(int objNum, int pageIndex) =>
+            SignatureInField(objNum, pageIndex) is not null;
+
+        // Deletes the signature placed in a field as one undoable action.
         private void RemoveSignedField(int objNum, int pageIndex)
         {
-            if (!IsFieldSigned(objNum, pageIndex) || !_signedFields.TryGetValue(objNum, out var annot)) return;
-            if (_annotations.TryGetValue(pageIndex, out var list)) list.Remove(annot);
-            _signedFields.Remove(objNum);
+            if (SignatureInField(objNum, pageIndex) is not { } annot) return;
+            ActiveViewer.PushPageSnapshotUndoExt(pageIndex);
+            _annotations[pageIndex].Remove(annot);
             RenderAllAnnotations(pageIndex);
             MarkDirty(true);
             SetStatus(Loc("Str_St_FieldCleared"));
@@ -177,6 +174,7 @@ namespace KillerPDF.Shell
 
             var annot = new SignatureAnnotation
             {
+                FieldObjectNumber = objNum,
                 PageIndex    = pageIndex,
                 Position     = new Point(px, py),
                 Scale        = scale,
@@ -190,8 +188,14 @@ namespace KillerPDF.Shell
                 foreach (var stroke in sig.Strokes)
                     annot.Strokes.Add([.. stroke.Select(pt => new Point(pt.X, pt.Y))]);
 
-            _signedFields[objNum] = annot;
-            AddAnnotation(annot);
+            if (SignatureInField(objNum, pageIndex) is { } replaced)
+            {
+                // One snapshot covers the swap, so a single Undo brings the old signature back.
+                ActiveViewer.PushPageSnapshotUndoExt(pageIndex);
+                _annotations[pageIndex].Remove(replaced);
+                _annotations[pageIndex].Add(annot);
+            }
+            else AddAnnotation(annot);
             RenderAllAnnotations(pageIndex);
             MarkDirty(true);
             SetStatus(Loc("Str_St_FieldSigned"));

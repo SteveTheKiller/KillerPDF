@@ -21,6 +21,8 @@ namespace KillerPDF
     {
         // History snapshots retain identity; independent copies receive a new identity.
         internal Guid HistoryId { get; set; } = Guid.NewGuid();
+        internal virtual void CopyHistoryIdentityFrom(PageAnnotation source) =>
+            HistoryId = source.HistoryId;
         public int PageIndex { get; set; }
         // Links a text-edit cover to its replacement text (same non-empty id on both). A cover with a
         // PairId renders dashed (it's "paired"); when the partner text is deleted the cover's PairId is
@@ -228,6 +230,21 @@ namespace KillerPDF
     /// </summary>
     public class SignatureAnnotation : PlacedAnnotation
     {
+        /// <summary>Object number of the signature form field this fills, if any. Kept on the
+        /// annotation so it follows history snapshots and stays with its document.</summary>
+        public int? FieldObjectNumber { get; set; }
+
+        internal override void CopyHistoryIdentityFrom(PageAnnotation source)
+        {
+            base.CopyHistoryIdentityFrom(source);
+            if (source is SignatureAnnotation signature)
+                FieldObjectNumber = signature.FieldObjectNumber;
+        }
+
+        /// <summary>The signature filling the given field among one page's annotations.</summary>
+        internal static SignatureAnnotation? ForField(IEnumerable<PageAnnotation>? page, int objNum) =>
+            page?.OfType<SignatureAnnotation>().FirstOrDefault(s => s.FieldObjectNumber == objNum);
+
         public List<List<Point>> Strokes { get; set; } = [];
         /// <summary>Pen thickness (DIPs at source scale); multiplied by Scale when rendered.</summary>
         public double StrokeWidth { get; set; } = 2.5;

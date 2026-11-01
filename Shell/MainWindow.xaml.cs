@@ -242,8 +242,6 @@ namespace KillerPDF.Shell
         private SavedSignature? _activeSignatureChoice;
         private SavedSignature? _activeInitialsChoice;
         private (bool Initials, int ObjNum, int Page, double X, double Y, double W, double H)? _pendingSignField;
-        // Form fields already signed, so re-clicking one offers change/remove instead of re-stamping.
-        private readonly Dictionary<int, SignatureAnnotation> _signedFields = [];
 
         // Manual element refs. Tile-0's Image + overlay are built in code (BuildPrimaryTile) now that the
         // primary page is no longer a hardcoded XAML singleton - both are reassignable.

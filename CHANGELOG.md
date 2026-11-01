@@ -13,6 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Render-failure recovery preserves unsaved edits across panes and detached windows, including edits committed after focus moves.
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
 - Undo and Redo preserve retryable history and the open document when snapshot storage fails.
+- Removing or changing a signed field can be undone, canceling a change keeps the signature, and fields stay signed through Undo, Redo, and tab switches.
 - Comments save on PDFs that reuse an annotation name on different pages.
 - Damaged signature libraries are preserved and reported instead of crashing the signature picker.
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
