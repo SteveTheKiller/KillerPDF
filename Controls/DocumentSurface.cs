@@ -282,6 +282,14 @@ namespace KillerPDF.Controls
                 IDocumentReadingSource? source = Source;
                 if (source is null) return [];
                 TextPosition from = Model.Normalize(_start), to = Model.Normalize(_end);
+                // An empty range is the caret. Screen readers draw their highlight from these
+                // rectangles, so report the character it sits on rather than nothing.
+                if (from == to && from.Page < Model.PageCount)
+                {
+                    int length = source.PageText(from.Page).Text.Length;
+                    if (from.Offset < length) to = new TextPosition(from.Page, from.Offset + 1);
+                    else if (from.Offset > 0) from = new TextPosition(from.Page, from.Offset - 1);
+                }
                 var rects = new List<double>();
                 for (int page = from.Page; page <= to.Page && page < Model.PageCount; page++)
                 {

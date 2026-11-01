@@ -128,6 +128,15 @@ namespace KillerPDF.Tests
         });
 
         [Fact]
+        public void AnEmptyCaretRangeStillReportsWhereItIs() => OnSta(() =>
+        {
+            var text = (ITextProvider)UIElementAutomationPeer.CreatePeerForElement(
+                new DocumentSurface { Source = new FakeSource(["Invoice total"]) }).GetPattern(PatternInterface.Text);
+
+            Assert.Equal([0, 0, 1, 10], text.GetSelection()[0].GetBoundingRectangles());
+        });
+
+        [Fact]
         public void SelectsAndOutlinesTheCharactersOfARange() => OnSta(() =>
         {
             var source = new FakeSource(["Invoice total"]);
