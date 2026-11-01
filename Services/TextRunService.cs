@@ -279,6 +279,16 @@ namespace KillerPDF.Services
             {
                 double sectionBottom = section.Min(group => group.Min(w => w.BoundingBox.Bottom));
                 int insertAt = lineWords.FindLastIndex(line => line.Top > sectionBottom) + 1;
+                // Top only rises again at a column break, so a rise means the slot is inside a
+                // later column. Finish that column first rather than splitting it.
+                bool inLaterColumn = Enumerable.Range(1, Math.Max(0, insertAt - 1))
+                    .Any(i => lineWords[i].Top > lineWords[i - 1].Top);
+                while (inLaterColumn && insertAt < lineWords.Count
+                    && lineWords[insertAt].Words.Min(w => w.BoundingBox.Left)
+                        < lineWords[insertAt - 1].Words.Max(w => w.BoundingBox.Right)
+                    && lineWords[insertAt - 1].Words.Min(w => w.BoundingBox.Left)
+                        < lineWords[insertAt].Words.Max(w => w.BoundingBox.Right))
+                    insertAt++;
                 lineWords.InsertRange(insertAt, section.Select(group =>
                     (group, group.Max(w => w.BoundingBox.Top), group.Min(w => w.BoundingBox.Bottom))));
             }
