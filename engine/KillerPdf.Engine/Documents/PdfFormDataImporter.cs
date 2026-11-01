@@ -188,6 +188,7 @@ public static class PdfFormDataImporter
     private static DateTimeOffset? ParseDate(string? value)
     {
         if (value is null) return null;
+        if (PdfDateText.TryParse(value, out DateTimeOffset pdfDate)) return pdfDate;
         string normalized = value.StartsWith("D:", StringComparison.Ordinal)
             ? value[2..] : value;
         if (DateTimeOffset.TryParseExact(normalized,
