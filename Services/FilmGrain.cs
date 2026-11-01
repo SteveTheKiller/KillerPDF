@@ -13,6 +13,7 @@ namespace KillerPDF.Services
     internal static class FilmGrain
     {
         private const string SettingKey = "FilmGrain";
+        private static int _refreshPending;
 
         /// <summary>True while the grain texture is shown.</summary>
         internal static bool Enabled { get; private set; } = true;
@@ -28,9 +29,15 @@ namespace KillerPDF.Services
 
         private static void OnSystemColorsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
         {
+            if (!string.IsNullOrEmpty(args.PropertyName) && args.PropertyName != nameof(SystemParameters.HighContrast)) return;
             var app = Application.Current;
             if (app == null || app.Dispatcher.HasShutdownStarted) return;
-            app.Dispatcher.BeginInvoke(new System.Action(Publish));
+            if (System.Threading.Interlocked.Exchange(ref _refreshPending, 1) != 0) return;
+            app.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new System.Action(() =>
+            {
+                System.Threading.Interlocked.Exchange(ref _refreshPending, 0);
+                Publish();
+            }));
         }
 
         /// <summary>Shows or hides the grain on every surface and saves the choice.</summary>

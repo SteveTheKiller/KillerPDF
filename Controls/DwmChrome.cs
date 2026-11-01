@@ -24,6 +24,32 @@ namespace KillerPDF.Controls
 
         private const int DWMWCP_DONOTROUND = 1;
         private const int DWMWCP_ROUND = 2;
+        private static readonly DependencyProperty ThemeBorderRefreshProperty = DependencyProperty.RegisterAttached(
+            "ThemeBorderRefresh", typeof(Action), typeof(DwmChrome), new PropertyMetadata(null));
+
+        internal static void ObserveThemeBorder(Window w, Action refresh)
+        {
+            bool observed = w.GetValue(ThemeBorderRefreshProperty) is Action;
+            w.SetValue(ThemeBorderRefreshProperty, refresh);
+            if (observed) return;
+
+            Action apply = () => (w.GetValue(ThemeBorderRefreshProperty) as Action)?.Invoke();
+            var source = HwndSource.FromHwnd(new WindowInteropHelper(w).Handle);
+            HwndSourceHook hook = (IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+            {
+                if (msg == 0x031A || msg == 0x0015)
+                    KillerFamily.Accessibility.HighContrastResources.RefreshSystemColors();
+                return IntPtr.Zero;
+            };
+            source?.AddHook(hook);
+            KillerFamily.Accessibility.HighContrastResources.SystemColorsRefreshed += apply;
+            w.Closed += (_, _) =>
+            {
+                KillerFamily.Accessibility.HighContrastResources.SystemColorsRefreshed -= apply;
+                source?.RemoveHook(hook);
+                w.ClearValue(ThemeBorderRefreshProperty);
+            };
+        }
 
         /// <summary>Rounds or squares a window's corners. Square when maximized, so it sits flush
         /// to the screen edges. Returns true when DWM accepted the preference, so a caller can tell
@@ -47,18 +73,20 @@ namespace KillerPDF.Controls
         /// palettes whose pane borders are deliberately near-invisible. Call at SourceInitialized
         /// and again after every theme change.
         /// </summary>
-        internal static void SetThemeBorder(Window w)
+        internal static void SetThemeBorder(Window w, Action<IntPtr, int>? writeBorder = null)
         {
             try
             {
                 var hwnd = new WindowInteropHelper(w).Handle;
                 if (hwnd == IntPtr.Zero) return;
+                ObserveThemeBorder(w, () => SetThemeBorder(w, writeBorder));
                 if ((Application.Current.TryFindResource("AppBorderBrush")
                      ?? Application.Current.TryFindResource("PaneBorderBrush")) is SolidColorBrush b)
                 {
                     // COLORREF is 0x00BBGGRR, not RGB.
                     int colorref = b.Color.R | (b.Color.G << 8) | (b.Color.B << 16);
-                    _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref colorref, sizeof(int));
+                    if (writeBorder != null) writeBorder(hwnd, colorref);
+                    else _ = DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref colorref, sizeof(int));
                 }
             }
             catch { /* pre-Win11: attribute unsupported */ }

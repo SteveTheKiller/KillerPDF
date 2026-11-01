@@ -59,9 +59,17 @@ namespace KillerFamily.Accessibility
             }
         }
 
+        private static void PrepareHyperlink(Hyperlink link)
+        {
+            var source = DependencyPropertyHelper.GetValueSource(link, FrameworkContentElement.FocusVisualStyleProperty);
+            if (link.FocusVisualStyle == null || source.BaseValueSource is BaseValueSource.Default or BaseValueSource.DefaultStyle)
+                link.SetCurrentValue(FrameworkContentElement.FocusVisualStyleProperty, CompactFocusStyle);
+        }
+
         private static void OnHyperlinkPreviewGotFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs args)
         {
             if (sender is not System.Windows.Documents.Hyperlink link || !ReferenceEquals(args.NewFocus, link)) return;
+            PrepareHyperlink(link);
             DependencyObject? host = link.Parent;
             while (host is FrameworkContentElement content) host = content.Parent;
             if (host is not UIElement element || element.IsVisible) return;
@@ -116,7 +124,9 @@ namespace KillerFamily.Accessibility
             if (control is Window) HighContrastResources.Initialize();
             else HighContrastResources.PrepareCaption(control);
             // The focus adorner is shown by WPF for keyboard navigation, without changing layout.
-            if (control is not Window && control.Focusable && control.FocusVisualStyle == null)
+            var focusSource = DependencyPropertyHelper.GetValueSource(control, FrameworkElement.FocusVisualStyleProperty);
+            if (control is not Window && control.Focusable &&
+                (control.FocusVisualStyle == null || focusSource.BaseValueSource is BaseValueSource.Default or BaseValueSource.DefaultStyle))
                 control.SetCurrentValue(Control.FocusVisualStyleProperty, IsCompact(control) ? CompactFocusStyle : FocusStyle);
 
             // A group of radio buttons is one Tab stop, as everywhere else in Windows, and the arrow

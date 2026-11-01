@@ -18,9 +18,11 @@ namespace KillerFamily.Accessibility
         private static readonly Dictionary<Style, Style> CaptionStyles = new();
         private static readonly HashSet<Style> PreparedStyles = new();
         private static bool _initialized;
+        private static int _refreshPending;
         private static ResourceDictionary? _overlay;
         private static ResourceDictionary? _owner;
         private static readonly Dictionary<string, object?> Originals = new();
+        internal static event Action? SystemColorsRefreshed;
 
         internal static void Initialize()
         {
@@ -65,12 +67,21 @@ namespace KillerFamily.Accessibility
 
         private static void OnSystemColorsChanged(object? sender, PropertyChangedEventArgs args)
         {
+            if (!string.IsNullOrEmpty(args.PropertyName) && args.PropertyName != nameof(SystemParameters.HighContrast)) return;
+            RefreshSystemColors();
+        }
+
+        internal static void RefreshSystemColors()
+        {
             var app = Application.Current;
             if (app == null || app.Dispatcher.HasShutdownStarted) return;
-            app.Dispatcher.BeginInvoke(new Action(() =>
+            if (System.Threading.Interlocked.Exchange(ref _refreshPending, 1) != 0) return;
+            app.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
             {
+                System.Threading.Interlocked.Exchange(ref _refreshPending, 0);
                 Restore();
                 Refresh();
+                SystemColorsRefreshed?.Invoke();
             }));
         }
 

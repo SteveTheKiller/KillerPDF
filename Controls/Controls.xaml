@@ -2329,14 +2329,8 @@
         </Setter>
     </Style>
 
-    <!-- Black drop-shadow "stroke" behind white-on-accent row content. -->
-    <Style x:Key="PickerRowContent" TargetType="Panel">
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                <Setter Property="Effect" Value="{DynamicResource TextStroke}"/>
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
+    <!-- Picker selection changes the row colors without filtering its text or icons. -->
+    <Style x:Key="PickerRowContent" TargetType="Panel"/>
 
     <!-- Glyph: accent for folders, dim for files, white while selected. -->
     <Style x:Key="PickerGlyph" TargetType="TextBlock">
