@@ -89,7 +89,11 @@ namespace KillerPDF.Controls
         internal void SetTrueZoomExt(double level) => SetTrueZoom(level);
         internal void ApplyComparisonZoomExt(PdfViewer source)
         {
-            double zoom = Math.Clamp(source.TrueZoomLevelExt / DisplayZoomFactor(), ZoomMin, ZoomMax);
+            MarkViewportIntent();
+            double trueZoom = source.PersistableTrueZoomExt ?? source.TrueZoomLevelExt;
+            if (source._fitMode == FitMode.None && DeferTrueZoom(trueZoom)) return;
+            ClearPendingTrueZoom();
+            double zoom = Math.Clamp(trueZoom / DisplayZoomFactor(), ZoomMin, ZoomMax);
             // Fit Width uses each pane's page size; equal percentages can leave wide gutters
             // when the two documents have different physical widths.
             if (source._fitMode == FitMode.Width && _viewMode == ViewMode.Continuous

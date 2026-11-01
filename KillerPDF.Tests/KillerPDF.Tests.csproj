@@ -35,6 +35,8 @@
     <Compile Include="..\Services\FileRevision.cs" Link="Services\FileRevision.cs" />
     <Compile Include="..\Services\RenderFailureRecovery.cs" Link="Services\RenderFailureRecovery.cs" />
     <Compile Include="..\Services\DocumentTextModel.cs" Link="Services\DocumentTextModel.cs" />
+    <Compile Include="..\Services\DocumentViewportState.cs" Link="Services\DocumentViewportState.cs" />
+    <Compile Include="..\Services\DeferredManualZoom.cs" Link="Services\DeferredManualZoom.cs" />
     <Compile Include="..\Services\ColorContrast.cs" Link="Services\ColorContrast.cs" />
     <Compile Include="..\Services\SingleInstanceChannel.cs" Link="Services\SingleInstanceChannel.cs" />
     <Compile Include="..\Services\ComparisonGeometry.cs" Link="Services\ComparisonGeometry.cs" />

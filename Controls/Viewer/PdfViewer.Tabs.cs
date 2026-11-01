@@ -43,6 +43,10 @@ namespace KillerPDF.Controls
             public string? DeferredPath;
 
             public double ZoomLevel = 1.0;
+            public DeferredManualZoom? PendingZoom;
+            public double? PendingTrueZoomRestore => PendingZoom?.TrueZoom;
+            public FitMode? PendingFitRestore;
+            public long ViewportIntentRevision;
             public double LastRenderZoom = 1.0;
             public FitMode Fit = FitMode.None;
             public ViewMode View = ViewMode.Continuous;
@@ -266,21 +270,21 @@ namespace KillerPDF.Controls
             // A restored lazy tab has a path but no loaded document yet. Theme and locale refreshes
             // can briefly enter its pane before materialization; its placeholder 100% view must not
             // replace the real saved view state that OpenFile is about to restore.
-            if (s.Doc != null
+            if (s.Doc != null && CanPersistViewportExt
                 && (Host == null || Host.IsViewerFocused(this) || !Host.OtherViewerHasFile(this, s.OriginalFile)))
                 SaveDocState(s.OriginalFile, s.Fit, s.ZoomLevel, s.View, s.PageIndex,
-                    s.ScrollH, s.ScrollV);
+                    s.ScrollH, s.ScrollV, PersistableTrueZoomExt);
         }
 
         // ── Per-document view state (persisted across restarts, keyed by file path) ──────────────────
         // So reopening a file restores how you left it (fit mode, zoom, view mode, page) instead of the
         // per-view-mode default. Stored as one registry value: lines of
-        // "path|fit|zoom|view|page|scrollH|scrollV", most
+        // "path|fit|zoom|view|page|scrollH|scrollV|trueZoom", most
         // recent first, capped. '|' and newline are both illegal in Windows paths, so they're safe delimiters.
         private const int DocStatesMax = 40;
 
         private static void SaveDocState(string? path, FitMode fit, double zoom, ViewMode view, int page,
-            double scrollH, double scrollV)
+            double scrollH, double scrollV, double? trueZoom = null)
         {
             if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return;   // skip Untitled/imported
             string entry = string.Join("|", path,
@@ -290,6 +294,7 @@ namespace KillerPDF.Controls
                 page.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 scrollH.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 scrollV.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            entry = DocumentViewportState.AppendTrueZoom(entry, trueZoom);
             var lines = new List<string> { entry };
             var raw = App.GetSetting("DocStates");
             if (!string.IsNullOrEmpty(raw))
@@ -306,10 +311,10 @@ namespace KillerPDF.Controls
         }
 
         private static bool TryGetDocState(string? path, out FitMode fit, out double zoom,
-            out ViewMode view, out int page, out double scrollH, out double scrollV)
+            out ViewMode view, out int page, out double scrollH, out double scrollV, out double? trueZoom)
         {
             fit = FitMode.None; zoom = 1.0; view = ViewMode.Continuous; page = 0;
-            scrollH = 0; scrollV = 0;
+            scrollH = 0; scrollV = 0; trueZoom = null;
             if (string.IsNullOrEmpty(path)) return false;
             var raw = App.GetSetting("DocStates");
             if (string.IsNullOrEmpty(raw)) return false;
@@ -329,7 +334,8 @@ namespace KillerPDF.Controls
                     _ = double.TryParse(p[6], System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture, out scrollV);
                 }
-                if (zoom <= 0) zoom = 1.0;
+                trueZoom = DocumentViewportState.ReadTrueZoom(p, zoom, view == ViewMode.Continuous);
+                if (!double.IsFinite(zoom) || zoom <= 0) zoom = 1.0;
                 return true;
             }
             return false;

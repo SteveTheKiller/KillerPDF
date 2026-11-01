@@ -56,9 +56,9 @@ namespace KillerPDF.Shell
         // Signatures mirror the originals exactly, defaults included, so no call site changed.
         private System.Threading.Tasks.Task RenderContinuousPages(int centerPage) => ActiveViewer.RenderContinuousPages(centerPage);
         private void BootstrapDocumentView(int initialPage, bool autoFit, bool restoreFitMode = false,
-            double? restoreHorizontalOffset = null, double? restoreVerticalOffset = null)
+            double? restoreHorizontalOffset = null, double? restoreVerticalOffset = null, double? restoreTrueZoom = null)
             => ActiveViewer.BootstrapDocumentView(initialPage, autoFit, restoreFitMode,
-                restoreHorizontalOffset, restoreVerticalOffset);
+                restoreHorizontalOffset, restoreVerticalOffset, restoreTrueZoom);
         private void RefreshPageView(int pageIndex) => ActiveViewer.RefreshPageView(pageIndex);
         private void ScrollContinuousToPage(int pageIndex) => ActiveViewer.ScrollContinuousToPage(pageIndex);
 

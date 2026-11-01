@@ -743,10 +743,10 @@ namespace KillerPDF.Shell
                 }
                 PersistToolSettings();
                 // The active tab may not have been captured yet at exit; persist its view state directly.
-                if (_active != null)
+                if (_active != null && ActiveViewer.CanPersistViewportExt)
                     SaveDocState(_originalFile, _fitMode, _zoomLevel, _viewMode,
                         _active.PageIndex,
-                        _active.ScrollH, _active.ScrollV);
+                        _active.ScrollH, _active.ScrollV, ActiveViewer.PersistableTrueZoomExt);
             }
             catch { /* best-effort */ }
         }

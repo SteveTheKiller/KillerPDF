@@ -587,10 +587,11 @@ namespace KillerPDF.Controls
             // custom (None) zoom, keep the exact level on a tab restore (fitDefault=false) instead of snapping
             // to fit-page - otherwise switching tabs in continuous mode loses the user's zoom. Fresh opens and
             // view-mode switches pass fitDefault=true and still default to fit-page.
-            if (_fitMode == FitMode.Width) FitToWidth();
+            if (_active?.PendingZoom != null) RestoreManualZoom();
+            else if (_fitMode == FitMode.Width) FitToWidth();
             else if (_fitMode == FitMode.Page) FitToPage();
             else if (fitDefault) FitToPage();
-            else SetZoom(_zoomLevel);
+            else RestoreManualZoom();
 
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
             {
@@ -1001,6 +1002,18 @@ namespace KillerPDF.Controls
                 // Cached bitmaps land in the same per-tab render cache TryGetCachedRender reads,
                 // so the next PageDown/Left/Right skips the engine entirely.
                 KickOffAdjacentPrefetch(pageIndex, scaledMax, pgRot);
+                // Navigation can supersede bootstrap while a remembered zoom is still waiting
+                // for dimensions. The current owning render must finish that conversion too.
+                if (Current() && _active?.PendingZoom != null)
+                {
+                    if (_active.PendingFitRestore != null)
+                    {
+                        await Dispatcher.InvokeAsync(UpdateLayout, System.Windows.Threading.DispatcherPriority.ContextIdle);
+                        if (!Current()) return;
+                    }
+                    // Layout may already have applied the request. Do not turn its fit into a manual zoom.
+                    TryApplyPendingViewport();
+                }
             }
             catch (OperationCanceledException) { }
             catch (Exception ex)
@@ -1372,6 +1385,27 @@ namespace KillerPDF.Controls
             };
             _pageContentPanel.Children.Add(tile);
             RenderAllAnnotations(pi);
+            if (_viewMode == ViewMode.TwoPage && pi == State.CurrentPage)
+            {
+                if (_active?.PendingZoom is null) SyncZoomBox();
+                else if (_active.PendingFitRestore != null)
+                {
+                    var expectedSession = _active;
+                    string? expectedFile = _currentFile;
+                    long expectedRevision = expectedSession.RenderRevision;
+                    long expectedGeneration = _primaryRenderGeneration;
+                    bool CurrentFit() => ReferenceEquals(_active, expectedSession) && _currentFile == expectedFile
+                        && expectedSession.RenderRevision == expectedRevision && _primaryRenderGeneration == expectedGeneration
+                        && _viewMode == ViewMode.TwoPage && State.CurrentPage == pi;
+                    Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, (Action)(() =>
+                    {
+                        if (!CurrentFit()) return;
+                        UpdateLayout();
+                        if (CurrentFit()) TryApplyPendingViewport();
+                    }));
+                }
+                else TryApplyPendingViewport();
+            }
 
             // Grid tiles render asynchronously, so a "scroll to page N" requested when entering grid
             // can't run until page N's tile exists. Do it the moment that tile streams in.
@@ -1397,9 +1431,25 @@ namespace KillerPDF.Controls
         }
 
         internal void BootstrapDocumentView(int initialPage, bool autoFit, bool restoreFitMode = false,
-            double? restoreHorizontalOffset = null, double? restoreVerticalOffset = null)
+            double? restoreHorizontalOffset = null, double? restoreVerticalOffset = null, double? restoreTrueZoom = null)
         {
             DocumentSession? expectedSession = _active;
+            if (expectedSession != null && (restoreFitMode || autoFit))
+            {
+                ClearPendingTrueZoom();
+                if (_viewMode != ViewMode.Grid)
+                {
+                    if (autoFit || _fitMode is FitMode.Width or FitMode.Page)
+                    {
+                        expectedSession.PendingFitRestore = autoFit ? FitMode.Page : _fitMode;
+                        expectedSession.PendingZoom = new DeferredManualZoom(1.0);
+                    }
+                    else if (restoreTrueZoom is > 0 && double.IsFinite(restoreTrueZoom.Value))
+                        expectedSession.PendingZoom = new DeferredManualZoom(restoreTrueZoom.Value);
+                }
+            }
+            long initialIntent = expectedSession?.ViewportIntentRevision ?? 0;
+            bool InitialIntentCurrent() => (expectedSession?.ViewportIntentRevision ?? 0) == initialIntent;
             // The document is (re)displaying - usually a different one (tab switch/close/open). The
             // skip-render guard in PageList_SelectionChanged compares the target page to the last
             // rasterised page (_renderedPrimaryPage) but not to WHICH document, so a switch to another
@@ -1456,7 +1506,7 @@ namespace KillerPDF.Controls
                         if (!InitialCurrent()) return;
                         await Dispatcher.InvokeAsync(UpdateLayout, System.Windows.Threading.DispatcherPriority.ContextIdle);
                         if (!InitialCurrent()) return;
-                        if (autoFit)
+                        if (autoFit && InitialIntentCurrent())
                         {
                             // Grid opens to its 3-across default; other modes fit to width.
                             if (_viewMode == ViewMode.Grid)
@@ -1467,13 +1517,10 @@ namespace KillerPDF.Controls
                             else
                                 FitToPage();
                         }
-                        else if (restoreFitMode)
+                        else if (restoreFitMode && InitialIntentCurrent())
                         {
-                            // Reopened document: keep its last page and view mode. A saved FIT mode is
-                            // replayed against the current window (fit is window-relative by definition).
-                            // A saved MANUAL zoom is restored as-is (#201): _zoomLevel already holds the
-                            // saved value from the open path, and SetZoom clamps to ZoomMin/ZoomMax, so a
-                            // zoom saved on different hardware can't open enormous or microscopic.
+                            // Fit modes use the current window. Manual zoom uses a mode-independent
+                            // percentage when available; old records retain their internal-scale fallback.
                             if (_viewMode == ViewMode.Grid)
                             {
                                 _gridColumns = Math.Min(_doc?.PageCount ?? 1, 3);
@@ -1481,9 +1528,9 @@ namespace KillerPDF.Controls
                             }
                             else if (_fitMode == FitMode.Width)   FitToWidth();
                             else if (_fitMode == FitMode.Page)    FitToPage();
-                            else                                  SetZoom(_zoomLevel);   // manual zoom: restore it (#201)
+                            else                                  RestoreManualZoom();
                         }
-                        else
+                        else if (InitialIntentCurrent())
                         {
                             // Tab restore: keep the document's saved zoom. Grid's zoom is really "how many
                             // columns" for the CURRENT window width, and its SizeChanged/settle handlers
@@ -1491,7 +1538,7 @@ namespace KillerPDF.Controls
                             // same way so the two agree instead of fighting (a raw saved zoom from a different
                             // width loses). _gridColumns is restored per tab in ApplySessionState.
                             if (_viewMode == ViewMode.Grid) SetZoom(GridZoomForN(_gridColumns));
-                            else SetZoom(_zoomLevel);
+                            else RestoreManualZoom();
                         }
                         // #196: opening a file from Explorer left keyboard focus outside the document
                         // view (WPF's initial focus can land in the page-jump box, whose editable-
@@ -1567,6 +1614,7 @@ namespace KillerPDF.Controls
 
         internal void ApplyZoom(bool lite = false)
         {
+            if (!_applyingPendingViewport && _active?.PendingFitRestore != null && TryApplyPendingViewport()) return;
             if (_pageContentGrid.LayoutTransform is ScaleTransform st)
             {
                 st.ScaleX = _zoomLevel;
@@ -1726,22 +1774,146 @@ namespace KillerPDF.Controls
         // In Single/Two-Page/Grid the box is the render-dimension bitmap (~2x natural width), so
         // the raw _zoomLevel reads about half the real size. DisplayZoomFactor converts to true
         // zoom for everything shown to (or typed by) the user; the internal value is unchanged.
-        private double DisplayZoomFactor()
+        private double DisplayZoomFactor() => TryDisplayZoomFactor(out double factor) ? factor : 1.0;
+
+        private bool TryDisplayZoomFactor(out double factor)
         {
-            if (_viewMode == ViewMode.Continuous || _doc is null) return 1.0;
+            factor = 1.0;
+            if (_doc is null) return false;
+            if (_viewMode == ViewMode.Continuous) return true;
             PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
             int idx = _viewMode == ViewMode.Grid ? 0 : Math.Max(0, State.CurrentPage);   // never the shared sidebar's index (see ApplyZoom)
-            if (idx < 0 || idx >= engineSession.PageCount) return 1.0;
-            if (!_renderDims.TryGetValue(idx, out var d) || d.w <= 0) return 1.0;
+            if (idx < 0 || idx >= engineSession.PageCount) return false;
+            if (!_renderDims.TryGetValue(idx, out var d) || d.w <= 0) return false;
+            double displayedWidth = d.w;
+            if (_viewMode == ViewMode.TwoPage && idx != SpreadStart(idx))
+            {
+                if (!TryGetSecondaryPageSize(idx, out var size)) return false;
+                displayedWidth = size.w;
+            }
             var (wpt, _) = engineSession.PhysicalPageSize(idx, _pageRotations);
             double naturalW = wpt * 96.0 / 72.0;
-            if (naturalW <= 0) return 1.0;
-            return d.w / naturalW;
+            if (!double.IsFinite(naturalW) || naturalW <= 0) return false;
+            factor = displayedWidth / naturalW;
+            return double.IsFinite(factor) && factor > 0;
+        }
+
+        // Preserve the previous completed viewport until ordered inputs have usable geometry.
+        internal bool CanPersistViewportExt => _active?.PendingZoom?.HasOperations != true
+            || (_active.PendingFitRestore is null && TryDisplayZoomFactor(out _));
+
+        internal double? PersistableTrueZoomExt
+        {
+            get
+            {
+                if (_fitMode != FitMode.None || _active?.PendingFitRestore != null) return null;
+                if (_active?.PendingZoom is { } pending)
+                    return TryDisplayZoomFactor(out double pendingFactor)
+                        ? pending.Resolve(pendingFactor, ZoomMin, ZoomMax) * pendingFactor
+                        : pending.TrueZoom;
+                return TryDisplayZoomFactor(out double factor) && double.IsFinite(_zoomLevel * factor)
+                    && _zoomLevel * factor > 0 ? _zoomLevel * factor : null;
+            }
+        }
+
+        private void RestoreManualZoom()
+        {
+            if (_active?.PendingZoom != null) TryApplyPendingViewport();
+            else SetZoom(_zoomLevel);
+        }
+
+        private bool _applyingPendingViewport;
+
+        private bool TryApplyPendingViewport()
+        {
+            if (_active?.PendingZoom is not { } request || !TryDisplayZoomFactor(out double factor)) return false;
+            var session = _active;
+            var fit = session.PendingFitRestore;
+            bool wasApplying = _applyingPendingViewport;
+            _applyingPendingViewport = true;
+            try
+            {
+                ClearPendingTrueZoom();
+                if (fit is FitMode.Width or FitMode.Page)
+                {
+                    if (fit == FitMode.Width) FitToWidth(); else FitToPage();
+                    if (!ReferenceEquals(_active, session)) return false;
+                    if (session.PendingFitRestore != null)
+                    {
+                        session.PendingZoom = request;
+                        if (request.HasOperations) _fitMode = FitMode.None;
+                        return false;
+                    }
+                    if (request.HasOperations) SetZoom(request.ResolveFromInternal(_zoomLevel, ZoomMin, ZoomMax));
+                }
+                else SetZoom(request.Resolve(factor, ZoomMin, ZoomMax));
+                return true;
+            }
+            finally { _applyingPendingViewport = wasApplying; }
+        }
+
+        private void MarkViewportIntent()
+        {
+            if (!_applyingPendingViewport && _active != null) _active.ViewportIntentRevision++;
+        }
+
+        private void ClearPendingTrueZoom()
+        {
+            if (_active != null)
+            {
+                _active.PendingZoom = null;
+                _active.PendingFitRestore = null;
+            }
+        }
+
+        private bool DeferTrueZoom(double requested)
+        {
+            if (_active is null || _doc is null || TryDisplayZoomFactor(out _) || double.IsNaN(requested)) return false;
+            _fitMode = FitMode.None;
+            _active.PendingFitRestore = null;
+            _active.PendingZoom = new DeferredManualZoom(double.IsPositiveInfinity(requested) ? double.MaxValue
+                : requested > 0 ? requested : double.Epsilon);
+            return true;
+        }
+
+        private bool DeferFit(FitMode fit)
+        {
+            if (_active is null || _doc is null) return false;
+            bool ready = TryDisplayZoomFactor(out _)
+                && PagePreviewPanel.IsMeasureValid && PagePreviewPanel.IsArrangeValid
+                && PagePreviewPanel.ActualWidth > 40
+                && (fit != FitMode.Page || PagePreviewPanel.ActualHeight > 40)
+                && (_viewMode == ViewMode.Continuous ? _continuousPageW > 0 : PageImage.Source != null);
+            if (ready) return false;
+            ClearPendingTrueZoom();
+            _fitMode = fit;
+            _active.PendingFitRestore = fit;
+            _active.PendingZoom = new DeferredManualZoom(1.0);
+            return true;
+        }
+
+        private bool AdjustPendingTrueZoom(double scale)
+        {
+            if (_active?.PendingZoom is not { } pending) return false;
+            if (TryApplyPendingViewport()) return false;
+            pending.QueueScale(scale);
+            _fitMode = FitMode.None;
+            return true;
+        }
+
+        private bool AdjustPendingZoomStep(double step)
+        {
+            if (_active?.PendingZoom is not { } pending) return false;
+            if (TryApplyPendingViewport()) return false;
+            pending.QueueStep(step);
+            _fitMode = FitMode.None;
+            return true;
         }
         internal double DisplayZoomPct() => _zoomLevel * DisplayZoomFactor() * 100.0;
 
         internal void SetZoom(double level)
         {
+            ClearPendingTrueZoom();
             _fitMode   = FitMode.None;
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, level));
             ApplyZoom();
@@ -1759,13 +1931,25 @@ namespace KillerPDF.Controls
         /// </summary>
         internal void SetTrueZoom(double trueZoom)
         {
+            MarkViewportIntent();
+            if (DeferTrueZoom(trueZoom)) return;
             double zf = DisplayZoomFactor();
             if (zf <= 0) zf = 1.0;
             SetZoom(trueZoom / zf);
         }
 
-        internal void ZoomIn_Click(object sender, RoutedEventArgs e)  { if (_viewMode == ViewMode.Grid) GridZoomStep(false); else SetZoom(_zoomLevel + ZoomStep); }
-        internal void ZoomOut_Click(object sender, RoutedEventArgs e) { if (_viewMode == ViewMode.Grid) GridZoomStep(true);  else SetZoom(_zoomLevel - ZoomStep); }
+        internal void ZoomIn_Click(object sender, RoutedEventArgs e)
+        {
+            MarkViewportIntent();
+            if (_viewMode == ViewMode.Grid) GridZoomStep(false);
+            else if (!AdjustPendingZoomStep(ZoomStep)) SetZoom(_zoomLevel + ZoomStep);
+        }
+        internal void ZoomOut_Click(object sender, RoutedEventArgs e)
+        {
+            MarkViewportIntent();
+            if (_viewMode == ViewMode.Grid) GridZoomStep(true);
+            else if (!AdjustPendingZoomStep(-ZoomStep)) SetZoom(_zoomLevel - ZoomStep);
+        }
 
         /// <summary>Set by SyncZoomBox around its programmatic writes. Same story as
         /// _syncingPageList: the box's real subscription is the WINDOW's XAML-bound stub, so the
@@ -1823,23 +2007,32 @@ namespace KillerPDF.Controls
             if (double.TryParse(tag, System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out double z))
             {
-                _fitMode = FitMode.None;
-                // Preset tags are true zoom (1.0 = 100%); convert to the internal render-dim scale.
-                double zf = DisplayZoomFactor(); if (zf <= 0) zf = 1.0;
-                _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, z / zf));
-                ApplyZoom();
+                SetTrueZoom(z);
                 if (_currentPage >= 0 && _doc != null)
                     SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, _doc.PageCount) + $" - {DisplayZoomPct():F0}%");
             }
         }
 
-        // The selected page's DIP size for fit/zoom math (Single + Two-Page). Prefer _renderDims - it's set
-        // synchronously in RenderPage so it always matches the current page and is zoom-stable (scaledMax
-        // scales with zoom while RenderPage divides it back out, so the two cancel). Fall back to PageImage's
-        // live layout size only when _renderDims has no entry yet, and to 1 to avoid divide-by-zero. Single
-        // source so FitToWidth/FitToPage don't each re-derive it. (Continuous/Grid use their own page metrics.)
+        // A secondary tile shares the primary's displayed width. Its retained annotation dimensions
+        // can differ after a view-mode switch, so fit and display zoom use the actual tile geometry.
+        private bool TryGetSecondaryPageSize(int idx, out (double w, double h) size)
+        {
+            size = default;
+            if (_viewMode != ViewMode.TwoPage || idx < 0 || idx == SpreadStart(idx)
+                || !_renderDims.ContainsKey(idx) || !_continuousCanvases.TryGetValue(idx, out var canvas)
+                || !double.IsFinite(canvas.Width) || !double.IsFinite(canvas.Height)
+                || canvas.Width <= 0 || canvas.Height <= 0
+                || !canvas.LayoutTransform.Value.IsIdentity
+                || canvas.Parent is not Grid tile || !tile.Children.OfType<Image>().Any(image => image.Source != null))
+                return false;
+            size = (canvas.Width, canvas.Height);
+            return true;
+        }
+
+        // Primary pages use their canonical dimensions; Continuous and Grid have their own fit math.
         private (double w, double h) GetPageDipSize(int idx)
         {
+            if (TryGetSecondaryPageSize(idx, out var size)) return size;
             if (idx >= 0 && _renderDims.TryGetValue(idx, out var d))
                 return (d.w, d.h);
             return (PageImage.ActualWidth  > 0 ? PageImage.ActualWidth  : 1,
@@ -1876,6 +2069,9 @@ namespace KillerPDF.Controls
 
         internal void FitToWidth(bool lite = false, FitScroll scroll = FitScroll.PageTop)
         {
+            MarkViewportIntent();
+            if (DeferFit(FitMode.Width)) return;
+            ClearPendingTrueZoom();
             double viewW = PagePreviewPanel.ActualWidth - 40;
             if (viewW <= 0) return;
 
@@ -1917,6 +2113,9 @@ namespace KillerPDF.Controls
 
         internal void FitToPage(bool lite = false, FitScroll scroll = FitScroll.PageTop)
         {
+            MarkViewportIntent();
+            if (DeferFit(FitMode.Page)) return;
+            ClearPendingTrueZoom();
             double viewW = PagePreviewPanel.ActualWidth  - 40;
             double viewH = PagePreviewPanel.ActualHeight - 40;
             if (viewW <= 0 || viewH <= 0) return;
@@ -2173,6 +2372,7 @@ namespace KillerPDF.Controls
                 return;
             }
             if (_viewMode == mode) return;
+            ClearPendingTrueZoom();
             if (_doc is null) { ApplyViewMode(mode); return; }   // start screen: nothing visible to fade
 
             _pendingViewMode = mode;

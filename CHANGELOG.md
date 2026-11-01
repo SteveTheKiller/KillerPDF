@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.2] - Unreleased
 
-1.9.2 protects unsaved work and exports and fixes rendering, signatures, text selection, and update relaunches.
+1.9.2 protects unsaved work and exports and fixes rendering, signatures, zoom, text selection, and update relaunches.
 
 ### Fixed
 - Render-failure recovery preserves unsaved edits across panes and detached windows, including edits committed after focus moves.
@@ -15,6 +15,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Damaged signature libraries are preserved and reported instead of crashing the signature picker.
 
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
+- Reopening PDFs preserves zoom across view modes, and fit and zoom stay accurate while pages load or switch layouts.
 - Corrected Japanese character order and vertical-text selection, hit testing, and accessible text ranges. (#465)
 - Merge accepts images with single-element device color-space arrays. (#469)
 - Rasterize Region detects unsupported tagged PDFs before region selection and explains why. (#369)

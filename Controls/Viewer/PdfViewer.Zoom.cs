@@ -58,6 +58,9 @@ namespace KillerPDF.Controls
                 e.Handled = true;
                 if (_viewMode == ViewMode.Grid) { GridZoomStep(e.Delta < 0); return; }
 
+                MarkViewportIntent();
+                if (AdjustPendingTrueZoom(Math.Pow(WheelZoomFactor, e.Delta / 120.0))) return;
+
                 Point cursorInViewport = e.GetPosition(PagePreviewPanel);
                 if (!_wheelZoomAnchorActive)
                 {
@@ -189,6 +192,9 @@ namespace KillerPDF.Controls
             e.Handled = true;
             if (_doc is null) return;
 
+            MarkViewportIntent();
+            if (AdjustPendingTrueZoom(scale)) return;
+
             Point origin = e.ManipulationOrigin;
             PinchZoomResult result = PinchZoomMath.Apply(
                 _zoomLevel, scale, ZoomMin, ZoomMax,
@@ -226,6 +232,8 @@ namespace KillerPDF.Controls
             e.Handled = true;
             if (_doc is null) return;
             if (_viewMode == ViewMode.Grid) { GridZoomStep(e.Delta < 0); return; }
+            MarkViewportIntent();
+            if (AdjustPendingTrueZoom(Math.Pow(WheelZoomFactor, e.Delta / 120.0))) return;
             _fitMode   = FitMode.None;
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax,
                 _zoomLevel * Math.Pow(WheelZoomFactor, e.Delta / 120.0)));

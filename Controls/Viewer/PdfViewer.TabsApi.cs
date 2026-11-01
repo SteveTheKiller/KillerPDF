@@ -231,11 +231,11 @@ namespace KillerPDF.Controls
             Host?.EnsureSidebarPageVisible(this, State.CurrentPage);
         }
         internal static void SaveDocStateExt(string? path, FitMode fit, double zoom, ViewMode view,
-            int page, double scrollH, double scrollV)
-            => SaveDocState(path, fit, zoom, view, page, scrollH, scrollV);
+            int page, double scrollH, double scrollV, double? trueZoom = null)
+            => SaveDocState(path, fit, zoom, view, page, scrollH, scrollV, trueZoom);
         internal static bool TryGetDocStateExt(string? path, out FitMode fit, out double zoom,
-            out ViewMode view, out int page, out double scrollH, out double scrollV)
-            => TryGetDocState(path, out fit, out zoom, out view, out page, out scrollH, out scrollV);
+            out ViewMode view, out int page, out double scrollH, out double scrollV, out double? trueZoom)
+            => TryGetDocState(path, out fit, out zoom, out view, out page, out scrollH, out scrollV, out trueZoom);
 
         // ── Strip and render ─────────────────────────────────────────────────────────────────
         internal void InitTabStripExt() => InitTabStrip();
