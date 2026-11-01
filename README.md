@@ -2,7 +2,7 @@
   <a href="https://killerpdf.net"><img src="docs/wordmark.png" height="180" alt="KillerPDF wordmark: a free, open-source PDF editor for Windows"></a>
 </p>
 
-# KillerPDF 1.9 "Overkill"
+# KillerPDF 1.9
 
 KillerPDF is a free, open-source PDF editor for Windows. Read, annotate, edit, organize, sign, redact and convert documents in one app, locally and without an account. Version 1.9 runs on KillerPDF's own PDF engine for rendering, text extraction, editing and document processing.
 
