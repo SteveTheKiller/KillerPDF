@@ -603,6 +603,118 @@ public sealed class PdfIncrementalAnnotationEditorTests
             error.Message, StringComparison.Ordinal);
     }
 
+    private static PdfDocument TwoPagesSharingAnnotationName(bool blankPageAfter = false)
+    {
+        var builder = new PdfDocumentBuilder().AddBlankPage().AddBlankPage();
+        PdfDocument source = PdfDocument.Open(
+            (blankPageAfter ? builder.AddBlankPage() : builder).Build());
+        var setup = new PdfIncrementalUpdateBuilder(source);
+        foreach ((PdfIndirectReference reference, PdfDictionary page) in Pages(source).Take(2))
+        {
+            PdfIndirectReference annotation = setup.AddObject(new PdfDictionary([
+                new(Name("Type"), Name("Annot")),
+                new(Name("Subtype"), Name("Text")),
+                new(Name("Rect"), new PdfArray([
+                    new PdfInteger(0), new PdfInteger(0),
+                    new PdfInteger(10), new PdfInteger(10)
+                ])),
+                new(Name("P"), reference),
+                new(Name("NM"), new PdfString("shared-name"u8, PdfStringForm.Literal))
+            ]));
+            setup.ReplaceObject(reference.ObjectNumber, new PdfDictionary(page.Append(
+                new KeyValuePair<PdfName, PdfObject>(Name("Annots"),
+                    new PdfArray([annotation])))));
+        }
+        return PdfDocument.Open(setup.Build());
+    }
+
+    private static PdfObject Dereference(PdfDocument document, PdfObject value) =>
+        value is PdfIndirectReference reference ? document.Resolve(reference) : value;
+
+    private static int AnnotationCount(PdfDocument document, int pageIndex) =>
+        Pages(document)[pageIndex].Page.TryGetValue(Name("Annots"), out PdfObject? annots)
+            ? ((PdfArray)Dereference(document, annots)).Count : 0;
+
+    [Fact]
+    public void Build_AllowsTheSameAnnotationNameOnDifferentPages()
+    {
+        PdfDocument source = TwoPagesSharingAnnotationName();
+
+        PdfDocument saved = PdfDocument.Open(new PdfIncrementalAnnotationEditor(source)
+            .AddTextNote(0, 50, 50, "New note")
+            .Build());
+
+        Assert.Equal(2, AnnotationCount(saved, 0));
+        Assert.Equal(1, AnnotationCount(saved, 1));
+    }
+
+    [Fact]
+    public void RemoveAnnotation_RemovesOnlyTheNamedPagesAnnotation()
+    {
+        PdfDocument saved = PdfDocument.Open(new PdfIncrementalAnnotationEditor(
+                TwoPagesSharingAnnotationName())
+            .RemoveAnnotation(1, "shared-name")
+            .Build());
+
+        Assert.Equal(1, AnnotationCount(saved, 0));
+        Assert.Equal(0, AnnotationCount(saved, 1));
+    }
+
+    [Fact]
+    public void RemoveAnnotation_AllowsTheSameNameOnEachPageInOneRevision()
+    {
+        PdfDocument saved = PdfDocument.Open(new PdfIncrementalAnnotationEditor(
+                TwoPagesSharingAnnotationName())
+            .RemoveAnnotation(0, "shared-name")
+            .RemoveAnnotation(1, "shared-name")
+            .Build());
+
+        Assert.Equal(0, AnnotationCount(saved, 0));
+        Assert.Equal(0, AnnotationCount(saved, 1));
+    }
+
+    [Fact]
+    public void Names_AreCheckedPerPageNotPerDocument()
+    {
+        var editor = new PdfIncrementalAnnotationEditor(TwoPagesSharingAnnotationName())
+            .RemoveAnnotation(0, "shared-name");
+
+        Assert.Throws<ArgumentException>(() =>
+            editor.AddTextNote(1, 50, 50, "Clash", name: "shared-name"));
+        PdfDocument saved = PdfDocument.Open(editor
+            .AddTextNote(0, 50, 50, "Replacement", name: "shared-name")
+            .Build());
+
+        Assert.Equal(1, AnnotationCount(saved, 0));
+        Assert.Equal(1, AnnotationCount(saved, 1));
+    }
+
+    [Fact]
+    public void Reply_ResolvesToTheTargetOnItsOwnPage()
+    {
+        PdfDocument source = TwoPagesSharingAnnotationName();
+        var expected = (PdfIndirectReference)((PdfArray)Dereference(source,
+            Pages(source)[1].Page[Name("Annots")]))[0];
+
+        PdfDocument saved = PdfDocument.Open(new PdfIncrementalAnnotationEditor(source)
+            .AddTextNote(1, 50, 50, "Reply", name: "reply", inReplyTo: "shared-name")
+            .Build());
+
+        var annots = (PdfArray)Dereference(saved, Pages(saved)[1].Page[Name("Annots")]);
+        var reply = (PdfDictionary)Dereference(saved, annots[1]);
+        Assert.Equal(expected.ObjectNumber,
+            ((PdfIndirectReference)reply[Name("IRT")]).ObjectNumber);
+    }
+
+    [Fact]
+    public void Reply_RejectsAnAmbiguousTargetOnAnotherPage()
+    {
+        PdfDocument source = TwoPagesSharingAnnotationName(blankPageAfter: true);
+
+        Assert.Throws<ArgumentException>(() => new PdfIncrementalAnnotationEditor(source)
+            .AddTextNote(2, 50, 50, "Reply", inReplyTo: "shared-name"));
+    }
+
     [Fact]
     public void Build_RejectsGeneratedAnnotationNameCollision()
     {

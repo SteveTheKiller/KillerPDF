@@ -122,8 +122,8 @@ public sealed class PdfIncrementalAnnotationEditor
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
                 "An annotation name is required.", nameof(name));
-        if (_removals.Any(value => string.Equals(
-                value.Name, name, StringComparison.Ordinal)))
+        if (_removals.Any(value => value.PageIndex == pageIndex
+                && string.Equals(value.Name, name, StringComparison.Ordinal)))
             throw new ArgumentException(
                 $"Annotation '{name}' is already scheduled for removal.", nameof(name));
         PendingRemoval removal = FindNamedAnnotation(pageIndex, name);
@@ -312,7 +312,7 @@ public sealed class PdfIncrementalAnnotationEditor
             throw new ArgumentOutOfRangeException(nameof(state));
         if (!Enum.IsDefined(replyType))
             throw new ArgumentOutOfRangeException(nameof(replyType));
-        ValidatePendingAnnotationIdentity(name, inReplyTo);
+        ValidatePendingAnnotationIdentity(pageIndex, name, inReplyTo);
         if (inReplyTo is null && replyType != PdfAnnotationReplyType.Reply)
             throw new ArgumentException(
                 "A grouped reply requires an annotation target.", nameof(replyType));
@@ -968,7 +968,7 @@ public sealed class PdfIncrementalAnnotationEditor
         ValidatePage(pageIndex);
         ValidateRectangle(x, y, width, height);
         ValidateStroke(lineWidth, opacity);
-        ValidatePendingAnnotationIdentity(name, inReplyTo);
+        ValidatePendingAnnotationIdentity(pageIndex, name, inReplyTo);
         double[]? dash = ValidateDashPattern(dashPattern);
         _annotations.Add(new PendingShape(type, pageIndex, x, y, width, height,
             strokeColor ?? new PdfRgbColor(0, 0, 0), fillColor, lineWidth,
@@ -1053,7 +1053,7 @@ public sealed class PdfIncrementalAnnotationEditor
         PdfTextQuad[] values = PdfLinkAnnotationFactory.ValidateQuads(quads);
         if (!double.IsFinite(opacity) || opacity is < 0 or > 1)
             throw new ArgumentOutOfRangeException(nameof(opacity));
-        ValidatePendingAnnotationIdentity(name, inReplyTo);
+        ValidatePendingAnnotationIdentity(pageIndex, name, inReplyTo);
         var (X, Y, Width, Height) = PdfLinkAnnotationFactory.Bounds(values);
         _annotations.Add(new PendingTextMarkup(
             type, pageIndex, X, Y, Width, Height,
@@ -1061,22 +1061,44 @@ public sealed class PdfIncrementalAnnotationEditor
         return this;
     }
 
-    private void ValidatePendingAnnotationIdentity(string? name, string? inReplyTo)
+    private void ValidatePendingAnnotationIdentity(
+        int pageIndex, string? name, string? inReplyTo)
     {
-        Dictionary<string, PdfIndirectReference> existing = ExistingAnnotationNames();
-        foreach (PendingRemoval removal in _removals) existing.Remove(removal.Name);
-        string[] pending = [.. _annotations.Select(PendingName)
-            .Where(value => value is not null).Select(value => value!)];
+        Dictionary<(int PageIndex, string Name), PdfIndirectReference> existing =
+            ExistingAnnotationNames();
+        foreach (PendingRemoval removal in _removals)
+            existing.Remove((removal.PageIndex, removal.Name));
+        (int PageIndex, string Name)[] known = [.. existing.Keys.Concat(_annotations
+            .Where(value => PendingName(value) is not null)
+            .Select(value => (value.PageIndex, PendingName(value)!)))];
         if (name is not null && (string.IsNullOrWhiteSpace(name)
-            || existing.ContainsKey(name) || pending.Contains(name, StringComparer.Ordinal)))
+            || known.Contains((pageIndex, name))))
             throw new ArgumentException(
-                "Annotation names must be nonempty and unique.", nameof(name));
+                "Annotation names must be nonempty and unique on their page.", nameof(name));
         if (inReplyTo is not null && (string.IsNullOrWhiteSpace(inReplyTo)
-            || !existing.ContainsKey(inReplyTo)
-                && !pending.Contains(inReplyTo, StringComparer.Ordinal)))
+            || ReplyTargetKey(known, pageIndex, inReplyTo) is null))
             throw new ArgumentException(
                 "A reply target must name an existing or earlier annotation.", nameof(inReplyTo));
     }
+
+    // /NM is page-scoped: prefer the reply's own page, and accept another page only when
+    // exactly one annotation in the document carries the name.
+    private static (int PageIndex, string Name)? ReplyTargetKey(
+        IEnumerable<(int PageIndex, string Name)> names, int pageIndex, string target)
+    {
+        (int PageIndex, string Name)[] matches = [.. names.Where(value =>
+            string.Equals(value.Name, target, StringComparison.Ordinal))];
+        if (matches.Contains((pageIndex, target))) return (pageIndex, target);
+        return matches.Length == 1 ? matches[0] : null;
+    }
+
+    private static PdfIndirectReference ReplyTarget(
+        Dictionary<(int PageIndex, string Name), PdfIndirectReference> names,
+        int pageIndex, string target) =>
+        ReplyTargetKey(names.Keys, pageIndex, target) is { } key
+            ? names[key]
+            : throw new InvalidOperationException(
+                $"Reply target '{target}' does not identify one annotation.");
 
     private static string? PendingName(PendingAnnotation annotation) => annotation switch
     {
@@ -1129,13 +1151,14 @@ public sealed class PdfIncrementalAnnotationEditor
                 ("Encoding", Name("WinAnsiEncoding"))))
             : null;
         Dictionary<PdfImage, PdfIndirectReference> images = AllocateImages(update);
-        Dictionary<string, PdfIndirectReference> annotationNames =
+        Dictionary<(int PageIndex, string Name), PdfIndirectReference> annotationNames =
             ExistingAnnotationNames();
         foreach (PendingRemoval removal in _removals)
-            annotationNames.Remove(removal.Name);
+            annotationNames.Remove((removal.PageIndex, removal.Name));
         foreach (AllocatedAnnotation item in allocated)
             if (PendingName(item.Definition) is string name)
-                annotationNames.Add(name, item.AnnotationReference);
+                annotationNames.Add((item.Definition.PageIndex, name),
+                    item.AnnotationReference);
 
         foreach (AllocatedAnnotation item in allocated)
         {
@@ -1893,9 +1916,9 @@ public sealed class PdfIncrementalAnnotationEditor
         }
     }
 
-    private Dictionary<string, PdfIndirectReference> ExistingAnnotationNames()
+    private Dictionary<(int PageIndex, string Name), PdfIndirectReference> ExistingAnnotationNames()
     {
-        var result = new Dictionary<string, PdfIndirectReference>(StringComparer.Ordinal);
+        var result = new Dictionary<(int PageIndex, string Name), PdfIndirectReference>();
         foreach (PdfPageTreeEntry page in _pages)
         {
             if (!page.Dictionary.TryGetValue(AnnotsName, out PdfObject? annotsValue))
@@ -1919,7 +1942,7 @@ public sealed class PdfIncrementalAnnotationEditor
                     throw new InvalidOperationException(
                         $"Page {page.Index + 1} annotation /NM value is not a string.");
                 string name = DecodePdfString(text);
-                if (!result.TryAdd(name, reference))
+                if (!result.TryAdd((page.Index, name), reference))
                     throw new InvalidOperationException(
                         $"Page {page.Index + 1} /Annots contains duplicate /NM values.");
             }
@@ -2888,7 +2911,7 @@ public sealed class PdfIncrementalAnnotationEditor
     private static PdfDictionary TextNoteDictionary(
         PendingTextNote note, PdfIndirectReference page, PdfIndirectReference annotation,
         PdfIndirectReference appearance, PdfIndirectReference? popup,
-        Dictionary<string, PdfIndirectReference> annotationNames)
+        Dictionary<(int PageIndex, string Name), PdfIndirectReference> annotationNames)
     {
         var entries = new List<(string Name, PdfObject Value)>
         {
@@ -2912,7 +2935,7 @@ public sealed class PdfIncrementalAnnotationEditor
         }
         if (note.InReplyTo is not null)
         {
-            entries.Add(("IRT", annotationNames[note.InReplyTo]));
+            entries.Add(("IRT", ReplyTarget(annotationNames, note.PageIndex, note.InReplyTo)));
             entries.Add(("RT", Name(PdfAnnotationReplyTypeNames.Name(note.ReplyType))));
         }
         if (popup is not null) entries.Add(("Popup", popup));
@@ -2955,7 +2978,7 @@ public sealed class PdfIncrementalAnnotationEditor
     private static PdfDictionary TextMarkupDictionary(
         PendingTextMarkup markup, PdfIndirectReference page, PdfIndirectReference annotation,
         PdfIndirectReference appearance,
-        Dictionary<string, PdfIndirectReference> annotationNames)
+        Dictionary<(int PageIndex, string Name), PdfIndirectReference> annotationNames)
     {
         var entries = new List<(string Name, PdfObject Value)>
         {
@@ -2981,7 +3004,7 @@ public sealed class PdfIncrementalAnnotationEditor
             entries.Add(("Contents", UnicodeString(markup.Contents)));
         if (markup.InReplyTo is not null)
         {
-            entries.Add(("IRT", annotationNames[markup.InReplyTo]));
+            entries.Add(("IRT", ReplyTarget(annotationNames, markup.PageIndex, markup.InReplyTo)));
             entries.Add(("RT", Name("R")));
         }
         PdfLinkAnnotationFactory.AddMetadata(entries, markup.Metadata);
@@ -3407,7 +3430,7 @@ public sealed class PdfIncrementalAnnotationEditor
     private static PdfDictionary ShapeDictionary(
         PendingShape shape, PdfIndirectReference page, PdfIndirectReference annotation,
         PdfIndirectReference appearance,
-        Dictionary<string, PdfIndirectReference> annotationNames)
+        Dictionary<(int PageIndex, string Name), PdfIndirectReference> annotationNames)
     {
         string subtype = shape.Type.ToString();
         var entries = CommonEntries(subtype, shape.X, shape.Y, shape.Width, shape.Height,
@@ -3422,7 +3445,7 @@ public sealed class PdfIncrementalAnnotationEditor
         }
         if (shape.InReplyTo is not null)
         {
-            entries.Add(("IRT", annotationNames[shape.InReplyTo]));
+            entries.Add(("IRT", ReplyTarget(annotationNames, shape.PageIndex, shape.InReplyTo)));
             entries.Add(("RT", Name("R")));
         }
         return Dictionary([.. entries]);

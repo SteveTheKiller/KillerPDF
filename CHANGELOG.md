@@ -9,11 +9,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 1.9.2 protects unsaved work and exports and fixes rendering, signatures, zoom, text selection, and update relaunches.
 
 ### Fixed
+
 - Render-failure recovery preserves unsaved edits across panes and detached windows, including edits committed after focus moves.
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
 - Undo and Redo preserve retryable history and the open document when snapshot storage fails.
+- Comments save on PDFs that reuse an annotation name on different pages.
 - Damaged signature libraries are preserved and reported instead of crashing the signature picker.
-
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
 - Reopening PDFs preserves zoom across view modes, and fit and zoom stay accurate while pages load or switch layouts.
 - Corrected Japanese character order, rotated paragraph line order, vertical-text selection, hit testing, and accessible text ranges. (#465)
@@ -22,12 +23,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Form buttons and signed signature fields redraw correctly when their visibility changes.
 - Comment export and import preserve PDF dates with time zone offsets.
 - Repeated content appends keep PDF drawing instructions separate.
-
 - An all-users update reopens KillerPDF for the signed-in user at normal rights, whether it finishes or stops early. Windows was refusing that relaunch, so the app stayed closed.
-
 - Saved signatures support mouse drag, click placement, and keyboard selection, with visible placement instructions.
 - Late page rendering preserves focus in open pickers and other windows.
-
 - Keyboard focus cues respect the theme, Windows contrast refreshes are coalesced and restore frame colors, and picker selections keep text and icons shadow-free.
 
 ## [1.9.1] - 2026-10-31
@@ -505,6 +503,7 @@ KillerPDF 1.8 replaces its legacy PdfSharpCore document pipeline with an indepen
 KillerPDF 1.8 introduces The KillerPDF.Engine. Its detailed development history is maintained in [The KillerPDF.Engine changelog](engine/CHANGELOG.md).
 
 ### Added
+
 - Dual-pane PDF comparison now opens a second document beside the original, synchronizes page navigation, zoom, and scrolling, highlights visual difference regions, reports changed-page percentages and dimension mismatches, and identifies pages present in only one document (#160).
 - KillerPDF now builds separate standard and portable packages. The standard package uses a compact Dark-theme installer with the product identity rail, raised grain-textured content card, runtime detection, account scope, shortcut selection, verified installation, elevation, rollback, and launch completion.
 - Digital signatures can use certificates backed by Windows-compatible USB tokens and now include an editable visible layout with template fields, live preview, page placement, dimensions, and text sizing (#125).
@@ -522,6 +521,7 @@ KillerPDF 1.8 introduces The KillerPDF.Engine. Its detailed development history 
 - Draggable controls now show open-hand and closed-hand cursors across annotation bars, the find bar, signature popup, page panning, stamp placement, and Transform perspective handles.
 
 ### Changed
+
 - KillerPDF now uses its own .NET 10 document engine throughout the desktop app, command line tools, tests, and packaged builds. PdfSharpCore and its compatibility code have been fully removed.
 - The standard installer now uses the .NET 10 Desktop Runtime, while the portable edition remains self-contained for offline use.
 - Document undo is now recorded automatically for every successful serialized document mutation, including page deletion, insertion, reordering, cross-pane copying, forms, links, metadata, bookmarks, crop, and rotation. Undo and redo restore annotations and page rotations with the PDF, while a 20-action and 256 MB per-document history budget prevents unbounded memory growth (#266).
@@ -546,6 +546,7 @@ KillerPDF 1.8 introduces The KillerPDF.Engine. Its detailed development history 
 - Engine validation failures now retain accurate public exception contracts, and OCR downloads propagate cancellation through the response stream.
 
 ### Fixed
+
 - Typewriter text keeps its on-screen vertical position after saving, and clicking dotted or underscored blanks on flattened forms now creates an empty text entry box over the detected field instead of selecting the surrounding label (#273, thanks bel57).
 - Repeated Unicode form edits now reuse any previously embedded KillerPDF font subset that covers the new value, even after an intervening Latin-only value or a different glyph set, so revisiting earlier form text no longer embeds another duplicate font program (#256, thanks Ryokoxx).
 - Silent all-users installation now refuses with exit code 10 before writing any files when the .NET 10 Desktop Runtime is unavailable, and portable payload verification accepts the launcher's own identity marker while continuing to reject unrelated unlisted files (#275, #279, thanks Ryokoxx).
@@ -646,6 +647,7 @@ KillerPDF 1.7.4 keeps the convenience of one portable download while installing 
 1.7.3 corrects theme accents and restores the missing visual preview in image-selection dialogs.
 
 ### Fixed
+
 - The active tab's ring and underline now follow the chosen accent color; they stayed on the theme's base color under any other accent, on every theme.
 - Image-selection dialogs now include a live preview pane for image import, image signatures, image stamps, and Insert Image.
 
