@@ -128,9 +128,7 @@ public sealed class PdfIncrementalAnnotationEditor
                 $"Annotation '{name}' is already scheduled for removal.", nameof(name));
         PendingRemoval removal = FindNamedAnnotation(pageIndex, name);
         EnsureNotPendingUpdate(removal);
-        if (_annotations.Any(annotation => PendingReplyTarget(annotation) == name))
-            throw new ArgumentException(
-                "A pending reply points at this annotation name.", nameof(name));
+        EnsureRemovalKeepsReplyTargets(removal);
         _removals.Add(removal);
         return this;
     }
@@ -164,6 +162,7 @@ public sealed class PdfIncrementalAnnotationEditor
                 "The annotation is already scheduled for removal.",
                 nameof(annotationIndex));
         EnsureNotPendingUpdate(removal);
+        EnsureRemovalKeepsReplyTargets(removal);
         _removals.Add(removal);
         return this;
     }
@@ -1091,6 +1090,25 @@ public sealed class PdfIncrementalAnnotationEditor
                     != ReplyTargetKey(withName, annotation.PageIndex, target))
                 throw new ArgumentException(
                     "This name would change what an earlier reply points at.", nameof(name));
+    }
+
+    private void EnsureRemovalKeepsReplyTargets(PendingRemoval removal)
+    {
+        Dictionary<(int PageIndex, string Name), PdfIndirectReference> existing =
+            ExistingAnnotationNames();
+        foreach (PendingRemoval earlier in _removals)
+            existing.Remove((earlier.PageIndex, earlier.Name));
+        (int PageIndex, string Name)[] known = [.. existing.Keys.Concat(_annotations
+            .Where(value => PendingName(value) is not null)
+            .Select(value => (value.PageIndex, PendingName(value)!)))];
+        (int PageIndex, string Name)[] remaining =
+            [.. known.Where(key => key != (removal.PageIndex, removal.Name))];
+        foreach (PendingAnnotation annotation in _annotations)
+            if (PendingReplyTarget(annotation) is string target
+                && ReplyTargetKey(known, annotation.PageIndex, target)
+                    != ReplyTargetKey(remaining, annotation.PageIndex, target))
+                throw new ArgumentException(
+                    "A pending reply points at this annotation.", nameof(removal));
     }
 
     private static string? PendingReplyTarget(PendingAnnotation annotation) => annotation switch

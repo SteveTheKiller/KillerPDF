@@ -118,6 +118,24 @@ public sealed class JapaneseSelectionOrderTests
     }
 
     [Fact]
+    public void AnIndentedFirstLineDoesNotEndAColumn()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"kp-column-indent-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, PhrasePdfWithContent("AB CD EF", "1 0 0 1 40 340",
+                "BT /F1 12 Tf 1 0 0 1 40 320 Tm (DE) Tj ET "
+                + "BT /F1 12 Tf 1 0 0 1 246 340 Tm (GH) Tj ET "
+                + "BT /F1 12 Tf 1 0 0 1 240 200 Tm (AB) Tj ET "
+                + "BT /F1 12 Tf 0 1 -1 0 150 240 Tm (DE) Tj ET"));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            Assert.Equal("AB CD EF\nCD\nEF\nAB\nCD",
+                TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public void AVerticalSectionDoesNotSplitAColumn()
     {
         string path = Path.Combine(Path.GetTempPath(), $"kp-vertical-column-{Guid.NewGuid():N}.pdf");

@@ -730,6 +730,27 @@ public sealed class PdfIncrementalAnnotationEditorTests
     }
 
     [Fact]
+    public void RemoveAnnotationAt_CannotRetargetAPendingReply()
+    {
+        var editor = new PdfIncrementalAnnotationEditor(TwoPagesSharingAnnotationName())
+            .AddTextNote(0, 50, 50, "Reply", inReplyTo: "shared-name");
+
+        Assert.Throws<ArgumentException>(() => editor.RemoveAnnotationAt(0, 0));
+    }
+
+    [Fact]
+    public void RemoveAnnotation_AllowsTheSameNameOnAPageTheReplyDoesNotTarget()
+    {
+        PdfDocument saved = PdfDocument.Open(new PdfIncrementalAnnotationEditor(
+                TwoPagesSharingAnnotationName())
+            .AddTextNote(1, 50, 50, "Reply", inReplyTo: "shared-name")
+            .RemoveAnnotation(0, "shared-name")
+            .Build());
+
+        Assert.Equal(0, AnnotationCount(saved, 0));
+    }
+
+    [Fact]
     public void Reply_RejectsAnAmbiguousTargetOnAnotherPage()
     {
         PdfDocument source = TwoPagesSharingAnnotationName(blankPageAfter: true);
