@@ -40,8 +40,10 @@ namespace KillerPDF.Tests
             try
             {
                 var store1 = new SignatureStore(dir, file);
-                store1.Add(new SavedSignature { Name = "Alpha", CanvasWidth = 400, CanvasHeight = 150 });
-                store1.Add(new SavedSignature { Name = "Beta",  CanvasWidth = 300, CanvasHeight = 100 });
+                store1.Add(new SavedSignature { Name = "Alpha", CanvasWidth = 400, CanvasHeight = 150,
+                    Strokes = [[new() { X = 1, Y = 2 }, new() { X = 3, Y = 4 }]] });
+                store1.Add(new SavedSignature { Name = "Beta", CanvasWidth = 300, CanvasHeight = 100,
+                    Strokes = [[new() { X = 2, Y = 3 }, new() { X = 4, Y = 5 }]] });
                 store1.Persist();
 
                 var store2 = new SignatureStore(dir, file);

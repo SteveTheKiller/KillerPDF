@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
 - Render-failure recovery preserves unsaved edits from detached windows as well as the main window.
+- Damaged signature libraries are preserved and reported instead of crashing the signature picker.
 
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
 - Merge accepts images with single-element device color-space arrays. (#469)
