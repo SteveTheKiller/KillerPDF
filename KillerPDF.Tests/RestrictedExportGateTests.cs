@@ -20,6 +20,9 @@ public sealed class RestrictedExportGateTests
     [InlineData("Shell/FileOperations.cs", "private async void SaveFlattened_Click", "Str_Dlg_SaveFlattened")]
     [InlineData("Shell/PageOperations.cs", "if (_doc is null || _currentFile is null)", "Str_Lbl_Extract")]
     [InlineData("Shell/DirtyTracking.cs", "private void OpenSignDialog()", "suggestedSource")]
+    [InlineData("Features/Ocr/OcrController.cs", "internal async void MakeSearchablePdf()", "CaptureDocumentOrigin")]
+    [InlineData("Features/Ocr/OcrController.cs", "internal async void ConvertScanToText()", "CaptureDocumentOrigin")]
+    [InlineData("Shell/FileOperations.cs", "void ExportDocument_Click", "forRasterization: options.OfficeMode")]
     [InlineData("Shell/Macros.cs", "Str_Macro_RedactNothing", "Str_Macro_Running")]
     [InlineData("Shell/ProductionTools.cs", "ReferenceEquals(_doc, sourceDocument)", "string[] sourcePaths")]
     [InlineData("Shell/DocumentTools.cs", "private async void RunDataMerge()", "Str_DataMerge_SelectData")]
@@ -33,7 +36,7 @@ public sealed class RestrictedExportGateTests
         Assert.True(from >= 0, start);
         int to = source.IndexOf(end, from, StringComparison.Ordinal);
         Assert.True(to > from, end);
-        Assert.Contains("EnsureEditable(", source[from..to], StringComparison.Ordinal);
+        Assert.Matches(@"Ensure(Document)?Editable\(", source[from..to]);
     }
 
     [Fact]

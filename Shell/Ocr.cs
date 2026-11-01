@@ -382,6 +382,8 @@ namespace KillerPDF.Shell
         Func<bool> IOcrHost.CaptureDocumentOrigin() => CaptureDocumentOrigin();
         Task<bool> IOcrHost.EnsureOcrModelsReadyAsync() => EnsureOcrModelsReadyAsync();
         void IOcrHost.CommitActiveTextBox() => CommitActiveTextBox();
+        bool IOcrHost.EnsureDocumentEditable() => EnsureEditable(continueAfterUnlock: false);
+
         void IOcrHost.SaveDocumentTo(string path)
         {
             string snapshot = WriteSavedCopyToTemp(forRasterization: true, throwaway: true);

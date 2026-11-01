@@ -1829,6 +1829,7 @@ namespace KillerPDF.Shell
         private async void ExportDocument_Click(object sender, RoutedEventArgs e)
         {
             if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
+            if (!EnsureEditable(continueAfterUnlock: false)) return;
             CommitActiveTextBox();
             Func<bool> sourceCurrent = CaptureDocumentOrigin();
             string? currentSource = _currentFile;
