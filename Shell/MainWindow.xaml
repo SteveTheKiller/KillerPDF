@@ -467,8 +467,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource DangerRed}"/>
-                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

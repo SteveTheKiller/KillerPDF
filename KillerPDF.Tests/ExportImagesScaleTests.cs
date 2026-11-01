@@ -21,6 +21,11 @@ public sealed class ExportImagesScaleTests
         int tag = viewer.IndexOf("x:Name=\"tabClose\"", StringComparison.Ordinal);
         Assert.Contains("Style=\"{DynamicResource TabCloseButton}\"",
             viewer[tag..viewer.IndexOf("/>", tag, StringComparison.Ordinal)], StringComparison.Ordinal);
+        string window = Read("Shell", "MainWindow.xaml");
+        int style = window.IndexOf("x:Key=\"TabCloseButton\"", StringComparison.Ordinal);
+        string body = window[style..window.IndexOf("</Style>", style, StringComparison.Ordinal)];
+        Assert.DoesNotContain("TargetName=\"Bd\" Property=\"Background\"", body, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"Foreground\" Value=\"{DynamicResource DangerRed}\"/>", body, StringComparison.Ordinal);
     }
 
     [Fact]
