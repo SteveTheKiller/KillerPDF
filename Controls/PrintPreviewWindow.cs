@@ -1264,8 +1264,7 @@ namespace KillerPDF
             _rasterH[index] = h;
             _loadedCount++;
 
-            int first = _previewIndex * _nUp;
-            bool onCurrentSheet = index >= first && index < first + _nUp;
+            bool onCurrentSheet = SelectedIndices().Skip(_previewIndex * _nUp).Take(_nUp).Contains(index);
             if (onCurrentSheet)
                 UpdatePreview();                 // reveal the page (or keep spinner if sheet incomplete)
             else if (_isLoading)

@@ -87,7 +87,7 @@ internal static class PrintJobTicket
                 ? IsGrayscale(color) : null,
             ticket.CopyCount is { } copies && copies >= 1 ? copies : null,
             ticket.PageMediaSize,
-            duplexing is { } bound ? bound == Duplexing.TwoSidedShortEdge : null);
+            duplexing is { } bound && IsTwoSided(bound) ? bound == Duplexing.TwoSidedShortEdge : null);
     }
 
     /// <summary>Recognizes the document-level duplex feature that WPF's typed capability omits.</summary>

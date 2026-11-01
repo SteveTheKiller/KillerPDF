@@ -96,6 +96,14 @@ public sealed class PrintJobTicketTests
     }
 
     [Fact]
+    public void Read_AOneSidedTicketSaysNothingAboutTheBindingEdge()
+    {
+        var ticket = new PrintTicket { Duplexing = Duplexing.OneSided };
+
+        Assert.Null(PrintJobTicket.Read(ticket).ShortEdge);
+    }
+
+    [Fact]
     public void Apply_WithoutADriverTicket_WritesEveryWindowSetting()
     {
         var ticket = new PrintTicket
@@ -219,10 +227,10 @@ public sealed class PrintJobTicketTests
     }
 
     [Theory]
-    [InlineData("OneSided", false)]
+    [InlineData("OneSided", null)]
     [InlineData("TwoSidedLongEdge", false)]
     [InlineData("TwoSidedShortEdge", true)]
-    public void Read_ReportsTheBindingSideTheDriverPicked(string option, bool shortEdge)
+    public void Read_ReportsTheBindingSideTheDriverPicked(string option, bool? shortEdge)
     {
         using var xml = new MemoryStream(Encoding.UTF8.GetBytes($"""
             <f:PrintTicket xmlns:f="http://schemas.microsoft.com/windows/2003/08/printing/printschemaframework"

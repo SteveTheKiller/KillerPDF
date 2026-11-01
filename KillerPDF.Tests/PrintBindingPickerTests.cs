@@ -26,6 +26,13 @@ public sealed class PrintBindingPickerTests
     }
 
     [Fact]
+    public void LoadedPagesAreMatchedAgainstTheSheetActuallyShown()
+    {
+        Assert.Contains("SelectedIndices().Skip(_previewIndex * _nUp).Take(_nUp).Contains(index)",
+            Preview(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BindingPickerHasTheVisibleLabelAsItsAccessibleName()
     {
         Assert.Contains("System.Windows.Automation.AutomationProperties.SetName(_flipCombo, S(\"Str_Print_FlipOn\"));",
