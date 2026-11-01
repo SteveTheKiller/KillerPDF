@@ -6,9 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.2] - Unreleased
 
-1.9.2 improves signature placement, keyboard focus, and update relaunches.
+1.9.2 fixes missing raster detail, signature placement, keyboard focus, and update relaunches.
 
 ### Fixed
+- Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
+
 - An all-users update reopens KillerPDF for the signed-in user at normal rights, whether it finishes or stops early. Windows was refusing that relaunch, so the app stayed closed.
 
 - Saved signatures can be dragged onto a page or selected and placed with a click, with a visible placement instruction above the document.

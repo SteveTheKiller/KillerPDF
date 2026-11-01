@@ -5774,7 +5774,7 @@ public sealed partial class PdfPageRenderer
             double footprintWidth = sourceWidth * (Math.Abs(inverse.A / scaleX) + Math.Abs(inverse.C / scaleY));
             double footprintHeight = sourceHeight * (Math.Abs(inverse.B / scaleX) + Math.Abs(inverse.D / scaleY));
             bool areaSample = (inverse.B == 0 && inverse.C == 0 || inverse.A == 0 && inverse.D == 0)
-                && footprintWidth > 1 && footprintHeight > 1;
+                && (footprintWidth > 1 || footprintHeight > 1);
             double pageStepX = 1 / scaleX;
             double unitStepX = inverse.A * pageStepX;
             double unitStepY = inverse.B * pageStepX;
