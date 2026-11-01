@@ -62,7 +62,7 @@ namespace KillerPDF.Shell
             if (_pendingSignature is null) return;
 
             var sig = _pendingSignature;
-            double scale = sig.Kind == SignatureKind.Initials ? 0.3 : 0.5;
+            double scale = ActiveViewer.SignaturePlacementScaleFor(sig);
 
             var annot = new SignatureAnnotation
             {

@@ -233,7 +233,12 @@ namespace KillerPDF.Shell
         private SavedSignature? _pendingSignature
         {
             get => ActiveViewer.PendingSignatureRef;
-            set { ActiveViewer.PendingSignatureRef = value; UpdateSignaturePlacementHint(); }
+            set
+            {
+                ActiveViewer.PendingSignatureRef = value;
+                ActiveViewer.ResetSignatureGhost();
+                UpdateSignaturePlacementHint();
+            }
         }
         private Border? _signaturePopup;
         // Guided AcroForm signing: "pick once, reuse" - the chosen signature/initials are remembered

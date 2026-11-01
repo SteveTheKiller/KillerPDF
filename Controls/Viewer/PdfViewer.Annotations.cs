@@ -1513,6 +1513,8 @@ namespace KillerPDF.Controls
             if (e.OriginalSource is DependencyObject moveSrc && IsFormFieldElement(moveSrc))
                 return;
             if (_currentTool == EditTool.Redact && RedactionMouseMove(e)) return;
+            if (_currentTool == EditTool.Signature && _pendingSignature is not null && sender is Canvas ghostPage)
+                MoveSignatureGhost(ghostPage, e.GetPosition(ghostPage));
 
             // #221: the Select tool has two behaviors, flowing selection on text and a marquee on
             // empty page. Reflect the behavior under the pointer instead of leaving an arrow over

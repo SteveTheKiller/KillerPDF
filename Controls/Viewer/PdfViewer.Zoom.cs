@@ -44,6 +44,13 @@ namespace KillerPDF.Controls
             // box could never be scrolled at all.
             if (FieldListWantsWheel(e.OriginalSource as DependencyObject, e.Delta)) return;
 
+            // A signature being placed takes the plain wheel for its size; Ctrl+wheel still zooms.
+            if (Keyboard.Modifiers == ModifierKeys.None && ResizeSignatureGhost(e.Delta))
+            {
+                e.Handled = true;
+                return;
+            }
+
             // #209: match the standard Windows/browser gesture and reuse the same path as a
             // physical tilt wheel. Wheel-down moves right; wheel-up moves left.
             if (Keyboard.Modifiers == ModifierKeys.Shift)
