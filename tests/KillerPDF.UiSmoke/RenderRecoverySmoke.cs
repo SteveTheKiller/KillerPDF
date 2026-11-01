@@ -521,7 +521,8 @@ internal static class RenderRecoverySmoke
                 Point Position(int index) => Tile(index).TranslatePoint(new Point(), viewer);
                 Point a = Position(0), b = Position(1), c = Position(2), d = Position(3);
                 if (!(a.X < b.X && b.X < c.X && Math.Abs(a.Y - b.Y) < 2 && Math.Abs(a.Y - c.Y) < 2 && d.Y > a.Y + 10))
-                    throw new InvalidOperationException("Reopen did not retain Grid's three-column layout precedence.");
+                    throw new InvalidOperationException("Reopen did not retain Grid's three-column layout precedence: "
+                        + $"{a} {b} {c} {d}, viewer {viewer.ActualWidth}x{viewer.ActualHeight}, tile {Tile(0).Width}.");
             }
             if (expectedCanvasScreenDipWidth.HasValue)
             {
