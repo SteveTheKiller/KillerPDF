@@ -91,6 +91,11 @@ internal sealed class PdfPageRenderSession : IDisposable
             new WeakReference<PdfWorkingDocument>(working));
     }
 
+    // A same-size rewrite inside one clock tick keeps the cache key, so a caller that knows the
+    // file changed drops the parsed document instead of trusting the timestamp.
+    internal static void ForgetDocument(string path) =>
+        _documentCache.TryRemove(Path.GetFullPath(path), out _);
+
     /// <summary>
     /// Opens a file for rendering. Files encrypted with only an owner password open with the
     /// empty user password, the same as every mainstream viewer. Repeated opens of the same
@@ -440,6 +445,7 @@ internal sealed class PdfPrimaryRenderSession
     {
         _session?.Dispose();
         _session = null;
+        if (_path is not null) PdfPageRenderSession.ForgetDocument(_path);
         _path = null;
     }
 }

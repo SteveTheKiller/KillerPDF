@@ -84,6 +84,11 @@ jobs:
               if (Test-Path -LiteralPath $evidence) { Copy-Item -LiteralPath $evidence -Destination ("ci-results/release-artifacts-$mode") -Recurse }
             }
           }
+      - name: Build the app the CLI tests launch
+        if: matrix.name == 'application-tests'
+        run: |
+          dotnet build KillerPDF.csproj --configuration Release --verbosity minimal 2>&1 | Tee-Object ci-results/test-app-build.log
+          if ($LASTEXITCODE -ne 0) { throw 'Test app build failed. See test-app-build.log.' }
       - name: Run tests
         if: matrix.mode == 'test'
         env:
