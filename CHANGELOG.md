@@ -6,16 +6,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.2] - Unreleased
 
-1.9.2 protects unsaved work and exports and fixes rendering, signatures, zoom, text selection, and update relaunches.
+1.9.2 protects unsaved work and exports, fixes rendering, signatures, comments, zoom, text selection, and update relaunches, and adds reverse-order and binding-edge printing.
 
 ### Fixed
 
 - Render-failure recovery preserves unsaved edits across panes and detached windows, including edits committed after focus moves.
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
 - Undo and Redo preserve retryable history and the open document when snapshot storage fails.
-- Removing or changing a signed field can be undone, canceling a change keeps the signature, and fields stay signed through Undo, Redo, and tab switches.
 - Comments save on PDFs that reuse an annotation name on different pages.
+- Removing or changing a signed field can be undone, canceling a change keeps the signature, and fields stay signed through Undo, Redo, and tab switches.
 - Damaged signature libraries are preserved and reported instead of crashing the signature picker.
+- An all-users update reopens KillerPDF for the signed-in user at normal rights, whether it finishes or stops early. Windows was refusing that relaunch, so the app stayed closed.
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
 - Reopening PDFs preserves zoom across view modes, and fit and zoom stay accurate while pages load or switch layouts.
 - Corrected Japanese character order, rotated paragraph line order, mixed horizontal and vertical reading order, vertical-text selection, hit testing, and accessible text ranges. (#465)
@@ -24,10 +25,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Form buttons and signed signature fields redraw correctly when their visibility changes.
 - Comment export and import preserve PDF dates with time zone offsets.
 - Repeated content appends keep PDF drawing instructions separate.
-- An all-users update reopens KillerPDF for the signed-in user at normal rights, whether it finishes or stops early. Windows was refusing that relaunch, so the app stayed closed.
 - Saved signatures support mouse drag, click placement, and keyboard selection, with visible placement instructions.
 - Late page rendering preserves focus in open pickers and other windows.
 - Keyboard focus cues respect the theme, Windows contrast refreshes are coalesced and restore frame colors, and picker selections keep text and icons shadow-free.
+
+### Added
+
+- Printing adds reverse order and long-edge or short-edge duplex binding, and page selection moves to its own Pages to print section. (Thanks @Rafie-kun)
 
 ## [1.9.1] - 2026-10-31
 
