@@ -170,7 +170,7 @@ namespace KillerPDF.Shell
                     CommitActiveTextBox();
                     ActiveViewer.CaptureActiveIfAny();
                     var session = ActiveViewer.ActiveSessionRef;
-                    if (session?.CurrentFile is not null)
+                    if (session?.CurrentFile is not null && !ActiveViewer.IsOwnerRestricted)
                     {
                         var annotations = new Dictionary<int, List<PageAnnotation>>();
                         foreach (int page in selected)

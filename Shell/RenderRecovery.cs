@@ -58,6 +58,13 @@ namespace KillerPDF.Shell
                                 unrecovered.Add(session);
                                 continue;
                             }
+                            // A restricted document reads from a decrypted copy, which must not reach
+                            // the recovery folder; its original is untouched on disk.
+                            if (session.Doc?.IsReadOnly == true)
+                            {
+                                unrecovered.Add(session);
+                                continue;
+                            }
                             string name = session.SuggestedName ?? Path.GetFileName(session.OriginalFile ?? "document.pdf");
                             string copy = RenderFailureRecovery.CopyPath(folder, name, recovered.Count);
                             string working = Path.ChangeExtension(copy, ".working.pdf");

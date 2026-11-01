@@ -67,6 +67,7 @@ public partial class MainWindow
             if (!batch && !sourceCurrent()) return;
             if (!batch)
             {
+                if (!EnsureEditable(continueAfterUnlock: false)) return;
                 CommitActiveTextBox();
                 snapshot = WriteSavedCopyToTemp();
             }

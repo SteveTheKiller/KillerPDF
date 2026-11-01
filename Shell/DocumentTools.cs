@@ -146,6 +146,8 @@ public partial class MainWindow
             return;
         }
 
+        if (!EnsureEditable()) return;
+
         var dataDialog = new Controls.FileDialog(Controls.FileDialogMode.Open)
         {
             Title = Loc("Str_DataMerge_SelectData"),

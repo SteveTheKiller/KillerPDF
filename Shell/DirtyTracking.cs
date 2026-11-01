@@ -93,6 +93,7 @@ namespace KillerPDF.Shell
                 KillerDialog.Show(this, Loc("Str_Msg_OpenFirst"));
                 return;
             }
+            if (!EnsureEditable()) return;
             CommitActiveTextBox();
             string suggestedSource = _originalFile ?? _currentFile!;
             string? snapshot = null;

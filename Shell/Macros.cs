@@ -119,6 +119,7 @@ public partial class MainWindow
             && !PrepareMacroRedaction(sourceViewer))
             return;
         if (!IsSourceCurrent()) return;
+        if (!EnsureEditable(continueAfterUnlock: false)) return;
 
         CommitActiveTextBox();
         var busy = ShowBusyOverlay(Loc("Str_Macro_Running"));

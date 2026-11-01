@@ -74,6 +74,7 @@ namespace KillerPDF.Shell
         private void Split_Click(object sender, RoutedEventArgs e)
         {
             if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
+            if (!EnsureEditable(continueAfterUnlock: false)) return;
             var sourceCurrent = CaptureDocumentOrigin();
             int[]? ordered = PromptPageOperationRange("Str_Lbl_Extract", _doc.PageCount);
             if (ordered is null || !sourceCurrent()) return;
