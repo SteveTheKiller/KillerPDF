@@ -444,15 +444,74 @@ namespace KillerPDF.Controls
                     SetStatus(string.Format(Loc("Str_St_TextEditInPage"), _textFontSize.ToString("0.##")));
                     return;
                 }
+                ScanLineFit? scanFit = inspection?.Blocker == EngineDocs.PdfTextLineBlocker.InvisibleText && turn == 0
+                    && prefill.Length > 0
+                    ? MeasureScanLine(pageIdx, [.. lineWords.Select(w => w.Word.Text)], [.. lineWords.Select(w => w.Rect)])
+                    : null;
                 StartCoverTextEdit(pageIdx, new Rect(cLeft, cTop, cWidth, cHeight), prefill,
-                    boxFontCanvas, fontName, syInv,
-                    fontBold, fontItalic, editorLeft, editorTop, turn);
+                    scanFit?.FontSize ?? boxFontCanvas, scanFit?.Family ?? fontName, syInv,
+                    scanFit?.Bold ?? fontBold, scanFit is null && fontItalic, editorLeft, editorTop, turn,
+                    scanFit?.Background, scanFit?.Ink);
+                if (scanFit is not null && _pendingCover is not null)
+                    _pendingScanLine = new PendingScanLine(_pendingCover.PairId,
+                        [.. lineWords.Select(w => w.Word.Text)], [.. lineWords.Select(w => w.Rect)]);
                 SetStatus(Loc(inspection?.Blocker == EngineDocs.PdfTextLineBlocker.InvisibleText
                     ? "Str_St_TextEditCoverScan" : "Str_St_TextEditCoverOther"));
             }
             catch (Exception ex)
             {
                 SetStatus(string.Format(Loc("Str_St_TextEditError"), ex.Message));
+            }
+        }
+
+        private sealed record ScanLineFit(Color Background, Color Ink, string Family, double FontSize, bool Bold);
+        private sealed record PendingScanLine(string PairId, string[] Words, Rect[] Boxes);
+        private PendingScanLine? _pendingScanLine;
+        private static readonly Lazy<IReadOnlyList<EngineDocs.PdfScanTextFace>> ScanFaces = new(() =>
+        {
+            HashSet<string> bundled = [.. EngineDocs.PdfScanTextWriter.BundledFaces().Select(face => face.Family)];
+            // The editor draws with installed fonts, so the engine's bundled faces are not offered.
+            return [.. PdfEngineIntegration.ScanTextFaces().Where(face => !bundled.Contains(face.Family))];
+        });
+
+        // Measures a scanned line's colors, size and closest installed typeface from the page bitmap.
+        // A line that cannot be measured returns null and keeps the sampled cover and default look.
+        private ScanLineFit? MeasureScanLine(int pageIdx, string[] words, Rect[] boxes)
+        {
+            try
+            {
+                if (PageBitmapFor(pageIdx) is not { } bitmap || !_renderDims.TryGetValue(pageIdx, out var rd)
+                    || rd.w <= 0 || rd.h <= 0 || ScanFaces.Value.Count == 0) return null;
+                var bgra32 = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
+                int width = bgra32.PixelWidth, height = bgra32.PixelHeight;
+                byte[] pixels = new byte[width * height * 4];
+                bgra32.CopyPixels(pixels, width * 4, 0);
+                // Transparent pixels are the white page, as in ReadBgraPixel.
+                for (int p = 0; p < pixels.Length; p += 4)
+                {
+                    int alpha = pixels[p + 3];
+                    for (int channel = 0; channel < 3; channel++)
+                        pixels[p + channel] = (byte)((pixels[p + channel] * alpha + 255 * (255 - alpha)) / 255);
+                    pixels[p + 3] = 255;
+                }
+                double pixelsX = width / (double)rd.w, pixelsY = height / (double)rd.h;
+                EngineDocs.PdfOcrPixelWord[] pixelWords = [.. words.Select((word, index) =>
+                    ScanLineEdit.ToPixelWord(word, boxes[index], pixelsX, pixelsY))];
+                if (EngineDocs.PdfScanTextAnalyzer.MeasureLine(pixels, width, height, pixelWords) is not { } look)
+                    return null;
+                EngineDocs.PdfScanTextFace face = EngineDocs.PdfScanTextWriter.ChooseFace(
+                    new EngineDocs.PdfScanTextPageAnalysis(width, height, false, look.Words), ScanFaces.Value);
+                double size = EngineDocs.PdfScanTextWriter.FontSizeFor(face, look.XHeight, look.CapHeight,
+                    look.CapitalsOnly, 1 / pixelsY);
+                static Color ToColor((byte Red, byte Green, byte Blue) value) =>
+                    Color.FromRgb(value.Red, value.Green, value.Blue);
+                return size > 0 ? new ScanLineFit(ToColor(look.BackgroundColor), ToColor(look.InkColor),
+                    face.Family, size, look.Bold) : null;
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException
+                or NotSupportedException or FormatException)
+            {
+                return null;
             }
         }
 
@@ -464,7 +523,8 @@ namespace KillerPDF.Controls
         // text); the cover is placed over the line on the canvas and the box opens turned to match.
         private void StartCoverTextEdit(int pageIdx, Rect lineRect, string text, double boxFontCanvas,
                                         string fontName, double syInv, bool bold = false, bool italic = false,
-                                        double? editorLeft = null, double? editorTop = null, int turn = 0)
+                                        double? editorLeft = null, double? editorTop = null, int turn = 0,
+                                        Color? measuredBackground = null, Color? measuredInk = null)
         {
             double cLeft = lineRect.X, cTop = lineRect.Y, cWidth = lineRect.Width;
             Rect canvasLine = TextTurn.FromReading(lineRect, turn);
@@ -476,8 +536,8 @@ namespace KillerPDF.Controls
                 Bounds = new Rect(canvasLine.X - 3, canvasLine.Y - 3, canvasLine.Width + 6, canvasLine.Height + 6)
             };
             var sampleRect = canvasLine;
-            Color coverBg = SampleCoverColor(pageIdx, sampleRect);
-            Color inkColor = SampleTextColor(pageIdx, sampleRect, coverBg);
+            Color coverBg = measuredBackground ?? SampleCoverColor(pageIdx, sampleRect);
+            Color inkColor = measuredInk ?? SampleTextColor(pageIdx, sampleRect, coverBg);
             cover.SetColor(coverBg);
             RememberTextToolDefaults();
             _textColor = inkColor; _textOpacity = inkColor.A;
@@ -1204,6 +1264,40 @@ namespace KillerPDF.Controls
                 CommitDirectTextEdit(direct, tb.Text);
                 if (_currentTool != EditTool.Text) HideTextSettings();
                 return;
+            }
+
+            PendingScanLine? scanLine = _pendingScanLine;
+            _pendingScanLine = null;
+            if (scanLine is not null && _pendingCover?.PairId == scanLine.PairId && content.Length > 0)
+            {
+                // A scanned line keeps the words the edit left alone: only the changed ones are covered.
+                string family = _textFontName;
+                bool bold = _textBold, italic = _textItalic;
+                double fontSize = tb.FontSize;
+                ScanLineEditPlan? plan = ScanLineEdit.Plan(scanLine.Words, scanLine.Boxes, content,
+                    text => MeasureLineWidth(text, family, bold, italic, fontSize));
+                if (plan is null)
+                {
+                    DiscardPendingCover();
+                    if (_currentTool != EditTool.Text) HideTextSettings();
+                    return;
+                }
+                Rect covered = plan.Covered;
+                covered.Inflate(3, 3);
+                _pendingCover!.Bounds = covered;
+                if (plan.Text.Length == 0)
+                {
+                    PushUndo(new UndoEntry(UndoKind.AnnotationGroup, pageIdx,
+                        WasDirty: _pendingEditWasDirty, AnnotGroup: [_pendingCover]));
+                    _pendingCover = null;
+                    MarkDirty();
+                    RenderAllAnnotations(pageIdx);
+                    if (_currentTool != EditTool.Text) HideTextSettings();
+                    return;
+                }
+                content = plan.Text;
+                Canvas.SetLeft(tb, Canvas.GetLeft(tb) + plan.Covered.Left - scanLine.Boxes[0].Left);
+                tb.Width = Math.Max(plan.Covered.Width, MeasureLineWidth(content, family, bold, italic, fontSize) + 12);
             }
 
             if (!string.IsNullOrEmpty(content))

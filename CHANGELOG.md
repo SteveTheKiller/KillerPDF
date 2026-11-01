@@ -40,6 +40,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Placing a signature shows a faint copy at the pointer, and the mouse wheel resizes it before you click. (#468)
 - Export Pages as Images and Save Flattened keep each page's own resolution by default, and Transform's resolution slider starts at x1. (#462)
 - Printing adds a Shrink oversized pages scale, and the print window remembers the scale and custom percentage. (#464)
+- Editing a recognized line on a scan matches the scan's colors, text size and closest installed font, and replaces only the words you change. (#467)
 - New commands: `set-metadata`, `set-bookmarks`, `add-comment`, `delete-comments`, and `crop`, which can also resize pages.
 - The print command accepts `--duplex` and `--reverse`, command-line help lists where `--password` works, and the help page has a full command reference.
 
