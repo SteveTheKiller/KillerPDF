@@ -103,8 +103,35 @@ internal static class SignatureKeyboardSmoke
         TabTo(Choice(owner, signature));
         Press(0x0D);
         Wait(() => Popup(owner) is null, "guided field Enter activation");
-        var signedFields = (IDictionary)Get(owner, "_signedFields")!;
-        Require(signedFields.Contains(5) && Get(owner, "_pendingSignature") is null, "guided selection fills once and clears placement");
+        bool Signed() => (bool)Call(owner, "IsFieldSigned", 5, 0)!;
+        int Signatures() => ((IList)((IDictionary)Get(owner, "_annotations")!)[0]!).Count;
+        var viewerControl = (FrameworkElement)owner.FindName("Viewer");
+        void History(string click) { Call(viewerControl, click, viewerControl, new RoutedEventArgs()); Pump(); }
+        Require(Signed() && Get(owner, "_pendingSignature") is null, "guided selection fills once and clears placement");
+
+        // Removal is one undoable action, and the field keeps its signature through history.
+        Call(owner, "RemoveSignedField", 5, 0);
+        Pump();
+        Require(!Signed() && Signatures() == 0, "removal clears the field");
+        History("Undo_Click");
+        Require(Signed() && Signatures() == 1, "Undo restores the signature and its field");
+        History("Redo_Click");
+        Require(!Signed() && Signatures() == 0, "Redo removes it again");
+        History("Undo_Click");
+        Require(Signed() && Signatures() == 1, "a second Undo restores it again");
+
+        // Canceling the picker keeps the signature; a replacement is one action.
+        Call(owner, "ShowSignaturePopup");
+        Wait(() => Popup(owner)?.IsKeyboardFocusWithin == true, "change picker focus");
+        Press(0x1B);
+        Wait(() => Popup(owner) is null, "Escape cancels the change");
+        Require(Signed() && Signatures() == 1, "canceling keeps the signature");
+        Call(owner, "DropSignatureInField", 5, signature, 0, 40d, 40d, 200d, 70d);
+        Pump();
+        Require(Signed() && Signatures() == 1, "a replacement leaves one signature");
+        History("Undo_Click");
+        Require(Signed() && Signatures() == 1, "Undo brings the replaced signature back in one step");
+        Console.WriteLine("PASS signed field removal, replacement, cancel and history.");
 
         Call(owner, "ShowSignaturePopup");
         Wait(() => Popup(owner)?.IsKeyboardFocusWithin == true, "delete picker focus");
