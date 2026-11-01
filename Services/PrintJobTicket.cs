@@ -73,6 +73,17 @@ internal static class PrintJobTicket
         return new PrintTicket(rewritten);
     }
 
+    /// <summary>Groups pages into sheets. Reverse flips the order of the sheets and leaves the
+    /// pages on each sheet in reading order.</summary>
+    internal static List<List<int>> Sheets(IReadOnlyList<int> pages, int pagesPerSheet, bool reverse)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pagesPerSheet);
+        List<List<int>> sheets = [.. pages.Chunk(pagesPerSheet).Select(sheet => sheet.ToList())];
+        if (reverse) sheets.Reverse();
+        return sheets;
+    }
+
     /// <summary>Reads the settings a driver ticket implies for the print window's controls.</summary>
     internal static DriverChoices Read(PrintTicket ticket)
     {

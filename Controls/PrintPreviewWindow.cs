@@ -71,11 +71,11 @@ namespace KillerPDF
         // changes halfway through (especially N-up, which controls the page-loop increment).
         private readonly record struct PrintLayout(
             bool Landscape, int AlignH, int AlignV, int ScaleMode, double CustomPct,
-            double MarginPx, int NUp, bool Duplex, bool Grayscale, bool DuplexShort);
+            double MarginPx, int NUp, bool Duplex, bool Grayscale, bool DuplexShort, bool Reverse);
 
         private PrintLayout CurrentLayout() => new(
             _landscape, _alignH, _alignV, _scaleMode, _customPct, _marginPx,
-            _nUp, _duplex, _grayscale, _duplexShort);
+            _nUp, _duplex, _grayscale, _duplexShort, _reverse);
 
         // Printable area in DIPs for the currently selected printer + orientation.
         private double _areaW = 816;   // Letter portrait fallback (8.5in * 96)
@@ -389,11 +389,12 @@ namespace KillerPDF
                     if ((i % 2 == 0) == (subset == 1)) filtered.Add(i);   // 0-based even index = odd page number
                 list = filtered;
             }
-            // Reverse applies after the subset, so "odds reversed" reads 99, 97, 95, ... The preview
-            // walks this same list, so sheet 1 shows the last page when this is on.
-            if (_reverse) list.Reverse();
             return list;
         }
+
+        // The sheets the preview shows and the job prints. Reverse applies after the subset and
+        // flips whole sheets, so "odds reversed" reads 99, 97, 95, ... and N-up stays readable.
+        private List<List<int>> SelectedSheets() => PrintJobTicket.Sheets(SelectedIndices(), _nUp, _reverse);
 
         private int SheetCount() => _pages.Length == 0 ? 0 : (SelectedIndices().Count + _nUp - 1) / _nUp;
 
@@ -1192,9 +1193,7 @@ namespace KillerPDF
             _nextPage?.IsEnabled = sheet + 1 < sheets;
 
             // Source pages on this sheet, taken from the SELECTED set (one for 1-up, up to _nUp for N-up).
-            var idxs = new System.Collections.Generic.List<int>();
-            for (int i = sheet * _nUp; i < Math.Min(selected.Count, sheet * _nUp + _nUp); i++)
-                idxs.Add(selected[i]);
+            List<int> idxs = SelectedSheets()[sheet];
 
             // Page/sheet nav label is always shown; the "Rendering X / Y" line above it appears only while
             // pages are still streaming in. 1-up shows the real page number (so a filtered preview reads
@@ -1264,7 +1263,7 @@ namespace KillerPDF
             _rasterH[index] = h;
             _loadedCount++;
 
-            bool onCurrentSheet = SelectedIndices().Skip(_previewIndex * _nUp).Take(_nUp).Contains(index);
+            bool onCurrentSheet = SelectedSheets().ElementAtOrDefault(_previewIndex)?.Contains(index) == true;
             if (onCurrentSheet)
                 UpdatePreview();                 // reveal the page (or keep spinner if sheet incomplete)
             else if (_isLoading)
@@ -1637,10 +1636,9 @@ namespace KillerPDF
             bool padForDuplex = layout.Duplex && copies > 1 && (sheetsPerCopy % 2 == 1);
             for (int copy = 0; copy < copies; copy++)
             {
-                for (int start = 0; start < indices.Count; start += layout.NUp)
+                foreach (List<int> chunk in PrintJobTicket.Sheets(indices, layout.NUp, layout.Reverse))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var chunk = indices.Skip(start).Take(layout.NUp).ToList();
 
                     var fp = new FixedPage { Width = aw, Height = ah };
                     var sheet = ComposeSheet(chunk, aw, ah, hiPages, hiW, hiH, layout);

@@ -96,6 +96,22 @@ public sealed class PrintJobTicketTests
     }
 
     [Fact]
+    public void Sheets_ReverseFlipsSheetOrderAndKeepsReadingOrderOnEachSheet()
+    {
+        int[][] sheets = [.. PrintJobTicket.Sheets([0, 1, 2, 3, 4], 2, reverse: true).Select(sheet => sheet.ToArray())];
+
+        Assert.Equal([[4], [2, 3], [0, 1]], sheets);
+    }
+
+    [Fact]
+    public void Sheets_ForwardGroupsPagesInOrder()
+    {
+        int[][] sheets = [.. PrintJobTicket.Sheets([0, 1, 2], 2, reverse: false).Select(sheet => sheet.ToArray())];
+
+        Assert.Equal([[0, 1], [2]], sheets);
+    }
+
+    [Fact]
     public void Read_AOneSidedTicketSaysNothingAboutTheBindingEdge()
     {
         var ticket = new PrintTicket { Duplexing = Duplexing.OneSided };
