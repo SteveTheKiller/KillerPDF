@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Removing or changing a signed field can be undone, canceling a change keeps the signature, and fields stay signed through Undo, Redo, and tab switches.
 - Damaged signature libraries are preserved and reported instead of crashing the signature picker.
 - An all-users update reopens KillerPDF for the signed-in user at normal rights, whether it finishes or stops early. Windows was refusing that relaunch, so the app stayed closed.
+- Reloading a PDF rewritten at the same size shows the new pages instead of the old ones.
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
 - Reopening PDFs preserves zoom across view modes, and fit and zoom stay accurate while pages load or switch layouts.
 - Corrected Japanese character order, rotated paragraph line order, mixed horizontal and vertical reading order, vertical-text selection, hit testing, and accessible text ranges. (#465)
