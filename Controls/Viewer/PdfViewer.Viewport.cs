@@ -1443,6 +1443,7 @@ namespace KillerPDF.Controls
                 else
                     RenderPage(_viewMode == ViewMode.Grid ? 0 : page);
                 var initialRender = isContinuous ? Task.CompletedTask : PrimaryRenderTask;
+                IInputElement? focusBeforeInitialRender = Keyboard.FocusedElement;
                 long initialGeneration = _primaryRenderGeneration;
                 var initialMode = _viewMode;
                 bool InitialCurrent() => ReferenceEquals(_active, expectedSession)
@@ -1495,8 +1496,11 @@ namespace KillerPDF.Controls
                         // #196: opening a file from Explorer left keyboard focus outside the document
                         // view (WPF's initial focus can land in the page-jump box, whose editable-
                         // TextBox guard swallows every shortcut), so arrows and PageUp/Down did
-                        // nothing until a click. Focus the scroll panel unless the user is typing.
-                        if (System.Windows.Input.Keyboard.FocusedElement is not TextBox { IsReadOnly: false })
+                        // nothing until a click. Do not take focus back from a control the user
+                        // reached while the initial render was completing, such as a signature picker.
+                        if (Window.GetWindow(this) is { IsActive: true }
+                            && ReferenceEquals(Keyboard.FocusedElement, focusBeforeInitialRender)
+                            && Keyboard.FocusedElement is not TextBox { IsReadOnly: false })
                             PagePreviewPanel.Focus();
                         if (restoreHorizontalOffset.HasValue || restoreVerticalOffset.HasValue)
                         {

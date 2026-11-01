@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.2] - Unreleased
 
-1.9.2 protects ZIP exports and fixes missing raster detail, signature placement, keyboard focus, and update relaunches.
+1.9.2 protects unsaved work and exports and fixes rendering, signatures, text selection, and update relaunches.
 
 ### Fixed
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
@@ -23,7 +23,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - An all-users update reopens KillerPDF for the signed-in user at normal rights, whether it finishes or stops early. Windows was refusing that relaunch, so the app stayed closed.
 
-- Saved signatures can be dragged onto a page or selected and placed with a click, with a visible placement instruction above the document.
+- Saved signatures support mouse drag, click placement, and keyboard selection, with visible placement instructions.
+- Late page rendering preserves focus in open pickers and other windows.
 
 - Keyboard focus cues respect the theme, Windows contrast refreshes are coalesced and restore frame colors, and picker selections keep text and icons shadow-free.
 

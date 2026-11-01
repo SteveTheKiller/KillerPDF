@@ -91,7 +91,7 @@ internal static class Program
             Call(store, "Add", signature);
             Call(owner, "ToolSignature_Click", owner, new RoutedEventArgs());
             var popup = (DependencyObject)Get(owner, "_signaturePopup")!;
-            var item = Tree(popup).OfType<Border>().Single(b => b.Height == 60 && b.Cursor == Cursors.Hand);
+            var item = Tree(popup).OfType<Button>().Single(b => b.Height == 60 && b.Cursor == Cursors.Hand);
             var canvas = (Canvas)Get(owner, "_annotationCanvas")!;
             if (native)
             {
@@ -107,7 +107,7 @@ internal static class Program
                 if (canvas is null) throw new InvalidOperationException("No visible page overlay became ready.");
                 NativeGesture(item, canvas, args.Contains("--native-drag"), args[1]);
             }
-            else item.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+            else item.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent });
             Console.WriteLine("Picker closed=" + (Get(owner, "_signaturePopup") is null));
             Console.WriteLine("Pending signature=" + ReferenceEquals(signature, Get(owner, "_pendingSignature")));
             Console.WriteLine("Tool=" + Get(owner, "_currentTool"));

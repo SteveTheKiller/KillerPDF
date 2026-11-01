@@ -22,6 +22,21 @@ namespace KillerPDF.Shell
     {
         private object? _pendingSignDocument;
         private Controls.PdfViewer? _pendingSignViewer;
+        private IInputElement? _signaturePopupReturnFocus;
+
+        private bool HandleSignaturePickerKey(KeyEventArgs e)
+        {
+            if (_signaturePopup is not { IsKeyboardFocusWithin: true }) return false;
+            if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Escape)
+            {
+                HideSignaturePopup();
+                if (_currentTool == EditTool.Signature && _pendingSignature is null) SetTool(EditTool.Select);
+                e.Handled = true;
+                return true;
+            }
+            return (Keyboard.Modifiers == ModifierKeys.None && e.Key is Key.Enter or Key.Space)
+                || (e.Key == Key.Tab && Keyboard.Modifiers is ModifierKeys.None or ModifierKeys.Shift);
+        }
 
         private void LoadSignatures()
         {
@@ -193,8 +208,20 @@ namespace KillerPDF.Shell
             if (_signaturePopup is not null)
             {
                 var popup = _signaturePopup;
+                bool restoreFocus = popup.IsKeyboardFocusWithin;
+                popup.IsEnabled = false;
                 var previewGrid = popup.Parent as Panel;
                 _signaturePopup = null;   // detach now so a re-open builds a fresh popup
+                if (cancelPendingField)
+                {
+                    if (restoreFocus)
+                    {
+                        if (_signaturePopupReturnFocus is UIElement { IsVisible: true, IsEnabled: true } previous)
+                            Keyboard.Focus(previous);
+                        else Focus();
+                    }
+                    _signaturePopupReturnFocus = null;
+                }
                 // Fade out (it's a Border, not a Window, so WindowFx doesn't apply) then remove.
                 var fade = new DoubleAnimation(popup.Opacity, 0,
                     new Duration(TimeSpan.FromMilliseconds(WindowFx.FadeMs)))
@@ -326,6 +353,7 @@ namespace KillerPDF.Shell
 
         private void ShowSignaturePopup()
         {
+            if (_signaturePopup is null) _signaturePopupReturnFocus = Keyboard.FocusedElement;
             // NOTE: this popup is rebuilt on every open. All event handlers here are lambdas
             // on the popup's own child elements - no external source subscriptions, so no leak.
             // If SignatureStore.Signatures ever becomes ObservableCollection and this popup
@@ -381,7 +409,8 @@ namespace KillerPDF.Shell
                 closeButton.SetResourceReference(FrameworkElement.WidthProperty, "DialogCloseWidth");
                 closeButton.SetResourceReference(FrameworkElement.HeightProperty, "DialogCloseHeight");
                 closeButton.SetResourceReference(FrameworkElement.MarginProperty, "DialogCaptionButtonsMargin");
-                closeButton.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; ClosePicker(); };
+                System.Windows.Automation.AutomationProperties.SetName(closeButton, Loc("Str_Lbl_Close"));
+                closeButton.Click += (_, _) => ClosePicker();
                 sigCloseControl = closeButton;
             }
             else
@@ -400,8 +429,11 @@ namespace KillerPDF.Shell
                 };
                 closeText.MouseEnter += (_, _) => { closeText.Foreground = (SolidColorBrush)FindResource("DangerRed"); closeText.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 4, ShadowDepth = 1, Direction = 270, Opacity = 0.5 }; };
                 closeText.MouseLeave += (_, _) => { closeText.Foreground = (SolidColorBrush)FindResource("MutedTextBrush"); closeText.Effect = null; };
-                closeText.MouseLeftButtonDown += (_, e) => { e.Handled = true; ClosePicker(); };
-                sigCloseControl = closeText;
+                var closeButton = new Button { Content = closeText, Style = (Style)FindResource("ToolbarButton"),
+                    Background = Brushes.Transparent, BorderThickness = new Thickness(0), Padding = new Thickness(0) };
+                System.Windows.Automation.AutomationProperties.SetName(closeButton, Loc("Str_Lbl_Close"));
+                closeButton.Click += (_, _) => ClosePicker();
+                sigCloseControl = closeButton;
             }
             Grid.SetColumn(sigCloseControl, 1);
             sigHeaderGrid.Children.Add(sigTitleText);
@@ -422,19 +454,42 @@ namespace KillerPDF.Shell
             // "initial here, sign there" flow can pick each independently. One tile builder is shared.
             UIElement MakeSigItem(SavedSignature sigCopy)
             {
-                var item = new Border
+                void Activate(MouseButtonEventArgs? mouse)
+                {
+                    var pendingField = _pendingSignField;
+                    var pendingDocument = _pendingSignDocument;
+                    var pendingViewer = _pendingSignViewer;
+                    HideSignaturePopup();
+                    if (pendingField is { } tgt
+                        && ReferenceEquals(pendingDocument, _doc)
+                        && ReferenceEquals(pendingViewer, ActiveViewer))
+                    {
+                        if (tgt.Initials) _activeInitialsChoice = sigCopy; else _activeSignatureChoice = sigCopy;
+                        _pendingSignature = null;
+                        DropSignatureInField(tgt.ObjNum, sigCopy, tgt.Page, tgt.X, tgt.Y, tgt.W, tgt.H);
+                        return;
+                    }
+                    _pendingSignature = sigCopy;
+                    if (mouse is not null) ArmSignaturePickerDrag(sigCopy, mouse);
+                    _annotationCanvas.Cursor = Cursors.Cross;
+                    SetStatus(sigCopy.Kind == SignatureKind.Initials
+                        ? Loc("Str_St_PlaceInitials") : Loc("Str_St_PlaceSignature"));
+                }
+                var item = new SavedSignatureButton(
+                    Loc(sigCopy.Kind == SignatureKind.Initials ? "Str_Sig_Initials" : "Str_Sig_Signatures")
+                        + ": " + sigCopy.Name, Activate)
                 {
                     Background = Brushes.White,
                     BorderBrush = _swatchDimBorder,
                     BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(0),
+                    Style = (Style)FindResource("DarkButton"),
                     Margin = new Thickness(4, 2, 4, 2),
                     Padding = new Thickness(4),
                     Cursor = Cursors.Hand,
                     Height = 60,
                     HorizontalAlignment = HorizontalAlignment.Stretch
                 };
-                item.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
+                System.Windows.Automation.AutomationProperties.SetAutomationId(item, "SavedSignature_" + sigCopy.Id);
 
                 if (sigCopy.ImageData is not null)
                 {
@@ -446,7 +501,7 @@ namespace KillerPDF.Shell
                         bmpImg.StreamSource = new System.IO.MemoryStream(imgBytes);
                         bmpImg.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
                         bmpImg.EndInit();
-                        item.Child = new System.Windows.Controls.Image
+                        item.Content = new System.Windows.Controls.Image
                         {
                             Source = bmpImg,
                             Height = 50,
@@ -455,7 +510,7 @@ namespace KillerPDF.Shell
                             IsHitTestVisible = false
                         };
                     }
-                    catch { item.Child = new TextBlock { Text = $"({Loc("Str_Annot_Image")})", IsHitTestVisible = false }; }
+                    catch { item.Content = new TextBlock { Text = $"({Loc("Str_Annot_Image")})", IsHitTestVisible = false }; }
                 }
                 else
                 {
@@ -466,37 +521,13 @@ namespace KillerPDF.Shell
                         IsHitTestVisible = false
                     };
                     RenderSignaturePreview(canvas, sigCopy, 288, 50);
-                    item.Child = canvas;
+                    item.Content = canvas;
                 }
 
-                item.MouseLeftButtonDown += (s, e) =>
-                {
-                    var pendingField = _pendingSignField;
-                    var pendingDocument = _pendingSignDocument;
-                    var pendingViewer = _pendingSignViewer;
-                    HideSignaturePopup();
-                    // If a signature field is waiting, fill it and remember the choice (pick once, reuse).
-                    if (pendingField is { } tgt
-                        && ReferenceEquals(pendingDocument, _doc)
-                        && ReferenceEquals(pendingViewer, ActiveViewer))
-                    {
-                        if (tgt.Initials) _activeInitialsChoice = sigCopy; else _activeSignatureChoice = sigCopy;
-                        var t = tgt; _pendingSignField = null;
-                        _pendingSignature = null;   // a signature just added here must not stamp again on the next click
-                        DropSignatureInField(t.ObjNum, sigCopy, t.Page, t.X, t.Y, t.W, t.H);
-                        return;
-                    }
-                    _pendingSignature = sigCopy;
-                    ArmSignaturePickerDrag(sigCopy, e);
-                    _annotationCanvas.Cursor = Cursors.Cross;
-                    SetStatus(sigCopy.Kind == SignatureKind.Initials
-                        ? Loc("Str_St_PlaceInitials")
-                        : Loc("Str_St_PlaceSignature"));
-                };
                 item.MouseEnter += (s, e) =>
-                    ((Border)s!).BorderBrush = (SolidColorBrush)FindResource("PrimaryBrush");
+                    ((Button)s!).BorderBrush = (SolidColorBrush)FindResource("PrimaryBrush");
                 item.MouseLeave += (s, e) =>
-                    ((Border)s!).BorderBrush = _swatchDimBorder;
+                    ((Button)s!).BorderBrush = _swatchDimBorder;
 
                 var itemGrid = new Grid();
                 itemGrid.Children.Add(item);
@@ -516,6 +547,8 @@ namespace KillerPDF.Shell
                     Padding = new Thickness(0),
                     Style = (Style)FindResource("ToolbarButton")
                 };
+                System.Windows.Automation.AutomationProperties.SetName(delBtn, Loc("Str_Ctx_BmDelete") + ": " + sigCopy.Name);
+                System.Windows.Automation.AutomationProperties.SetAutomationId(delBtn, "DeleteSignature_" + sigCopy.Id);
                 delBtn.Click += (s, e) =>
                 {
                     _signatureStore.Remove(sigCopy);
@@ -658,6 +691,7 @@ namespace KillerPDF.Shell
                 }
             };
             _signaturePopup.SetResourceReference(Border.CornerRadiusProperty, "FlyoutCornerRadius");
+            KeyboardNavigation.SetTabNavigation(_signaturePopup, KeyboardNavigationMode.Cycle);
 
             var previewGrid = PagePreviewPanel.Parent as Grid;
             if (previewGrid is not null)
@@ -671,10 +705,12 @@ namespace KillerPDF.Shell
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
                 {
                     if (popup is null) return;
+                    if (!ReferenceEquals(popup, _signaturePopup)) return;
                     // Place it (saved position, or default to the old top-right spot) and wire up
                     // dragging now that ActualWidth/Height are known.
                     ApplySavedPanelPosition(popup, previewGrid, "SigPopup", fallbackRightInset: 80, fallbackTop: 4);
                     EnablePanelDrag(sigHeader, popup, previewGrid, "SigPopup");
+                    popup.MoveFocus(new TraversalRequest(FocusNavigationDirection.First));
                     popup.BeginAnimation(UIElement.OpacityProperty,
                         new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(110)))
                         { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } });

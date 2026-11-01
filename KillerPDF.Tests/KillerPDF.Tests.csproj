@@ -46,6 +46,7 @@
     <Compile Include="..\Services\TwainScan.cs" Link="Services\TwainScan.cs" />
     <Compile Include="..\Services\AppDataPaths.cs" Link="Services\AppDataPaths.cs" />
     <Compile Include="..\Services\SignatureStore.cs" Link="Services\SignatureStore.cs" />
+    <Compile Include="..\Services\SavedSignatureButton.cs" Link="Services\SavedSignatureButton.cs" />
     <Compile Include="..\Services\TextFieldPresetStore.cs" Link="Services\TextFieldPresetStore.cs" />
     <Compile Include="..\Services\TextFieldPresetCapture.cs" Link="Services\TextFieldPresetCapture.cs" />
     <Compile Include="..\Services\CommentEdits.cs" Link="Services\CommentEdits.cs" />

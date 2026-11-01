@@ -37,6 +37,8 @@ namespace KillerPDF.Shell
             }
             base.OnPreviewKeyDown(e);
 
+            if (_syntheticShortcut is null && HandleSignaturePickerKey(e)) return;
+
             // The title bar search box keeps its own navigation keys while it has focus.
             if (_syntheticShortcut is null && HandleToolSearchKey(e)) return;
 
