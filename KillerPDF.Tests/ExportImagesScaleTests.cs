@@ -1,0 +1,24 @@
+using System.IO;
+using Xunit;
+
+namespace KillerPDF.Tests;
+
+// The dialog is not linked into this project, so this pins its wiring to the tested base.
+public sealed class ExportImagesScaleTests
+{
+    private static string Read(params string[] parts)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "KillerPDF.csproj")))
+            directory = directory.Parent;
+        return File.ReadAllText(Path.Combine([directory!.FullName, .. parts]));
+    }
+
+    [Fact]
+    public void OneTimesIsTheRealImageSizeWhenThePageIsOneImage()
+    {
+        Assert.Contains("OutputPixelDimensions.ScaleBase(", Read("Controls", "ExportImagesDialog.cs"), StringComparison.Ordinal);
+        Assert.Contains("engineSession.PageImagePixels(previewPage, _pageRotations)",
+            Read("Shell", "FileOperations.cs"), StringComparison.Ordinal);
+    }
+}

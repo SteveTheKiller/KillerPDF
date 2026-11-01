@@ -15,6 +15,7 @@ namespace KillerPDF
         private TextBlock _pixelDimensions = null!;
         private readonly double _pageWidthPoints;
         private readonly double _pageHeightPoints;
+        private readonly (int Width, int Height)? _imagePixels;
 
         public bool Confirmed { get; private set; }
         public bool Jpeg { get; private set; }
@@ -24,10 +25,12 @@ namespace KillerPDF
         /// <summary>presetRange seeds the page-range field - the Pages panel's per-page export
         /// (#207) opens the same dialog scoped to the clicked page(s), still editable.</summary>
         public ExportImagesDialog(Window owner, string presetRange = "",
-            double pageWidthPoints = 0, double pageHeightPoints = 0)
+            double pageWidthPoints = 0, double pageHeightPoints = 0,
+            (int Width, int Height)? imagePixels = null)
         {
             _pageWidthPoints = pageWidthPoints;
             _pageHeightPoints = pageHeightPoints;
+            _imagePixels = imagePixels;
             Title = "KillerPDF - " + L("Str_ExportImg_Suffix");
             // Width follows the caption. "Export Pages as Images" is 22 characters in en-US and
             // up to 35 translated, which ran the title under the close button at a fixed 380 (#223).
@@ -107,11 +110,13 @@ namespace KillerPDF
                 && parsed >= 24 && parsed <= 1200 ? parsed : 150;
             var (width, height) = OutputPixelDimensions.FromPoints(
                 _pageWidthPoints, _pageHeightPoints, dpi);
+            var (referenceWidth, referenceHeight) = OutputPixelDimensions.FromPoints(
+                _pageWidthPoints, _pageHeightPoints, 150);
+            var (baseWidth, baseHeight) = OutputPixelDimensions.ScaleBase(referenceWidth, referenceHeight,
+                referenceWidth, referenceHeight, _imagePixels);
             _pixelDimensions.Text = width > 0 && height > 0
                 ? string.Format(L("Str_OutputPixels"), width, height) + "  |  " +
-                  OutputPixelDimensions.ScaleLabel(width, height,
-                      OutputPixelDimensions.FromPoints(_pageWidthPoints, _pageHeightPoints, 150).Width,
-                      OutputPixelDimensions.FromPoints(_pageWidthPoints, _pageHeightPoints, 150).Height)
+                  OutputPixelDimensions.ScaleLabel(width, height, baseWidth, baseHeight)
                 : "";
         }
 

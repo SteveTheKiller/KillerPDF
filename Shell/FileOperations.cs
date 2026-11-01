@@ -1919,7 +1919,8 @@ namespace KillerPDF.Shell
                 engineSession.PhysicalPageSize(previewPage, _pageRotations);
 
             var opts = new ExportImagesDialog(
-                this, presetRange, pageWidthPoints, pageHeightPoints);
+                this, presetRange, pageWidthPoints, pageHeightPoints,
+                engineSession.PageImagePixels(previewPage, _pageRotations));
             opts.ShowDialog();   // fade-close dialogs don't reliably return true; rely on Confirmed
             if (!opts.Confirmed) return;
 

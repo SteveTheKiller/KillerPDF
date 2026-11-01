@@ -25,6 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Merge accepts images with single-element device color-space arrays. (#469)
 - Rasterize Region detects unsupported tagged PDFs before region selection and explains why. (#369)
 - Form buttons and signed signature fields redraw correctly when their visibility changes.
+- Export Pages as Images measures its scale from the page's real image size, so x1 no longer overstates it. (#462)
 - Comment export and import preserve PDF dates with time zone offsets.
 - Repeated content appends keep PDF drawing instructions separate.
 - Saved signatures support mouse drag, click placement, and keyboard selection, with visible placement instructions.
