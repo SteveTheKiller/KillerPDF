@@ -164,7 +164,7 @@ namespace KillerPDF.Controls
         private CheckBox LinkConfirmCheck => Host!.LinkConfirmCheck;
 
         // ── Methods still on the window ──────────────────────────────────────────────────────
-        private void MarkDirty(bool dirty = true) => Host!.MarkDirty(dirty);
+        private void MarkDirty(bool dirty = true) => Host!.MarkDirty(this, dirty);
         private void SetTool(EditTool t) => Host!.SetTool(t);
         private void SaveTempAndReload(bool keepAnnotations = false, bool preserveZoom = false,
             Action<string>? finalizeSavedFile = null,

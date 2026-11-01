@@ -9,7 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 1.9.2 protects unsaved work and exports and fixes rendering, signatures, text selection, and update relaunches.
 
 ### Fixed
-- Render-failure recovery preserves unsaved edits from detached windows as well as the main window.
+- Render-failure recovery preserves unsaved edits across panes and detached windows, including edits committed after focus moves.
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
 - Undo and Redo preserve retryable history and the open document when snapshot storage fails.
 - Damaged signature libraries are preserved and reported instead of crashing the signature picker.

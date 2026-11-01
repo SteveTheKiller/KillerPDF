@@ -17,7 +17,7 @@ namespace KillerPDF.Shell
     // inherited through IViewerHost, so it is deliberately NOT repeated here.
     public partial class MainWindow : IViewerHost
     {
-        void IViewerHost.MarkDirty(bool dirty) => MarkDirty(dirty);
+        void IViewerHost.MarkDirty(PdfViewer viewer, bool dirty) => MarkViewerDirty(viewer, dirty);
         void IViewerHost.ReconcileHistoryDirty(PdfViewer viewer)
             => ((IViewerHost)this).RunWithViewerContext(viewer,
                 () =>

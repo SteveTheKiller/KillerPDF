@@ -32,11 +32,23 @@ namespace KillerPDF.Shell
         }
 
         private void MarkDirty(bool dirty = true)
+            => MarkViewerDirty(ActiveViewer, dirty);
+
+        private void MarkViewerDirty(PdfViewer viewer, bool dirty)
         {
             _documentEditRevision++;
-            _isDirty = dirty;
+            viewer.IsDirtyRef = dirty;
+            viewer.NotifyReadingTextChanged();
+            if (viewer.ActiveSessionExt is { } session)
+            {
+                session.IsDirty = dirty;
+                session.RefreshTabLabel();
+            }
+            ScheduleToolbarAvailabilityRefresh();
+            // A delayed editor commit still belongs to its pane after focus has moved.
+            // Shared window controls continue to describe the focused document.
+            if (!ReferenceEquals(ActiveViewer, viewer)) return;
             UpdateStampIndicator();
-            ActiveViewer.NotifyReadingTextChanged();
             ScheduleSidebarPanelRefresh();   // measurements listed in the Comments panel may have changed
             if (_saveAsBtnRef != null)
             {
@@ -62,7 +74,6 @@ namespace KillerPDF.Shell
                     _saveAsBtnRef.Effect = null;
                 }
             }
-            ScheduleToolbarAvailabilityRefresh();
         }
 
         // Clean copy and signing use complete bytes captured at open or successful save. The

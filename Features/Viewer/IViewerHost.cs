@@ -39,10 +39,10 @@ namespace KillerPDF.Features
     internal interface IViewerHost : IShellServices
     {
         // ── Chrome the viewer updates (group A) ─────────────────────────────────────────────
-        /// <summary>Mark the active document dirty (unsaved changes). 32 uses. Stays a host
+        /// <summary>Mark the calling viewer's document dirty (unsaved changes). Stays a host
         /// service even though dirtiness is per-document, because it also drives window chrome -
         /// the tab's dirty dot and the title bar.</summary>
-        void MarkDirty(bool dirty = true);
+        void MarkDirty(PdfViewer viewer, bool dirty = true);
         void ReconcileHistoryDirty(PdfViewer viewer);
 
         // PushUndo is deliberately NOT here, despite 9 uses. Undo is per-document state (group B):
