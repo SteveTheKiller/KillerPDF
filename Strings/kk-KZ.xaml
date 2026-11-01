@@ -216,6 +216,7 @@
     <sys:String x:Key="Str_ExportImg_Suffix">Беттерді сурет ретінде экспорттау</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Пішім</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Ажыратымдылық (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Әр беттің ажыратымдылығын сақтау</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Экспорттау</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0} бет {1} ішіне экспортталды</sys:String>

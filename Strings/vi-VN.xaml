@@ -294,6 +294,7 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_ExportImg_Suffix">Xuất trang thành hình ảnh</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Định dạng</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Độ phân giải (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Giữ độ phân giải của từng trang</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Xuất</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Đã xuất {0} trang tới {1}</sys:String>

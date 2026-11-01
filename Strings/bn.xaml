@@ -1043,6 +1043,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_ExportImg_Suffix">পৃষ্ঠাগুলি ছবি হিসেবে এক্সপোর্ট</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">ফরম্যাট</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">রেজোলিউশন (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">প্রতিটি পৃষ্ঠার রেজোলিউশন রাখুন</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">এক্সপোর্ট</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0}টি পৃষ্ঠা {1}-এ এক্সপোর্ট হয়েছে</sys:String>

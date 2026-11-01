@@ -294,6 +294,7 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_ExportImg_Suffix">Eksporter sider som bilder</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Format</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Oppløsning (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Behold oppløsningen på hver side</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Eksporter</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Eksporterte {0} sider til {1}</sys:String>

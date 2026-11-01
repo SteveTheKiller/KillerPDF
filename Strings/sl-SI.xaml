@@ -272,6 +272,7 @@
     <sys:String x:Key="Str_ExportImg_Suffix">Izvozi strani kot slike</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Oblika</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Ločljivost (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Ohrani ločljivost vsake strani</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Izvozi</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Izvoženih strani: {0}, v {1}</sys:String>

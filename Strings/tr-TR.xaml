@@ -1043,6 +1043,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_ExportImg_Suffix">Sayfaları Görüntü Olarak Dışa Aktar</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Biçim</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Çözünürlük (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Her sayfanın çözünürlüğünü koru</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Dışa aktar</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0} sayfa {1} konumuna aktarıldı</sys:String>

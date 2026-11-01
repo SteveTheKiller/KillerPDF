@@ -294,6 +294,7 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_ExportImg_Suffix">Exportovat stránky jako obrázky</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Formát</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Rozlišení (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Zachovat rozlišení každé stránky</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Exportovat</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Exportováno stránek: {0}, do {1}</sys:String>

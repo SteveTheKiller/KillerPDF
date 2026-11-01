@@ -1045,6 +1045,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">將頁面匯出為圖片</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">格式</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">解析度 (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">保留每頁的解析度</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">匯出</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">已將 {0} 頁匯出到 {1}</sys:String>

@@ -1047,6 +1047,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">将页面导出为图片</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">格式</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">分辨率 (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">保留每页的分辨率</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">导出</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">已将 {0} 页导出到 {1}</sys:String>

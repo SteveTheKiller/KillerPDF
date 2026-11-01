@@ -294,6 +294,7 @@
     <sys:String x:Key="Str_ExportImg_Suffix">ページを画像としてエクスポート</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">形式</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">解像度 (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">各ページの解像度を維持</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">エクスポート</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0} ページを {1} にエクスポートしました</sys:String>

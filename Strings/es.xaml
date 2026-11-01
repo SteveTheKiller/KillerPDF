@@ -1043,6 +1043,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Exportar páginas como imágenes</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Formato</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Resolución (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Mantener la resolución de cada página</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Exportar</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Se exportaron {0} páginas a {1}</sys:String>

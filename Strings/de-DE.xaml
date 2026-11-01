@@ -1049,6 +1049,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_ExportImg_Suffix">Seiten als Bilder exportieren</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Format</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Auflösung (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Auflösung jeder Seite beibehalten</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Exportieren</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0} Seiten nach {1} exportiert</sys:String>

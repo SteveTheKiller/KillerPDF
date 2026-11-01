@@ -295,6 +295,7 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_ExportImg_Suffix">Export Pages as Images</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Format</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Resolution (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Keep each page's resolution</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Export</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Exported {0} pages to {1}</sys:String>

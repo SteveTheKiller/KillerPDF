@@ -21,6 +21,8 @@ namespace KillerPDF
         public bool Jpeg { get; private set; }
         public double Dpi { get; private set; } = 150;
         public string Range { get; private set; } = "";
+        public bool KeepResolution { get; private set; } = true;
+        private CheckBox _keepResolution = null!;
 
         /// <summary>presetRange seeds the page-range field - the Pages panel's per-page export
         /// (#207) opens the same dialog scoped to the clicked page(s), still editable.</summary>
@@ -61,6 +63,12 @@ namespace KillerPDF
             _dpi.Text = "150";
             _dpi.TextChanged += (_, _) => UpdatePixelDimensions();
             body.Children.Add(_dpi);
+            _keepResolution = UiKit.CheckBox(L("Str_Output_KeepResolution"));
+            _keepResolution.Margin = new Thickness(0, 6, 0, 0);
+            _keepResolution.Checked += (_, _) => _dpi.IsEnabled = false;
+            _keepResolution.Unchecked += (_, _) => _dpi.IsEnabled = true;
+            _keepResolution.IsChecked = true;
+            body.Children.Add(_keepResolution);
             _pixelDimensions = new TextBlock
             {
                 Foreground = UiKit.Brush("MutedTextBrush"),
@@ -99,6 +107,7 @@ namespace KillerPDF
             // Same accepted DPI window as the CLI (24-1200); anything unparsable falls back to 150.
             Dpi = double.TryParse(_dpi.Text.Trim(), out double d) && d >= 24 && d <= 1200 ? d : 150;
             Range = _range.Text.Trim();
+            KeepResolution = _keepResolution.IsChecked == true;
             Confirmed = true;
             Close();
         }

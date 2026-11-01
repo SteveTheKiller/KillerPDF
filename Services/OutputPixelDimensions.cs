@@ -34,6 +34,14 @@ internal static class OutputPixelDimensions
             ? (pixels.Width * previewWidth / sourceWidth, pixels.Height * previewHeight / sourceHeight)
             : (previewWidth, previewHeight);
 
+    /// <summary>The DPI that keeps a page's image at its own pixels, or the fallback for a page
+    /// with no single image.</summary>
+    internal static double NativeDpi((int Width, int Height)? imagePixels, double widthPoints,
+        double heightPoints, double fallback) =>
+        imagePixels is { } pixels && widthPoints > 0 && heightPoints > 0
+            ? Math.Clamp(Math.Max(pixels.Width / widthPoints, pixels.Height / heightPoints) * 72.0, 24, 1200)
+            : fallback;
+
     internal static bool MatchesDpi(
         int pixelWidth, int pixelHeight, double widthPoints, double heightPoints, double dpi)
     {

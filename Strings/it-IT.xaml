@@ -294,6 +294,7 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_ExportImg_Suffix">Esporta pagine come immagini</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Formato</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Risoluzione (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Mantieni la risoluzione di ogni pagina</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Esporta</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Esportate {0} pagine in {1}</sys:String>

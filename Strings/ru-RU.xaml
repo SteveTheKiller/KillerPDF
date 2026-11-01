@@ -294,6 +294,7 @@
     <sys:String x:Key="Str_ExportImg_Suffix">Экспорт страниц в виде изображений</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Формат</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Разрешение (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Сохранять разрешение каждой страницы</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Экспорт</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Экспортировано {0} страниц в {1}</sys:String>

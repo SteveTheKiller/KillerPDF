@@ -154,7 +154,7 @@ public sealed class RenderBoundaryTests
         string source = File.ReadAllText(
             Path.Combine(root, "Services", "PdfRasterize.cs"));
 
-        Assert.Equal(2, Count(source, "PdfPageRenderSession.OpenEngineFirst("));
+        Assert.Equal(1, Count(source, "PdfPageRenderSession.OpenEngineFirst("));
         Assert.DoesNotContain("PdfPageRenderSession.Open(", source,
             StringComparison.Ordinal);
         Assert.DoesNotContain("using Docnet.", source, StringComparison.Ordinal);

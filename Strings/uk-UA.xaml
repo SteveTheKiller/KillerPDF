@@ -294,6 +294,7 @@
     <sys:String x:Key="Str_ExportImg_Suffix">Експорт сторінок як зображень</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Формат</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Роздільність (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Зберігати роздільність кожної сторінки</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} пікс.</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Експортувати</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Експортовано сторінок: {0} до {1}</sys:String>

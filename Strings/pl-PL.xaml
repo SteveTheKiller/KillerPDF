@@ -294,6 +294,7 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_ExportImg_Suffix">Eksportuj strony jako obrazy</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Format</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Rozdzielczość (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Zachowaj rozdzielczość każdej strony</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Eksport</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Wyeksportowano {0} stron do {1}</sys:String>

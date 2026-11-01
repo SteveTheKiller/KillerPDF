@@ -294,6 +294,7 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_ExportImg_Suffix">Oldalak exportálása képként</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Formátum</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Felbontás (DPI)</sys:String>
+    <sys:String x:Key="Str_Output_KeepResolution">Minden oldal felbontásának megtartása</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Exportálás</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0} oldal exportálva ide: {1}</sys:String>

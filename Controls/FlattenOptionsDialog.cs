@@ -8,6 +8,7 @@ internal sealed class FlattenOptionsDialog : Window
 {
     private readonly ComboBox _colorMode;
     private readonly TextBox _dpi;
+    private readonly CheckBox _keepResolution;
     private readonly Slider _threshold;
     private readonly TextBlock _thresholdValue;
     private readonly CheckBox _useJpeg;
@@ -50,8 +51,14 @@ internal sealed class FlattenOptionsDialog : Window
         body.Children.Add(UiKit.GroupLabel(L("Str_ExportImg_Dpi")));
         _dpi = UiKit.Field();
         _dpi.Text = "150";
-        _dpi.Margin = new Thickness(0, 3, 0, 10);
+        _dpi.Margin = new Thickness(0, 3, 0, 4);
         body.Children.Add(_dpi);
+        _keepResolution = UiKit.CheckBox(L("Str_Output_KeepResolution"));
+        _keepResolution.Margin = new Thickness(0, 0, 0, 10);
+        _keepResolution.Checked += (_, _) => _dpi.IsEnabled = false;
+        _keepResolution.Unchecked += (_, _) => _dpi.IsEnabled = true;
+        _keepResolution.IsChecked = true;
+        body.Children.Add(_keepResolution);
 
         body.Children.Add(UiKit.GroupLabel(L("Str_Tf_Threshold")));
         _threshold = new Slider
@@ -153,7 +160,8 @@ internal sealed class FlattenOptionsDialog : Window
                 PaperTone: _paperTone.IsChecked == true,
                 Grain: _grain.IsChecked == true,
                 SoftFocus: _softFocus.IsChecked == true,
-                EdgeShadow: _edgeShadow.IsChecked == true));
+                EdgeShadow: _edgeShadow.IsChecked == true),
+            KeepResolution: _keepResolution.IsChecked == true);
         Options.Validate();
         Confirmed = true;
         Close();

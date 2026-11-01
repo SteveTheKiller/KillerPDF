@@ -411,7 +411,7 @@ namespace KillerPDF
             _dpiReadout.HorizontalAlignment = HorizontalAlignment.Right;
             _dpiSlider = new Slider
             {
-                Minimum = 72, Maximum = 600, Value = 300, IsEnabled = false,
+                Minimum = 72, Maximum = 600, Value = OneTimesDpi(), IsEnabled = false,
                 TickFrequency = 25, SmallChange = 1, LargeChange = 25,
                 Margin = new Thickness(0, 2, 0, 2)
             };
@@ -944,12 +944,16 @@ namespace KillerPDF
             SchedulePreview();
         }
 
+        // The slider starts at x1 for a page that is one image, and at 300 otherwise.
+        private double OneTimesDpi() => Math.Clamp(
+            OutputPixelDimensions.NativeDpi(_imagePixels, _pageWpt, _pageHpt, 300), 72, 600);
+
         private void ResetQuality()
         {
             _colorMode.SelectedIndex = 0;
             _bwThreshold.Value = 160;
             _setDpi.IsChecked = false;
-            _dpiSlider.Value = 300;
+            _dpiSlider.Value = OneTimesDpi();
             _useJpeg.IsChecked = false;
             _jpegSlider.Value = 85;
             ColorMode = PageColorMode.Color;

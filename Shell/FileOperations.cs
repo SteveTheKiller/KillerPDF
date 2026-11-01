@@ -1987,6 +1987,14 @@ namespace KillerPDF.Shell
             bool jpeg   = opts.Jpeg;
             double dpi  = opts.Dpi;
             var pages   = selected;
+            Dictionary<int, double>? nativeDpi = null;
+            if (opts.KeepResolution)
+                nativeDpi = pages.ToDictionary(page => page, page =>
+                {
+                    var (width, height) = engineSession.PhysicalPageSize(page, _pageRotations);
+                    return OutputPixelDimensions.NativeDpi(
+                        engineSession.PageImagePixels(page, _pageRotations), width, height, dpi);
+                });
             CancellationToken ct = default;
             try
             {
@@ -1997,7 +2005,7 @@ namespace KillerPDF.Shell
                 int written = await Task.Run(() => PdfRasterize.ExportPageImages(sourcePath, pages,
                     rotSnapshot, dpi, jpeg, outDir, baseName, digits,
                     (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(overlay, n, total))),
-                    ct, incomplete, approvedOverwrites));
+                    ct, incomplete, approvedOverwrites, nativeDpi is null ? null : page => nativeDpi[page]));
                 SetStatus(string.Format(Loc("Str_ExportImg_Done"), written, outDir));
                 WarnIncompletePages(incomplete);
             }

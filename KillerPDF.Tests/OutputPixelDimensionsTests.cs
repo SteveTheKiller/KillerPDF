@@ -13,6 +13,22 @@ public sealed class OutputPixelDimensionsTests
         Assert.Equal((expectedWidth, expectedHeight), OutputPixelDimensions.Oriented((width, height), pageWidth, pageHeight));
 
     // Issue 462: a 500 pixel image previewed at 1,100 showed 1,099 at x1.
+    [Theory]
+    [InlineData(500, 720, 50)]       // 500 pixels across a 10 inch page
+    [InlineData(3000, 720, 300)]
+    [InlineData(100000, 72, 1200)]   // clamped to the supported range
+    [InlineData(1, 720, 24)]
+    public void NativeDpiIsTheImagesOwnResolution(int pixels, double points, double expected)
+    {
+        Assert.Equal(expected, OutputPixelDimensions.NativeDpi((pixels, pixels), points, points, 150));
+    }
+
+    [Fact]
+    public void NativeDpiFallsBackWithoutAPageImage()
+    {
+        Assert.Equal(150, OutputPixelDimensions.NativeDpi(null, 720, 720, 150));
+    }
+
     [Fact]
     public void OneTimesMeansTheRealImageNotThePreview()
     {
