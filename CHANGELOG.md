@@ -52,6 +52,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The Rasterize Region dialog says that the text under the image stays selectable and searchable.
 - `optimize` works on a healthy encrypted PDF and keeps its protection, reading `--password` when the file needs one, and commands that cannot change an encrypted PDF say what to do in plain words.
 - The paragraph dialog keeps every field reachable at a high app scale.
+- At a large app size the sidebar rail's icons shrink to fit below its arrow instead of running over it, and the read-only notice and message boxes are drawn at the app's size.
 - Comment export and import preserve PDF dates with time zone offsets.
 - Repeated content appends keep PDF drawing instructions separate.
 - Saved signatures support mouse drag, click placement, and keyboard selection, with visible placement instructions.
