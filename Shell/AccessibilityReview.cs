@@ -31,11 +31,12 @@ public partial class MainWindow
                 origin = CaptureDocumentOrigin(); sourcePath = _currentFile!;
                 sourceHash = SHA256.HashData(File.ReadAllBytes(sourcePath));
             }
+            // The review reads the tab as it stands, typed form values included, under its protection.
             byte[] Snapshot()
             {
-                string path = CreateExchangeSnapshot();
-                try { return File.ReadAllBytes(path); }
-                finally { File.Delete(path); }
+                CommitActiveTextBox();
+                return AccessibilityReviewSource.Snapshot(_doc!, ActiveViewer.SnapshotFormValuesForPrint(),
+                    _protection, App.MakeTempFile("exchange"));
             }
             byte[]? Apply(byte[] edited)
             {
@@ -62,7 +63,7 @@ public partial class MainWindow
                 return snapshot = Snapshot();
             }
             var dialog = new AccessibilityReviewDialog(this, snapshot, _appScale, canRepair,
-                Apply, Undo, Current, new Dictionary<int, int>(_pageRotations));
+                Apply, Undo, Current, new Dictionary<int, int>(_pageRotations), _protection);
             dialog.ShowDialog();
             if (!Current()) return;
             if (dialog.RequestedTool == "Str_Repair_ReadingOrder") RepairReadingOrder();

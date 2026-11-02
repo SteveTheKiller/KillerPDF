@@ -21,6 +21,8 @@ internal sealed class AccessibilityReviewDialog : Window
     private readonly Func<byte[]?> _undoFix;
     private readonly Func<bool> _sourceCurrent;
     private readonly IReadOnlyDictionary<int, int>? _rotations;
+    // The tab's protection: a tab that reads its encrypted original is reviewed under its key.
+    private readonly OpenedProtection? _protection;
     private readonly ComboBox _findings;
     private readonly TextBox _input;
     private readonly TextBlock _count, _explanation, _label, _location, _status;
@@ -38,11 +40,11 @@ internal sealed class AccessibilityReviewDialog : Window
 
     internal AccessibilityReviewDialog(Window owner, byte[] source, double scale, bool canRepair,
         Func<byte[], byte[]?> apply, Func<byte[]?> undo, Func<bool> sourceCurrent,
-        IReadOnlyDictionary<int, int>? rotations = null)
+        IReadOnlyDictionary<int, int>? rotations = null, OpenedProtection? protection = null)
     {
         _source = source; _canRepair = canRepair; _applyFix = apply; _undoFix = undo;
-        _sourceCurrent = sourceCurrent; _rotations = rotations;
-        _report = PdfAccessibilityInspector.Inspect(PdfDocument.Open(source));
+        _sourceCurrent = sourceCurrent; _rotations = rotations; _protection = protection;
+        _report = AccessibilityReviewSource.Inspect(source, protection);
         Title = "KillerPDF - " + L("Str_DocumentTools_Accessibility");
         scale = Math.Clamp(scale, .7, 2.5);
         Width = Math.Min(720 * scale, SystemParameters.WorkArea.Width - 40);
@@ -116,7 +118,7 @@ internal sealed class AccessibilityReviewDialog : Window
     private void Refresh()
     {
         int previous = Math.Max(0, _findings.SelectedIndex);
-        _report = PdfAccessibilityInspector.Inspect(PdfDocument.Open(_source));
+        _report = AccessibilityReviewSource.Inspect(_source, _protection);
         _findings.Items.Clear();
         foreach (PdfAccessibilityFinding finding in _report.Findings)
         {
@@ -163,7 +165,7 @@ internal sealed class AccessibilityReviewDialog : Window
         int? locatedPage = finding.PageIndex;
         if (locatedPage is null && finding.ObjectNumber is int figure && finding.Code == PdfAccessibilityFindingCode.MissingFigureAlternateDescription)
         {
-            try { locatedPage = PdfAccessibilityReadingOrder.Read(PdfDocument.Open(_source)).Items
+            try { locatedPage = PdfAccessibilityReadingOrder.Read(AccessibilityReviewSource.Open(_source, _protection)).Items
                     .Where(item => item.StructureObjectNumber == figure).Select(item => (int?)item.PageIndex).FirstOrDefault(); }
             catch (Exception error) when (error is not OutOfMemoryException) { }
         }
@@ -195,7 +197,7 @@ internal sealed class AccessibilityReviewDialog : Window
 
     private PagePreview Render(byte[] source, int index, PdfAccessibilityFinding finding, CancellationToken cancellation)
     {
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = AccessibilityReviewSource.Open(source, _protection);
         PdfPageInformation page = PdfPageInformation.Read(document)[index];
         bool quarter = page.Rotation is 90 or 270;
         double width = quarter ? page.Height : page.Width, height = quarter ? page.Width : page.Height;
