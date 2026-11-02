@@ -73,6 +73,7 @@
     <Compile Include="..\Services\OpenedProtection.cs" Link="Services\OpenedProtection.cs" />
     <Compile Include="..\Services\ProtectedDocumentFiles.cs" Link="Services\ProtectedDocumentFiles.cs" />
     <Compile Include="..\Features\Cli\CliProtectionGate.cs" Link="Features\Cli\CliProtectionGate.cs" />
+    <Compile Include="..\Features\Ocr\OcrCommandGate.cs" Link="Features\Ocr\OcrCommandGate.cs" />
     <Compile Include="..\Services\SearchService.cs" Link="Services\SearchService.cs" />
     <Compile Include="..\Services\TextReplacePlanner.cs" Link="Services\TextReplacePlanner.cs" />
     <Compile Include="..\Services\PdfContentDocument.cs" Link="Services\PdfContentDocument.cs" />
