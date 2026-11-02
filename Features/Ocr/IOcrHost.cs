@@ -55,7 +55,7 @@ namespace KillerPDF.Features
         /// to <paramref name="path"/> without changing the live document. Throws on failure.</summary>
         void SaveDocumentTo(string path);
         /// <summary>False until a restricted document has its owner password.</summary>
-        bool EnsureDocumentEditable();
+        bool EnsureDocumentMayWrite(KillerPDF.Services.PdfOutput output);
 
         /// <summary>Registers the cancellable operation (Esc offers to cancel it) and puts up the
         /// busy overlay. Returns the token to thread through the work.</summary>

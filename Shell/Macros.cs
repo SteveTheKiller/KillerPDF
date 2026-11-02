@@ -119,7 +119,7 @@ public partial class MainWindow
             && !PrepareMacroRedaction(sourceViewer))
             return;
         if (!IsSourceCurrent()) return;
-        if (!EnsureEditable(continueAfterUnlock: false)) return;
+        if (!EnsureMayWrite(PdfOutput.Printable)) return;
 
         CommitActiveTextBox();
         var busy = ShowBusyOverlay(Loc("Str_Macro_Running"));

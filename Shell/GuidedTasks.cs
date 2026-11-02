@@ -16,6 +16,7 @@ public partial class MainWindow
         {
             if (_doc.IsReadOnly || IsOwnerRestricted || PdfSignatureReader.Read(EnsureEngineDocumentSession().Document).Any(item => item.IsSigned))
             { KillerDialog.Show(this, Loc("Str_Guided_Unavailable")); return; }
+            if (!EnsureMayWrite(PdfOutput.Printable)) return;
             CommitActiveTextBox();
             long revision = _documentEditRevision;
             Func<bool> origin = CaptureDocumentOrigin();

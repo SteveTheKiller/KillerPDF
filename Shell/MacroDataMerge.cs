@@ -67,7 +67,7 @@ public partial class MainWindow
             if (!batch && !sourceCurrent()) return;
             if (!batch)
             {
-                if (!EnsureEditable(continueAfterUnlock: false)) return;
+                if (!EnsureMayWrite(PdfOutput.Printable)) return;
                 CommitActiveTextBox();
                 snapshot = WriteSavedCopyToTemp();
             }

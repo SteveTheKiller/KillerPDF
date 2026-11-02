@@ -186,7 +186,10 @@ namespace KillerPDF.Shell
                             annotations);
                         var data = new DataObject();
                         data.SetData(typeof(int[]), selected);
-                        data.SetData(typeof(PageDragPayload), payload);
+                        // Pages still reorder within their document. A tab that takes them holds no
+                        // limit of this file, so a limit keeps them from reaching one.
+                        if (session.Protection.Access.Allows(PdfOutput.Printable))
+                            data.SetData(typeof(PageDragPayload), payload);
                         BitmapSource? thumbnail = PageList.SelectedItems.Cast<PageThumbnailVm>()
                             .FirstOrDefault(page => page.PageIndex == selected[0])?.Thumbnail;
                         thumbnail ??= PageThumbnailVm.BuildThumb(

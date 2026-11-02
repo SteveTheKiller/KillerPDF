@@ -559,7 +559,7 @@ namespace KillerPDF.Shell
         private void SaveAttachmentCopy(PdfAttachmentInfo attachment)
         {
             // A copy leaves a restricted PDF with the file inside it, so it waits for the owner password.
-            if (!EnsureEditable(continueAfterUnlock: false)) return;
+            if (!EnsureMayWrite(PdfOutput.Data)) return;
             string name = Path.GetFileName(attachment.FileName);
             foreach (char bad in Path.GetInvalidFileNameChars()) name = name.Replace(bad, '_');
             var dialog = new Controls.FileDialog(Controls.FileDialogMode.Save)

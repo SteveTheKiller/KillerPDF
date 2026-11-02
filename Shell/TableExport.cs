@@ -11,6 +11,7 @@ public partial class MainWindow
     {
         if (_doc is null || _currentFile is null) { SetStatus(Loc("Str_Msg_OpenFirst")); return; }
         if (pageIndex < 0 || pageIndex >= _doc.PageCount) return;
+        if (!EnsureMayWrite(PdfOutput.Data)) return;
         bool started = false;
         CancellationToken cancellation = default;
         try

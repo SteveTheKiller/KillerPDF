@@ -51,7 +51,7 @@ public partial class MainWindow
 
     private void ExportExchangeData(bool bookmarks)
     {
-        if (_doc is null) return;
+        if (_doc is null || !EnsureMayWrite(PdfOutput.Data)) return;
         string title = Loc(bookmarks ? "Str_Exchange_ExportBookmarks" : "Str_Exchange_ExportForms");
         var picker = new Controls.FileDialog(Controls.FileDialogMode.Save)
         {

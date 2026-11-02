@@ -146,7 +146,7 @@ public partial class MainWindow
             return;
         }
 
-        if (!EnsureEditable()) return;
+        if (!EnsureMayWrite(PdfOutput.Printable, continueAfterUnlock: true)) return;
 
         var dataDialog = new Controls.FileDialog(Controls.FileDialogMode.Open)
         {

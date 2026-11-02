@@ -27,7 +27,7 @@ public partial class MainWindow
         if (!ReferenceEquals(ActiveViewer, sourceViewer)
             || !ReferenceEquals(sourceViewer.ActiveSessionExt, sourceSession)
             || !ReferenceEquals(_doc, sourceDocument)) return;
-        if (!EnsureEditable(continueAfterUnlock: false)) return;
+        if (!EnsureMayWrite(PdfOutput.Printable)) return;
         string[] sourcePaths = new[] { _currentFile, _originalFile }.OfType<string>().ToArray();
         string? sourceName = Path.GetFileNameWithoutExtension(_originalFile ?? _currentFile);
         string? snapshot = null;

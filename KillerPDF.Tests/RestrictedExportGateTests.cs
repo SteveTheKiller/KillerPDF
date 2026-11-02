@@ -38,7 +38,7 @@ public sealed class RestrictedExportGateTests
         Assert.True(from >= 0, start);
         int to = source.IndexOf(end, from, StringComparison.Ordinal);
         Assert.True(to > from, end);
-        Assert.Matches(@"Ensure(Document)?Editable\(", source[from..to]);
+        Assert.Matches(@"EnsureEditable\(|Ensure(Document)?MayWrite\(|EnsureMayRemoveProtection\(", source[from..to]);
     }
 
     // The unlock reopens the document and drops the page selection, so these end the command and the
@@ -53,7 +53,7 @@ public sealed class RestrictedExportGateTests
         Assert.True(from >= 0, start);
         int to = source.IndexOf(end, from, StringComparison.Ordinal);
         Assert.True(to > from, end);
-        Assert.Contains("EnsureEditable(continueAfterUnlock: false)", source[from..to], StringComparison.Ordinal);
+        Assert.Matches(@"EnsureEditable\(continueAfterUnlock: false\)|EnsureMayWrite\(PdfOutput\.\w+\)", source[from..to]);
     }
 
     // Printing is not editing: a PDF whose owner forbids only printing still opens for editing, so the

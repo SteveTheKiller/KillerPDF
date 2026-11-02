@@ -202,7 +202,7 @@ namespace KillerPDF.Features
         internal async void MakeSearchablePdf()
         {
             if (!_host.HasDocument) { KillerDialog.Show(_host.Window, _host.Loc("Str_Ocr_NoDoc")); return; }
-            if (!_host.EnsureDocumentEditable()) return;
+            if (!_host.EnsureDocumentMayWrite(KillerPDF.Services.PdfOutput.Printable)) return;
             var isSourceCurrent = _host.CaptureDocumentOrigin();
             if (!await _host.EnsureOcrModelsReadyAsync() || !isSourceCurrent()) return;
             _host.CommitActiveTextBox();
@@ -327,7 +327,7 @@ namespace KillerPDF.Features
         internal async void ConvertScanToText()
         {
             if (!_host.HasDocument) { KillerDialog.Show(_host.Window, _host.Loc("Str_Ocr_NoDoc")); return; }
-            if (!_host.EnsureDocumentEditable()) return;
+            if (!_host.EnsureDocumentMayWrite(KillerPDF.Services.PdfOutput.Data)) return;
             var isSourceCurrent = _host.CaptureDocumentOrigin();
             if (!await _host.EnsureOcrModelsReadyAsync() || !isSourceCurrent()) return;
             _host.CommitActiveTextBox();
