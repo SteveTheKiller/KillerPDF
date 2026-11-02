@@ -42,6 +42,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A field that shares its name with others and cannot take a new value keeps its own, a radio button with no such option turns off, and the save succeeds and names the field, whether the other field offers different options, has a shorter length limit or is damaged. Typing is held to the shortest limit of the name. A parent that only groups fields no longer blocks a field of the same name.
 - Deleting a repeated field removes every field of that name, and check boxes and radio buttons that share a name update together on screen, on every page.
 - Export Pages as Images shows the size the file really comes out at, and canceling Keep Resolution stops while pages are read, with progress shown. A slow page no longer holds up the window during that read.
+- Export Pages as Images and Save Flattened show a Cancel button. A canceled export stops at the next page and says how many pages it saved, the Esc prompt holds the export while it is open, and progress appears before a large file is prepared.
+- A word replaced on a scanned line takes its size, typeface and height from the page at any zoom, and follows a tilted line. Clicking low on a recognized line gathers the whole line.
+- The Attachments panel lists the attachments of a restricted PDF, and saving one asks for the owner password.
+- Typing in a repeated text field shows the value in every field of that name, on every page.
+- The Rasterize Region dialog says that the text under the image stays selectable and searchable.
+- `optimize` works on a healthy encrypted PDF and keeps its protection, reading `--password` when the file needs one, and commands that cannot change an encrypted PDF say what to do in plain words.
+- The paragraph dialog keeps every field reachable at a high app scale.
 - Comment export and import preserve PDF dates with time zone offsets.
 - Repeated content appends keep PDF drawing instructions separate.
 - Saved signatures support mouse drag, click placement, and keyboard selection, with visible placement instructions.
