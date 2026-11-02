@@ -11,7 +11,7 @@ namespace KillerPDF.Shell
         private async void ReduceFileSize_Click(object sender, RoutedEventArgs e)
         {
             if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
-            if (!EnsureEditable() || !EnsureMaySaveUnprotected()) return;
+            if (!EnsureEditable() || !EnsureProtectionReadable()) return;
             CommitActiveTextBox();
             var options = new ReduceSizeDialog(this);
             options.ShowDialog();
@@ -64,8 +64,10 @@ namespace KillerPDF.Shell
                     }
                     : null;
                 string output = dlg.FileName;
+                string working = App.MakeTempFile("reduced");
+                OpenedProtection protection = _protection;
                 var (before, after, resampled, repairs) = await Task.Run(
-                    () => PdfEngineIntegration.ReduceFileSize(source, output, images, ct), ct);
+                    () => ProtectedDocumentFiles.ReduceSize(source, output, working, images, ct, protection), ct);
                 SetStatus(string.Format(Loc("Str_Reduce_Done"), System.IO.Path.GetFileName(output),
                     Megabytes(before), Megabytes(after), resampled)
                     + (repairs.Count > 0 ? " " + Loc("Str_Save_ReferenceRepairs") : ""));

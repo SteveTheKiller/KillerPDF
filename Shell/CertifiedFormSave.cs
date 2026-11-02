@@ -36,7 +36,8 @@ public partial class MainWindow
 
     private bool TrySaveCertifiedFormFill(string destination, bool openCopy = false, bool confirmOtherSignedTarget = false)
     {
-        if (!CanSaveCertifiedFormFill()) return false;
+        // The working bytes of a protected file are decrypted, so its save goes through the encryption.
+        if (_protection.KeepsEncryption || !CanSaveCertifiedFormFill()) return false;
         string? source = _currentFile;
         if (source is null) return false;
         if (confirmOtherSignedTarget && !string.Equals(destination, _originalFile, StringComparison.OrdinalIgnoreCase)

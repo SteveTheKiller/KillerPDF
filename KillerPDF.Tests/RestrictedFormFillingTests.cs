@@ -30,7 +30,7 @@ public sealed class RestrictedFormFillingTests : IDisposable
         string source = Form("fillable.pdf", fill, annotate);
         string saved = Path.Combine(_directory, "saved.pdf");
 
-        Assert.True(PdfEngineIntegration.CanFillRestrictedForm(source));
+        Assert.True(OpenedProtection.Capture(source, null).AllowsRestrictedFill);
         PdfEngineIntegration.FillRestrictedForm(source, saved, Edits(("name", "Pat Example")));
 
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(saved), string.Empty);
@@ -45,7 +45,7 @@ public sealed class RestrictedFormFillingTests : IDisposable
         string source = Form("locked.pdf", fill: false, annotate: false);
         byte[] before = File.ReadAllBytes(source);
 
-        Assert.False(PdfEngineIntegration.CanFillRestrictedForm(source));
+        Assert.False(OpenedProtection.Capture(source, null).AllowsRestrictedFill);
         Assert.Throws<InvalidOperationException>(() => PdfEngineIntegration.FillRestrictedForm(
             source, Path.Combine(_directory, "never.pdf"), Edits(("name", "x"))));
         Assert.Equal(before, File.ReadAllBytes(source));
@@ -59,7 +59,7 @@ public sealed class RestrictedFormFillingTests : IDisposable
         File.WriteAllBytes(plain, new PdfDocumentBuilder().AddBlankPage()
             .AddTextField(0, "name", 20, 20, 160, 24, string.Empty, 11).Build());
 
-        Assert.False(PdfEngineIntegration.CanFillRestrictedForm(plain));
+        Assert.False(OpenedProtection.Capture(plain, null).AllowsRestrictedFill);
     }
 
     private string Form(string name, bool fill, bool annotate)

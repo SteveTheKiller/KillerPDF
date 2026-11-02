@@ -58,9 +58,12 @@ namespace KillerPDF.Shell
                                 unrecovered.Add(session);
                                 continue;
                             }
-                            // A restricted document reads from a decrypted copy, which must not reach
-                            // the recovery folder; its original is untouched on disk.
-                            if (session.Doc?.IsReadOnly == true)
+                            // A protected document reads from a decrypted copy, which must not reach the
+                            // recovery folder: it goes there under its own encryption or not at all. Its
+                            // original is untouched on disk.
+                            RecoveryRoute route = RenderFailureRecovery.Route(
+                                session.Doc?.IsReadOnly == true, session.ProtectedSource, session.Protection);
+                            if (route == RecoveryRoute.NotWritten)
                             {
                                 unrecovered.Add(session);
                                 continue;
@@ -71,25 +74,34 @@ namespace KillerPDF.Shell
                             string state = Path.ChangeExtension(copy, ".state.json");
                             var edit = ReferenceEquals(session, pendingSession) ? pending : null;
                             var backupErrors = new List<string>();
-                            // Preserve what is available before attempting the full save pipeline.
-                            try { session.Doc!.Save(working); }
-                            catch (Exception ex) when (ex is not OutOfMemoryException) { backupErrors.Add(ex.Message); }
+                            // Preserve what is available before attempting the full save pipeline. The
+                            // working copy and the state file are plain, so a protected tab writes neither.
+                            bool plain = route == RecoveryRoute.Plain;
+                            if (plain)
+                                try { session.Doc!.Save(working); }
+                                catch (Exception ex) when (ex is not OutOfMemoryException) { backupErrors.Add(ex.Message); }
                             window.ActiveViewer = pane;
                             try
                             {
                                 pane.WithSessionLive(session, () =>
                                 {
-                                    try { window.WriteRecoveryState(state, session, edit); }
-                                    catch (Exception ex) when (ex is not OutOfMemoryException) { backupErrors.Add(ex.Message); }
+                                    if (plain)
+                                        try { window.WriteRecoveryState(state, session, edit); }
+                                        catch (Exception ex) when (ex is not OutOfMemoryException) { backupErrors.Add(ex.Message); }
                                     string snapshot = pane.WriteRecoverySnapshot(edit, () => window.WriteSavedCopyToTemp());
-                                    File.Copy(snapshot, copy, overwrite: false);
+                                    RenderFailureRecovery.WriteCopy(snapshot, copy, route, session.Protection);
                                 });
                                 recovered.Add(new RecoveredDocument(session.OriginalFile, copy, session.SuggestedName,
-                                    session.LoadedRevision));
+                                    session.LoadedRevision, Protected: session.ProtectedSource));
                                 // The unedited working copy and state exist only for a failed copy; beside a
                                 // complete one they could be opened by mistake.
                                 foreach (string backup in new[] { working, state })
                                     try { File.Delete(backup); } catch (Exception ex) when (ex is not OutOfMemoryException) { }
+                            }
+                            catch (Exception ex) when (ex is not OutOfMemoryException && !plain)
+                            {
+                                CrashReporter.Capture(ex, "Recovery of a protected document");
+                                unrecovered.Add(session);
                             }
                             catch (Exception ex) when (ex is not OutOfMemoryException)
                             {
@@ -216,6 +228,35 @@ namespace KillerPDF.Shell
             timer.Start();
         }
 
+        // Protected copies whose open has not finished, by the path they open from.
+        private static readonly Dictionary<string, RecoveredDocument> ProtectedRecoveries =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        // The copy holds the edits; saving goes back to the file they were made to. A partial working
+        // copy must be reviewed and saved separately, and a protected original takes only a tab that
+        // still holds its protection, so nothing plain can land on it.
+        private void ReturnRecoveredTabHome(RecoveredDocument document)
+        {
+            bool hasHome = document.RecoveryError is null && document.OriginalPath is { Length: > 0 } original
+                && Directory.Exists(Path.GetDirectoryName(original))
+                && RenderFailureRecovery.MayReturnHome(document, _protection);
+            _originalFile = hasHome ? document.OriginalPath : null;
+            _suggestedName = hasHome ? null : document.SuggestedName ?? Path.GetFileName(document.RecoveredPath);
+            _loadedRevision = hasHome ? document.LoadedRevision : null;
+            _publishedFile = null;
+            FileNameLabel.Text = Path.GetFileName(document.OriginalPath ?? _suggestedName ?? document.RecoveredPath);
+            MarkDirty(true);
+            ActiveViewer.CaptureActiveIfAny();
+        }
+
+        // Called where a protected open finishes, so a recovered copy gets the tab state an open cannot give it.
+        private void CompleteProtectedRecovery(string openedPath)
+        {
+            if (!ProtectedRecoveries.Remove(openedPath, out RecoveredDocument? document)) return;
+            ReturnRecoveredTabHome(document);
+            RebuildTabStrip();
+        }
+
         /// <summary>Reopens documents recovered after a render failure as unsaved changes to their files.</summary>
         private void OpenRenderRecovery()
         {
@@ -244,23 +285,21 @@ namespace KillerPDF.Shell
                         if (document.RecoveryError is null) incomplete.Add(name);
                         continue;
                     }
+                    // A protected copy opens like any protected file, on a background thread or after
+                    // its password, so it finds its way home when that open finishes.
+                    if (document.Protected) ProtectedRecoveries[document.RecoveredPath] = document;
                     ActiveViewer.OpenInNewTabExt(document.RecoveredPath);
+                    if (document.Protected)
+                    {
+                        reopened++;
+                        continue;
+                    }
                     if (_doc is null || !string.Equals(_originalFile, document.RecoveredPath, StringComparison.OrdinalIgnoreCase))
                     {
                         if (document.RecoveryError is null) incomplete.Add(name);
                         continue;
                     }
-                    // The copy holds the edits; saving goes back to the file they were made to.
-                    // A partial working copy must be reviewed and saved separately.
-                    bool hasHome = document.RecoveryError is null && document.OriginalPath is { Length: > 0 } original
-                        && Directory.Exists(Path.GetDirectoryName(original));
-                    _originalFile = hasHome ? document.OriginalPath : null;
-                    _suggestedName = hasHome ? null : document.SuggestedName ?? Path.GetFileName(document.RecoveredPath);
-                    _loadedRevision = hasHome ? document.LoadedRevision : null;
-                    _publishedFile = null;
-                    FileNameLabel.Text = Path.GetFileName(document.OriginalPath ?? _suggestedName ?? document.RecoveredPath);
-                    MarkDirty(true);
-                    ActiveViewer.CaptureActiveIfAny();
+                    ReturnRecoveredTabHome(document);
                     reopened++;
                 }
                 catch (Exception ex) when (ex is not OutOfMemoryException)

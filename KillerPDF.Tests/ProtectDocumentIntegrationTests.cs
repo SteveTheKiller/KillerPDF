@@ -64,8 +64,8 @@ public sealed class ProtectDocumentIntegrationTests
             Assert.True(PdfEngineIntegration.IsCertificateEncrypted(output));
             Assert.False(PdfEngineIntegration.TryRemoveCertificateEncryption(output, opened, [denied], out _));
             Assert.False(File.Exists(opened) && new FileInfo(opened).Length > 0);
-            Assert.True(PdfEngineIntegration.TryRemoveCertificateEncryption(output, opened, [denied, allowed], out PdfAccess access));
-            Assert.True(access.MayModify);
+            Assert.True(PdfEngineIntegration.TryRemoveCertificateEncryption(output, opened, [denied, allowed], out OpenedProtection access));
+            Assert.True(access.Access.MayModify);
             PdfDocument decrypted = PdfDocument.Open(File.ReadAllBytes(opened));
             Assert.False(decrypted.IsEncrypted);
             Assert.Equal("recipient copy", new PdfPageContentReader(decrypted).Read(0).Text);
@@ -96,9 +96,9 @@ public sealed class ProtectDocumentIntegrationTests
                 new PdfCertificateEncryptionOptions { Recipients = [recipient], AllowDocumentModification = allowModification },
                 allowSignatureInvalidation: false);
 
-            Assert.True(PdfEngineIntegration.TryRemoveCertificateEncryption(output, opened, [recipient], out PdfAccess access));
+            Assert.True(PdfEngineIntegration.TryRemoveCertificateEncryption(output, opened, [recipient], out OpenedProtection access));
 
-            Assert.Equal(allowModification, access.MayModify);
+            Assert.Equal(allowModification, access.Access.MayModify);
             Assert.Equal("restricted recipient copy",
                 new PdfPageContentReader(PdfDocument.Open(File.ReadAllBytes(opened))).Read(0).Text);
         }

@@ -22,9 +22,6 @@ namespace KillerPDF.Services
 
         internal static bool IsPdfPath(string p) => p.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
 
-        /// <summary>Returns true if the PDF file is encrypted, by the engine's own reading of it.</summary>
-        internal static bool PdfFileHasEncryption(string path) => PdfRestrictions.HasEncryption(path);
-
         /// <param name="stripRotations">
         /// Pass true when called from SaveTempAndReload (rotations already stripped in source).
         /// Pass false for open-time repair so original page rotations are preserved.

@@ -8,7 +8,11 @@ namespace KillerPDF.Services
 {
     /// <summary>One document saved aside when the window could no longer draw.</summary>
     internal sealed record RecoveredDocument(string? OriginalPath, string RecoveredPath, string? SuggestedName,
-        FileRevision? LoadedRevision = null, string? RecoveryError = null, string? StatePath = null);
+        FileRevision? LoadedRevision = null, string? RecoveryError = null, string? StatePath = null,
+        bool Protected = false);
+
+    /// <summary>How an unsaved tab is written aside. A protected document never reaches the folder decrypted.</summary>
+    internal enum RecoveryRoute { Plain, UnderItsEncryption, NotWritten }
 
     /// <summary>
     /// WPF's render thread can fail for good (UCEERR_RENDERTHREADFAILURE, often after sleep, a
@@ -19,6 +23,24 @@ namespace KillerPDF.Services
     {
         internal const int RenderThreadFailureHResult = unchecked((int)0x88980406);
         internal const string RecoverySwitch = "--render-recovery";
+
+        /// <summary>Decides how a tab is written aside when the window fails.</summary>
+        internal static RecoveryRoute Route(bool readOnly, bool protectedSource, OpenedProtection protection) =>
+            readOnly ? RecoveryRoute.NotWritten
+            : !protectedSource ? RecoveryRoute.Plain
+            : protection.CanSeal ? RecoveryRoute.UnderItsEncryption : RecoveryRoute.NotWritten;
+
+        /// <summary>Writes a finished snapshot into the recovery folder by the tab's route.</summary>
+        internal static void WriteCopy(string snapshot, string copy, RecoveryRoute route, OpenedProtection protection)
+        {
+            if (route == RecoveryRoute.UnderItsEncryption) protection.Seal(snapshot, copy);
+            else File.Copy(snapshot, copy, overwrite: false);
+        }
+
+        /// <summary>Whether a recovered tab may save back over its original. A protected original takes
+        /// only a tab that still holds its protection, so nothing plain can land on it.</summary>
+        internal static bool MayReturnHome(RecoveredDocument document, OpenedProtection reopened) =>
+            !document.Protected || reopened.CanSeal;
 
         internal static bool IsRenderThreadFailure(Exception? exception)
         {

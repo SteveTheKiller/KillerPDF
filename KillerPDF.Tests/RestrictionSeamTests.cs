@@ -76,15 +76,20 @@ public sealed class RestrictionSeamTests : IDisposable
         }
     }
 
+    // R3-018: a password that opens nothing is refused even where no password would have opened it.
     [Fact]
-    public void AWrongPasswordFallsBackToTheEmptyUserPassword()
+    public void AWrongPasswordIsRefusedWhereAnEmptyPasswordWouldOpen()
     {
-        PdfAccess access = PdfRestrictions.Read(Protected("empty.pdf", low: true, high: false, modify: false, copy: false), "wrong");
+        string path = Protected("empty.pdf", low: true, high: false, modify: false, copy: false);
 
-        Assert.Equal(PdfAccessRole.User, access.Role);
-        Assert.False(access.MayModify);
-        Assert.False(access.MayCopy);
-        Assert.Equal(PrintAllowance.LowQualityOnly, access.Print);
+        PdfAccess wrong = PdfRestrictions.Read(path, "wrong");
+        PdfAccess none = PdfRestrictions.Read(path, null);
+
+        Assert.Equal(PdfAccessRole.Refused, wrong.Role);
+        Assert.Equal(PdfAccessRole.User, none.Role);
+        Assert.False(none.MayModify);
+        Assert.False(none.MayCopy);
+        Assert.Equal(PrintAllowance.LowQualityOnly, none.Print);
     }
 
     [Fact]
@@ -146,11 +151,10 @@ public sealed class RestrictionSeamTests : IDisposable
     {
         using X509Certificate2 certificate = Recipient();
         Assert.True(PdfEngineIntegration.TryRemoveCertificateEncryption(ForRecipient(certificate, false, false),
-            Path.Combine(_folder, "recipient.dec.pdf"), [certificate], out PdfAccess access));
-        Assert.Equal(PdfAccessRole.Recipient, access.Role);
-        Assert.Equal(PrintAllowance.Forbidden, access.Print);
+            Path.Combine(_folder, "recipient.dec.pdf"), [certificate], out OpenedProtection protection));
+        Assert.Equal(PdfAccessRole.Recipient, protection.Access.Role);
+        Assert.Equal(PrintAllowance.Forbidden, protection.Access.Print);
 
-        var protection = OpenedProtection.ForRecipient(access);
         int asked = 0;
         PrintAnswer answer = protection.AskToPrint(_ => { asked++; return Owner; });
 
@@ -164,49 +168,50 @@ public sealed class RestrictionSeamTests : IDisposable
     {
         using X509Certificate2 certificate = Recipient();
         Assert.True(PdfEngineIntegration.TryRemoveCertificateEncryption(ForRecipient(certificate, true, false),
-            Path.Combine(_folder, "recipient-low.dec.pdf"), [certificate], out PdfAccess access));
+            Path.Combine(_folder, "recipient-low.dec.pdf"), [certificate], out OpenedProtection protection));
 
         int asked = 0;
-        PrintAnswer answer = OpenedProtection.ForRecipient(access).AskToPrint(_ => { asked++; return Owner; });
+        PrintAnswer answer = protection.AskToPrint(_ => { asked++; return Owner; });
 
         Assert.True(answer.MayPrint);
         Assert.Equal(PrintPermission.LowQualityDpi, answer.Dpi);
         Assert.Equal(0, asked);
     }
 
-    // R2-006: saving writes the decrypted copy, so it asks for what the refusal says lifts the limit.
+    // Taking the protection off is what asks for the owner password, and the answer lasts for the tab.
     [Fact]
-    public void SavingAwayAPrintLimitTakesTheOwnerPassword()
+    public void RemovingAPrintLimitTakesTheOwnerPassword()
     {
         OpenedProtection protection = OpenedProtection.Capture(Protected("no-print.pdf", low: false, high: false), null);
 
-        Assert.False(protection.AskToSaveUnprotected(() => null));
-        Assert.False(protection.AskToSaveUnprotected(() => "wrong"));
-        Assert.True(protection.AskToSaveUnprotected(() => Owner));
+        Assert.Equal(ProtectionAnswer.Canceled, protection.AskToRemove(_ => null));
+        Assert.Equal(ProtectionAnswer.Allowed, protection.AskToRemove(_ => Owner));
         Assert.Equal(PrintPermission.FullDpi, protection.AskToPrint(_ => null).Dpi);
     }
 
     [Fact]
-    public void AnyDeclaredLimitAsksBeforeSavingAndNoLimitDoesNot()
+    public void AnyRealLimitAsksBeforeRemovingAndNoLimitDoesNot()
     {
         OpenedProtection limited = OpenedProtection.Capture(Protected("no-copy.pdf", copy: false), null);
-        var unlimited = OpenedProtection.Capture(Plain("plain-save.pdf"), null);
+        OpenedProtection unlimited = OpenedProtection.Capture(Protected("no-limit.pdf", user: "reader"), "reader");
+        var plain = OpenedProtection.Capture(Plain("plain-save.pdf"), null);
         int asked = 0;
 
-        Assert.False(limited.AskToSaveUnprotected(() => null));
-        Assert.True(unlimited.AskToSaveUnprotected(() => { asked++; return null; }));
+        Assert.Equal(ProtectionAnswer.Canceled, limited.AskToRemove(_ => null));
+        Assert.Equal(ProtectionAnswer.Allowed, unlimited.AskToRemove(_ => { asked++; return null; }));
+        Assert.Equal(ProtectionAnswer.Allowed, plain.AskToRemove(_ => { asked++; return null; }));
         Assert.Equal(0, asked);
     }
 
     [Fact]
-    public void ARecipientWithALimitCannotSaveItAway()
+    public void ARecipientWithALimitCannotTakeItOff()
     {
         using X509Certificate2 certificate = Recipient();
         Assert.True(PdfEngineIntegration.TryRemoveCertificateEncryption(ForRecipient(certificate, false, false),
-            Path.Combine(_folder, "recipient-save.dec.pdf"), [certificate], out PdfAccess access));
+            Path.Combine(_folder, "recipient-save.dec.pdf"), [certificate], out OpenedProtection protection));
         int asked = 0;
 
-        Assert.False(OpenedProtection.ForRecipient(access).AskToSaveUnprotected(() => { asked++; return Owner; }));
+        Assert.Equal(ProtectionAnswer.Refused, protection.AskToRemove(_ => { asked++; return Owner; }));
         Assert.Equal(0, asked);
     }
 

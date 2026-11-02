@@ -322,6 +322,33 @@ internal static partial class PdfEngineIntegration
             new PdfDocumentWriteOptions { RemoveEncryption = true, ForRestrictedViewing = true }));
     }
 
+    /// <summary>Writes a finished plain document under encryption held from the file it came from,
+    /// and proves the result opens under that encryption before anything is published from it.</summary>
+    internal static void WriteUnderEncryption(string plainPath, string destinationPath,
+        KillerPdf.Engine.Security.PdfEncryptionSnapshot encryption)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(plainPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        ArgumentNullException.ThrowIfNull(encryption);
+        PdfDocument plain = PdfDocument.OpenWithCompatibilityRecovery(File.ReadAllBytes(plainPath));
+        byte[] result = PdfDocumentEncryptionWriter.EncryptUnder(plain, encryption);
+        if (PdfPageInformation.Read(PdfDocument.OpenWithEncryption(result, encryption)).Count
+            != PdfPageInformation.Read(plain).Count)
+            throw new InvalidOperationException("The encrypted copy does not read back as the document.");
+        ReplaceWithBuiltResult(destinationPath, result);
+    }
+
+    /// <summary>Writes a decrypted viewing copy from bytes that open under held encryption.</summary>
+    internal static void WriteViewingCopy(string sourcePath, string destinationPath,
+        KillerPdf.Engine.Security.PdfEncryptionSnapshot encryption)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        PdfDocument document = PdfDocument.OpenWithEncryption(File.ReadAllBytes(sourcePath), encryption);
+        ReplaceWithBuiltResult(destinationPath, PdfDocumentWriter.Write(document,
+            new PdfDocumentWriteOptions { RemoveEncryption = true, ForRestrictedViewing = true }));
+    }
+
     /// <summary>Authenticates and fully rewrites a PDF without password encryption.</summary>
     internal static void RemoveEncryption(
         string sourcePath, string destinationPath, string password)

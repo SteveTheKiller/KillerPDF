@@ -961,12 +961,15 @@ internal static partial class PdfEngineIntegration
     }
 
     /// <summary>Applies a complete pending form-edit batch as one incremental revision.</summary>
-    internal static void ApplyFormValues(string path, FormEdits edits)
+    /// <returns>The fields that share a name with one that took the value and kept their own.</returns>
+    internal static IReadOnlyCollection<string> ApplyFormValues(string path, FormEdits edits)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(edits);
-        if (!HasFormValues(edits)) return;
-        ReplaceWithBuiltResult(path, BuildFormValues(PdfDocument.Open(File.ReadAllBytes(path)), edits));
+        if (!HasFormValues(edits)) return [];
+        byte[] built = BuildFormValues(PdfDocument.Open(File.ReadAllBytes(path)), edits, out IReadOnlyCollection<string> kept);
+        ReplaceWithBuiltResult(path, built);
+        return kept;
     }
 
     private static bool HasFormValues(FormEdits edits) =>
@@ -974,41 +977,22 @@ internal static partial class PdfEngineIntegration
         || edits.CheckBoxValues.Count != 0 || edits.RadioValues.Count != 0 || edits.TextFontSizes.Count != 0;
 
     /// <summary>
-    /// True for a PDF that opens without a password but whose author restricts editing while allowing
-    /// form filling, either directly or through the annotation permission, as Acrobat reads it.
-    /// </summary>
-    internal static bool CanFillRestrictedForm(string path)
-    {
-        try
-        {
-            PdfDocument document = OpenForReading(File.ReadAllBytes(path));
-            return document.IsDecrypted
-                && document.PasswordAuthenticationRole == KillerPdf.Engine.Security.PdfPasswordAuthenticationRole.User
-                && document.DeclaredPermissions is KillerPdf.Engine.Security.PdfDocumentPermissions permissions
-                && !permissions.AllowDocumentModification
-                && (permissions.AllowFormFilling || permissions.AllowAnnotationModification);
-        }
-        catch (Exception error) when (error is not OutOfMemoryException)
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
     /// Saves filled-in values into a restricted form as an incremental update of the encrypted file, so the
     /// result keeps its encryption and permissions. The engine refuses when the author forbids filling.
     /// </summary>
-    internal static void FillRestrictedForm(string sourcePath, string destinationPath, FormEdits edits)
+    internal static void FillRestrictedForm(string sourcePath, string destinationPath, FormEdits edits,
+        OpenedProtection? protection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         ArgumentNullException.ThrowIfNull(edits);
         byte[] source = File.ReadAllBytes(sourcePath);
-        byte[] filled = HasFormValues(edits) ? BuildFormValues(OpenForReading(source), edits) : source;
+        byte[] filled = HasFormValues(edits)
+            ? BuildFormValues(protection?.OpenHeld(source) ?? OpenForReading(source), edits, out _) : source;
         AtomicFileOutput.Write(destinationPath, filled);
     }
 
-    private static byte[] BuildFormValues(PdfDocument document, FormEdits edits)
+    private static byte[] BuildFormValues(PdfDocument document, FormEdits edits, out IReadOnlyCollection<string> kept)
     {
         var fonts = new Dictionary<string, TrueTypeFont>(StringComparer.OrdinalIgnoreCase);
         IReadOnlyList<PdfFormWidgetInfo> widgets =
@@ -1051,7 +1035,9 @@ internal static partial class PdfEngineIntegration
             editor.SetCheckBoxValue(name, value);
         foreach ((string name, string value) in edits.RadioValues.OrderBy(item => item.Key))
             editor.SetRadioButtonValue(name, value.TrimStart('/'));
-        return editor.Build();
+        byte[] built = editor.Build();
+        kept = editor.FieldsThatKeptTheirValue;
+        return built;
     }
 
     private static PdfDocument AttachUnlistedFormFields(
@@ -1179,9 +1165,9 @@ internal static partial class PdfEngineIntegration
     /// </summary>
     internal static bool TryRemoveCertificateEncryption(string sourcePath, string destinationPath,
         IEnumerable<System.Security.Cryptography.X509Certificates.X509Certificate2> certificates,
-        out PdfAccess recipient)
+        out OpenedProtection recipient)
     {
-        recipient = PdfAccess.Refused(PdfAccess.UnreadablePermissions);
+        recipient = OpenedProtection.ForRecipient(PdfAccess.Refused(PdfAccess.UnreadablePermissions));
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         ArgumentNullException.ThrowIfNull(certificates);
@@ -1198,7 +1184,8 @@ internal static partial class PdfEngineIntegration
             }
             // The working copy is decrypted so it can be shown; the recipient's sealed permissions decide
             // what the app then lets it do, and they stay with the tab because no file read gives them back.
-            recipient = PdfAccess.Declared(PdfAccessRole.Recipient, document.DeclaredPermissions);
+            recipient = OpenedProtection.ForRecipient(
+                PdfAccess.Declared(PdfAccessRole.Recipient, document.DeclaredPermissions), document.CaptureEncryption());
             ReplaceWithBuiltResult(destinationPath, PdfDocumentWriter.Write(document,
                 new PdfDocumentWriteOptions { RemoveEncryption = true }));
             return true;

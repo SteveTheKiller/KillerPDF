@@ -19,11 +19,34 @@ internal enum PdfAccessRole
     Refused
 }
 
+/// <summary>What a command writes out of a protected PDF, which decides the permission it answers to.</summary>
+internal enum PdfOutput
+{
+    /// <summary>A new PDF or page images, which could be printed freely.</summary>
+    Printable,
+    /// <summary>Text, JSON, a table, form data or an attachment: content copied out of the file.</summary>
+    Data
+}
+
+/// <summary>What a look at a file's bytes found. Unreadable is its own answer, not a kind of encrypted.</summary>
+internal enum PdfEncryptionState { Plain, Encrypted, Unreadable }
+
 /// <summary>What a reader may do with a PDF: the role it authenticated as and the print, copy and
 /// modify permissions the file declares for that role.</summary>
 internal sealed record PdfAccess(PdfAccessRole Role, PrintAllowance Print, bool MayCopy, bool MayModify,
     bool DeclaresLimits, string? Refusal = null)
 {
+    /// <summary>Whether this reader may write an output that cannot keep the file's encryption. An
+    /// edit-forbidden file gives up nothing. Pages of a copy-forbidden file stay in it, as the engine's
+    /// page import says, and a print limit stops anything that could be printed freely. Text and
+    /// data answer to the copy bit alone. Reading on screen, the clipboard and screen readers are
+    /// not outputs, so nothing here stops them.</summary>
+    internal bool Allows(PdfOutput output) => MayModify && MayCopy
+        && (output == PdfOutput.Data || Print == PrintAllowance.Allowed);
+
+    /// <summary>Whether this reader may take the encryption off. Only a limit makes that the owner's call.</summary>
+    internal bool MayRemoveProtection => Role != PdfAccessRole.Refused && !DeclaresLimits;
+
     internal static readonly PdfAccess Unrestricted =
         new(PdfAccessRole.Unencrypted, PrintAllowance.Allowed, true, true, false);
     internal static readonly PdfAccess FullOwner =
@@ -37,11 +60,7 @@ internal sealed record PdfAccess(PdfAccessRole Role, PrintAllowance Print, bool 
     {
         if (permissions is null) return Refused(UnreadablePermissions);
         return new PdfAccess(role, PrintPermission.Of(permissions),
-            permissions.AllowContentCopying, permissions.AllowDocumentModification,
-            !(permissions.AllowLowQualityPrinting && permissions.AllowHighQualityPrinting
-                && permissions.AllowContentCopying && permissions.AllowDocumentModification
-                && permissions.AllowAnnotationModification && permissions.AllowFormFilling
-                && permissions.AllowAccessibilityExtraction && permissions.AllowDocumentAssembly));
+            permissions.AllowContentCopying, permissions.AllowDocumentModification, permissions.DeclaresLimits);
     }
 
     internal const string UnreadablePermissions = "The permissions of this PDF could not be read, so it is refused.";
@@ -53,63 +72,90 @@ internal sealed record PdfAccess(PdfAccessRole Role, PrintAllowance Print, bool 
 internal static class PdfRestrictions
 {
     internal const string LockedMessage = "File is encrypted and could not be unlocked - pass --password if it needs one.";
+    internal const string WrongPasswordMessage = "The password does not open this PDF.";
 
-    internal static PdfAccess Read(string path, string? password)
-    {
-        byte[] source;
-        try { source = File.ReadAllBytes(path); }
-        catch (Exception error) when (error is not OutOfMemoryException) { return PdfAccess.Refused(error.Message); }
-        return Open(source, password, out _);
-    }
+    internal static PdfAccess Read(string path, string? password) => Read(path, password, out _);
 
     internal static PdfAccess Read(ReadOnlyMemory<byte> source, string? password) => Open(source, password, out _);
 
-    /// <summary>Authenticates with the given password, falling back to the empty user password, and
-    /// hands back the document that authenticated so its content can be read as that role.</summary>
+    /// <summary>Reads the file once and hands back what a save needs to keep its encryption.</summary>
+    internal static PdfAccess Read(string path, string? password, out PdfEncryptionSnapshot? encryption)
+    {
+        encryption = null;
+        PdfDocument parsed;
+        try
+        {
+            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            parsed = PdfDocument.OpenWithCompatibilityRecovery(file);
+        }
+        catch (Exception error) when (error is not OutOfMemoryException) { return PdfAccess.Refused(error.Message); }
+        PdfAccess access = Authenticate(parsed, password, out PdfDocument? document);
+        encryption = document?.CaptureEncryption();
+        return access;
+    }
+
+    /// <summary>Authenticates with the given password, or the empty user password when none was given,
+    /// and hands back the document that authenticated so its content can be read as that role.</summary>
     internal static PdfAccess Open(ReadOnlyMemory<byte> source, string? password, out PdfDocument? document)
     {
         document = null;
-        try
+        PdfDocument parsed;
+        try { parsed = PdfDocument.OpenWithCompatibilityRecovery(source); }
+        catch (Exception error) when (error is not OutOfMemoryException) { return PdfAccess.Refused(error.Message); }
+        return Authenticate(parsed, password, out document);
+    }
+
+    // One parse serves the check and the read after it. A password that was given and opens nothing
+    // is refused, even on a file an empty password would open.
+    private static PdfAccess Authenticate(PdfDocument parsed, string? password, out PdfDocument? document)
+    {
+        document = null;
+        if (!parsed.IsEncrypted)
         {
-            PdfDocument plain = PdfDocument.OpenWithCompatibilityRecovery(source);
-            if (!plain.IsEncrypted)
-            {
-                document = plain;
-                return PdfAccess.Unrestricted;
-            }
+            document = parsed;
+            return PdfAccess.Unrestricted;
         }
+        try { parsed.Authenticate(password ?? string.Empty); }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
-            return PdfAccess.Refused(error.Message);
+            return PdfAccess.Refused(string.IsNullOrEmpty(password) ? LockedMessage : WrongPasswordMessage);
         }
-        document = (string.IsNullOrEmpty(password) ? null : Authenticate(source, password))
-            ?? Authenticate(source, string.Empty);
-        return document?.PasswordAuthenticationRole switch
+        document = parsed;
+        return parsed.PasswordAuthenticationRole switch
         {
             PdfPasswordAuthenticationRole.Owner => PdfAccess.FullOwner,
-            PdfPasswordAuthenticationRole.User => PdfAccess.Declared(PdfAccessRole.User, document.DeclaredPermissions),
+            PdfPasswordAuthenticationRole.User => PdfAccess.Declared(PdfAccessRole.User, parsed.DeclaredPermissions),
             _ => PdfAccess.Refused(LockedMessage)
         };
     }
 
-    private static PdfDocument? Authenticate(ReadOnlyMemory<byte> source, string password)
+    /// <summary>Whether a file is encrypted, plain, or could not be read to say. The bytes are scanned a
+    /// piece at a time for the name wherever it sits, which also finds what a look at the end of the file
+    /// would miss: a linearized file and a large cross-reference stream both keep it far from the end.
+    /// Only a file that names encryption is parsed, because a plain one can hold that name as text.</summary>
+    internal static PdfEncryptionState ReadEncryptionState(string path)
     {
-        try { return PdfDocument.OpenWithCompatibilityRecovery(source, password); }
-        catch (Exception error) when (error is not OutOfMemoryException) { return null; }
-    }
-
-    /// <summary>The engine's own answer to whether a file is encrypted, wherever its /Encrypt entry sits:
-    /// a linearized file and a large cross-reference stream both keep it far from the end. A file the
-    /// engine cannot parse answers from its bytes, and one that cannot be read at all is not called plain.</summary>
-    internal static bool HasEncryption(string path)
-    {
-        byte[] source;
-        try { source = File.ReadAllBytes(path); }
-        catch (Exception error) when (error is not OutOfMemoryException) { return true; }
-        try { return PdfDocument.OpenWithCompatibilityRecovery(source).IsEncrypted; }
-        catch (Exception error) when (error is not OutOfMemoryException)
+        try
         {
-            return PdfSecurityIndicators.NamesEncryption(source);
+            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (!PdfSecurityIndicators.NamesEncryption(file)) return PdfEncryptionState.Plain;
+            file.Position = 0;
+            try
+            {
+                return PdfDocument.OpenWithCompatibilityRecovery(file).IsEncrypted
+                    ? PdfEncryptionState.Encrypted : PdfEncryptionState.Plain;
+            }
+            catch (Exception error) when (error is not (OutOfMemoryException or IOException or UnauthorizedAccessException))
+            {
+                return PdfEncryptionState.Encrypted;
+            }
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return PdfEncryptionState.Unreadable;
         }
     }
+
+    /// <summary>True for an encrypted file, and for one that cannot be read, which is not called plain.</summary>
+    internal static bool HasEncryption(string path) => ReadEncryptionState(path) != PdfEncryptionState.Plain;
 }

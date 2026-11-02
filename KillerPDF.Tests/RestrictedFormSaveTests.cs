@@ -48,7 +48,7 @@ public sealed class RestrictedFormSaveTests
 
         string open = Method("TryOpenProtectedReadOnly");
         int finish = open.IndexOf("FinishOpenFile(", StringComparison.Ordinal);
-        int cache = open.IndexOf("_restrictedFormFillable = PdfEngineIntegration.CanFillRestrictedForm(", StringComparison.Ordinal);
+        int cache = open.IndexOf("_restrictedFormFillable = _protection.AllowsRestrictedFill;", StringComparison.Ordinal);
         Assert.True(finish >= 0 && cache > finish, "The protected read-only open does not cache the fill permission after FinishOpenFile.");
 
         Assert.Contains("_restrictedFormFillable = false;", Method("FinishOpenFile"));
@@ -56,8 +56,8 @@ public sealed class RestrictedFormSaveTests
 
     private static string RestrictedSaveBranch()
     {
-        string save = Method("SaveInPlace", "(bool otherPaneConfirmed)");
-        Match branch = Regex.Match(save, @"if \(CanSaveRestrictedFormFill\(\)[^\n]*\n\s*\{(?<body>.*?)\n            \}", RegexOptions.Singleline);
+        string save = Method("SaveInPlace", "(bool otherPaneConfirmed, bool removeProtection = false)");
+        Match branch = Regex.Match(save, @"if \(!removeProtection && CanSaveRestrictedFormFill\(\)[^\n]*\n\s*\{(?<body>.*?)\n            \}", RegexOptions.Singleline);
         Assert.True(branch.Success, "The restricted-form branch of SaveInPlace was not found.");
         return branch.Groups["body"].Value;
     }
