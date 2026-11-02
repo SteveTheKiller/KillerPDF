@@ -42,3 +42,42 @@ Use a leased UI VM with an existing Microsoft Print to PDF queue and a test-owne
 payload. The preparation cases request close through the actual preview and reject
 later progress. The native cancellation case requires the operator to cancel the virtual
 printer's output picker. These checks do not print to physical hardware.
+
+## Reusing a signed release dry run
+
+Commit the release inputs first. Keep SimplySign connected and run a full signed dry run:
+
+```powershell
+.\release.ps1 -DryRun -SkipStoreSubmission
+```
+
+A completed full dry run writes `bin/Release/net10.0-windows/publish/release-validation.json`
+and retains the engine and desktop TRX files beside it. A dry run started with an older
+script has no reusable record. An unsigned dry run cannot authorize reuse.
+
+After a successful dry run, keep the source commit and all outputs unchanged, synchronize
+that commit with origin/main, and publish with:
+
+```powershell
+.\release.ps1 -ReuseDryRun -SkipStoreSubmission
+```
+
+`ReuseDryRun` implies `PublishOnly`. It skips building, signing, startup/install smoke tests
+and both unit suites only after checking the recorded source commit, version and exact
+package, source archive, checksum and TRX hashes. Empty, skipped, failing or interrupted
+validation is refused. Current dependency audits, package versions, outer/embedded
+signatures, checksums, clean-tree and remote-state gates still run. The engine site facts
+use the retained engine results. A second identity check runs before publishing.
+
+`SkipStoreSubmission` skips both Store API preflight and submission. The Store installer
+is still built, verified and attached to the GitHub release for a later Store submission.
+Without this option, both Store steps retain their normal behavior. `PublishOnly` alone
+continues to run tests. Starting another non-reuse release attempt invalidates the earlier
+record until a new full dry run succeeds.
+
+Offline regression checks use fresh scratch directories and never publish:
+
+```powershell
+powershell -NoProfile -File build/Test-ReleaseDryRun.ps1 -EvidenceRoot C:/Users/steve/scratch/kp-release-receipt-test
+pwsh -NoProfile -File build/Test-ReleaseOptions.ps1 -EvidenceRoot C:/Users/steve/scratch/kp-release-options-test
+```

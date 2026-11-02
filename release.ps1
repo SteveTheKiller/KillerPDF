@@ -24,12 +24,21 @@
 .PARAMETER SkipSign
     Skip signing for local test builds. Prints a red warning banner.
 
+.PARAMETER ReuseDryRun
+    Reuse a successful signed full dry run for the same source commit and exact artifacts.
+    Implies PublishOnly. Keeps current audits, signatures, checksums and remote-state checks.
+
+.PARAMETER SkipStoreSubmission
+    Skip Store API preflight and submission. Still build, verify and upload the Store installer.
+
 .EXAMPLE
     .\release.ps1 -CertThumbprint "AABBCC..."
 .EXAMPLE
     .\release.ps1 -CertName "Open Source Developer, Stephen Riley"
 .EXAMPLE
-    .\release.ps1 -SkipSign
+    .\release.ps1 -DryRun -SkipStoreSubmission
+.EXAMPLE
+    .\release.ps1 -ReuseDryRun -SkipStoreSubmission
 #>
 param(
     [string]$CertThumbprint = "",
@@ -39,7 +48,9 @@ param(
     [switch]$DryRun,
     # Skip build + sign and publish the artifacts already in the publish folder
     # (use after a completed normal run, so the signed exe is not rebuilt).
-    [switch]$PublishOnly
+    [switch]$PublishOnly,
+    [switch]$ReuseDryRun,
+    [switch]$SkipStoreSubmission
 )
 
 $ErrorActionPreference = 'Stop'
@@ -48,6 +59,8 @@ Set-StrictMode -Version Latest
 if ($SkipSign -and -not $DryRun) {
     throw "-SkipSign is only allowed with -DryRun. Unsigned artifacts cannot be published."
 }
+if ($ReuseDryRun -and $SkipSign) { throw '-ReuseDryRun requires signed artifacts; do not combine it with -SkipSign.' }
+if ($ReuseDryRun) { $PublishOnly = $true }
 
 $proj         = Join-Path $PSScriptRoot "KillerPDF.csproj"
 $publishDir   = Join-Path $PSScriptRoot "bin\Release\net10.0-windows\publish"
@@ -59,6 +72,7 @@ $packageBuild  = Join-Path $PSScriptRoot "build\build-packages.ps1"
 $portablePayloadDir  = Join-Path $PSScriptRoot "bin\Release\net10.0-windows\portable-package\payload"
 $installerPayloadDir = Join-Path $PSScriptRoot "bin\Release\net10.0-windows\installer-package\payload"
 . (Join-Path $PSScriptRoot 'build\payload-security.ps1')
+. (Join-Path $PSScriptRoot 'build\release-validation.ps1')
 
 # TSA endpoints - tried in order; first success wins.
 $tsaList = @(
@@ -117,7 +131,8 @@ function Test-ReleaseArtifacts(
     [string]$PortablePath,
     [string]$StorePath,
     [string]$ExpectedVersion,
-    [bool]$RequireValidSignature
+    [bool]$RequireValidSignature,
+    [bool]$SkipStartupChecks = $false
 ) {
     Write-Host "`n==> Testing final release artifacts..." -ForegroundColor Cyan
     foreach ($artifact in @($InstallerPath, $PortablePath, $StorePath)) {
@@ -131,6 +146,10 @@ function Test-ReleaseArtifacts(
         }
     }
 
+    if ($SkipStartupChecks) {
+        Write-Host '    Startup/installer checks reused from the matching signed dry run.' -ForegroundColor Green
+        return
+    }
     & (Join-Path $PSScriptRoot 'build\Test-GuiStartup.ps1') -ExePath $PortablePath
 
     $installRoot = Join-Path $env:TEMP ('KillerPDF-release-install-' + [Guid]::NewGuid().ToString('N'))
@@ -238,6 +257,18 @@ try {
     }
 } finally {
     Pop-Location
+}
+
+$releaseValidationHead = $localHead.Trim()
+$validationDirectory = Join-Path $publishDir 'release-validation'
+$engineTrxPath = Join-Path $validationDirectory 'engine.trx'
+$desktopTrxPath = Join-Path $validationDirectory 'desktop.trx'
+if ($ReuseDryRun) {
+    $null = Read-ReleaseDryRun -PublishDirectory $publishDir -Version $Version -SourceCommit $releaseValidationHead
+    Write-Host '    Reusing successful dry-run tests for these exact source and artifact bytes.' -ForegroundColor Green
+} else {
+    # Invalidate earlier success before any new run can rebuild artifacts or rerun tests.
+    Reset-ReleaseDryRun -PublishDirectory $publishDir
 }
 
 # Nothing outside this checkout changes until every check has passed: the WinGet fork sync and
@@ -489,7 +520,7 @@ Assert-ReleaseArtifactVersion $storeExe "$releaseBuildVersion.0"
 # 4. SHA256 (final EXEs)
 $expectedAssemblyVersion = "$Version.0"
 Test-ReleaseArtifacts -InstallerPath $installerExe -PortablePath $portableExe -StorePath $storeExe `
-    -ExpectedVersion $expectedAssemblyVersion -RequireValidSignature (-not $SkipSign)
+    -ExpectedVersion $expectedAssemblyVersion -RequireValidSignature (-not $SkipSign) -SkipStartupChecks ([bool]$ReuseDryRun)
 
 Write-Host "`n==> Computing final EXE SHA256 values..." -ForegroundColor Cyan
 $portableHash  = (Get-FileHash $portableExe -Algorithm SHA256).Hash
@@ -639,10 +670,12 @@ try {
         $indexNew = $indexNew -replace $field.Pattern, ('${1}' + $field.Value)
     }
 
-    $engineTrxDir = Join-Path $env:TEMP ('killerpdf-engine-facts-' + [Guid]::NewGuid().ToString('N'))
-    dotnet test (Join-Path $PSScriptRoot 'engine\KillerPdf.Engine.Tests\KillerPdf.Engine.Tests.csproj') -c Release --nologo -v quiet --logger 'trx;LogFileName=engine.trx' --results-directory $engineTrxDir
-    if ($LASTEXITCODE -ne 0) { throw 'Engine unit tests failed - fix them before releasing' }
-    & (Join-Path $PSScriptRoot 'build/Update-EngineSiteFacts.ps1') -TrxPath (Join-Path $engineTrxDir 'engine.trx') -DryRun:$DryRun
+    if (-not $ReuseDryRun) {
+        dotnet test (Join-Path $PSScriptRoot 'engine\KillerPdf.Engine.Tests\KillerPdf.Engine.Tests.csproj') -c Release --nologo -v quiet --logger 'trx;LogFileName=engine.trx' --results-directory $validationDirectory
+        if ($LASTEXITCODE -ne 0) { throw 'Engine unit tests failed - fix them before releasing' }
+        Assert-ReleaseTestResult $engineTrxPath 'KillerPdf.Engine.Tests.dll'
+    }
+    & (Join-Path $PSScriptRoot 'build/Update-EngineSiteFacts.ps1') -TrxPath $engineTrxPath -DryRun:$DryRun
 
     if ($DryRun) {
         Write-Host "    DryRun: would write these release facts to pdf-landing and commit:" -ForegroundColor Yellow
@@ -722,10 +755,13 @@ try {
     if (git ls-remote --tags origin $Tag) { throw "Tag $Tag already exists on origin" }
 
     # A red test cannot ship. Same gate as the date checks above - fail the release, not a reminder.
-    Write-Host "    Running desktop unit tests..."
-    dotnet test (Join-Path $PSScriptRoot 'KillerPDF.Tests\KillerPDF.Tests.csproj') -c Release --nologo -v quiet
-    if ($LASTEXITCODE -ne 0) { throw "Desktop unit tests failed - fix them before releasing" }
-    Write-Host "    Desktop unit tests passed" -ForegroundColor Green
+    if (-not $ReuseDryRun) {
+        Write-Host "    Running desktop unit tests..."
+        dotnet test (Join-Path $PSScriptRoot 'KillerPDF.Tests\KillerPDF.Tests.csproj') -c Release --nologo -v quiet --logger 'trx;LogFileName=desktop.trx' --results-directory $validationDirectory
+        if ($LASTEXITCODE -ne 0) { throw "Desktop unit tests failed - fix them before releasing" }
+        Assert-ReleaseTestResult $desktopTrxPath 'KillerPDF.Tests.dll'
+        Write-Host "    Desktop unit tests passed" -ForegroundColor Green
+    }
 
     Write-Host "    Preflight OK" -ForegroundColor Green
 
@@ -734,7 +770,8 @@ try {
     # is in progress now, so a problem stops the release before anything is published.
     $storeScript = Join-Path $PSScriptRoot 'store\Submit-StoreRelease.ps1'
     $storeArgs = @{ ProductId = 'XPDCHHP2XLG338'; PackageUrl = "https://killerpdf.net/store/$Version/KillerPDF-Store.exe" }
-    & $storeScript @storeArgs -PreflightOnly
+    if (-not $SkipStoreSubmission) { & $storeScript @storeArgs -PreflightOnly }
+    else { Write-Host '    Microsoft Store preflight and submission skipped.' -ForegroundColor Yellow }
 
     # 9. Release notes from the CHANGELOG section
     Write-Host "`n==> Extracting release notes from CHANGELOG.md..." -ForegroundColor Cyan
@@ -752,6 +789,13 @@ try {
     Write-Host "    Notes written to $notesFile ($($notes.Count) lines)"
 
     if ($DryRun) {
+        if (-not $PublishOnly) {
+            if ($releaseValidationHead -ne (git rev-parse HEAD).Trim() -or (git status --porcelain)) {
+                throw 'Source changed during the dry run. Commit changes and run a full signed -DryRun again.'
+            }
+            Save-ReleaseDryRun -PublishDirectory $publishDir -Version $Version -SourceCommit $releaseValidationHead -Signed (-not $SkipSign)
+            Write-Host "    Dry-run validation record: $(Join-Path $publishDir 'release-validation.json')"
+        }
         Write-Host "`n==> DryRun: stopping before tag and release." -ForegroundColor Yellow
         Write-Host "    Would tag $Tag, push it, and publish Setup, Portable, the Microsoft Store installer, the source archive, and SHA256SUMS.txt."
         exit 0
@@ -759,6 +803,10 @@ try {
 
     # 10. Publish. Every check above has passed; this is the first change outside this checkout.
     # Each step says what is already public if it fails, so the release can be finished by hand.
+    if ($ReuseDryRun) {
+        # A concurrent build must not replace the tested bytes during publish preparation.
+        $null = Read-ReleaseDryRun -PublishDirectory $publishDir -Version $Version -SourceCommit $releaseBase
+    }
     Write-Host "`n==> Checking WinGet fork synchronization..." -ForegroundColor Cyan
     gh api --method POST repos/SteveTheKiller/winget-pkgs/merge-upstream -f branch=master
     if ($LASTEXITCODE -ne 0) {
@@ -790,13 +838,15 @@ try {
         Write-Warning "The release is published, but thekiller.net refresh could not be started. Run: gh workflow run deploy.yml --repo SteveTheKiller/thekiller-site"
     }
 
-    Write-Host "`n==> Submitting $Tag to the Microsoft Store..." -ForegroundColor Cyan
-    # The GitHub release is already published, so a Store failure is reported with the exact retry
-    # command rather than failing the release.
-    try { & $storeScript @storeArgs }
-    catch {
-        Write-Warning "The Microsoft Store submission did not finish: $($_.Exception.Message)"
-        Write-Warning "Retry only the Store step with: & '$storeScript' -ProductId $($storeArgs.ProductId) -PackageUrl $($storeArgs.PackageUrl)"
+    if (-not $SkipStoreSubmission) {
+        Write-Host "`n==> Submitting $Tag to the Microsoft Store..." -ForegroundColor Cyan
+        # The GitHub release is already published, so a Store failure is reported with the exact retry
+        # command rather than failing the release.
+        try { & $storeScript @storeArgs }
+        catch {
+            Write-Warning "The Microsoft Store submission did not finish: $($_.Exception.Message)"
+            Write-Warning "Retry only the Store step with: & '$storeScript' -ProductId $($storeArgs.ProductId) -PackageUrl $($storeArgs.PackageUrl)"
+        }
     }
 
     Write-Host "`n==> Release $Tag published:" -ForegroundColor Green

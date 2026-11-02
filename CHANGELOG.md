@@ -43,6 +43,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Export Pages as Images shows the size the file really comes out at, has a Cancel button, and when canceled stops at the next page and says how many pages it saved.
 - Save Flattened shows its progress from the first page and has a Cancel button that stops it promptly.
 - Reopening PDFs preserves zoom across view modes, and queued fit and zoom commands use the final layout while pages load or switch layouts.
+- Releases can reuse a matching successful signed dry run and skip Microsoft Store submission while a previous version is under review.
 - The paragraph dialog keeps every field reachable at a high app scale.
 - At a large app size the sidebar rail's icons shrink to fit below its arrow instead of running over it, and the read-only notice, message boxes and prompts are drawn at the app's size, including the password prompts, the save prompt on close and the quit prompt.
 - Comment export and import preserve PDF dates with time zone offsets.

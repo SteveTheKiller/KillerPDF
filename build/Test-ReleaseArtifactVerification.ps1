@@ -99,6 +99,7 @@ $portableExe = Join-Path $fixtureRoot 'KillerPDF-Portable.exe'
 $storeExe = Join-Path $fixtureRoot 'KillerPDF-Store.exe'
 $expectedAssemblyVersion = '1.9.0.0'
 $SkipSign = $false
+$ReuseDryRun = $false
 if ($Mode.StartsWith('checksum-', [StringComparison]::Ordinal)) {
     $publishDir = $fixtureRoot
     $srcPath = Join-Path $fixtureRoot 'KillerPDF-1.9.0-src.zip'

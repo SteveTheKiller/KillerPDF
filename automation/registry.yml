@@ -1,5 +1,26 @@
 version: 1
 scripts:
+  release_validation:
+    path: build/release-validation.ps1
+    purpose: Record full signed dry-run validation and reject stale or incomplete release reuse.
+    inputs: Clean source commit, version, exact packages, source archive, checksums and engine/desktop TRX files.
+    outputs: Atomic release-validation.json in the publish directory.
+    failure_behavior: Throw on changed bytes, source/version mismatch, missing files or incomplete test results.
+    mutates: build-output-only
+  release_dry_run_tests:
+    path: build/Test-ReleaseDryRun.ps1
+    purpose: Exercise signed dry-run reuse and stale, failed, unsigned and interrupted result rejection offline.
+    inputs: Fresh EvidenceRoot outside the repository.
+    outputs: Synthetic files and behavioral assertions.
+    failure_behavior: Throw on an incorrect reuse or rejection.
+    mutates: temporary-fixture-files-only
+  release_options_tests:
+    path: build/Test-ReleaseOptions.ps1
+    purpose: Execute release reuse and Store-skip flow against synthetic packages and modeled external boundaries.
+    inputs: Fresh EvidenceRoot and optional RequireStore default-preflight control.
+    outputs: Synthetic fixture and external-boundary event log; no live publishing or Store calls.
+    failure_behavior: Throw if tests rerun, required validation disappears, Store skip fails or default Store preflight is bypassed.
+    mutates: temporary-fixture-files-only
   release_store_listing_tests:
     path: build/Test-ReleaseStoreListing.ps1
     purpose: Exercise the stale-renderer listing guard without release or Store actions.
