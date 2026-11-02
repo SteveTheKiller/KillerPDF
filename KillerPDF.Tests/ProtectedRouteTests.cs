@@ -262,7 +262,10 @@ public sealed class ProtectedRouteTests : IDisposable
         string reduce = File.ReadAllText(Path.Combine(root, "Shell", "ReduceSize.cs"));
 
         // Print readies its own copy; the old call would refuse the form the viewer shows.
-        Assert.Contains("PdfEngineIntegration.PrepareThrowawayCopy(printPath);", print);
+        string printCopy = File.ReadAllText(Path.Combine(root, "Services", "PrintCopy.cs"));
+        Assert.Contains("PrintCopy.Ready(printPath,", print);
+        Assert.Contains("PdfEngineIntegration.PrepareThrowawayCopy(path);", printCopy);
+        Assert.DoesNotContain("RepairHarmlessSaveArtifacts(", printCopy);
         Assert.DoesNotContain("RepairHarmlessSaveArtifacts(printPath)", print);
 
         // Only extraction, OCR and raster exports request disposable copies.

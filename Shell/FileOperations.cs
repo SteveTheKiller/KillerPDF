@@ -2321,23 +2321,19 @@ namespace KillerPDF.Shell
 
                 // Capture every live editor value before yielding. The worker finishes an owned
                 // saved copy using the same persistence components as Save and Save Flattened.
-                _doc.Save(tempClean);
+                PrintCopy.Write(_doc, tempClean);
                 WriteRedactionMarksToDocument(tempClean);
                 WriteMeasurementsToDocument(tempClean);
+                Action<string>? burn = annotsSnap.Values.Any(list => list.Count > 0) || stampSnap is not null
+                    ? path => PdfEngineBurn.Burn(path, annotsSnap, dimsSnap, stampSnap, null,
+                        visualRotations, forRasterization: true, measurementsAsAnnotations: true)
+                    : null;
                 await Task.Run(() =>
                 {
                     System.IO.File.Copy(tempClean, printPath, true);
                     // The print copy is deleted afterward, so a damaged signed or usage-rights file is readied
                     // for it instead of refused. The copy still holds its rights until they are cleared next.
-                    PdfEngineIntegration.PrepareThrowawayCopy(printPath);
-                    PdfEngineIntegration.ClearInvalidatedSignatures(printPath);
-                    PdfEngineIntegration.StripLinkAppearances(printPath);
-                    if (annotsSnap.Values.Any(list => list.Count > 0) || stampSnap is not null)
-                        PdfEngineBurn.Burn(printPath, annotsSnap, dimsSnap, stampSnap, null,
-                            visualRotations, forRasterization: true, measurementsAsAnnotations: true);
-                    PdfEngineIntegration.StripLinkAppearances(printPath);
-                    PdfEngineIntegration.ApplyFormValues(printPath, formSnap);
-                    PdfEngineIntegration.ApplyPageRotations(printPath, finalRotations);
+                    PrintCopy.Ready(printPath, burn, formSnap, finalRotations);
                 });
             }
             catch (Exception ex)
