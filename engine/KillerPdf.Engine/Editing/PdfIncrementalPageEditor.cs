@@ -2630,8 +2630,9 @@ public sealed class PdfIncrementalPageEditor
                 if (!resultingNames.TryAdd(resultingQualifiedName, (qualifiedName, hierarchyParent)))
                 {
                     var previous = resultingNames[resultingQualifiedName];
-                    // A name the file already repeats is not this edit's doing; only a rename is refused.
-                    if (qualifiedName != resultingQualifiedName || previous.Original != resultingQualifiedName)
+                    // A name the file already repeats is not this edit's doing, even when a rename moves
+                    // every copy together; only a rename onto another field's name is refused.
+                    if (previous.Original != qualifiedName)
                         throw new InvalidOperationException(
                             $"Renaming the AcroForm field '{qualifiedName}' would create the duplicate name '{resultingQualifiedName}'.");
                 }
@@ -2757,18 +2758,15 @@ public sealed class PdfIncrementalPageEditor
                 && _resetFieldValues.TryGetValue(
                     qualifiedName, out TrueTypeFont? resetFont))
             {
-                if (!matched.Add(qualifiedName))
-                    throw new InvalidOperationException(
-                        $"The AcroForm contains more than one field named '{qualifiedName}'.");
+                // A name the file repeats is one field to the caller, so every copy takes the value.
+                matched.Add(qualifiedName);
                 ResetField(update, reference, editedField, form, fieldType,
                     qualifiedName, resetFont);
             }
             else if (hasPartialName && qualifiedName is not null
                 && _checkBoxValues.TryGetValue(qualifiedName, out bool checkedValue))
             {
-                if (!matched.Add(qualifiedName))
-                    throw new InvalidOperationException(
-                        $"The AcroForm contains more than one field named '{qualifiedName}'.");
+                matched.Add(qualifiedName);
                 if (fieldType is null || !fieldType.Equals(ButtonFieldName))
                     throw new InvalidOperationException(
                         $"The AcroForm field '{qualifiedName}' is not a checkbox button field.");
@@ -2779,9 +2777,7 @@ public sealed class PdfIncrementalPageEditor
             else if (hasPartialName && qualifiedName is not null
                 && _radioButtonValues.TryGetValue(qualifiedName, out string? radioValue))
             {
-                if (!matched.Add(qualifiedName))
-                    throw new InvalidOperationException(
-                        $"The AcroForm contains more than one field named '{qualifiedName}'.");
+                matched.Add(qualifiedName);
                 if (fieldType is null || !fieldType.Equals(ButtonFieldName))
                     throw new InvalidOperationException(
                         $"The AcroForm field '{qualifiedName}' is not a radio-button field.");
@@ -2797,12 +2793,8 @@ public sealed class PdfIncrementalPageEditor
                 if (fieldType is null || !fieldType.Equals(TextFieldName))
                     throw new InvalidOperationException(
                         $"The AcroForm field '{qualifiedName}' is not a text field.");
-                if (textValue is not null && !matched.Add(qualifiedName))
-                    throw new InvalidOperationException(
-                        $"The AcroForm contains more than one field named '{qualifiedName}'.");
-                if (hasAppearanceChange && !appearanceMatched.Add(qualifiedName))
-                    throw new InvalidOperationException(
-                        $"The AcroForm contains more than one field named '{qualifiedName}'.");
+                if (textValue is not null) matched.Add(qualifiedName);
+                if (hasAppearanceChange) appearanceMatched.Add(qualifiedName);
                 if (textValue is null)
                 {
                     PdfObject? currentValue = editedField.TryGetValue(
@@ -2836,9 +2828,7 @@ public sealed class PdfIncrementalPageEditor
                 && _choiceFieldValues.TryGetValue(
                     qualifiedName, out PendingChoiceFieldValue? choiceValue))
             {
-                if (!matched.Add(qualifiedName))
-                    throw new InvalidOperationException(
-                        $"The AcroForm contains more than one field named '{qualifiedName}'.");
+                matched.Add(qualifiedName);
                 if (fieldType is null || !fieldType.Equals(ChoiceFieldName))
                     throw new InvalidOperationException(
                         $"The AcroForm field '{qualifiedName}' is not a choice field.");
