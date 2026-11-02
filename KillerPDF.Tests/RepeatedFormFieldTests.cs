@@ -94,6 +94,44 @@ public sealed class RepeatedFormFieldTests : IDisposable
         Assert.Equal(["same"], kept);
     }
 
+    // R4-007: a form that forbids editing and allows filling saves inside its protected file, and that
+    // save names a twin that kept its own value as the regular save does.
+    [Fact]
+    public void ARestrictedFillNamesATwinThatKeptItsValue()
+    {
+        WriteTwins("(Alice)", "(Bob)", "/MaxLen 5");
+        string encrypted = _path + ".protected.pdf";
+        string filled = _path + ".filled.pdf";
+        try
+        {
+            File.WriteAllBytes(encrypted, KillerPdf.Engine.Writing.PdfDocumentEncryptionWriter.EncryptWithPasswords(
+                PdfDocument.Open(File.ReadAllBytes(_path)), new KillerPdf.Engine.Security.PdfPasswordEncryptionOptions
+                {
+                    UserPassword = "",
+                    OwnerPassword = "owner-password",
+                    AllowDocumentModification = false
+                }));
+            OpenedProtection protection = OpenedProtection.Capture(encrypted, null);
+            Assert.True(protection.AllowsRestrictedFill);
+
+            IReadOnlyCollection<string> kept = PdfEngineIntegration.FillRestrictedForm(
+                encrypted, filled, Values(new Dictionary<string, string> { ["same"] = "Seven77" }), protection);
+
+            Assert.Equal(["same"], kept);
+            PdfDocument reopened = PdfDocument.OpenWithCompatibilityRecovery(File.ReadAllBytes(filled), "");
+            Assert.Equal(["Seven77", "Bob"], PdfFormWidgetReader.ReadPage(reopened, 0).Select(widget => widget.Value));
+            PdfAccess access = PdfRestrictions.Read(filled, null);
+            Assert.Equal(PdfAccessRole.User, access.Role);
+            Assert.False(access.MayModify);
+            Assert.Equal(PdfAccessRole.Owner, PdfRestrictions.Read(filled, "owner-password").Role);
+        }
+        finally
+        {
+            File.Delete(encrypted);
+            File.Delete(filled);
+        }
+    }
+
     [Fact]
     public void TwinsThatBothTakeTheValueNameNothing()
     {

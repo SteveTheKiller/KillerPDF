@@ -1459,9 +1459,10 @@ namespace KillerPDF.Shell
             var checkValues = new Dictionary<string, bool>(_formCheckValues);
             var radioValues = new Dictionary<string, string>(_formRadioValues);
             var fontSizes = new Dictionary<string, double>(_formFontSizes);
+            IReadOnlyCollection<string> kept;
             try
             {
-                PdfEngineIntegration.FillRestrictedForm(source, filled, ActiveViewer.SnapshotFormValuesForPrint(), protection);
+                kept = PdfEngineIntegration.FillRestrictedForm(source, filled, ActiveViewer.SnapshotFormValuesForPrint(), protection);
                 CloseEngineDocumentSession();
                 _doc?.Close();
                 _doc = null;
@@ -1492,7 +1493,7 @@ namespace KillerPDF.Shell
             }
             else RestoreReadOnlyOriginal(destination, destination, () => { });
             _loadedRevision = Services.FileRevision.Capture(destination);
-            SetStatus(string.Format(Loc("Str_St_Saved"), System.IO.Path.GetFileName(destination)));
+            SetStatus(WithFieldsThatKeptTheirValue(string.Format(Loc("Str_St_Saved"), System.IO.Path.GetFileName(destination)), kept));
 
             void CarryOverlays()
             {
@@ -1636,10 +1637,12 @@ namespace KillerPDF.Shell
                 _openedFromProtected = false;
                 _protection = OpenedProtection.None;
             }
-            IReadOnlyCollection<string> kept = ActiveViewer.FieldsThatKeptTheirValueRef;
-            if (kept.Count > 0) status += " " + string.Format(Loc("Str_Form_TwinsKept"), string.Join(", ", kept));
-            SetStatus(status);
+            SetStatus(WithFieldsThatKeptTheirValue(status, ActiveViewer.FieldsThatKeptTheirValueRef));
         }
+
+        // A save names each field that shares its name with one that took the value and kept its own.
+        private string WithFieldsThatKeptTheirValue(string status, IReadOnlyCollection<string> kept) =>
+            kept.Count > 0 ? status + " " + string.Format(Loc("Str_Form_TwinsKept"), string.Join(", ", kept)) : status;
 
         // The clean working copy a save or export continues from, with the repair fallback the
         // open path uses. Callers open it before closing the current document, so a failed reopen
@@ -1846,7 +1849,8 @@ namespace KillerPDF.Shell
 
         // Publishes the exact bytes of an unchanged document, then treats the copy as this tab's
         // file (or opens it, for Save Copy). Nothing is rewritten, so signatures stay valid.
-        private void SaveExactCopy(string sourcePath, string outputPath, bool openCopy)
+        private void SaveExactCopy(string sourcePath, string outputPath, bool openCopy,
+            IReadOnlyCollection<string>? keptTheirValue = null)
         {
             PdfEngineIntegration.ReplaceFileAtomically(sourcePath, outputPath);
             if (openCopy)
@@ -1866,7 +1870,8 @@ namespace KillerPDF.Shell
             _loadedRevision = Services.FileRevision.Capture(outputPath);
             FileNameLabel.Text = System.IO.Path.GetFileName(outputPath);
             AcceptSavedCheckpoint();
-            SetStatus(string.Format(Loc("Str_St_SavedTo"), System.IO.Path.GetFileName(outputPath)));
+            SetStatus(WithFieldsThatKeptTheirValue(string.Format(Loc("Str_St_SavedTo"), System.IO.Path.GetFileName(outputPath)),
+                keptTheirValue ?? []));
         }
 
         private void SaveCopyAndOpen(string outputPath)

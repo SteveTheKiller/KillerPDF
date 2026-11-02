@@ -991,16 +991,19 @@ internal static partial class PdfEngineIntegration
     /// Saves filled-in values into a restricted form as an incremental update of the encrypted file, so the
     /// result keeps its encryption and permissions. The engine refuses when the author forbids filling.
     /// </summary>
-    internal static void FillRestrictedForm(string sourcePath, string destinationPath, FormEdits edits,
+    /// <returns>The fields that share a name with one that took the value and kept their own.</returns>
+    internal static IReadOnlyCollection<string> FillRestrictedForm(string sourcePath, string destinationPath, FormEdits edits,
         OpenedProtection? protection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         ArgumentNullException.ThrowIfNull(edits);
         byte[] source = File.ReadAllBytes(sourcePath);
+        IReadOnlyCollection<string> kept = [];
         byte[] filled = HasFormValues(edits)
-            ? BuildFormValues(protection?.OpenHeld(source) ?? OpenForReading(source), edits, out _) : source;
+            ? BuildFormValues(protection?.OpenHeld(source) ?? OpenForReading(source), edits, out kept) : source;
         AtomicFileOutput.Write(destinationPath, filled);
+        return kept;
     }
 
     private static byte[] BuildFormValues(PdfDocument document, FormEdits edits, out IReadOnlyCollection<string> kept)
