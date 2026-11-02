@@ -992,9 +992,8 @@ namespace KillerPDF.Controls
 
                 CancelAndRelease(s.ThumbCts);
                 s.ThumbCts = null;
-                try { s.Doc?.Close(); } catch { }
+                Services.TabRelease.Release(s.Doc, s.Protection);   // its key decrypts nothing more
                 _sessions.Remove(s);
-                Services.PdfPageRenderSession.ForgetKey(s.Protection);   // its key decrypts nothing more
                 App.ForgetClosedWindowFile(s.OriginalFile);
                 _renderLru.Remove(s);
                 s.RenderCache.Clear();
@@ -1026,11 +1025,10 @@ namespace KillerPDF.Controls
             if (idx < 0 || !ReferenceEquals(_active, s)) return;
 
             CancelRenderWork();
-            try { _doc?.Close(); } catch { }
+            Services.TabRelease.Release(_doc, s.Protection);   // its key decrypts nothing more
             _doc = null;
 
             _sessions.Remove(s);
-            Services.PdfPageRenderSession.ForgetKey(s.Protection);   // its key decrypts nothing more
             App.ForgetClosedWindowFile(s.OriginalFile);
             _renderLru.Remove(s);    // don't pin a closed tab's render cache in the LRU list
             s.RenderCache.Clear();

@@ -135,4 +135,22 @@ public sealed class KeyOwnershipTests : IDisposable
         tab.Dispose();
         Assert.False(PdfPageRenderSession.OpenDocument(signed, null).CanReadPageContent);
     }
+
+    // R6-005: Close All Tabs and a closing window release each tab the way closing it does, so the
+    // parses its key decrypted go with it instead of waiting for the collector.
+    [Fact]
+    public void ReleasingATabDropsTheParsesItsKeyDecrypted()
+    {
+        string signed = SignedForm("release");
+        AssertSameProtection(signed, OpenedProtection.Capture(signed, Reader));
+        OpenedProtection protection = OpenedProtection.Capture(signed, Reader);
+        PdfWorkingDocument tab = PdfWorkingDocument.Open(signed, protection, isReadOnly: true);
+        PdfDocument parsed = tab.ParsedDocument!;
+        Assert.Same(parsed, PdfPageRenderSession.OpenDocument(signed, protection));
+
+        TabRelease.Release(tab, protection);
+
+        Assert.Null(tab.ParsedDocument);
+        Assert.NotSame(parsed, PdfPageRenderSession.OpenDocument(signed, protection));
+    }
 }
