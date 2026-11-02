@@ -1993,6 +1993,11 @@ namespace KillerPDF.Shell
                 SetStatus(string.Format(Loc("Str_St_FlattenedSaved"), System.IO.Path.GetFileName(outputPath)));
                 WarnIncompletePages(incomplete);
             }
+            catch (OperationCanceledException ex) when (ct.IsCancellationRequested
+                && ex.CancellationToken == ct && ex.InnerException is null)
+            {
+                SetStatus(Loc("Str_St_FlattenCanceled"));
+            }
             catch (Exception ex)
             {
                 try { KillerDialog.Show(this, Loc("Str_Err_FlattenFailed") + "\n" + ex.GetType().Name + ": " + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error); }

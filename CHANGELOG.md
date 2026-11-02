@@ -16,7 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - PDFs opened from ZIP archives ask for a permanent location on first save, and abandoned import files are cleaned up safely.
 - Canceled or failed protected opens restore the previous document, and closing an importing window stops its remaining opens.
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
-- Canceling Save Flattened before publication leaves a new destination untouched.
+- Canceling Save Flattened before publication preserves the destination and reports cancellation.
 - Undo and Redo preserve retryable history and the open document when snapshot storage fails.
 - Folder and ZIP import stays responsive, limits discovery and extraction, rejects unsafe entries, and stops canceled merges at the next work boundary.
 - Password-protected PDFs open when their writer left XMP metadata unencrypted, and PDFs whose user password forbids editing open read-only with an option to enter the owner password. (#470)

@@ -33,6 +33,9 @@ Cases:
 | `print-cancel-before-prepare` | Select the existing Microsoft Print to PDF queue, request close during the preparation yield, and reject progress after the close request. |
 | `print-cancel-preparing` | Request close when the first of eight small pages reports preparation progress. Require preparation to stop before the next page or sending status, even while the window fades closed. |
 | `print-cancel-native` | On a leased UI VM with Microsoft Print to PDF installed, let the real print job open its native output picker. The operator cancels that picker; require the app to close Print Preview without an error dialog. |
+| `flatten-cancel-staged-new`, `flatten-cancel-staged-existing` | Hold the real final staging flush through the scoped filesystem adapter, click the overlay's Cancel, then release publication. Require destination preservation, staging cleanup and a canceled status without an error dialog. |
+| `flatten-staged-control`, `flatten-staged-existing-control` | Release the same final staging barrier without Cancel and require a readable saved PDF and matching saved status. |
+| `flatten-unexpected-cancellation`, `flatten-cancel-recovery` | Require unrelated cancellation and failed partial-replacement recovery to remain visible as errors, preserving and naming retained recovery files. |
 | `merge-failure-pane` | Drop two unreadable owned PDFs through the actual routed event, choose Merge, switch panes while its worker is pending, and require the other pane's unsaved form value to survive failure. |
 | `merge-close-success` | Merge valid owned inputs in pane B, close the split while the worker is pending, and require the completed document to have a visible owning pane while pane A retains its pending edit. |
 | `merge-cancel` | Cancel a pending merge through the real confirmation, preserve the previous form edit, and require extraction cleanup and unchanged sources. |
@@ -56,7 +59,7 @@ Cases:
 | `reading-scroll-spread` | Move from a settled spread to a cold spread and require the complete short target line in the public visible ranges after its right-hand tile is created. |
 | `reading-scroll-wide` | Request the last glyph of a line wider than the zoomed viewport and require that caret to remain visible. |
 
-Reflection is limited to isolated host setup, service initialization, constructing WPF's internal
+Reflection is limited to isolated host setup, service initialization, scoped filesystem adapters and diagnostic observations, constructing WPF's internal
 drag-event arguments, and calling the public OpenFromExternal entry point on the dynamically loaded application. Tests do not invoke private
 workflow methods or inject private editor collections. Workflow actions use actual WPF controls,
 routed events, textboxes and dialogs. Assertions inspect generated PDFs or public UI properties.

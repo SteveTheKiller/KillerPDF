@@ -6,6 +6,30 @@ namespace KillerPDF.Tests;
 
 public sealed class AtomicFileOutputTests
 {
+    [Fact]
+    public async Task ScopedFileOperationsFlowToAWorkerWithoutLeakingAfterDisposal()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string destination = Path.Combine(directory, "document.pdf");
+        using var cancellation = new CancellationTokenSource();
+        var files = new AtomicFileOutput.FileOperations
+        {
+            FlushToDisk = stream => { stream.Flush(flushToDisk: true); cancellation.Cancel(); }
+        };
+        try
+        {
+            using (AtomicFileOutput.UseFileOperations(files))
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.Run(() =>
+                    AtomicFileOutput.Write(destination, "Canceled replacement"u8.ToArray(), cancellation.Token)));
+            Assert.Empty(Directory.GetFiles(directory));
+            AtomicFileOutput.Write(destination, "Complete replacement"u8.ToArray());
+            Assert.Equal("Complete replacement", File.ReadAllText(destination));
+            Assert.Equal(new[] { destination }, Directory.GetFiles(directory));
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

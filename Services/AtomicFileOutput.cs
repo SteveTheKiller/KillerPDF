@@ -4,6 +4,34 @@ namespace KillerPDF.Services;
 
 internal static class AtomicFileOutput
 {
+    private static readonly AsyncLocal<FileOperations?> CurrentFiles = new();
+
+    /// <summary>Scopes filesystem operations for synchronous Write calls in the current async flow.</summary>
+    internal static IDisposable UseFileOperations(FileOperations files)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+        return new FileOperationScope(files);
+    }
+
+    private sealed class FileOperationScope : IDisposable
+    {
+        private readonly FileOperations? _previous;
+        private bool _disposed;
+
+        internal FileOperationScope(FileOperations files)
+        {
+            _previous = CurrentFiles.Value;
+            CurrentFiles.Value = files;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            CurrentFiles.Value = _previous;
+            _disposed = true;
+        }
+    }
+
     internal sealed class FileOperations
     {
         internal Action<string, string, string?> Replace = (source, destination, backup) => File.Replace(source, destination, backup, ignoreMetadataErrors: true);
@@ -41,7 +69,7 @@ internal static class AtomicFileOutput
             flushToDisk: File.Exists(destination));
 
     internal static void Write(string destination, Action<Stream> write, CancellationToken cancellation = default)
-        => Write(destination, write, cancellation, new FileOperations());
+        => Write(destination, write, cancellation, CurrentFiles.Value ?? new FileOperations());
 
     internal static void Write(string destination, Action<Stream> write, CancellationToken cancellation, FileOperations files)
         => Write(destination, write, cancellation, files, flushToDisk: true);

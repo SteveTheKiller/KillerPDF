@@ -12,7 +12,8 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 
 // This process owns every window, PDF, and setting it creates. Reflection is limited to
-// startup isolation, service initialization, and constructing WPF drag-event data;
+// startup isolation, service initialization, filesystem fault adapters and observations,
+// and constructing WPF drag-event data;
 // workflow actions use actual controls and routed events.
 internal static partial class Program
 {
@@ -67,6 +68,12 @@ internal static partial class Program
             else if (args[3] == "print-cancel-before-prepare") PrintCancelBeforePrepare();
             else if (args[3] == "print-cancel-preparing") PrintCancelBeforePrepare(duringPreparation: true);
             else if (args[3] == "print-cancel-native") PrintCancelBeforePrepare(nativePrompt: true);
+            else if (args[3] == "flatten-cancel-staged-new") FlattenStagedCancellation();
+            else if (args[3] == "flatten-cancel-staged-existing") FlattenStagedCancellation(existing: true);
+            else if (args[3] == "flatten-staged-control") FlattenStagedCancellation(cancel: false);
+            else if (args[3] == "flatten-staged-existing-control") FlattenStagedCancellation(existing: true, cancel: false);
+            else if (args[3] == "flatten-unexpected-cancellation") FlattenStagedCancellation(unexpectedCancellation: true);
+            else if (args[3] == "flatten-cancel-recovery") FlattenStagedCancellation(existing: true, recoveryFailure: true);
             else if (args[3] == "merge-failure-pane") MergeFailurePane();
             else if (args[3] == "merge-close-success") MergeFailurePane(closeOwner: true);
             else if (args[3] == "archive-first-save") ArchiveFirstSave();
@@ -723,10 +730,15 @@ internal static partial class Program
             if (preview is null) return;
             Button? print = Descendants<Button>(preview).FirstOrDefault(button => button.IsDefault && button.IsEnabled);
             if (print is null) return;
+            ComboBox? queues = Descendants<ComboBox>(preview)
+                .FirstOrDefault(combo => combo.Items.Contains("Microsoft Print to PDF"));
+            if (queues is null) return;
+            if (!Equals(queues.SelectedItem, "Microsoft Print to PDF"))
+            {
+                queues.SelectedItem = "Microsoft Print to PDF";
+                return;
+            }
             timer.Stop();
-            ComboBox queues = Descendants<ComboBox>(preview)
-                .Single(combo => combo.Items.Contains("Microsoft Print to PDF"));
-            queues.SelectedItem = "Microsoft Print to PDF";
             preview.Closing += (_, _) => { closeRequested = true; Console.WriteLine("Print preview close requested"); };
             preview.Closed += (_, _) => { closed = true; Console.WriteLine("Print preview closed at assigned cancellation point"); };
             if (!duringPreparation && !nativePrompt)
