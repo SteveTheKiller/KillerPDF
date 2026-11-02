@@ -56,6 +56,30 @@ namespace KillerPDF.Tests
             Assert.False(a.IsOn);
         });
 
+        // R2-014: check boxes that share a name show one state, as the save writes it.
+        [Fact]
+        public void EveryCheckMarkOfANameFollowsAToggle() => OnSta(() =>
+        {
+            var first = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
+            var twin = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
+            var other = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
+            var marks = new RepeatedCheckMarks();
+            marks.Add("same", first);
+            marks.Add("same", twin);
+            marks.Add("other", other);
+
+            marks.Show("same", true);
+
+            Assert.Equal(System.Windows.Visibility.Visible, first.Visibility);
+            Assert.Equal(System.Windows.Visibility.Visible, twin.Visibility);
+            Assert.Equal(System.Windows.Visibility.Collapsed, other.Visibility);
+
+            marks.Show("same", false);
+
+            Assert.Equal(System.Windows.Visibility.Collapsed, first.Visibility);
+            Assert.Equal(System.Windows.Visibility.Collapsed, twin.Visibility);
+        });
+
         private static void OnSta(Action test)
         {
             Exception? failure = null;

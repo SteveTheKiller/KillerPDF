@@ -10,6 +10,26 @@ using System.Windows.Media;
 
 namespace KillerPDF.Controls
 {
+    /// <summary>The drawn marks of the check boxes on a page, by field name, so that every box of
+    /// a name shows the one state the save writes, as a radio group's dots do.</summary>
+    internal sealed class RepeatedCheckMarks
+    {
+        private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<UIElement>> _marks = [];
+
+        internal void Add(string fieldName, UIElement mark)
+        {
+            if (!_marks.TryGetValue(fieldName, out var marks)) _marks[fieldName] = marks = [];
+            marks.Add(mark);
+        }
+
+        internal void Show(string fieldName, bool on)
+        {
+            if (!_marks.TryGetValue(fieldName, out var marks)) return;
+            foreach (UIElement mark in marks)
+                mark.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
     /// <summary>
     /// Hosts a drawn PDF checkbox or radio widget (WPF's own indicators do not scale to the field)
     /// and gives it what the drawing alone lacks: Tab focus, Space/Enter to toggle, arrow keys
