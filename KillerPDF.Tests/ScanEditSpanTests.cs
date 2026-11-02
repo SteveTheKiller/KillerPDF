@@ -36,4 +36,36 @@ public sealed class ScanEditSpanTests
     {
         Assert.Equal(new ScanEditSpan(1, 1, "total now"), ScanEditSpan.Diff(Line, "Invoice total now due today"));
     }
+
+    [Fact]
+    public void AddingAtTheStartKeepsTheFirstWordItPrecedes()
+    {
+        Assert.Equal(new ScanEditSpan(0, 0, "New Invoice"), ScanEditSpan.Diff(Line, "New Invoice total due today"));
+    }
+
+    [Fact]
+    public void AddingAtTheStartOfAOneWordLineKeepsThatWord()
+    {
+        Assert.Equal(new ScanEditSpan(0, 0, "New Invoice"), ScanEditSpan.Diff(["Invoice"], "New Invoice"));
+    }
+
+    [Fact]
+    public void AddingAtTheEndCoversTheLastWord()
+    {
+        Assert.Equal(new ScanEditSpan(3, 3, "today please"), ScanEditSpan.Diff(Line, "Invoice total due today please"));
+    }
+
+    [Fact]
+    public void DeletingTheFirstAndLastWordsKeepsTheirPlace()
+    {
+        Assert.Equal(new ScanEditSpan(0, 0, ""), ScanEditSpan.Diff(Line, "total due today"));
+        Assert.Equal(new ScanEditSpan(3, 3, ""), ScanEditSpan.Diff(Line, "Invoice total due"));
+    }
+
+    [Fact]
+    public void ALineWithNoWordsHasNothingToEdit()
+    {
+        Assert.Null(ScanEditSpan.Diff([], "New"));
+        Assert.Null(ScanEditSpan.Diff([], ""));
+    }
 }

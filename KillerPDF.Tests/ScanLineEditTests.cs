@@ -71,6 +71,38 @@ public sealed class ScanLineEditTests
     }
 
     [Fact]
+    public void TheCoverReachesPastTheWordsByAMarginInRoomyGaps()
+    {
+        ScanLineEditPlan plan = Assert.IsType<ScanLineEditPlan>(
+            ScanLineEdit.Plan(Words, Boxes, "Invoice sum due today", TenPerLetter));
+
+        Assert.Equal(new Rect(87, 17, 56, 20), plan.Cover);
+    }
+
+    [Fact]
+    public void TheCoverStopsShortOfNeighborsCloserThanTheMargin()
+    {
+        Rect[] tight = [new(10, 20, 70, 14), new(81, 20, 50, 14), new(132, 20, 30, 14)];
+
+        ScanLineEditPlan plan = Assert.IsType<ScanLineEditPlan>(
+            ScanLineEdit.Plan(["Invoice", "total", "due"], tight, "Invoice sum due", TenPerLetter));
+
+        Assert.Equal(80, plan.Cover.Left);
+        Assert.Equal(132, plan.Cover.Right);
+        Assert.True(plan.Cover.Contains(plan.Covered));
+    }
+
+    [Fact]
+    public void AnEditAtTheLineStartKeepsTheScannedWordItPrecedes()
+    {
+        ScanLineEditPlan plan = Assert.IsType<ScanLineEditPlan>(
+            ScanLineEdit.Plan(Words, Boxes, "New Invoice total due today", text => text.Length * 5));
+
+        Assert.Equal("New Invoice", plan.Text);
+        Assert.Equal(new Rect(10, 20, 70, 14), plan.Covered);
+    }
+
+    [Fact]
     public void ImageWordsLandOnTheBitmapsPixels()
     {
         var word = ScanLineEdit.ToPixelWord("sum", new Rect(10, 20, 30, 10), 2, 3);

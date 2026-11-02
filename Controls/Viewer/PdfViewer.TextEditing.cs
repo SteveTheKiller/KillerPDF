@@ -1282,9 +1282,7 @@ namespace KillerPDF.Controls
                     if (_currentTool != EditTool.Text) HideTextSettings();
                     return;
                 }
-                Rect covered = plan.Covered;
-                covered.Inflate(3, 3);
-                _pendingCover!.Bounds = covered;
+                _pendingCover!.Bounds = plan.Cover;
                 if (plan.Text.Length == 0)
                 {
                     PushUndo(new UndoEntry(UndoKind.AnnotationGroup, pageIdx,

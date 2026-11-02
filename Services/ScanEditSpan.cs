@@ -4,7 +4,8 @@ namespace KillerPDF.Services;
 /// give way to Replacement, and everything else keeps its scanned look.</summary>
 internal sealed record ScanEditSpan(int First, int Last, string Replacement)
 {
-    /// <summary>Trims the words an edit left alone from both ends, or returns null for no change.</summary>
+    /// <summary>Trims the words an edit left alone from both ends, or returns null for no change or a
+    /// line with no words.</summary>
     internal static ScanEditSpan? Diff(IReadOnlyList<string> original, string typed)
     {
         ArgumentNullException.ThrowIfNull(original);
@@ -20,9 +21,16 @@ internal sealed record ScanEditSpan(int First, int Last, string Replacement)
             editedEnd--;
         }
         if (start == originalEnd && start == editedEnd) return null;
-        // Pure insertion has no word to cover, so it takes over the word before it.
+        // A line with no scanned words has none to give way to the typed ones.
+        if (original.Count == 0) return null;
+        // Pure insertion has no word to cover, so it takes over the word before it, or at the
+        // start of the line the word after it.
         if (start == originalEnd && start > 0) start--;
-        else if (start == originalEnd) originalEnd++;
+        else if (start == originalEnd)
+        {
+            originalEnd++;
+            editedEnd++;
+        }
         return new ScanEditSpan(start, originalEnd - 1, string.Join(' ', edited[Math.Min(start, editedEnd)..editedEnd]));
     }
 }
