@@ -137,7 +137,15 @@ internal static class ScanLineEdit
         double baseline = look.Baseline / pixelsY;
         double[] wordBaselines = [.. look.Words.Select(word => word.HasClearInk ? word.Baseline / pixelsY : baseline)];
         return new ScanLineFit(ToColor(look.BackgroundColor), ToColor(look.InkColor), face.Family, size, look.Bold,
-            baseline, wordBaselines) { InkBoxes = [.. boxes] };
+            baseline, wordBaselines)
+        {
+            // A word's ink is searched past its box, since recognizer boxes clip the ends and the
+            // bottom row of the letters; a word without clear ink keeps its box.
+            InkBoxes = [.. look.Words.Select((word, index) => word.HasClearInk
+                ? new Rect(word.Left / pixelsX, word.Top / pixelsY,
+                    (word.Right - word.Left) / pixelsX, (word.Bottom - word.Top) / pixelsY)
+                : boxes[index])]
+        };
     }
 
     /// <summary>Lays transparent pixels over the white page, as the screen shows them.</summary>
