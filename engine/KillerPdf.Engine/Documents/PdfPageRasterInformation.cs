@@ -11,7 +11,12 @@ public static class PdfPageRasterInformation
     /// Identifies pages whose image XObjects are all one-bit DeviceGray images.
     /// A page without image XObjects, or one containing another XObject type, returns false.
     /// </summary>
-    public static IReadOnlyList<bool> ReadBitonalImagePageHints(PdfDocument document)
+    public static IReadOnlyList<bool> ReadBitonalImagePageHints(PdfDocument document) =>
+        ReadBitonalImagePageHints(document, CancellationToken.None);
+
+    /// <summary>The bitonal hints of <see cref="ReadBitonalImagePageHints(PdfDocument)"/>, read with a
+    /// cancellation token.</summary>
+    public static IReadOnlyList<bool> ReadBitonalImagePageHints(PdfDocument document, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(document);
         PdfPageTree tree = PdfPageTree.Read(document);
@@ -25,7 +30,12 @@ public static class PdfPageRasterInformation
     /// Identifies pages whose image XObjects are all JPEG images.
     /// A page without image XObjects, or one containing another XObject type, returns false.
     /// </summary>
-    public static IReadOnlyList<bool> ReadJpegImagePageHints(PdfDocument document)
+    public static IReadOnlyList<bool> ReadJpegImagePageHints(PdfDocument document) =>
+        ReadJpegImagePageHints(document, CancellationToken.None);
+
+    /// <summary>The JPEG hints of <see cref="ReadJpegImagePageHints(PdfDocument)"/>, read with a
+    /// cancellation token.</summary>
+    public static IReadOnlyList<bool> ReadJpegImagePageHints(PdfDocument document, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(document);
         PdfPageTree tree = PdfPageTree.Read(document);

@@ -66,13 +66,13 @@ namespace KillerPDF.Services
             // document parses) - the dominant cost on large files. A single scaling
             // factor renders each page at its own size at 150 DPI (150/72), so the doc
             // no longer needs reopening to apply per-page pixel dimensions.
-            PdfDocument sourceDocument = PdfDocument.Open(File.ReadAllBytes(sourcePath));
+            PdfDocument sourceDocument = OpenFlattenSource(sourcePath);
             if (ct.IsCancellationRequested) return;
             IReadOnlyList<bool> bitonalHints =
-                PdfPageRasterInformation.ReadBitonalImagePageHints(sourceDocument);
+                PdfPageRasterInformation.ReadBitonalImagePageHints(sourceDocument, ct);
             if (ct.IsCancellationRequested) return;
             IReadOnlyList<bool> jpegHints =
-                PdfPageRasterInformation.ReadJpegImagePageHints(sourceDocument);
+                PdfPageRasterInformation.ReadJpegImagePageHints(sourceDocument, ct);
             if (ct.IsCancellationRequested) return;
             IReadOnlyList<PdfPageInformation>? pageInformation = options.KeepResolution
                 ? PdfPageInformation.Read(sourceDocument) : null;
@@ -161,6 +161,10 @@ namespace KillerPDF.Services
             AtomicFileOutput.Write(outputPath,
                 PdfEngineIntegration.CreateRasterDocument(rasterPages), ct);
         }
+
+        /// <summary>Reads the saved copy a flatten is drawn from.</summary>
+        internal static PdfDocument OpenFlattenSource(string sourcePath) =>
+            PdfDocument.Open(File.ReadAllBytes(sourcePath));
 
         // One session per resolution, because a session renders at a single scale.
         private static PdfPageRenderSession SessionFor(
