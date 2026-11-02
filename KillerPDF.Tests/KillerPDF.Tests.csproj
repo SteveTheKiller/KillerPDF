@@ -116,6 +116,7 @@
     <Compile Include="..\Services\PrintRasterDocument.cs" Link="Services\PrintRasterDocument.cs" />
     <Compile Include="..\Services\PdfEngineBurn.cs" Link="Services\PdfEngineBurn.cs" />
     <Compile Include="..\Services\PrintCopy.cs" Link="Services\PrintCopy.cs" />
+    <Compile Include="..\Services\TabRelease.cs" Link="Services\TabRelease.cs" />
     <Compile Include="..\Services\AccessibilityReviewSource.cs" Link="Services\AccessibilityReviewSource.cs" />
     <Compile Include="..\Services\PdfEngineDocumentSession.cs" Link="Services\PdfEngineDocumentSession.cs" />
     <Compile Include="..\Services\RuntimeEncodingBootstrap.cs" Link="Services\RuntimeEncodingBootstrap.cs" />

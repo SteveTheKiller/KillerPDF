@@ -568,8 +568,9 @@ namespace KillerPDF.Controls
             _windowResourcesReleased = true;
             CancelRenderWork();
             CloseEngineDocumentSession();
-            foreach (var document in _sessions.Select(session => session.Doc).Append(_doc).OfType<PdfWorkingDocument>().Distinct())
-                document.Close();
+            foreach (var session in _sessions)
+                Services.TabRelease.Release(session.Doc, session.Protection);
+            Services.TabRelease.Release(_doc, _protection);   // the front tab's live state may be newer than its session
             _doc = null;
             _active = null;
             _sessions.Clear();
@@ -1084,7 +1085,7 @@ namespace KillerPDF.Controls
             foreach (var s in docTabs)
             {
                 App.ForgetClosedWindowFile(s.OriginalFile);
-                try { s.Doc?.Close(); } catch { }
+                Services.TabRelease.Release(s.Doc, s.Protection);
             }
             try { _doc?.Close(); } catch { }
             _doc = null;
