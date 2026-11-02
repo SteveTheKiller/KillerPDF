@@ -182,7 +182,7 @@ namespace KillerPDF.Tests
                 < body.IndexOf("if (folder is null || recovered.Count == 0) return null;", StringComparison.Ordinal),
                 "Tabs are remembered only after an early return.");
             Assert.True(body.IndexOf("RenderFailureRecovery.WriteManifest(", StringComparison.Ordinal)
-                < body.IndexOf("foreach (string key in new[] { \"OpenTabs\", \"OpenTabsB\" })", StringComparison.Ordinal),
+                < body.IndexOf("RenderFailureRecovery.SessionSettingsWithout(", StringComparison.Ordinal),
                 "Recovered originals are dropped from the restore before the manifest exists.");
             Assert.Contains("RenderFailureRecovery.FolderRoots(", body);
             Assert.DoesNotContain("CreateFolder(App.TempDir)", body);
