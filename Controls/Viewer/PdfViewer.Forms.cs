@@ -574,7 +574,12 @@ namespace KillerPDF.Controls
                             }
                             lastAccepted = tb.Text;
                             _formTextValues[capturedKey] = tb.Text; MarkDirty(true);
+                            // The value belongs to the name, so every box of it shows what was typed.
+                            _formRecalculating = true;
+                            try { fieldMarks.ShowText(capturedKey, tb.Text, tb); }
+                            finally { _formRecalculating = false; }
                         };
+                        fieldMarks.AddText(pageIndex, capturedKey, tb);
                         RegisterFormValueBox(capturedKey, tb);
                         ctrl = f.IsComb ? new CombTextBox(tb, f.MaxLen, fontSize) : tb;
                     }

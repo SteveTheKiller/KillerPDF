@@ -16,12 +16,28 @@ namespace KillerPDF.Controls
     {
         private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<(int Page, UIElement Mark)>> _checks = [];
         private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<(int Page, UIElement Dot, string OnValue)>> _radios = [];
+        private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<(int Page, TextBox Box)>> _texts = [];
 
         /// <summary>Forgets a page's marks because its overlay is being built again.</summary>
         internal void BeginPage(int pageIndex)
         {
             foreach (var marks in _checks.Values) marks.RemoveAll(item => item.Page == pageIndex);
             foreach (var dots in _radios.Values) dots.RemoveAll(item => item.Page == pageIndex);
+            foreach (var boxes in _texts.Values) boxes.RemoveAll(item => item.Page == pageIndex);
+        }
+
+        internal void AddText(int pageIndex, string fieldName, TextBox box)
+        {
+            if (!_texts.TryGetValue(fieldName, out var boxes)) _texts[fieldName] = boxes = [];
+            boxes.Add((pageIndex, box));
+        }
+
+        /// <summary>Shows a typed value in every other box of the field, across pages.</summary>
+        internal void ShowText(string fieldName, string value, TextBox typedIn)
+        {
+            if (!_texts.TryGetValue(fieldName, out var boxes)) return;
+            foreach ((_, TextBox box) in boxes)
+                if (!ReferenceEquals(box, typedIn)) box.Text = value;
         }
 
         internal void AddCheck(int pageIndex, string fieldName, UIElement mark)

@@ -134,6 +134,44 @@ namespace KillerPDF.Tests
             Assert.Equal(System.Windows.Visibility.Collapsed, stale.Visibility);
         });
 
+        [Fact]
+        public void TypingShowsInEveryBoxOfTheFieldAcrossPages() => OnSta(() =>
+        {
+            var typed = new TextBox { Text = "Carol" };
+            var samePage = new TextBox { Text = "Bob" };
+            var otherPage = new TextBox { Text = "Bob" };
+            var stranger = new TextBox { Text = "Bob" };
+            var marks = new RepeatedFieldMarks();
+            marks.AddText(0, "name", typed);
+            marks.AddText(0, "name", samePage);
+            marks.AddText(3, "name", otherPage);
+            marks.AddText(0, "other", stranger);
+
+            marks.ShowText("name", "Carol", typed);
+
+            Assert.Equal("Carol", samePage.Text);
+            Assert.Equal("Carol", otherPage.Text);
+            Assert.Equal("Bob", stranger.Text);
+        });
+
+        [Fact]
+        public void APageBuiltAgainDropsItsOldTextBoxes() => OnSta(() =>
+        {
+            var typed = new TextBox { Text = "Carol" };
+            var stale = new TextBox { Text = "Bob" };
+            var rebuilt = new TextBox { Text = "Bob" };
+            var marks = new RepeatedFieldMarks();
+            marks.AddText(0, "name", typed);
+            marks.AddText(1, "name", stale);
+
+            marks.BeginPage(1);
+            marks.AddText(1, "name", rebuilt);
+            marks.ShowText("name", "Carol", typed);
+
+            Assert.Equal("Carol", rebuilt.Text);
+            Assert.Equal("Bob", stale.Text);
+        });
+
         private static void OnSta(Action test)
         {
             Exception? failure = null;
