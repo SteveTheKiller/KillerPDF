@@ -384,25 +384,33 @@ namespace KillerPDF.Features
         }
 
         // ============================================================
-        // --recognize-fields <in.pdf> [<out.pdf>] [--json]
+        // --recognize-fields <in.pdf> [<out.pdf>] [--json] [--password <password>]
         // ============================================================
         // Finds blanks, boxes and lines that read as form fields. With an output file, the text
-        // fields and check boxes it finds are added as real fields.
+        // fields and check boxes it finds are added as real fields. The report alone prints the page
+        // labels beside each field, so it reads --password and the gate holds it to the copy permission.
         private static int CliRecognizeFields(List<string> pos, Dictionary<string, string> options, TextWriter con)
         {
             if (pos.Count is < 1 or > 2)
             {
-                con.WriteLine("Usage: KillerPDF.exe --recognize-fields <in.pdf> [<out.pdf>] [--json]");
+                con.WriteLine("Usage: KillerPDF.exe --recognize-fields <in.pdf> [<out.pdf>] [--json] [--password <password>]");
                 return 2;
             }
             string inPath = Path.GetFullPath(pos[0]);
             if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
-            PdfFormRecognitionReview review = PdfFormRecognizer.Recognize(PdfEngineIntegration.OpenForReading(File.ReadAllBytes(inPath)));
             if (pos.Count == 1)
             {
-                con.WriteLine(options.ContainsKey("--json") ? review.ToJson(true) : review.ToText());
+                options.TryGetValue("--password", out string? password);
+                if (CliProtectionGate.OpenForReport(inPath, password, out string? refusal) is not PdfDocument document)
+                {
+                    con.WriteLine(refusal);
+                    return 1;
+                }
+                PdfFormRecognitionReview report = PdfFormRecognizer.Recognize(document);
+                con.WriteLine(options.ContainsKey("--json") ? report.ToJson(true) : report.ToText());
                 return 0;
             }
+            PdfFormRecognitionReview review = PdfFormRecognizer.Recognize(PdfEngineIntegration.OpenForReading(File.ReadAllBytes(inPath)));
             if (!CliInspectEditInput(pos[0], pos[1], out string source, out string output, out _, con)) return 2;
             var used = new HashSet<string>(PdfFormDataExporter.Export(PdfDocument.Open(File.ReadAllBytes(source)), includeAnnotations: false)
                 .Fields.Select(field => field.Name), StringComparer.Ordinal);

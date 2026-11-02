@@ -292,7 +292,8 @@ Existing --command forms stay compatible.
                                            [--duplex none|long|short] [--reverse]
                                            print silently (default printer if none named)
   --password &lt;p&gt; works on preflight, decrypt, to-image, flatten, print, ocr, scan-to-text, fix-orientation,
-                                           straighten, separations, attachments, export, macro and batch-render;
+                                           straighten, separations, attachments, export, comments, measurements,
+                                           recognize-fields, macro and batch-render;
                                            other commands read a PDF that opens with no password. On a PDF with
                                            limits, new PDFs and page images need printing and copying allowed,
                                            text and data need copying allowed, an edit-forbidden PDF gives up
@@ -332,8 +333,10 @@ Existing --command forms stay compatible.
                                            [--relationship data|source|alternative|supplement|unspecified]
   killerpdf edit-attachment &lt;in.pdf&gt; &lt;out.pdf&gt; &lt;name&gt; [--rename &lt;new&gt;] [--description &lt;text&gt;]
                                            [--mime &lt;type&gt;] [--relationship &lt;name&gt;] [--remove]
-  killerpdf comments &lt;in.pdf&gt; [--json]            list review comments and their replies
-  killerpdf measurements &lt;in.pdf&gt; [--json | --csv] report the saved measurements
+  killerpdf comments &lt;in.pdf&gt; [--json] [--password &lt;p&gt;]
+                                           list review comments and their replies
+  killerpdf measurements &lt;in.pdf&gt; [--json | --csv] [--password &lt;p&gt;]
+                                           report the saved measurements
   killerpdf separations &lt;in.pdf&gt; [&lt;outDir&gt;] [--pages &lt;range&gt;] [--dpi &lt;n&gt;] [--json] [--overwrite]
                                            list inks, or write each page&#39;s plates as images
   killerpdf compare-structure &lt;original.pdf&gt; &lt;changed.pdf&gt; [--json]
@@ -371,7 +374,7 @@ Existing --command forms stay compatible.
                                            rewrite matching lines in their own fonts
   killerpdf export-form-data &lt;in.pdf&gt; &lt;out.fdf|.xfdf|.json&gt; [--no-comments]
   killerpdf import-form-data &lt;in.pdf&gt; &lt;data.fdf|.xfdf&gt; &lt;out.pdf&gt; [--flatten]
-  killerpdf recognize-fields &lt;in.pdf&gt; [&lt;out.pdf&gt;] [--json]
+  killerpdf recognize-fields &lt;in.pdf&gt; [&lt;out.pdf&gt;] [--json] [--password &lt;p&gt;]
                                            find form fields; with an output, add the text fields and check boxes
   killerpdf xfa-to-acroform &lt;in.pdf&gt; &lt;out.pdf&gt; [--flatten]   convert an XFA form to standard fields
   killerpdf flatten-forms &lt;in.pdf&gt; &lt;out.pdf&gt;      turn form fields into page content

@@ -14,12 +14,15 @@ namespace KillerPDF.Features
     {
         // --print-production, --signatures, --layers, --portfolio, --comments and --navigation-audit
         // share one shape: <in.pdf> [--json], a text report or JSON. --navigation-audit exits 3
-        // when it finds a problem, like --preflight.
+        // when it finds a problem, like --preflight. --comments prints what was written into the
+        // file, so it also reads --password and the gate holds it to the copy permission.
         private static int CliDocumentReport(string command, List<string> pos, Dictionary<string, string> options, TextWriter con)
         {
+            // Comments print what was written into the file, so that report reads with --password.
+            bool comments = command == "--comments";
             if (pos.Count != 1)
             {
-                con.WriteLine($"Usage: KillerPDF.exe {command} <in.pdf> [--json]");
+                con.WriteLine($"Usage: KillerPDF.exe {command} <in.pdf> [--json]" + (comments ? " [--password <password>]" : ""));
                 return 2;
             }
             string inPath = Path.GetFullPath(pos[0]);
@@ -27,7 +30,16 @@ namespace KillerPDF.Features
             bool json = options.ContainsKey("--json");
             try
             {
-                PdfDocument document = PdfEngineIntegration.OpenForReading(File.ReadAllBytes(inPath));
+                options.TryGetValue("--password", out string? password);
+                string? refusal = null;
+                PdfDocument? document = comments
+                    ? CliProtectionGate.OpenForReport(inPath, password, out refusal)
+                    : PdfEngineIntegration.OpenForReading(File.ReadAllBytes(inPath));
+                if (document is null)
+                {
+                    con.WriteLine(refusal);
+                    return 1;
+                }
                 switch (command)
                 {
                     case "--print-production":
@@ -101,7 +113,7 @@ namespace KillerPDF.Features
         {
             if (pos.Count != 1)
             {
-                con.WriteLine("Usage: KillerPDF.exe --measurements <in.pdf> [--json | --csv]");
+                con.WriteLine("Usage: KillerPDF.exe --measurements <in.pdf> [--json | --csv] [--password <password>]");
                 return 2;
             }
             string inPath = Path.GetFullPath(pos[0]);
@@ -110,8 +122,13 @@ namespace KillerPDF.Features
             try
             {
                 string name = Path.GetFileNameWithoutExtension(inPath);
-                results = [.. PdfEngineIntegration.ReadMeasurements(
-                        PdfEngineIntegration.OpenForReading(File.ReadAllBytes(inPath)))
+                options.TryGetValue("--password", out string? password);
+                if (CliProtectionGate.OpenForReport(inPath, password, out string? refusal) is not PdfDocument document)
+                {
+                    con.WriteLine(refusal);
+                    return 1;
+                }
+                results = [.. PdfEngineIntegration.ReadMeasurements(document)
                     .Select(measurement => MeasurementResult(measurement, name))
                     .OfType<PdfMeasurementResult>()];
             }

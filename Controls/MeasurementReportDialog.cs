@@ -9,16 +9,20 @@ namespace KillerPDF;
 
 // The Measurements report: every measurement in the document, page by page, with its value and
 // the scale it was taken at, as a table. Copy puts the list on the clipboard with tabs between
-// the columns, so it pastes into a spreadsheet as cells; Save writes it as CSV or JSON.
+// the columns, so it pastes into a spreadsheet as cells; Save writes it as CSV or JSON. A saved file
+// is a data export of the document, so Save asks mayExport first, while the list and Copy stay free.
 internal sealed class MeasurementReportDialog : Window
 {
     private readonly IReadOnlyList<PdfMeasurementResult> _results;
     private readonly string _baseName;
+    private readonly Func<bool> _mayExport;
 
-    internal MeasurementReportDialog(Window owner, IReadOnlyList<PdfMeasurementResult> results, string baseName)
+    internal MeasurementReportDialog(Window owner, IReadOnlyList<PdfMeasurementResult> results, string baseName,
+        Func<bool> mayExport)
     {
         _results = results;
         _baseName = baseName;
+        _mayExport = mayExport;
         Title = "KillerPDF - " + L("Str_MeasureReport_Title");
         // The window fits the list: small for a few measurements, growing with the list until it
         // reaches most of the screen's height, after which the list scrolls.
@@ -151,20 +155,23 @@ internal sealed class MeasurementReportDialog : Window
 
     private void Save(string extension, string filter, Func<string> content)
     {
-        var dialog = new Controls.FileDialog(Controls.FileDialogMode.Save)
+        string? ChoosePath()
         {
-            Filter = filter,
-            Title = L("Str_MeasureReport_Title"),
-            CheckFileExists = false,
-            CheckPathExists = true,
-            RequireFilterExtension = true,
-            FileName = _baseName + " - " + L("Str_MeasureReport_Title") + "." + extension
-        };
-        if (dialog.ShowDialog(this) != true) return;
+            var dialog = new Controls.FileDialog(Controls.FileDialogMode.Save)
+            {
+                Filter = filter,
+                Title = L("Str_MeasureReport_Title"),
+                CheckFileExists = false,
+                CheckPathExists = true,
+                RequireFilterExtension = true,
+                FileName = _baseName + " - " + L("Str_MeasureReport_Title") + "." + extension
+            };
+            return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+        }
         try
         {
-            File.WriteAllText(dialog.FileName, content(), new UTF8Encoding(true));
-            KillerDialog.Show(this, string.Format(L("Str_MeasureReport_Saved"), Path.GetFileName(dialog.FileName)),
+            if (Services.GatedReportSave.Save(_mayExport, ChoosePath, content) is not string saved) return;
+            KillerDialog.Show(this, string.Format(L("Str_MeasureReport_Saved"), Path.GetFileName(saved)),
                 "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

@@ -174,6 +174,73 @@ public sealed class CliRestrictionTests : IDisposable
         Assert.NotNull(CliProtectionGate.VerbRefusal("--export-form-data", [Pdf(modify: false), InFolder("form.json")],
             new Dictionary<string, string>()));
 
+    // A report verb takes only its input, and what it prints goes to stdout.
+    private static string? Report(string command, string pdf, string? password = null)
+    {
+        var options = new Dictionary<string, string>();
+        if (password is not null) options["--password"] = password;
+        return CliProtectionGate.VerbRefusal(command, [pdf], options);
+    }
+
+    // R4-003: stdout leaves the app, so a report that prints what was written into the file, comment
+    // bodies, measurement values or the page labels beside a recognized field, is a data export.
+    [Theory]
+    [InlineData("--comments")]
+    [InlineData("--measurements")]
+    [InlineData("--recognize-fields")]
+    public void AReportOfWhatTheFileSaysFollowsTheCopyBit(string verb)
+    {
+        string copyForbidden = Pdf(copy: false);
+
+        Assert.NotNull(Report(verb, copyForbidden));
+        Assert.Null(Report(verb, copyForbidden, Owner));
+        Assert.NotNull(Report(verb, Pdf(modify: false)));
+        Assert.Null(Report(verb, Pdf(print: false)));
+        Assert.Null(Report(verb, Pdf(user: Reader), Reader));
+    }
+
+    // The reports that describe the file through its metadata, counts, findings, inks, layer names,
+    // signature state and the names of what it holds stay free, and so does a listing.
+    [Theory]
+    [InlineData("--document-info")]
+    [InlineData("--search-text")]
+    [InlineData("--signatures")]
+    [InlineData("--layers")]
+    [InlineData("--print-production")]
+    [InlineData("--separations")]
+    [InlineData("--preflight")]
+    [InlineData("--accessibility")]
+    [InlineData("--navigation-audit")]
+    [InlineData("--portfolio")]
+    [InlineData("--attachments")]
+    public void AReportThatDescribesTheFileStaysFree(string verb) =>
+        Assert.Null(Report(verb, Pdf(print: false, copy: false, modify: false)));
+
+    [Fact]
+    public void ComparingTwoRestrictedFilesStaysFree()
+    {
+        string first = Pdf(print: false, copy: false, modify: false);
+        string second = Pdf(print: false, copy: false, modify: false);
+
+        Assert.Null(CliProtectionGate.VerbRefusal("--compare-structure", [first, second], new Dictionary<string, string>()));
+    }
+
+    // R4-003: the report verbs read with --password, so a file that needs a user password reports
+    // once it is given, and a password that opens nothing reads nothing.
+    [Fact]
+    public void AReportReadsTheFileWithItsPassword()
+    {
+        string pdf = Pdf(user: Reader);
+
+        PdfDocument? document = CliProtectionGate.OpenForReport(pdf, Reader, out string? refusal);
+
+        Assert.Null(refusal);
+        Assert.NotNull(document);
+        Assert.True(document.IsDecrypted);
+        Assert.Null(CliProtectionGate.OpenForReport(pdf, "wrong", out refusal));
+        Assert.NotNull(refusal);
+    }
+
     // A command that keeps the input's encryption is a save, and one that only reports writes nothing.
     [Theory]
     [InlineData("--rotate-pages")]

@@ -21,8 +21,16 @@ internal static class CliProtectionGate
         ? access.Refusal ?? PdfRestrictions.LockedMessage
         : "Printing is not allowed: the owner of this PDF has restricted printing. Give the owner password with --password.";
 
-    /// <summary>The refusal for a verb, or null. A verb that keeps its input's encryption is a save, and
-    /// one that only reports writes nothing, so neither is listed.</summary>
+    /// <summary>The refusal for a verb, or null. A verb that keeps its input's encryption is a save, so
+    /// it is not listed. A report is a text or data export when it leaves the app, as a saved file or
+    /// as stdout that can be redirected, and reproduces what was written into the document: page text,
+    /// comment bodies with their authors and subjects, form values, table cells, measurement values and
+    /// notes, or attachment bytes. Comments, measurements and the recognize-fields report answer as
+    /// data for that reason. A report that describes the file through its metadata, counts, findings,
+    /// inks, layer names, signature state or the names of what it holds writes none of that, so
+    /// document-info, search-text, signatures, layers, print-production, separations as a listing,
+    /// preflight, accessibility, navigation-audit, compare-structure, portfolio and the attachment
+    /// listing stay free.</summary>
     internal static string? VerbRefusal(string command, IReadOnlyList<string> positionals,
         IReadOnlyDictionary<string, string> options)
     {
@@ -43,8 +51,10 @@ internal static class CliProtectionGate
             case "--export":
                 return OutputRefusal(input, password, options.TryGetValue("--layout", out string? layout)
                     && layout.Equals("images", StringComparison.OrdinalIgnoreCase) ? PdfOutput.Printable : PdfOutput.Data);
-            case "--export-form-data" or "--scan-to-text":
+            case "--export-form-data" or "--scan-to-text" or "--comments" or "--measurements":
                 return OutputRefusal(input, password, PdfOutput.Data);
+            case "--recognize-fields":
+                return positionals.Count == 1 ? OutputRefusal(input, password, PdfOutput.Data) : null;
             case "--attachments":
                 return positionals.Count > 1 ? OutputRefusal(input, password, PdfOutput.Data) : null;
             case "--decrypt" or "--protect":
@@ -69,6 +79,17 @@ internal static class CliProtectionGate
         if (!IsEncrypted(path)) return null;
         PdfAccess access = PdfRestrictions.Read(Path.GetFullPath(path), password);
         return access.MayRemoveProtection ? null : Message(access);
+    }
+
+    /// <summary>Opens a file for a report with the password given, or the empty user password when none
+    /// was. Returns null with the refusal when the password opens nothing.</summary>
+    internal static PdfDocument? OpenForReport(string path, string? password, out string? refusal)
+    {
+        refusal = null;
+        PdfAccess access = PdfRestrictions.Open(File.ReadAllBytes(Path.GetFullPath(path)), password, out PdfDocument? document);
+        if (document is not null) return document;
+        refusal = Message(access);
+        return null;
     }
 
     /// <summary>Opens a file for a command that rewrites it and keeps its protection, the way Reduce

@@ -210,7 +210,8 @@ namespace KillerPDF.Shell
         {
             if (_doc is null) { SetStatus(Loc("Str_Msg_OpenFirst")); return; }
             string name = System.IO.Path.GetFileNameWithoutExtension(_originalFile ?? _currentFile ?? "document");
-            new MeasurementReportDialog(this, ActiveViewer.MeasurementResults(name), name).ShowDialog();
+            new MeasurementReportDialog(this, ActiveViewer.MeasurementResults(name), name,
+                () => EnsureMayWrite(Services.PdfOutput.Data)).ShowDialog();
         }
     }
 }
