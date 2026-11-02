@@ -72,8 +72,19 @@ internal static partial class PdfEngineIntegration
     }
 
     /// <summary>Decides the open of a file whose user password opened it and whose strip failed: true
-    /// sends it read-only to the encrypted original under its key, false to a viewing copy.</summary>
-    internal static bool OpensWhereItLies(string path, string password) => HasSignedSignatures(path, password);
+    /// sends it read-only to the encrypted original under its key, false to a viewing copy. Only a
+    /// signed field or a certification makes the writer refuse the viewing copy; Reader usage rights
+    /// alone do not, so a Reader-extended form keeps the viewing copy.</summary>
+    internal static bool OpensWhereItLies(string path, string password)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(password);
+        byte[] source = File.ReadAllBytes(path);
+        PdfDocument document;
+        try { document = PdfDocument.OpenWithCompatibilityRecovery(source, password); }
+        catch (Exception error) when (error is not OutOfMemoryException) { return false; }
+        return ReadsAsSigned(document, source) || FindCatalogPermissions(document, source) == DamagedSaveRefusal.Certified;
+    }
 
     /// <summary>
     /// Refuses a damaged file a rewrite would strip, for the routes that write a new file without
