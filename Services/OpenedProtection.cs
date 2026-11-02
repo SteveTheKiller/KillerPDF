@@ -22,6 +22,18 @@ internal static class UnlockPrompt
         purpose == UnlockPurpose.Output ? "Str_Protection_Prompt" : "Str_Restricted_Prompt";
 }
 
+/// <summary>What a drag of pages out of a tab may do: go ahead, ask for the owner password first,
+/// or be refused because no password can lift the limit.</summary>
+internal enum PageDragAnswer { Allowed, AskOwner, Refused }
+
+/// <summary>Decides a drag of pages out of a tab into another document. The tab that takes the pages
+/// holds no limit of this file, so a limit keeps them in until the owner lifts it.</summary>
+internal static class PageDragGate
+{
+    internal static PageDragAnswer Decide(OpenedProtection protection, bool ownerRestricted) =>
+        !ownerRestricted && protection.Access.Allows(PdfOutput.Printable) ? PageDragAnswer.Allowed : PageDragAnswer.Refused;
+}
+
 /// <summary>How an owner password prompt on a read-only tab ended.</summary>
 internal enum UnlockOutcome { Unlocked, WrongPassword, Failed }
 
