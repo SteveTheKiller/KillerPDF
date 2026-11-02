@@ -77,6 +77,11 @@ namespace KillerPDF.Controls
             => BeginTabLoad(out prev, out createdNew);
         internal void AbortTabLoadExt(DocumentSession target, DocumentSession? prev, bool createdNew)
             => AbortTabLoad(target, prev, createdNew);
+        internal void AbortPendingTabLoadExt(DocumentSession target) => AbortPendingTabLoad(target);
+        internal void CompleteTabLoadExt()
+        {
+            if (_active != null) _active.LoadRollback = null;
+        }
 
         // ── Session state ────────────────────────────────────────────────────────────────────
         internal void CaptureSessionStateExt(DocumentSession s) => CaptureSessionState(s);

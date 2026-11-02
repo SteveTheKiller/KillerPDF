@@ -35,6 +35,17 @@ Cases:
 | `print-cancel-native` | On a leased UI VM with Microsoft Print to PDF installed, let the real print job open its native output picker. The operator cancels that picker; require the app to close Print Preview without an error dialog. |
 | `merge-failure-pane` | Drop two unreadable owned PDFs through the actual routed event, choose Merge, switch panes while its worker is pending, and require the other pane's unsaved form value to survive failure. |
 | `merge-close-success` | Merge valid owned inputs in pane B, close the split while the worker is pending, and require the completed document to have a visible owning pane while pane A retains its pending edit. |
+| `merge-cancel` | Cancel a pending merge through the real confirmation, preserve the previous form edit, and require extraction cleanup and unchanged sources. |
+| `archive-first-save`, `archive-first-close` | Require Save As and an unsaved-close prompt for a separately opened archive PDF, preserving the form and ZIP bytes on Cancel. |
+| `archive-durable-save` | Save an archived form to a durable PDF and reopen it in a fresh window with the edited value intact. |
+| `archive-responsive` | Process pending dispatcher input before extraction starts, then exercise Separate and Save As. |
+| `archive-cap-cancel`, `archive-tabs-cancel`, `archive-unsafe` | Exercise actual limit, many-tabs and unsafe-path prompts; preserve prior edits and remove abandoned extraction storage. |
+| `archive-mixed` | Keep a PDF and image after canceling a password-required entry, close the imported tabs independently and require process cleanup. |
+| `archive-async-cancel`, `archive-async-cleanup` | Keep extracted input during protected opening, cancel through the real prompt, then save and freshly reopen the prior edit. The cleanup case also requires prompt extraction removal. |
+| `archive-async-empty`, `archive-async-owner-closed`, `archive-async-previous-closed` | Cancel with no previous document or after closing either owning tab. Require a usable surviving or blank session and remove abandoned extraction. |
+| `archive-async-working-copy-failure` | On SN01/SN02 only, deny new files in the owned session folder, observe the working-copy error, restore and prove write access, then save and freshly reopen the prior edit with abandoned extraction removed. |
+| `archive-async-empty-pdf`, `archive-async-repair-failure` | Refuse zero-page encrypted inputs through protected or repair failure, restore the prior edited document, save and reopen it, and remove abandoned extraction. |
+| `archive-window-closed`, `archive-next-prompt-release` | Keep a sibling window alive while closing a pending importing window, or cancel the first member before a later password prompt. Require correct input lifetimes, cleanup, and the sibling edit's Save and fresh reopen. |
 | `radio-accessibility` | Open generated Alpha/Beta radio widgets, require distinct option names on their actual automation peers, select Beta, and verify mutual exclusion. |
 | `radio-name-boundary` | Require /Alpha and Alpha export values to retain distinct names on actual rendered radio peers. |
 | `keyboard-pane-owner` | Tab from pane A's document into pane B's document, route F6, and require only pane B to change view mode. |

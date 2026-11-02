@@ -21,6 +21,14 @@ internal sealed class DropImportBatch(string directory, IReadOnlyList<DropImport
     internal bool Expanded { get; } = expanded;
     internal void KeepFiles() => KeepFiles(Files.Where(file => file.Temporary).Select(file => file.Path));
     internal void KeepFiles(IEnumerable<string> paths) => kept.UnionWith(paths);
+    internal void DiscardFile(string path)
+    {
+        if (!Files.Any(file => file.Temporary && string.Equals(file.Path, path, StringComparison.OrdinalIgnoreCase))) return;
+        kept.Remove(path);
+        try { File.Delete(path); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
     public void Dispose()
     {
         if (kept.Count == 0) { Cleanup(directory); return; }

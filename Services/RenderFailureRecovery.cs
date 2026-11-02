@@ -19,7 +19,8 @@ namespace KillerPDF.Services
 
     /// <summary>How a tab open returned: whether the tab it opened into is still loading on a
     /// background thread, and whether any background open is running in its pane at all.</summary>
-    internal readonly record struct TabOpen(bool TabLoading, bool PaneLoading);
+    internal readonly record struct TabOpen(bool TabLoading, bool PaneLoading,
+        System.Threading.Tasks.Task<bool>? Completion = null);
 
     /// <summary>Protected recovered copies whose open has not finished, by the path they open from. A
     /// protected copy opens like any protected file, after its password or on a background thread, so it

@@ -27,6 +27,8 @@ namespace KillerPDF.Controls
     // PdfViewer.TabStrip.cs. This file is the session model and its lifecycle.
     public partial class PdfViewer
     {
+        internal readonly record struct TabLoadRollback(DocumentSession? Previous, bool CreatedNew);
+
         // One open document. Holds the per-document state that the rest of MainWindow reads
         // and writes through its instance fields. The collection references here ARE the live
         // collections while this session is active.
@@ -64,6 +66,8 @@ namespace KillerPDF.Controls
             public Services.CompleteDocumentSource? CompleteDocumentSource;
             public string? SuggestedName;              // file name offered on the first save of an import with no saved home
             public bool LoadPending;                   // a background open or merge will fill this tab; never reuse it
+            public TabLoadRollback? LoadRollback;
+            public System.Threading.Tasks.TaskCompletionSource<bool>? OpenCompletion;
             public Services.FileRevision? LoadedRevision; // the version of OriginalFile this document last read or wrote
             public double ScrollH;
             public double ScrollV;
@@ -746,6 +750,7 @@ namespace KillerPDF.Controls
             }
             SetActiveSession(target);
             ApplySessionState(target);     // blank live fields (target has no document yet)
+            target.LoadRollback = new TabLoadRollback(prev, createdNew);
             return target;
         }
 
@@ -771,11 +776,38 @@ namespace KillerPDF.Controls
         // Roll back a failed / canceled load started by BeginTabLoad.
         private void AbortTabLoad(DocumentSession target, DocumentSession? prev, bool createdNew)
         {
+            target.LoadRollback = null;
+            target.LoadPending = false;
             if (createdNew) _sessions.Remove(target);
+            if (prev == null || !_sessions.Contains(prev))
+                prev = _sessions.LastOrDefault(session => !ReferenceEquals(session, target)
+                    && (session.Doc != null || session.DeferredPath != null));
+            if (prev == null)
+            {
+                prev = !createdNew && _sessions.Contains(target) ? target : new DocumentSession();
+                if (!_sessions.Contains(prev)) _sessions.Add(prev);
+            }
             SetActiveSession(prev);
-            if (prev != null) { ApplySessionState(prev); RenderActiveSession(); }
-            else { EnsureInitialSession(); RenderActiveSession(); }
+            ApplySessionState(prev);
+            _asyncOpenPending = _sessions.Any(session => session.LoadPending);
+            if (prev.Doc == null && prev.DeferredPath != null) MaterializeDeferred(prev);
+            else RenderActiveSession();
             RebuildTabStrip();
+        }
+
+        private void AbortPendingTabLoad(DocumentSession target)
+        {
+            if (!_sessions.Contains(target) || !ReferenceEquals(_active, target)) return;
+            target.LoadPending = false;
+            if (target.LoadRollback is { } rollback)
+                AbortTabLoad(target, rollback.Previous, rollback.CreatedNew);
+            else
+            {
+                ApplySessionState(target);
+                _asyncOpenPending = _sessions.Any(session => session.LoadPending);
+                RenderActiveSession();
+                RebuildTabStrip();
+            }
         }
 
         // Returns an open session for the given file path (case-insensitive full-path match), or null.
@@ -808,12 +840,16 @@ namespace KillerPDF.Controls
             {
                 SwitchToTab(existing);
                 SetStatus(string.Format(Loc("Str_St_AlreadyOpen"), System.IO.Path.GetFileName(path)));
-                return new Services.TabOpen(existing.LoadPending, _asyncOpenPending);
+                return new Services.TabOpen(existing.LoadPending, _asyncOpenPending,
+                    existing.OpenCompletion?.Task ?? System.Threading.Tasks.Task.FromResult(existing.Doc != null));
             }
 
             var target = BeginTabLoad(out var prev, out bool createdNew);
+            var completion = new System.Threading.Tasks.TaskCompletionSource<bool>(
+                System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+            target.OpenCompletion = completion;
             OpenFile(path);
-            var opened = new Services.TabOpen(target.LoadPending, _asyncOpenPending);
+            var opened = new Services.TabOpen(target.LoadPending, _asyncOpenPending, completion.Task);
             if (_doc == null)
             {
                 // A background open (encryption strip / repair) finalizes this tab itself, so the
@@ -822,11 +858,13 @@ namespace KillerPDF.Controls
                 if (target.LoadPending) return opened;
                 // Open failed, was canceled, or a password prompt was dismissed.
                 AbortTabLoad(target, prev, createdNew);
+                completion.TrySetResult(false);
                 return opened;
             }
             CaptureSessionState(_active!);
             SetTool(_currentTool);   // sync the tool UI to this (new) tab's tool
             RebuildTabStrip();
+            completion.TrySetResult(true);
             return opened;
         }
 

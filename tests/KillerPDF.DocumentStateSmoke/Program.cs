@@ -14,7 +14,7 @@ using KillerPdf.Engine.Documents;
 // This process owns every window, PDF, and setting it creates. Reflection is limited to
 // startup isolation, service initialization, and constructing WPF drag-event data;
 // workflow actions use actual controls and routed events.
-internal static class Program
+internal static partial class Program
 {
     private const BindingFlags Members = BindingFlags.Public | BindingFlags.NonPublic
         | BindingFlags.Instance | BindingFlags.Static;
@@ -69,6 +69,25 @@ internal static class Program
             else if (args[3] == "print-cancel-native") PrintCancelBeforePrepare(nativePrompt: true);
             else if (args[3] == "merge-failure-pane") MergeFailurePane();
             else if (args[3] == "merge-close-success") MergeFailurePane(closeOwner: true);
+            else if (args[3] == "archive-first-save") ArchiveFirstSave();
+            else if (args[3] == "archive-first-close") ArchiveFirstSave(closeUntouched: true);
+            else if (args[3] == "archive-responsive") ArchiveFirstSave(responsive: true);
+            else if (args[3] == "archive-durable-save") ArchiveFirstSave(durableSave: true);
+            else if (args[3] == "archive-cap-cancel") ArchiveAbandon("cap");
+            else if (args[3] == "archive-tabs-cancel") ArchiveAbandon("tabs");
+            else if (args[3] == "archive-unsafe") ArchiveAbandon("unsafe");
+            else if (args[3] == "archive-mixed") ArchiveMixed();
+            else if (args[3] == "archive-async-cancel") ArchiveAsyncCancel();
+            else if (args[3] == "archive-async-empty") ArchiveAsyncCancel(empty: true, cleanup: true);
+            else if (args[3] == "archive-async-owner-closed") ArchiveAsyncCancel(closeOwner: true, cleanup: true);
+            else if (args[3] == "archive-async-previous-closed") ArchiveAsyncCancel(closePrevious: true, cleanup: true);
+            else if (args[3] == "archive-async-cleanup") ArchiveAsyncCancel(cleanup: true);
+            else if (args[3] == "archive-async-working-copy-failure") ArchiveAsyncCancel(workingCopyFailure: true, cleanup: true);
+            else if (args[3] == "archive-async-empty-pdf") ArchiveAsyncCancel(noPages: true, cleanup: true);
+            else if (args[3] == "archive-async-repair-failure") ArchiveAsyncCancel(noPages: true, repair: true, cleanup: true);
+            else if (args[3] == "archive-window-closed") ArchiveClosedWindow();
+            else if (args[3] == "archive-next-prompt-release") ArchiveClosedWindow(releaseAtPrompt: true);
+            else if (args[3] == "merge-cancel") MergeCancellation();
             else if (args[3] == "radio-accessibility") RadioAccessibility();
             else if (args[3] == "radio-name-boundary") RadioAccessibility(slashOption: true);
             else if (args[3] == "keyboard-pane-owner") KeyboardPaneOwner();
@@ -519,7 +538,7 @@ internal static class Program
             Pump(80);
             if (!closeOwner || !switchedDuringWorker || Descendants<TextBlock>(Owner).Any(text => text.IsVisible
                 && text.Text == (string)Owner.FindResource("Str_Drop_Merging"))) continue;
-            if (!Directory.EnumerateFiles(Path.Combine(Folder, "temp"), "Combined-*.pdf").Any()) continue;
+            if (((TextBlock)Owner.FindName("FileNameLabel")).Text != "Combined.pdf") continue;
             Pump(600);
             string name = ((TextBlock)Owner.FindName("FileNameLabel")).Text;
             File.WriteAllText(Path.Combine(Folder, "completed-merge-pane.txt"),

@@ -127,7 +127,7 @@ namespace KillerPDF.Shell
                     handedToMerge = true;
                     OpenMerged(found.Select(file => file.Path).ToList(), batch);
                 }
-                else if (choice == 1) OpenSeparately(found, batch);
+                else if (choice == 1) await OpenSeparately(found, batch);
             }
             finally { if (!handedToMerge) batch.Dispose(); }
         }
@@ -138,7 +138,7 @@ namespace KillerPDF.Shell
             else OpenImagesAsImportedTab([path], Path.GetFileName(path));
         }
 
-        private void OpenSeparately(List<DropImportFile> found, DropImportBatch batch)
+        private async Task OpenSeparately(List<DropImportFile> found, DropImportBatch batch)
         {
             if (found.Count > 30)
             {
@@ -148,14 +148,20 @@ namespace KillerPDF.Shell
             }
             foreach (var file in found)
             {
+                if (_windowResourcesReleased) return;
                 if (PdfImport.IsPdfPath(file.Path))
                 {
                     if (file.Temporary) App.RememberSuggestedName(file.Path, file.SuggestedName);
-                    var previousDocument = _doc;
                     var opened = ActiveViewer.OpenInNewTabExt(file.Path);
-                    if (file.Temporary && (opened.TabLoading || opened.PaneLoading
-                        || _doc is not null && !ReferenceEquals(_doc, previousDocument)))
-                        batch.KeepFiles([file.Path]);
+                    // The batch holds its inputs until this exact open and any repair handoff
+                    // finish. Only an adopted document retains its extracted input afterward.
+                    bool adopted = opened.Completion is not null && await opened.Completion;
+                    if (_windowResourcesReleased) return;
+                    if (file.Temporary)
+                    {
+                        if (adopted) batch.KeepFiles([file.Path]);
+                        else batch.DiscardFile(file.Path);
+                    }
                 }
                 else OpenImagesAsImportedTab([file.Path], file.SuggestedName);
             }

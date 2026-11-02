@@ -305,6 +305,7 @@ namespace KillerPDF.Shell
             }
             SetStatus(string.Format(Loc("Str_Opened"), System.IO.Path.GetFileName(displayPath), pageCount));
             SyncSidebarToDocState(hasDoc: true, startup: false);   // a document is up: open the rail, show page controls
+            ActiveViewer.CompleteTabLoadExt();
         }
 
         // A damaged file reaches its open through a fallback or a repair instead of the protected
@@ -359,6 +360,8 @@ namespace KillerPDF.Shell
             var ct = BeginCancellableOp(Loc("Str_Op_Repair"));
             var owner = AsyncOwner();
             var busy = ShowBusyOverlay(Loc("Str_Busy_Repairing"));
+            bool adopted = false;
+            var completion = owner.Session?.OpenCompletion;
             try
             {
                 // Release any open document before the worker reads the source file.
@@ -419,6 +422,7 @@ namespace KillerPDF.Shell
                                         System.IO.Path.GetFileName(path), _doc.PageCount));
                 HideBusyOverlay(busy);
                 FinalizeAsyncOpen();
+                adopted = true;
                 KillerDialog.Show(this,
                     raster
                         ? string.Format(Loc("Str_Dlg_RepairedRaster"), System.IO.Path.GetFileName(path))
@@ -448,6 +452,12 @@ namespace KillerPDF.Shell
             finally
             {
                 EndCancellableOp(ct);
+                if (!adopted && ReclaimAsyncOwner(owner))
+                {
+                    AbandonFailedOpen();
+                    owner.Viewer.AbortPendingTabLoadExt(owner.Session!);
+                }
+                completion?.TrySetResult(adopted);
             }
         }
 
@@ -533,6 +543,8 @@ namespace KillerPDF.Shell
             var ct = BeginCancellableOp(Loc("Str_Op_Operation"));
             var owner = AsyncOwner();
             var busy = ShowBusyOverlay(busyMessage ?? Loc("Str_Busy_Opening"));
+            var completion = owner.Session?.OpenCompletion;
+            bool adopted = false, handedToRepair = false;
             try
             {
                 _doc?.Close();
@@ -540,7 +552,15 @@ namespace KillerPDF.Shell
                 ProtectedOpen opened = await System.Threading.Tasks.Task.Run(() => ProtectedDocumentFiles.PrepareWorkingCopy(
                     srcPath, repairedPath, (source, working) => PdfImport.TryImportRepairToPath(source, working)));
                 if (!ReclaimAsyncOwner(owner)) { HideBusyOverlay(busy); AbandonProtectedRecovery(displayPath); EndCancellableOp(ct); return; }   // its tab was closed meanwhile
-                if (ct.IsCancellationRequested) { HideBusyOverlay(busy); _asyncOpenPending = false; AbandonProtectedRecovery(displayPath); SetStatus(Loc("Str_St_Canceled")); EndCancellableOp(ct); return; }
+                if (ct.IsCancellationRequested)
+                {
+                    HideBusyOverlay(busy);
+                    AbandonProtectedRecovery(displayPath);
+                    owner.Viewer.AbortPendingTabLoadExt(owner.Session!);
+                    SetStatus(Loc("Str_St_Canceled"));
+                    EndCancellableOp(ct);
+                    return;
+                }
                 if (!opened.Stripped)
                 {
                     HideBusyOverlay(busy);
@@ -550,10 +570,12 @@ namespace KillerPDF.Shell
                     {
                         FinalizeAsyncOpen();
                         CompleteProtectedRecovery(displayPath);
+                        adopted = true;
                         EndCancellableOp(ct);
                         return;
                     }
                     AbandonProtectedRecovery(displayPath);   // a rasterized repair is not the protected copy
+                    handedToRepair = true;
                     TryRepairAndOpen(srcPath);   // re-registers the cancellable op; repair finalizes the tab
                     return;
                 }
@@ -566,6 +588,7 @@ namespace KillerPDF.Shell
                 HideBusyOverlay(busy);
                 FinalizeAsyncOpen();
                 CompleteProtectedRecovery(displayPath);
+                adopted = true;
                 EndCancellableOp(ct);
             }
             catch (WorkingCopyUnavailableException copy)
@@ -574,8 +597,8 @@ namespace KillerPDF.Shell
                 AbandonProtectedRecovery(displayPath);
                 if (ReclaimAsyncOwner(owner))
                 {
-                    _asyncOpenPending = false;
                     ShowWorkingCopyProblem(copy);
+                    owner.Viewer.AbortPendingTabLoadExt(owner.Session!);
                 }
                 EndCancellableOp(ct);
             }
@@ -585,12 +608,16 @@ namespace KillerPDF.Shell
                 AbandonProtectedRecovery(displayPath);
                 if (ReclaimAsyncOwner(owner))
                 {
-                    _asyncOpenPending = false;
                     AbandonFailedOpen();
+                    owner.Viewer.AbortPendingTabLoadExt(owner.Session!);
                     KillerDialog.Show(this, Loc("Str_Err_OpenProtected") + "\n" + ex.Message,
                         "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 EndCancellableOp(ct);
+            }
+            finally
+            {
+                if (!handedToRepair) completion?.TrySetResult(adopted);
             }
         }
 
