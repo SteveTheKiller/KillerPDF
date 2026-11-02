@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Render-failure recovery preserves unsaved edits across panes and detached windows, including edits committed after focus moves, and a recovered document reopens once, with no clean tab of its file beside it.
+- Command-line straightening and text replacement preserve an existing output if copying unchanged input fails.
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
 - Canceling Save Flattened before publication leaves a new destination untouched.
 - Undo and Redo preserve retryable history and the open document when snapshot storage fails.

@@ -307,7 +307,7 @@ namespace KillerPDF.Features
             if (edits.Count == 0)
             {
                 CliEnsureParentDir(output);
-                File.Copy(source, output, overwrite: true);
+                PdfEngineIntegration.ReplaceFileAtomically(source, output);
                 con.WriteLine($"No matches to replace.{turnedNote} -> {output}");
                 return skippedTurned > 0 ? 3 : 0;
             }

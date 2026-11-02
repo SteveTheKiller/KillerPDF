@@ -127,7 +127,7 @@ namespace KillerPDF.Features
             if (tilts.Count == 0)
             {
                 CliEnsureParentDir(output);
-                File.Copy(source, output, overwrite: true);
+                PdfEngineIntegration.ReplaceFileAtomically(source, output);
                 con.WriteLine($"No scanned page needed straightening{skipped} -> {output}");
                 return 0;
             }
