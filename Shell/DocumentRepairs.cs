@@ -11,7 +11,7 @@ public partial class MainWindow
 {
     private void OpenPreflightTools() => OpenExchangeCommands("Str_DocumentTools_Preflight",
         ("Str_DocumentTools_Preflight", () => ShowDocumentReport(Loc("Str_DocumentTools_Preflight"),
-            (path, _) => PdfEngineIntegration.InspectPreflight(path).ToText())),
+            (path, protection) => PdfEngineIntegration.InspectPreflight(path, protection).ToText())),
         ("Str_DocumentTools_PreflightProfile", PreflightWithProfileFile),
         ("Str_Repair_Language", SetPreflightLanguage),
         ("Str_Repair_Metadata", FillMissingMetadata),
@@ -36,7 +36,7 @@ public partial class MainWindow
             return;
         }
         ShowDocumentReport(Loc("Str_DocumentTools_PreflightProfile"),
-            (path, _) => PdfEngineIntegration.InspectPreflight(path, profile).ToText());
+            (path, protection) => PdfEngineIntegration.InspectPreflight(path, profile, protection).ToText());
     }
 
     private void SetPreflightLanguage()

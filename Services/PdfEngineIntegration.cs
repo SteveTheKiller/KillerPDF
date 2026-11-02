@@ -243,14 +243,12 @@ internal static partial class PdfEngineIntegration
         PdfPrintProductionReport.Inspect(OpenTabFile(path, protection));
 
     /// <summary>Runs the complete built-in print-production preflight profile.</summary>
-    internal static PdfPreflightReport InspectPreflight(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfPreflightRunner.Run(File.ReadAllBytes(path), PdfPreflightProfile.PrintProduction);
-    }
+    internal static PdfPreflightReport InspectPreflight(string path, OpenedProtection? protection = null) =>
+        InspectPreflight(path, PdfPreflightProfile.PrintProduction, protection);
 
     /// <summary>Runs a caller-supplied preflight profile, such as one loaded from a profile file.</summary>
-    internal static PdfPreflightReport InspectPreflight(string path, PdfPreflightProfile profile)
+    internal static PdfPreflightReport InspectPreflight(string path, PdfPreflightProfile profile,
+        OpenedProtection? protection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(profile);
