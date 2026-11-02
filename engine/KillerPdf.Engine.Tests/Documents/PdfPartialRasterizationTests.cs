@@ -53,6 +53,31 @@ public sealed class PdfPartialRasterizationTests
         Assert.Empty(outside.Shadings);
     }
 
+    // The dialog says so: the image goes on top, and the text under it stays in the file.
+    [Fact]
+    public void ApplyKeepsTextInsideTheRegionOnAnUntaggedPage()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(200, 100, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(20, 40).ShowLatin1Text("inside").EndText()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(120, 40).ShowLatin1Text("outside").EndText())
+            .Build();
+        PdfDocument document = PdfDocument.Open(source);
+        PdfPageContent page = new PdfPageContentReader(document).Read(0);
+        PdfPartialRasterizationPlan plan = PdfPartialRasterization.Plan(
+            page, new PdfContentBounds(10, 30, 100, 60), 72);
+        Assert.NotEmpty(plan.TextRuns);
+
+        byte[] changed = PdfPartialRasterization.Apply(document, 0, plan,
+            PdfImage.FromRgb(plan.PixelWidth, plan.PixelHeight, new byte[plan.PixelWidth * plan.PixelHeight * 3]));
+
+        string[] words = [.. new PdfPageContentReader(PdfDocument.Open(changed)).Read(0).GetWords().Select(word => word.Text)];
+        Assert.Contains("inside", words);
+        Assert.Contains("outside", words);
+    }
+
     [Fact]
     public void ApplyClipsOriginalContentOutsideRegionAndPlacesExactRaster()
     {
