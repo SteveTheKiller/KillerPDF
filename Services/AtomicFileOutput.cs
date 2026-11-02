@@ -94,6 +94,7 @@ internal static class AtomicFileOutput
     private static void Publish(string temporary, string destination, CancellationToken cancellation, FileOperations files, ref bool retainTemporary)
     {
         string backup = TemporaryPath(destination) + ".bak";
+        bool mutationAttempted = false;
         try
         {
             cancellation.ThrowIfCancellationRequested();
@@ -103,6 +104,7 @@ internal static class AtomicFileOutput
                 // native failures that remove the old destination name before returning an error.
                 try
                 {
+                    mutationAttempted = true;
                     files.Replace(temporary, destination, backup);
                     TryDelete(backup, files);
                     return;
@@ -114,15 +116,19 @@ internal static class AtomicFileOutput
             if (File.Exists(destination))
             {
                 if (File.Exists(backup)) { retainTemporary = true; throw new IOException("The replacement left both destination and backup files."); }
+                mutationAttempted = true;
                 files.Move(destination, backup);
                 retainTemporary = true;
             }
+            mutationAttempted = true;
             files.Move(temporary, destination);
             retainTemporary = false;
             TryDelete(backup, files);
         }
         catch (Exception publicationError)
         {
+            // Before any rename or replacement, cancellation has nothing to restore.
+            if (publicationError is OperationCanceledException && !mutationAttempted) throw;
             if (!File.Exists(destination))
             {
                 retainTemporary = true;

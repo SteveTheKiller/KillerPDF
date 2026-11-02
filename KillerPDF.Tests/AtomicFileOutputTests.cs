@@ -6,6 +6,30 @@ namespace KillerPDF.Tests;
 
 public sealed class AtomicFileOutputTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CancellationBeforePublicationLeavesDestinationUntouched(bool existing)
+    {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string destination = Path.Combine(directory, "document.pdf");
+        if (existing) File.WriteAllText(destination, "Original");
+        using var cancellation = new CancellationTokenSource();
+        try
+        {
+            Assert.ThrowsAny<OperationCanceledException>(() => AtomicFileOutput.Write(destination, stream =>
+            {
+                stream.Write("Canceled replacement"u8);
+                cancellation.Cancel();
+            }, cancellation.Token));
+            Assert.Equal(existing, File.Exists(destination));
+            if (existing) Assert.Equal("Original", File.ReadAllText(destination));
+            Assert.Equal(existing ? new[] { destination } : Array.Empty<string>(), Directory.GetFiles(directory));
+        }
+        finally { Directory.Delete(directory, true); }
+    }
+
     // A forced disk flush costs about 1.5 ms per file, which made a 15,000-file batch resave
     // 19% slower than 1.8.91. The flush only protects an older copy of the destination, so a
     // bulk write skips it for a file that does not exist yet and keeps it for a replacement.
