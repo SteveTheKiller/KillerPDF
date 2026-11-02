@@ -18,14 +18,21 @@ internal static class AccessibilityReviewSource
         try
         {
             document.Save(tempPath);
-            PdfEngineIntegration.ApplyFormValues(tempPath, formValues);
+            PdfEngineIntegration.ApplyFormValues(tempPath, formValues, protection);
             return File.ReadAllBytes(tempPath);
         }
         finally { File.Delete(tempPath); }
     }
 
-    /// <summary>Opens a snapshot for the review.</summary>
-    internal static PdfDocument Open(byte[] source, OpenedProtection? protection) => PdfDocument.Open(source);
+    /// <summary>Opens a snapshot for the review. A plain snapshot opens strictly, as it always has, and
+    /// one that is still encrypted opens under the tab's protection: its empty password for an
+    /// owner-only file, or the key the tab holds for a signed file that needs a password.</summary>
+    internal static PdfDocument Open(byte[] source, OpenedProtection? protection)
+    {
+        PdfDocument document = PdfDocument.Open(source);
+        return document.IsEncrypted && !document.IsDecrypted
+            ? PdfEngineIntegration.OpenForReading(source, protection) : document;
+    }
 
     /// <summary>Inspects a snapshot for the review.</summary>
     internal static PdfAccessibilityReport Inspect(byte[] source, OpenedProtection? protection) =>

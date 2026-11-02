@@ -950,6 +950,22 @@ internal static partial class PdfEngineIntegration
         return kept;
     }
 
+    /// <summary>The same batch for a copy of a tab's file. A copy that is still encrypted, because the tab
+    /// reads its original where it lies, takes the values under the tab's protection, as an encrypted
+    /// revision the way a restricted fill is saved.</summary>
+    internal static IReadOnlyCollection<string> ApplyFormValues(string path, FormEdits edits, OpenedProtection? protection)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(edits);
+        if (!HasFormValues(edits)) return [];
+        byte[] source = File.ReadAllBytes(path);
+        PdfDocument document = PdfDocument.Open(source);
+        if (document.IsEncrypted && !document.IsDecrypted) document = OpenForReading(source, protection);
+        byte[] built = BuildFormValues(document, edits, out IReadOnlyCollection<string> kept);
+        ReplaceWithBuiltResult(path, built);
+        return kept;
+    }
+
     private static bool HasFormValues(FormEdits edits) =>
         edits.TextValues.Count != 0 || edits.ChoiceValues.Count != 0 || edits.MultiChoiceValues.Count != 0
         || edits.CheckBoxValues.Count != 0 || edits.RadioValues.Count != 0 || edits.TextFontSizes.Count != 0;
