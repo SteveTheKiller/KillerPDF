@@ -171,14 +171,36 @@ public sealed class CliExitCodeTests : IDisposable
         Assert.NotEmpty(Directory.GetFiles(allowed));
     }
 
-    // Only the refusals run here, since a permitted print would reach a real printer.
+    [Fact]
+    public void FlatteningGivesARestrictedPdfOnlyToTheOwnerPassword()
+    {
+        string pdf = RestrictedPdf("restricted-flatten.pdf");
+        string refused = Path.Combine(folder, "refused-flat.pdf"), allowed = Path.Combine(folder, "allowed-flat.pdf");
+
+        Assert.Equal(1, Run("--flatten", pdf, refused));
+        Assert.False(File.Exists(refused));
+        Assert.Equal(0, Run("--flatten", pdf, allowed, "--password", "owner-password"));
+        Assert.True(File.Exists(allowed));
+    }
+
+    // Only the refusals run here, and they name a printer that cannot exist, so a gate that failed
+    // would end at "printer not found" (2) and never reach a real printer.
     [Fact]
     public void PrintingRefusesAPdfThatForbidsItUnlessTheOwnerPasswordIsGiven()
     {
         string pdf = RestrictedPdf("no-print.pdf", mayPrint: false);
 
-        Assert.Equal(1, Run("--print", pdf));
-        Assert.Equal(1, Run("--print", pdf, "--password", "wrong"));
+        Assert.Equal(1, Run("--print", pdf, "--printer", "KillerPDF-no-such-printer"));
+        Assert.Equal(1, Run("--print", pdf, "--printer", "KillerPDF-no-such-printer", "--password", "wrong"));
+    }
+
+    // A PDF whose owner forbids only editing may still be printed, so print is not held to the edit limit.
+    [Fact]
+    public void PrintingIsNotHeldToTheEditRestriction()
+    {
+        string pdf = RestrictedPdf("edit-only.pdf");
+
+        Assert.Equal(2, Run("--print", pdf, "--printer", "KillerPDF-no-such-printer"));
     }
 
     private string Blank(string name)

@@ -1316,10 +1316,13 @@ namespace KillerPDF.Features
         // ============================================================
         // A PDF whose owner forbids editing gives up its pages as images and its embedded files only to
         // the owner password, the way the app asks for it before it exports them.
+        private const string RestrictedContentMessage =
+            "The owner of this PDF has restricted editing, so its content leaves it only with the owner password. Give it with --password.";
+
         private static bool CliRefusesRestricted(string inPath, string? password, TextWriter con)
         {
             if (!PdfEngineIntegration.IsRestrictedForPassword(inPath, password ?? "")) return false;
-            con.WriteLine("The owner of this PDF has restricted editing, so its content leaves it only with the owner password. Give it with --password.");
+            con.WriteLine(RestrictedContentMessage);
             return true;
         }
 
@@ -1630,10 +1633,14 @@ namespace KillerPDF.Features
         // rotate the pixel buffers afterward (BitmapHelpers.RotateBitmap).
         // Falls back to rendering the file as-is when PdfSharpCore cannot open
         // it after compatibility recovery; callers then derive
-        // dimensions from the rendered pixels.
+        // dimensions from the rendered pixels. Every command that writes what it renders into a file
+        // gets a PDF whose owner forbids editing only with the owner password; print passes
+        // ownerOnly: false because it answers to the print permission instead.
         private static (string RenderPath, int[]? Rotations, (double WPt, double HPt)[]? Dims)
-            CliPrepareRenderSource(string inPath, string? password, TextWriter con)
+            CliPrepareRenderSource(string inPath, string? password, TextWriter con, bool ownerOnly = true)
         {
+            if (ownerOnly && PdfEngineIntegration.IsRestrictedForPassword(inPath, password ?? ""))
+                throw new InvalidOperationException(RestrictedContentMessage);
             string workPath = inPath;
             if (PdfImport.PdfFileHasEncryption(inPath))
             {
@@ -1976,7 +1983,7 @@ namespace KillerPDF.Features
                 con.WriteLine("Printing is not allowed: the owner of this PDF has restricted printing. Give the owner password with --password.");
                 return 1;
             }
-            var (renderPath, rotations, _) = CliPrepareRenderSource(inPath, password, con);
+            var (renderPath, rotations, _) = CliPrepareRenderSource(inPath, password, con, ownerOnly: false);
 
             // Resolve the print queue. Match --printer against FullName,
             // exact first then substring, both case-insensitive.
