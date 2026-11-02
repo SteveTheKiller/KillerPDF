@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
-- Render-failure recovery preserves unsaved edits across panes and detached windows, including edits committed after focus moves.
+- Render-failure recovery preserves unsaved edits across panes and detached windows, including edits committed after focus moves, and a recovered document reopens once, with no clean tab of its file beside it.
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
 - Undo and Redo preserve retryable history and the open document when snapshot storage fails.
 - Password-protected PDFs open when their writer left XMP metadata unencrypted, and PDFs whose user password forbids editing open read-only with an option to enter the owner password. (#470)
