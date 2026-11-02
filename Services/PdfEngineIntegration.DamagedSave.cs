@@ -298,7 +298,6 @@ internal static partial class PdfEngineIntegration
         catch (Exception error) when (error is not OutOfMemoryException) { return false; }
     }
 
-    /// <summary>Authenticates and fully rewrites a PDF without password encryption.</summary>
     /// <summary>Lifts an owner restriction. A source with no encryption cannot prove the password,
     /// so unlocking refuses it rather than accepting anything.</summary>
     internal static void UnlockWithPassword(string sourcePath, string destinationPath, string password)
@@ -323,6 +322,7 @@ internal static partial class PdfEngineIntegration
             new PdfDocumentWriteOptions { RemoveEncryption = true, ForRestrictedViewing = true }));
     }
 
+    /// <summary>Authenticates and fully rewrites a PDF without password encryption.</summary>
     internal static void RemoveEncryption(
         string sourcePath, string destinationPath, string password)
     {

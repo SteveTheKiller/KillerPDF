@@ -738,7 +738,6 @@ public static class PdfScanTextWriter
     private static double PixelSize(TrueTypeFont font, PdfScanTextWord word) =>
         word.CapitalsOnly ? word.CapHeight / CapHeightRatio(font) : word.XHeight / XHeightRatio(font);
 
-    /// <summary>The face's x-height as a fraction of its em, from its OS/2 table when present.</summary>
     /// <summary>The point size at which a face matches a line's measured letter height.</summary>
     public static double FontSizeFor(PdfScanTextFace face, double xHeightPixels, double capHeightPixels,
         bool capitalsOnly, double pointsPerPixel)
@@ -748,6 +747,7 @@ public static class PdfScanTextWriter
             : xHeightPixels / XHeightRatio(face.Regular)) * pointsPerPixel;
     }
 
+    /// <summary>The face's x-height as a fraction of its em, from its OS/2 table when present.</summary>
     internal static double XHeightRatio(TrueTypeFont font) => Os2Ratio(font, 86, 0.5, 0.3, 0.7);
 
     /// <summary>The face's capital height as a fraction of its em, from its OS/2 table when present.</summary>
