@@ -247,6 +247,8 @@
     <sys:String x:Key="Str_Restricted_Dismiss">閉じる</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} の編集制限を解除しました</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">この PDF の所有者パスワードではありません。</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">「{0}」は印刷が制限されています。印刷するには所有者パスワードを入力してください。</sys:String>
+    <sys:String x:Key="Str_Print_Refused">印刷は許可されていません。この PDF の所有者が印刷を制限しており、所有者パスワードでのみ解除できます。</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">「{0}」は編集が制限されているため、KillerPDF で開くには所有者パスワードが必要です。</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} を開きました (読み取り専用 - 非標準 XRef テーブル) - {1} ページ</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">{0} を開きました (修復済みコピー - 変更を保存するには保存が必要) - {1} ページ</sys:String>
@@ -2030,5 +2032,4 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_Macro_OutputNameDrift">マクロの出力名が、承認された計画と異なります。</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">ダウンロードした更新を検証できなかったため、破棄しました。何もインストールされていません。</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">文書が変更されました。これらの墨消しマークをクリアして、もう一度検索してください。</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">タグ付きPDFではアクセシビリティタグを保持する必要があるため、領域のラスタライズはまだ利用できません。文書は変更されていません。</sys:String>
 </ResourceDictionary>

@@ -1314,6 +1314,15 @@ namespace KillerPDF.Features
         // ============================================================
         // --attachments <in.pdf> [<outDir>] [--json]
         // ============================================================
+        // A PDF whose owner forbids editing gives up its pages as images and its embedded files only to
+        // the owner password, the way the app asks for it before it exports them.
+        private static bool CliRefusesRestricted(string inPath, string? password, TextWriter con)
+        {
+            if (!PdfEngineIntegration.IsRestrictedForPassword(inPath, password ?? "")) return false;
+            con.WriteLine("The owner of this PDF has restricted editing, so its content leaves it only with the owner password. Give it with --password.");
+            return true;
+        }
+
         private static int CliAttachments(
             List<string> pos, Dictionary<string, string> options, TextWriter con)
         {
@@ -1353,6 +1362,8 @@ namespace KillerPDF.Features
                 con.WriteLine("The document has no embedded files.");
                 return 0;
             }
+            options.TryGetValue("--password", out var password);
+            if (CliRefusesRestricted(inPath, password, con)) return 1;
             Directory.CreateDirectory(outDir);
             IReadOnlyList<string> written;
             try
@@ -1728,9 +1739,10 @@ namespace KillerPDF.Features
             bool transparent = fmt == "png" && options.ContainsKey("--transparent");
             bool allowIncomplete = options.ContainsKey("--allow-incomplete");
             var incomplete = new IncompletePageLog();
+            options.TryGetValue("--password", out var password);
+            if (CliRefusesRestricted(inPath, password, con)) return 1;
             Directory.CreateDirectory(outDir);
 
-            options.TryGetValue("--password", out var password);
             var (renderPath, rotations, _) = CliPrepareRenderSource(inPath, password, con);
 
             using var renderSession =
@@ -1957,6 +1969,13 @@ namespace KillerPDF.Features
             var incomplete = new IncompletePageLog();
 
             options.TryGetValue("--password", out var password);
+            // The file's own print permission stands unless --password is its owner password.
+            PrintAllowance printAllowance = PrintPermission.ForPassword(inPath, password);
+            if (printAllowance == PrintAllowance.Forbidden)
+            {
+                con.WriteLine("Printing is not allowed: the owner of this PDF has restricted printing. Give the owner password with --password.");
+                return 1;
+            }
             var (renderPath, rotations, _) = CliPrepareRenderSource(inPath, password, con);
 
             // Resolve the print queue. Match --printer against FullName,
@@ -1983,11 +2002,12 @@ namespace KillerPDF.Features
                 queue = LocalPrintServer.GetDefaultPrintQueue();
             }
 
-            // Rasterize the selected pages at 300 dpi, rotation-corrected.
+            // Rasterize the selected pages at 300 dpi (150 where only low quality printing is allowed),
+            // rotation-corrected.
             using var document = new PrintRasterDocument(copies);
             List<int> selected;
             using (var renderSession = PdfPageRenderSession.OpenEngineFirst(
-                renderPath, 300.0 / 72.0))
+                renderPath, PrintPermission.Dpi(printAllowance) / 72.0))
             {
                 int pageCount = renderSession.PageCount;
                 if (options.TryGetValue("--pages", out var rangeSpec))

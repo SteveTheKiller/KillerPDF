@@ -27,6 +27,8 @@ public sealed class RestrictedExportGateTests
     [InlineData("Shell/ProductionTools.cs", "ReferenceEquals(_doc, sourceDocument)", "string[] sourcePaths")]
     [InlineData("Shell/DocumentTools.cs", "private async void RunDataMerge()", "Str_DataMerge_SelectData")]
     [InlineData("Shell/MacroDataMerge.cs", "if (!batch && !sourceCurrent())", "snapshot = WriteSavedCopyToTemp()")]
+    [InlineData("Shell/FileOperations.cs", "private async Task ExportImagesFlow(", "EnsureEngineDocumentSession()")]
+    [InlineData("Shell/SidebarPanels.cs", "private void SaveAttachmentCopy(", "var dialog = new Controls.FileDialog")]
     public void OutputPathsAskForTheOwnerPasswordFirst(string file, string start, string end)
     {
         string source = Read(file);
@@ -37,6 +39,36 @@ public sealed class RestrictedExportGateTests
         int to = source.IndexOf(end, from, StringComparison.Ordinal);
         Assert.True(to > from, end);
         Assert.Matches(@"Ensure(Document)?Editable\(", source[from..to]);
+    }
+
+    // The unlock reopens the document and drops the page selection, so these end the command and the
+    // user repeats it on the unlocked document.
+    [Theory]
+    [InlineData("Shell/FileOperations.cs", "private async Task ExportImagesFlow(", "EnsureEngineDocumentSession()")]
+    [InlineData("Shell/SidebarPanels.cs", "private void SaveAttachmentCopy(", "var dialog = new Controls.FileDialog")]
+    public void ImagesAndAttachmentsEndTheCommandAfterTheUnlock(string file, string start, string end)
+    {
+        string source = Read(file);
+        int from = source.IndexOf(start, StringComparison.Ordinal);
+        Assert.True(from >= 0, start);
+        int to = source.IndexOf(end, from, StringComparison.Ordinal);
+        Assert.True(to > from, end);
+        Assert.Contains("EnsureEditable(continueAfterUnlock: false)", source[from..to], StringComparison.Ordinal);
+    }
+
+    // Printing is not editing: a PDF whose owner forbids only printing still opens for editing, so the
+    // print command reads the print permission itself instead of asking EnsureEditable.
+    [Fact]
+    public void PrintingReadsThePrintPermissionBeforeItPreparesAnything()
+    {
+        string source = Read("Shell/FileOperations.cs");
+        int from = source.IndexOf("private void Print_Click(", StringComparison.Ordinal);
+        int to = source.IndexOf("private async void RunPrintFlow(", from, StringComparison.Ordinal);
+        Assert.True(from >= 0 && to > from);
+        string body = source[from..to];
+        Assert.Contains("TryAllowPrinting(", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("EnsureEditable(", body, StringComparison.Ordinal);
+        Assert.True(body.IndexOf("TryAllowPrinting(", StringComparison.Ordinal) < body.IndexOf("RunPrintFlow(", StringComparison.Ordinal));
     }
 
     [Fact]

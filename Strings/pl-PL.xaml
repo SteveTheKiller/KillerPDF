@@ -247,6 +247,8 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_Restricted_Dismiss">Zamknij</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">Odblokowano {0} do edycji</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">To nie jest hasło właściciela tego pliku PDF.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">Plik „{0}” ogranicza drukowanie. Wprowadź hasło właściciela, aby go wydrukować.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Drukowanie jest niedozwolone. Właściciel tego pliku PDF ograniczył drukowanie, a ograniczenie znosi tylko hasło właściciela.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">Plik „{0}” ogranicza edycję, więc KillerPDF potrzebuje hasła właściciela, aby go otworzyć.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Otwarto {0} (tylko do odczytu - niestandardowa tabela XRef) - {1} stronę(y)</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Otwarto naprawioną kopię {0} (zapisz, aby zachować zmiany) - {1} stronę(y)</sys:String>
@@ -2018,5 +2020,4 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_Macro_OutputNameDrift">Nazwa wyjścia makra różni się od zatwierdzonego planu.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Nie udało się zweryfikować pobranej aktualizacji, więc została odrzucona. Nic nie zostało zainstalowane.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Dokument się zmienił. Usuń te oznaczenia zaczernienia i wyszukaj ponownie.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">Rasteryzacja obszaru nie jest jeszcze dostępna dla oznakowanych plików PDF, ponieważ ich znaczniki dostępności muszą zostać zachowane. Dokument nie został zmieniony.</sys:String>
 </ResourceDictionary>

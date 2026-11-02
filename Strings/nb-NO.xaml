@@ -247,6 +247,8 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_Restricted_Dismiss">Lukk</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} er låst opp for redigering</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Det er ikke eierpassordet for denne PDF-en.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">«{0}» begrenser utskrift. Skriv inn eierpassordet for å skrive den ut.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Utskrift er ikke tillatt. Eieren av denne PDF-en har begrenset utskrift, og bare eierpassordet opphever begrensningen.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» begrenser redigering, så KillerPDF trenger eierpassordet for å åpne den.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Åpnet {0} (skrivebeskyttet, ikke-standard XRef-tabell) - {1} side(r)</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Åpnet {0} (reparert kopi, lagre for å beholde endringer) - {1} side(r)</sys:String>
@@ -2030,5 +2032,4 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_Macro_OutputNameDrift">Utdatanavnet for makroen avviker fra den godkjente planen.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Den nedlastede oppdateringen kunne ikke bekreftes og ble forkastet. Ingenting ble installert.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Dokumentet er endret. Fjern disse sladdemarkeringene og søk på nytt.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">Rasterisering av områder er ennå ikke tilgjengelig for taggede PDF-filer fordi tilgjengelighetstaggene må bevares. Dokumentet er ikke endret.</sys:String>
 </ResourceDictionary>

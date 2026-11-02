@@ -247,6 +247,8 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_Restricted_Dismiss">Zavřít</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">Soubor {0} je odemčen pro úpravy</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Toto není heslo vlastníka tohoto PDF.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">Soubor „{0}“ omezuje tisk. Pro tisk zadejte heslo vlastníka.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Tisk není povolen. Vlastník tohoto PDF omezil tisk a omezení zruší pouze heslo vlastníka.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">Soubor „{0}“ omezuje úpravy, proto KillerPDF k jeho otevření potřebuje heslo vlastníka.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Otevřeno {0} (jen pro čtení - nestandardní tabulka XRef) - stránek: {1}</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Otevřeno {0} (opravená kopie - změny zachováte uložením) - stránek: {1}</sys:String>
@@ -2015,5 +2017,4 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_Macro_OutputNameDrift">Název výstupu makra se liší od schváleného plánu.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Staženou aktualizaci nebylo možné ověřit, proto byla zahozena. Nic nebylo nainstalováno.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Dokument se změnil. Vymažte tyto značky redakce a hledejte znovu.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">Rasterizace oblasti zatím není dostupná pro tagované PDF, protože je nutné zachovat jejich tagy přístupnosti. Dokument nebyl změněn.</sys:String>
 </ResourceDictionary>

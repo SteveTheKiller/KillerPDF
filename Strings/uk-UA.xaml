@@ -247,6 +247,8 @@
     <sys:String x:Key="Str_Restricted_Dismiss">Закрити</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} розблоковано для редагування</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Це не пароль власника цього PDF.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">«{0}» обмежує друк. Введіть пароль власника, щоб надрукувати його.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Друк заборонено. Власник цього PDF обмежив друк, і зняти обмеження може лише пароль власника.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» обмежує редагування, тому KillerPDF потрібен пароль власника, щоб відкрити його.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Відкрито {0} (лише для читання - нестандартна таблиця XRef) - сторінок: {1}</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Відкрито {0} (відновлена копія - збережіть, щоб зберегти зміни) - сторінок: {1}</sys:String>
@@ -2030,5 +2032,4 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Macro_OutputNameDrift">Назва виходу макросу відрізняється від затвердженого плану.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Не вдалося перевірити завантажене оновлення, тому його відхилено. Нічого не встановлено.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Документ змінився. Очистьте ці позначки вилучення вмісту та повторіть пошук.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">Растеризація області поки що недоступна для PDF із тегами, оскільки необхідно зберегти їхні теги доступності. Документ не змінено.</sys:String>
 </ResourceDictionary>

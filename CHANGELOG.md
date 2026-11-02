@@ -28,6 +28,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Rasterize Region works on tagged PDFs and keeps their accessibility tags. (#369)
 - Form buttons and signed signature fields redraw correctly when their visibility changes.
 - Export Pages as Images measures its scale from the page's real image size, so x1 no longer overstates it. (#462)
+- Printing honors a PDF's print permission, in the app and in the print command: a PDF whose owner forbids printing asks for the owner password, and one that allows only low quality printing prints at 150 DPI.
 - Comment export and import preserve PDF dates with time zone offsets.
 - Repeated content appends keep PDF drawing instructions separate.
 - Saved signatures support mouse drag, click placement, and keyboard selection, with visible placement instructions.

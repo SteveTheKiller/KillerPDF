@@ -229,6 +229,8 @@
     <sys:String x:Key="Str_Restricted_Dismiss">বন্ধ করুন</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} সম্পাদনার জন্য আনলক হয়েছে</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">এটি এই PDF-এর মালিকের পাসওয়ার্ড নয়।</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” মুদ্রণ সীমিত করে। মুদ্রণ করতে মালিকের পাসওয়ার্ড দিন।</sys:String>
+    <sys:String x:Key="Str_Print_Refused">মুদ্রণের অনুমতি নেই। এই PDF-এর মালিক মুদ্রণ সীমিত করেছেন, আর শুধু মালিকের পাসওয়ার্ড দিলেই এই সীমা তোলা যায়।</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” সম্পাদনা সীমিত করে, তাই এটি খুলতে KillerPDF-এর মালিকের পাসওয়ার্ড প্রয়োজন।</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} খোলা হয়েছে (শুধুমাত্র পঠনযোগ্য - অ-মানক XRef টেবিল) - {1} পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">{0} খোলা হয়েছে (মেরামত করা কপি - পরিবর্তন রাখতে সংরক্ষণ করুন) - {1} পৃষ্ঠা</sys:String>
@@ -2010,5 +2012,4 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_Macro_OutputNameDrift">ম্যাক্রোর আউটপুট নাম অনুমোদিত পরিকল্পনা থেকে আলাদা।</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">ডাউনলোড করা আপডেটটি যাচাই করা যায়নি এবং এটি বাতিল করা হয়েছে। কিছুই ইনস্টল করা হয়নি।</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">নথিটি পরিবর্তিত হয়েছে। এই রিড্যাকশন চিহ্নগুলো মুছে আবার অনুসন্ধান করুন।</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">ট্যাগযুক্ত PDF-এর অ্যাক্সেসিবিলিটি ট্যাগ সংরক্ষণ করতে হয়, তাই এখনো এগুলোর কোনো অঞ্চলকে ছবিতে রূপান্তর করা যায় না। নথিটি পরিবর্তন করা হয়নি।</sys:String>
 </ResourceDictionary>

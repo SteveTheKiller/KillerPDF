@@ -169,6 +169,8 @@
     <sys:String x:Key="Str_Restricted_Dismiss">Жабу</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} өңдеу үшін ашылды</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Бұл осы PDF иесінің құпиясөзі емес.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">«{0}» басып шығаруды шектейді. Басып шығару үшін иесінің құпиясөзін енгізіңіз.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Басып шығаруға рұқсат жоқ. Бұл PDF иесі басып шығаруды шектеген, шектеуді тек иесінің құпиясөзі алып тастайды.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» өңдеуді шектейді, сондықтан KillerPDF оны ашу үшін иесінің құпиясөзін қажет етеді.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} ашылды (тек оқу - стандартты емес XRef кестесі) - {1} бет</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">{0} ашылды (жөнделген көшірме - өзгерістерді сақтаңыз) - {1} бет</sys:String>
@@ -2033,5 +2035,4 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Macro_OutputNameDrift">Макрос шығысының атауы бекітілген жоспардан өзгеше.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Жүктелген жаңартуды тексеру мүмкін болмады, сондықтан ол жойылды. Ештеңе орнатылған жоқ.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Құжат өзгерді. Осы жасыру белгілерін өшіріп, қайта іздеңіз.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">Белгіленген PDF файлдарында қолжетімділік тегтерін сақтау қажет болғандықтан, аймақты растрлау әзірге қолжетімсіз. Құжат өзгертілген жоқ.</sys:String>
 </ResourceDictionary>

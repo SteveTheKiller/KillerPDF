@@ -247,6 +247,8 @@
     <sys:String x:Key="Str_Restricted_Dismiss">Закрыть</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} разблокирован для редактирования</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Это не пароль владельца этого PDF.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">«{0}» ограничивает печать. Введите пароль владельца, чтобы распечатать его.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Печать запрещена. Владелец этого PDF ограничил печать, и снять ограничение может только пароль владельца.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» ограничивает редактирование, поэтому KillerPDF нужен пароль владельца, чтобы открыть его.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Открыто {0} (только-для-чтения - не-стандартная XRef таблица) - {1} страница(ы)</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Открыто {0} (восстановленная копия - сохраните, чтобы сохранить изменения) - {1} страница(ы)</sys:String>
@@ -2033,5 +2035,4 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Macro_OutputNameDrift">Имя выходного файла макроса отличается от утверждённого плана.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Не удалось проверить загруженное обновление, поэтому оно было удалено. Ничего не установлено.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Документ изменился. Удалите эти отметки удаления содержимого и выполните поиск заново.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">Растеризация области пока недоступна для PDF с тегами, поскольку необходимо сохранить их теги доступности. Документ не изменен.</sys:String>
 </ResourceDictionary>

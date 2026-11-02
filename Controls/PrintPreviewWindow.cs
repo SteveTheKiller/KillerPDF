@@ -29,6 +29,7 @@ namespace KillerPDF
         private readonly double[] _pageDipW;   // true physical page size in DIPs (for exact scaling)
         private readonly double[] _pageDipH;
         private readonly string  _renderPath;  // annotation-burned source PDF, re-read to rasterize at 300 DPI on print
+        private readonly double  _printDpi;    // 300, or 150 for a PDF whose owner allows only low quality printing
         private readonly string? _cleanupPath; // temp flattened file owned by this window; deleted on close
 
         private int _loadedCount;              // pages rendered so far
@@ -116,8 +117,10 @@ namespace KillerPDF
         public int PrintedPageCount { get; private set; }
 
         public PrintPreviewWindow(Window? owner, int pageCount, double[] pageDipW, double[] pageDipH,
-                                  int currentPageIndex, string renderPath, string? cleanupPath)
+                                  int currentPageIndex, string renderPath, string? cleanupPath,
+                                  double printDpi = PrintPermission.FullDpi)
         {
+            _printDpi = printDpi;
             // Pages render lazily on a background thread (fed in via SetRenderedPage), so the
             // window opens instantly and shows a spinner instead of blocking on large files.
             _pages   = new BitmapSource?[pageCount];
@@ -1522,7 +1525,7 @@ namespace KillerPDF
                 await Task.Run(() =>
                 {
                     using var renderSession = PdfPageRenderSession.OpenEngineFirst(
-                        _renderPath, 300.0 / 72.0, forPrinting: true);
+                        _renderPath, _printDpi / 72.0, forPrinting: true);
                     int done = 0;
                     foreach (int idx in indices)
                     {

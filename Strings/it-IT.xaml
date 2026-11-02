@@ -247,6 +247,8 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_Restricted_Dismiss">Chiudi</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} sbloccato per la modifica</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Questa non è la password del proprietario di questo PDF.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">'{0}' limita la stampa. Inserisci la password del proprietario per stamparlo.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">La stampa non è consentita. Il proprietario di questo PDF ha limitato la stampa e solo la password del proprietario rimuove il limite.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">'{0}' limita la modifica, quindi KillerPDF richiede la password del proprietario per aprirlo.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Aperto {0} (sola lettura - tabella XRef non standard) - {1} pagine</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Aperto {0} (copia riparata - salva per mantenere le modifiche) - {1} pagine</sys:String>
@@ -2031,5 +2033,4 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_Macro_OutputNameDrift">Il nome di output della macro differisce dal piano approvato.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Non è stato possibile verificare l'aggiornamento scaricato, che è stato scartato. Non è stato installato nulla.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Il documento è cambiato. Cancella questi contrassegni di oscuramento e ripeti la ricerca.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">La rasterizzazione di un’area non è ancora disponibile per i PDF con tag perché i tag di accessibilità devono essere conservati. Il documento non è stato modificato.</sys:String>
 </ResourceDictionary>

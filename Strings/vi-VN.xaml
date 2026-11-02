@@ -247,6 +247,8 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_Restricted_Dismiss">Đóng</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">Đã mở khóa {0} để chỉnh sửa</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Đây không phải mật khẩu chủ sở hữu của PDF này.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” hạn chế in. Nhập mật khẩu chủ sở hữu để in.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Không được phép in. Chủ sở hữu PDF này đã hạn chế việc in và chỉ mật khẩu chủ sở hữu mới gỡ được hạn chế đó.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” hạn chế chỉnh sửa, nên KillerPDF cần mật khẩu chủ sở hữu để mở.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Đã mở {0} (chỉ đọc - bảng XRef không chuẩn) - {1} trang</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Đã mở {0} (bản sao đã sửa chữa - hãy lưu lại để giữ các thay đổi) - {1} trang</sys:String>
@@ -2030,5 +2032,4 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_Macro_OutputNameDrift">Tên đầu ra của macro khác với kế hoạch đã được phê duyệt.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Không thể xác minh bản cập nhật đã tải xuống nên bản cập nhật đã bị loại bỏ. Chưa có gì được cài đặt.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Tài liệu đã thay đổi. Hãy xóa các dấu che nội dung này rồi tìm kiếm lại.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">Chưa thể raster hóa vùng trong PDF có thẻ vì cần giữ nguyên các thẻ hỗ trợ tiếp cận. Tài liệu chưa bị thay đổi.</sys:String>
 </ResourceDictionary>

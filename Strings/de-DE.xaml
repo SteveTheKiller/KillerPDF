@@ -229,6 +229,8 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_Restricted_Dismiss">Schließen</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} zum Bearbeiten entsperrt</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Das ist nicht das Eigentümerpasswort dieses PDFs.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">„{0}“ schränkt das Drucken ein. Geben Sie das Eigentümerpasswort ein, um es zu drucken.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Das Drucken ist nicht erlaubt. Der Eigentümer dieses PDFs hat das Drucken eingeschränkt, und nur das Eigentümerpasswort hebt die Einschränkung auf.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">„{0}“ schränkt die Bearbeitung ein, daher benötigt KillerPDF zum Öffnen das Eigentümerpasswort.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Geöffnet: {0} (schreibgeschützt - nicht standardisierte XRef-Tabelle) - {1} Seite(n)</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Geöffnet: {0} (reparierte Kopie - zum Beibehalten der Änderungen speichern) - {1} Seite(n)</sys:String>
@@ -2019,5 +2021,4 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_Macro_OutputNameDrift">Der Name der Makroausgabe weicht vom genehmigten Plan ab.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Das heruntergeladene Update konnte nicht überprüft werden und wurde verworfen. Es wurde nichts installiert.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Das Dokument wurde geändert. Entfernen Sie diese Schwärzungsmarkierungen und suchen Sie erneut.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">Die Bereichsrasterung ist für getaggte PDFs noch nicht verfügbar, da ihre Barrierefreiheits-Tags erhalten bleiben müssen. Das Dokument wurde nicht geändert.</sys:String>
 </ResourceDictionary>

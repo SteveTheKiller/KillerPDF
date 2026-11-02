@@ -225,6 +225,8 @@
     <sys:String x:Key="Str_Restricted_Dismiss">Zapri</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">Dokument {0} je odklenjen za urejanje</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">To ni geslo lastnika tega dokumenta PDF.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">Dokument »{0}« omejuje tiskanje. Za tiskanje vnesite geslo lastnika.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Tiskanje ni dovoljeno. Lastnik tega dokumenta PDF je omejil tiskanje, omejitev pa odpravi samo geslo lastnika.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">Dokument »{0}« omejuje urejanje, zato KillerPDF za odpiranje potrebuje geslo lastnika.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Odprto samo za branje zaradi nestandardne tabele XRef: {0} (strani: {1})</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Odprta je popravljena kopija datoteke {0}; shranite za ohranitev sprememb (strani: {1})</sys:String>
@@ -1919,5 +1921,4 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_Macro_OutputNameDrift">Ime izhoda makra se razlikuje od odobrenega načrta.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Prenesene posodobitve ni bilo mogoče preveriti, zato je bila zavržena. Nič ni bilo nameščeno.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Dokument se je spremenil. Počistite te oznake za prekrivanje in znova poiščite.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">Rasterizacija območja še ni na voljo za označene datoteke PDF, ker je treba ohraniti njihove oznake dostopnosti. Dokument ni bil spremenjen.</sys:String>
 </ResourceDictionary>

@@ -248,6 +248,8 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_Restricted_Dismiss">Dismiss</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">Unlocked {0} for editing</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">That is not the owner password for this PDF.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” restricts printing. Enter the owner password to print it.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Printing is not allowed. The owner of this PDF has restricted printing, and only the owner password lifts that.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” restricts editing, so KillerPDF needs its owner password to open it.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Opened {0} read-only because of a non-standard XRef table ({1} page(s))</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Opened a repaired copy of {0}; save to keep changes ({1} page(s))</sys:String>
@@ -2023,5 +2025,4 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Watch_FailedStep">Step {0}: {1}</sys:String>
     <sys:String x:Key="Str_NavigationButtons_Show">Show page navigation buttons</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">The document changed. Clear these redaction marks and search again.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">Region rasterization is not yet available for tagged PDFs because their accessibility tags must be preserved. The document has not been changed.</sys:String>
 </ResourceDictionary>

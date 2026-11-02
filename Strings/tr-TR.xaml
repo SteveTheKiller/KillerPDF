@@ -229,6 +229,8 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_Restricted_Dismiss">Kapat</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} düzenleme için açıldı</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Bu, bu PDF’nin sahip parolası değil.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” yazdırmayı kısıtlıyor. Yazdırmak için sahip parolasını girin.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Yazdırmaya izin verilmiyor. Bu PDF’nin sahibi yazdırmayı kısıtlamış; kısıtlamayı yalnızca sahip parolası kaldırır.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” düzenlemeyi kısıtlıyor, bu yüzden KillerPDF’nin açmak için sahip parolasına ihtiyacı var.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Açıldı {0} (salt okunur - standart dışı XRef tablosu) - {1} sayfa</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Açıldı {0} (onarılmış kopya - değişiklikleri korumak için kaydedin) - {1} sayfa</sys:String>
@@ -2010,5 +2012,4 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_Macro_OutputNameDrift">Makro çıktısının adı onaylanan plandan farklı.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">İndirilen güncelleştirme doğrulanamadı ve silindi. Hiçbir şey yüklenmedi.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Belge değişti. Bu karartma işaretlerini temizleyip yeniden arayın.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">Erişilebilirlik etiketlerinin korunması gerektiğinden etiketli PDF dosyalarında bölge rasterleştirme henüz kullanılamıyor. Belge değiştirilmedi.</sys:String>
 </ResourceDictionary>

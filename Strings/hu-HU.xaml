@@ -247,6 +247,8 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_Restricted_Dismiss">Bezárás</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} feloldva szerkesztésre</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Ez nem a PDF tulajdonosi jelszava.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">A(z) „{0}” korlátozza a nyomtatást. A nyomtatáshoz adja meg a tulajdonosi jelszót.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">A nyomtatás nem engedélyezett. A PDF tulajdonosa korlátozta a nyomtatást, és ezt a korlátozást csak a tulajdonosi jelszó oldja fel.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">A(z) „{0}” korlátozza a szerkesztést, ezért a KillerPDF-nek a megnyitásához a tulajdonosi jelszó kell.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Megnyitva: {0} (csak olvasható - nem szabványos XRef tábla) - {1} oldal</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Megnyitva: {0} (javított másolat - mentse a változások megtartásához) - {1} oldal</sys:String>
@@ -2017,5 +2019,4 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_Macro_OutputNameDrift">A makró kimenetének neve eltér a jóváhagyott tervtől.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">A letöltött frissítést nem sikerült ellenőrizni, ezért elvetettük. Semmi sem lett telepítve.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">A dokumentum megváltozott. Törölje ezeket a kitakarási jelöléseket, és keressen újra.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">A területraszterezés még nem érhető el címkézett PDF-ekhez, mert meg kell őrizni az akadálymentesítési címkéiket. A dokumentum nem módosult.</sys:String>
 </ResourceDictionary>

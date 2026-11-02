@@ -247,6 +247,8 @@ La page peut être remplacée par une image d'elle-même avec les zones marquée
     <sys:String x:Key="Str_Restricted_Dismiss">Fermer</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} déverrouillé pour modification</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Ce n’est pas le mot de passe propriétaire de ce PDF.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">« {0} » restreint l’impression. Saisissez le mot de passe propriétaire pour l’imprimer.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">L’impression n’est pas autorisée. Le propriétaire de ce PDF a restreint l’impression, et seul le mot de passe propriétaire lève cette restriction.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">« {0} » restreint la modification, KillerPDF a donc besoin du mot de passe propriétaire pour l’ouvrir.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Ouvert : {0} (lecture seule - table XRef non standard) - {1} page(s)</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Ouvert : {0} (copie réparée - enregistrer pour conserver les modifications) - {1} page(s)</sys:String>
@@ -2030,5 +2032,4 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_Macro_OutputNameDrift">Le nom de sortie de la macro diffère du plan approuvé.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">La mise à jour téléchargée n'a pas pu être vérifiée et a été supprimée. Rien n'a été installé.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Le document a changé. Effacez ces marques de caviardage et relancez la recherche.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">La rastérisation d’une zone n’est pas encore disponible pour les PDF balisés, car leurs balises d’accessibilité doivent être conservées. Le document n’a pas été modifié.</sys:String>
 </ResourceDictionary>

@@ -127,6 +127,60 @@ public sealed class CliExitCodeTests : IDisposable
             source, StringComparison.Ordinal);
     }
 
+    // Opens with the empty user password, but the owner forbids editing, and printing when asked to.
+    private string RestrictedPdf(string name, bool mayPrint = true)
+    {
+        string path = Path.Combine(folder, name);
+        File.WriteAllBytes(path, new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
+            .SetPasswordEncryption(new KillerPdf.Engine.Security.PdfPasswordEncryptionOptions
+            {
+                UserPassword = "",
+                OwnerPassword = "owner-password",
+                AllowDocumentModification = false,
+                AllowLowQualityPrinting = mayPrint,
+                AllowHighQualityPrinting = mayPrint
+            })
+            .AddBlankPage()
+            .AddAttachment("note.txt", "inside"u8.ToArray())
+            .Build());
+        return path;
+    }
+
+    [Fact]
+    public void ToImageGivesARestrictedPdfsPagesOnlyToTheOwnerPassword()
+    {
+        string pdf = RestrictedPdf("restricted.pdf");
+        string refused = Path.Combine(folder, "refused"), allowed = Path.Combine(folder, "allowed");
+
+        Assert.Equal(1, Run("--to-image", pdf, refused));
+        Assert.False(Directory.Exists(refused) && Directory.GetFiles(refused).Length > 0);
+        Assert.Equal(1, Run("--to-image", pdf, refused, "--password", "wrong"));
+        Assert.Equal(0, Run("--to-image", pdf, allowed, "--password", "owner-password"));
+        Assert.NotEmpty(Directory.GetFiles(allowed));
+    }
+
+    [Fact]
+    public void AttachmentsLeaveARestrictedPdfOnlyWithTheOwnerPassword()
+    {
+        string pdf = RestrictedPdf("restricted-attachments.pdf");
+        string refused = Path.Combine(folder, "refused-attachments"), allowed = Path.Combine(folder, "allowed-attachments");
+
+        Assert.Equal(1, Run("--attachments", pdf, refused));
+        Assert.False(Directory.Exists(refused) && Directory.GetFiles(refused).Length > 0);
+        Assert.Equal(0, Run("--attachments", pdf, allowed, "--password", "owner-password"));
+        Assert.NotEmpty(Directory.GetFiles(allowed));
+    }
+
+    // Only the refusals run here, since a permitted print would reach a real printer.
+    [Fact]
+    public void PrintingRefusesAPdfThatForbidsItUnlessTheOwnerPasswordIsGiven()
+    {
+        string pdf = RestrictedPdf("no-print.pdf", mayPrint: false);
+
+        Assert.Equal(1, Run("--print", pdf));
+        Assert.Equal(1, Run("--print", pdf, "--password", "wrong"));
+    }
+
     private string Blank(string name)
     {
         string path = Path.Combine(folder, name);

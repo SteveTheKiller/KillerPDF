@@ -34,6 +34,7 @@ namespace KillerPDF.Shell
         private bool _openedFromProtected { get => ActiveViewer.OpenedFromProtectedRef; set => ActiveViewer.OpenedFromProtectedRef = value; }
         private bool _restrictedByCertificate { get => ActiveViewer.RestrictedByCertificateRef; set => ActiveViewer.RestrictedByCertificateRef = value; }
         private bool _restrictedFormFillable { get => ActiveViewer.RestrictedFormFillableRef; set => ActiveViewer.RestrictedFormFillableRef = value; }
+        private bool _printUnlocked { get => ActiveViewer.PrintUnlockedRef; set => ActiveViewer.PrintUnlockedRef = value; }
 
         private void OpenFile(string path)
         {
@@ -112,6 +113,7 @@ namespace KillerPDF.Shell
                     _currentFile = tempDec;
                     FinishOpenFile(path, tempDec);
                     _openedFromProtected = true;   // #149: unlocked with the user's password
+                    _printUnlocked = PrintPermission.IsOwnerPassword(srcPath, pw);
                 }
                 catch (WorkingCopyUnavailableException copy)
                 {
@@ -262,6 +264,7 @@ namespace KillerPDF.Shell
             _openedFromProtected = false;   // #149: set true by the two protected-open paths after this returns
             _restrictedByCertificate = false;
             _restrictedFormFillable = false;   // read once by TryOpenProtectedReadOnly after this returns
+            _printUnlocked = false;
             // Restore this file's last page and zoom if we've seen it before. View mode is global:
             // the last mode selected with the footer controls becomes the default for every PDF.
             _viewMode = Enum.TryParse<ViewMode>(App.GetSetting("ViewMode"), out var preferredView)
@@ -676,6 +679,7 @@ namespace KillerPDF.Shell
                 _currentFile = unlockedPath;
                 FinishOpenFile(displayPath, unlockedPath);
                 _openedFromProtected = true;   // #149: the source still carries its encryption
+                _printUnlocked = true;   // the owner password lifts every limit, printing too
                 CarryOverlays();
                 FinalizeAsyncOpen();
                 SetStatus(string.Format(Loc("Str_Restricted_Unlocked"), System.IO.Path.GetFileName(displayPath)));
@@ -1924,6 +1928,8 @@ namespace KillerPDF.Shell
         private async Task ExportImagesFlow(string presetRange)
         {
             if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
+            // The images carry the page out of a restricted PDF, so they wait for the owner password.
+            if (!EnsureEditable(continueAfterUnlock: false)) return;
             CommitActiveTextBox();
             PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
             int pageCount = engineSession.PageCount;
@@ -1987,14 +1993,8 @@ namespace KillerPDF.Shell
             bool jpeg   = opts.Jpeg;
             double dpi  = opts.Dpi;
             var pages   = selected;
-            Dictionary<int, double>? nativeDpi = null;
-            if (opts.KeepResolution)
-                nativeDpi = pages.ToDictionary(page => page, page =>
-                {
-                    var (width, height) = engineSession.PhysicalPageSize(page, _pageRotations);
-                    return OutputPixelDimensions.NativeDpi(
-                        engineSession.PageImagePixels(page, _pageRotations), width, height, dpi);
-                });
+            bool keepResolution = opts.KeepResolution;
+            var rotations = new Dictionary<int, int>(_pageRotations);
             CancellationToken ct = default;
             try
             {
@@ -2002,10 +2002,16 @@ namespace KillerPDF.Shell
                 // The per-page render/encode/write core lives in Services/PdfRasterize.cs;
                 // progress marshals back to the overlay here.
                 var incomplete = new IncompletePageLog();
-                int written = await Task.Run(() => PdfRasterize.ExportPageImages(sourcePath, pages,
-                    rotSnapshot, dpi, jpeg, outDir, baseName, digits,
-                    (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(overlay, n, total))),
-                    ct, incomplete, approvedOverwrites, nativeDpi is null ? null : page => nativeDpi[page]));
+                // Reading each page's own resolution parses its content, so it waits behind the overlay.
+                int written = await Task.Run(() =>
+                {
+                    Dictionary<int, double>? nativeDpi = keepResolution
+                        ? engineSession.NativeDpis(pages, rotations, dpi) : null;
+                    return PdfRasterize.ExportPageImages(sourcePath, pages,
+                        rotSnapshot, dpi, jpeg, outDir, baseName, digits,
+                        (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(overlay, n, total))),
+                        ct, incomplete, approvedOverwrites, nativeDpi is null ? null : page => nativeDpi[page]);
+                });
                 SetStatus(string.Format(Loc("Str_ExportImg_Done"), written, outDir));
                 WarnIncompletePages(incomplete);
             }
@@ -2085,14 +2091,45 @@ namespace KillerPDF.Shell
         {
             if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             CommitActiveTextBox();
+            if (!TryAllowPrinting(out double printDpi)) return;
 
             // The print prep (annotation burn + doc reopen) runs synchronously on the UI thread and
             // freezes it for a moment; yield one render cycle first to keep the click responsive.
             // (Deeper fix - backgrounding the burn - is tracked separately.)
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(RunPrintFlow));
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => RunPrintFlow(printDpi)));
         }
 
-        private async void RunPrintFlow()
+        // The print permission is read from the encrypted file itself, because a PDF whose owner
+        // forbids only printing still opens for editing and never counts as restricted. The owner
+        // password lifts the limit for this document; a file that allows only low quality printing
+        // prints at the lower resolution.
+        private bool TryAllowPrinting(out double printDpi)
+        {
+            printDpi = PrintPermission.FullDpi;
+            if (!_openedFromProtected || _printUnlocked) return true;
+            string? encrypted = _currentFile is not null && ViewingCopySources.TryGetValue(_currentFile, out string? viewingSource)
+                ? viewingSource : _originalFile;
+            if (string.IsNullOrEmpty(encrypted) || !File.Exists(encrypted)) return true;
+            PrintAllowance allowance = PrintPermission.ReadFor(encrypted);
+            if (allowance == PrintAllowance.Forbidden)
+            {
+                string? password = KillerDialog.PromptPassword(this, _originalFile ?? encrypted,
+                    Loc("Str_Print_Restricted_Prompt"), Loc("Str_Restricted_Unlock"));
+                if (password is null || !PrintPermission.IsOwnerPassword(encrypted, password))
+                {
+                    if (password is null) SetStatus(Loc("Str_Print_Refused"));
+                    else KillerDialog.Show(this, Loc("Str_Print_Refused"), "KillerPDF",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return false;
+                }
+                _printUnlocked = true;
+                allowance = PrintAllowance.Allowed;
+            }
+            printDpi = PrintPermission.Dpi(allowance);
+            return true;
+        }
+
+        private async void RunPrintFlow(double printDpi)
         {
             if (_doc is null || _currentFile is null) return;
             var sourceCurrent = CaptureDocumentOrigin();
@@ -2172,7 +2209,7 @@ namespace KillerPDF.Shell
             // true 300 DPI on demand (PrintPreviewWindow.DoPrint), so output stays crisp (issue #83).
             int previewBox = pageCount <= 80 ? 1536 : pageCount <= 250 ? 1100 : 800;
             var preview = new PrintPreviewWindow(
-                this, pageCount, pageDipW, pageDipH, sourcePage, renderPath, cleanup);
+                this, pageCount, pageDipW, pageDipH, sourcePage, renderPath, cleanup, printDpi);
 
             _ = Task.Run(() =>
             {

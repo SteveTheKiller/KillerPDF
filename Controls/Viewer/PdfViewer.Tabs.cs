@@ -59,6 +59,7 @@ namespace KillerPDF.Controls
             public bool ProtectedSource;               // #149: source file had a password/encryption when opened
             public bool RestrictedByCertificate;       // read-only because its certificate recipient may not edit
             public bool RestrictedFormFillable;        // restricted form whose author allows filling, read once per open
+            public bool PrintUnlocked;                 // the owner password was given, so a print limit no longer applies
             public Services.PublishedFileStamp? PublishedFile; // the bytes the last save wrote, when they differ from CurrentFile
             public Services.CompleteDocumentSource? CompleteDocumentSource;
             public string? SuggestedName;              // file name offered on the first save of an import with no saved home
@@ -224,6 +225,7 @@ namespace KillerPDF.Controls
             s.ProtectedSource = _openedFromProtected;
             s.RestrictedByCertificate = _restrictedByCertificate;
             s.RestrictedFormFillable = _restrictedFormFillable;
+            s.PrintUnlocked = _printUnlocked;
             s.PublishedFile = _publishedFile;
             s.CompleteDocumentSource = _completeDocumentSource;
             s.SuggestedName = _suggestedName;
@@ -362,6 +364,7 @@ namespace KillerPDF.Controls
             _openedFromProtected = s.ProtectedSource;
             _restrictedByCertificate = s.RestrictedByCertificate;
             _restrictedFormFillable = s.RestrictedFormFillable;
+            _printUnlocked = s.PrintUnlocked;
             _publishedFile = s.PublishedFile;
             _completeDocumentSource = s.CompleteDocumentSource;
             _suggestedName = s.SuggestedName;

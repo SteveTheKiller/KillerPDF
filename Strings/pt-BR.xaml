@@ -247,6 +247,8 @@ A página pode ser substituída por uma imagem dela mesma com as áreas marcadas
     <sys:String x:Key="Str_Restricted_Dismiss">Fechar</sys:String>
     <sys:String x:Key="Str_Restricted_Unlocked">{0} desbloqueado para edição</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Essa não é a senha do proprietário deste PDF.</sys:String>
+    <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” restringe a impressão. Insira a senha do proprietário para imprimi-lo.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">A impressão não é permitida. O proprietário deste PDF restringiu a impressão, e somente a senha do proprietário remove essa restrição.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” restringe a edição, então o KillerPDF precisa da senha do proprietário para abri-lo.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} aberto (somente leitura - tabela XRef não padrão) - {1} página(s)</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">{0} aberto (cópia reparada - salve para manter as alterações) - {1} página(s)</sys:String>
@@ -2030,5 +2032,4 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_Macro_OutputNameDrift">O nome de saída da macro é diferente do plano aprovado.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Não foi possível verificar a atualização baixada, e ela foi descartada. Nada foi instalado.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">O documento mudou. Limpe estas marcações de ocultação e pesquise novamente.</sys:String>
-    <sys:String x:Key="Str_Raster_TaggedUnsupported">A rasterização de regiões ainda não está disponível para PDFs marcados porque suas tags de acessibilidade precisam ser preservadas. O documento não foi alterado.</sys:String>
 </ResourceDictionary>
