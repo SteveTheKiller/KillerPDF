@@ -47,9 +47,9 @@ namespace KillerPDF.Features
                 con.WriteLine("Usage: KillerPDF.exe --fix-orientation <in.pdf> <out.pdf> [--pages <range>] [--lang <code>] [--password <password>]");
                 return 2;
             }
-            if (!CliInspectEditInput(pos[0], pos[1], out string source, out string output, out int pageCount, con)) return 2;
-            if (!CliPagesOption(options, pageCount, out List<int> pages, con)) return 2;
             options.TryGetValue("--password", out string? password);
+            if (!CliInspectEditInput(pos[0], pos[1], out string source, out string output, out int pageCount, con, password)) return 2;
+            if (!CliPagesOption(options, pageCount, out List<int> pages, con)) return 2;
             var (renderPath, rotations, _) = CliPrepareRenderSource(source, password, con);
             int Rotation(int page) => rotations is not null && page < rotations.Length ? rotations[page] : 0;
 
@@ -106,9 +106,9 @@ namespace KillerPDF.Features
                 con.WriteLine("Usage: KillerPDF.exe --straighten <in.pdf> <out.pdf> [--pages <range>] [--password <password>]");
                 return 2;
             }
-            if (!CliInspectEditInput(pos[0], pos[1], out string source, out string output, out int pageCount, con)) return 2;
-            if (!CliPagesOption(options, pageCount, out List<int> pages, con)) return 2;
             options.TryGetValue("--password", out string? password);
+            if (!CliInspectEditInput(pos[0], pos[1], out string source, out string output, out int pageCount, con, password)) return 2;
+            if (!CliPagesOption(options, pageCount, out List<int> pages, con)) return 2;
             var (renderPath, rotations, dims) = CliPrepareRenderSource(source, password, con);
             int Rotation(int page) => rotations is not null && page < rotations.Length ? rotations[page] : 0;
 

@@ -250,7 +250,7 @@ namespace KillerPDF.Features
                 if (string.IsNullOrEmpty(password))
                 {
                     session = PdfPageRenderSession.OpenEngineFirst(src, size, size);
-                    if (session.IsEncrypted && Refusal(PdfRestrictions.Read(src, null)) is string refusal)
+                    if (session.IsEncrypted && CliProtectionGate.BatchRender(src, null).Refusal is string refusal)
                     {
                         session.Dispose();
                         return Skipped(refusal);
@@ -258,11 +258,11 @@ namespace KillerPDF.Features
                 }
                 else
                 {
-                    PdfAccess access = PdfRestrictions.Read(src, password);
-                    if (Refusal(access) is string refusal) return Skipped(refusal);
-                    session = access.Role == PdfAccessRole.Owner
-                        ? PdfPageRenderSession.OpenEngineFirst(src, size, size, password)
-                        : PdfPageRenderSession.OpenEngineFirst(src, size, size);
+                    (string? refusal, string? readWith) = CliProtectionGate.BatchRender(src, password);
+                    if (refusal is not null) return Skipped(refusal);
+                    session = readWith is null
+                        ? PdfPageRenderSession.OpenEngineFirst(src, size, size)
+                        : PdfPageRenderSession.OpenEngineFirst(src, size, size, readWith);
                 }
                 pageCount = session.PageCount;
             }
@@ -323,9 +323,6 @@ namespace KillerPDF.Features
                 return rows;
             }
         }
-
-        private static string? Refusal(PdfAccess access) => access.MayModify ? null
-            : "restricted: " + (access.Refusal ?? "the owner forbids editing, so its pages leave it only with the owner password");
 
         // File names and renderer details can carry text a spreadsheet would run as a formula.
         private static string Csv(string s) => KillerPdf.Engine.Documents.PdfCsv.Field(s, alwaysQuote: false);

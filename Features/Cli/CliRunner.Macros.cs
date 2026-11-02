@@ -20,7 +20,8 @@ namespace KillerPDF.Features
             + "       KillerPDF.exe --macro --list\n"
             + "  <macro> is a saved macro's name, an exported macro .json file, or starter:archival, starter:sharing,\n"
             + "  starter:scanning or starter:privacy. --list shows the saved macros and the starters.\n"
-            + "  --password opens a protected input; a PDF whose owner restricts editing needs the owner password.\n"
+            + "  --password opens a protected input for every step; a macro writes new PDFs, so a PDF that limits\n"
+            + "  printing, copying or editing needs the owner password.\n"
             + "  OCR steps read in --lang (default eng). Redact steps remove --text, each line of --terms and the\n"
             + "  marks saved in the file. If any page requires rasterization, the macro fails without saving\n"
             + "  output unless --rasterize is given. If a page's text, form fields or comments could not be read,\n"
@@ -36,7 +37,8 @@ namespace KillerPDF.Features
         {
             if (options.ContainsKey("--list") && pos.Count == 0) return CliListMacros(con);
             if (pos.Count != 3) { con.WriteLine(MacroUsage); return 2; }
-            if (!CliInspectEditInput(pos[0], pos[2], out string source, out string output, out _, con)) return 2;
+            options.TryGetValue("--password", out string? password);
+            if (!CliInspectEditInput(pos[0], pos[2], out string source, out string output, out _, con, password)) return 2;
             if (CliResolveMacro(pos[1], con) is not PdfMacro macro) return 2;
             string[] protectedPaths = [source, .. new[] { pos[1], options.GetValueOrDefault("--data"),
                 options.GetValueOrDefault("--terms") }.OfType<string>().Where(File.Exists).Select(Path.GetFullPath)];
@@ -70,7 +72,10 @@ namespace KillerPDF.Features
             try { plannedFiles = PdfMacroExportFiles.Plan(macro, [output], protectedPaths); }
             catch (ArgumentException error) { con.WriteLine(error.Message); return 2; }
 
-            options.TryGetValue("--password", out string? password);
+            // Every step opens what it is handed with no password, so the input goes in decrypted, and
+            // only once the file allows what a macro writes.
+            byte[] input = CliProtectionGate.MacroInput(source, password, out string? refusal);
+            if (refusal is not null) { con.WriteLine(refusal); return 1; }
             options.TryGetValue("--lang", out string? langRaw);
             string language = string.IsNullOrWhiteSpace(langRaw) ? "eng" : langRaw.Trim().ToLowerInvariant();
             var redaction = new CliMacroRedaction { Rasterize = options.ContainsKey("--rasterize") };
@@ -93,7 +98,7 @@ namespace KillerPDF.Features
                         return new PdfMacroOperationResult(data);
                     }),
                 new PdfMacroOperationRegistration(PdfMacroOperation.Ocr,
-                    (_, data, _, token) => CliMacroOcr(data, language, password, con, token)),
+                    (_, data, _, token) => CliMacroOcr(data, language, con, token)),
                 new PdfMacroOperationRegistration(PdfMacroOperation.Redact,
                     (_, data, _, token) => CliMacroRedact(data, redaction, token)),
                 new PdfMacroOperationRegistration(PdfMacroOperation.Watermark,
@@ -118,7 +123,7 @@ namespace KillerPDF.Features
             if (redacts)
             {
                 redaction.Marked = [.. PdfEngineIntegration.ReadRedactionMarks(
-                        PdfEngineIntegration.OpenForReading(File.ReadAllBytes(source)))
+                        PdfEngineIntegration.OpenForReading(input))
                     .Select(mark => new PdfRedactionRegion(mark.PageIndex,
                         new PdfContentBounds(mark.Left, mark.Bottom, mark.Right, mark.Top), null, mark.OverlayText)
                     { FillColor = mark.FillColor })];
@@ -137,7 +142,7 @@ namespace KillerPDF.Features
             if (renames) con.WriteLine($"Output: {output}");
             if (mergePlan is not null)
                 foreach (string path in mergePlan.OutputPaths) con.WriteLine($"Output: {path}");
-            PdfMacroRunReport report = dispatcher.RunReport(macro, [new ReadOnlyMemory<byte>(File.ReadAllBytes(source))],
+            PdfMacroRunReport report = dispatcher.RunReport(macro, [new ReadOnlyMemory<byte>(input)],
                 renames || merges ? PdfRenameMacro.CreateContext(Path.GetFileName(source), 1) : null);
             PdfMacroFileResult? result = report.Results.Count == 1 ? report.Results[0] : null;
             bool outputsWritten = true;
@@ -251,14 +256,14 @@ namespace KillerPDF.Features
 
         // Adds the searchable text layer exactly as --ocr does, on temporary copies.
         private static PdfMacroOperationResult CliMacroOcr(ReadOnlyMemory<byte> data, string language,
-            string? password, TextWriter con, CancellationToken token)
+            TextWriter con, CancellationToken token)
         {
             string input = App.MakeTempFile("climacroocrsrc");
             string output = App.MakeTempFile("climacroocr");
             try
             {
                 File.WriteAllBytes(input, data.ToArray());
-                var (renderSource, rotations, _) = CliPrepareRenderSource(input, password, con);
+                var (renderSource, rotations, _) = CliPrepareRenderSource(input, null, con);
                 OcrController.BuildSearchablePdf(renderSource, output,
                     (i, n) => { if (i == 0 || i + 1 == n || (i + 1) % 10 == 0) con.WriteLine($"OCR page {i + 1}/{n}"); },
                     language, formAware: false, ct: token);

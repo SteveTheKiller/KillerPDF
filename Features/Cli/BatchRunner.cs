@@ -199,17 +199,9 @@ namespace KillerPDF.Features
             // The GUI strips encryption at open time (PDFium round-trip) before editing.
             // Batch mode deliberately does not: an encryption strip is not a plain resave,
             // and reporting it as one would poison the conformance comparison.
-            try
+            if (CliProtectionGate.BatchResaveSkip(src) is string skip)
             {
-                if (PdfImport.PdfFileHasEncryption(src))
-                {
-                    detail = "encrypted - batch mode does not strip encryption";
-                    return "SKIP";
-                }
-            }
-            catch (Exception ex)
-            {
-                detail = "unreadable: " + FlattenBatchDetail(ex.Message);
+                detail = skip;
                 return "SKIP";
             }
 

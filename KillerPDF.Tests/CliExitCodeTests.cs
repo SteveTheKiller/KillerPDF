@@ -146,6 +146,86 @@ public sealed class CliExitCodeTests : IDisposable
         return path;
     }
 
+    private string LimitedPdf(string name, bool mayPrint = true, bool mayCopy = true, string user = "")
+    {
+        string path = Path.Combine(folder, name);
+        File.WriteAllBytes(path, new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
+            .SetPasswordEncryption(new KillerPdf.Engine.Security.PdfPasswordEncryptionOptions
+            {
+                UserPassword = user,
+                OwnerPassword = "owner-password",
+                AllowContentCopying = mayCopy,
+                AllowLowQualityPrinting = mayPrint,
+                AllowHighQualityPrinting = mayPrint
+            })
+            .AddBlankPage()
+            .AddTextField(0, "name", 10, 100, 80, 20, "value", 10)
+            .Build());
+        return path;
+    }
+
+    [Fact]
+    public void DecryptOfAFileWithALimitTakesTheOwnerPassword()
+    {
+        string pdf = LimitedPdf("decrypt-limited.pdf", mayPrint: false);
+        string refused = Path.Combine(folder, "decrypt-refused.pdf"), allowed = Path.Combine(folder, "decrypt-allowed.pdf");
+
+        Assert.Equal(1, Run("--decrypt", pdf, refused));
+        Assert.False(File.Exists(refused));
+        Assert.Equal(0, Run("--decrypt", pdf, allowed, "--password", "owner-password"));
+        Assert.True(File.Exists(allowed));
+    }
+
+    [Fact]
+    public void DecryptOfAFileThatLimitsNothingTakesItsUserPassword() =>
+        Assert.Equal(0, Run("--decrypt", LimitedPdf("decrypt-open.pdf", user: "reader"),
+            Path.Combine(folder, "decrypt-open-out.pdf"), "--password", "reader"));
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void FlattenOfAPrintOrCopyLimitedFileTakesTheOwnerPassword(bool mayPrint, bool mayCopy)
+    {
+        string pdf = LimitedPdf($"flatten-{mayPrint}.pdf", mayPrint, mayCopy);
+        string refused = Path.Combine(folder, "flatten-refused.pdf"), allowed = Path.Combine(folder, "flatten-allowed.pdf");
+
+        Assert.Equal(1, Run("--flatten", pdf, refused));
+        Assert.False(File.Exists(refused));
+        Assert.Equal(0, Run("--flatten", pdf, allowed, "--password", "owner-password"));
+    }
+
+    [Fact]
+    public void TextExportFollowsTheCopyBit()
+    {
+        Assert.Equal(0, Run("--export", LimitedPdf("text-print.pdf", mayPrint: false), Path.Combine(folder, "text-print.txt")));
+        Assert.Equal(1, Run("--export", LimitedPdf("text-copy.pdf", mayCopy: false), Path.Combine(folder, "text-copy.txt")));
+    }
+
+    [Fact]
+    public void FormDataExportOfACopyLimitedFileIsRefused() =>
+        Assert.Equal(1, Run("--export-form-data", LimitedPdf("form-copy.pdf", mayCopy: false), Path.Combine(folder, "form-copy.json")));
+
+    [Fact]
+    public void BatchRenderReadsWithAUserPassword() =>
+        Assert.Equal(0, Run("--batch-render", LimitedPdf("render-user.pdf", user: "reader"),
+            Path.Combine(folder, "render-user"), "--password", "reader"));
+
+    [Fact]
+    public void AMacroReadsAPasswordInputForEveryStep()
+    {
+        string macro = Path.Combine(folder, "macro.json");
+        File.WriteAllText(macro, new KillerPdf.Engine.Documents.PdfMacro("Keep",
+            [new KillerPdf.Engine.Documents.PdfMacroStep(KillerPdf.Engine.Documents.PdfMacroOperation.Optimize)]).ToJson());
+
+        Assert.Equal(0, Run("--macro", LimitedPdf("macro-user.pdf", user: "reader"), macro,
+            Path.Combine(folder, "macro-user-out.pdf"), "--password", "reader"));
+    }
+
+    [Theory]
+    [InlineData("--resave")]
+    [InlineData("--to-imge")]
+    public void AnUnknownSwitchExitsWithBadUsage(string option) => Assert.Equal(2, Run(option, "in.pdf", "out.pdf"));
+
     [Fact]
     public void ToImageGivesARestrictedPdfsPagesOnlyToTheOwnerPassword()
     {

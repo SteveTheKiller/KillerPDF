@@ -133,7 +133,15 @@ namespace KillerPDF.Features
                 Eq(a, "--data-merge") || Eq(a, "--replace-text") || Eq(a, "--export-form-data") || Eq(a, "--import-form-data") ||
                 Eq(a, "--recognize-fields") || Eq(a, "--xfa-to-acroform") || Eq(a, "--flatten-forms") ||
                 Eq(a, "--macro") || Eq(a, "--sign") || Eq(a, "--scan"));
-            if (command is null) return false;
+            if (command is null)
+            {
+                // A mistyped switch never reaches a window, where a script would wait on it, or a
+                // running copy, which would be handed the switch as a file path.
+                if (!CliProtectionGate.IsUnknownSwitch(args)) return false;
+                OpenBatchConsole().WriteLine(CliHelpText());
+                exitCode = 2;
+                return true;
+            }
 
             var con = OpenBatchConsole();
             CommandLineCrash.Console = con;
@@ -153,6 +161,12 @@ namespace KillerPDF.Features
 
             try
             {
+                if (CliProtectionGate.VerbRefusal(command, positionals, options) is string refusal)
+                {
+                    con.WriteLine(refusal);
+                    exitCode = 1;
+                    return true;
+                }
                 switch (command.ToLowerInvariant())
                 {
                     case "--help":
@@ -426,10 +440,11 @@ namespace KillerPDF.Features
             "  killerpdf preflight <in.pdf> [--profile general|attachments|print|<profile.json>]",
             "                                           [--json] [--password <p>]   exit 3 when findings",
             "  killerpdf accessibility <in.pdf> [--json]        report accessibility findings; exit 3 when found",
-            "  killerpdf attachments <in.pdf> [<outDir>] [--json]",
+            "  killerpdf attachments <in.pdf> [<outDir>] [--json] [--password <p>]",
             "                                           list embedded files, or extract them to a folder",
             "  killerpdf decrypt <in.pdf> <out.pdf> [--password <p>]",
-            "                                           remove encryption (lossless when possible)",
+            "                                           remove encryption (lossless when possible); a PDF that",
+            "                                           declares a limit takes the owner password",
             "  killerpdf to-image <in.pdf> <outDir> [--dpi <n>] [--format png|jpg] [--pages <range>] [--transparent] [--overwrite]",
             "                                           render pages to images (default 150 dpi, png;",
             "                                           background composites to white unless --transparent, png only)",
@@ -442,8 +457,10 @@ namespace KillerPDF.Features
             "                                           print silently (default printer if none named)",
             "  --password <p> works on preflight, decrypt, to-image, flatten, print, ocr, scan-to-text, fix-orientation,",
             "                                           straighten, separations, attachments, export, macro and batch-render;",
-            "                                           other commands need an unprotected file. A PDF whose owner restricts",
-            "                                           editing gives up its content only to the owner password",
+            "                                           other commands read a PDF that opens with no password. On a PDF with",
+            "                                           limits, new PDFs and page images need printing and copying allowed,",
+            "                                           text and data need copying allowed, an edit-forbidden PDF gives up",
+            "                                           nothing, and the owner password lifts all of that",
             "  killerpdf scan <out.pdf> [--scanner <name>] [--show-settings]",
             "                                           scan through a TWAIN scanner into a PDF; --scan --list shows scanners",
             "  killerpdf ocr <in.pdf> <out.pdf> [--lang <code>] add an invisible searchable text layer (default eng;",
@@ -508,7 +525,7 @@ namespace KillerPDF.Features
             "                                           [--timestamp] [--timestamp-server <url>] [--appearance <page>[:<corner>]]",
             "                                           [--appearance-text <text>] [--width <pt>] [--height <pt>] [--font-size <pt>]",
             "                                           add a digital signature, optionally timestamped and visible",
-            "  killerpdf export <in.pdf> <out.docx|.xlsx|.pptx|.html|.md|.txt|.json> [--pages <range>] [--report]",
+            "  killerpdf export <in.pdf> <out.docx|.xlsx|.pptx|.html|.md|.txt|.json> [--pages <range>] [--report] [--password <p>]",
             "                                           export to Office, web and text formats",
             "  killerpdf convert-office <in.docx|.xlsx|.doc|.xls> <out.pdf>",
             "                                           convert a Word or Excel file to PDF",
@@ -531,7 +548,7 @@ namespace KillerPDF.Features
             "  killerpdf crop <in.pdf> <out.pdf> --box <x,y,w,h> [--pages <range>] [--media]   or --clear",
             "                                           crop pages in PDF points; --media resizes the page itself",
             "  killerpdf macro <in.pdf> <saved name | macro.json | starter:<name>> <out.pdf> [--lang <code>]",
-            "                                           [--text <phrase>] [--terms <file>] [--rasterize] [--json]",
+            "                                           [--text <phrase>] [--terms <file>] [--rasterize] [--json] [--password <p>]",
             "                                           run a macro; --macro --list shows the saved ones",
             "  killerpdf document-info <in.pdf>                 print document details as JSON",
             "  killerpdf search-text <in.pdf> <query>            print page hits as JSON; exit 3 when pages",
@@ -539,7 +556,7 @@ namespace KillerPDF.Features
             "  killerpdf batch-resave <in> <out> [--log <f.csv>] [--quiet]",
             "                                           resave a file or tree through the standard",
             "                                           open/save pipeline (validation harness)",
-            "  killerpdf batch-render <in> <outDir> [--size <px>] [--pages <n>] [--log <f.csv>] [--quiet]",
+            "  killerpdf batch-render <in> <outDir> [--size <px>] [--pages <n>] [--parallel <n>] [--log <f.csv>] [--quiet] [--password <p>]",
             "                                           render the first pages of a file or tree to PNG",
             "                                           with per-page timings (render benchmark)",
             "                                           --allow-incomplete also writes pages with omitted",
@@ -1318,19 +1335,7 @@ namespace KillerPDF.Features
         // ============================================================
         // A PDF whose owner forbids editing gives up its pages as images and its embedded files only to
         // the owner password, the way the app asks for it before it exports them.
-        private const string RestrictedContentMessage =
-            "The owner of this PDF has restricted editing, so its content leaves it only with the owner password. Give it with --password.";
-
-        private static bool CliRefusesRestricted(string inPath, string? password, TextWriter con)
-        {
-            PdfAccess access = PdfRestrictions.Read(inPath, password);
-            if (access.MayModify) return false;
-            con.WriteLine(CliRestrictionMessage(access));
-            return true;
-        }
-
-        private static string CliRestrictionMessage(PdfAccess access) =>
-            access.Role == PdfAccessRole.Refused ? access.Refusal ?? RestrictedContentMessage : RestrictedContentMessage;
+        private static string CliRestrictionMessage(PdfAccess access) => CliProtectionGate.Message(access);
 
         private static int CliAttachments(
             List<string> pos, Dictionary<string, string> options, TextWriter con)
@@ -1378,7 +1383,6 @@ namespace KillerPDF.Features
                 con.WriteLine("The document has no embedded files.");
                 return 0;
             }
-            if (CliRefusesRestricted(inPath, password, con)) return 1;
             Directory.CreateDirectory(outDir);
             IReadOnlyList<string> written;
             try
@@ -1762,7 +1766,6 @@ namespace KillerPDF.Features
             bool allowIncomplete = options.ContainsKey("--allow-incomplete");
             var incomplete = new IncompletePageLog();
             options.TryGetValue("--password", out var password);
-            if (CliRefusesRestricted(inPath, password, con)) return 1;
             Directory.CreateDirectory(outDir);
 
             var (renderPath, rotations, _) = CliPrepareRenderSource(inPath, password, con);
@@ -1992,10 +1995,11 @@ namespace KillerPDF.Features
 
             options.TryGetValue("--password", out var password);
             // The file's own print permission stands unless --password is its owner password.
-            PrintAllowance printAllowance = PdfRestrictions.Read(inPath, password).Print;
+            PdfAccess printAccess = PdfRestrictions.Read(inPath, password);
+            PrintAllowance printAllowance = printAccess.Print;
             if (printAllowance == PrintAllowance.Forbidden)
             {
-                con.WriteLine("Printing is not allowed: the owner of this PDF has restricted printing. Give the owner password with --password.");
+                con.WriteLine(CliProtectionGate.PrintRefusal(printAccess));
                 return 1;
             }
             var (renderPath, rotations, _) = CliPrepareRenderSource(inPath, password, con, ownerOnly: false);
@@ -2368,7 +2372,8 @@ namespace KillerPDF.Features
         }
 
         private static bool CliInspectEditInput(
-            string input, string destination, out string source, out string output, out int pageCount, TextWriter con)
+            string input, string destination, out string source, out string output, out int pageCount, TextWriter con,
+            string? password = null)
         {
             source = Path.GetFullPath(input);
             output = Path.GetFullPath(destination);
@@ -2376,7 +2381,10 @@ namespace KillerPDF.Features
             if (!File.Exists(source)) { con.WriteLine($"Input not found: {source}"); return false; }
             if (string.Equals(source, output, StringComparison.OrdinalIgnoreCase))
             { con.WriteLine("Output file cannot also be the input."); return false; }
-            pageCount = PdfDocumentInformation.Read(PdfEngineIntegration.OpenForReading(File.ReadAllBytes(source))).PageCount;
+            byte[] bytes = File.ReadAllBytes(source);
+            PdfDocument? authenticated = null;
+            if (!string.IsNullOrEmpty(password)) PdfRestrictions.Open(bytes, password, out authenticated);
+            pageCount = PdfDocumentInformation.Read(authenticated ?? PdfEngineIntegration.OpenForReading(bytes)).PageCount;
             return true;
         }
 

@@ -107,7 +107,7 @@ namespace KillerPDF.Features
                 con.WriteLine("Usage: KillerPDF.exe --export <in.pdf> <out.docx|.xlsx|.pptx|.html|.md|.txt|.json> [--pages <range>]");
                 con.WriteLine("       [--format word|excel|powerpoint|html|markdown|text|json]   (default: from the output extension)");
                 con.WriteLine("       [--layout editable|images]   (Word and PowerPoint; default: editable)");
-                con.WriteLine("       [--password <p>]   (a PDF whose owner restricts editing exports only with the owner password)");
+                con.WriteLine("       [--password <p>]   (a PDF that forbids copying or editing exports only with the owner password)");
                 return 2;
             }
             string inPath = Path.GetFullPath(pos[0]), outPath = Path.GetFullPath(pos[1]);
