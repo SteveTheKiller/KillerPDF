@@ -76,6 +76,11 @@ namespace KillerPDF.Services
                     string[] keep = [.. saved.Split('|').Where(path => !originals.Contains(path))];
                     changes[key] = keep.Length > 0 ? string.Join("|", keep) : null;
                 }
+            // With no open tabs listed, the restore falls back to the last file, and the active tab
+            // names the tab to show; neither may bring a recovered original back.
+            foreach (string key in new[] { "LastFile", "ActiveTab", "ActiveTabB" })
+                if (read(key) is { Length: > 0 } single && originals.Contains(single))
+                    changes[key] = null;
             return changes;
         }
 

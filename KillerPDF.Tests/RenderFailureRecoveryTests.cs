@@ -311,6 +311,33 @@ namespace KillerPDF.Tests
             Assert.Null(waiting.Take(document.RecoveredPath));
         }
 
+        // SN01 M4: with the recovered file the only tab, the open tabs list empties, and the restore
+        // falls back to the last file, which reopened a clean tab of it beside the recovered one. The
+        // last file and the remembered active tab let go of a recovered original too.
+        [Fact]
+        public void ARecoveredOriginalIsNotRestoredThroughTheLastFile()
+        {
+            var settings = new Dictionary<string, string?>
+            {
+                ["OpenTabs"] = @"C:\Docs\e1.pdf",
+                ["LastFile"] = @"C:\Docs\e1.pdf",
+                ["ActiveTab"] = @"C:\Docs\e1.pdf",
+                ["OpenTabsB"] = @"C:\Docs\e1.pdf|C:\Docs\kept.pdf",
+                ["ActiveTabB"] = @"C:\Docs\kept.pdf",
+            };
+            var recovered = new[] { new RecoveredDocument(@"C:\Docs\e1.pdf", @"C:\Recovery\01-e1.pdf", null, Protected: true) };
+
+            IReadOnlyDictionary<string, string?> changes = RenderFailureRecovery.SessionSettingsWithout(
+                key => settings.GetValueOrDefault(key), recovered);
+            foreach ((string key, string? value) in changes) settings[key] = value;
+
+            Assert.Null(settings["OpenTabs"]);
+            Assert.Null(settings["LastFile"]);
+            Assert.Null(settings["ActiveTab"]);
+            Assert.Equal(@"C:\Docs\kept.pdf", settings["OpenTabsB"]);
+            Assert.Equal(@"C:\Docs\kept.pdf", settings["ActiveTabB"]);
+        }
+
         // R5-005: another tab's background open, such as the restored focused tab or an earlier
         // recovered copy, says nothing about this copy. Its prompt was canceled, so it is not pending
         // and is listed with the documents that need review.
