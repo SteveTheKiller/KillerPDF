@@ -567,6 +567,8 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_DocumentTools">Инструменты документа</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Отчет о допечатной подготовке</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Отчет предпечатной проверки</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Предпечатная проверка с файлом профиля...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Не удалось прочитать файл профиля предпечатной проверки.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Проверка доступности</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Выберите проблему, просмотрите затронутую страницу и примените исправление.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Эти проверки не подтверждают полную доступность PDF. Порядок чтения и описания по-прежнему требуют ручной проверки.</sys:String>

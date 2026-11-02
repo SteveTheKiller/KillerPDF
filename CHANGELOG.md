@@ -37,6 +37,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Preflight can run a custom profile file from Document tools. (#264)
 - Printing adds reverse order and long-edge or short-edge duplex binding, and page selection moves to its own Pages to print section. (Thanks @Rafie-kun)
 - Placing a signature shows a faint copy at the pointer, and the mouse wheel resizes it before you click. (#468)
 - Export Pages as Images and Save Flattened keep each page's own resolution by default, and Transform's resolution slider starts at x1. (#462)

@@ -567,6 +567,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_DocumentTools">ドキュメントツール</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">印刷製作レポート</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">プリフライトレポート</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">プロファイルファイルでプリフライト...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">プリフライトのプロファイルファイルを読み込めませんでした。</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">アクセシビリティの確認</sys:String>
     <sys:String x:Key="Str_A11y_Intro">問題を選択し、該当するページを確認して修正を適用してください。</sys:String>
     <sys:String x:Key="Str_A11y_Limit">これらのチェックでは、PDFの完全なアクセシビリティは確認できません。読み上げ順序と説明は引き続き手動で確認する必要があります。</sys:String>

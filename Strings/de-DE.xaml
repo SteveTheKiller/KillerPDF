@@ -482,6 +482,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_DocumentTools">Dokumentwerkzeuge</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Druckproduktionsbericht</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Preflight-Bericht</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Preflight mit Profildatei...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Die Preflight-Profildatei konnte nicht gelesen werden.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Barrierefreiheitsprüfung</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Wählen Sie ein Problem aus, prüfen Sie die betroffene Seite und wenden Sie eine Korrektur an.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Diese Prüfungen bestätigen keine vollständige Barrierefreiheit des PDFs. Lesereihenfolge und Beschreibungen müssen weiterhin manuell geprüft werden.</sys:String>

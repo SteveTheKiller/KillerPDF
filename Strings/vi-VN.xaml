@@ -567,6 +567,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_DocumentTools">Công cụ tài liệu</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Báo cáo sản xuất in</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Báo cáo kiểm tra trước khi in</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Kiểm tra trước khi in bằng tệp hồ sơ...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Không thể đọc tệp hồ sơ kiểm tra trước khi in.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Xem xét khả năng tiếp cận</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Chọn một vấn đề, xem xét trang bị ảnh hưởng và áp dụng cách sửa.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Các bước kiểm tra này không xác nhận khả năng tiếp cận đầy đủ của PDF. Thứ tự đọc và nội dung mô tả vẫn cần được xem xét thủ công.</sys:String>

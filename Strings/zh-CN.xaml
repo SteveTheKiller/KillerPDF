@@ -482,6 +482,8 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_DocumentTools">文档工具</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">印刷生产报告</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">印前检查报告</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">使用配置文件进行印前检查...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">无法读取印前检查配置文件。</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">无障碍审查</sys:String>
     <sys:String x:Key="Str_A11y_Intro">选择一个问题，查看受影响的页面，然后应用修复。</sys:String>
     <sys:String x:Key="Str_A11y_Limit">这些检查不能确认 PDF 完全无障碍。阅读顺序和描述仍需人工审查。</sys:String>

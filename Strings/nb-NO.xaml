@@ -567,6 +567,8 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_DocumentTools">Dokumentverktøy</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Rapport for trykkproduksjon</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Preflight-rapport</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Preflight med profilfil...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Preflight-profilfilen kunne ikke leses.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Tilgjengelighetsgjennomgang</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Velg et problem, se gjennom den berørte siden og bruk en rettelse.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Disse kontrollene bekrefter ikke full PDF-tilgjengelighet. Leserekkefølge og beskrivelser må fortsatt gjennomgås manuelt.</sys:String>

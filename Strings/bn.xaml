@@ -482,6 +482,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_DocumentTools">ডকুমেন্ট টুলস</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">প্রিন্ট প্রোডাকশন রিপোর্ট</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">প্রিফ্লাইট প্রতিবেদন</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">প্রোফাইল ফাইল দিয়ে প্রিফ্লাইট...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">প্রিফ্লাইট প্রোফাইল ফাইলটি পড়া যায়নি।</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">অ্যাক্সেসিবিলিটি পর্যালোচনা</sys:String>
     <sys:String x:Key="Str_A11y_Intro">একটি সমস্যা নির্বাচন করুন, সংশ্লিষ্ট পৃষ্ঠাটি পর্যালোচনা করুন এবং সংশোধন প্রয়োগ করুন।</sys:String>
     <sys:String x:Key="Str_A11y_Limit">এই পরীক্ষাগুলো PDF-এর সম্পূর্ণ অ্যাক্সেসিবিলিটি নিশ্চিত করে না। পড়ার ক্রম এবং বিবরণ এখনো হাতে পর্যালোচনা করতে হবে।</sys:String>

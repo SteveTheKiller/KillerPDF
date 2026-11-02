@@ -549,6 +549,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_DocumentTools">Narzędzia dokumentu</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Raport produkcji poligraficznej</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Raport inspekcji wstępnej</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Inspekcja wstępna z plikiem profilu...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Nie udało się wczytać pliku profilu inspekcji wstępnej.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Przegląd dostępności</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Wybierz problem, przejrzyj stronę, której dotyczy, i zastosuj poprawkę.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Te kontrole nie potwierdzają pełnej dostępności pliku PDF. Kolejność odczytu i opisy nadal wymagają ręcznego przeglądu.</sys:String>

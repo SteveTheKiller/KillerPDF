@@ -567,6 +567,8 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_DocumentTools">Strumenti documento</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Rapporto produzione di stampa</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Rapporto di verifica preliminare</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Verifica preliminare con file di profilo...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Impossibile leggere il file di profilo della verifica preliminare.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Verifica dell'accessibilità</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Seleziona un problema, esamina la pagina interessata e applica una correzione.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Questi controlli non confermano la piena accessibilità del PDF. L'ordine di lettura e le descrizioni richiedono ancora una verifica manuale.</sys:String>

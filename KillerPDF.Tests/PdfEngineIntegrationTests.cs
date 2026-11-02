@@ -195,6 +195,28 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void InspectPreflight_WithCustomProfile_ReportsTheProfileName()
+    {
+        string path = Path.Combine(Path.GetTempPath(),
+            $"killerpdf-custom-preflight-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage().Build());
+            var profile = new PdfPreflightProfile("Language check",
+                [PdfPreflightCheck.DocumentLanguage]);
+
+            PdfPreflightReport report = PdfEngineIntegration.InspectPreflight(path, profile);
+
+            Assert.Equal("Language check", report.ProfileName);
+            Assert.Contains("Preflight profile: Language check", report.ToText());
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void TableOfContentsIntegration_PlansAndInsertsClickableContents()
     {
         string path = Path.Combine(Path.GetTempPath(),

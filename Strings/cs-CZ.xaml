@@ -558,6 +558,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_DocumentTools">Nástroje dokumentu</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Zpráva o tiskové produkci</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Zpráva o předvýstupní kontrole</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Předvýstupní kontrola se souborem profilu...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Soubor profilu předvýstupní kontroly se nepodařilo načíst.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Kontrola přístupnosti</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Vyberte problém, prohlédněte dotčenou stránku a použijte opravu.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Tyto kontroly nepotvrzují úplnou přístupnost PDF. Pořadí čtení a popisy stále vyžadují ruční kontrolu.</sys:String>

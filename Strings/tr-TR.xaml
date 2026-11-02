@@ -482,6 +482,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_DocumentTools">Belge araçları</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Baskı üretim raporu</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Ön kontrol raporu</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Profil dosyasıyla ön kontrol...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Ön kontrol profil dosyası okunamadı.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Erişilebilirlik incelemesi</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Bir sorun seçin, etkilenen sayfayı inceleyin ve bir düzeltme uygulayın.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Bu denetimler PDF'nin tam erişilebilirliğini doğrulamaz. Okuma sırası ve açıklamalar hâlâ elle incelenmelidir.</sys:String>

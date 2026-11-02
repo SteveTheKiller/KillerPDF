@@ -508,6 +508,8 @@
     <sys:String x:Key="Str_DocumentTools">Orodja za dokumente</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Poročilo priprave za tisk</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Poročilo predhodnega preverjanja</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Predhodno preverjanje z datoteko profila...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Datoteke profila predhodnega preverjanja ni bilo mogoče prebrati.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Pregled dostopnosti</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Izberite težavo, preglejte prizadeto stran in uporabite popravek.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Ta preverjanja ne potrjujejo popolne dostopnosti PDF-ja. Vrstni red branja in opise je še vedno treba pregledati ročno.</sys:String>

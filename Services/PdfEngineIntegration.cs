@@ -238,6 +238,14 @@ internal static partial class PdfEngineIntegration
         return PdfPreflightRunner.Run(File.ReadAllBytes(path), PdfPreflightProfile.PrintProduction);
     }
 
+    /// <summary>Runs a caller-supplied preflight profile, such as one loaded from a profile file.</summary>
+    internal static PdfPreflightReport InspectPreflight(string path, PdfPreflightProfile profile)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(profile);
+        return PdfPreflightRunner.Run(File.ReadAllBytes(path), profile);
+    }
+
     /// <summary>Inspects implemented accessibility requirements and document structure.</summary>
     internal static PdfAccessibilityReport InspectAccessibility(string path)
     {

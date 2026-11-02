@@ -482,6 +482,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_DocumentTools">Herramientas de documento</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Informe de producción de impresión</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Informe de comprobación previa</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Comprobación previa con archivo de perfil...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">No se pudo leer el archivo de perfil de comprobación previa.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Revisión de accesibilidad</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Seleccione un problema, revise la página afectada y aplique una corrección.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Estas comprobaciones no confirman la accesibilidad completa del PDF. El orden de lectura y las descripciones aún requieren una revisión manual.</sys:String>

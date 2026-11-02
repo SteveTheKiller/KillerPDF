@@ -12,10 +12,32 @@ public partial class MainWindow
     private void OpenPreflightTools() => OpenExchangeCommands("Str_DocumentTools_Preflight",
         ("Str_DocumentTools_Preflight", () => ShowDocumentReport(Loc("Str_DocumentTools_Preflight"),
             path => PdfEngineIntegration.InspectPreflight(path).ToText())),
+        ("Str_DocumentTools_PreflightProfile", PreflightWithProfileFile),
         ("Str_Repair_Language", SetPreflightLanguage),
         ("Str_Repair_Metadata", FillMissingMetadata),
         ("Str_Repair_PageBox", ChooseProductionPageBox),
         ("Str_Repair_OutputIntent", AddOutputIntent));
+
+    private void PreflightWithProfileFile()
+    {
+        var picker = new Controls.FileDialog(Controls.FileDialogMode.Open)
+        {
+            Title = Loc("Str_DocumentTools_PreflightProfile"), Filter = "JSON|*.json"
+        };
+        if (picker.ShowDialog(this) != true) return;
+        PdfPreflightProfile profile;
+        try { profile = PdfPreflightProfile.FromJson(File.ReadAllText(picker.FileName)); }
+        catch (Exception error) when (error is ArgumentException or InvalidOperationException
+            or NotSupportedException or System.Text.Json.JsonException or IOException
+            or UnauthorizedAccessException)
+        {
+            KillerDialog.Show(this, Loc("Str_Err_PreflightProfile") + "\n" + error.Message,
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+        ShowDocumentReport(Loc("Str_DocumentTools_PreflightProfile"),
+            path => PdfEngineIntegration.InspectPreflight(path, profile).ToText());
+    }
 
     private void SetPreflightLanguage()
     {

@@ -567,6 +567,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_DocumentTools">Dokumentumeszközök</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Nyomdai gyártási jelentés</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Előellenőrzési jelentés</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Előellenőrzés profilfájllal...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Az előellenőrzési profilfájlt nem sikerült beolvasni.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Akadálymentességi áttekintés</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Válasszon ki egy problémát, tekintse át az érintett oldalt, és alkalmazzon javítást.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Ezek az ellenőrzések nem igazolják a PDF teljes akadálymentességét. Az olvasási sorrend és a leírások továbbra is kézi ellenőrzést igényelnek.</sys:String>

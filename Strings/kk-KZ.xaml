@@ -487,6 +487,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_DocumentTools">Құжат құралдары</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Баспа өндірісі есебі</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Баспаға дейінгі тексеру есебі</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Профиль файлымен баспаға дейінгі тексеру...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Баспаға дейінгі тексеру профилі файлын оқу мүмкін болмады.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Қолжетімділікті тексеру</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Мәселені таңдаңыз, тиісті бетті қарап шығыңыз және түзетуді қолданыңыз.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Бұл тексерулер PDF файлының толық қолжетімділігін растамайды. Оқу реті мен сипаттамаларды әлі де қолмен тексеру қажет.</sys:String>

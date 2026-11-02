@@ -568,6 +568,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_DocumentTools">Document tools</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Print production report</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Preflight report</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Preflight with Profile File...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">The preflight profile file could not be read.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Accessibility review</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Select a problem, review the affected page, and apply a fix.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">These checks do not confirm full PDF accessibility. Reading order and descriptions still need manual review.</sys:String>

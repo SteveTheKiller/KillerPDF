@@ -567,6 +567,8 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_DocumentTools">Ferramentas do documento</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Relatório de produção gráfica</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Relatório de verificação prévia</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Verificação prévia com arquivo de perfil...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Não foi possível ler o arquivo de perfil de verificação prévia.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Revisão de acessibilidade</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Selecione um problema, revise a página afetada e aplique uma correção.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Estas verificações não confirmam a acessibilidade completa do PDF. A ordem de leitura e as descrições ainda precisam de revisão manual.</sys:String>

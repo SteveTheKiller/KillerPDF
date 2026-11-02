@@ -567,6 +567,8 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_DocumentTools">Outils du document</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Rapport de production d'impression</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Rapport de contrôle en amont</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Contrôle en amont avec un fichier de profil...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Le fichier de profil de contrôle en amont est illisible.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Vérification de l'accessibilité</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Sélectionnez un problème, examinez la page concernée et appliquez une correction.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Ces vérifications ne garantissent pas l'accessibilité complète du PDF. L'ordre de lecture et les descriptions nécessitent toujours une vérification manuelle.</sys:String>

@@ -567,6 +567,8 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_DocumentTools">Інструменти документа</sys:String>
     <sys:String x:Key="Str_DocumentTools_PrintProduction">Звіт про друкарське виробництво</sys:String>
     <sys:String x:Key="Str_DocumentTools_Preflight">Звіт передпечатної перевірки</sys:String>
+    <sys:String x:Key="Str_DocumentTools_PreflightProfile">Передпечатна перевірка з файлом профілю...</sys:String>
+    <sys:String x:Key="Str_Err_PreflightProfile">Не вдалося прочитати файл профілю передпечатної перевірки.</sys:String>
     <sys:String x:Key="Str_DocumentTools_Accessibility">Перевірка доступності</sys:String>
     <sys:String x:Key="Str_A11y_Intro">Виберіть проблему, перегляньте відповідну сторінку та застосуйте виправлення.</sys:String>
     <sys:String x:Key="Str_A11y_Limit">Ці перевірки не підтверджують повну доступність PDF. Порядок читання та описи все ще потребують ручної перевірки.</sys:String>
