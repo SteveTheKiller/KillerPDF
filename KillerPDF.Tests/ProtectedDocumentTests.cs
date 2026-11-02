@@ -214,11 +214,13 @@ public sealed class ProtectedDocumentTests : IDisposable
         OpenedProtection protection = OpenedProtection.Capture(path, Reader);
         string output = InFolder("reduced.pdf");
 
-        ProtectedDocumentFiles.ReduceSize(Strip(path, Reader), output, InFolder("reduced-working.pdf"), null,
+        var reduced = ProtectedDocumentFiles.ReduceSize(Strip(path, Reader), output, InFolder("reduced-working.pdf"), null,
             CancellationToken.None, protection);
 
         Assert.Equal(PdfAccessRole.Refused, PdfRestrictions.Read(output, null).Role);
         Assert.Equal(PrintAllowance.Forbidden, PdfRestrictions.Read(output, Reader).Print);
+        // R4-005: the size reported is the size of the file delivered, after the encryption.
+        Assert.Equal(new FileInfo(output).Length, reduced.After);
     }
 
     // Modify bit clear: a read-only tab, and the owner password unlocks it. The encryption is held all

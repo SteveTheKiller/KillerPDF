@@ -22,7 +22,8 @@ internal static class ProtectedDocumentFiles
     }
 
     /// <summary>Writes a smaller copy of a finished document, which keeps the file's protection as a
-    /// save does. Returns what the size report needs.</summary>
+    /// save does. Returns what the size report needs, with the size of the file delivered: the
+    /// encryption writes each object on its own, so a sealed copy is not the size of the plain one.</summary>
     internal static (long Before, long After, int Resampled, IReadOnlyList<KillerPdf.Engine.Writing.PdfReferenceRepair> Repairs) ReduceSize(
         string finishedPath, string destinationPath, string workingPath,
         KillerPdf.Engine.Writing.PdfImageDownsampleOptions? images, CancellationToken cancellation,
@@ -32,7 +33,7 @@ internal static class ProtectedDocumentFiles
             return PdfEngineIntegration.ReduceFileSize(finishedPath, destinationPath, images, cancellation);
         var reduced = PdfEngineIntegration.ReduceFileSize(finishedPath, workingPath, images, cancellation);
         protection.Seal(workingPath, destinationPath);
-        return reduced;
+        return reduced with { After = new FileInfo(destinationPath).Length };
     }
 
     /// <summary>Puts a finished document at its destination, under the file's own encryption when the
