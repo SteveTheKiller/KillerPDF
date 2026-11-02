@@ -67,7 +67,7 @@ public sealed class PageNativeDpiTests : IDisposable
 
     // R2-016: reading one heavy page does not hold up a question about another page.
     [Fact]
-    public void ALightPageAnswersWhileAHeavyPageIsStillBeingRead()
+    public async Task ALightPageAnswersWhileAHeavyPageIsStillBeingRead()
     {
         string path = Path.Combine(_folder, "heavy.pdf");
         File.WriteAllBytes(path, HeavyThenLight());
@@ -80,7 +80,7 @@ public sealed class PageNativeDpiTests : IDisposable
         Thread.Sleep(100);
         session.PageImagePixels(1);
         long lightDone = clock.ElapsedMilliseconds;
-        heavy.GetAwaiter().GetResult();
+        await heavy;
 
         Assert.True(lightDone < heavyDone, $"The light page took until {lightDone} ms and the heavy page until {heavyDone} ms.");
     }
