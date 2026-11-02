@@ -202,7 +202,7 @@ public sealed class DocumentTabLayoutTests
         Assert.Contains("if (!_sessions.Contains(s) || ReferenceEquals(s, _active)) return;", inactiveClose, StringComparison.Ordinal);
         Assert.Contains("CancelAndRelease(s.ThumbCts);", inactiveClose, StringComparison.Ordinal);
         Assert.Contains("s.ThumbCts = null;", inactiveClose, StringComparison.Ordinal);
-        Assert.Contains("s.Doc?.Close();", inactiveClose, StringComparison.Ordinal);
+        Assert.Contains("Services.TabRelease.Release(s.Doc, s.Protection);", inactiveClose, StringComparison.Ordinal);
         Assert.Contains("_sessions.Remove(s);", inactiveClose, StringComparison.Ordinal);
         Assert.Contains("_renderLru.Remove(s);", inactiveClose, StringComparison.Ordinal);
         Assert.Contains("s.RenderCache.Clear();", inactiveClose, StringComparison.Ordinal);
