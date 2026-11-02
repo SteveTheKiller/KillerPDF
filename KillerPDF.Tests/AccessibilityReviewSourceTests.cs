@@ -90,6 +90,13 @@ public sealed class AccessibilityReviewSourceTests : IDisposable
         Assert.True(opened!.IsDecrypted);
         Assert.Equal("Ada", Assert.Single(PdfFormWidgetReader.ReadPage(opened, 0), widget => widget.FieldName == "name").Value);
         Assert.False(File.Exists(Path.Combine(_folder, "exchange.tmp")));
+        // The typed values went in as an encrypted revision, so the snapshot keeps the file's
+        // passwords and permissions.
+        Assert.Equal(PdfPasswordAuthenticationRole.Owner, PdfDocument.Open(snapshot!, Owner).PasswordAuthenticationRole);
+        PdfDocument asUser = PdfDocument.Open(snapshot!, signed ? Reader : "");
+        Assert.Equal(PdfPasswordAuthenticationRole.User, asUser.PasswordAuthenticationRole);
+        Assert.False(asUser.DeclaredPermissions!.AllowDocumentModification);
+        Assert.True(asUser.DeclaredPermissions!.AllowFormFilling);
     }
 
     [Theory]
