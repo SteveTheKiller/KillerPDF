@@ -70,7 +70,7 @@ public sealed class PdfWorkingDocumentTests
     public void FailedUnlockReportsTheWorkingCopyAndPutsTheOriginalBackSafely()
     {
         string source = FileOperations();
-        string unlock = Method(source, "private bool UnlockOwnerRestrictions()");
+        string unlock = Method(source, "private bool UnlockOwnerRestrictions(");
         Assert.DoesNotContain("TryOpenProtectedReadOnly(", unlock);
         // Form entries and annotations made while read-only come back with the original too, not
         // only with the unlocked copy.

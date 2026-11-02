@@ -708,17 +708,19 @@ namespace KillerPDF.Shell
         // ahead, asking for the owner password first on a restricted PDF. Commands that act on the
         // page selection pass continueAfterUnlock: false, because the reopen resets the selection;
         // the user then repeats the command on the unlocked document.
-        private bool EnsureEditable(bool continueAfterUnlock = true)
-            => !IsOwnerRestricted || (UnlockOwnerRestrictions() && continueAfterUnlock);
+        private bool EnsureEditable(bool continueAfterUnlock = true, UnlockPurpose purpose = UnlockPurpose.Edit)
+            => !IsOwnerRestricted || (UnlockOwnerRestrictions(purpose) && continueAfterUnlock);
 
         // Gate for an output that cannot keep the file's encryption: a new PDF, page images, text or
         // data. An edit-forbidden tab unlocks first, and then the limits the file declares answer.
+        // The prompt asks for the output, not for editing.
         private bool EnsureMayWrite(PdfOutput output, bool continueAfterUnlock = false)
-            => EnsureEditable(continueAfterUnlock) && PassesProtectionGate(_protection.AskToWrite(output, AskForOwnerPassword));
+            => EnsureEditable(continueAfterUnlock, UnlockPurpose.Output)
+               && PassesProtectionGate(_protection.AskToWrite(output, AskForOwnerPassword));
 
         // Gate for taking the encryption off, which only a limit makes the owner's call.
         private bool EnsureMayRemoveProtection()
-            => EnsureEditable() && PassesProtectionGate(_protection.AskToRemove(AskForOwnerPassword));
+            => EnsureEditable(purpose: UnlockPurpose.Output) && PassesProtectionGate(_protection.AskToRemove(AskForOwnerPassword));
 
         private string? AskForOwnerPassword(bool lastWasWrong)
         {
@@ -751,7 +753,7 @@ namespace KillerPDF.Shell
 
         // Asks for the owner password and reopens the restricted PDF from an unrestricted working
         // copy. A wrong password, or the empty user password, leaves the document read-only.
-        private bool UnlockOwnerRestrictions()
+        private bool UnlockOwnerRestrictions(UnlockPurpose purpose = UnlockPurpose.Edit)
         {
             if (!IsOwnerRestricted) return true;
             // Certificate encryption has no owner password, so the recipient's permissions stand.
@@ -766,7 +768,7 @@ namespace KillerPDF.Shell
             string displayPath = _originalFile;
             string encryptedPath = ViewingCopySources.GetValueOrDefault(sourcePath, sourcePath);
             string? password = KillerDialog.PromptPassword(this, displayPath,
-                Loc("Str_Restricted_Prompt"), Loc("Str_Restricted_Unlock"));
+                Loc(UnlockPrompt.KeyFor(purpose)), Loc("Str_Restricted_Unlock"));
             if (password is null) return false;
 
             string unlockedPath = App.MakeTempFile("dec");

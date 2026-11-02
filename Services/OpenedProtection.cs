@@ -11,6 +11,16 @@ internal sealed record PrintAnswer(bool MayPrint, double Dpi, bool WrongPassword
 /// no password that could answer it.</summary>
 internal enum ProtectionAnswer { Allowed, Canceled, Refused }
 
+/// <summary>What a read-only tab's owner password prompt is asked for: editing the document, or an
+/// output written past the file's limits, such as an export or Remove Password.</summary>
+internal enum UnlockPurpose { Edit, Output }
+
+/// <summary>The words of the owner password prompt on a read-only tab, by what it is asked for.</summary>
+internal static class UnlockPrompt
+{
+    internal static string KeyFor(UnlockPurpose purpose) => "Str_Restricted_Prompt";
+}
+
 /// <summary>How an owner password prompt on a read-only tab ended.</summary>
 internal enum UnlockOutcome { Unlocked, WrongPassword, Failed }
 
