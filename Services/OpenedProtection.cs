@@ -59,9 +59,11 @@ internal sealed class OpenedProtection
     internal bool CanLift => Access.Role == PdfAccessRole.User && _encryption is not null;
 
     /// <summary>True when a save writes this file under its own encryption, so a save needs no owner
-    /// password and every limit survives it. A file that forbids editing is read-only until its owner
-    /// password unlocks it, and that unlock has always saved it plain.</summary>
-    internal bool KeepsEncryption => _encryption?.Permissions.AllowDocumentModification == true;
+    /// password and every limit survives it. That holds whenever the tab holds the encryption,
+    /// including a file that forbids editing and was opened or unlocked with its owner password: the
+    /// owner edits this tab, and the file keeps its passwords and limits. Remove Password is the one
+    /// save that writes it plain.</summary>
+    internal bool KeepsEncryption => _encryption is not null;
 
     /// <summary>True when the tab holds the encryption, so a copy can be written under it.</summary>
     internal bool CanSeal => _encryption is not null;

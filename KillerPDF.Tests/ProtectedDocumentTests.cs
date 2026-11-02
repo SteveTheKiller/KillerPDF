@@ -221,14 +221,66 @@ public sealed class ProtectedDocumentTests : IDisposable
         Assert.Equal(PrintAllowance.Forbidden, PdfRestrictions.Read(output, Reader).Print);
     }
 
-    // Modify bit clear stays as it was: a read-only tab, and the owner password unlocks it.
+    // Modify bit clear: a read-only tab, and the owner password unlocks it. The encryption is held all
+    // the same, so whatever the owner saves goes back under it.
     [Fact]
-    public void AFileThatForbidsEditingIsNotKeptByASave()
+    public void AFileThatForbidsEditingIsReadOnlyAndStillKeepsItsEncryption()
     {
         OpenedProtection protection = OpenedProtection.Capture(Protected("read-only.pdf", modify: false), null);
 
-        Assert.False(protection.KeepsEncryption);
         Assert.False(protection.Access.MayModify);
+        Assert.True(protection.KeepsEncryption);
+    }
+
+    // R4-001: the owner password opens a file that forbids editing, and the save keeps its user
+    // password, its owner password and every limit it declares.
+    [Fact]
+    public void AFileOpenedWithItsOwnerPasswordSavesUnderTheSamePasswordsAndLimits()
+    {
+        string path = Protected("owner-opened.pdf", user: Reader, modify: false, copy: false, form: true);
+        OpenedProtection protection = OpenedProtection.Capture(path, Owner);
+        Assert.True(protection.Access.MayModify);
+        string target = InFolder("owner-opened-saved.pdf");
+
+        SaveEdited(Strip(path, Owner), "name", target, protection);
+
+        AssertSameProtection(target, Reader, copy: false, print: true);
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(File.ReadAllBytes(target), Reader);
+        Assert.Equal("new value", FieldValue(document, "name"));
+    }
+
+    // R4-001: Enter Password with the owner password unlocks the tab, and the save after it writes the
+    // file back with the limit the unlock lifted for this tab only. Reduce Size does the same.
+    [Fact]
+    public void AnUnlockedFileThatForbidsEditingSavesAndReducesUnderItsOwnLimits()
+    {
+        string path = Protected("unlocked.pdf", modify: false, print: false);
+        OpenedProtection opened = OpenedProtection.Capture(path, null);
+        string unlocked = InFolder("unlocked-working.pdf");
+        Assert.Equal(UnlockOutcome.Unlocked, opened.Unlock(path, unlocked, Owner).Outcome);
+        OpenedProtection protection = opened.AfterUnlock();
+        string reduced = InFolder("unlocked-reduced.pdf");
+
+        ProtectedDocumentFiles.ReduceSize(unlocked, reduced, InFolder("unlocked-reduced-working.pdf"), null,
+            CancellationToken.None, protection);
+        SaveEdited(unlocked, null, path, protection);
+
+        foreach (string output in new[] { path, reduced })
+            AssertSameProtection(output, "", copy: true, print: false);
+    }
+
+    // Reads a saved file back: the user password opens it as a user under the same limits, nothing
+    // else does, and the owner password is still the owner's.
+    private static void AssertSameProtection(string path, string user, bool copy, bool print)
+    {
+        Assert.True(PdfRestrictions.HasEncryption(path));
+        if (user.Length > 0) Assert.Equal(PdfAccessRole.Refused, PdfRestrictions.Read(path, null).Role);
+        PdfAccess reopened = PdfRestrictions.Read(path, user);
+        Assert.Equal(PdfAccessRole.User, reopened.Role);
+        Assert.False(reopened.MayModify);
+        Assert.Equal(copy, reopened.MayCopy);
+        Assert.Equal(print ? PrintAllowance.Allowed : PrintAllowance.Forbidden, reopened.Print);
+        Assert.Equal(PdfAccessRole.Owner, PdfRestrictions.Read(path, Owner).Role);
     }
 
     // R3-005: nothing has changed in a file just opened.
