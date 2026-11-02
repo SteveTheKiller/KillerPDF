@@ -10,7 +10,7 @@ The 1.9.2 engine writes an edited document back under the encryption it was open
 
 ### Fixed
 
-- A file that names a security handler but lost its `/Encrypt` entry fails the strict open when its first page with content reads as nothing but holds a byte of 0x80 or above after a percent sign, as ciphertext that begins with that sign does, and only real content operators count as readable page content. A plain page written as nothing but a comment still opens.
+- A file that names a security handler but lost its `/Encrypt` entry fails the strict open when its first page with content reads as nothing but holds bytes after a percent sign that cannot be comment text, as ciphertext that begins with that sign does: a control byte that is not whitespace, or 16 bytes or more that are not UTF-8 and are at least a quarter high bytes. Only real content operators count as readable page content. A plain page written as nothing but a comment still opens, in any language and in UTF-8 or Latin-1.
 
 ### Added
 

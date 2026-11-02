@@ -108,6 +108,40 @@ public sealed class PdfLostEncryptionTests
         Assert.Single(PdfPageInformation.Read(document));
     }
 
+    // R6-006: a comment in a language other than English carries bytes of 0x80 or above, in UTF-8 or
+    // Latin-1, and is still an authored comment. Only bytes that cannot be text convict the page.
+    [Theory]
+    [InlineData("% Seite für Rechnungen\n", "utf-8")]
+    [InlineData("% Seite für Rechnungen\n", "latin1")]
+    [InlineData("% 請求書のページです\n% 空白ページ\n", "utf-8")]
+    [InlineData("% Café crème brûlée, à la façon de la maïson\n", "latin1")]
+    public void ANonEnglishCommentOnlyPageWithALeftoverDictionaryStillOpens(string content, string encoding)
+    {
+        byte[] bytes = encoding == "latin1" ? Encoding.Latin1.GetBytes(content) : Encoding.UTF8.GetBytes(content);
+        Assert.Contains(bytes, value => value >= 0x80);
+        byte[] plain = WithLeftoverDictionary(new PdfDocumentBuilder().AddPage(200, 200, bytes).Build());
+
+        PdfDocument? document = null;
+        Exception? failure = Record.Exception(() => document = PdfDocument.Open(plain));
+
+        Assert.Null(failure);
+        Assert.False(document!.IsEncrypted);
+        Assert.Single(PdfPageInformation.Read(document));
+    }
+
+    // Ciphertext behind a percent sign almost always carries a control byte, and when it does not, it
+    // is not UTF-8 and a quarter or more of it is high bytes.
+    [Theory]
+    [InlineData(new byte[] { 0x25, 0x41, 0x01, 0x42, 0x43 })]
+    [InlineData(new byte[] { 0x25, 0x20, 0x7F, 0x20, 0x20 })]
+    [InlineData(new byte[] { 0x25, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8, 0xC8 })]
+    public void BytesThatCannotBeTextBehindAPercentSignStillFailTheStrictRead(byte[] content)
+    {
+        byte[] lost = WithLeftoverDictionary(new PdfDocumentBuilder().AddPage(200, 200, content).Build());
+
+        Assert.Throws<PdfLostEncryptionException>(() => PdfDocument.Open(lost));
+    }
+
     [Fact]
     public void AnEncryptedFileWithItsEntryStillOpens() =>
         Assert.True(PdfDocument.Open(Encrypted()).IsEncrypted);

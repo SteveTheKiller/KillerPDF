@@ -106,8 +106,10 @@ public sealed class PdfPageContentReader
 
     /// <summary>Whether a page that reads as no instructions hides binary bytes behind a comment. A
     /// comment runs to the end of its line, so ciphertext that begins with a percent sign reads as
-    /// nothing; it carries a byte of 0x80 or above after that sign, and an authored comment, such as
-    /// a blank page written as <c>% blank page</c>, does not.</summary>
+    /// nothing. Only bytes that cannot be authored text convict the page: a control byte that is not
+    /// PDF whitespace, or DEL, or a run of 16 bytes or more that is not UTF-8 and is at least a quarter
+    /// high bytes. A comment in any language passes, in UTF-8 or with a few Latin-1 letters, and
+    /// ciphertext almost never does.</summary>
     internal bool HidesBinaryInAComment(int pageIndex)
     {
         if (pageIndex < 0 || pageIndex >= PageCount) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -120,10 +122,21 @@ public sealed class PdfPageContentReader
             if (Resolve(item) is not PdfStream stream) continue;
             ReadOnlySpan<byte> bytes = _document.DecodeStream(stream, PdfContentStreamReader.MaximumSourceBytes);
             int percent = bytes.IndexOf((byte)'%');
-            if (percent >= 0 && bytes[(percent + 1)..].IndexOfAnyInRange((byte)0x80, (byte)0xFF) >= 0)
+            if (percent >= 0 && CannotBeCommentText(bytes[(percent + 1)..]))
                 return true;
         }
         return false;
+    }
+
+    private static bool CannotBeCommentText(ReadOnlySpan<byte> bytes)
+    {
+        int high = 0;
+        foreach (byte value in bytes)
+        {
+            if ((value < 0x20 && value is not (0x00 or 0x09 or 0x0A or 0x0C or 0x0D)) || value == 0x7F) return true;
+            if (value >= 0x80) high++;
+        }
+        return bytes.Length >= 16 && high * 4 >= bytes.Length && !System.Text.Unicode.Utf8.IsValid(bytes);
     }
 
     internal IEnumerable<PdfContentInstruction> EnumerateInstructions(
