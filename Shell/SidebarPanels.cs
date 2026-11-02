@@ -297,13 +297,14 @@ namespace KillerPDF.Shell
                 return;
             }
 
+            OpenedProtection protection = _protection;
             object? data;
             try
             {
                 data = await Task.Run<object?>(() => panel switch
                 {
                     SidebarPanel.Comments => PdfEngineIntegration.ReadCommentThreads(path),
-                    SidebarPanel.Attachments => PdfAttachmentReader.Read(PdfDocument.Open(File.ReadAllBytes(path))),
+                    SidebarPanel.Attachments => PdfEngineIntegration.ReadAttachments(path, protection),
                     SidebarPanel.Layers => PdfEngineIntegration.InspectLayers(path),
                     _ => PdfEngineIntegration.InspectSignatures(path),
                 });

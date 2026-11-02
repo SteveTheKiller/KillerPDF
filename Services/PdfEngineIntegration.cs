@@ -361,10 +361,17 @@ internal static partial class PdfEngineIntegration
         ReplaceWithBuiltResult(path, result);
     }
 
-    internal static IReadOnlyList<AttachmentEditorItem> ReadAttachmentEditorItems(string path)
+    /// <summary>Lists a tab's attachments: a limit on saving them never hides them.</summary>
+    internal static IReadOnlyList<PdfAttachmentInfo> ReadAttachments(string path, OpenedProtection? protection = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return [.. PdfAttachmentReader.Read(PdfDocument.Open(File.ReadAllBytes(path)))
+        byte[] source = File.ReadAllBytes(path);
+        return PdfAttachmentReader.Read(protection?.OpenHeld(source) ?? OpenForReading(source));
+    }
+
+    internal static IReadOnlyList<AttachmentEditorItem> ReadAttachmentEditorItems(string path, OpenedProtection? protection = null)
+    {
+        return [.. ReadAttachments(path, protection)
             .Select(attachment => new AttachmentEditorItem(
                 attachment.FileName, attachment.FileName, attachment.Description,
                 attachment.MimeType, attachment.Relationship, attachment.Data.Length,
