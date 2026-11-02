@@ -1928,10 +1928,20 @@ namespace KillerPDF.Shell
                 CommitActiveTextBox();
                 CloseEngineDocumentSession();
                 OfferRescaleOutOfRangePages();   // Adobe page-size guard (pageDims below must be in range)
+                string outputPath = dlg.FileName;
 
+                // The overlay and its Cancel come first: writing the copy below blocks the window, on a
+                // large file for seconds, and the flatten reports its pages from page 0 on.
+                ct = BeginCancellableOp(Loc("Str_Op_Flatten"));
+                operationStarted = true;
                 // Capture forms, annotations, and complete page rotations before rendering.
                 // Saving this temporary copy leaves the editor's dirty state intact.
-                string sourcePath = WriteSavedCopyToTemp(forRasterization: true);
+                string sourcePath = await BusyCue.ThenRun(
+                    () => overlay = ShowFlattenProgress(_doc.PageCount, Loc("Str_Busy_FlattenPage"), () => _busyCts?.Cancel()),
+                    async () => await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background),
+                    () => WriteSavedCopyToTemp(forRasterization: true));
+                if (ct.IsCancellationRequested) { SetStatus(Loc("Str_St_FlattenCanceled")); return; }
+                Border shown = overlay!;
 
                 PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
                 int pageCount = engineSession.PageCount;
@@ -1944,19 +1954,12 @@ namespace KillerPDF.Shell
                 {
                     pageDims[i] = engineSession.PhysicalPageSize(i, _pageRotations);
                 }
-
-                // Show a progress overlay so the user knows we're working
-                overlay = ShowFlattenProgress(pageCount, Loc("Str_Busy_FlattenPage"), () => _busyCts?.Cancel());
-                string outputPath = dlg.FileName;
-
-                ct = BeginCancellableOp(Loc("Str_Op_Flatten"));
-                operationStarted = true;
                 // Rasterize on a background thread - keeps the UI responsive. The core lives in
                 // Services/PdfRasterize.cs; progress marshals back to the overlay here.
                 var incomplete = new IncompletePageLog();
                 await Task.Run(() => PdfRasterize.FlattenToPdf(sourcePath, pageCount, pageDims, outputPath,
                     flattenOptions,
-                    (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(overlay, n, total))),
+                    (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(shown, n, total))),
                     ct, incomplete));
 
                 if (ct.IsCancellationRequested) { SetStatus(Loc("Str_St_FlattenCanceled")); return; }

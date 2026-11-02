@@ -54,6 +54,10 @@ namespace KillerPDF.Services
             IncompletePageLog? incomplete = null)
         {
             options.Validate();
+            // Progress shows before anything is read, and a cancel is honored between every step,
+            // so a large file never sits silent ahead of its first page.
+            progress(0, pageCount);
+            if (ct.IsCancellationRequested) return;
             // Rasterize pages across CPU cores. Pages are authored by the
             // engine afterwards in their original order.
             //
@@ -63,53 +67,59 @@ namespace KillerPDF.Services
             // factor renders each page at its own size at 150 DPI (150/72), so the doc
             // no longer needs reopening to apply per-page pixel dimensions.
             PdfDocument sourceDocument = PdfDocument.Open(File.ReadAllBytes(sourcePath));
+            if (ct.IsCancellationRequested) return;
             IReadOnlyList<bool> bitonalHints =
                 PdfPageRasterInformation.ReadBitonalImagePageHints(sourceDocument);
+            if (ct.IsCancellationRequested) return;
             IReadOnlyList<bool> jpegHints =
                 PdfPageRasterInformation.ReadJpegImagePageHints(sourceDocument);
-            var passthrough = new PdfImage?[pageCount];
+            if (ct.IsCancellationRequested) return;
             IReadOnlyList<PdfPageInformation>? pageInformation = options.KeepResolution
                 ? PdfPageInformation.Read(sourceDocument) : null;
             var contentReader = options.KeepResolution ? new PdfPageContentReader(sourceDocument) : null;
-            double[] pageDpi = [.. Enumerable.Range(0, pageCount).Select(page => pageInformation is null
-                ? options.Dpi
-                : OutputPixelDimensions.NativeDpi(
-                    PdfPageRasterInformation.ReadPageImageSize(contentReader!, pageInformation, page),
-                    pageDims[page].widthPt, pageDims[page].heightPt, options.Dpi))];
             bool scanLook = options.Look?.Any == true;
-            if (options.ColorMode == PageColorMode.Color && !options.UseJpegCompression && !scanLook)
-                for (int i = 0; i < pageCount; i++)
-                    if (PdfPageRasterInformation.TryReadFullPageJpeg(
-                            sourceDocument, i, out PdfImage? candidate)
-                        && candidate is not null
-                        && OutputPixelDimensions.MatchesDpi(candidate.Width, candidate.Height,
-                            pageDims[i].widthPt, pageDims[i].heightPt, pageDpi[i]))
-                        passthrough[i] = candidate;
+            bool mayPassThrough = options.ColorMode == PageColorMode.Color && !options.UseJpegCompression && !scanLook;
             var rasterPages = new PdfEngineIntegration.RasterPage[pageCount];
             var docGate  = new object();
             int done     = 0;
             var po = new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount) };
             var renderSessions = new Dictionary<double, PdfPageRenderSession>();
             using var closeSessions = new SessionSet(renderSessions);
-            Parallel.For(0, pageCount, po, i =>
+            Parallel.For(0, pageCount, po, (i, loop) =>
             {
-                if (ct.IsCancellationRequested) return;   // cooperative: skip remaining pages' work
+                if (ct.IsCancellationRequested) { loop.Stop(); return; }   // cooperative: skip remaining pages' work
                 byte[] bgra; int rw, rh;
+                double dpi;
+                PdfImage? passthrough = null;
                 lock (docGate)
                 {
+                    if (ct.IsCancellationRequested) { loop.Stop(); return; }
+                    // Each page's resolution and its own JPEG are read as the page comes up, not for
+                    // every page ahead of the first, so progress moves from the start.
+                    dpi = pageInformation is null
+                        ? options.Dpi
+                        : OutputPixelDimensions.NativeDpi(
+                            PdfPageRasterInformation.ReadPageImageSize(contentReader!, pageInformation, i),
+                            pageDims[i].widthPt, pageDims[i].heightPt, options.Dpi);
+                    if (mayPassThrough
+                        && PdfPageRasterInformation.TryReadFullPageJpeg(sourceDocument, i, out PdfImage? candidate)
+                        && candidate is not null
+                        && OutputPixelDimensions.MatchesDpi(candidate.Width, candidate.Height,
+                            pageDims[i].widthPt, pageDims[i].heightPt, dpi))
+                        passthrough = candidate;
                     // Composite over white (#148, Ryokoxx): the engine leaves unpainted
                     // background as BGRA 0,0,0,0, which used to embed a full-page
                     // /SMask alpha channel in the flattened output.
                     // #141: WithAnnotations, or flattening an annotated PDF silently dropped the
                     // markup the file carried - this path builds a NEW document from the pixels.
-                    PdfRenderedPage rendered = SessionFor(renderSessions, sourcePath, pageDpi[i]).RenderPage(i,
+                    PdfRenderedPage rendered = SessionFor(renderSessions, sourcePath, dpi).RenderPage(i,
                         requireComplete: incomplete is null, cancellationToken: ct);
                     incomplete?.Note(i, rendered);
                     rw = rendered.Width;
                     rh = rendered.Height;
                     bgra = rendered.Pixels;
                 }
-                if (passthrough[i] is PdfImage original)
+                if (passthrough is PdfImage original)
                 {
                     rasterPages[i] = new PdfEngineIntegration.RasterPage(
                         original.Width, original.Height,
@@ -121,7 +131,7 @@ namespace KillerPDF.Services
                 }
                 // The scanned look goes on before the color mode, so a grayscale copy grays the
                 // warm paper and grain along with the page.
-                if (scanLook) bgra = ScanLook.Apply(bgra, rw, rh, pageDpi[i], options.Look!, i);
+                if (scanLook) bgra = ScanLook.Apply(bgra, rw, rh, dpi, options.Look!, i);
                 PageQualityConverter.ApplyColorModeToBgra(
                     bgra, options.ColorMode, options.BlackWhiteThreshold);
                 bool bitonal = options.ColorMode == PageColorMode.BlackAndWhite
@@ -133,7 +143,7 @@ namespace KillerPDF.Services
                     || options.ColorMode == PageColorMode.Color
                     && i < jpegHints.Count && jpegHints[i]);
                 ReadOnlyMemory<byte> jpeg = useJpeg
-                    ? BitmapHelpers.EncodeJpeg(bgra, rw, rh, pageDpi[i],
+                    ? BitmapHelpers.EncodeJpeg(bgra, rw, rh, dpi,
                         options.JpegQuality, grayscale)
                     : default;
                 rasterPages[i] = new PdfEngineIntegration.RasterPage(
@@ -146,7 +156,7 @@ namespace KillerPDF.Services
                 progress(n, pageCount);
             });
 
-            if (ct.IsCancellationRequested) return;   // canceled during render: assemble/save nothing
+            if (ct.IsCancellationRequested || done < pageCount) return;   // canceled during render: assemble/save nothing
 
             AtomicFileOutput.Write(outputPath,
                 PdfEngineIntegration.CreateRasterDocument(rasterPages), ct);
