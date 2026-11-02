@@ -13,6 +13,10 @@ internal sealed record ScanLineEditPlan(Rect Covered, Rect Cover, string Text, i
 internal sealed record ScanLineFit(Color Background, Color Ink, string Family, double FontSize, bool Bold,
     double Baseline, IReadOnlyList<double> WordBaselines);
 
+/// <summary>A picture of the page a scanned line can be measured from, with how many of its pixels
+/// fall on one canvas unit.</summary>
+internal sealed record ScanMeasureSource(double PixelsPerUnit, Func<ScanLineFit?> Measure);
+
 /// <summary>Limits an edit of a scanned line to the words it changes, so the rest stay as scanned.</summary>
 internal static class ScanLineEdit
 {
@@ -57,17 +61,56 @@ internal static class ScanLineEdit
     // screen's zoom round to the wrong height, which picks too small a size and the wrong typeface.
     private const int MeasureEdge = 2048;
 
+    /// <summary>The pixels the measure render puts on one canvas unit of a page shown at this size.</summary>
+    internal static double RenderPixelsPerUnit(double canvasWidth, double canvasHeight) =>
+        MeasureEdge / Math.Max(canvasWidth, canvasHeight);
+
+    /// <summary>Measures from the source with the most pixels per unit first, so a large sheet at a
+    /// high zoom reads from the screen and is not drawn again at fewer pixels. A source that cannot be
+    /// read, such as a page the file cannot draw completely, gives way to the next.</summary>
+    internal static ScanLineFit? MeasureFromSharpest(IReadOnlyList<ScanMeasureSource> sources)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+        foreach (ScanMeasureSource source in sources.OrderByDescending(source => source.PixelsPerUnit))
+        {
+            try
+            {
+                if (source.Measure() is { } fit) return fit;
+            }
+            catch (Exception error) when (error is ArgumentException or InvalidOperationException
+                or NotSupportedException or FormatException or System.IO.IOException) { }
+        }
+        return null;
+    }
+
+    // The last page drawn for a measure, so the clicks that follow on that page do not draw it again.
+    private static (string Key, byte[] Pixels, int Width, int Height)? _lastMeasureRender;
+    private static readonly Lock MeasureRenderSync = new();
+
+    private static (byte[] Pixels, int Width, int Height) MeasureRender(string path, int pageIndex)
+    {
+        var file = new System.IO.FileInfo(path);
+        string key = string.Join('|', file.FullName, file.LastWriteTimeUtc.Ticks, file.Length, pageIndex);
+        lock (MeasureRenderSync)
+            if (_lastMeasureRender is { } last && last.Key == key)
+                return ((byte[])last.Pixels.Clone(), last.Width, last.Height);
+        using PdfPageRenderSession session = PdfPageRenderSession.OpenEngineFirst(path, MeasureEdge, MeasureEdge);
+        PdfRenderedPage page = session.RenderPage(pageIndex);
+        byte[] pixels = (byte[])page.Pixels.Clone();
+        OverWhitePage(pixels);
+        lock (MeasureRenderSync) _lastMeasureRender = (key, pixels, page.Width, page.Height);
+        return ((byte[])pixels.Clone(), page.Width, page.Height);
+    }
+
     /// <summary>Measures a line from the page itself, at a size that shows its letters. Returns null
-    /// when the line cannot be measured or the page is shown turned from the way the file draws it.</summary>
+    /// when the line cannot be measured or the page is shown turned from the way the file draws it.
+    /// Throws when the page cannot be drawn completely, so the caller can measure another way.</summary>
     internal static ScanLineFit? Measure(string path, int pageIndex, double canvasWidth, double canvasHeight,
         IReadOnlyList<string> words, IReadOnlyList<Rect> boxes, IReadOnlyList<PdfScanTextFace> faces)
     {
-        using PdfPageRenderSession session = PdfPageRenderSession.OpenEngineFirst(path, MeasureEdge, MeasureEdge);
-        PdfRenderedPage page = session.RenderPage(pageIndex);
-        if (Math.Abs(page.Width / (double)page.Height - canvasWidth / canvasHeight) > 0.01) return null;
-        byte[] pixels = (byte[])page.Pixels.Clone();
-        OverWhitePage(pixels);
-        return Measure(pixels, page.Width, page.Height, canvasWidth, canvasHeight, words, boxes, faces);
+        (byte[] pixels, int width, int height) = MeasureRender(path, pageIndex);
+        if (Math.Abs(width / (double)height - canvasWidth / canvasHeight) > 0.01) return null;
+        return Measure(pixels, width, height, canvasWidth, canvasHeight, words, boxes, faces);
     }
 
     /// <summary>Measures a line from opaque BGRA pixels of the page shown on a canvas of the given size.</summary>

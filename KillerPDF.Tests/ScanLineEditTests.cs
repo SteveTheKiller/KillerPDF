@@ -109,4 +109,51 @@ public sealed class ScanLineEditTests
 
         Assert.Equal(("sum", 20, 60, 80, 90), (word.Text, word.Left, word.Top, word.Right, word.Bottom));
     }
+
+    private static ScanLineFit Fit(double size) =>
+        new(System.Windows.Media.Colors.White, System.Windows.Media.Colors.Black, "Arial", size, false, 10, [10.0]);
+
+    // R4-009: a page the file cannot draw completely throws, and the bitmap on screen still measures it.
+    [Fact]
+    public void AFailedRenderFallsThroughToTheBitmapOnScreen()
+    {
+        ScanLineFit screen = Fit(11);
+        ScanLineFit? measured = null;
+
+        Exception? failure = Record.Exception(() => measured = ScanLineEdit.MeasureFromSharpest(
+        [
+            new ScanMeasureSource(4, () => throw new InvalidOperationException("Page 1 did not render completely.")),
+            new ScanMeasureSource(1, () => screen)
+        ]));
+
+        Assert.Null(failure);
+        Assert.Same(screen, measured);
+    }
+
+    // A large sheet at a high zoom holds more pixels on screen than the fixed-size render, so the
+    // screen measures it first and nothing is rendered.
+    [Fact]
+    public void TheSourceWithMorePixelsMeasuresFirst()
+    {
+        ScanLineFit screen = Fit(11);
+        bool rendered = false;
+
+        ScanLineFit? measured = ScanLineEdit.MeasureFromSharpest(
+        [
+            new ScanMeasureSource(ScanLineEdit.RenderPixelsPerUnit(3370, 2384), () => { rendered = true; return Fit(9); }),
+            new ScanMeasureSource(2.5, () => screen)
+        ]);
+
+        Assert.Same(screen, measured);
+        Assert.False(rendered);
+    }
+
+    [Fact]
+    public void ASourceThatReadsNothingGivesWayToTheNext()
+    {
+        ScanLineFit file = Fit(12);
+
+        Assert.Same(file, ScanLineEdit.MeasureFromSharpest(
+            [new ScanMeasureSource(3, () => null), new ScanMeasureSource(2, () => file)]));
+    }
 }

@@ -478,32 +478,41 @@ namespace KillerPDF.Controls
             return [.. PdfEngineIntegration.ScanTextFaces().Where(face => !bundled.Contains(face.Family))];
         });
 
-        // Measures a scanned line's colors, size and closest installed typeface. The page is drawn for
-        // this at a size that shows its letters; a page the user has turned in this session reads from
-        // the bitmap on screen instead, because the file does not draw it that way yet. A line that
-        // cannot be measured returns null and keeps the sampled cover and default look.
+        // Measures a scanned line's colors, size and closest installed typeface, from whichever picture
+        // of the page holds more pixels: the page drawn at a size that shows its letters, or the bitmap
+        // on screen, which a large sheet at a high zoom out-resolves. A page the user has turned in
+        // this session reads from the bitmap, because the file does not draw it that way yet, and so
+        // does a page the file cannot draw completely. A page already drawn for a measure is not drawn
+        // again. A line that cannot be measured returns null and keeps the sampled cover and default look.
         private ScanLineFit? MeasureScanLine(int pageIdx, string[] words, Rect[] boxes)
         {
-            try
-            {
-                if (!_renderDims.TryGetValue(pageIdx, out var rd) || rd.w <= 0 || rd.h <= 0
-                    || ScanFaces.Value.Count == 0) return null;
-                if (!_pageRotations.ContainsKey(pageIdx) && _currentFile is { } path
-                    && ScanLineEdit.Measure(path, pageIdx, rd.w, rd.h, words, boxes, ScanFaces.Value) is { } measured)
-                    return measured;
-                if (PageBitmapFor(pageIdx) is not { } bitmap) return null;
-                var bgra32 = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
-                int width = bgra32.PixelWidth, height = bgra32.PixelHeight;
-                byte[] pixels = new byte[width * height * 4];
-                bgra32.CopyPixels(pixels, width * 4, 0);
-                ScanLineEdit.OverWhitePage(pixels);
-                return ScanLineEdit.Measure(pixels, width, height, rd.w, rd.h, words, boxes, ScanFaces.Value);
-            }
+            try { return MeasureScanLineFromSharpest(pageIdx, words, boxes); }
             catch (Exception ex) when (ex is ArgumentException or InvalidOperationException
                 or NotSupportedException or FormatException or IOException)
             {
                 return null;
             }
+        }
+
+        private ScanLineFit? MeasureScanLineFromSharpest(int pageIdx, string[] words, Rect[] boxes)
+        {
+            if (!_renderDims.TryGetValue(pageIdx, out var rd) || rd.w <= 0 || rd.h <= 0
+                || ScanFaces.Value.Count == 0) return null;
+            var sources = new List<ScanMeasureSource>();
+            if (!_pageRotations.ContainsKey(pageIdx) && _currentFile is { } path)
+                sources.Add(new ScanMeasureSource(ScanLineEdit.RenderPixelsPerUnit(rd.w, rd.h),
+                    () => ScanLineEdit.Measure(path, pageIdx, rd.w, rd.h, words, boxes, ScanFaces.Value)));
+            if (PageBitmapFor(pageIdx) is { } bitmap)
+                sources.Add(new ScanMeasureSource(bitmap.PixelWidth / rd.w, () =>
+                {
+                    var bgra32 = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
+                    int width = bgra32.PixelWidth, height = bgra32.PixelHeight;
+                    byte[] pixels = new byte[width * height * 4];
+                    bgra32.CopyPixels(pixels, width * 4, 0);
+                    ScanLineEdit.OverWhitePage(pixels);
+                    return ScanLineEdit.Measure(pixels, width, height, rd.w, rd.h, words, boxes, ScanFaces.Value);
+                }));
+            return ScanLineEdit.MeasureFromSharpest(sources);
         }
 
         // Drops an opaque cover at the given line and opens an editable text box on top of it - the two
