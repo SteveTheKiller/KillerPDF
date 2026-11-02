@@ -34,4 +34,32 @@ namespace KillerPDF.Services
             return smallest;
         }
     }
+
+    /// <summary>
+    /// Each open document's smallest limits, read once on a worker and held with that document, not in
+    /// a viewer's one slot, so moving between tabs or panes never reads a document again and building a
+    /// field never waits on a walk of every page. The entry goes with the document. A page edit opens a
+    /// new working document, whose fields may differ, so it is read afresh.
+    /// </summary>
+    internal sealed class FormTextLimitCache
+    {
+        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, Task<IReadOnlyDictionary<string, int>>> _byDocument = new();
+
+        /// <summary>The read of a document's limits, started on a worker the first time it is asked for.</summary>
+        internal Task<IReadOnlyDictionary<string, int>> Read(object document, Func<IReadOnlyDictionary<string, int>> read)
+        {
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(read);
+            return _byDocument.GetValue(document, _ => Task.Run(read));
+        }
+
+        /// <summary>The limits once they are read, or null while the read runs, when it failed or when it
+        /// was never started. Until then a field holds to its own limit.</summary>
+        internal IReadOnlyDictionary<string, int>? Known(object document)
+        {
+            ArgumentNullException.ThrowIfNull(document);
+            return _byDocument.TryGetValue(document, out Task<IReadOnlyDictionary<string, int>>? read)
+                && read.IsCompletedSuccessfully ? read.Result : null;
+        }
+    }
 }

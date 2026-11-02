@@ -138,8 +138,6 @@ namespace KillerPDF.Controls
         private Services.OpenedProtection _protection = Services.OpenedProtection.None;
         private object? _fieldMarksDocument;
         private RepeatedFieldMarks _fieldMarks = new();
-        private object? _formTextLimitsDocument;
-        private IReadOnlyDictionary<string, int>? _formTextLimits;
         private Services.PublishedFileStamp? _publishedFile;
         private Services.CompleteDocumentSource? _completeDocumentSource;
         private string? _suggestedName;

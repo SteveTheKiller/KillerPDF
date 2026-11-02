@@ -540,7 +540,9 @@ namespace KillerPDF.Controls
                         string capturedKey   = f.FieldName;
                         double capturedScale = f.Scale;
                         // One typed value goes to every field of a name, so the tightest limit holds it.
-                        int maxLen = SmallestFormTextLimits().GetValueOrDefault(capturedKey, f.MaxLen);
+                        // Its read starts now, so it is known by the time anyone types.
+                        StartReadingFormTextLimits();
+                        int MaxLen() => KnownFormTextLimits()?.GetValueOrDefault(capturedKey, f.MaxLen) ?? f.MaxLen;
                         string lastAccepted = tb.Text;
                         tb.GotFocus  += (_, _) =>
                         {
@@ -555,6 +557,7 @@ namespace KillerPDF.Controls
                             finally { _formRecalculating = wasRecalculating; }
                             _selectedFormFieldName = capturedKey; tb.SetResourceReference(Control.BorderBrushProperty, "HeaderLineBrush"); ShowFormSizeBar(tb, capturedKey, capturedScale);
                             // A value that arrived too long is shown whole, never cut, but named.
+                            int maxLen = MaxLen();
                             if (Services.FormTextLimit.IsOver(tb.Text, maxLen))
                                 SetStatus(string.Format(Loc("Str_St_FieldMaxLength"), maxLen));
                         };
@@ -564,6 +567,7 @@ namespace KillerPDF.Controls
                             if (_formRecalculating) return;
                             // Typing, paste and IME composition all land here. Hold the field to the
                             // character count Save and Print enforce (BF-U007).
+                            int maxLen = MaxLen();
                             if (!Services.FormTextLimit.Accepts(tb.Text, lastAccepted, maxLen))
                             {
                                 int caret = Math.Min(tb.CaretIndex, lastAccepted.Length);
@@ -782,15 +786,27 @@ namespace KillerPDF.Controls
                 SetStatus(string.Format(Loc("Str_PageFormFields"), pageIndex + 1, _doc.PageCount));
         }
 
-        // Every page has to be read to know a name's tightest limit, so it is read once per document,
-        // and only for a document that has a text field on screen.
-        private IReadOnlyDictionary<string, int> SmallestFormTextLimits()
+        // Every page has to be read to know a name's tightest limit, so it is read once per working
+        // document, on a worker, and held with it for both panes and every tab, and only for a document
+        // that has a text field on screen. Until it is known, a field holds to its own limit; a value
+        // its twin cannot take keeps the twin's own and the save names it. A page edit opens a new
+        // working document, which is read again.
+        private static readonly Services.FormTextLimitCache FormTextLimits = new();
+
+        private void StartReadingFormTextLimits()
         {
-            if (_formTextLimits is { } known && ReferenceEquals(_formTextLimitsDocument, _doc)) return known;
-            _formTextLimitsDocument = _doc;
-            try { return _formTextLimits = Services.FormTextLimit.SmallestByName(EnsureEngineDocumentSession().Document); }
-            catch (Exception error) when (error is not OutOfMemoryException) { return _formTextLimits = new Dictionary<string, int>(); }
+            if (_doc is null || FormTextLimits.Known(_doc) is not null) return;
+            KillerPdf.Engine.Documents.PdfDocument engine;
+            try { engine = EnsureEngineDocumentSession().Document; }
+            catch (Exception error) when (error is not OutOfMemoryException) { return; }
+            FormTextLimits.Read(_doc, () =>
+            {
+                try { return Services.FormTextLimit.SmallestByName(engine); }
+                catch (Exception error) when (error is not OutOfMemoryException) { return new Dictionary<string, int>(); }
+            });
         }
+
+        private IReadOnlyDictionary<string, int>? KnownFormTextLimits() => _doc is null ? null : FormTextLimits.Known(_doc);
 
         /// <summary>
         /// Parses Widget annotations from the given page into field descriptors with canvas coordinates.
