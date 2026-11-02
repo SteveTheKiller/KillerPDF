@@ -84,6 +84,18 @@ internal sealed class PdfWorkingDocument : IDisposable
         File.WriteAllBytes(path, _source);
     }
 
+    /// <summary>Writes the document with no encryption, for a copy that is thrown away after one use,
+    /// such as the print copy. A tab that reads its encrypted original is decrypted under the key it
+    /// opened with, its empty password for an owner-only file or the key it holds for a signed file
+    /// that needs a password. Such a copy must never be published or put beside the original.</summary>
+    internal void SavePlainThrowawayCopy(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        PdfDocument document = PdfEngineIntegration.OpenForReading(_source, _key);
+        if (!document.IsEncrypted) Save(path);
+        else PdfEngineIntegration.WritePlainThrowawayCopy(document, path);
+    }
+
     internal void Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);

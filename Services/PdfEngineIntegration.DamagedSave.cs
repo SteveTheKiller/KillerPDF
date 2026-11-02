@@ -379,6 +379,24 @@ internal static partial class PdfEngineIntegration
             new PdfDocumentWriteOptions { RemoveEncryption = true, ForRestrictedViewing = true }));
     }
 
+    /// <summary>Writes a decrypted copy of an authenticated document for a job that throws it away,
+    /// such as a print. The copy feeds no save, so a user role that may not edit and a signature the
+    /// rewrite invalidates do not stop it: the print copy clears its signatures anyway.</summary>
+    internal static void WritePlainThrowawayCopy(PdfDocument authenticated, string destinationPath)
+    {
+        ArgumentNullException.ThrowIfNull(authenticated);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+        if (!authenticated.IsDecrypted)
+            throw new InvalidOperationException("This encrypted PDF requires a password.");
+        ReplaceWithBuiltResult(destinationPath, PdfDocumentWriter.Write(authenticated, new PdfDocumentWriteOptions
+        {
+            RemoveEncryption = true,
+            ForRestrictedViewing = true,
+            AllowSignatureInvalidation = true,
+            ReplaceDanglingReferences = true
+        }));
+    }
+
     /// <summary>Authenticates and fully rewrites a PDF without password encryption.</summary>
     internal static void RemoveEncryption(
         string sourcePath, string destinationPath, string password)

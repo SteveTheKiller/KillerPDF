@@ -4,11 +4,13 @@ namespace KillerPDF.Services;
 /// print preview, and deleted when the preview closes, so it never stands in for the document.</summary>
 internal static class PrintCopy
 {
-    /// <summary>Writes a tab's document to the copy.</summary>
+    /// <summary>Writes a tab's document to the copy, always plain. A tab that reads its encrypted
+    /// original is decrypted under the key it opened with, so the preparation and the preview read the
+    /// copy with no protection. The print permission was settled before this is called.</summary>
     internal static void Write(PdfWorkingDocument document, string path)
     {
         ArgumentNullException.ThrowIfNull(document);
-        document.Save(path);
+        document.SavePlainThrowawayCopy(path);
     }
 
     /// <summary>Readies the copy for the printer off the UI thread. A damaged signed or usage-rights
