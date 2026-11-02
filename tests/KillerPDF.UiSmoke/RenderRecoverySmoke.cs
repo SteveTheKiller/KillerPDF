@@ -222,6 +222,7 @@ internal static class RenderRecoverySmoke
         string? pendingFit = scenario == "--verify-cross-mode-fit-page-pending" || twoPageFit ? "fitpage"
             : scenario == "--verify-cross-mode-fit-width-pending" || fitThenZoom || zoomThenFit ? "fitwidth" : null;
         string? expectedFitTag = fitThenZoom ? null : pendingFit;
+        bool matchedReference = pendingFit is not null && !twoPageFit;
         bool measuredControl = button || sequence || pendingFit is not null;
         bool timedCommand = !cachedFit && (reassert || navigate || wheel || measuredControl || comparisonFit);
         string? fit = scenario == "--verify-cross-mode-fit-page" ? "fitpage"
@@ -264,6 +265,9 @@ internal static class RenderRecoverySmoke
         string? originalGeometryFailureZoom = null;
         double? sourcePanelWidth = null, sourcePanelHeight = null;
         bool? equalSourceTargetPanel = null;
+        string? capturedPendingZoom = null, capturedPendingFitTag = null, settledTargetZoom = null;
+        double? settledTargetWidth = null;
+        bool? equalPendingReferencePanel = null;
         try
         {
             OpenDocument();
@@ -339,6 +343,12 @@ internal static class RenderRecoverySmoke
                 }
                 if (measuredControl)
                 {
+                    if (matchedReference)
+                    {
+                        pages.SelectedIndex = expectedPage - 1;
+                        Wait(() => jump.Text == expectedPage.ToString(), "settled control selects the target page");
+                        SettleRender("settled control target-page selection");
+                    }
                     if (twoPage)
                     {
                         pages.SelectedIndex = 1;
@@ -369,7 +379,7 @@ internal static class RenderRecoverySmoke
                         throw new InvalidOperationException("The settled Single Zoom In control did not establish a distinct public result.");
                     expectedZoom = settledButtonControlZoom;
                     expectedCanvasScreenDipWidth = settledButtonControlWidth;
-                    if (twoPageFit)
+                    if (twoPageFit || matchedReference)
                     {
                         sourceFitGeometry = ReadPublicFitGeometry(controlCanvas);
                         ScrollViewer panel = Children(viewer).OfType<ScrollViewer>().Single(scroll => scroll.Name == "PagePreviewPanel");
@@ -535,20 +545,51 @@ internal static class RenderRecoverySmoke
                 owner.UpdateLayout(); viewer.UpdateLayout(); Pump();
                 actualCanvasScreenDipWidth = selectedCanvas!.TransformToAncestor(viewer)
                     .TransformBounds(new Rect(selectedCanvas.RenderSize)).Width;
-                if (twoPageFit)
+                capturedPendingZoom = zoom.Text;
+                capturedPendingFitTag = (zoom.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+                if (twoPageFit || matchedReference)
                 {
                     targetFitGeometry = ReadPublicFitGeometry(selectedCanvas);
                     ScrollViewer panel = Children(viewer).OfType<ScrollViewer>().Single(scroll => scroll.Name == "PagePreviewPanel");
                     equalSourceTargetPanel = Math.Abs(panel.ActualWidth - sourcePanelWidth!.Value) < .01
                         && Math.Abs(panel.ActualHeight - sourcePanelHeight!.Value) < .01;
-                    if (equalSourceTargetPanel != true)
+                    if (!matchedReference && equalSourceTargetPanel != true)
                     {
-                        stage = "TwoPage viewport measurement precondition mismatch";
-                        throw new InvalidOperationException("The settled TwoPage source and target viewport sizes differ; page-scale mismatch cannot be attributed to pending fit.");
+                        stage = "viewport measurement precondition mismatch";
+                        throw new InvalidOperationException("The settled control and target viewport sizes differ; page-scale mismatch cannot be attributed to pending fit.");
                     }
                 }
                 Console.WriteLine("CONTROL selected page rendered width: " + actualCanvasScreenDipWidth
                     + " DIP, expected " + expectedCanvasScreenDipWidth + " DIP");
+                if (matchedReference)
+                {
+                    ScrollViewer pendingPanel = Children(viewer).OfType<ScrollViewer>().Single(scroll => scroll.Name == "PagePreviewPanel");
+                    double pendingPanelWidth = pendingPanel.ActualWidth, pendingPanelHeight = pendingPanel.ActualHeight;
+                    zoom.SelectedItem = zoom.Items.OfType<ComboBoxItem>().Single(item => Equals(item.Tag, "2.0"));
+                    Wait(() => zoom.Text == "200%", "same-page reference reset to200%");
+                    SettleRender("same-page reference before measured command");
+                    ExecuteMeasuredCommand();
+                    SettleRender("same-page reference after measured command");
+                    Canvas reference = Children(viewer).OfType<Canvas>().Single(canvas => canvas.IsVisible
+                        && Equals(canvas.Tag, expectedPage - 1) && canvas.RenderSize.Width > 0);
+                    ScrollViewer panel = Children(viewer).OfType<ScrollViewer>().Single(scroll => scroll.Name == "PagePreviewPanel");
+                    equalPendingReferencePanel = Math.Abs(panel.ActualWidth - pendingPanelWidth) < .01
+                        && Math.Abs(panel.ActualHeight - pendingPanelHeight) < .01;
+                    if (equalPendingReferencePanel != true)
+                        throw new InvalidOperationException("The same-page settled reference changed the viewport geometry.");
+                    settledTargetWidth = reference.TransformToAncestor(viewer).TransformBounds(new Rect(reference.RenderSize)).Width;
+                    settledTargetZoom = zoom.Text;
+                    targetRepeatedFitGeometry = ReadPublicFitGeometry(reference);
+                    Console.WriteLine("CONTROL independent same-page settled reference: zoom=" + settledTargetZoom
+                        + ", width=" + settledTargetWidth + " DIP");
+                    if (!double.IsFinite(settledTargetWidth.Value) || settledTargetWidth <= 0)
+                        throw new InvalidOperationException("The independent settled reference has no usable public page width.");
+                    expectedCanvasScreenDipWidth = settledTargetWidth;
+                    expectedZoom = settledTargetZoom;
+                    if (capturedPendingZoom != settledTargetZoom
+                        || capturedPendingFitTag != (zoom.SelectedItem as ComboBoxItem)?.Tag?.ToString())
+                        throw new InvalidOperationException("The pending command sequence disagrees with the settled reference's public zoom state.");
+                }
                 if (!double.IsFinite(actualCanvasScreenDipWidth.Value)
                     || Math.Abs(actualCanvasScreenDipWidth.Value - expectedCanvasScreenDipWidth.Value) > 2)
                 {
@@ -607,6 +648,7 @@ internal static class RenderRecoverySmoke
                 ComparisonInvocationConditions = comparisonInvocationConditions, ComparisonCriticalSeamReached = comparisonCriticalSeamReached,
                 OriginalConvertedFitGeometry = originalConvertedFitGeometry,
                 EqualSourceTargetPanel = equalSourceTargetPanel,
+                SourcePanelWidth = sourcePanelWidth, SourcePanelHeight = sourcePanelHeight,
                 SourceFitGeometry = sourceFitGeometry, TargetFitGeometry = targetFitGeometry, TargetRepeatedFitGeometry = targetRepeatedFitGeometry,
                 TimingTriggerScheduled = timingTriggerScheduled, TimingTriggerFired = timingTriggerFired,
                 PendingAtTimingFire = pendingAtTimingFire,
@@ -618,6 +660,9 @@ internal static class RenderRecoverySmoke
                 GenerationAfterTimingCommand = generationAfterTimingCommand,
                 ActualCanvasScreenDipWidth = actualCanvasScreenDipWidth,
                 ExpectedCanvasScreenDipWidth = expectedCanvasScreenDipWidth,
+                CapturedPendingZoom = capturedPendingZoom, CapturedPendingFitTag = capturedPendingFitTag,
+                SettledTargetZoom = settledTargetZoom, SettledTargetWidth = settledTargetWidth,
+                EqualPendingReferencePanel = equalPendingReferencePanel,
                 SourceUnchanged = File.ReadAllBytes(source).AsSpan().SequenceEqual(original),
                 OtherSourceUnchanged = !crossMode || File.ReadAllBytes(other).AsSpan().SequenceEqual(original),
                 AppSha256 = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)))
@@ -628,8 +673,17 @@ internal static class RenderRecoverySmoke
         {
             ScrollViewer panel = Children(viewer).OfType<ScrollViewer>().Single(scroll => scroll.Name == "PagePreviewPanel");
             Rect bounds = canvas.TransformToAncestor(viewer).TransformBounds(new Rect(canvas.RenderSize));
+            const BindingFlags diagnostics = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            object? session = viewer.GetType().GetProperty("ActiveSessionRef", diagnostics)?.GetValue(viewer);
+            var timer = viewer.GetType().GetField("_resizeRefitTimer", diagnostics)?.GetValue(viewer) as DispatcherTimer;
+            Grid hostGrid = (Grid)owner.FindName("MainContentGrid");
             object geometry = new { PageIndex = pages.SelectedIndex, Zoom = zoom.Text, CanvasWidth = bounds.Width,
-                CanvasHeight = bounds.Height, PanelWidth = panel.ActualWidth, PanelHeight = panel.ActualHeight, panel.ViewportHeight };
+                CanvasHeight = bounds.Height, PanelWidth = panel.ActualWidth, PanelHeight = panel.ActualHeight, panel.ViewportHeight,
+                PendingFit = session?.GetType().GetField("PendingFitRestore", diagnostics)?.GetValue(session)?.ToString(),
+                TimerEnabled = timer?.IsEnabled, viewer.IsLoaded, viewer.IsVisible,
+                HostMeasureValid = hostGrid.IsMeasureValid, HostArrangeValid = hostGrid.IsArrangeValid,
+                HostAnimated = hostGrid.ColumnDefinitions.Any(column => column.HasAnimatedProperties)
+                    || hostGrid.RowDefinitions.Any(row => row.HasAnimatedProperties) };
             return geometry;
         }
 
@@ -685,11 +739,13 @@ internal static class RenderRecoverySmoke
 
         void ExecuteMeasuredCommand()
         {
+            LogPublicViewport("before measured command");
             if (pendingFit is not null)
             {
                 if (zoomThenFit)
                     ((Button)owner.FindName("ZoomInBtn")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 zoom.SelectedItem = zoom.Items.OfType<ComboBoxItem>().Single(item => Equals(item.Tag, pendingFit));
+                LogPublicViewport("after fit selection");
                 if (fitThenZoom)
                     ((Button)owner.FindName("ZoomInBtn")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             }
@@ -700,6 +756,25 @@ internal static class RenderRecoverySmoke
                         ((Button)owner.FindName("ZoomOutBtn")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 ((Button)owner.FindName("ZoomInBtn")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             }
+            LogPublicViewport("after measured command");
+        }
+
+        void LogPublicViewport(string phase)
+        {
+            ScrollViewer panel = Children(viewer).OfType<ScrollViewer>().Single(scroll => scroll.Name == "PagePreviewPanel");
+            Canvas? canvas = Children(viewer).OfType<Canvas>().FirstOrDefault(candidate => candidate.IsVisible && Equals(candidate.Tag, pages.SelectedIndex));
+            var bitmap = (canvas?.Parent as Grid)?.Children.OfType<Image>().Select(image => image.Source)
+                .OfType<System.Windows.Media.Imaging.BitmapSource>().FirstOrDefault();
+            Console.WriteLine("CONTROL public viewport geometry " + phase + ": page=" + jump.Text
+                + ", window=" + owner.ActualWidth + "x" + owner.ActualHeight
+                + ", viewer=" + viewer.ActualWidth + "x" + viewer.ActualHeight
+                + ", panel=" + panel.ActualWidth + "x" + panel.ActualHeight
+                + ", viewport=" + panel.ViewportWidth + "x" + panel.ViewportHeight
+                + ", extent=" + panel.ExtentWidth + "x" + panel.ExtentHeight
+                + ", canvas=" + canvas?.Width + "x" + canvas?.Height
+                + ", bitmap=" + bitmap?.PixelWidth + "x" + bitmap?.PixelHeight
+                + ", scrollbars=" + panel.ComputedHorizontalScrollBarVisibility + "/" + panel.ComputedVerticalScrollBarVisibility
+                + ", layout=" + panel.IsMeasureValid + "/" + panel.IsArrangeValid);
         }
 
         void OpenDocument(string? path = null)
@@ -741,21 +816,32 @@ internal static class RenderRecoverySmoke
                 if (!ReferenceEquals(task, render.GetValue(viewer))) continue;
                 Wait(() => Children(viewer).OfType<Image>().Any(image => image.Source is System.Windows.Media.Imaging.BitmapSource),
                     "public raster presentation: " + phase);
-                if (twoPageFit)
+                if (twoPageFit || matchedReference || comparisonFit)
                 {
                     ScrollViewer panel = Children(viewer).OfType<ScrollViewer>().Single(scroll => scroll.Name == "PagePreviewPanel");
-                    double lastWidth = -1, lastHeight = -1;
+                    Grid hostGrid = (Grid)owner.FindName("MainContentGrid");
+                    double lastWidth = -1, lastHeight = -1, lastPageWidth = -1;
+                    string? lastZoom = null;
                     var stable = Stopwatch.StartNew();
                     Wait(() =>
                     {
-                        if (!panel.IsMeasureValid || !panel.IsArrangeValid || Math.Abs(panel.ActualWidth - lastWidth) > .01
-                            || Math.Abs(panel.ActualHeight - lastHeight) > .01)
+                        Canvas? canvas = Children(viewer).OfType<Canvas>().FirstOrDefault(candidate => candidate.IsVisible
+                            && Equals(candidate.Tag, pages.SelectedIndex) && candidate.RenderSize.Width > 0);
+                        double pageWidth = canvas is null ? -1 : canvas.TransformToAncestor(viewer)
+                            .TransformBounds(new Rect(canvas.RenderSize)).Width;
+                        if (!hostGrid.IsMeasureValid || !hostGrid.IsArrangeValid
+                            || hostGrid.ColumnDefinitions.Any(column => column.HasAnimatedProperties)
+                            || hostGrid.RowDefinitions.Any(row => row.HasAnimatedProperties)
+                            || !panel.IsMeasureValid || !panel.IsArrangeValid || Math.Abs(panel.ActualWidth - lastWidth) > .01
+                            || Math.Abs(panel.ActualHeight - lastHeight) > .01 || pageWidth <= 0
+                            || Math.Abs(pageWidth - lastPageWidth) > .01 || zoom.Text != lastZoom)
                         {
-                            lastWidth = panel.ActualWidth; lastHeight = panel.ActualHeight; stable.Restart();
+                            lastWidth = panel.ActualWidth; lastHeight = panel.ActualHeight;
+                            lastPageWidth = pageWidth; lastZoom = zoom.Text; stable.Restart();
                             return false;
                         }
                         return stable.Elapsed >= TimeSpan.FromMilliseconds(150);
-                    }, "public TwoPage viewport dimensions stable: " + phase);
+                    }, "public viewport and page geometry stable: " + phase);
                 }
                 Console.WriteLine("CONTROL raster ready " + phase + ": page=" + jump.Text + ", zoom=" + zoom.Text);
                 return;

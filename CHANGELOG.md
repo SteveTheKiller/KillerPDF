@@ -26,7 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - An all-users update reopens KillerPDF for the signed-in user at normal rights, whether it finishes or stops early. Windows was refusing that relaunch, so the app stayed closed.
 - Reloading a PDF rewritten at the same size shows the new pages instead of the old ones.
 - Raster images retain fine detail when reduced along one axis, preventing some pages from rendering blank.
-- Reopening PDFs preserves zoom across view modes, and fit and zoom stay accurate while pages load or switch layouts.
+- Reopening PDFs preserves zoom across view modes, and queued fit and zoom commands use the final layout while pages load or switch layouts.
 - Corrected Japanese character order, rotated paragraph line order, mixed horizontal and vertical reading order, vertical-text selection, hit testing, and accessible text ranges. (#465)
 - Merge keeps pages whose annotations share a duplicate name, renaming later duplicates and preserving popup links. (#455)
 - Forms that repeat a field name save normally instead of failing with a duplicate name error. Typing, font size and background changes reach every field of that name on every page, comb fields included, and deleting one removes them all. A field that cannot take the new value keeps its own, and the save names it. (#466)

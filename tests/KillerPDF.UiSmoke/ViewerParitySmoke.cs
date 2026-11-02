@@ -117,11 +117,22 @@ internal static class ViewerParitySmoke
                         PresentationSource.FromVisual(window)!, Environment.TickCount, Key.F6)
                         { RoutedEvent = Keyboard.PreviewKeyDownEvent };
                     window.RaiseEvent(single);
-                    Wait(() => Member(state, "Mode").ToString() == "Single"
-                        && (int)Member(state, "RenderedPrimaryPage") == 0
-                        && Member(viewer, "PrimaryRenderTask") is Task { IsCompletedSuccessfully: true }
-                        && ((Image)Member(state, "PageImage")).Source is BitmapSource,
-                        "completed primary viewer render");
+                    try
+                    {
+                        Wait(() => Member(state, "Mode").ToString() == "Single"
+                            && (int)Member(state, "RenderedPrimaryPage") == 0
+                            && Member(viewer, "PrimaryRenderTask") is Task { IsCompletedSuccessfully: true }
+                            && ((Image)Member(state, "PageImage")).Source is BitmapSource,
+                            "completed primary viewer render");
+                    }
+                    catch (TimeoutException error)
+                    {
+                        throw new TimeoutException("Completed primary viewer render: mode=" + Member(state, "Mode")
+                            + ", page=" + Member(state, "RenderedPrimaryPage")
+                            + ", task=" + ((Task)Member(viewer, "PrimaryRenderTask")).Status
+                            + ", image=" + ((Image)Member(state, "PageImage")).Source?.GetType().Name
+                            + ", modifiers=" + Keyboard.Modifiers, error);
+                    }
                     var bitmap = (BitmapSource)((Image)Member(state, "PageImage")).Source;
                     width = bitmap.PixelWidth; height = bitmap.PixelHeight;
                     Console.WriteLine($"PARITY case {index + 1}: viewer bitmap {bitmap.PixelWidth}x{bitmap.PixelHeight}.");
@@ -206,7 +217,7 @@ internal static class ViewerParitySmoke
         {
             if (clock.ElapsedMilliseconds > milliseconds) throw new TimeoutException(stage);
             var frame = new DispatcherFrame();
-            Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background,
+            Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,
                 new Action(() => frame.Continue = false));
             Dispatcher.PushFrame(frame);
             Thread.Sleep(10);

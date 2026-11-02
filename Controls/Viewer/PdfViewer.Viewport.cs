@@ -1829,6 +1829,13 @@ namespace KillerPDF.Controls
             if (_active?.PendingZoom is not { } request || !TryDisplayZoomFactor(out double factor)) return false;
             var session = _active;
             var fit = session.PendingFitRestore;
+            // Fit is the base for subsequent manual input, so it needs the final host geometry
+            // even before the first step has been queued.
+            if (fit is not null && !IsFitLayoutReady(fit.Value))
+            {
+                StartResizeSettleTimer(restart: false);
+                return false;
+            }
             bool wasApplying = _applyingPendingViewport;
             _applyingPendingViewport = true;
             try
@@ -1880,17 +1887,23 @@ namespace KillerPDF.Controls
         {
             if (_active is null || _doc is null) return false;
             bool ready = TryDisplayZoomFactor(out _)
-                && PagePreviewPanel.IsMeasureValid && PagePreviewPanel.IsArrangeValid
-                && PagePreviewPanel.ActualWidth > 40
-                && (fit != FitMode.Page || PagePreviewPanel.ActualHeight > 40)
+                && IsFitLayoutReady(fit)
                 && (_viewMode == ViewMode.Continuous ? _continuousPageW > 0 : PageImage.Source != null);
             if (ready) return false;
             ClearPendingTrueZoom();
             _fitMode = fit;
             _active.PendingFitRestore = fit;
             _active.PendingZoom = new DeferredManualZoom(1.0);
+            StartResizeSettleTimer(restart: false);
             return true;
         }
+
+        private bool IsFitLayoutReady(FitMode fit)
+            => _resizeRefitTimer?.IsEnabled != true
+                && Host?.IsViewportLayoutReady != false
+                && PagePreviewPanel.IsMeasureValid && PagePreviewPanel.IsArrangeValid
+                && PagePreviewPanel.ActualWidth > 40
+                && (fit != FitMode.Page || PagePreviewPanel.ActualHeight > 40);
 
         private bool AdjustPendingTrueZoom(double scale)
         {
@@ -2281,14 +2294,21 @@ namespace KillerPDF.Controls
             }
 
             // Non-modal resize (maximize/restore, splitter, programmatic): rescale lite + settle.
+            if (_active?.PendingFitRestore is not null)
+            {
+                StartResizeSettleTimer();
+                return;
+            }
             if (_fitMode == FitMode.Width) FitToWidth(lite: true);
             else if (_fitMode == FitMode.Page) FitToPage(lite: true);
             StartResizeSettleTimer();
         }
 
         // Coalesces resize ticks: the crisp re-render runs once, a beat after the last size change.
-        private void StartResizeSettleTimer()
+        private void StartResizeSettleTimer(bool restart = true)
         {
+            if (!IsLoaded || !IsVisible || Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished) return;
+            if (!restart && _resizeRefitTimer?.IsEnabled == true) return;
             if (_resizeRefitTimer is null)
             {
                 _resizeRefitTimer = new System.Windows.Threading.DispatcherTimer
@@ -2299,9 +2319,18 @@ namespace KillerPDF.Controls
                 _resizeRefitTimer.Tick += (_, _) =>
                 {
                     _resizeRefitTimer!.Stop();
+                    if (!IsLoaded || !IsVisible || Dispatcher.HasShutdownStarted || Dispatcher.HasShutdownFinished) return;
+                    // Complete host layout before temporarily swapping an unfocused pane's
+                    // session. SizeChanged can rearm the timer and keep the fit pending.
+                    if (_active?.PendingFitRestore is not null)
+                    {
+                        Window.GetWindow(this)?.UpdateLayout();
+                        UpdateLayout();
+                    }
                     if (Host != null && !Host.IsViewerFocused(this)) ReapplyGridOrFit();
                     else WithOwnSession(OnResizeSettled);
                 };
+                Unloaded += (_, _) => _resizeRefitTimer?.Stop();
             }
             _resizeRefitTimer.Stop();
             _resizeRefitTimer.Start();
@@ -2309,6 +2338,12 @@ namespace KillerPDF.Controls
 
         private void OnResizeSettled()
         {
+            if (_active?.PendingFitRestore is not null && _active.PendingZoom is not null)
+            {
+                TryApplyPendingViewport();
+                RepositionAnnotationBars();
+                return;
+            }
             if (_viewMode == ViewMode.Grid)
             {
                 // Crisp re-render at the held column count for the final size (the drag only transform-

@@ -175,6 +175,7 @@ namespace KillerPDF.Features
 
         bool IsViewerFocused(PdfViewer viewer);
         bool IsSplitView { get; }
+        bool IsViewportLayoutReady { get; }
         void FocusViewer(PdfViewer viewer);
         bool OtherViewerHasFile(PdfViewer viewer, string? originalFile);
 

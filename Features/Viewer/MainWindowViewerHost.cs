@@ -284,6 +284,11 @@ namespace KillerPDF.Shell
 
         bool IViewerHost.IsSplitView => _isSplit;
 
+        bool IViewerHost.IsViewportLayoutReady
+            => MainContentGrid.IsMeasureValid && MainContentGrid.IsArrangeValid
+                && !MainContentGrid.ColumnDefinitions.Any(column => column.HasAnimatedProperties)
+                && !MainContentGrid.RowDefinitions.Any(row => row.HasAnimatedProperties);
+
         void IViewerHost.FocusViewer(PdfViewer viewer) => FocusPane(viewer);
 
         bool IViewerHost.OtherViewerHasFile(PdfViewer viewer, string? originalFile)
