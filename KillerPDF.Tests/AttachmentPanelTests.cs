@@ -46,6 +46,32 @@ public sealed class AttachmentPanelTests : IDisposable
         Assert.Equal(ProtectionAnswer.Canceled, protection.AskToWrite(PdfOutput.Data, _ => null));
     }
 
+    // A tab that can edit reads its plain working copy, with the original's encryption still in hand.
+    [Fact]
+    public void AnEditableProtectedTabListsThemFromItsWorkingCopy()
+    {
+        string plain = Path.Combine(_folder, "source.pdf");
+        File.WriteAllBytes(plain, new PdfDocumentBuilder().AddBlankPage().Build());
+        PdfEngineIntegration.AddAttachment(plain, "kept.txt", Encoding.ASCII.GetBytes("kept"));
+        string locked = Path.Combine(_folder, "limited.pdf");
+        File.WriteAllBytes(locked, PdfDocumentEncryptionWriter.EncryptWithPasswords(
+            PdfDocument.Open(File.ReadAllBytes(plain)), new PdfPasswordEncryptionOptions
+            {
+                UserPassword = "",
+                OwnerPassword = "owner-password",
+                AllowLowQualityPrinting = false,
+                AllowHighQualityPrinting = false
+            }));
+        OpenedProtection protection = OpenedProtection.Capture(locked, null);
+        string working = Path.Combine(_folder, "working.pdf");
+        protection.WriteViewingCopy(locked, working);
+
+        IReadOnlyList<PdfAttachmentInfo> attachments = [];
+        Assert.Null(Record.Exception(() => attachments = PdfEngineIntegration.ReadAttachments(working, protection)));
+
+        Assert.Equal("kept", Encoding.ASCII.GetString(Assert.Single(attachments).Data.ToArray()));
+    }
+
     [Fact]
     public void AFileThatTakesAPasswordListsThemWithTheKeyTheTabHolds()
     {

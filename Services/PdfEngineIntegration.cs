@@ -366,7 +366,10 @@ internal static partial class PdfEngineIntegration
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         byte[] source = File.ReadAllBytes(path);
-        return PdfAttachmentReader.Read(protection?.OpenHeld(source) ?? OpenForReading(source));
+        PdfDocument document = OpenForReading(source);
+        // A tab that can edit reads a plain working copy, and only a file still encrypted needs the key.
+        if (document.IsEncrypted && !document.IsDecrypted) document = protection?.OpenHeld(source) ?? document;
+        return PdfAttachmentReader.Read(document);
     }
 
     internal static IReadOnlyList<AttachmentEditorItem> ReadAttachmentEditorItems(string path, OpenedProtection? protection = null)
