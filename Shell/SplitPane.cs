@@ -528,6 +528,7 @@ namespace KillerPDF.Shell
         /// switch inside a pane that is not (yet) ActiveViewer - see the comment there.</summary>
         internal void FocusPane(PdfViewer pane)
         {
+            if (!Services.PageDropRoute.MayFocus(pane, Viewer, ViewerB)) return;
             if (ReferenceEquals(ActiveViewer, pane))
             {
                 SyncRailPanelAvailability(_doc is not null);

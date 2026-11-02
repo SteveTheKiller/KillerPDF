@@ -253,6 +253,17 @@ namespace KillerPDF.Shell
         // now reads, which after an unlock is its unlocked copy.
         private void ImportLimitedPages(PdfViewer target, PageDragPayload payload, int insertionIndex)
         {
+            // The gate runs in the window that holds the source tab, so the prompt, the unlock and
+            // the reopen use that window's own chrome and panes.
+            MainWindow gate = PageDropRoute.GateWindow(this, GetWindow(payload.SourceViewer) as MainWindow);
+            gate.LiftPageDragLimit(payload, unlocked =>
+                ImportDraggedPages(target, payload with { SourcePath = unlocked, Answer = PageDragAnswer.Allowed }, insertionIndex));
+        }
+
+        // Asks the source tab's owner to lift the limit on a page drag, then hands on what the tab now
+        // reads, which after an unlock is its unlocked copy.
+        private void LiftPageDragLimit(PageDragPayload payload, Action<string> lifted)
+        {
             PdfViewer source = payload.SourceViewer;
             FocusPane(source);
             if (_doc is null || _currentFile is null) return;
@@ -270,7 +281,7 @@ namespace KillerPDF.Shell
             }
             source.CaptureActiveIfAny();
             if (source.ActiveSessionRef?.CurrentFile is not string unlocked) return;
-            ImportDraggedPages(target, payload with { SourcePath = unlocked, Answer = PageDragAnswer.Allowed }, insertionIndex);
+            lifted(unlocked);
         }
 
         private void ImportDraggedPages(PdfViewer target, PageDragPayload payload, int insertionIndex)
