@@ -352,11 +352,20 @@ public sealed class CliRestrictionTests : IDisposable
     [Fact]
     public void OptimizeOpensAUserPasswordFileWithItsPassword()
     {
-        string source = Pdf(user: Reader);
+        string source = Pdf(user: Reader, print: false);
+        string output = InFolder("optimized-reader.pdf");
 
         Assert.NotNull(CliProtectionGate.OpenForRewrite(source, null, out _, out string? locked) is null ? locked : null);
-        Assert.NotNull(CliProtectionGate.OpenForRewrite(source, Reader, out _, out string? refusal));
+        PdfDocument? document = CliProtectionGate.OpenForRewrite(source, Reader, out OpenedProtection protection, out string? refusal);
         Assert.Null(refusal);
+        File.WriteAllBytes(output, CliProtectionGate.SealRewrite(Optimized(document!), protection));
+
+        // The output takes the same user password, declares the same /P, and the owner password still works.
+        Assert.Equal(PdfAccessRole.Refused, PdfRestrictions.Read(output, null).Role);
+        PdfDocument reopened = PdfDocument.Open(File.ReadAllBytes(output), Reader);
+        Assert.True(reopened.IsDecrypted);
+        Assert.Equal(PdfDocument.Open(File.ReadAllBytes(source), Reader).DeclaredPermissions, reopened.DeclaredPermissions);
+        Assert.Equal(PdfAccessRole.Owner, PdfRestrictions.Read(output, Owner).Role);
     }
 
     [Fact]
