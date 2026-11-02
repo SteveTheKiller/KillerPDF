@@ -40,67 +40,6 @@ namespace KillerPDF.Controls
             DependencyProperty.RegisterAttached(
                 "FormFillCursor", typeof(Cursor), typeof(PdfViewer));
 
-        private sealed class CombTextBox : Grid
-        {
-            private readonly Canvas _characters = new() { IsHitTestVisible = false };
-            private readonly int _cellCount;
-            private readonly double _fontSize;
-
-            internal TextBox Editor { get; }
-
-            internal CombTextBox(TextBox editor, int cellCount, double fontSize)
-            {
-                Editor = editor;
-                _cellCount = cellCount;
-                _fontSize = fontSize;
-                Width = editor.Width;
-                Height = editor.Height;
-                Background = Brushes.Transparent;
-                Editor.Width = double.NaN;
-                Editor.Height = double.NaN;
-                Editor.Foreground = Brushes.Transparent;
-                Children.Add(Editor);
-                Children.Add(_characters);
-                Editor.TextChanged += (_, _) => RefreshCharacters();
-                Editor.PreviewMouseLeftButtonDown += (_, e) =>
-                {
-                    int cell = CombFieldLayout.CellIndexAt(
-                        e.GetPosition(Editor).X, Math.Max(1, ActualWidth), _cellCount);
-                    Editor.Focus();
-                    Editor.CaretIndex = Math.Min(cell, Editor.Text.Length);
-                    e.Handled = true;
-                };
-                SizeChanged += (_, _) => RefreshCharacters();
-                RefreshCharacters();
-            }
-
-            private void RefreshCharacters()
-            {
-                _characters.Children.Clear();
-                if (ActualWidth <= 0 || ActualHeight <= 0) return;
-                double cellWidth = ActualWidth / _cellCount;
-                int count = Math.Min(Editor.Text.Length, _cellCount);
-                for (int index = 0; index < count; index++)
-                {
-                    var character = new TextBlock
-                    {
-                        Text = Editor.Text[index].ToString(),
-                        Width = cellWidth,
-                        Height = ActualHeight,
-                        FontFamily = new FontFamily("Consolas"),
-                        FontSize = _fontSize,
-                        Foreground = Brushes.Black,
-                        TextAlignment = TextAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center
-                    };
-                    Canvas.SetLeft(character,
-                        CombFieldLayout.CellLeft(ActualWidth, _cellCount, index));
-                    Canvas.SetTop(character, Math.Max(0, (ActualHeight - _fontSize * 1.25) / 2));
-                    _characters.Children.Add(character);
-                }
-            }
-        }
-
         // A comb editor's own text stays transparent because CombTextBox draws each character in its
         // cell; painting it would show the raw string over the cells as well.
         private static void SetFormValueForeground(TextBox box, Brush brush)

@@ -133,6 +133,7 @@
     <Compile Include="..\Controls\AccessibleControls.cs" Link="Controls\AccessibleControls.cs" />
     <Compile Include="..\Controls\TooltipTextConverter.cs" Link="Controls\TooltipTextConverter.cs" />
     <Compile Include="..\Controls\FormToggleSurface.cs" Link="Controls\FormToggleSurface.cs" />
+    <Compile Include="..\Controls\CombTextBox.cs" Link="Controls\CombTextBox.cs" />
     <Compile Include="..\Controls\DocumentSurface.cs" Link="Controls\DocumentSurface.cs" />
     <Compile Include="..\Controls\LinkOverlay.cs" Link="Controls\LinkOverlay.cs" />
     <Compile Include="..\Controls\RetroTabBorder.cs" Link="Controls\RetroTabBorder.cs" />
