@@ -143,6 +143,18 @@ public sealed partial class PdfDocument
     /// document is unencrypted or has not been authenticated.
     /// </summary>
     public PdfDocumentPermissions? DeclaredPermissions => _security?.Permissions;
+
+    /// <summary>
+    /// Reads the permissions the Standard security handler declares without authenticating, since
+    /// they are stored in the clear. Returns null for a document with no encryption or with another handler.
+    /// </summary>
+    public PdfDocumentPermissions? ReadDeclaredPermissionsWithoutPassword()
+    {
+        if (!CrossReferences.TryGetTrailerValue(new PdfName("Encrypt"u8), out PdfObject? encryptionValue))
+            return null;
+        PdfDictionary encryption = ResolveEncryptionValue(encryptionValue, out _);
+        return PdfStandardSecurityHandler.ReadDeclaredPermissions(encryption, _compatibilityRecovery);
+    }
     internal int? EncryptionObjectNumber => _encryptionObjectNumber;
     internal IReadOnlySet<int> EncryptionBootstrapObjectNumbers =>
         _encryptionBootstrapObjectNumbers;

@@ -18,6 +18,6 @@ public sealed record PdfDocumentPermissions(
         return new PdfDocumentPermissions(
             Allowed(3), Allowed(4), Allowed(5), Allowed(6),
             extended && Allowed(9), extended && Allowed(10),
-            extended && Allowed(11), Allowed(3) && extended && Allowed(12));
+            extended && Allowed(11), Allowed(3) && (!extended || Allowed(12)));
     }
 }

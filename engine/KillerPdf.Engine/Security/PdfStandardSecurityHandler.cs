@@ -1221,6 +1221,18 @@ internal sealed class PdfStandardSecurityHandler
         return integer.Value;
     }
 
+    /// <summary>Reads the permissions an encryption dictionary declares. They are stored in the clear,
+    /// so no password is needed. Returns null for any handler but the Standard one.</summary>
+    internal static PdfDocumentPermissions? ReadDeclaredPermissions(PdfDictionary encryption, bool compatibilityRecovery)
+    {
+        ArgumentNullException.ThrowIfNull(encryption);
+        if (!encryption.TryGetValue(Name("Filter"), out PdfObject? filter)
+            || filter is not PdfName { } name || name.ValueAsLatin1() != "Standard")
+            return null;
+        return PdfDocumentPermissions.FromFlags(
+            ReadPermissionFlags(encryption, compatibilityRecovery), RequireInteger(encryption, "R"));
+    }
+
     private static int ReadPermissionFlags(
         PdfDictionary encryption, bool compatibilityRecovery)
     {
