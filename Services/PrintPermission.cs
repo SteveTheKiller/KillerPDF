@@ -11,6 +11,10 @@ internal enum PrintAllowance
     Forbidden
 }
 
+/// <summary>What the window says after a print was decided: nothing, that the password was wrong,
+/// that printing is refused in a dialog, or the refusal only in the status bar after a cancel.</summary>
+internal enum PrintNotice { None, WrongPassword, Refused, RefusedCertificate, RefusedQuietly }
+
 /// <summary>What a print allowance means for the job. Whether a reader has one is answered by
 /// <see cref="PdfRestrictions"/>.</summary>
 internal static class PrintPermission
@@ -25,6 +29,13 @@ internal static class PrintPermission
 
     internal static double Dpi(PrintAllowance allowance) =>
         allowance == PrintAllowance.LowQualityOnly ? LowQualityDpi : FullDpi;
+
+    /// <summary>What the window says once a print was answered. A canceled prompt on a limit an owner
+    /// password could lift only notes the refusal in the status bar.</summary>
+    internal static PrintNotice NoticeFor(PrintAnswer answer, bool recipient, bool canLift) =>
+        answer.MayPrint ? (answer.WrongPassword ? PrintNotice.WrongPassword : PrintNotice.None)
+        : canLift && !answer.WrongPassword ? PrintNotice.RefusedQuietly
+        : recipient ? PrintNotice.RefusedCertificate : PrintNotice.Refused;
 
     /// <summary>The session a print job renders through, from the app or the command line, so annotation
     /// flags, layers and redaction marks come out as they print.</summary>

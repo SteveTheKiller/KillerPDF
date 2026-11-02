@@ -2263,18 +2263,24 @@ namespace KillerPDF.Shell
                 Loc(allowance == PrintAllowance.Forbidden ? "Str_Print_Restricted_Prompt" : "Str_Print_LowQuality_Prompt"),
                 Loc("Str_Restricted_Unlock")));
             printDpi = answer.Dpi;
-            if (answer.MayPrint)
+            if (!answer.MayPrint && !EnsureProtectionReadable()) return false;
+            PrintNotice notice = PrintPermission.NoticeFor(answer,
+                protection.Access.Role == PdfAccessRole.Recipient, protection.CanLift);
+            switch (notice)
             {
-                if (answer.WrongPassword) KillerDialog.Show(this, Loc("Str_Restricted_WrongPassword"), "KillerPDF",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return true;
+                case PrintNotice.WrongPassword:
+                    KillerDialog.Show(this, Loc("Str_Restricted_WrongPassword"), "KillerPDF",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    break;
+                case PrintNotice.RefusedQuietly:
+                    SetStatus(Loc("Str_Print_Refused"));
+                    break;
+                case PrintNotice.Refused or PrintNotice.RefusedCertificate:
+                    KillerDialog.Show(this, Loc(notice == PrintNotice.RefusedCertificate ? "Str_Print_Refused_Certificate" : "Str_Print_Refused"),
+                        "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    break;
             }
-            if (!EnsureProtectionReadable()) return false;
-            bool recipient = protection.Access.Role == PdfAccessRole.Recipient;
-            string refusal = Loc(recipient ? "Str_Print_Refused_Certificate" : "Str_Print_Refused");
-            if (protection.CanLift && !answer.WrongPassword) SetStatus(refusal);
-            else KillerDialog.Show(this, refusal, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return false;
+            return answer.MayPrint;
         }
 
         private async void RunPrintFlow(double printDpi)
