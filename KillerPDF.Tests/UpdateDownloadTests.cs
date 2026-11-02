@@ -123,14 +123,22 @@ public sealed class UpdateDownloadTests
     [Fact]
     public void ThePortableSwapHelperReportsAnAppThatDidNotClose()
     {
-        var target = new UpdateService.UpdateTarget { Replace = @"C:\Tools\KillerPDF.exe" };
-        UpdateImagePublication.RememberVerified(@"C:\Temp\KillerPDF_update_x.exe", new string('a', 64), new string('b', 40));
-        string unelevated = UpdateService.PackageHelperScript(@"C:\Temp\KillerPDF_update_x.exe", target.Replace!, target, elevate: false, 4242, 1);
-        Assert.Contains("did not close within a minute", unelevated, StringComparison.Ordinal);
-        Assert.Contains("KillerPDF_update_x.exe.recovery.txt", unelevated, StringComparison.Ordinal);
+        // The helper writes its recovery note beside the download, so the download lives in a folder
+        // of the test's own, not in a fixed folder that may be missing or shared.
+        string folder = NewFolder();
+        try
+        {
+            string download = Path.Combine(folder, "KillerPDF_update_x.exe");
+            var target = new UpdateService.UpdateTarget { Replace = @"C:\Tools\KillerPDF.exe" };
+            UpdateImagePublication.RememberVerified(download, new string('a', 64), new string('b', 40));
+            string unelevated = UpdateService.PackageHelperScript(download, target.Replace!, target, elevate: false, 4242, 1);
+            Assert.Contains("did not close within a minute", unelevated, StringComparison.Ordinal);
+            Assert.Contains("KillerPDF_update_x.exe.recovery.txt", unelevated, StringComparison.Ordinal);
 
-        string elevated = UpdateService.PackageHelperScript(@"C:\Temp\KillerPDF_update_x.exe", target.Replace!, target, elevate: true, 4242, 1);
-        Assert.DoesNotContain("did not close within a minute", elevated, StringComparison.Ordinal);
+            string elevated = UpdateService.PackageHelperScript(download, target.Replace!, target, elevate: true, 4242, 1);
+            Assert.DoesNotContain("did not close within a minute", elevated, StringComparison.Ordinal);
+        }
+        finally { Directory.Delete(folder, recursive: true); }
     }
 
     [Fact]
