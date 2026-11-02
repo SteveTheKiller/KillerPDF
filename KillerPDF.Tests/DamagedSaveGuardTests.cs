@@ -187,6 +187,61 @@ public sealed class DamagedSaveGuardTests : IDisposable
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AReadableInlineImageKeepsStructuralRecoveryWithoutContentRecovery(bool plottingAfterImage)
+    {
+        const string oldContent = "0 0 1 rg 0 0 10 10 re f";
+        string content = "q BI /W 1 /H 1 /BPC 8 /CS /Custom ID %\0\u00ff EI Q"
+            + (plottingAfterImage ? " 0.00-96880406 0 m 1 1 l S" : "");
+        string text = Encoding.Latin1.GetString(RawPdf("",
+            "/Resources << /ColorSpace << /Custom /DeviceRGB >> >>", LeftoverEncryptionObject));
+        text = text.Replace(oldContent, content, StringComparison.Ordinal)
+            .Replace($"/Length {oldContent.Length}", $"/Length {content.Length}", StringComparison.Ordinal)
+            .Replace("/Count 1", "/Count 2", StringComparison.Ordinal);
+        byte[] source = DamageStartXref(Encoding.Latin1.GetBytes(text));
+        string path = Write("readable-inline-image.pdf", source);
+
+        Assert.False(PdfEngineIntegration.HidesEncryption(source));
+        PdfEngineIntegration.RepairHarmlessSaveArtifacts(path);
+        Assert.Single(new PdfPageContentReader(PdfDocument.Open(File.ReadAllBytes(path))).Read(0).Images);
+    }
+
+    [Theory]
+    [InlineData("ascii")]
+    [InlineData("utf8")]
+    [InlineData("latin1")]
+    [InlineData("latin1-long")]
+    [InlineData("binary-string")]
+    [InlineData("escaped-string")]
+    [InlineData("hex-string")]
+    [InlineData("content-number")]
+    public void AuthoredCommentsAndBinaryStringOperandsRemainReadable(string kind)
+    {
+        const string oldContent = "0 0 1 rg 0 0 10 10 re f";
+        string content = kind switch
+        {
+            "ascii" => "f % ordinary authored comment\n",
+            "utf8" => "f % " + Encoding.Latin1.GetString(Encoding.UTF8.GetBytes("\u4e2d\u6587\u6ce8\u91ca\u4fdd\u7559\u53ef\u8bfb\u6587\u672c")) + "\n",
+            "latin1" => "f % caf\u00e9\n",
+            "latin1-long" => "f % " + new string('\u00e9', 32) + "\n",
+            "hex-string" => "BT /F1 12 Tf <2504FF> Tj ET",
+            "content-number" => "0.00-96880406 0 m 1 1 l S",
+            "escaped-string" => @"BT /F1 12 Tf (a\)b%\(" + "\u0004\u00ff) Tj ET",
+            _ => "BT /F1 12 Tf (100%\u0004\u00ff) Tj ET"
+        };
+        string text = Encoding.Latin1.GetString(RawPdf("", "", LeftoverEncryptionObject));
+        text = text.Replace(oldContent, content, StringComparison.Ordinal)
+            .Replace($"/Length {oldContent.Length}", $"/Length {content.Length}", StringComparison.Ordinal);
+        byte[] source = DamageStartXref(Encoding.Latin1.GetBytes(text));
+        string path = Write("readable-content.pdf", source);
+
+        Assert.False(PdfEngineIntegration.HidesEncryption(source));
+        PdfEngineIntegration.RepairHarmlessSaveArtifacts(path);
+        Assert.NotEmpty(new PdfPageContentReader(PdfDocument.Open(File.ReadAllBytes(path))).ReadInstructions(0));
+    }
+
+    [Theory]
     [InlineData("GHOSTSCRIPT", "GHOSTSCRIPT-697944-0.pdf")]
     [InlineData("pdf.js", "pdf.js-11231-0.pdf")]
     [InlineData("pdf.js", "pdf.js-7303-0.pdf")]
@@ -223,6 +278,34 @@ public sealed class DamagedSaveGuardTests : IDisposable
         var refusal = Assert.Throws<DamagedSaveRefusedException>(
             () => PdfEngineIntegration.RepairHarmlessSaveArtifacts(path));
         Assert.Equal(DamagedSaveRefusal.Encrypted, refusal.Reason);
+        Assert.Equal(damaged, File.ReadAllBytes(path));
+    }
+
+    [Fact]
+    public void CiphertextThatRecoversToAKnownOperatorStaysRefused()
+    {
+        byte[] damaged = Convert.FromBase64String(
+            "JVBERi0xLjcKJeLjz9MKMSAwIG9iago8PCAvUGFnZXMgMiAwIFIgL1R5cGUgL0NhdGFsb2cgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL0NvdW50IDEgL0tpZHMgWzMgMCBSXSAvVHlwZSAvUGFnZXMgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL0NvbnRlbnRzIDQgMCBSIC9NZWRpYUJveCBbMCAwIDEwMCAxMDBdIC9QYXJlbnQgMiAwIFIgL1R5cGUgL1BhZ2UgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0OCA+PgpzdHJlYW0KaCn9C2ZxFSoj1jXlK3hZlxlps/oSsroLaxCy8r3k901tNF0X1/Fz4L1y3AvSzmemCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvTm90ZSA8QkExQzE2RjZEQjI3OThBMkYyNEMyMjcwOThGMTFERTlGRDI0MDQ1NUVENEVGQ0E0MkZFQ0EyRTFDQkM1NzlFOEY1NEFGQ0I4ODk5RDg5MDE1QjM3ODdDRjA4RkJFRTk1NTk1OTg3QjMxRTY0OTc5RkI1RDg2NjAwOEU0NUYxQkM+ID4+CmVuZG9iago2IDAgb2JqCjw8IC9DRiA8PCAvU3RkQ0YgPDwgL0F1dGhFdmVudCAvRG9jT3BlbiAvQ0ZNIC9BRVNWMyAvTGVuZ3RoIDMyID4+ID4+IC9FRkYgL1N0ZENGIC9FbmNyeXB0TWV0YWRhdGEgdHJ1ZSAvRiM2OWx0ZXIgL1N0YW5kYXJkIC9MZW5ndGggMjU2IC9PIDwwOUY2OUI1QUU4NjE5QUZDMDhBMzM4QjJEMjc2QUI4MTIyRTk3RkRBOTI5Q0M2RjI1OEYxNTE1Qjc5N0JBRDRGQUZDMUQ0RDlEN0Q1RjE3RTJGOTAyOTA0NzU1OTEyMDM+IC9PRSA8NDQ4MzgyM0RDRkU5RTgxNUQ5QzIyNUQwRDNDQjIyRTc2Q0MwQkJGMjRFMkRDQjFGREUzQkQwM0E4RkU0NjA5Qz4gL1AgLTQgL1Blcm1zIDxFOEI1QjRCMjFCQzEzOUUyMUVFMkE0MDdGNzJDOEQ5MT4gL1IgNiAvU3RtRiAvU3RkQ0YgL1N0ckYgL1N0ZENGIC9VIDw5QzczRTk4NDBFRjg5Q0E0OTQyNEYyNkUwNEY1RjVGMjk5RUU0QkE0OUY2NDY4NEI5NjZFMDA1QzhFNTU0RjMwNkE2RTEzQTA2N0Q3QUMwNDEzMUM2REJCM0NENTQxNEY+IC9VRSA8RDVGQjlDQjk3Q0MwNzNBNjRFMjE2RTY5M0I4MjlEMkVBQ0YyQzA1NEZENDQ4RTA3QTA5RDZBNTE0NzQ2NUNDMD4gL1YgNSA+PgplbmRvYmoK");
+        string path = Write("known-operator-ciphertext.pdf", damaged);
+
+        var refusal = Assert.Throws<DamagedSaveRefusedException>(
+            () => PdfEngineIntegration.RepairHarmlessSaveArtifacts(path));
+        Assert.Equal(DamagedSaveRefusal.Encrypted, refusal.Reason);
+        Assert.True(PdfEngineIntegration.HidesEncryption(damaged));
+        Assert.Equal(damaged, File.ReadAllBytes(path));
+    }
+
+    [Fact]
+    public void CiphertextBehindAnOperatorAndBinaryCommentStaysRefused()
+    {
+        byte[] damaged = Convert.FromBase64String(
+            "JVBERi0xLjcKJeLjz9MKMSAwIG9iago8PCAvUGFnZXMgMiAwIFIgL1R5cGUgL0NhdGFsb2cgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL0NvdW50IDEgL0tpZHMgWzMgMCBSXSAvVHlwZSAvUGFnZXMgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL0NvbnRlbnRzIDQgMCBSIC9NZWRpYUJveCBbMCAwIDEwMCAxMDBdIC9QYXJlbnQgMiAwIFIgL1R5cGUgL1BhZ2UgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0OCA+PgpzdHJlYW0KZiXMIW5kMAQxPE7tAPj+kwh+uf6BENqmKTjqnvVgOPzhfYejBJuCKhr6haofI8DaCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvTm90ZSA8MDE3QTI4QUI4MDFGMUY0MTlBRjBGNUJEMUFDNTRDOUUwNTQ2MTcwNDZBMEY4RTI4N0Y5NjNGQkQ2NDRGODVFNzJGRkI4M0ExMEUxRjA1MEI3NzczMDMwNzdFNzEyQUI3MDRDNUVENTE3OEIxM0I5QUVGNzBGODhDQjE3QkNGQ0Q+ID4+CmVuZG9iago2IDAgb2JqCjw8IC9DRiA8PCAvU3RkQ0YgPDwgL0F1dGhFdmVudCAvRG9jT3BlbiAvQ0ZNIC9BRVNWMyAvTGVuZ3RoIDMyID4+ID4+IC9FRkYgL1N0ZENGIC9FbmNyeXB0TWV0YWRhdGEgdHJ1ZSAvRiM2OWx0ZXIgL1N0YW5kYXJkIC9MZW5ndGggMjU2IC9PIDw2QzA1MDVFRkYyRTEwMjc3QkNERjEyNzUyNzIzNEVCNjg5Njk0NDBFMkE2Qjg5MDlCQUE4NUEwMDA3RTExOEY3MTlGQjQxNjhCMzgyRUMzMkFGOUVEMzc0QzAxMTJCQzE+IC9PRSA8NjdGNDkyMDE0NDEwM0U3NzdDM0UyNDE0MDlCQjk5QTZCNUUzRjZGMEU3MkY4QzE2QTIyMDVDNTAxNjlBRDE5OT4gL1AgLTQgL1Blcm1zIDwxQzA2MDg0ODc2NDI2NEE2NjdDRjI3OEZGMkNEMzhCNz4gL1IgNiAvU3RtRiAvU3RkQ0YgL1N0ckYgL1N0ZENGIC9VIDwyRTE2RjFFQkY2OTg1RkNDQjhCRjUzQjJGMjNERTEzQUY0QUFCQzM4NDg5QjI3MEE2Mzg3MzcwNjM3NjEzRDZBNzZEOTc2MjQ1MjQxRjAwNTk3QzYxN0QwQzdGNDczNjk+IC9VRSA8MDY5REM5M0QzRTFGRThCRTg1QUFFODVDQTg0QzIwRDNDNDcwMUJGMjFFNUZGRjhDQkZGOUExQkY2REQ3QkY3ND4gL1YgNSA+PgplbmRvYmoK");
+        string path = Write("binary-comment-ciphertext.pdf", damaged);
+
+        var refusal = Assert.Throws<DamagedSaveRefusedException>(
+            () => PdfEngineIntegration.RepairHarmlessSaveArtifacts(path));
+        Assert.Equal(DamagedSaveRefusal.Encrypted, refusal.Reason);
+        Assert.True(PdfEngineIntegration.HidesEncryption(damaged));
         Assert.Equal(damaged, File.ReadAllBytes(path));
     }
 

@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Render-failure recovery preserves unsaved edits across panes and detached windows, including edits committed after focus moves, and a recovered document reopens once, with no clean tab of its file beside it.
+- Damaged encrypted PDFs with a missing encryption trailer are refused before saving instead of being rewritten with unreadable pages.
 - Command-line straightening and text replacement preserve an existing output if copying unchanged input fails.
 - PDFs opened from ZIP archives ask for a permanent location on first save, and abandoned import files are cleaned up safely.
 - Canceled or failed protected opens restore the previous document, and closing an importing window stops its remaining opens.

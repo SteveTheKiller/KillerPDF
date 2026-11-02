@@ -8,6 +8,7 @@ using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Signing;
 using KillerPdf.Engine.Writing;
 using KillerPdf.Engine.Security;
+using KillerPdf.Engine.Filters;
 
 namespace KillerPDF.Services;
 
@@ -255,10 +256,11 @@ internal static partial class PdfEngineIntegration
     {
         try
         {
-            var reader = new PdfPageContentReader(recovered);
-            for (int pageIndex = 0; pageIndex < reader.PageCount; pageIndex++)
+            // Keep structural recovery, including repaired page trees, while requiring original
+            // content bytes to parse without discarding malformed tokens.
+            _ = new PdfPageContentReader(recovered);
+            foreach (IReadOnlyList<PdfContentInstruction> instructions in new PlaintextContentProbe(recovered).ReadPages())
             {
-                IReadOnlyList<PdfContentInstruction> instructions = reader.ReadInstructions(pageIndex);
                 if (instructions.Count == 0) continue;
                 return instructions.Count(instruction => PdfContentOperators.IsKnown(instruction.Operator)) * 2
                     > instructions.Count;
@@ -266,6 +268,177 @@ internal static partial class PdfEngineIntegration
             return false;
         }
         catch (Exception error) when (error is not OutOfMemoryException) { return false; }
+    }
+
+    // This proof uses existing strict engine decoders without changing the viewer's recovery mode.
+    private sealed class PlaintextContentProbe(PdfDocument document)
+    {
+        private static readonly PdfDictionary Empty = new([]);
+        private static PdfName Key(string name) => new(System.Text.Encoding.ASCII.GetBytes(name));
+
+        internal IEnumerable<IReadOnlyList<PdfContentInstruction>> ReadPages()
+        {
+            if (!document.CrossReferences.TryGetTrailerValue(Key("Root"), out PdfObject catalogValue)
+                || Resolve(catalogValue) is not PdfDictionary catalog
+                || !catalog.TryGetValue(Key("Pages"), out PdfObject root))
+                throw new FormatException("The recovered catalog has no page tree.");
+            var pending = new Stack<(PdfObject Node, PdfDictionary Resources, int Depth)>();
+            var visited = new HashSet<PdfDictionary>(ReferenceEqualityComparer.Instance);
+            pending.Push((root, Empty, 0));
+            int pages = 0, nodes = 0;
+            while (pending.TryPop(out var item))
+            {
+                if (item.Depth >= 256 || ++nodes > 2_000_000)
+                    throw new FormatException("The page proof exceeds its traversal limit.");
+                PdfDictionary node = Resolve(item.Node) switch
+                {
+                    PdfDictionary dictionary => dictionary,
+                    PdfStream stream => stream.Dictionary,
+                    PdfNull => Empty,
+                    _ => throw new FormatException("A page-tree node is not a dictionary.")
+                };
+                if (ReferenceEquals(node, Empty) || !visited.Add(node)) continue;
+                PdfDictionary resources = node.TryGetValue(Key("Resources"), out PdfObject resourceValue)
+                    ? Resolve(resourceValue) as PdfDictionary ?? Empty : item.Resources;
+                // Compatibility page structure identifies branches by Kids, independently of Count.
+                if (node.TryGetValue(Key("Kids"), out PdfObject children))
+                {
+                    if (Resolve(children) is not PdfArray kids) throw new FormatException("Page Kids is not an array.");
+                    if (kids.Count > 2_000_000 - nodes - pending.Count)
+                        throw new FormatException("The page proof exceeds its traversal limit.");
+                    for (int index = kids.Count - 1; index >= 0; index--)
+                        pending.Push((kids[index], resources, item.Depth + 1));
+                    continue;
+                }
+                if (++pages > 1_000_000) throw new FormatException("The page proof exceeds its page limit.");
+                if (!node.TryGetValue(Key("Contents"), out PdfObject content)) continue;
+                PdfObject resolved = Resolve(content);
+                IEnumerable<PdfObject> streams = resolved is PdfArray array ? array : [resolved];
+                using var bytes = new MemoryStream();
+                foreach (PdfObject value in streams)
+                {
+                    PdfObject streamValue = Resolve(value);
+                    if (streamValue is PdfNull) continue;
+                    if (streamValue is not PdfStream stream) throw new FormatException("Page content is not a stream.");
+                    byte[] decoded = PdfStreamDecoder.Decode(stream, document.Resolve, PdfContentStreamReader.MaximumSourceBytes);
+                    if (bytes.Length + decoded.Length + 1 > PdfContentStreamReader.MaximumSourceBytes)
+                        throw new FormatException("The page proof exceeds its content limit.");
+                    bytes.Write(decoded);
+                    bytes.WriteByte((byte)'\n');
+                }
+                byte[] source = bytes.ToArray();
+                IReadOnlyList<PdfContentInstruction> instructions = PdfContentStreamReader.Read(source,
+                    resolveColorComponents: name => ColorComponents(name, resources, 0), compatibilityRecovery: false);
+                ValidateComments(source, instructions);
+                yield return instructions;
+            }
+        }
+
+        private static void ValidateComments(ReadOnlyMemory<byte> source, IReadOnlyList<PdfContentInstruction> instructions)
+        {
+            var images = instructions.Where(instruction => instruction.Operator == "BI")
+                .ToDictionary(instruction => instruction.Offset,
+                    instruction => instruction.InlineImageData.GetValueOrDefault().Length);
+            var tokenizer = new PdfTokenizer(source);
+            while (true)
+            {
+                PdfToken token = Next();
+                if (token.Kind == PdfTokenKind.EndOfInput) return;
+                if (!images.TryGetValue(token.Offset, out int imageBytes)) continue;
+                do
+                {
+                    token = Next();
+                    if (token.Kind == PdfTokenKind.EndOfInput) throw new FormatException("Inline image has no ID marker.");
+                }
+                while (token.Kind != PdfTokenKind.Keyword || token.ValueAsLatin1() != "ID");
+                int start = tokenizer.Position;
+                if (start >= source.Length) throw new FormatException("Inline image has no data.");
+                int data = start + 1;
+                if (source.Span[start] == 13 && data < source.Length && source.Span[data] == 10) data++;
+                if (imageBytes > source.Length - data) throw new FormatException("Inline image exceeds its source.");
+                // The strict content reader established the exact image boundary. Its sample bytes
+                // are binary data, and percent signs there never begin lexical comments.
+                tokenizer = new PdfTokenizer(source, data + imageBytes);
+            }
+
+            PdfToken Next()
+            {
+                int before = tokenizer.Position;
+                PdfToken token;
+                try { token = tokenizer.Read(); }
+                catch (PdfSyntaxException error) when (
+                    error.Message.StartsWith("Malformed numeric token", StringComparison.Ordinal)
+                    && error.Offset >= before && error.Offset < tokenizer.Position)
+                {
+                    // The strict content parser already accepted this number using its content
+                    // grammar. This walk needs only the token span to locate preceding comments.
+                    int length = tokenizer.Position - error.Offset;
+                    token = new PdfToken(PdfTokenKind.Real, error.Offset, length, source.Slice(error.Offset, length));
+                }
+                ReadOnlySpan<byte> trivia = source.Span[before..token.Offset];
+                for (int index = 0; index < trivia.Length; index++)
+                {
+                    if (trivia[index] != '%') continue;
+                    while (++index < trivia.Length && trivia[index] is not (10 or 13))
+                    {
+                        byte value = trivia[index];
+                        // Text comments may use any language or Latin-1 bytes. Non-text controls
+                        // in an actual comment cannot provide affirmative plaintext evidence.
+                        if (value == 0x7F || value < 0x20 && value is not (0 or 9 or 12))
+                            throw new FormatException("A page comment contains non-text control bytes.");
+                    }
+                }
+                return token;
+            }
+        }
+
+        private PdfObject Resolve(PdfObject value)
+        {
+            var seen = new HashSet<(int, int)>();
+            for (int depth = 0; value is PdfIndirectReference reference; depth++)
+            {
+                if (depth >= 32 || !seen.Add((reference.ObjectNumber, reference.Generation)))
+                    throw new FormatException("The page proof contains an indirect-reference cycle or exceeds its depth limit.");
+                value = document.Resolve(reference);
+            }
+            return value;
+        }
+
+        private int? ColorComponents(PdfObject value, PdfDictionary resources, int depth)
+        {
+            if (depth >= 32) throw new FormatException("Color space nesting limit exceeded.");
+            value = Resolve(value);
+            if (value is PdfName name)
+            {
+                int? standard = name.ValueAsLatin1() switch
+                {
+                    "DeviceGray" or "G" => 1,
+                    "DeviceRGB" or "RGB" => 3,
+                    "DeviceCMYK" or "CMYK" => 4,
+                    _ => null
+                };
+                if (standard.HasValue) return standard;
+                if (!resources.TryGetValue(Key("ColorSpace"), out PdfObject spacesValue)
+                    || Resolve(spacesValue) is not PdfDictionary spaces
+                    || !spaces.TryGetValue(name, out PdfObject named)) return null;
+                return ColorComponents(named, resources, depth + 1);
+            }
+            if (value is not PdfArray array || array.Count == 0 || Resolve(array[0]) is not PdfName family) return null;
+            return family.ValueAsLatin1() switch
+            {
+                "CalGray" or "Indexed" or "I" or "Separation" => 1,
+                "CalRGB" or "Lab" => 3,
+                "DeviceN" when array.Count > 1 && Resolve(array[1]) is PdfArray names => names.Count,
+                "ICCBased" when array.Count > 1 && Resolve(array[1]) is PdfStream profile
+                    && profile.Dictionary.TryGetValue(Key("N"), out PdfObject count) => Resolve(count) switch
+                    {
+                        PdfInteger integer => checked((int)integer.Value),
+                        PdfReal real => checked((int)real.Value),
+                        _ => throw new FormatException("The color profile component count is not numeric.")
+                    },
+                _ => null
+            };
+        }
     }
 
     // Any catalog /Perms entry is a certification (DocMDP) or Reader usage rights (UR, UR3), and
