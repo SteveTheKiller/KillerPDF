@@ -12,6 +12,25 @@ public static class PdfSecurityIndicators
     /// <summary>Finds an Encrypt name or a supported security handler marker.</summary>
     public static bool NamesEncryption(ReadOnlyMemory<byte> source) => Scan(source, true);
 
+    /// <summary>Finds the same names in a stream, read a piece at a time from its current position.
+    /// A name cut by the end of a piece is read whole at the start of the next.</summary>
+    public static bool NamesEncryption(Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        const int PieceSize = 1 << 20, Overlap = 4096;
+        byte[] buffer = new byte[PieceSize + Overlap];
+        int held = 0;
+        while (true)
+        {
+            int read = source.Read(buffer, held, PieceSize);
+            if (read == 0) return false;
+            int available = held + read;
+            if (Scan(buffer.AsMemory(0, available), true)) return true;
+            held = Math.Min(Overlap, available);
+            Buffer.BlockCopy(buffer, available - held, buffer, 0, held);
+        }
+    }
+
     private static bool Scan(ReadOnlyMemory<byte> source, bool includeEncrypt)
     {
         ReadOnlySpan<byte> bytes = source.Span;
@@ -45,6 +64,10 @@ public static class PdfSecurityIndicators
                 or (byte)'[' or (byte)']' or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%')) position++;
         // The longest supported name needs at most 36 bytes with every character escaped.
         if (position - start > 37) return null;
+        // Compressed data is full of slashes, so only a name that could match pays for the tokenizer.
+        ReadOnlySpan<byte> raw = bytes[(start + 1)..position];
+        if (raw.IndexOf((byte)'#') < 0 && !raw.SequenceEqual("Encrypt"u8) && !raw.SequenceEqual("Filter"u8)
+            && !raw.SequenceEqual("Standard"u8) && !raw.SequenceEqual("Adobe.PubSec"u8)) return null;
         try { return new PdfTokenizer(source.Slice(start, position - start)).Read().ValueAsLatin1(); }
         catch (FormatException) { return null; }
     }

@@ -62,9 +62,22 @@ public static class PdfDocumentEncryptionWriter
             () => PdfStandardSecurityHandler.CreateCertificate(options));
     }
 
+    /// <summary>
+    /// Returns a document with no encryption of its own rewritten under the encryption of the file it
+    /// was made from, so the output needs the same passwords and declares the same permissions. A
+    /// rewrite ends any signature or usage rights the document still carries.
+    /// </summary>
+    public static byte[] EncryptUnder(PdfDocument document, PdfEncryptionSnapshot encryption)
+    {
+        ArgumentNullException.ThrowIfNull(encryption);
+        return Encrypt(document, encryption.MinimumVersion, allowSignatureInvalidation: true,
+            replaceDanglingReferences: false, () => (encryption.Handler, encryption.Dictionary), encryption).Bytes;
+    }
+
     private static PdfDocumentWriteResult Encrypt(PdfDocument document, PdfVersion minimumVersion,
         bool allowSignatureInvalidation, bool replaceDanglingReferences,
-        Func<(PdfStandardSecurityHandler Handler, PdfDictionary Dictionary)> createSecurity)
+        Func<(PdfStandardSecurityHandler Handler, PdfDictionary Dictionary)> createSecurity,
+        PdfEncryptionSnapshot? held = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         PdfVersion sourceVersion = document.Header.Version;
@@ -77,7 +90,8 @@ public static class PdfDocumentEncryptionWriter
             ReplaceDanglingReferences = replaceDanglingReferences,
             CrossReferenceFormat = PdfCrossReferenceFormat.Table,
             UseObjectStreams = false,
-            PreserveDocumentIdentifiers = true,
+            // A held key belongs with the original identifier, whatever a working copy carries.
+            PreserveDocumentIdentifiers = held is null,
             TargetVersion = sourceVersion.CompareTo(minimumVersion) < 0 ? minimumVersion : (PdfVersion?)null,
         });
         byte[] plain = plainResult.Bytes;
@@ -98,7 +112,7 @@ public static class PdfDocumentEncryptionWriter
         {
             int offset = checked((int)output.Position);
             offsets.Add((number, generation, offset));
-            PdfObject value = security.Encrypt(source.Resolve(number), number, generation);
+            PdfObject value = security.Encrypt(source.Resolve(number), number, generation, source.Resolve);
             PdfObjectWriter.Write(output, new PdfIndirectObject(number, generation, value, offset));
         }
         int encryptionOffset = checked((int)output.Position);
@@ -121,7 +135,10 @@ public static class PdfDocumentEncryptionWriter
         if (source.CrossReferences.TryGetTrailerValue(InfoName, out PdfObject info)
             && info is PdfIndirectReference)
             trailer.Add(new(InfoName, info));
-        trailer.Add(new(IdName, Identifiers(source, plain)));
+        // A legacy file key is derived from the first identifier, so a held key takes its own /ID,
+        // and a file that had none takes none.
+        if (held is null) trailer.Add(new(IdName, Identifiers(source, plain)));
+        else if (held.Identifiers is PdfArray identifiers) trailer.Add(new(IdName, identifiers));
         trailer.Add(new(EncryptName, new PdfIndirectReference(encryptionNumber, 0)));
         output.Write("trailer\n"u8);
         PdfObjectWriter.Write(output, new PdfDictionary(trailer));

@@ -4,6 +4,22 @@ All notable changes to The KillerPDF.Engine are documented here. Application cha
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.2] - Unreleased
+
+The 1.9.2 engine writes an edited document back under the encryption it was opened with and reads permissions by what their bits really forbid.
+
+### Added
+
+- Added `PdfEncryptionSnapshot`, `PdfDocument.CaptureEncryption`, `PdfDocument.OpenWithEncryption` and `PdfDocumentEncryptionWriter.EncryptUnder`, so a document edited as plain bytes keeps its passwords, recipients, permissions and `/ID` with no file bytes held.
+- Added `PdfDocument.Authenticate`, so one parse serves a password check and the read after it.
+- Added `PdfDocumentPermissions.DeclaresLimits` and a `Stream` overload of `PdfSecurityIndicators.NamesEncryption`.
+- Added `PdfIncrementalPageEditor.FieldsThatKeptTheirValue`, which names a field of a repeated name that could not take a value.
+
+### Changed
+
+- Below revision 3, `PdfDocumentPermissions` reads filling from bit 6, accessibility extraction from bit 5 and assembly from bit 4.
+- A radio field of a repeated name with no state for the new value turns off instead of keeping its old selection.
+
 ## [1.9.1] - Unreleased
 
 The 1.9.1 engine clears redacted content from every copy that hides it, edits attachments by key, keeps document details it cannot read, and widens paragraph editing.

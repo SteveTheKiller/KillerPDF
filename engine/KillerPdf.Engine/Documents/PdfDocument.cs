@@ -5,6 +5,7 @@ using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Syntax;
 using KillerPdf.Engine.Security;
+using KillerPdf.Engine.Writing;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -37,6 +38,7 @@ public sealed partial class PdfDocument
     private readonly HashSet<int> _resolving = [];
     private readonly HashSet<(int Number, int Generation)> _absentObjectHeaders = [];
     private PdfStandardSecurityHandler? _security;
+    private PdfDictionary? _securityDictionary;
     private PdfStandardSecurityHandler? _unencryptedPageGuard;
     private bool _checkedPageEncryption;
     private int? _encryptionObjectNumber;
@@ -143,6 +145,57 @@ public sealed partial class PdfDocument
     /// document is unencrypted or has not been authenticated.
     /// </summary>
     public PdfDocumentPermissions? DeclaredPermissions => _security?.Permissions;
+
+    /// <summary>
+    /// Takes what this authenticated document needs to be written again under its own encryption, or
+    /// null when it carries no encryption or has not been authenticated.
+    /// </summary>
+    public PdfEncryptionSnapshot? CaptureEncryption()
+    {
+        if (_security is null || _securityDictionary is null) return null;
+        PdfArray? identifiers = CrossReferences.TryGetTrailerValue(new PdfName("ID"u8), out PdfObject? value)
+            ? value as PdfArray : null;
+        return new PdfEncryptionSnapshot(_security, _securityDictionary, identifiers, Header.Version,
+            _compatibilityRecovery);
+    }
+
+    /// <summary>Authenticates this parsed document in place, so one parse serves the password check
+    /// and the read that follows. Throws when the password opens nothing.</summary>
+    public void Authenticate(string password) => AuthenticatePassword(this, password);
+
+    /// <summary>
+    /// Opens bytes under encryption held from an earlier authentication, with no password. The bytes
+    /// must carry the same encryption the snapshot was taken from.
+    /// </summary>
+    public static PdfDocument OpenWithEncryption(ReadOnlyMemory<byte> source, PdfEncryptionSnapshot encryption)
+    {
+        ArgumentNullException.ThrowIfNull(encryption);
+        PdfDocument document = OpenWithCompatibilityRecovery(source);
+        if (!document.CrossReferences.TryGetTrailerValue(new PdfName("Encrypt"u8), out PdfObject? value))
+            throw new InvalidOperationException("The PDF carries no encryption.");
+        PdfDictionary dictionary = document.ResolveEncryptionValue(value, out int? number);
+        if (!SameEncryptionKeyMaterial(dictionary, encryption.Dictionary))
+            throw new InvalidOperationException("The PDF is not encrypted the way it was when it opened.");
+        document._encryptionObjectNumber = number;
+        document._security = encryption.Handler;
+        document._securityDictionary = encryption.Dictionary;
+        document._objects.Clear();
+        document._objectStreams.Clear();
+        return document;
+    }
+
+    private static bool SameEncryptionKeyMaterial(PdfDictionary left, PdfDictionary right)
+    {
+        foreach (PdfName name in new[] { new PdfName("O"u8), new PdfName("U"u8), new PdfName("Recipients"u8) })
+        {
+            bool inLeft = left.TryGetValue(name, out PdfObject? first);
+            bool inRight = right.TryGetValue(name, out PdfObject? second);
+            if (inLeft != inRight) return false;
+            if (inLeft && !PdfObjectWriter.Write(first!).AsSpan().SequenceEqual(PdfObjectWriter.Write(second!)))
+                return false;
+        }
+        return true;
+    }
 
     /// <summary>
     /// Reads the permissions the Standard security handler declares without authenticating, since
@@ -297,9 +350,10 @@ public sealed partial class PdfDocument
             && idValue is PdfArray { Count: > 0 } identifiers
             && identifiers[0] is PdfString identifier)
             permanentIdentifier = identifier.Bytes;
+        PdfDictionary resolved = document.ResolveEncryptionDependencies(encryption);
         document._security = PdfStandardSecurityHandler.Create(
-            document.ResolveEncryptionDependencies(encryption), password,
-            permanentIdentifier, document._compatibilityRecovery);
+            resolved, password, permanentIdentifier, document._compatibilityRecovery);
+        document._securityDictionary = resolved;
         document._objects.Clear();
         document._objectStreams.Clear();
         return document;
@@ -334,8 +388,9 @@ public sealed partial class PdfDocument
         PdfDictionary encryption = document.ResolveEncryptionValue(
             encryptionValue, out int? encryptionObjectNumber);
         document._encryptionObjectNumber = encryptionObjectNumber;
-        document._security = PdfStandardSecurityHandler.CreateCertificate(
-            document.ResolveEncryptionDependencies(encryption), recipient);
+        PdfDictionary resolved = document.ResolveEncryptionDependencies(encryption);
+        document._security = PdfStandardSecurityHandler.CreateCertificate(resolved, recipient);
+        document._securityDictionary = resolved;
         document._objects.Clear();
         document._objectStreams.Clear();
         return document;
