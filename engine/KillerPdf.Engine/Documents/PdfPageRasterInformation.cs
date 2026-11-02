@@ -14,15 +14,18 @@ public static class PdfPageRasterInformation
     public static IReadOnlyList<bool> ReadBitonalImagePageHints(PdfDocument document) =>
         ReadBitonalImagePageHints(document, CancellationToken.None);
 
-    /// <summary>The bitonal hints of <see cref="ReadBitonalImagePageHints(PdfDocument)"/>, read with a
-    /// cancellation token.</summary>
+    /// <summary>The bitonal hints of <see cref="ReadBitonalImagePageHints(PdfDocument)"/>. A cancel
+    /// stops the walk between pages with <see cref="OperationCanceledException"/>.</summary>
     public static IReadOnlyList<bool> ReadBitonalImagePageHints(PdfDocument document, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(document);
         PdfPageTree tree = PdfPageTree.Read(document);
         var result = new bool[tree.Pages.Count];
         for (int index = 0; index < tree.Pages.Count; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             result[index] = IsBitonalImagePage(document, tree.Pages[index]);
+        }
         return result;
     }
 
@@ -33,15 +36,18 @@ public static class PdfPageRasterInformation
     public static IReadOnlyList<bool> ReadJpegImagePageHints(PdfDocument document) =>
         ReadJpegImagePageHints(document, CancellationToken.None);
 
-    /// <summary>The JPEG hints of <see cref="ReadJpegImagePageHints(PdfDocument)"/>, read with a
-    /// cancellation token.</summary>
+    /// <summary>The JPEG hints of <see cref="ReadJpegImagePageHints(PdfDocument)"/>. A cancel stops the
+    /// walk between pages with <see cref="OperationCanceledException"/>.</summary>
     public static IReadOnlyList<bool> ReadJpegImagePageHints(PdfDocument document, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(document);
         PdfPageTree tree = PdfPageTree.Read(document);
         var result = new bool[tree.Pages.Count];
         for (int index = 0; index < tree.Pages.Count; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             result[index] = IsJpegImagePage(document, tree.Pages[index]);
+        }
         return result;
     }
 

@@ -23,6 +23,24 @@ public sealed class PdfPageRasterInformationTests
             PdfPageRasterInformation.ReadBitonalImagePageHints(PdfDocument.Open(source)));
     }
 
+    // R6-009: the hint walks visit every page of a large file before its first page is drawn, so a
+    // cancel stops them between pages instead of after the last.
+    [Fact]
+    public void TheHintWalksStopWhenCanceled()
+    {
+        var builder = new PdfDocumentBuilder();
+        for (int page = 0; page < 40; page++) builder.AddPage(100, 100, new PdfContentStreamBuilder());
+        PdfDocument document = PdfDocument.Open(builder.Build());
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        Assert.Throws<OperationCanceledException>(
+            () => PdfPageRasterInformation.ReadBitonalImagePageHints(document, canceled.Token));
+        Assert.Throws<OperationCanceledException>(
+            () => PdfPageRasterInformation.ReadJpegImagePageHints(document, canceled.Token));
+        Assert.Equal(40, PdfPageRasterInformation.ReadJpegImagePageHints(document, CancellationToken.None).Count);
+    }
+
     // A scan's pixels, whatever size the page is, turned up the way the page is shown.
     [Fact]
     public void ReadScanSizes_GivesThePageInTheLargestImagesPixels()

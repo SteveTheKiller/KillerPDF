@@ -61,19 +61,21 @@ namespace KillerPDF.Services
             // Rasterize pages across CPU cores. Pages are authored by the
             // engine afterwards in their original order.
             //
-            // The source document is opened ONCE here. The old code re-opened it inside
-            // the per-page loop, re-parsing the whole file on every page (O(pages) full
-            // document parses) - the dominant cost on large files. A single scaling
-            // factor renders each page at its own size at 150 DPI (150/72), so the doc
-            // no longer needs reopening to apply per-page pixel dimensions.
+            // The source document is opened ONCE here, and the render sessions draw from the same
+            // parse. The old code re-opened it inside the per-page loop, re-parsing the whole file
+            // on every page (O(pages) full document parses) - the dominant cost on large files. A
+            // single scaling factor renders each page at its own size at 150 DPI (150/72), so the
+            // doc no longer needs reopening to apply per-page pixel dimensions.
             PdfDocument sourceDocument = OpenFlattenSource(sourcePath);
             if (ct.IsCancellationRequested) return;
-            IReadOnlyList<bool> bitonalHints =
-                PdfPageRasterInformation.ReadBitonalImagePageHints(sourceDocument, ct);
-            if (ct.IsCancellationRequested) return;
-            IReadOnlyList<bool> jpegHints =
-                PdfPageRasterInformation.ReadJpegImagePageHints(sourceDocument, ct);
-            if (ct.IsCancellationRequested) return;
+            IReadOnlyList<bool> bitonalHints, jpegHints;
+            try
+            {
+                // Both walks visit every page, so a cancel stops them between pages.
+                bitonalHints = PdfPageRasterInformation.ReadBitonalImagePageHints(sourceDocument, ct);
+                jpegHints = PdfPageRasterInformation.ReadJpegImagePageHints(sourceDocument, ct);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
             IReadOnlyList<PdfPageInformation>? pageInformation = options.KeepResolution
                 ? PdfPageInformation.Read(sourceDocument) : null;
             var contentReader = options.KeepResolution ? new PdfPageContentReader(sourceDocument) : null;
@@ -162,9 +164,11 @@ namespace KillerPDF.Services
                 PdfEngineIntegration.CreateRasterDocument(rasterPages), ct);
         }
 
-        /// <summary>Reads the saved copy a flatten is drawn from.</summary>
+        /// <summary>Reads the saved copy a flatten is drawn from, once: the parse goes into the render
+        /// cache, so the render sessions of every resolution draw from it instead of reading the file
+        /// again. The copy is plain, so it is read with no protection.</summary>
         internal static PdfDocument OpenFlattenSource(string sourcePath) =>
-            PdfDocument.Open(File.ReadAllBytes(sourcePath));
+            PdfPageRenderSession.OpenDocument(sourcePath, null);
 
         // One session per resolution, because a session renders at a single scale.
         private static PdfPageRenderSession SessionFor(

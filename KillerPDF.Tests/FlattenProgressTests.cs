@@ -60,6 +60,19 @@ public sealed class FlattenProgressTests : IDisposable
         Assert.False(File.Exists(output));
     }
 
+    // R6-009: the flatten reads its source once. The parse it reads the page hints from is the one
+    // the page renders come from, not a second read of the same file.
+    [Fact]
+    public void TheFlattenReadsItsSourceOnce()
+    {
+        string source = Pages(3);
+
+        PdfDocument read = PdfRasterize.OpenFlattenSource(source);
+
+        Assert.Same(read, PdfPageRenderSession.OpenDocument(source, null));
+        Assert.Equal(3, PdfPageInformation.Read(read).Count);
+    }
+
     // A cancel made before the flatten starts is honored before the source is even read.
     [Fact]
     public void ACancelBeforeTheStartReadsNothing()

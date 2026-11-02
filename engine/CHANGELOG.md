@@ -20,6 +20,7 @@ The 1.9.2 engine writes an edited document back under the encryption it was open
 - Added `PdfIncrementalPageEditor.FieldsThatKeptTheirValue`, which names a field of a repeated name that could not take a value.
 - Added `PdfContentOperators.IsKnown`, the set of content stream operators.
 - Added `PdfPreflightRunner.Run` and `PdfDocumentInspector.InspectAuthenticated` overloads that take an already opened `PdfDocument`, so a document opened under held encryption is preflighted with no password at hand.
+- Added `PdfPageRasterInformation.ReadBitonalImagePageHints` and `ReadJpegImagePageHints` overloads that take a `CancellationToken` and stop between pages.
 
 ### Changed
 
