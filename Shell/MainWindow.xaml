@@ -2921,37 +2921,7 @@
              drop from ever finding the pane beneath it. -->
         <Canvas x:Name="DragLayer" Grid.RowSpan="5" Panel.ZIndex="9000"
                 IsHitTestVisible="False" Visibility="Collapsed">
-            <!-- The drag copy uses the same theme resources and face as an active tab. -->
-            <ctrl:RetroTabBorder x:Name="TabDragGhost" Opacity="0.82"
-                    CornerRadius="{DynamicResource TabActiveCornerRadius}"
-                    Padding="{DynamicResource TabActivePadding}"
-                    Background="{DynamicResource TabActiveBrush}"
-                    BorderThickness="{DynamicResource TabStripeThickness}"
-                    BorderBrush="{DynamicResource TabActiveRingBrush}"
-                    Effect="{DynamicResource BarShadowEffect}">
-                <Grid>
-                    <TextBlock x:Name="TabDragGhostText" Margin="{DynamicResource TabLabelInset}" FontFamily="{DynamicResource MonoFont}" FontSize="{DynamicResource TabTitleFontSize}"
-                               VerticalAlignment="Center"
-                               Foreground="{DynamicResource TextBrush}"/>
-                    <Border IsHitTestVisible="False" Panel.ZIndex="3"
-                            Margin="{DynamicResource TabActiveOuterOutlineMargin}"
-                            BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1,1,1,0"
-                            Visibility="{DynamicResource RetroActiveTabOutlineVisibility}"/>
-                    <Border IsHitTestVisible="False" Panel.ZIndex="4"
-                            Margin="{DynamicResource TabBevelMargin}"
-                            BorderBrush="{DynamicResource BevelLightBrush}"
-                            BorderThickness="{DynamicResource BevelLightThickness}"/>
-                    <Border IsHitTestVisible="False" Panel.ZIndex="4"
-                            Margin="{DynamicResource TabActiveBevelDarkMargin}"
-                            BorderBrush="{DynamicResource BevelDarkBrush}"
-                            BorderThickness="{DynamicResource TabActiveBevelDarkThickness}"/>
-                    <Border IsHitTestVisible="False" Panel.ZIndex="6"
-                            Margin="{DynamicResource TabActiveInnerBevelMargin}"
-                            BorderBrush="{DynamicResource TabActiveInnerBevelBrush}"
-                            BorderThickness="{DynamicResource TabActiveInnerBevelThickness}"
-                            Visibility="{DynamicResource RetroActiveTabOutlineVisibility}"/>
-                </Grid>
-            </ctrl:RetroTabBorder>
+            <snap:TabDragPreview x:Name="TabDragGhost" Opacity="0.82"/>
 
             <!-- Where it would land. Only shown over the target strip, because anywhere else in the
                  pane means "append" and there is no gap to point at. -->

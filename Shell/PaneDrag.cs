@@ -64,7 +64,7 @@ namespace KillerPDF.Shell
             if (!_tabGhostShown)
             {
                 _tabGhostShown = true;
-                TabDragGhostText.Text = s.TabLabel;
+                TabDragGhost.Source = source.TabStripCtl.ItemContainerGenerator.ContainerFromItem(s) as FrameworkElement;
                 DragLayer.Visibility = Visibility.Visible;
             }
 
@@ -101,6 +101,7 @@ namespace KillerPDF.Shell
         {
             if (!_tabGhostShown) return;
             _tabGhostShown = false;
+            TabDragGhost.Source = null;
             DragLayer.Visibility = Visibility.Collapsed;
             TabDropCaret.Visibility = Visibility.Collapsed;
         }

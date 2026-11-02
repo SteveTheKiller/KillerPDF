@@ -111,23 +111,16 @@ public sealed class DocumentTabLayoutTests
     }
 
     [Fact]
-    public void DragGhostUsesTheActiveTabThemeResources()
+    public void DragGhostUsesTheLiveTabPreview()
     {
         string root = FindRepositoryRoot();
         var window = XDocument.Load(Path.Combine(root, "Shell", "MainWindow.xaml"));
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
         XElement ghost = window.Descendants()
             .Single(element => (string?)element.Attribute(x + "Name") == "TabDragGhost");
-        XElement ghostText = window.Descendants()
-            .Single(element => (string?)element.Attribute(x + "Name") == "TabDragGhostText");
-
-        // The same face as the active tab, its rounded face and corner included.
-        Assert.Equal("RetroTabBorder", ghost.Name.LocalName);
-        Assert.Equal("{DynamicResource TabActiveCornerRadius}", (string?)ghost.Attribute("CornerRadius"));
-        Assert.Equal("{DynamicResource TabActiveBrush}", (string?)ghost.Attribute("Background"));
-        Assert.Equal("{DynamicResource TabActivePadding}", (string?)ghost.Attribute("Padding"));
-        Assert.Equal("{DynamicResource BarShadowEffect}", (string?)ghost.Attribute("Effect"));
-        Assert.Equal("{DynamicResource TabTitleFontSize}", (string?)ghostText.Attribute("FontSize"));
+        Assert.Equal("TabDragPreview", ghost.Name.LocalName);
+        Assert.Empty(ghost.Elements());
+        Assert.Equal("0.82", (string?)ghost.Attribute("Opacity"));
     }
 
     [Fact]

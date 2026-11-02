@@ -19,10 +19,8 @@ public sealed class TabLabelInsetTests
         Assert.Contains("Margin=\"{DynamicResource TabLabelInset}\"", labelTag, StringComparison.Ordinal);
 
         string window = File.ReadAllText(Path.Combine(root, "Shell", "MainWindow.xaml"));
-        int ghost = window.IndexOf("x:Name=\"TabDragGhostText\"", StringComparison.Ordinal);
-        Assert.True(ghost >= 0);
-        string ghostTag = window[ghost..window.IndexOf(">", ghost, StringComparison.Ordinal)];
-        Assert.Contains("Margin=\"{DynamicResource TabLabelInset}\"", ghostTag, StringComparison.Ordinal);
+        Assert.Contains("<snap:TabDragPreview x:Name=\"TabDragGhost\"", window, StringComparison.Ordinal);
+        Assert.DoesNotContain("TabDragGhostText", window, StringComparison.Ordinal);
     }
 
     [Fact]

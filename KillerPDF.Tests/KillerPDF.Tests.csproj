@@ -141,6 +141,7 @@
     <Compile Include="..\Controls\DocumentSurface.cs" Link="Controls\DocumentSurface.cs" />
     <Compile Include="..\Controls\LinkOverlay.cs" Link="Controls\LinkOverlay.cs" />
     <Compile Include="..\Controls\RetroTabBorder.cs" Link="Controls\RetroTabBorder.cs" />
+    <Compile Include="..\Controls\TabDragPreview.cs" Link="Controls\TabDragPreview.cs" />
     <Compile Include="..\Controls\CardCorners.cs" Link="Controls\CardCorners.cs" />
     <Compile Include="..\Services\PageReadingText.cs" Link="Services\PageReadingText.cs" />
     <Compile Include="..\Controls\HighContrastResources.cs" Link="Controls\HighContrastResources.cs" />
