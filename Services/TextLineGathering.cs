@@ -33,19 +33,23 @@ internal static class TextLineGathering
                 .OrderBy(i => words[i].Bounds.Left)];
         }
 
+        // A recognized word's box follows its own letters, so a word with descenders hangs below its
+        // neighbors. A click on that low strip still means the row, so the row comes from the word
+        // under the click: every word whose band shares at least half the smaller height with it.
+        if (line.Count > 0)
+        {
+            Rect row = words[line[NearestAcross(words, line, click.X)]].Bounds;
+            line = [.. Enumerable.Range(0, words.Count)
+                .Where(i => line.Contains(i) || SharesRow(words[i].Bounds, row))
+                .OrderBy(i => words[i].Bounds.Left)];
+        }
+
         // Narrow to the contiguous run of words around the click. Words at the same Y in a
         // second column are separated by a large horizontal gap, so stop there instead of
         // merging both columns into one edit (the "weird text" / page-spanning edit).
         if (line.Count > 1)
         {
-            int ci = 0; double bestDx = double.MaxValue;
-            for (int i = 0; i < line.Count; i++)
-            {
-                var r = words[line[i]].Bounds;
-                double dx = click.X < r.Left ? r.Left - click.X
-                          : click.X > r.Right ? click.X - r.Right : 0;
-                if (dx < bestDx) { bestDx = dx; ci = i; }
-            }
+            int ci = NearestAcross(words, line, click.X);
             // A drop numeral or chapter number beside the line is tall enough to share its rows. It is not
             // part of the line's text, and lending the line its size and origin would be as wrong, so only
             // words close to the nearest word's size belong to the line.
@@ -59,6 +63,24 @@ internal static class TextLineGathering
             line = line.GetRange(lo, hi - lo + 1);
         }
         return line;
+    }
+
+    private static int NearestAcross(IReadOnlyList<Candidate> words, List<int> line, double x)
+    {
+        int nearest = 0; double bestDx = double.MaxValue;
+        for (int i = 0; i < line.Count; i++)
+        {
+            Rect r = words[line[i]].Bounds;
+            double dx = x < r.Left ? r.Left - x : x > r.Right ? x - r.Right : 0;
+            if (dx < bestDx) { bestDx = dx; nearest = i; }
+        }
+        return nearest;
+    }
+
+    private static bool SharesRow(Rect word, Rect row)
+    {
+        double overlap = Math.Min(word.Bottom, row.Bottom) - Math.Max(word.Top, row.Top);
+        return overlap >= Math.Min(word.Height, row.Height) * 0.5;
     }
 
     // Body text with a footnote marker or a larger figure stays one line; a numeral at three times the

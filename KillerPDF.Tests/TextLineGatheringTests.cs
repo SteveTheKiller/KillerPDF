@@ -61,6 +61,52 @@ public sealed class TextLineGatheringTests
         Assert.Equal("right column", LineAt(page, x: 310, pageY: 304));
     }
 
+    // Each recognized word's box follows its own letters, so "payment" hangs lower than "Please".
+    [Fact]
+    public void AClickLowOnARecognizedLineGathersAllOfIt()
+    {
+        Assert.Equal("Please remit payment within thirty days", LineInFile(ScanFixture(), x: 150, pageY: 596));
+    }
+
+    // The acceptance run met "paymentwithin" on the file a word edit had just saved.
+    [Fact]
+    public void ASavedWordEditLeavesTheNextLinesWordsApart()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "KillerPDF-scan-" + Guid.NewGuid().ToString("N") + ".pdf");
+        File.Copy(ScanFixture(), path);
+        try
+        {
+            var cover = new CoverAnnotation { PageIndex = 0, PairId = "edit", Bounds = new Rect(183, 143, 27, 16) };
+            cover.SetColor(System.Windows.Media.Colors.White);
+            var text = new TextAnnotation
+            {
+                PageIndex = 0, PairId = "edit", Position = new Point(186, 144), Content = "via",
+                FontSize = 12, FontName = "Times New Roman", Width = 40, Height = 16
+            };
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [cover, text] },
+                new Dictionary<int, (int w, int h)> { [0] = (612, 792) });
+
+            Assert.Equal("Please remit payment within thirty days", LineInFile(path, x: 150, pageY: 600));
+        }
+        finally { File.Delete(path); }
+    }
+
+    private static string ScanFixture() =>
+        Path.Combine(FindRepositoryRoot(), "KillerPDF.Tests", "TestData", "scan-realocr.pdf");
+
+    private static string LineInFile(string path, double x, double pageY)
+    {
+        using var document = PdfContentDocument.Open(path);
+        var page = document.GetPage(1);
+        Rect Canvas(PdfContentBounds b) => RedactionGeometry.PageToCanvas(
+            b.Left, b.Bottom, b.Right, b.Top, page.Width, page.Height, page.Width, page.Height, 0);
+        TextLineGathering.Candidate[] candidates = [.. page.GetWords().Select(word => new TextLineGathering.Candidate(
+            word.Text, Canvas(word.BoundingBox), word.Letters.Count > 0 ? word.Letters[0].PointSize : 0))];
+        Point click = RedactionGeometry.PageToCanvas(x, pageY, x, pageY, page.Width, page.Height, page.Width, page.Height, 0).TopLeft;
+
+        return string.Join(" ", TextLineGathering.Gather(candidates, click).Select(index => candidates[index].Text));
+    }
+
     // The viewer is not built here, so the Text tool is pinned to the gathering it is tested through.
     [Fact]
     public void TheTextToolGathersItsLineThroughTheTestedHelper()
