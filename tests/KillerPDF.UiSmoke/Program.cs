@@ -326,7 +326,7 @@ internal static class Program
         string source = Path.Combine(folder, "one-page.pdf");
         File.WriteAllBytes(source, NewPdf());
         Type workingType = assembly.GetType("KillerPDF.Services.PdfWorkingDocument", true)!;
-        object working = workingType.GetMethod("Open", Static)!.Invoke(null, [source, false])!;
+        object working = workingType.GetMethod("Open", Static)!.Invoke(null, [source, null, false])!;
         // Both active lines validate through the engine, but only development retains ParsedDocument.
         Assembly engine = Assembly.Load("KillerPdf.Engine");
         Type documentType = engine.GetType("KillerPdf.Engine.Documents.PdfDocument", true)!;
@@ -346,7 +346,7 @@ internal static class Program
         {
             string saved = Path.Combine(folder, "reopened.pdf");
             workingType.GetMethod("Save", Instance, [typeof(string)])!.Invoke(working, [saved]);
-            using var reopened = (IDisposable)workingType.GetMethod("Open", Static)!.Invoke(null, [saved, false])!;
+            using var reopened = (IDisposable)workingType.GetMethod("Open", Static)!.Invoke(null, [saved, null, false])!;
             if ((int)workingType.GetProperty("PageCount", Instance)!.GetValue(reopened)! != 1 ||
                 !File.ReadAllBytes(source).SequenceEqual(File.ReadAllBytes(saved)))
                 throw new InvalidOperationException("The synthetic working document changed during save/reopen.");
