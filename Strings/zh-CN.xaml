@@ -232,10 +232,14 @@
     <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}”限制了打印。输入拥有者密码即可打印。</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">“{0}”仅允许以低质量打印。输入拥有者密码可按完整质量打印，取消则以低质量打印。</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">不允许打印。此 PDF 所针对的证书不允许打印，任何密码都无法解除。</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">“{0}”带有拥有者设置的限制，保存会移除其保护。输入拥有者密码即可保存。</sys:String>
-    <sys:String x:Key="Str_Save_Refused">PDF 未保存。保存会移除拥有者设置的限制，只有拥有者密码才能解除这些限制。</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">PDF 未保存。保存会移除为您的证书设置的限制，任何密码都无法解除这些限制。</sys:String>
-    <sys:String x:Key="Str_Print_Refused">不允许打印。此 PDF 的拥有者限制了打印，只有拥有者密码才能解除。</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">“{0}”带有拥有者设置的限制，此操作写出的文件将不带这些限制。输入拥有者密码以继续。</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">未写出任何内容。结果不会保留此 PDF 拥有者设置的限制，KillerPDF 只有在提供拥有者密码时才会写出。</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">未写出任何内容。结果不会保留为您的证书设置的限制，任何密码都无法解除这些限制。</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">KillerPDF 无法读取此 PDF 的保护，因此没有保存或打印任何内容。{0} 请重试，或关闭标签页后重新打开文件。</sys:String>
+    <sys:String x:Key="Str_Print_Refused">不允许打印。此 PDF 的拥有者限制了打印，KillerPDF 只有在提供拥有者密码时才会打印。</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">这是拥有者密码，但无法解锁“{0}”：{1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">已保存，保护不变 - {0}</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">同名字段未能全部接受该值，现在它们的值不同：{0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}”限制了编辑，因此 KillerPDF 需要拥有者密码才能打开它。</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">已打开 {0}（只读 - 非标准 XRef 表）- {1} 页</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">已打开 {0}（已修复副本 - 请保存以保留变更）- {1} 页</sys:String>
@@ -784,7 +788,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Protect_Password">打开密码</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">确认密码</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">权限密码（可选）</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">输入此密码的人将获得完全访问权限，不受下方限制。留空时，将使用随机密码使限制保持有效。</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">输入此密码的人将获得完全访问权限，不受下方限制。留空时，将使用随机密码使限制保持有效，且任何人都无法解除。</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">证书接收者</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">只有这些证书的持有者才能打开副本。添加你自己的证书以保留访问权限。</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">添加</sys:String>

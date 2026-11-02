@@ -232,10 +232,14 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_Print_Restricted_Prompt">„{0}“ schränkt das Drucken ein. Geben Sie das Eigentümerpasswort ein, um es zu drucken.</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">„{0}“ erlaubt das Drucken nur in niedriger Qualität. Geben Sie das Eigentümerpasswort ein, um in voller Qualität zu drucken, oder brechen Sie ab, um in niedriger Qualität zu drucken.</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">Das Drucken ist nicht erlaubt. Das Zertifikat, für das dieses PDF verschlüsselt ist, erlaubt kein Drucken, und kein Passwort hebt das auf.</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">„{0}“ enthält Einschränkungen seines Eigentümers, und beim Speichern entfällt der Schutz. Geben Sie das Eigentümerpasswort ein, um es zu speichern.</sys:String>
-    <sys:String x:Key="Str_Save_Refused">Das PDF wurde nicht gespeichert. Beim Speichern entfielen die Einschränkungen des Eigentümers, und nur das Eigentümerpasswort hebt sie auf.</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">Das PDF wurde nicht gespeichert. Beim Speichern entfielen die Einschränkungen für Ihr Zertifikat, und kein Passwort hebt sie auf.</sys:String>
-    <sys:String x:Key="Str_Print_Refused">Das Drucken ist nicht erlaubt. Der Eigentümer dieses PDFs hat das Drucken eingeschränkt, und nur das Eigentümerpasswort hebt die Einschränkung auf.</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">„{0}“ enthält Einschränkungen seines Eigentümers, und dies würde es ohne sie schreiben. Geben Sie das Eigentümerpasswort ein, um fortzufahren.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">Es wurde nichts geschrieben. Das Ergebnis würde die Einschränkungen des Eigentümers dieses PDFs nicht behalten, und KillerPDF schreibt es nur mit dem Eigentümerpasswort.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">Es wurde nichts geschrieben. Das Ergebnis würde die Einschränkungen für Ihr Zertifikat nicht behalten, und kein Passwort hebt sie auf.</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">KillerPDF konnte den Schutz dieses PDFs nicht lesen, daher wurde nichts gespeichert oder gedruckt. {0} Versuchen Sie es erneut, oder schließen Sie den Tab und öffnen Sie die Datei noch einmal.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Das Drucken ist nicht erlaubt. Der Eigentümer dieses PDFs hat das Drucken eingeschränkt, und KillerPDF druckt es nur mit dem Eigentümerpasswort.</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">Das ist das Eigentümerpasswort, aber „{0}“ konnte nicht entsperrt werden: {1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">Mit Schutz gespeichert - {0}</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">Gleichnamige Felder konnten den Wert nicht alle übernehmen und unterscheiden sich nun: {0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">„{0}“ schränkt die Bearbeitung ein, daher benötigt KillerPDF zum Öffnen das Eigentümerpasswort.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Geöffnet: {0} (schreibgeschützt - nicht standardisierte XRef-Tabelle) - {1} Seite(n)</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Geöffnet: {0} (reparierte Kopie - zum Beibehalten der Änderungen speichern) - {1} Seite(n)</sys:String>
@@ -784,7 +788,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Protect_Password">Passwort zum Öffnen</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">Passwort bestätigen</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">Berechtigungskennwort (optional)</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">Wer es eingibt, erhält vollen Zugriff ohne die Einschränkungen unten. Bleibt es leer, hält ein zufälliges Passwort die Einschränkungen aufrecht.</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">Wer es eingibt, erhält vollen Zugriff ohne die Einschränkungen unten. Bleibt es leer, hält ein zufälliges Passwort die Einschränkungen aufrecht, und niemand kann sie aufheben.</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">Zertifikatempfänger</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">Nur die Inhaber dieser Zertifikate können die Kopie öffnen. Fügen Sie Ihr eigenes Zertifikat hinzu, um den Zugriff zu behalten.</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">Hinzufügen</sys:String>

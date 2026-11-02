@@ -250,10 +250,14 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_Print_Restricted_Prompt">«{0}» begrenser utskrift. Skriv inn eierpassordet for å skrive den ut.</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">«{0}» tillater bare utskrift i lav kvalitet. Skriv inn eierpassordet for å skrive ut i full kvalitet, eller avbryt for å skrive ut i lav kvalitet.</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">Utskrift er ikke tillatt. Sertifikatet denne PDF-en er kryptert for, tillater ikke utskrift, og ingen passord opphever det.</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">«{0}» har begrensninger satt av eieren, og lagring fjerner beskyttelsen. Skriv inn eierpassordet for å lagre den.</sys:String>
-    <sys:String x:Key="Str_Save_Refused">PDF-en ble ikke lagret. Lagring ville fjerne begrensningene eieren har satt, og bare eierpassordet opphever dem.</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">PDF-en ble ikke lagret. Lagring ville fjerne begrensningene som er satt for sertifikatet ditt, og ingen passord opphever dem.</sys:String>
-    <sys:String x:Key="Str_Print_Refused">Utskrift er ikke tillatt. Eieren av denne PDF-en har begrenset utskrift, og bare eierpassordet opphever begrensningen.</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">«{0}» har begrensninger satt av eieren, og dette ville skrive den uten dem. Skriv inn eierpassordet for å fortsette.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">Ingenting ble skrevet. Resultatet ville ikke beholde begrensningene eieren av denne PDF-en har satt, og KillerPDF skriver det bare med eierpassordet.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">Ingenting ble skrevet. Resultatet ville ikke beholde begrensningene som er satt for sertifikatet ditt, og ingen passord opphever dem.</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">KillerPDF kunne ikke lese beskyttelsen av denne PDF-en, så ingenting ble lagret eller skrevet ut. {0} Prøv igjen, eller lukk fanen og åpne filen på nytt.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Utskrift er ikke tillatt. Eieren av denne PDF-en har begrenset utskrift, og KillerPDF skriver den bare ut med eierpassordet.</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">Det er eierpassordet, men «{0}» kunne ikke låses opp: {1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">Lagret med beskyttelsen - {0}</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">Felt med samme navn kunne ikke alle ta verdien, så de er nå ulike: {0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» begrenser redigering, så KillerPDF trenger eierpassordet for å åpne den.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Åpnet {0} (skrivebeskyttet, ikke-standard XRef-tabell) - {1} side(r)</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Åpnet {0} (reparert kopi, lagre for å beholde endringer) - {1} side(r)</sys:String>
@@ -870,7 +874,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Protect_Password">Passord for å åpne</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">Bekreft passord</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">Tillatelsespassord (valgfritt)</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">Den som skriver det inn, får full tilgang uten begrensningene nedenfor. Står det tomt, holder et tilfeldig passord begrensningene i kraft.</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">Den som skriver det inn, får full tilgang uten begrensningene nedenfor. Står det tomt, holder et tilfeldig passord begrensningene i kraft, og ingen kan fjerne dem.</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">Sertifikatmottakere</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">Bare innehaverne av disse sertifikatene kan åpne kopien. Legg til ditt eget sertifikat for å beholde tilgangen.</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">Legg til</sys:String>

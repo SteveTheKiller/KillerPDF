@@ -232,10 +232,14 @@
     <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” মুদ্রণ সীমিত করে। মুদ্রণ করতে মালিকের পাসওয়ার্ড দিন।</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">“{0}” শুধু নিম্ন মানে মুদ্রণের অনুমতি দেয়। পূর্ণ মানে মুদ্রণ করতে মালিকের পাসওয়ার্ড দিন, অথবা নিম্ন মানে মুদ্রণ করতে বাতিল করুন।</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">মুদ্রণের অনুমতি নেই। এই PDF যে সার্টিফিকেটের জন্য এনক্রিপ্ট করা, সেটি মুদ্রণের অনুমতি দেয় না, আর কোনো পাসওয়ার্ড দিয়ে এই সীমা তোলা যায় না।</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">“{0}”-এ এর মালিকের দেওয়া সীমা আছে, আর সংরক্ষণ করলে এর সুরক্ষা সরে যায়। সংরক্ষণ করতে মালিকের পাসওয়ার্ড দিন।</sys:String>
-    <sys:String x:Key="Str_Save_Refused">PDF সংরক্ষণ করা হয়নি। সংরক্ষণ করলে মালিকের দেওয়া সীমা সরে যেত, আর শুধু মালিকের পাসওয়ার্ড দিলেই সেই সীমা তোলা যায়।</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">PDF সংরক্ষণ করা হয়নি। সংরক্ষণ করলে আপনার সার্টিফিকেটের জন্য দেওয়া সীমা সরে যেত, আর কোনো পাসওয়ার্ড দিয়ে সেই সীমা তোলা যায় না।</sys:String>
-    <sys:String x:Key="Str_Print_Refused">মুদ্রণের অনুমতি নেই। এই PDF-এর মালিক মুদ্রণ সীমিত করেছেন, আর শুধু মালিকের পাসওয়ার্ড দিলেই এই সীমা তোলা যায়।</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">“{0}”-এ এর মালিকের দেওয়া সীমা আছে, আর এই কাজে সেই সীমা ছাড়াই ফাইলটি লেখা হবে। এগিয়ে যেতে মালিকের পাসওয়ার্ড দিন।</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">কিছুই লেখা হয়নি। ফলাফলে এই PDF-এর মালিকের দেওয়া সীমা থাকত না, আর KillerPDF এটি শুধু মালিকের পাসওয়ার্ড দিলেই লেখে।</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">কিছুই লেখা হয়নি। ফলাফলে আপনার সার্টিফিকেটের জন্য দেওয়া সীমা থাকত না, আর কোনো পাসওয়ার্ড দিয়ে সেই সীমা তোলা যায় না।</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">KillerPDF এই PDF-এর সুরক্ষা পড়তে পারেনি, তাই কিছুই সংরক্ষণ বা মুদ্রণ করা হয়নি। {0} আবার চেষ্টা করুন, অথবা ট্যাবটি বন্ধ করে ফাইলটি আবার খুলুন।</sys:String>
+    <sys:String x:Key="Str_Print_Refused">মুদ্রণের অনুমতি নেই। এই PDF-এর মালিক মুদ্রণ সীমিত করেছেন, আর KillerPDF এটি শুধু মালিকের পাসওয়ার্ড দিলেই মুদ্রণ করে।</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">এটিই মালিকের পাসওয়ার্ড, কিন্তু “{0}” আনলক করা যায়নি: {1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">সুরক্ষাসহ সংরক্ষিত - {0}</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">একই নামের সব ক্ষেত্র মানটি নিতে পারেনি, তাই এখন সেগুলো আলাদা: {0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” সম্পাদনা সীমিত করে, তাই এটি খুলতে KillerPDF-এর মালিকের পাসওয়ার্ড প্রয়োজন।</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} খোলা হয়েছে (শুধুমাত্র পঠনযোগ্য - অ-মানক XRef টেবিল) - {1} পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">{0} খোলা হয়েছে (মেরামত করা কপি - পরিবর্তন রাখতে সংরক্ষণ করুন) - {1} পৃষ্ঠা</sys:String>
@@ -784,7 +788,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Protect_Password">খোলার পাসওয়ার্ড</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">পাসওয়ার্ড নিশ্চিত করুন</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">অনুমতির পাসওয়ার্ড (ঐচ্ছিক)</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">যিনি এটি লিখবেন তিনি নিচের বিধিনিষেধ ছাড়াই পূর্ণ অ্যাক্সেস পাবেন। খালি রাখলে একটি এলোমেলো পাসওয়ার্ড বিধিনিষেধগুলো বহাল রাখে।</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">যিনি এটি লিখবেন তিনি নিচের বিধিনিষেধ ছাড়াই পূর্ণ অ্যাক্সেস পাবেন। খালি রাখলে একটি এলোমেলো পাসওয়ার্ড বিধিনিষেধগুলো বহাল রাখে, আর কেউ সেগুলো তুলতে পারবে না।</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">সার্টিফিকেট প্রাপক</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">শুধু এই সার্টিফিকেটগুলোর ধারকরাই কপিটি খুলতে পারবেন। অ্যাক্সেস রাখতে আপনার নিজের সার্টিফিকেট যোগ করুন।</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">যোগ করুন</sys:String>

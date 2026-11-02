@@ -250,10 +250,14 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_Print_Restricted_Prompt">A(z) „{0}” korlátozza a nyomtatást. A nyomtatáshoz adja meg a tulajdonosi jelszót.</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">A(z) „{0}” csak alacsony minőségű nyomtatást engedélyez. Teljes minőségű nyomtatáshoz adja meg a tulajdonosi jelszót, vagy az alacsony minőségű nyomtatáshoz válassza a Mégse lehetőséget.</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">A nyomtatás nem engedélyezett. A tanúsítvány, amelyhez ez a PDF titkosítva van, nem engedi a nyomtatást, és ezt semmilyen jelszó nem oldja fel.</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">A(z) „{0}” a tulajdonosa által beállított korlátozásokat tartalmaz, és a mentés eltávolítja a védelmét. A mentéshez adja meg a tulajdonosi jelszót.</sys:String>
-    <sys:String x:Key="Str_Save_Refused">A PDF nincs mentve. A mentés eltávolítaná a tulajdonos korlátozásait, és ezeket csak a tulajdonosi jelszó oldja fel.</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">A PDF nincs mentve. A mentés eltávolítaná a tanúsítványához beállított korlátozásokat, és ezeket semmilyen jelszó nem oldja fel.</sys:String>
-    <sys:String x:Key="Str_Print_Refused">A nyomtatás nem engedélyezett. A PDF tulajdonosa korlátozta a nyomtatást, és ezt a korlátozást csak a tulajdonosi jelszó oldja fel.</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">A(z) „{0}” a tulajdonosa által beállított korlátozásokat tartalmaz, és ez a művelet nélkülük írná ki. A folytatáshoz adja meg a tulajdonosi jelszót.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">Semmi sem íródott ki. Az eredmény nem őrizné meg a PDF tulajdonosának korlátozásait, és a KillerPDF csak a tulajdonosi jelszóval írja ki.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">Semmi sem íródott ki. Az eredmény nem őrizné meg a tanúsítványához beállított korlátozásokat, és ezeket semmilyen jelszó nem oldja fel.</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">A KillerPDF nem tudta beolvasni a PDF védelmét, ezért semmi sem lett mentve vagy nyomtatva. {0} Próbálja újra, vagy zárja be a lapot, és nyissa meg újra a fájlt.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">A nyomtatás nem engedélyezett. A PDF tulajdonosa korlátozta a nyomtatást, és a KillerPDF csak a tulajdonosi jelszóval nyomtatja ki.</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">Ez a tulajdonosi jelszó, de a(z) „{0}” feloldása nem sikerült: {1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">Mentve a védelmével együtt - {0}</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">Az azonos nevű mezők nem mind vették át az értéket, ezért most eltérnek: {0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">A(z) „{0}” korlátozza a szerkesztést, ezért a KillerPDF-nek a megnyitásához a tulajdonosi jelszó kell.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Megnyitva: {0} (csak olvasható - nem szabványos XRef tábla) - {1} oldal</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Megnyitva: {0} (javított másolat - mentse a változások megtartásához) - {1} oldal</sys:String>
@@ -870,7 +874,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Protect_Password">Megnyitási jelszó</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">Jelszó megerősítése</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">Engedélyezési jelszó (nem kötelező)</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">Aki megadja, teljes hozzáférést kap az alábbi korlátozások nélkül. Ha üresen marad, egy véletlen jelszó tartja érvényben a korlátozásokat.</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">Aki megadja, teljes hozzáférést kap az alábbi korlátozások nélkül. Ha üresen marad, egy véletlen jelszó tartja érvényben a korlátozásokat, és senki sem tudja feloldani őket.</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">Tanúsítványos címzettek</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">Csak ezeknek a tanúsítványoknak a birtokosai nyithatják meg a másolatot. Adja hozzá a saját tanúsítványát, hogy megtartsa a hozzáférést.</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">Hozzáadás</sys:String>

@@ -250,10 +250,14 @@
     <sys:String x:Key="Str_Print_Restricted_Prompt">«{0}» обмежує друк. Введіть пароль власника, щоб надрукувати його.</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">«{0}» дозволяє друк лише в низькій якості. Введіть пароль власника, щоб друкувати в повній якості, або скасуйте, щоб друкувати в низькій якості.</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">Друк заборонено. Сертифікат, для якого зашифровано цей PDF, не дозволяє друк, і жоден пароль цього не зніме.</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">У «{0}» є обмеження власника, а збереження знімає захист. Введіть пароль власника, щоб зберегти файл.</sys:String>
-    <sys:String x:Key="Str_Save_Refused">PDF не збережено. Збереження зняло б обмеження власника, а зняти їх може лише пароль власника.</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">PDF не збережено. Збереження зняло б обмеження, задані для вашого сертифіката, а жоден пароль їх не зніме.</sys:String>
-    <sys:String x:Key="Str_Print_Refused">Друк заборонено. Власник цього PDF обмежив друк, і зняти обмеження може лише пароль власника.</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">У «{0}» є обмеження власника, а ця дія записала б файл без них. Введіть пароль власника, щоб продовжити.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">Нічого не записано. Результат не зберіг би обмеження власника цього PDF, і KillerPDF записує його лише з паролем власника.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">Нічого не записано. Результат не зберіг би обмеження, задані для вашого сертифіката, а жоден пароль їх не зніме.</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">KillerPDF не вдалося прочитати захист цього PDF, тому нічого не збережено й не надруковано. {0} Повторіть спробу або закрийте вкладку й відкрийте файл знову.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Друк заборонено. Власник цього PDF обмежив друк, і KillerPDF друкує його лише з паролем власника.</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">Це пароль власника, але розблокувати «{0}» не вдалося: {1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">Збережено із захистом - {0}</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">Не всі поля з однаковою назвою прийняли значення, тому тепер вони відрізняються: {0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» обмежує редагування, тому KillerPDF потрібен пароль власника, щоб відкрити його.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Відкрито {0} (лише для читання - нестандартна таблиця XRef) - сторінок: {1}</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Відкрито {0} (відновлена копія - збережіть, щоб зберегти зміни) - сторінок: {1}</sys:String>
@@ -870,7 +874,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Protect_Password">Пароль для відкриття</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">Підтвердження пароля</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">Пароль дозволів (необов'язково)</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">Той, хто його введе, отримає повний доступ без обмежень нижче. Якщо залишити поле порожнім, обмеження збереже випадковий пароль.</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">Той, хто його введе, отримає повний доступ без обмежень нижче. Якщо залишити поле порожнім, обмеження збереже випадковий пароль, і ніхто не зможе їх зняти.</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">Одержувачі за сертифікатом</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">Відкрити копію зможуть лише власники цих сертифікатів. Додайте власний сертифікат, щоб зберегти доступ.</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">Додати</sys:String>

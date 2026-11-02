@@ -228,10 +228,14 @@
     <sys:String x:Key="Str_Print_Restricted_Prompt">Dokument »{0}« omejuje tiskanje. Za tiskanje vnesite geslo lastnika.</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">Dokument »{0}« dovoljuje tiskanje samo v nizki kakovosti. Za tiskanje v polni kakovosti vnesite geslo lastnika, za tiskanje v nizki kakovosti pa prekličite.</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">Tiskanje ni dovoljeno. Potrdilo, za katero je ta dokument PDF šifriran, ne dovoljuje tiskanja, tega pa ne odpravi nobeno geslo.</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">Dokument »{0}« ima omejitve, ki jih je nastavil lastnik, shranjevanje pa odstrani njegovo zaščito. Za shranjevanje vnesite geslo lastnika.</sys:String>
-    <sys:String x:Key="Str_Save_Refused">Dokument PDF ni bil shranjen. Shranjevanje bi odstranilo omejitve, ki jih je nastavil lastnik, te pa odpravi samo geslo lastnika.</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">Dokument PDF ni bil shranjen. Shranjevanje bi odstranilo omejitve, nastavljene za vaše potrdilo, teh pa ne odpravi nobeno geslo.</sys:String>
-    <sys:String x:Key="Str_Print_Refused">Tiskanje ni dovoljeno. Lastnik tega dokumenta PDF je omejil tiskanje, omejitev pa odpravi samo geslo lastnika.</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">Dokument »{0}« ima omejitve, ki jih je nastavil lastnik, ta dejanje pa bi ga zapisalo brez njih. Za nadaljevanje vnesite geslo lastnika.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">Nič ni bilo zapisano. Rezultat ne bi ohranil omejitev, ki jih je nastavil lastnik tega dokumenta PDF, KillerPDF pa ga zapiše samo z geslom lastnika.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">Nič ni bilo zapisano. Rezultat ne bi ohranil omejitev, nastavljenih za vaše potrdilo, teh pa ne odpravi nobeno geslo.</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">KillerPDF ni mogel prebrati zaščite tega dokumenta PDF, zato nič ni bilo shranjeno ali natisnjeno. {0} Poskusite znova ali zaprite zavihek in znova odprite datoteko.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Tiskanje ni dovoljeno. Lastnik tega dokumenta PDF je omejil tiskanje, KillerPDF pa ga natisne samo z geslom lastnika.</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">To je geslo lastnika, vendar dokumenta »{0}« ni bilo mogoče odkleniti: {1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">Datoteka {0} je shranjena z zaščito</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">Vsa polja z istim imenom niso mogla sprejeti vrednosti, zato se zdaj razlikujejo: {0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">Dokument »{0}« omejuje urejanje, zato KillerPDF za odpiranje potrebuje geslo lastnika.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Odprto samo za branje zaradi nestandardne tabele XRef: {0} (strani: {1})</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Odprta je popravljena kopija datoteke {0}; shranite za ohranitev sprememb (strani: {1})</sys:String>
@@ -803,7 +807,7 @@
     <sys:String x:Key="Str_Protect_Password">Geslo za odpiranje</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">Potrdi geslo</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">Geslo za dovoljenja (izbirno)</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">Kdor ga vnese, dobi poln dostop brez spodnjih omejitev. Če pustite prazno, omejitve ohranja naključno geslo.</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">Kdor ga vnese, dobi poln dostop brez spodnjih omejitev. Če pustite prazno, omejitve ohranja naključno geslo in jih nihče ne more odstraniti.</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">Prejemniki s potrdili</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">Kopijo lahko odprejo samo imetniki teh potrdil. Za ohranitev dostopa dodajte svoje potrdilo.</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">Dodaj</sys:String>

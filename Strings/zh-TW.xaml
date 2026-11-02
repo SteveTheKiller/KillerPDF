@@ -234,10 +234,14 @@
     <sys:String x:Key="Str_Print_Restricted_Prompt">「{0}」限制了列印。輸入擁有者密碼即可列印。</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">「{0}」僅允許以低品質列印。輸入擁有者密碼可按完整品質列印，取消則以低品質列印。</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">不允許列印。此 PDF 所針對的憑證不允許列印，任何密碼都無法解除。</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">「{0}」帶有擁有者設定的限制，儲存會移除其保護。輸入擁有者密碼即可儲存。</sys:String>
-    <sys:String x:Key="Str_Save_Refused">PDF 未儲存。儲存會移除擁有者設定的限制，只有擁有者密碼才能解除這些限制。</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">PDF 未儲存。儲存會移除為您的憑證設定的限制，任何密碼都無法解除這些限制。</sys:String>
-    <sys:String x:Key="Str_Print_Refused">不允許列印。此 PDF 的擁有者限制了列印，只有擁有者密碼才能解除。</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">「{0}」帶有擁有者設定的限制，此操作寫出的檔案將不帶這些限制。輸入擁有者密碼以繼續。</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">未寫出任何內容。結果不會保留此 PDF 擁有者設定的限制，KillerPDF 只有在提供擁有者密碼時才會寫出。</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">未寫出任何內容。結果不會保留為您的憑證設定的限制，任何密碼都無法解除這些限制。</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">KillerPDF 無法讀取此 PDF 的保護，因此沒有儲存或列印任何內容。{0} 請重試，或關閉分頁後重新開啟檔案。</sys:String>
+    <sys:String x:Key="Str_Print_Refused">不允許列印。此 PDF 的擁有者限制了列印，KillerPDF 只有在提供擁有者密碼時才會列印。</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">這是擁有者密碼，但無法解鎖「{0}」：{1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">已儲存，保護不變 - {0}</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">同名欄位未能全部接受該值，現在它們的值不同：{0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">「{0}」限制了編輯，因此 KillerPDF 需要擁有者密碼才能開啟。</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">已開啟 {0}（唯讀 - 非標準 XRef 表）- {1} 頁</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">已開啟 {0}（已修復副本 - 請儲存以保留變更）- {1} 頁</sys:String>
@@ -786,7 +790,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Protect_Password">開啟密碼</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">確認密碼</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">權限密碼（選用）</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">輸入此密碼的人將取得完整存取權，不受下方限制。留空時，會以隨機密碼讓限制維持有效。</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">輸入此密碼的人將取得完整存取權，不受下方限制。留空時，會以隨機密碼讓限制維持有效，且任何人都無法解除。</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">憑證收件者</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">只有這些憑證的持有者才能開啟副本。請加入你自己的憑證以保留存取權。</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">新增</sys:String>

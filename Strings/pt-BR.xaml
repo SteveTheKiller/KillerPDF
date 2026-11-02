@@ -250,10 +250,14 @@ A página pode ser substituída por uma imagem dela mesma com as áreas marcadas
     <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” restringe a impressão. Insira a senha do proprietário para imprimi-lo.</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">“{0}” permite imprimir apenas em baixa qualidade. Insira a senha do proprietário para imprimir em qualidade total ou cancele para imprimir em baixa qualidade.</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">A impressão não é permitida. O certificado para o qual este PDF foi criptografado não permite impressão, e nenhuma senha remove essa restrição.</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">“{0}” tem limites definidos pelo proprietário, e salvar remove sua proteção. Insira a senha do proprietário para salvá-lo.</sys:String>
-    <sys:String x:Key="Str_Save_Refused">O PDF não foi salvo. Salvar removeria os limites definidos pelo proprietário, e somente a senha do proprietário os remove.</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">O PDF não foi salvo. Salvar removeria os limites definidos para o seu certificado, e nenhuma senha os remove.</sys:String>
-    <sys:String x:Key="Str_Print_Refused">A impressão não é permitida. O proprietário deste PDF restringiu a impressão, e somente a senha do proprietário remove essa restrição.</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">“{0}” tem limites definidos pelo proprietário, e isto o gravaria sem eles. Insira a senha do proprietário para continuar.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">Nada foi gravado. O resultado não manteria os limites definidos pelo proprietário deste PDF, e o KillerPDF só o grava com a senha do proprietário.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">Nada foi gravado. O resultado não manteria os limites definidos para o seu certificado, e nenhuma senha os remove.</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">O KillerPDF não conseguiu ler a proteção deste PDF, então nada foi salvo nem impresso. {0} Tente novamente, ou feche a guia e abra o arquivo outra vez.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">A impressão não é permitida. O proprietário deste PDF restringiu a impressão, e o KillerPDF só o imprime com a senha do proprietário.</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">Essa é a senha do proprietário, mas “{0}” não pôde ser desbloqueado: {1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">Salvo com sua proteção - {0}</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">Nem todos os campos com o mesmo nome aceitaram o valor, então agora são diferentes: {0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” restringe a edição, então o KillerPDF precisa da senha do proprietário para abri-lo.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} aberto (somente leitura - tabela XRef não padrão) - {1} página(s)</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">{0} aberto (cópia reparada - salve para manter as alterações) - {1} página(s)</sys:String>
@@ -870,7 +874,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Protect_Password">Senha de abertura</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">Confirmar senha</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">Senha de permissões (opcional)</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">Quem a digitar obtém acesso total, sem as restrições abaixo. Se ficar vazia, uma senha aleatória mantém as restrições.</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">Quem a digitar obtém acesso total, sem as restrições abaixo. Se ficar vazia, uma senha aleatória mantém as restrições, e ninguém poderá removê-las.</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">Destinatários por certificado</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">Somente os titulares destes certificados podem abrir a cópia. Adicione seu próprio certificado para manter o acesso.</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">Adicionar</sys:String>

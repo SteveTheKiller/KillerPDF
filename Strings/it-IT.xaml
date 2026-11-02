@@ -250,10 +250,14 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_Print_Restricted_Prompt">'{0}' limita la stampa. Inserisci la password del proprietario per stamparlo.</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">'{0}' consente la stampa solo in bassa qualità. Inserisci la password del proprietario per stampare in piena qualità, oppure annulla per stampare in bassa qualità.</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">La stampa non è consentita. Il certificato per cui questo PDF è cifrato non permette la stampa e nessuna password rimuove il limite.</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">'{0}' ha limiti impostati dal proprietario e il salvataggio ne rimuove la protezione. Inserisci la password del proprietario per salvarlo.</sys:String>
-    <sys:String x:Key="Str_Save_Refused">Il PDF non è stato salvato. Il salvataggio rimuoverebbe i limiti impostati dal proprietario e solo la password del proprietario li rimuove.</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">Il PDF non è stato salvato. Il salvataggio rimuoverebbe i limiti impostati per il tuo certificato e nessuna password li rimuove.</sys:String>
-    <sys:String x:Key="Str_Print_Refused">La stampa non è consentita. Il proprietario di questo PDF ha limitato la stampa e solo la password del proprietario rimuove il limite.</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">'{0}' ha limiti impostati dal proprietario e questa azione lo scriverebbe senza di essi. Inserisci la password del proprietario per continuare.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">Non è stato scritto nulla. Il risultato non manterrebbe i limiti impostati dal proprietario di questo PDF e KillerPDF lo scrive solo con la password del proprietario.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">Non è stato scritto nulla. Il risultato non manterrebbe i limiti impostati per il tuo certificato e nessuna password li rimuove.</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">KillerPDF non è riuscito a leggere la protezione di questo PDF, quindi non è stato salvato o stampato nulla. {0} Riprova, oppure chiudi la scheda e riapri il file.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">La stampa non è consentita. Il proprietario di questo PDF ha limitato la stampa e KillerPDF lo stampa solo con la password del proprietario.</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">Questa è la password del proprietario, ma non è stato possibile sbloccare '{0}': {1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">Salvato con la sua protezione - {0}</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">Non tutti i campi con lo stesso nome hanno accettato il valore, quindi ora sono diversi: {0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">'{0}' limita la modifica, quindi KillerPDF richiede la password del proprietario per aprirlo.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Aperto {0} (sola lettura - tabella XRef non standard) - {1} pagine</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Aperto {0} (copia riparata - salva per mantenere le modifiche) - {1} pagine</sys:String>
@@ -870,7 +874,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Protect_Password">Password di apertura</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">Conferma password</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">Password delle autorizzazioni (facoltativa)</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">Chi la inserisce ottiene l'accesso completo, senza le restrizioni qui sotto. Se resta vuota, una password casuale mantiene attive le restrizioni.</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">Chi la inserisce ottiene l'accesso completo, senza le restrizioni qui sotto. Se resta vuota, una password casuale mantiene attive le restrizioni e nessuno potrà rimuoverle.</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">Destinatari con certificato</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">Solo i titolari di questi certificati possono aprire la copia. Aggiungi il tuo certificato per mantenere l'accesso.</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">Aggiungi</sys:String>

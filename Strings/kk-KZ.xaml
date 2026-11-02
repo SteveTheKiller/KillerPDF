@@ -172,10 +172,14 @@
     <sys:String x:Key="Str_Print_Restricted_Prompt">«{0}» басып шығаруды шектейді. Басып шығару үшін иесінің құпиясөзін енгізіңіз.</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">«{0}» тек төмен сапада басып шығаруға рұқсат береді. Толық сапада басып шығару үшін иесінің құпиясөзін енгізіңіз немесе төмен сапада басып шығару үшін бас тартыңыз.</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">Басып шығаруға рұқсат жоқ. Бұл PDF шифрланған сертификат басып шығаруға рұқсат бермейді, бұл шектеуді ешбір құпиясөз алып тастамайды.</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">«{0}» файлында иесі қойған шектеулер бар, ал сақтау оның қорғанысын алып тастайды. Сақтау үшін иесінің құпиясөзін енгізіңіз.</sys:String>
-    <sys:String x:Key="Str_Save_Refused">PDF сақталмады. Сақтау иесі қойған шектеулерді алып тастар еді, оларды тек иесінің құпиясөзі алып тастайды.</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">PDF сақталмады. Сақтау сертификатыңызға қойылған шектеулерді алып тастар еді, оларды ешбір құпиясөз алып тастамайды.</sys:String>
-    <sys:String x:Key="Str_Print_Refused">Басып шығаруға рұқсат жоқ. Бұл PDF иесі басып шығаруды шектеген, шектеуді тек иесінің құпиясөзі алып тастайды.</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">«{0}» файлында иесі қойған шектеулер бар, ал бұл әрекет оны шектеулерсіз жазады. Жалғастыру үшін иесінің құпиясөзін енгізіңіз.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">Ештеңе жазылмады. Нәтижеде осы PDF иесі қойған шектеулер сақталмас еді, сондықтан KillerPDF оны тек иесінің құпиясөзімен жазады.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">Ештеңе жазылмады. Нәтижеде сертификатыңызға қойылған шектеулер сақталмас еді, оларды ешбір құпиясөз алып тастамайды.</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">KillerPDF осы PDF қорғанысын оқи алмады, сондықтан ештеңе сақталмады да, басылмады да. {0} Қайталап көріңіз немесе қойындыны жауып, файлды қайта ашыңыз.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Басып шығаруға рұқсат жоқ. Бұл PDF иесі басып шығаруды шектеген, KillerPDF оны тек иесінің құпиясөзімен басып шығарады.</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">Бұл иесінің құпиясөзі, бірақ «{0}» файлының құлпын ашу мүмкін болмады: {1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">Қорғанысымен сақталды - {0}</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">Аттас өрістердің бәрі мәнді қабылдай алмады, сондықтан енді олар әртүрлі: {0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» өңдеуді шектейді, сондықтан KillerPDF оны ашу үшін иесінің құпиясөзін қажет етеді.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} ашылды (тек оқу - стандартты емес XRef кестесі) - {1} бет</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">{0} ашылды (жөнделген көшірме - өзгерістерді сақтаңыз) - {1} бет</sys:String>
@@ -789,7 +793,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Protect_Password">Ашу құпиясөзі</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">Құпиясөзді растау</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">Рұқсаттар құпиясөзі (міндетті емес)</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">Оны енгізген адам төмендегі шектеулерсіз толық қолжетімділік алады. Бос қалса, шектеулерді кездейсоқ құпиясөз сақтайды.</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">Оны енгізген адам төмендегі шектеулерсіз толық қолжетімділік алады. Бос қалса, шектеулерді кездейсоқ құпиясөз сақтайды және оларды ешкім алып тастай алмайды.</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">Сертификат бойынша алушылар</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">Көшірмені тек осы сертификаттардың иелері аша алады. Қолжетімділікті сақтау үшін өз сертификатыңызды қосыңыз.</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">Қосу</sys:String>

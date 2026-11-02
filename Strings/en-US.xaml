@@ -251,10 +251,14 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” restricts printing. Enter the owner password to print it.</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">“{0}” allows printing only at low quality. Enter the owner password to print at full quality, or cancel to print at low quality.</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">Printing is not allowed. The certificate this PDF is encrypted for does not permit printing, and no password lifts that.</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">“{0}” carries limits set by its owner, and saving removes its protection. Enter the owner password to save it.</sys:String>
-    <sys:String x:Key="Str_Save_Refused">The PDF was not saved. Saving would remove the limits its owner set, and only the owner password lifts those.</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">The PDF was not saved. Saving would remove the limits set for your certificate, and no password lifts those.</sys:String>
-    <sys:String x:Key="Str_Print_Refused">Printing is not allowed. The owner of this PDF has restricted printing, and only the owner password lifts that.</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">“{0}” carries limits set by its owner, and this would write it without them. Enter the owner password to go ahead.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">Nothing was written. The result would not keep the limits the owner of this PDF set, and KillerPDF writes it only with the owner password.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">Nothing was written. The result would not keep the limits set for your certificate, and no password lifts those.</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">KillerPDF could not read the protection of this PDF, so nothing was saved or printed. {0} Try again, or close the tab and open the file again.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Printing is not allowed. The owner of this PDF has restricted printing, and KillerPDF prints it only with the owner password.</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">That is the owner password, but “{0}” could not be unlocked: {1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">Saved {0} with its protection</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">Fields that share a name could not all take the value, so they now differ: {0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” restricts editing, so KillerPDF needs its owner password to open it.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Opened {0} read-only because of a non-standard XRef table ({1} page(s))</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Opened a repaired copy of {0}; save to keep changes ({1} page(s))</sys:String>
@@ -871,7 +875,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Protect_Password">Password to open</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">Confirm password</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">Permissions password (optional)</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">Whoever enters it gets full access, without the restrictions below. Left empty, a random one keeps the restrictions in force.</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">Whoever enters it gets full access, without the restrictions below. Left empty, a random one keeps the restrictions in force, and nobody can take them off.</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">Certificate recipients</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">Only the holders of these certificates can open the copy. Add your own certificate to keep access.</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">Add</sys:String>

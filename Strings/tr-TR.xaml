@@ -232,10 +232,14 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” yazdırmayı kısıtlıyor. Yazdırmak için sahip parolasını girin.</sys:String>
     <sys:String x:Key="Str_Print_LowQuality_Prompt">“{0}” yalnızca düşük kalitede yazdırmaya izin veriyor. Tam kalitede yazdırmak için sahip parolasını girin veya düşük kalitede yazdırmak için iptal edin.</sys:String>
     <sys:String x:Key="Str_Print_Refused_Certificate">Yazdırmaya izin verilmiyor. Bu PDF’nin şifrelendiği sertifika yazdırmaya izin vermiyor ve hiçbir parola bunu kaldırmaz.</sys:String>
-    <sys:String x:Key="Str_Save_Restricted_Prompt">“{0}” sahibinin koyduğu sınırları taşıyor ve kaydetmek korumasını kaldırır. Kaydetmek için sahip parolasını girin.</sys:String>
-    <sys:String x:Key="Str_Save_Refused">PDF kaydedilmedi. Kaydetmek sahibinin koyduğu sınırları kaldırırdı; bunları yalnızca sahip parolası kaldırır.</sys:String>
-    <sys:String x:Key="Str_Save_Refused_Certificate">PDF kaydedilmedi. Kaydetmek sertifikanız için konan sınırları kaldırırdı; bunları hiçbir parola kaldırmaz.</sys:String>
-    <sys:String x:Key="Str_Print_Refused">Yazdırmaya izin verilmiyor. Bu PDF’nin sahibi yazdırmayı kısıtlamış; kısıtlamayı yalnızca sahip parolası kaldırır.</sys:String>
+    <sys:String x:Key="Str_Protection_Prompt">“{0}” sahibinin koyduğu sınırları taşıyor ve bu işlem onu bu sınırlar olmadan yazar. Devam etmek için sahip parolasını girin.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused">Hiçbir şey yazılmadı. Sonuç, bu PDF’nin sahibinin koyduğu sınırları korumazdı; KillerPDF bunu yalnızca sahip parolasıyla yazar.</sys:String>
+    <sys:String x:Key="Str_Protection_Refused_Certificate">Hiçbir şey yazılmadı. Sonuç, sertifikanız için konan sınırları korumazdı; bunları hiçbir parola kaldırmaz.</sys:String>
+    <sys:String x:Key="Str_Protection_Unreadable">KillerPDF bu PDF’nin korumasını okuyamadı, bu yüzden hiçbir şey kaydedilmedi veya yazdırılmadı. {0} Yeniden deneyin ya da sekmeyi kapatıp dosyayı yeniden açın.</sys:String>
+    <sys:String x:Key="Str_Print_Refused">Yazdırmaya izin verilmiyor. Bu PDF’nin sahibi yazdırmayı kısıtlamış; KillerPDF bunu yalnızca sahip parolasıyla yazdırır.</sys:String>
+    <sys:String x:Key="Str_Restricted_UnlockFailed">Bu sahip parolası, ancak “{0}” kilidi açılamadı: {1}</sys:String>
+    <sys:String x:Key="Str_St_SavedProtected">Korumasıyla kaydedildi - {0}</sys:String>
+    <sys:String x:Key="Str_Form_TwinsKept">Aynı adı taşıyan alanların hepsi değeri alamadı, bu yüzden artık farklılar: {0}</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” düzenlemeyi kısıtlıyor, bu yüzden KillerPDF’nin açmak için sahip parolasına ihtiyacı var.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Açıldı {0} (salt okunur - standart dışı XRef tablosu) - {1} sayfa</sys:String>
     <sys:String x:Key="Str_OpenedRepaired">Açıldı {0} (onarılmış kopya - değişiklikleri korumak için kaydedin) - {1} sayfa</sys:String>
@@ -784,7 +788,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Protect_Password">Açma parolası</sys:String>
     <sys:String x:Key="Str_Protect_Confirm">Parolayı onayla</sys:String>
     <sys:String x:Key="Str_Protect_OwnerPassword">İzin parolası (isteğe bağlı)</sys:String>
-    <sys:String x:Key="Str_Protect_OwnerHint">Bunu giren kişi aşağıdaki kısıtlamalar olmadan tam erişim elde eder. Boş bırakılırsa rastgele bir parola kısıtlamaları geçerli tutar.</sys:String>
+    <sys:String x:Key="Str_Protect_OwnerHint">Bunu giren kişi aşağıdaki kısıtlamalar olmadan tam erişim elde eder. Boş bırakılırsa rastgele bir parola kısıtlamaları geçerli tutar ve kimse onları kaldıramaz.</sys:String>
     <sys:String x:Key="Str_Protect_ForRecipients">Sertifika alıcıları</sys:String>
     <sys:String x:Key="Str_Protect_RecipientHint">Kopyayı yalnızca bu sertifikaların sahipleri açabilir. Erişiminizi korumak için kendi sertifikanızı ekleyin.</sys:String>
     <sys:String x:Key="Str_Protect_AddMine">Ekle</sys:String>
