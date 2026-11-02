@@ -170,7 +170,10 @@ internal static class FormFieldEditingSmoke
         string source = Path.Combine(folder, "password-keyboard-source.pdf");
         File.WriteAllBytes(source, Fixture("", password: true));
         Open(owner, source);
-        PasswordBox password = Children(owner).OfType<PasswordBox>().Single(box => Equals(box.ToolTip, "existing.text"));
+        PasswordBox? found = null;
+        Wait(() => (found = Children(owner).OfType<PasswordBox>().SingleOrDefault(box => Equals(box.ToolTip, "existing.text"))) is not null,
+            "password field");
+        PasswordBox password = found!;
         password.Focus(); Pump();
         if (!password.IsFocused) throw new InvalidOperationException("Password fixture did not focus the real form editor.");
 
@@ -299,10 +302,14 @@ internal static class FormFieldEditingSmoke
         finally { timer.Stop(); }
     }
 
+    // The document already open has a sibling field too, and a new tab keeps the old overlays until its
+    // own page renders, so the wait is for a sibling that was not on screen before the open (S2).
     private static void Open(Window owner, string path)
     {
+        var before = Children(owner).OfType<TextBox>().Where(box => Equals(box.ToolTip, "untouched.sibling")).ToHashSet();
         owner.GetType().GetMethod("OpenFromExternal", BindingFlags.Public | BindingFlags.Instance)!.Invoke(owner, [path]);
-        Wait(() => Children(owner).OfType<TextBox>().Any(box => Equals(box.ToolTip, "untouched.sibling")), "form overlays");
+        Wait(() => Children(owner).OfType<TextBox>().Any(box => Equals(box.ToolTip, "untouched.sibling")
+            && box.IsVisible && !before.Contains(box)), "form overlays of the opened file");
     }
     private static void Reopen(Window owner, string path)
     {

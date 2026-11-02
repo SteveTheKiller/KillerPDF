@@ -65,16 +65,21 @@ internal static class DocumentStateSmoke
         if (Dirty(owner)) throw new InvalidOperationException("The starting fixture must be clean.");
 
         Click(owner, "ToolTextBtn");
-        Canvas canvas = Descendants<Canvas>(editingScope).Where(IsPageCanvas)
-            .OrderByDescending(item => item.ActualWidth * item.ActualHeight).First();
-        Point point = canvas.PointToScreen(new Point(canvas.ActualWidth * 0.72, canvas.ActualHeight * 0.72));
-        if (point.X < 0 || point.Y < 0 || point.X >= SystemParameters.PrimaryScreenWidth
-            || point.Y >= SystemParameters.PrimaryScreenHeight)
-            throw new InvalidOperationException("The owned page target is outside the visible desktop.");
-        if (!SetCursorPos((int)point.X, (int)point.Y)) throw new InvalidOperationException("Cannot position the test pointer.");
-        MouseEvent(2, 0, 0, 0, UIntPtr.Zero);
-        MouseEvent(4, 0, 0, 0, UIntPtr.Zero);
-        Wait(() => Keyboard.FocusedElement is TextBox { AcceptsReturn: true }, "active text editor");
+        // S1: the real click lands wherever the foreground window is, and the page settles its size
+        // after the open's fit. The window takes the foreground and keyboard focus again and the page
+        // holds still before the click, and one click that made no editor is tried once more.
+        Canvas canvas = SettledPageCanvas(editingScope);
+        ClickPage(owner, canvas);
+        if (!WaitBriefly(() => Keyboard.FocusedElement is TextBox { AcceptsReturn: true }, TimeSpan.FromSeconds(3))
+            && !Descendants<TextBox>(editingScope).Any(box => box.AcceptsReturn))
+        {
+            Console.WriteLine("CONTROL first page click made no editor; foreground and click retried once.");
+            ClickPage(owner, SettledPageCanvas(editingScope));
+        }
+        Wait(() => Keyboard.FocusedElement is TextBox { AcceptsReturn: true },
+            () => "active text editor (window active " + owner.IsActive + ", keyboard focus within " + owner.IsKeyboardFocusWithin
+                + ", editor made " + Descendants<TextBox>(editingScope).Any(box => box.AcceptsReturn)
+                + ", focused " + (Keyboard.FocusedElement?.GetType().Name ?? "nothing") + ")");
         var editor = (TextBox)Keyboard.FocusedElement;
         editor.Text = Marker;
         editor.CaretIndex = editor.Text.Length;
@@ -1362,15 +1367,60 @@ internal static class DocumentStateSmoke
         KeyEvent(key, 0, 2, UIntPtr.Zero);
         if (modifier != 0) KeyEvent(modifier, 0, 2, UIntPtr.Zero);
     }
-    internal static void Wait(Func<bool> condition, string stage)
+    internal static void Wait(Func<bool> condition, string stage) => Wait(condition, () => stage);
+
+    // The stage is described when the wait runs out, so a timeout says what the window was doing.
+    internal static void Wait(Func<bool> condition, Func<string> stage)
     {
         var watch = Stopwatch.StartNew();
         while (!condition())
         {
             Pump();
-            if (watch.Elapsed > TimeSpan.FromSeconds(15)) throw new TimeoutException("Timed out at " + stage);
+            if (watch.Elapsed > TimeSpan.FromSeconds(15)) throw new TimeoutException("Timed out at " + stage());
             Thread.Sleep(10);
         }
+    }
+
+    private static bool WaitBriefly(Func<bool> condition, TimeSpan limit)
+    {
+        var watch = Stopwatch.StartNew();
+        while (!condition())
+        {
+            Pump();
+            if (watch.Elapsed > limit) return false;
+            Thread.Sleep(10);
+        }
+        return true;
+    }
+
+    // The largest page canvas once its size has held for a few hundred milliseconds.
+    private static Canvas SettledPageCanvas(DependencyObject scope)
+    {
+        Canvas Largest() => Descendants<Canvas>(scope).Where(IsPageCanvas)
+            .OrderByDescending(item => item.ActualWidth * item.ActualHeight).First();
+        Size last = default;
+        var steady = Stopwatch.StartNew();
+        Wait(() =>
+        {
+            Canvas current = Largest();
+            var size = new Size(current.ActualWidth, current.ActualHeight);
+            if (size != last) { last = size; steady.Restart(); }
+            return steady.Elapsed >= TimeSpan.FromMilliseconds(300);
+        }, "settled page size");
+        return Largest();
+    }
+
+    private static void ClickPage(Window owner, Canvas canvas)
+    {
+        owner.Activate();
+        Wait(() => owner.IsActive && owner.IsKeyboardFocusWithin, "window in the foreground with keyboard focus");
+        Point point = canvas.PointToScreen(new Point(canvas.ActualWidth * 0.72, canvas.ActualHeight * 0.72));
+        if (point.X < 0 || point.Y < 0 || point.X >= SystemParameters.PrimaryScreenWidth
+            || point.Y >= SystemParameters.PrimaryScreenHeight)
+            throw new InvalidOperationException("The owned page target is outside the visible desktop.");
+        if (!SetCursorPos((int)point.X, (int)point.Y)) throw new InvalidOperationException("Cannot position the test pointer.");
+        MouseEvent(2, 0, 0, 0, UIntPtr.Zero);
+        MouseEvent(4, 0, 0, 0, UIntPtr.Zero);
     }
     internal static void Pump() => Application.Current.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
     internal static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
