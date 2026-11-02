@@ -319,6 +319,7 @@ namespace KillerPDF
                 });
             }
             contentGrid.Children.Add(root);
+            Controls.DialogScale.Apply(win, contentGrid, OwnerScale(owner));
             win.Content = DialogFrame.WrapContent(owner, contentGrid);
             win.ShowDialog();
             return result;
@@ -519,6 +520,7 @@ namespace KillerPDF
                 });
             }
             contentGrid.Children.Add(root);
+            Controls.DialogScale.Apply(win, contentGrid, OwnerScale(owner));
             win.Content = DialogFrame.WrapContent(owner, contentGrid);
             win.ShowDialog();
             return (choice, closeTabs, remember);
@@ -568,7 +570,7 @@ namespace KillerPDF
             // Enter anywhere in the field submits.
             pw.KeyDown += (_, e) => { if (e.Key == Key.Enter) { result = pw.Password; win.Close(); } };
 
-            win.Content = DialogFrame.Frame(win, owner, "KillerPDF", CloseCancel, body);
+            win.Content = DialogFrame.Frame(win, owner, "KillerPDF", CloseCancel, body, scale: OwnerScale(owner));
             win.Loaded += (_, _2) => pw.Focus();
             win.ShowDialog();
             return result;
@@ -603,7 +605,7 @@ namespace KillerPDF
             cancelBtn.Click += (_, _2) => CloseCancel();
             body.Children.Add(new Border { Padding = new Thickness(16, 12, 16, 16), Child = UiKit.ButtonRow(okBtn, cancelBtn) });
 
-            win.Content = DialogFrame.Frame(win, owner, title, CloseCancel, body);
+            win.Content = DialogFrame.Frame(win, owner, title, CloseCancel, body, scale: OwnerScale(owner));
             win.Loaded += (_, _2) => { box.Focus(); box.SelectAll(); };
             win.ShowDialog();
             return result;
@@ -641,7 +643,7 @@ namespace KillerPDF
             cancelBtn.Click += (_, _2) => CloseCancel();
             body.Children.Add(new Border { Padding = new Thickness(16, 12, 16, 16), Child = UiKit.ButtonRow(okBtn, cancelBtn) });
 
-            win.Content = DialogFrame.Frame(win, owner, title, CloseCancel, body);
+            win.Content = DialogFrame.Frame(win, owner, title, CloseCancel, body, scale: OwnerScale(owner));
             win.Loaded += (_, _2) => box.Focus();
             win.ShowDialog();
             return result;

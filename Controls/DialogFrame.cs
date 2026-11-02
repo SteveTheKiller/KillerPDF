@@ -386,9 +386,11 @@ namespace KillerPDF
         }
 
         // Standard dialog: content is inset from the same five-layer frame used by KillerNotes.
+        // A scale other than 1 draws the framed card at the app's scale, title bar included, and
+        // grows the window with it; the halo around the card keeps its size.
         public static UIElement Frame(
             Window win, Window? owner, string title, Action onClose, UIElement body,
-            Thickness? haloMargin = null)
+            Thickness? haloMargin = null, double scale = 1)
         {
             win.KeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; onClose(); } };
 
@@ -419,6 +421,7 @@ namespace KillerPDF
             card.Child = grid;
             var framedContent = card.Child!;
             card.Child = null;
+            DialogScale.Apply(win, grid, scale);
             return WrapContent(owner, framedContent, haloMargin);
         }
 
