@@ -461,8 +461,8 @@ namespace KillerPDF.Controls
                 SetStatus(Loc("Str_Redact_SourceChanged"));
                 return;
             }
-            var dialog = new RedactionFindDialog(owner, () => SearchService.LoadPagesForReview(snapshot.Bytes),
-                () => PdfEngineIntegration.OpenForReading(snapshot.Bytes),
+            var dialog = new RedactionFindDialog(owner, () => SearchService.LoadPagesForReview(snapshot.Bytes, snapshot.Protection),
+                () => PdfEngineIntegration.OpenForReading(snapshot.Bytes, snapshot.Protection),
                 options => SearchService.FindCurrentRedaction(snapshot, options));
             if (dialog.ShowDialog() != true) return;
             if (!snapshot.SameContent(CaptureCurrentSearchSnapshot()))

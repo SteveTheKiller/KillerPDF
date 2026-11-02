@@ -91,17 +91,11 @@ internal sealed class OpenedProtection
             _encryption ?? throw new InvalidOperationException("This tab holds no encryption."));
 
     /// <summary>Opens the bytes of this tab's file under the encryption it holds, or null when it
-    /// holds none.</summary>
+    /// holds none. This is the only way the key reaches a reader: a signed file that needs a password
+    /// is read where it lies, and every reader of it is handed this tab's protection, so the key
+    /// lasts exactly as long as the tab and opens nothing for another.</summary>
     internal PdfDocument? OpenHeld(ReadOnlyMemory<byte> source) =>
         _encryption is null ? null : PdfDocument.OpenWithEncryption(source, _encryption);
-
-    /// <summary>Lets every reader of this tab's file open it under the key this tab holds, for as long
-    /// as the tab lives. A signed file that needs a password is read that way, because stripping it
-    /// would clear its signatures.</summary>
-    internal void HoldForReading()
-    {
-        if (_encryption is not null) HeldEncryptions.Hold(_encryption);
-    }
 
     /// <summary>Writes a decrypted read-only copy from this tab's file with no password in hand.</summary>
     internal void WriteViewingCopy(string sourcePath, string destinationPath) =>

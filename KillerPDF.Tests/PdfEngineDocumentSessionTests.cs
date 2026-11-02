@@ -17,7 +17,7 @@ public sealed class PdfEngineDocumentSessionTests
         {
             byte[] original = new PdfDocumentBuilder().AddBlankPage(320, 480).Build();
             File.WriteAllBytes(path, original);
-            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path);
+            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path, null);
 
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(612, 792).Build());
 
@@ -42,7 +42,7 @@ public sealed class PdfEngineDocumentSessionTests
             File.WriteAllBytes(path, source);
             PdfEngineIntegration.ApplyPageRotations(path,
                 new Dictionary<int, int> { [0] = 90 });
-            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path);
+            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path, null);
             var rotations = new Dictionary<int, int>();
 
             session.CaptureRotations(rotations);
@@ -62,7 +62,7 @@ public sealed class PdfEngineDocumentSessionTests
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(320, 480).Build());
-            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path);
+            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path, null);
 
             Assert.Equal((320d, 480d), session.VisualPageSize(0));
             Assert.Equal((480d, 320d), session.VisualPageSize(0,
@@ -91,8 +91,8 @@ public sealed class PdfEngineDocumentSessionTests
                         new Dictionary<int, int> { [0] = rotation });
                 }
 
-                PdfEngineDocumentSession portrait = PdfEngineDocumentSession.Open(portraitPath);
-                PdfEngineDocumentSession landscape = PdfEngineDocumentSession.Open(landscapePath);
+                PdfEngineDocumentSession portrait = PdfEngineDocumentSession.Open(portraitPath, null);
+                PdfEngineDocumentSession landscape = PdfEngineDocumentSession.Open(landscapePath, null);
 
                 (double, double) expectedPortrait = rotation is 90 or 270
                     ? (480d, 320d)
@@ -138,7 +138,7 @@ public sealed class PdfEngineDocumentSessionTests
         try
         {
             File.WriteAllBytes(path, ShortTrailerSizePdf());
-            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path);
+            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path, null);
 
             var page = Assert.Single(session.Pages);
             Assert.Equal(200, page.Width);
@@ -188,7 +188,7 @@ public sealed class PdfEngineDocumentSessionTests
                 .AddBlankPage(320, 480)
                 .Build());
 
-            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path);
+            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path, null);
 
             Assert.True(session.Document.IsDecrypted);
             Assert.Equal("Owner restricted", PdfDocumentInformation.Read(session.Document).Title);

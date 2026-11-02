@@ -27,7 +27,9 @@ internal static class Program
         Assembly assembly = Assembly.LoadFrom(app);
         string appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(app)));
         Type type = assembly.GetType("KillerPDF.Services.PdfPageRenderSession", true)!;
-        var open = type.GetMethod("OpenEngineFirst", Flags, [typeof(string), typeof(int), typeof(int)])!;
+        // Builds since 1.9.2 take the protection of the tab whose file it is; a corpus file is no tab's.
+        Type protection = assembly.GetType("KillerPDF.Services.OpenedProtection", true)!;
+        var open = type.GetMethod("OpenEngineFirst", Flags, [typeof(string), typeof(int), typeof(int), protection, typeof(bool)])!;
         var render = type.GetMethod("RenderFittedPage", Flags)!;
         var regionRender = type.GetMethod("RenderFittedRegion", Flags)!;
         var records = new List<object>();
@@ -40,7 +42,7 @@ internal static class Program
             bool fullRendered = false;
             try
             {
-                using var session = (IDisposable)open.Invoke(null, [file, size, size])!;
+                using var session = (IDisposable)open.Invoke(null, [file, size, size, null, false])!;
                 int count = Math.Min(pages, (int)Value(session, "PageCount"));
                 if (count == 0) throw new InvalidOperationException("The document has no renderable pages.");
                 for (int p = 0; p < count; p++)

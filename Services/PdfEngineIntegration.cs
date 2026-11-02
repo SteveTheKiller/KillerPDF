@@ -117,15 +117,35 @@ internal static partial class PdfEngineIntegration
 
     /// <summary>
     /// Opens a user's PDF for reading. An owner-restricted file is decrypted with the empty
-    /// user password, so its strings and streams read as text instead of ciphertext. A file an open
-    /// tab reads under its own key, a signed file that needs a password, opens under that key.
+    /// user password, so its strings and streams read as text instead of ciphertext. A file that
+    /// needs a password stays unread: only the tab that holds its key can read it, through the
+    /// overload that takes that tab's protection.
     /// </summary>
     internal static PdfDocument OpenForReading(ReadOnlyMemory<byte> source)
     {
         PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(source);
         if (!document.IsEncrypted) return document;
         try { return PdfDocument.OpenWithCompatibilityRecovery(source, string.Empty); }
-        catch (Exception error) when (error is not OutOfMemoryException) { return HeldEncryptions.TryOpen(source) ?? document; }
+        catch (Exception error) when (error is not OutOfMemoryException) { return document; }
+    }
+
+    /// <summary>
+    /// Opens the file of a tab for reading. A tab that edits reads a plain working copy, and an
+    /// owner-only file opens with its empty user password, so the key the tab holds is used only for
+    /// bytes still encrypted after that: a signed file that needs a password, read where it lies.
+    /// </summary>
+    internal static PdfDocument OpenForReading(ReadOnlyMemory<byte> source, OpenedProtection? protection)
+    {
+        PdfDocument document = OpenForReading(source);
+        return document.IsEncrypted && !document.IsDecrypted && protection?.OpenHeld(source) is PdfDocument held
+            ? held : document;
+    }
+
+    /// <summary>Reads a tab's file from disk under the tab's protection.</summary>
+    internal static PdfDocument OpenTabFile(string path, OpenedProtection? protection)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return OpenForReading(File.ReadAllBytes(path), protection);
     }
 
     /// <summary>
@@ -175,18 +195,15 @@ internal static partial class PdfEngineIntegration
     }
 
     /// <summary>Reads the complete bookmark hierarchy for the desktop sidebar.</summary>
-    internal static IReadOnlyList<PdfBookmarkInfo> ReadBookmarks(byte[] source)
+    internal static IReadOnlyList<PdfBookmarkInfo> ReadBookmarks(byte[] source, OpenedProtection? protection)
     {
         ArgumentNullException.ThrowIfNull(source);
-        return PdfBookmarkReader.Read(OpenForReading(source));
+        return PdfBookmarkReader.Read(OpenForReading(source, protection));
     }
 
     /// <summary>Reads native links from one page for viewer hit testing.</summary>
-    internal static IReadOnlyList<PdfLinkInfo> ReadPageLinks(string path, int pageIndex)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfLinkReader.ReadPage(OpenForReading(File.ReadAllBytes(path)), pageIndex);
-    }
+    internal static IReadOnlyList<PdfLinkInfo> ReadPageLinks(string path, int pageIndex, OpenedProtection? protection) =>
+        PdfLinkReader.ReadPage(OpenTabFile(path, protection), pageIndex);
 
     /// <summary>Reads native links from an already parsed engine document.</summary>
     internal static IReadOnlyList<PdfLinkInfo> ReadPageLinks(PdfDocument document, int pageIndex)
@@ -206,17 +223,13 @@ internal static partial class PdfEngineIntegration
     }
 
     internal static IReadOnlyList<PdfFormWidgetInfo> ReadPageFormWidgets(
-        string path, int pageIndex)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return ReadPageFormWidgets(OpenForReading(File.ReadAllBytes(path)), pageIndex);
-    }
+        string path, int pageIndex, OpenedProtection? protection) =>
+        ReadPageFormWidgets(OpenTabFile(path, protection), pageIndex);
 
     internal static IReadOnlyList<IReadOnlyList<PdfFormWidgetInfo>> ReadAllPageFormWidgets(
-        string path)
+        string path, OpenedProtection? protection)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        PdfDocument document = OpenForReading(File.ReadAllBytes(path));
+        PdfDocument document = OpenTabFile(path, protection);
         int pageCount = PdfPageInformation.Read(document).Count;
         return
         [
@@ -226,11 +239,8 @@ internal static partial class PdfEngineIntegration
     }
 
     /// <summary>Inspects page boxes, colorants, and output intents for print workflows.</summary>
-    internal static PdfPrintProductionReport InspectPrintProduction(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfPrintProductionReport.Inspect(OpenForReading(File.ReadAllBytes(path)));
-    }
+    internal static PdfPrintProductionReport InspectPrintProduction(string path, OpenedProtection? protection) =>
+        PdfPrintProductionReport.Inspect(OpenTabFile(path, protection));
 
     /// <summary>Runs the complete built-in print-production preflight profile.</summary>
     internal static PdfPreflightReport InspectPreflight(string path)
@@ -248,26 +258,17 @@ internal static partial class PdfEngineIntegration
     }
 
     /// <summary>Inspects implemented accessibility requirements and document structure.</summary>
-    internal static PdfAccessibilityReport InspectAccessibility(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfAccessibilityInspector.Inspect(OpenForReading(File.ReadAllBytes(path)));
-    }
+    internal static PdfAccessibilityReport InspectAccessibility(string path, OpenedProtection? protection) =>
+        PdfAccessibilityInspector.Inspect(OpenTabFile(path, protection));
 
     /// <summary>Checks signature integrity, Windows and application certificate trust,
     /// and later document changes without downloading certificates.</summary>
-    internal static PdfSignatureInspectionReport InspectSignatures(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return new Signing.CertificateCatalog().Inspect(OpenForReading(File.ReadAllBytes(path)));
-    }
+    internal static PdfSignatureInspectionReport InspectSignatures(string path, OpenedProtection? protection) =>
+        new Signing.CertificateCatalog().Inspect(OpenTabFile(path, protection));
 
     /// <summary>Reads the document's optional-content layer definitions and state.</summary>
-    internal static PdfOptionalContentInfo InspectLayers(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfOptionalContentReader.Read(OpenForReading(File.ReadAllBytes(path)));
-    }
+    internal static PdfOptionalContentInfo InspectLayers(string path, OpenedProtection? protection) =>
+        PdfOptionalContentReader.Read(OpenTabFile(path, protection));
 
     /// <summary>Applies reviewed layer names, saved visibility, and lock state.</summary>
     internal static void ApplyLayerEdits(string path, IReadOnlyList<LayerEdit> edits)
@@ -306,16 +307,12 @@ internal static partial class PdfEngineIntegration
     }
 
     /// <summary>Formats portfolio metadata without loading embedded-file payloads.</summary>
-    internal static string InspectPortfolio(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfCollectionReader.ToText(OpenForReading(File.ReadAllBytes(path)));
-    }
+    internal static string InspectPortfolio(string path, OpenedProtection? protection) =>
+        PdfCollectionReader.ToText(OpenTabFile(path, protection));
 
-    internal static PortfolioEditorState ReadPortfolioEditorState(string path)
+    internal static PortfolioEditorState ReadPortfolioEditorState(string path, OpenedProtection? protection)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        PdfDocument document = OpenForReading(File.ReadAllBytes(path));
+        PdfDocument document = OpenTabFile(path, protection);
         return new PortfolioEditorState(
             PdfCollectionReader.Read(document),
             [.. PdfAttachmentReader.Read(document)
@@ -363,17 +360,10 @@ internal static partial class PdfEngineIntegration
     }
 
     /// <summary>Lists a tab's attachments: a limit on saving them never hides them.</summary>
-    internal static IReadOnlyList<PdfAttachmentInfo> ReadAttachments(string path, OpenedProtection? protection = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        byte[] source = File.ReadAllBytes(path);
-        PdfDocument document = OpenForReading(source);
-        // A tab that can edit reads a plain working copy, and only a file still encrypted needs the key.
-        if (document.IsEncrypted && !document.IsDecrypted) document = protection?.OpenHeld(source) ?? document;
-        return PdfAttachmentReader.Read(document);
-    }
+    internal static IReadOnlyList<PdfAttachmentInfo> ReadAttachments(string path, OpenedProtection? protection) =>
+        PdfAttachmentReader.Read(OpenTabFile(path, protection));
 
-    internal static IReadOnlyList<AttachmentEditorItem> ReadAttachmentEditorItems(string path, OpenedProtection? protection = null)
+    internal static IReadOnlyList<AttachmentEditorItem> ReadAttachmentEditorItems(string path, OpenedProtection? protection)
     {
         return [.. ReadAttachments(path, protection)
             .Select(attachment => new AttachmentEditorItem(
@@ -488,17 +478,11 @@ internal static partial class PdfEngineIntegration
             : throw new InvalidOperationException("The attachment list changed before it was saved.");
     }
 
-    internal static IReadOnlyList<PdfNavigationFinding> InspectNavigation(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfNavigationAudit.Inspect(PdfDocument.Open(File.ReadAllBytes(path)));
-    }
+    internal static IReadOnlyList<PdfNavigationFinding> InspectNavigation(string path, OpenedProtection? protection) =>
+        PdfNavigationAudit.Inspect(OpenTabFile(path, protection));
 
-    internal static string FormatNavigationAudit(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfNavigationAudit.ExportText(PdfDocument.Open(File.ReadAllBytes(path)));
-    }
+    internal static string FormatNavigationAudit(string path, OpenedProtection? protection) =>
+        PdfNavigationAudit.ExportText(OpenTabFile(path, protection));
 
     internal static void RepairNavigationLinks(
         string path, bool removeUnsafeLinks, bool removeUnresolvedLinks)
@@ -521,19 +505,16 @@ internal static partial class PdfEngineIntegration
     }
 
     internal static IReadOnlyList<PdfBookmarkProposal> DetectBookmarkHeadings(
-        string path, PdfBookmarkDetectionOptions options)
+        string path, PdfBookmarkDetectionOptions options, OpenedProtection? protection)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(options);
-        return PdfBookmarkGeneration.DetectHeadings(
-            PdfDocument.Open(File.ReadAllBytes(path)), options);
+        return PdfBookmarkGeneration.DetectHeadings(OpenTabFile(path, protection), options);
     }
 
     /// <summary>Whether any page has extractable text; a scan without OCR has none.</summary>
-    internal static bool HasTextLayer(string path)
+    internal static bool HasTextLayer(string path, OpenedProtection? protection)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        var reader = new PdfPageContentReader(PdfDocument.Open(File.ReadAllBytes(path)));
+        var reader = new PdfPageContentReader(OpenTabFile(path, protection));
         for (int page = 0; page < reader.PageCount; page++)
             if (reader.Read(page).Letters.Count > 0) return true;
         return false;
@@ -560,22 +541,15 @@ internal static partial class PdfEngineIntegration
     }
 
     /// <summary>Compares interpreted content, resources, and page geometry.</summary>
-    internal static PdfStructuralComparison CompareStructure(string originalPath, string changedPath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(originalPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(changedPath);
-        return PdfStructuralComparison.Compare(
-            PdfDocument.Open(File.ReadAllBytes(originalPath)),
-            PdfDocument.Open(File.ReadAllBytes(changedPath)));
-    }
+    /// <summary>Each side is read under the protection of the tab it came from.</summary>
+    internal static PdfStructuralComparison CompareStructure(string originalPath, OpenedProtection? originalProtection,
+        string changedPath, OpenedProtection? changedProtection) =>
+        PdfStructuralComparison.Compare(
+            OpenTabFile(originalPath, originalProtection), OpenTabFile(changedPath, changedProtection));
 
     /// <summary>Plans a clickable table of contents from the current bookmark hierarchy.</summary>
-    internal static PdfTableOfContentsPlan PlanTableOfContents(string path, int maximumDepth)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfTableOfContentsPlanner.Plan(
-            PdfDocument.Open(File.ReadAllBytes(path)), maximumDepth);
-    }
+    internal static PdfTableOfContentsPlan PlanTableOfContents(string path, int maximumDepth, OpenedProtection? protection) =>
+        PdfTableOfContentsPlanner.Plan(OpenTabFile(path, protection), maximumDepth);
 
     /// <summary>Inserts clickable table-of-contents pages at the start of a document.</summary>
     internal static PdfTableOfContentsWriteResult InsertTableOfContents(
@@ -595,19 +569,12 @@ internal static partial class PdfEngineIntegration
 
     /// <summary>Builds a validated separation selection for the requested pages.</summary>
     internal static PdfSeparationPreview CreateSeparationPreview(
-        string path, IEnumerable<string> plateNames, IEnumerable<int>? pageIndexes = null)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfSeparationPreview.Create(
-            PdfDocument.Open(File.ReadAllBytes(path)), plateNames, pageIndexes);
-    }
+        string path, IEnumerable<string> plateNames, OpenedProtection? protection, IEnumerable<int>? pageIndexes = null) =>
+        PdfSeparationPreview.Create(OpenTabFile(path, protection), plateNames, pageIndexes);
 
     /// <summary>Reads review comments and their reply relationships for the desktop.</summary>
-    internal static IReadOnlyList<PdfCommentThread> ReadCommentThreads(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return PdfCommentReader.ReadThreads(PdfDocument.Open(File.ReadAllBytes(path)));
-    }
+    internal static IReadOnlyList<PdfCommentThread> ReadCommentThreads(string path, OpenedProtection? protection) =>
+        PdfCommentReader.ReadThreads(OpenTabFile(path, protection));
 
     /// <summary>Changes the text of a comment selected from the current document.</summary>
     internal static void SetCommentContents(string path, PdfCommentInfo comment, string contents)
@@ -734,7 +701,7 @@ internal static partial class PdfEngineIntegration
         PdfPageInformation page = PdfPageInformation.Read(PdfDocument.Open(File.ReadAllBytes(path)))[pageIndex];
         byte[] pixels;
         int width, height;
-        using (PdfPageRenderSession session = PdfPageRenderSession.OpenEngineFirst(path, dpi / 72.0))
+        using (PdfPageRenderSession session = PdfPageRenderSession.OpenEngineFirst(path, dpi / 72.0, null))
         {
             PdfRenderedPage rendered = session.RenderBasePage(pageIndex, cancellationToken);
             (pixels, width, height) = (rendered.Pixels, rendered.Width, rendered.Height);
@@ -993,7 +960,7 @@ internal static partial class PdfEngineIntegration
     /// </summary>
     /// <returns>The fields that share a name with one that took the value and kept their own.</returns>
     internal static IReadOnlyCollection<string> FillRestrictedForm(string sourcePath, string destinationPath, FormEdits edits,
-        OpenedProtection? protection = null)
+        OpenedProtection? protection)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
@@ -1001,7 +968,7 @@ internal static partial class PdfEngineIntegration
         byte[] source = File.ReadAllBytes(sourcePath);
         IReadOnlyCollection<string> kept = [];
         byte[] filled = HasFormValues(edits)
-            ? BuildFormValues(protection?.OpenHeld(source) ?? OpenForReading(source), edits, out kept) : source;
+            ? BuildFormValues(OpenForReading(source, protection), edits, out kept) : source;
         AtomicFileOutput.Write(destinationPath, filled);
         return kept;
     }

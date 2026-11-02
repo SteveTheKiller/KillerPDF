@@ -16,7 +16,7 @@ public sealed class ExtractionIntegrationTests
             var search = SearchService.Search(path, "Conventional");
             Assert.Equal(1, search.TotalHits);
             var hit = Assert.Single(search.PageRects[0]);
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Equal(2, runs.Lines.Count);
             var first = runs.Lines[0];
             Assert.Equal(hit.Left, first.Left, 5);
@@ -33,7 +33,7 @@ public sealed class ExtractionIntegrationTests
     [Fact]
     public void CachedExtractionKeepsRawAndVisualFontSizesDistinct()
     {
-        using var document = PdfContentDocument.Open(PdfTextSizeTests.BuildPdf());
+        using var document = PdfContentDocument.Open(PdfTextSizeTests.BuildPdf(), null);
         var page = document.GetPage(1);
         Assert.Same(page, document.GetPage(1));
         var scaled = page.Words.Single(w => w.Text == "Scaled").Letters[0];

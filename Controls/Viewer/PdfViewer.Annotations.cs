@@ -2881,7 +2881,7 @@ namespace KillerPDF.Controls
                 PdfWorkingDocument replacement;
                 try
                 {
-                    replacement = PdfWorkingDocument.Open(tempPath);
+                    replacement = PdfWorkingDocument.Open(tempPath, null);
                 }
                 catch (Exception undoOpenEx) when (PdfImport.IsXRefException(undoOpenEx))
                 {
@@ -2890,7 +2890,7 @@ namespace KillerPDF.Controls
                         && !PdfEngineIntegration.TryCreateZeroRotationCopy(tempPath, fixedPath))
                         throw;
                     tempPath = fixedPath;
-                    replacement = PdfWorkingDocument.Open(tempPath);
+                    replacement = PdfWorkingDocument.Open(tempPath, null);
                 }
                 CloseEngineDocumentSession();
                 _secondaryRenderCts?.Cancel();

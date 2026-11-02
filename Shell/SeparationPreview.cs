@@ -16,20 +16,21 @@ namespace KillerPDF.Shell
             }
             CommitActiveTextBox();
             string file = _currentFile;
-            void Report() => ShowDocumentReport(Loc("Str_DocumentTools_Separations"), path =>
+            OpenedProtection protection = _protection;
+            void Report() => ShowDocumentReport(Loc("Str_DocumentTools_Separations"), (path, reportProtection) =>
             {
-                var production = PdfEngineIntegration.InspectPrintProduction(path);
+                var production = PdfEngineIntegration.InspectPrintProduction(path, reportProtection);
                 return PdfEngineIntegration.CreateSeparationPreview(path,
-                    production.Colorants.Select(colorant => colorant.Name)).ToText();
+                    production.Colorants.Select(colorant => colorant.Name), reportProtection).ToText();
             });
             try
             {
-                var production = PdfEngineIntegration.InspectPrintProduction(file);
+                var production = PdfEngineIntegration.InspectPrintProduction(file, protection);
                 var selection = PdfEngineIntegration.CreateSeparationPreview(file,
-                    production.Colorants.Select(colorant => colorant.Name));
+                    production.Colorants.Select(colorant => colorant.Name), protection);
                 SeparationPreviewDialog.Plate[] plates = [.. selection.Plates.Select(plate =>
                     new SeparationPreviewDialog.Plate(plate.Name, plate.PageIndexes.ToHashSet()))];
-                new SeparationPreviewDialog(this, file, _doc.PageCount, _currentPage, plates, Report).ShowDialog();
+                new SeparationPreviewDialog(this, file, protection, _doc.PageCount, _currentPage, plates, Report).ShowDialog();
             }
             catch (Exception ex)
             {

@@ -23,7 +23,8 @@ internal static class PageArrangementService
     internal static Dictionary<int, int?> UprightFromText(string file, IReadOnlyList<int> pages, CancellationToken ct)
     {
         var result = new Dictionary<int, int?>();
-        using var content = PdfContentDocument.Open(file);
+        // Turning and straightening edit the document, so the file is a plain working copy.
+        using var content = PdfContentDocument.Open(file, null);
         foreach (int page in pages)
         {
             ct.ThrowIfCancellationRequested();
@@ -96,7 +97,7 @@ internal static class PageArrangementService
         byte[] bytes = File.ReadAllBytes(file);
         IReadOnlyList<bool> scanned = PdfScanTextAnalyzer.ReadScannedPages(
             PdfDocument.Open(bytes, string.Empty), ct);
-        using var content = PdfContentDocument.Open(bytes);
+        using var content = PdfContentDocument.Open(bytes, null);
         var scans = new List<int>();
         int withText = 0;
         foreach (int page in pages)

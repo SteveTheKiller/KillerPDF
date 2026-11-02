@@ -56,7 +56,7 @@ namespace KillerPDF.Tests
 
         static (double FontSize, double PointSize) FirstLetterOf(string word)
         {
-            using var doc = PdfDocument.Open(BuildPdf());
+            using var doc = PdfDocument.Open(BuildPdf(), null);
             var letter = doc.GetPage(1).GetWords().Single(w => w.Text == word).Letters[0];
             return (letter.FontSize, letter.PointSize);
         }

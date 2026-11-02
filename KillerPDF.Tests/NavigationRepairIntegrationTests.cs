@@ -19,17 +19,17 @@ public sealed class NavigationRepairIntegrationTests
         try
         {
             File.WriteAllBytes(path, DocumentWithUnsafeAndUnresolvedLinks());
-            Assert.Equal(2, PdfEngineIntegration.InspectNavigation(path).Count);
+            Assert.Equal(2, PdfEngineIntegration.InspectNavigation(path, null).Count);
 
             PdfEngineIntegration.RepairNavigationLinks(
                 path, removeUnsafeLinks: true, removeUnresolvedLinks: false);
             PdfNavigationFinding remaining = Assert.Single(
-                PdfEngineIntegration.InspectNavigation(path));
+                PdfEngineIntegration.InspectNavigation(path, null));
             Assert.Equal(PdfNavigationFindingCode.LinkUnresolvedDestination, remaining.Code);
 
             PdfEngineIntegration.RepairNavigationLinks(
                 path, removeUnsafeLinks: false, removeUnresolvedLinks: true);
-            Assert.Empty(PdfEngineIntegration.InspectNavigation(path));
+            Assert.Empty(PdfEngineIntegration.InspectNavigation(path, null));
             Assert.Empty(PdfLinkReader.ReadPage(
                 PdfDocument.Open(File.ReadAllBytes(path)), 0));
         }

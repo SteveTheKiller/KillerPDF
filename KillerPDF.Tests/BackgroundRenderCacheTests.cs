@@ -18,9 +18,9 @@ public sealed class BackgroundRenderCacheTests
         try
         {
             File.WriteAllBytes(path, Document(100, 200));
-            using var baseline = PdfPageRenderSession.OpenEngineFirst(path, 128, 128);
+            using var baseline = PdfPageRenderSession.OpenEngineFirst(path, 128, 128, null);
             byte[] expected = baseline.RenderPage(0, includeFormFields: false).Pixels;
-            var request = cache.Capture(path, 0);
+            var request = cache.Capture(path, 0, null);
             int acquired = 0;
             workers = Enumerable.Range(0, 2).Select(_ => Task.Run(async () =>
             {
@@ -32,7 +32,7 @@ public sealed class BackgroundRenderCacheTests
             await ready.Task.WaitAsync(TimeSpan.FromSeconds(10));
             cache.Clear();
             File.WriteAllBytes(path, Document(200, 100));
-            var current = cache.Capture(path, 1);
+            var current = cache.Capture(path, 1, null);
             using (var replacement = current.Rent())
                 Assert.Equal(128, replacement.Render(0, 128, 128).Width);
             release.TrySetResult();
@@ -57,7 +57,7 @@ public sealed class BackgroundRenderCacheTests
     {
         WithFile((path, cache) =>
         {
-            var request = cache.Capture(path, 0);
+            var request = cache.Capture(path, 0, null);
             using var first = request.Rent();
             var expected = first.Render(0, 128, 256);
             File.Delete(path);
@@ -76,12 +76,12 @@ public sealed class BackgroundRenderCacheTests
     {
         WithFile((path, cache) =>
         {
-            var oldRequest = cache.Capture(path, 0);
+            var oldRequest = cache.Capture(path, 0, null);
             using var old = oldRequest.Rent();
             Assert.Equal(64, old.Render(0, 128, 128).Width);
             File.WriteAllBytes(path, Document(200, 100));
             if (clear) cache.Clear();
-            var current = cache.Capture(path, clear ? 0 : 1);
+            var current = cache.Capture(path, clear ? 0 : 1, null);
             old.Dispose();
             using var replacement = current.Rent();
             Assert.Equal(128, replacement.Render(0, 128, 128).Width);
@@ -93,8 +93,8 @@ public sealed class BackgroundRenderCacheTests
     {
         WithFile((path, cache) =>
         {
-            var oldRequest = cache.Capture(path, 0);
-            var current = cache.Capture(path, 1);
+            var oldRequest = cache.Capture(path, 0, null);
+            var current = cache.Capture(path, 1, null);
             using (var prepared = current.Rent()) prepared.Render(0, 128, 128);
             File.WriteAllBytes(path, Document(200, 100));
             using (var late = oldRequest.Rent())
@@ -110,7 +110,7 @@ public sealed class BackgroundRenderCacheTests
     {
         WithFile((path, cache) =>
         {
-            var request = cache.Capture(path, 0);
+            var request = cache.Capture(path, 0, null);
             using var first = request.Rent();
             File.WriteAllBytes(path, Document(200, 100));
             using var second = request.Rent();
@@ -128,7 +128,7 @@ public sealed class BackgroundRenderCacheTests
     {
         WithFile((path, cache) =>
         {
-            var request = cache.Capture(path, 0);
+            var request = cache.Capture(path, 0, null);
             using (var prepared = request.Rent()) prepared.Render(0, 128, 128);
             File.Delete(path);
             var canceled = new CancellationToken(true);

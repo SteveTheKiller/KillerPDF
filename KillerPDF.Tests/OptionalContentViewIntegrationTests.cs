@@ -14,7 +14,7 @@ public sealed class OptionalContentViewIntegrationTests
     {
         WithViewDocument(path =>
         {
-            PdfOptionalContentInfo layers = PdfEngineIntegration.InspectLayers(path);
+            PdfOptionalContentInfo layers = PdfEngineIntegration.InspectLayers(path, null);
 
             AssertRawVisibility(layers, leftVisible: false, rightVisible: true);
             AssertViewVisibility(layers, leftVisible: true, rightVisible: false);
@@ -27,7 +27,7 @@ public sealed class OptionalContentViewIntegrationTests
     {
         WithViewDocument(path =>
         {
-            PdfOptionalContentInfo original = PdfEngineIntegration.InspectLayers(path);
+            PdfOptionalContentInfo original = PdfEngineIntegration.InspectLayers(path, null);
             int left = original.Groups.Single(group => group.Name == "Left").ObjectNumber;
             int right = original.Groups.Single(group => group.Name == "Right").ObjectNumber;
 
@@ -37,7 +37,7 @@ public sealed class OptionalContentViewIntegrationTests
                 new(right, "Right", false, false)
             ]);
 
-            PdfOptionalContentInfo saved = PdfEngineIntegration.InspectLayers(path);
+            PdfOptionalContentInfo saved = PdfEngineIntegration.InspectLayers(path, null);
             Assert.Equal("Reviewed Left", saved.Groups.Single(group => group.ObjectNumber == left).Name);
             Assert.True(saved.Groups.Single(group => group.ObjectNumber == left).IsLocked);
             AssertRawVisibility(saved, leftVisible: false, rightVisible: true);
@@ -51,7 +51,7 @@ public sealed class OptionalContentViewIntegrationTests
     {
         WithViewDocument(path =>
         {
-            PdfOptionalContentInfo original = PdfEngineIntegration.InspectLayers(path);
+            PdfOptionalContentInfo original = PdfEngineIntegration.InspectLayers(path, null);
             int left = original.Groups.Single(group => group.Name == "Left").ObjectNumber;
             int right = original.Groups.Single(group => group.Name == "Right").ObjectNumber;
 
@@ -61,7 +61,7 @@ public sealed class OptionalContentViewIntegrationTests
                 new(right, "Right", true, false)
             ]);
 
-            PdfOptionalContentInfo visible = PdfEngineIntegration.InspectLayers(path);
+            PdfOptionalContentInfo visible = PdfEngineIntegration.InspectLayers(path, null);
             AssertRawVisibility(visible, leftVisible: false, rightVisible: true);
             AssertViewVisibility(visible, leftVisible: true, rightVisible: true);
             AssertRenderedCells(path, leftVisible: true, rightVisible: true);
@@ -72,7 +72,7 @@ public sealed class OptionalContentViewIntegrationTests
                 new(right, "Right", false, false)
             ]);
 
-            PdfOptionalContentInfo hidden = PdfEngineIntegration.InspectLayers(path);
+            PdfOptionalContentInfo hidden = PdfEngineIntegration.InspectLayers(path, null);
             AssertRawVisibility(hidden, leftVisible: false, rightVisible: false);
             AssertViewVisibility(hidden, leftVisible: true, rightVisible: false);
             AssertRenderedCells(path, leftVisible: true, rightVisible: false);

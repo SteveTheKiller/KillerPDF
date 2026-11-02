@@ -250,7 +250,7 @@ namespace KillerPDF.Controls
             {
                 var (renderW, renderH) = renderDimensions;
 
-                using var contentDoc = ContentDoc.Open(_currentFile);
+                using var contentDoc = ContentDoc.Open(_currentFile, _protection);
                 if (pageIdx >= contentDoc.NumberOfPages) return;
                 var page = contentDoc.GetPage(pageIdx + 1);
 

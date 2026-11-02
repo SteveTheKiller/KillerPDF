@@ -45,6 +45,7 @@ namespace KillerPDF.Features
 
             // Capture everything off the live UI state before going async.
             string file = _host.CurrentFile!;
+            OpenedProtection protection = _host.CurrentProtection;
             int[] rotations = [.. pages.Select(_host.RotationFor)];
             string lang = _host.OcrLanguageString;
             bool formAware = _host.FormAwareOcr;
@@ -55,7 +56,7 @@ namespace KillerPDF.Features
                 List<PdfOcrResult> results = await Task.Run(() =>
                 {
                     using var renderSession = PdfPageRenderSession.OpenEngineFirst(
-                        file, OcrRenderMax, OcrRenderMax);
+                        file, OcrRenderMax, OcrRenderMax, protection);
                     using var ocr = new OcrService(language: lang);   // engine is not thread-safe: one per operation
                     var recognized = new List<PdfOcrResult>(pages.Length);
                     for (int i = 0; i < pages.Length; i++)
@@ -80,7 +81,7 @@ namespace KillerPDF.Features
                         recognized.Add(!formAware
                             ? ocr.RecognizeBgra(bgra, w, h, cancellationToken: ct)
                             : PdfOcrFormRecognizer.Recognize(ocr.RecognizeBgra,
-                                bgra, w, h, ReadFormHints(file, pages[i]), rot, ct));
+                                bgra, w, h, ReadFormHints(file, pages[i], protection), rot, ct));
                     }
                     return recognized;
                 });
@@ -135,6 +136,7 @@ namespace KillerPDF.Features
             if (!await _host.EnsureOcrModelsReadyAsync() || !isSourceCurrent()) return;
 
             string file = _host.CurrentFile!;
+            OpenedProtection protection = _host.CurrentProtection;
             int rot = _host.RotationFor(pageIdx);
             string lang = _host.OcrLanguageString;
             Rect cb = canvasBounds;
@@ -145,7 +147,7 @@ namespace KillerPDF.Features
                 PdfOcrResult result = await Task.Run(() =>
                 {
                     using var renderSession = PdfPageRenderSession.OpenEngineFirst(
-                        file, OcrRenderMax, OcrRenderMax);
+                        file, OcrRenderMax, OcrRenderMax, protection);
                     PdfRenderedPage page = renderSession.RenderBasePage(pageIdx, ct);
                     int w = page.Width;
                     int h = page.Height;
@@ -278,8 +280,9 @@ namespace KillerPDF.Features
             Action<int, int> report, string language, bool formAware,
             CancellationToken ct)
         {
+            // The source is a plain saved copy, here and from the command line.
             using var renderSession = PdfPageRenderSession.OpenEngineFirst(
-                src, OcrRenderMax, OcrRenderMax);
+                src, OcrRenderMax, OcrRenderMax, null);
             using var ocr = new OcrService(language: language);   // one engine reused across the whole document (single-threaded here)
             int pages = PdfEngineIntegration.ReadPageInformation(src).Count;
             IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> formPages =
@@ -434,7 +437,7 @@ namespace KillerPDF.Features
             if (!scanned.Contains(true)) return new ScanTextSummary(0, 0, 0);
             IReadOnlyList<bool> bitonal = PdfEngineIntegration.ReadBitonalPages(src);
             IReadOnlyList<(int Width, int Height)?> scanSizes = PdfEngineIntegration.ReadScanSizes(src);
-            using var renderSession = PdfPageRenderSession.OpenEngineFirst(src, OcrRenderMax, OcrRenderMax);
+            using var renderSession = PdfPageRenderSession.OpenEngineFirst(src, OcrRenderMax, OcrRenderMax, null);
             using var ocr = new OcrService(language: language);
             IReadOnlyList<PdfScanTextFace> faces = PdfEngineIntegration.ScanTextFaces();
             HashSet<string> bundled = [.. PdfScanTextWriter.BundledFaces().Select(item => item.Family)];
@@ -547,7 +550,7 @@ namespace KillerPDF.Features
                 PdfImage paper = PdfImage.FromGray(1, 1, new byte[] { 255 });
                 PdfEngineIntegration.WriteScanText(src, preview,
                     [.. measured.Select(item => new PdfScanTextPage(item.PageIndex, item.Analysis, paper, item.Face))]);
-                using var session = PdfPageRenderSession.OpenEngineFirst(preview, OcrRenderMax, OcrRenderMax);
+                using var session = PdfPageRenderSession.OpenEngineFirst(preview, OcrRenderMax, OcrRenderMax, null);
                 foreach (var group in words.GroupBy(word => word.PageIndex))
                 {
                     ct.ThrowIfCancellationRequested();
@@ -685,7 +688,7 @@ namespace KillerPDF.Features
         {
             var pageTexts = new List<string>(pageCount);
             using var renderSession = PdfPageRenderSession.OpenEngineFirst(
-                src, OcrRenderMax, OcrRenderMax);
+                src, OcrRenderMax, OcrRenderMax, null);
             using var ocr = new OcrService(language: language);
             IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> formPages =
                 formAware ? ReadAllFormHints(src, pageCount) :
@@ -722,16 +725,16 @@ namespace KillerPDF.Features
         }
 
         private static IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo> ReadFormHints(
-            string path, int pageIndex)
+            string path, int pageIndex, OpenedProtection? protection)
         {
-            try { return PdfEngineIntegration.ReadPageFormWidgets(path, pageIndex); }
+            try { return PdfEngineIntegration.ReadPageFormWidgets(path, pageIndex, protection); }
             catch { return []; }
         }
 
         private static IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> ReadAllFormHints(
             string path, int pageCount)
         {
-            try { return PdfEngineIntegration.ReadAllPageFormWidgets(path); }
+            try { return PdfEngineIntegration.ReadAllPageFormWidgets(path, null); }   // a plain saved copy
             catch
             {
                 return

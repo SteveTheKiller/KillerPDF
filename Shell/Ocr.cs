@@ -369,6 +369,7 @@ namespace KillerPDF.Shell
         bool IOcrHost.HasDocument => _doc is not null && _currentFile is not null;
         int IOcrHost.PageCount => _doc?.PageCount ?? 0;
         string? IOcrHost.CurrentFile => _currentFile;
+        OpenedProtection IOcrHost.CurrentProtection => _protection;
         string? IOcrHost.OriginalFile => _originalFile;
         int IOcrHost.RotationFor(int pageIdx) => _pageRotations.TryGetValue(pageIdx, out var r) ? r : 0;
 

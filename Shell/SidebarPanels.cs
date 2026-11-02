@@ -246,7 +246,7 @@ namespace KillerPDF.Shell
                 CommitActiveTextBox();
                 byte[] bytes = File.ReadAllBytes(picker.FileName);
                 string name = Path.GetFileName(picker.FileName);
-                if (PdfEngineIntegration.ReadAttachmentEditorItems(_currentFile!).Any(item =>
+                if (PdfEngineIntegration.ReadAttachmentEditorItems(_currentFile!, _protection).Any(item =>
                     string.Equals(item.FileName, name, StringComparison.OrdinalIgnoreCase)))
                     throw new InvalidOperationException(Loc("Str_Attachment_Invalid"));
                 UndoEntry? undo = CaptureDocumentUndo();
@@ -264,7 +264,7 @@ namespace KillerPDF.Shell
         }
 
         private void ShowSignaturesReport() => ShowDocumentReport(Loc("Str_DocumentTools_Signatures"),
-            path => PdfEngineIntegration.InspectSignatures(path).ToText());
+            (path, protection) => PdfEngineIntegration.InspectSignatures(path, protection).ToText());
 
         // ── Refresh ─────────────────────────────────────────────────────────────────────────
 
@@ -303,10 +303,10 @@ namespace KillerPDF.Shell
             {
                 data = await Task.Run<object?>(() => panel switch
                 {
-                    SidebarPanel.Comments => PdfEngineIntegration.ReadCommentThreads(path),
+                    SidebarPanel.Comments => PdfEngineIntegration.ReadCommentThreads(path, protection),
                     SidebarPanel.Attachments => PdfEngineIntegration.ReadAttachments(path, protection),
-                    SidebarPanel.Layers => PdfEngineIntegration.InspectLayers(path),
-                    _ => PdfEngineIntegration.InspectSignatures(path),
+                    SidebarPanel.Layers => PdfEngineIntegration.InspectLayers(path, protection),
+                    _ => PdfEngineIntegration.InspectSignatures(path, protection),
                 });
             }
             catch (Exception ex)

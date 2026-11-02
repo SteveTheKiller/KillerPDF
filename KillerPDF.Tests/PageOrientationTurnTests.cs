@@ -29,7 +29,7 @@ public sealed class PageOrientationTurnTests
             int? upright = UprightFromText(file);
             Assert.Equal(90, upright);
 
-            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(file);
+            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(file, null);
             Assert.Equal(90, session.Pages[0].Rotation);
 
             // Nothing captured yet, as right after opening: the file's /Rotate is the current rotation.
@@ -56,7 +56,7 @@ public sealed class PageOrientationTurnTests
 
     private static int? UprightFromText(string file)
     {
-        using var content = PdfContentDocument.Open(file);
+        using var content = PdfContentDocument.Open(file, null);
         List<(double, double, int)> baselines = [.. content.GetPage(1).GetWords()
             .Where(word => word.Letters.Count > 0)
             .Select(word =>

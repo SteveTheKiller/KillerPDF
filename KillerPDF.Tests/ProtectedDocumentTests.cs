@@ -62,7 +62,7 @@ public sealed class ProtectedDocumentTests : IDisposable
     private string SaveEdited(string working, string? field, string target, OpenedProtection protection)
     {
         string saved = InFolder("saved-" + Guid.NewGuid().ToString("N")[..6] + ".pdf");
-        using (PdfWorkingDocument document = PdfWorkingDocument.Open(working)) document.Save(saved);
+        using (PdfWorkingDocument document = PdfWorkingDocument.Open(working, null)) document.Save(saved);
         if (field is not null) PdfEngineIntegration.ApplyFormValues(saved, Text(field, "new value"));
         ProtectedDocumentFiles.Publish(saved, target, protection);
         return target;
@@ -570,9 +570,8 @@ public sealed class ProtectedDocumentTests : IDisposable
         Assert.True(PdfEngineIntegration.HasSignedSignatures(signed, password));
         OpenedProtection protection = OpenedProtection.Capture(signed, password);
 
-        protection.HoldForReading();
         PdfWorkingDocument? opened = null;
-        Exception? failure = Record.Exception(() => opened = PdfWorkingDocument.Open(signed, isReadOnly: true));
+        Exception? failure = Record.Exception(() => opened = PdfWorkingDocument.Open(signed, protection, isReadOnly: true));
 
         Assert.Null(failure);
         using (opened)
@@ -580,13 +579,16 @@ public sealed class ProtectedDocumentTests : IDisposable
             Assert.Equal(1, opened!.PageCount);
             Assert.Contains(PdfSignatureReader.Read(opened.ParsedDocument!), signature => signature.IsSigned);
         }
-        // A reader that comes to the file on its own, as the text and render readers do, reads it too.
+        // The tab's readers are handed its protection and read the file under it.
+        Assert.True(PdfEngineIntegration.OpenForReading(File.ReadAllBytes(signed), protection).IsDecrypted);
+        Assert.True(PdfPageRenderSession.OpenDocument(signed, protection).CanReadPageContent);
+        // R5-002: a reader that comes to the file, or to a byte copy of it, with no key reads nothing.
+        // This used to read under a key any open tab held; a key now opens nothing for another tab.
         string elsewhere = InFolder("signed-copy-" + password + ".pdf");
         File.Copy(signed, elsewhere);
-        Assert.True(PdfEngineIntegration.OpenForReading(File.ReadAllBytes(elsewhere)).IsDecrypted);
-        Assert.True(PdfPageRenderSession.OpenDocument(elsewhere).CanReadPageContent);
+        Assert.False(PdfEngineIntegration.OpenForReading(File.ReadAllBytes(elsewhere)).IsDecrypted);
+        Assert.False(PdfPageRenderSession.OpenDocument(elsewhere, null).CanReadPageContent);
         Assert.Equal(before, File.ReadAllBytes(signed));
-        GC.KeepAlive(protection);   // the key lasts as long as the tab that holds it
     }
 
     // R3-025 still holds there: the owner password is right, and the unlock fails with its own reason.

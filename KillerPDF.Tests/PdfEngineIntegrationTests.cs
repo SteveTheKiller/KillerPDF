@@ -52,7 +52,7 @@ public sealed class PdfEngineIntegrationTests
                 PdfEngineIntegration.ApplyBookmarkData(path, "invalid", replace));
             Assert.Equal(source, File.ReadAllBytes(path));
             PdfEngineIntegration.ApplyBookmarkData(path, PdfBookmarkExchange.ToJson(incoming), replace);
-            IReadOnlyList<PdfBookmarkInfo> bookmarks = PdfEngineIntegration.ReadBookmarks(File.ReadAllBytes(path));
+            IReadOnlyList<PdfBookmarkInfo> bookmarks = PdfEngineIntegration.ReadBookmarks(File.ReadAllBytes(path), null);
             Assert.Equal(expectedCount, bookmarks.Count);
             Assert.Contains(bookmarks, bookmark => bookmark.Title == "Imported");
             if (!replace) Assert.Contains(bookmarks, bookmark => bookmark.Title == "Original");
@@ -120,7 +120,7 @@ public sealed class PdfEngineIntegrationTests
             .AddNamedDestinationBookmark("Section", "section", 1)
             .Build();
 
-        PdfBookmarkInfo chapter = Assert.Single(PdfEngineIntegration.ReadBookmarks(source));
+        PdfBookmarkInfo chapter = Assert.Single(PdfEngineIntegration.ReadBookmarks(source, null));
 
         Assert.Equal("Chapter", chapter.Title);
         Assert.Equal(PdfBookmarkStyle.Bold, chapter.Style);
@@ -146,9 +146,9 @@ public sealed class PdfEngineIntegrationTests
                 .Build());
 
             PdfPrintProductionReport report =
-                PdfEngineIntegration.InspectPrintProduction(path);
+                PdfEngineIntegration.InspectPrintProduction(path, null);
             PdfSeparationPreview preview = PdfEngineIntegration.CreateSeparationPreview(
-                path, ["Black", "Killer Orange"], [1]);
+                path, ["Black", "Killer Orange"], null, [1]);
 
             Assert.Equal(2, report.Pages.Count);
             Assert.Equal(new PdfPageBoxBounds(0, 0, 500, 600), report.Pages[1].MediaBox);
@@ -173,11 +173,11 @@ public sealed class PdfEngineIntegrationTests
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage().Build());
 
-            PdfOptionalContentInfo layers = PdfEngineIntegration.InspectLayers(path);
-            string portfolio = PdfEngineIntegration.InspectPortfolio(path);
-            PdfStructuralComparison comparison = PdfEngineIntegration.CompareStructure(path, path);
+            PdfOptionalContentInfo layers = PdfEngineIntegration.InspectLayers(path, null);
+            string portfolio = PdfEngineIntegration.InspectPortfolio(path, null);
+            PdfStructuralComparison comparison = PdfEngineIntegration.CompareStructure(path, null, path, null);
             PdfPreflightReport preflight = PdfEngineIntegration.InspectPreflight(path);
-            PdfAccessibilityReport accessibility = PdfEngineIntegration.InspectAccessibility(path);
+            PdfAccessibilityReport accessibility = PdfEngineIntegration.InspectAccessibility(path, null);
 
             Assert.Empty(layers.Groups);
             Assert.Equal($"Layers: 0{Environment.NewLine}Configurations: 0", layers.ToText());
@@ -186,7 +186,7 @@ public sealed class PdfEngineIntegrationTests
             Assert.Equal("Print production", preflight.ProfileName);
             Assert.Contains("Preflight profile: Print production", preflight.ToText());
             Assert.Contains("Accessibility result:", accessibility.ToText());
-            Assert.Empty(PdfEngineIntegration.PlanTableOfContents(path, 6).Entries);
+            Assert.Empty(PdfEngineIntegration.PlanTableOfContents(path, 6, null).Entries);
         }
         finally
         {
@@ -230,7 +230,7 @@ public sealed class PdfEngineIntegrationTests
                 .AddBookmark("Section", 1, level: 1)
                 .Build());
 
-            PdfTableOfContentsPlan plan = PdfEngineIntegration.PlanTableOfContents(path, 6);
+            PdfTableOfContentsPlan plan = PdfEngineIntegration.PlanTableOfContents(path, 6, null);
             PdfTableOfContentsWriteResult result = PdfEngineIntegration.InsertTableOfContents(
                 path, "Contents", 6);
             PdfDocument output = PdfDocument.Open(File.ReadAllBytes(path));
@@ -263,7 +263,7 @@ public sealed class PdfEngineIntegrationTests
                     .EndMarkedContent())
                 .Build());
             PdfOptionalContentGroupInfo original = Assert.Single(
-                PdfEngineIntegration.InspectLayers(path).Groups);
+                PdfEngineIntegration.InspectLayers(path, null).Groups);
 
             PdfEngineIntegration.ApplyLayerEdits(path,
             [
@@ -272,7 +272,7 @@ public sealed class PdfEngineIntegrationTests
             ]);
 
             PdfOptionalContentGroupInfo changed = Assert.Single(
-                PdfEngineIntegration.InspectLayers(path).Groups);
+                PdfEngineIntegration.InspectLayers(path, null).Groups);
             Assert.Equal("Reviewed", changed.Name);
             Assert.False(changed.IsInitiallyVisible);
             Assert.True(changed.IsLocked);
@@ -297,16 +297,16 @@ public sealed class PdfEngineIntegrationTests
                 .Build());
 
             PdfCommentThread thread = Assert.Single(
-                PdfEngineIntegration.ReadCommentThreads(path));
+                PdfEngineIntegration.ReadCommentThreads(path, null));
             PdfCommentInfo reply = Assert.Single(thread.Replies).Comment;
             PdfEngineIntegration.SetCommentContents(path, reply, "Updated reply");
 
-            thread = Assert.Single(PdfEngineIntegration.ReadCommentThreads(path));
+            thread = Assert.Single(PdfEngineIntegration.ReadCommentThreads(path, null));
             reply = Assert.Single(thread.Replies).Comment;
             Assert.Equal("Updated reply", reply.Contents);
             PdfEngineIntegration.RemoveComment(path, reply);
 
-            thread = Assert.Single(PdfEngineIntegration.ReadCommentThreads(path));
+            thread = Assert.Single(PdfEngineIntegration.ReadCommentThreads(path, null));
             Assert.Equal("Review this", thread.Comment.Contents);
             Assert.Empty(thread.Replies);
         }
@@ -401,7 +401,7 @@ public sealed class PdfEngineIntegrationTests
                 .AddNamedDestinationBookmark("Section", "section", 1)
                 .Build());
             IReadOnlyList<PdfBookmarkInfo> original =
-                PdfEngineIntegration.ReadBookmarks(File.ReadAllBytes(path));
+                PdfEngineIntegration.ReadBookmarks(File.ReadAllBytes(path), null);
             PdfBookmarkInfo changed = original[0] with
             {
                 Title = "Renamed chapter",
@@ -412,7 +412,7 @@ public sealed class PdfEngineIntegrationTests
             PdfEngineIntegration.ReplaceBookmarks(path, [changed]);
 
             PdfBookmarkInfo result = Assert.Single(
-                PdfEngineIntegration.ReadBookmarks(File.ReadAllBytes(path)));
+                PdfEngineIntegration.ReadBookmarks(File.ReadAllBytes(path), null));
             Assert.Equal("Renamed chapter", result.Title);
             Assert.Equal(PdfBookmarkStyle.Italic, result.Style);
             Assert.False(result.IsOpen);
@@ -439,7 +439,7 @@ public sealed class PdfEngineIntegrationTests
                 .AddPageLink(0, 100, 40, 50, 20, 1)
                 .Build());
 
-            IReadOnlyList<PdfLinkInfo> links = PdfEngineIntegration.ReadPageLinks(path, 0);
+            IReadOnlyList<PdfLinkInfo> links = PdfEngineIntegration.ReadPageLinks(path, 0, null);
 
             Assert.Equal(2, links.Count);
             Assert.Equal("https://example.com/", links[0].Uri);
@@ -670,7 +670,7 @@ public sealed class PdfEngineIntegrationTests
 
             Assert.Equal(4, count);
             Assert.True(File.ReadAllBytes(output).AsSpan(0, source.Length).SequenceEqual(source));
-            using ContentDocument extracted = ContentDocument.Open(output);
+            using ContentDocument extracted = ContentDocument.Open(output, null);
             string text = extracted.GetPage(1).Text;
             Assert.Contains("Hello", text);
             Assert.Contains("বাংলা", text);
@@ -710,7 +710,7 @@ public sealed class PdfEngineIntegrationTests
             Assert.Equal(4, PdfEngineIntegration.AddSearchableTextLayers(
                 input, output, layers));
 
-            using ContentDocument extracted = ContentDocument.Open(output);
+            using ContentDocument extracted = ContentDocument.Open(output, null);
             for (int index = 0; index < 4; index++)
                 Assert.Contains($"Rotation{index}", extracted.GetPage(index + 1).Text);
         }
@@ -807,7 +807,7 @@ public sealed class PdfEngineIntegrationTests
             byte[] source = update.Build();
             File.WriteAllBytes(path, source);
 
-            Assert.Single(Assert.Single(PdfEngineIntegration.ReadAllPageFormWidgets(path)));
+            Assert.Single(Assert.Single(PdfEngineIntegration.ReadAllPageFormWidgets(path, null)));
             PdfEngineIntegration.ApplyFormValues(path, new PdfEngineIntegration.FormEdits(
                 new Dictionary<string, string> { ["Name"] = "Updated" },
                 new Dictionary<string, string>(),

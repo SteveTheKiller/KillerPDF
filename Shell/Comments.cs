@@ -20,7 +20,7 @@ namespace KillerPDF.Shell
 
             CommitActiveTextBox();
             IReadOnlyList<PdfCommentThread> threads;
-            try { threads = PdfEngineIntegration.ReadCommentThreads(_currentFile); }
+            try { threads = PdfEngineIntegration.ReadCommentThreads(_currentFile, _protection); }
             catch (Exception ex)
             {
                 KillerDialog.Show(this, Loc("Str_Comments_ReadFailed") + "\n" + ex.Message,

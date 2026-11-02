@@ -26,7 +26,7 @@ public sealed class BookmarkGenerationIntegrationTests
 
             IReadOnlyList<PdfBookmarkProposal> detected =
                 PdfEngineIntegration.DetectBookmarkHeadings(path,
-                    new PdfBookmarkDetectionOptions { MinimumPointSize = 14 });
+                    new PdfBookmarkDetectionOptions { MinimumPointSize = 14 }, null);
             PdfBookmarkProposal proposal = Assert.Single(detected);
 
             PdfEngineIntegration.ApplyBookmarkProposals(path,

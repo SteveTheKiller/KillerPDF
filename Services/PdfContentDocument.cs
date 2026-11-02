@@ -8,13 +8,14 @@ internal sealed class PdfContentDocument : IDisposable
 {
     private readonly PdfPageContentReader _reader;
     private readonly Dictionary<int, PdfPageContent> _pages = [];
-    private PdfContentDocument(byte[] source)
+    private PdfContentDocument(byte[] source, OpenedProtection? protection)
     {
-        // The page renders through compatibility recovery, so its text layer reads the same way.
-        _reader = new PdfPageContentReader(PdfEngineIntegration.OpenForReading(source));
+        // The page renders through compatibility recovery, so its text layer reads the same way, and
+        // under the protection of the tab whose file it is.
+        _reader = new PdfPageContentReader(PdfEngineIntegration.OpenForReading(source, protection));
     }
-    internal static PdfContentDocument Open(string path) => new(File.ReadAllBytes(path));
-    internal static PdfContentDocument Open(byte[] source) => new(source);
+    internal static PdfContentDocument Open(string path, OpenedProtection? protection) => new(File.ReadAllBytes(path), protection);
+    internal static PdfContentDocument Open(byte[] source, OpenedProtection? protection) => new(source, protection);
     internal int NumberOfPages => _reader.PageCount;
     internal PdfPageContent GetPage(int number)
     {

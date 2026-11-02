@@ -30,7 +30,7 @@ public sealed class AttachmentPanelTests : IDisposable
     {
         IReadOnlyList<PdfAttachmentInfo> attachments = [];
 
-        Assert.Null(Record.Exception(() => attachments = PdfEngineIntegration.ReadAttachments(RestrictedFixture())));
+        Assert.Null(Record.Exception(() => attachments = PdfEngineIntegration.ReadAttachments(RestrictedFixture(), null)));
 
         PdfAttachmentInfo note = Assert.Single(attachments);
         Assert.Equal("note.txt", note.FileName);

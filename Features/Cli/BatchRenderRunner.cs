@@ -249,7 +249,7 @@ namespace KillerPDF.Features
                 // compare, and nothing renders before it has answered.
                 if (string.IsNullOrEmpty(password))
                 {
-                    session = PdfPageRenderSession.OpenEngineFirst(src, size, size);
+                    session = PdfPageRenderSession.OpenEngineFirst(src, size, size, null);
                     if (session.IsEncrypted && CliProtectionGate.BatchRender(src, null).Refusal is string refusal)
                     {
                         session.Dispose();
@@ -261,8 +261,8 @@ namespace KillerPDF.Features
                     (string? refusal, string? readWith) = CliProtectionGate.BatchRender(src, password);
                     if (refusal is not null) return Skipped(refusal);
                     session = readWith is null
-                        ? PdfPageRenderSession.OpenEngineFirst(src, size, size)
-                        : PdfPageRenderSession.OpenEngineFirst(src, size, size, readWith);
+                        ? PdfPageRenderSession.OpenEngineFirst(src, size, size, null)
+                        : PdfPageRenderSession.OpenEngineFirstWithPassword(src, size, size, readWith);
                 }
                 pageCount = session.PageCount;
             }

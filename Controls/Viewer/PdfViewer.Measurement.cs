@@ -658,7 +658,8 @@ public partial class PdfViewer
         if (_measureSnapCache.TryGetValue(pageIndex, out MeasureSnapGeometry? cached)) return cached;
         if (!_measureSnapLoading.Add(pageIndex)) return null;
         string path = _currentFile;
-        Task.Run(() => ReadMeasureSnapGeometry(path, pageIndex)).ContinueWith(task =>
+        Services.OpenedProtection protection = _protection;
+        Task.Run(() => ReadMeasureSnapGeometry(path, protection, pageIndex)).ContinueWith(task =>
         {
             if (!string.Equals(_measureSnapFile, path, StringComparison.OrdinalIgnoreCase)) return;
             _measureSnapLoading.Remove(pageIndex);
@@ -668,12 +669,12 @@ public partial class PdfViewer
         return null;
     }
 
-    private static MeasureSnapGeometry ReadMeasureSnapGeometry(string path, int pageIndex)
+    private static MeasureSnapGeometry ReadMeasureSnapGeometry(string path, Services.OpenedProtection protection, int pageIndex)
     {
         const int Limit = 20000;
         var vertices = new List<PdfMeasurementPoint>();
         var segments = new List<PdfMeasurementSegment>();
-        using var document = KillerPDF.Services.PdfContentDocument.Open(path);
+        using var document = KillerPDF.Services.PdfContentDocument.Open(path, protection);
         if (pageIndex >= document.NumberOfPages) return new MeasureSnapGeometry(vertices, segments);
         PdfPageContent page = document.GetPage(pageIndex + 1);
         foreach (PdfExtractedPath drawn in page.Paths)

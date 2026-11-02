@@ -48,7 +48,7 @@ public partial class PdfViewer
         if (invert)
         {
             PdfContentDocument? content = null;
-            try { BitmapHelpers.InvertBgraInPlaceExcept(pixels, width, height, ImageRectsFor(request.Path, page, ref content)); }
+            try { BitmapHelpers.InvertBgraInPlaceExcept(pixels, width, height, ImageRectsFor(request.Path, request.Protection, page, ref content)); }
             finally { content?.Dispose(); }
         }
         if (rotation != 0)

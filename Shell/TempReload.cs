@@ -102,7 +102,7 @@ namespace KillerPDF.Shell
             PdfWorkingDocument candidateDocument;
             try
             {
-                candidateDocument = PdfWorkingDocument.Open(tempPath);
+                candidateDocument = PdfWorkingDocument.Open(tempPath, null);
             }
             catch (Exception openEx) when (PdfImport.IsXRefException(openEx))
             {
@@ -110,7 +110,7 @@ namespace KillerPDF.Shell
                 if (!PdfEngineIntegration.TryCreateZeroRotationCopy(tempPath, fixedPath))
                     throw; // Engine recovery also failed; rethrow the original reopen error.
                 tempPath = fixedPath;
-                candidateDocument = PdfWorkingDocument.Open(tempPath);
+                candidateDocument = PdfWorkingDocument.Open(tempPath, null);
             }
             // Preparation has succeeded. Publish the replacement and side state together before
             // notifying the UI or recording history; failures above leave the live document usable.

@@ -28,13 +28,13 @@ public sealed class RestrictedFormSaveTests
     public void AFailedReplaceKeepsTheTypedValues()
     {
         string body = Method("SaveRestrictedFormFill");
-        Assert.DoesNotContain("RestoreReadOnlyOriginal(source, _originalFile ?? source, () => { })", body);
-        Assert.Contains("RestoreReadOnlyOriginal(source, _originalFile ?? source, CarryOverlays)", body);
+        Assert.DoesNotContain("RestoreReadOnlyOriginal(source, _originalFile ?? source, () => { }", body);
+        Assert.Contains("RestoreReadOnlyOriginal(source, _originalFile ?? source, CarryOverlays, protection)", body);
         foreach (string dictionary in new[] { "_formTextValues", "_formChoiceValues", "_formCheckValues", "_formRadioValues", "_formFontSizes" })
             Assert.Matches(@"new Dictionary<string, \w+>\(" + dictionary + @"\)", body);
         Assert.Contains("MarkDirty(true)", body);
         // The successful save reopens the saved file clean; only the failure branch carries values.
-        Assert.Contains("RestoreReadOnlyOriginal(destination, destination, () => { })", body);
+        Assert.Contains("RestoreReadOnlyOriginal(destination, destination, () => { }, protection)", body);
     }
 
     [Fact]

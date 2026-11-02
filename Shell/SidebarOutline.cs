@@ -225,7 +225,7 @@ namespace KillerPDF.Shell
                 _doc.Save(stream);
                 bytes = stream.ToArray();
             }
-            return PdfEngineIntegration.ReadBookmarks(bytes);
+            return PdfEngineIntegration.ReadBookmarks(bytes, _protection);
         }
 
         private void AddOutlineItems(ItemCollection target,
@@ -372,7 +372,7 @@ namespace KillerPDF.Shell
                 SaveTempAndReload(keepAnnotations: true, preserveZoom: true,
                     finalizeSavedFile: path =>
                     {
-                        replacement = edit(PdfEngineIntegration.ReadBookmarks(File.ReadAllBytes(path)));
+                        replacement = edit(PdfEngineIntegration.ReadBookmarks(File.ReadAllBytes(path), null));   // the plain saved copy
                         PdfEngineIntegration.ReplaceBookmarks(path, replacement);
                     });
             }

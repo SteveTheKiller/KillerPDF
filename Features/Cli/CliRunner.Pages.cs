@@ -71,7 +71,7 @@ namespace KillerPDF.Features
                 string lang = string.IsNullOrWhiteSpace(langRaw) ? "eng" : langRaw.Trim().ToLowerInvariant();
                 if (!CliEnsureOcrLanguage(lang, con)) return 1;
                 using var ocr = new OcrService(language: lang);
-                using var session = PdfPageRenderSession.OpenEngineFirst(renderPath, 1600, 1600);
+                using var session = PdfPageRenderSession.OpenEngineFirst(renderPath, 1600, 1600, null);
                 for (int i = 0; i < scans.Count; i++)
                 {
                     con.WriteLine($"Reading scan {i + 1}/{scans.Count}");
@@ -115,7 +115,7 @@ namespace KillerPDF.Features
             var (scans, withText) = PageArrangementService.ScansWithoutText(renderPath, pages, CancellationToken.None);
             string skipped = withText > 0 ? $" ({withText} scans with a text layer were left as they were)" : "";
             var tilts = new Dictionary<int, double>();
-            using (var preview = PdfPageRenderSession.OpenEngineFirst(renderPath, 1600, 1600))
+            using (var preview = PdfPageRenderSession.OpenEngineFirst(renderPath, 1600, 1600, null))
             {
                 foreach (int page in scans)
                 {
@@ -135,7 +135,7 @@ namespace KillerPDF.Features
             // The pages are redrawn level on the unrotated copy the renderer reads, then every
             // page keeps the rotation it had except the redrawn ones, which are drawn as shown.
             var replacements = new Dictionary<int, string>();
-            using (var session = PdfPageRenderSession.OpenEngineFirst(renderPath, 1.0))
+            using (var session = PdfPageRenderSession.OpenEngineFirst(renderPath, 1.0, null))
             {
                 foreach (var (page, tilt) in tilts.OrderBy(pair => pair.Key))
                 {

@@ -92,7 +92,7 @@ namespace KillerPDF.Features
             PdfStructuralComparison comparison;
             try
             {
-                comparison = PdfEngineIntegration.CompareStructure(original, changed);
+                comparison = PdfEngineIntegration.CompareStructure(original, null, changed, null);
             }
             catch (Exception ex) when (ex is InvalidOperationException
                 or NotSupportedException or ArgumentException or FormatException)
@@ -196,9 +196,9 @@ namespace KillerPDF.Features
             PdfSeparationPreview preview;
             try
             {
-                PdfPrintProductionReport production = PdfEngineIntegration.InspectPrintProduction(inPath);
+                PdfPrintProductionReport production = PdfEngineIntegration.InspectPrintProduction(inPath, null);
                 preview = PdfEngineIntegration.CreateSeparationPreview(inPath,
-                    production.Colorants.Select(colorant => colorant.Name));
+                    production.Colorants.Select(colorant => colorant.Name), null);
             }
             catch (Exception ex) when (ex is InvalidOperationException
                 or NotSupportedException or ArgumentException or FormatException)
@@ -216,7 +216,7 @@ namespace KillerPDF.Features
             options.TryGetValue("--password", out string? password);
             var (renderPath, rotations, _) = CliPrepareRenderSource(inPath, password, con);
             if (!TryReadDpi(options, 150, con, out double dpi)) return 2;
-            using var session = PdfPageRenderSession.OpenEngineFirst(renderPath, dpi / 72.0);
+            using var session = PdfPageRenderSession.OpenEngineFirst(renderPath, dpi / 72.0, null);
             if (!CliPagesOption(options, session.PageCount, out List<int> pages, con)) return 2;
             Directory.CreateDirectory(outDir);
             string baseName = Path.GetFileNameWithoutExtension(inPath);

@@ -47,7 +47,7 @@ public partial class PdfViewer
         bool invert = DocInvert;
         var mode = _viewMode;
         double zoom = _zoomLevel;
-        var request = _backgroundRenderCache.Capture(file, revision);
+        var request = _backgroundRenderCache.Capture(file, revision, _protection);
         var dpi = VisualTreeHelper.GetDpi(this);
         bool Current() => !token.IsCancellationRequested && ReferenceEquals(session, _active)
             && file == _currentFile && revision == (_active?.RenderRevision ?? 0) && invert == DocInvert
@@ -105,7 +105,7 @@ public partial class PdfViewer
                             PdfContentDocument? content = null;
                             try
                             {
-                                var keep = ImageRectsFor(file, page, ref content).Select(box => new BitmapHelpers.FracRect(
+                                var keep = ImageRectsFor(file, request.Protection, page, ref content).Select(box => new BitmapHelpers.FracRect(
                                     (box.L * dimensions.Width - region.Left) / region.Width,
                                     (box.T * dimensions.Height - region.Top) / region.Height,
                                     (box.R * dimensions.Width - region.Left) / region.Width,

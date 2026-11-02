@@ -96,7 +96,7 @@ public sealed class TextLineGatheringTests
 
     private static string LineInFile(string path, double x, double pageY)
     {
-        using var document = PdfContentDocument.Open(path);
+        using var document = PdfContentDocument.Open(path, null);
         var page = document.GetPage(1);
         Rect Canvas(PdfContentBounds b) => RedactionGeometry.PageToCanvas(
             b.Left, b.Bottom, b.Right, b.Top, page.Width, page.Height, page.Width, page.Height, 0);
@@ -132,7 +132,7 @@ public sealed class TextLineGatheringTests
     // every word carries the size of its first letter, and the click lands on that canvas.
     private static string LineAt(string content, double x, double pageY)
     {
-        using var document = PdfContentDocument.Open(Pdf(content));
+        using var document = PdfContentDocument.Open(Pdf(content), null);
         PdfExtractedWord[] words = [.. document.GetPage(1).GetWords()];
         Rect Canvas(PdfContentBounds b) => RedactionGeometry.PageToCanvas(
             b.Left, b.Bottom, b.Right, b.Top, PageWidth, PageHeight, PageWidth, PageHeight, 0);

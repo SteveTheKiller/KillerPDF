@@ -28,6 +28,6 @@ internal static class PrintPermission
 
     /// <summary>The session a print job renders through, from the app or the command line, so annotation
     /// flags, layers and redaction marks come out as they print.</summary>
-    internal static PdfPageRenderSession OpenRenderSession(string path, PrintAllowance allowance) =>
-        PdfPageRenderSession.OpenEngineFirst(path, Dpi(allowance) / 72.0, forPrinting: true);
+    internal static PdfPageRenderSession OpenRenderSession(string path, PrintAllowance allowance, OpenedProtection? protection) =>
+        PdfPageRenderSession.OpenEngineFirst(path, Dpi(allowance) / 72.0, protection, forPrinting: true);
 }

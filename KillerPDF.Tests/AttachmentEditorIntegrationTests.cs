@@ -88,7 +88,7 @@ public sealed class AttachmentEditorIntegrationTests
                 .AddAttachment("other.txt", "other"u8.ToArray(), "text/plain", "Other")
                 .Build());
             int before = EndOfFileMarkers(path);
-            var items = PdfEngineIntegration.ReadAttachmentEditorItems(path);
+            var items = PdfEngineIntegration.ReadAttachmentEditorItems(path, null);
 
             PdfEngineIntegration.ApplyAttachmentEdits(path,
             [
@@ -125,7 +125,7 @@ public sealed class AttachmentEditorIntegrationTests
                 .AddAttachment("c.txt", "c"u8.ToArray(), "text/plain", "C")
                 .Build());
             int before = EndOfFileMarkers(path);
-            var items = PdfEngineIntegration.ReadAttachmentEditorItems(path);
+            var items = PdfEngineIntegration.ReadAttachmentEditorItems(path, null);
 
             PdfEngineIntegration.ApplyAttachmentEdits(path,
             [
@@ -152,7 +152,7 @@ public sealed class AttachmentEditorIntegrationTests
                 .AddAttachment("second.txt", "second"u8.ToArray(), "text/plain", "Second")
                 .Build());
             int before = EndOfFileMarkers(path);
-            var items = PdfEngineIntegration.ReadAttachmentEditorItems(path);
+            var items = PdfEngineIntegration.ReadAttachmentEditorItems(path, null);
 
             PdfEngineIntegration.ApplyAttachmentEdits(path,
             [

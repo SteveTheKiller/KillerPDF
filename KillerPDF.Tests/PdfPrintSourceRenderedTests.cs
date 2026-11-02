@@ -44,7 +44,7 @@ public sealed class PdfPrintSourceRenderedTests
 
             PdfRenderedPage Raster(string path)
             {
-                using var session = PdfPageRenderSession.OpenEngineFirst(path, dpi / 72.0);
+                using var session = PdfPageRenderSession.OpenEngineFirst(path, dpi / 72.0, null);
                 return session.RenderPage(0);
             }
             PdfRenderedPage before = Raster(working);

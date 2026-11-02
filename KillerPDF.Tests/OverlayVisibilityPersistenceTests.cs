@@ -122,8 +122,8 @@ public sealed class OverlayVisibilityPersistenceTests
         try
         {
             File.WriteAllBytes(path, editor.Build());
-            using var screen = PdfPageRenderSession.OpenEngineFirst(path, 1.0);
-            using var print = PdfPageRenderSession.OpenEngineFirst(path, 1.0, forPrinting: true);
+            using var screen = PdfPageRenderSession.OpenEngineFirst(path, 1.0, null);
+            using var print = PdfPageRenderSession.OpenEngineFirst(path, 1.0, null, forPrinting: true);
             Assert.All(screen.RenderPage(0).Pixels, value => Assert.Equal((byte)255, value));
             Assert.Contains(print.RenderPage(0).Pixels, value => value < 255);
         }

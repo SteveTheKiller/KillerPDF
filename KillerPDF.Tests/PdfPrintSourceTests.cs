@@ -33,7 +33,7 @@ public sealed class PdfPrintSourceTests
             string savedPath = Path.Combine(directory, "saved.pdf");
             string printPath = Path.Combine(directory, "print.pdf");
             File.WriteAllBytes(sourcePath, original);
-            using var working = PdfWorkingDocument.Open(sourcePath);
+            using var working = PdfWorkingDocument.Open(sourcePath, null);
             var edits = new PdfEngineIntegration.FormEdits(
                 new Dictionary<string, string> { ["customer.name"] = "Updated" },
                 new Dictionary<string, string> { ["customer.country"] = "CA" },

@@ -23,6 +23,7 @@ public partial class MainWindow
             var sourceViewer = ActiveViewer;
             List<PdfRedactionRegion> marked = sourceViewer.PendingRedactionRegions();
             string sourcePath = _currentFile, originalPath = _originalFile ?? sourcePath;
+            OpenedProtection protection = _protection;
             byte[] hash = SHA256.HashData(File.ReadAllBytes(sourcePath));
             void Current(CancellationToken token)
             {
@@ -56,8 +57,9 @@ public partial class MainWindow
                         List<PdfRedactionRegion> regions = [.. marked];
                         if (request.Search)
                         {
-                            var find = new RedactionFindDialog(owner, () => SearchService.LoadPagesForReview(snapshot),
-                                () => PdfEngineIntegration.OpenForReading(File.ReadAllBytes(snapshot)));
+                            // The saved copy holds the tab's own bytes, so it reads under the tab's protection.
+                            var find = new RedactionFindDialog(owner, () => SearchService.LoadPagesForReview(snapshot, protection),
+                                () => PdfEngineIntegration.OpenForReading(File.ReadAllBytes(snapshot), protection));
                             if (find.ShowDialog() != true) throw new OperationCanceledException();
                             Current(token);
                             foreach (PdfRedactionMatch match in find.Checked)

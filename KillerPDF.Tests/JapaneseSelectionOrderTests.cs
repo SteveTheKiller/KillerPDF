@@ -24,7 +24,7 @@ public sealed class JapaneseSelectionOrderTests
             File.WriteAllBytes(path, PhrasePdfWithContent("AB CD EF", first,
                 reverseDrawingOrder ? longLine + " " + shortLine : shortLine + " " + longLine,
                 omitInitialLine: true));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Equal("AB\nAB CD EF", TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
             Assert.Equal("AB\nAB CD EF", PageReadingText.Build(runs.Chars.Select(c => (c.Value, c.Word, c.Line)).ToArray()).Text);
         }
@@ -41,7 +41,7 @@ public sealed class JapaneseSelectionOrderTests
                 "BT /F1 12 Tf 0 1 -1 0 100 150 Tm (AB) Tj ET "
                 + "BT /F1 12 Tf 0 1 -1 0 120 150 Tm (DE) Tj ET "
                 + "BT /F1 12 Tf 1 0 0 1 40 40 Tm (GH) Tj ET"));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             const string expected = "AB CD EF\nAB\nCD\nEF";
             Assert.Equal(expected, TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
             Assert.Equal(expected, PageReadingText.Build(runs.Chars.Select(c => (c.Value, c.Word, c.Line)).ToArray()).Text);
@@ -58,7 +58,7 @@ public sealed class JapaneseSelectionOrderTests
             File.WriteAllBytes(path, PhrasePdfWithContent("AB CD EF", "0 1 -1 0 100 300",
                 "BT /F1 12 Tf 1 0 0 1 40 220 Tm (GH) Tj ET "
                 + "BT /F1 12 Tf 0 1 -1 0 100 60 Tm (DE) Tj ET"));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Equal("AB CD EF\nEF\nCD", TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
         }
         finally { File.Delete(path); }
@@ -74,7 +74,7 @@ public sealed class JapaneseSelectionOrderTests
             File.WriteAllBytes(path, PhrasePdfWithContent("AB CD EF", "0 1 -1 0 100 40",
                 "BT /F1 12 Tf 0 1 -1 0 100 150 Tm (GH) Tj ET "
                 + "BT /F1 12 Tf 0 1 -1 0 100 64 Tm (ABCDEFGH) Tj ET"));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Single(runs.Lines);
         }
         finally { File.Delete(path); }
@@ -91,7 +91,7 @@ public sealed class JapaneseSelectionOrderTests
                 + "BT /F1 12 Tf 1 0 0 1 40 200 Tm (DE) Tj ET "
                 + "BT /F1 12 Tf 0 1 -1 0 100 120 Tm (GH) Tj ET "
                 + "BT /F1 12 Tf 1 0 0 1 40 60 Tm (DE) Tj ET"));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Equal("AB CD EF\nAB\nCD\nEF\nCD",
                 TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
         }
@@ -110,7 +110,7 @@ public sealed class JapaneseSelectionOrderTests
                 + "BT /F1 12 Tf 1 0 0 1 240 200 Tm (AB) Tj ET "
                 + "BT /F1 12 Tf 0 1 -1 0 150 240 Tm (DE) Tj ET "
                 + "BT /F1 40 Tf 1 0 0 1 40 60 Tm (ABCDEFGH) Tj ET"));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             string text = TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _);
             Assert.EndsWith("AB\nCD\nAB CD EF", text, StringComparison.Ordinal);
         }
@@ -128,7 +128,7 @@ public sealed class JapaneseSelectionOrderTests
                 + "BT /F1 12 Tf 1 0 0 1 246 340 Tm (GH) Tj ET "
                 + "BT /F1 12 Tf 1 0 0 1 240 200 Tm (AB) Tj ET "
                 + "BT /F1 12 Tf 0 1 -1 0 150 240 Tm (DE) Tj ET"));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Equal("AB CD EF\nCD\nEF\nAB\nCD",
                 TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
         }
@@ -146,7 +146,7 @@ public sealed class JapaneseSelectionOrderTests
                 + "BT /F1 12 Tf 1 0 0 1 240 340 Tm (GH) Tj ET "
                 + "BT /F1 12 Tf 1 0 0 1 240 200 Tm (AB) Tj ET "
                 + "BT /F1 12 Tf 0 1 -1 0 150 240 Tm (DE) Tj ET"));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             string text = TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _);
             Assert.Equal("AB CD EF\nCD\nEF\nAB\nCD", text);
         }
@@ -163,7 +163,7 @@ public sealed class JapaneseSelectionOrderTests
                 "BT /F1 12 Tf 1 0 0 1 40 280 Tm (DE) Tj ET "
                 + "BT /F1 12 Tf 1 0 0 1 240 300 Tm (GH) Tj ET "
                 + "BT /F1 12 Tf 1 0 0 1 240 280 Tm (AB) Tj ET"));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Equal("AB CD EF\nCD\nEF\nAB", TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
             var range = Assert.IsType<ValueTuple<int, int>>(TextRunService.WordRangeFromPoint(runs, 242, 303));
             Assert.Equal("EF", TextRunService.TextForRange(runs, range.Item1, range.Item2, out _));
@@ -183,7 +183,7 @@ public sealed class JapaneseSelectionOrderTests
         {
             File.WriteAllBytes(path, PhrasePdfWithContent("AB CD EF", "0 1 -1 0 100 40",
                 $"BT /F1 12 Tf {secondMatrix} Tm (ABCDEFGH) Tj ET"));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Equal("AB CD EF\nAB CD EF", TextRunService.TextForRange(runs, 0, runs.Chars.Count, out int words));
             Assert.Equal(6, words);
             Assert.Equal(2, runs.Lines.Count);
@@ -203,7 +203,7 @@ public sealed class JapaneseSelectionOrderTests
         try
         {
             File.WriteAllBytes(path, PhrasePdf("ABCDEFGH", matrix));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             var bounds = Assert.Single(TextRunService.SelectionBounds(runs, 2, 4));
             Assert.InRange(bounds.Bottom, minBottom, maxBottom);
             Assert.InRange(bounds.Top, minTop, maxTop);
@@ -222,7 +222,7 @@ public sealed class JapaneseSelectionOrderTests
         try
         {
             File.WriteAllBytes(path, PhrasePdf("AB CD EF", matrix));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             var range = Assert.IsType<ValueTuple<int, int>>(TextRunService.WordRangeFromPoint(runs, x, y));
             Assert.Equal((2, 4), range);
             Assert.Equal("CD", TextRunService.TextForRange(runs, range.Item1, range.Item2, out _));
@@ -240,7 +240,7 @@ public sealed class JapaneseSelectionOrderTests
         try
         {
             File.WriteAllBytes(path, PhrasePdf("ABCDEFGH", matrix));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Equal(0, TextRunService.CaretFromPoint(runs, x, origin - sign * 20));
             Assert.Equal(0, TextRunService.CaretFromPoint(runs, x, origin + sign * 2));
             Assert.Equal(1, TextRunService.CaretFromPoint(runs, x, origin + sign * 9));
@@ -268,7 +268,7 @@ public sealed class JapaneseSelectionOrderTests
         try
         {
             File.WriteAllBytes(path, PhrasePdf("AB CD EF", matrix));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Equal("AB CD EF", TextRunService.TextForRange(runs, 0, runs.Chars.Count, out int words));
             Assert.Equal(3, words);
         }
@@ -286,7 +286,7 @@ public sealed class JapaneseSelectionOrderTests
         try
         {
             File.WriteAllBytes(path, PhrasePdf(phrase, matrix));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Equal(phrase, TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
         }
         finally { File.Delete(path); }

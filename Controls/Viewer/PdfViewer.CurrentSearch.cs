@@ -65,6 +65,6 @@ public partial class PdfViewer
             catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException)) { unreadable.Add(pageIndex); }
         }
         return new CurrentSearchSnapshot(File.ReadAllBytes(_currentFile!), text.AsReadOnly())
-            { Covers = covers.AsReadOnly(), UnreadablePages = unreadable.AsReadOnly() };
+            { Covers = covers.AsReadOnly(), UnreadablePages = unreadable.AsReadOnly(), Protection = _protection };
     }
 }

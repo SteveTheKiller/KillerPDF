@@ -151,7 +151,7 @@ public sealed class AttachmentEditKeyTests : IDisposable
     public void ApplyAttachmentEdits_RemovesExactlyTheRemovedRow(string shape, int removedRow)
     {
         string path = Write(Shape(shape));
-        var items = PdfEngineIntegration.ReadAttachmentEditorItems(path);
+        var items = PdfEngineIntegration.ReadAttachmentEditorItems(path, null);
         Assert.Equal(2, items.Count);
 
         PdfEngineIntegration.ApplyAttachmentEdits(path,
@@ -168,7 +168,7 @@ public sealed class AttachmentEditKeyTests : IDisposable
     public void ApplyAttachmentEdits_ChangesOnlyTheDescriptionOfTheEditedRow(string shape, int editedRow)
     {
         string path = Write(Shape(shape));
-        var items = PdfEngineIntegration.ReadAttachmentEditorItems(path);
+        var items = PdfEngineIntegration.ReadAttachmentEditorItems(path, null);
 
         PdfEngineIntegration.ApplyAttachmentEdits(path,
             [.. items.Select((item, row) => row == editedRow ? item with { Description = "Edited" } : item)]);
@@ -186,7 +186,7 @@ public sealed class AttachmentEditKeyTests : IDisposable
     public void ApplyAttachmentEdits_SwapsListedNamesWhenKeysDifferFromThem()
     {
         string path = Write(Shape("cross"));
-        var items = PdfEngineIntegration.ReadAttachmentEditorItems(path);
+        var items = PdfEngineIntegration.ReadAttachmentEditorItems(path, null);
 
         PdfEngineIntegration.ApplyAttachmentEdits(path,
             [items[0] with { FileName = "Z" }, items[1] with { FileName = "Y" }]);
@@ -203,7 +203,7 @@ public sealed class AttachmentEditKeyTests : IDisposable
     {
         string path = Write(Shape("cross"));
         byte[] before = File.ReadAllBytes(path);
-        var items = PdfEngineIntegration.ReadAttachmentEditorItems(path);
+        var items = PdfEngineIntegration.ReadAttachmentEditorItems(path, null);
 
         Assert.Throws<InvalidOperationException>(() => PdfEngineIntegration.ApplyAttachmentEdits(path,
             [items[0] with { FileName = "z" }, items[1]]));
@@ -214,7 +214,7 @@ public sealed class AttachmentEditKeyTests : IDisposable
     public void ApplyAttachmentEdits_RefusesRowsWhoseFilesChangedSinceTheyWereRead()
     {
         string path = Write(Shape("duplicate"));
-        var items = PdfEngineIntegration.ReadAttachmentEditorItems(path);
+        var items = PdfEngineIntegration.ReadAttachmentEditorItems(path, null);
         File.WriteAllBytes(path, Shape("cross"));
 
         Assert.Throws<InvalidOperationException>(() => PdfEngineIntegration.ApplyAttachmentEdits(path, items));
@@ -243,9 +243,9 @@ public sealed class AttachmentEditKeyTests : IDisposable
     [Fact]
     public void FindAttachmentEditorItem_PicksTheNamedFileAndRefusesAmbiguousNames()
     {
-        var crossed = PdfEngineIntegration.ReadAttachmentEditorItems(Write(Shape("cross")));
-        var repeated = PdfEngineIntegration.ReadAttachmentEditorItems(Write(Shape("duplicate")));
-        var cased = PdfEngineIntegration.ReadAttachmentEditorItems(Write(Shape("case")));
+        var crossed = PdfEngineIntegration.ReadAttachmentEditorItems(Write(Shape("cross")), null);
+        var repeated = PdfEngineIntegration.ReadAttachmentEditorItems(Write(Shape("duplicate")), null);
+        var cased = PdfEngineIntegration.ReadAttachmentEditorItems(Write(Shape("case")), null);
 
         Assert.Equal("X", PdfEngineIntegration.FindAttachmentEditorItem(crossed, "Y", out bool crossedAmbiguous)?.Key);
         Assert.False(crossedAmbiguous);

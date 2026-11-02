@@ -24,7 +24,7 @@ public partial class MainWindow
             string sourceName = Path.GetFileNameWithoutExtension(originalSource ?? currentSource ?? "document");
             PdfPageInformation page = session.Pages[pageIndex];
             int rotation = ((_pageRotations.TryGetValue(pageIndex, out int turned) ? turned : page.Rotation) % 360 + 360) % 360;
-            var preview = RegionPreview(session.Path, pageIndex, page.Rotation, rotation)
+            var preview = RegionPreview(session.Path, _protection, pageIndex, page.Rotation, rotation)
                 ?? throw new InvalidOperationException(Loc("Str_Err_ExportFailed"));
             var review = new TableExportDialog(this, session.Document, pageIndex, preview, rotation, _appScale);
             review.ShowDialog();

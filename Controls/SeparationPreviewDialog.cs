@@ -24,10 +24,10 @@ internal sealed class SeparationPreviewDialog : Window
     private readonly Button _next;
     private int _page;
 
-    internal SeparationPreviewDialog(Window owner, string file, int pageCount, int startPage,
+    internal SeparationPreviewDialog(Window owner, string file, OpenedProtection? protection, int pageCount, int startPage,
         IReadOnlyList<Plate> plates, Action showReport)
     {
-        _session = PdfPageRenderSession.OpenEngineFirst(file, 900, 900);
+        _session = PdfPageRenderSession.OpenEngineFirst(file, 900, 900, protection);
         _plates = plates;
         _pageCount = pageCount;
         _page = Math.Clamp(startPage, 0, Math.Max(0, pageCount - 1));

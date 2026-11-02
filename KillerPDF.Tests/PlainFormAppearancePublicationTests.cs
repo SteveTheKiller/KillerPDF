@@ -20,8 +20,8 @@ public sealed class PlainFormAppearancePublicationTests
         {
             File.WriteAllBytes(generatedPath, Create(false));
             File.WriteAllBytes(expectedPath, Create(true));
-            using var generated = PdfPageRenderSession.OpenEngineFirst(generatedPath, 200, 100);
-            using var expected = PdfPageRenderSession.OpenEngineFirst(expectedPath, 200, 100);
+            using var generated = PdfPageRenderSession.OpenEngineFirst(generatedPath, 200, 100, null);
+            using var expected = PdfPageRenderSession.OpenEngineFirst(expectedPath, 200, 100, null);
             byte[] pixels = expected.RenderPage(0).Pixels;
             Assert.Contains(pixels, component => component < 128);
             PdfRenderedPage preview = generated.RenderFittedPage(0, 200, 100, includeFormFields: true);
@@ -57,7 +57,7 @@ public sealed class PlainFormAppearancePublicationTests
         try
         {
             File.WriteAllBytes(path, Create(variant == "saved", variant));
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 200, 100);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 200, 100, null);
             PdfRenderedPage preview = session.RenderFittedPage(0, 200, 100, includeFormFields: true);
             Assert.Contains(preview.RenderDiagnostics, item => item.BlocksPublication);
             if (variant == "missing-glyph")

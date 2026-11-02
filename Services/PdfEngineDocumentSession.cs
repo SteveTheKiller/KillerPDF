@@ -32,11 +32,12 @@ internal sealed class PdfEngineDocumentSession
         return forDisplay ? [.. widgets.Where(widget => (widget.AnnotationFlags & 34) == 0)] : widgets;
     }
 
-    internal static PdfEngineDocumentSession Open(string path)
+    internal static PdfEngineDocumentSession Open(string path, OpenedProtection? protection)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        // Same recovery as the working document, so a file that opened is never rejected here.
-        PdfDocument document = PdfEngineIntegration.OpenForReading(File.ReadAllBytes(path));
+        // Same recovery and the same key as the working document, so a file that opened is never
+        // rejected here.
+        PdfDocument document = PdfEngineIntegration.OpenForReading(File.ReadAllBytes(path), protection);
         return new PdfEngineDocumentSession(path, document,
             PdfPageInformation.Read(document));
     }

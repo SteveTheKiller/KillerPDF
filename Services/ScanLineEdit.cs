@@ -94,7 +94,8 @@ internal static class ScanLineEdit
         lock (MeasureRenderSync)
             if (_lastMeasureRender is { } last && last.Key == key)
                 return ((byte[])last.Pixels.Clone(), last.Width, last.Height);
-        using PdfPageRenderSession session = PdfPageRenderSession.OpenEngineFirst(path, MeasureEdge, MeasureEdge);
+        // Only an editable tab measures a line, and an editable tab reads a plain working copy.
+        using PdfPageRenderSession session = PdfPageRenderSession.OpenEngineFirst(path, MeasureEdge, MeasureEdge, null);
         PdfRenderedPage page = session.RenderPage(pageIndex);
         byte[] pixels = (byte[])page.Pixels.Clone();
         OverWhitePage(pixels);

@@ -18,7 +18,7 @@ namespace KillerPDF.Shell
             PdfPageInformation page = PdfEngineIntegration.ReadPageInformation(file)[pageIndex];
             // The page as it shows in the viewer: its effective rotation, the app's when it has one.
             int rotation = ((_pageRotations.TryGetValue(pageIndex, out int turned) ? turned : page.Rotation) % 360 + 360) % 360;
-            if (RegionPreview(file, pageIndex, page.Rotation, rotation) is not { } preview) return;
+            if (RegionPreview(file, _protection, pageIndex, page.Rotation, rotation) is not { } preview) return;
             PdfContentBounds ToPage(Rect box)
             {
                 var (left, bottom, right, top) = RedactionGeometry.CanvasToPage(box, page.Width, page.Height,
@@ -59,11 +59,11 @@ namespace KillerPDF.Shell
         // The base page without annotations or form fields, since only the page itself is
         // rasterized. The renderer applies the file's /Rotate; the rest of the turn comes here.
         private static System.Windows.Media.Imaging.BitmapSource? RegionPreview(
-            string file, int pageIndex, int fileRotation, int rotation)
+            string file, OpenedProtection protection, int pageIndex, int fileRotation, int rotation)
         {
             try
             {
-                using var session = PdfPageRenderSession.OpenEngineFirst(file, 1200, 1200);
+                using var session = PdfPageRenderSession.OpenEngineFirst(file, 1200, 1200, protection);
                 PdfRenderedPage rendered = session.RenderBasePage(pageIndex);
                 (byte[] pixels, int width, int height) = (rendered.Pixels, rendered.Width, rendered.Height);
                 (pixels, width, height) = BitmapHelpers.RotateBitmap(pixels, width, height, rotation - fileRotation);

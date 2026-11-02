@@ -157,7 +157,7 @@ namespace KillerPDF.Services
             Dictionary<double, PdfPageRenderSession> sessions, string sourcePath, double dpi)
         {
             if (!sessions.TryGetValue(dpi, out PdfPageRenderSession? session))
-                sessions[dpi] = session = PdfPageRenderSession.OpenEngineFirst(sourcePath, dpi / 72.0);
+                sessions[dpi] = session = PdfPageRenderSession.OpenEngineFirst(sourcePath, dpi / 72.0, null);   // the plain saved copy
             return session;
         }
 

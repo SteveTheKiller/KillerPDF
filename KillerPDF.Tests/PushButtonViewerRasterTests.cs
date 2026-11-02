@@ -32,7 +32,7 @@ public sealed class PushButtonViewerRasterTests
         try
         {
             File.WriteAllBytes(path, Document(field));
-            var request = cache.Capture(path, 0);
+            var request = cache.Capture(path, 0, null);
             using var lease = request.Rent();
             var rendered = lease.Render(0, Width, Height);
             return rendered.Pixels;

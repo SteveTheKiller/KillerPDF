@@ -35,7 +35,7 @@ namespace KillerPDF.Shell
             try
             {
                 string tempPath = BuildPdfFromImages(dlg.FileNames);
-                _doc = PdfWorkingDocument.Open(tempPath);
+                _doc = PdfWorkingDocument.Open(tempPath, null);
                 FinishOpenFile("Imported.pdf", tempPath);
                 _originalFile = null;   // no saved location yet -> Save becomes Save As
                 MarkDirty(true);        // unsaved -> orange icon + close warns
@@ -195,7 +195,7 @@ namespace KillerPDF.Shell
                     return;
                 }
 
-                _doc = PdfWorkingDocument.Open(tempPath);
+                _doc = PdfWorkingDocument.Open(tempPath, null);
                 FinishOpenFile("Combined.pdf", tempPath);
                 _originalFile = null;   // unsaved -> Save routes to Save As
                 MarkDirty(true);
@@ -232,7 +232,7 @@ namespace KillerPDF.Shell
             try
             {
                 string tempPath = BuildPdfFromImages(images);
-                _doc = PdfWorkingDocument.Open(tempPath);
+                _doc = PdfWorkingDocument.Open(tempPath, null);
                 FinishOpenFile(displayName, tempPath);
                 _originalFile = null;
                 MarkDirty(true);

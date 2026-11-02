@@ -83,7 +83,7 @@ public sealed class ScanLineMeasureTests
             PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [cover, text] },
                 new Dictionary<int, (int w, int h)> { [0] = ((int)Math.Round(line.Width), (int)Math.Round(line.Height)) });
 
-            using var saved = PdfContentDocument.Open(path);
+            using var saved = PdfContentDocument.Open(path, null);
             var page = saved.GetPage(1);
             double written = page.GetWords().Single(word => word.Text == "via").Letters[0].StartBaseLine.Y;
             double ink = page.Height - fit.WordBaselines[plan.First] / ScreenPixelsPerPoint;
@@ -99,7 +99,7 @@ public sealed class ScanLineMeasureTests
 
     private static ScanLine FirstLine()
     {
-        using var document = PdfContentDocument.Open(Fixture);
+        using var document = PdfContentDocument.Open(Fixture, null);
         var page = document.GetPage(1);
         double width = page.Width * ScreenPixelsPerPoint, height = page.Height * ScreenPixelsPerPoint;
         PdfExtractedWord[] line = [.. page.GetWords().Take(7)];

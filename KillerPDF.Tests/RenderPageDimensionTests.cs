@@ -20,7 +20,7 @@ public sealed class RenderPageDimensionTests
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage()
                 .SetPageBox(0, PdfPageBox.Crop, 10, 20, 200.8, 301.6)
                 .SetPageRotation(0, rotation).Build());
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 128, 128);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 128, 128, null);
             var page = session.RenderBasePage(0);
             Assert.Equal(expectedWidth, page.Width);
             Assert.Equal(expectedHeight, page.Height);
@@ -41,7 +41,7 @@ public sealed class RenderPageDimensionTests
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder()
                 .AddPage(width, height, new PdfContentStreamBuilder()).Build());
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 0.5);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 0.5, null);
             var page = session.RenderBasePage(0);
             Assert.Equal(expectedWidth, page.Width);
             Assert.Equal(expectedHeight, page.Height);
@@ -60,7 +60,7 @@ public sealed class RenderPageDimensionTests
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder()
                 .AddPage(width, height, new PdfContentStreamBuilder()).Build());
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 128, 128);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 128, 128, null);
             var page = session.RenderBasePage(0);
             Assert.Equal(expectedWidth, page.Width);
             Assert.Equal(expectedHeight, page.Height);

@@ -78,7 +78,7 @@ namespace KillerPDF.Controls
             if (_currentTool != EditTool.Select || _currentFile is null) return CursorForTool(_currentTool);
             if (!_renderDims.TryGetValue(pageIdx, out var rd) || rd.w <= 0 || rd.h <= 0)
                 return Cursors.Arrow;
-            var runs = _textRuns.GetPage(_currentFile, pageIdx);
+            var runs = _textRuns.GetPage(_currentFile, _protection,pageIdx);
             if (runs is null || runs.Chars.Count == 0) return Cursors.Arrow;
             var (px, py) = CanvasToPdf(pageIdx, pos, rd.w, rd.h, runs);
             return TextRunService.IsOverText(runs, px, py) ? Cursors.IBeam : Cursors.Arrow;
@@ -90,7 +90,7 @@ namespace KillerPDF.Controls
         {
             if (_currentFile is null) return false;
             if (!_renderDims.TryGetValue(pageIdx, out var rd)) return false;
-            var runs = _textRuns.GetPage(_currentFile, pageIdx);
+            var runs = _textRuns.GetPage(_currentFile, _protection,pageIdx);
             if (runs is null || runs.Chars.Count == 0) return false;
 
             var (px, py) = CanvasToPdf(pageIdx, pos, rd.w, rd.h, runs);
@@ -108,7 +108,7 @@ namespace KillerPDF.Controls
         private bool IsTextAtPosition(int pageIdx, Point pos)
         {
             if (_currentFile is null || !_renderDims.TryGetValue(pageIdx, out var rd)) return false;
-            var runs = _textRuns.GetPage(_currentFile, pageIdx);
+            var runs = _textRuns.GetPage(_currentFile, _protection,pageIdx);
             if (runs is null || runs.Chars.Count == 0) return false;
             var (px, py) = CanvasToPdf(pageIdx, pos, rd.w, rd.h, runs);
             return TextRunService.IsOverText(runs, px, py);
@@ -117,7 +117,7 @@ namespace KillerPDF.Controls
         private bool TrySelectWordAtPosition(int pageIdx, Point pos)
         {
             if (_currentFile is null || !_renderDims.TryGetValue(pageIdx, out var rd)) return false;
-            var runs = _textRuns.GetPage(_currentFile, pageIdx);
+            var runs = _textRuns.GetPage(_currentFile, _protection,pageIdx);
             if (runs is null || runs.Chars.Count == 0) return false;
             var (px, py) = CanvasToPdf(pageIdx, pos, rd.w, rd.h, runs);
             var range = TextRunService.WordRangeFromPoint(runs, px, py);
@@ -175,7 +175,7 @@ namespace KillerPDF.Controls
             pos = new Point(Math.Max(0, Math.Min(cvW, pos.X)), Math.Max(0, Math.Min(cvH, pos.Y)));
 
             if (!_renderDims.TryGetValue(page, out var rd)) return;
-            var runs = _textRuns.GetPage(_currentFile, page);
+            var runs = _textRuns.GetPage(_currentFile, _protection,page);
             if (runs is null) return;
 
             var (px, py) = CanvasToPdf(page, pos, rd.w, rd.h, runs);
@@ -249,7 +249,7 @@ namespace KillerPDF.Controls
             var sb = new System.Text.StringBuilder();
             for (int p = s.Page; p <= e.Page; p++)
             {
-                var runs = _textRuns.GetPage(_currentFile, p);
+                var runs = _textRuns.GetPage(_currentFile, _protection,p);
                 if (runs is null || runs.Chars.Count == 0) continue;
                 var (start, end) = SelectionSliceForPage(p, runs.Chars.Count);
                 if (start >= end) continue;
@@ -273,7 +273,7 @@ namespace KillerPDF.Controls
             var (s, e) = OrderedSelection();
             if (page < s.Page || page > e.Page) return result;
             if (!_renderDims.TryGetValue(page, out var rd)) return result;
-            var runs = _textRuns.GetPage(_currentFile, page);
+            var runs = _textRuns.GetPage(_currentFile, _protection,page);
             if (runs is null || runs.Chars.Count == 0) return result;
             var (start, end) = SelectionSliceForPage(page, runs.Chars.Count);
             return CaretRangeRects(page, runs, start, end, rd);
@@ -393,7 +393,7 @@ namespace KillerPDF.Controls
 
             try
             {
-                var runs = _textRuns.GetPage(_currentFile, pageIdx);
+                var runs = _textRuns.GetPage(_currentFile, _protection,pageIdx);
                 if (runs is null || runs.Chars.Count == 0)
                 {
                     SetStatus(Loc("Str_St_NoTextOnPage"));
@@ -474,7 +474,7 @@ namespace KillerPDF.Controls
             {
                 var (renderW, renderH) = renderDimensions;
 
-                using var contentDoc = ContentDoc.Open(_currentFile);
+                using var contentDoc = ContentDoc.Open(_currentFile, _protection);
                 if (pageIdx >= contentDoc.NumberOfPages)
                 {
                     ClearTextSelection();

@@ -90,7 +90,7 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
         string method = source[methodStart..methodEnd];
 
-        Assert.Contains("OpenDocument(path)", method, StringComparison.Ordinal);
+        Assert.Contains("OpenDocument(path, protection)", method, StringComparison.Ordinal);
         Assert.Contains("EngineDocument.OpenWithCompatibilityRecovery(", source,
             StringComparison.Ordinal);
         Assert.Contains("RenderOwnedPage(renderer,", method, StringComparison.Ordinal);

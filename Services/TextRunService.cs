@@ -60,23 +60,25 @@ namespace KillerPDF.Services
         // Keyed by (path, last-write ticks, page): a resave or temp-reload changes the key, so stale
         // geometry can never serve a newer file. Nulls are cached too - a file engine cannot open
         // should not be re-parsed on every click.
-        private readonly Dictionary<(string Path, long Ticks, int Page), PageTextRuns?> _cache = [];
+        // A page read under a tab's key is kept apart from one read with none, so a caller without
+        // the key never gets the text the key decrypted.
+        private readonly Dictionary<(string Path, long Ticks, int Page, bool Keyed), PageTextRuns?> _cache = [];
 
-        public PageTextRuns? GetPage(string path, int pageIdx)
+        public PageTextRuns? GetPage(string path, OpenedProtection? protection, int pageIdx)
         {
             if (string.IsNullOrEmpty(path) || pageIdx < 0) return null;
             long ticks;
             try { ticks = File.GetLastWriteTimeUtc(path).Ticks; }
             catch { return null; }
 
-            var key = (path, ticks, pageIdx);
+            var key = (path, ticks, pageIdx, protection is not null);
             if (_cache.TryGetValue(key, out var hit)) return hit;
             if (_cache.Count > 512) _cache.Clear();   // simple cap; entries are tiny but unbounded is unbounded
 
             PageTextRuns? runs = null;
             try
             {
-                using var doc = PdfDocument.Open(path);
+                using var doc = PdfDocument.Open(path, protection);
                 if (pageIdx < doc.NumberOfPages)
                     runs = Build(doc.GetPage(pageIdx + 1));   // The app facade is 1-based
             }

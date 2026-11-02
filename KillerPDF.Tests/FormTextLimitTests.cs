@@ -29,26 +29,26 @@ namespace KillerPDF.Tests
         // R4-008: the limits are read once per document and stay with it, so going back and forth
         // between two form tabs reads neither again.
         [Fact]
-        public void EachDocumentsLimitsAreReadOnceAcrossTabSwitches()
+        public async Task EachDocumentsLimitsAreReadOnceAcrossTabSwitches()
         {
             var cache = new FormTextLimitCache();
             object first = new(), second = new();
             int reads = 0;
             IReadOnlyDictionary<string, int> Read() { reads++; return new Dictionary<string, int> { ["name"] = reads }; }
 
-            int firstName = cache.Read(first, Read).Result["name"];
+            int firstName = (await cache.Read(first, Read))["name"];
             foreach (object document in new[] { second, first, second, first })
-                cache.Read(document, Read).Wait();
+                await cache.Read(document, Read);
 
             Assert.Equal(2, reads);
-            Assert.Equal(firstName, cache.Read(first, Read).Result["name"]);
-            Assert.NotEqual(firstName, cache.Read(second, Read).Result["name"]);
+            Assert.Equal(firstName, (await cache.Read(first, Read))["name"]);
+            Assert.NotEqual(firstName, (await cache.Read(second, Read))["name"]);
         }
 
         // Measured on a 1,000-page file with 20 links a page, the read takes about a quarter of a
         // second, so it runs on a worker, and a field holds to its own limit until it is known.
         [Fact]
-        public void BuildingAFieldDoesNotWaitForTheRead()
+        public async Task BuildingAFieldDoesNotWaitForTheRead()
         {
             var cache = new FormTextLimitCache();
             object document = new();
@@ -59,21 +59,21 @@ namespace KillerPDF.Tests
             Task<IReadOnlyDictionary<string, int>> reading = cache.Read(document, Read);
             Assert.Null(cache.Known(document));
             hold.Set();
-            reading.Wait();
+            await reading;
 
             Assert.Equal(5, cache.Known(document)!["name"]);
         }
 
         // A page edit opens a new working document, whose fields may differ, so it is read afresh.
         [Fact]
-        public void ANewWorkingDocumentIsReadAgain()
+        public async Task ANewWorkingDocumentIsReadAgain()
         {
             var cache = new FormTextLimitCache();
             int reads = 0;
             IReadOnlyDictionary<string, int> Read() { reads++; return new Dictionary<string, int>(); }
 
-            cache.Read(new object(), Read).Wait();
-            cache.Read(new object(), Read).Wait();
+            await cache.Read(new object(), Read);
+            await cache.Read(new object(), Read);
 
             Assert.Equal(2, reads);
         }

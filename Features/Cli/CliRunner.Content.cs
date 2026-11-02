@@ -258,7 +258,7 @@ namespace KillerPDF.Features
             var edits = new List<PdfTextLineEdit>();
             var matchCounts = new List<int>();
             int occurrences = 0, skippedTurned = 0;
-            using (PdfContentDocument content = PdfContentDocument.Open(source))
+            using (PdfContentDocument content = PdfContentDocument.Open(source, null))
             {
                 for (int pageIndex = 0; pageIndex < content.NumberOfPages; pageIndex++)
                 {

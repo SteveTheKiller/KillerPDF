@@ -75,7 +75,8 @@ public partial class MainWindow
         try
         {
             snapshot = CreateExchangeSnapshot();
-            PdfDocument document = PdfEngineIntegration.OpenForReading(File.ReadAllBytes(snapshot));
+            // The snapshot holds the tab's own bytes, so it reads under the tab's protection.
+            PdfDocument document = PdfEngineIntegration.OpenForReading(File.ReadAllBytes(snapshot), _protection);
             byte[] bytes = bookmarks
                 ? Encoding.UTF8.GetBytes(PdfBookmarkExchange.ToJson(document, indented: true))
                 : PdfEngineIntegration.ExportFormData(document, Path.GetExtension(destination),

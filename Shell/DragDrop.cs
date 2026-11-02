@@ -194,6 +194,7 @@ namespace KillerPDF.Shell
                             .FirstOrDefault(page => page.PageIndex == selected[0])?.Thumbnail;
                         thumbnail ??= PageThumbnailVm.BuildThumb(
                             session.CurrentFile,
+                            session.Protection,
                             selected[0],
                             session.PageRotations.TryGetValue(selected[0], out int rotation) ? rotation : 0);
                         _pageDragCursor = PageDragCursor.Create(thumbnail, selected.Length);

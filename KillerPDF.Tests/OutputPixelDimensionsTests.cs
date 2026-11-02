@@ -110,7 +110,7 @@ public sealed class OutputPixelDimensionsTests
         try
         {
             File.WriteAllBytes(path, new KillerPdf.Engine.Authoring.PdfDocumentBuilder().AddBlankPage(points, points).Build());
-            using PdfPageRenderSession session = PdfPageRenderSession.OpenEngineFirst(path, dpi / 72.0);
+            using PdfPageRenderSession session = PdfPageRenderSession.OpenEngineFirst(path, dpi / 72.0, null);
             PdfRenderedPage rendered = session.RenderPage(0);
 
             Assert.Equal((rendered.Width, rendered.Height), OutputPixelDimensions.FromPoints(points, points, dpi));

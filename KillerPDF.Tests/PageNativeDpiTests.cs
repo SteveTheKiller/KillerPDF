@@ -24,7 +24,7 @@ public sealed class PageNativeDpiTests : IDisposable
             .AddBlankPage()
             .Build());
 
-        Dictionary<int, double> dpis = PdfEngineDocumentSession.Open(path).NativeDpis([0, 1, 2], null, 150);
+        Dictionary<int, double> dpis = PdfEngineDocumentSession.Open(path, null).NativeDpis([0, 1, 2], null, 150);
 
         Assert.Equal(106, dpis[0]);
         Assert.Equal(50, dpis[1]);
@@ -44,7 +44,7 @@ public sealed class PageNativeDpiTests : IDisposable
         using var cancel = new CancellationTokenSource();
         cancel.Cancel();
 
-        Dictionary<int, double> dpis = PdfEngineDocumentSession.Open(path).NativeDpis([0, 1, 2, 3, 4], null, 150, cancel.Token);
+        Dictionary<int, double> dpis = PdfEngineDocumentSession.Open(path, null).NativeDpis([0, 1, 2, 3, 4], null, 150, cancel.Token);
 
         Assert.Empty(dpis);
     }
@@ -60,7 +60,7 @@ public sealed class PageNativeDpiTests : IDisposable
             .Build());
         var seen = new List<(int Done, int Total)>();
 
-        PdfEngineDocumentSession.Open(path).NativeDpis([0, 1], null, 150, default, (done, total) => seen.Add((done, total)));
+        PdfEngineDocumentSession.Open(path, null).NativeDpis([0, 1], null, 150, default, (done, total) => seen.Add((done, total)));
 
         Assert.Equal([(1, 2), (2, 2)], seen);
     }
@@ -72,7 +72,7 @@ public sealed class PageNativeDpiTests : IDisposable
         string path = Path.Combine(_folder, "heavy.pdf");
         File.WriteAllBytes(path, HeavyThenLight());
         Assert.True(HeavyReadMilliseconds(path) > 400, "The heavy page must take long enough to overlap.");
-        PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path);
+        PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path, null);
         var clock = System.Diagnostics.Stopwatch.StartNew();
         long heavyDone = 0;
 
@@ -87,7 +87,7 @@ public sealed class PageNativeDpiTests : IDisposable
 
     private static long HeavyReadMilliseconds(string path)
     {
-        PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path);
+        PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(path, null);
         var clock = System.Diagnostics.Stopwatch.StartNew();
         session.PageImagePixels(0);
         return clock.ElapsedMilliseconds;

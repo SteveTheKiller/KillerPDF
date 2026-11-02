@@ -23,7 +23,7 @@ public sealed class PortfolioEditorIntegrationTests
             PdfEngineIntegration.ApplyPortfolioPresentation(
                 path, PdfCollectionView.Tile, "cover.pdf");
             PdfEngineIntegration.PortfolioEditorState edited =
-                PdfEngineIntegration.ReadPortfolioEditorState(path);
+                PdfEngineIntegration.ReadPortfolioEditorState(path, null);
             Assert.Equal(PdfCollectionView.Tile, edited.Collection?.View);
             Assert.Equal("cover.pdf", edited.Collection?.InitialDocument);
             Assert.Equal(["cover.pdf"],
@@ -80,7 +80,7 @@ public sealed class PortfolioEditorIntegrationTests
                 });
 
             PdfEngineIntegration.PortfolioEditorState state =
-                PdfEngineIntegration.ReadPortfolioEditorState(path);
+                PdfEngineIntegration.ReadPortfolioEditorState(path, null);
             Assert.Equal(["project", "score"],
                 state.Collection!.Fields.Select(field => field.Key));
             Assert.Equal("score", Assert.Single(state.Collection.Sort).Key);

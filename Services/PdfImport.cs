@@ -138,7 +138,7 @@ namespace KillerPDF.Services
                 const int RenderPx = 2048;
 
                 using var renderSession = PdfPageRenderSession.OpenEngineFirst(
-                    path, RenderPx, RenderPx);
+                    path, RenderPx, RenderPx, null);
                 int pageCount = renderSession.PageCount;
                 if (pageCount <= 0) return null;
 

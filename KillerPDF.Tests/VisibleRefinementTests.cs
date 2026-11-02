@@ -25,7 +25,7 @@ public sealed class VisibleRefinementTests
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddPage(100, 150, Encoding.ASCII.GetBytes(
                 "0.8 0.1 0.3 rg 3.25 4.5 94 140 re f 0.1 0.8 0.2 RG 3.5 w 1 J 1 j " +
                 "-5 8 m 110 140 l S 0.4 0.2 0.9 rg 4 70 m 100 160 120 -40 30 45 c f")).Build());
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 321, 321);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 321, 321, null);
             var full = session.RenderFittedPage(0, 321, 321);
             int dw = rotation is 90 or 270 ? full.Height : full.Width;
             int dh = rotation is 90 or 270 ? full.Width : full.Height;
@@ -60,7 +60,7 @@ public sealed class VisibleRefinementTests
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddPage(612, 396, ReadOnlyMemory<byte>.Empty)
                 .AddHighlight(0, 100, 200, 300, 36).Build());
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 512, 512);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 512, 512, null);
             var full = session.RenderFittedPage(0, 512, 512);
             var crop = session.RenderFittedRegion(0, 512, 512, 128, 82, 170, 110);
             for (int row = 0; row < crop.Height; row++)

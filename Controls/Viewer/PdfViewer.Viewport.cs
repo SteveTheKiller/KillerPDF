@@ -71,7 +71,7 @@ namespace KillerPDF.Controls
                 ? SpreadStart(pageIndex) - 2 : pageIndex - 1;
             int[] targets = [forward, backward];
             var rotations = new Dictionary<int, int>(_pageRotations);
-            var renderRequest = _backgroundRenderCache.Capture(currentFile, revision);
+            var renderRequest = _backgroundRenderCache.Capture(currentFile, revision, _protection);
             _ = System.Threading.Tasks.Task.Run(async () =>
             {
                 ContentDoc? contentDoc = null;
@@ -95,7 +95,7 @@ namespace KillerPDF.Controls
                         if (w <= 0 || h <= 0 || raw is null) continue;
                         if (invert)
                             BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h,
-                                ImageRectsFor(currentFile, target, ref contentDoc));
+                                ImageRectsFor(currentFile, renderRequest.Protection, target, ref contentDoc));
                         if (rot != 0)
                             (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
                         if (cancellationToken.IsCancellationRequested) return;
@@ -129,7 +129,7 @@ namespace KillerPDF.Controls
         /// many pages it fills) - the caller disposes it; a held handle on the temp file would
         /// block the save-time file swap. Encrypted or unparsable pages cache an empty set, which
         /// falls back to inverting everything - the pre-carve-out behavior.</summary>
-        private BitmapHelpers.FracRect[] ImageRectsFor(string file, int page, ref ContentDoc? contentDoc)
+        private BitmapHelpers.FracRect[] ImageRectsFor(string file, Services.OpenedProtection? protection, int page, ref ContentDoc? contentDoc)
         {
             // Opt-in full inversion (moon right-click, "Invert images too"): no carve-out, and
             // no engine open paid for rects nobody will use.
@@ -139,7 +139,7 @@ namespace KillerPDF.Controls
             BitmapHelpers.FracRect[] rects;
             try
             {
-                contentDoc ??= ContentDoc.Open(file);
+                contentDoc ??= ContentDoc.Open(file, protection);
                 rects = PdfImages.GetFracRects(contentDoc, page);
             }
             catch { rects = []; }
@@ -652,7 +652,7 @@ namespace KillerPDF.Controls
             var rotations = new Dictionary<int, int>(_pageRotations);
 
             var session = _active;
-            var renderRequest = _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0);
+            var renderRequest = _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0, _protection);
             var renderToken = cts.Token;
             var renderTask = System.Threading.Tasks.Task.Run(async () =>
             {
@@ -691,7 +691,7 @@ namespace KillerPDF.Controls
                         // pixel-buffer rotation (the ops commute for the full page) so the image
                         // carve-out rects stay in unrotated page space.
                         if (DocInvert)
-                            BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h, ImageRectsFor(currentFile, i, ref contentDoc));
+                            BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h, ImageRectsFor(currentFile, renderRequest.Protection, i, ref contentDoc));
                         if (rot != 0)
                             (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
 
@@ -938,7 +938,7 @@ namespace KillerPDF.Controls
                 }
                 else
                 {
-                    var request = _backgroundRenderCache.Capture(primaryFile, primaryRevision);
+                    var request = _backgroundRenderCache.Capture(primaryFile, primaryRevision, _protection);
                     var (preparedBitmap, preparedMeasurement) = await _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
                         8L * scaledMax * scaledMax,
                         token => PreparePrimaryBitmap(request, pageIndex, scaledMax, pgRot, primaryInvert, token),
@@ -1218,7 +1218,7 @@ namespace KillerPDF.Controls
                 // tile bitmap whose baked logical geometry follows the primary page cannot collide
                 // with a primary bitmap rendered at the same pixel budget.
                 int tileBucket = -secondaryMax;
-                var renderRequest = _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0);
+                var renderRequest = _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0, _protection);
                 var secondaryToken = cts.Token;
                 await System.Threading.Tasks.Task.Run(async () =>
                 {
@@ -1273,7 +1273,7 @@ namespace KillerPDF.Controls
                                 // #135: dark mode with pictures excluded; invert before the rotation
                                 // so the carve-out rects stay in unrotated page space.
                                 if (DocInvert)
-                                    BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, w, h, ImageRectsFor(currentFile, i, ref contentDoc));
+                                    BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, w, h, ImageRectsFor(currentFile, renderRequest.Protection, i, ref contentDoc));
                                 if (rot != 0)
                                     (rawBytes, w, h) = BitmapHelpers.RotateBitmap(rawBytes, w, h, rot);
 

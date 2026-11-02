@@ -30,10 +30,10 @@ namespace KillerPDF.Features
             if (!CliInspectEditInput(pos[0], pos[1], out string source, out string output, out _, con)) return 2;
             bool removeUnsafe = options.ContainsKey("--unsafe"), removeUnresolved = options.ContainsKey("--unresolved");
             if (!removeUnsafe && !removeUnresolved) removeUnsafe = removeUnresolved = true;
-            int before = PdfEngineIntegration.InspectNavigation(source).Count;
+            int before = PdfEngineIntegration.InspectNavigation(source, null).Count;
             CliWriteEditedCopy(source, output, path =>
                 PdfEngineIntegration.RepairNavigationLinks(path, removeUnsafe, removeUnresolved));
-            int after = PdfEngineIntegration.InspectNavigation(output).Count;
+            int after = PdfEngineIntegration.InspectNavigation(output, null).Count;
             con.WriteLine($"Navigation findings: {before} before, {after} after -> {output}");
             return 0;
         }
@@ -59,7 +59,7 @@ namespace KillerPDF.Features
                 con.WriteLine("--depth must be from 1 to 6.");
                 return 2;
             }
-            if (PdfEngineIntegration.PlanTableOfContents(source, depth).Entries.Count == 0)
+            if (PdfEngineIntegration.PlanTableOfContents(source, depth, null).Entries.Count == 0)
             {
                 con.WriteLine("The document has no bookmarks to build a table of contents from. Add some with --auto-bookmarks first.");
                 return 1;
@@ -232,7 +232,7 @@ namespace KillerPDF.Features
             const string usage = "Usage: KillerPDF.exe --set-layer <in.pdf> <out.pdf> <layer name or #object> [--name <new name>] [--visible on|off] [--locked on|off]";
             if (pos.Count != 3) { con.WriteLine(usage); return 2; }
             if (!CliInspectEditInput(pos[0], pos[1], out string source, out string output, out _, con)) return 2;
-            PdfOptionalContentInfo layers = PdfEngineIntegration.InspectLayers(source);
+            PdfOptionalContentInfo layers = PdfEngineIntegration.InspectLayers(source, null);
             string wanted = pos[2];
             PdfOptionalContentGroupInfo[] matches = wanted.StartsWith('#') && int.TryParse(wanted[1..], out int number)
                 ? [.. layers.Groups.Where(group => group.ObjectNumber == number)]
@@ -275,7 +275,7 @@ namespace KillerPDF.Features
                 if (!File.Exists(file)) { con.WriteLine($"File not found: {file}"); return 2; }
             if (files.Select(Path.GetFileName).Distinct(StringComparer.OrdinalIgnoreCase).Count() != files.Length)
             { con.WriteLine("Each attached file needs a different name."); return 2; }
-            HashSet<string> existing = [.. PdfEngineIntegration.ReadAttachmentEditorItems(source).Select(item => item.FileName)];
+            HashSet<string> existing = [.. PdfEngineIntegration.ReadAttachmentEditorItems(source, null).Select(item => item.FileName)];
             string? clash = files.Select(Path.GetFileName).FirstOrDefault(name => existing.Contains(name!, StringComparer.OrdinalIgnoreCase));
             if (clash is not null) { con.WriteLine($"The document already has an attachment named {clash}."); return 2; }
             options.TryGetValue("--description", out string? description);
@@ -323,7 +323,7 @@ namespace KillerPDF.Features
                 return 2;
             }
             if (!CliInspectEditInput(pos[0], pos[1], out string source, out string output, out _, con)) return 2;
-            IReadOnlyList<PdfEngineIntegration.AttachmentEditorItem> items = PdfEngineIntegration.ReadAttachmentEditorItems(source);
+            IReadOnlyList<PdfEngineIntegration.AttachmentEditorItem> items = PdfEngineIntegration.ReadAttachmentEditorItems(source, null);
             PdfEngineIntegration.AttachmentEditorItem? target =
                 PdfEngineIntegration.FindAttachmentEditorItem(items, pos[2], out bool ambiguous);
             if (ambiguous)
@@ -374,7 +374,7 @@ namespace KillerPDF.Features
                     ("tile", PdfCollectionView.Tile), ("hidden", PdfCollectionView.Hidden)) || view is null)
             { con.WriteLine(usage); return 2; }
             options.TryGetValue("--initial", out string? initial);
-            if (!string.IsNullOrWhiteSpace(initial) && !PdfEngineIntegration.ReadAttachmentEditorItems(source)
+            if (!string.IsNullOrWhiteSpace(initial) && !PdfEngineIntegration.ReadAttachmentEditorItems(source, null)
                     .Any(item => string.Equals(item.FileName, initial, StringComparison.Ordinal)))
             { con.WriteLine($"The document has no attachment named {initial}."); return 2; }
             CliWriteEditedCopy(source, output, path => PdfEngineIntegration.ApplyPortfolioPresentation(

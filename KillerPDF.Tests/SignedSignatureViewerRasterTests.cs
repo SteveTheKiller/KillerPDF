@@ -34,7 +34,7 @@ public sealed class SignedSignatureViewerRasterTests
         try
         {
             File.WriteAllBytes(path, Document(signed: true));
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, Width, Height);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, Width, Height, null);
             Assert.True(IsGreen(session.RenderFittedPage(0, Width, Height, includeFormFields: true).Pixels, 70, 50));
         }
         finally { File.Delete(path); }
@@ -47,7 +47,7 @@ public sealed class SignedSignatureViewerRasterTests
         try
         {
             File.WriteAllBytes(path, Document(signed));
-            var request = cache.Capture(path, 0);
+            var request = cache.Capture(path, 0, null);
             using var lease = request.Rent();
             var rendered = lease.Render(0, Width, Height);
             Assert.Equal(Width, rendered.Width);

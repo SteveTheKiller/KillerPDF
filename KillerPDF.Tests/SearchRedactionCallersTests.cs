@@ -143,7 +143,7 @@ public sealed class SearchRedactionCallersTests : IDisposable
     {
         string body = Between(ReadSource("Features", "Cli", "CliRunner.Redact.cs"), "private static int CliRedact(", "private static PdfEngineIntegration.SanitizeChoices? CliSanitizeChoices");
 
-        Assert.Contains("SearchService.LoadPagesForReview(source)", body);
+        Assert.Contains("SearchService.LoadPagesForReview(source, null)", body);
         Assert.Contains("unreadable.UnionWith(annotations.UnreadableAnnotationPages)", body);
         int stops = body.IndexOf("if (unreadable.Count > 0)", StringComparison.Ordinal);
         Assert.True(stops >= 0);
@@ -219,7 +219,7 @@ public sealed class SearchRedactionCallersTests : IDisposable
     {
         File.WriteAllBytes(_path, Pages(Undecodable, Text("Conventional")));
 
-        var (pages, unreadable) = SearchService.LoadPagesForReview(_path);
+        var (pages, unreadable) = SearchService.LoadPagesForReview(_path, null);
 
         Assert.Equal(2, pages.Count);
         Assert.Equal([0], unreadable);
@@ -236,7 +236,7 @@ public sealed class SearchRedactionCallersTests : IDisposable
     {
         File.WriteAllBytes(_path, Pages(Text("Conventional"), Stream(""), CompressedEmptyStream()));
 
-        Assert.Empty(SearchService.LoadPagesForReview(_path).Unreadable);
+        Assert.Empty(SearchService.LoadPagesForReview(_path, null).Unreadable);
     }
 
     [Fact]
@@ -244,7 +244,7 @@ public sealed class SearchRedactionCallersTests : IDisposable
     {
         File.WriteAllBytes(_path, Pages(Undecodable, Undecodable));
 
-        Assert.ThrowsAny<InvalidDataException>(() => SearchService.LoadPagesForReview(_path));
+        Assert.ThrowsAny<InvalidDataException>(() => SearchService.LoadPagesForReview(_path, null));
     }
 
     [Fact]
@@ -346,7 +346,7 @@ public sealed class SearchRedactionCallersTests : IDisposable
         using var cancelled = new CancellationTokenSource();
         cancelled.Cancel();
 
-        Assert.ThrowsAny<OperationCanceledException>(() => SearchService.Search(source, "Conventional", false, false, cancelled.Token));
+        Assert.ThrowsAny<OperationCanceledException>(() => SearchService.Search(source, null, "Conventional", false, false, cancelled.Token));
     }
 
     [Fact]
@@ -355,7 +355,7 @@ public sealed class SearchRedactionCallersTests : IDisposable
         byte[] source = Pages(Text("Conventional"), Undecodable);
         File.WriteAllBytes(_path, source);
 
-        SearchResult bytes = SearchService.Search(source, "Conventional", false, false, CancellationToken.None);
+        SearchResult bytes = SearchService.Search(source, null, "Conventional", false, false, CancellationToken.None);
 
         Assert.Equal(SearchService.Search(_path, "Conventional").TotalHits, bytes.TotalHits);
         Assert.Equal([1], bytes.UnreadablePages);

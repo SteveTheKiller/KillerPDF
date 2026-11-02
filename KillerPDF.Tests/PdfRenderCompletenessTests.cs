@@ -32,8 +32,8 @@ public sealed class PdfRenderCompletenessTests
         {
             File.WriteAllBytes(intactPath, intact);
             File.WriteAllBytes(damagedPath, Encoding.Latin1.GetBytes(damaged));
-            using var clean = PdfPageRenderSession.OpenEngineFirst(intactPath, 32, 32);
-            using var recovered = PdfPageRenderSession.OpenEngineFirst(damagedPath, 32, 32);
+            using var clean = PdfPageRenderSession.OpenEngineFirst(intactPath, 32, 32, null);
+            using var recovered = PdfPageRenderSession.OpenEngineFirst(damagedPath, 32, 32, null);
             byte[] expected = clean.RenderPage(0).Pixels;
             Assert.Contains(expected, component => component < 128);
             PdfRenderedPage preview = recovered.RenderFittedPage(0, 32, 32);
@@ -60,7 +60,7 @@ public sealed class PdfRenderCompletenessTests
         try
         {
             File.WriteAllBytes(path, Encoding.Latin1.GetBytes(damaged));
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 32, 32);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 32, 32, null);
             PdfRenderedPage preview = session.RenderFittedPage(0, 32, 32);
             Assert.Contains(preview.RenderDiagnostics, item => item.Kind == PdfRenderDiagnosticKind.Recovery);
             Assert.Contains(preview.RenderDiagnostics, item => item.Kind == PdfRenderDiagnosticKind.OmittedContent);
@@ -80,7 +80,7 @@ public sealed class PdfRenderCompletenessTests
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddPage(120, 80, Encoding.ASCII.GetBytes(content)).Build());
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 1.0);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 1.0, null);
             PdfRenderedPage preview = session.RenderFittedPage(0, 120, 80);
             Assert.Contains(preview.RenderDiagnostics, item => item.Kind == PdfRenderDiagnosticKind.OmittedContent);
             Assert.Contains("Page 1", Assert.Throws<InvalidOperationException>(() => preview.RequireComplete(0)).Message);
@@ -99,7 +99,7 @@ public sealed class PdfRenderCompletenessTests
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddPage(120, 80,
                 "BT /Helvetica 14 Tf 10 30 Td (Recovered) Tj ET"u8.ToArray()).Build());
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 1.0);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 1.0, null);
             PdfRenderedPage result = session.RenderPage(0);
             Assert.Contains(result.RenderDiagnostics, item => item.Kind == PdfRenderDiagnosticKind.Recovery);
             Assert.DoesNotContain(result.RenderDiagnostics, item => item.BlocksPublication);
@@ -120,7 +120,7 @@ public sealed class PdfRenderCompletenessTests
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddPage(120, 80,
                 Encoding.ASCII.GetBytes("1 0 0 rg 4 4 60 40 re f " + content)).Build());
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 60, 40);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 60, 40, null);
             PdfRenderedPage preview = session.RenderPreview(0);
             Assert.Equal((60, 40), (preview.Width, preview.Height));
             Assert.Contains(preview.RenderDiagnostics, item => item.Kind == PdfRenderDiagnosticKind.OmittedContent);
@@ -154,7 +154,7 @@ public sealed class PdfRenderCompletenessTests
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddPage(120, 80,
                 "1 0 0 rg 4 4 60 40 re f q /Missing Do Q"u8.ToArray()).Build());
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 120, 120);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 120, 120, null);
             Assert.Throws<InvalidOperationException>(() => session.RenderPageForEncoding(0));
             PdfPageForEncoding page = session.RenderPageForEncoding(0, requireComplete: false);
             Assert.Equal(session.RenderPreview(0).Pixels, page.Pixels.ToArray());

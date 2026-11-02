@@ -23,7 +23,7 @@ public sealed class CommentEditsTests
                 new CommentAddition(0, "Cover page note", "c3", null)
             ], "Reviewer");
 
-            IReadOnlyList<PdfCommentThread> threads = PdfEngineIntegration.ReadCommentThreads(path);
+            IReadOnlyList<PdfCommentThread> threads = PdfEngineIntegration.ReadCommentThreads(path, null);
             Assert.Equal(2, threads.Count);
             PdfCommentThread total = Assert.Single(threads, thread => thread.Comment.Name == "c1");
             Assert.Equal(1, total.Comment.PageIndex);
@@ -38,7 +38,7 @@ public sealed class CommentEditsTests
                 new CommentRemoval(cover.Comment)
             ], "Reviewer");
 
-            threads = PdfEngineIntegration.ReadCommentThreads(path);
+            threads = PdfEngineIntegration.ReadCommentThreads(path, null);
             total = Assert.Single(threads);
             Assert.Equal("Check this total again", total.Comment.Contents);
             Assert.Single(total.Replies);
@@ -48,7 +48,7 @@ public sealed class CommentEditsTests
                 new CommentRemoval(total.Comment),
                 new CommentRemoval(total.Replies[0].Comment)
             ], null);
-            Assert.Empty(PdfEngineIntegration.ReadCommentThreads(path));
+            Assert.Empty(PdfEngineIntegration.ReadCommentThreads(path, null));
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }

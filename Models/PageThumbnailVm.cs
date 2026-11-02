@@ -14,7 +14,7 @@ namespace KillerPDF
     /// Thumbnail is loaded lazily on a background thread; the UI binds to
     /// the <see cref="Thumbnail"/> property and updates via PropertyChanged.
     /// </summary>
-    internal sealed class PageThumbnailVm(int pageIndex, string filePath, int rotation = 0) : INotifyPropertyChanged
+    internal sealed class PageThumbnailVm(int pageIndex, string filePath, Services.OpenedProtection? protection, int rotation = 0) : INotifyPropertyChanged
     {
         // Concurrency cap for sidebar thumbnail loads. The prior limit of two came from
         // pdfium doc-reader contention, which no longer applies now that the engine is
@@ -35,6 +35,7 @@ namespace KillerPDF
 
 
         private readonly string _filePath = filePath;
+        private readonly Services.OpenedProtection? _protection = protection;   // the tab's, so its own file reads under its key
         private readonly int    _rotation = ((rotation % 360) + 360) % 360; // degrees: 0, 90, 180, 270
 
         public BitmapSource? Thumbnail => _thumb;
@@ -76,14 +77,14 @@ namespace KillerPDF
             await _loadSem.WaitAsync().ConfigureAwait(false);
             try
             {
-                var src = BuildThumb(_filePath, PageIndex, _rotation);
+                var src = BuildThumb(_filePath, _protection, PageIndex, _rotation);
                 if (src != null) SetThumbnail(src);
             }
             catch { /* thumbnail not critical */ }
             finally { _loadSem.Release(); }
         }
 
-        internal static BitmapSource? BuildThumb(string filePath, int pageIndex, int rotation = 0)
+        internal static BitmapSource? BuildThumb(string filePath, Services.OpenedProtection? protection, int pageIndex, int rotation = 0)
         {
             try
             {
@@ -92,7 +93,7 @@ namespace KillerPDF
                 // 288px covers the ~240px the page can show at the widest sidebar; raise for sharper,
                 // lower to save memory (each loaded thumbnail is kept in RAM).
                 using var renderSession =
-                    PdfPageRenderSession.OpenEngineFirst(filePath, 288, 576);
+                    PdfPageRenderSession.OpenEngineFirst(filePath, 288, 576, protection);
                 PdfRenderedPage page = renderSession.RenderPreview(pageIndex);
                 int tw = page.Width;
                 int th = page.Height;

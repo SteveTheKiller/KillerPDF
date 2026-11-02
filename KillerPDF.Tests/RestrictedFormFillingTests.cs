@@ -31,7 +31,7 @@ public sealed class RestrictedFormFillingTests : IDisposable
         string saved = Path.Combine(_directory, "saved.pdf");
 
         Assert.True(OpenedProtection.Capture(source, null).AllowsRestrictedFill);
-        PdfEngineIntegration.FillRestrictedForm(source, saved, Edits(("name", "Pat Example")));
+        PdfEngineIntegration.FillRestrictedForm(source, saved, Edits(("name", "Pat Example")), null);
 
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(saved), string.Empty);
         Assert.True(document.IsEncrypted);
@@ -47,7 +47,7 @@ public sealed class RestrictedFormFillingTests : IDisposable
 
         Assert.False(OpenedProtection.Capture(source, null).AllowsRestrictedFill);
         Assert.Throws<InvalidOperationException>(() => PdfEngineIntegration.FillRestrictedForm(
-            source, Path.Combine(_directory, "never.pdf"), Edits(("name", "x"))));
+            source, Path.Combine(_directory, "never.pdf"), Edits(("name", "x")), null));
         Assert.Equal(before, File.ReadAllBytes(source));
         Assert.False(File.Exists(Path.Combine(_directory, "never.pdf")));
     }

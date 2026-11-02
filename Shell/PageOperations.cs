@@ -390,6 +390,7 @@ namespace KillerPDF.Shell
 
             int    pageCount = EnsureEngineDocumentSession().Pages.Count;
             string filePath  = _currentFile;
+            OpenedProtection protection = _protection;
             int preservedPage = ActiveViewer.CurrentPageIndex;
 
             // Snapshot rotations on the UI thread before going to background.
@@ -404,7 +405,7 @@ namespace KillerPDF.Shell
             for (int i = 0; i < pageCount; i++)
             {
                 rotSnap.TryGetValue(i, out int rot);
-                items[i] = new PageThumbnailVm(i, filePath, rot);
+                items[i] = new PageThumbnailVm(i, filePath, protection, rot);
                 // Seed with stale thumbnail - better than blank while reloading
                 if (oldItems != null && i < oldItems.Length)
                 {
@@ -426,7 +427,7 @@ namespace KillerPDF.Shell
             {
                 try
                 {
-                    using var renderSession = PdfPageRenderSession.OpenEngineFirst(filePath, 128, 256);
+                    using var renderSession = PdfPageRenderSession.OpenEngineFirst(filePath, 128, 256, protection);
                     for (int i = 0; i < pageCount; i++)
                     {
                         if (ct.IsCancellationRequested) return;

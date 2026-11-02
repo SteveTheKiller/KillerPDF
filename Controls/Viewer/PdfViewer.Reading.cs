@@ -72,7 +72,7 @@ namespace KillerPDF.Controls
             private string? DescribeAnnotation(string file, int page, KillerPdf.Engine.Documents.PdfCommentInfo comment)
             {
                 var origin = _cropOrigins.TryGetValue(page, out var crop) ? crop : (0, 0);
-                return ReadingAnnotationText.Describe(comment, () => viewer._textRuns.GetPage(file, page),
+                return ReadingAnnotationText.Describe(comment, () => viewer._textRuns.GetPage(file, viewer._protection,page),
                     origin, viewer.Loc);
             }
             private void ReadDocumentFacts(string file)
@@ -164,7 +164,7 @@ namespace KillerPDF.Controls
                 {
                     try
                     {
-                        PageTextRuns? runs = viewer._textRuns.GetPage(file, page);
+                        PageTextRuns? runs = viewer._textRuns.GetPage(file, viewer._protection,page);
                         if (runs is not null)
                             text = StructureOrder(file) is { } order && order.TryGetValue(page, out List<int>? mcids)
                                 ? PageReadingText.BuildTagged([.. runs.Chars.Select(c => (c.Value, c.Word, c.Line, c.MarkedContentId))], mcids)
@@ -185,7 +185,7 @@ namespace KillerPDF.Controls
                 if (viewer._currentFile is not { } file || !viewer._renderDims.TryGetValue(page, out var rd)) return result;
                 if (viewer.VisibleCanvasForPage(page) is not { } canvas || !canvas.IsVisible
                     || PresentationSource.FromVisual(canvas) is null) return result;
-                PageTextRuns? runs = viewer._textRuns.GetPage(file, page);
+                PageTextRuns? runs = viewer._textRuns.GetPage(file, viewer._protection,page);
                 if (runs is null) return result;
                 foreach (Rect rect in viewer.CaretRangeRects(page, runs, startCaret, endCaret, rd))
                 {
@@ -216,7 +216,7 @@ namespace KillerPDF.Controls
                     Rect viewport = Viewport(canvas);
                     var pageBounds = new Rect(canvas.PointToScreen(new Point()),
                         canvas.PointToScreen(new Point(canvas.ActualWidth, canvas.ActualHeight)));
-                    if (!viewport.IntersectsWith(pageBounds) || viewer._textRuns.GetPage(file, page) is not { } runs) continue;
+                    if (!viewport.IntersectsWith(pageBounds) || viewer._textRuns.GetPage(file, viewer._protection,page) is not { } runs) continue;
                     foreach (var (start, end) in VisibleTextGeometry.VisibleCarets(runs, dimensions.w, dimensions.h,
                                  viewer.EffectiveRotation(page), canvas.PointToScreen, viewport))
                         result.Add((page, start, end));
@@ -240,7 +240,7 @@ namespace KillerPDF.Controls
                     double dx = Math.Max(bounds.Left - point.X, Math.Max(0, point.X - bounds.Right));
                     double dy = Math.Max(bounds.Top - point.Y, Math.Max(0, point.Y - bounds.Bottom));
                     double candidate = dx * dx + dy * dy;
-                    if (candidate >= distance || viewer._textRuns.GetPage(file, page) is not { } runs
+                    if (candidate >= distance || viewer._textRuns.GetPage(file, viewer._protection,page) is not { } runs
                         || runs.Chars.Count == 0) continue;
                     var (x, y) = viewer.CanvasToPdf(page, canvas.PointFromScreen(point), dimensions.w, dimensions.h, runs);
                     closest = (page, TextRunService.CaretFromPoint(runs, x, y));
@@ -325,7 +325,7 @@ namespace KillerPDF.Controls
                     || !viewer._renderDims.TryGetValue(scroll.Page, out var dimensions)
                     || viewer.VisibleCanvasForPage(scroll.Page) is not { IsVisible: true } canvas) return;
                 _pendingScroll = null;
-                if (viewer._textRuns.GetPage(file, scroll.Page) is not { Chars.Count: > 0 } runs) return;
+                if (viewer._textRuns.GetPage(file, viewer._protection,scroll.Page) is not { Chars.Count: > 0 } runs) return;
                 int start = Math.Clamp(scroll.Caret, 0, runs.Chars.Count - 1);
                 foreach (Rect rectangle in viewer.CaretRangeRects(scroll.Page, runs, start, start + 1, dimensions))
                 {

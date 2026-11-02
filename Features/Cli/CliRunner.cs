@@ -1785,7 +1785,7 @@ namespace KillerPDF.Features
             var (renderPath, rotations, _) = CliPrepareRenderSource(inPath, password, con);
 
             using var renderSession =
-                PdfPageRenderSession.OpenEngineFirst(renderPath, dpi / 72.0);
+                PdfPageRenderSession.OpenEngineFirst(renderPath, dpi / 72.0, null);
             int pageCount = renderSession.PageCount;
 
             List<int> selected;
@@ -1894,7 +1894,7 @@ namespace KillerPDF.Features
             var (renderPath, rotations, dims) = CliPrepareRenderSource(inPath, password, con);
 
             using var renderSession =
-                PdfPageRenderSession.OpenEngineFirst(renderPath, dpi / 72.0);
+                PdfPageRenderSession.OpenEngineFirst(renderPath, dpi / 72.0, null);
             int pageCount = renderSession.PageCount;
             PdfDocument renderDocument = PdfEngineIntegration.OpenForReading(File.ReadAllBytes(renderPath));
             IReadOnlyList<bool> bitonalHints =
@@ -2046,7 +2046,7 @@ namespace KillerPDF.Features
             // rotation-corrected.
             using var document = new PrintRasterDocument(copies);
             List<int> selected;
-            using (var renderSession = PrintPermission.OpenRenderSession(renderPath, printAllowance))
+            using (var renderSession = PrintPermission.OpenRenderSession(renderPath, printAllowance, null))
             {
                 int pageCount = renderSession.PageCount;
                 if (options.TryGetValue("--pages", out var rangeSpec))
@@ -2362,7 +2362,7 @@ namespace KillerPDF.Features
             }
             string path = Path.GetFullPath(pos[0]);
             // A script needs to tell "not found" from "could not read", so that gets its own exit code.
-            try { using (PdfContentDocument.Open(path)) { } }
+            try { using (PdfContentDocument.Open(path, null)) { } }
             catch (Exception ex)
             {
                 con.WriteLine("Could not read the document: " + FlattenBatchDetail(ex.Message));

@@ -25,7 +25,7 @@ public sealed class PdfWorkingDocumentTests
         {
             File.WriteAllBytes(path, protectedBytes);
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(
-                () => PdfWorkingDocument.Open(path, readOnly));
+                () => PdfWorkingDocument.Open(path, null, readOnly));
             Assert.Contains("password", error.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(protectedBytes, File.ReadAllBytes(path));
         }
@@ -43,7 +43,7 @@ public sealed class PdfWorkingDocumentTests
                     { UserPassword = "", OwnerPassword = "owner", AllowDocumentModification = false })
                 .AddBlankPage(320, 480).Build());
 
-            using PdfWorkingDocument working = PdfWorkingDocument.Open(path, isReadOnly: true);
+            using PdfWorkingDocument working = PdfWorkingDocument.Open(path, null, isReadOnly: true);
             PdfDocument parsed = Assert.IsType<PdfDocument>(working.ParsedDocument);
             Assert.True(parsed.IsDecrypted);
             Assert.Equal(PdfPasswordAuthenticationRole.User, parsed.PasswordAuthenticationRole);
@@ -74,7 +74,7 @@ public sealed class PdfWorkingDocumentTests
         Assert.DoesNotContain("TryOpenProtectedReadOnly(", unlock);
         // Form entries and annotations made while read-only come back with the original too, not
         // only with the unlocked copy.
-        Assert.Equal(2, Count(unlock, "RestoreReadOnlyOriginal(sourcePath, displayPath, CarryOverlays);"));
+        Assert.Equal(2, Count(unlock, "RestoreReadOnlyOriginal(sourcePath, displayPath, CarryOverlays, protection);"));
         Assert.Contains("CarryOverlays();", unlock[..unlock.IndexOf("catch (WorkingCopyUnavailableException copy)", StringComparison.Ordinal)]);
         // Only the reopen writes a working copy; removing the encryption never does.
         Assert.Equal(1, Count(unlock, "catch (WorkingCopyUnavailableException"));
@@ -82,7 +82,8 @@ public sealed class PdfWorkingDocumentTests
         Assert.Contains("catch (WorkingCopyUnavailableException copy)", reopen);
 
         string restore = Method(source, "private void RestoreReadOnlyOriginal(");
-        Assert.Contains("if (TryOpenProtectedReadOnly(sourcePath, displayPath)) carryOverlays();", restore);
+        Assert.Contains("ReadOnlyOriginal.Restore(sourcePath, protection)", restore);
+        Assert.Contains("carryOverlays();", restore);
         Assert.Contains("catch (WorkingCopyUnavailableException)", restore);
     }
 
@@ -111,12 +112,12 @@ public sealed class PdfWorkingDocumentTests
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage().Build());
-            using PdfWorkingDocument document = PdfWorkingDocument.Open(path);
+            using PdfWorkingDocument document = PdfWorkingDocument.Open(path, null);
             PdfDocument parsed = Assert.IsType<PdfDocument>(document.ParsedDocument);
             document.Save(copy);
             document.RegisterCopy(copy);
 
-            Assert.Same(parsed, PdfPageRenderSession.OpenDocument(copy));
+            Assert.Same(parsed, PdfPageRenderSession.OpenDocument(copy, null));
             Assert.Null(document.ParsedDocument);
         }
         finally
@@ -143,11 +144,11 @@ public sealed class PdfWorkingDocumentTests
         try
         {
             File.WriteAllBytes(path, source);
-            using PdfWorkingDocument document = PdfWorkingDocument.Open(path);
+            using PdfWorkingDocument document = PdfWorkingDocument.Open(path, null);
             Assert.Equal(1, document.PageCount);
             Assert.False(document.IsReadOnly);
             PdfDocument parsed = Assert.IsType<PdfDocument>(document.ParsedDocument);
-            Assert.Same(parsed, PdfPageRenderSession.OpenDocument(path));
+            Assert.Same(parsed, PdfPageRenderSession.OpenDocument(path, null));
             Assert.Null(document.ParsedDocument);
         }
         finally
@@ -163,14 +164,14 @@ public sealed class PdfWorkingDocumentTests
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage().Build());
-            using PdfWorkingDocument working = PdfWorkingDocument.Open(path);
+            using PdfWorkingDocument working = PdfWorkingDocument.Open(path, null);
             PdfDocument parsed = Assert.IsType<PdfDocument>(working.ParsedDocument);
-            Assert.Same(parsed, PdfPageRenderSession.OpenDocument(path));
+            Assert.Same(parsed, PdfPageRenderSession.OpenDocument(path, null));
             Assert.Null(working.ParsedDocument);
 
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage().AddBlankPage().Build());
             File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddSeconds(2));
-            PdfDocument replacement = PdfPageRenderSession.OpenDocument(path);
+            PdfDocument replacement = PdfPageRenderSession.OpenDocument(path, null);
             Assert.NotSame(parsed, replacement);
             Assert.Equal(2, PdfPageInformation.Read(replacement).Count);
         }
@@ -192,9 +193,9 @@ public sealed class PdfWorkingDocumentTests
         {
             File.WriteAllBytes(cachedPath, source);
             File.WriteAllBytes(freshPath, source);
-            using PdfWorkingDocument working = PdfWorkingDocument.Open(cachedPath);
-            using var cached = PdfPageRenderSession.OpenEngineFirst(cachedPath, 256, 256);
-            using var fresh = PdfPageRenderSession.OpenEngineFirst(freshPath, 256, 256);
+            using PdfWorkingDocument working = PdfWorkingDocument.Open(cachedPath, null);
+            using var cached = PdfPageRenderSession.OpenEngineFirst(cachedPath, 256, 256, null);
+            using var fresh = PdfPageRenderSession.OpenEngineFirst(freshPath, 256, 256, null);
             Assert.Equal(fresh.RenderPage(0).Pixels, cached.RenderPage(0).Pixels);
         }
         finally

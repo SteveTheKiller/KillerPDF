@@ -33,11 +33,16 @@ internal static class Program
         };
         Assembly assembly = Assembly.LoadFrom(app);
         Type type = assembly.GetType("KillerPDF.Services.PdfPageRenderSession", true)!;
+        // Builds since 1.9.2 take the protection of the tab whose file it is; a corpus file is no tab's.
+        Type? protection = assembly.GetType("KillerPDF.Services.OpenedProtection");
         var open = type.GetMethod("OpenEngineFirst", Flags, [typeof(string), typeof(int), typeof(int)])
             ?? type.GetMethod("OpenEngineFirst", Flags, [typeof(string), typeof(int), typeof(int), typeof(bool)])
+            ?? (protection is null ? null
+                : type.GetMethod("OpenEngineFirst", Flags, [typeof(string), typeof(int), typeof(int), protection, typeof(bool)]))
             ?? throw new MissingMethodException(type.FullName, "OpenEngineFirst");
-        var authenticatedOpen = type.GetMethod("OpenEngineFirst", Flags,
-            [typeof(string), typeof(int), typeof(int), typeof(string)]);
+        var authenticatedOpen = type.GetMethod("OpenEngineFirstWithPassword", Flags,
+                [typeof(string), typeof(int), typeof(int), typeof(string)])
+            ?? type.GetMethod("OpenEngineFirst", Flags, [typeof(string), typeof(int), typeof(int), typeof(string)]);
         var render = type.GetMethod("RenderFittedPage", Flags)!;
         var regionRender = type.GetMethod("RenderFittedRegion", Flags)!;
         var records = new List<object>();
@@ -141,8 +146,12 @@ internal static class Program
                 IDisposable Open()
                 {
                     if (!passwords.TryGetValue(relative.Replace('\\', '/'), out string[]? candidates))
-                        return (IDisposable)open.Invoke(null, open.GetParameters().Length == 3
-                            ? [file, size, size] : [file, size, size, false])!;
+                        return (IDisposable)open.Invoke(null, open.GetParameters().Length switch
+                        {
+                            3 => [file, size, size],
+                            4 => [file, size, size, false],
+                            _ => [file, size, size, null, false]
+                        })!;
                     if (authenticatedOpen is null) throw new NotSupportedException("The app has no authenticated engine boundary.");
                     Exception? last = null;
                     foreach (string password in candidates)

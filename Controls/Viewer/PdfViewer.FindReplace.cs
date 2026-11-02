@@ -83,7 +83,7 @@ namespace KillerPDF.Controls
             int occurrences = 0, lines = 0, skippedTurned = 0;
             var direct = new List<DirectReplacement>();
             var annotationEdits = new List<(int Page, TextAnnotation Original, string Content)>();
-            using (var contentDoc = ContentDoc.Open(_currentFile))
+            using (var contentDoc = ContentDoc.Open(_currentFile, _protection))
             {
                 IEnumerable<int> pages = onlyMatch is { } match
                     ? new[] { match.Page }

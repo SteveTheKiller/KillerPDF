@@ -30,7 +30,7 @@ public sealed class VerticalReadingGeometryTests
             var document = PdfDocument.Open(File.ReadAllBytes(path));
             var comment = Assert.Single(PdfCommentReader.Read(document, includeMarkupWithoutText: true));
             var page = Assert.Single(PdfPageInformation.Read(document));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             Assert.Equal("Marked: CD", ReadingAnnotationText.Describe(comment, () => runs,
                 (page.Left, page.Bottom), Localize));
             Assert.Equal("AB CD EF", TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
@@ -86,7 +86,7 @@ public sealed class VerticalReadingGeometryTests
             var comment = Assert.Single(PdfCommentReader.Read(document, includeMarkupWithoutText: true));
             var service = new TextRunService();
             Assert.Equal("Marked: " + expected, ReadingAnnotationText.Describe(comment,
-                () => service.GetPage(path, 0), (0, 0), Localize));
+                () => service.GetPage(path, null, 0), (0, 0), Localize));
         }
         finally { File.Delete(path); }
     }
@@ -115,7 +115,7 @@ public sealed class VerticalReadingGeometryTests
         try
         {
             File.WriteAllBytes(path, FixturePdf(downward));
-            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+            var runs = Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             // Helvetica at 12 points advances A and B by 8.004 each. These viewport edges
             // surround those two glyphs and stop before the next word after its space.
             double bottom = downward ? 334 : 40;

@@ -23,6 +23,9 @@ namespace KillerPDF.Features
 
         /// <summary>Path of the working (temp) file the renderer reads. Null when no document.</summary>
         string? CurrentFile { get; }
+        /// <summary>The protection of the tab whose file <see cref="CurrentFile"/> is, which every
+        /// read of that file is handed.</summary>
+        KillerPDF.Services.OpenedProtection CurrentProtection { get; }
 
         /// <summary>Path of the file the user actually opened, for suggesting output names.
         /// Null for a document that never had an original (e.g. built from images).</summary>

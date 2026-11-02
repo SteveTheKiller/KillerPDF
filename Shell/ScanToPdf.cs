@@ -78,7 +78,7 @@ namespace KillerPDF.Shell
             {
                 string tempPath = Path.Combine(Path.GetTempPath(), $"Scanned-{DateTime.Now:yyyyMMdd-HHmmss-fff}.pdf");
                 File.WriteAllBytes(tempPath, PdfEngineIntegration.MergeFiles(pages));
-                _doc = PdfWorkingDocument.Open(tempPath);
+                _doc = PdfWorkingDocument.Open(tempPath, null);
                 FinishOpenFile("Scanned.pdf", tempPath);
                 _originalFile = null;   // no saved location yet, so Save becomes Save As
                 MarkDirty(true);

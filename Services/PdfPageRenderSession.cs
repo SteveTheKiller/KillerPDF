@@ -51,20 +51,22 @@ internal sealed class PdfPageRenderSession : IDisposable
     /// <summary>True when the document carries encryption, so its permissions decide what leaves it.</summary>
     internal bool IsEncrypted { get; }
 
+    /// <summary>Opens a tab's file for rendering under the tab's protection, or a file that is no
+    /// tab's with null.</summary>
     internal static PdfPageRenderSession OpenEngineFirst(
-        string path, int maximumWidth, int maximumHeight, bool forPrinting = false)
+        string path, int maximumWidth, int maximumHeight, OpenedProtection? protection, bool forPrinting = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumWidth);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumHeight);
-        EngineDocument document = OpenDocument(path);
+        EngineDocument document = OpenDocument(path, protection);
         if (!document.CanReadPageContent)
             throw new InvalidOperationException("Authenticate the document before rendering page content.");
         IReadOnlyList<EnginePageInformation> pages = EnginePageInformation.Read(document);
         return new PdfPageRenderSession(document, pages, maximumWidth, maximumHeight, 0, forPrinting);
     }
 
-    internal static PdfPageRenderSession OpenEngineFirst(
+    internal static PdfPageRenderSession OpenEngineFirstWithPassword(
         string path, int maximumWidth, int maximumHeight, string password)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -84,15 +86,46 @@ internal sealed class PdfPageRenderSession : IDisposable
     // keeps its own font, image, and instruction caches on top of the shared parse tree.
     // Weak references let the GC reclaim documents no viewer holds. The key includes size
     // and mtime so any file rewrite invalidates automatically.
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string,
-        (long Ticks, long Size, WeakReference<EngineDocument> Ref,
-            WeakReference<PdfWorkingDocument>? Working)> _documentCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, CachedDocument> _documentCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    // A parse that only a tab's key could decrypt is kept with that tab's protection and served to no
+    // caller without it. The table holds the protection weakly, so the parses go when the tab does,
+    // and ForgetKey drops them the moment the tab closes.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<OpenedProtection,
+        System.Collections.Concurrent.ConcurrentDictionary<string, CachedDocument>> _keyedCache = [];
+
+    private sealed record CachedDocument(long Ticks, long Size, WeakReference<EngineDocument> Ref,
+        WeakReference<PdfWorkingDocument>? Working);
+
+    private static System.Collections.Concurrent.ConcurrentDictionary<string, CachedDocument> CacheFor(OpenedProtection? key) =>
+        key is null ? _documentCache
+            : _keyedCache.GetValue(key, static _ => new(StringComparer.OrdinalIgnoreCase));
 
     internal static void RegisterDocument(string normalizedPath, long ticks, long size,
-        PdfWorkingDocument working, EngineDocument document)
+        PdfWorkingDocument working, EngineDocument document, OpenedProtection? key)
     {
-        _documentCache[normalizedPath] = (ticks, size, new WeakReference<EngineDocument>(document),
+        CacheFor(key)[normalizedPath] = new CachedDocument(ticks, size, new WeakReference<EngineDocument>(document),
             new WeakReference<PdfWorkingDocument>(working));
+    }
+
+    /// <summary>Drops every parse a closing tab's key decrypted.</summary>
+    internal static void ForgetKey(OpenedProtection protection)
+    {
+        ArgumentNullException.ThrowIfNull(protection);
+        _keyedCache.Remove(protection);
+    }
+
+    private static bool TryCached(System.Collections.Concurrent.ConcurrentDictionary<string, CachedDocument> cache,
+        string normalized, long ticks, long size, out EngineDocument document)
+    {
+        document = null!;
+        if (!cache.TryGetValue(normalized, out CachedDocument? entry) || entry.Ticks != ticks || entry.Size != size
+            || !entry.Ref.TryGetTarget(out EngineDocument? cached)) return false;
+        if (entry.Working is not null && entry.Working.TryGetTarget(out var working))
+            working.ReleaseParsedDocument(cached);
+        document = cached;
+        return true;
     }
 
     // A same-size rewrite inside one clock tick keeps the cache key, so a caller that knows the
@@ -111,7 +144,7 @@ internal sealed class PdfPageRenderSession : IDisposable
     /// file, while any earlier session on that file is still reachable, share the parsed
     /// PdfDocument so a subsequent thumbnail, preview, or export does not re-parse the file.
     /// </summary>
-    internal static EngineDocument OpenDocument(string path)
+    internal static EngineDocument OpenDocument(string path, OpenedProtection? protection)
     {
         string normalized;
         long ticks, size;
@@ -121,15 +154,13 @@ internal sealed class PdfPageRenderSession : IDisposable
             normalized = info.FullName;
             ticks = info.LastWriteTimeUtc.Ticks;
             size = info.Length;
-            if (_documentCache.TryGetValue(normalized, out var entry)
-                && entry.Ticks == ticks && entry.Size == size
-                && entry.Ref.TryGetTarget(out EngineDocument? cached)
-                && cached is not null)
-            {
-                if (entry.Working is not null && entry.Working.TryGetTarget(out var working))
-                    working.ReleaseParsedDocument(cached);
+            // A parse nobody could read is passed over by a caller that holds a key for it.
+            if (TryCached(_documentCache, normalized, ticks, size, out EngineDocument cached)
+                && (protection is null || cached.CanReadPageContent))
                 return cached;
-            }
+            if (protection is not null && _keyedCache.TryGetValue(protection, out var keyed)
+                && TryCached(keyed, normalized, ticks, size, out cached))
+                return cached;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -140,6 +171,7 @@ internal sealed class PdfPageRenderSession : IDisposable
             size = 0;
         }
         EngineDocument document;
+        OpenedProtection? usedKey = null;
         using (FileStream source = File.OpenRead(path))
         {
             document = EngineDocument.OpenWithCompatibilityRecovery(source);
@@ -152,29 +184,41 @@ internal sealed class PdfPageRenderSession : IDisposable
                 }
                 catch (Exception exception) when (exception is not OutOfMemoryException)
                 {
-                    // A file an open tab reads under its own key opens under it. Otherwise keep the
+                    // The tab whose file this is opens it under its own key. Otherwise keep the
                     // strict-open document; the caller inspects CanReadPageContent.
-                    if (HeldEncryptions.Any)
+                    if (protection is not null)
                     {
                         source.Position = 0;
                         using var bytes = new MemoryStream();
                         source.CopyTo(bytes);
-                        if (HeldEncryptions.TryOpen(bytes.ToArray()) is EngineDocument held) document = held;
+                        try
+                        {
+                            if (protection.OpenHeld(bytes.ToArray()) is EngineDocument held)
+                            {
+                                document = held;
+                                usedKey = protection;
+                            }
+                        }
+                        catch (Exception held) when (held is not OutOfMemoryException)
+                        {
+                            // A file put in the tab's place is not under its key.
+                        }
                     }
                 }
             }
         }
         if (normalized is not null)
-            _documentCache[normalized] = (ticks, size, new WeakReference<EngineDocument>(document), null);
+            CacheFor(usedKey)[normalized] = new CachedDocument(ticks, size, new WeakReference<EngineDocument>(document), null);
         return document;
     }
 
-    internal static PdfPageRenderSession OpenEngineFirst(string path, double scale, bool forPrinting = false)
+    internal static PdfPageRenderSession OpenEngineFirst(string path, double scale, OpenedProtection? protection,
+        bool forPrinting = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (!double.IsFinite(scale) || scale <= 0)
             throw new ArgumentOutOfRangeException(nameof(scale));
-        EngineDocument document = OpenDocument(path);
+        EngineDocument document = OpenDocument(path, protection);
         IReadOnlyList<EnginePageInformation> pages = EnginePageInformation.Read(document);
         return new PdfPageRenderSession(document, pages, 0, 0, scale, forPrinting);
     }
@@ -363,14 +407,14 @@ internal sealed class PdfPageRenderSession : IDisposable
         };
 
     internal static PdfRenderedPage? RenderExactPage(
-        string path, int pageIndex, int width, int height,
+        string path, OpenedProtection? protection, int pageIndex, int width, int height,
         bool transparentBackground = false, bool includeFormFields = true,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         try
         {
-            EngineDocument document = OpenDocument(path);
+            EngineDocument document = OpenDocument(path, protection);
             var renderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance,
                 SharedCacheFor(document), WicJpegDecoder.Instance);
             PdfRenderedPage rendered = RenderOwnedPage(renderer, pageIndex,
@@ -444,15 +488,17 @@ internal sealed class PdfPrimaryRenderSession
 {
     private PdfPageRenderSession? _session;
     private string? _path;
+    private OpenedProtection? _protection;
     private long _revision;
 
-    internal PdfRenderedPage Render(string path, long revision, int pageIndex, int maximumSize)
+    internal PdfRenderedPage Render(string path, OpenedProtection? protection, long revision, int pageIndex, int maximumSize)
     {
-        if (_session is null || _path != path || _revision != revision)
+        if (_session is null || _path != path || _revision != revision || !ReferenceEquals(_protection, protection))
         {
             Clear();
-            _session = PdfPageRenderSession.OpenEngineFirst(path, maximumSize, maximumSize);
+            _session = PdfPageRenderSession.OpenEngineFirst(path, maximumSize, maximumSize, protection);
             _path = path;
+            _protection = protection;
             _revision = revision;
         }
         return _session.RenderFittedPage(pageIndex, maximumSize, maximumSize);
@@ -464,6 +510,7 @@ internal sealed class PdfPrimaryRenderSession
         _session = null;
         if (_path is not null) PdfPageRenderSession.ForgetDocument(_path);
         _path = null;
+        _protection = null;
     }
 }
 
@@ -474,15 +521,16 @@ internal sealed class PdfBackgroundRenderCache
     private Request? _current;
     private PdfPageRenderSession? _idle;
 
-    internal Request Capture(string path, long revision)
+    internal Request Capture(string path, long revision, OpenedProtection? protection)
     {
         lock (_sync)
         {
-            if (_current is not null && _current.Path == path && _current.Revision == revision)
+            if (_current is not null && _current.Path == path && _current.Revision == revision
+                && ReferenceEquals(_current.Protection, protection))
                 return _current;
             _idle?.Dispose();
             _idle = null;
-            return _current = new Request(this, path, revision);
+            return _current = new Request(this, path, revision, protection);
         }
     }
 
@@ -496,10 +544,11 @@ internal sealed class PdfBackgroundRenderCache
         }
     }
 
-    internal sealed class Request(PdfBackgroundRenderCache owner, string path, long revision)
+    internal sealed class Request(PdfBackgroundRenderCache owner, string path, long revision, OpenedProtection? protection)
     {
         internal string Path { get; } = path;
         internal long Revision { get; } = revision;
+        internal OpenedProtection? Protection { get; } = protection;
 
         internal Lease Rent(CancellationToken cancellationToken = default)
         {
@@ -514,7 +563,7 @@ internal sealed class PdfBackgroundRenderCache
                 }
             }
             // Opening and rendering never hold the cache lock or wait on the UI thread.
-            session ??= PdfPageRenderSession.OpenEngineFirst(Path, 1, 1);
+            session ??= PdfPageRenderSession.OpenEngineFirst(Path, 1, 1, Protection);
             return new Lease(owner, this, session);
         }
     }

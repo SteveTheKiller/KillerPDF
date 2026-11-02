@@ -36,14 +36,14 @@ public partial class MainWindow
         [
             DocumentToolItem("Str_DocumentTools_Preflight", OpenPreflightTools, "\uE9D9"),
             DocumentToolItem("Str_DocumentTools_PrintProduction", () => ShowDocumentReport(Loc("Str_DocumentTools_PrintProduction"),
-                path => PdfEngineIntegration.InspectPrintProduction(path).ToText()), "\uE7C3"),
+                (path, protection) => PdfEngineIntegration.InspectPrintProduction(path, protection).ToText()), "\uE7C3"),
             DocumentToolItem("Str_DocumentTools_Separations", ShowSeparationPreview, "\uE790"),
             DocumentToolItem("Str_DocumentTools_Accessibility", OpenAccessibilityTools, "\uE776"),
             DocumentToolItem("Str_DocumentTools_Signatures", () => ShowDocumentReport(Loc("Str_DocumentTools_Signatures"),
-                path => PdfEngineIntegration.InspectSignatures(path).ToText()), "\uE8D7"),
+                (path, protection) => PdfEngineIntegration.InspectSignatures(path, protection).ToText()), "\uE8D7"),
             DocumentToolItem("Str_CertCatalog_Title", OpenCertificateCatalog, "\uEB95"),
             DocumentToolItem("Str_DocumentTools_Layers", () => ShowDocumentReport(Loc("Str_DocumentTools_Layers"),
-                path => PdfEngineIntegration.InspectLayers(path).ToText()), "\uE8A1"),
+                (path, protection) => PdfEngineIntegration.InspectLayers(path, protection).ToText()), "\uE8A1"),
             DocumentToolItem("Str_DocumentTools_EditLayers", EditLayers, "\uE70F"),
             DocumentToolItem("Str_DocumentTools_Portfolio", () => ShowDocumentReport(Loc("Str_DocumentTools_Portfolio"),
                 PdfEngineIntegration.InspectPortfolio), "\uE8B7"),
@@ -275,7 +275,7 @@ public partial class MainWindow
         CommitActiveTextBox();
         try
         {
-            var initialPlan = PdfEngineIntegration.PlanTableOfContents(_currentFile, 6);
+            var initialPlan = PdfEngineIntegration.PlanTableOfContents(_currentFile, 6, _protection);
             if (initialPlan.Entries.Count == 0)
             {
                 KillerDialog.Show(this, Loc("Str_DocumentTools_TocNeedsBookmarks"),
@@ -286,7 +286,7 @@ public partial class MainWindow
             var dialog = new TableOfContentsDialog(this, initialPlan.Entries.Count);
             if (dialog.ShowDialog() != true) return;
 
-            var plan = PdfEngineIntegration.PlanTableOfContents(_currentFile, dialog.MaximumDepth);
+            var plan = PdfEngineIntegration.PlanTableOfContents(_currentFile, dialog.MaximumDepth, _protection);
             const int rowsPerPage = 40;
             int insertedPages = Math.Max(1, (plan.Entries.Count + rowsPerPage - 1) / rowsPerPage);
             if (!EnsureEditable()) return;
@@ -337,7 +337,7 @@ public partial class MainWindow
         CommitActiveTextBox();
         try
         {
-            var layers = PdfEngineIntegration.InspectLayers(_currentFile);
+            var layers = PdfEngineIntegration.InspectLayers(_currentFile, _protection);
             if (layers.Groups.Count == 0)
             {
                 KillerDialog.Show(this, Loc("Str_DocumentTools_NoLayers"),
@@ -407,7 +407,7 @@ public partial class MainWindow
         try
         {
             PdfEngineIntegration.PortfolioEditorState state =
-                PdfEngineIntegration.ReadPortfolioEditorState(_currentFile);
+                PdfEngineIntegration.ReadPortfolioEditorState(_currentFile, _protection);
             var dialog = new PortfolioEditorDialog(
                 this, state.Collection,
                 [.. state.Attachments.Select(attachment => attachment.FileName)]);
@@ -446,7 +446,7 @@ public partial class MainWindow
         try
         {
             PdfEngineIntegration.PortfolioEditorState state =
-                PdfEngineIntegration.ReadPortfolioEditorState(_currentFile);
+                PdfEngineIntegration.ReadPortfolioEditorState(_currentFile, _protection);
             var dialog = new PortfolioStructureDialog(
                 this, state.Collection, state.Attachments);
             if (dialog.ShowDialog() != true) return;
@@ -478,7 +478,7 @@ public partial class MainWindow
         try
         {
             IReadOnlyList<PdfEngineIntegration.AttachmentEditorItem> attachments =
-                PdfEngineIntegration.ReadAttachmentEditorItems(_currentFile);
+                PdfEngineIntegration.ReadAttachmentEditorItems(_currentFile, _protection);
             if (attachments.Count == 0)
             {
                 KillerDialog.Show(this, Loc("Str_Attachment_None"),
@@ -516,13 +516,13 @@ public partial class MainWindow
         try
         {
             IReadOnlyList<PdfNavigationFinding> findings =
-                PdfEngineIntegration.InspectNavigation(_currentFile);
+                PdfEngineIntegration.InspectNavigation(_currentFile, _protection);
             bool hasUnsafeLinks = findings.Any(finding =>
                 finding.Code == PdfNavigationFindingCode.LinkUnsafeUri);
             bool hasUnresolvedLinks = findings.Any(finding =>
                 finding.Code == PdfNavigationFindingCode.LinkUnresolvedDestination);
             var dialog = new NavigationRepairDialog(
-                this, PdfEngineIntegration.FormatNavigationAudit(_currentFile),
+                this, PdfEngineIntegration.FormatNavigationAudit(_currentFile, _protection),
                 hasUnsafeLinks, hasUnresolvedLinks);
             if (dialog.ShowDialog() != true) return;
             if (!EnsureEditable()) return;
@@ -555,10 +555,10 @@ public partial class MainWindow
             var detection = new BookmarkDetectionDialog(this);
             if (detection.ShowDialog() != true || detection.Options is null) return;
             IReadOnlyList<PdfBookmarkProposal> proposals =
-                PdfEngineIntegration.DetectBookmarkHeadings(_currentFile, detection.Options);
+                PdfEngineIntegration.DetectBookmarkHeadings(_currentFile, detection.Options, _protection);
             if (proposals.Count == 0)
             {
-                KillerDialog.Show(this, Loc(PdfEngineIntegration.HasTextLayer(_currentFile)
+                KillerDialog.Show(this, Loc(PdfEngineIntegration.HasTextLayer(_currentFile, _protection)
                         ? "Str_AutoBookmarks_NoneFound" : "Str_AutoBookmarks_NoText"),
                     "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
@@ -633,7 +633,8 @@ public partial class MainWindow
 
         try
         {
-            string report = PdfEngineIntegration.CompareStructure(left, right).ToText();
+            string report = PdfEngineIntegration.CompareStructure(
+                left, Viewer.ProtectionRef, right, ViewerB.ProtectionRef).ToText();
             new DocumentReportDialog(this,
                 Loc("Str_DocumentTools_StructuralComparison"), report).ShowDialog();
         }
@@ -644,7 +645,8 @@ public partial class MainWindow
         }
     }
 
-    private void ShowDocumentReport(string title, Func<string, string> createReport)
+    // A report reads the tab's file under the tab's protection, so a read-only original reads too.
+    private void ShowDocumentReport(string title, Func<string, OpenedProtection, string> createReport)
     {
         if (_doc is null)
         {
@@ -663,7 +665,7 @@ public partial class MainWindow
 
         try
         {
-            new DocumentReportDialog(this, title, createReport(path)).ShowDialog();
+            new DocumentReportDialog(this, title, createReport(path, _protection)).ShowDialog();
         }
         catch (Exception ex)
         {

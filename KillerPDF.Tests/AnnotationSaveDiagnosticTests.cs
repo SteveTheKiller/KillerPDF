@@ -22,7 +22,7 @@ public sealed class AnnotationSaveDiagnosticTests
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(200, 200).Build());
             byte[] blank;
-            using (var before = PdfPageRenderSession.OpenEngineFirst(path, 200, 200))
+            using (var before = PdfPageRenderSession.OpenEngineFirst(path, 200, 200, null))
                 blank = before.RenderPage(0, includeFormFields: false).Pixels;
 
             var ink = new InkAnnotation
@@ -33,7 +33,7 @@ public sealed class AnnotationSaveDiagnosticTests
             PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [ink] },
                 new Dictionary<int, (int w, int h)> { [0] = (200, 200) });
 
-            using var after = PdfPageRenderSession.OpenEngineFirst(path, 200, 200);
+            using var after = PdfPageRenderSession.OpenEngineFirst(path, 200, 200, null);
             Assert.False(blank.SequenceEqual(after.RenderPage(0, includeFormFields: false).Pixels));
         }
         finally { if (File.Exists(path)) File.Delete(path); }

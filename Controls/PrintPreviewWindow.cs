@@ -1525,7 +1525,7 @@ namespace KillerPDF
                 await Task.Run(() =>
                 {
                     using var renderSession = PdfPageRenderSession.OpenEngineFirst(
-                        _renderPath, _printDpi / 72.0, forPrinting: true);
+                        _renderPath, _printDpi / 72.0, null, forPrinting: true);   // the plain print copy
                     int done = 0;
                     foreach (int idx in indices)
                     {

@@ -15,12 +15,12 @@ public sealed class PrimaryRenderSessionTests
         try
         {
             File.WriteAllBytes(path, Document(100, 200));
-            var first = retained.Render(path, 0, 0, 128);
+            var first = retained.Render(path, null, 0, 0, 128);
             byte[] original = (byte[])first.Pixels.Clone();
-            using var fresh = PdfPageRenderSession.OpenEngineFirst(path, 256, 256);
+            using var fresh = PdfPageRenderSession.OpenEngineFirst(path, 256, 256, null);
             var expected = fresh.RenderPage(0, includeFormFields: false);
             File.Delete(path);
-            var zoomed = retained.Render(path, 0, 0, 256);
+            var zoomed = retained.Render(path, null, 0, 0, 256);
             Assert.Equal(expected.Width, zoomed.Width);
             Assert.Equal(expected.Height, zoomed.Height);
             Assert.Equal(expected.Pixels, zoomed.Pixels);
@@ -40,13 +40,13 @@ public sealed class PrimaryRenderSessionTests
         try
         {
             File.WriteAllBytes(path, Document(100, 200));
-            Assert.Equal(64, retained.Render(path, 0, 0, 128).Width);
+            Assert.Equal(64, retained.Render(path, null, 0, 0, 128).Width);
             DateTime written = File.GetLastWriteTimeUtc(path);
             File.WriteAllBytes(path, Document(200, 100));
             // A same-size rewrite inside one clock tick leaves the timestamp unchanged.
             File.SetLastWriteTimeUtc(path, written);
             if (clear) retained.Clear();
-            var changed = retained.Render(path, clear ? 0 : 1, 0, 128);
+            var changed = retained.Render(path, null, clear ? 0 : 1, 0, 128);
             Assert.Equal(128, changed.Width);
             Assert.Equal(64, changed.Height);
         }
@@ -63,9 +63,9 @@ public sealed class PrimaryRenderSessionTests
         {
             File.WriteAllBytes(first, Document(100, 200));
             File.WriteAllBytes(second, Document(200, 100));
-            Assert.Equal(64, retained.Render(first, 0, 0, 128).Width);
-            Assert.Equal(128, retained.Render(second, 0, 0, 128).Width);
-            Assert.Equal(64, retained.Render(first, 0, 0, 128).Width);
+            Assert.Equal(64, retained.Render(first, null, 0, 0, 128).Width);
+            Assert.Equal(128, retained.Render(second, null, 0, 0, 128).Width);
+            Assert.Equal(64, retained.Render(first, null, 0, 0, 128).Width);
         }
         finally { retained.Clear(); File.Delete(first); File.Delete(second); }
     }

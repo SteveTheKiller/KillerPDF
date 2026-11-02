@@ -68,7 +68,7 @@ namespace KillerPDF.Tests
                 var result = SearchService.Search(path, "Conventional");
                 Assert.Equal(1, result.TotalHits);
                 Assert.Equal([0], result.ResultPages);
-                Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, 0));
+                Assert.IsType<PageTextRuns>(new TextRunService().GetPage(path, null, 0));
             }
             finally { System.IO.File.Delete(path); }
         }
@@ -140,7 +140,7 @@ namespace KillerPDF.Tests
         {
             WithPdf([GoodPage, BadPage, GoodPage], path =>
             {
-                var (pages, unreadable) = SearchService.LoadPagesForReview(path);
+                var (pages, unreadable) = SearchService.LoadPagesForReview(path, null);
                 Assert.Equal(3, pages.Count);
                 Assert.Null(pages[1]);
                 Assert.Equal([1], unreadable);
@@ -158,7 +158,7 @@ namespace KillerPDF.Tests
         public void LoadPagesForReview_EveryPageUnreadable_Throws()
         {
             WithPdf([BadPage, BadPage], path =>
-                Assert.ThrowsAny<Exception>(() => SearchService.LoadPagesForReview(path)));
+                Assert.ThrowsAny<Exception>(() => SearchService.LoadPagesForReview(path, null)));
         }
 
         // The strict form is for callers that must not proceed past a page they could not search.
@@ -236,8 +236,8 @@ namespace KillerPDF.Tests
             string dialog = ReadSource("Controls/RedactionFindDialog.cs");
             Assert.Contains("Str_Search_PagesSkipped", dialog);
             Assert.Contains("UnreadableAnnotationPages", dialog);
-            Assert.Contains("SearchService.LoadPagesForReview(snapshot.Bytes)", ReadSource("Controls/Viewer/PdfViewer.Redaction.cs"));
-            Assert.Contains("SearchService.LoadPagesForReview(snapshot)", ReadSource("Shell/GuidedTasks.cs"));
+            Assert.Contains("SearchService.LoadPagesForReview(snapshot.Bytes, snapshot.Protection)", ReadSource("Controls/Viewer/PdfViewer.Redaction.cs"));
+            Assert.Contains("SearchService.LoadPagesForReview(snapshot, protection)", ReadSource("Shell/GuidedTasks.cs"));
         }
 
         [Fact]

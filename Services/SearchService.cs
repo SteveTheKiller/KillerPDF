@@ -22,6 +22,8 @@ namespace KillerPDF.Services
     internal sealed record CurrentSearchSnapshot(byte[] Bytes, IReadOnlyList<SearchTextSource> Text)
     {
         internal IReadOnlyList<SearchTextSource> Covers { get; init; } = [];
+        /// <summary>The protection of the tab the bytes came from, so a file read under its key searches.</summary>
+        internal OpenedProtection? Protection { get; init; }
         internal IReadOnlyList<int> UnreadablePages { get; init; } = [];
         internal string Fingerprint()
         {
@@ -135,12 +137,12 @@ namespace KillerPDF.Services
         internal static (IReadOnlyList<KillerPdf.Engine.Documents.PdfRedactionMatch> Matches, IReadOnlyList<int> Unreadable)
             FindCurrentRedaction(CurrentSearchSnapshot snapshot, KillerPdf.Engine.Documents.PdfRedactionSearchOptions options)
         {
-            var (pages, unreadable) = LoadPagesForReview(snapshot.Bytes);
+            var (pages, unreadable) = LoadPagesForReview(snapshot.Bytes, snapshot.Protection);
             var result = KillerPdf.Engine.Documents.PdfRedactionSearch.Find(pages, options).Matches
                 .Where(match => !(match.Areas.Count > 0 ? match.Areas : [match.Bounds])
                     .Any(area => snapshot.IsCovered(match.PageIndex, area))).ToList();
             var annotations = KillerPdf.Engine.Documents.PdfRedactionSearch.FindInAnnotations(
-                PdfEngineIntegration.OpenForReading(snapshot.Bytes), options);
+                PdfEngineIntegration.OpenForReading(snapshot.Bytes, snapshot.Protection), options);
             result.AddRange(annotations.Matches.Where(match => !snapshot.Text.Any(source => source.WidgetId == match.Id)
                 && !snapshot.IsCovered(match.PageIndex, match.Bounds)));
             foreach (SearchTextSource source in snapshot.Text)
@@ -158,7 +160,7 @@ namespace KillerPDF.Services
         internal static SearchResult Search(CurrentSearchSnapshot snapshot, string query, bool matchCase,
             bool wholeWord, CancellationToken cancellationToken)
         {
-            SearchResult result = Search(snapshot.Bytes, query, matchCase, wholeWord, cancellationToken);
+            SearchResult result = Search(snapshot.Bytes, snapshot.Protection, query, matchCase, wholeWord, cancellationToken);
             foreach (int page in snapshot.UnreadablePages)
                 if (!result.UnreadablePages.Contains(page)) result.UnreadablePages.Add(page);
             foreach (SearchTextSource source in snapshot.Text.Where(source => source.Findable))
@@ -201,19 +203,19 @@ namespace KillerPDF.Services
         public static SearchResult Search(string filePath, string query, bool matchCase = false, bool wholeWord = false) =>
             string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(filePath)
                 ? new SearchResult()
-                : Search(System.IO.File.ReadAllBytes(filePath), query, matchCase, wholeWord, CancellationToken.None);
+                : Search(System.IO.File.ReadAllBytes(filePath), null, query, matchCase, wholeWord, CancellationToken.None);
 
         /// <summary>
         /// The same search over the file's bytes, for a worker that must not hold the working file open
         /// while an edit rewrites it. <paramref name="cancellationToken"/> stops it at the next page.
         /// </summary>
-        internal static SearchResult Search(byte[] source, string query, bool matchCase, bool wholeWord,
-            CancellationToken cancellationToken)
+        internal static SearchResult Search(byte[] source, OpenedProtection? protection, string query, bool matchCase,
+            bool wholeWord, CancellationToken cancellationToken)
         {
             var result = new SearchResult();
             if (string.IsNullOrWhiteSpace(query)) return result;
 
-            using var doc = PdfDocument.Open(source);
+            using var doc = PdfDocument.Open(source, protection);
             var failures = new PageFailures();
             for (int pi = 0; pi < doc.NumberOfPages; pi++)
             {
@@ -362,7 +364,8 @@ namespace KillerPDF.Services
         {
             var result = new Dictionary<int, List<(double, double, double, double)>>();
             if (string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(filePath)) return result;
-            using var doc = PdfDocument.Open(filePath);
+            // Marking matches for a redaction edits the document, so the file is a plain working copy.
+            using var doc = PdfDocument.Open(filePath, null);
             var failures = new PageFailures();
             for (int pi = 0; pi < doc.NumberOfPages; pi++)
             {
@@ -397,12 +400,13 @@ namespace KillerPDF.Services
         /// the user. Throws when the file cannot be opened or no page can be read.
         /// </summary>
         internal static (IReadOnlyList<KillerPdf.Engine.Documents.PdfPageContent?> Pages, IReadOnlyList<int> Unreadable)
-            LoadPagesForReview(string filePath) => LoadPagesForReview(System.IO.File.ReadAllBytes(filePath));
+            LoadPagesForReview(string filePath, OpenedProtection? protection) =>
+            LoadPagesForReview(System.IO.File.ReadAllBytes(filePath), protection);
 
         internal static (IReadOnlyList<KillerPdf.Engine.Documents.PdfPageContent?> Pages, IReadOnlyList<int> Unreadable)
-            LoadPagesForReview(byte[] source)
+            LoadPagesForReview(byte[] source, OpenedProtection? protection)
         {
-            using var doc = PdfDocument.Open(source);
+            using var doc = PdfDocument.Open(source, protection);
             var pages = new List<KillerPdf.Engine.Documents.PdfPageContent?>(doc.NumberOfPages);
             var unreadable = new List<int>();
             var failures = new PageFailures();
@@ -446,8 +450,9 @@ namespace KillerPDF.Services
             List<string> queries = [.. terms.Where(term => !string.IsNullOrWhiteSpace(term))];
             if (queries.Count == 0) return result;
             byte[] bytes = System.IO.File.ReadAllBytes(filePath);
-            var (pages, unreadableContent) = LoadPagesForReview(bytes);
-            var document = PdfEngineIntegration.OpenForReading(bytes);
+            // A redaction edits the document, so the file is a plain working copy or a command line input.
+            var (pages, unreadableContent) = LoadPagesForReview(bytes, null);
+            var document = PdfEngineIntegration.OpenForReading(bytes, null);
             var unreadableFields = new SortedSet<int>();
             foreach (string term in queries)
             {

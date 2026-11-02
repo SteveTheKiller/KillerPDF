@@ -71,7 +71,6 @@
     <Compile Include="..\Services\PrintPermission.cs" Link="Services\PrintPermission.cs" />
     <Compile Include="..\Services\PdfRestrictions.cs" Link="Services\PdfRestrictions.cs" />
     <Compile Include="..\Services\OpenedProtection.cs" Link="Services\OpenedProtection.cs" />
-    <Compile Include="..\Services\HeldEncryptions.cs" Link="Services\HeldEncryptions.cs" />
     <Compile Include="..\Services\ReadOnlyOriginal.cs" Link="Services\ReadOnlyOriginal.cs" />
     <Compile Include="..\Services\ProtectedDocumentFiles.cs" Link="Services\ProtectedDocumentFiles.cs" />
     <Compile Include="..\Features\Cli\CliProtectionGate.cs" Link="Features\Cli\CliProtectionGate.cs" />

@@ -45,7 +45,7 @@ namespace KillerPDF.Shell
             {
                 string tempPath = App.MakeTempFile("converted");
                 File.WriteAllBytes(tempPath, pdf);
-                _doc = PdfWorkingDocument.Open(tempPath);
+                _doc = PdfWorkingDocument.Open(tempPath, null);
                 FinishOpenFile(Path.GetFileNameWithoutExtension(source) + ".pdf", tempPath);
                 _originalFile = null;   // no saved location yet, so Save becomes Save As
                 MarkDirty(true);

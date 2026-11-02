@@ -240,7 +240,7 @@ namespace KillerPDF.Shell
             _doc.Close();
             try
             {
-                _doc = PdfWorkingDocument.Open(tempClean);
+                _doc = PdfWorkingDocument.Open(tempClean, null);
             }
             catch (Exception xrefEx) when (PdfImport.IsXRefException(xrefEx))
             {
@@ -249,7 +249,7 @@ namespace KillerPDF.Shell
                     && !PdfEngineIntegration.TryCreateZeroRotationCopy(tempClean, fixedPath))
                     throw;
                 tempClean = fixedPath;
-                _doc = PdfWorkingDocument.Open(tempClean);
+                _doc = PdfWorkingDocument.Open(tempClean, null);
             }
             _currentFile = tempClean;
             return burnOk ? tempBurned : null;
@@ -264,7 +264,8 @@ namespace KillerPDF.Shell
             try
             {
                 string srcPath = sourceOverride ?? _currentFile;
-                using var renderSession = PdfPageRenderSession.OpenEngineFirst(srcPath, maxPx, maxPx);
+                using var renderSession = PdfPageRenderSession.OpenEngineFirst(srcPath, maxPx, maxPx,
+                    sourceOverride is null ? _protection : null);
                 PdfRenderedPage page = renderSession.RenderPage(pageIdx);
                 int w = page.Width;
                 int h = page.Height;

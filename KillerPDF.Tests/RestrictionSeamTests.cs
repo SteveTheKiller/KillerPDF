@@ -346,7 +346,7 @@ public sealed class RestrictionSeamTests : IDisposable
                 new PdfTextFieldOptions { Visibility = PdfFormFieldVisibility.HiddenButPrintable })
             .Build());
 
-        using PdfPageRenderSession session = PrintPermission.OpenRenderSession(path, PrintAllowance.Allowed);
+        using PdfPageRenderSession session = PrintPermission.OpenRenderSession(path, PrintAllowance.Allowed, null);
 
         Assert.Contains(session.RenderPage(0).Pixels, value => value < 128);
     }

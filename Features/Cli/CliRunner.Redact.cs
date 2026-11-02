@@ -117,7 +117,7 @@ namespace KillerPDF.Features
             var unreadable = new SortedSet<int>();
             if (searches.Count > 0)
             {
-                (IReadOnlyList<PdfPageContent?> pages, IReadOnlyList<int> unreadablePages) = SearchService.LoadPagesForReview(source);
+                (IReadOnlyList<PdfPageContent?> pages, IReadOnlyList<int> unreadablePages) = SearchService.LoadPagesForReview(source, null);
                 unreadable.UnionWith(unreadablePages);
                 var found = new Dictionary<string, PdfRedactionMatch>();
                 try

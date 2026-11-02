@@ -14,6 +14,10 @@ public partial class MainWindow
     private bool _comparisonSyncing;
     private string? _comparisonLeftPath;
     private string? _comparisonRightPath;
+    // Each side is read under the protection of the pane that shows it, so a file read where it lies
+    // under its tab's key compares too.
+    private OpenedProtection? _comparisonLeftProtection;
+    private OpenedProtection? _comparisonRightProtection;
     private string _comparisonLeftTitle = string.Empty;
     private string _comparisonRightTitle = string.Empty;
     private CancellationTokenSource? _comparisonCts;
@@ -193,6 +197,8 @@ public partial class MainWindow
             return;
         }
         FocusPane(Viewer);
+        _comparisonLeftProtection = Viewer.ProtectionRef;
+        _comparisonRightProtection = ViewerB.ProtectionRef;
 
         _comparisonActive = true;
         _comparisonReport = null;
@@ -283,7 +289,8 @@ public partial class MainWindow
             try
             {
                 _comparisonReport = await BuildComparisonReportAsync(
-                    _comparisonLeftPath, _comparisonRightPath, _comparisonLeftTitle, _comparisonRightTitle,
+                    _comparisonLeftPath, _comparisonLeftProtection, _comparisonRightPath, _comparisonRightProtection,
+                    _comparisonLeftTitle, _comparisonRightTitle,
                     _comparisonReportCts.Token);
             }
             catch (OperationCanceledException) { return; }
@@ -323,6 +330,8 @@ public partial class MainWindow
         SetComparisonRegions(-1, 0, 0, []);
         _comparisonLeftPath = null;
         _comparisonRightPath = null;
+        _comparisonLeftProtection = null;
+        _comparisonRightProtection = null;
         Viewer.ClearDifferenceRegionsExt();
         ViewerB.ClearDifferenceRegionsExt();
         ComparePdfBtn.Tag = null;
@@ -400,8 +409,9 @@ public partial class MainWindow
         CancellationToken token = _comparisonCts.Token;
         try
         {
-            var result = await Task.Run(() => ComparePagePair(
-                _comparisonLeftPath, _comparisonRightPath, pageIndex, token));
+            string left = _comparisonLeftPath, right = _comparisonRightPath;
+            OpenedProtection? leftKey = _comparisonLeftProtection, rightKey = _comparisonRightProtection;
+            var result = await Task.Run(() => ComparePagePair(left, leftKey, right, rightKey, pageIndex, token));
             if (token.IsCancellationRequested || !_comparisonActive) return;
             Viewer.ClearDifferenceRegionsExt();
             ViewerB.ClearDifferenceRegionsExt();
@@ -441,7 +451,8 @@ public partial class MainWindow
     }
 
     private static async Task<string> BuildComparisonReportAsync(
-        string leftPath, string rightPath, string leftTitle, string rightTitle, CancellationToken token)
+        string leftPath, OpenedProtection? leftKey, string rightPath, OpenedProtection? rightKey,
+        string leftTitle, string rightTitle, CancellationToken token)
     {
         var leftInfo = PdfEngineIntegration.ReadPageInformation(leftPath);
         var rightInfo = PdfEngineIntegration.ReadPageInformation(rightPath);
@@ -458,7 +469,7 @@ public partial class MainWindow
         for (int page = 0; page < pageCount; page++)
         {
             token.ThrowIfCancellationRequested();
-            var result = await Task.Run(() => ComparePagePair(leftPath, rightPath, page, token));
+            var result = await Task.Run(() => ComparePagePair(leftPath, leftKey, rightPath, rightKey, page, token));
             token.ThrowIfCancellationRequested();
             if (!result.LeftPresent || !result.RightPresent)
             {
@@ -485,7 +496,8 @@ public partial class MainWindow
 
     private static (PageDifferenceResult Difference, int Width, int Height,
         bool LeftPresent, bool RightPresent, bool PageDimensionsMatch) ComparePagePair(
-        string leftPath, string rightPath, int pageIndex, CancellationToken token)
+        string leftPath, OpenedProtection? leftKey, string rightPath, OpenedProtection? rightKey,
+        int pageIndex, CancellationToken token)
     {
         var leftInfo = PdfEngineIntegration.ReadPageInformation(leftPath);
         var rightInfo = PdfEngineIntegration.ReadPageInformation(rightPath);
@@ -502,10 +514,10 @@ public partial class MainWindow
             leftPage.Width, leftPage.Height, leftPage.Rotation,
             rightPage.Width, rightPage.Height, rightPage.Rotation);
         PdfRenderedPage left = PdfPageRenderSession.RenderExactPage(
-            leftPath, pageIndex, lw, lh, cancellationToken: token)
+            leftPath, leftKey, pageIndex, lw, lh, cancellationToken: token)
             ?? throw new InvalidOperationException("The original page could not be rendered.");
         PdfRenderedPage right = PdfPageRenderSession.RenderExactPage(
-            rightPath, pageIndex, lw, lh, cancellationToken: token)
+            rightPath, rightKey, pageIndex, lw, lh, cancellationToken: token)
             ?? throw new InvalidOperationException("The comparison page could not be rendered.");
         return (PdfPageDifference.Compare(
                 left.Pixels, lw, lh, right.Pixels, lw, lh), lw, lh,

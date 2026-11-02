@@ -7,11 +7,19 @@ namespace KillerPDF.Services;
 internal sealed class PdfWorkingDocument : IDisposable
 {
     private readonly byte[] _source;
+    private readonly OpenedProtection? _key;
     private PdfDocument? _parsedDocument;
 
-    private PdfWorkingDocument(byte[] source, bool isReadOnly)
+    private PdfWorkingDocument(byte[] source, bool isReadOnly, OpenedProtection? protection)
     {
         PdfDocument parsed = PdfEngineIntegration.OpenForReading(source);
+        // Only the tab that holds the key reads a file its empty password does not open, and the
+        // parse it gets is shared with that tab alone.
+        if (parsed.IsEncrypted && !parsed.IsDecrypted && protection?.OpenHeld(source) is PdfDocument held)
+        {
+            parsed = held;
+            _key = protection;
+        }
         if (!parsed.CanReadPageContent)
             throw new InvalidOperationException("This encrypted PDF requires a password.");
         _parsedDocument = parsed;
@@ -29,7 +37,9 @@ internal sealed class PdfWorkingDocument : IDisposable
     internal void ReleaseParsedDocument(PdfDocument document) =>
         Interlocked.CompareExchange(ref _parsedDocument, null, document);
 
-    internal static PdfWorkingDocument Open(string path, bool isReadOnly = false)
+    /// <summary>Opens a tab's file. The protection is the tab's own: a file read where it lies, still
+    /// encrypted, opens only under the key that protection holds.</summary>
+    internal static PdfWorkingDocument Open(string path, OpenedProtection? protection, bool isReadOnly = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         FileInfo? info;
@@ -45,7 +55,7 @@ internal sealed class PdfWorkingDocument : IDisposable
             info = null;
         }
         byte[] source = File.ReadAllBytes(path);
-        var working = new PdfWorkingDocument(source, isReadOnly);
+        var working = new PdfWorkingDocument(source, isReadOnly, protection);
         bool registered = false;
         if (info is not null && working._parsedDocument is { CanReadPageContent: true } parsed
             && size == source.LongLength)
@@ -55,7 +65,7 @@ internal sealed class PdfWorkingDocument : IDisposable
                 info.Refresh();
                 if (info.Exists && info.Length == size && info.LastWriteTimeUtc.Ticks == ticks)
                 {
-                    PdfPageRenderSession.RegisterDocument(info.FullName, ticks, size, working, parsed);
+                    PdfPageRenderSession.RegisterDocument(info.FullName, ticks, size, working, parsed, working._key);
                     registered = true;
                 }
             }
@@ -90,7 +100,7 @@ internal sealed class PdfWorkingDocument : IDisposable
             var info = new FileInfo(path);
             if (info.Exists && info.Length == _source.LongLength)
                 PdfPageRenderSession.RegisterDocument(info.FullName, info.LastWriteTimeUtc.Ticks, info.Length,
-                    this, parsed);
+                    this, parsed, _key);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {

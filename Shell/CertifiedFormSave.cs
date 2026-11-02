@@ -47,10 +47,10 @@ public partial class MainWindow
         try
         {
             candidate = App.MakeTempFile("certified-form");
-            IReadOnlyCollection<string> kept = PdfEngineIntegration.FillRestrictedForm(source, candidate, ActiveViewer.SnapshotFormValuesForPrint());
+            IReadOnlyCollection<string> kept = PdfEngineIntegration.FillRestrictedForm(source, candidate, ActiveViewer.SnapshotFormValuesForPrint(), _protection);
             // Validate the completed candidate before replacing the destination. The editor enforces
             // certification and logical-field locks while keeping the signed revision byte for byte.
-            using (var reopened = PdfWorkingDocument.Open(candidate)) { }
+            using (var reopened = PdfWorkingDocument.Open(candidate, _protection)) { }
             var complete = CompleteDocumentSource.Capture(candidate);
             SaveExactCopy(candidate, destination, openCopy, kept);
             if (!openCopy) _completeDocumentSource = complete;

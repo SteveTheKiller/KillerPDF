@@ -44,8 +44,8 @@ public sealed class PdfPrintVisibilityTests
             PdfRenderedPage Render(bool printing)
             {
                 using var session = fitted
-                    ? PdfPageRenderSession.OpenEngineFirst(path, 100, 100, forPrinting: printing)
-                    : PdfPageRenderSession.OpenEngineFirst(path, 1.0, forPrinting: printing);
+                    ? PdfPageRenderSession.OpenEngineFirst(path, 100, 100, null, forPrinting: printing)
+                    : PdfPageRenderSession.OpenEngineFirst(path, 1.0, null, forPrinting: printing);
                 return session.RenderPage(0);
             }
             PdfRenderedPage screen = Render(false);

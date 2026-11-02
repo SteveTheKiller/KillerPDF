@@ -261,7 +261,7 @@ namespace KillerPDF.Controls
             if (_currentFile is null) throw new InvalidOperationException("No PDF is open.");
             if (_engineDocumentSession is not null && _engineDocumentSession.Path == _currentFile)
                 return _engineDocumentSession;
-            return _engineDocumentSession = PdfEngineDocumentSession.Open(_currentFile);
+            return _engineDocumentSession = PdfEngineDocumentSession.Open(_currentFile, _protection);
         }
 
         private void CloseEngineDocumentSession()

@@ -21,7 +21,7 @@ public sealed class IncompletePagePublicationTests
                 .AddPage(120, 80, "1 0 0 rg 4 4 60 40 re f q /Missing Do Q"u8.ToArray())
                 .AddPage(120, 80, "BT /Helvetica 14 Tf 10 30 Td (Recovered) Tj ET"u8.ToArray())
                 .Build());
-            using var session = PdfPageRenderSession.OpenEngineFirst(path, 1.0);
+            using var session = PdfPageRenderSession.OpenEngineFirst(path, 1.0, null);
             var log = new IncompletePageLog();
             for (int page = 0; page < 3; page++)
             {
