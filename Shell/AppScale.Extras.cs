@@ -53,6 +53,9 @@ namespace KillerPDF.Shell
                     TextOptions.SetTextRenderingMode(host, TextRenderingMode.Grayscale);
                 }
             }
+            Viewer.RescaleRestrictionNotice();
+            ViewerB.RescaleRestrictionNotice();
+            FitRailToColumn();
 
             // Keep the sidebar's LOGICAL width constant across the change: the column and
             // the saved widths are screen px, so grow them with the scale (see SbPx above).

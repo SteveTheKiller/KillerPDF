@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
+using System.Windows.Media;
 using KillerFamily.Accessibility;
 
 namespace KillerPDF.Controls
@@ -42,6 +43,16 @@ namespace KillerPDF.Controls
             }
         }
 
+        /// <summary>The notice sits over the document, which the app's scale leaves alone, so it takes
+        /// that scale itself, as the toolbar and the sidebar do.</summary>
+        internal void RescaleRestrictionNotice()
+        {
+            if (_restrictionNotice is null) return;
+            double scale = ScaledDialogFit.OwnerScale<Window>(Window.GetWindow(this),
+                window => window is Shell.MainWindow main ? main.AppScale : null, window => window.Owner);
+            _restrictionNotice.LayoutTransform = scale == 1 ? Transform.Identity : new ScaleTransform(scale, scale);
+        }
+
         internal void UpdateRestrictionNotice()
         {
             UpdateReadOnlyTitle();
@@ -66,6 +77,7 @@ namespace KillerPDF.Controls
                 _restrictedByCertificate ? "Str_Restricted_CertificateNotice" : "Str_Restricted_Notice");
             if (_restrictionUnlock is not null)
                 _restrictionUnlock.Visibility = _restrictedByCertificate ? Visibility.Collapsed : Visibility.Visible;
+            RescaleRestrictionNotice();
             bool appearing = _restrictionNotice.Visibility != Visibility.Visible;
             _restrictionNotice.Visibility = Visibility.Visible;
             if (appearing && _restrictionMessage is not null)

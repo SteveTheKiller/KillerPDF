@@ -232,6 +232,14 @@ namespace KillerPDF
                 });
             }
             contentGrid.Children.Add(root);
+            // A message is drawn at the app's scale like the window it opens over, and grows to hold it.
+            double scale = Controls.ScaledDialogFit.OwnerScale<Window>(owner,
+                window => window is Shell.MainWindow main ? main.AppScale : null, window => window.Owner);
+            if (scale != 1)
+            {
+                contentGrid.LayoutTransform = new System.Windows.Media.ScaleTransform(scale, scale);
+                win.Width *= scale;
+            }
             win.Content = DialogFrame.WrapContent(owner, contentGrid);
             win.ShowDialog();
             _lastCheckboxChecked = boxChecked;

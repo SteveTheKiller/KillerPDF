@@ -561,11 +561,37 @@ namespace KillerPDF.Shell
             }
         }
 
+        // A column's icons stack up from the bottom, and at a large app size they would run up over
+        // the chevron, so they shrink to the room below it. A strip lays them out in a row instead.
+        private bool _railFitHooked;
+
+        private void FitRailToColumn()
+        {
+            if (!_railFitHooked)
+            {
+                SidebarRailGrid.SizeChanged += (_, _) => FitRailToColumn();
+                _railFitHooked = true;
+            }
+            if (_sidebarStripLayout || _sidebarToggleBtn is null)
+            {
+                SidebarRailStack.LayoutTransform = Transform.Identity;
+                return;
+            }
+            double natural = SidebarRailStack.Margin.Top + SidebarRailStack.Margin.Bottom
+                + SidebarRailStack.Children.OfType<FrameworkElement>()
+                    .Where(icon => icon.Visibility != Visibility.Collapsed).Sum(icon => icon.DesiredSize.Height);
+            double below = SidebarRailGrid.ActualHeight
+                - (_sidebarToggleBtn.Margin.Top + _sidebarToggleBtn.ActualHeight + 4);
+            double scale = ScaledDialogFit.RailScale(below, natural);
+            SidebarRailStack.LayoutTransform = scale == 1 ? Transform.Identity : new ScaleTransform(scale, scale);
+        }
+
         // A column keeps the chevron at the top and icons at the bottom. A strip keeps the
         // chevron and header at the left and icons at the right, with the chevron outermost.
         private void ApplyRailIconsEnd()
         {
             if (_sidebarToggleBtn == null) return;
+            FitRailToColumn();
             if (!_sidebarStripLayout)
             {
                 _sidebarToggleBtn.VerticalAlignment = VerticalAlignment.Top;

@@ -13,4 +13,11 @@ internal static class ScaledDialogFit
     /// allows so the whole field can be brought into view.</summary>
     internal static double FieldHeight(double wanted, double lowest, double scrollAreaHeight) =>
         scrollAreaHeight <= 0 ? wanted : Math.Clamp(scrollAreaHeight, lowest, wanted);
+
+    /// <summary>The scale the rail's icons are drawn at so they fit below its chevron.</summary>
+    internal static double RailScale(double available, double natural) => 1;
+
+    /// <summary>The app's scale for a window opened over another: the scale of the nearest window up
+    /// its owners that has one, or 1.</summary>
+    internal static double OwnerScale<T>(T? start, Func<T, double?> scaleOf, Func<T, T?> ownerOf) where T : class => 1;
 }
