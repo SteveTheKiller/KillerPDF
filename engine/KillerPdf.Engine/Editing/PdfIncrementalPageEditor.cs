@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
@@ -309,6 +310,40 @@ public sealed class PdfIncrementalPageEditor
         {
             HasBackgroundColor = true,
             BackgroundColor = backgroundColor
+        };
+        return this;
+    }
+
+    /// <summary>
+    /// Changes a text field's font size and regenerates its appearance around the value it holds. No value
+    /// is sent, so fields that repeat the name each keep their own. The callback gives the font for a
+    /// value the standard fonts cannot show.
+    /// </summary>
+    public PdfIncrementalPageEditor SetTextFieldFontSize(
+        string fieldName, double fontSize, Func<string, TrueTypeFont?>? fontForValue = null)
+    {
+        SetTextFieldValue(fieldName, string.Empty, null, fontSize);
+        _textFieldValues[fieldName] = _textFieldValues[fieldName] with
+        {
+            KeepsItsValue = true,
+            FontForValue = fontForValue
+        };
+        return this;
+    }
+
+    /// <summary>
+    /// Changes a text field's background color and regenerates its appearance around the value it holds.
+    /// No value is sent, so fields that repeat the name each keep their own.
+    /// </summary>
+    public PdfIncrementalPageEditor SetTextFieldBackground(
+        string fieldName, PdfRgbColor? backgroundColor, double? fontSize = null,
+        Func<string, TrueTypeFont?>? fontForValue = null)
+    {
+        SetTextFieldBackgroundColor(fieldName, string.Empty, backgroundColor, fontSize: fontSize);
+        _textFieldValues[fieldName] = _textFieldValues[fieldName] with
+        {
+            KeepsItsValue = true,
+            FontForValue = fontForValue
         };
         return this;
     }
@@ -2504,8 +2539,16 @@ public sealed class PdfIncrementalPageEditor
         var fieldReferences = new Dictionary<string, PdfIndirectReference>(
             StringComparer.Ordinal);
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        var twinFailures = new Dictionary<string, ExceptionDispatchInfo>(StringComparer.Ordinal);
+        HashSet<string> repeatedNames = _checkBoxValues.Count == 0 && _radioButtonValues.Count == 0
+            && _textFieldValues.Count == 0 && _choiceFieldValues.Count == 0
+            && _resetFieldValues.Count == 0 && _textFieldAppearanceChanges.Count == 0
+                ? [] : RepeatedFieldNames(fields);
         foreach (PdfObject field in fields)
             Visit(field, null, null, null, 0);
+        foreach ((string name, ExceptionDispatchInfo failure) in twinFailures)
+            if (!matched.Contains(name) && !appearanceMatched.Contains(name))
+                failure.Throw();
         if (_formCalculationOrder is not null)
         {
             PdfObject[] order = [.. _formCalculationOrder.Select(name =>
@@ -2754,96 +2797,170 @@ public sealed class PdfIncrementalPageEditor
             bool hasAppearanceChange = hasPartialName && qualifiedName is not null
                 && _textFieldAppearanceChanges.TryGetValue(
                     qualifiedName, out appearanceChange);
-            if (hasPartialName && qualifiedName is not null
+            // A parent that only groups fields holds no value, so it stands in no field's way.
+            bool holdsValue = hasPartialName && qualifiedName is not null && !hierarchyParent;
+            bool otherChanges = hasMetadataChange || hasDefaultChange || hasFlagChange
+                || hasBehaviorChange || hasChoiceBehaviorChange
+                || hasNameChange || hasAppearanceChange || clearActions;
+            if (holdsValue
                 && _resetFieldValues.TryGetValue(
-                    qualifiedName, out TrueTypeFont? resetFont))
+                    qualifiedName!, out TrueTypeFont? resetFont))
             {
                 // A name the file repeats is one field to the caller, so every copy takes the value.
-                matched.Add(qualifiedName);
-                ResetField(update, reference, editedField, form, fieldType,
-                    qualifiedName, resetFont);
+                if (TwinTakes(() => ResetField(update, reference, editedField, form, fieldType,
+                        qualifiedName!, resetFont)))
+                    matched.Add(qualifiedName!);
             }
-            else if (hasPartialName && qualifiedName is not null
-                && _checkBoxValues.TryGetValue(qualifiedName, out bool checkedValue))
+            else if (holdsValue
+                && _checkBoxValues.TryGetValue(qualifiedName!, out bool checkedValue))
             {
-                matched.Add(qualifiedName);
                 if (fieldType is null || !fieldType.Equals(ButtonFieldName))
                     throw new InvalidOperationException(
                         $"The AcroForm field '{qualifiedName}' is not a checkbox button field.");
-                ValidateCheckBoxFlags(field, qualifiedName);
-                UpdateCheckBoxField(
-                    update, reference, editedField, qualifiedName, checkedValue);
+                ValidateCheckBoxFlags(field, qualifiedName!);
+                if (TwinTakes(() => UpdateCheckBoxField(
+                        update, reference, editedField, qualifiedName!, checkedValue)))
+                    matched.Add(qualifiedName!);
             }
-            else if (hasPartialName && qualifiedName is not null
-                && _radioButtonValues.TryGetValue(qualifiedName, out string? radioValue))
+            else if (holdsValue
+                && _radioButtonValues.TryGetValue(qualifiedName!, out string? radioValue))
             {
-                matched.Add(qualifiedName);
                 if (fieldType is null || !fieldType.Equals(ButtonFieldName))
                     throw new InvalidOperationException(
                         $"The AcroForm field '{qualifiedName}' is not a radio-button field.");
-                ValidateRadioButtonFlags(editedField, qualifiedName);
-                UpdateRadioButtonField(
-                    update, reference, editedField, qualifiedName, radioValue);
+                ValidateRadioButtonFlags(editedField, qualifiedName!);
+                if (TwinTakes(() => UpdateRadioButtonField(
+                        update, reference, editedField, qualifiedName!, radioValue)))
+                    matched.Add(qualifiedName!);
             }
-            else if (hasPartialName && qualifiedName is not null
+            else if (holdsValue
                 && (_textFieldValues.TryGetValue(
-                        qualifiedName, out PendingTextFieldValue? textValue)
+                        qualifiedName!, out PendingTextFieldValue? textValue)
                     || hasAppearanceChange))
             {
                 if (fieldType is null || !fieldType.Equals(TextFieldName))
                     throw new InvalidOperationException(
                         $"The AcroForm field '{qualifiedName}' is not a text field.");
-                if (textValue is not null) matched.Add(qualifiedName);
-                if (hasAppearanceChange) appearanceMatched.Add(qualifiedName);
-                if (textValue is null)
+                if (TwinTakes(() => ApplyTextField(
+                        update, reference, editedField, form, qualifiedName!, textValue, appearanceChange)))
                 {
-                    PdfObject? currentValue = editedField.TryGetValue(
-                        FieldValueName, out PdfObject? fieldValue)
-                        ? ResolveCatalogValue(_document, fieldValue,
-                            $"The text field '{qualifiedName}' /V value")
-                        : null;
-                    string currentText = currentValue switch
-                    {
-                        null => string.Empty,
-                        PdfString currentString => PdfUnicodeEncoding.DecodeTextString(
-                            currentString.Bytes.Span,
-                            $"The text field '{qualifiedName}' /V value"),
-                        _ => throw new InvalidOperationException(
-                            $"The text field '{qualifiedName}' /V value is not a string.")
-                    };
-                    textValue = new PendingTextFieldValue(
-                        currentText, null, null, false, null, null);
+                    if (textValue is not null) matched.Add(qualifiedName!);
+                    if (hasAppearanceChange) appearanceMatched.Add(qualifiedName!);
                 }
-                if (hasAppearanceChange)
-                    textValue = textValue with
-                    {
-                        EmbeddedFont = appearanceChange!.EmbeddedFont,
-                        FontSize = appearanceChange.FontSize,
-                        AppearanceStyle = appearanceChange.AppearanceStyle
-                    };
-                UpdateTextField(
-                    update, reference, editedField, form, qualifiedName, textValue);
             }
-            else if (hasPartialName && qualifiedName is not null
+            else if (holdsValue
                 && _choiceFieldValues.TryGetValue(
-                    qualifiedName, out PendingChoiceFieldValue? choiceValue))
+                    qualifiedName!, out PendingChoiceFieldValue? choiceValue))
             {
-                matched.Add(qualifiedName);
                 if (fieldType is null || !fieldType.Equals(ChoiceFieldName))
                     throw new InvalidOperationException(
                         $"The AcroForm field '{qualifiedName}' is not a choice field.");
-                UpdateChoiceField(
-                    update, reference, editedField, form, qualifiedName, choiceValue);
+                if (TwinTakes(() => UpdateChoiceField(
+                        update, reference, editedField, form, qualifiedName!, choiceValue)))
+                    matched.Add(qualifiedName!);
             }
-            else if (hasMetadataChange || hasDefaultChange || hasFlagChange
-                     || hasBehaviorChange || hasChoiceBehaviorChange
-                     || hasNameChange || hasAppearanceChange || clearActions)
+            else if (otherChanges)
                 update.ReplaceObject(reference.ObjectNumber, editedField);
             if (!field.TryGetValue(KidsName, out PdfObject? kidsValue)) return;
             PdfArray kids = ResolveArray(
                 _document, kidsValue, "An AcroForm field /Kids value");
             foreach (PdfObject kid in kids)
                 Visit(kid, qualifiedName, resultingQualifiedName, fieldType, depth + 1);
+
+            // A name the file repeats breaks the rule that one name is one field, so its copies can
+            // differ in options, length limits or soundness. One that cannot take the value keeps its
+            // own and everything else stays as it was, and only a value no copy can take is refused.
+            bool TwinTakes(Action apply)
+            {
+                if (!repeatedNames.Contains(qualifiedName!))
+                {
+                    apply();
+                    return true;
+                }
+                PdfIncrementalUpdateBuilder.Checkpoint checkpoint = update.Mark();
+                try
+                {
+                    apply();
+                    return true;
+                }
+                catch (Exception error) when (error is not OutOfMemoryException)
+                {
+                    checkpoint.Restore();
+                    twinFailures.TryAdd(qualifiedName!, ExceptionDispatchInfo.Capture(error));
+                    if (otherChanges) update.ReplaceObject(reference.ObjectNumber, editedField);
+                    return false;
+                }
+            }
+        }
+    }
+
+    private void ApplyTextField(
+        PdfIncrementalUpdateBuilder update, PdfIndirectReference reference,
+        PdfDictionary field, PdfDictionary form, string fieldName,
+        PendingTextFieldValue? textValue, PendingTextFieldAppearance? appearanceChange)
+    {
+        if (textValue is null || textValue.KeepsItsValue)
+        {
+            PdfObject? currentValue = field.TryGetValue(
+                FieldValueName, out PdfObject? fieldValue)
+                ? ResolveCatalogValue(_document, fieldValue,
+                    $"The text field '{fieldName}' /V value")
+                : null;
+            string currentText = currentValue switch
+            {
+                null => string.Empty,
+                PdfString currentString => PdfUnicodeEncoding.DecodeTextString(
+                    currentString.Bytes.Span,
+                    $"The text field '{fieldName}' /V value"),
+                _ => throw new InvalidOperationException(
+                    $"The text field '{fieldName}' /V value is not a string.")
+            };
+            textValue = (textValue ?? new PendingTextFieldValue(
+                currentText, null, null, false, null, null)) with
+            {
+                Value = currentText,
+                EmbeddedFont = textValue?.FontForValue?.Invoke(currentText)
+            };
+        }
+        if (appearanceChange is not null)
+            textValue = textValue with
+            {
+                EmbeddedFont = appearanceChange.EmbeddedFont,
+                FontSize = appearanceChange.FontSize,
+                AppearanceStyle = appearanceChange.AppearanceStyle
+            };
+        UpdateTextField(update, reference, field, form, fieldName, textValue);
+    }
+
+    // Field names the form's tree carries more than once. Anything malformed is left for the edit itself.
+    private HashSet<string> RepeatedFieldNames(PdfArray fields)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var repeated = new HashSet<string>(StringComparer.Ordinal);
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        foreach (PdfObject field in fields) Walk(field, null, 0);
+        return repeated;
+
+        void Walk(PdfObject value, string? parentName, int depth)
+        {
+            if (depth >= 256) return;
+            var (Value, FinalReference) = ResolveOutlineWithIdentity(
+                _document, value, "An AcroForm field");
+            if (FinalReference is null || Value is not PdfDictionary field
+                || !visited.Add((FinalReference.ObjectNumber, FinalReference.Generation))) return;
+            string? name = parentName;
+            if (field.TryGetValue(FieldName, out PdfObject? nameValue)
+                && ResolveCatalogValue(_document, nameValue, "An AcroForm field /T value") is PdfString partial)
+            {
+                string part = PdfUnicodeEncoding.DecodeTextString(
+                    partial.Bytes.Span, "An AcroForm field /T value");
+                name = parentName is null ? part : $"{parentName}.{part}";
+                if (!seen.Add(name)) repeated.Add(name);
+            }
+            if (!field.TryGetValue(KidsName, out PdfObject? kidsValue)) return;
+            foreach (PdfObject kid in ResolveArray(
+                         _document, kidsValue, "An AcroForm field /Kids value"))
+                Walk(kid, name, depth + 1);
         }
     }
 
@@ -3529,9 +3646,7 @@ public sealed class PdfIncrementalPageEditor
                 }
                 if (qualifiedName is not null && _removedFormFields.Contains(qualifiedName))
                 {
-                    if (!matched.Add(qualifiedName))
-                        throw new InvalidOperationException(
-                            $"The AcroForm contains more than one field named '{qualifiedName}'.");
+                    matched.Add(qualifiedName);
                     CollectRemoved(fieldValue, 0);
                     continue;
                 }
@@ -19241,7 +19356,12 @@ public sealed class PdfIncrementalPageEditor
     private sealed record PendingTextFieldValue(
         string Value, TrueTypeFont? EmbeddedFont, double? FontSize,
         bool HasBackgroundColor, PdfRgbColor? BackgroundColor,
-        PdfFormFieldAppearanceStyle? AppearanceStyle);
+        PdfFormFieldAppearanceStyle? AppearanceStyle)
+    {
+        /// <summary>A change of look only: each field regenerates around the value it holds.</summary>
+        public bool KeepsItsValue { get; init; }
+        public Func<string, TrueTypeFont?>? FontForValue { get; init; }
+    }
     private sealed record PendingTextFieldBehavior(
         bool Multiline, bool DoNotScroll, PdfTextFieldAlignment Alignment);
     private sealed record PendingChoiceFieldBehavior(

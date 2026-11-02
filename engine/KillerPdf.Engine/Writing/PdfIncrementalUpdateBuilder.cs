@@ -90,6 +90,31 @@ public sealed class PdfIncrementalUpdateBuilder
         }
     }
 
+    /// <summary>The registered changes at one moment, for an edit that may have to be undone.</summary>
+    internal sealed class Checkpoint(PdfIncrementalUpdateBuilder builder)
+    {
+        private readonly KeyValuePair<int, PendingObject>[] _objects = [.. builder._objects];
+        private readonly KeyValuePair<int, FreedObject>[] _freed = [.. builder._freed];
+        private readonly int[] _reserved = [.. builder._reserved];
+        private readonly int[] _directObjectNumbers = [.. builder._directObjectNumbers];
+        private readonly int _nextObjectNumber = builder._nextObjectNumber;
+
+        internal void Restore()
+        {
+            builder._objects.Clear();
+            foreach ((int number, PendingObject value) in _objects) builder._objects[number] = value;
+            builder._freed.Clear();
+            foreach ((int number, FreedObject value) in _freed) builder._freed[number] = value;
+            builder._reserved.Clear();
+            builder._reserved.UnionWith(_reserved);
+            builder._directObjectNumbers.Clear();
+            builder._directObjectNumbers.UnionWith(_directObjectNumbers);
+            builder._nextObjectNumber = _nextObjectNumber;
+        }
+    }
+
+    internal Checkpoint Mark() => new(this);
+
     /// <summary>Reserves a generation-zero object number for a value supplied later.</summary>
     public PdfIndirectReference ReserveObject()
     {
