@@ -816,8 +816,9 @@ namespace KillerPDF.Controls
             if (_doc == null)
             {
                 // A background open (encryption strip / repair) finalizes this tab itself, so the
-                // not-yet-loaded _doc isn't a failure - leave the tab in place.
-                if (_asyncOpenPending) return opened;
+                // not-yet-loaded _doc isn't a failure - leave the tab in place. Another tab's open
+                // still running in this pane is no reason to keep this one.
+                if (target.LoadPending) return opened;
                 // Open failed, was canceled, or a password prompt was dismissed.
                 AbortTabLoad(target, prev, createdNew);
                 return opened;
@@ -936,7 +937,7 @@ namespace KillerPDF.Controls
             OpenFile(path!);                  // loads into the live fields and renders the view
             if (_doc == null)
             {
-                if (_asyncOpenPending) return;   // background strip/repair finalizes the tab itself
+                if (target.LoadPending) return;   // its background strip/repair finalizes the tab itself
                 RenderActiveSession(); return;
             }
             CaptureSessionState(target);      // persist the now-loaded document back into the session

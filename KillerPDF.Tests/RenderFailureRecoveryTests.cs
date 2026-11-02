@@ -307,7 +307,21 @@ namespace KillerPDF.Tests
             var document = new RecoveredDocument(@"C:\Docs\a.pdf", @"C:\Recovery\01-a.pdf", null, Protected: true);
             waiting.Expect(document);
 
-            Assert.Equal(ProtectedReopen.NotOpened, waiting.Settle(document.RecoveredPath, openPending: false));
+            Assert.Equal(ProtectedReopen.NotOpened, waiting.Settle(document.RecoveredPath, new TabOpen(false, false)));
+            Assert.Null(waiting.Take(document.RecoveredPath));
+        }
+
+        // R5-005: another tab's background open, such as the restored focused tab or an earlier
+        // recovered copy, says nothing about this copy. Its prompt was canceled, so it is not pending
+        // and is listed with the documents that need review.
+        [Fact]
+        public void ACanceledCopyIsNotPendingWhileAnotherTabStillLoads()
+        {
+            var waiting = new ProtectedRecoveryList();
+            var document = new RecoveredDocument(@"C:\Docs\d.pdf", @"C:\Recovery\04-d.pdf", null, Protected: true);
+            waiting.Expect(document);
+
+            Assert.Equal(ProtectedReopen.NotOpened, waiting.Settle(document.RecoveredPath, new TabOpen(TabLoading: false, PaneLoading: true)));
             Assert.Null(waiting.Take(document.RecoveredPath));
         }
 
@@ -319,7 +333,7 @@ namespace KillerPDF.Tests
             waiting.Expect(document);
 
             Assert.Same(document, waiting.Take(document.RecoveredPath));
-            Assert.Equal(ProtectedReopen.Reopened, waiting.Settle(document.RecoveredPath, openPending: false));
+            Assert.Equal(ProtectedReopen.Reopened, waiting.Settle(document.RecoveredPath, new TabOpen(false, false)));
         }
 
         [Fact]
@@ -329,7 +343,7 @@ namespace KillerPDF.Tests
             var document = new RecoveredDocument(@"C:\Docs\c.pdf", @"C:\Recovery\03-c.pdf", null, Protected: true);
             waiting.Expect(document);
 
-            Assert.Equal(ProtectedReopen.Pending, waiting.Settle(document.RecoveredPath, openPending: true));
+            Assert.Equal(ProtectedReopen.Pending, waiting.Settle(document.RecoveredPath, new TabOpen(TabLoading: true, PaneLoading: true)));
             waiting.Abandon(document.RecoveredPath);
 
             Assert.Null(waiting.Take(document.RecoveredPath));

@@ -43,7 +43,9 @@ namespace KillerPDF.Services
         internal ProtectedReopen Settle(string recoveredPath, TabOpen open)
         {
             if (!_waiting.ContainsKey(recoveredPath)) return ProtectedReopen.Reopened;
-            if (open.PaneLoading) return ProtectedReopen.Pending;
+            // Only the copy's own tab says whether its open still runs; another tab's open in the
+            // same pane says nothing about this one.
+            if (open.TabLoading) return ProtectedReopen.Pending;
             _waiting.Remove(recoveredPath);
             return ProtectedReopen.NotOpened;
         }
