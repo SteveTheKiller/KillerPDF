@@ -47,7 +47,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Export Pages as Images and Save Flattened show a Cancel button. A canceled export stops at the next page and says how many pages it saved, the Esc prompt holds the export while it is open, and progress appears before a large file is prepared.
 - A word replaced on a scanned line takes its size, typeface and height from the page, not from the zoom on screen, and follows a tilted line. Clicking low on a recognized line gathers the whole line.
 - The Attachments panel lists the attachments of a restricted PDF, and saving one asks for the owner password.
-- Typing in a repeated text field shows the value in every field of that name, on every page.
+- Typing in a repeated text field shows the value in every field of that name, on every page, and a new font size shows in all of them at once.
 - The Rasterize Region dialog says that the text under the image stays selectable and searchable.
 - `optimize` works on a healthy encrypted PDF and keeps its protection, reading `--password` when the file needs one, and commands that cannot change an encrypted PDF say what to do in plain words.
 - The paragraph dialog keeps every field reachable at a high app scale.
