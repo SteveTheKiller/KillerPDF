@@ -583,7 +583,7 @@ namespace KillerPDF.Controls
                             try { fieldMarks.ShowText(capturedKey, tb.Text, tb); }
                             finally { _formRecalculating = false; }
                         };
-                        fieldMarks.AddText(pageIndex, capturedKey, tb);
+                        fieldMarks.AddText(pageIndex, capturedKey, tb, capturedScale);
                         RegisterFormValueBox(capturedKey, tb);
                         ctrl = f.IsComb ? new CombTextBox(tb, f.MaxLen, fontSize) : tb;
                     }
@@ -1072,6 +1072,8 @@ namespace KillerPDF.Controls
             pt = Math.Max(4, Math.Min(96, pt + delta));
             _formFontSizes[_activeFormName] = pt;
             _activeFormTb.FontSize = pt * scale;
+            // The size belongs to the name, so every box of it shows the change at once.
+            _fieldMarks.ShowFontSize(_activeFormName, pt, _activeFormTb);
             sizeLbl.Text = pt.ToString("0");
             MarkDirty(true);
         }

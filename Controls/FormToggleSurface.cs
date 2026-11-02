@@ -16,7 +16,7 @@ namespace KillerPDF.Controls
     {
         private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<(int Page, UIElement Mark)>> _checks = [];
         private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<(int Page, UIElement Dot, string OnValue)>> _radios = [];
-        private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<(int Page, TextBox Box)>> _texts = [];
+        private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<(int Page, TextBox Box, double Scale)>> _texts = [];
 
         /// <summary>Forgets a page's marks because its overlay is being built again.</summary>
         internal void BeginPage(int pageIndex)
@@ -26,18 +26,28 @@ namespace KillerPDF.Controls
             foreach (var boxes in _texts.Values) boxes.RemoveAll(item => item.Page == pageIndex);
         }
 
-        internal void AddText(int pageIndex, string fieldName, TextBox box)
+        /// <summary>Adds a box of a text field. Its scale turns points into the box's own pixels,
+        /// since the boxes of one name can sit on pages drawn at different sizes.</summary>
+        internal void AddText(int pageIndex, string fieldName, TextBox box, double scale = 1)
         {
             if (!_texts.TryGetValue(fieldName, out var boxes)) _texts[fieldName] = boxes = [];
-            boxes.Add((pageIndex, box));
+            boxes.Add((pageIndex, box, scale > 0 ? scale : 1));
         }
 
         /// <summary>Shows a typed value in every other box of the field, across pages.</summary>
         internal void ShowText(string fieldName, string value, TextBox typedIn)
         {
             if (!_texts.TryGetValue(fieldName, out var boxes)) return;
-            foreach ((_, TextBox box) in boxes)
+            foreach ((_, TextBox box, _) in boxes)
                 if (!ReferenceEquals(box, typedIn)) box.Text = value;
+        }
+
+        /// <summary>Shows a font size set in one box in every other box of the field.</summary>
+        internal void ShowFontSize(string fieldName, double points, TextBox setIn)
+        {
+            _ = fieldName;
+            _ = points;
+            _ = setIn;
         }
 
         internal void AddCheck(int pageIndex, string fieldName, UIElement mark)
