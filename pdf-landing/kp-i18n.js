@@ -44,7 +44,7 @@ var I18N = {
   "pa_28": "Stik in povezave",
   "pa_29": "Preizkusite tudi...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" rel=\"noopener\" target=\"_blank\">Izvorna koda na GitHubu</a> · GPLv3 · Del <a href=\"https://killertools.net\" rel=\"noopener\" target=\"_blank\">killertools.net</a>",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> · © 2026 <b><a href=\"https://thekiller.net\" rel=\"noopener\" target=\"_blank\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> · © 2026 <b><a href=\"https://thekiller.net\" rel=\"noopener\" target=\"_blank\">Steve the Killer</a></b>",
   "ph_202": "Pomoč",
   "ph_1": "Pogled in krmarjenje",
   "ph_2": "Pripombe",
@@ -1499,7 +1499,7 @@ var I18N = {
   "pa_28": "Контакты &amp; ссылки",
   "pa_29": "Попробуйте также...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Исходный код на GitHub</a> &middot; GPLv3 &middot; Часть <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"
  },
  "it": {
   "release_185_rotation": "Ctrl+R ruota le pagine selezionate di 90° in senso orario. Ctrl+Shift+R le ruota di 90° in senso antiorario.",
@@ -2240,7 +2240,7 @@ var I18N = {
   "pa_28": "Contatti e link",
   "pa_29": "Prova anche...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" rel=\"noopener\" target=\"_blank\">Codice sorgente su GitHub</a> &middot; GPLv3 &middot; Parte di <a href=\"https://killertools.net\" rel=\"noopener\" target=\"_blank\">killertools.net</a>",
-  "pa_31": "<span id=\"verEgg\" title=\"cliccami\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" rel=\"noopener\" target=\"_blank\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"cliccami\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" rel=\"noopener\" target=\"_blank\">Steve the Killer</a></b>",
   "pt_3": "Tecnico",
   "pt_4": "Stack tecnologico",
   "pt_5": "Installazione e dati",
@@ -3086,7 +3086,7 @@ var I18N = {
   "pa_28": "Liên hệ &amp; liên kết",
   "pa_29": "Hãy thử thêm...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Mã nguồn trên GitHub</a> · GPLv3 · Một phần của <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> · © 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> · © 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "pt_3": "Kỹ thuật",
   "pt_4": "Công nghệ sử dụng",
   "pt_5": "Cài đặt &amp; dữ liệu",
@@ -3435,7 +3435,7 @@ var I18N = {
   "pa_29": "Próbáld meg te is...",
   "pa_3": "A készítő",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Forrás a GitHubon</a> · GPLv3 · A <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a> része",
-  "pa_31": "<span id=\"verEgg\" title=\"kattints rám\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"kattints rám\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "pa_4": "\"Elegem van abból, hogy bezárom ugyanazt az Adobe-jegyet. Ezért írtam egy PDF-alkalmazást, amely csak működik, egyetlen .exe-ként érkezik, és soha nem kéri a felhasználót, hogy jelentkezzen be.\"",
   "pa_5": "<b>Steve the Killer</b> vagyok. Hat év full-stack fejlesztőként, nyolc év helyszíni technikusként több cégnél, most pedig egy MSP belső MI-mérnöki csapatában dolgozom, tehát olyan otthon vagyok a kódbázisban, mint a szerverszobában.",
   "pa_6": "Napjaim állandó része mindig is ugyanolyan volt: a felhasználó nem tud PDF-et kitölteni, az űrlapok nem simulnak ki, a licenc nem aktiválódik, a megtekintő hibát dob egy fájlra, amelynek meg kellene nyílnia. Az Adobe Acrobat jegyek - telepítse, javítsa, licencelje, kerülje meg - hetente több órát tettek ki, amelyek soha nem tűntek úgy, mintha bármit is megjavítanának.",
@@ -4780,7 +4780,7 @@ var I18N = {
   "pa_28": "Kontakt i odnośniki",
   "pa_29": "Wypróbuj także...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Kod źródłowy na GitHubie</a> &middot; GPLv3 &middot; Część <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
-  "pa_31": "<span id=\"verEgg\" title=\"kliknij mnie\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"kliknij mnie\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "shot_08": "Motyw Żałoba, ukryty pasek menu, tryb nocny odwracający także obrazy",
   "shot_09": "Motyw Rozkład, ukryty pasek menu, menu języków z dwunastoma językami",
   "shot_02": "Okno wyboru pliku Wstaw obraz w motywie 98SE",
@@ -5589,7 +5589,7 @@ var I18N = {
   "pa_28": "Kontakt a odkazy",
   "pa_29": "Vyzkoušejte také...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Zdrojový kód na GitHubu</a> &middot; GPLv3 &middot; Součást <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
-  "pa_31": "<span id=\"verEgg\" title=\"klikni na mě\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"klikni na mě\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "pt_3": "Technické",
   "pt_4": "Technologie",
   "pt_5": "Instalace a data",
@@ -6435,7 +6435,7 @@ var I18N = {
   "pa_28": "Contacto y enlaces",
   "pa_29": "Prueba tambien...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Codigo fuente en GitHub</a> &middot; GPLv3 &middot; Parte de <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "pt_3": "Técnico",
   "pt_4": "Pila tecnológica",
   "pt_5": "Instalación y datos",
@@ -7281,7 +7281,7 @@ var I18N = {
   "pa_28": "Kontakt &amp; Links",
   "pa_29": "Probier auch...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Quellcode auf GitHub</a> &middot; GPLv3 &middot; Teil von <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "pt_3": "Technisches",
   "pt_4": "Technologie-Stack",
   "pt_5": "Installation &amp; Daten",
@@ -8127,7 +8127,7 @@ var I18N = {
   "pa_28": "Contact &amp; liens",
   "pa_29": "Essayez aussi...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Code source sur GitHub</a> &middot; GPLv3 &middot; Partie de <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "pt_3": "Technique",
   "pt_4": "Pile technologique",
   "pt_5": "Installation &amp; données",
@@ -8973,7 +8973,7 @@ var I18N = {
   "pa_28": "Iletisim ve baglantilar",
   "pa_29": "Sunu da deneyin...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">GitHub'da kaynak kod</a> &middot; GPLv3 &middot; <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a> parcasi",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "pt_3": "Teknik",
   "pt_4": "Teknoloji yığını",
   "pt_5": "Kurulum &amp; veri",
@@ -9819,7 +9819,7 @@ var I18N = {
   "pa_28": "聯絡方式及連結",
   "pa_29": "也試試看...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">GitHub 上的原始碼</a> &middot; GPLv3 &middot; 隸屬於 <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "pt_3": "技術細節",
   "pt_4": "技術堆疊",
   "pt_5": "安裝與資料",
@@ -10665,7 +10665,7 @@ var I18N = {
   "pa_28": "联系方式及链接",
   "pa_29": "也试试看...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">GitHub 上的源代码</a> &middot; GPLv3 &middot; 隶属于 <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "pt_3": "技术细节",
   "pt_4": "技术栈",
   "pt_5": "安装与数据",
@@ -11511,7 +11511,7 @@ var I18N = {
   "pa_28": "যোগাযোগ &amp; লিংক",
   "pa_29": "এটিও দেখুন...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">GitHub-এ সোর্স</a> &middot; GPLv3 &middot; <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>-এর অংশ",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "pt_3": "কারিগরি",
   "pt_4": "টেক স্ট্যাক",
   "pt_5": "ইনস্টল &amp; ডেটা",
@@ -12357,7 +12357,7 @@ var I18N = {
   "pa_28": "連絡先 &amp; リンク",
   "pa_29": "こちらもどうぞ...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">GitHub のソースコード</a> · GPLv3 · <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a> ファミリーの一員",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> · © 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> · © 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "pt_3": "技術情報",
   "pt_4": "技術スタック",
   "pt_5": "インストール &amp; データ",
@@ -13171,7 +13171,7 @@ var I18N = {
   "pa_28": "Байланыс және сілтемелер",
   "pa_29": "Мыналарды да көріңіз...",
   "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">GitHub сайтындағы бастапқы код</a> &middot; GPLv3 &middot; <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a> құрамында",
-  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+  "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
   "nav_dl": "Жүктеп алу",
   "nav_help": "Көмек",
   "nav_tech": "Техникалық мәліметтер",
@@ -14010,7 +14010,7 @@ I18N.uk = {
  "pa_28": "Контакти &amp; посилання",
  "pa_29": "Також спробуйте...",
  "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Вихідний код на GitHub</a> &middot; GPLv3 &middot; Частина <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
- "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
+ "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>",
  "mcp_hero": "Попросіть свого ШІ-асистента працювати з локальними файлами PDF через KillerPDF.",
  "mcp_install_title": "Встановіть <span class=\"killermcp-wordmark\">Killer<span class=\"killermcp-accent\">MCP</span></span>",
  "mcp_install_intro": "KillerMCP містить усі 81 утиліту KillerTools, а також інструменти з підтримуваних застосунків Killer в одному локальному підключенні. Вам не потрібні окремий інсталятор KillerPDF MCP, завантаження вихідного коду, Node чи список команд.",
@@ -14838,7 +14838,7 @@ I18N.nb = {
  "pa_28": "Kontakt &amp; lenker",
  "pa_29": "Prøv også...",
  "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Kildekode på GitHub</a> &middot; GPLv3 &middot; Del av <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
- "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"
+ "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"
 };
 I18N.pt = {
  "release_185_rotation": "Ctrl+R gira as páginas selecionadas em 90° no sentido horário. Ctrl+Shift+R as gira em 90° no sentido anti-horário.",
@@ -15603,7 +15603,7 @@ I18N.pt = {
  "pa_28": "Contato &amp; links",
  "pa_29": "Experimente também...",
  "pa_30": "<a href=\"https://github.com/SteveTheKiller/KillerPDF\" target=\"_blank\" rel=\"noopener\">Código-fonte no GitHub</a> &middot; GPLv3 &middot; Parte do <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>",
- "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"
+ "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"
 };
 
 /* Language count update: twenty locales. */
@@ -15898,24 +15898,24 @@ if (I18N["uk"]) Object.assign(I18N["uk"], {"kb_color_correction": "Корекц�
 if (I18N["vi"]) Object.assign(I18N["vi"], {"kb_color_correction": "Chỉnh màu", "kb_measure": "Đo lường", "kb_redact": "Che", "kb_export_document": "Xuất tài liệu", "kb_scan_to_text": "Chuyển bản quét thành văn bản", "kb_film_grain": "Hạt phim", "kb_new_window": "Chuyển sang cửa sổ mới", "kb_doc_tools": "Công cụ tài liệu", "kb_dt_preflight": "Báo cáo kiểm tra trước khi in", "kb_dt_print_production": "Báo cáo sản xuất in", "kb_dt_separations": "Báo cáo xem trước tách màu", "kb_dt_accessibility": "Báo cáo khả năng tiếp cận", "kb_dt_layers": "Báo cáo lớp", "kb_dt_edit_layers": "Chỉnh sửa lớp", "kb_dt_portfolio": "Báo cáo danh mục", "kb_dt_edit_portfolio": "Chỉnh sửa danh mục", "kb_dt_edit_portfolio_structure": "Chỉnh sửa cấu trúc danh mục", "kb_dt_edit_attachments": "Chỉnh sửa tệp đính kèm", "kb_dt_navigation_audit": "Kiểm tra điều hướng", "kb_dt_auto_bookmarks": "Tạo dấu trang từ tiêu đề", "kb_dt_page_labels": "Chỉnh sửa nhãn trang", "kb_dt_initial_view": "Cài đặt chế độ xem ban đầu", "kb_dt_structural_comparison": "Báo cáo so sánh cấu trúc", "kb_dt_macros": "Macro", "kb_dt_data_merge": "Trộn dữ liệu", "kb_dt_insert_toc": "Chèn mục lục"});
 if (I18N["zh-cn"]) Object.assign(I18N["zh-cn"], {"kb_color_correction": "色彩校正", "kb_measure": "测量", "kb_redact": "涂黑", "kb_export_document": "导出文档", "kb_scan_to_text": "将扫描转换为文本", "kb_film_grain": "胶片颗粒", "kb_new_window": "移至新窗口", "kb_doc_tools": "文档工具", "kb_dt_preflight": "印前检查报告", "kb_dt_print_production": "印刷生产报告", "kb_dt_separations": "分色预览报告", "kb_dt_accessibility": "无障碍报告", "kb_dt_layers": "图层报告", "kb_dt_edit_layers": "编辑图层", "kb_dt_portfolio": "PDF 包报告", "kb_dt_edit_portfolio": "编辑 PDF 包", "kb_dt_edit_portfolio_structure": "编辑 PDF 包结构", "kb_dt_edit_attachments": "编辑附件", "kb_dt_navigation_audit": "导航审核", "kb_dt_auto_bookmarks": "根据标题创建书签", "kb_dt_page_labels": "编辑页码标签", "kb_dt_initial_view": "初始视图设置", "kb_dt_structural_comparison": "结构比较报告", "kb_dt_macros": "宏", "kb_dt_data_merge": "数据合并", "kb_dt_insert_toc": "插入目录"});
 if (I18N["zh"]) Object.assign(I18N["zh"], {"kb_color_correction": "色彩校正", "kb_measure": "測量", "kb_redact": "塗黑", "kb_export_document": "匯出文件", "kb_scan_to_text": "將掃描轉換為文字", "kb_film_grain": "底片顆粒", "kb_new_window": "移至新視窗", "kb_doc_tools": "文件工具", "kb_dt_preflight": "印前檢查報告", "kb_dt_print_production": "列印生產報告", "kb_dt_separations": "分色預覽報告", "kb_dt_accessibility": "無障礙報告", "kb_dt_layers": "圖層報告", "kb_dt_edit_layers": "編輯圖層", "kb_dt_portfolio": "PDF 封裝報告", "kb_dt_edit_portfolio": "編輯 PDF 封裝", "kb_dt_edit_portfolio_structure": "編輯 PDF 包結構", "kb_dt_edit_attachments": "編輯附件", "kb_dt_navigation_audit": "導覽稽核", "kb_dt_auto_bookmarks": "根據標題建立書籤", "kb_dt_page_labels": "編輯頁碼標籤", "kb_dt_initial_view": "初始檢視設定", "kb_dt_structural_comparison": "結構比較報告", "kb_dt_macros": "巨集", "kb_dt_data_merge": "資料合併", "kb_dt_insert_toc": "插入目錄"});
-if (I18N["ru"]) Object.assign(I18N["ru"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["it"]) Object.assign(I18N["it"], {"pa_31": "<span id=\"verEgg\" title=\"cliccami\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" rel=\"noopener\" target=\"_blank\">Steve the Killer</a></b>"});
-if (I18N["vi"]) Object.assign(I18N["vi"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> · © 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["hu"]) Object.assign(I18N["hu"], {"pa_31": "<span id=\"verEgg\" title=\"kattints rám\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["pl"]) Object.assign(I18N["pl"], {"pa_31": "<span id=\"verEgg\" title=\"kliknij mnie\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["cs"]) Object.assign(I18N["cs"], {"pa_31": "<span id=\"verEgg\" title=\"klikni na mě\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["es"]) Object.assign(I18N["es"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["de"]) Object.assign(I18N["de"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["fr"]) Object.assign(I18N["fr"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["tr"]) Object.assign(I18N["tr"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["zh"]) Object.assign(I18N["zh"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["zh-cn"]) Object.assign(I18N["zh-cn"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["bn"]) Object.assign(I18N["bn"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["ja"]) Object.assign(I18N["ja"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> · © 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["kk"]) Object.assign(I18N["kk"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["uk"]) Object.assign(I18N["uk"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["nb"]) Object.assign(I18N["nb"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
-if (I18N["pt"]) Object.assign(I18N["pt"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.1</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["ru"]) Object.assign(I18N["ru"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["it"]) Object.assign(I18N["it"], {"pa_31": "<span id=\"verEgg\" title=\"cliccami\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" rel=\"noopener\" target=\"_blank\">Steve the Killer</a></b>"});
+if (I18N["vi"]) Object.assign(I18N["vi"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> · © 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["hu"]) Object.assign(I18N["hu"], {"pa_31": "<span id=\"verEgg\" title=\"kattints rám\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["pl"]) Object.assign(I18N["pl"], {"pa_31": "<span id=\"verEgg\" title=\"kliknij mnie\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["cs"]) Object.assign(I18N["cs"], {"pa_31": "<span id=\"verEgg\" title=\"klikni na mě\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["es"]) Object.assign(I18N["es"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["de"]) Object.assign(I18N["de"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["fr"]) Object.assign(I18N["fr"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["tr"]) Object.assign(I18N["tr"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["zh"]) Object.assign(I18N["zh"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["zh-cn"]) Object.assign(I18N["zh-cn"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["bn"]) Object.assign(I18N["bn"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["ja"]) Object.assign(I18N["ja"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> · © 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["kk"]) Object.assign(I18N["kk"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["uk"]) Object.assign(I18N["uk"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["nb"]) Object.assign(I18N["nb"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
+if (I18N["pt"]) Object.assign(I18N["pt"], {"pa_31": "<span id=\"verEgg\" title=\"click me\">v1.9.2</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"});
 if (I18N["ru"]) Object.assign(I18N["ru"], {"shot_183_02": "Предпросмотр преобразования с настройками поворота, масштабирования, отражения и наклона", "shot_183_06": "Предпросмотр штампования страниц с водяным знаком DRAFT и настройками номеров страниц", "shot_183_04": "Измерение страницы в дюймах, миллиметрах и пунктах", "shot_183_05": "Режим сетки в интерфейсе на норвежском языке (букмол) с открытым выбором языка", "shot_183_07": "Страницы с аннотациями в двухстраничном режиме с открытым контекстным меню документа", "shot_183_08": "Выбор языка OCR в интерфейсе на португальском языке с темой 98SE"});
 if (I18N["it"]) Object.assign(I18N["it"], {"shot_183_02": "Anteprima di trasformazione con controlli di rotazione, ridimensionamento, ribaltamento e inclinazione", "shot_183_06": "Anteprima per timbrare le pagine con una filigrana DRAFT e controlli per i numeri di pagina", "shot_183_04": "Misurazione della pagina in pollici, millimetri e punti", "shot_183_05": "Vista a griglia nell'interfaccia in norvegese bokmål con il selettore della lingua aperto", "shot_183_07": "Pagine annotate nella vista a due pagine con il menu contestuale del documento aperto", "shot_183_08": "Selezione della lingua OCR nell'interfaccia in portoghese con il tema 98SE"});
 if (I18N["hu"]) Object.assign(I18N["hu"], {"shot_183_02": "Átalakítási előnézet forgatási, méretezési, tükrözési és nyírási vezérlőkkel", "shot_183_06": "Az oldalak bélyegzésének előnézete DRAFT vízjellel és oldalszámozási vezérlőkkel", "shot_183_04": "Oldalmérés hüvelykben, milliméterben és pontban", "shot_183_05": "Rácsnézet norvég bokmål nyelvű felülettel és megnyitott nyelvválasztóval", "shot_183_07": "Annotált oldalak kétoldalas nézetben, megnyitott dokumentum-helyi menüvel", "shot_183_08": "OCR-nyelvválasztás portugál nyelvű felületen, a 98SE témával"});
