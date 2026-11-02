@@ -292,9 +292,9 @@ namespace KillerPDF.Shell
                     // its password, so it finds its way home when that open finishes. A canceled prompt
                     // or a failed open leaves no tab, and that copy is listed with the rest.
                     if (document.Protected) ProtectedRecoveries.Expect(document);
-                    ActiveViewer.OpenInNewTabExt(document.RecoveredPath);
+                    TabOpen open = ActiveViewer.OpenInNewTabExt(document.RecoveredPath);
                     bool opened = document.Protected
-                        ? ProtectedRecoveries.Settle(document.RecoveredPath, _asyncOpenPending) != ProtectedReopen.NotOpened
+                        ? ProtectedRecoveries.Settle(document.RecoveredPath, open) != ProtectedReopen.NotOpened
                         : _doc is not null && string.Equals(_originalFile, document.RecoveredPath, StringComparison.OrdinalIgnoreCase);
                     if (!opened)
                     {

@@ -795,7 +795,8 @@ namespace KillerPDF.Controls
 
         // Open a PDF in its own tab (reusing the current tab if it is empty). If the same file is
         // already open in an unedited tab, switch to that tab instead of opening a duplicate.
-        private void OpenInNewTab(string path)
+        // Says whether the tab it opened into is still loading on a background thread.
+        private Services.TabOpen OpenInNewTab(string path)
         {
             EnsureInitialSession();
             CommitActiveTextBox();
@@ -806,23 +807,25 @@ namespace KillerPDF.Controls
             {
                 SwitchToTab(existing);
                 SetStatus(string.Format(Loc("Str_St_AlreadyOpen"), System.IO.Path.GetFileName(path)));
-                return;
+                return new Services.TabOpen(existing.LoadPending, _asyncOpenPending);
             }
 
             var target = BeginTabLoad(out var prev, out bool createdNew);
             OpenFile(path);
+            var opened = new Services.TabOpen(target.LoadPending, _asyncOpenPending);
             if (_doc == null)
             {
                 // A background open (encryption strip / repair) finalizes this tab itself, so the
                 // not-yet-loaded _doc isn't a failure - leave the tab in place.
-                if (_asyncOpenPending) return;
+                if (_asyncOpenPending) return opened;
                 // Open failed, was canceled, or a password prompt was dismissed.
                 AbortTabLoad(target, prev, createdNew);
-                return;
+                return opened;
             }
             CaptureSessionState(_active!);
             SetTool(_currentTool);   // sync the tool UI to this (new) tab's tool
             RebuildTabStrip();
+            return opened;
         }
 
         // Cycle to the next (dir = +1) or previous (dir = -1) open document tab.

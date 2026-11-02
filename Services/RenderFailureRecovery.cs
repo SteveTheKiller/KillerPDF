@@ -17,6 +17,10 @@ namespace KillerPDF.Services
     /// <summary>What became of a protected recovered copy when its open returned.</summary>
     internal enum ProtectedReopen { Reopened, Pending, NotOpened }
 
+    /// <summary>How a tab open returned: whether the tab it opened into is still loading on a
+    /// background thread, and whether any background open is running in its pane at all.</summary>
+    internal readonly record struct TabOpen(bool TabLoading, bool PaneLoading);
+
     /// <summary>Protected recovered copies whose open has not finished, by the path they open from. A
     /// protected copy opens like any protected file, after its password or on a background thread, so it
     /// waits here until the open that finishes takes it home. An open that ends with no tab gives it up.</summary>
@@ -36,10 +40,10 @@ namespace KillerPDF.Services
         /// <summary>Where a copy stands once its open has returned. Taken means it went home. Still
         /// waiting with the open running on a background thread means it may yet. Still waiting with
         /// nothing running means the prompt was canceled or the open failed, so it is given up.</summary>
-        internal ProtectedReopen Settle(string recoveredPath, bool openPending)
+        internal ProtectedReopen Settle(string recoveredPath, TabOpen open)
         {
             if (!_waiting.ContainsKey(recoveredPath)) return ProtectedReopen.Reopened;
-            if (openPending) return ProtectedReopen.Pending;
+            if (open.PaneLoading) return ProtectedReopen.Pending;
             _waiting.Remove(recoveredPath);
             return ProtectedReopen.NotOpened;
         }

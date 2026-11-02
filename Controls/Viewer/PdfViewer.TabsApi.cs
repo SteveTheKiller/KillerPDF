@@ -27,7 +27,7 @@ namespace KillerPDF.Controls
         }
 
         // ── Opening and closing ──────────────────────────────────────────────────────────────
-        internal void OpenInNewTabExt(string path) => OpenInNewTab(path);
+        internal Services.TabOpen OpenInNewTabExt(string path) => OpenInNewTab(path);
         internal DocumentSession? ActiveSessionExt => _active;
         internal readonly record struct ComparisonDocument(
             string WorkingPath, string OriginalPath, string Title);
