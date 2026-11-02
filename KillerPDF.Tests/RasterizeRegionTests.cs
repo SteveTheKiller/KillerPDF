@@ -9,21 +9,28 @@ namespace KillerPDF.Tests;
 public sealed class RasterizeRegionTests
 {
     [Fact]
-    public void TaggedDocumentIsRefusedDuringPlanningBeforeRasterWork()
+    public void TaggedDocumentKeepsItsTagsAndGainsTheImageAsAnArtifact()
     {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-tagged-region-{Guid.NewGuid():N}.pdf");
-        byte[] original = new PdfDocumentBuilder()
-            .AddPage(200, 200, new PdfContentStreamBuilder()
-                .BeginMarkedContent(PdfStructureType.Paragraph, 0).Rectangle(20, 20, 60, 60).Fill().EndMarkedContent())
-            .AddStructureElement(PdfStructureType.Paragraph, 0, 0).Build();
         try
         {
-            File.WriteAllBytes(path, original);
-            Assert.Throws<NotSupportedException>(() => PdfEngineIntegration.PlanPartialRasterization(
-                path, 0, new PdfContentBounds(10, 10, 90, 90), 72));
-            Assert.Equal(original, File.ReadAllBytes(path));
+            File.WriteAllBytes(path, new PdfDocumentBuilder()
+                .AddPage(200, 200, new PdfContentStreamBuilder()
+                    .BeginMarkedContent(PdfStructureType.Paragraph, 0).Rectangle(20, 20, 60, 60).Fill().EndMarkedContent())
+                .AddStructureElement(PdfStructureType.Paragraph, 0, 0).Build());
+
+            PdfEngineIntegration.RasterizeRegion(path, 0, new PdfContentBounds(10, 10, 90, 90), 72);
+
+            PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
+            PdfPageContent page = new PdfPageContentReader(document).Read(0);
+            Assert.Single(page.Images);
+            string[] operators = [.. page.Instructions.Select(instruction => instruction.Operator)];
+            Assert.Contains("BDC", operators);
+            int image = Array.LastIndexOf(operators, "Do");
+            Assert.True(Array.LastIndexOf(operators, "EMC") > image);
+            Assert.True(Array.LastIndexOf(operators, "BMC", image) > Array.LastIndexOf(operators, "BDC"));
         }
-        finally { File.Delete(path); }
+        finally { if (File.Exists(path)) File.Delete(path); }
     }
 
     [Fact]

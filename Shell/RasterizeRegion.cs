@@ -13,13 +13,6 @@ namespace KillerPDF.Shell
             if (_doc is null || _currentFile is null) { SetStatus(Loc("Str_Msg_OpenFirst")); return; }
             if (pageIndex < 0 || pageIndex >= _doc.PageCount) return;
             if (!EnsureEditable(continueAfterUnlock: false)) return;
-            try { PdfEngineIntegration.EnsurePartialRasterizationSupported(_currentFile); }
-            catch (NotSupportedException)
-            {
-                KillerDialog.Show(this, Loc("Str_Raster_TaggedUnsupported"), Loc("Str_Raster_Title"),
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
             CommitActiveTextBox();
             string file = _currentFile;
             PdfPageInformation page = PdfEngineIntegration.ReadPageInformation(file)[pageIndex];

@@ -90,7 +90,7 @@ public static class PdfPartialRasterization
             throw new ArgumentException("At least one raster replacement is required.",
                 nameof(replacements));
         var reader = new PdfPageContentReader(document);
-        var editor = new PdfIncrementalPageEditor(document);
+        var editor = new PdfIncrementalPageEditor(document).KeepStructureAcrossContentChanges();
         foreach (IGrouping<int, PdfPartialRasterizationReplacement> pageGroup
             in selected.GroupBy(replacement => replacement.PageIndex))
         {
@@ -123,9 +123,10 @@ public static class PdfPartialRasterization
             editor.SetPageContent(pageGroup.Key, retained);
             foreach (PdfPartialRasterizationReplacement replacement in pageReplacements)
                 editor.AppendPageContent(pageGroup.Key, page.Width, page.Height,
-                    new PdfContentStreamBuilder().DrawImage(replacement.Raster,
+                    // The clipped content keeps its tags and text, so the image repeats it as an artifact.
+                    new PdfContentStreamBuilder().BeginArtifact().DrawImage(replacement.Raster,
                         replacement.Plan.Region.Left, replacement.Plan.Region.Bottom,
-                        replacement.Plan.Region.Width, replacement.Plan.Region.Height));
+                        replacement.Plan.Region.Width, replacement.Plan.Region.Height).EndMarkedContent());
         }
         return editor.Build();
     }

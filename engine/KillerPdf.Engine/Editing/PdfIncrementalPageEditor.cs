@@ -183,6 +183,7 @@ public sealed class PdfIncrementalPageEditor
     private string? _documentLanguage;
     private bool _clearMetadata;
     private bool _allowUntaggedPageImports;
+    private bool _contentKeepsStructure;
     private readonly Dictionary<string, bool> _checkBoxValues =
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, string?> _radioButtonValues =
@@ -1827,6 +1828,16 @@ public sealed class PdfIncrementalPageEditor
     public PdfIncrementalPageEditor AllowUntaggedPageImports()
     {
         _allowUntaggedPageImports = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Allows page content changes in a tagged document when the caller keeps every marked-content
+    /// sequence of the original content and adds only artifacts, so the structure tree stays true.
+    /// </summary>
+    internal PdfIncrementalPageEditor KeepStructureAcrossContentChanges()
+    {
+        _contentKeepsStructure = true;
         return this;
     }
 
@@ -9597,7 +9608,8 @@ public sealed class PdfIncrementalPageEditor
     private void ValidateExistingStructureTreePageSet()
     {
         if (!_tree.Catalog.ContainsKey(StructTreeRootName)) return;
-        if (_pages.Any(page => page.ContentUpdate is not (PageContentUpdate.None or PageContentUpdate.ArtifactAppend)
+        if (!_contentKeepsStructure
+            && _pages.Any(page => page.ContentUpdate is not (PageContentUpdate.None or PageContentUpdate.ArtifactAppend)
                 || page.TypedOverlays.Any(overlay => !overlay.Artifact && overlay.Description is null)))
             throw new NotSupportedException(
                 "Content cannot be appended to or replace content in an existing tagged PDF without matching structure updates.");
