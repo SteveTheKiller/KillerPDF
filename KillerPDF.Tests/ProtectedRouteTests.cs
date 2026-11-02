@@ -75,18 +75,45 @@ public sealed class ProtectedRouteTests : IDisposable
         Assert.False(File.Exists(Path.Combine(_directory, "out.pdf")));
     }
 
-    // The trailer is sound and only /Encrypt is gone, so nothing used to stop the ciphertext being copied.
-    [Fact]
-    public void AnEncryptedFileWithASoundTrailerThatLostItsEntryIsRefusedOnEveryRoute()
+    // An engine-encrypted page whose trailer is sound and lost only its /Encrypt entry. AES draws a
+    // random IV, so the page's ciphertext is overwritten with fixed bytes of the same length, which keeps
+    // every offset and makes the read the same on every run.
+    private static byte[] LostEntryFile(Func<int, byte[]> pageCiphertext)
     {
         byte[] encrypted = PdfDocumentEncryptionWriter.EncryptWithPasswords(
             PdfDocument.Open(new PdfDocumentBuilder().AddPage(200, 200, new PdfContentStreamBuilder()
                 .DrawImage(PdfImage.FromBitonal(2, 1, new byte[] { 0, 255 }), 0, 0, 100, 100)).Build()),
             new PdfPasswordEncryptionOptions { UserPassword = "secret", OwnerPassword = "owner" });
         string text = Encoding.Latin1.GetString(encrypted);
+        Match contents = Regex.Match(text, @"/Contents\s+(\d+)\s+0\s+R");
+        Assert.True(contents.Success, "The fixture's page has no content stream reference.");
+        int start = text.IndexOf($"\n{contents.Groups[1].Value} 0 obj", StringComparison.Ordinal);
+        Assert.True(start > 0, "The fixture's content stream was not found.");
+        int length = int.Parse(Regex.Match(text[start..], @"/Length\s+(\d+)").Groups[1].Value,
+            System.Globalization.CultureInfo.InvariantCulture);
+        int data = text.IndexOf("stream", start, StringComparison.Ordinal) + "stream".Length;
+        data += text[data] == '\r' ? 2 : 1;
+        Assert.InRange(text.IndexOf("endstream", data, StringComparison.Ordinal) - (data + length), 0, 2);
+        byte[] page = pageCiphertext(length);
+        Assert.Equal(length, page.Length);
+        text = text[..data] + Encoding.Latin1.GetString(page) + text[(data + length)..];
         int entry = text.IndexOf("/Encrypt", text.LastIndexOf("trailer", StringComparison.Ordinal), StringComparison.Ordinal);
         int end = text.IndexOf(" R", entry, StringComparison.Ordinal) + 2;
-        byte[] source = Encoding.Latin1.GetBytes(text[..entry] + new string(' ', end - entry) + text[end..]);
+        return Encoding.Latin1.GetBytes(text[..entry] + new string(' ', end - entry) + text[end..]);
+    }
+
+    // R4-011: a comment runs to the end of the line, so ciphertext that begins with a percent sign and
+    // has no line end reads as no instructions at all, and the page was taken as genuine.
+    [Fact]
+    public void CiphertextThatBeginsWithAPercentSignIsStillHiddenEncryption() =>
+        Assert.True(PdfEngineIntegration.HidesEncryption(
+            LostEntryFile(length => [(byte)'%', .. Enumerable.Repeat((byte)0xC8, length - 1)])));
+
+    // The trailer is sound and only /Encrypt is gone, so nothing used to stop the ciphertext being copied.
+    [Fact]
+    public void AnEncryptedFileWithASoundTrailerThatLostItsEntryIsRefusedOnEveryRoute()
+    {
+        byte[] source = LostEntryFile(length => [.. Enumerable.Repeat((byte)0xC8, length)]);
         string lost = Write("sound.pdf", source);
         string healthy = Write("healthy.pdf", new PdfDocumentBuilder().AddBlankPage().Build());
         string output = Path.Combine(_directory, "out.pdf");

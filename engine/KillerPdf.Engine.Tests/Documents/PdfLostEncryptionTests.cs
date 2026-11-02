@@ -47,15 +47,46 @@ public sealed class PdfLostEncryptionTests
         return Encoding.Latin1.GetBytes(source[..xref] + table + tail[..start] + $"startxref\n{xref}\n%%EOF\n");
     }
 
+    // The ciphertext is overwritten with fixed high bytes of the same length, because AES draws a random
+    // IV and a run that began with a percent sign once read as nothing at all.
     [Fact]
     public void AnEncryptedFileWhoseTrailerLostItsEntryFailsTheStrictRead()
     {
-        byte[] lost = WithoutEncryptEntry(Encrypted());
+        byte[] lost = WithoutEncryptEntry(WithPageContent(Encrypted(), length => [.. Enumerable.Repeat((byte)0xC8, length)]));
 
         var error = Assert.Throws<PdfLostEncryptionException>(() => PdfDocument.Open(lost));
         Assert.Contains("/Encrypt", error.Message, StringComparison.Ordinal);
         Assert.False(PdfDocument.OpenWithCompatibilityRecovery(lost).IsEncrypted);
     }
+
+    // R4-011: a comment runs to the end of the line, so ciphertext that begins with a percent sign and
+    // has no line end reads as no instructions at all. Bytes that read as nothing are still not a page.
+    [Fact]
+    public void CiphertextThatBeginsWithAPercentSignStillFailsTheStrictRead()
+    {
+        byte[] lost = WithoutEncryptEntry(WithPageContent(Encrypted(),
+            length => [(byte)'%', .. Enumerable.Repeat((byte)0xC8, length - 1)]));
+
+        Assert.Throws<PdfLostEncryptionException>(() => PdfDocument.Open(lost));
+    }
+
+    // R4-011: a token shaped like an operator is not one, so a short run of letters is not a page either.
+    [Theory]
+    [InlineData("Tj", true)]
+    [InlineData("BDC", true)]
+    [InlineData("b*", true)]
+    [InlineData("'", true)]
+    [InlineData("ab", false)]
+    [InlineData("Q7", false)]
+    [InlineData("xyz", false)]
+    public void OnlyRealContentOperatorsCount(string name, bool known) =>
+        Assert.Equal(known, KillerPdf.Engine.Parsing.PdfContentOperators.IsKnown(name));
+
+    // A page that holds only whitespace has nothing to lose, with or without a leftover dictionary.
+    [Fact]
+    public void AWhitespacePageWithALeftoverDictionaryStillOpens() =>
+        Assert.False(PdfDocument.Open(WithLeftoverDictionary(new PdfDocumentBuilder()
+            .AddPage(200, 200, " \n\t\r\n "u8.ToArray()).Build())).IsEncrypted);
 
     [Fact]
     public void AnEncryptedFileWithItsEntryStillOpens() =>
@@ -84,6 +115,27 @@ public sealed class PdfLostEncryptionTests
 
     private static byte[] Encrypted() => PdfDocumentEncryptionWriter.EncryptWithPasswords(PdfDocument.Open(Plain()),
         new PdfPasswordEncryptionOptions { UserPassword = "secret", OwnerPassword = "owner" });
+
+    // The page's content stream overwritten in place with bytes of the same length, so every offset
+    // and the stream's /Length stay as they were.
+    private static byte[] WithPageContent(byte[] source, Func<int, byte[]> content)
+    {
+        string text = Encoding.Latin1.GetString(source);
+        var contents = System.Text.RegularExpressions.Regex.Match(text, @"/Contents\s+(\d+)\s+0\s+R");
+        Assert.True(contents.Success, "The fixture's page has no content stream reference.");
+        int start = text.IndexOf($"\n{contents.Groups[1].Value} 0 obj", StringComparison.Ordinal);
+        Assert.True(start > 0, "The fixture's content stream was not found.");
+        int length = int.Parse(System.Text.RegularExpressions.Regex.Match(text[start..], @"/Length\s+(\d+)(?!\s+\d+\s+R)").Groups[1].Value,
+            System.Globalization.CultureInfo.InvariantCulture);
+        int data = text.IndexOf("stream", start, StringComparison.Ordinal) + "stream".Length;
+        data += text[data] == '\r' ? 2 : 1;
+        Assert.InRange(text.IndexOf("endstream", data, StringComparison.Ordinal) - (data + length), 0, 2);
+        byte[] replaced = content(length);
+        Assert.Equal(length, replaced.Length);
+        byte[] result = (byte[])source.Clone();
+        replaced.CopyTo(result, data);
+        return result;
+    }
 
     // Spaces keep every offset, so the file stays structurally sound without the entry.
     private static byte[] WithoutEncryptEntry(byte[] source)

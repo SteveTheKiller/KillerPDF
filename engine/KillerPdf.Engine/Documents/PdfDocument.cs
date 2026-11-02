@@ -234,8 +234,10 @@ public sealed partial class PdfDocument
         return document;
     }
 
-    // The first page with content decides. Ciphertext fails to decode or reads as long runs of high
-    // bytes, and a file with nothing to read proves nothing.
+    // The first page with content decides. Ciphertext fails to decode, reads as runs of high bytes that
+    // are no content operator, or reads as nothing at all when it begins with a percent sign, because a
+    // comment runs to the end of its line. A page of whitespace, or a file with no page content, proves
+    // nothing. The caller asks only when the bytes name a security handler.
     private bool PagesReadAsCiphertext()
     {
         try
@@ -245,8 +247,9 @@ public sealed partial class PdfDocument
             {
                 IReadOnlyList<PdfContentInstruction> instructions = reader.ReadInstructions(pageIndex);
                 if (instructions.Count != 0)
-                    return instructions.Count(instruction => instruction.Operator.Length <= 3
-                        && instruction.Operator.All(letter => char.IsAsciiLetterOrDigit(letter) || letter is '*' or '\'' or '"')) * 2 <= instructions.Count;
+                    return instructions.Count(instruction => PdfContentOperators.IsKnown(instruction.Operator)) * 2
+                        <= instructions.Count;
+                if (reader.HoldsContent(pageIndex)) return true;
             }
             return false;
         }

@@ -104,6 +104,26 @@ public sealed class PdfPageContentReader
 
     }
 
+    /// <summary>Whether a page's decoded content holds anything but whitespace, whether or not it reads
+    /// as instructions. A comment runs to the end of its line, so bytes can hold something and read as nothing.</summary>
+    internal bool HoldsContent(int pageIndex)
+    {
+        if (pageIndex < 0 || pageIndex >= PageCount) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        PdfPageTreeEntry page = _tree.Pages[pageIndex];
+        if (!page.Dictionary.TryGetValue(Name("Contents"), out PdfObject? content)) return false;
+        PdfObject resolved = Resolve(content);
+        IEnumerable<PdfObject> items = resolved is PdfArray array ? array : [resolved];
+        foreach (PdfObject item in items)
+            if (Resolve(item) is PdfStream stream
+                && _document.DecodeStream(stream, PdfContentStreamReader.MaximumSourceBytes).AsSpan().ContainsAnyExcept(PdfWhitespace))
+                return true;
+        return false;
+    }
+
+    // The six bytes PDF reads as white space: NUL, tab, line feed, form feed, carriage return and space.
+    private static readonly System.Buffers.SearchValues<byte> PdfWhitespace =
+        System.Buffers.SearchValues.Create([0x00, 0x09, 0x0A, 0x0C, 0x0D, 0x20]);
+
     internal IEnumerable<PdfContentInstruction> EnumerateInstructions(
         int pageIndex, ISet<string> diagnostics, CancellationToken cancellationToken)
     {

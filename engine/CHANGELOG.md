@@ -8,12 +8,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 The 1.9.2 engine writes an edited document back under the encryption it was opened with and reads permissions by what their bits really forbid.
 
+### Fixed
+
+- A file that names a security handler but lost its `/Encrypt` entry fails the strict open when its first page with content reads as nothing but holds more than white space, as ciphertext that begins with a percent sign does, and only real content operators count as readable page content.
+
 ### Added
 
 - Added `PdfEncryptionSnapshot`, `PdfDocument.CaptureEncryption`, `PdfDocument.OpenWithEncryption` and `PdfDocumentEncryptionWriter.EncryptUnder`, so a document edited as plain bytes keeps its passwords, recipients, permissions and `/ID` with no file bytes held.
 - Added `PdfDocument.Authenticate`, so one parse serves a password check and the read after it.
 - Added `PdfDocumentPermissions.DeclaresLimits` and a `Stream` overload of `PdfSecurityIndicators.NamesEncryption`.
 - Added `PdfIncrementalPageEditor.FieldsThatKeptTheirValue`, which names a field of a repeated name that could not take a value.
+- Added `PdfContentOperators.IsKnown`, the set of content stream operators.
 
 ### Changed
 

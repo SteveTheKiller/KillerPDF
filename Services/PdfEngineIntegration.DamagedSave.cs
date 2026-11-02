@@ -240,16 +240,13 @@ internal static partial class PdfEngineIntegration
             {
                 IReadOnlyList<PdfContentInstruction> instructions = reader.ReadInstructions(pageIndex);
                 if (instructions.Count == 0) continue;
-                return instructions.Count(instruction => IsOperatorShaped(instruction.Operator)) * 2
+                return instructions.Count(instruction => PdfContentOperators.IsKnown(instruction.Operator)) * 2
                     > instructions.Count;
             }
             return false;
         }
         catch (Exception error) when (error is not OutOfMemoryException) { return false; }
     }
-
-    private static bool IsOperatorShaped(string name) =>
-        name.Length <= 3 && name.All(letter => char.IsAsciiLetterOrDigit(letter) || letter is '*' or '\'' or '"');
 
     // Any catalog /Perms entry is a certification (DocMDP) or Reader usage rights (UR, UR3), and
     // either one stops being valid the moment the file is rewritten.
