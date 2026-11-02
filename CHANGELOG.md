@@ -43,7 +43,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Deleting a repeated field removes every field of that name, and check boxes and radio buttons that share a name update together on screen, on every page.
 - Export Pages as Images shows the size the file really comes out at, and canceling Keep Resolution stops while pages are read, with progress shown. A slow page no longer holds up the window during that read.
 - Export Pages as Images and Save Flattened show a Cancel button. A canceled export stops at the next page and says how many pages it saved, the Esc prompt holds the export while it is open, and progress appears before a large file is prepared.
-- A word replaced on a scanned line takes its size, typeface and height from the page at any zoom, and follows a tilted line. Clicking low on a recognized line gathers the whole line.
+- A word replaced on a scanned line takes its size, typeface and height from the page, not from the zoom on screen, and follows a tilted line. Clicking low on a recognized line gathers the whole line.
 - The Attachments panel lists the attachments of a restricted PDF, and saving one asks for the owner password.
 - Typing in a repeated text field shows the value in every field of that name, on every page.
 - The Rasterize Region dialog says that the text under the image stays selectable and searchable.

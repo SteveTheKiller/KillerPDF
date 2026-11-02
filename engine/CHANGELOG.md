@@ -19,6 +19,7 @@ The 1.9.2 engine writes an edited document back under the encryption it was open
 
 - Below revision 3, `PdfDocumentPermissions` reads filling from bit 6, accessibility extraction from bit 5 and assembly from bit 4.
 - A radio field of a repeated name with no state for the new value turns off instead of keeping its old selection.
+- `EncryptUnder` replaces a dangling reference as a plain save does.
 
 ## [1.9.1] - Unreleased
 
