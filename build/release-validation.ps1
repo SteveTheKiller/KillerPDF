@@ -1,5 +1,21 @@
 #Requires -Version 5.1
 # Build-output-only library. Reuse requires the same clean source commit and exact tested bytes.
+function Invoke-ReleaseDesktopTests([string]$TestProject,[string]$CliExecutable,[string]$ExpectedVersion,[string]$ResultsDirectory) {
+    if(![IO.File]::Exists($CliExecutable)){throw "CLI test executable is missing: $CliExecutable"}
+    $actual=[Diagnostics.FileVersionInfo]::GetVersionInfo($CliExecutable).FileVersion
+    if($actual -ne $ExpectedVersion){throw "CLI test executable is version $actual, expected $ExpectedVersion`: $CliExecutable"}
+    Write-Host "    CLI test executable: $CliExecutable ($actual)"
+    $previous=[Environment]::GetEnvironmentVariable('KILLERPDF_CLI_TEST_EXE')
+    # These window-opening cases belong on the owned UI VMs, not the main PC.
+    $filter='FullyQualifiedName!~ComparisonBarLayoutTests&FullyQualifiedName!~WindowFxTests&FullyQualifiedName!~BottomTabFaceFlipsWhileItsLabelAndCloseTargetStayUpright&FullyQualifiedName!~TabTraversalEntersAndLeavesTheReadingDocument'
+    try {
+        [Environment]::SetEnvironmentVariable('KILLERPDF_CLI_TEST_EXE',$CliExecutable)
+        & dotnet test $TestProject -c Release --nologo -v quiet --filter $filter --logger 'trx;LogFileName=desktop.trx' --results-directory $ResultsDirectory
+        if($LASTEXITCODE -ne 0){throw 'Desktop unit tests failed - fix them before releasing'}
+        Assert-ReleaseTestResult (Join-Path $ResultsDirectory 'desktop.trx') 'KillerPDF.Tests.dll'
+    } finally {[Environment]::SetEnvironmentVariable('KILLERPDF_CLI_TEST_EXE',$previous)}
+}
+
 function Write-ReleaseValidationRecord([string]$Path, $Record) {
     [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($Path))|Out-Null
     $temporary=$Path+'.'+[guid]::NewGuid().ToString('N')+'.tmp'

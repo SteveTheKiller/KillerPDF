@@ -7,7 +7,7 @@ using Xunit;
 namespace KillerPDF.Tests;
 
 /// <summary>
-/// Runs the built KillerPDF.exe with command-line verbs. These verbs never open a window; the
+/// Runs the selected fresh app with command-line verbs. These verbs never open a window; the
 /// tests read only the process exit code, because the console is attached to a parent console.
 /// </summary>
 public sealed class CliExitCodeTests : IDisposable
@@ -533,8 +533,14 @@ public sealed class CliExitCodeTests : IDisposable
 
     private int Run(params string[] arguments)
     {
-        string exe = Path.Combine(RepositoryRoot(), "bin", "Release", "net10.0-windows", "KillerPDF.exe");
+        string exe = Environment.GetEnvironmentVariable("KILLERPDF_CLI_TEST_EXE")
+            ?? Path.Combine(RepositoryRoot(), "bin", "Release", "net10.0-windows", "KillerPDF.exe");
         Assert.True(File.Exists(exe), "Build KillerPDF.csproj in Release first: " + exe);
+        string expectedVersion = System.Xml.Linq.XDocument.Load(Path.Combine(RepositoryRoot(), "KillerPDF.csproj"))
+            .Descendants("FileVersion").Single().Value;
+        string? actualVersion = FileVersionInfo.GetVersionInfo(exe).FileVersion;
+        Assert.True(actualVersion == expectedVersion,
+            $"CLI tests need version {expectedVersion}, but {exe} is {actualVersion}. Build the current app or set KILLERPDF_CLI_TEST_EXE to its fresh payload EXE.");
         var start = new ProcessStartInfo(exe)
         {
             UseShellExecute = false,

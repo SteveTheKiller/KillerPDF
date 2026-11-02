@@ -55,6 +55,13 @@ A completed full dry run writes `bin/Release/net10.0-windows/publish/release-val
 and retains the engine and desktop TRX files beside it. A dry run started with an older
 script has no reusable record. An unsigned dry run cannot authorize reuse.
 
+Desktop CLI tests use the newly built installer payload's `KillerPDF.App.exe`, selected
+through `KILLERPDF_CLI_TEST_EXE`, instead of a leftover development EXE. The release runner
+and CLI tests reject a mismatched file version, and the runner restores the caller's
+environment afterward. The main-PC suite excludes the four known window-opening test
+groups; those remain owned-VM checks. Direct CLI test runs may select a fresh payload with
+the same environment variable or use a current ordinary Release build.
+
 After a successful dry run, keep the source commit and all outputs unchanged, synchronize
 that commit with origin/main, and publish with:
 

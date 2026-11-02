@@ -756,10 +756,9 @@ try {
 
     # A red test cannot ship. Same gate as the date checks above - fail the release, not a reminder.
     if (-not $ReuseDryRun) {
-        Write-Host "    Running desktop unit tests..."
-        dotnet test (Join-Path $PSScriptRoot 'KillerPDF.Tests\KillerPDF.Tests.csproj') -c Release --nologo -v quiet --logger 'trx;LogFileName=desktop.trx' --results-directory $validationDirectory
-        if ($LASTEXITCODE -ne 0) { throw "Desktop unit tests failed - fix them before releasing" }
-        Assert-ReleaseTestResult $desktopTrxPath 'KillerPDF.Tests.dll'
+        Write-Host "    Running host-safe desktop unit tests against the fresh installer payload..."
+        Invoke-ReleaseDesktopTests -TestProject (Join-Path $PSScriptRoot 'KillerPDF.Tests\KillerPDF.Tests.csproj') `
+            -CliExecutable (Join-Path $installerPayloadDir 'KillerPDF.App.exe') -ExpectedVersion "$Version.0" -ResultsDirectory $validationDirectory
         Write-Host "    Desktop unit tests passed" -ForegroundColor Green
     }
 
