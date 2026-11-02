@@ -38,7 +38,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A password that opens nothing, or a file whose permissions cannot be read, is refused instead of counting as unrestricted, and printing or saving tries the read again. One `batch-render` password spans a folder, so a file it does not open is read as if none was given.
 - An unknown double-dash switch prints the usage and exits 2.
 - Protection is recognized wherever a PDF keeps its encryption entry, including linearized files and large cross-reference streams, so those files no longer open as unprotected.
-- Scripts that worked on 1.9.1 may now exit 1: on a PDF whose limits forbid the output, `decrypt`, `protect`, `extract-pages`, `split`, `merge`, `flatten`, `to-image`, `ocr`, `scan-to-text`, `straighten`, `export`, `export-form-data`, `attachments` with an output folder, `comments`, `measurements`, `recognize-fields` without an output file, `data-merge`, `batch-render` and `macro` run only with the owner password through `--password`. A wrong password is refused too. `batch-render` records such a file as a SKIP row, and `print` exits 1 on a PDF that forbids printing.
 - The print command, attachments, export, comments, measurements and recognize-fields read with `--password`, so a user password prints a PDF that allows printing but not editing, and the others work on a PDF that needs a password to open. Macros and `batch-render` take `--password` too.
 - The print command renders for print, so annotations, layers and redaction marks come out as the app prints them.
 - Changing the font size or background of a field whose name the form repeats keeps each field's own value.
@@ -60,6 +59,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Late page rendering preserves focus in open pickers and other windows.
 - Tab labels and close buttons sit evenly inside each tab, and the close X turns red only on hover or keyboard focus.
 - Keyboard focus cues respect the theme, Windows contrast refreshes are coalesced and restore frame colors, and picker selections keep text and icons shadow-free.
+
+### Changed
+
+- Command-line tools follow a PDF owner's limits the same way the app does. On a PDF whose limits forbid the output, `decrypt`, `protect`, `extract-pages`, `split`, `merge`, `flatten`, `to-image`, `ocr`, `scan-to-text`, `straighten`, `export`, `export-form-data`, `attachments` with an output folder, `comments`, `measurements`, `recognize-fields` without an output file, `data-merge`, `batch-render` and `macro` need the owner password through `--password`, and stop with exit code 1 without it. `batch-render` lists such a file as skipped, and `print` declines a PDF that forbids printing.
 
 ### Added
 
