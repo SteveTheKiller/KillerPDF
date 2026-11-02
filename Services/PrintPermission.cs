@@ -30,11 +30,13 @@ internal static class PrintPermission
     internal static double Dpi(PrintAllowance allowance) =>
         allowance == PrintAllowance.LowQualityOnly ? LowQualityDpi : FullDpi;
 
-    /// <summary>What the window says once a print was answered. A canceled prompt on a limit an owner
-    /// password could lift only notes the refusal in the status bar.</summary>
+    /// <summary>What the window says once a print was answered. A wrong owner password is told it was
+    /// wrong, whether the file then prints at low quality or not at all, and a canceled prompt on a
+    /// limit an owner password could lift only notes the refusal in the status bar.</summary>
     internal static PrintNotice NoticeFor(PrintAnswer answer, bool recipient, bool canLift) =>
-        answer.MayPrint ? (answer.WrongPassword ? PrintNotice.WrongPassword : PrintNotice.None)
-        : canLift && !answer.WrongPassword ? PrintNotice.RefusedQuietly
+        answer.WrongPassword ? PrintNotice.WrongPassword
+        : answer.MayPrint ? PrintNotice.None
+        : canLift ? PrintNotice.RefusedQuietly
         : recipient ? PrintNotice.RefusedCertificate : PrintNotice.Refused;
 
     /// <summary>The session a print job renders through, from the app or the command line, so annotation
