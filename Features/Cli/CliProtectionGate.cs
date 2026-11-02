@@ -82,11 +82,15 @@ internal static class CliProtectionGate
     }
 
     /// <summary>Opens a file for a report with the password given, or the empty user password when none
-    /// was. Returns null with the refusal when the password opens nothing.</summary>
+    /// was. Returns null with the refusal when the password opens nothing. A plain file reads as it
+    /// always did, so a damaged one throws into the report's own wording.</summary>
     internal static PdfDocument? OpenForReport(string path, string? password, out string? refusal)
     {
         refusal = null;
-        PdfAccess access = PdfRestrictions.Open(File.ReadAllBytes(Path.GetFullPath(path)), password, out PdfDocument? document);
+        string input = Path.GetFullPath(path);
+        byte[] source = File.ReadAllBytes(input);
+        if (!IsEncrypted(input)) return PdfEngineIntegration.OpenForReading(source);
+        PdfAccess access = PdfRestrictions.Open(source, password, out PdfDocument? document);
         if (document is not null) return document;
         refusal = Message(access);
         return null;

@@ -241,6 +241,16 @@ public sealed class CliRestrictionTests : IDisposable
         Assert.NotNull(refusal);
     }
 
+    // A plain file reads as it always did, so a damaged one fails the way the report already words it.
+    [Fact]
+    public void ADamagedPlainFileFailsTheReadAsBefore()
+    {
+        string damaged = InFolder("damaged.pdf");
+        File.WriteAllText(damaged, "%PDF-1.7 nothing here parses");
+
+        Assert.ThrowsAny<Exception>(() => CliProtectionGate.OpenForReport(damaged, null, out _));
+    }
+
     // A command that keeps the input's encryption is a save, and one that only reports writes nothing.
     [Theory]
     [InlineData("--rotate-pages")]
