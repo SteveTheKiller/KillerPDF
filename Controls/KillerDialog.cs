@@ -35,6 +35,10 @@ namespace KillerPDF
         // modal and UI-thread only, so a shared field is safe and avoids a duplicate dialog body.
         private static bool _lastCheckboxChecked;
 
+        // The app's scale of the window a dialog opens over, or of the nearest owner up its chain.
+        private static double OwnerScale(Window? owner) => Controls.ScaledDialogFit.OwnerScale<Window>(owner,
+            window => window is Shell.MainWindow main ? main.AppScale : null, window => window.Owner);
+
         // Message text stays at body size, including multiline warnings and confirmations.
         private static Grid NoticeBody(string message, MessageBoxImage image, bool confirmation, out StackPanel textStack)
         {
@@ -233,13 +237,7 @@ namespace KillerPDF
             }
             contentGrid.Children.Add(root);
             // A message is drawn at the app's scale like the window it opens over, and grows to hold it.
-            double scale = Controls.ScaledDialogFit.OwnerScale<Window>(owner,
-                window => window is Shell.MainWindow main ? main.AppScale : null, window => window.Owner);
-            if (scale != 1)
-            {
-                contentGrid.LayoutTransform = new System.Windows.Media.ScaleTransform(scale, scale);
-                win.Width *= scale;
-            }
+            Controls.DialogScale.Apply(win, contentGrid, OwnerScale(owner));
             win.Content = DialogFrame.WrapContent(owner, contentGrid);
             win.ShowDialog();
             _lastCheckboxChecked = boxChecked;
