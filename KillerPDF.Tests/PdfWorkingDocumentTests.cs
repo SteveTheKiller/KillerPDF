@@ -59,7 +59,7 @@ public sealed class PdfWorkingDocumentTests
     public void EveryOpenPathReportsAWorkingCopyFailureAsSuch()
     {
         string source = FileOperations();
-        Assert.Equal(9, Count(source, "catch (WorkingCopyUnavailableException"));
+        Assert.Equal(10, Count(source, "catch (WorkingCopyUnavailableException"));
         Assert.Contains("when (error is not OutOfMemoryException and not WorkingCopyUnavailableException)", source);
     }
 

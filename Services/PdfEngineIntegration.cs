@@ -117,14 +117,15 @@ internal static partial class PdfEngineIntegration
 
     /// <summary>
     /// Opens a user's PDF for reading. An owner-restricted file is decrypted with the empty
-    /// user password, so its strings and streams read as text instead of ciphertext.
+    /// user password, so its strings and streams read as text instead of ciphertext. A file an open
+    /// tab reads under its own key, a signed file that needs a password, opens under that key.
     /// </summary>
     internal static PdfDocument OpenForReading(ReadOnlyMemory<byte> source)
     {
         PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(source);
         if (!document.IsEncrypted) return document;
         try { return PdfDocument.OpenWithCompatibilityRecovery(source, string.Empty); }
-        catch (Exception error) when (error is not OutOfMemoryException) { return document; }
+        catch (Exception error) when (error is not OutOfMemoryException) { return HeldEncryptions.TryOpen(source) ?? document; }
     }
 
     /// <summary>

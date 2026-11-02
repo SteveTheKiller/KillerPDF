@@ -58,6 +58,19 @@ internal static partial class PdfEngineIntegration
         return ReadsAsSigned(document, source) || FindCatalogPermissions(document, source) is not null;
     }
 
+    /// <summary>The same answer for a file that needs a password, read with that password. A password
+    /// that opens nothing answers false, so the caller's own open reports it.</summary>
+    internal static bool HasSignedSignatures(string path, string password)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(password);
+        byte[] source = File.ReadAllBytes(path);
+        PdfDocument document;
+        try { document = PdfDocument.OpenWithCompatibilityRecovery(source, password); }
+        catch (Exception error) when (error is not OutOfMemoryException) { return false; }
+        return ReadsAsSigned(document, source) || FindCatalogPermissions(document, source) is not null;
+    }
+
     /// <summary>
     /// Refuses a damaged file a rewrite would strip, for the routes that write a new file without
     /// passing through <see cref="RepairHarmlessSaveArtifacts"/>. A healthy file passes, and so

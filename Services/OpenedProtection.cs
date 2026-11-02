@@ -95,6 +95,14 @@ internal sealed class OpenedProtection
     internal PdfDocument? OpenHeld(ReadOnlyMemory<byte> source) =>
         _encryption is null ? null : PdfDocument.OpenWithEncryption(source, _encryption);
 
+    /// <summary>Lets every reader of this tab's file open it under the key this tab holds, for as long
+    /// as the tab lives. A signed file that needs a password is read that way, because stripping it
+    /// would clear its signatures.</summary>
+    internal void HoldForReading()
+    {
+        if (_encryption is not null) HeldEncryptions.Hold(_encryption);
+    }
+
     /// <summary>Writes a decrypted read-only copy from this tab's file with no password in hand.</summary>
     internal void WriteViewingCopy(string sourcePath, string destinationPath) =>
         PdfEngineIntegration.WriteViewingCopy(sourcePath, destinationPath,

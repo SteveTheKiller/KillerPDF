@@ -542,6 +542,65 @@ public sealed class ProtectedDocumentTests : IDisposable
         Assert.Equal(UnlockOutcome.Failed, answer.Outcome);
     }
 
+    // A signed PDF whose user password is not empty, as an author would send it.
+    private string SignedWithUserPassword(string name)
+    {
+        string path = InFolder(name + "-unsigned.pdf");
+        File.WriteAllBytes(path, new PdfDocumentBuilder()
+            .SetPasswordEncryption(new PdfPasswordEncryptionOptions { UserPassword = Reader, OwnerPassword = Owner, AllowDocumentModification = false })
+            .AddPage(200, 200, "q 0 0 50 50 re f Q"u8.ToArray())
+            .Build());
+        string signed = InFolder(name + ".pdf");
+        File.WriteAllBytes(signed, PdfDetachedSignatureWriter.Sign(PdfDocument.Open(File.ReadAllBytes(path), Owner),
+            _ => new byte[64], new PdfSignatureOptions { FieldName = "Signature1" }));
+        return signed;
+    }
+
+    // R4-006: the writer cannot strip a signed file without clearing its signatures, so a signed PDF
+    // that needs a password opens read-only under the key its password produced, by either password.
+    [Theory]
+    [InlineData(Reader)]
+    [InlineData(Owner)]
+    public void ASignedFileThatNeedsAPasswordOpensReadOnlyUnderItsKey(string password)
+    {
+        string signed = SignedWithUserPassword("signed-" + password);
+        byte[] before = File.ReadAllBytes(signed);
+        Assert.NotNull(Record.Exception(() => PdfEngineIntegration.RemoveEncryption(signed, InFolder("stripped.pdf"), password)));
+        Assert.True(PdfEngineIntegration.HasSignedSignatures(signed, password));
+        OpenedProtection protection = OpenedProtection.Capture(signed, password);
+
+        protection.HoldForReading();
+        PdfWorkingDocument? opened = null;
+        Exception? failure = Record.Exception(() => opened = PdfWorkingDocument.Open(signed, isReadOnly: true));
+
+        Assert.Null(failure);
+        using (opened)
+        {
+            Assert.Equal(1, opened!.PageCount);
+            Assert.Contains(PdfSignatureReader.Read(opened.ParsedDocument!), signature => signature.IsSigned);
+        }
+        // A reader that comes to the file on its own, as the text and render readers do, reads it too.
+        string elsewhere = InFolder("signed-copy-" + password + ".pdf");
+        File.Copy(signed, elsewhere);
+        Assert.True(PdfEngineIntegration.OpenForReading(File.ReadAllBytes(elsewhere)).IsDecrypted);
+        Assert.True(PdfPageRenderSession.OpenDocument(elsewhere).CanReadPageContent);
+        Assert.Equal(before, File.ReadAllBytes(signed));
+        GC.KeepAlive(protection);   // the key lasts as long as the tab that holds it
+    }
+
+    // R3-025 still holds there: the owner password is right, and the unlock fails with its own reason.
+    [Fact]
+    public void AnOwnerUnlockOfASignedPasswordFileFailsWithItsOwnReason()
+    {
+        string signed = SignedWithUserPassword("signed-unlock");
+        OpenedProtection protection = OpenedProtection.Capture(signed, Reader);
+
+        UnlockAnswer answer = protection.Unlock(signed, InFolder("signed-unlock-out.pdf"), Owner);
+
+        Assert.Equal(UnlockOutcome.Failed, answer.Outcome);
+        Assert.False(string.IsNullOrEmpty(answer.Reason));
+    }
+
     // R3-011: the scan decides, and a plain file is not parsed or read into memory to answer.
     [Fact]
     public void APlainFileAnswersWithoutLoadingIt()

@@ -120,6 +120,11 @@ namespace KillerPDF.Shell
                 {
                     ShowWorkingCopyProblem(copy);
                 }
+                catch (Exception) when (PdfEngineIntegration.HasSignedSignatures(srcPath, pw))
+                {
+                    // A strip would clear the signatures, so the file opens read-only under its key.
+                    OpenSignedProtected(srcPath, path, OpenedProtection.Capture(srcPath, pw));
+                }
                 catch (Exception) when (PdfRestrictions.Read(srcPath, pw) is { Role: PdfAccessRole.User, MayModify: false })
                 {
                     // The user password opens the file but its owner forbids editing, so it opens
@@ -631,6 +636,41 @@ namespace KillerPDF.Shell
                 FinishOpenFile(displayPath, tempDec);
                 ViewingCopySources[_currentFile!] = srcPath;   // finishing can move the working path
                 _openedFromProtected = true;   // #149: the source still carries its encryption
+                _protection = protection;
+                _restrictedFormFillable = protection.AllowsRestrictedFill;
+                ActiveViewer.UpdateRestrictionNotice();
+                SetStatus(string.Format(Loc("Str_OpenedReadOnly"),
+                    System.IO.Path.GetFileName(displayPath), _doc.PageCount));
+                CompleteProtectedRecovery(displayPath);
+            }
+            catch (WorkingCopyUnavailableException copy)
+            {
+                ShowWorkingCopyProblem(copy);
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                if (!ReferenceEquals(_doc, before)) AbandonFailedOpen();
+                KillerDialog.Show(this, string.Format(Loc("Str_Dlg_FailedOpen"), error.Message),
+                    Loc("Str_Dlg_AppTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // Opens a signed PDF that needs a password read-only from the encrypted file itself. Writing a
+        // decrypted copy would clear its signatures, so the tab holds the key its password produced and
+        // every reader of the file opens it under that key. Nothing is rewritten, and an owner unlock
+        // fails with the writer's own reason, since no rewrite of the file can keep its signatures.
+        private void OpenSignedProtected(string srcPath, string displayPath, OpenedProtection protection)
+        {
+            var before = _doc;
+            try
+            {
+                _doc?.Close();
+                _doc = null;
+                protection.HoldForReading();
+                _doc = PdfWorkingDocument.Open(srcPath, isReadOnly: true);
+                _currentFile = srcPath;
+                FinishOpenFile(displayPath, srcPath);
+                _openedFromProtected = true;
                 _protection = protection;
                 _restrictedFormFillable = protection.AllowsRestrictedFill;
                 ActiveViewer.UpdateRestrictionNotice();

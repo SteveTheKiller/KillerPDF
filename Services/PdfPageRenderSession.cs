@@ -152,7 +152,15 @@ internal sealed class PdfPageRenderSession : IDisposable
                 }
                 catch (Exception exception) when (exception is not OutOfMemoryException)
                 {
-                    // Keep the strict-open document; the caller inspects CanReadPageContent.
+                    // A file an open tab reads under its own key opens under it. Otherwise keep the
+                    // strict-open document; the caller inspects CanReadPageContent.
+                    if (HeldEncryptions.Any)
+                    {
+                        source.Position = 0;
+                        using var bytes = new MemoryStream();
+                        source.CopyTo(bytes);
+                        if (HeldEncryptions.TryOpen(bytes.ToArray()) is EngineDocument held) document = held;
+                    }
                 }
             }
         }
