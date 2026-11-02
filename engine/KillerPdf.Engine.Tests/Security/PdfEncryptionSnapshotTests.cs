@@ -177,16 +177,31 @@ public sealed class PdfEncryptionSnapshotTests
         Assert.False(catalog.ContainsKey(new PdfName("Perms"u8)));
     }
 
-    private static byte[] WithUsageRights()
+    // A plain save takes such a file, and a limit must not strand the work.
+    [Fact]
+    public void AFileWithADanglingReferenceSavesUnderItsEncryption()
     {
-        string[] objects =
-        [
-            "<< /Type /Catalog /Pages 2 0 R /Perms << /UR3 4 0 R >> >>",
+        PdfEncryptionSnapshot encryption = PdfDocument.Open(File("revision 4"), User).CaptureEncryption()!;
+        PdfDocument plain = PdfDocument.Open(Pdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
-            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /ByteRange [0 10 20 30] /Contents <0000> "
-                + "/Reference [<< /Type /SigRef /TransformMethod /UR3 /TransformParams << /Type /TransformParams /V /2.2 >> >>] >>"
-        ];
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Annots [9 0 R] >>"));
+
+        byte[] saved = [];
+        Assert.Null(Record.Exception(() => saved = PdfDocumentEncryptionWriter.EncryptUnder(plain, encryption)));
+
+        Assert.Single(PdfPageInformation.Read(PdfDocument.Open(saved, User)));
+    }
+
+    private static byte[] WithUsageRights() => Pdf(
+        "<< /Type /Catalog /Pages 2 0 R /Perms << /UR3 4 0 R >> >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+        "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /ByteRange [0 10 20 30] /Contents <0000> "
+            + "/Reference [<< /Type /SigRef /TransformMethod /UR3 /TransformParams << /Type /TransformParams /V /2.2 >> >>] >>");
+
+    private static byte[] Pdf(params string[] objects)
+    {
         var text = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();
         for (int index = 0; index < objects.Length; index++)

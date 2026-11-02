@@ -70,8 +70,9 @@ public static class PdfDocumentEncryptionWriter
     public static byte[] EncryptUnder(PdfDocument document, PdfEncryptionSnapshot encryption)
     {
         ArgumentNullException.ThrowIfNull(encryption);
+        // A plain save takes a file with a dangling reference, so the save that keeps encryption does too.
         return Encrypt(document, encryption.MinimumVersion, allowSignatureInvalidation: true,
-            replaceDanglingReferences: false, () => (encryption.Handler, encryption.Dictionary), encryption).Bytes;
+            replaceDanglingReferences: true, () => (encryption.Handler, encryption.Dictionary), encryption).Bytes;
     }
 
     private static PdfDocumentWriteResult Encrypt(PdfDocument document, PdfVersion minimumVersion,
