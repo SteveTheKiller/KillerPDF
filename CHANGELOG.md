@@ -23,6 +23,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Reopening PDFs preserves zoom across view modes, and fit and zoom stay accurate while pages load or switch layouts.
 - Corrected Japanese character order, rotated paragraph line order, mixed horizontal and vertical reading order, vertical-text selection, hit testing, and accessible text ranges. (#465)
 - Merge keeps pages whose annotations share a duplicate name, renaming later duplicates and preserving popup links. (#455)
+- Forms that already repeat a field name save normally instead of failing with a duplicate name error. (#466)
 - Merge accepts images with single-element device color-space arrays. (#469)
 - Rasterize Region works on tagged PDFs and keeps their accessibility tags. (#369)
 - Form buttons and signed signature fields redraw correctly when their visibility changes.

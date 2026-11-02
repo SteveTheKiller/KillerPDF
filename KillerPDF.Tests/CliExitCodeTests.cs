@@ -223,7 +223,7 @@ public sealed class CliExitCodeTests : IDisposable
         string page = ReadSource("pdf-landing", "help.html");
         string[] verbs = [.. System.Text.RegularExpressions.Regex.Matches(list, "\"([a-z-]+)\"").Select(match => match.Groups[1].Value)];
         Assert.NotEmpty(verbs);
-        Assert.Empty(verbs.Where(verb => !page.Contains("killerpdf " + verb, StringComparison.Ordinal)));
+        Assert.All(verbs, verb => Assert.Contains("killerpdf " + verb, page, StringComparison.Ordinal));
     }
 
     [Fact]

@@ -2630,8 +2630,8 @@ public sealed class PdfIncrementalPageEditor
                 if (!resultingNames.TryAdd(resultingQualifiedName, (qualifiedName, hierarchyParent)))
                 {
                     var previous = resultingNames[resultingQualifiedName];
-                    if (!hierarchyParent || !previous.IsParent
-                        || qualifiedName != resultingQualifiedName || previous.Original != resultingQualifiedName)
+                    // A name the file already repeats is not this edit's doing; only a rename is refused.
+                    if (qualifiedName != resultingQualifiedName || previous.Original != resultingQualifiedName)
                         throw new InvalidOperationException(
                             $"Renaming the AcroForm field '{qualifiedName}' would create the duplicate name '{resultingQualifiedName}'.");
                 }
