@@ -255,7 +255,11 @@ namespace KillerPDF.Shell
         {
             // The gate runs in the window that holds the source tab, so the prompt, the unlock and
             // the reopen use that window's own chrome and panes.
-            MainWindow gate = PageDropRoute.GateWindow(this, GetWindow(payload.SourceViewer) as MainWindow);
+            if (PageDropRoute.GateWindow(this, GetWindow(payload.SourceViewer) as MainWindow) is not MainWindow gate)
+            {
+                SetStatus(Loc("Str_St_Canceled"));   // the source tab is gone, so no owner can be asked
+                return;
+            }
             gate.LiftPageDragLimit(payload, unlocked =>
             {
                 if (!ReferenceEquals(gate, this)) Activate();   // the pages land where they were dropped
@@ -269,6 +273,8 @@ namespace KillerPDF.Shell
         {
             PdfViewer source = payload.SourceViewer;
             FocusPane(source);
+            // The gate reads the source tab's protection, so it never runs on another tab.
+            if (!ReferenceEquals(ActiveViewer, source)) return;
             if (_doc is null || _currentFile is null) return;
             switch (PageDragGate.Decide(_protection, IsOwnerRestricted))
             {

@@ -26,8 +26,17 @@ public sealed class PageDropRouteTests
         Window window = new("one");
 
         Assert.Same(window, PageDropRoute.GateWindow(window, window));
-        // A source whose window cannot be found leaves the gate where the drop landed.
-        Assert.Same(window, PageDropRoute.GateWindow<Window>(window, null));
+    }
+
+    // A source whose window cannot be found has no owner to ask, so nothing gates the drop and it is
+    // refused. Gating it where it landed would ask the target tab, which holds none of the source's
+    // limits, and let the pages through.
+    [Fact]
+    public void ALimitedDropWhoseSourceHasNoWindowIsRefused()
+    {
+        Window window = new("drop");
+
+        Assert.Null(PageDropRoute.GateWindow<Window>(window, null));
     }
 
     [Fact]
