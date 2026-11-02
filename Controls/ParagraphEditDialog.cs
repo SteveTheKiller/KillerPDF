@@ -9,6 +9,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Rendering;
+using KillerPDF.Controls;
 using KillerPDF.Services;
 using KillerPDF.Shell;
 
@@ -61,7 +62,8 @@ internal sealed class ParagraphEditDialog : Window
         scale = Math.Clamp(scale, .7, 2.5);
         Width = Math.Min(980 * scale, SystemParameters.WorkArea.Width - 40);
         Height = Math.Min(720 * scale, SystemParameters.WorkArea.Height - 40);
-        MinWidth = 640; MinHeight = 460;
+        MinWidth = ScaledDialogFit.Minimum(640, 320, scale, SystemParameters.WorkArea.Width - 40);
+        MinHeight = ScaledDialogFit.Minimum(460, 280, scale, SystemParameters.WorkArea.Height - 40);
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
         Id(this, "ParagraphEditDialog");
@@ -120,8 +122,10 @@ internal sealed class ParagraphEditDialog : Window
             ItemsSource = new[] { L("Str_Paragraph_Left"), L("Str_Paragraph_Center"), L("Str_Paragraph_Right") }, SelectedIndex = 0 };
         Id(_alignment, "ParagraphAlignment", "Str_Paragraph_Alignment");
         alignmentField.Children.Add(_alignment); fields.Children.Add(alignmentField); content.Children.Add(fields);
-        side.Children.Add(new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        var sideScroll = new ScrollViewer { Content = content, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        sideScroll.SizeChanged += (_, _) => _text.Height = ScaledDialogFit.FieldHeight(200, 80, sideScroll.ActualHeight);
+        side.Children.Add(sideScroll);
         sidebar.Child = side; root.Children.Add(sidebar);
 
         var pageColumn = new DockPanel();
