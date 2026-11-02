@@ -4,8 +4,9 @@ namespace KillerPDF.Services;
 /// protection it opened with, and every reopen of that file goes through here.</summary>
 internal static class ReadOnlyOriginal
 {
-    /// <summary>Opens the file read-only. A protection already read for this file is kept, and one not
-    /// read yet is read from the file.</summary>
+    /// <summary>Opens the file read-only under the protection the tab already holds for it. The
+    /// protection is required and is what the tab holds afterwards; it is never read again from the
+    /// file, so a file put in the original's place cannot change what the tab allows.</summary>
     internal static (PdfWorkingDocument Document, OpenedProtection Protection) Open(string path, OpenedProtection known) =>
         (PdfWorkingDocument.Open(path, known, isReadOnly: true), known);
 
