@@ -173,13 +173,8 @@ namespace KillerPDF.Shell
             // not also reopen beside them through the normal session restore.
             try
             {
-                var originals = new HashSet<string>(recovered.Select(d => d.OriginalPath ?? string.Empty), StringComparer.OrdinalIgnoreCase);
-                foreach (string key in new[] { "OpenTabs", "OpenTabsB" })
-                    if (App.GetSetting(key) is { Length: > 0 } saved)
-                    {
-                        string[] keep = [.. saved.Split('|').Where(path => !originals.Contains(path))];
-                        if (keep.Length > 0) App.SetSetting(key, string.Join("|", keep)); else App.RemoveSetting(key);
-                    }
+                foreach ((string key, string? value) in RenderFailureRecovery.SessionSettingsWithout(App.GetSetting, recovered))
+                    if (value is not null) App.SetSetting(key, value); else App.RemoveSetting(key);
             }
             catch (Exception ex) when (ex is not OutOfMemoryException) { CrashReporter.Capture(ex, "Recovery session settings"); }
             return manifest;

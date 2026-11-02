@@ -61,6 +61,24 @@ namespace KillerPDF.Services
         internal const int RenderThreadFailureHResult = unchecked((int)0x88980406);
         internal const string RecoverySwitch = "--render-recovery";
 
+        /// <summary>The session settings that change once recovered tabs come back from the manifest, so
+        /// their originals do not also reopen beside them through the normal session restore. Each key
+        /// maps to its new value, or to null when the setting is removed.</summary>
+        internal static IReadOnlyDictionary<string, string?> SessionSettingsWithout(
+            Func<string, string?> read, IEnumerable<RecoveredDocument> recovered)
+        {
+            var originals = new HashSet<string>(
+                recovered.Select(document => document.OriginalPath ?? string.Empty), StringComparer.OrdinalIgnoreCase);
+            var changes = new Dictionary<string, string?>(StringComparer.Ordinal);
+            foreach (string key in new[] { "OpenTabs", "OpenTabsB" })
+                if (read(key) is { Length: > 0 } saved)
+                {
+                    string[] keep = [.. saved.Split('|').Where(path => !originals.Contains(path))];
+                    changes[key] = keep.Length > 0 ? string.Join("|", keep) : null;
+                }
+            return changes;
+        }
+
         /// <summary>Decides how a tab is written aside when the window fails.</summary>
         internal static RecoveryRoute Route(bool readOnly, bool protectedSource, OpenedProtection protection) =>
             readOnly ? RecoveryRoute.NotWritten
