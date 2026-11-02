@@ -9,9 +9,13 @@ namespace KillerPDF.Services;
 internal sealed record ScanLineEditPlan(Rect Covered, Rect Cover, string Text, int First);
 
 /// <summary>How a scanned line looks on the page, in canvas units: its colors, the closest typeface
-/// and size, the height of its ink, and that height word by word because a scan tilts.</summary>
+/// and size, the height of its ink, that height word by word because a scan tilts, and where each
+/// word's ink lies, which the recognizer's box can miss.</summary>
 internal sealed record ScanLineFit(Color Background, Color Ink, string Family, double FontSize, bool Bold,
-    double Baseline, IReadOnlyList<double> WordBaselines);
+    double Baseline, IReadOnlyList<double> WordBaselines)
+{
+    internal IReadOnlyList<Rect> InkBoxes { get; init; } = [];
+}
 
 /// <summary>A picture of the page a scanned line can be measured from, with how many of its pixels
 /// fall on one canvas unit.</summary>
@@ -26,30 +30,33 @@ internal static class ScanLineEdit
     /// because setting it there would run over scanned words.
     /// </summary>
     internal static ScanLineEditPlan? Plan(IReadOnlyList<string> words, IReadOnlyList<Rect> boxes,
-        string typed, Func<string, double> measure)
+        string typed, Func<string, double> measure, IReadOnlyList<Rect>? ink = null)
     {
         ArgumentNullException.ThrowIfNull(words);
         ArgumentNullException.ThrowIfNull(boxes);
         ArgumentNullException.ThrowIfNull(measure);
         if (typed.Contains('\n') || typed.Contains('\r'))
-            return Planned(boxes, 0, boxes.Count - 1, typed);
+            return Planned(boxes, ink, 0, boxes.Count - 1, typed);
         if (ScanEditSpan.Diff(words, typed) is not { } span) return null;
         int next = span.Last + 1;
         if (next < boxes.Count && measure(span.Replacement) > boxes[next].Left - boxes[span.First].Left)
         {
             string[] edited = typed.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-            return Planned(boxes, span.First, boxes.Count - 1, string.Join(' ', edited[span.First..]));
+            return Planned(boxes, ink, span.First, boxes.Count - 1, string.Join(' ', edited[span.First..]));
         }
-        return Planned(boxes, span.First, span.Last, span.Replacement);
+        return Planned(boxes, ink, span.First, span.Last, span.Replacement);
     }
 
     // The cover reaches past the words so no scanned edge shows, but never into a neighbor that stays.
     private const double CoverMargin = 3;
 
-    private static ScanLineEditPlan Planned(IReadOnlyList<Rect> boxes, int first, int last, string text)
+    private static ScanLineEditPlan Planned(IReadOnlyList<Rect> boxes, IReadOnlyList<Rect>? ink, int first, int last, string text)
     {
         Rect covered = Span(boxes, first, last);
+        // The cover reaches the words' measured ink too, where the recognizer's box stops short of it.
         Rect cover = covered;
+        if (ink is not null && ink.Count == boxes.Count)
+            for (int index = first; index <= last; index++) cover.Union(ink[index]);
         cover.Inflate(CoverMargin, CoverMargin);
         double left = first > 0 ? Math.Min(covered.Left, Math.Max(cover.Left, boxes[first - 1].Right)) : cover.Left;
         double right = last + 1 < boxes.Count ? Math.Max(covered.Right, Math.Min(cover.Right, boxes[last + 1].Left)) : cover.Right;
@@ -130,7 +137,7 @@ internal static class ScanLineEdit
         double baseline = look.Baseline / pixelsY;
         double[] wordBaselines = [.. look.Words.Select(word => word.HasClearInk ? word.Baseline / pixelsY : baseline)];
         return new ScanLineFit(ToColor(look.BackgroundColor), ToColor(look.InkColor), face.Family, size, look.Bold,
-            baseline, wordBaselines);
+            baseline, wordBaselines) { InkBoxes = [.. boxes] };
     }
 
     /// <summary>Lays transparent pixels over the white page, as the screen shows them.</summary>

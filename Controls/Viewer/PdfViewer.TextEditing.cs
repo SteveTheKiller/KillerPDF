@@ -1275,7 +1275,7 @@ namespace KillerPDF.Controls
                 bool bold = _textBold, italic = _textItalic;
                 double fontSize = tb.FontSize;
                 ScanLineEditPlan? plan = ScanLineEdit.Plan(scanLine.Words, scanLine.Boxes, content,
-                    text => MeasureLineWidth(text, family, bold, italic, fontSize));
+                    text => MeasureLineWidth(text, family, bold, italic, fontSize), scanLine.Fit.InkBoxes);
                 if (plan is null)
                 {
                     DiscardPendingCover();
