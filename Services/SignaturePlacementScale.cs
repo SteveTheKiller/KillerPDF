@@ -13,4 +13,9 @@ internal static class SignaturePlacementScale
     /// <summary>The scale after a mouse wheel delta; one notch is ten percent.</summary>
     internal static double Step(double scale, int wheelDelta) =>
         Math.Clamp(scale * Math.Pow(NotchFactor, wheelDelta / WheelNotch), Minimum, Maximum);
+
+    /// <summary>The scale after a wheel delta while the signature is shown on a page, or null when it
+    /// is not, so the wheel scrolls the document instead of resizing something unseen.</summary>
+    internal static double? StepWhileShown(double scale, int wheelDelta, bool shownOnPage) =>
+        shownOnPage ? Step(scale, wheelDelta) : null;
 }

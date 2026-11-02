@@ -21,6 +21,13 @@ public sealed class SignaturePlacementScaleTests
     }
 
     [Fact]
+    public void TheWheelLeavesTheSizeAloneWhileNoSignatureIsOnAPage()
+    {
+        Assert.Null(SignaturePlacementScale.StepWhileShown(0.5, 120, false));
+        Assert.Equal(0.55, SignaturePlacementScale.StepWhileShown(0.5, 120, true)!.Value, 6);
+    }
+
+    [Fact]
     public void TheSizeStaysUsable()
     {
         Assert.Equal(SignaturePlacementScale.Minimum, SignaturePlacementScale.Step(SignaturePlacementScale.Minimum, -120));

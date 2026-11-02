@@ -51,15 +51,15 @@ namespace KillerPDF.Controls
         private bool ResizeSignatureGhost(int wheelDelta)
         {
             if (_pendingSignature is not { } signature || _currentTool != EditTool.Signature) return false;
-            _signaturePlacementScale = SignaturePlacementScale.Step(SignaturePlacementScaleFor(signature), wheelDelta);
-            if (_signatureGhostPage is { } page)
+            // Off every page there is no ghost to resize, and the wheel goes on to scroll the document.
+            if (SignaturePlacementScale.StepWhileShown(SignaturePlacementScaleFor(signature), wheelDelta,
+                    _signatureGhostPage is not null) is not { } scale) return false;
+            _signaturePlacementScale = scale;
+            DrawSignatureGhost(_signatureGhostPage!, signature);
+            if (_signatureGhost is not null)
             {
-                DrawSignatureGhost(page, signature);
-                if (_signatureGhost is not null)
-                {
-                    Canvas.SetLeft(_signatureGhost, _signatureGhostPosition.X);
-                    Canvas.SetTop(_signatureGhost, _signatureGhostPosition.Y);
-                }
+                Canvas.SetLeft(_signatureGhost, _signatureGhostPosition.X);
+                Canvas.SetTop(_signatureGhost, _signatureGhostPosition.Y);
             }
             return true;
         }
