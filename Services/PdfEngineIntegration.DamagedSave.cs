@@ -71,6 +71,10 @@ internal static partial class PdfEngineIntegration
         return ReadsAsSigned(document, source) || FindCatalogPermissions(document, source) is not null;
     }
 
+    /// <summary>Decides the open of a file whose user password opened it and whose strip failed: true
+    /// sends it read-only to the encrypted original under its key, false to a viewing copy.</summary>
+    internal static bool OpensWhereItLies(string path, string password) => HasSignedSignatures(path, password);
+
     /// <summary>
     /// Refuses a damaged file a rewrite would strip, for the routes that write a new file without
     /// passing through <see cref="RepairHarmlessSaveArtifacts"/>. A healthy file passes, and so

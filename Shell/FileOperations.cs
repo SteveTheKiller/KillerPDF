@@ -121,7 +121,7 @@ namespace KillerPDF.Shell
                 {
                     ShowWorkingCopyProblem(copy);
                 }
-                catch (Exception) when (PdfEngineIntegration.HasSignedSignatures(srcPath, pw))
+                catch (Exception) when (PdfEngineIntegration.OpensWhereItLies(srcPath, pw))
                 {
                     // A strip would clear the signatures, so the file opens read-only under its key.
                     OpenSignedProtected(srcPath, path, OpenedProtection.Capture(srcPath, pw));
