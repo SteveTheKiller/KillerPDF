@@ -219,6 +219,7 @@ public sealed class ProtectedDocumentTests : IDisposable
 
         Assert.Equal(PdfAccessRole.Refused, PdfRestrictions.Read(output, null).Role);
         Assert.Equal(PrintAllowance.Forbidden, PdfRestrictions.Read(output, Reader).Print);
+        Assert.Equal(PdfAccessRole.Owner, PdfRestrictions.Read(output, Owner).Role);
         // R4-005: the size reported is the size of the file delivered, after the encryption.
         Assert.Equal(new FileInfo(output).Length, reduced.After);
     }
