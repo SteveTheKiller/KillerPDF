@@ -45,9 +45,9 @@ namespace KillerPDF.Controls
         /// <summary>Shows a font size set in one box in every other box of the field.</summary>
         internal void ShowFontSize(string fieldName, double points, TextBox setIn)
         {
-            _ = fieldName;
-            _ = points;
-            _ = setIn;
+            if (!_texts.TryGetValue(fieldName, out var boxes)) return;
+            foreach ((_, TextBox box, double scale) in boxes)
+                if (!ReferenceEquals(box, setIn)) box.FontSize = points * scale;
         }
 
         internal void AddCheck(int pageIndex, string fieldName, UIElement mark)

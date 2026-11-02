@@ -154,6 +154,27 @@ namespace KillerPDF.Tests
             Assert.Equal("Bob", stranger.Text);
         });
 
+        // SN01 M3: a font size set in one box of a repeated field shows in every box of the name at
+        // once, each at its own page's scale, as a typed value does.
+        [Fact]
+        public void AFontSizeShowsInEveryBoxOfTheFieldAtItsOwnScale() => OnSta(() =>
+        {
+            var edited = new TextBox { FontSize = 20 };
+            var twin = new TextBox { FontSize = 15 };
+            var stranger = new TextBox { FontSize = 15 };
+            var marks = new RepeatedFieldMarks();
+            marks.AddText(0, "name", edited, 2);
+            marks.AddText(2, "name", twin, 1.5);
+            marks.AddText(0, "other", stranger, 1.5);
+
+            edited.FontSize = 24;
+            marks.ShowFontSize("name", 12, edited);
+
+            Assert.Equal(18, twin.FontSize, 6);
+            Assert.Equal(24, edited.FontSize, 6);
+            Assert.Equal(15, stranger.FontSize, 6);
+        });
+
         [Fact]
         public void APageBuiltAgainDropsItsOldTextBoxes() => OnSta(() =>
         {
