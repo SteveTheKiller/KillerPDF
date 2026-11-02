@@ -284,7 +284,7 @@ namespace KillerPDF.Features
             using var renderSession = PdfPageRenderSession.OpenEngineFirst(
                 src, OcrRenderMax, OcrRenderMax, null);
             using var ocr = new OcrService(language: language);   // one engine reused across the whole document (single-threaded here)
-            int pages = PdfEngineIntegration.ReadPageInformation(src).Count;
+            int pages = PdfEngineIntegration.ReadPageInformation(src, null).Count;
             IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> formPages =
                 formAware ? ReadAllFormHints(src, pages) :
                 [

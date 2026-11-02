@@ -31,7 +31,7 @@ namespace KillerPDF.Shell
             // The reduced copy is a new file, so a signed source or one with Reader usage rights loses them in it,
             // and WriteSavedCopyToTemp clears them before the optimizer runs. Say so before the file is touched.
             bool sourceSigned;
-            try { sourceSigned = PdfEngineIntegration.HasSignedSignatures(_currentFile); }
+            try { sourceSigned = PdfEngineIntegration.HasSignedSignatures(_currentFile, _protection); }
             catch (Exception ex) when (ex is not OutOfMemoryException) { sourceSigned = false; }   // an unreadable source is reported by the reduce itself
             if (sourceSigned)
             {

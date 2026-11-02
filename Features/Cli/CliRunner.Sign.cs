@@ -117,7 +117,7 @@ namespace KillerPDF.Features
                 }
 
                 // Placed the way the Sign Document dialog places it: a 36 pt margin from the chosen corner.
-                var page = PdfEngineIntegration.ReadPageInformation(source)[pageNumber - 1];
+                var page = PdfEngineIntegration.ReadPageInformation(source, null)[pageNumber - 1];
                 const double Margin = 36;
                 width = Math.Min(width, Math.Max(1, page.Width - Margin * 2));
                 height = Math.Min(height, Math.Max(1, page.Height - Margin * 2));

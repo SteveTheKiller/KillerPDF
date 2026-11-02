@@ -254,7 +254,7 @@ namespace KillerPDF.Features
             if (!CliInspectEditInput(pos[0], pos[1], out string source, out string output, out _, con)) return 2;
             string find = pos[2], replace = pos[3];
             bool matchCase = options.ContainsKey("--match-case"), wholeWord = options.ContainsKey("--whole-word");
-            IReadOnlyList<PdfPageInformation> geometry = PdfEngineIntegration.ReadPageInformation(source);
+            IReadOnlyList<PdfPageInformation> geometry = PdfEngineIntegration.ReadPageInformation(source, null);
             var edits = new List<PdfTextLineEdit>();
             var matchCounts = new List<int>();
             int occurrences = 0, skippedTurned = 0;

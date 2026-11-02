@@ -446,7 +446,7 @@ namespace KillerPDF
             if (_visibleAppearance.IsChecked != true) return true;
             if (!int.TryParse(_pageBox.Text, NumberStyles.Integer, CultureInfo.CurrentCulture, out int pageNumber))
             { Warn(L("Str_Sign_BadAppearance")); return false; }
-            var pages = PdfEngineIntegration.ReadPageInformation(_sourcePdf);
+            var pages = PdfEngineIntegration.ReadPageInformation(_sourcePdf, null);   // the plain copy being signed
             if (pageNumber < 1 || pageNumber > pages.Count)
             { Warn(L("Str_Sign_BadAppearance")); return false; }
             if (!TryDimension(_appearanceWidth, out double width)

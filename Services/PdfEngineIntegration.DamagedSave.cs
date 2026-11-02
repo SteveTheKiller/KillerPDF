@@ -49,12 +49,17 @@ internal static partial class PdfEngineIntegration
     /// Reports whether a file carries a signed signature field or catalog permissions such as
     /// Reader usage rights, which saving clears.
     /// </summary>
-    internal static bool HasSignedSignatures(string path)
+    internal static bool HasSignedSignatures(string path) => SignedUnder(path, null);
+
+    /// <summary>The same answer for a tab's own file, read under the tab's protection.</summary>
+    internal static bool HasSignedSignatures(string path, OpenedProtection protection) => SignedUnder(path, protection);
+
+    private static bool SignedUnder(string path, OpenedProtection? protection)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         byte[] source = File.ReadAllBytes(path);
         // A damaged signed file still carries its signature, so it is read the way the viewer reads it.
-        PdfDocument document = OpenForReading(source);
+        PdfDocument document = OpenForReading(source, protection);
         return ReadsAsSigned(document, source) || FindCatalogPermissions(document, source) is not null;
     }
 

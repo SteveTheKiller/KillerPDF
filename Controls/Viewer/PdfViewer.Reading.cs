@@ -83,7 +83,8 @@ namespace KillerPDF.Controls
                 _comments.Clear();
                 _cropOrigins.Clear();
                 KillerPdf.Engine.Documents.PdfDocument document;
-                try { document = KillerPdf.Engine.Documents.PdfDocument.Open(System.IO.File.ReadAllBytes(file)); }
+                // The tab's file, read under the tab's protection like every other reader of it.
+                try { document = PdfEngineIntegration.OpenForReading(System.IO.File.ReadAllBytes(file), viewer._protection); }
                 catch (Exception ex) when (ex is not OutOfMemoryException) { _structureOrder = null; return; }
                 try
                 {

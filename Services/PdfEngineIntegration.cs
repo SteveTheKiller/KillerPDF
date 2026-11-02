@@ -2069,13 +2069,12 @@ internal static partial class PdfEngineIntegration
         return builder.Build();
     }
 
-    /// <summary>Reads crop-aware page dimensions and native rotations.</summary>
-    internal static IReadOnlyList<PdfPageInformation> ReadPageInformation(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        // The viewer shows the file through compatibility recovery, so its page geometry reads that way too.
-        return PdfPageInformation.Read(OpenForReading(File.ReadAllBytes(path)));
-    }
+    /// <summary>Reads crop-aware page dimensions and native rotations. The viewer shows the file through
+    /// compatibility recovery, so its page geometry reads that way too, and under the protection of
+    /// the tab whose file it is: a page tree kept in an object stream is encrypted, so even the sizes
+    /// need the key.</summary>
+    internal static IReadOnlyList<PdfPageInformation> ReadPageInformation(string path, OpenedProtection? protection) =>
+        PdfPageInformation.Read(OpenTabFile(path, protection));
 
     /// <summary>Authors a new one-page blank document.</summary>
     internal static byte[] CreateBlankDocument(double width = 595, double height = 842) =>

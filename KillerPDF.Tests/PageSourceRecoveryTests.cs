@@ -26,7 +26,7 @@ public sealed class PageSourceRecoveryTests : IDisposable
     {
         string path = Write("damaged.pdf", DamagedTwoPagePdf());
 
-        IReadOnlyList<PdfPageInformation> pages = PdfEngineIntegration.ReadPageInformation(path);
+        IReadOnlyList<PdfPageInformation> pages = PdfEngineIntegration.ReadPageInformation(path, null);
 
         Assert.Equal(2, pages.Count);
         Assert.Equal(200, pages[0].Width);

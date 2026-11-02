@@ -225,7 +225,7 @@ namespace KillerPDF.Features
             if (box.Length != 4 || box.Any(double.IsNaN)) { con.WriteLine(usage); return 2; }
             if (!CliInspectEditInput(pos[0], pos[3], out string source, out string output, out int pageCount, con)) return 2;
             if (pageNumber < 1 || pageNumber > pageCount) { con.WriteLine($"Page must be from 1 to {pageCount}."); return 2; }
-            PdfPageInformation page = PdfEngineIntegration.ReadPageInformation(source)[pageNumber - 1];
+            PdfPageInformation page = PdfEngineIntegration.ReadPageInformation(source, null)[pageNumber - 1];
             var region = new PdfContentBounds(
                 Math.Clamp(Math.Min(box[0], box[2]), 0, page.Width), Math.Clamp(Math.Min(box[1], box[3]), 0, page.Height),
                 Math.Clamp(Math.Max(box[0], box[2]), 0, page.Width), Math.Clamp(Math.Max(box[1], box[3]), 0, page.Height));

@@ -1698,7 +1698,7 @@ namespace KillerPDF.Features
             try
             {
                 IReadOnlyList<KillerPdf.Engine.Documents.PdfPageInformation> pages =
-                    PdfEngineIntegration.ReadPageInformation(workPath);
+                    PdfEngineIntegration.ReadPageInformation(workPath, null);
                 var rotations = new int[pages.Count];
                 var dims = new (double WPt, double HPt)[pages.Count];
                 bool anyRot = false;

@@ -454,8 +454,8 @@ public partial class MainWindow
         string leftPath, OpenedProtection? leftKey, string rightPath, OpenedProtection? rightKey,
         string leftTitle, string rightTitle, CancellationToken token)
     {
-        var leftInfo = PdfEngineIntegration.ReadPageInformation(leftPath);
-        var rightInfo = PdfEngineIntegration.ReadPageInformation(rightPath);
+        var leftInfo = PdfEngineIntegration.ReadPageInformation(leftPath, leftKey);
+        var rightInfo = PdfEngineIntegration.ReadPageInformation(rightPath, rightKey);
         int pageCount = Math.Max(leftInfo.Count, rightInfo.Count);
         int changed = 0;
         int missing = 0;
@@ -499,8 +499,8 @@ public partial class MainWindow
         string leftPath, OpenedProtection? leftKey, string rightPath, OpenedProtection? rightKey,
         int pageIndex, CancellationToken token)
     {
-        var leftInfo = PdfEngineIntegration.ReadPageInformation(leftPath);
-        var rightInfo = PdfEngineIntegration.ReadPageInformation(rightPath);
+        var leftInfo = PdfEngineIntegration.ReadPageInformation(leftPath, leftKey);
+        var rightInfo = PdfEngineIntegration.ReadPageInformation(rightPath, rightKey);
         bool leftPresent = pageIndex < leftInfo.Count;
         bool rightPresent = pageIndex < rightInfo.Count;
         if (!leftPresent || !rightPresent)

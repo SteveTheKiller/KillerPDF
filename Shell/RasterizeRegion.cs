@@ -15,7 +15,7 @@ namespace KillerPDF.Shell
             if (!EnsureEditable(continueAfterUnlock: false)) return;
             CommitActiveTextBox();
             string file = _currentFile;
-            PdfPageInformation page = PdfEngineIntegration.ReadPageInformation(file)[pageIndex];
+            PdfPageInformation page = PdfEngineIntegration.ReadPageInformation(file, _protection)[pageIndex];
             // The page as it shows in the viewer: its effective rotation, the app's when it has one.
             int rotation = ((_pageRotations.TryGetValue(pageIndex, out int turned) ? turned : page.Rotation) % 360 + 360) % 360;
             if (RegionPreview(file, _protection, pageIndex, page.Rotation, rotation) is not { } preview) return;

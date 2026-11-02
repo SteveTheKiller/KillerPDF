@@ -50,7 +50,7 @@ namespace KillerPDF.Controls
             try
             {
                 IReadOnlyList<KillerPdf.Engine.Documents.PdfPageInformation> pages =
-                    PdfEngineIntegration.ReadPageInformation(_currentFile);
+                    PdfEngineIntegration.ReadPageInformation(_currentFile, _protection);
                 if ((uint)pageIndex >= (uint)pages.Count)
                     return;
                 KillerPdf.Engine.Documents.PdfPageInformation page = pages[pageIndex];

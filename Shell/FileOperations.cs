@@ -1333,7 +1333,7 @@ namespace KillerPDF.Shell
                             pages = await RunBusyAsync(() =>
                             {
                                 PdfEngineIntegration.ValidateImportable(file);
-                                return PdfEngineIntegration.ReadPageInformation(file);
+                                return PdfEngineIntegration.ReadPageInformation(file, null);   // a file from disk, no tab's
                             });
                         }
                         catch (Exception ex) when (PdfEngineIntegration.IsParserDamage(ex))
@@ -1350,7 +1350,7 @@ namespace KillerPDF.Shell
                             pages = await RunBusyAsync(() =>
                             {
                                 PdfEngineIntegration.ValidateDocument(importPath);
-                                return PdfEngineIntegration.ReadPageInformation(importPath);
+                                return PdfEngineIntegration.ReadPageInformation(importPath, null);
                             });
                         }
                         imports.Add(new PdfEngineIntegration.ImportedDocument(importPath,
@@ -1761,7 +1761,7 @@ namespace KillerPDF.Shell
             // The working bytes of a protected file are decrypted, so they are never that copy.
             string? unchanged = publishUnder.KeepsEncryption ? null : UnchangedDocumentBytes();
             bool sourceSigned;
-            try { sourceSigned = PdfEngineIntegration.HasSignedSignatures(unchanged ?? _currentFile); }
+            try { sourceSigned = PdfEngineIntegration.HasSignedSignatures(unchanged ?? _currentFile, _protection); }
             catch (Exception ex) when (ex is not OutOfMemoryException) { sourceSigned = false; }
             if (sourceSigned && unchanged is not null)
             {

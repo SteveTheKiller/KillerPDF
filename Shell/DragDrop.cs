@@ -531,7 +531,7 @@ namespace KillerPDF.Shell
                             pages = await RunBusyAsync(() =>
                             {
                                 PdfEngineIntegration.ValidateImportable(f);
-                                return PdfEngineIntegration.ReadPageInformation(f);
+                                return PdfEngineIntegration.ReadPageInformation(f, null);   // a dropped file, no tab's
                             });
                         }
                         // Only damage a repair can mend is offered one.
@@ -548,7 +548,7 @@ namespace KillerPDF.Shell
                             pages = await RunBusyAsync(() =>
                             {
                                 PdfEngineIntegration.ValidateImportable(importPath);
-                                return PdfEngineIntegration.ReadPageInformation(importPath);
+                                return PdfEngineIntegration.ReadPageInformation(importPath, null);
                             });
                         }
                     }
@@ -556,7 +556,7 @@ namespace KillerPDF.Shell
                     {
                         importPath = App.MakeTempFile("dropimage");
                         File.WriteAllBytes(importPath, PdfEngineIntegration.MergeFiles([f]));
-                        pages = PdfEngineIntegration.ReadPageInformation(importPath);
+                        pages = PdfEngineIntegration.ReadPageInformation(importPath, null);
                     }
                     imports.Add(new PdfEngineIntegration.ImportedDocument(importPath,
                         [.. pages.Select(page => page.Rotation)], f));

@@ -162,7 +162,7 @@ namespace KillerPDF.Features
                 }));
                 return 3;
             }
-            IReadOnlyList<PdfPageInformation> geometry = PdfEngineIntegration.ReadPageInformation(source);
+            IReadOnlyList<PdfPageInformation> geometry = PdfEngineIntegration.ReadPageInformation(source, null);
             foreach (int page in wholePages)
                 areas.Add((page, new PdfContentBounds(0, 0, geometry[page].Width, geometry[page].Height), "whole page"));
             var regions = new List<PdfRedactionRegion>();
