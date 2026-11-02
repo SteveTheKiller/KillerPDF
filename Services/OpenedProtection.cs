@@ -18,7 +18,8 @@ internal enum UnlockPurpose { Edit, Output }
 /// <summary>The words of the owner password prompt on a read-only tab, by what it is asked for.</summary>
 internal static class UnlockPrompt
 {
-    internal static string KeyFor(UnlockPurpose purpose) => "Str_Restricted_Prompt";
+    internal static string KeyFor(UnlockPurpose purpose) =>
+        purpose == UnlockPurpose.Output ? "Str_Protection_Prompt" : "Str_Restricted_Prompt";
 }
 
 /// <summary>How an owner password prompt on a read-only tab ended.</summary>
