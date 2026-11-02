@@ -16,6 +16,10 @@ foreach($name in @('release.ps1','KillerPDF.csproj','CHANGELOG.md','README.md','
     Copy-Item -LiteralPath (Join-Path $repository $name) -Destination (Join-Path $root $name)
 }
 Get-ChildItem -LiteralPath (Join-Path $repository 'pdf-landing') -File|Where-Object{$_.Extension -in @('.html','.js')}|Copy-Item -Destination (Join-Path $root 'pdf-landing')
+# Release metadata is fixture data, independent of the next development version.
+[IO.File]::WriteAllText((Join-Path $root 'KillerPDF.csproj'),'<Project><PropertyGroup><Version>1.9.2</Version><ReleaseDate>2026-11-02</ReleaseDate></PropertyGroup><PropertyGroup /></Project>')
+[IO.File]::WriteAllText((Join-Path $root 'engine/KillerPdf.Engine/KillerPdf.Engine.csproj'),'<Project><PropertyGroup><Version>1.9.2</Version></PropertyGroup></Project>')
+[IO.File]::WriteAllText((Join-Path $root 'CHANGELOG.md'),"## [1.9.2] - 2026-11-02`n`nFixture release.`n`n### Fixed`n`n- Fixture validation.`n")
 [IO.File]::WriteAllText((Join-Path $root 'engine/Fixture.cs'),'// fixture engine source')
 [IO.File]::WriteAllText((Join-Path $root 'validation/benchmarks/1.9.1/benchmark-summary.csv'),"Version,Inputs`n1.9.1,20`n")
 [IO.File]::WriteAllText((Join-Path $root 'validation/benchmarks/1.9.1/CORPUS.md'),'| Damaged-file safety | 80 |')
