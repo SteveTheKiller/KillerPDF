@@ -1060,6 +1060,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Exportar</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Se exportaron {0} páginas a {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Exportación cancelada. Se guardaron {0} de {1} páginas en {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Parte del contenido no se pudo dibujar con exactitud. Las páginas {0} se guardaron tal como aparecen en pantalla.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Todas las páginas</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Solo páginas impares</sys:String>
@@ -1499,7 +1500,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Raster_Title">Rasterizar región</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Arrastre un recuadro alrededor de la parte de la página que quiere convertir en imagen. Todo lo que queda fuera del recuadro no cambia.</sys:String>
     <sys:String x:Key="Str_Raster_None">Arrastre un recuadro en la página.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">El recuadro abarca {0} fragmentos de texto, {1} imágenes y {2} dibujos. Se convierten en una sola imagen y su texto ya no se podrá seleccionar ni buscar.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">El recuadro abarca {0} fragmentos de texto, {1} imágenes y {2} dibujos. Se dibujan como una sola imagen. El texto de debajo permanece en el archivo, así que aún se puede seleccionar y buscar.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rasterizar</sys:String>
     <sys:String x:Key="Str_Raster_Done">Se rasterizó una región de la página {0}</sys:String>
     <sys:String x:Key="Str_Raster_Failed">No se pudo rasterizar la región: {0}</sys:String>

@@ -309,6 +309,7 @@
     <sys:String x:Key="Str_OutputPixels">{0} x {1} пікс.</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Експортувати</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Експортовано сторінок: {0} до {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Експорт скасовано. Збережено сторінок: {0} із {1} до {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Частину вмісту не вдалося відобразити точно. Сторінки {0} збережено так, як вони виглядають на екрані.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Усі сторінки</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Лише непарні сторінки</sys:String>
@@ -1519,7 +1520,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Raster_Title">Раструвати область</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Обведіть рамкою частину сторінки, яку треба перетворити на зображення. Усе поза рамкою залишиться без змін.</sys:String>
     <sys:String x:Key="Str_Raster_None">Намалюйте рамку на сторінці.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">У рамці фрагментів тексту: {0}, зображень: {1}, малюнків: {2}. Вони стануть одним зображенням, і текст у ньому більше не можна буде виділити чи знайти.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">У рамці фрагментів тексту: {0}, зображень: {1}, малюнків: {2}. Вони будуть намальовані як одне зображення. Текст під ним залишиться у файлі, тому його й надалі можна виділяти та шукати.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Раструвати</sys:String>
     <sys:String x:Key="Str_Raster_Done">Область сторінки {0} растровано</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Не вдалося раструвати область: {0}</sys:String>

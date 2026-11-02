@@ -309,6 +309,7 @@ La page peut être remplacée par une image d'elle-même avec les zones marquée
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Exporter</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0} pages exportées vers {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Exportation annulée. {0} pages sur {1} enregistrées dans {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Certains contenus n'ont pas pu être rendus exactement. Les pages {0} ont été enregistrées telles qu'elles apparaissent à l'écran.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Toutes les pages</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Pages impaires uniquement</sys:String>
@@ -1519,7 +1520,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Raster_Title">Rastériser une zone</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Tracez un cadre autour de la partie de la page à transformer en image. Tout ce qui est hors du cadre reste inchangé.</sys:String>
     <sys:String x:Key="Str_Raster_None">Tracez un cadre sur la page.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Le cadre couvre {0} segments de texte, {1} images et {2} dessins. Ils deviennent une seule image et le texte qu'elle contient ne pourra plus être sélectionné ni recherché.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Le cadre couvre {0} segments de texte, {1} images et {2} dessins. Ils sont dessinés comme une seule image. Le texte en dessous reste dans le fichier et peut toujours être sélectionné et recherché.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rastériser</sys:String>
     <sys:String x:Key="Str_Raster_Done">Zone de la page {0} pixellisée</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Impossible de pixelliser la zone : {0}</sys:String>

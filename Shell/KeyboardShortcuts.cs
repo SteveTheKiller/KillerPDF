@@ -277,9 +277,15 @@ namespace KillerPDF.Shell
             {
                 // A cancellable long operation (OCR, repair) is running behind the busy overlay - offer to
                 // cancel it.
-                if (KillerDialog.Show(this, string.Format(Loc("Str_Dlg_CancelBusy"), _busyOpLabel), "KillerPDF",
-                        MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
-                    _busyCts?.Cancel();
+                OperationHold? hold = _busyHold;
+                hold?.Hold();
+                try
+                {
+                    if (KillerDialog.Show(this, string.Format(Loc("Str_Dlg_CancelBusy"), _busyOpLabel), "KillerPDF",
+                            MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                        _busyCts?.Cancel();
+                }
+                finally { if (ReferenceEquals(hold, _busyHold)) hold?.Release(); }
                 e.Handled = true;
             }
             // #153: matched by the character the key TYPES, not its position. On a German layout

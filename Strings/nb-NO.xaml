@@ -309,6 +309,7 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Eksporter</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Eksporterte {0} sider til {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Eksporten ble avbrutt. {0} av {1} sider ble lagret i {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Noe innhold kunne ikke tegnes nøyaktig. Sidene {0} ble lagret slik de vises på skjermen.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Alle sider</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Bare oddetallssider</sys:String>
@@ -1519,7 +1520,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Raster_Title">Rasteriser område</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Dra en ramme rundt den delen av siden som skal bli et bilde. Alt utenfor rammen forblir som det er.</sys:String>
     <sys:String x:Key="Str_Raster_None">Dra en ramme på siden.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Rammen dekker {0} tekstbiter, {1} bilder og {2} tegninger. De blir ett bilde, og tekst der kan ikke lenger merkes eller søkes i.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Rammen dekker {0} tekstbiter, {1} bilder og {2} tegninger. De tegnes som ett bilde. Teksten under blir værende i filen, så den kan fortsatt merkes og søkes i.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rasteriser</sys:String>
     <sys:String x:Key="Str_Raster_Done">Rasteriserte et område på side {0}</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Kunne ikke rasterisere området: {0}</sys:String>

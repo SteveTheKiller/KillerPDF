@@ -309,6 +309,7 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Esporta</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Esportate {0} pagine in {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Esportazione annullata. Salvate {0} pagine su {1} in {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Alcuni contenuti non sono stati disegnati con esattezza. Le pagine {0} sono state salvate come appaiono sullo schermo.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Tutte le pagine</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Solo pagine dispari</sys:String>
@@ -1519,7 +1520,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Raster_Title">Rasterizza area</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Trascina un riquadro attorno alla parte della pagina da trasformare in immagine. Tutto ciò che è fuori dal riquadro resta invariato.</sys:String>
     <sys:String x:Key="Str_Raster_None">Trascina un riquadro sulla pagina.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Il riquadro comprende {0} porzioni di testo, {1} immagini e {2} disegni. Diventano un'unica immagine e il testo al suo interno non sarà più selezionabile né ricercabile.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Il riquadro comprende {0} porzioni di testo, {1} immagini e {2} disegni. Vengono disegnati come un'unica immagine. Il testo sottostante resta nel file, quindi si può ancora selezionare e cercare.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rasterizza</sys:String>
     <sys:String x:Key="Str_Raster_Done">Area della pagina {0} rasterizzata</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Impossibile rasterizzare l'area: {0}</sys:String>

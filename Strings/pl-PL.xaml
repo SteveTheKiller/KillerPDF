@@ -309,6 +309,7 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Eksport</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Wyeksportowano {0} stron do {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Eksport anulowano. Zapisano {0} z {1} stron w {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Części treści nie udało się dokładnie narysować. Strony {0} zapisano tak, jak wyglądają na ekranie.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Wszystkie strony</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Tylko strony nieparzyste</sys:String>
@@ -1507,7 +1508,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Raster_Title">Rasteryzuj obszar</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Przeciągnij ramkę wokół części strony, która ma stać się obrazem. Wszystko poza ramką pozostaje bez zmian.</sys:String>
     <sys:String x:Key="Str_Raster_None">Przeciągnij ramkę na stronie.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Ramka obejmuje fragmenty tekstu: {0}, obrazy: {1} i rysunki: {2}. Staną się jednym obrazem, a tekstu w nim nie będzie można już zaznaczyć ani wyszukać.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Ramka obejmuje fragmenty tekstu: {0}, obrazy: {1} i rysunki: {2}. Zostaną narysowane jako jeden obraz. Tekst pod spodem pozostanie w pliku, więc nadal można go zaznaczać i wyszukiwać.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rasteryzuj</sys:String>
     <sys:String x:Key="Str_Raster_Done">Zrasteryzowano obszar strony {0}</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Nie udało się zrasteryzować obszaru: {0}</sys:String>

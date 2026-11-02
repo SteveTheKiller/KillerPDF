@@ -309,6 +309,7 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Exportálás</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0} oldal exportálva ide: {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Az exportálás megszakítva. {1} oldalból {0} mentve ide: {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Bizonyos tartalmakat nem sikerült pontosan megjeleníteni. Az érintett oldalak ({0}) úgy lettek mentve, ahogy a képernyőn látszanak.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Minden oldal</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Csak páratlan oldalak</sys:String>
@@ -1506,7 +1507,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Raster_Title">Terület raszterizálása</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Húzzon keretet az oldal azon része köré, amelyből kép legyen. A kereten kívül minden változatlan marad.</sys:String>
     <sys:String x:Key="Str_Raster_None">Húzzon keretet az oldalon.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">A keretben {0} szövegrész, {1} kép és {2} rajz van. Ezek egyetlen képpé válnak, és az ott lévő szöveg többé nem jelölhető ki és nem kereshető.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">A keretben {0} szövegrész, {1} kép és {2} rajz van. Ezek egyetlen képként jelennek meg. Az alattuk lévő szöveg a fájlban marad, így továbbra is kijelölhető és kereshető.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Raszterizálás</sys:String>
     <sys:String x:Key="Str_Raster_Done">A(z) {0}. oldal egy területe raszterizálva</sys:String>
     <sys:String x:Key="Str_Raster_Failed">A területet nem sikerült raszterizálni: {0}</sys:String>

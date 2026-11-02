@@ -309,6 +309,7 @@ A página pode ser substituída por uma imagem dela mesma com as áreas marcadas
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Exportar</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0} páginas exportadas para {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Exportação cancelada. {0} de {1} páginas salvas em {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Parte do conteúdo não pôde ser desenhada com exatidão. As páginas {0} foram salvas como aparecem na tela.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Todas as páginas</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Somente páginas ímpares</sys:String>
@@ -1519,7 +1520,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Raster_Title">Rasterizar região</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Arraste uma caixa em volta da parte da página que vai virar imagem. Tudo fora da caixa continua como está.</sys:String>
     <sys:String x:Key="Str_Raster_None">Arraste uma caixa na página.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">A caixa cobre {0} trechos de texto, {1} imagens e {2} desenhos. Eles viram uma única imagem, e o texto ali não poderá mais ser selecionado nem pesquisado.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">A caixa cobre {0} trechos de texto, {1} imagens e {2} desenhos. Eles são desenhados como uma única imagem. O texto abaixo continua no arquivo, então ainda pode ser selecionado e pesquisado.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rasterizar</sys:String>
     <sys:String x:Key="Str_Raster_Done">Região da página {0} rasterizada</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Não foi possível rasterizar a região: {0}</sys:String>

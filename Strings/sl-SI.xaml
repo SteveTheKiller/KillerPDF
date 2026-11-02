@@ -287,6 +287,7 @@
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Izvozi</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Izvoženih strani: {0}, v {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Izvoz je preklican. Shranjenih strani: {0} od {1}, v {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Dela vsebine ni bilo mogoče natančno izrisati. Strani {0} so bile shranjene tako, kot so prikazane na zaslonu.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Vse strani</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Samo lihe strani</sys:String>
@@ -1412,7 +1413,7 @@
     <sys:String x:Key="Str_Raster_Title">Rastriraj območje</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Povlecite okvir okoli dela strani, ki ga želite pretvoriti v sliko. Vse zunaj okvirja ostane nespremenjeno.</sys:String>
     <sys:String x:Key="Str_Raster_None">Povlecite okvir na strani.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Okvir zajema {0} besedilnih nizov, {1} slik in {2} risb. Postali bodo ena slika, besedila v njej pa ne bo več mogoče izbrati ali iskati.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Okvir zajema {0} besedilnih nizov, {1} slik in {2} risb. Narisani bodo kot ena slika. Besedilo pod njo ostane v datoteki, zato ga je še vedno mogoče izbrati in iskati.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rastriraj</sys:String>
     <sys:String x:Key="Str_Raster_Done">Območje strani {0} je rastrirano</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Območja ni bilo mogoče rastrirati: {0}</sys:String>

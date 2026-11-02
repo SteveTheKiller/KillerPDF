@@ -1882,7 +1882,7 @@ namespace KillerPDF.Shell
                 }
 
                 // Show a progress overlay so the user knows we're working
-                overlay = ShowFlattenProgress(pageCount, Loc("Str_Busy_FlattenPage"));
+                overlay = ShowFlattenProgress(pageCount, Loc("Str_Busy_FlattenPage"), () => _busyCts?.Cancel());
                 string outputPath = dlg.FileName;
 
                 ct = BeginCancellableOp(Loc("Str_Op_Flatten"));
@@ -2070,28 +2070,29 @@ namespace KillerPDF.Shell
                     Loc("Str_ExportImg_Suffix"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 return;
 
-            string sourcePath;
-            try { sourcePath = WriteSavedCopyToTemp(forRasterization: true, throwaway: true); }
-            catch (Exception ex) when (ex is not OutOfMemoryException)
-            {
-                KillerDialog.Show(this, Loc("Str_Err_ExportFailed") + "\n" + ex.Message, "KillerPDF",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
             // The immutable output copy already carries the displayed page rotations.
             var rotSnapshot = new int[pageCount];
 
-            var overlay = ShowFlattenProgress(selected.Count, Loc("Str_Busy_ExportPage"));
             bool jpeg   = opts.Jpeg;
             double dpi  = opts.Dpi;
             var pages   = selected;
             bool keepResolution = opts.KeepResolution;
             var rotations = new Dictionary<int, int>(_pageRotations);
-            CancellationToken ct = default;
+            CancellationToken ct = BeginCancellableOp(Loc("Str_Op_Export"));
+            using var hold = new OperationHold();
+            _busyHold = hold;
+            Border? overlay = null;
+            string? sourcePath = null;
             try
             {
-                ct = BeginCancellableOp(Loc("Str_Op_Export"));
+                // Writing the copy blocks the window, on a large file for a long time, so the overlay
+                // shows first.
+                sourcePath = await BusyCue.ThenRun(
+                    () => overlay = ShowFlattenProgress(selected.Count, Loc("Str_Busy_ExportPage"), () => _busyCts?.Cancel()),
+                    async () => await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background),
+                    () => WriteSavedCopyToTemp(forRasterization: true, throwaway: true));
+                string rendered = sourcePath;
+                Border shown = overlay!;
                 // The per-page render/encode/write core lives in Services/PdfRasterize.cs;
                 // progress marshals back to the overlay here.
                 var incomplete = new IncompletePageLog();
@@ -2100,14 +2101,17 @@ namespace KillerPDF.Shell
                 {
                     Dictionary<int, double>? nativeDpi = keepResolution
                         ? engineSession.NativeDpis(pages, rotations, dpi, ct,
-                            (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(overlay, n, total))))
+                            (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(shown, n, total))), hold)
                         : null;
-                    return PdfRasterize.ExportPageImages(sourcePath, pages,
+                    return PdfRasterize.ExportPageImages(rendered, pages,
                         rotSnapshot, dpi, jpeg, outDir, baseName, digits,
-                        (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(overlay, n, total))),
-                        ct, incomplete, approvedOverwrites, nativeDpi is null ? null : page => nativeDpi[page]);
+                        (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(shown, n, total))),
+                        ct, incomplete, approvedOverwrites, nativeDpi is null ? null : page => nativeDpi[page], hold);
                 });
-                SetStatus(string.Format(Loc("Str_ExportImg_Done"), written, outDir));
+                string statusKey = PdfRasterize.ExportStatusKey(written, pages.Count, ct.IsCancellationRequested);
+                SetStatus(statusKey == "Str_ExportImg_Done"
+                    ? string.Format(Loc(statusKey), written, outDir)
+                    : string.Format(Loc(statusKey), written, pages.Count, outDir));
                 WarnIncompletePages(incomplete);
             }
             catch (Exception ex)
@@ -2116,9 +2120,10 @@ namespace KillerPDF.Shell
             }
             finally
             {
-                try { HideFlattenProgress(overlay); } catch { /* ensure overlay never leaks */ }
+                try { if (overlay is not null) HideFlattenProgress(overlay); } catch { /* ensure overlay never leaks */ }
+                _busyHold = null;
                 EndCancellableOp(ct);
-                try { System.IO.File.Delete(sourcePath); } catch (System.IO.IOException) { }
+                try { if (sourcePath is not null) System.IO.File.Delete(sourcePath); } catch (System.IO.IOException) { }
             }
         }
 
@@ -2134,22 +2139,10 @@ namespace KillerPDF.Shell
 
         // ---- flatten progress overlay helpers ----
 
-        private Border ShowFlattenProgress(int pageCount, string progressFormat)
+        private Border ShowFlattenProgress(int pageCount, string progressFormat, Action? cancel = null)
         {
-            var progressText = new TextBlock
-            {
-                Text       = string.Format(progressFormat, 0, pageCount),
-                Foreground = Brushes.White,
-                FontSize   = 14,
-                Tag        = progressFormat
-            };
-            var panel = new StackPanel
-            {
-                Orientation         = Orientation.Vertical,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment   = VerticalAlignment.Center
-            };
-            panel.Children.Add(progressText);
+            var panel = Controls.BusyProgressPanel.Build(string.Format(progressFormat, 0, pageCount), progressFormat,
+                Loc("Str_Btn_Cancel"), cancel, TryFindResource("SurfaceButton") as Style);
 
             var overlay = new Border
             {

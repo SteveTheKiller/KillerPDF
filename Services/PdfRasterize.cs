@@ -190,13 +190,18 @@ namespace KillerPDF.Services
                     throw new IOException($"Image output already exists: {path}. Approve replacement before exporting.");
         }
 
+        /// <summary>The status string for a finished export: a cancel that stopped it short says so.</summary>
+        internal static string ExportStatusKey(int written, int requested, bool canceled) =>
+            canceled && written < requested ? "Str_ExportImg_Canceled" : "Str_ExportImg_Done";
+
         /// <summary>Renders selected pages with pending rotations and returns the number of complete
         /// images published, including a partial batch when canceled. Without an incomplete-page log,
         /// a page that cannot render completely fails the export.</summary>
         internal static int ExportPageImages(string sourcePath, IReadOnlyList<int> pages,
             int[] rotSnapshot, double dpi, bool jpeg, string outDir, string baseName, int digits,
             Action<int, int> progress, CancellationToken ct, IncompletePageLog? incomplete = null,
-            IReadOnlySet<string>? approvedOverwrites = null, Func<int, double>? pageDpi = null)
+            IReadOnlySet<string>? approvedOverwrites = null, Func<int, double>? pageDpi = null,
+            OperationHold? hold = null)
         {
             string[] paths = PlanPageImagePaths(sourcePath, pages, outDir, baseName, digits, jpeg);
             ValidateImageOutputs(paths, approvedOverwrites);
@@ -208,6 +213,7 @@ namespace KillerPDF.Services
             {
                 foreach (var idx in pages)
                 {
+                    hold?.WaitIfHeld(ct);
                     if (ct.IsCancellationRequested) return written;
                     byte[] raw; int w, h;
                     double outputDpi = pageDpi?.Invoke(idx) ?? dpi;

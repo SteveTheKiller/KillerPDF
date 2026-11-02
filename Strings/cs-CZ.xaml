@@ -309,6 +309,7 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Exportovat</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Exportováno stránek: {0}, do {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Export byl zrušen. Uloženo stránek: {0} z {1}, do {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Část obsahu nebylo možné vykreslit přesně. Stránky {0} byly uloženy tak, jak vypadají na obrazovce.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Všechny stránky</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Pouze liché stránky</sys:String>
@@ -1504,7 +1505,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Raster_Title">Rastrovat oblast</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Přetažením ohraničte část stránky, která se má převést na obrázek. Vše mimo rámeček zůstane beze změny.</sys:String>
     <sys:String x:Key="Str_Raster_None">Přetáhněte na stránce rámeček.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Rámeček zahrnuje {0} textových úseků, {1} obrázků a {2} kreseb. Stanou se jedním obrázkem a text v něm už nepůjde vybrat ani vyhledat.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Rámeček zahrnuje {0} textových úseků, {1} obrázků a {2} kreseb. Vykreslí se jako jeden obrázek. Text pod ním v souboru zůstane, takže jej lze dál vybírat i vyhledávat.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rastrovat</sys:String>
     <sys:String x:Key="Str_Raster_Done">Oblast stránky {0} byla rastrována</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Oblast nelze rastrovat: {0}</sys:String>

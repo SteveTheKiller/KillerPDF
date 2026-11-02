@@ -1064,6 +1064,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">导出</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">已将 {0} 页导出到 {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">导出已取消。已将 {1} 页中的 {0} 页保存到 {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">部分内容无法精确绘制。第 {0} 页已按屏幕显示效果保存。</sys:String>
     <sys:String x:Key="Str_Print_AllPages">所有页面</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">仅奇数页</sys:String>
@@ -1503,7 +1504,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Raster_Title">栅格化区域</sys:String>
     <sys:String x:Key="Str_Raster_Hint">拖出一个框，圈住要变成图像的页面部分。框外的内容保持不变。</sys:String>
     <sys:String x:Key="Str_Raster_None">请在页面上拖出一个框。</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">框内有 {0} 段文字、{1} 张图像和 {2} 个绘图。它们会变成一张图像，其中的文字将无法再选择或搜索。</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">框内有 {0} 段文字、{1} 张图像和 {2} 个绘图。它们会绘制成一张图像。下方的文字仍保留在文件中，因此仍可选择和搜索。</sys:String>
     <sys:String x:Key="Str_Raster_Apply">栅格化</sys:String>
     <sys:String x:Key="Str_Raster_Done">已栅格化第 {0} 页的一个区域</sys:String>
     <sys:String x:Key="Str_Raster_Failed">无法栅格化该区域：{0}</sys:String>

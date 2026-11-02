@@ -86,12 +86,14 @@ internal sealed class PdfEngineDocumentSession
     /// shows the progress. A canceled read stops at the next page with what it has; the job's own check
     /// then ends the export.</summary>
     internal Dictionary<int, double> NativeDpis(IEnumerable<int> pages, IReadOnlyDictionary<int, int>? rotations, double fallback,
-        CancellationToken cancellationToken = default, Action<int, int>? progress = null)
+        CancellationToken cancellationToken = default, Action<int, int>? progress = null, OperationHold? hold = null)
     {
         int[] selected = [.. pages];
         var dpis = new Dictionary<int, double>(selected.Length);
         foreach (int page in selected)
         {
+            try { hold?.WaitIfHeld(cancellationToken); }
+            catch (OperationCanceledException) { break; }
             if (cancellationToken.IsCancellationRequested) break;
             var (width, height) = PhysicalPageSize(page, rotations);
             dpis[page] = OutputPixelDimensions.NativeDpi(PageImagePixels(page, rotations), width, height, fallback);

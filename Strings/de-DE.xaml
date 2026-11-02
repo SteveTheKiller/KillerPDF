@@ -1066,6 +1066,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Exportieren</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0} Seiten nach {1} exportiert</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Export abgebrochen. {0} von {1} Seiten wurden nach {2} gespeichert</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Einige Inhalte konnten nicht exakt dargestellt werden. Die Seiten {0} wurden so gespeichert, wie sie auf dem Bildschirm erscheinen.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Alle Seiten</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Nur ungerade Seiten</sys:String>
@@ -1508,7 +1509,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Raster_Title">Bereich rastern</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Ziehen Sie einen Rahmen um den Teil der Seite, der zu einem Bild werden soll. Alles außerhalb des Rahmens bleibt unverändert.</sys:String>
     <sys:String x:Key="Str_Raster_None">Ziehen Sie einen Rahmen auf der Seite auf.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Der Rahmen umfasst {0} Textabschnitte, {1} Bilder und {2} Zeichnungen. Sie werden zu einem Bild, und Text darin lässt sich nicht mehr markieren oder durchsuchen.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Der Rahmen umfasst {0} Textabschnitte, {1} Bilder und {2} Zeichnungen. Sie werden als ein Bild dargestellt. Der Text darunter bleibt in der Datei und lässt sich weiterhin markieren und durchsuchen.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rastern</sys:String>
     <sys:String x:Key="Str_Raster_Done">Bereich auf Seite {0} gerastert</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Der Bereich konnte nicht gerastert werden: {0}</sys:String>

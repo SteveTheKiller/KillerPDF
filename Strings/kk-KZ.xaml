@@ -231,6 +231,7 @@
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Экспорттау</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0} бет {1} ішіне экспортталды</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Экспорт тоқтатылды. {1} беттің {0} беті {2} ішіне сақталды</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Кейбір мазмұнды дәл салу мүмкін болмады. {0} беттер экранда көрінгендей сақталды.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Барлық беттер</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Тек тақ беттер</sys:String>
@@ -1522,7 +1523,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Raster_Title">Аймақты растрлау</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Беттің суретке айналатын бөлігінің айналасына жақтау сызыңыз. Жақтаудан тыс бәрі өзгеріссіз қалады.</sys:String>
     <sys:String x:Key="Str_Raster_None">Бетке жақтау сызыңыз.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Жақтауда {0} мәтін бөлігі, {1} сурет және {2} сызба бар. Олар бір суретке айналады, ондағы мәтінді енді таңдау не іздеу мүмкін болмайды.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Жақтауда {0} мәтін бөлігі, {1} сурет және {2} сызба бар. Олар бір сурет ретінде сызылады. Астындағы мәтін файлда қалады, сондықтан оны әлі де таңдауға және іздеуге болады.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Растрлау</sys:String>
     <sys:String x:Key="Str_Raster_Done">{0}-беттің аймағы растрланды</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Аймақты растрлау мүмкін болмады: {0}</sys:String>

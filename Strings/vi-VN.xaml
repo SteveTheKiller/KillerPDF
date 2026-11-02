@@ -309,6 +309,7 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Xuất</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Đã xuất {0} trang tới {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Đã hủy xuất. Đã lưu {0} trên {1} trang tới {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Không thể vẽ chính xác một số nội dung. Các trang {0} đã được lưu như hiển thị trên màn hình.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">Tất cả trang</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Chỉ trang lẻ</sys:String>
@@ -1519,7 +1520,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Raster_Title">Raster hóa vùng</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Kéo một khung quanh phần trang cần chuyển thành ảnh. Mọi thứ ngoài khung giữ nguyên.</sys:String>
     <sys:String x:Key="Str_Raster_None">Kéo một khung trên trang.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">Khung chứa {0} đoạn văn bản, {1} ảnh và {2} hình vẽ. Chúng sẽ thành một ảnh và văn bản ở đó không thể chọn hay tìm kiếm nữa.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">Khung chứa {0} đoạn văn bản, {1} ảnh và {2} hình vẽ. Chúng được vẽ thành một ảnh. Văn bản bên dưới vẫn còn trong tệp, nên vẫn có thể chọn và tìm kiếm.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Raster hóa</sys:String>
     <sys:String x:Key="Str_Raster_Done">Đã raster hóa một vùng của trang {0}</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Không thể raster hóa vùng: {0}</sys:String>

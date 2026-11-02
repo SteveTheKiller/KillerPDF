@@ -20,6 +20,7 @@ namespace KillerPDF.Shell
         // KeyboardShortcuts) offers to cancel it instead of closing the app; loops check the token so a long
         // run stops promptly. _busyOpLabel names the op in the cancel prompt.
         private CancellationTokenSource? _busyCts;
+        private OperationHold? _busyHold;   // set by a page job that waits while the cancel prompt is open
         private string _busyOpLabel = "operation";
 
         // Registers a cancellable long-running operation and returns its token to thread through the work.

@@ -64,6 +64,10 @@
     <Compile Include="..\Services\SignaturePlacementScale.cs" Link="Services\SignaturePlacementScale.cs" />
     <Compile Include="..\Services\ScanEditSpan.cs" Link="Services\ScanEditSpan.cs" />
     <Compile Include="..\Services\ScanLineEdit.cs" Link="Services\ScanLineEdit.cs" />
+    <Compile Include="..\Services\PdfRasterize.cs" Link="Services\PdfRasterize.cs" />
+    <Compile Include="..\Services\BusyOperation.cs" Link="Services\BusyOperation.cs" />
+    <Compile Include="..\Controls\BusyProgressPanel.cs" Link="Controls\BusyProgressPanel.cs" />
+    <Compile Include="..\Controls\ScaledDialogFit.cs" Link="Controls\ScaledDialogFit.cs" />
     <Compile Include="..\Services\PrintPermission.cs" Link="Services\PrintPermission.cs" />
     <Compile Include="..\Services\PdfRestrictions.cs" Link="Services\PdfRestrictions.cs" />
     <Compile Include="..\Services\OpenedProtection.cs" Link="Services\OpenedProtection.cs" />

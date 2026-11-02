@@ -1062,6 +1062,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">匯出</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">已將 {0} 頁匯出到 {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">匯出已取消。已將 {1} 頁中的 {0} 頁儲存到 {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">部分內容無法精確繪製。第 {0} 頁已依螢幕顯示效果儲存。</sys:String>
     <sys:String x:Key="Str_Print_AllPages">所有頁面</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">僅奇數頁</sys:String>
@@ -1501,7 +1502,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Raster_Title">點陣化區域</sys:String>
     <sys:String x:Key="Str_Raster_Hint">拖曳一個框，圈住要變成影像的頁面部分。框外的內容保持不變。</sys:String>
     <sys:String x:Key="Str_Raster_None">請在頁面上拖曳一個框。</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">框內有 {0} 段文字、{1} 張影像和 {2} 個繪圖。它們會變成一張影像，其中的文字將無法再選取或搜尋。</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">框內有 {0} 段文字、{1} 張影像和 {2} 個繪圖。它們會繪製成一張影像。下方的文字仍保留在檔案中，因此仍可選取和搜尋。</sys:String>
     <sys:String x:Key="Str_Raster_Apply">點陣化</sys:String>
     <sys:String x:Key="Str_Raster_Done">已點陣化第 {0} 頁的一個區域</sys:String>
     <sys:String x:Key="Str_Raster_Failed">無法點陣化該區域：{0}</sys:String>

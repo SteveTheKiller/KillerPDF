@@ -1060,6 +1060,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">এক্সপোর্ট</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">{0}টি পৃষ্ঠা {1}-এ এক্সপোর্ট হয়েছে</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">এক্সপোর্ট বাতিল হয়েছে। {1}টির মধ্যে {0}টি পৃষ্ঠা {2}-এ সংরক্ষিত হয়েছে</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">কিছু বিষয়বস্তু হুবহু আঁকা যায়নি। পৃষ্ঠা {0} স্ক্রিনে যেমন দেখা যায় তেমনই সংরক্ষিত হয়েছে।</sys:String>
     <sys:String x:Key="Str_Print_AllPages">সব পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">শুধু বিজোড় পৃষ্ঠা</sys:String>
@@ -1499,7 +1500,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Raster_Title">অঞ্চল রাস্টার করুন</sys:String>
     <sys:String x:Key="Str_Raster_Hint">পৃষ্ঠার যে অংশটি ছবিতে পরিণত করতে চান তার চারপাশে একটি বাক্স টানুন। বাক্সের বাইরের সবকিছু যেমন আছে তেমনই থাকে।</sys:String>
     <sys:String x:Key="Str_Raster_None">পৃষ্ঠায় একটি বাক্স টানুন।</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">বাক্সটিতে {0}টি লেখার অংশ, {1}টি ছবি ও {2}টি অঙ্কন আছে। এগুলি একটি ছবি হয়ে যাবে, এবং সেখানের লেখা আর নির্বাচন বা অনুসন্ধান করা যাবে না।</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">বাক্সটিতে {0}টি লেখার অংশ, {1}টি ছবি ও {2}টি অঙ্কন আছে। এগুলি একটি ছবি হিসেবে আঁকা হবে। নিচের লেখা ফাইলে থেকে যাবে, তাই তা এখনও নির্বাচন ও অনুসন্ধান করা যাবে।</sys:String>
     <sys:String x:Key="Str_Raster_Apply">রাস্টার করুন</sys:String>
     <sys:String x:Key="Str_Raster_Done">পৃষ্ঠা {0}-এর একটি অঞ্চল রাস্টার করা হয়েছে</sys:String>
     <sys:String x:Key="Str_Raster_Failed">অঞ্চলটি রাস্টার করা যায়নি: {0}</sys:String>

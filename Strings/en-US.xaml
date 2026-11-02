@@ -310,6 +310,7 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
     <sys:String x:Key="Str_ExportImg_Export">Export</sys:String>
     <sys:String x:Key="Str_ExportImg_Done">Exported {0} pages to {1}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Canceled">Export canceled. {0} of {1} pages were saved to {2}</sys:String>
     <sys:String x:Key="Str_Export_IncompletePages">Some content could not be drawn exactly. Pages {0} were saved as they appear on screen.</sys:String>
     <sys:String x:Key="Str_Print_AllPages">All pages</sys:String>
     <sys:String x:Key="Str_Print_OddOnly">Odd pages only</sys:String>
@@ -1529,7 +1530,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Raster_Title">Rasterize Region</sys:String>
     <sys:String x:Key="Str_Raster_Hint">Drag a box around the part of the page to turn into an image. Everything outside the box stays as it is.</sys:String>
     <sys:String x:Key="Str_Raster_None">Drag a box on the page.</sys:String>
-    <sys:String x:Key="Str_Raster_Affects">The box covers {0} text runs, {1} images and {2} drawings. They become one image, and text there can no longer be selected or searched.</sys:String>
+    <sys:String x:Key="Str_Raster_Affects">The box covers {0} text runs, {1} images and {2} drawings. They are drawn as one image. The text underneath stays in the file, so it can still be selected and searched.</sys:String>
     <sys:String x:Key="Str_Raster_Apply">Rasterize</sys:String>
     <sys:String x:Key="Str_Raster_Done">Rasterized a region of page {0}</sys:String>
     <sys:String x:Key="Str_Raster_Failed">Could not rasterize the region: {0}</sys:String>

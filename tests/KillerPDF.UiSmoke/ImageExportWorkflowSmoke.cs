@@ -167,7 +167,7 @@ internal static class ImageExportWorkflowSmoke
         using var cancel = new CancellationTokenSource();
         Action<int, int> progress = (_, _) => cancel.Cancel();
         int written = (int)app.GetType("KillerPDF.Services.PdfRasterize", true)!.GetMethod("ExportPageImages", Members)!
-            .Invoke(null, [source, new[] { 0, 1 }, new int[2], 72d, false, folder, "canceled", 3, progress, cancel.Token, null, null])!;
+            .Invoke(null, [source, new[] { 0, 1 }, new int[2], 72d, false, folder, "canceled", 3, progress, cancel.Token, null, null, null, null])!;
         if (written != 1 || !File.Exists(Path.Combine(folder, "canceled-page-001.png"))
             || File.Exists(Path.Combine(folder, "canceled-page-002.png"))
             || !original.AsSpan().SequenceEqual(File.ReadAllBytes(source)))
