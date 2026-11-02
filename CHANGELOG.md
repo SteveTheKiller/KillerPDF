@@ -49,7 +49,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - A word replaced on a scanned line takes its size, typeface and height from the page, not from the zoom on screen, and follows a tilted line, and the word it replaces is covered to the last row of its ink at any zoom. Clicking low on a recognized line gathers the whole line.
 - The Attachments panel lists the attachments of a restricted PDF, and saving one asks for the owner password.
 - Dragging pages out of a PDF whose limits keep its pages in asks for the owner password at the drop, or says no password can lift the limit, and with the password the same drop goes ahead. It used to drop nothing and say nothing.
-- Typing in a repeated text field shows the value in every field of that name, on every page, and a new font size shows in all of them at once.
+- Typing in a repeated text field shows the value in every field of that name, on every page, and a new font size shows in all of them at once, comb fields included.
 - The Rasterize Region dialog says that the text under the image stays selectable and searchable.
 - `optimize` works on a healthy encrypted PDF and keeps its protection, reading `--password` when the file needs one, and commands that cannot change an encrypted PDF say what to do in plain words.
 - The paragraph dialog keeps every field reachable at a high app scale.
