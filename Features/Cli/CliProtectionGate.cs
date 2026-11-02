@@ -71,6 +71,67 @@ internal static class CliProtectionGate
         return access.MayRemoveProtection ? null : Message(access);
     }
 
+    /// <summary>Opens a file for a command that rewrites it and keeps its protection, the way Reduce
+    /// Size does: the document comes back with no encryption of its own, and <paramref name="protection"/>
+    /// seals the result. Returns null with the refusal when the file does not allow the rewrite.</summary>
+    internal static PdfDocument? OpenForRewrite(string path, string? password, out OpenedProtection protection,
+        out string? refusal)
+    {
+        protection = OpenedProtection.None;
+        refusal = null;
+        string input = Path.GetFullPath(path);
+        if (!IsEncrypted(input)) return PdfEngineIntegration.OpenForReading(File.ReadAllBytes(input));
+
+        protection = OpenedProtection.Capture(input, password);
+        if (!protection.Access.MayModify || !protection.CanSeal)
+        {
+            refusal = Message(protection.Access);
+            return null;
+        }
+        string plain = Path.Combine(Path.GetTempPath(), "killerpdf_rewrite_" + Guid.NewGuid().ToString("N") + ".pdf");
+        try
+        {
+            protection.WriteViewingCopy(input, plain);
+            return PdfDocument.Open(File.ReadAllBytes(plain));
+        }
+        finally { File.Delete(plain); }
+    }
+
+    /// <summary>Puts a rewritten document back under the encryption its source was opened with.</summary>
+    internal static byte[] SealRewrite(byte[] rewritten, OpenedProtection protection)
+    {
+        if (!protection.CanSeal) return rewritten;
+        string plain = Path.Combine(Path.GetTempPath(), "killerpdf_rewrite_" + Guid.NewGuid().ToString("N") + ".pdf");
+        string encrypted = plain + ".sealed";
+        try
+        {
+            File.WriteAllBytes(plain, rewritten);
+            protection.Seal(plain, encrypted);
+            return File.ReadAllBytes(encrypted);
+        }
+        finally
+        {
+            File.Delete(plain);
+            File.Delete(encrypted);
+        }
+    }
+
+    internal const string EncryptedInputMessage =
+        "This PDF is encrypted, so this command cannot change it. Make an unprotected copy with decrypt first, which takes the owner password when the file sets limits, and run the command on that copy.";
+
+    /// <summary>What a failed command tells the user. The engine's wording for an encrypted input
+    /// speaks to programmers, so it becomes what the user can do about it. Any other failure keeps
+    /// its own words, and so does one on a plain file.</summary>
+    internal static string FailureMessage(string engineMessage, IReadOnlyList<string> positionals)
+    {
+        ArgumentNullException.ThrowIfNull(engineMessage);
+        ArgumentNullException.ThrowIfNull(positionals);
+        bool namesEncryption = engineMessage.Contains("encrypted", StringComparison.OrdinalIgnoreCase)
+            || engineMessage.Contains("FlateDecode", StringComparison.Ordinal);
+        return namesEncryption && positionals.Any(path => File.Exists(path) && IsEncrypted(path))
+            ? EncryptedInputMessage : engineMessage;
+    }
+
     /// <summary>True when the arguments hold a double-dash switch that nothing reads. A file by that
     /// name still opens, and every switch the window reads is left to it. A bare word stays a file
     /// path, because nothing can tell a mistyped verb from a name.</summary>

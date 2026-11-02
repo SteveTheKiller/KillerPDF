@@ -4,6 +4,7 @@ using KillerPDF.Services;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Security;
+using KillerPdf.Engine.Writing;
 using Xunit;
 
 namespace KillerPDF.Tests;
@@ -311,4 +312,102 @@ public sealed class CliRestrictionTests : IDisposable
     [Fact]
     public void BatchResaveStillPassesOverAnEncryptedFile() =>
         Assert.StartsWith("encrypted", CliProtectionGate.BatchResaveSkip(Pdf())!, StringComparison.Ordinal);
+
+    private static string TestData(string name)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "KillerPDF.csproj")))
+            directory = directory.Parent;
+        return Path.Combine(directory!.FullName, "KillerPDF.Tests", "TestData", name);
+    }
+
+    private static byte[] Optimized(PdfDocument document) => PdfOptimizer.CreatePlan(document,
+        PdfOptimizationOptions.ForDocument(document) with
+        {
+            RepairHarmlessArtifacts = true,
+            ReplaceDanglingReferences = true
+        }).Apply().Data.ToArray();
+
+    // A healthy encrypted file reached the optimizer as ciphertext, which read as bad zlib data.
+    [Fact]
+    public void OptimizeTakesAHealthyEncryptedFileAndKeepsItsProtection()
+    {
+        string output = InFolder("optimized.pdf");
+
+        PdfDocument? document = CliProtectionGate.OpenForRewrite(TestData("over-noprint.pdf"), null,
+            out OpenedProtection protection, out string? refusal);
+        Assert.Null(refusal);
+        byte[] optimized = [];
+        Assert.Null(Record.Exception(() => optimized = Optimized(document!)));
+        File.WriteAllBytes(output, CliProtectionGate.SealRewrite(optimized, protection));
+
+        Assert.Equal(PdfEncryptionState.Encrypted, PdfRestrictions.ReadEncryptionState(output));
+        PdfAccess reopened = PdfRestrictions.Read(output, null);
+        Assert.Equal(PdfRestrictions.Read(TestData("over-noprint.pdf"), null).Print, reopened.Print);
+        Assert.True(reopened.MayModify);
+        Assert.NotEqual(PrintAllowance.Allowed, reopened.Print);
+        Assert.Equal(PdfAccessRole.Owner, PdfRestrictions.Read(output, "39e2345a58e1").Role);
+    }
+
+    [Fact]
+    public void OptimizeOpensAUserPasswordFileWithItsPassword()
+    {
+        string source = Pdf(user: Reader);
+
+        Assert.NotNull(CliProtectionGate.OpenForRewrite(source, null, out _, out string? locked) is null ? locked : null);
+        Assert.NotNull(CliProtectionGate.OpenForRewrite(source, Reader, out _, out string? refusal));
+        Assert.Null(refusal);
+    }
+
+    [Fact]
+    public void OptimizeRefusesAFileThatForbidsChanges()
+    {
+        Assert.Null(CliProtectionGate.OpenForRewrite(Pdf(modify: false), null, out _, out string? refusal));
+        Assert.Equal(CliProtectionGate.RestrictedContentMessage, refusal);
+    }
+
+    [Fact]
+    public void APlainFileRewritesAsItAlwaysDid()
+    {
+        string source = InFolder("plain.pdf");
+        string output = InFolder("plain-out.pdf");
+        File.WriteAllBytes(source, new PdfDocumentBuilder().AddBlankPage().Build());
+
+        PdfDocument? document = CliProtectionGate.OpenForRewrite(source, null, out OpenedProtection protection, out _);
+        File.WriteAllBytes(output, CliProtectionGate.SealRewrite(Optimized(document!), protection));
+
+        Assert.Equal(PdfEncryptionState.Plain, PdfRestrictions.ReadEncryptionState(output));
+    }
+
+    // Commands with no route around encryption name it in words a user can act on.
+    [Fact]
+    public void AnEncryptedInputIsNamedInPlainWords()
+    {
+        string source = Pdf();
+        string raw = Record.Exception(() => PdfEngineIntegration.RotatePages(source, [0], 90))!.Message;
+        Assert.Contains("must be opened with a password", raw, StringComparison.Ordinal);
+
+        string said = CliProtectionGate.FailureMessage(raw, [source, "1", "90", InFolder("out.pdf")]);
+
+        Assert.DoesNotContain("must be opened", said, StringComparison.Ordinal);
+        Assert.Contains("decrypt", said, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnUnrelatedFailureKeepsItsWording()
+    {
+        string source = Pdf();
+
+        Assert.Equal("The disk is full.", CliProtectionGate.FailureMessage("The disk is full.", [source]));
+    }
+
+    [Fact]
+    public void AFailureOnAPlainFileKeepsItsWording()
+    {
+        string source = InFolder("plain-failed.pdf");
+        File.WriteAllBytes(source, new PdfDocumentBuilder().AddBlankPage().Build());
+        const string raw = "An encrypted source PDF must be opened with a password before its pages can be imported.";
+
+        Assert.Equal(raw, CliProtectionGate.FailureMessage(raw, [source, "missing.pdf", "1"]));
+    }
 }

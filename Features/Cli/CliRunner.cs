@@ -379,7 +379,7 @@ namespace KillerPDF.Features
             }
             catch (Exception ex)
             {
-                con.WriteLine("Error: " + FlattenBatchDetail(ex.Message));
+                con.WriteLine("Error: " + FlattenBatchDetail(CliProtectionGate.FailureMessage(ex.Message, positionals)));
                 exitCode = 1;
             }
             finally
@@ -413,8 +413,9 @@ namespace KillerPDF.Features
             "                                           [--name <template>] {name} {index} {first} {last} {title}",
             "                                           [--overwrite] replace existing parts, never the source",
             "  killerpdf optimize <in.pdf> <out.pdf> [--strip <list>] [--images <dpi>] [--jpeg-quality <n>]",
-            "                                           [--invalidate-signatures] [--report]",
-            "                                           reduce file size; --images resamples images drawn",
+            "                                           [--invalidate-signatures] [--report] [--password <p>]",
+            "                                           reduce file size, keeping any password protection;",
+            "                                           --images resamples images drawn",
             "                                           above 1.5 times that resolution; strip takes any of metadata,",
             "                                           attachments, javascript, comments, thumbnails,",
             "                                           bookmarks, forms, xfa, openaction, layers;",
@@ -907,7 +908,7 @@ namespace KillerPDF.Features
             if (pos.Count != 2)
             {
                 con.WriteLine("Usage: KillerPDF.exe --optimize <in.pdf> <out.pdf> "
-                    + "[--strip <list>] [--images <dpi>] [--jpeg-quality <n>] [--invalidate-signatures] [--report]");
+                    + "[--strip <list>] [--images <dpi>] [--jpeg-quality <n>] [--invalidate-signatures] [--report] [--password <p>]");
                 return 2;
             }
             string inPath = Path.GetFullPath(pos[0]), outPath = Path.GetFullPath(pos[1]);
@@ -922,10 +923,19 @@ namespace KillerPDF.Features
                 return 1;
             }
 
+            // An encrypted input is rewritten from its plain content and keeps its protection, as Reduce Size does.
+            options.TryGetValue("--password", out string? password);
             PdfDocument document;
+            OpenedProtection protection;
             try
             {
-                document = PdfEngineIntegration.OpenForReading(File.ReadAllBytes(inPath));
+                PdfDocument? opened = CliProtectionGate.OpenForRewrite(inPath, password, out protection, out string? refusal);
+                if (opened is null)
+                {
+                    con.WriteLine(refusal);
+                    return 1;
+                }
+                document = opened;
             }
             catch (Exception ex) when (ex is InvalidOperationException
                 or NotSupportedException or ArgumentException or FormatException)
@@ -1020,15 +1030,16 @@ namespace KillerPDF.Features
                 con.WriteLine("Could not optimize the document: " + ex.Message);
                 return 1;
             }
-            if (!CliPublishOutput(inPath, outPath, result.Data.ToArray(), con)) return 2;
+            byte[] output = CliProtectionGate.SealRewrite(result.Data.ToArray(), protection);
+            if (!CliPublishOutput(inPath, outPath, output, con)) return 2;
             if (options.ContainsKey("--report")) con.WriteLine(result.ToJson(true));
             if (result.ReferenceRepairs.Count > 0)
                 con.WriteLine("Saved with repairs to broken references. Missing content was not recovered.");
-            long saved = originalBytes - result.OutputSize;
+            long saved = originalBytes - output.Length;
             string percent = originalBytes > 0
                 ? (saved * 100.0 / originalBytes).ToString("0.0", CultureInfo.InvariantCulture)
                 : "0.0";
-            con.WriteLine($"Optimized {originalBytes} to {result.OutputSize} bytes "
+            con.WriteLine($"Optimized {originalBytes} to {output.Length} bytes "
                 + $"({percent}% smaller, {result.OriginalObjectCount} to {result.OutputObjectCount} objects)");
             return 0;
         }
