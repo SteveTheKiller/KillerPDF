@@ -937,7 +937,9 @@ namespace KillerPDF.Controls
             OpenFile(path!);                  // loads into the live fields and renders the view
             if (_doc == null)
             {
-                if (target.LoadPending) return;   // its background strip/repair finalizes the tab itself
+                // Its background strip/repair finalizes the tab itself. The pending flag reaches the
+                // tab through the active session, so a target that is not active falls back to the pane's.
+                if (target.LoadPending || !ReferenceEquals(_active, target) && _asyncOpenPending) return;
                 RenderActiveSession(); return;
             }
             CaptureSessionState(target);      // persist the now-loaded document back into the session
