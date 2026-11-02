@@ -6,6 +6,48 @@ namespace KillerPDF.Tests
 {
     public class ProcessTempFilesTests
     {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void StaleImportCleanupHonorsRecoveryRetentionAndPreservesUnknownDirectories(bool retained)
+        {
+            string root = Path.Combine(Path.GetTempPath(), "kp-stale-import-" + Guid.NewGuid().ToString("N"));
+            string session = Path.Combine(root, "session-" + Guid.NewGuid().ToString("N"));
+            string import = Path.Combine(session, "import-" + Guid.NewGuid().ToString("N"));
+            string unknown = Path.Combine(session, "import-user-data");
+            Directory.CreateDirectory(import);
+            Directory.CreateDirectory(unknown);
+            File.WriteAllText(Path.Combine(session, "owner.lease"), "old process");
+            File.WriteAllText(Path.Combine(import, "image.png"), "import bytes");
+            File.WriteAllText(Path.Combine(unknown, "keep.txt"), "unrelated");
+            if (retained) File.WriteAllText(Path.Combine(session, "recovery-retained.json"), "{}");
+            try
+            {
+                using var nextLaunch = new ProcessTempFiles(root);
+                nextLaunch.CleanupStale();
+                Assert.Equal(retained, Directory.Exists(import));
+                Assert.Equal("unrelated", File.ReadAllText(Path.Combine(unknown, "keep.txt")));
+            }
+            finally { Directory.Delete(root, true); }
+        }
+
+        [Fact]
+        public void RegisteredImportDirectoryIsRemovedBySessionCleanup()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "kp-import-life-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                using var temps = new ProcessTempFiles(root);
+                string directory = temps.CreateImportDirectoryPath();
+                Directory.CreateDirectory(directory);
+                File.WriteAllText(Path.Combine(directory, "image.png"), "import bytes");
+                Assert.True(temps.Owns(directory));
+                temps.CleanupOwned();
+                Assert.False(Directory.Exists(directory));
+            }
+            finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+        }
+
         [Fact]
         public void RecoveryRetentionProtectsWorkingBytesFromBothCleanupPaths()
         {

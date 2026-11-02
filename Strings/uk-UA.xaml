@@ -2042,4 +2042,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Macro_OutputNameDrift">Назва виходу макросу відрізняється від затвердженого плану.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Не вдалося перевірити завантажене оновлення, тому його відхилено. Нічого не встановлено.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Документ змінився. Очистьте ці позначки вилучення вмісту та повторіть пошук.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">Завершіть або скасуйте поточну операцію перед імпортом інших файлів.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">Папка або архів містить небезпечний шлях чи посилання, тому імпорт не виконано.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">Імпорт допускає до {0:N0} елементів і {1} рівнів папок, не більше {2} GiB на файл і {3} GiB загалом. Використайте меншу папку або архів.</sys:String>
 </ResourceDictionary>

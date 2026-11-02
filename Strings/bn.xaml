@@ -2022,4 +2022,7 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_Macro_OutputNameDrift">ম্যাক্রোর আউটপুট নাম অনুমোদিত পরিকল্পনা থেকে আলাদা।</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">ডাউনলোড করা আপডেটটি যাচাই করা যায়নি এবং এটি বাতিল করা হয়েছে। কিছুই ইনস্টল করা হয়নি।</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">নথিটি পরিবর্তিত হয়েছে। এই রিড্যাকশন চিহ্নগুলো মুছে আবার অনুসন্ধান করুন।</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">আরও ফাইল আমদানি করার আগে বর্তমান কাজটি শেষ করুন বা বাতিল করুন।</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">ফোল্ডার বা আর্কাইভে অনিরাপদ পথ বা লিংক রয়েছে, তাই এটি আমদানি করা হয়নি।</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">আমদানিতে সর্বোচ্চ {0:N0}টি আইটেম ও {1}টি ফোল্ডার স্তর থাকতে পারে। প্রতি ফাইলের সীমা {2} GiB এবং মোট সীমা {3} GiB। ছোট ফোল্ডার বা আর্কাইভ ব্যবহার করুন।</sys:String>
 </ResourceDictionary>

@@ -2045,4 +2045,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Macro_OutputNameDrift">Макрос шығысының атауы бекітілген жоспардан өзгеше.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Жүктелген жаңартуды тексеру мүмкін болмады, сондықтан ол жойылды. Ештеңе орнатылған жоқ.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Құжат өзгерді. Осы жасыру белгілерін өшіріп, қайта іздеңіз.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">Қосымша файлдарды импорттамас бұрын ағымдағы әрекетті аяқтаңыз немесе одан бас тартыңыз.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">Қалтада немесе мұрағатта қауіпті жол не сілтеме бар, сондықтан ол импортталмады.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">Импорттауға {0:N0} элементке және {1} қалта деңгейіне дейін рұқсат етіледі. Әр файлдың шегі {2} GiB, жалпы шек {3} GiB. Кішірек қалтаны немесе мұрағатты пайдаланыңыз.</sys:String>
 </ResourceDictionary>

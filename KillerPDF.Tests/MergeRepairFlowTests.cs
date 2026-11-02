@@ -23,6 +23,39 @@ public sealed class MergeRepairFlowTests : IDisposable
 
     public MergeRepairFlowTests() => Directory.CreateDirectory(_directory);
 
+    [Fact]
+    public void CanceledCombineDoesNotReturnAMergedDocument()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => PdfEngineIntegration.MergeReadableFiles(
+            [Write("cancel.pdf", Plain())], out _, cancellation.Token));
+    }
+
+    [Fact]
+    public void CombineStopsWhenCanceledBetweenInputs()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var paths = new CancelingPaths(Write("first.pdf", Plain()),
+            Write("second.pdf", Plain()), cancellation);
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            PdfEngineIntegration.MergeReadableFiles(paths, out _, cancellation.Token));
+    }
+
+    private sealed class CancelingPaths(string first, string second, CancellationTokenSource cancellation)
+        : IReadOnlyList<string>
+    {
+        public int Count => 2;
+        public string this[int index] => index == 0 ? first : index == 1 ? second : throw new IndexOutOfRangeException();
+        public IEnumerator<string> GetEnumerator()
+        {
+            yield return first;
+            cancellation.Cancel();
+            yield return second;
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
     public void Dispose()
     {
         try { Directory.Delete(_directory, recursive: true); } catch (IOException) { }

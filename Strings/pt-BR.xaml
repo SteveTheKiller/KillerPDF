@@ -2042,4 +2042,7 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_Macro_OutputNameDrift">O nome de saída da macro é diferente do plano aprovado.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Não foi possível verificar a atualização baixada, e ela foi descartada. Nada foi instalado.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">O documento mudou. Limpe estas marcações de ocultação e pesquise novamente.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">Conclua ou cancele a operação atual antes de importar mais arquivos.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">A pasta ou o arquivo compactado contém um caminho ou link inseguro e não foi importado.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">A importação permite até {0:N0} itens e {1} níveis de pastas, com {2} GiB por arquivo e {3} GiB no total. Use uma pasta ou um arquivo compactado menor.</sys:String>
 </ResourceDictionary>

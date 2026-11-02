@@ -2042,4 +2042,7 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_Macro_OutputNameDrift">Tên đầu ra của macro khác với kế hoạch đã được phê duyệt.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Không thể xác minh bản cập nhật đã tải xuống nên bản cập nhật đã bị loại bỏ. Chưa có gì được cài đặt.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Tài liệu đã thay đổi. Hãy xóa các dấu che nội dung này rồi tìm kiếm lại.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">Hoàn tất hoặc hủy thao tác hiện tại trước khi nhập thêm tệp.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">Thư mục hoặc tệp nén chứa đường dẫn hoặc liên kết không an toàn nên chưa được nhập.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">Có thể nhập tối đa {0:N0} mục và {1} cấp thư mục, với giới hạn {2} GiB mỗi tệp và tổng cộng {3} GiB. Hãy dùng thư mục hoặc tệp nén nhỏ hơn.</sys:String>
 </ResourceDictionary>

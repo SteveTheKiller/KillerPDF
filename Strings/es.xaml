@@ -2022,4 +2022,7 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_Macro_OutputNameDrift">El nombre de salida de la macro difiere del plan aprobado.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">No se pudo verificar la actualización descargada y se ha descartado. No se ha instalado nada.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">El documento cambió. Borre estas marcas de censura y vuelva a buscar.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">Termina o cancela la operación actual antes de importar más archivos.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">La carpeta o el archivo comprimido contiene una ruta o un enlace no seguro y no se ha importado.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">La importación admite hasta {0:N0} elementos y {1} niveles de carpetas, con {2} GiB por archivo y {3} GiB en total. Usa una carpeta o un archivo comprimido más pequeño.</sys:String>
 </ResourceDictionary>

@@ -1364,6 +1364,7 @@ namespace KillerPDF
         /// All registered paths are deleted when CleanupSessionTemps() is called.
         /// </summary>
         internal static string MakeTempFile(string tag) => SessionTempFiles.Value.CreatePath(tag);
+        internal static string MakeImportDirectory() => SessionTempFiles.Value.CreateImportDirectoryPath();
 
         /// <summary>True for a temp path that cleanup deletes, which must never be a document's saved home.</summary>
         internal static bool IsCleanupOwnedPath(string path) => SessionTempFiles.Value.Owns(path);

@@ -29,6 +29,7 @@
     <Compile Include="..\Services\RedactionPageEdit.cs" Link="Services\RedactionPageEdit.cs" />
     <Compile Include="..\Services\AtomicFileOutput.cs" Link="Services\AtomicFileOutput.cs" />
     <Compile Include="..\Services\PdfZipExport.cs" Link="Services\PdfZipExport.cs" />
+    <Compile Include="..\Services\DropImport.cs" Link="Services\DropImport.cs" />
     <Compile Include="..\Services\RecentFilesList.cs" Link="Services\RecentFilesList.cs" />
     <Compile Include="..\Services\InstalledShortcuts.cs" Link="Services\InstalledShortcuts.cs" />
     <Compile Include="..\Services\PublishedFileStamp.cs" Link="Services\PublishedFileStamp.cs" />

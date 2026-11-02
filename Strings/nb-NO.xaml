@@ -2042,4 +2042,7 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_Macro_OutputNameDrift">Utdatanavnet for makroen avviker fra den godkjente planen.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Den nedlastede oppdateringen kunne ikke bekreftes og ble forkastet. Ingenting ble installert.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Dokumentet er endret. Fjern disse sladdemarkeringene og søk på nytt.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">Fullfør eller avbryt den gjeldende operasjonen før du importerer flere filer.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">Mappen eller arkivet inneholder en usikker bane eller lenke og ble ikke importert.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">Import tillater opptil {0:N0} oppføringer og {1} mappenivåer, med {2} GiB per fil og {3} GiB totalt. Bruk en mindre mappe eller et mindre arkiv.</sys:String>
 </ResourceDictionary>

@@ -1792,8 +1792,13 @@ internal static partial class PdfEngineIntegration
     /// the order given, come back so the caller can say how many were not taken.
     /// </summary>
     internal static byte[] MergeReadableFiles(IReadOnlyList<string> paths, out IReadOnlyList<string> leftOut)
+        => MergeReadableFiles(paths, out leftOut, CancellationToken.None);
+
+    internal static byte[] MergeReadableFiles(IReadOnlyList<string> paths, out IReadOnlyList<string> leftOut,
+        CancellationToken cancellation)
     {
         ArgumentNullException.ThrowIfNull(paths);
+        cancellation.ThrowIfCancellationRequested();
         var rejected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         // Each PDF is read and parsed once; a retry only rebuilds the editor without the rejected one.
         var opened = new Dictionary<string, PdfDocument>(StringComparer.OrdinalIgnoreCase);
@@ -1801,11 +1806,13 @@ internal static partial class PdfEngineIntegration
         var withoutBookmarks = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         while (true)
         {
+            cancellation.ThrowIfCancellationRequested();
             PdfDocument empty = PdfDocument.Open(new PdfDocumentBuilder().Build());
             var editor = new PdfIncrementalPageEditor(empty);
             var sourcePaths = new Dictionary<PdfDocument, string>();
             foreach (string path in paths)
             {
+                cancellation.ThrowIfCancellationRequested();
                 if (rejected.Contains(path) || unreadable.Contains(path)) continue;
                 try
                 {
@@ -1821,19 +1828,22 @@ internal static partial class PdfEngineIntegration
                         if (editor.PageCount == pagesBefore) unreadable.Add(path);
                     }
                     else
-                        AppendImageFrames(editor, path);
+                        AppendImageFrames(editor, path, cancellation);
                 }
+                catch (OperationCanceledException) { throw; }
                 catch
                 {
                     // Folder and archive imports deliberately retain every readable entry.
                     unreadable.Add(path);
                 }
             }
+            cancellation.ThrowIfCancellationRequested();
             if (editor.PageCount == 0)
                 throw new InvalidOperationException("No readable PDF or image pages were found.");
             try
             {
                 byte[] merged = editor.Build();
+                cancellation.ThrowIfCancellationRequested();
                 leftOut = [.. paths.Where(path => rejected.Contains(path) || unreadable.Contains(path))];
                 return merged;
             }
@@ -1852,7 +1862,8 @@ internal static partial class PdfEngineIntegration
         }
     }
 
-    private static void AppendImageFrames(PdfIncrementalPageEditor editor, string path)
+    private static void AppendImageFrames(PdfIncrementalPageEditor editor, string path,
+        CancellationToken cancellation = default)
     {
         using DrawingImage source = DrawingImage.FromFile(path);
         var dimension = new System.Drawing.Imaging.FrameDimension(source.FrameDimensionsList[0]);
@@ -1864,6 +1875,7 @@ internal static partial class PdfEngineIntegration
         byte[]? originalJpeg = useOriginalJpeg ? File.ReadAllBytes(path) : null;
         for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
         {
+            cancellation.ThrowIfCancellationRequested();
             source.SelectActiveFrame(dimension, frameIndex);
             int width = source.Width;
             int height = source.Height;

@@ -2024,4 +2024,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Macro_OutputNameDrift">巨集輸出名稱與已核准的計畫不一致。</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">無法驗證已下載的更新，已將其捨棄。未安裝任何內容。</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">文件已變更。請清除這些遮蔽標記，然後重新搜尋。</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">請先完成或取消目前的操作，再匯入更多檔案。</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">資料夾或壓縮檔包含不安全的路徑或連結，因此未匯入。</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">最多可匯入 {0:N0} 個項目和 {1} 層資料夾，每個檔案不超過 {2} GiB，總大小不超過 {3} GiB。請使用較小的資料夾或壓縮檔。</sys:String>
 </ResourceDictionary>

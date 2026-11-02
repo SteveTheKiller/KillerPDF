@@ -2029,4 +2029,7 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_Macro_OutputNameDrift">A makró kimenetének neve eltér a jóváhagyott tervtől.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">A letöltött frissítést nem sikerült ellenőrizni, ezért elvetettük. Semmi sem lett telepítve.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">A dokumentum megváltozott. Törölje ezeket a kitakarási jelöléseket, és keressen újra.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">További fájlok importálása előtt fejezze be vagy szakítsa meg az aktuális műveletet.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">A mappa vagy az archívum nem biztonságos elérési utat vagy hivatkozást tartalmaz, ezért nem lett importálva.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">Az importálás legfeljebb {0:N0} bejegyzést és {1} mappaszintet enged meg, fájlonként {2} GiB és összesen {3} GiB méretig. Használjon kisebb mappát vagy archívumot.</sys:String>
 </ResourceDictionary>

@@ -2026,4 +2026,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Macro_OutputNameDrift">宏输出名称与已批准的计划不一致。</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">无法验证已下载的更新，已将其丢弃。未安装任何内容。</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">文档已更改。请清除这些遮盖标记，然后重新搜索。</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">请先完成或取消当前操作，再导入更多文件。</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">文件夹或压缩包包含不安全的路径或链接，因此未导入。</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">最多可导入 {0:N0} 个条目和 {1} 层文件夹，每个文件不超过 {2} GiB，总大小不超过 {3} GiB。请使用较小的文件夹或压缩包。</sys:String>
 </ResourceDictionary>

@@ -11,6 +11,7 @@ internal sealed class ProcessTempFiles : IDisposable
     private static readonly TimeSpan RecoveryRetention = TimeSpan.FromDays(30);
     private readonly string root;
     private readonly List<string> paths = [];
+    private readonly List<string> directories = [];
     private readonly Lazy<(string Directory, FileStream Lease)> owned;
     private bool disposed;
     private bool retainedForRecovery;
@@ -49,6 +50,16 @@ internal sealed class ProcessTempFiles : IDisposable
             string path = Path.Combine(DirectoryPath, $"killerpdf_{tag}_{Guid.NewGuid():N}.pdf");
             paths.Add(path);
             return path;
+        }
+    }
+
+    public string CreateImportDirectoryPath()
+    {
+        lock (paths)
+        {
+            string directory = Path.Combine(DirectoryPath, "import-" + Guid.NewGuid().ToString("N"));
+            directories.Add(directory);
+            return directory;
         }
     }
 
@@ -114,6 +125,9 @@ internal sealed class ProcessTempFiles : IDisposable
             foreach (string path in paths)
                 try { if (File.Exists(path)) File.Delete(path); } catch { }
             paths.Clear();
+            foreach (string directory in directories)
+                try { if (Directory.Exists(directory)) Directory.Delete(directory, true); } catch { }
+            directories.Clear();
         }
     }
 
@@ -174,6 +188,12 @@ internal sealed class ProcessTempFiles : IDisposable
                     {
                         foreach (string file in Directory.GetFiles(directory, "killerpdf_*.pdf"))
                             try { File.Delete(file); } catch { }
+                        foreach (string import in Directory.GetDirectories(directory, "import-*"))
+                        {
+                            if (!Guid.TryParseExact(Path.GetFileName(import).AsSpan("import-".Length), "N", out _)
+                                || (File.GetAttributes(import) & FileAttributes.ReparsePoint) != 0) continue;
+                            try { Directory.Delete(import, true); } catch { }
+                        }
                         if (Directory.EnumerateFileSystemEntries(directory).Any(entry =>
                             !string.Equals(Path.GetFileName(entry), LeaseName, StringComparison.OrdinalIgnoreCase)))
                             continue;

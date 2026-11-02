@@ -2022,4 +2022,7 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_Macro_OutputNameDrift">Makro çıktısının adı onaylanan plandan farklı.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">İndirilen güncelleştirme doğrulanamadı ve silindi. Hiçbir şey yüklenmedi.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Belge değişti. Bu karartma işaretlerini temizleyip yeniden arayın.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">Daha fazla dosya içe aktarmadan önce mevcut işlemi tamamlayın veya iptal edin.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">Klasör veya arşiv güvenli olmayan bir yol ya da bağlantı içerdiği için içe aktarılmadı.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">İçe aktarma en fazla {0:N0} öğeye ve {1} klasör düzeyine izin verir. Sınır dosya başına {2} GiB, toplamda {3} GiB'dir. Daha küçük bir klasör veya arşiv kullanın.</sys:String>
 </ResourceDictionary>

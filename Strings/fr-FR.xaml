@@ -2042,4 +2042,7 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_Macro_OutputNameDrift">Le nom de sortie de la macro diffère du plan approuvé.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">La mise à jour téléchargée n'a pas pu être vérifiée et a été supprimée. Rien n'a été installé.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Le document a changé. Effacez ces marques de caviardage et relancez la recherche.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">Terminez ou annulez l’opération en cours avant d’importer d’autres fichiers.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">Le dossier ou l’archive contient un chemin ou un lien non sécurisé et n’a pas été importé.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">L’importation autorise jusqu’à {0:N0} entrées et {1} niveaux de dossiers, avec {2} GiB par fichier et {3} GiB au total. Utilisez un dossier ou une archive plus petit.</sys:String>
 </ResourceDictionary>

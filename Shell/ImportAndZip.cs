@@ -57,9 +57,8 @@ namespace KillerPDF.Shell
         // image declares none). Returns a temp PDF path; the caller opens it and the user can Save As.
         private static string BuildPdfFromImages(string[] imagePaths)
         {
-            string outPath = Path.Combine(Path.GetTempPath(),
-                $"Imported-{DateTime.Now:yyyyMMdd-HHmmss-fff}.pdf");
-            File.WriteAllBytes(outPath, PdfEngineIntegration.MergeFiles(imagePaths));
+            string outPath = App.MakeTempFile("imported");
+            AtomicFileOutput.Write(outPath, PdfEngineIntegration.MergeFiles(imagePaths));
             return outPath;
         }
 
@@ -67,80 +66,70 @@ namespace KillerPDF.Shell
 
         // ----- Drag/drop of folders, archives, and multiple files ----------------------------
 
-        private static readonly string[] DropImageExt = [".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff"];
-        private static bool IsImagePath(string p)    => DropImageExt.Any(e => p.EndsWith(e, StringComparison.OrdinalIgnoreCase));
-        private static bool IsOpenablePath(string p) => PdfImport.IsPdfPath(p) || IsImagePath(p);
+        private static bool IsOpenablePath(string path) => DropImport.SupportsFile(path);
 
         // Entry point for any file/folder/archive drop. Expands dropped folders (recursively) and .zip
         // archives, then opens the collected PDFs/images - asking merge-vs-separate when there's >1.
-        private void OnPathsDropped(string[] paths)
+        private async void OnPathsDropped(string[] paths)
         {
             if (paths == null || paths.Length == 0) return;
-
-            var found    = new List<string>();
-            var tempDirs = new List<string>();   // extracted-zip temp dirs we may need to clean up
-            bool expanded = false;               // a folder or archive was opened
+            if (_busyCts is not null) { SetStatus(Loc("Str_Drop_Busy")); return; }
+            var owner = AsyncOwner();
+            var ct = BeginCancellableOp(Loc("Str_Menu_Import"));
+            var busy = ShowBusyOverlay(Loc("Str_Menu_Import"));
+            DropImportBatch? batch = null;
             try
             {
-                foreach (var p in paths)
-                {
-                    if (Directory.Exists(p)) { expanded = true; CollectOpenable(p, found); }
-                    else if (p.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var dir = ExtractZipToTemp(p);
-                        if (dir != null) { expanded = true; tempDirs.Add(dir); CollectOpenable(dir, found); }
-                    }
-                    else if (IsOpenablePath(p)) found.Add(p);
-                }
+                // Render the cue and process pending input before discovery or extraction starts.
+                await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+                string directory = App.MakeImportDirectory();
+                batch = await Task.Run(() => DropImport.Prepare(paths, directory, cancellation: ct), ct);
+            }
+            catch (OperationCanceledException) { SetStatus(Loc("Str_St_Canceled")); }
+            catch (DropImportException ex)
+            {
+                string message = ex.Failure is DropImportFailure.Link or DropImportFailure.UnsafePath
+                    ? Loc("Str_Drop_Unsafe")
+                    : string.Format(Loc("Str_Drop_Limits"), 10_000, 64, 1, 2);
+                KillerDialog.Show(this, message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
-                CleanupDirs(tempDirs);
                 KillerDialog.Show(this, Loc("Str_Err_ImportFailed") + "\n" + ex.Message,
                     "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
             }
-
-            if (found.Count == 0)
+            finally { HideBusyOverlay(busy); EndCancellableOp(ct); }
+            if (batch is null) return;
+            bool handedToMerge = false;
+            try
             {
-                CleanupDirs(tempDirs);
-                SetStatus(Loc("Str_Drop_NothingOpenable"));
-                return;
+                if (!IsLoaded || ct.IsCancellationRequested) return;
+                if (owner.Session is not null)
+                {
+                    if (!ReclaimAsyncOwner(owner)) return;
+                }
+                else if (!ReferenceEquals(ActiveViewer, owner.Viewer) || owner.Viewer.ActiveSessionExt is not null) return;
+                var found = batch.Files.ToList();
+                if (found.Count == 0) { SetStatus(Loc("Str_Drop_NothingOpenable")); return; }
+                const int MaxDropFiles = 50;
+                if (found.Count > MaxDropFiles)
+                {
+                    if (KillerDialog.Show(this, string.Format(Loc("Str_Drop_TooMany"), found.Count, MaxDropFiles),
+                        "KillerPDF", MessageBoxButton.OKCancel) != MessageBoxResult.OK) return;
+                    found = found.GetRange(0, MaxDropFiles);
+                }
+                if (!batch.Expanded && found.Count == 1) { OpenDropped(found[0].Path); return; }
+                int choice = KillerDialog.ShowChoices(this,
+                    string.Format(Loc("Str_Drop_Prompt"), found.Count),
+                    [Loc("Str_Drop_Merge"), Loc("Str_Drop_Separate"), Loc("Str_Stamp_Cancel")], accentIndex: 0);
+                if (choice == 0)
+                {
+                    handedToMerge = true;
+                    OpenMerged(found.Select(file => file.Path).ToList(), batch);
+                }
+                else if (choice == 1) OpenSeparately(found, batch);
             }
-
-            // Guard against a folder/archive holding a huge number of files: opening or merging them all
-            // would exhaust memory. Cap to a sane maximum, opening only the first N (name-sorted) after asking.
-            const int MaxDropFiles = 50;
-            if (found.Count > MaxDropFiles)
-            {
-                var proceed = KillerDialog.Show(this,
-                    string.Format(Loc("Str_Drop_TooMany"), found.Count, MaxDropFiles),
-                    "KillerPDF", MessageBoxButton.OKCancel);
-                if (proceed != MessageBoxResult.OK) { CleanupDirs(tempDirs); return; }
-                found = found.GetRange(0, MaxDropFiles);
-            }
-
-            // A single dropped file (no folder/zip): open it directly, as before. Temp from a single-file
-            // zip is kept for the session since the opened doc references it.
-            if (!expanded && found.Count == 1) { OpenDropped(found[0]); return; }
-
-            int choice = KillerDialog.ShowChoices(this,
-                string.Format(Loc("Str_Drop_Prompt"), found.Count),
-                [Loc("Str_Drop_Merge"), Loc("Str_Drop_Separate"), Loc("Str_Stamp_Cancel")],
-                accentIndex: 0);
-
-            if (choice == 0)
-            {
-                OpenMerged(found, tempDirs);   // async: builds on a background thread, then owns temp cleanup
-            }
-            else if (choice == 1)
-            {
-                OpenSeparately(found);     // opened docs may reference extracted files - keep temp for the session
-            }
-            else
-            {
-                CleanupDirs(tempDirs);     // canceled
-            }
+            finally { if (!handedToMerge) batch.Dispose(); }
         }
 
         private void OpenDropped(string path)
@@ -149,7 +138,7 @@ namespace KillerPDF.Shell
             else OpenImagesAsImportedTab([path], Path.GetFileName(path));
         }
 
-        private void OpenSeparately(List<string> found)
+        private void OpenSeparately(List<DropImportFile> found, DropImportBatch batch)
         {
             if (found.Count > 30)
             {
@@ -157,24 +146,35 @@ namespace KillerPDF.Shell
                     "KillerPDF", MessageBoxButton.OKCancel);
                 if (ok != MessageBoxResult.OK) return;
             }
-            foreach (var f in found)
+            foreach (var file in found)
             {
-                if (PdfImport.IsPdfPath(f)) OpenInNewTab(f);
-                else OpenImagesAsImportedTab([f], Path.GetFileName(f));
+                if (PdfImport.IsPdfPath(file.Path))
+                {
+                    if (file.Temporary) App.RememberSuggestedName(file.Path, file.SuggestedName);
+                    var previousDocument = _doc;
+                    var opened = ActiveViewer.OpenInNewTabExt(file.Path);
+                    if (file.Temporary && (opened.TabLoading || opened.PaneLoading
+                        || _doc is not null && !ReferenceEquals(_doc, previousDocument)))
+                        batch.KeepFiles([file.Path]);
+                }
+                else OpenImagesAsImportedTab([file.Path], file.SuggestedName);
             }
         }
 
-        private async void OpenMerged(List<string> found, List<string> tempDirs)
+        private async void OpenMerged(List<string> found, DropImportBatch batch)
         {
             var target = BeginTabLoad(out var prev, out bool createdNew);
             target.LoadPending = true;   // a second open while this builds must not land in this tab
             var owner = AsyncOwner();
             var busy = ShowBusyOverlay(Loc("Str_Drop_Merging"));
             var ct = BeginCancellableOp(Loc("Str_Op_Merge"));   // Esc cancels; the busy overlay keeps the window draggable
+            string? completedPath = null;
+            bool adopted = false;
             try
             {
                 // Build off the UI thread so the window stays responsive (and movable) while it works.
                 (string? tempPath, int leftOut) = await Task.Run(() => BuildCombinedPdf(found, ct));
+                completedPath = tempPath;
                 target.LoadPending = false;
                 if (!ReclaimAsyncOwner(owner))
                 {
@@ -197,6 +197,7 @@ namespace KillerPDF.Shell
 
                 _doc = PdfWorkingDocument.Open(tempPath, null);
                 FinishOpenFile("Combined.pdf", tempPath);
+                adopted = true;
                 _originalFile = null;   // unsaved -> Save routes to Save As
                 MarkDirty(true);
                 string merged = string.Format(Loc("Str_Status_Merged"), found.Count - leftOut);
@@ -206,6 +207,15 @@ namespace KillerPDF.Shell
                 SetTool(_currentTool);
                 RebuildTabStrip();
                 HideBusyOverlay(busy);
+            }
+            catch (OperationCanceledException)
+            {
+                HideBusyOverlay(busy);
+                if (!ReclaimAsyncOwner(owner)) return;
+                if (prev != null && !owner.Viewer.SessionsRef.Contains(prev))
+                    prev = owner.Viewer.SessionsRef.FirstOrDefault(session => !ReferenceEquals(session, target));
+                AbortTabLoad(target, prev, createdNew);
+                SetStatus(Loc("Str_Drop_MergeCanceled"));
             }
             catch (Exception ex)
             {
@@ -221,7 +231,8 @@ namespace KillerPDF.Shell
             {
                 target.LoadPending = false;
                 EndCancellableOp(ct);
-                CleanupDirs(tempDirs);
+                if (!adopted && completedPath is not null) try { File.Delete(completedPath); } catch (IOException) { }
+                batch.Dispose();
             }
         }
 
@@ -253,33 +264,12 @@ namespace KillerPDF.Shell
         // were left out comes back with the file so the status can say so.
         private static (string? Path, int LeftOut) BuildCombinedPdf(List<string> files, CancellationToken ct)
         {
-            if (ct.IsCancellationRequested) return (null, 0);
-            string outPath = Path.Combine(Path.GetTempPath(),
-                $"Combined-{DateTime.Now:yyyyMMdd-HHmmss-fff}.pdf");
-            File.WriteAllBytes(outPath, PdfEngineIntegration.MergeReadableFiles(files, out IReadOnlyList<string> leftOut));
+            ct.ThrowIfCancellationRequested();
+            byte[] bytes = PdfEngineIntegration.MergeReadableFiles(files, out IReadOnlyList<string> leftOut, ct);
+            ct.ThrowIfCancellationRequested();
+            string outPath = App.MakeTempFile("combined");
+            AtomicFileOutput.Write(outPath, bytes, ct);
             return (outPath, leftOut.Count);
-        }
-
-        // Recursively gathers the PDFs and images under a folder, in a stable name order.
-        private static void CollectOpenable(string dir, List<string> found)
-        {
-            IEnumerable<string> files;
-            try { files = Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories); }
-            catch { return; }
-            foreach (var f in files.Where(IsOpenablePath).OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
-                found.Add(f);
-        }
-
-        private static string? ExtractZipToTemp(string zipPath)
-        {
-            string dir = Path.Combine(Path.GetTempPath(), "KillerPDF-zip-" + Guid.NewGuid().ToString("N")[..8]);
-            try { Directory.CreateDirectory(dir); ZipFile.ExtractToDirectory(zipPath, dir); return dir; }
-            catch { try { Directory.Delete(dir, true); } catch { } return null; }
-        }
-
-        private static void CleanupDirs(List<string> dirs)
-        {
-            foreach (var d in dirs) try { Directory.Delete(d, true); } catch { }
         }
 
         // ----- Compress the current PDF to a .zip --------------------------------------------

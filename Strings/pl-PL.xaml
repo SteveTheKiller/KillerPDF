@@ -2030,4 +2030,7 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_Macro_OutputNameDrift">Nazwa wyjścia makra różni się od zatwierdzonego planu.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Nie udało się zweryfikować pobranej aktualizacji, więc została odrzucona. Nic nie zostało zainstalowane.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Dokument się zmienił. Usuń te oznaczenia zaczernienia i wyszukaj ponownie.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">Przed zaimportowaniem kolejnych plików zakończ lub anuluj bieżącą operację.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">Folder lub archiwum zawiera niebezpieczną ścieżkę lub łącze i nie zostało zaimportowane.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">Import pozwala na maksymalnie {0:N0} elementów i {1} poziomów folderów, z limitem {2} GiB na plik i {3} GiB łącznie. Użyj mniejszego folderu lub archiwum.</sys:String>
 </ResourceDictionary>

@@ -2043,4 +2043,7 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_Macro_OutputNameDrift">Il nome di output della macro differisce dal piano approvato.</sys:String>
     <sys:String x:Key="Str_About_UpdateNotVerified">Non è stato possibile verificare l'aggiornamento scaricato, che è stato scartato. Non è stato installato nulla.</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">Il documento è cambiato. Cancella questi contrassegni di oscuramento e ripeti la ricerca.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">Completa o annulla l’operazione in corso prima di importare altri file.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">La cartella o l’archivio contiene un percorso o un collegamento non sicuro e non è stato importato.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">L’importazione consente fino a {0:N0} elementi e {1} livelli di cartelle, con {2} GiB per file e {3} GiB totali. Usa una cartella o un archivio più piccolo.</sys:String>
 </ResourceDictionary>

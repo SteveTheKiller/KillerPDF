@@ -2035,4 +2035,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Watch_FailedStep">Step {0}: {1}</sys:String>
     <sys:String x:Key="Str_NavigationButtons_Show">Show page navigation buttons</sys:String>
     <sys:String x:Key="Str_Redact_SourceChanged">The document changed. Clear these redaction marks and search again.</sys:String>
+    <sys:String x:Key="Str_Drop_Busy">Finish or cancel the current operation before importing more files.</sys:String>
+    <sys:String x:Key="Str_Drop_Unsafe">The folder or archive contains an unsafe path or link and was not imported.</sys:String>
+    <sys:String x:Key="Str_Drop_Limits">Import allows up to {0:N0} entries and {1} folder levels, with {2} GiB per file and {3} GiB total. Use a smaller folder or archive.</sys:String>
 </ResourceDictionary>

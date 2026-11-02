@@ -12,9 +12,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - Render-failure recovery preserves unsaved edits across panes and detached windows, including edits committed after focus moves, and a recovered document reopens once, with no clean tab of its file beside it.
 - Command-line straightening and text replacement preserve an existing output if copying unchanged input fails.
+- PDFs opened from ZIP archives ask for a permanent location on first save, and abandoned import files are cleaned up safely.
 - ZIP export preserves existing archives when creation fails and refuses to replace the source PDF.
 - Canceling Save Flattened before publication leaves a new destination untouched.
 - Undo and Redo preserve retryable history and the open document when snapshot storage fails.
+- Folder and ZIP import stays responsive, limits discovery and extraction, rejects unsafe entries, and stops canceled merges at the next work boundary.
 - Password-protected PDFs open when their writer left XMP metadata unencrypted, and PDFs whose user password forbids editing open read-only with an option to enter the owner password. (#470)
 - Comments save on PDFs that reuse an annotation name on different pages.
 - Removing or changing a signed field can be undone, canceling a change keeps the signature, and fields stay signed through Undo, Redo, and tab switches.
