@@ -661,8 +661,17 @@ internal static class Program
         ((ListBox)Owner.FindName("PageList")).SelectedIndex = 0;
         string output = Path.Combine(Folder, "extracted.pdf");
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(80) };
+        bool rangeAccepted = false;
         timer.Tick += (_, _) =>
         {
+            // Extract Pages asks which pages first, prefilled with the selected one.
+            Window? range = App.Windows.Cast<Window>().FirstOrDefault(w => w.GetType().Name == "DocumentValuesDialog");
+            if (range is not null && !rangeAccepted)
+            {
+                rangeAccepted = true;
+                QueueClick(Descendants<Button>(range).Single(button => button.IsDefault));
+                return;
+            }
             Window? picker = App.Windows.Cast<Window>().FirstOrDefault(w => w.GetType().Name == "FileDialog");
             if (picker is null) return;
             timer.Stop();

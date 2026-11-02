@@ -230,7 +230,7 @@ internal static class ScrollOverlaySmoke
         var bitmap = BitmapSource.Create(100, 140, 96, 96, PixelFormats.Bgra32, null, pixels, 400);
         bitmap.Freeze();
         var previews = Array.CreateInstance(previewType, 1);
-        previews.SetValue(Activator.CreateInstance(previewType, bitmap, 500d, 700d, 1), 0);
+        previews.SetValue(Activator.CreateInstance(previewType, bitmap, 500d, 700d, 1, null), 0);
         foreach (string mode in new[] { "ColorCorrection" })
         {
             var dialog = (Window)Activator.CreateInstance(transformType, dialogOwner, previews,
