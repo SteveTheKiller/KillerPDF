@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Media;
 using KillerPdf.Engine.Documents;
 using KillerPDF.Services;
 using Xunit;
@@ -53,8 +54,42 @@ public sealed class ScanLineMeasureTests
 
         double shift = ScanLineEdit.TopShift(plan, fit);
 
-        Assert.Equal(fit.WordBaselines[4] - fit.Baseline, shift, 3);
-        Assert.True(shift > 0.25, $"The fourth word sits lower than the line's middle, but the shift was {shift}.");
+        double tilt = fit.WordBaselines[4] - fit.Baseline;
+        Assert.True(tilt > 0.25, $"The fourth word sits lower than the line's middle, but the tilt was {tilt}.");
+        Assert.Equal(tilt - ScanLineEdit.AnnotationInsetGap, shift, 3);
+    }
+
+    // The whole way through: what the commit builds, burned into the page and read back.
+    [Fact]
+    public void ASavedReplacementSitsOnTheInkOfTheWordItReplaced()
+    {
+        ScanLine line = FirstLine();
+        ScanLineFit fit = Measure(line);
+        ScanLineEditPlan plan = Assert.IsType<ScanLineEditPlan>(
+            ScanLineEdit.Plan(line.Words, line.Boxes, "Invoice total due today via Acme Supply", text => text.Length));
+        const string family = "Times New Roman";
+        double top = ScanLineEdit.EditorTop(fit, new FontFamily(family).Baseline, 0) + ScanLineEdit.TopShift(plan, fit);
+        var cover = new CoverAnnotation { PageIndex = 0, PairId = "edit", Bounds = plan.Cover };
+        cover.SetColor(Colors.White);
+        var text = new TextAnnotation
+        {
+            PageIndex = 0, PairId = "edit", Position = new Point(plan.Covered.Left, top), Content = "via",
+            FontName = family, FontSize = fit.FontSize, Width = plan.Covered.Width + 20, Height = fit.FontSize * 1.4
+        };
+        string path = Path.Combine(Path.GetTempPath(), "KillerPDF-scan-" + Guid.NewGuid().ToString("N") + ".pdf");
+        File.Copy(Fixture, path);
+        try
+        {
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [cover, text] },
+                new Dictionary<int, (int w, int h)> { [0] = ((int)Math.Round(line.Width), (int)Math.Round(line.Height)) });
+
+            using var saved = PdfContentDocument.Open(path);
+            var page = saved.GetPage(1);
+            double written = page.GetWords().Single(word => word.Text == "via").Letters[0].StartBaseLine.Y;
+            double ink = page.Height - fit.WordBaselines[plan.First] / ScreenPixelsPerPoint;
+            Assert.InRange(written - ink, -0.5, 0.5);
+        }
+        finally { File.Delete(path); }
     }
 
     private sealed record ScanLine(string[] Words, Rect[] Boxes, double Width, double Height);

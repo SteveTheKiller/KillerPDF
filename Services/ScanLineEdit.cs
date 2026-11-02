@@ -55,7 +55,7 @@ internal static class ScanLineEdit
 
     // The long edge a page is drawn at to measure a line. Letters only a few pixels tall at the
     // screen's zoom round to the wrong height, which picks too small a size and the wrong typeface.
-    private const int MeasureEdge = 3200;
+    private const int MeasureEdge = 2048;
 
     /// <summary>Measures a line from the page itself, at a size that shows its letters. Returns null
     /// when the line cannot be measured or the page is shown turned from the way the file draws it.</summary>
@@ -107,9 +107,14 @@ internal static class ScanLineEdit
     internal static double EditorTop(ScanLineFit fit, double faceBaseline, double fallbackTop) =>
         PdfTextEditPlacement.TopFromBaseline(fit.Baseline, faceBaseline, fit.FontSize, 1, fallbackTop);
 
-    /// <summary>How far the replacement moves down from the line's height to the word it replaces.</summary>
+    // The edit box sets its text one unit below its top, past its border. A placed text annotation
+    // draws and saves two units below its own, so the same position would land one unit low.
+    internal const double AnnotationInsetGap = 1;
+
+    /// <summary>How far the placed replacement moves from the edit box: to the height of the word it
+    /// replaces, less the annotation's deeper inset.</summary>
     internal static double TopShift(ScanLineEditPlan plan, ScanLineFit fit) =>
-        plan.First < fit.WordBaselines.Count ? fit.WordBaselines[plan.First] - fit.Baseline : 0;
+        (plan.First < fit.WordBaselines.Count ? fit.WordBaselines[plan.First] - fit.Baseline : 0) - AnnotationInsetGap;
 
     private static Color ToColor((byte Red, byte Green, byte Blue) value) =>
         Color.FromRgb(value.Red, value.Green, value.Blue);
