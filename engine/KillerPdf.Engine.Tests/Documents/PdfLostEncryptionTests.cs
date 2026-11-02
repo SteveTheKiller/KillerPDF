@@ -88,6 +88,26 @@ public sealed class PdfLostEncryptionTests
         Assert.False(PdfDocument.Open(WithLeftoverDictionary(new PdfDocumentBuilder()
             .AddPage(200, 200, " \n\t\r\n "u8.ToArray()).Build())).IsEncrypted);
 
+    // R5-006: a plain page written as nothing but a comment reads as no instructions too, and is not
+    // ciphertext. Ciphertext behind a percent sign carries a byte of 0x80 or above; an authored
+    // comment does not.
+    [Theory]
+    [InlineData("% blank page\n")]
+    [InlineData("%empty")]
+    [InlineData("  % page intentionally left blank\r\n% second line\n")]
+    public void ACommentOnlyPageWithALeftoverDictionaryStillOpens(string content)
+    {
+        byte[] plain = WithLeftoverDictionary(new PdfDocumentBuilder()
+            .AddPage(200, 200, Encoding.Latin1.GetBytes(content)).Build());
+
+        PdfDocument? document = null;
+        Exception? failure = Record.Exception(() => document = PdfDocument.Open(plain));
+
+        Assert.Null(failure);
+        Assert.False(document!.IsEncrypted);
+        Assert.Single(PdfPageInformation.Read(document));
+    }
+
     [Fact]
     public void AnEncryptedFileWithItsEntryStillOpens() =>
         Assert.True(PdfDocument.Open(Encrypted()).IsEncrypted);

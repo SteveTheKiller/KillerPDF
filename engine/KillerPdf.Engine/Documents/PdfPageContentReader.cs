@@ -104,9 +104,11 @@ public sealed class PdfPageContentReader
 
     }
 
-    /// <summary>Whether a page's decoded content holds anything but whitespace, whether or not it reads
-    /// as instructions. A comment runs to the end of its line, so bytes can hold something and read as nothing.</summary>
-    internal bool HoldsContent(int pageIndex)
+    /// <summary>Whether a page that reads as no instructions hides binary bytes behind a comment. A
+    /// comment runs to the end of its line, so ciphertext that begins with a percent sign reads as
+    /// nothing; it carries a byte of 0x80 or above after that sign, and an authored comment, such as
+    /// a blank page written as <c>% blank page</c>, does not.</summary>
+    internal bool HidesBinaryInAComment(int pageIndex)
     {
         if (pageIndex < 0 || pageIndex >= PageCount) throw new ArgumentOutOfRangeException(nameof(pageIndex));
         PdfPageTreeEntry page = _tree.Pages[pageIndex];
@@ -114,15 +116,15 @@ public sealed class PdfPageContentReader
         PdfObject resolved = Resolve(content);
         IEnumerable<PdfObject> items = resolved is PdfArray array ? array : [resolved];
         foreach (PdfObject item in items)
-            if (Resolve(item) is PdfStream stream
-                && _document.DecodeStream(stream, PdfContentStreamReader.MaximumSourceBytes).AsSpan().ContainsAnyExcept(PdfWhitespace))
+        {
+            if (Resolve(item) is not PdfStream stream) continue;
+            ReadOnlySpan<byte> bytes = _document.DecodeStream(stream, PdfContentStreamReader.MaximumSourceBytes);
+            int percent = bytes.IndexOf((byte)'%');
+            if (percent >= 0 && bytes[(percent + 1)..].IndexOfAnyInRange((byte)0x80, (byte)0xFF) >= 0)
                 return true;
+        }
         return false;
     }
-
-    // The six bytes PDF reads as white space: NUL, tab, line feed, form feed, carriage return and space.
-    private static readonly System.Buffers.SearchValues<byte> PdfWhitespace =
-        System.Buffers.SearchValues.Create([0x00, 0x09, 0x0A, 0x0C, 0x0D, 0x20]);
 
     internal IEnumerable<PdfContentInstruction> EnumerateInstructions(
         int pageIndex, ISet<string> diagnostics, CancellationToken cancellationToken)
