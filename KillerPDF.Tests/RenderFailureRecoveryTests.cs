@@ -298,6 +298,43 @@ namespace KillerPDF.Tests
             Assert.Equal(3, open.Split("if (document.RecoveryError is null) incomplete.Add(").Length - 1);
         }
 
+        // R4-004: a protected copy waits for its open, which can finish after a password prompt or on a
+        // background thread. An open that returned with no tab and nothing still running did not happen.
+        [Fact]
+        public void AProtectedCopyWhoseOpenWasCanceledIsNotCountedAsReopened()
+        {
+            var waiting = new ProtectedRecoveryList();
+            var document = new RecoveredDocument(@"C:\Docs\a.pdf", @"C:\Recovery\01-a.pdf", null, Protected: true);
+            waiting.Expect(document);
+
+            Assert.Equal(ProtectedReopen.NotOpened, waiting.Settle(document.RecoveredPath, openPending: false));
+            Assert.Null(waiting.Take(document.RecoveredPath));
+        }
+
+        [Fact]
+        public void AProtectedCopyThatWentHomeCountsAsReopened()
+        {
+            var waiting = new ProtectedRecoveryList();
+            var document = new RecoveredDocument(@"C:\Docs\b.pdf", @"C:\Recovery\02-b.pdf", null, Protected: true);
+            waiting.Expect(document);
+
+            Assert.Same(document, waiting.Take(document.RecoveredPath));
+            Assert.Equal(ProtectedReopen.Reopened, waiting.Settle(document.RecoveredPath, openPending: false));
+        }
+
+        [Fact]
+        public void ABackgroundOpenKeepsItsCopyWaitingUntilItFails()
+        {
+            var waiting = new ProtectedRecoveryList();
+            var document = new RecoveredDocument(@"C:\Docs\c.pdf", @"C:\Recovery\03-c.pdf", null, Protected: true);
+            waiting.Expect(document);
+
+            Assert.Equal(ProtectedReopen.Pending, waiting.Settle(document.RecoveredPath, openPending: true));
+            waiting.Abandon(document.RecoveredPath);
+
+            Assert.Null(waiting.Take(document.RecoveredPath));
+        }
+
         private static string Value(string strings, string key)
         {
             string open = "x:Key=\"" + key + "\">";

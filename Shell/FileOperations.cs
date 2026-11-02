@@ -529,8 +529,8 @@ namespace KillerPDF.Shell
                 _doc = null; var repairedPath = App.MakeTempFile("repaired");
                 ProtectedOpen opened = await System.Threading.Tasks.Task.Run(() => ProtectedDocumentFiles.PrepareWorkingCopy(
                     srcPath, repairedPath, (source, working) => PdfImport.TryImportRepairToPath(source, working)));
-                if (!ReclaimAsyncOwner(owner)) { HideBusyOverlay(busy); EndCancellableOp(ct); return; }   // its tab was closed meanwhile
-                if (ct.IsCancellationRequested) { HideBusyOverlay(busy); _asyncOpenPending = false; SetStatus(Loc("Str_St_Canceled")); EndCancellableOp(ct); return; }
+                if (!ReclaimAsyncOwner(owner)) { HideBusyOverlay(busy); AbandonProtectedRecovery(displayPath); EndCancellableOp(ct); return; }   // its tab was closed meanwhile
+                if (ct.IsCancellationRequested) { HideBusyOverlay(busy); _asyncOpenPending = false; AbandonProtectedRecovery(displayPath); SetStatus(Loc("Str_St_Canceled")); EndCancellableOp(ct); return; }
                 if (!opened.Stripped)
                 {
                     HideBusyOverlay(busy);
@@ -539,9 +539,11 @@ namespace KillerPDF.Shell
                     if (TryOpenProtectedReadOnly(srcPath, displayPath, opened.Protection))
                     {
                         FinalizeAsyncOpen();
+                        CompleteProtectedRecovery(displayPath);
                         EndCancellableOp(ct);
                         return;
                     }
+                    AbandonProtectedRecovery(displayPath);   // a rasterized repair is not the protected copy
                     TryRepairAndOpen(srcPath);   // re-registers the cancellable op; repair finalizes the tab
                     return;
                 }
@@ -559,6 +561,7 @@ namespace KillerPDF.Shell
             catch (WorkingCopyUnavailableException copy)
             {
                 HideBusyOverlay(busy);
+                AbandonProtectedRecovery(displayPath);
                 if (ReclaimAsyncOwner(owner))
                 {
                     _asyncOpenPending = false;
@@ -569,6 +572,7 @@ namespace KillerPDF.Shell
             catch (Exception ex)
             {
                 HideBusyOverlay(busy);
+                AbandonProtectedRecovery(displayPath);
                 if (ReclaimAsyncOwner(owner))
                 {
                     _asyncOpenPending = false;
@@ -632,6 +636,7 @@ namespace KillerPDF.Shell
                 ActiveViewer.UpdateRestrictionNotice();
                 SetStatus(string.Format(Loc("Str_OpenedReadOnly"),
                     System.IO.Path.GetFileName(displayPath), _doc.PageCount));
+                CompleteProtectedRecovery(displayPath);
             }
             catch (WorkingCopyUnavailableException copy)
             {

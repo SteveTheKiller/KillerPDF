@@ -14,6 +14,37 @@ namespace KillerPDF.Services
     /// <summary>How an unsaved tab is written aside. A protected document never reaches the folder decrypted.</summary>
     internal enum RecoveryRoute { Plain, UnderItsEncryption, NotWritten }
 
+    /// <summary>What became of a protected recovered copy when its open returned.</summary>
+    internal enum ProtectedReopen { Reopened, Pending, NotOpened }
+
+    /// <summary>Protected recovered copies whose open has not finished, by the path they open from. A
+    /// protected copy opens like any protected file, after its password or on a background thread, so it
+    /// waits here until the open that finishes takes it home. An open that ends with no tab gives it up.</summary>
+    internal sealed class ProtectedRecoveryList
+    {
+        private readonly Dictionary<string, RecoveredDocument> _waiting = new(StringComparer.OrdinalIgnoreCase);
+
+        internal void Expect(RecoveredDocument document) => _waiting[document.RecoveredPath] = document;
+
+        /// <summary>The copy an open of this path finished, or null when none was waiting for it.</summary>
+        internal RecoveredDocument? Take(string openedPath) =>
+            _waiting.Remove(openedPath, out RecoveredDocument? document) ? document : null;
+
+        /// <summary>Gives up a copy whose background open failed or was canceled.</summary>
+        internal void Abandon(string openedPath) => _waiting.Remove(openedPath);
+
+        /// <summary>Where a copy stands once its open has returned. Taken means it went home. Still
+        /// waiting with the open running on a background thread means it may yet. Still waiting with
+        /// nothing running means the prompt was canceled or the open failed, so it is given up.</summary>
+        internal ProtectedReopen Settle(string recoveredPath, bool openPending)
+        {
+            if (!_waiting.ContainsKey(recoveredPath)) return ProtectedReopen.Reopened;
+            if (openPending) return ProtectedReopen.Pending;
+            _waiting.Remove(recoveredPath);
+            return ProtectedReopen.NotOpened;
+        }
+    }
+
     /// <summary>
     /// WPF's render thread can fail for good (UCEERR_RENDERTHREADFAILURE, often after sleep, a
     /// display change or a graphics driver reset). The window then stays black and cannot recover,

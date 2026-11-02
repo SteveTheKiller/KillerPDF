@@ -229,8 +229,7 @@ namespace KillerPDF.Shell
         }
 
         // Protected copies whose open has not finished, by the path they open from.
-        private static readonly Dictionary<string, RecoveredDocument> ProtectedRecoveries =
-            new(StringComparer.OrdinalIgnoreCase);
+        private static readonly ProtectedRecoveryList ProtectedRecoveries = new();
 
         // The copy holds the edits; saving goes back to the file they were made to. A partial working
         // copy must be reviewed and saved separately, and a protected original takes only a tab that
@@ -249,13 +248,17 @@ namespace KillerPDF.Shell
             ActiveViewer.CaptureActiveIfAny();
         }
 
-        // Called where a protected open finishes, so a recovered copy gets the tab state an open cannot give it.
+        // Called where a protected open finishes, editable or read-only, so a recovered copy gets the tab
+        // state an open cannot give it. A read-only tab goes home too: its Save asks for the owner password.
         private void CompleteProtectedRecovery(string openedPath)
         {
-            if (!ProtectedRecoveries.Remove(openedPath, out RecoveredDocument? document)) return;
+            if (ProtectedRecoveries.Take(openedPath) is not RecoveredDocument document) return;
             ReturnRecoveredTabHome(document);
             RebuildTabStrip();
         }
+
+        // Called where a background protected open fails or is canceled, so its copy stops waiting.
+        private static void AbandonProtectedRecovery(string openedPath) => ProtectedRecoveries.Abandon(openedPath);
 
         /// <summary>Reopens documents recovered after a render failure as unsaved changes to their files.</summary>
         private void OpenRenderRecovery()
@@ -286,24 +289,24 @@ namespace KillerPDF.Shell
                         continue;
                     }
                     // A protected copy opens like any protected file, on a background thread or after
-                    // its password, so it finds its way home when that open finishes.
-                    if (document.Protected) ProtectedRecoveries[document.RecoveredPath] = document;
+                    // its password, so it finds its way home when that open finishes. A canceled prompt
+                    // or a failed open leaves no tab, and that copy is listed with the rest.
+                    if (document.Protected) ProtectedRecoveries.Expect(document);
                     ActiveViewer.OpenInNewTabExt(document.RecoveredPath);
-                    if (document.Protected)
-                    {
-                        reopened++;
-                        continue;
-                    }
-                    if (_doc is null || !string.Equals(_originalFile, document.RecoveredPath, StringComparison.OrdinalIgnoreCase))
+                    bool opened = document.Protected
+                        ? ProtectedRecoveries.Settle(document.RecoveredPath, _asyncOpenPending) != ProtectedReopen.NotOpened
+                        : _doc is not null && string.Equals(_originalFile, document.RecoveredPath, StringComparison.OrdinalIgnoreCase);
+                    if (!opened)
                     {
                         if (document.RecoveryError is null) incomplete.Add(name);
                         continue;
                     }
-                    ReturnRecoveredTabHome(document);
+                    if (!document.Protected) ReturnRecoveredTabHome(document);
                     reopened++;
                 }
                 catch (Exception ex) when (ex is not OutOfMemoryException)
                 {
+                    ProtectedRecoveries.Abandon(document.RecoveredPath);
                     if (document.RecoveryError is null) incomplete.Add(name + ": " + ex.Message);
                 }
             }
