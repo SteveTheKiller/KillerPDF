@@ -9,10 +9,13 @@ internal static class OutputPixelDimensions
             || !double.IsFinite(dpi) || widthPoints <= 0 || heightPoints <= 0 || dpi <= 0)
             return (0, 0);
 
-        return (
-            Math.Max(1, (int)Math.Round(widthPoints / 72.0 * dpi)),
-            Math.Max(1, (int)Math.Round(heightPoints / 72.0 * dpi)));
+        return (RenderedPixels(widthPoints, dpi), RenderedPixels(heightPoints, dpi));
     }
+
+    // The renderer's own arithmetic: a single-precision page size scaled and truncated, so the size
+    // shown here is the size that comes out.
+    private static int RenderedPixels(double points, double dpi) =>
+        Math.Max(1, (int)((float)points * (dpi / 72.0)));
 
     internal static string ScaleLabel(double outputWidth, double outputHeight, double sourceWidth, double sourceHeight)
     {
@@ -43,7 +46,8 @@ internal static class OutputPixelDimensions
         if (imagePixels is not { } pixels || widthPoints <= 0 || heightPoints <= 0) return fallback;
         double exact = Math.Clamp(Math.Max(pixels.Width / widthPoints, pixels.Height / heightPoints) * 72.0, 24, 1200);
         double whole = Math.Round(exact);
-        var (exactWidth, exactHeight) = FromPoints(widthPoints, heightPoints, exact);
+        double exactWidth = Math.Round(widthPoints / 72.0 * exact, 6);
+        double exactHeight = Math.Round(heightPoints / 72.0 * exact, 6);
         var (wholeWidth, wholeHeight) = FromPoints(widthPoints, heightPoints, whole);
         return Math.Abs(wholeWidth - exactWidth) <= 1 && Math.Abs(wholeHeight - exactHeight) <= 1 ? whole : exact;
     }

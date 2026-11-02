@@ -58,18 +58,23 @@ internal sealed class PdfEngineDocumentSession
 
     /// <summary>The pixels of the one image that fills a page, turned as the page is shown, or null
     /// for any other page. Reading a page costs more than a footer update should, so each is read once.
-    /// A job reading many pages off the UI thread and the footer can ask at the same time.</summary>
+    /// A job reading many pages off the UI thread and the footer can ask at the same time, so the lock
+    /// covers only the cache: a heavy page is parsed outside it and never holds up the window.</summary>
     internal (int Width, int Height)? PageImagePixels(int pageIndex, IReadOnlyDictionary<int, int>? rotations = null)
     {
         (int Width, int Height)? pixels;
+        PdfPageContentReader reader;
+        bool cached;
         lock (_pageImagePixels)
         {
-            if (!_pageImagePixels.TryGetValue(pageIndex, out pixels))
-            {
-                try { pixels = PdfPageRasterInformation.ReadPageImageSize(_contentReader ??= new PdfPageContentReader(Document), Pages, pageIndex); }
-                catch (Exception error) when (error is not OutOfMemoryException) { pixels = null; }
-                _pageImagePixels[pageIndex] = pixels;
-            }
+            cached = _pageImagePixels.TryGetValue(pageIndex, out pixels);
+            reader = _contentReader ??= new PdfPageContentReader(Document);
+        }
+        if (!cached)
+        {
+            try { pixels = PdfPageRasterInformation.ReadPageImageSize(reader, Pages, pageIndex); }
+            catch (Exception error) when (error is not OutOfMemoryException) { pixels = null; }
+            lock (_pageImagePixels) _pageImagePixels[pageIndex] = pixels;
         }
         if (pixels is not { } size) return null;
         var (width, height) = VisualPageSize(pageIndex, rotations);
@@ -77,13 +82,23 @@ internal sealed class PdfEngineDocumentSession
     }
 
     /// <summary>The resolution each page's export keeps when it stays at its own image's pixels, or the
-    /// fallback for a page with no one image. Reads page content, so a job runs it off the UI thread.</summary>
-    internal Dictionary<int, double> NativeDpis(IEnumerable<int> pages, IReadOnlyDictionary<int, int>? rotations, double fallback) =>
-        pages.ToDictionary(page => page, page =>
+    /// fallback for a page with no one image. Reads page content, so a job runs it off the UI thread and
+    /// shows the progress. A canceled read stops at the next page with what it has; the job's own check
+    /// then ends the export.</summary>
+    internal Dictionary<int, double> NativeDpis(IEnumerable<int> pages, IReadOnlyDictionary<int, int>? rotations, double fallback,
+        CancellationToken cancellationToken = default, Action<int, int>? progress = null)
+    {
+        int[] selected = [.. pages];
+        var dpis = new Dictionary<int, double>(selected.Length);
+        foreach (int page in selected)
         {
+            if (cancellationToken.IsCancellationRequested) break;
             var (width, height) = PhysicalPageSize(page, rotations);
-            return OutputPixelDimensions.NativeDpi(PageImagePixels(page, rotations), width, height, fallback);
-        });
+            dpis[page] = OutputPixelDimensions.NativeDpi(PageImagePixels(page, rotations), width, height, fallback);
+            progress?.Invoke(dpis.Count, selected.Length);
+        }
+        return dpis;
+    }
 
     internal (double Width, double Height) PhysicalPageSize(
         int pageIndex, IReadOnlyDictionary<int, int>? rotations = null)

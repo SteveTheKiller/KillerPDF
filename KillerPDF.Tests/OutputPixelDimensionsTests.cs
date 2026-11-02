@@ -1,3 +1,4 @@
+using System.IO;
 using KillerPDF.Services;
 using Xunit;
 
@@ -93,9 +94,34 @@ public sealed class OutputPixelDimensionsTests
     }
 
     [Fact]
-    public void FromPoints_RoundsToNearestWholePixel()
+    public void FromPoints_DropsThePartPixelTheRendererDrops()
     {
-        Assert.Equal((1240, 1754), OutputPixelDimensions.FromPoints(595, 842, 150));
+        Assert.Equal((1239, 1754), OutputPixelDimensions.FromPoints(595, 842, 150));
+    }
+
+    // The size shown for an export is the size that comes out.
+    [Theory]
+    [InlineData(340, 106)]
+    [InlineData(595, 150)]
+    [InlineData(595.3, 300)]
+    public void FromPoints_MatchesTheRenderedPage(double points, double dpi)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-output-size-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new KillerPdf.Engine.Authoring.PdfDocumentBuilder().AddBlankPage(points, points).Build());
+            using PdfPageRenderSession session = PdfPageRenderSession.OpenEngineFirst(path, dpi / 72.0);
+            PdfRenderedPage rendered = session.RenderPage(0);
+
+            Assert.Equal((rendered.Width, rendered.Height), OutputPixelDimensions.FromPoints(points, points, dpi));
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void TheExportedSizeOfA500PixelImageOn340PointsIs500()
+    {
+        Assert.Equal((500, 500), OutputPixelDimensions.ExportSize(340, 340, 150, true, (500, 500)));
     }
 
     [Theory]
