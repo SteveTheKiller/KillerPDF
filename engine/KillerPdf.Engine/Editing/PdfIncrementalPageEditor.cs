@@ -18,6 +18,10 @@ namespace KillerPdf.Engine.Editing;
 /// <summary>Edits an existing document's pages through a byte-preserving incremental revision.</summary>
 public sealed class PdfIncrementalPageEditor
 {
+    /// <summary>After a build, the fields that share a name with one that took the new value and could
+    /// not take it themselves, so each kept what it held.</summary>
+    public IReadOnlyCollection<string> FieldsThatKeptTheirValue { get; private set; } = [];
+
     private static readonly PdfName PagesName = Name("Pages");
     private static readonly PdfName ParentName = Name("Parent");
     private static readonly PdfName RotateName = Name("Rotate");
@@ -2549,6 +2553,7 @@ public sealed class PdfIncrementalPageEditor
         foreach ((string name, ExceptionDispatchInfo failure) in twinFailures)
             if (!matched.Contains(name) && !appearanceMatched.Contains(name))
                 failure.Throw();
+        FieldsThatKeptTheirValue = [.. twinFailures.Keys.Order(StringComparer.Ordinal)];
         if (_formCalculationOrder is not null)
         {
             PdfObject[] order = [.. _formCalculationOrder.Select(name =>
@@ -2832,6 +2837,9 @@ public sealed class PdfIncrementalPageEditor
                 if (TwinTakes(() => UpdateRadioButtonField(
                         update, reference, editedField, qualifiedName!, radioValue)))
                     matched.Add(qualifiedName!);
+                // A group must not show two selections, so a twin without that state turns off.
+                else
+                    UpdateRadioButtonField(update, reference, editedField, qualifiedName!, null);
             }
             else if (holdsValue
                 && (_textFieldValues.TryGetValue(

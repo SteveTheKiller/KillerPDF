@@ -195,7 +195,7 @@ public sealed class PdfDuplicateFieldNameTests
 
     // R2-008
     [Fact]
-    public void ARadioGroupWithoutThePickedOptionKeepsItsOwnSelection()
+    public void ARadioGroupWithoutThePickedOptionTurnsOffAndIsNamed()
     {
         PdfRadioButtonOption[] Small(double top) => [new(0, 10, top, 20, 20, "S"), new(0, 40, top, 20, 20, "M")];
         PdfRadioButtonOption[] Large(double top) => [new(0, 10, top, 20, 20, "L"), new(0, 40, top, 20, 20, "XL")];
@@ -203,12 +203,13 @@ public sealed class PdfDuplicateFieldNameTests
             .AddRadioGroup("same", Small(10), "S")
             .AddRadioGroup("sama", Large(60), "XL"), "same", "sama");
         byte[] saved = [];
+        var editor = new PdfIncrementalPageEditor(PdfDocument.Open(bytes)).SetRadioButtonValue("same", "L");
 
-        Exception? error = Record.Exception(() => saved = new PdfIncrementalPageEditor(PdfDocument.Open(bytes))
-            .SetRadioButtonValue("same", "L").Build());
+        Exception? error = Record.Exception(() => saved = editor.Build());
 
         Assert.Null(error);
-        Assert.Equal(["/S", "/S", "/L", "/L"], Values(saved));
+        Assert.Equal(["/Off", "/Off", "/L", "/L"], Values(saved));
+        Assert.Equal(["same"], editor.FieldsThatKeptTheirValue);
     }
 
     // R2-009
