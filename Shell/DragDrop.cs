@@ -26,7 +26,8 @@ namespace KillerPDF.Shell
         string SourcePath,
         int[] PageIndices,
         Dictionary<int, int> PageRotations,
-        Dictionary<int, List<PageAnnotation>> Annotations);
+        Dictionary<int, List<PageAnnotation>> Annotations,
+        PageDragAnswer Answer = PageDragAnswer.Allowed);
 
     public partial class MainWindow
     {
@@ -170,8 +171,12 @@ namespace KillerPDF.Shell
                     CommitActiveTextBox();
                     ActiveViewer.CaptureActiveIfAny();
                     var session = ActiveViewer.ActiveSessionRef;
-                    if (session?.CurrentFile is not null && !ActiveViewer.IsOwnerRestricted)
+                    if (session?.CurrentFile is not null)
                     {
+                        // A limit stops the pages at the drop, where the owner password is asked for,
+                        // rather than silently here.
+                        bool restricted = ActiveViewer.IsOwnerRestricted;
+                        PageDragAnswer answer = PageDragGate.Decide(session.Protection, restricted);
                         var annotations = new Dictionary<int, List<PageAnnotation>>();
                         foreach (int page in selected)
                             if (session.Annotations.TryGetValue(page, out var source))
@@ -183,13 +188,13 @@ namespace KillerPDF.Shell
                             session.CurrentFile,
                             selected,
                             session.PageRotations.ToDictionary(pair => pair.Key, pair => pair.Value),
-                            annotations);
+                            annotations, answer);
                         var data = new DataObject();
-                        data.SetData(typeof(int[]), selected);
-                        // Pages still reorder within their document. A tab that takes them holds no
-                        // limit of this file, so a limit keeps them from reaching one.
-                        if (session.Protection.Access.Allows(PdfOutput.Printable))
-                            data.SetData(typeof(PageDragPayload), payload);
+                        // Pages still reorder within a document that may be edited. A tab that takes
+                        // them holds no limit of this file, so a limited drag carries its answer to
+                        // the drop, which asks for the owner password before any page goes.
+                        if (!restricted) data.SetData(typeof(int[]), selected);
+                        data.SetData(typeof(PageDragPayload), payload);
                         BitmapSource? thumbnail = PageList.SelectedItems.Cast<PageThumbnailVm>()
                             .FirstOrDefault(page => page.PageIndex == selected[0])?.Thumbnail;
                         thumbnail ??= PageThumbnailVm.BuildThumb(
@@ -242,8 +247,40 @@ namespace KillerPDF.Shell
         internal void DropZone_Drop(object _, DragEventArgs e)
             => DropZone_Drop(ActiveViewer, e);
 
+        // Pages dragged out of a limited tab: the source tab asks for its owner password in an
+        // output's words, or says no password can lift its limit. Once the owner lifts it, by
+        // unlocking a read-only tab or for this output, the same drop goes ahead from what the tab
+        // now reads, which after an unlock is its unlocked copy.
+        private void ImportLimitedPages(PdfViewer target, PageDragPayload payload, int insertionIndex)
+        {
+            PdfViewer source = payload.SourceViewer;
+            FocusPane(source);
+            if (_doc is null || _currentFile is null) return;
+            switch (PageDragGate.Decide(_protection, IsOwnerRestricted))
+            {
+                case PageDragAnswer.Refused:
+                    if (!EnsureProtectionReadable()) return;
+                    KillerDialog.Show(this, Loc(_protection.Access.Role == PdfAccessRole.Recipient
+                            ? "Str_Protection_Refused_Certificate" : "Str_Protection_Refused"),
+                        "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                case PageDragAnswer.AskOwner:
+                    if (!EnsureMayWrite(PdfOutput.Printable, continueAfterUnlock: true)) return;
+                    break;
+            }
+            source.CaptureActiveIfAny();
+            if (source.ActiveSessionRef?.CurrentFile is not string unlocked) return;
+            ImportDraggedPages(target, payload with { SourcePath = unlocked, Answer = PageDragAnswer.Allowed }, insertionIndex);
+        }
+
         private void ImportDraggedPages(PdfViewer target, PageDragPayload payload, int insertionIndex)
         {
+            if (payload.Answer != PageDragAnswer.Allowed)
+            {
+                // The prompt waits until the drag has ended, so no dialog opens inside the drop.
+                Dispatcher.BeginInvoke(new Action(() => ImportLimitedPages(target, payload, insertionIndex)));
+                return;
+            }
             if (payload.PageIndices.Length == 0 || !File.Exists(payload.SourcePath)) return;
             FocusPane(target);
             if (_doc is null || _currentFile is null) return;

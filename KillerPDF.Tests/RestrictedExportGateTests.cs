@@ -72,14 +72,6 @@ public sealed class RestrictedExportGateTests
     }
 
     [Fact]
-    public void RestrictedPagesCannotBeDraggedOut()
-    {
-        string source = Read("Shell/DragDrop.cs");
-        int payload = source.IndexOf("new PageDragPayload(", StringComparison.Ordinal);
-        Assert.Contains("!ActiveViewer.IsOwnerRestricted", source[(payload - 700)..payload], StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void RecoveryWritesNoDecryptedCopyOfARestrictedDocument()
     {
         string source = Read("Shell/RenderRecovery.cs");

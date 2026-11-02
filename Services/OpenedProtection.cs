@@ -31,7 +31,8 @@ internal enum PageDragAnswer { Allowed, AskOwner, Refused }
 internal static class PageDragGate
 {
     internal static PageDragAnswer Decide(OpenedProtection protection, bool ownerRestricted) =>
-        !ownerRestricted && protection.Access.Allows(PdfOutput.Printable) ? PageDragAnswer.Allowed : PageDragAnswer.Refused;
+        !ownerRestricted && protection.Access.Allows(PdfOutput.Printable) ? PageDragAnswer.Allowed
+        : protection.CanLift ? PageDragAnswer.AskOwner : PageDragAnswer.Refused;
 }
 
 /// <summary>How an owner password prompt on a read-only tab ended.</summary>
