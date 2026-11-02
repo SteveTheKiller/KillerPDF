@@ -257,7 +257,10 @@ namespace KillerPDF.Shell
             // the reopen use that window's own chrome and panes.
             MainWindow gate = PageDropRoute.GateWindow(this, GetWindow(payload.SourceViewer) as MainWindow);
             gate.LiftPageDragLimit(payload, unlocked =>
-                ImportDraggedPages(target, payload with { SourcePath = unlocked, Answer = PageDragAnswer.Allowed }, insertionIndex));
+            {
+                if (!ReferenceEquals(gate, this)) Activate();   // the pages land where they were dropped
+                ImportDraggedPages(target, payload with { SourcePath = unlocked, Answer = PageDragAnswer.Allowed }, insertionIndex);
+            });
         }
 
         // Asks the source tab's owner to lift the limit on a page drag, then hands on what the tab now
