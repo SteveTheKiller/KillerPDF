@@ -54,6 +54,7 @@ internal sealed class PdfEngineDocumentSession
     }
 
     private readonly Dictionary<int, (int Width, int Height)?> _pageImagePixels = [];
+    private PdfPageContentReader? _contentReader;   // made once, under the lock, since it reads the page tree
 
     /// <summary>The pixels of the one image that fills a page, turned as the page is shown, or null
     /// for any other page. Reading a page costs more than a footer update should, so each is read once.
@@ -65,7 +66,7 @@ internal sealed class PdfEngineDocumentSession
         {
             if (!_pageImagePixels.TryGetValue(pageIndex, out pixels))
             {
-                try { pixels = PdfPageRasterInformation.ReadPageImageSize(Document, Pages, pageIndex); }
+                try { pixels = PdfPageRasterInformation.ReadPageImageSize(_contentReader ??= new PdfPageContentReader(Document), Pages, pageIndex); }
                 catch (Exception error) when (error is not OutOfMemoryException) { pixels = null; }
                 _pageImagePixels[pageIndex] = pixels;
             }

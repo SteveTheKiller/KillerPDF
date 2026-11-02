@@ -34,7 +34,17 @@ public sealed class OutputPixelDimensionsTests
         Assert.Equal(Math.Round(dpi), dpi);
         Assert.Equal(300, dpi);
         var (width, _) = OutputPixelDimensions.FromPoints(points, points, dpi);
-        Assert.InRange(width, pixels - 2, pixels + 2);
+        Assert.InRange(width, pixels - 1, pixels + 1);
+    }
+
+    // A whole number that would shift the output by more than a pixel is not used.
+    [Fact]
+    public void NativeDpiKeepsTheExactResolutionWhenRoundingWouldChangeTheOutputSize()
+    {
+        double dpi = OutputPixelDimensions.NativeDpi((2547, 3296), 612, 792, 150);
+
+        Assert.NotEqual(Math.Round(dpi), dpi);
+        Assert.Equal((2547, 3296), OutputPixelDimensions.FromPoints(612, 792, dpi));
     }
 
     [Fact]

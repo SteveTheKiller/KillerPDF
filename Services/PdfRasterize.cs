@@ -70,10 +70,11 @@ namespace KillerPDF.Services
             var passthrough = new PdfImage?[pageCount];
             IReadOnlyList<PdfPageInformation>? pageInformation = options.KeepResolution
                 ? PdfPageInformation.Read(sourceDocument) : null;
+            var contentReader = options.KeepResolution ? new PdfPageContentReader(sourceDocument) : null;
             double[] pageDpi = [.. Enumerable.Range(0, pageCount).Select(page => pageInformation is null
                 ? options.Dpi
                 : OutputPixelDimensions.NativeDpi(
-                    PdfPageRasterInformation.ReadPageImageSize(sourceDocument, pageInformation, page),
+                    PdfPageRasterInformation.ReadPageImageSize(contentReader!, pageInformation, page),
                     pageDims[page].widthPt, pageDims[page].heightPt, options.Dpi))];
             bool scanLook = options.Look?.Any == true;
             if (options.ColorMode == PageColorMode.Color && !options.UseJpegCompression && !scanLook)

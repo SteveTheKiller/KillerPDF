@@ -34,13 +34,19 @@ internal static class OutputPixelDimensions
             ? (pixels.Width * previewWidth / sourceWidth, pixels.Height * previewHeight / sourceHeight)
             : (previewWidth, previewHeight);
 
-    /// <summary>The DPI that keeps a page's image at its own pixels, to a whole number so scans of one
-    /// size share a resolution (and one render session), or the fallback for a page with no single image.</summary>
+    /// <summary>The DPI that keeps a page's image at its own pixels, or the fallback for a page with no
+    /// single image. It is a whole number when that renders the page within a pixel of the exact one, so
+    /// scans of one size share a resolution (and one render session) without changing the output size.</summary>
     internal static double NativeDpi((int Width, int Height)? imagePixels, double widthPoints,
-        double heightPoints, double fallback) =>
-        imagePixels is { } pixels && widthPoints > 0 && heightPoints > 0
-            ? Math.Round(Math.Clamp(Math.Max(pixels.Width / widthPoints, pixels.Height / heightPoints) * 72.0, 24, 1200))
-            : fallback;
+        double heightPoints, double fallback)
+    {
+        if (imagePixels is not { } pixels || widthPoints <= 0 || heightPoints <= 0) return fallback;
+        double exact = Math.Clamp(Math.Max(pixels.Width / widthPoints, pixels.Height / heightPoints) * 72.0, 24, 1200);
+        double whole = Math.Round(exact);
+        var (exactWidth, exactHeight) = FromPoints(widthPoints, heightPoints, exact);
+        var (wholeWidth, wholeHeight) = FromPoints(widthPoints, heightPoints, whole);
+        return Math.Abs(wholeWidth - exactWidth) <= 1 && Math.Abs(wholeHeight - exactHeight) <= 1 ? whole : exact;
+    }
 
     /// <summary>The pixel size an exported page comes out at: its own image's resolution when that is
     /// kept and the page has one image, otherwise the chosen DPI.</summary>

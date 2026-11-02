@@ -58,22 +58,22 @@ public static class PdfPageRasterInformation
     public static (int Width, int Height)? ReadPageImageSize(PdfDocument document, int pageIndex)
     {
         ArgumentNullException.ThrowIfNull(document);
-        return ReadPageImageSize(document, PdfPageInformation.Read(document), pageIndex);
+        return ReadPageImageSize(new PdfPageContentReader(document), PdfPageInformation.Read(document), pageIndex);
     }
 
     /// <summary>
-    /// Reads a page's size in pixels as <see cref="ReadPageImageSize(PdfDocument, int)"/> does, from
-    /// page information the caller read once for every page, so a loop over the pages does not read
-    /// the information again for each.
+    /// Reads a page's size in pixels as <see cref="ReadPageImageSize(PdfDocument, int)"/> does, from a
+    /// content reader and page information the caller made once for every page, so a loop over the
+    /// pages does not read the page tree again for each.
     /// </summary>
     public static (int Width, int Height)? ReadPageImageSize(
-        PdfDocument document, IReadOnlyList<PdfPageInformation> pages, int pageIndex)
+        PdfPageContentReader reader, IReadOnlyList<PdfPageInformation> pages, int pageIndex)
     {
-        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(pages);
         ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, pages.Count);
-        return ScanSize(new PdfPageContentReader(document), pages[pageIndex], pageIndex, 0.9);
+        return ScanSize(reader, pages[pageIndex], pageIndex, 0.9);
     }
 
     private static (int Width, int Height)? ScanSize(PdfPageContentReader reader, PdfPageInformation page, int index, double minimumCoverage)
