@@ -11,7 +11,7 @@ namespace KillerPDF.Shell
         private async void ReduceFileSize_Click(object sender, RoutedEventArgs e)
         {
             if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
-            if (!EnsureEditable()) return;
+            if (!EnsureEditable() || !EnsureMaySaveUnprotected()) return;
             CommitActiveTextBox();
             var options = new ReduceSizeDialog(this);
             options.ShowDialog();

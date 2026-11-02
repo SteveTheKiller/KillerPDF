@@ -248,6 +248,11 @@ Az oldal lecserélhető a saját képére, amelyen a megjelölt területek feket
     <sys:String x:Key="Str_Restricted_Unlocked">{0} feloldva szerkesztésre</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Ez nem a PDF tulajdonosi jelszava.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">A(z) „{0}” korlátozza a nyomtatást. A nyomtatáshoz adja meg a tulajdonosi jelszót.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">A(z) „{0}” csak alacsony minőségű nyomtatást engedélyez. Teljes minőségű nyomtatáshoz adja meg a tulajdonosi jelszót, vagy az alacsony minőségű nyomtatáshoz válassza a Mégse lehetőséget.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">A nyomtatás nem engedélyezett. A tanúsítvány, amelyhez ez a PDF titkosítva van, nem engedi a nyomtatást, és ezt semmilyen jelszó nem oldja fel.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">A(z) „{0}” a tulajdonosa által beállított korlátozásokat tartalmaz, és a mentés eltávolítja a védelmét. A mentéshez adja meg a tulajdonosi jelszót.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">A PDF nincs mentve. A mentés eltávolítaná a tulajdonos korlátozásait, és ezeket csak a tulajdonosi jelszó oldja fel.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">A PDF nincs mentve. A mentés eltávolítaná a tanúsítványához beállított korlátozásokat, és ezeket semmilyen jelszó nem oldja fel.</sys:String>
     <sys:String x:Key="Str_Print_Refused">A nyomtatás nem engedélyezett. A PDF tulajdonosa korlátozta a nyomtatást, és ezt a korlátozást csak a tulajdonosi jelszó oldja fel.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">A(z) „{0}” korlátozza a szerkesztést, ezért a KillerPDF-nek a megnyitásához a tulajdonosi jelszó kell.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Megnyitva: {0} (csak olvasható - nem szabványos XRef tábla) - {1} oldal</sys:String>

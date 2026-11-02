@@ -133,8 +133,9 @@ namespace KillerPDF.Controls
         // A restricted form whose author allows filling. Read once per open, so saving it does not
         // parse the file again for the permission check.
         private bool _restrictedFormFillable;
-        // The owner password was given for this document, so its print limit no longer applies.
-        private bool _printUnlocked;
+        // What the protected file allowed when it opened. Read once, so printing and saving never read
+        // the original again, and a save or a moved file cannot change the answer.
+        private Services.OpenedProtection _protection = Services.OpenedProtection.None;
         private Services.PublishedFileStamp? _publishedFile;
         private Services.CompleteDocumentSource? _completeDocumentSource;
         private string? _suggestedName;

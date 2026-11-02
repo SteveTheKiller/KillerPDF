@@ -45,7 +45,11 @@ internal sealed class PdfPageRenderSession : IDisposable
         _maximumHeight = maximumHeight;
         _scale = scale;
         _forPrinting = forPrinting;
+        IsEncrypted = document.IsEncrypted;
     }
+
+    /// <summary>True when the document carries encryption, so its permissions decide what leaves it.</summary>
+    internal bool IsEncrypted { get; }
 
     internal static PdfPageRenderSession OpenEngineFirst(
         string path, int maximumWidth, int maximumHeight, bool forPrinting = false)

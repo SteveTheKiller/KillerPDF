@@ -153,14 +153,14 @@ public sealed class OwnerRestrictionTests
     [InlineData("", "", true)]
     [InlineData("user", "user", true)]
     [InlineData("user", "owner", false)]
-    [InlineData("user", "wrong", false)]
-    public void IsRestrictedForPassword_FlagsOnlyTheRestrictedUserRole(
+    [InlineData("user", "wrong", true)]
+    public void OnlyTheOwnerPasswordLiftsAnEditRestriction(
         string userPassword, string entered, bool restricted)
     {
         string source = WriteOwnerRestricted(userPassword);
         try
         {
-            Assert.Equal(restricted, PdfEngineIntegration.IsRestrictedForPassword(source, entered));
+            Assert.Equal(restricted, !PdfRestrictions.Read(source, entered).MayModify);
         }
         finally { File.Delete(source); }
     }

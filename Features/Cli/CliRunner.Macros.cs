@@ -16,10 +16,11 @@ namespace KillerPDF.Features
     {
         private const string MacroUsage =
             "Usage: KillerPDF.exe --macro <in.pdf> <macro> <out.pdf> [--lang <code>] [--text <phrase>] [--terms <file>]\n"
-            + "                     [--data <records.csv|json|xlsx>] [--rasterize] [--json]\n"
+            + "                     [--data <records.csv|json|xlsx>] [--rasterize] [--json] [--password <p>]\n"
             + "       KillerPDF.exe --macro --list\n"
             + "  <macro> is a saved macro's name, an exported macro .json file, or starter:archival, starter:sharing,\n"
             + "  starter:scanning or starter:privacy. --list shows the saved macros and the starters.\n"
+            + "  --password opens a protected input; a PDF whose owner restricts editing needs the owner password.\n"
             + "  OCR steps read in --lang (default eng). Redact steps remove --text, each line of --terms and the\n"
             + "  marks saved in the file. If any page requires rasterization, the macro fails without saving\n"
             + "  output unless --rasterize is given. If a page's text, form fields or comments could not be read,\n"
@@ -69,6 +70,7 @@ namespace KillerPDF.Features
             try { plannedFiles = PdfMacroExportFiles.Plan(macro, [output], protectedPaths); }
             catch (ArgumentException error) { con.WriteLine(error.Message); return 2; }
 
+            options.TryGetValue("--password", out string? password);
             options.TryGetValue("--lang", out string? langRaw);
             string language = string.IsNullOrWhiteSpace(langRaw) ? "eng" : langRaw.Trim().ToLowerInvariant();
             var redaction = new CliMacroRedaction { Rasterize = options.ContainsKey("--rasterize") };
@@ -91,7 +93,7 @@ namespace KillerPDF.Features
                         return new PdfMacroOperationResult(data);
                     }),
                 new PdfMacroOperationRegistration(PdfMacroOperation.Ocr,
-                    (_, data, _, token) => CliMacroOcr(data, language, con, token)),
+                    (_, data, _, token) => CliMacroOcr(data, language, password, con, token)),
                 new PdfMacroOperationRegistration(PdfMacroOperation.Redact,
                     (_, data, _, token) => CliMacroRedact(data, redaction, token)),
                 new PdfMacroOperationRegistration(PdfMacroOperation.Watermark,
@@ -249,14 +251,14 @@ namespace KillerPDF.Features
 
         // Adds the searchable text layer exactly as --ocr does, on temporary copies.
         private static PdfMacroOperationResult CliMacroOcr(ReadOnlyMemory<byte> data, string language,
-            TextWriter con, CancellationToken token)
+            string? password, TextWriter con, CancellationToken token)
         {
             string input = App.MakeTempFile("climacroocrsrc");
             string output = App.MakeTempFile("climacroocr");
             try
             {
                 File.WriteAllBytes(input, data.ToArray());
-                var (renderSource, rotations, _) = CliPrepareRenderSource(input, null, con);
+                var (renderSource, rotations, _) = CliPrepareRenderSource(input, password, con);
                 OcrController.BuildSearchablePdf(renderSource, output,
                     (i, n) => { if (i == 0 || i + 1 == n || (i + 1) % 10 == 0) con.WriteLine($"OCR page {i + 1}/{n}"); },
                     language, formAware: false, ct: token);

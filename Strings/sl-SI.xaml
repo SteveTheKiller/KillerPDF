@@ -226,6 +226,11 @@
     <sys:String x:Key="Str_Restricted_Unlocked">Dokument {0} je odklenjen za urejanje</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">To ni geslo lastnika tega dokumenta PDF.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">Dokument »{0}« omejuje tiskanje. Za tiskanje vnesite geslo lastnika.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">Dokument »{0}« dovoljuje tiskanje samo v nizki kakovosti. Za tiskanje v polni kakovosti vnesite geslo lastnika, za tiskanje v nizki kakovosti pa prekličite.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">Tiskanje ni dovoljeno. Potrdilo, za katero je ta dokument PDF šifriran, ne dovoljuje tiskanja, tega pa ne odpravi nobeno geslo.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">Dokument »{0}« ima omejitve, ki jih je nastavil lastnik, shranjevanje pa odstrani njegovo zaščito. Za shranjevanje vnesite geslo lastnika.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">Dokument PDF ni bil shranjen. Shranjevanje bi odstranilo omejitve, ki jih je nastavil lastnik, te pa odpravi samo geslo lastnika.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">Dokument PDF ni bil shranjen. Shranjevanje bi odstranilo omejitve, nastavljene za vaše potrdilo, teh pa ne odpravi nobeno geslo.</sys:String>
     <sys:String x:Key="Str_Print_Refused">Tiskanje ni dovoljeno. Lastnik tega dokumenta PDF je omejil tiskanje, omejitev pa odpravi samo geslo lastnika.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">Dokument »{0}« omejuje urejanje, zato KillerPDF za odpiranje potrebuje geslo lastnika.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Odprto samo za branje zaradi nestandardne tabele XRef: {0} (strani: {1})</sys:String>

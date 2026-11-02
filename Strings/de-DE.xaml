@@ -230,6 +230,11 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_Restricted_Unlocked">{0} zum Bearbeiten entsperrt</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Das ist nicht das Eigentümerpasswort dieses PDFs.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">„{0}“ schränkt das Drucken ein. Geben Sie das Eigentümerpasswort ein, um es zu drucken.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">„{0}“ erlaubt das Drucken nur in niedriger Qualität. Geben Sie das Eigentümerpasswort ein, um in voller Qualität zu drucken, oder brechen Sie ab, um in niedriger Qualität zu drucken.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">Das Drucken ist nicht erlaubt. Das Zertifikat, für das dieses PDF verschlüsselt ist, erlaubt kein Drucken, und kein Passwort hebt das auf.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">„{0}“ enthält Einschränkungen seines Eigentümers, und beim Speichern entfällt der Schutz. Geben Sie das Eigentümerpasswort ein, um es zu speichern.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">Das PDF wurde nicht gespeichert. Beim Speichern entfielen die Einschränkungen des Eigentümers, und nur das Eigentümerpasswort hebt sie auf.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">Das PDF wurde nicht gespeichert. Beim Speichern entfielen die Einschränkungen für Ihr Zertifikat, und kein Passwort hebt sie auf.</sys:String>
     <sys:String x:Key="Str_Print_Refused">Das Drucken ist nicht erlaubt. Der Eigentümer dieses PDFs hat das Drucken eingeschränkt, und nur das Eigentümerpasswort hebt die Einschränkung auf.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">„{0}“ schränkt die Bearbeitung ein, daher benötigt KillerPDF zum Öffnen das Eigentümerpasswort.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Geöffnet: {0} (schreibgeschützt - nicht standardisierte XRef-Tabelle) - {1} Seite(n)</sys:String>

@@ -441,7 +441,9 @@ namespace KillerPDF.Features
             "                                           [--duplex none|long|short] [--reverse]",
             "                                           print silently (default printer if none named)",
             "  --password <p> works on preflight, decrypt, to-image, flatten, print, ocr, scan-to-text, fix-orientation,",
-            "                                           straighten and separations; other commands need an unprotected file",
+            "                                           straighten, separations, attachments, export, macro and batch-render;",
+            "                                           other commands need an unprotected file. A PDF whose owner restricts",
+            "                                           editing gives up its content only to the owner password",
             "  killerpdf scan <out.pdf> [--scanner <name>] [--show-settings]",
             "                                           scan through a TWAIN scanner into a PDF; --scan --list shows scanners",
             "  killerpdf ocr <in.pdf> <out.pdf> [--lang <code>] add an invisible searchable text layer (default eng;",
@@ -1321,27 +1323,38 @@ namespace KillerPDF.Features
 
         private static bool CliRefusesRestricted(string inPath, string? password, TextWriter con)
         {
-            if (!PdfEngineIntegration.IsRestrictedForPassword(inPath, password ?? "")) return false;
-            con.WriteLine(RestrictedContentMessage);
+            PdfAccess access = PdfRestrictions.Read(inPath, password);
+            if (access.MayModify) return false;
+            con.WriteLine(CliRestrictionMessage(access));
             return true;
         }
+
+        private static string CliRestrictionMessage(PdfAccess access) =>
+            access.Role == PdfAccessRole.Refused ? access.Refusal ?? RestrictedContentMessage : RestrictedContentMessage;
 
         private static int CliAttachments(
             List<string> pos, Dictionary<string, string> options, TextWriter con)
         {
             if (pos.Count is < 1 or > 2)
             {
-                con.WriteLine("Usage: KillerPDF.exe --attachments <in.pdf> [<outputFolder>] [--json]");
+                con.WriteLine("Usage: KillerPDF.exe --attachments <in.pdf> [<outputFolder>] [--json] [--password <p>]");
                 return 2;
             }
             string inPath = Path.GetFullPath(pos[0]);
             if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
 
+            options.TryGetValue("--password", out var password);
             PdfDocument document;
             IReadOnlyList<PdfAttachmentInfo> attachments;
             try
             {
-                document = PdfEngineIntegration.OpenForReading(File.ReadAllBytes(inPath));
+                PdfAccess access = PdfRestrictions.Open(File.ReadAllBytes(inPath), password, out PdfDocument? opened);
+                if (opened is null || access.Role == PdfAccessRole.Refused)
+                {
+                    con.WriteLine("Could not read the document: " + CliRestrictionMessage(access));
+                    return 1;
+                }
+                document = opened;
                 attachments = PdfAttachmentReader.Read(document);
             }
             catch (Exception ex) when (ex is InvalidOperationException
@@ -1365,7 +1378,6 @@ namespace KillerPDF.Features
                 con.WriteLine("The document has no embedded files.");
                 return 0;
             }
-            options.TryGetValue("--password", out var password);
             if (CliRefusesRestricted(inPath, password, con)) return 1;
             Directory.CreateDirectory(outDir);
             IReadOnlyList<string> written;
@@ -1639,15 +1651,18 @@ namespace KillerPDF.Features
         private static (string RenderPath, int[]? Rotations, (double WPt, double HPt)[]? Dims)
             CliPrepareRenderSource(string inPath, string? password, TextWriter con, bool ownerOnly = true)
         {
-            if (ownerOnly && PdfEngineIntegration.IsRestrictedForPassword(inPath, password ?? ""))
-                throw new InvalidOperationException(RestrictedContentMessage);
+            PdfAccess access = PdfRestrictions.Read(inPath, password);
+            if (access.Role == PdfAccessRole.Refused || (ownerOnly && !access.MayModify))
+                throw new InvalidOperationException(CliRestrictionMessage(access));
             string workPath = inPath;
-            if (PdfImport.PdfFileHasEncryption(inPath))
+            if (access.Role != PdfAccessRole.Unencrypted)
             {
                 var dec = App.MakeTempFile("clidec");
                 if (!string.IsNullOrEmpty(password))
                 {
-                    PdfEngineIntegration.RemoveEncryption(inPath, dec, password!);
+                    // Only print reaches here without the right to edit, and a viewing copy is all it needs.
+                    if (access.MayModify) PdfEngineIntegration.RemoveEncryption(inPath, dec, password!);
+                    else PdfEngineIntegration.WriteViewingCopy(inPath, dec, password!);
                 }
                 else if (!PdfEngineIntegration.TryRemoveEncryptionWithoutPassword(inPath, dec)
                     && !PdfImport.TryImportRepairToPath(inPath, dec))
@@ -1977,7 +1992,7 @@ namespace KillerPDF.Features
 
             options.TryGetValue("--password", out var password);
             // The file's own print permission stands unless --password is its owner password.
-            PrintAllowance printAllowance = PrintPermission.ForPassword(inPath, password);
+            PrintAllowance printAllowance = PdfRestrictions.Read(inPath, password).Print;
             if (printAllowance == PrintAllowance.Forbidden)
             {
                 con.WriteLine("Printing is not allowed: the owner of this PDF has restricted printing. Give the owner password with --password.");
@@ -2013,8 +2028,7 @@ namespace KillerPDF.Features
             // rotation-corrected.
             using var document = new PrintRasterDocument(copies);
             List<int> selected;
-            using (var renderSession = PdfPageRenderSession.OpenEngineFirst(
-                renderPath, PrintPermission.Dpi(printAllowance) / 72.0))
+            using (var renderSession = PrintPermission.OpenRenderSession(renderPath, printAllowance))
             {
                 int pageCount = renderSession.PageCount;
                 if (options.TryGetValue("--pages", out var rangeSpec))

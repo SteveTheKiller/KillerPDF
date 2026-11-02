@@ -248,6 +248,11 @@
     <sys:String x:Key="Str_Restricted_Unlocked">{0} разблокирован для редактирования</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Это не пароль владельца этого PDF.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">«{0}» ограничивает печать. Введите пароль владельца, чтобы распечатать его.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">«{0}» разрешает печать только в низком качестве. Введите пароль владельца, чтобы печатать в полном качестве, или отмените, чтобы печатать в низком качестве.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">Печать запрещена. Сертификат, для которого зашифрован этот PDF, не разрешает печать, и никакой пароль этого не снимет.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">В «{0}» есть ограничения владельца, а сохранение снимает защиту. Введите пароль владельца, чтобы сохранить файл.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">PDF не сохранён. Сохранение сняло бы ограничения владельца, а снять их может только пароль владельца.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">PDF не сохранён. Сохранение сняло бы ограничения, заданные для вашего сертификата, а никакой пароль их не снимет.</sys:String>
     <sys:String x:Key="Str_Print_Refused">Печать запрещена. Владелец этого PDF ограничил печать, и снять ограничение может только пароль владельца.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» ограничивает редактирование, поэтому KillerPDF нужен пароль владельца, чтобы открыть его.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Открыто {0} (только-для-чтения - не-стандартная XRef таблица) - {1} страница(ы)</sys:String>

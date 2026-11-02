@@ -249,6 +249,11 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_Restricted_Unlocked">Unlocked {0} for editing</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">That is not the owner password for this PDF.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” restricts printing. Enter the owner password to print it.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">“{0}” allows printing only at low quality. Enter the owner password to print at full quality, or cancel to print at low quality.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">Printing is not allowed. The certificate this PDF is encrypted for does not permit printing, and no password lifts that.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">“{0}” carries limits set by its owner, and saving removes its protection. Enter the owner password to save it.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">The PDF was not saved. Saving would remove the limits its owner set, and only the owner password lifts those.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">The PDF was not saved. Saving would remove the limits set for your certificate, and no password lifts those.</sys:String>
     <sys:String x:Key="Str_Print_Refused">Printing is not allowed. The owner of this PDF has restricted printing, and only the owner password lifts that.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” restricts editing, so KillerPDF needs its owner password to open it.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Opened {0} read-only because of a non-standard XRef table ({1} page(s))</sys:String>

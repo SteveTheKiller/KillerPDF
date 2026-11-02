@@ -248,6 +248,11 @@ A página pode ser substituída por uma imagem dela mesma com as áreas marcadas
     <sys:String x:Key="Str_Restricted_Unlocked">{0} desbloqueado para edição</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Essa não é a senha do proprietário deste PDF.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” restringe a impressão. Insira a senha do proprietário para imprimi-lo.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">“{0}” permite imprimir apenas em baixa qualidade. Insira a senha do proprietário para imprimir em qualidade total ou cancele para imprimir em baixa qualidade.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">A impressão não é permitida. O certificado para o qual este PDF foi criptografado não permite impressão, e nenhuma senha remove essa restrição.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">“{0}” tem limites definidos pelo proprietário, e salvar remove sua proteção. Insira a senha do proprietário para salvá-lo.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">O PDF não foi salvo. Salvar removeria os limites definidos pelo proprietário, e somente a senha do proprietário os remove.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">O PDF não foi salvo. Salvar removeria os limites definidos para o seu certificado, e nenhuma senha os remove.</sys:String>
     <sys:String x:Key="Str_Print_Refused">A impressão não é permitida. O proprietário deste PDF restringiu a impressão, e somente a senha do proprietário remove essa restrição.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” restringe a edição, então o KillerPDF precisa da senha do proprietário para abri-lo.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} aberto (somente leitura - tabela XRef não padrão) - {1} página(s)</sys:String>

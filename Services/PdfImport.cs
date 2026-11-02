@@ -22,26 +22,8 @@ namespace KillerPDF.Services
 
         internal static bool IsPdfPath(string p) => p.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
 
-        /// <summary>
-        /// Returns true if the PDF file has an /Encrypt entry in its trailer.
-        /// Scans the last 2 KB so it's fast; works regardless of how PdfSharp
-        /// reports security state after authenticating with an empty password.
-        /// </summary>
-        internal static bool PdfFileHasEncryption(string path)
-        {
-            try
-            {
-                using var fs = File.OpenRead(path);
-                long scan = Math.Min(2048, fs.Length);
-                fs.Seek(-scan, SeekOrigin.End);
-                var buf = new byte[scan];
-                _ = fs.Read(buf, 0, buf.Length);
-                // Look for /Encrypt in the raw bytes (Latin-1 safe)
-                var text = System.Text.Encoding.GetEncoding(1252).GetString(buf);
-                return text.Contains("/Encrypt");
-            }
-            catch { return false; }
-        }
+        /// <summary>Returns true if the PDF file is encrypted, by the engine's own reading of it.</summary>
+        internal static bool PdfFileHasEncryption(string path) => PdfRestrictions.HasEncryption(path);
 
         /// <param name="stripRotations">
         /// Pass true when called from SaveTempAndReload (rotations already stripped in source).

@@ -248,6 +248,11 @@ La page peut être remplacée par une image d'elle-même avec les zones marquée
     <sys:String x:Key="Str_Restricted_Unlocked">{0} déverrouillé pour modification</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Ce n’est pas le mot de passe propriétaire de ce PDF.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">« {0} » restreint l’impression. Saisissez le mot de passe propriétaire pour l’imprimer.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">« {0} » n’autorise l’impression qu’en basse qualité. Saisissez le mot de passe propriétaire pour imprimer en pleine qualité, ou annulez pour imprimer en basse qualité.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">L’impression n’est pas autorisée. Le certificat pour lequel ce PDF est chiffré ne permet pas l’impression, et aucun mot de passe ne lève cette restriction.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">« {0} » comporte des limites fixées par son propriétaire, et l’enregistrement retire sa protection. Saisissez le mot de passe propriétaire pour l’enregistrer.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">Le PDF n’a pas été enregistré. L’enregistrement retirerait les limites fixées par son propriétaire, et seul le mot de passe propriétaire les lève.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">Le PDF n’a pas été enregistré. L’enregistrement retirerait les limites fixées pour votre certificat, et aucun mot de passe ne les lève.</sys:String>
     <sys:String x:Key="Str_Print_Refused">L’impression n’est pas autorisée. Le propriétaire de ce PDF a restreint l’impression, et seul le mot de passe propriétaire lève cette restriction.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">« {0} » restreint la modification, KillerPDF a donc besoin du mot de passe propriétaire pour l’ouvrir.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Ouvert : {0} (lecture seule - table XRef non standard) - {1} page(s)</sys:String>

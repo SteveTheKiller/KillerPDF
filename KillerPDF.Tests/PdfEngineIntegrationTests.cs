@@ -1357,7 +1357,7 @@ public sealed class PdfEngineIntegrationTests
                 .Build());
 
             PdfEngineIntegration.SetTextFieldBackground(
-                path, "customer.name", "Original",
+                path, "customer.name",
                 System.Windows.Media.Color.FromRgb(0x22, 0x88, 0xCC), null);
 
             PdfFormWidgetInfo field = Assert.Single(PdfFormWidgetReader.ReadPage(

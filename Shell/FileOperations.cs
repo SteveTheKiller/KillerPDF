@@ -34,7 +34,7 @@ namespace KillerPDF.Shell
         private bool _openedFromProtected { get => ActiveViewer.OpenedFromProtectedRef; set => ActiveViewer.OpenedFromProtectedRef = value; }
         private bool _restrictedByCertificate { get => ActiveViewer.RestrictedByCertificateRef; set => ActiveViewer.RestrictedByCertificateRef = value; }
         private bool _restrictedFormFillable { get => ActiveViewer.RestrictedFormFillableRef; set => ActiveViewer.RestrictedFormFillableRef = value; }
-        private bool _printUnlocked { get => ActiveViewer.PrintUnlockedRef; set => ActiveViewer.PrintUnlockedRef = value; }
+        private Services.OpenedProtection _protection { get => ActiveViewer.ProtectionRef; set => ActiveViewer.ProtectionRef = value; }
 
         private void OpenFile(string path)
         {
@@ -59,7 +59,8 @@ namespace KillerPDF.Shell
 
             // Certificate-recipient encryption has no password to ask for: it opens with a personal
             // certificate whose private key belongs to one of the recipients.
-            if (PdfImport.PdfFileHasEncryption(srcPath) && PdfEngineIntegration.IsCertificateEncrypted(srcPath))
+            bool encrypted = PdfImport.PdfFileHasEncryption(srcPath);
+            if (encrypted && PdfEngineIntegration.IsCertificateEncrypted(srcPath))
             {
                 OpenCertificateProtected(srcPath, path);
                 return;
@@ -72,7 +73,7 @@ namespace KillerPDF.Shell
                 // PdfSharp cannot save modified encrypted PDFs - it copies unmodified encrypted
                 // stream bytes verbatim but fails when it has to re-serialize a dirty object.
                 // Strip encryption silently at open time via Import so all edits work correctly.
-                if (PdfImport.PdfFileHasEncryption(srcPath))
+                if (encrypted)
                 {
                     // PdfSharp can read encrypted PDFs but cannot re-save them once modified, so the
                     // encryption is stripped (PDFium, lossless; Import fallback). That strip is CPU-heavy,
@@ -113,13 +114,13 @@ namespace KillerPDF.Shell
                     _currentFile = tempDec;
                     FinishOpenFile(path, tempDec);
                     _openedFromProtected = true;   // #149: unlocked with the user's password
-                    _printUnlocked = PrintPermission.IsOwnerPassword(srcPath, pw);
+                    _protection = OpenedProtection.Capture(srcPath, pw);
                 }
                 catch (WorkingCopyUnavailableException copy)
                 {
                     ShowWorkingCopyProblem(copy);
                 }
-                catch (Exception) when (PdfEngineIntegration.IsRestrictedForPassword(srcPath, pw))
+                catch (Exception) when (PdfRestrictions.Read(srcPath, pw) is { Role: PdfAccessRole.User, MayModify: false })
                 {
                     // The user password opens the file but its owner forbids editing, so it opens
                     // read-only with the notice that offers the owner password.
@@ -143,6 +144,7 @@ namespace KillerPDF.Shell
                     _doc = null; _doc = PdfWorkingDocument.Open(srcPath, isReadOnly: true);
                     _currentFile = srcPath;
                     FinishOpenFile(path, srcPath);
+                    RememberProtectionOfDamagedSource(srcPath);
                     SetStatus(string.Format(Loc("Str_OpenedReadOnlyXRef"), System.IO.Path.GetFileName(path), _doc.PageCount));
                     KillerDialog.Show(this,
                         string.Format(Loc("Str_Dlg_OpenedReadOnlyXRef"), System.IO.Path.GetFileName(path)),
@@ -264,7 +266,7 @@ namespace KillerPDF.Shell
             _openedFromProtected = false;   // #149: set true by the two protected-open paths after this returns
             _restrictedByCertificate = false;
             _restrictedFormFillable = false;   // read once by TryOpenProtectedReadOnly after this returns
-            _printUnlocked = false;
+            _protection = OpenedProtection.None;   // read once by the protected-open paths after this returns
             // Restore this file's last page and zoom if we've seen it before. View mode is global:
             // the last mode selected with the footer controls becomes the default for every PDF.
             _viewMode = Enum.TryParse<ViewMode>(App.GetSetting("ViewMode"), out var preferredView)
@@ -293,6 +295,14 @@ namespace KillerPDF.Shell
             }
             SetStatus(string.Format(Loc("Str_Opened"), System.IO.Path.GetFileName(displayPath), pageCount));
             SyncSidebarToDocState(hasDoc: true, startup: false);   // a document is up: open the rail, show page controls
+        }
+
+        // A damaged file reaches its open through a fallback or a repair instead of the protected
+        // paths, so whether it is protected is decided here, from the engine and not from how it opened.
+        private void RememberProtectionOfDamagedSource(string sourcePath)
+        {
+            _protection = OpenedProtection.Capture(sourcePath, null);
+            if (_protection.Access.Role != PdfAccessRole.Unencrypted) _openedFromProtected = true;
         }
 
         // Measurements are edited on the page overlay and written back on save, so the working copy
@@ -393,6 +403,7 @@ namespace KillerPDF.Shell
                 _doc = PdfWorkingDocument.Open(repairedPath);
                 _currentFile = repairedPath;
                 FinishOpenFile(path, repairedPath);
+                RememberProtectionOfDamagedSource(path);
                 MarkDirty(true); // repaired copy lives in temp - user must Save As
                 SetStatus(string.Format(Loc(raster ? "Str_OpenedRasterRepair" : "Str_OpenedRepaired"),
                                         System.IO.Path.GetFileName(path), _doc.PageCount));
@@ -441,13 +452,14 @@ namespace KillerPDF.Shell
                 try { certificates = Services.Signing.WindowsCertificateStore.ListEncryptionCertificates(); }
                 catch (System.Security.Cryptography.CryptographicException) { certificates = []; }
                 var tempDec = App.MakeTempFile("dec");
-                if (!PdfEngineIntegration.TryRemoveCertificateEncryption(srcPath, tempDec, certificates, out bool mayEdit))
+                if (!PdfEngineIntegration.TryRemoveCertificateEncryption(srcPath, tempDec, certificates, out PdfAccess recipient))
                 {
                     KillerDialog.Show(this, Loc("Str_Dlg_NoRecipientCertificate"), Loc("Str_Dlg_AppTitle"), MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
                 _doc?.Close();
                 _doc = null;
+                bool mayEdit = recipient.MayModify;
                 // A recipient its author did not let edit gets the file read-only, as in Acrobat. There is
                 // no owner password for certificate encryption, so nothing unlocks it here.
                 _doc = PdfWorkingDocument.Open(tempDec, isReadOnly: !mayEdit);
@@ -455,6 +467,7 @@ namespace KillerPDF.Shell
                 FinishOpenFile(displayPath, tempDec);
                 _openedFromProtected = true;
                 _restrictedByCertificate = !mayEdit;
+                _protection = OpenedProtection.ForRecipient(recipient);
                 if (!mayEdit) ActiveViewer.UpdateRestrictionNotice();
             }
             catch (WorkingCopyUnavailableException copy)
@@ -475,7 +488,7 @@ namespace KillerPDF.Shell
         private void OpenProtectDialog()
         {
             if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
-            if (!EnsureEditable()) return;
+            if (!EnsureEditable() || !EnsureMaySaveUnprotected()) return;
             CommitActiveTextBox();
             if (_isDirty || string.IsNullOrEmpty(_originalFile) || !File.Exists(_originalFile))
             {
@@ -527,6 +540,7 @@ namespace KillerPDF.Shell
                 _currentFile = repairedPath;
                 FinishOpenFile(displayPath, repairedPath);
                 _openedFromProtected = true;   // #149: source carried encryption, silently stripped above
+                _protection = OpenedProtection.Capture(srcPath, null);
                 if (markDirty) MarkDirty(true);   // stripped copy lives in temp - user must Save As to keep it
                 HideBusyOverlay(busy);
                 FinalizeAsyncOpen();
@@ -568,6 +582,7 @@ namespace KillerPDF.Shell
                 // The fill permission belongs to the file as opened, so it is read once here rather
                 // than parsed again on every save of a fill-allowed restricted form.
                 _restrictedFormFillable = PdfEngineIntegration.CanFillRestrictedForm(srcPath);
+                _protection = OpenedProtection.Capture(srcPath, null);
                 SetStatus(string.Format(Loc("Str_OpenedReadOnly"),
                     System.IO.Path.GetFileName(displayPath), _doc.PageCount));
                 return true;
@@ -601,6 +616,7 @@ namespace KillerPDF.Shell
                 FinishOpenFile(displayPath, tempDec);
                 ViewingCopySources[_currentFile!] = srcPath;   // finishing can move the working path
                 _openedFromProtected = true;   // #149: the source still carries its encryption
+                _protection = OpenedProtection.Capture(srcPath, password);
                 ActiveViewer.UpdateRestrictionNotice();
                 SetStatus(string.Format(Loc("Str_OpenedReadOnly"),
                     System.IO.Path.GetFileName(displayPath), _doc.PageCount));
@@ -627,6 +643,21 @@ namespace KillerPDF.Shell
         // the user then repeats the command on the unlocked document.
         private bool EnsureEditable(bool continueAfterUnlock = true)
             => !IsOwnerRestricted || (UnlockOwnerRestrictions() && continueAfterUnlock);
+
+        // Gate for anything that writes the whole document out, which leaves its encryption behind
+        // and with it every limit the file declares. The refusal says only the owner password lifts
+        // the limit, so a save asks for that password; a certificate recipient has none to give.
+        private bool EnsureMaySaveUnprotected()
+        {
+            OpenedProtection protection = _protection;
+            if (protection.AskToSaveUnprotected(() => KillerDialog.PromptPassword(this, _originalFile ?? _currentFile ?? string.Empty,
+                    Loc("Str_Save_Restricted_Prompt"), Loc("Str_Restricted_Unlock"))))
+                return true;
+            bool recipient = protection.Access.Role == PdfAccessRole.Recipient;
+            KillerDialog.Show(this, Loc(recipient ? "Str_Save_Refused_Certificate" : "Str_Save_Refused"), "KillerPDF",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
 
         // Asks for the owner password and reopens the restricted PDF from an unrestricted working
         // copy. A wrong password, or the empty user password, leaves the document read-only.
@@ -664,6 +695,7 @@ namespace KillerPDF.Shell
             // entries, pasted annotations) carries over instead of being lost to the reopen. A failed
             // unlock puts it back on the read-only original the same way.
             bool wasDirty = _isDirty;
+            OpenedProtection protection = _protection;
             var annotations = _annotations.ToDictionary(pair => pair.Key, pair => pair.Value);
             var rotations = new Dictionary<int, int>(_pageRotations);
             var textValues = new Dictionary<string, string>(_formTextValues);
@@ -679,7 +711,7 @@ namespace KillerPDF.Shell
                 _currentFile = unlockedPath;
                 FinishOpenFile(displayPath, unlockedPath);
                 _openedFromProtected = true;   // #149: the source still carries its encryption
-                _printUnlocked = true;   // the owner password lifts every limit, printing too
+                _protection = OpenedProtection.Unlocked();   // the owner password lifts every limit, printing too
                 CarryOverlays();
                 FinalizeAsyncOpen();
                 SetStatus(string.Format(Loc("Str_Restricted_Unlocked"), System.IO.Path.GetFileName(displayPath)));
@@ -703,9 +735,13 @@ namespace KillerPDF.Shell
 
             void CarryOverlays()
             {
-                // A failed unlock reopens the viewing copy; it still unlocks from the original.
+                // A failed unlock reopens the viewing copy; it still unlocks from the original, and
+                // a copy with no encryption left cannot say what the original allowed.
                 if (_doc?.IsReadOnly == true && _currentFile is not null)
+                {
                     ViewingCopySources[_currentFile] = encryptedPath;
+                    _protection = protection;
+                }
                 foreach (var pair in annotations) _annotations[pair.Key] = pair.Value;
                 foreach (var pair in rotations) _pageRotations[pair.Key] = pair.Value;
                 foreach (var pair in textValues) _formTextValues[pair.Key] = pair.Value;
@@ -1401,7 +1437,7 @@ namespace KillerPDF.Shell
                 SaveRestrictedFormFill(_originalFile!);
                 return;
             }
-            if (!EnsureEditable()) return;
+            if (!EnsureEditable() || !EnsureMaySaveUnprotected()) return;
             // Save back to the user's real file. After a page edit (crop/rotate) _currentFile is a
             // temp working copy, so the real path is kept in _originalFile. If there is no real path
             // (e.g. a repaired temp-backed open), fall back to Save As.
@@ -1548,7 +1584,7 @@ namespace KillerPDF.Shell
         {
             if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             bool restrictedFill = CanSaveRestrictedFormFill();
-            if (!restrictedFill && !EnsureEditable()) return;
+            if (!restrictedFill && (!EnsureEditable() || !EnsureMaySaveUnprotected())) return;
             CommitActiveTextBox();
             var dlg = new Controls.FileDialog(Controls.FileDialogMode.Save)
                           { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SavePdfAs"),
@@ -1758,7 +1794,7 @@ namespace KillerPDF.Shell
         private async void SaveFlattened_Click(object sender, RoutedEventArgs e)
         {
             if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
-            if (!EnsureEditable()) return;
+            if (!EnsureEditable() || !EnsureMaySaveUnprotected()) return;
             var dlg = new Controls.FileDialog(Controls.FileDialogMode.Save)
                           { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SaveFlattened"),
                             CheckFileExists = false, CheckPathExists = true, RequireFilterExtension = true };
@@ -2006,7 +2042,9 @@ namespace KillerPDF.Shell
                 int written = await Task.Run(() =>
                 {
                     Dictionary<int, double>? nativeDpi = keepResolution
-                        ? engineSession.NativeDpis(pages, rotations, dpi) : null;
+                        ? engineSession.NativeDpis(pages, rotations, dpi, ct,
+                            (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(overlay, n, total))))
+                        : null;
                     return PdfRasterize.ExportPageImages(sourcePath, pages,
                         rotSnapshot, dpi, jpeg, outDir, baseName, digits,
                         (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(overlay, n, total))),
@@ -2099,34 +2137,30 @@ namespace KillerPDF.Shell
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => RunPrintFlow(printDpi)));
         }
 
-        // The print permission is read from the encrypted file itself, because a PDF whose owner
-        // forbids only printing still opens for editing and never counts as restricted. The owner
-        // password lifts the limit for this document; a file that allows only low quality printing
-        // prints at the lower resolution.
+        // The print permission was read when the file opened and stays with the tab, because a PDF
+        // whose owner forbids only printing still opens for editing and never counts as restricted.
+        // The owner password lifts the limit for this document, and a file that allows only low
+        // quality printing prints at the lower resolution without it. A certificate has no owner
+        // password, so a recipient is never asked for one.
         private bool TryAllowPrinting(out double printDpi)
         {
-            printDpi = PrintPermission.FullDpi;
-            if (!_openedFromProtected || _printUnlocked) return true;
-            string? encrypted = _currentFile is not null && ViewingCopySources.TryGetValue(_currentFile, out string? viewingSource)
-                ? viewingSource : _originalFile;
-            if (string.IsNullOrEmpty(encrypted) || !File.Exists(encrypted)) return true;
-            PrintAllowance allowance = PrintPermission.ReadFor(encrypted);
-            if (allowance == PrintAllowance.Forbidden)
+            OpenedProtection protection = _protection;
+            PrintAnswer answer = protection.AskToPrint(allowance => KillerDialog.PromptPassword(this,
+                _originalFile ?? _currentFile ?? string.Empty,
+                Loc(allowance == PrintAllowance.Forbidden ? "Str_Print_Restricted_Prompt" : "Str_Print_LowQuality_Prompt"),
+                Loc("Str_Restricted_Unlock")));
+            printDpi = answer.Dpi;
+            if (answer.MayPrint)
             {
-                string? password = KillerDialog.PromptPassword(this, _originalFile ?? encrypted,
-                    Loc("Str_Print_Restricted_Prompt"), Loc("Str_Restricted_Unlock"));
-                if (password is null || !PrintPermission.IsOwnerPassword(encrypted, password))
-                {
-                    if (password is null) SetStatus(Loc("Str_Print_Refused"));
-                    else KillerDialog.Show(this, Loc("Str_Print_Refused"), "KillerPDF",
-                        MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return false;
-                }
-                _printUnlocked = true;
-                allowance = PrintAllowance.Allowed;
+                if (answer.WrongPassword) KillerDialog.Show(this, Loc("Str_Restricted_WrongPassword"), "KillerPDF",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return true;
             }
-            printDpi = PrintPermission.Dpi(allowance);
-            return true;
+            bool recipient = protection.Access.Role == PdfAccessRole.Recipient;
+            string refusal = Loc(recipient ? "Str_Print_Refused_Certificate" : "Str_Print_Refused");
+            if (protection.CanLift && !answer.WrongPassword) SetStatus(refusal);
+            else KillerDialog.Show(this, refusal, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
         }
 
         private async void RunPrintFlow(double printDpi)

@@ -128,13 +128,13 @@ public sealed class CliExitCodeTests : IDisposable
     }
 
     // Opens with the empty user password, but the owner forbids editing, and printing when asked to.
-    private string RestrictedPdf(string name, bool mayPrint = true)
+    private string RestrictedPdf(string name, bool mayPrint = true, string user = "")
     {
         string path = Path.Combine(folder, name);
         File.WriteAllBytes(path, new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
             .SetPasswordEncryption(new KillerPdf.Engine.Security.PdfPasswordEncryptionOptions
             {
-                UserPassword = "",
+                UserPassword = user,
                 OwnerPassword = "owner-password",
                 AllowDocumentModification = false,
                 AllowLowQualityPrinting = mayPrint,
@@ -201,6 +201,140 @@ public sealed class CliExitCodeTests : IDisposable
         string pdf = RestrictedPdf("edit-only.pdf");
 
         Assert.Equal(2, Run("--print", pdf, "--printer", "KillerPDF-no-such-printer"));
+    }
+
+    // The user password opens this one and the owner forbids editing but not printing, so the run
+    // reaches the printer lookup, the same as the owner password does.
+    [Fact]
+    public void TheUserPasswordPrintsAPdfThatAllowsPrintingButNotEditing()
+    {
+        string pdf = RestrictedPdf("user-print.pdf", user: "reader");
+
+        Assert.Equal(2, Run("--print", pdf, "--printer", "KillerPDF-no-such-printer", "--password", "reader"));
+        Assert.Equal(2, Run("--print", pdf, "--printer", "KillerPDF-no-such-printer", "--password", "owner-password"));
+        Assert.Equal(1, Run("--print", pdf, "--printer", "KillerPDF-no-such-printer", "--password", "wrong"));
+    }
+
+    [Fact]
+    public void AWrongPasswordTakesNoAttachmentsFromARestrictedPdf()
+    {
+        string pdf = RestrictedPdf("wrong-attachments.pdf");
+        string refused = Path.Combine(folder, "wrong-attachments");
+
+        Assert.Equal(1, Run("--attachments", pdf, refused, "--password", "wrong"));
+        Assert.False(Directory.Exists(refused) && Directory.GetFiles(refused).Length > 0);
+    }
+
+    [Fact]
+    public void AttachmentsReadWithThePasswordOfAFileThatNeedsOne()
+    {
+        string pdf = RestrictedPdf("user-attachments.pdf", user: "reader");
+        string allowed = Path.Combine(folder, "user-attachments-owner"), refused = Path.Combine(folder, "user-attachments-user");
+
+        Assert.Equal(0, Run("--attachments", pdf, "--password", "reader"));
+        Assert.Equal(0, Run("--attachments", pdf, allowed, "--password", "owner-password"));
+        Assert.NotEmpty(Directory.GetFiles(allowed));
+        Assert.Equal(1, Run("--attachments", pdf, refused, "--password", "reader"));
+        Assert.False(Directory.Exists(refused) && Directory.GetFiles(refused).Length > 0);
+    }
+
+    [Fact]
+    public void BatchRenderSkipsARestrictedPdfAndRendersItOnlyWithTheOwnerPassword()
+    {
+        string pdf = RestrictedPdf("batch-restricted.pdf");
+        string refused = Path.Combine(folder, "batch-refused"), allowed = Path.Combine(folder, "batch-allowed");
+        string log = Path.Combine(folder, "batch.csv");
+
+        Assert.Equal(1, Run("--batch-render", pdf, refused, "--log", log));
+        Assert.Empty(Directory.GetFiles(refused, "*.png"));
+        string row = Assert.Single(File.ReadAllLines(log).Skip(1));
+        Assert.Contains(",SKIP,", row, StringComparison.Ordinal);
+        Assert.Equal(1, Run("--batch-render", pdf, refused, "--password", "wrong"));
+        Assert.Empty(Directory.GetFiles(refused, "*.png"));
+        Assert.Equal(0, Run("--batch-render", pdf, allowed, "--password", "owner-password"));
+        Assert.NotEmpty(Directory.GetFiles(allowed, "*.png"));
+    }
+
+    [Fact]
+    public void BatchRenderWithTheOwnerPasswordReadsAFileThatNeedsAPassword()
+    {
+        string pdf = RestrictedPdf("batch-user.pdf", user: "reader");
+        string allowed = Path.Combine(folder, "batch-user");
+
+        Assert.Equal(0, Run("--batch-render", pdf, allowed, "--password", "owner-password"));
+        Assert.NotEmpty(Directory.GetFiles(allowed, "*.png"));
+    }
+
+    [Theory]
+    [InlineData("out.txt")]
+    [InlineData("out.json")]
+    [InlineData("out.html")]
+    [InlineData("out.md")]
+    [InlineData("out.docx")]
+    [InlineData("out.xlsx")]
+    [InlineData("out.pptx")]
+    public void EveryExportFormatLeavesARestrictedPdfOnlyWithTheOwnerPassword(string fileName)
+    {
+        string pdf = RestrictedPdf("export-" + fileName + ".pdf");
+        string output = Path.Combine(folder, fileName);
+
+        Assert.Equal(1, Run("--export", pdf, output));
+        Assert.False(File.Exists(output));
+        Assert.Equal(1, Run("--export", pdf, output, "--password", "wrong"));
+        Assert.False(File.Exists(output));
+        Assert.Equal(0, Run("--export", pdf, output, "--password", "owner-password"));
+        Assert.True(File.Exists(output));
+    }
+
+    [Theory]
+    [InlineData("out-images.docx")]
+    [InlineData("out-images.pptx")]
+    public void PageImageExportLeavesARestrictedPdfOnlyWithTheOwnerPassword(string fileName)
+    {
+        string pdf = RestrictedPdf("export-" + fileName + ".pdf");
+        string output = Path.Combine(folder, fileName);
+
+        Assert.Equal(1, Run("--export", pdf, output, "--layout", "images"));
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public void ExportReadsWithThePasswordOfAFileThatNeedsOne()
+    {
+        string pdf = RestrictedPdf("export-user.pdf", user: "reader");
+        string output = Path.Combine(folder, "export-user.txt");
+
+        Assert.Equal(0, Run("--export", pdf, output, "--password", "owner-password"));
+        Assert.True(File.Exists(output));
+    }
+
+    [Fact]
+    public void MacroStepsTakeTheOwnerPassword()
+    {
+        string pdf = RestrictedPdf("macro.pdf");
+        string refused = Path.Combine(folder, "macro-refused.pdf"), allowed = Path.Combine(folder, "macro-allowed.pdf");
+
+        Assert.Equal(1, Run("--macro", pdf, "starter:scanning", refused));
+        Assert.False(File.Exists(refused));
+        Assert.Equal(1, Run("--macro", pdf, "starter:scanning", refused, "--password", "wrong"));
+        Assert.False(File.Exists(refused));
+        Assert.Equal(0, Run("--macro", pdf, "starter:scanning", allowed, "--password", "owner-password"));
+        Assert.True(File.Exists(allowed));
+    }
+
+    // Tail padding pushes /Encrypt out of the last 2 KB, which is what a linearized file or a large
+    // cross-reference stream does, so a gate that trusted a tail scan would find nothing to protect.
+    [Fact]
+    public void AWrongPasswordTakesNoPagesFromARestrictedPdfWhoseEncryptionIsFarFromTheEnd()
+    {
+        string pdf = RestrictedPdf("tail-padded.pdf");
+        File.AppendAllText(pdf, "\n%" + new string('p', 4096) + "\n");
+        string refused = Path.Combine(folder, "tail-refused");
+
+        Assert.Equal(1, Run("--to-image", pdf, refused, "--password", "wrong"));
+        Assert.False(Directory.Exists(refused) && Directory.GetFiles(refused).Length > 0);
+        Assert.Equal(1, Run("--to-image", pdf, refused));
+        Assert.False(Directory.Exists(refused) && Directory.GetFiles(refused).Length > 0);
     }
 
     private string Blank(string name)

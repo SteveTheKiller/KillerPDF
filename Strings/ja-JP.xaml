@@ -248,6 +248,11 @@
     <sys:String x:Key="Str_Restricted_Unlocked">{0} の編集制限を解除しました</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">この PDF の所有者パスワードではありません。</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">「{0}」は印刷が制限されています。印刷するには所有者パスワードを入力してください。</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">「{0}」は低品質の印刷のみ許可されています。高品質で印刷するには所有者パスワードを入力してください。低品質で印刷する場合はキャンセルしてください。</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">印刷は許可されていません。この PDF の暗号化先の証明書では印刷が許可されておらず、パスワードでは解除できません。</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">「{0}」には所有者が設定した制限があり、保存すると保護が解除されます。保存するには所有者パスワードを入力してください。</sys:String>
+    <sys:String x:Key="Str_Save_Refused">PDF は保存されませんでした。保存すると所有者が設定した制限が解除されてしまいますが、制限を解除できるのは所有者パスワードだけです。</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">PDF は保存されませんでした。保存するとお使いの証明書に設定された制限が解除されてしまいますが、パスワードでは解除できません。</sys:String>
     <sys:String x:Key="Str_Print_Refused">印刷は許可されていません。この PDF の所有者が印刷を制限しており、所有者パスワードでのみ解除できます。</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">「{0}」は編集が制限されているため、KillerPDF で開くには所有者パスワードが必要です。</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} を開きました (読み取り専用 - 非標準 XRef テーブル) - {1} ページ</sys:String>

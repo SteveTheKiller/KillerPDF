@@ -232,6 +232,11 @@
     <sys:String x:Key="Str_Restricted_Unlocked">已解除 {0} 的編輯限制</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">這不是此 PDF 的擁有者密碼。</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">「{0}」限制了列印。輸入擁有者密碼即可列印。</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">「{0}」僅允許以低品質列印。輸入擁有者密碼可按完整品質列印，取消則以低品質列印。</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">不允許列印。此 PDF 所針對的憑證不允許列印，任何密碼都無法解除。</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">「{0}」帶有擁有者設定的限制，儲存會移除其保護。輸入擁有者密碼即可儲存。</sys:String>
+    <sys:String x:Key="Str_Save_Refused">PDF 未儲存。儲存會移除擁有者設定的限制，只有擁有者密碼才能解除這些限制。</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">PDF 未儲存。儲存會移除為您的憑證設定的限制，任何密碼都無法解除這些限制。</sys:String>
     <sys:String x:Key="Str_Print_Refused">不允許列印。此 PDF 的擁有者限制了列印，只有擁有者密碼才能解除。</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">「{0}」限制了編輯，因此 KillerPDF 需要擁有者密碼才能開啟。</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">已開啟 {0}（唯讀 - 非標準 XRef 表）- {1} 頁</sys:String>

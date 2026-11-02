@@ -248,6 +248,11 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_Restricted_Unlocked">{0} er låst opp for redigering</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Det er ikke eierpassordet for denne PDF-en.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">«{0}» begrenser utskrift. Skriv inn eierpassordet for å skrive den ut.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">«{0}» tillater bare utskrift i lav kvalitet. Skriv inn eierpassordet for å skrive ut i full kvalitet, eller avbryt for å skrive ut i lav kvalitet.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">Utskrift er ikke tillatt. Sertifikatet denne PDF-en er kryptert for, tillater ikke utskrift, og ingen passord opphever det.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">«{0}» har begrensninger satt av eieren, og lagring fjerner beskyttelsen. Skriv inn eierpassordet for å lagre den.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">PDF-en ble ikke lagret. Lagring ville fjerne begrensningene eieren har satt, og bare eierpassordet opphever dem.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">PDF-en ble ikke lagret. Lagring ville fjerne begrensningene som er satt for sertifikatet ditt, og ingen passord opphever dem.</sys:String>
     <sys:String x:Key="Str_Print_Refused">Utskrift er ikke tillatt. Eieren av denne PDF-en har begrenset utskrift, og bare eierpassordet opphever begrensningen.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» begrenser redigering, så KillerPDF trenger eierpassordet for å åpne den.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Åpnet {0} (skrivebeskyttet, ikke-standard XRef-tabell) - {1} side(r)</sys:String>

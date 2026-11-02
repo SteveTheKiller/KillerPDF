@@ -248,6 +248,11 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_Restricted_Unlocked">{0} sbloccato per la modifica</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Questa non è la password del proprietario di questo PDF.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">'{0}' limita la stampa. Inserisci la password del proprietario per stamparlo.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">'{0}' consente la stampa solo in bassa qualità. Inserisci la password del proprietario per stampare in piena qualità, oppure annulla per stampare in bassa qualità.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">La stampa non è consentita. Il certificato per cui questo PDF è cifrato non permette la stampa e nessuna password rimuove il limite.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">'{0}' ha limiti impostati dal proprietario e il salvataggio ne rimuove la protezione. Inserisci la password del proprietario per salvarlo.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">Il PDF non è stato salvato. Il salvataggio rimuoverebbe i limiti impostati dal proprietario e solo la password del proprietario li rimuove.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">Il PDF non è stato salvato. Il salvataggio rimuoverebbe i limiti impostati per il tuo certificato e nessuna password li rimuove.</sys:String>
     <sys:String x:Key="Str_Print_Refused">La stampa non è consentita. Il proprietario di questo PDF ha limitato la stampa e solo la password del proprietario rimuove il limite.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">'{0}' limita la modifica, quindi KillerPDF richiede la password del proprietario per aprirlo.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Aperto {0} (sola lettura - tabella XRef non standard) - {1} pagine</sys:String>

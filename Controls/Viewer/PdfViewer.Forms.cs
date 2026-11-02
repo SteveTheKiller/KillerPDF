@@ -302,8 +302,6 @@ namespace KillerPDF.Controls
             var dialog = new ColorPickerDialog(Window.GetWindow(this), initial);
             dialog.ShowDialog();
             if (!dialog.Accepted || _currentFile is null) return;
-            string value = _formTextValues.TryGetValue(field.FieldName, out string? pending)
-                ? pending : field.CurrentValue;
             double? fontSize = _formFontSizes.TryGetValue(field.FieldName, out double size)
                 ? size : null;
             Color selected = dialog.SelectedColor;
@@ -313,7 +311,7 @@ namespace KillerPDF.Controls
                     keepAnnotations: true,
                     preserveZoom: true,
                     finalizeSavedFile: path => PdfEngineIntegration.SetTextFieldBackground(
-                        path, field.FieldName, value, selected, fontSize),
+                        path, field.FieldName, selected, fontSize),
                     selectedPageAfterReload: pageIndex,
                     preserveRenderedPages: true);
             }
@@ -423,6 +421,7 @@ namespace KillerPDF.Controls
 
             // Collect radio buttons per group so we can wire mutual exclusion after the loop.
             var radioGroups = new Dictionary<string, List<(Ellipse dot, string onVal)>>();
+            var checkMarks = new Controls.RepeatedCheckMarks();
 
             bool anyField = false;
             foreach (var f in fields)
@@ -676,13 +675,14 @@ namespace KillerPDF.Controls
                     };
                     string capturedKey = f.FieldName;
                     bool checkInitial = isChecked;
+                    checkMarks.Add(capturedKey, checkMark);
                     ctrl = new Controls.FormToggleSurface(box, Controls.FormToggleSurface.ToggleKind.CheckBox,
                         () => _formCheckValues.TryGetValue(capturedKey, out var v) ? v : checkInitial,
                         f.IsReadOnly ? null : () =>
                         {
                             bool now = !(_formCheckValues.TryGetValue(capturedKey, out var v) ? v : checkInitial);
                             _formCheckValues[capturedKey] = now;
-                            checkMark.Visibility = now ? Visibility.Visible : Visibility.Collapsed;
+                            checkMarks.Show(capturedKey, now);
                             MarkDirty(true);
                         })
                     {

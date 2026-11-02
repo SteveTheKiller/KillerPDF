@@ -14,13 +14,16 @@ namespace KillerPDF.Features
     // Headless CLI render benchmark
     // ============================================================
     //
-    // KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--parallel <n>] [--log <file.csv>] [--quiet] [--allow-incomplete]
+    // KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--parallel <n>] [--log <file.csv>] [--quiet] [--allow-incomplete] [--password <p>]
     //
     // Renders the first N pages of one PDF (or every *.pdf under a folder tree)
     // through the same page-render path the viewer, print, flatten, and image
     // export use, scaled to fit inside a --size square (default 1024), and
     // writes one PNG per page mirroring the input tree. The CSV log records
     // milliseconds per page so two builds can be compared on the same input.
+    // A PDF whose owner restricts editing gives up its pages only to --password
+    // with the owner password; without it the file is a SKIP row, so a corpus
+    // run keeps its tally and the pages stay in the file.
     //
     // Exit codes: 0 = every selected file rendered, 1 = a file could not render
     // or the input contained no PDFs or the run itself failed, 2 = bad usage or bad paths.
@@ -48,7 +51,7 @@ namespace KillerPDF.Features
 
             var con = BatchRunner.OpenBatchConsole();
             CommandLineCrash.Console = con;
-            string? input = null, output = null, logPath = null;
+            string? input = null, output = null, logPath = null, password = null;
             int size = DefaultSize, pages = 1;
             int parallelism = 0;
             bool quiet = false, badUsage = false, allowIncomplete = false;
@@ -58,6 +61,11 @@ namespace KillerPDF.Features
                 if (string.Equals(a, "--log", StringComparison.OrdinalIgnoreCase))
                 {
                     if (i + 1 < args.Length) logPath = args[++i];
+                    else badUsage = true;
+                }
+                else if (string.Equals(a, "--password", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (i + 1 < args.Length) password = args[++i];
                     else badUsage = true;
                 }
                 else if (string.Equals(a, "--size", StringComparison.OrdinalIgnoreCase))
@@ -98,7 +106,7 @@ namespace KillerPDF.Features
 
             if (badUsage || string.IsNullOrWhiteSpace(input) || string.IsNullOrWhiteSpace(output))
             {
-                con.WriteLine("Usage: KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--parallel <n>] [--log <file.csv>] [--quiet] [--allow-incomplete]");
+                con.WriteLine("Usage: KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--parallel <n>] [--log <file.csv>] [--quiet] [--allow-incomplete] [--password <p>]");
                 exitCode = 2;
                 return true;
             }
@@ -106,7 +114,7 @@ namespace KillerPDF.Features
             try
             {
                 if (parallelism == 0) parallelism = DefaultParallelism(size, Environment.ProcessorCount);
-                exitCode = Run(input!, output!, size, pages, parallelism, logPath, quiet, allowIncomplete, con);
+                exitCode = Run(input!, output!, size, pages, parallelism, logPath, quiet, allowIncomplete, password, con);
             }
             catch (Exception ex)
             {
@@ -117,7 +125,7 @@ namespace KillerPDF.Features
         }
 
         private static int Run(string input, string output, int size, int pageLimit,
-            int parallelism, string? logPath, bool quiet, bool allowIncomplete, TextWriter con)
+            int parallelism, string? logPath, bool quiet, bool allowIncomplete, string? password, TextWriter con)
         {
             var work = new List<(string Rel, string Src)>();
             if (File.Exists(input))
@@ -173,7 +181,7 @@ namespace KillerPDF.Features
                 string rel = perFile[index].Rel;
                 string src = perFile[index].Src;
                 string dstBase = Path.Combine(outRoot, rel);
-                foreach (var row in RenderFile(src, dstBase, size, pageLimit, allowIncomplete))
+                foreach (var row in RenderFile(src, dstBase, size, pageLimit, allowIncomplete, password))
                     perFile[index].Rows.Add(row);
                 // A finished document's source bytes and decoded images stay in the large-object
                 // heap until a full collection; collect now so they do not add to the next file's peak.
@@ -229,7 +237,7 @@ namespace KillerPDF.Features
         // Fits each page inside a size-by-size box through the engine render session,
         // the same as the image export path (annotations and form fields painted).
         private static List<RenderRow> RenderFile(string src, string dstBase, int size, int pageLimit,
-            bool allowIncomplete)
+            bool allowIncomplete, string? password)
         {
             var rows = new List<RenderRow>();
             PdfPageRenderSession session;
@@ -237,7 +245,25 @@ namespace KillerPDF.Features
             var open = Stopwatch.StartNew();
             try
             {
-                session = PdfPageRenderSession.OpenEngineFirst(src, size, size);
+                // The gate reads a plain file no further than the open does, so two builds still
+                // compare, and nothing renders before it has answered.
+                if (string.IsNullOrEmpty(password))
+                {
+                    session = PdfPageRenderSession.OpenEngineFirst(src, size, size);
+                    if (session.IsEncrypted && Refusal(PdfRestrictions.Read(src, null)) is string refusal)
+                    {
+                        session.Dispose();
+                        return Skipped(refusal);
+                    }
+                }
+                else
+                {
+                    PdfAccess access = PdfRestrictions.Read(src, password);
+                    if (Refusal(access) is string refusal) return Skipped(refusal);
+                    session = access.Role == PdfAccessRole.Owner
+                        ? PdfPageRenderSession.OpenEngineFirst(src, size, size, password)
+                        : PdfPageRenderSession.OpenEngineFirst(src, size, size);
+                }
                 pageCount = session.PageCount;
             }
             catch (Exception ex)
@@ -289,7 +315,17 @@ namespace KillerPDF.Features
                 }
             }
             return rows;
+
+            List<RenderRow> Skipped(string detail)
+            {
+                rows.Add(new RenderRow { Page = 0, Status = "SKIP", Milliseconds = open.ElapsedMilliseconds,
+                    OpenMilliseconds = open.ElapsedMilliseconds, Detail = BatchRunner.FlattenBatchDetail(detail) });
+                return rows;
+            }
         }
+
+        private static string? Refusal(PdfAccess access) => access.MayModify ? null
+            : "restricted: " + (access.Refusal ?? "the owner forbids editing, so its pages leave it only with the owner password");
 
         // File names and renderer details can carry text a spreadsheet would run as a formula.
         private static string Csv(string s) => KillerPdf.Engine.Documents.PdfCsv.Field(s, alwaysQuote: false);

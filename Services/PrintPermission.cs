@@ -1,5 +1,3 @@
-using System.IO;
-using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Security;
 
 namespace KillerPDF.Services;
@@ -13,47 +11,23 @@ internal enum PrintAllowance
     Forbidden
 }
 
-/// <summary>Reads the print permission a PDF declares, and whether a password lifts it. The permission
-/// is read straight from the file, since a PDF whose owner forbids only printing still opens for
-/// editing and so never counts as a restricted viewing copy.</summary>
+/// <summary>What a print allowance means for the job. Whether a reader has one is answered by
+/// <see cref="PdfRestrictions"/>.</summary>
 internal static class PrintPermission
 {
     internal const double FullDpi = 300;
     internal const double LowQualityDpi = 150;
 
-    internal static PrintAllowance Of(PdfDocumentPermissions? permissions) =>
-        permissions is null || permissions.AllowHighQualityPrinting ? PrintAllowance.Allowed
+    internal static PrintAllowance Of(PdfDocumentPermissions permissions) =>
+        permissions.AllowHighQualityPrinting ? PrintAllowance.Allowed
         : permissions.AllowLowQualityPrinting ? PrintAllowance.LowQualityOnly
         : PrintAllowance.Forbidden;
 
     internal static double Dpi(PrintAllowance allowance) =>
         allowance == PrintAllowance.LowQualityOnly ? LowQualityDpi : FullDpi;
 
-    /// <summary>What the file at the path allows. A file with no password encryption, or one whose
-    /// permissions cannot be read, allows printing.</summary>
-    internal static PrintAllowance ReadFor(string path)
-    {
-        try { return Of(PdfDocument.OpenWithCompatibilityRecovery(File.ReadAllBytes(path)).ReadDeclaredPermissionsWithoutPassword()); }
-        catch (Exception error) when (error is not OutOfMemoryException) { return PrintAllowance.Allowed; }
-    }
-
-    /// <summary>True when the password is the file's owner password, which lifts every permission.</summary>
-    internal static bool IsOwnerPassword(string path, string password)
-    {
-        try
-        {
-            return PdfDocument.OpenWithCompatibilityRecovery(File.ReadAllBytes(path), password)
-                .PasswordAuthenticationRole == PdfPasswordAuthenticationRole.Owner;
-        }
-        catch (Exception error) when (error is not OutOfMemoryException) { return false; }
-    }
-
-    /// <summary>The allowance that stands for a command line print: the file's own, unless the
-    /// password given is the owner password.</summary>
-    internal static PrintAllowance ForPassword(string path, string? password)
-    {
-        PrintAllowance allowance = ReadFor(path);
-        return allowance != PrintAllowance.Allowed && !string.IsNullOrEmpty(password) && IsOwnerPassword(path, password)
-            ? PrintAllowance.Allowed : allowance;
-    }
+    /// <summary>The session a print job renders through, from the app or the command line, so annotation
+    /// flags, layers and redaction marks come out as they print.</summary>
+    internal static PdfPageRenderSession OpenRenderSession(string path, PrintAllowance allowance) =>
+        PdfPageRenderSession.OpenEngineFirst(path, Dpi(allowance) / 72.0, forPrinting: true);
 }

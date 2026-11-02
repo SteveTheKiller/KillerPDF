@@ -230,6 +230,11 @@
     <sys:String x:Key="Str_Restricted_Unlocked">{0} সম্পাদনার জন্য আনলক হয়েছে</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">এটি এই PDF-এর মালিকের পাসওয়ার্ড নয়।</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” মুদ্রণ সীমিত করে। মুদ্রণ করতে মালিকের পাসওয়ার্ড দিন।</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">“{0}” শুধু নিম্ন মানে মুদ্রণের অনুমতি দেয়। পূর্ণ মানে মুদ্রণ করতে মালিকের পাসওয়ার্ড দিন, অথবা নিম্ন মানে মুদ্রণ করতে বাতিল করুন।</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">মুদ্রণের অনুমতি নেই। এই PDF যে সার্টিফিকেটের জন্য এনক্রিপ্ট করা, সেটি মুদ্রণের অনুমতি দেয় না, আর কোনো পাসওয়ার্ড দিয়ে এই সীমা তোলা যায় না।</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">“{0}”-এ এর মালিকের দেওয়া সীমা আছে, আর সংরক্ষণ করলে এর সুরক্ষা সরে যায়। সংরক্ষণ করতে মালিকের পাসওয়ার্ড দিন।</sys:String>
+    <sys:String x:Key="Str_Save_Refused">PDF সংরক্ষণ করা হয়নি। সংরক্ষণ করলে মালিকের দেওয়া সীমা সরে যেত, আর শুধু মালিকের পাসওয়ার্ড দিলেই সেই সীমা তোলা যায়।</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">PDF সংরক্ষণ করা হয়নি। সংরক্ষণ করলে আপনার সার্টিফিকেটের জন্য দেওয়া সীমা সরে যেত, আর কোনো পাসওয়ার্ড দিয়ে সেই সীমা তোলা যায় না।</sys:String>
     <sys:String x:Key="Str_Print_Refused">মুদ্রণের অনুমতি নেই। এই PDF-এর মালিক মুদ্রণ সীমিত করেছেন, আর শুধু মালিকের পাসওয়ার্ড দিলেই এই সীমা তোলা যায়।</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” সম্পাদনা সীমিত করে, তাই এটি খুলতে KillerPDF-এর মালিকের পাসওয়ার্ড প্রয়োজন।</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} খোলা হয়েছে (শুধুমাত্র পঠনযোগ্য - অ-মানক XRef টেবিল) - {1} পৃষ্ঠা</sys:String>

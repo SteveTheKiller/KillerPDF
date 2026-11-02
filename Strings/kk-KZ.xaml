@@ -170,6 +170,11 @@
     <sys:String x:Key="Str_Restricted_Unlocked">{0} өңдеу үшін ашылды</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Бұл осы PDF иесінің құпиясөзі емес.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">«{0}» басып шығаруды шектейді. Басып шығару үшін иесінің құпиясөзін енгізіңіз.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">«{0}» тек төмен сапада басып шығаруға рұқсат береді. Толық сапада басып шығару үшін иесінің құпиясөзін енгізіңіз немесе төмен сапада басып шығару үшін бас тартыңыз.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">Басып шығаруға рұқсат жоқ. Бұл PDF шифрланған сертификат басып шығаруға рұқсат бермейді, бұл шектеуді ешбір құпиясөз алып тастамайды.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">«{0}» файлында иесі қойған шектеулер бар, ал сақтау оның қорғанысын алып тастайды. Сақтау үшін иесінің құпиясөзін енгізіңіз.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">PDF сақталмады. Сақтау иесі қойған шектеулерді алып тастар еді, оларды тек иесінің құпиясөзі алып тастайды.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">PDF сақталмады. Сақтау сертификатыңызға қойылған шектеулерді алып тастар еді, оларды ешбір құпиясөз алып тастамайды.</sys:String>
     <sys:String x:Key="Str_Print_Refused">Басып шығаруға рұқсат жоқ. Бұл PDF иесі басып шығаруды шектеген, шектеуді тек иесінің құпиясөзі алып тастайды.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">«{0}» өңдеуді шектейді, сондықтан KillerPDF оны ашу үшін иесінің құпиясөзін қажет етеді.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} ашылды (тек оқу - стандартты емес XRef кестесі) - {1} бет</sys:String>

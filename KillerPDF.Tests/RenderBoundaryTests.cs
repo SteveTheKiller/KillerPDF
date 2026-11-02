@@ -277,7 +277,12 @@ public sealed class RenderBoundaryTests
         string preview = File.ReadAllText(
             Path.Combine(root, "Controls", "PrintPreviewWindow.cs"));
 
-        Assert.Contains("PdfPageRenderSession.OpenEngineFirst(", print,
+        string printSession = File.ReadAllText(
+            Path.Combine(root, "Services", "PrintPermission.cs"));
+
+        Assert.Contains("PrintPermission.OpenRenderSession(", print,
+            StringComparison.Ordinal);
+        Assert.Contains("PdfPageRenderSession.OpenEngineFirst(", printSession,
             StringComparison.Ordinal);
         Assert.DoesNotContain("PdfPageRenderSession.Open(", print,
             StringComparison.Ordinal);

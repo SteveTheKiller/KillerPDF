@@ -107,6 +107,7 @@ namespace KillerPDF.Features
                 con.WriteLine("Usage: KillerPDF.exe --export <in.pdf> <out.docx|.xlsx|.pptx|.html|.md|.txt|.json> [--pages <range>]");
                 con.WriteLine("       [--format word|excel|powerpoint|html|markdown|text|json]   (default: from the output extension)");
                 con.WriteLine("       [--layout editable|images]   (Word and PowerPoint; default: editable)");
+                con.WriteLine("       [--password <p>]   (a PDF whose owner restricts editing exports only with the owner password)");
                 return 2;
             }
             string inPath = Path.GetFullPath(pos[0]), outPath = Path.GetFullPath(pos[1]);
@@ -132,7 +133,15 @@ namespace KillerPDF.Features
             if (officeMode == PdfOfficeExportMode.PageImages
                 && format is not (PdfStructuredExportFormat.WordDocument or PdfStructuredExportFormat.Presentation))
             { con.WriteLine("Page-image layout is available only for Word and PowerPoint."); return 2; }
-            PdfDocument document = PdfEngineIntegration.OpenForReading(File.ReadAllBytes(inPath));
+            // Every format is content leaving the file, so every format answers to the same gate the app's export does.
+            options.TryGetValue("--password", out string? password);
+            PdfAccess access = PdfRestrictions.Open(File.ReadAllBytes(inPath), password, out PdfDocument? opened);
+            if (!access.MayModify || opened is null)
+            {
+                con.WriteLine(CliRestrictionMessage(access));
+                return 1;
+            }
+            PdfDocument document = opened;
             List<int>? pages = null;
             if (options.ContainsKey("--pages"))
             {

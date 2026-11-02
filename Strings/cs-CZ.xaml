@@ -248,6 +248,11 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_Restricted_Unlocked">Soubor {0} je odemčen pro úpravy</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Toto není heslo vlastníka tohoto PDF.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">Soubor „{0}“ omezuje tisk. Pro tisk zadejte heslo vlastníka.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">Soubor „{0}“ povoluje tisk jen v nízké kvalitě. Pro tisk v plné kvalitě zadejte heslo vlastníka, nebo zrušte a tiskněte v nízké kvalitě.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">Tisk není povolen. Certifikát, pro který je toto PDF zašifrováno, tisk nepovoluje a žádné heslo to nezmění.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">Soubor „{0}“ má omezení nastavená vlastníkem a uložením se odstraní jeho ochrana. Pro uložení zadejte heslo vlastníka.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">PDF nebylo uloženo. Uložením by se odstranila omezení nastavená vlastníkem a ta zruší pouze heslo vlastníka.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">PDF nebylo uloženo. Uložením by se odstranila omezení nastavená pro váš certifikát a ta žádné heslo nezruší.</sys:String>
     <sys:String x:Key="Str_Print_Refused">Tisk není povolen. Vlastník tohoto PDF omezil tisk a omezení zruší pouze heslo vlastníka.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">Soubor „{0}“ omezuje úpravy, proto KillerPDF k jeho otevření potřebuje heslo vlastníka.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Otevřeno {0} (jen pro čtení - nestandardní tabulka XRef) - stránek: {1}</sys:String>

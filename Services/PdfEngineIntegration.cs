@@ -911,7 +911,7 @@ internal static partial class PdfEngineIntegration
 
     /// <summary>Changes one text field's background color while preserving its value.</summary>
     internal static void SetTextFieldBackground(
-        string path, string fieldName, string value, System.Windows.Media.Color color,
+        string path, string fieldName, System.Windows.Media.Color color,
         double? fontSize)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -919,8 +919,10 @@ internal static partial class PdfEngineIntegration
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
         var background = new PdfRgbColor(
             color.R / 255d, color.G / 255d, color.B / 255d);
+        var fonts = new Dictionary<string, TrueTypeFont>(StringComparer.OrdinalIgnoreCase);
         byte[] result = new PdfIncrementalPageEditor(document)
-            .SetTextFieldBackgroundColor(fieldName, value, background, fontSize: fontSize)
+            .SetTextFieldBackground(fieldName, background, fontSize,
+                value => EmbeddedFormFont(value, fonts))
             .Build();
         ReplaceWithBuiltResult(path, result);
     }
@@ -1020,16 +1022,10 @@ internal static partial class PdfEngineIntegration
         foreach ((string name, string value) in edits.TextValues.OrderBy(item => item.Key))
             editor.SetTextFieldValue(name, value, EmbeddedFormFont(value, fonts), fontSize:
                 edits.TextFontSizes.TryGetValue(name, out double size) ? size : null);
+        // A size alone sends no value: a name the file repeats holds a value per field, and each keeps its own.
         foreach ((string name, double size) in edits.TextFontSizes.OrderBy(item => item.Key))
-        {
-            if (edits.TextValues.ContainsKey(name)) continue;
-            PdfFormWidgetInfo field = widgets.FirstOrDefault(widget =>
-                widget.FieldKind == PdfFormFieldKind.Text
-                && string.Equals(widget.FieldName, name, StringComparison.Ordinal))
-                ?? throw new InvalidOperationException($"Text field '{name}' was not found.");
-            string value = field.Value ?? string.Empty;
-            editor.SetTextFieldValue(name, value, EmbeddedFormFont(value, fonts), fontSize: size);
-        }
+            if (!edits.TextValues.ContainsKey(name))
+                editor.SetTextFieldFontSize(name, size, value => EmbeddedFormFont(value, fonts));
         foreach ((string name, string value) in edits.ChoiceValues.OrderBy(item => item.Key))
         {
             string appearanceText = widgets.FirstOrDefault(widget =>
@@ -1112,24 +1108,6 @@ internal static partial class PdfEngineIntegration
         return font;
     }
 
-    /// <summary>True when the password opens the PDF as its user but the owner forbids the
-    /// document modification KillerPDF edits through, so only the owner password unlocks it.</summary>
-    internal static bool IsRestrictedForPassword(string path, string password)
-    {
-        try
-        {
-            PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(File.ReadAllBytes(path), password);
-            return document.IsDecrypted
-                && document.PasswordAuthenticationRole == KillerPdf.Engine.Security.PdfPasswordAuthenticationRole.User
-                && (document.DeclaredPermissions is not KillerPdf.Engine.Security.PdfDocumentPermissions permissions
-                    || !permissions.AllowDocumentModification);
-        }
-        catch (Exception error) when (error is not OutOfMemoryException)
-        {
-            return false;
-        }
-    }
-
     /// <summary>Writes a copy of an unencrypted PDF protected with Standard Security passwords.</summary>
     internal static IReadOnlyList<PdfReferenceRepair> ProtectWithPasswords(string sourcePath, string destinationPath,
         KillerPdf.Engine.Security.PdfPasswordEncryptionOptions options, bool allowSignatureInvalidation)
@@ -1201,9 +1179,9 @@ internal static partial class PdfEngineIntegration
     /// </summary>
     internal static bool TryRemoveCertificateEncryption(string sourcePath, string destinationPath,
         IEnumerable<System.Security.Cryptography.X509Certificates.X509Certificate2> certificates,
-        out bool recipientMayEdit)
+        out PdfAccess recipient)
     {
-        recipientMayEdit = true;
+        recipient = PdfAccess.Refused(PdfAccess.UnreadablePermissions);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         ArgumentNullException.ThrowIfNull(certificates);
@@ -1219,8 +1197,8 @@ internal static partial class PdfEngineIntegration
                 continue;   // not a recipient, or a key that cannot decrypt; try the next one
             }
             // The working copy is decrypted so it can be shown; the recipient's sealed permissions decide
-            // whether the app lets it be edited.
-            recipientMayEdit = document.DeclaredPermissions?.AllowDocumentModification ?? true;
+            // what the app then lets it do, and they stay with the tab because no file read gives them back.
+            recipient = PdfAccess.Declared(PdfAccessRole.Recipient, document.DeclaredPermissions);
             ReplaceWithBuiltResult(destinationPath, PdfDocumentWriter.Write(document,
                 new PdfDocumentWriteOptions { RemoveEncryption = true }));
             return true;

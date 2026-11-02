@@ -291,7 +291,9 @@ Existing --command forms stay compatible.
                                            [--duplex none|long|short] [--reverse]
                                            print silently (default printer if none named)
   --password &lt;p&gt; works on preflight, decrypt, to-image, flatten, print, ocr, scan-to-text, fix-orientation,
-                                           straighten and separations; other commands need an unprotected file
+                                           straighten, separations, attachments, export, macro and batch-render;
+                                           other commands need an unprotected file. A PDF whose owner restricts
+                                           editing gives up its content only to the owner password
   killerpdf scan &lt;out.pdf&gt; [--scanner &lt;name&gt;] [--show-settings]
                                            scan through a TWAIN scanner into a PDF; --scan --list shows scanners
   killerpdf ocr &lt;in.pdf&gt; &lt;out.pdf&gt; [--lang &lt;code&gt;] add an invisible searchable text layer (default eng;

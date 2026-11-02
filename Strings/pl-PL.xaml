@@ -248,6 +248,11 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
     <sys:String x:Key="Str_Restricted_Unlocked">Odblokowano {0} do edycji</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">To nie jest hasło właściciela tego pliku PDF.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">Plik „{0}” ogranicza drukowanie. Wprowadź hasło właściciela, aby go wydrukować.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">Plik „{0}” pozwala drukować tylko w niskiej jakości. Wprowadź hasło właściciela, aby drukować w pełnej jakości, lub anuluj, aby drukować w niskiej jakości.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">Drukowanie jest niedozwolone. Certyfikat, dla którego zaszyfrowano ten plik PDF, nie pozwala na drukowanie i żadne hasło tego nie zmieni.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">Plik „{0}” ma ograniczenia ustawione przez właściciela, a zapisanie usuwa jego ochronę. Wprowadź hasło właściciela, aby go zapisać.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">Plik PDF nie został zapisany. Zapisanie usunęłoby ograniczenia ustawione przez właściciela, a znosi je tylko hasło właściciela.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">Plik PDF nie został zapisany. Zapisanie usunęłoby ograniczenia ustawione dla Twojego certyfikatu, a żadne hasło ich nie znosi.</sys:String>
     <sys:String x:Key="Str_Print_Refused">Drukowanie jest niedozwolone. Właściciel tego pliku PDF ograniczył drukowanie, a ograniczenie znosi tylko hasło właściciela.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">Plik „{0}” ogranicza edycję, więc KillerPDF potrzebuje hasła właściciela, aby go otworzyć.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Otwarto {0} (tylko do odczytu - niestandardowa tabela XRef) - {1} stronę(y)</sys:String>

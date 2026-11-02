@@ -230,6 +230,11 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_Restricted_Unlocked">{0} düzenleme için açıldı</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Bu, bu PDF’nin sahip parolası değil.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” yazdırmayı kısıtlıyor. Yazdırmak için sahip parolasını girin.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">“{0}” yalnızca düşük kalitede yazdırmaya izin veriyor. Tam kalitede yazdırmak için sahip parolasını girin veya düşük kalitede yazdırmak için iptal edin.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">Yazdırmaya izin verilmiyor. Bu PDF’nin şifrelendiği sertifika yazdırmaya izin vermiyor ve hiçbir parola bunu kaldırmaz.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">“{0}” sahibinin koyduğu sınırları taşıyor ve kaydetmek korumasını kaldırır. Kaydetmek için sahip parolasını girin.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">PDF kaydedilmedi. Kaydetmek sahibinin koyduğu sınırları kaldırırdı; bunları yalnızca sahip parolası kaldırır.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">PDF kaydedilmedi. Kaydetmek sertifikanız için konan sınırları kaldırırdı; bunları hiçbir parola kaldırmaz.</sys:String>
     <sys:String x:Key="Str_Print_Refused">Yazdırmaya izin verilmiyor. Bu PDF’nin sahibi yazdırmayı kısıtlamış; kısıtlamayı yalnızca sahip parolası kaldırır.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” düzenlemeyi kısıtlıyor, bu yüzden KillerPDF’nin açmak için sahip parolasına ihtiyacı var.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Açıldı {0} (salt okunur - standart dışı XRef tablosu) - {1} sayfa</sys:String>

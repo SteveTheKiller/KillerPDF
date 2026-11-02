@@ -248,6 +248,11 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_Restricted_Unlocked">Đã mở khóa {0} để chỉnh sửa</sys:String>
     <sys:String x:Key="Str_Restricted_WrongPassword">Đây không phải mật khẩu chủ sở hữu của PDF này.</sys:String>
     <sys:String x:Key="Str_Print_Restricted_Prompt">“{0}” hạn chế in. Nhập mật khẩu chủ sở hữu để in.</sys:String>
+    <sys:String x:Key="Str_Print_LowQuality_Prompt">“{0}” chỉ cho phép in ở chất lượng thấp. Nhập mật khẩu chủ sở hữu để in ở chất lượng đầy đủ, hoặc hủy để in ở chất lượng thấp.</sys:String>
+    <sys:String x:Key="Str_Print_Refused_Certificate">Không được phép in. Chứng chỉ mà PDF này được mã hóa cho không cho phép in, và không mật khẩu nào gỡ được hạn chế đó.</sys:String>
+    <sys:String x:Key="Str_Save_Restricted_Prompt">“{0}” có các giới hạn do chủ sở hữu đặt, và việc lưu sẽ gỡ bảo vệ của tệp. Nhập mật khẩu chủ sở hữu để lưu.</sys:String>
+    <sys:String x:Key="Str_Save_Refused">PDF chưa được lưu. Việc lưu sẽ gỡ các giới hạn do chủ sở hữu đặt, và chỉ mật khẩu chủ sở hữu mới gỡ được chúng.</sys:String>
+    <sys:String x:Key="Str_Save_Refused_Certificate">PDF chưa được lưu. Việc lưu sẽ gỡ các giới hạn đặt cho chứng chỉ của bạn, và không mật khẩu nào gỡ được chúng.</sys:String>
     <sys:String x:Key="Str_Print_Refused">Không được phép in. Chủ sở hữu PDF này đã hạn chế việc in và chỉ mật khẩu chủ sở hữu mới gỡ được hạn chế đó.</sys:String>
     <sys:String x:Key="Str_Restricted_OwnerRequired">“{0}” hạn chế chỉnh sửa, nên KillerPDF cần mật khẩu chủ sở hữu để mở.</sys:String>
     <sys:String x:Key="Str_OpenedReadOnlyXRef">Đã mở {0} (chỉ đọc - bảng XRef không chuẩn) - {1} trang</sys:String>
