@@ -36,6 +36,37 @@ public sealed class PdfPreflightTests
         Assert.False(json.RootElement.GetProperty("passed").GetBoolean());
     }
 
+    // A document opened under held encryption has no password to hand to the byte-based run, and
+    // that run reports it unauthenticated. The run that takes the opened document checks it.
+    [Fact]
+    public void ADocumentOpenedUnderHeldEncryptionIsChecked()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .SetPasswordEncryption(new KillerPdf.Engine.Security.PdfPasswordEncryptionOptions
+            {
+                UserPassword = "reader",
+                OwnerPassword = "owner",
+                AllowDocumentModification = false,
+            })
+            .AddBlankPage()
+            .Build();
+        PdfDocument authenticated = PdfDocument.Open(source, "reader");
+        Assert.Equal(KillerPdf.Engine.Security.PdfPasswordAuthenticationRole.User, authenticated.PasswordAuthenticationRole);
+        Assert.False(authenticated.DeclaredPermissions!.AllowDocumentModification);
+        PdfDocument held = PdfDocument.OpenWithEncryption(source, authenticated.CaptureEncryption()!);
+        var profile = new PdfPreflightProfile("Intent", [PdfPreflightCheck.StructuralIntegrity, PdfPreflightCheck.OutputIntent]);
+
+        PdfPreflightReport unauthenticated = PdfPreflightRunner.Run(source, profile);
+        PdfPreflightReport report = PdfPreflightRunner.Run(held, profile);
+
+        Assert.Contains(unauthenticated.Findings, item => item.Code == "DocumentChecksUnavailable");
+        Assert.DoesNotContain(report.Findings, item => item.Code == "DocumentChecksUnavailable");
+        Assert.Contains(report.Findings, item => item.Code == "OutputIntent.Missing");
+        Assert.Equal(PdfPreflightRunner.Run(source, profile, "reader").Findings.Select(item => item.Code),
+            report.Findings.Select(item => item.Code));
+        Assert.True(PdfDocumentInspector.InspectAuthenticated(held).IsStructurallyValid);
+    }
+
     [Fact]
     public void LanguageCorrectionIsPreviewedAppliedAndVerified()
     {

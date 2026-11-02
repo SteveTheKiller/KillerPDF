@@ -252,7 +252,24 @@ internal static partial class PdfEngineIntegration
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(profile);
-        return PdfPreflightRunner.Run(File.ReadAllBytes(path), profile);
+        byte[] source = File.ReadAllBytes(path);
+        return AuthenticatedUnderTab(source, protection) is PdfDocument held
+            ? PdfPreflightRunner.Run(held, profile)
+            : PdfPreflightRunner.Run(source, profile);
+    }
+
+    // A tab's file that still carries its encryption, because the tab reads its original where it lies,
+    // opened under the tab's protection. Null for a plain file, a damaged one the strict read refuses,
+    // or one the protection does not open, which the byte-based report describes as before.
+    private static PdfDocument? AuthenticatedUnderTab(byte[] source, OpenedProtection? protection)
+    {
+        try
+        {
+            if (!PdfDocument.Open(source).IsEncrypted) return null;
+            PdfDocument document = OpenForReading(source, protection);
+            return document.IsEncrypted && document.IsDecrypted ? document : null;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException) { return null; }
     }
 
     /// <summary>Inspects implemented accessibility requirements and document structure.</summary>

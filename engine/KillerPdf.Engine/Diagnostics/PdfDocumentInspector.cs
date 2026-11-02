@@ -22,7 +22,19 @@ public static class PdfDocumentInspector
     public static PdfInspectionReport Inspect(
         ReadOnlyMemory<byte> source,
         int maximumInspectedObjects = DefaultMaximumInspectedObjects)
-        => InspectCore(source, password: null, maximumInspectedObjects);
+        => InspectCore(source, () => PdfDocument.Open(source), maximumInspectedObjects);
+
+    /// <summary>
+    /// Inspects a document the caller has already opened, such as one authenticated under encryption
+    /// held from an earlier open, where no password is at hand. The document's own bytes are inspected.
+    /// </summary>
+    public static PdfInspectionReport InspectAuthenticated(
+        PdfDocument document,
+        int maximumInspectedObjects = DefaultMaximumInspectedObjects)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return InspectCore(document.Source, () => document, maximumInspectedObjects);
+    }
 
     /// <summary>Performs bounded structural inspection after password authentication.</summary>
     public static PdfInspectionReport InspectAuthenticated(
@@ -31,12 +43,12 @@ public static class PdfDocumentInspector
         int maximumInspectedObjects = DefaultMaximumInspectedObjects)
     {
         ArgumentNullException.ThrowIfNull(password);
-        return InspectCore(source, password, maximumInspectedObjects);
+        return InspectCore(source, () => PdfDocument.Open(source, password), maximumInspectedObjects);
     }
 
     private static PdfInspectionReport InspectCore(
         ReadOnlyMemory<byte> source,
-        string? password,
+        Func<PdfDocument> open,
         int maximumInspectedObjects)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(maximumInspectedObjects, 1);
@@ -74,9 +86,7 @@ public static class PdfDocumentInspector
         PdfDocument document;
         try
         {
-            document = password is null
-                ? PdfDocument.Open(source)
-                : PdfDocument.Open(source, password);
+            document = open();
         }
         catch (PdfPasswordAuthenticationException error)
         {

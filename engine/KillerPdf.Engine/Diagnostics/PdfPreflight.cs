@@ -248,6 +248,24 @@ public static class PdfPreflightRunner
         PdfInspectionReport inspection = password is null
             ? PdfDocumentInspector.Inspect(source)
             : PdfDocumentInspector.InspectAuthenticated(source, password);
+        return RunCore(inspection, profile, () => password is null
+            ? PdfDocument.Open(source) : PdfDocument.Open(source, password));
+    }
+
+    /// <summary>
+    /// Runs a profile on a document the caller has already opened and authenticated, such as one
+    /// opened under encryption held from an earlier open, where no password is at hand.
+    /// </summary>
+    public static PdfPreflightReport Run(PdfDocument document, PdfPreflightProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(profile);
+        return RunCore(PdfDocumentInspector.InspectAuthenticated(document), profile, () => document);
+    }
+
+    private static PdfPreflightReport RunCore(PdfInspectionReport inspection,
+        PdfPreflightProfile profile, Func<PdfDocument> open)
+    {
         var findings = new List<PdfPreflightFinding>();
         if (profile.Checks.Contains(PdfPreflightCheck.StructuralIntegrity))
             findings.AddRange(inspection.Diagnostics.Select(diagnostic => new PdfPreflightFinding(
@@ -262,8 +280,7 @@ public static class PdfPreflightRunner
             return new PdfPreflightReport(profile.Name, findings);
         }
 
-        PdfDocument checkedDocument = password is null
-            ? PdfDocument.Open(source) : PdfDocument.Open(source, password);
+        PdfDocument checkedDocument = open();
         if (profile.Checks.Contains(PdfPreflightCheck.DocumentLanguage)
             || profile.Checks.Contains(PdfPreflightCheck.TaggedStructure)
             || profile.Checks.Contains(PdfPreflightCheck.FormAccessibility)
