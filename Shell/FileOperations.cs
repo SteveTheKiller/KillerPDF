@@ -590,17 +590,22 @@ namespace KillerPDF.Shell
         }
 
         // Opens an encrypted PDF whose restrictions block a rewrite as a read-only working document.
-        private bool TryOpenProtectedReadOnly(string srcPath, string displayPath, OpenedProtection? known = null)
+        private bool TryOpenProtectedReadOnly(string srcPath, string displayPath, OpenedProtection? known = null) =>
+            TryOpenReadOnly(srcPath, displayPath, () => ReadOnlyOriginal.Open(srcPath, known));
+
+        private bool TryOpenReadOnly(string srcPath, string displayPath,
+            Func<(PdfWorkingDocument Document, OpenedProtection Protection)> open)
         {
             try
             {
-                _doc = PdfWorkingDocument.Open(srcPath, isReadOnly: true);
+                (PdfWorkingDocument document, OpenedProtection protection) = open();
+                _doc = document;
                 _currentFile = srcPath;
                 FinishOpenFile(displayPath, srcPath);
                 _openedFromProtected = true;
                 // The fill permission belongs to the file as opened, so it is read once here rather
                 // than parsed again on every save of a fill-allowed restricted form.
-                _protection = known ?? OpenedProtection.Capture(srcPath, null);
+                _protection = protection;
                 _restrictedFormFillable = _protection.AllowsRestrictedFill;
                 SetStatus(string.Format(Loc("Str_OpenedReadOnly"),
                     System.IO.Path.GetFileName(displayPath), _doc.PageCount));
@@ -799,7 +804,7 @@ namespace KillerPDF.Shell
             catch (WorkingCopyUnavailableException copy)
             {
                 ShowWorkingCopyProblem(copy);
-                RestoreReadOnlyOriginal(sourcePath, displayPath, CarryOverlays);
+                RestoreReadOnlyOriginal(sourcePath, displayPath, CarryOverlays, protection);
                 return false;
             }
             catch (Exception error) when (error is not OutOfMemoryException)
@@ -808,7 +813,7 @@ namespace KillerPDF.Shell
                 _doc = null;
                 KillerDialog.Show(this, string.Format(Loc("Str_Dlg_FailedOpen"), error.Message),
                     Loc("Str_Dlg_AppTitle"), MessageBoxButton.OK, MessageBoxImage.Error);
-                RestoreReadOnlyOriginal(sourcePath, displayPath, CarryOverlays);
+                RestoreReadOnlyOriginal(sourcePath, displayPath, CarryOverlays, protection);
                 return false;
             }
 
@@ -836,11 +841,13 @@ namespace KillerPDF.Shell
 
         // Puts the read-only original back after a failed unlock so the tab is not left empty. When
         // there is still no room for a working copy the tab stays empty; that was just reported.
-        private void RestoreReadOnlyOriginal(string sourcePath, string displayPath, Action carryOverlays)
+        private void RestoreReadOnlyOriginal(string sourcePath, string displayPath, Action carryOverlays,
+            OpenedProtection protection)
         {
             try
             {
-                if (TryOpenProtectedReadOnly(sourcePath, displayPath)) carryOverlays();
+                if (TryOpenReadOnly(sourcePath, displayPath, () => ReadOnlyOriginal.Restore(sourcePath, protection)))
+                    carryOverlays();
             }
             catch (WorkingCopyUnavailableException)
             {
@@ -1481,7 +1488,7 @@ namespace KillerPDF.Shell
                         CarryOverlays();
                         FinalizeAsyncOpen();
                     }
-                    else RestoreReadOnlyOriginal(source, _originalFile ?? source, CarryOverlays);
+                    else RestoreReadOnlyOriginal(source, _originalFile ?? source, CarryOverlays, protection);
                 }
                 return;
             }
@@ -1491,7 +1498,7 @@ namespace KillerPDF.Shell
                 OpenViewingCopy(destination, destination, protection);
                 FinalizeAsyncOpen();
             }
-            else RestoreReadOnlyOriginal(destination, destination, () => { });
+            else RestoreReadOnlyOriginal(destination, destination, () => { }, protection);
             _loadedRevision = Services.FileRevision.Capture(destination);
             SetStatus(WithFieldsThatKeptTheirValue(string.Format(Loc("Str_St_Saved"), System.IO.Path.GetFileName(destination)), kept));
 
