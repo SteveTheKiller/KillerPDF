@@ -483,3 +483,12 @@ Native keys are sent only when the expected owned window has foreground focus.
 Keep the exit result, assembly hashes and output files together. These cases do
 not certify printer hardware, installers, native updater execution or a complete
 screen-reader acceptance matrix.
+
+`--verify-about-balanced APP_DLL APP_XAML OUTPUT --session-isolation` opens About through
+the footer version control. It requires link confirmation in the left column and Clear
+all Data in the right column on the same bottom row, and captures Dark, Light and 98SE.
+`--verify-update-empty-recents` takes the same arguments. A separate child stages an empty
+handoff through the real update-restart store, exits, and the host consumes it before the
+window loads. A saved recent PDF must appear immediately, disappear on a narrow pane and
+return when widened. Both modes use only task-owned settings and synthetic files on an
+owned UI VM.

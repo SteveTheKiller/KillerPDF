@@ -3217,6 +3217,10 @@
                     </Button>
                     <!-- Settings wrap in two equal columns inside the SHA-sized info panel. -->
                     <Grid Margin="0,12,0,0" Width="{Binding ActualWidth, ElementName=AboutInfoGrid}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="12"/>
@@ -3248,17 +3252,19 @@
                                   Checked="NoRecentCheck_Toggled" Unchecked="NoRecentCheck_Toggled">
                             <TextBlock Text="{DynamicResource Str_NoRecentSetting}" TextWrapping="Wrap"/>
                         </CheckBox>
+                    </StackPanel>
                         <!-- Confirm-before-opening-links. Lived as a hidden row in the Settings
                              panel and came back here when that panel was dissolved: About is where
                              the data-hygiene and safety controls live. Off by default, so link
                              clicks stay immediate unless you ask for the prompt. -->
-                        <CheckBox x:Name="LinkConfirmCheck" Margin="0,6,0,0" Padding="10,0,10,0"
+                        <CheckBox x:Name="LinkConfirmCheck" Grid.Row="1" Grid.Column="0"
+                                  VerticalAlignment="Center" Margin="0,6,0,0" Padding="10,0,10,0"
                                   Style="{StaticResource ThemeCheck}" FontSize="11"
                                   Checked="LinkConfirmCheck_Toggled" Unchecked="LinkConfirmCheck_Toggled">
                             <TextBlock Text="{DynamicResource Str_LinkConfirmSetting}" TextWrapping="Wrap"/>
                         </CheckBox>
-                    <TextBlock FontFamily="{DynamicResource UiFont}" FontSize="10"
-                               HorizontalAlignment="Right" Margin="0,8,0,0" TextWrapping="Wrap">
+                    <TextBlock Grid.Row="1" Grid.Column="2" FontFamily="{DynamicResource UiFont}" FontSize="10"
+                               HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,6,0,0" TextWrapping="Wrap">
                         <Hyperlink TextDecorations="None" Cursor="Hand" Click="AboutClearData_Click">
                             <Hyperlink.Style>
                                 <Style TargetType="Hyperlink">
@@ -3273,7 +3279,6 @@
                             <Run Text="{DynamicResource Str_ClearAllData}"/>
                         </Hyperlink>
                     </TextBlock>
-                    </StackPanel>
                     </Grid>
                     </StackPanel>
                 </Grid>

@@ -113,6 +113,8 @@ internal static class TableExportSmoke
                 setting.Invoke(null, ["CheckForUpdatesOnStartup", "0"]);
                 setting.Invoke(null, ["CloseToTray", "0"]);
             }
+            if (windowSessionCase == "--verify-update-empty-recents")
+                StartupLayoutSmoke.PrepareRecent(assembly, appPath, Path.Combine(folder, "data"), folder);
             owner = (Window)Activator.CreateInstance(assembly.GetType("KillerPDF.Shell.MainWindow", true)!)!;
             owner.WindowStartupLocation = WindowStartupLocation.Manual;
             if (visibleNative)
@@ -125,6 +127,8 @@ internal static class TableExportSmoke
             else if (!consumeUpdate) { owner.Left = -10000; owner.Top = -10000; }
             owner.ShowInTaskbar = false; owner.ShowActivated = visibleNative;
             owner.Show();
+            if (windowSessionCase == "--verify-about-balanced") return StartupLayoutSmoke.About(owner, folder);
+            if (windowSessionCase == "--verify-update-empty-recents") return StartupLayoutSmoke.Recent(owner, folder);
             if (windowSessionCase == "--verify-update-restart-stage")
                 return UpdateRestartSmoke.Stage(owner, assembly, appPath, folder, updateRestartState!);
             if (windowSessionCase == "--verify-update-restart-early-exit")

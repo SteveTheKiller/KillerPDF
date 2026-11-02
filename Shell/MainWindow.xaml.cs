@@ -546,7 +546,11 @@ namespace KillerPDF.Shell
                         ApplySessionState(active);
                         MaterializeDeferred(active);
                     }
-                    else EnsureInitialSession();
+                    else
+                    {
+                        PopulateRecentFilesList();
+                        EnsureInitialSession();
+                    }
                     RebuildTabStrip();
                     if (args.Length > 1 && (File.Exists(args[1]) || Services.ProtocolRegistrar.IsHandoffLaunch(args[1]))
                         && !updateRestart.Files.Contains(args[1], StringComparer.OrdinalIgnoreCase))

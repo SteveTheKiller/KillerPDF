@@ -1,5 +1,12 @@
 version: 1
 scripts:
+  startup_layout_smoke:
+    path: tests/KillerPDF.UiSmoke/StartupLayoutSmoke.cs
+    purpose: Verify balanced About controls and immediate recent-file visibility after an empty update restart.
+    inputs: Built app DLL, App.xaml, fresh output and session isolation on an owned UI VM.
+    outputs: Three-theme About captures, update-startup capture and assertions.
+    failure_behavior: Return nonzero for incorrect columns, unequal bottom-row centers, missing recent rows or failed width controls.
+    mutates: temporary-fixture-files-and-owned-WPF-processes-only
   release_desktop_runner_tests:
     path: build/Test-ReleaseDesktopRunner.ps1
     purpose: Verify fresh CLI payload selection, stale-version rejection, host window exclusions and restored caller state.
