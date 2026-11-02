@@ -419,9 +419,15 @@ namespace KillerPDF.Controls
             var darkBrush   = new SolidColorBrush(Color.FromRgb(0x22, 0x22, 0x22));
             var fieldBg     = new SolidColorBrush(Color.FromArgb(200, 255, 253, 231));
 
-            // Collect radio buttons per group so we can wire mutual exclusion after the loop.
-            var radioGroups = new Dictionary<string, List<(Ellipse dot, string onVal)>>();
-            var checkMarks = new Controls.RepeatedCheckMarks();
+            // Check boxes and radio buttons of one name can sit on different pages, each page with
+            // its own overlay, so their marks are kept for the document and not for this page.
+            if (!ReferenceEquals(_fieldMarksDocument, _doc))
+            {
+                _fieldMarksDocument = _doc;
+                _fieldMarks = new Controls.RepeatedFieldMarks();
+            }
+            Controls.RepeatedFieldMarks fieldMarks = _fieldMarks;
+            fieldMarks.BeginPage(pageIndex);
 
             bool anyField = false;
             foreach (var f in fields)
@@ -533,7 +539,8 @@ namespace KillerPDF.Controls
                         // Focus also raises the per-field font-size stepper (and hides it on blur).
                         string capturedKey   = f.FieldName;
                         double capturedScale = f.Scale;
-                        int maxLen = f.MaxLen;
+                        // One typed value goes to every field of a name, so the tightest limit holds it.
+                        int maxLen = SmallestFormTextLimits().GetValueOrDefault(capturedKey, f.MaxLen);
                         string lastAccepted = tb.Text;
                         tb.GotFocus  += (_, _) =>
                         {
@@ -675,14 +682,14 @@ namespace KillerPDF.Controls
                     };
                     string capturedKey = f.FieldName;
                     bool checkInitial = isChecked;
-                    checkMarks.Add(capturedKey, checkMark);
+                    fieldMarks.AddCheck(pageIndex, capturedKey, checkMark);
                     ctrl = new Controls.FormToggleSurface(box, Controls.FormToggleSurface.ToggleKind.CheckBox,
                         () => _formCheckValues.TryGetValue(capturedKey, out var v) ? v : checkInitial,
                         f.IsReadOnly ? null : () =>
                         {
                             bool now = !(_formCheckValues.TryGetValue(capturedKey, out var v) ? v : checkInitial);
                             _formCheckValues[capturedKey] = now;
-                            checkMarks.Show(capturedKey, now);
+                            fieldMarks.ShowCheck(capturedKey, now);
                             MarkDirty(true);
                         })
                     {
@@ -726,10 +733,7 @@ namespace KillerPDF.Controls
                     grid.Children.Add(ring);
                     grid.Children.Add(dot);
 
-                    // Register dot for mutual-exclusion wiring after the loop.
-                    if (!radioGroups.TryGetValue(f.FieldName, out var groupList))
-                        radioGroups[f.FieldName] = groupList = [];
-                    groupList.Add((dot, f.OnValue));
+                    fieldMarks.AddRadio(pageIndex, f.FieldName, dot, f.OnValue);
 
                     string capturedGroup = f.FieldName;
                     string capturedOn    = f.OnValue;
@@ -739,10 +743,7 @@ namespace KillerPDF.Controls
                         f.IsReadOnly ? null : () =>
                         {
                             _formRadioValues[capturedGroup] = capturedOn;
-                            // Deselect all in group, then select this one.
-                            if (radioGroups.TryGetValue(capturedGroup, out var gl))
-                                foreach (var (d, ov) in gl)
-                                    d.Visibility = ov == capturedOn ? Visibility.Visible : Visibility.Collapsed;
+                            fieldMarks.SelectRadio(capturedGroup, capturedOn);
                             MarkDirty(true);
                         }, group: capturedGroup)
                     {
@@ -774,6 +775,16 @@ namespace KillerPDF.Controls
 
             if (anyField)
                 SetStatus(string.Format(Loc("Str_PageFormFields"), pageIndex + 1, _doc.PageCount));
+        }
+
+        // Every page has to be read to know a name's tightest limit, so it is read once per document,
+        // and only for a document that has a text field on screen.
+        private IReadOnlyDictionary<string, int> SmallestFormTextLimits()
+        {
+            if (_formTextLimits is { } known && ReferenceEquals(_formTextLimitsDocument, _doc)) return known;
+            _formTextLimitsDocument = _doc;
+            try { return _formTextLimits = Services.FormTextLimit.SmallestByName(EnsureEngineDocumentSession().Document); }
+            catch (Exception error) when (error is not OutOfMemoryException) { return _formTextLimits = new Dictionary<string, int>(); }
         }
 
         /// <summary>
@@ -894,11 +905,13 @@ namespace KillerPDF.Controls
         }
 
         /// <summary>
-        /// Applies all pending form values to a saved PDF as one engine revision.
+        /// Applies all pending form values to a saved PDF as one engine revision. A field that shares
+        /// its name with one that took the value and could not take it itself is remembered for the
+        /// save to report.
         /// </summary>
         private void WriteFormValuesToDocument(string path)
         {
-            PdfEngineIntegration.ApplyFormValues(path, new PdfEngineIntegration.FormEdits(
+            FieldsThatKeptTheirValueRef = PdfEngineIntegration.ApplyFormValues(path, new PdfEngineIntegration.FormEdits(
                 _formTextValues, _formChoiceValues, _formMultiChoiceValues, _formCheckValues,
                 _formRadioValues, _formFontSizes));
         }

@@ -19,5 +19,19 @@ namespace KillerPDF.Services
             maximum <= 0 || Count(next) <= maximum || Count(next) < Count(previous);
 
         internal static bool IsOver(string text, int maximum) => maximum > 0 && Count(text) > maximum;
+
+        /// <summary>The smallest length limit of each field name, across every page. A value typed
+        /// into one field of a repeated name is sent to them all, so the tightest limit decides.</summary>
+        internal static IReadOnlyDictionary<string, int> SmallestByName(KillerPdf.Engine.Documents.PdfDocument document)
+        {
+            var reader = new KillerPdf.Engine.Documents.PdfFormWidgetReader(document);
+            int pages = KillerPdf.Engine.Documents.PdfPageInformation.Read(document).Count;
+            var smallest = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (int page = 0; page < pages; page++)
+                foreach (KillerPdf.Engine.Documents.PdfFormWidgetInfo widget in reader.Read(page))
+                    if (widget.MaximumLength > 0 && (!smallest.TryGetValue(widget.FieldName, out int limit) || widget.MaximumLength < limit))
+                        smallest[widget.FieldName] = widget.MaximumLength;
+            return smallest;
+        }
     }
 }

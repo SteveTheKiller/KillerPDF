@@ -315,6 +315,7 @@ namespace KillerPDF.Controls
         internal bool RestrictedByCertificateRef { get => _restrictedByCertificate; set => _restrictedByCertificate = value; }
         internal bool RestrictedFormFillableRef { get => _restrictedFormFillable; set => _restrictedFormFillable = value; }
         internal Services.OpenedProtection ProtectionRef { get => _protection; set => _protection = value; }
+        internal IReadOnlyCollection<string> FieldsThatKeptTheirValueRef { get; private set; } = [];
         internal Services.PublishedFileStamp? PublishedFileRef { get => _publishedFile; set => _publishedFile = value; }
         internal Services.CompleteDocumentSource? CompleteDocumentSourceRef { get => _completeDocumentSource; set => _completeDocumentSource = value; }
         internal string? SuggestedNameRef { get => _suggestedName; set => _suggestedName = value; }

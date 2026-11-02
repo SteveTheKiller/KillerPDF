@@ -136,6 +136,10 @@ namespace KillerPDF.Controls
         // What the protected file allowed when it opened. Read once, so printing and saving never read
         // the original again, and a save or a moved file cannot change the answer.
         private Services.OpenedProtection _protection = Services.OpenedProtection.None;
+        private object? _fieldMarksDocument;
+        private RepeatedFieldMarks _fieldMarks = new();
+        private object? _formTextLimitsDocument;
+        private IReadOnlyDictionary<string, int>? _formTextLimits;
         private Services.PublishedFileStamp? _publishedFile;
         private Services.CompleteDocumentSource? _completeDocumentSource;
         private string? _suggestedName;

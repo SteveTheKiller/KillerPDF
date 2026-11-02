@@ -63,21 +63,75 @@ namespace KillerPDF.Tests
             var first = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
             var twin = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
             var other = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
-            var marks = new RepeatedCheckMarks();
-            marks.Add("same", first);
-            marks.Add("same", twin);
-            marks.Add("other", other);
+            var marks = new RepeatedFieldMarks();
+            marks.AddCheck(0, "same", first);
+            marks.AddCheck(0, "same", twin);
+            marks.AddCheck(0, "other", other);
 
-            marks.Show("same", true);
+            marks.ShowCheck("same", true);
 
             Assert.Equal(System.Windows.Visibility.Visible, first.Visibility);
             Assert.Equal(System.Windows.Visibility.Visible, twin.Visibility);
             Assert.Equal(System.Windows.Visibility.Collapsed, other.Visibility);
 
-            marks.Show("same", false);
+            marks.ShowCheck("same", false);
 
             Assert.Equal(System.Windows.Visibility.Collapsed, first.Visibility);
             Assert.Equal(System.Windows.Visibility.Collapsed, twin.Visibility);
+        });
+
+        // R3-021: each page builds its overlay on its own, and the common repeated field spans pages.
+        [Fact]
+        public void ACheckBoxOnAnotherPageFollowsAToggle() => OnSta(() =>
+        {
+            var onFirst = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
+            var onSecond = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
+            var marks = new RepeatedFieldMarks();
+
+            marks.BeginPage(0);
+            marks.AddCheck(0, "agree", onFirst);
+            marks.BeginPage(1);
+            marks.AddCheck(1, "agree", onSecond);
+            marks.ShowCheck("agree", true);
+
+            Assert.Equal(System.Windows.Visibility.Visible, onFirst.Visibility);
+            Assert.Equal(System.Windows.Visibility.Visible, onSecond.Visibility);
+        });
+
+        [Fact]
+        public void ARadioGroupAcrossPagesShowsOneSelection() => OnSta(() =>
+        {
+            var yes = new TextBlock { Visibility = System.Windows.Visibility.Visible };
+            var no = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
+            var marks = new RepeatedFieldMarks();
+
+            marks.BeginPage(0);
+            marks.AddRadio(0, "choice", yes, "/Yes");
+            marks.BeginPage(1);
+            marks.AddRadio(1, "choice", no, "/No");
+            marks.SelectRadio("choice", "/No");
+
+            Assert.Equal(System.Windows.Visibility.Collapsed, yes.Visibility);
+            Assert.Equal(System.Windows.Visibility.Visible, no.Visibility);
+        });
+
+        [Fact]
+        public void ARebuiltOverlayReplacesOnlyItsOwnPage() => OnSta(() =>
+        {
+            var kept = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
+            var stale = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
+            var rebuilt = new TextBlock { Visibility = System.Windows.Visibility.Collapsed };
+            var marks = new RepeatedFieldMarks();
+            marks.AddCheck(0, "agree", kept);
+            marks.AddCheck(1, "agree", stale);
+
+            marks.BeginPage(1);
+            marks.AddCheck(1, "agree", rebuilt);
+            marks.ShowCheck("agree", true);
+
+            Assert.Equal(System.Windows.Visibility.Visible, kept.Visibility);
+            Assert.Equal(System.Windows.Visibility.Visible, rebuilt.Visibility);
+            Assert.Equal(System.Windows.Visibility.Collapsed, stale.Visibility);
         });
 
         private static void OnSta(Action test)

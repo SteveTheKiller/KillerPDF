@@ -10,23 +10,44 @@ using System.Windows.Media;
 
 namespace KillerPDF.Controls
 {
-    /// <summary>The drawn marks of the check boxes on a page, by field name, so that every box of
-    /// a name shows the one state the save writes, as a radio group's dots do.</summary>
-    internal sealed class RepeatedCheckMarks
+    /// <summary>The drawn marks of a document's check boxes and radio buttons, by field name and page,
+    /// so that every control of a name shows the one state the save writes, on whichever page it sits.</summary>
+    internal sealed class RepeatedFieldMarks
     {
-        private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<UIElement>> _marks = [];
+        private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<(int Page, UIElement Mark)>> _checks = [];
+        private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<(int Page, UIElement Dot, string OnValue)>> _radios = [];
 
-        internal void Add(string fieldName, UIElement mark)
+        /// <summary>Forgets a page's marks because its overlay is being built again.</summary>
+        internal void BeginPage(int pageIndex)
         {
-            if (!_marks.TryGetValue(fieldName, out var marks)) _marks[fieldName] = marks = [];
-            marks.Add(mark);
+            foreach (var marks in _checks.Values) marks.RemoveAll(item => item.Page == pageIndex);
+            foreach (var dots in _radios.Values) dots.RemoveAll(item => item.Page == pageIndex);
         }
 
-        internal void Show(string fieldName, bool on)
+        internal void AddCheck(int pageIndex, string fieldName, UIElement mark)
         {
-            if (!_marks.TryGetValue(fieldName, out var marks)) return;
-            foreach (UIElement mark in marks)
+            if (!_checks.TryGetValue(fieldName, out var marks)) _checks[fieldName] = marks = [];
+            marks.Add((pageIndex, mark));
+        }
+
+        internal void ShowCheck(string fieldName, bool on)
+        {
+            if (!_checks.TryGetValue(fieldName, out var marks)) return;
+            foreach ((_, UIElement mark) in marks)
                 mark.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        internal void AddRadio(int pageIndex, string groupName, UIElement dot, string onValue)
+        {
+            if (!_radios.TryGetValue(groupName, out var dots)) _radios[groupName] = dots = [];
+            dots.Add((pageIndex, dot, onValue));
+        }
+
+        internal void SelectRadio(string groupName, string onValue)
+        {
+            if (!_radios.TryGetValue(groupName, out var dots)) return;
+            foreach ((_, UIElement dot, string value) in dots)
+                dot.Visibility = value == onValue ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 
