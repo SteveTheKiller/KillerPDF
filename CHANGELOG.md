@@ -28,7 +28,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Rasterize Region works on tagged PDFs and keeps their accessibility tags. (#369)
 - Form buttons and signed signature fields redraw correctly when their visibility changes.
 - Export Pages as Images measures its scale from the page's real image size, so x1 no longer overstates it. (#462)
-- Printing honors a PDF's print permission, in the app and in the print command: a PDF whose owner forbids printing asks for the owner password, and one that allows only low quality printing prints at 150 DPI.
+- Printing honors a PDF's print permission, in the app and in the print command: a PDF whose owner forbids printing asks for the owner password, and one that allows only low quality printing prints at 150 DPI unless the owner password is given. A certificate holder keeps the print limit sealed for that certificate. The limit holds from open, so moving, replacing or saving the file no longer lifts it.
+- Saving, Remove Password and the other commands that write a PDF without its protection ask for the owner password on a file that declares any restriction, so a save can no longer drop a limit only that password lifts.
+- A password that opens nothing, or a file whose permissions cannot be read, is refused everywhere instead of counting as unrestricted.
+- Protection is recognized wherever a PDF keeps its encryption entry, including linearized files and large cross-reference streams, so those files no longer open as unprotected.
+- Scripts that worked on 1.9.1 may now exit 1: on a PDF whose owner forbids editing, `attachments` with an output folder, `export` in every format, `to-image`, `batch-render` and macro OCR steps give content only to the owner password through `--password`. A wrong password is refused too. `batch-render` records such a file as a SKIP row, and `print` exits 1 on a PDF that forbids printing.
+- The print command, attachments and export read with `--password`, so a user password prints a PDF that allows printing but not editing, and `attachments` and `export` work on a PDF that needs a password to open. Macros and `batch-render` take `--password` too.
+- The print command renders for print, so annotations, layers and redaction marks come out as the app prints them.
+- Changing the font size or background of a field whose name the form repeats keeps each field's own value.
+- A field that shares its name with others and cannot take a new value keeps its own, and the save succeeds, whether the other field offers different options, has a shorter length limit or is damaged. A parent that only groups fields no longer blocks a field of the same name.
+- Deleting a repeated field removes every field of that name, and check boxes that share a name update together on screen.
+- Export Pages as Images shows the size the file really comes out at, and canceling Keep Resolution stops while pages are read, with progress shown. A slow page no longer holds up the window during that read.
 - Comment export and import preserve PDF dates with time zone offsets.
 - Repeated content appends keep PDF drawing instructions separate.
 - Saved signatures support mouse drag, click placement, and keyboard selection, with visible placement instructions.
