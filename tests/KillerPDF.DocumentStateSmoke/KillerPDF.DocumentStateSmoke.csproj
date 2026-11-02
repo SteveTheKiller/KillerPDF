@@ -8,8 +8,6 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="KillerPdf.Engine">
-      <HintPath>$(AppDirectory)/KillerPdf.Engine.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\..\engine\KillerPdf.Engine\KillerPdf.Engine.csproj" />
   </ItemGroup>
 </Project>
