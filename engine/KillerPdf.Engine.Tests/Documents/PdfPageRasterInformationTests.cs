@@ -55,6 +55,26 @@ public sealed class PdfPageRasterInformationTests
         Assert.Null(PdfPageRasterInformation.ReadPageImageSize(document, 2));
     }
 
+    // A caller that reads every page reads the page information once and hands it to each page.
+    [Fact]
+    public void ReadPageImageSize_GivesTheSameAnswerFromPageInformationReadBeforehand()
+    {
+        PdfImage image = PdfImage.FromBitonal(500, 500, new byte[250000]);
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(340, 340, new PdfContentStreamBuilder().DrawImage(image, 0, 0, 340, 340))
+            .AddPage(340, 340, new PdfContentStreamBuilder().DrawImage(image, 0, 0, 50, 50))
+            .AddBlankPage()
+            .Build();
+        PdfDocument document = PdfDocument.Open(source);
+        IReadOnlyList<PdfPageInformation> pages = PdfPageInformation.Read(document);
+
+        for (int page = 0; page < pages.Count; page++)
+            Assert.Equal(PdfPageRasterInformation.ReadPageImageSize(document, page),
+                PdfPageRasterInformation.ReadPageImageSize(document, pages, page));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfPageRasterInformation.ReadPageImageSize(document, pages, pages.Count));
+    }
+
     [Fact]
     public void ReadJpegImagePageHints_DistinguishesJpegAndLosslessPages()
     {

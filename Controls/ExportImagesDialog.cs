@@ -65,8 +65,8 @@ namespace KillerPDF
             body.Children.Add(_dpi);
             _keepResolution = UiKit.CheckBox(L("Str_Output_KeepResolution"));
             _keepResolution.Margin = new Thickness(0, 6, 0, 0);
-            _keepResolution.Checked += (_, _) => _dpi.IsEnabled = false;
-            _keepResolution.Unchecked += (_, _) => _dpi.IsEnabled = true;
+            _keepResolution.Checked += (_, _) => { _dpi.IsEnabled = false; UpdatePixelDimensions(); };
+            _keepResolution.Unchecked += (_, _) => { _dpi.IsEnabled = true; UpdatePixelDimensions(); };
             _keepResolution.IsChecked = true;
             body.Children.Add(_keepResolution);
             _pixelDimensions = new TextBlock
@@ -117,8 +117,8 @@ namespace KillerPDF
             if (_pixelDimensions is null) return;
             double dpi = double.TryParse(_dpi.Text.Trim(), out double parsed)
                 && parsed >= 24 && parsed <= 1200 ? parsed : 150;
-            var (width, height) = OutputPixelDimensions.FromPoints(
-                _pageWidthPoints, _pageHeightPoints, dpi);
+            var (width, height) = OutputPixelDimensions.ExportSize(
+                _pageWidthPoints, _pageHeightPoints, dpi, _keepResolution.IsChecked == true, _imagePixels);
             var (referenceWidth, referenceHeight) = OutputPixelDimensions.FromPoints(
                 _pageWidthPoints, _pageHeightPoints, 150);
             var (baseWidth, baseHeight) = OutputPixelDimensions.ScaleBase(referenceWidth, referenceHeight,

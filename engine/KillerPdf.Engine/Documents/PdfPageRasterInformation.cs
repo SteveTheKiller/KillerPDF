@@ -58,7 +58,19 @@ public static class PdfPageRasterInformation
     public static (int Width, int Height)? ReadPageImageSize(PdfDocument document, int pageIndex)
     {
         ArgumentNullException.ThrowIfNull(document);
-        IReadOnlyList<PdfPageInformation> pages = PdfPageInformation.Read(document);
+        return ReadPageImageSize(document, PdfPageInformation.Read(document), pageIndex);
+    }
+
+    /// <summary>
+    /// Reads a page's size in pixels as <see cref="ReadPageImageSize(PdfDocument, int)"/> does, from
+    /// page information the caller read once for every page, so a loop over the pages does not read
+    /// the information again for each.
+    /// </summary>
+    public static (int Width, int Height)? ReadPageImageSize(
+        PdfDocument document, IReadOnlyList<PdfPageInformation> pages, int pageIndex)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(pages);
         ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, pages.Count);
         return ScanSize(new PdfPageContentReader(document), pages[pageIndex], pageIndex, 0.9);

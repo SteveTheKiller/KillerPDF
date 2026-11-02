@@ -56,19 +56,33 @@ internal sealed class PdfEngineDocumentSession
     private readonly Dictionary<int, (int Width, int Height)?> _pageImagePixels = [];
 
     /// <summary>The pixels of the one image that fills a page, turned as the page is shown, or null
-    /// for any other page. Reading a page costs more than a footer update should, so each is read once.</summary>
+    /// for any other page. Reading a page costs more than a footer update should, so each is read once.
+    /// A job reading many pages off the UI thread and the footer can ask at the same time.</summary>
     internal (int Width, int Height)? PageImagePixels(int pageIndex, IReadOnlyDictionary<int, int>? rotations = null)
     {
-        if (!_pageImagePixels.TryGetValue(pageIndex, out (int Width, int Height)? pixels))
+        (int Width, int Height)? pixels;
+        lock (_pageImagePixels)
         {
-            try { pixels = PdfPageRasterInformation.ReadPageImageSize(Document, pageIndex); }
-            catch (Exception error) when (error is not OutOfMemoryException) { pixels = null; }
-            _pageImagePixels[pageIndex] = pixels;
+            if (!_pageImagePixels.TryGetValue(pageIndex, out pixels))
+            {
+                try { pixels = PdfPageRasterInformation.ReadPageImageSize(Document, Pages, pageIndex); }
+                catch (Exception error) when (error is not OutOfMemoryException) { pixels = null; }
+                _pageImagePixels[pageIndex] = pixels;
+            }
         }
         if (pixels is not { } size) return null;
         var (width, height) = VisualPageSize(pageIndex, rotations);
         return OutputPixelDimensions.Oriented(size, width, height);
     }
+
+    /// <summary>The resolution each page's export keeps when it stays at its own image's pixels, or the
+    /// fallback for a page with no one image. Reads page content, so a job runs it off the UI thread.</summary>
+    internal Dictionary<int, double> NativeDpis(IEnumerable<int> pages, IReadOnlyDictionary<int, int>? rotations, double fallback) =>
+        pages.ToDictionary(page => page, page =>
+        {
+            var (width, height) = PhysicalPageSize(page, rotations);
+            return OutputPixelDimensions.NativeDpi(PageImagePixels(page, rotations), width, height, fallback);
+        });
 
     internal (double Width, double Height) PhysicalPageSize(
         int pageIndex, IReadOnlyDictionary<int, int>? rotations = null)

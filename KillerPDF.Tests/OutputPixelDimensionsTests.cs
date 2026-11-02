@@ -23,6 +23,38 @@ public sealed class OutputPixelDimensionsTests
         Assert.Equal(expected, OutputPixelDimensions.NativeDpi((pixels, pixels), points, points, 150));
     }
 
+    // Scans of one size land on a few resolutions, not one for every page's rounding.
+    [Theory]
+    [InlineData(2481, 595.3)]
+    [InlineData(2479, 595.3)]
+    [InlineData(2480, 595.2)]
+    public void NativeDpiIsAWholeNumberSoSimilarPagesShareOneResolution(int pixels, double points)
+    {
+        double dpi = OutputPixelDimensions.NativeDpi((pixels, pixels), points, points, 150);
+        Assert.Equal(Math.Round(dpi), dpi);
+        Assert.Equal(300, dpi);
+        var (width, _) = OutputPixelDimensions.FromPoints(points, points, dpi);
+        Assert.InRange(width, pixels - 2, pixels + 2);
+    }
+
+    [Fact]
+    public void TheExportedSizeOfAPageKeepingItsResolutionIsTheImagesOwn()
+    {
+        Assert.Equal((500, 500), OutputPixelDimensions.ExportSize(720, 720, 150, true, (500, 500)));
+    }
+
+    [Fact]
+    public void TheExportedSizeFollowsTheDpiBoxWhenResolutionIsNotKept()
+    {
+        Assert.Equal((1500, 1500), OutputPixelDimensions.ExportSize(720, 720, 150, false, (500, 500)));
+    }
+
+    [Fact]
+    public void ThePageWithNoSingleImageExportsAtTheDpiBoxEvenWhenResolutionIsKept()
+    {
+        Assert.Equal((1500, 1500), OutputPixelDimensions.ExportSize(720, 720, 150, true, null));
+    }
+
     [Fact]
     public void NativeDpiFallsBackWithoutAPageImage()
     {

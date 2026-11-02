@@ -68,10 +68,13 @@ namespace KillerPDF.Services
             IReadOnlyList<bool> jpegHints =
                 PdfPageRasterInformation.ReadJpegImagePageHints(sourceDocument);
             var passthrough = new PdfImage?[pageCount];
-            double[] pageDpi = [.. Enumerable.Range(0, pageCount).Select(page => options.KeepResolution
-                ? OutputPixelDimensions.NativeDpi(PdfPageRasterInformation.ReadPageImageSize(sourceDocument, page),
-                    pageDims[page].widthPt, pageDims[page].heightPt, options.Dpi)
-                : options.Dpi)];
+            IReadOnlyList<PdfPageInformation>? pageInformation = options.KeepResolution
+                ? PdfPageInformation.Read(sourceDocument) : null;
+            double[] pageDpi = [.. Enumerable.Range(0, pageCount).Select(page => pageInformation is null
+                ? options.Dpi
+                : OutputPixelDimensions.NativeDpi(
+                    PdfPageRasterInformation.ReadPageImageSize(sourceDocument, pageInformation, page),
+                    pageDims[page].widthPt, pageDims[page].heightPt, options.Dpi))];
             bool scanLook = options.Look?.Any == true;
             if (options.ColorMode == PageColorMode.Color && !options.UseJpegCompression && !scanLook)
                 for (int i = 0; i < pageCount; i++)
