@@ -142,7 +142,8 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
                     targets.Add(identity, new(identity, string.IsNullOrEmpty(target.FriendlyName) ? null : target.FriendlyName)
                         {
                             ColorState = CaptureColorState(path.Target, cancellationToken),
-                            StandardProfile = CaptureStandardProfile(path, cancellationToken)
+                            StandardProfile = CaptureStandardProfile(path, cancellationToken),
+                            SdrWhiteLevel = CaptureSdrWhiteLevel(path.Target, cancellationToken)
                         });
             }
             if (targets.Count == 0 && failureOperation is null) Fail("NoMatchingDisplayTarget", null);
@@ -193,6 +194,19 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
             finally { if (name != 0) LocalFree(name); }
         }
         finally { NativeLibrary.Free(library); }
+    }
+
+    static PdfDisplaySdrWhiteLevel CaptureSdrWhiteLevel(DisplayTarget target, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var white = new SdrWhiteInfo
+        {
+            Header = new() { Type = 11, Size = (uint)Marshal.SizeOf<SdrWhiteInfo>(),
+                Adapter = target.Adapter, Id = target.Id }
+        };
+        int error = DisplayConfigGetDeviceInfo(ref white);
+        return error == 0 ? new(white.RawValue, white.RawValue * 80d / 1000d, null)
+            : new(null, null, error);
     }
 
     static PdfDisplayColorState CaptureColorState(DisplayTarget target, CancellationToken cancellationToken)
@@ -294,6 +308,9 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
     [StructLayout(LayoutKind.Sequential)]
     struct LegacyColorInfo { public DisplayQueryHeader Header; public uint Flags, Encoding, Bits; }
 
+    [StructLayout(LayoutKind.Sequential)]
+    struct SdrWhiteInfo { public DisplayQueryHeader Header; public uint RawValue; }
+
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     delegate int GetDisplayProfileScope(DisplayAdapterId targetAdapter, uint sourceId, out uint scope);
 
@@ -329,4 +346,7 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
 
     [DllImport("user32.dll", ExactSpelling = true)]
     static extern int DisplayConfigGetDeviceInfo(ref LegacyColorInfo request);
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    static extern int DisplayConfigGetDeviceInfo(ref SdrWhiteInfo request);
 }

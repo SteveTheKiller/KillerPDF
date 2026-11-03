@@ -65,6 +65,13 @@ public enum PdfDisplayProfileStatus
 public sealed record PdfDisplayProfileAssociation(PdfDisplayProfileStatus Status,
     uint? Scope, string? Name, string? FailureOperation, int? HResult);
 
+/// <summary>Retains the operating system's reported SDR white level or its query failure.</summary>
+/// <remarks>
+/// RawValue is in thousandths of the platform's 80-nit reference. Nits describes the
+/// reported setting, not measured luminance or an applied presentation scale.
+/// </remarks>
+public sealed record PdfDisplaySdrWhiteLevel(uint? RawValue, double? Nits, int? NativeErrorCode);
+
 /// <summary>Identifies one live output association without promising persistent physical identity.</summary>
 public sealed record PdfDisplayTarget(string Identity, string? FriendlyName)
 {
@@ -72,6 +79,8 @@ public sealed record PdfDisplayTarget(string Identity, string? FriendlyName)
     public PdfDisplayColorState? ColorState { get; init; }
     /// <summary>Gets the standard-mode ICC association, or null before it has been queried.</summary>
     public PdfDisplayProfileAssociation? StandardProfile { get; init; }
+    /// <summary>Gets reported SDR white data, or null before it has been queried.</summary>
+    public PdfDisplaySdrWhiteLevel? SdrWhiteLevel { get; init; }
 }
 
 /// <summary>Provides an immutable output association and any failed query.</summary>
