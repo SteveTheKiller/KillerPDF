@@ -25,7 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
-- Native FP16 presentation preserves frames, resizes within pixel limits, reports composition failures and discovers the viewport's dominant monitor. Viewer integration is in progress. (#264)
+- Native FP16 presentation preserves frames, resizes within pixel limits, reports composition failures and discovers the viewport's dominant monitor and output associations. Viewer integration is in progress. (#264)
 
 ## [1.9.2] - 2026-11-02
 

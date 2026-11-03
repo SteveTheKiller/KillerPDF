@@ -14,6 +14,44 @@ public enum PdfDisplayDiscoveryStatus
 /// <summary>Describes a display rectangle in desktop coordinates.</summary>
 public sealed record PdfDisplayBounds(int Left, int Top, int Right, int Bottom);
 
+/// <summary>Describes whether a selected display has an unambiguous output association.</summary>
+public enum PdfDisplayTargetStatus
+{
+    /// <summary>No complete output association was established.</summary>
+    Unavailable,
+    /// <summary>Exactly one active output was associated.</summary>
+    SingleTarget,
+    /// <summary>Several active outputs share the selected display.</summary>
+    MultipleTargets
+}
+
+/// <summary>Identifies one live output association without promising persistent physical identity.</summary>
+public sealed record PdfDisplayTarget(string Identity, string? FriendlyName);
+
+/// <summary>Provides an immutable output association and any failed query.</summary>
+public sealed class PdfDisplayTargetAssociation
+{
+    /// <summary>Creates an association with an owned immutable copy of its targets.</summary>
+    public PdfDisplayTargetAssociation(PdfDisplayTargetStatus status,
+        IEnumerable<PdfDisplayTarget> targets, string? failureOperation = null, int? nativeErrorCode = null)
+    {
+        ArgumentNullException.ThrowIfNull(targets);
+        Status = status;
+        Targets = Array.AsReadOnly(targets.ToArray());
+        FailureOperation = failureOperation;
+        NativeErrorCode = nativeErrorCode;
+    }
+
+    /// <summary>Gets the completeness and multiplicity of the association.</summary>
+    public PdfDisplayTargetStatus Status { get; }
+    /// <summary>Gets the observed live outputs.</summary>
+    public IReadOnlyList<PdfDisplayTarget> Targets { get; }
+    /// <summary>Gets the failed query, when association is unavailable.</summary>
+    public string? FailureOperation { get; }
+    /// <summary>Gets a Win32 query error, when supplied by the operation.</summary>
+    public int? NativeErrorCode { get; }
+}
+
 /// <summary>Provides an immutable observation of a viewport's selected display.</summary>
 /// <param name="Generation">Changes when the observed selection, bounds or failure changes.</param>
 /// <param name="Status">Whether the selected display was observed.</param>
@@ -23,4 +61,8 @@ public sealed record PdfDisplayBounds(int Left, int Top, int Right, int Bottom);
 /// <param name="NativeErrorCode">A Win32 error code when supplied by the failing operation.</param>
 public sealed record PdfDisplayDiscoverySnapshot(long Generation,
     PdfDisplayDiscoveryStatus Status, string? MonitorIdentity, PdfDisplayBounds? Bounds,
-    string? FailureOperation, int? NativeErrorCode);
+    string? FailureOperation, int? NativeErrorCode)
+{
+    /// <summary>Gets output associations, or null before they have been queried.</summary>
+    public PdfDisplayTargetAssociation? TargetAssociation { get; init; }
+}
