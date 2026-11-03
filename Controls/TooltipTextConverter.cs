@@ -32,6 +32,15 @@ namespace KillerFamily.Layout
             }
         }
 
+        /// <summary>Marks the hint WithHint appends, so hiding hints never guesses from key names.</summary>
+        public const char HintMarker = '\u200B';
+
+        /// <summary>Builds a tooltip as "Label (keys)" with an invisible marker before the bracket. With hints off the
+        /// converter removes exactly that suffix, whatever the key text or language; labels that merely contain
+        /// parentheses are left alone. Apps use this wherever they append shortcut keys to a tooltip.</summary>
+        public static string WithHint(string text, string? keys)
+            => string.IsNullOrEmpty(keys) ? text : text + " " + HintMarker + "(" + keys + ")";
+
         public Visibility MenuVisibility => Enabled ? Visibility.Visible : Visibility.Collapsed;
 
         public static void Initialize(Func<string, string?> read, Action<string, string> save)
@@ -116,6 +125,8 @@ namespace KillerFamily.Layout
                 if (child is DependencyObject node) WrapText(node, restore);
         }
 
+        // The suffix WithHint appends: optional blanks, the marker, then one bracketed group that ends the text.
+        private static readonly Regex MarkedHint = new("[ \\t]*\u200B\\((.*)\\)$", RegexOptions.Singleline);
         private static readonly Regex ShortcutSuffix = new(@"\s+\((?=[^()]*\b(?:Ctrl|Alt|Shift|F\d{1,2}|Esc|Enter|Space|Tab|Delete|Backspace)\b)([^()]*)\)$");
         private static readonly Regex ShortcutLine = new(@"^\s*(?:(?:(?:Ctrl|Alt|Shift|Win|Cmd)\s*\+\s*)+\S+|F\d{1,2}|Esc|Enter|Space|Tab|Delete|Backspace)(?:\s*(?:,|/|or)\s*\S+)*\s*$");
         private static readonly Regex UnbracketedSuffix = new(@"\s{2,}(?=(?:Ctrl|Alt|Shift|Win|Cmd)\+|F\d{1,2}\b|Enter\b|Esc\b|Delete\b).*$");
@@ -124,6 +135,9 @@ namespace KillerFamily.Layout
 
         private static string Format(string text, bool show)
         {
+            Match marked = MarkedHint.Match(text);
+            if (marked.Success)
+                return show ? text.Substring(0, marked.Index) + "\n" + marked.Groups[1].Value : text.Substring(0, marked.Index);
             if (show) return ShortcutSuffix.Replace(text, "\n$1");
             string withoutSuffix = UnbracketedSuffix.Replace(ExtraHintClause.Replace(ParenthesizedHints.Replace(text, ""), ""), "");
             string kept = string.Join("\n", withoutSuffix.Replace("\r\n", "\n").Split('\n').Where(line => !ShortcutLine.IsMatch(line))).TrimEnd();
