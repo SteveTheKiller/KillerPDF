@@ -6,7 +6,7 @@ public sealed partial class PdfPageRenderer
 {
     // This document-free bridge shares the established outline flattening and coverage engine.
     internal static CoverageMask RasterizeNativeGlyph(PdfGlyphOutline outline,
-        double left, double baseline, double scale, int width, int height,
+        double left, double baseline, double scaleX, double scaleY, int width, int height,
         CancellationToken cancellationToken)
     {
         var source = FlattenGlyphOutlineCore(outline);
@@ -18,7 +18,11 @@ public sealed partial class PdfPageRenderer
             for (int index = 0; index < path.Length; index++)
             {
                 if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-                transformed[index] = new(left + path[index].X * scale, baseline - path[index].Y * scale);
+                double x = left + path[index].X * scaleX;
+                double y = baseline - path[index].Y * scaleY;
+                if (!double.IsFinite(x) || !double.IsFinite(y))
+                    throw new InvalidDataException("The transformed native glyph coordinates are not finite.");
+                transformed[index] = new(x, y);
             }
             polygons.Add(transformed);
         }

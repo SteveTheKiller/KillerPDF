@@ -57,4 +57,21 @@ public sealed class EpubLayoutDocument
         return NativeGlyphPainter.Render((int)Math.Ceiling(_options.PageWidth), (int)Math.Ceiling(_options.PageHeight),
             Pages[pageIndex].Glyphs, _options.TextColor, cancellationToken);
     }
+
+    /// <summary>Renders original glyph outlines at exact pixel dimensions without reflowing text.</summary>
+    public PdfRenderedFrame RenderPage(int pageIndex, PdfRenderOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(options);
+        if (pageIndex < 0 || pageIndex >= Pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (options.SeparationPlate is not null)
+            throw new NotSupportedException("Native EPUB rendering does not support color separations.");
+        if ((long)options.Width * options.Height > options.PixelByteLimit / (2 * 4 * sizeof(float)))
+            throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
+        return NativeGlyphPainter.Render(options.Width, options.Height, Pages[pageIndex].Glyphs,
+            _options.TextColor, cancellationToken, options.Width / _options.PageWidth,
+            options.Height / _options.PageHeight);
+    }
 }

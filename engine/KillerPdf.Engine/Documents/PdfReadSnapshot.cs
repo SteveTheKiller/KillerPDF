@@ -138,4 +138,28 @@ public sealed class PdfReadSnapshot
     public PdfRenderedFrame RenderPage(int pageIndex, CancellationToken cancellationToken = default) =>
         _djvu is not null ? _djvu.RenderPage(pageIndex, cancellationToken)
             : _layout!.RenderPage(pageIndex, cancellationToken);
+
+    /// <summary>Renders a native page at the requested pixel dimensions.</summary>
+    public PdfRenderedFrame RenderPage(int pageIndex, PdfRenderOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(options);
+        if (pageIndex < 0 || pageIndex >= PageCount)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (_layout is not null)
+            return _layout.RenderPage(pageIndex, options, cancellationToken);
+        if (options.SeparationPlate is not null)
+            throw new NotSupportedException("Native DjVu rendering does not support color separations.");
+        var geometry = _geometries[pageIndex];
+        int width = (int)Math.Ceiling(geometry.Width);
+        int height = (int)Math.Ceiling(geometry.Height);
+        if (geometry.IntrinsicRotation is 90 or 270)
+            (width, height) = (height, width);
+        if (options.Width != width || options.Height != height)
+            throw new NotSupportedException("Native DjVu rendering currently requires the natural oriented pixel dimensions.");
+        if ((long)width * height > options.PixelByteLimit / (2 * 4 * sizeof(float)))
+            throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
+        return _djvu!.RenderPage(pageIndex, cancellationToken);
+    }
 }

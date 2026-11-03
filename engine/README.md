@@ -167,6 +167,12 @@ pixel buffers are limited to 128 MiB, and layout limits source text and placemen
 Cancellation is supported during layout and rendering. Logical text geometry remains
 separate from glyph ink, which can extend beyond a font's logical line box.
 
+The EPUB `RenderPage(pageIndex, renderOptions)` overload rasterizes the original
+glyph outlines at the requested pixel dimensions without changing pagination or
+text placement. It checks the caller's combined float-buffer budget before
+allocating pixels. Native separation plates are unsupported. The DjVu overload
+currently accepts only natural oriented dimensions and diagnoses other sizes.
+
 `PdfReadSnapshot.OpenEpub(bytes, options)` and `OpenDjvu(bytes)` capture source
 identity and native read state together, expose explicit page units and physical
 point dimensions, and render the same float frames. EPUB uses CSS pixels at 96 DPI;

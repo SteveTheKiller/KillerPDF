@@ -10,11 +10,13 @@ internal static class NativeGlyphPainter
     private const long MaximumWorkingPixelBytes = 128L * 1024 * 1024;
 
     internal static PdfRenderedFrame Render(int width, int height, IReadOnlyList<NativeGlyphPaint> glyphs,
-        PdfRgbColor color, CancellationToken cancellationToken)
+        PdfRgbColor color, CancellationToken cancellationToken, double scaleX = 1, double scaleY = 1)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (!double.IsFinite(scaleX) || scaleX <= 0 || !double.IsFinite(scaleY) || scaleY <= 0)
+            throw new InvalidDataException("The native page scale must be finite and positive.");
         long pixelCount = (long)width * height;
         if (pixelCount > MaximumWorkingPixelBytes / (2 * 4 * sizeof(float)))
             throw new InvalidDataException("The native page exceeds its combined 128 MiB pixel storage limit.");
@@ -25,11 +27,16 @@ internal static class NativeGlyphPainter
         foreach (var glyph in glyphs)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!double.IsFinite(glyph.Left) || !double.IsFinite(glyph.Baseline)
-                || !double.IsFinite(glyph.Scale) || glyph.Scale <= 0)
+            double left = glyph.Left * scaleX;
+            double baseline = glyph.Baseline * scaleY;
+            double glyphScaleX = glyph.Scale * scaleX;
+            double glyphScaleY = glyph.Scale * scaleY;
+            if (!double.IsFinite(left) || !double.IsFinite(baseline)
+                || !double.IsFinite(glyphScaleX) || glyphScaleX <= 0
+                || !double.IsFinite(glyphScaleY) || glyphScaleY <= 0)
                 throw new InvalidDataException("The native glyph placement is invalid.");
-            var mask = PdfPageRenderer.RasterizeNativeGlyph(glyph.Outline, glyph.Left,
-                glyph.Baseline, glyph.Scale, width, height, cancellationToken);
+            var mask = PdfPageRenderer.RasterizeNativeGlyph(glyph.Outline, left,
+                baseline, glyphScaleX, glyphScaleY, width, height, cancellationToken);
             try
             {
                 for (int y = mask.Top; y < mask.Bottom; y++)
