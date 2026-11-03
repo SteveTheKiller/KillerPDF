@@ -30,18 +30,20 @@ public sealed partial class EpubDocument
             || Spine.Count == 0)
             throw new NotSupportedException("Native EPUB layout requires linear, reflowable, left-to-right spine items.");
         var pages = new List<EpubLayoutPage>();
+        var reader = new TrueTypeOutlineReader(options.DefaultFont);
         int remainingTextLength = 100_000;
         for (int spineIndex = 0; spineIndex < Spine.Count; spineIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            AppendNativeSpinePages(spineIndex, options, contentWidth, pages, ref remainingTextLength, cancellationToken);
+            AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, ref remainingTextLength, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
         return new EpubLayoutDocument(options, pages);
     }
 
     private void AppendNativeSpinePages(int spineIndex, EpubLayoutOptions options, double contentWidth,
-        List<EpubLayoutPage> pages, ref int remainingTextLength, CancellationToken cancellationToken)
+        TrueTypeOutlineReader reader, List<EpubLayoutPage> pages, ref int remainingTextLength,
+        CancellationToken cancellationToken)
     {
         var entry = Spine[spineIndex];
         if (!entry.IsLinear || !string.IsNullOrWhiteSpace(entry.Properties))
@@ -55,7 +57,6 @@ public sealed partial class EpubDocument
             throw new InvalidDataException("Native EPUB text exceeds its 100,000 placement limit.");
         remainingTextLength -= text.Length;
         var font = options.DefaultFont;
-        var reader = new TrueTypeOutlineReader(font);
         var placements = new List<EpubTextPlacement>(text.Length);
         var glyphs = new List<NativeGlyphPaint>(text.Length);
         int pageStart = 0;
