@@ -4872,7 +4872,7 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
-    public void Build_RejectsImportedPopupWhoseParentDoesNotLinkBack()
+    public void Build_ImportsPopupWhoseMarkupParentHasNoOptionalPopupLink()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage(200, 300)
@@ -4881,7 +4881,7 @@ public sealed class PdfIncrementalPageEditorTests
         var update = new PdfIncrementalUpdateBuilder(source);
         PdfIndirectReference markup = update.AddObject(new PdfDictionary([
             new(Name("Type"), Name("Annot")),
-            new(Name("Subtype"), Name("Text")),
+            new(Name("Subtype"), Name("Circle")),
             new(Name("Rect"), new PdfArray([
                 new PdfInteger(0), new PdfInteger(0),
                 new PdfInteger(10), new PdfInteger(10)
@@ -4898,21 +4898,88 @@ public sealed class PdfIncrementalPageEditorTests
             new(Name("P"), references[0]),
             new(Name("Parent"), markup)
         ]));
-        PdfDocument malformed = PdfDocument.Open(update
+        PdfDocument withoutBacklink = PdfDocument.Open(update
             .ReplaceObject(references[0].ObjectNumber,
                 new PdfDictionary(pages[0].Append(
                     new KeyValuePair<PdfName, PdfObject>(Name("Annots"),
                         new PdfArray([popup, markup])))))
             .Build());
 
-        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-            new PdfIncrementalPageEditor(
+        PdfDocument imported = PdfDocument.Open(new PdfIncrementalPageEditor(
                 PdfDocument.Open(new PdfDocumentBuilder().Build()))
-                .AddImportedPage(malformed, 0)
+                .AddImportedPage(withoutBacklink, 0)
                 .Build());
 
-        Assert.Contains("popup /Parent does not link back through /Popup",
-            error.Message, StringComparison.Ordinal);
+        (_, _, PdfDictionary[] importedPages) = FlatPages(imported);
+        PdfArray annotations = Assert.IsType<PdfArray>(importedPages[0][Name("Annots")]);
+        Assert.Equal(2, annotations.Count);
+        PdfDictionary importedPopup = ResolveDictionary(imported,
+            Assert.IsType<PdfIndirectReference>(annotations[0]));
+        PdfIndirectReference importedMarkupReference = Assert.IsType<PdfIndirectReference>(
+            annotations[1]);
+        PdfDictionary importedMarkup = ResolveDictionary(imported, importedMarkupReference);
+        Assert.Equal("Popup", Assert.IsType<PdfName>(importedPopup[Name("Subtype")]).ValueAsLatin1());
+        Assert.Equal("Circle", Assert.IsType<PdfName>(importedMarkup[Name("Subtype")]).ValueAsLatin1());
+        PdfIndirectReference importedParent = Assert.IsType<PdfIndirectReference>(
+            importedPopup[Name("Parent")]);
+        Assert.Equal(importedMarkupReference.ObjectNumber, importedParent.ObjectNumber);
+        Assert.Equal(importedMarkupReference.Generation, importedParent.Generation);
+        Assert.False(importedMarkup.ContainsKey(Name("Popup")));
+    }
+
+    [Theory]
+    [InlineData("NullBacklink", "popup /Parent does not link back through /Popup")]
+    [InlineData("MalformedBacklink", "popup /Parent does not link back through /Popup")]
+    [InlineData("DirectBacklink", "popup /Parent does not link back through /Popup")]
+    [InlineData("ConflictingBacklink", "popup /Parent does not link back through /Popup")]
+    [InlineData("MissingParent", "popup annotation has no indirect /Parent dictionary")]
+    [InlineData("NullParent", "popup annotation has no indirect /Parent dictionary")]
+    [InlineData("UnregisteredParent", "popup /Parent is not registered on the imported page")]
+    [InlineData("NonmarkupParent", "popup /Parent is not a markup annotation")]
+    public void Build_RejectsImportedPopupWithInvalidOwnership(string scenario, string expectedMessage)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
+        (_, PdfIndirectReference[] references, PdfDictionary[] pages) = FlatPages(source);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference markup = update.ReserveObject();
+        PdfIndirectReference popup = update.ReserveObject();
+        PdfArray rectangle = new([new PdfInteger(0), new PdfInteger(0),
+            new PdfInteger(10), new PdfInteger(10)]);
+        var popupEntries = new List<KeyValuePair<PdfName, PdfObject>>([
+            new(Name("Type"), Name("Annot")),
+            new(Name("Subtype"), Name("Popup")),
+            new(Name("Rect"), rectangle)
+        ]);
+        if (scenario != "MissingParent")
+            popupEntries.Add(new(Name("Parent"), scenario == "NullParent" ? PdfNull.Instance : markup));
+        var popupDictionary = new PdfDictionary(popupEntries);
+        update.SetObject(popup, popupDictionary);
+        var markupEntries = new List<KeyValuePair<PdfName, PdfObject>>([
+            new(Name("Type"), Name("Annot")),
+            new(Name("Subtype"), Name(scenario == "NonmarkupParent" ? "Link" : "Circle")),
+            new(Name("Rect"), rectangle)
+        ]);
+        PdfObject? backlink = scenario switch
+        {
+            "NullBacklink" => PdfNull.Instance,
+            "MalformedBacklink" => new PdfInteger(7),
+            "DirectBacklink" => popupDictionary,
+            "ConflictingBacklink" => update.AddObject(popupDictionary),
+            _ => null
+        };
+        if (backlink is not null)
+            markupEntries.Add(new(Name("Popup"), backlink));
+        update.SetObject(markup, new PdfDictionary(markupEntries));
+        PdfArray annotations = scenario == "UnregisteredParent" ? new([popup]) : new([popup, markup]);
+        PdfDocument invalid = PdfDocument.Open(update.ReplaceObject(references[0].ObjectNumber,
+            new PdfDictionary(pages[0].Append(new KeyValuePair<PdfName, PdfObject>(
+                Name("Annots"), annotations)))).Build());
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
+            new PdfIncrementalPageEditor(PdfDocument.Open(new PdfDocumentBuilder().Build()))
+                .AddImportedPage(invalid, 0).Build());
+
+        Assert.Contains(expectedMessage, error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

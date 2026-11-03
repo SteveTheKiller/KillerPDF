@@ -16276,13 +16276,13 @@ public sealed class PdfIncrementalPageEditor
                     or "Widget" or "PrinterMark" or "TrapNet")
                 throw new InvalidOperationException(
                     $"{description} popup /Parent is not a markup annotation.");
-            if (annotationReference is null
-                || !parentDictionary.TryGetValue(Name("Popup"), out PdfObject? parentPopup)
+            if (parentDictionary.TryGetValue(Name("Popup"), out PdfObject? parentPopup)
+                && (annotationReference is null
                 || ResolveCatalogWithIdentity(document, parentPopup,
                     $"{description} parent /Popup value").FinalReference
                     is not PdfIndirectReference parentPopupReference
                 || parentPopupReference.ObjectNumber != annotationReference.ObjectNumber
-                || parentPopupReference.Generation != annotationReference.Generation)
+                || parentPopupReference.Generation != annotationReference.Generation))
                 throw new InvalidOperationException(
                     $"{description} popup /Parent does not link back through /Popup.");
             if (annotation.TryGetValue(Name("Open"), out PdfObject? popupOpen)
