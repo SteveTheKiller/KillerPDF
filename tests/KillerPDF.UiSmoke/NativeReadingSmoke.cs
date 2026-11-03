@@ -18,7 +18,7 @@ using System.Windows.Threading;
 
 internal static class NativeReadingSmoke
 {
-    internal static int Run(Window owner, string appPath, string folder, bool continuous = false)
+    internal static int Run(Window owner, string appPath, string folder, bool continuous = false, bool grid = false, bool gridSwitch = false)
     {
         string stage = "fixture";
         var events = new List<object>();
@@ -26,6 +26,10 @@ internal static class NativeReadingSmoke
         var sources = new Dictionary<string, byte[]>();
         Exception? failure = null;
         bool control = false, native = false;
+        bool switched = false;
+        ImageSource? controlSource = null;
+        Rect controlBounds = Rect.Empty;
+        string selectedRadioName = "";
         ImageSource? previous = null;
         int stable = 0;
         int viewportStable = 0;
@@ -34,6 +38,12 @@ internal static class NativeReadingSmoke
         var timer = new DispatcherTimer(DispatcherPriority.Send) { Interval = TimeSpan.FromMilliseconds(25) };
         var seen = new HashSet<Window>();
         var deadline = Stopwatch.StartNew();
+        DispatcherUnhandledExceptionEventHandler dispatcherFailure = (_, error) =>
+        {
+            failure ??= error.Exception;
+            error.Handled = true;
+        };
+        if (gridSwitch) Application.Current.DispatcherUnhandledException += dispatcherFailure;
         timer.Tick += (_, _) =>
         {
             if (deadline.Elapsed > TimeSpan.FromSeconds(100))
@@ -54,27 +64,36 @@ internal static class NativeReadingSmoke
             ConstructorInfo constructor = builderType.GetConstructors().Single();
             dynamic builder = constructor.Invoke(constructor.GetParameters().Select(p => p.DefaultValue).ToArray());
             sources.Add(Path.Combine(folder, "blank-control.pdf"), (byte[])builder.AddBlankPage(300d, 200d).Build());
-            byte[] nativeBytes = continuous ? ContinuousFixture() : DjvuFixture();
-            if (continuous && (nativeBytes.Length != 100 || Hash(nativeBytes) != "A6112B847B6731E478086F5A14528540B155D8A871AF2F39BE362F7BF682C609"))
+            byte[] nativeBytes = continuous || grid ? ContinuousFixture() : DjvuFixture();
+            if ((continuous || grid) && (nativeBytes.Length != 100 || Hash(nativeBytes) != "A6112B847B6731E478086F5A14528540B155D8A871AF2F39BE362F7BF682C609"))
                 throw new InvalidOperationException("Frozen Continuous fixture hash mismatch.");
-            sources.Add(Path.Combine(folder, continuous ? "rectangle-300x200-300dpi.djvu" : "native-upright.djvu"), nativeBytes);
+            sources.Add(Path.Combine(folder, continuous || grid ? "rectangle-300x200-300dpi.djvu" : "native-upright.djvu"), nativeBytes);
             foreach (var source in sources) File.WriteAllBytes(source.Key, source.Value);
             owner.WindowState = WindowState.Normal;
             owner.Width = Math.Min(1000, SystemParameters.WorkArea.Width - 64);
             owner.Height = Math.Min(800, SystemParameters.WorkArea.Height - 64);
             owner.Activate();
             timer.Start();
-            foreach (var source in sources)
+            var steps = sources.Select(source => (Source: source, Grid: grid, Open: true)).ToList();
+            if (gridSwitch)
+                steps = [(sources.First(), true, true), (sources.Last(), false, true), (sources.Last(), true, false)];
+            foreach (var step in steps)
             {
+                var source = step.Source;
                 bool isNative = source.Key.EndsWith(".djvu", StringComparison.Ordinal);
                 stage = isNative ? "native-open" : "control-open";
-                MethodInfo open = owner.GetType().GetMethod("OpenFromExternal", BindingFlags.Public | BindingFlags.Instance)
-                    ?? throw new MissingMethodException("MainWindow.OpenFromExternal");
-                try { open.Invoke(owner, [source.Key]); }
-                catch (TargetInvocationException error) when (error.InnerException is not null)
-                { ExceptionDispatchInfo.Capture(error.InnerException).Throw(); throw; }
+                if (step.Open)
+                {
+                    MethodInfo open = owner.GetType().GetMethod("OpenFromExternal", BindingFlags.Public | BindingFlags.Instance)
+                        ?? throw new MissingMethodException("MainWindow.OpenFromExternal");
+                    try { open.Invoke(owner, [source.Key]); }
+                    catch (TargetInvocationException error) when (error.InnerException is not null)
+                    { ExceptionDispatchInfo.Capture(error.InnerException).Throw(); throw; }
+                }
+                else previous = controlSource;
                 stage = isNative ? "native-readiness" : "control-readiness";
-                string radioName = continuous ? "ViewContinuousRadio" : "ViewSingleRadio";
+                string radioName = step.Grid ? "ViewGridRadio" : continuous ? "ViewContinuousRadio" : "ViewSingleRadio";
+                selectedRadioName = radioName;
                 Wait(() => owner.IsLoaded && owner.IsVisible && owner.IsEnabled
                     && Named<RadioButton>(owner, radioName) is { IsVisible: true, IsEnabled: true });
                 var radio = Named<RadioButton>(owner, radioName)!;
@@ -97,11 +116,19 @@ internal static class NativeReadingSmoke
                     var viewport = Descendants<ScrollViewer>(owner).SingleOrDefault(v => v.Name == "PagePreviewPanel" && v.IsVisible);
                     if (viewport is null || !viewport.IsEnabled || viewport.Opacity < .999) { stable = 0; return false; }
                     DependencyObject imageRoot = viewport;
-                    if (continuous)
+                    if (continuous || step.Grid)
                     {
-                        if (radio.IsChecked != true || Named<StackPanel>(viewport, "ContinuousPanel") is not { IsVisible: true, IsEnabled: true } panel)
+                        Panel? panel = step.Grid ? Named<Panel>(viewport, "PageContentPanel") : Named<StackPanel>(viewport, "ContinuousPanel");
+                        if (radio.IsChecked != true || panel is not { IsVisible: true, IsEnabled: true }
+                            || step.Grid && panel.GetType().FullName != "KillerPDF.Controls.SafeWrapPanel")
                         { stable = 0; return false; }
                         imageRoot = panel;
+                        if (step.Grid)
+                        {
+                            if (panel.Children.Count != 1 || panel.Children[0] is not Border { IsVisible: true } tile)
+                            { stable = 0; return false; }
+                            imageRoot = tile;
+                        }
                         var visiblePresenter = Descendants<ScrollContentPresenter>(viewport).SingleOrDefault(element => element.IsVisible);
                         if (visiblePresenter is null || !Opaque(panel)) { viewportStable = 0; return false; }
                         Rect currentWindow = ScreenBounds(owner), currentViewport = ScreenBounds(visiblePresenter);
@@ -133,15 +160,18 @@ internal static class NativeReadingSmoke
                     last = bounds; lastWindow = windowBounds; lastViewport = visibleViewport; stableSource = page.Source;
                     return stable >= 5;
                 });
-                if (continuous)
+                if (continuous || grid)
                     events.Add(new { stage, diagnostic = "ready-visible-state", stable, viewportStable,
+                        mode = radioName, transition = !step.Open,
                         filename = Named<TextBlock>(owner, "FileNameLabel")?.Text,
                         pages = Named<ListBox>(owner, "PageList")?.Items.Count,
                         radio.IsChecked, viewport = observedViewport.ToString(), window = observedWindow.ToString(),
                         oldSource = ReferenceEquals(page!.Source, previous), previousSource = SourceIdentity(previous),
                         currentSource = SourceIdentity(page.Source), opaqueAncestry = Opaque(page) });
                 previous = page!.Source;
+                if (!isNative) { controlSource = page.Source; controlBounds = last; }
                 stage = isNative ? "native-pixels" : "control-pixels";
+                string nativePrefix = gridSwitch && isNative && !step.Grid ? "native-single" : "native";
                 var ancestry = new List<object>();
                 for (DependencyObject? visual = page; visual is Visual; visual = VisualTreeHelper.GetParent(visual))
                     if (visual is FrameworkElement element)
@@ -151,13 +181,13 @@ internal static class NativeReadingSmoke
                 var sourceBitmap = (BitmapSource)page.Source;
                 var sourceEncoder = new PngBitmapEncoder();
                 sourceEncoder.Frames.Add(BitmapFrame.Create(sourceBitmap));
-                using (var sourceOutput = File.Create(Path.Combine(folder, isNative ? "native-source-diagnostic.png" : "control-source-diagnostic.png")))
+                using (var sourceOutput = File.Create(Path.Combine(folder, isNative ? nativePrefix + "-source-diagnostic.png" : "control-source-diagnostic.png")))
                     sourceEncoder.Save(sourceOutput);
                 events.Add(new { stage, diagnostic = "source-and-ancestry", sourceBitmap.PixelWidth,
                     sourceBitmap.PixelHeight, format = sourceBitmap.Format.ToString(), sourceBitmap.DpiX,
                     sourceBitmap.DpiY, tooltip = page.ToolTip?.ToString(), ancestry });
                 var capture = Capture(owner, last);
-                string path = Path.Combine(folder, isNative ? "native-page.png" : "blank-control-page.png");
+                string path = Path.Combine(folder, isNative ? nativePrefix + "-page.png" : "blank-control-page.png");
                 var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(capture));
                 using (var output = File.Create(path)) encoder.Save(output);
                 double[] upper = Patch(capture, .125, .125), upperRight = Patch(capture, .875, .125), lower = Patch(capture, .875, .875);
@@ -169,6 +199,14 @@ internal static class NativeReadingSmoke
                 if (isNative ? !detector : !whiteUpper || !whiteLower || !upperRight.All(value => value >= 224) || detector)
                     throw new InvalidOperationException(isNative ? "Native white/black screen detector failed." : "Blank PDF absence control failed.");
                 if (isNative) native = true; else control = true;
+                if (gridSwitch && isNative && step.Grid)
+                {
+                    stage = "native-grid-geometry";
+                    events.Add(new { stage, controlBounds = controlBounds.ToString(), nativeBounds = last.ToString() });
+                    if (Math.Abs(last.Width - controlBounds.Width) > 2 || Math.Abs(last.Height - controlBounds.Height) > 2)
+                        throw new InvalidOperationException("Native Grid geometry differs from the PDF Grid control.");
+                    switched = true;
+                }
             }
 
             void Wait(Func<bool> ready)
@@ -188,22 +226,23 @@ internal static class NativeReadingSmoke
         catch (Exception error)
         {
             failure = error;
-            if (continuous)
+            if (continuous || grid)
             {
                 try
                 {
                     owner.UpdateLayout();
                     var viewport = Descendants<ScrollViewer>(owner).SingleOrDefault(v => v.Name == "PagePreviewPanel" && v.IsVisible);
-                    var panel = viewport is null ? null : Named<StackPanel>(viewport, "ContinuousPanel");
+                    Panel? panel = viewport is null ? null : grid ? Named<Panel>(viewport, "PageContentPanel") : Named<StackPanel>(viewport, "ContinuousPanel");
                     events.Add(new { stage, diagnostic = "failure-visible-state", stable, viewportStable,
                         observedWindow = observedWindow.ToString(), observedViewport = observedViewport.ToString(),
                         filename = Named<TextBlock>(owner, "FileNameLabel")?.Text,
                         filenameVisible = Named<TextBlock>(owner, "FileNameLabel")?.IsVisible,
                         pageCount = Named<ListBox>(owner, "PageList")?.Items.Count,
                         pageListVisible = Named<ListBox>(owner, "PageList")?.IsVisible,
-                        radioChecked = Named<RadioButton>(owner, "ViewContinuousRadio")?.IsChecked,
-                        radioVisible = Named<RadioButton>(owner, "ViewContinuousRadio")?.IsVisible,
+                        radioChecked = Named<RadioButton>(owner, selectedRadioName)?.IsChecked,
+                        radioVisible = Named<RadioButton>(owner, selectedRadioName)?.IsVisible,
                         viewportVisible = viewport?.IsVisible, panelVisible = panel?.IsVisible,
+                        panelType = panel?.GetType().FullName, panelName = panel?.Name, panelChildren = panel?.Children.Count,
                         viewportBounds = viewport is null ? null : ScreenBounds(viewport).ToString(),
                         windowBounds = ScreenBounds(owner).ToString(),
                         previousSource = SourceIdentity(previous),
@@ -237,12 +276,14 @@ internal static class NativeReadingSmoke
         finally
         {
             timer.Stop();
+            if (gridSwitch) Application.Current.DispatcherUnhandledException -= dispatcherFailure;
             bool preserved = sources.All(source => File.Exists(source.Key) && File.ReadAllBytes(source.Key).AsSpan().SequenceEqual(source.Value));
-            bool passed = control && native && preserved && failure is null && modals.Count == 0;
+            bool passed = control && native && preserved && failure is null && modals.Count == 0 && (!gridSwitch || switched);
             File.WriteAllText(Path.Combine(folder, "result.json"), JsonSerializer.Serialize(new
             {
-                passed, stage, control, native, preserved, continuous, machine = Environment.MachineName,
+                passed, stage, control, native, preserved, continuous, grid, gridSwitch, switched, machine = Environment.MachineName,
                 failureKind = failure is null ? null : stage == "fixture" ? "fixture"
+                    : grid && failure is TimeoutException && modals.Count == 0 ? "grid-readiness-review-required"
                     : continuous && stage == "native-render-readiness" && modals.Count == 0 ? "native-render-readiness-review-required"
                     : modals.Count > 0 ? "unexpected-modal" : stage.EndsWith("readiness", StringComparison.Ordinal)
                     ? "readiness-or-locator" : stage.EndsWith("open", StringComparison.Ordinal) ? "open" : "rendered-pixels",
@@ -253,7 +294,7 @@ internal static class NativeReadingSmoke
                 inputs = sources.Select(source => new { path = source.Key, length = source.Value.Length, sha256 = Hash(source.Value) }).ToArray()
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
-        return control && native && failure is null && modals.Count == 0
+        return control && native && failure is null && modals.Count == 0 && (!gridSwitch || switched)
             && sources.All(source => File.ReadAllBytes(source.Key).AsSpan().SequenceEqual(source.Value)) ? 0 : 1;
     }
 

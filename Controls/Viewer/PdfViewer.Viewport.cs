@@ -2532,7 +2532,7 @@ namespace KillerPDF.Controls
                     // (a second render would duplicate tiles).
                     if (mode == ViewMode.Grid)
                     {
-                        _gridColumns = Math.Min(_doc!.PageCount, 3);
+                        _gridColumns = Math.Min(ReadPageCount, 3);
                         SetZoom(GridZoomForN(_gridColumns));
                         // The first fit can run before the viewport width has settled (leaving the
                         // grid off-center / at the wrong zoom); re-fit once more after layout settles,

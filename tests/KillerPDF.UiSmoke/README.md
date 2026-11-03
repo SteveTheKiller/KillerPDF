@@ -61,6 +61,14 @@ the visible viewport, page state and previous/current bitmap identities. A missi
 frame requires review of the positive PDF control and viewport evidence before it can
 be classified as a product failure.
 
+`--verify-native-reading-grid` takes the same arguments and checks one-page native
+opening with Grid already selected. `--verify-native-reading-grid-switch` first checks
+the PDF Grid control, then the native page in Single view, and switches that same open
+native document into Grid. It requires the native Grid dimensions to match the PDF
+control within two screen pixels and retains separate Single and Grid captures.
+Dispatcher exceptions in the isolated transition case fail the check and retain their
+original stacks. Native bitmap cache reuse across modes is allowed; PDF pixels are not.
+
 The result records the stage, original exception, binary/input identities and screen PNGs.
 Source bitmap and visual ancestry captures are diagnostic only. This case verifies the
 initial native reading path, not full format support, physical color accuracy or HDR.
