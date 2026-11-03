@@ -32,7 +32,7 @@ internal static class Program
         Console.OutputEncoding = new UTF8Encoding(false);
         try
         {
-            if (args.Length == 5 && args[0] == "--verify-native-reading" && args[4] == "--session-isolation")
+            if (args.Length == 5 && args[0] is "--verify-native-reading" or "--verify-native-reading-continuous" && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);
             if (args.Length == 3 && args[0] == "--stage-empty-recent-restart")

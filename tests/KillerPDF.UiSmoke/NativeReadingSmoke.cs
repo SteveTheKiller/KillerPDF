@@ -18,7 +18,7 @@ using System.Windows.Threading;
 
 internal static class NativeReadingSmoke
 {
-    internal static int Run(Window owner, string appPath, string folder)
+    internal static int Run(Window owner, string appPath, string folder, bool continuous = false)
     {
         string stage = "fixture";
         var events = new List<object>();
@@ -26,6 +26,10 @@ internal static class NativeReadingSmoke
         var sources = new Dictionary<string, byte[]>();
         Exception? failure = null;
         bool control = false, native = false;
+        ImageSource? previous = null;
+        int stable = 0;
+        int viewportStable = 0;
+        Rect observedWindow = Rect.Empty, observedViewport = Rect.Empty;
         Assembly engine = Assembly.Load("KillerPdf.Engine");
         var timer = new DispatcherTimer(DispatcherPriority.Send) { Interval = TimeSpan.FromMilliseconds(25) };
         var seen = new HashSet<Window>();
@@ -50,14 +54,16 @@ internal static class NativeReadingSmoke
             ConstructorInfo constructor = builderType.GetConstructors().Single();
             dynamic builder = constructor.Invoke(constructor.GetParameters().Select(p => p.DefaultValue).ToArray());
             sources.Add(Path.Combine(folder, "blank-control.pdf"), (byte[])builder.AddBlankPage(300d, 200d).Build());
-            sources.Add(Path.Combine(folder, "native-upright.djvu"), DjvuFixture());
+            byte[] nativeBytes = continuous ? ContinuousFixture() : DjvuFixture();
+            if (continuous && (nativeBytes.Length != 100 || Hash(nativeBytes) != "A6112B847B6731E478086F5A14528540B155D8A871AF2F39BE362F7BF682C609"))
+                throw new InvalidOperationException("Frozen Continuous fixture hash mismatch.");
+            sources.Add(Path.Combine(folder, continuous ? "rectangle-300x200-300dpi.djvu" : "native-upright.djvu"), nativeBytes);
             foreach (var source in sources) File.WriteAllBytes(source.Key, source.Value);
             owner.WindowState = WindowState.Normal;
             owner.Width = Math.Min(1000, SystemParameters.WorkArea.Width - 64);
             owner.Height = Math.Min(800, SystemParameters.WorkArea.Height - 64);
             owner.Activate();
             timer.Start();
-            ImageSource? previous = null;
             foreach (var source in sources)
             {
                 bool isNative = source.Key.EndsWith(".djvu", StringComparison.Ordinal);
@@ -68,16 +74,19 @@ internal static class NativeReadingSmoke
                 catch (TargetInvocationException error) when (error.InnerException is not null)
                 { ExceptionDispatchInfo.Capture(error.InnerException).Throw(); throw; }
                 stage = isNative ? "native-readiness" : "control-readiness";
+                string radioName = continuous ? "ViewContinuousRadio" : "ViewSingleRadio";
                 Wait(() => owner.IsLoaded && owner.IsVisible && owner.IsEnabled
-                    && Named<RadioButton>(owner, "ViewSingleRadio") is { IsVisible: true, IsEnabled: true });
-                var radio = Named<RadioButton>(owner, "ViewSingleRadio")!;
+                    && Named<RadioButton>(owner, radioName) is { IsVisible: true, IsEnabled: true });
+                var radio = Named<RadioButton>(owner, radioName)!;
                 var peer = UIElementAutomationPeer.CreatePeerForElement(radio) ?? new RadioButtonAutomationPeer(radio);
                 ((ISelectionItemProvider)peer.GetPattern(PatternInterface.SelectionItem)!).Select();
                 Image? page = null;
                 Rect last = Rect.Empty;
                 Rect lastWindow = Rect.Empty, lastViewport = Rect.Empty;
                 ImageSource? stableSource = null;
-                int stable = 0;
+                stable = 0;
+                viewportStable = 0;
+                observedWindow = Rect.Empty; observedViewport = Rect.Empty;
                 Wait(() =>
                 {
                     owner.UpdateLayout();
@@ -87,7 +96,23 @@ internal static class NativeReadingSmoke
                         || list.Items.Count != 1) return false;
                     var viewport = Descendants<ScrollViewer>(owner).SingleOrDefault(v => v.Name == "PagePreviewPanel" && v.IsVisible);
                     if (viewport is null || !viewport.IsEnabled || viewport.Opacity < .999) { stable = 0; return false; }
-                    Image[] pages = Descendants<Image>(viewport).Where(i => i.IsVisible && i.IsEnabled
+                    DependencyObject imageRoot = viewport;
+                    if (continuous)
+                    {
+                        if (radio.IsChecked != true || Named<StackPanel>(viewport, "ContinuousPanel") is not { IsVisible: true, IsEnabled: true } panel)
+                        { stable = 0; return false; }
+                        imageRoot = panel;
+                        var visiblePresenter = Descendants<ScrollContentPresenter>(viewport).SingleOrDefault(element => element.IsVisible);
+                        if (visiblePresenter is null || !Opaque(panel)) { viewportStable = 0; return false; }
+                        Rect currentWindow = ScreenBounds(owner), currentViewport = ScreenBounds(visiblePresenter);
+                        if (currentViewport.Width < 40 || currentViewport.Height < 40 || !currentWindow.Contains(currentViewport))
+                        { viewportStable = 0; return false; }
+                        viewportStable = observedWindow == currentWindow && observedViewport == currentViewport ? viewportStable + 1 : 0;
+                        observedWindow = currentWindow; observedViewport = currentViewport;
+                        if (viewportStable < 5) return false;
+                        stage = isNative ? "native-render-readiness" : "control-render-readiness";
+                    }
+                    Image[] pages = Descendants<Image>(imageRoot).Where(i => i.IsVisible && i.IsEnabled
                         && i.Source is BitmapSource && i.ActualWidth > 20 && i.ActualHeight > 20).ToArray();
                     if (pages.Length != 1 || ReferenceEquals(pages[0].Source, previous)) return false;
                     page = pages[0];
@@ -108,6 +133,13 @@ internal static class NativeReadingSmoke
                     last = bounds; lastWindow = windowBounds; lastViewport = visibleViewport; stableSource = page.Source;
                     return stable >= 5;
                 });
+                if (continuous)
+                    events.Add(new { stage, diagnostic = "ready-visible-state", stable, viewportStable,
+                        filename = Named<TextBlock>(owner, "FileNameLabel")?.Text,
+                        pages = Named<ListBox>(owner, "PageList")?.Items.Count,
+                        radio.IsChecked, viewport = observedViewport.ToString(), window = observedWindow.ToString(),
+                        oldSource = ReferenceEquals(page!.Source, previous), previousSource = SourceIdentity(previous),
+                        currentSource = SourceIdentity(page.Source), opaqueAncestry = Opaque(page) });
                 previous = page!.Source;
                 stage = isNative ? "native-pixels" : "control-pixels";
                 var ancestry = new List<object>();
@@ -153,7 +185,55 @@ internal static class NativeReadingSmoke
                 }
             }
         }
-        catch (Exception error) { failure = error; }
+        catch (Exception error)
+        {
+            failure = error;
+            if (continuous)
+            {
+                try
+                {
+                    owner.UpdateLayout();
+                    var viewport = Descendants<ScrollViewer>(owner).SingleOrDefault(v => v.Name == "PagePreviewPanel" && v.IsVisible);
+                    var panel = viewport is null ? null : Named<StackPanel>(viewport, "ContinuousPanel");
+                    events.Add(new { stage, diagnostic = "failure-visible-state", stable, viewportStable,
+                        observedWindow = observedWindow.ToString(), observedViewport = observedViewport.ToString(),
+                        filename = Named<TextBlock>(owner, "FileNameLabel")?.Text,
+                        filenameVisible = Named<TextBlock>(owner, "FileNameLabel")?.IsVisible,
+                        pageCount = Named<ListBox>(owner, "PageList")?.Items.Count,
+                        pageListVisible = Named<ListBox>(owner, "PageList")?.IsVisible,
+                        radioChecked = Named<RadioButton>(owner, "ViewContinuousRadio")?.IsChecked,
+                        radioVisible = Named<RadioButton>(owner, "ViewContinuousRadio")?.IsVisible,
+                        viewportVisible = viewport?.IsVisible, panelVisible = panel?.IsVisible,
+                        viewportBounds = viewport is null ? null : ScreenBounds(viewport).ToString(),
+                        windowBounds = ScreenBounds(owner).ToString(),
+                        previousSource = SourceIdentity(previous),
+                        images = (panel is null ? Enumerable.Empty<Image>() : Descendants<Image>(panel)).Select(image => new
+                        {
+                            image.IsVisible, image.IsEnabled, image.Opacity, image.ActualWidth, image.ActualHeight,
+                            bounds = ScreenBounds(image).ToString(), source = SourceIdentity(image.Source),
+                            oldSource = ReferenceEquals(image.Source, previous), opaqueAncestry = Opaque(image)
+                        }).ToArray(),
+                        viewportOpaqueAncestry = viewport is not null && Opaque(viewport)
+                    });
+                    if (viewport is not null)
+                    {
+                        var presenter = Descendants<ScrollContentPresenter>(viewport).SingleOrDefault(element => element.IsVisible);
+                        if (presenter is not null)
+                        {
+                            Rect bounds = Rect.Intersect(ScreenBounds(presenter), ScreenBounds(owner));
+                            SaveCapture(owner, bounds, Path.Combine(folder, "failure-viewport.png"));
+                            foreach (Image image in panel is null ? Enumerable.Empty<Image>() : Descendants<Image>(panel))
+                            {
+                                Rect pageBounds = Rect.Intersect(ScreenBounds(image), bounds);
+                                if (image.IsVisible && pageBounds.Width >= 40 && pageBounds.Height >= 40)
+                                    SaveCapture(owner, pageBounds, Path.Combine(folder, "failure-page.png"));
+                            }
+                        }
+                    }
+                }
+                catch (Exception diagnosticError) { events.Add(new { stage, diagnostic = "failure-capture-error", error = diagnosticError.ToString() }); }
+            }
+        }
         finally
         {
             timer.Stop();
@@ -161,8 +241,9 @@ internal static class NativeReadingSmoke
             bool passed = control && native && preserved && failure is null && modals.Count == 0;
             File.WriteAllText(Path.Combine(folder, "result.json"), JsonSerializer.Serialize(new
             {
-                passed, stage, control, native, preserved, machine = Environment.MachineName,
+                passed, stage, control, native, preserved, continuous, machine = Environment.MachineName,
                 failureKind = failure is null ? null : stage == "fixture" ? "fixture"
+                    : continuous && stage == "native-render-readiness" && modals.Count == 0 ? "native-render-readiness-review-required"
                     : modals.Count > 0 ? "unexpected-modal" : stage.EndsWith("readiness", StringComparison.Ordinal)
                     ? "readiness-or-locator" : stage.EndsWith("open", StringComparison.Ordinal) ? "open" : "rendered-pixels",
                 error = failure?.ToString(), modals, events,
@@ -177,6 +258,22 @@ internal static class NativeReadingSmoke
     }
 
     private static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
+    private static object? SourceIdentity(ImageSource? source) => source is null ? null : new
+    {
+        type = source.GetType().FullName, identity = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(source),
+        width = (source as BitmapSource)?.PixelWidth, height = (source as BitmapSource)?.PixelHeight
+    };
+    private static bool Opaque(DependencyObject element)
+    {
+        for (DependencyObject? visual = element; visual is Visual; visual = VisualTreeHelper.GetParent(visual))
+            if (visual is UIElement { Opacity: < .999 }) return false;
+        return true;
+    }
+    private static void SaveCapture(Window owner, Rect bounds, string path)
+    {
+        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(Capture(owner, bounds)));
+        using var output = File.Create(path); encoder.Save(output);
+    }
     private static T? Named<T>(DependencyObject root, string name) where T : FrameworkElement =>
         Descendants<T>(root).SingleOrDefault(element => element.Name == name);
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
@@ -203,6 +300,8 @@ internal static class NativeReadingSmoke
     private static byte[] DjvuFixture() => [.. "AT&T"u8, .. Chunk("FORM", [.. "DJVU"u8,
         .. Chunk("INFO", [0, 3, 0, 2, 26, 0, 0x2c, 1, 22, 1]),
         .. Chunk("Smmr", [.. "MMR"u8, 0, 0, 3, 0, 2, 0x23, 0xe1, 0x80, 0x08, 0, 0x80])])];
+    private static byte[] ContinuousFixture() => Convert.FromBase64String(
+        "QVQmVEZPUk0AAABYREpWVUlORk8AAAAKASwAyBoALAEWAVNtbXIAAAA5TU1SAAEsAMgyBhkA3/////////////////////////////////LctDf////////////////gAgAgAA==");
     private static byte[] Chunk(string id, byte[] payload) => [.. System.Text.Encoding.ASCII.GetBytes(id),
         (byte)(payload.Length >> 24), (byte)(payload.Length >> 16), (byte)(payload.Length >> 8), (byte)payload.Length,
         .. payload, .. (payload.Length % 2 == 1 ? new byte[1] : [])];

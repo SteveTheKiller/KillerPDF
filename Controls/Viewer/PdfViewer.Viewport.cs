@@ -175,7 +175,7 @@ namespace KillerPDF.Controls
 
         private void NavigateContinuousToPage(int pageIndex)
         {
-            if (_doc is null || pageIndex < 0 || pageIndex >= _doc.PageCount) return;
+            if (!HasReadDocument || pageIndex < 0 || pageIndex >= ReadPageCount) return;
             _continuousNavigationTarget = pageIndex;
             // A page the open is still waiting to render scrolls to itself when its slot arrives.
             // A jump made before that replaces it, or the render would pull the view back.
@@ -482,12 +482,11 @@ namespace KillerPDF.Controls
         internal void SetupContinuousView(int initialPage, bool fitDefault = true,
             double? restoreVerticalOffset = null)
         {
-            if (_doc is null) return;
-            PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
+            if (!HasReadDocument) return;
             // #130: a malformed page tree can parse to zero pages - Pages[0] below would throw
             // ArgumentOutOfRangeException. Bail out instead of crashing; the view just stays empty.
-            if (engineSession.PageCount == 0) return;
-            initialPage = Math.Clamp(initialPage, 0, engineSession.PageCount - 1);
+            if (ReadPageCount == 0) return;
+            initialPage = Math.Clamp(initialPage, 0, ReadPageCount - 1);
             _continuousScrollTarget = restoreVerticalOffset.HasValue ? -1 : initialPage;
             SyncPageListSelection(initialPage);
             // Coming from Grid, the shared ScrollViewer still carries the grid's overrides
@@ -516,19 +515,19 @@ namespace KillerPDF.Controls
             _continuousSharpPages.Clear();
             _continuousSharpW = 0;
 
-            // Use the PDF's natural page width in WPF DIPs (96 DIP/inch, 72 pt/inch).
+            // Use the document's natural page width in WPF DIPs (96 DIP/inch, 72 pt/inch).
             // This is zoom-independent, which is critical: FitToWidth computes
             //   zoom = viewportW / _continuousPageW
             // and if _continuousPageW were derived from the current zoom level the two
             // would cancel and FitToWidth would always return approximately the old zoom.
-            var (referenceWidth, _) = engineSession.PhysicalPageSize(0, _pageRotations);
+            var (referenceWidth, _) = ReadPhysicalPageSize(0);
             _continuousPageW = Math.Max(200.0, referenceWidth * (96.0 / 72.0));
 
             double y = 0;
-            for (int i = 0; i < engineSession.PageCount; i++)
+            for (int i = 0; i < ReadPageCount; i++)
             {
                 _continuousTops.Add(y);
-                var (pw, ph) = engineSession.VisualPageSize(i, _pageRotations);
+                var (pw, ph) = ReadVisualPageSize(i);
                 // Scaffold: reuse this tab's cached render dimensions (from a prior render of this page) so
                 // the frame is built at its REAL size up front. On a tab switch the page slots are already the
                 // right shape - no dark estimate-sized box that resizes when the bitmap finally streams in.
@@ -619,13 +618,13 @@ namespace KillerPDF.Controls
 
         internal async System.Threading.Tasks.Task RenderContinuousPages(int centerPage)
         {
-            if (_doc is null || _currentFile is null) return;
+            if (!HasReadDocument || _currentFile is null) return;
             CancelAndRelease(_continuousRenderCts);
             _continuousRenderCts = new System.Threading.CancellationTokenSource();
             var cts = _continuousRenderCts;
 
             string currentFile = _currentFile;
-            int pageCount      = _doc.PageCount;
+            int pageCount      = ReadPageCount;
             double targetW     = _continuousPageW;
             int renderW        = Math.Max(800, Math.Min(2048, (int)(targetW * 2)));
 
@@ -652,8 +651,16 @@ namespace KillerPDF.Controls
             var rotations = new Dictionary<int, int>(_pageRotations);
 
             var session = _active;
-            var renderRequest = _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0, _protection);
+            var nativeOwner = _nativeDoc;
+            var nativeRevision = nativeOwner?.CaptureReadRevision();
+            var renderRequest = nativeRevision is null
+                ? _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0, _protection) : null;
+            bool invert = DocInvert;
+            bool invertImages = BitmapHelpers.DocInvertImages;
             var renderToken = cts.Token;
+            bool Current() => !renderToken.IsCancellationRequested && _viewMode == ViewMode.Continuous
+                && ReferenceEquals(_active, session) && ReferenceEquals(_nativeDoc, nativeOwner)
+                && _currentFile == currentFile;
             var renderTask = System.Threading.Tasks.Task.Run(async () =>
             {
                 ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
@@ -664,34 +671,52 @@ namespace KillerPDF.Controls
                         if (cts.IsCancellationRequested) return;
                         int rot = rotations.TryGetValue(i, out int rr) ? rr : 0;
 
-                        // Cache hit: skip pdfium, just attach the cached bitmap to its slot.
+                        // Cache hit: attach the cached bitmap to its slot.
                         var cb = TryGetCachedRender(session, i, renderW, rot);
                         if (cb != null)
                         {
                             int fic = i;
                             Dispatcher.Invoke(() =>
                             {
-                                if (cts.IsCancellationRequested || _viewMode != ViewMode.Continuous) return;
+                                if (!Current()) return;
                                 SetContinuousSlot(fic, cb);
                             });
                             continue;
                         }
 
-                        PdfRenderedPage rendered = await _viewportRenderQueue.Enqueue(
-                            (renderRequest, "continuous", i), 10 + Math.Abs(i - centerPage), 16L * renderW * renderW, token =>
+                        PdfRenderedPage? rendered = null;
+                        int w, h;
+                        byte[] raw;
+                        if (nativeRevision is not null)
+                        {
+                            var frame = await _viewportRenderQueue.Enqueue(
+                                (nativeRevision, "continuous", i), 10 + Math.Abs(i - centerPage), 80L * renderW * renderW,
+                                token => RenderNativeFrame(nativeRevision, i, renderW, renderW * 2, token), renderToken);
+                            w = frame.Width;
+                            h = frame.Height;
+                            raw = frame.ToSrgbBgra32(renderToken);
+                            if (invert && invertImages)
+                                BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h, []);
+                        }
+                        else
+                        {
+                            if (renderRequest is null) return;
+                            var pdfRendered = await _viewportRenderQueue.Enqueue(
+                                (renderRequest, "continuous", i), 10 + Math.Abs(i - centerPage), 16L * renderW * renderW, token =>
                             {
                                 using var lease = renderRequest.Rent(token);
                                 return lease.Render(i, renderW, renderW * 2, token);
                             }, renderToken);
-                        int w = rendered.Width;
-                        int h = rendered.Height;
-                        byte[] raw = rendered.Pixels;
+                            rendered = pdfRendered;
+                            w = pdfRendered.Width;
+                            h = pdfRendered.Height;
+                            raw = pdfRendered.Pixels;
+                            if (w <= 0 || h <= 0 || raw is null) continue;
+                            if (invert)
+                                BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h,
+                                    ImageRectsFor(currentFile, renderRequest.Protection, i, ref contentDoc));
+                        }
                         if (w <= 0 || h <= 0 || raw is null) continue;
-                        // #135: display-only dark mode, pictures excluded. Invert BEFORE the
-                        // pixel-buffer rotation (the ops commute for the full page) so the image
-                        // carve-out rects stay in unrotated page space.
-                        if (DocInvert)
-                            BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h, ImageRectsFor(currentFile, renderRequest.Protection, i, ref contentDoc));
                         if (rot != 0)
                             (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
 
@@ -702,14 +727,14 @@ namespace KillerPDF.Controls
                         // shutdown Application.Current goes null and this background render would NRE.
                         Dispatcher.Invoke(() =>
                         {
-                            if (cts.IsCancellationRequested || _viewMode != ViewMode.Continuous) return;
+                            if (!Current()) return;
                             if (fi >= _continuousPanel.Children.Count) return;
                             // Render at the natural continuous width (zoom is a LayoutTransform, so the bitmap
                             // is zoom-independent and reusable). Square pixels via the matching dipH.
                             int ddw = Math.Max(1, (int)Math.Round(targetW));
                             int ddh = Math.Max(1, (int)Math.Round(targetW * fh / fw));
                             var bmp = BitmapHelpers.BuildScaledBitmap(fw, fh, bytes, ddw, ddh);
-                            RememberRenderWarning(bmp, rendered);
+                            if (rendered is { } pdfPage) RememberRenderWarning(bmp, pdfPage);
                             CacheRender(session, fi, renderW, prot, bmp);
                             SetContinuousSlot(fi, bmp);
                         });
@@ -803,7 +828,7 @@ namespace KillerPDF.Controls
         // the same debounced timer as the re-sharpen pass.
         private void VirtualizeContinuousSlots()
         {
-            if (_viewMode != ViewMode.Continuous || _doc is null) return;
+            if (_viewMode != ViewMode.Continuous || !HasReadDocument) return;
             if (_continuousTops.Count == 0 || _continuousPanel.Children.Count == 0) return;
 
             // Visible slot range - same zoom-independent mapping the re-sharpen pass uses.
@@ -1696,7 +1721,7 @@ namespace KillerPDF.Controls
                 _rerenderTimer.Tick += (_, _) =>
                 {
                     _rerenderTimer!.Stop();
-                    if (_doc is null) return;
+                    if (!HasReadDocument) return;
                     // Synchronized scrolling also exposes new pages in the unfocused pane.
                     // Its page images must load even while optional sharpening waits for focus.
                     if (_viewMode == ViewMode.Continuous) VirtualizeContinuousSlots();
@@ -2151,11 +2176,10 @@ namespace KillerPDF.Controls
             // ratio and _continuousPageW, then fit both axes.
             if (_viewMode == ViewMode.Continuous)
             {
-                if (_continuousPageW <= 0 || _doc is null) return;
-                PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
+                if (_continuousPageW <= 0 || !HasReadDocument) return;
                 int ci = State.CurrentPage;   // this pane's page, never the shared sidebar's (see ApplyZoom)
-                if (ci < 0 || ci >= engineSession.PageCount) return;
-                var (pageWidth, pageHeight) = engineSession.VisualPageSize(ci, _pageRotations);
+                if (ci < 0 || ci >= ReadPageCount) return;
+                var (pageWidth, pageHeight) = ReadVisualPageSize(ci);
                 double ratio = Math.Max(0.1, pageHeight / Math.Max(1.0, pageWidth));
                 double dipH  = _continuousPageW * ratio;
                 double previousZoom = _zoomLevel;
@@ -2169,7 +2193,7 @@ namespace KillerPDF.Controls
                     ResetContinuousFitHorizontalOffset();
                     NavigateContinuousToPage(ci);
                 }
-                SetStatus(string.Format(Loc("Str_FitPage"), ci + 1, _doc.PageCount, $"{DisplayZoomPct():F0}"));
+                SetStatus(string.Format(Loc("Str_FitPage"), ci + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
                 return;
             }
 
@@ -2474,7 +2498,7 @@ namespace KillerPDF.Controls
                 _pages.Clear();
             }
 
-            if (_doc is null) return;
+            if (!HasReadDocument) return;
             int idx = _currentPage;
             var modeSession = _active;
             bool ModeCurrent() => _viewMode == mode && ReferenceEquals(_active, modeSession);

@@ -54,6 +54,13 @@ visible bounds and fully opaque ancestors before capturing the actual owned page
 The white PDF must fail the native black-and-white detector; the DjVu must pass it.
 Both original files must remain byte-exact, and any unexpected owned modal fails the case.
 
+`--verify-native-reading-continuous` takes the same arguments and selects Continuous
+view for both files. It uses a frozen 300x200 DjVu with independently checked pixels,
+requires a new page bitmap, and applies the same screen detector. On timeout it retains
+the visible viewport, page state and previous/current bitmap identities. A missing native
+frame requires review of the positive PDF control and viewport evidence before it can
+be classified as a product failure.
+
 The result records the stage, original exception, binary/input identities and screen PNGs.
 Source bitmap and visual ancestry captures are diagnostic only. This case verifies the
 initial native reading path, not full format support, physical color accuracy or HDR.
