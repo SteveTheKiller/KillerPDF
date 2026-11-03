@@ -11,6 +11,7 @@ public sealed partial class PdfPageRenderer
     /// Integer-factor reductions in both axes average encoded device samples with Decode in [0,1].
     /// Raw color-key masks are supported with natural-size or eligible nearest-sampled images.
     /// Matching DeviceGray 8/16-bit image soft masks retain source alpha precision on those images.
+    /// Their finite device-range Matte values are removed before color conversion and compositing.
     /// Device Gray/RGB axial and radial shadings
     /// support a single type 2 function. Embedded TrueType text fills and strokes
     /// support explicit text matrices, strings and positioned text arrays.
@@ -132,7 +133,7 @@ public sealed partial class PdfPageRenderer
         ImageColorSpace colorSpace, double opacity, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips, int left, int top, int right, int bottom,
         bool smooth, int reductionColumns, int reductionRows, int[]? colorKeyMask, SoftMask? softMask,
-        CancellationToken cancellationToken)
+        double[]? matte, CancellationToken cancellationToken)
     {
         var converter = new ImageSampleConverter(samples, rowBytes, components, bits, decode,
             colorSpace, targetInk: false, targetProfile: null);
@@ -149,7 +150,9 @@ public sealed partial class PdfPageRenderer
                     continue;
                 double maskAlpha = softMask?.SamplePrecise(sampleX, sampleY) ?? 1;
                 if (maskAlpha == 0) continue;
-                Color color = reductionColumns > 1 && reductionRows > 1
+                Color color = matte is not null
+                    ? converter.ConvertPreciseMatte(sampleX, sampleY, matte, maskAlpha)
+                    : reductionColumns > 1 && reductionRows > 1
                     ? converter.ConvertPreciseArea(unit.X * sourceWidth, (1 - unit.Y) * sourceHeight,
                         sourceWidth, sourceHeight, reductionColumns, reductionRows, cancellationToken)
                     : smooth

@@ -96,7 +96,6 @@ public sealed class PdfPrecisionImageSoftMaskTests
     }
 
     [Theory]
-    [InlineData(true, false)]
     [InlineData(false, true)]
     public void MatteAndNonDeviceGrayMaskRecoveryRemainRejected(bool matte, bool calibrated)
     {

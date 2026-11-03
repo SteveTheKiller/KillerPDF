@@ -5454,7 +5454,6 @@ public sealed partial class PdfPageRenderer
         int height = PositiveInteger(stream.Dictionary, "Height");
         if (precise && (bits is not (8 or 16)
             || width != PositiveInteger(dictionary, "Width") || height != PositiveInteger(dictionary, "Height")
-            || stream.Dictionary.ContainsKey(Name("Matte"))
             || stream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? stencil)
                 && Resolve(stencil) is PdfBoolean { Value: true }))
             throw new NotSupportedException("This high-precision image soft mask is not implemented.");
@@ -5749,7 +5748,9 @@ public sealed partial class PdfPageRenderer
                 && sampleStepX > 1 && sampleStepY > 1
                 && Math.Abs(sampleStepX - Math.Round(sampleStepX)) <= 1e-9
                 && Math.Abs(sampleStepY - Math.Round(sampleStepY)) <= 1e-9;
-            if (imageMask || explicitMask || preblendMatte is not null
+            if (imageMask || explicitMask
+                || preblendMatte is not null && (softMask is null || preblendMatte.Length != components
+                    || preblendMatte.Any(value => !double.IsFinite(value) || value < 0 || value > 1))
                 || softMask is not null && (smoothImage || areaSamples || softMask.Bits is not (8 or 16)
                     || softMask.Width != sourceWidth || softMask.Height != sourceHeight)
                 || colorKeyMask is not null && (smoothImage || areaSamples)
@@ -5767,7 +5768,7 @@ public sealed partial class PdfPageRenderer
                 samples, rowBytes, sourceWidth, sourceHeight, components, bits, decode, colorSpace,
                 stencilAlpha, blendMode, clips, paintLeft, paintTop, paintRight, paintBottom,
                 smoothImage, areaSamples ? (int)Math.Round(sampleStepX) : 1,
-                areaSamples ? (int)Math.Round(sampleStepY) : 1, colorKeyMask, softMask, cancellationToken);
+                areaSamples ? (int)Math.Round(sampleStepY) : 1, colorKeyMask, softMask, preblendMatte, cancellationToken);
             return;
         }
         if (smoothImage && colorKeyMask is null && preblendMatte is null
@@ -7216,6 +7217,16 @@ public sealed partial class PdfPageRenderer
         {
             for (int component = 0; component < _components; component++)
                 _values[component] = Decode(component, Raw(x, y, component));
+            return _colorSpace.Convert(_values);
+        }
+
+        internal Color ConvertPreciseMatte(int x, int y, double[] matte, double alpha)
+        {
+            for (int component = 0; component < _components; component++)
+            {
+                double decoded = Decode(component, Raw(x, y, component));
+                _values[component] = Math.Clamp((decoded - matte[component]) / alpha + matte[component], 0, 1);
+            }
             return _colorSpace.Convert(_values);
         }
 
