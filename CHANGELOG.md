@@ -22,6 +22,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The update check reads only the release's own fields, so release notes that quote them cannot confuse it.
 - Changing the file type in the save picker while the name box holds characters no file name can carry keeps the name as typed and shows the invalid-path message.
 
+### Added
+
+- Native FP16 presentation transport preserves floating-point frames and reports unavailable Windows composition paths. Viewer integration is still in progress. (#264)
+
 ## [1.9.2] - 2026-11-02
 
 1.9.2 follows a PDF owner's limits when saving, printing and exporting, lets you edit recognized text on scans, fixes rendering, signatures, comments, forms, zoom, text selection and update relaunches, and adds reverse-order and binding-edge printing.

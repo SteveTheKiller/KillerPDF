@@ -1,5 +1,4 @@
 using KillerPdf.Engine.Rendering;
-using System.Runtime.InteropServices;
 using System.Windows.Threading;
 
 namespace KillerPDF.Presentation;
@@ -16,6 +15,7 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
     PdfPresentationStatus _status = new(PdfPresentationMode.Uninitialized,
         PdfMonitorTransformOwner.Unknown, null, null, null);
     PdfPresentationState? _state;
+    WindowsPdfNativeTransport? _transport;
     bool _disposed;
 
     /// <summary>Creates a presenter for the supplied owned viewport window.</summary>
@@ -52,21 +52,67 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
         if (submission.Stamp != _state.Stamp)
             return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Stale, Status));
 
-        using var target = new CompositionTarget();
-        var failure = target.Initialize(_ownedViewport);
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (cancellationToken.IsCancellationRequested)
-            return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Canceled, Status));
-        if (_state is null || submission.Stamp != _state.Stamp)
-            return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Stale, Status));
-        if (failure is { } nativeFailure)
+        var state = _state;
+        ArgumentNullException.ThrowIfNull(submission.Frame);
+        if (state.TransformOwner != PdfMonitorTransformOwner.Compositor)
+            throw new NotSupportedException("Linear presentation requires negotiated compositor conversion ownership.");
+        if (submission.Frame.ColorEncoding != PdfFrameColorEncoding.LinearSrgbD65)
+            throw new NotSupportedException("Linear presentation requires a linear sRGB D65 frame.");
+        if (state.SurfacePixelWidth <= 0 || state.SurfacePixelHeight <= 0
+            || state.SurfacePixelWidth > 16384 || state.SurfacePixelHeight > 16384)
+            throw new ArgumentOutOfRangeException(nameof(state), "The surface dimensions exceed the supported native texture range.");
+        if (submission.Frame.Width != state.SurfacePixelWidth || submission.Frame.Height != state.SurfacePixelHeight)
+            throw new ArgumentException("Frame and surface dimensions must agree.", nameof(submission));
+        if (!double.IsFinite(state.ReferenceWhiteScale) || state.ReferenceWhiteScale <= 0)
+            throw new ArgumentOutOfRangeException(nameof(state), "Reference white must be finite and positive.");
+        if (_transport != null && (_transport.Width != state.SurfacePixelWidth || _transport.Height != state.SurfacePixelHeight))
+            throw new NotSupportedException("Changing the native surface dimensions is not implemented.");
+
+        Half[] pixels;
+        try { pixels = submission.Frame.ToPremultipliedLinearHalfRgba(state.ReferenceWhiteScale, cancellationToken: cancellationToken); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        { return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Canceled, Status)); }
+        var rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
+        if (rejected != null) return ValueTask.FromResult(rejected);
+
+        var transport = _transport ?? new WindowsPdfNativeTransport(state.SurfacePixelWidth, state.SurfacePixelHeight);
+        try
         {
+            if (_transport == null)
+            {
+                transport.Initialize(_ownedViewport);
+                rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
+                if (rejected != null) { transport.Dispose(); return ValueTask.FromResult(rejected); }
+                _transport = transport;
+            }
+            transport.Upload(pixels);
+            rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
+            if (rejected != null) return ValueTask.FromResult(rejected);
+            transport.AttachRoot();
+            rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
+            if (rejected != null) return ValueTask.FromResult(rejected);
+            transport.Present();
+            rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
+            if (rejected != null) return ValueTask.FromResult(rejected);
+            transport.Commit();
+            rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
+            if (rejected != null) return ValueTask.FromResult(rejected);
+            var status = new PdfPresentationStatus(PdfPresentationMode.LinearFloat,
+                PdfMonitorTransformOwner.Compositor, submission.Stamp, null, null);
+            Volatile.Write(ref _status, status);
+            return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Submitted, status));
+        }
+        catch (WindowsPdfNativeTransport.NativeFailure failure)
+        {
+            ReleaseTransport(transport);
+            rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
+            if (rejected != null) return ValueTask.FromResult(rejected);
             var status = new PdfPresentationStatus(PdfPresentationMode.Unavailable,
-                PdfMonitorTransformOwner.Unknown, null, nativeFailure.Operation, nativeFailure.ErrorCode);
+                PdfMonitorTransformOwner.Unknown, null, failure.Operation, failure.HResult);
             Volatile.Write(ref _status, status);
             return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Unavailable, status));
         }
-        throw new NotImplementedException("Windows current-frame native submission is not implemented.");
+        catch { ReleaseTransport(transport); throw; }
     }
 
     /// <inheritdoc />
@@ -76,39 +122,22 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
         if (_disposed) return;
         _disposed = true;
         _state = null;
+        ReleaseTransport(_transport);
     }
 
-    // Target initialization owns no surfaces or GPU transport. Its references are scoped to one attempt.
-    sealed class CompositionTarget : IDisposable
+    PdfFrameSubmissionResult? RejectChangedSubmission(PdfPresentationStamp stamp, CancellationToken cancellationToken)
     {
-        nint _device;
-        nint _target;
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (cancellationToken.IsCancellationRequested)
+            return new(PdfFrameSubmissionOutcome.Canceled, Status);
+        if (_state is null || stamp != _state.Stamp)
+            return new(PdfFrameSubmissionOutcome.Stale, Status);
+        return null;
+    }
 
-        public (string Operation, int ErrorCode)? Initialize(nint viewport)
-        {
-            Guid deviceId = new("C37EA93A-E7AA-450D-B16F-9746CB0407F3");
-            // The Windows SDK marks the DXGI device optional. Target-only creation needs no surface device.
-            int hr = DCompositionCreateDevice(0, ref deviceId, out _device);
-            if (hr < 0) return ("DCompositionCreateDevice", hr);
-            if (_device == 0) throw new InvalidOperationException("DirectComposition returned no device after successful creation.");
-            nint method = Marshal.ReadIntPtr(Marshal.ReadIntPtr(_device), 6 * IntPtr.Size);
-            var createTarget = Marshal.GetDelegateForFunctionPointer<CreateTargetForHwndDelegate>(method);
-            hr = createTarget(_device, viewport, 0, out _target);
-            if (hr < 0) return ("CreateTargetForHwnd", hr);
-            if (_target == 0) throw new InvalidOperationException("DirectComposition returned no target after successful creation.");
-            return null;
-        }
-
-        public void Dispose()
-        {
-            if (_target != 0) { Marshal.Release(_target); _target = 0; }
-            if (_device != 0) { Marshal.Release(_device); _device = 0; }
-        }
-
-        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int CreateTargetForHwndDelegate(nint device, nint hwnd, int topmost, out nint target);
-
-        [DllImport("dcomp.dll", ExactSpelling = true)]
-        static extern int DCompositionCreateDevice(nint dxgiDevice, ref Guid iid, out nint compositionDevice);
+    void ReleaseTransport(WindowsPdfNativeTransport? transport)
+    {
+        if (ReferenceEquals(_transport, transport)) _transport = null;
+        transport?.Dispose();
     }
 }
