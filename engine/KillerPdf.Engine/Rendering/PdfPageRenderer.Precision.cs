@@ -48,18 +48,10 @@ public sealed partial class PdfPageRenderer
             throw new NotSupportedException("The page contains rendering features unavailable to the high-precision path. "
                 + diagnostic[..Math.Min(diagnostic.Length, 512)]);
         }
-        for (int offset = 0; offset < pixels.Length; offset += 4)
-        {
-            if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            for (int channel = 0; channel < 3; channel++)
-                pixels[offset + channel] = (float)DecodeSrgb(pixels[offset + channel]);
-        }
+        FloatRgbCompositor.DecodeSrgbInPlace(pixels, cancellationToken);
         return new PdfRenderedFrame(options.Width, options.Height, pixels,
             PdfFrameColorEncoding.LinearSrgbD65, options.PixelByteLimit);
     }
-
-    private static double DecodeSrgb(double value) => value <= 0.04045
-        ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
 
     private static bool PreciseOperationSupported(string operation) => operation is
         "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "gs" or "w"
@@ -81,15 +73,8 @@ public sealed partial class PdfPageRenderer
         var source = color.PreciseRgb ?? (color.Connection is { } connection
             ? PreciseConnectionToRgb(connection.X, connection.Y, connection.Z)
             : throw new NotSupportedException("The paint does not retain its source color precision."));
-        float[] pixels = surface.PreciseRgb!;
-        double sourceAlpha = Math.Clamp(opacity, 0, 1);
-        double targetWeight = pixels[offset + 3] * (1 - sourceAlpha);
-        double outputAlpha = sourceAlpha + targetWeight;
-        if (outputAlpha == 0) return;
-        pixels[offset] = (float)((source.Red * sourceAlpha + pixels[offset] * targetWeight) / outputAlpha);
-        pixels[offset + 1] = (float)((source.Green * sourceAlpha + pixels[offset + 1] * targetWeight) / outputAlpha);
-        pixels[offset + 2] = (float)((source.Blue * sourceAlpha + pixels[offset + 2] * targetWeight) / outputAlpha);
-        pixels[offset + 3] = (float)outputAlpha;
+        FloatRgbCompositor.SourceOver(surface.PreciseRgb!, offset,
+            source.Red, source.Green, source.Blue, opacity);
     }
 
     private static (double Red, double Green, double Blue) PreciseConnectionToRgb(double x, double y, double z)

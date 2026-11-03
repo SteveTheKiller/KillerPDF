@@ -140,11 +140,40 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 - Imposition, headers, footers, Bates numbering, calibrated measurement, layers, attachments, bookmarks and links, macros, and structural comparison
 - Structural diagnostics, bounded parsing, implementation limits, round-trip validation, and fail-closed import validation
 
+## Native EPUB layout (1.9.3 development)
+
+`EpubDocument.Open` reads a bounded native package. `CreateLayout` currently supports one
+plain printable-ASCII line in one linear, reflowable XHTML spine item with an explicit
+fallback font. It returns immutable pages and logical UTF-16 text placements in CSS pixels.
+`RenderPage` produces an owned linear-sRGB float frame through shared glyph rendering,
+without creating a PDF. Styling, wrapping, complex scripts and other unsupported content
+produce explicit diagnoses; this initial API does not establish full EPUB support.
+
+```csharp
+using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Formats.Epub;
+using KillerPdf.Engine.Rendering;
+
+var book = EpubDocument.Open(File.ReadAllBytes("book.epub"));
+var font = TrueTypeFont.Load(File.ReadAllBytes("fallback.ttf"));
+var layout = book.CreateLayout(new EpubLayoutOptions(800, 1000, font));
+PdfRenderedFrame frame = layout.RenderPage(0);
+```
+
+Options bound page dimensions, margins and typography. Combined working and returned
+pixel buffers are limited to 128 MiB, and layout limits source text and placement work.
+Cancellation is supported during layout and rendering. Logical text geometry remains
+separate from glyph ink, which can extend beyond a font's logical line box.
+
 ## Rendering status
 
 The engine owns bounded CPU rendering for paths, text, images, clipping, shadings, transparency,
 annotations, and forms. It returns platform-neutral BGRA32 pixel buffers and diagnostics without
 referencing a UI toolkit or native PDF renderer. The engine does not provide UI controls.
+
+The 1.9.3 development `RenderFrame` API also retains floating-point source colors for its
+supported path, text, gradient and image cases. It rejects unsupported precision features
+with a reason instead of returning colors quantized through the BGRA32 surface.
 
 See the [rendering guide](docs/rendering.md) for integration, pixel layout, authentication,
 diagnostics, resource limits, and validation guidance.
