@@ -16,7 +16,8 @@ public sealed partial class PdfPageRenderer
     /// aligned enlargement or integer-factor reduction in both axes, averaging encoded source samples before ICC conversion.
     /// Device Gray/RGB axial and radial shadings
     /// support a single type 2 function. Embedded TrueType text fills and strokes
-    /// support explicit text matrices, strings and positioned text arrays.
+    /// support text matrices, line positioning, spacing, scaling, rise,
+    /// strings, positioned text arrays and quote text-showing operators.
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
     public PdfRenderedFrame RenderFrame(int pageIndex, PdfRenderOptions options,
@@ -66,7 +67,8 @@ public sealed partial class PdfPageRenderer
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"
         or "n" or "W" or "W*" or "Do" or "sh"
-        or "BT" or "ET" or "Tf" or "Tm" or "Tj" or "TJ" or "Tr";
+        or "BT" or "ET" or "Tf" or "Tm" or "Td" or "TD" or "T*" or "TL" or "Tc" or "Tw" or "Tz" or "Ts"
+        or "Tj" or "TJ" or "Tr" or "'" or "\"";
 
     private static void PaintPrecisePixel(RasterSurface surface, int offset, in Color color,
         double opacity, RendererBlendMode blendMode, GraphicsSoftMask? softMask,
