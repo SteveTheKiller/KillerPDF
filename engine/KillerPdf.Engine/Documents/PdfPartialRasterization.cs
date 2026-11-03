@@ -61,7 +61,8 @@ public static class PdfPartialRasterization
             Images = Array.AsReadOnly(page.Images
                 .Where(image => Intersects(image.BoundingBox, region)).ToArray()),
             Paths = Array.AsReadOnly(page.Paths
-                .Where(path => Intersects(path.BoundingBox, region)).ToArray()),
+                .Where(path => path.PaintOperator != "n"
+                    && Intersects(path.BoundingBox, region)).ToArray()),
             Shadings = Array.AsReadOnly(page.Shadings
                 .Where(shading => Intersects(shading.BoundingBox, region)).ToArray())
         };
@@ -118,7 +119,8 @@ public static class PdfPartialRasterization
                     replacement.Plan.Region.Height));
             retained.Add(new PdfContentInstruction("W*", 0, []));
             retained.Add(new PdfContentInstruction("n", 0, []));
-            retained.AddRange(page.Instructions);
+            // Keep form-local resources inside their original Do calls.
+            retained.AddRange(reader.ReadInstructions(pageGroup.Key, cancellationToken));
             retained.Add(new PdfContentInstruction("Q", 0, []));
             editor.SetPageContent(pageGroup.Key, retained);
             foreach (PdfPartialRasterizationReplacement replacement in pageReplacements)

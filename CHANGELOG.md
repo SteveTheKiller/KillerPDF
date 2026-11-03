@@ -6,25 +6,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.3] - Unreleased
 
-1.9.3 fixes form saving, merging, OCR output folders, updates and the file picker, and balances the About settings columns.
+1.9.3 fixes form saving, merging, region rasterization, OCR output folders, updates and the file picker, and balances the About settings columns.
 
 ### Fixed
 
-- Text fields with automatic font sizing save correctly and keep their original border and background styling.
-- Merge accepts popup annotations whose parent omits the reverse popup link. (#455)
-- Make Searchable opens its save dialog in the original PDF's folder instead of the last-used folder.
-- The file picker loads icons and picture previews in the background, refreshes overwritten previews, and restores its position on any monitor.
-- PDF creation, modification, comment and attachment dates use the Gregorian calendar on Thai, Arabic and Persian region settings instead of writing years like 2569.
-- The visible signature date uses the same year-month-day format on every region setting.
-- Recent files appear immediately after an update reopens an empty window.
-- About places link confirmation in the left column and aligns Clear all Data on the same bottom row.
 - A per-user or portable update that fails now reopens KillerPDF instead of leaving it closed, including when antivirus or a locked-down PowerShell stops the update helper from loading, and a published copy that fails its final check is swapped back for the previous version and never started.
 - An update started from an administrator's copy reopens KillerPDF at normal rights. An update that is applied but cannot record its version in the registry now finishes and reopens instead of reporting failure, and putting the previous copy back after a failed update retries a busy file and survives a leftover from an earlier attempt.
 - Updating KillerPDF no longer removes a relaunch another Killer app scheduled for its own update.
+- Text fields with automatic font sizing save correctly and keep their original border and background styling.
+- Merge accepts popup annotations whose parent omits the reverse popup link. (#455)
+- Rasterize Region keeps earlier region images intact on repeated operations and leaves invisible clipping paths out of its content counts. (#369)
 - The file picker no longer stalls on a disconnected network folder when it opens, a relative or malformed path typed in the path box is refused instead of being looked up against the wrong folder, a pattern such as *.log typed in the name box filters the list, and a full path typed in the name box can be accepted even when the shown folder failed to list.
-- Hiding shortcut hints removes the hints the app adds to tooltips in every language, including translated keys such as (Strg+D).
+- PDF creation, modification, comment and attachment dates use the Gregorian calendar on Thai, Arabic and Persian region settings instead of writing years like 2569.
 - The update check reads only the release's own fields, so release notes that quote them cannot confuse it.
+- The file picker loads icons and picture previews in the background, refreshes overwritten previews, and restores its position on any monitor.
+- Recent files appear immediately after an update reopens an empty window.
+- Make Searchable opens its save dialog in the original PDF's folder instead of the last-used folder.
+- The visible signature date uses the same year-month-day format on every region setting.
 - Changing the file type in the save picker while the name box holds characters no file name can carry keeps the name as typed and shows the invalid-path message.
+- Hiding shortcut hints removes the hints the app adds to tooltips in every language, including translated keys such as (Strg+D).
+- About places link confirmation in the left column and aligns Clear all Data on the same bottom row.
 
 ### Added
 
