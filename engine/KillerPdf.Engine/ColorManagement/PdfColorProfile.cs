@@ -10,6 +10,8 @@ public sealed class PdfColorProfile
 
     private PdfColorProfile(PdfIccProfileTransform transform) => _transform = transform;
 
+    internal int ComponentCount => _transform.Components;
+
     /// <summary>Converts device components into another profile through D50 XYZ.</summary>
     public void ConvertTo(PdfColorProfile destination, ReadOnlySpan<double> source, Span<double> result,
         PdfRenderingIntent intent = PdfRenderingIntent.RelativeColorimetric, bool blackPointCompensation = false)
