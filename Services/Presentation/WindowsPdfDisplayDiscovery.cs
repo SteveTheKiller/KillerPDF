@@ -140,12 +140,59 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
                 string identity = $"target:{unchecked((uint)path.Target.Adapter.High):X8}{path.Target.Adapter.Low:X8}/{path.Target.Id:X8}";
                 if (!targets.ContainsKey(identity))
                     targets.Add(identity, new(identity, string.IsNullOrEmpty(target.FriendlyName) ? null : target.FriendlyName)
-                        { ColorState = CaptureColorState(path.Target, cancellationToken) });
+                        {
+                            ColorState = CaptureColorState(path.Target, cancellationToken),
+                            StandardProfile = CaptureStandardProfile(path, cancellationToken)
+                        });
             }
             if (targets.Count == 0 && failureOperation is null) Fail("NoMatchingDisplayTarget", null);
             return Result();
         }
         throw new InvalidOperationException("Display configuration observation did not complete.");
+    }
+
+    static PdfDisplayProfileAssociation CaptureStandardProfile(DisplayPath path, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (path.Source.Adapter.Low != path.Target.Adapter.Low
+            || path.Source.Adapter.High != path.Target.Adapter.High)
+            return new(PdfDisplayProfileStatus.CrossAdapterAmbiguous, null, null, null, null);
+        if (!NativeLibrary.TryLoad(System.IO.Path.Combine(Environment.SystemDirectory, "mscms.dll"), out nint library))
+            return new(PdfDisplayProfileStatus.Unavailable, null, null, "MscmsLibrary", null);
+        try
+        {
+            if (!NativeLibrary.TryGetExport(library, "ColorProfileGetDisplayUserScope", out nint scopeAddress))
+                return new(PdfDisplayProfileStatus.Unavailable, null, null, "ColorProfileGetDisplayUserScope", null);
+            if (!NativeLibrary.TryGetExport(library, "ColorProfileGetDisplayDefault", out nint defaultAddress))
+                return new(PdfDisplayProfileStatus.Unavailable, null, null, "ColorProfileGetDisplayDefault", null);
+            var getScope = Marshal.GetDelegateForFunctionPointer<GetDisplayProfileScope>(scopeAddress);
+            int result = getScope(path.Target.Adapter, path.Source.Id, out uint scope);
+            if (result != 0)
+                return new(PdfDisplayProfileStatus.Unavailable, null, null, "ColorProfileGetDisplayUserScope", result);
+            if (scope > 1)
+                return new(PdfDisplayProfileStatus.Unavailable, scope, null, "ColorProfileScope", null);
+            cancellationToken.ThrowIfCancellationRequested();
+            var getDefault = Marshal.GetDelegateForFunctionPointer<GetDisplayProfileDefault>(defaultAddress);
+            nint name = 0;
+            try
+            {
+                // Modern display associations use the target adapter with the source identifier.
+                result = getDefault(scope, path.Target.Adapter, path.Source.Id, 0, 7, out name);
+                if (result != 0)
+                    return new(PdfDisplayProfileStatus.Unavailable, scope, null, "ColorProfileGetDisplayDefault", result);
+                if (name == 0)
+                    return new(PdfDisplayProfileStatus.NoProfile, scope, null, null, null);
+                for (int length = 0; length < 32768; length++)
+                {
+                    if (Marshal.ReadInt16(name, length * 2) != 0) continue;
+                    return length == 0 ? new(PdfDisplayProfileStatus.NoProfile, scope, null, null, null)
+                        : new(PdfDisplayProfileStatus.Named, scope, Marshal.PtrToStringUni(name, length), null, null);
+                }
+                return new(PdfDisplayProfileStatus.Unavailable, scope, null, "ColorProfileNameLimit", null);
+            }
+            finally { if (name != 0) LocalFree(name); }
+        }
+        finally { NativeLibrary.Free(library); }
     }
 
     static PdfDisplayColorState CaptureColorState(DisplayTarget target, CancellationToken cancellationToken)
@@ -246,6 +293,16 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
 
     [StructLayout(LayoutKind.Sequential)]
     struct LegacyColorInfo { public DisplayQueryHeader Header; public uint Flags, Encoding, Bits; }
+
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    delegate int GetDisplayProfileScope(DisplayAdapterId targetAdapter, uint sourceId, out uint scope);
+
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    delegate int GetDisplayProfileDefault(uint scope, DisplayAdapterId targetAdapter, uint sourceId,
+        uint profileType, uint profileSubtype, out nint profileName);
+
+    [DllImport("kernel32.dll", ExactSpelling = true)]
+    static extern nint LocalFree(nint memory);
 
     [DllImport("user32.dll", ExactSpelling = true)]
     static extern nint MonitorFromWindow(nint window, uint flags);

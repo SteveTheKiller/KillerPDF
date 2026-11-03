@@ -47,11 +47,31 @@ public sealed record PdfDisplayColorState(PdfDisplayColorMode Mode, uint? QueryT
     uint? Flags, uint? ActiveColorMode, uint? ColorEncoding, uint? BitsPerColorChannel,
     int? AdvancedQueryError, int? LegacyQueryError);
 
+/// <summary>Describes the standard display profile association observation.</summary>
+public enum PdfDisplayProfileStatus
+{
+    /// <summary>The association could not be queried completely.</summary>
+    Unavailable,
+    /// <summary>The successful query returned no profile name.</summary>
+    NoProfile,
+    /// <summary>The query returned a profile name, without validating its contents.</summary>
+    Named,
+    /// <summary>The source and target belong to different adapters.</summary>
+    CrossAdapterAmbiguous
+}
+
+/// <summary>Retains a modern standard-mode ICC association and any HRESULT failure.</summary>
+/// <remarks>A returned name does not establish readable profile bytes or a usable transform.</remarks>
+public sealed record PdfDisplayProfileAssociation(PdfDisplayProfileStatus Status,
+    uint? Scope, string? Name, string? FailureOperation, int? HResult);
+
 /// <summary>Identifies one live output association without promising persistent physical identity.</summary>
 public sealed record PdfDisplayTarget(string Identity, string? FriendlyName)
 {
     /// <summary>Gets active color observations, or null before they have been queried.</summary>
     public PdfDisplayColorState? ColorState { get; init; }
+    /// <summary>Gets the standard-mode ICC association, or null before it has been queried.</summary>
+    public PdfDisplayProfileAssociation? StandardProfile { get; init; }
 }
 
 /// <summary>Provides an immutable output association and any failed query.</summary>

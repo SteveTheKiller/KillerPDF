@@ -25,7 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
-- Native FP16 presentation preserves frames, resizes within pixel limits, reports composition failures and discovers the window's display, outputs and active color mode. Viewer integration is in progress. (#264)
+- Native FP16 presentation preserves frames, resizes within pixel limits, reports composition failures and discovers the window's display, outputs, active color mode and standard profile association. Viewer integration is in progress. (#264)
 
 ## [1.9.2] - 2026-11-02
 
