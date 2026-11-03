@@ -79,7 +79,6 @@ public sealed class EpubNativeLayoutBoundaryTests
     [InlineData("<p>A</p>", "<link rel='stylesheet' href='style.css'/>", true, false)]
     [InlineData("<p><a href='text.xhtml'>A</a></p>", "", false, false)]
     [InlineData("<p>A</p>", "<script type='text/javascript'>void 0;</script>", false, true)]
-    [InlineData("<p>A</p><p>A</p>", "", false, false)]
     [InlineData("<p>\u00e9</p>", "", false, false)]
     [InlineData("<p>B</p>", "", false, false)]
     public void DiagnosesUnsupportedContentWithoutSilentlyOmittingIt(string body, string head, bool css, bool scripted)

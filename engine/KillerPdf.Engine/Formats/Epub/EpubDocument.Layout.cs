@@ -37,18 +37,30 @@ public sealed partial class EpubDocument
         string text = ReadText(0, cancellationToken);
         if (text.Length > 100_000)
             throw new InvalidDataException("Native EPUB text exceeds its 100,000 placement limit.");
-        if (text.Contains('\n'))
-            throw new NotSupportedException("Native EPUB line breaking is not implemented.");
         var font = options.DefaultFont;
         var reader = new TrueTypeOutlineReader(font);
         var placements = new List<EpubTextPlacement>(text.Length);
         var glyphs = new List<NativeGlyphPaint>(text.Length);
         double left = options.Margin;
-        double baseline = options.Margin + font.Ascender * options.FontSize / font.UnitsPerEm;
+        double top = options.Margin;
+        double baseline = top + font.Ascender * options.FontSize / font.UnitsPerEm;
         for (int index = 0; index < text.Length; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             char character = text[index];
+            if (character == '\n')
+            {
+                if (index + 1 >= text.Length || text[index + 1] != '\n')
+                    throw new NotSupportedException("Native EPUB line breaking is not implemented.");
+                // Structural paragraph separators retain their source indices but have no placement.
+                top += 2 * options.FontSize;
+                if (top + options.FontSize > options.PageHeight - options.Margin)
+                    throw new NotSupportedException("Native EPUB pagination is not implemented.");
+                left = options.Margin;
+                baseline = top + font.Ascender * options.FontSize / font.UnitsPerEm;
+                index++;
+                continue;
+            }
             if (character is < ' ' or > '~')
                 throw new NotSupportedException("Native EPUB layout currently supports only printable ASCII text.");
             ushort glyph = font.GetGlyphId(character);
@@ -60,7 +72,7 @@ public sealed partial class EpubDocument
             double width = font.GetPdfAdvanceWidth(glyph) / 1000d * options.FontSize;
             if (left + width > options.PageWidth - options.Margin)
                 throw new NotSupportedException("Native EPUB line wrapping is not implemented.");
-            placements.Add(new EpubTextPlacement(0, index, 1, left, options.Margin, width, options.FontSize));
+            placements.Add(new EpubTextPlacement(0, index, 1, left, top, width, options.FontSize));
             if (outline.Contours.Count != 0)
                 glyphs.Add(new NativeGlyphPaint(outline, left, baseline, options.FontSize / 1000));
             left += width;
@@ -78,7 +90,7 @@ public sealed partial class EpubDocument
             DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null,
             MaxCharactersInDocument = MaxEntryBytes, MaxCharactersFromEntities = 1024 });
         var ancestors = new Stack<string>();
-        int nodes = 0, characters = 0, paragraphs = 0;
+        int nodes = 0, characters = 0;
         try
         {
             while (xml.Read())
@@ -100,8 +112,6 @@ public sealed partial class EpubDocument
                         _ => false };
                     if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
                         throw new NotSupportedException("Native EPUB XHTML element is not implemented: " + name + ".");
-                    if (name == "p" && ++paragraphs > 1)
-                        throw new NotSupportedException("Native EPUB paragraph layout is not implemented.");
                     bool empty = xml.IsEmptyElement;
                     while (xml.MoveToNextAttribute())
                     {
