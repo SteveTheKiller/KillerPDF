@@ -5739,7 +5739,8 @@ public sealed partial class PdfPageRenderer
                 && sampleStepX > 1 && sampleStepY > 1
                 && Math.Abs(sampleStepX - Math.Round(sampleStepX)) <= 1e-9
                 && Math.Abs(sampleStepY - Math.Round(sampleStepY)) <= 1e-9;
-            if (imageMask || softMask is not null || colorKeyMask is not null || preblendMatte is not null
+            if (imageMask || softMask is not null || preblendMatte is not null
+                || colorKeyMask is not null && (smoothImage || areaSamples)
                 || graphicsSoftMask is not null || knockout is not null || overprint || jpeg2000
                 || colorSpace.Profile is not null || colorSpace.Converter is not null
                 || colorSpace.MultiConverter is not null || colorSpace.Palette is not null
@@ -5754,7 +5755,7 @@ public sealed partial class PdfPageRenderer
                 samples, rowBytes, sourceWidth, sourceHeight, components, bits, decode, colorSpace,
                 stencilAlpha, blendMode, clips, paintLeft, paintTop, paintRight, paintBottom,
                 smoothImage, areaSamples ? (int)Math.Round(sampleStepX) : 1,
-                areaSamples ? (int)Math.Round(sampleStepY) : 1, cancellationToken);
+                areaSamples ? (int)Math.Round(sampleStepY) : 1, colorKeyMask, cancellationToken);
             return;
         }
         if (smoothImage && colorKeyMask is null && preblendMatte is null

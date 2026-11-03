@@ -9,6 +9,7 @@ public sealed partial class PdfPageRenderer
     /// and aligned natural-size unmasked 8/16-bit images or axis-aligned enlargements
     /// with nearest or bilinear sampling. Bilinear device samples require Decode values in [0,1].
     /// Integer-factor reductions in both axes average encoded device samples with Decode in [0,1].
+    /// Raw color-key masks are supported with natural-size or eligible nearest-sampled images.
     /// Device Gray/RGB axial and radial shadings
     /// support a single type 2 function. Embedded TrueType text fills and strokes
     /// support explicit text matrices, strings and positioned text arrays.
@@ -129,7 +130,8 @@ public sealed partial class PdfPageRenderer
         int sourceWidth, int sourceHeight, int components, int bits, double[] decode,
         ImageColorSpace colorSpace, double opacity, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips, int left, int top, int right, int bottom,
-        bool smooth, int reductionColumns, int reductionRows, CancellationToken cancellationToken)
+        bool smooth, int reductionColumns, int reductionRows, int[]? colorKeyMask,
+        CancellationToken cancellationToken)
     {
         var converter = new ImageSampleConverter(samples, rowBytes, components, bits, decode,
             colorSpace, targetInk: false, targetProfile: null);
@@ -142,6 +144,8 @@ public sealed partial class PdfPageRenderer
                 if (unit.X < 0 || unit.X >= 1 || unit.Y < 0 || unit.Y >= 1) continue;
                 int sampleX = Math.Min((int)(unit.X * sourceWidth), sourceWidth - 1);
                 int sampleY = Math.Min((int)((1 - unit.Y) * sourceHeight), sourceHeight - 1);
+                if (colorKeyMask is not null && converter.MatchesColorKey(sampleX, sampleY, colorKeyMask))
+                    continue;
                 Color color = reductionColumns > 1 && reductionRows > 1
                     ? converter.ConvertPreciseArea(unit.X * sourceWidth, (1 - unit.Y) * sourceHeight,
                         sourceWidth, sourceHeight, reductionColumns, reductionRows, cancellationToken)
