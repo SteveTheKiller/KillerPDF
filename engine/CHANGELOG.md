@@ -6,11 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.3] - Unreleased
 
-The 1.9.3 engine adds opt-in floating-point page rendering.
+The 1.9.3 engine adds floating-point rendering and portable profile conversion.
 
 ### Added
 
-- Float32 page frames preserve precise RGB/Gray fills, opacity and aligned 8/16-bit images, with explicit sRGB byte output. (#264)
+- Float32 page frames preserve precise device RGB/Gray and calibrated Gray fills, opacity and aligned 8/16-bit images, with explicit sRGB byte output. (#264)
+- Portable ICC profile conversion supports D50 XYZ linking, rendering intents and opt-in black-point compensation. (#264)
 
 ## [1.9.2] - Unreleased
 

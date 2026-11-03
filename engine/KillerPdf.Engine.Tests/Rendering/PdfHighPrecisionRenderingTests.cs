@@ -83,6 +83,32 @@ public sealed class PdfHighPrecisionRenderingTests
         Assert.Equal(1f, frame.Pixels[7]);
     }
 
+    [Fact]
+    public void CalibratedGrayRetainsLinearLightSourcePrecision()
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+            Encoding.ASCII.GetBytes("/Cal cs 0.5 sc 0 0 1 1 re f 0.5001 sc 1 0 1 1 re f")).Build());
+        var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
+        var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+        var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+        var page = (PdfDictionary)source.Resolve(reference);
+        var calibrated = new PdfArray([Name("CalGray"), new PdfDictionary([
+            Entry("WhitePoint", new PdfArray([new PdfReal(0.95047), new PdfInteger(1), new PdfReal(1.08883)]))])]);
+        var resources = new PdfDictionary([Entry("ColorSpace", new PdfDictionary([Entry("Cal", calibrated)]))]);
+        var document = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(reference.ObjectNumber, new PdfDictionary(page
+                .Where(pair => !pair.Key.Equals(Name("Resources"))).Append(Entry("Resources", resources))))
+            .Build());
+
+        var frame = new PdfPageRenderer(document).RenderFrame(0, new PdfRenderOptions(2, 1));
+
+        // Gamma-one CalGray with a D65 white describes linear neutral luminance.
+        Assert.InRange(frame.Pixels[0], 0.499998f, 0.500002f);
+        Assert.InRange(frame.Pixels[4], 0.500098f, 0.500102f);
+        Assert.True(frame.Pixels[4] > frame.Pixels[0]);
+        Assert.Equal(frame.ToSrgbBgra32()[0], frame.ToSrgbBgra32()[4]);
+    }
+
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     private static KeyValuePair<PdfName, PdfObject> Entry(string name, PdfObject value) => new(Name(name), value);
 }
