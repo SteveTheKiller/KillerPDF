@@ -6,7 +6,11 @@ namespace KillerPdf.Engine.Formats.Djvu;
 
 public sealed partial class DjvuDocument
 {
-    /// <summary>Renders supported bitonal content at natural dimensions, limited to a 128 MiB RGBA32F frame.</summary>
+    /// <summary>Renders supported bitonal and grayscale content at natural dimensions, limited to a 128 MiB RGBA32F frame.</summary>
+    /// <remarks>
+    /// Grayscale IW44 currently requires one full-resolution version 1.2 background chunk and a positive INFO gamma.
+    /// Its stored device gamma maps neutral samples to linear RGB. Image working buffers are limited to 256 MiB.
+    /// </remarks>
     public PdfRenderedFrame RenderPage(int pageIndex, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -17,6 +21,7 @@ public sealed partial class DjvuDocument
         var form = _pageForms[pageIndex];
         var budget = 65_535;
         var chunks = ReadChunks(_data, form.Offset + 4, form.Offset + form.Length, cancellationToken, ref budget);
+        if (chunks.Any(c => c.Id == 0x42473434)) return RenderIw44Page(page, chunks, cancellationToken);
         if (chunks.Any(c => c.Id is not (0x494e464f or 0x536d6d72 or 0x54585461 or 0x5458547a)))
             throw new NotSupportedException("Rendering this page requires unsupported layers, annotations or component content.");
         if (chunks.Count(c => c.Id == 0x536d6d72) > 1) throw new InvalidDataException("A page contains duplicate Smmr masks.");
@@ -66,5 +71,41 @@ public sealed partial class DjvuDocument
         var frame = new PdfRenderedFrame(width, height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
         cancellationToken.ThrowIfCancellationRequested();
         return frame;
+    }
+
+    private PdfRenderedFrame RenderIw44Page(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)
+    {
+        if (chunks.Any(c => c.Id is not (0x494e464f or 0x42473434 or 0x54585461 or 0x5458547a)))
+            throw new NotSupportedException("IW44 rendering requires a grayscale background without other visual layers.");
+        if (chunks.Count(c => c.Id == 0x42473434) != 1)
+            throw new NotSupportedException("Progressive IW44 background chunks are not supported.");
+        var gammaByte = _data[chunks[0].Offset + 8];
+        if (gammaByte == 0) throw new NotSupportedException("IW44 rendering requires a positive INFO gamma.");
+        var background = chunks.First(c => c.Id == 0x42473434);
+        var gray = DjvuIw44Decoder.DecodeGrayscale(_data.AsSpan(background.Offset, background.Length), page.Width, page.Height, token);
+        var pixels = new float[page.Width * page.Height * 4];
+        var quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
+        var width = quarterTurn ? page.Height : page.Width;
+        var height = quarterTurn ? page.Width : page.Height;
+        for (var y = 0; y < page.Height; y++)
+        {
+            token.ThrowIfCancellationRequested();
+            for (var x = 0; x < page.Width; x++)
+            {
+                var (targetX, targetY) = page.Orientation switch
+                {
+                    DjvuOrientation.Clockwise90 => (page.Height - 1 - y, x),
+                    DjvuOrientation.CounterClockwise90 => (y, page.Width - 1 - x),
+                    DjvuOrientation.UpsideDown => (page.Width - 1 - x, page.Height - 1 - y),
+                    _ => (x, y)
+                };
+                var offset = (targetY * width + targetX) * 4;
+                var value = (float)Math.Pow(gray[y * page.Width + x] / 255d, gammaByte / 10d);
+                pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = value;
+                pixels[offset + 3] = 1;
+            }
+        }
+        token.ThrowIfCancellationRequested();
+        return new PdfRenderedFrame(width, height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
     }
 }

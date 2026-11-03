@@ -78,7 +78,7 @@ public sealed class DjvuDocumentTests
 
     [Theory]
     [InlineData("INCL", "IncludedComponentUnsupported")]
-    [InlineData("BG44", "ImageDecodingUnsupported")]
+    [InlineData("BG44", "Iw44RenderingLimited")]
     public void ReportsRecognizedFeaturesWithoutDecodingOrResolvingThem(string chunkId, string diagnostic)
     {
         var document = DjvuDocument.Open(File(Form("DJVU", Chunk("INFO", [0, 100, 0, 200, 26, 0, 0x2c, 1, 22, 1]), Chunk(chunkId, [1]))));

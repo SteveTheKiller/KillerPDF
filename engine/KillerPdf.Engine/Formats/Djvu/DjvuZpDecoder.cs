@@ -57,7 +57,7 @@ internal sealed class DjvuZpDecoder
             Math.Min(_a + state.Delta, 0x6000 + ((_a * 2 + state.Delta) >> 2));
         var most = context < 0 ? 0 : _contexts[context] & 1;
         int result;
-        if (_c > split || (context >= 0 && split < 0x8000 && _c == split))
+        if (_c > split || (context >= 0 && _c == split))
         {
             result = most;
             // Independent DjVu bitstreams require MPS adaptation only when renormalizing.

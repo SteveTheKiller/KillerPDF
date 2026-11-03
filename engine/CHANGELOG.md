@@ -17,7 +17,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Float32 frames retain precise RGB/Gray paints, embedded TrueType text, axial/radial gradients and 8/16-bit images with eligible scaling, color-key masks and precise soft-mask alpha. Output supports sRGB bytes and premultiplied linear FP16. (#264)
 - Portable ICC conversion and printer proof transforms support selected intent, black-point compensation, independent paper/black simulation and a paper-only viewing aid. Profiles have stable content identities. (#264)
 - Portable presentation contracts identify frame generations and output capability. (#264)
-- Native EPUB and DjVu readers cover metadata, navigation and text. EPUB restores standard obfuscated font resources; DjVu adds bundled page order and initial Smmr bitonal rendering. (#472)
+- Native EPUB and DjVu readers cover metadata, navigation and text. EPUB restores standard obfuscated fonts; DjVu adds bundled page order, Smmr bitonal rendering and initial grayscale IW44 rendering. (#472)
 
 ## [1.9.2] - 2026-11-02
 
