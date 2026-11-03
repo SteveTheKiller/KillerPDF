@@ -12,6 +12,7 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
 {
     readonly nint _ownedViewport;
     readonly Dispatcher _dispatcher;
+    readonly long _maximumCombinedPixelBytes;
     PdfPresentationStatus _status = new(PdfPresentationMode.Uninitialized,
         PdfMonitorTransformOwner.Unknown, null, null, null);
     PdfPresentationState? _state;
@@ -19,11 +20,22 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
     bool _disposed;
 
     /// <summary>Creates a presenter for the supplied owned viewport window.</summary>
-    public WindowsPdfFramePresenter(nint ownedViewport)
+    /// <param name="ownedViewport">The caller-owned viewport window.</param>
+    /// <param name="maximumCombinedPixelBytes">
+    /// A positive pixel-storage budget capped at 512 MiB. Each pixel counts 40 bytes:
+    /// 16 for the input, 8 for the Half upload and 16 for two native FP16 buffers.
+    /// This policy does not measure total process memory or driver allocation overhead.
+    /// </param>
+    /// <exception cref="ArgumentOutOfRangeException">The pixel budget is outside the supported range.</exception>
+    public WindowsPdfFramePresenter(nint ownedViewport,
+        long maximumCombinedPixelBytes = PdfRenderedFrame.MaximumPixelBytes)
     {
         if (ownedViewport == 0) throw new ArgumentException("An owned viewport window is required.", nameof(ownedViewport));
+        if (maximumCombinedPixelBytes <= 0 || maximumCombinedPixelBytes > PdfRenderedFrame.MaximumPixelBytes)
+            throw new ArgumentOutOfRangeException(nameof(maximumCombinedPixelBytes));
         _dispatcher = Dispatcher.CurrentDispatcher;
         _ownedViewport = ownedViewport;
+        _maximumCombinedPixelBytes = maximumCombinedPixelBytes;
     }
 
     /// <inheritdoc />
@@ -68,6 +80,9 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
         if (_transport != null && (_transport.Width != state.SurfacePixelWidth || _transport.Height != state.SurfacePixelHeight))
             throw new NotSupportedException("Changing the native surface dimensions is not implemented.");
 
+        // Per pixel: RGBA32F input (16), Half upload (8), two native FP16 buffers (16).
+        if ((long)submission.Frame.Width * submission.Frame.Height > _maximumCombinedPixelBytes / 40)
+            throw new ArgumentException("The frame exceeds the combined input, upload and native pixel budget.", nameof(submission));
         Half[] pixels;
         try { pixels = submission.Frame.ToPremultipliedLinearHalfRgba(state.ReferenceWhiteScale, cancellationToken: cancellationToken); }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -24,7 +24,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
-- Native FP16 presentation transport preserves floating-point frames and reports unavailable Windows composition paths. Viewer integration is still in progress. (#264)
+- Native FP16 presentation transport preserves floating-point frames, limits pixel storage and reports unavailable Windows composition paths. Viewer integration is still in progress. (#264)
 
 ## [1.9.2] - 2026-11-02
 
