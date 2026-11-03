@@ -209,11 +209,13 @@ namespace KillerPDF.Features
             if (!await _host.EnsureOcrModelsReadyAsync() || !isSourceCurrent()) return;
             _host.CommitActiveTextBox();
 
+            var suggestion = OcrPdfOutputSuggestion.Create(_host.OriginalFile, _host.CurrentFile);
             var dlg = new KillerPDF.Controls.FileDialog(KillerPDF.Controls.FileDialogMode.Save)
             {
                 Filter = _host.Loc("Str_Filter_Pdf") + "|*.pdf",
                 Title = _host.Loc("Str_Ocr_SaveSearchable"),
-                FileName = SuggestSearchableName(),
+                FileName = suggestion.FileName,
+                InitialDirectory = suggestion.InitialDirectory,
                 CheckFileExists = false,
                 CheckPathExists = true
             };
@@ -263,13 +265,6 @@ namespace KillerPDF.Features
             {
                 _host.EndOp(ct);
             }
-        }
-
-        // Suggest "<original name>-searchable.pdf" for the save dialog.
-        private string SuggestSearchableName()
-        {
-            string baseName = Path.GetFileNameWithoutExtension(_host.OriginalFile ?? _host.CurrentFile ?? "document");
-            return baseName + "-searchable.pdf";
         }
 
         // Renders each page, OCRs it, and appends an invisible text layer positioned over the

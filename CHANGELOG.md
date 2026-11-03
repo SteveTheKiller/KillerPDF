@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Text fields with automatic font sizing save correctly and keep their original border and background styling.
+- Make Searchable opens its save dialog in the original PDF's folder instead of the last-used folder.
 - The file picker loads icons and picture previews in the background, refreshes overwritten previews, and restores its position on any monitor.
 - PDF creation, modification, comment and attachment dates use the Gregorian calendar on Thai, Arabic and Persian region settings instead of writing years like 2569.
 - The visible signature date uses the same year-month-day format on every region setting.

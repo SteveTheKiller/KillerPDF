@@ -42,6 +42,7 @@
     <Compile Include="..\Services\SingleInstanceChannel.cs" Link="Services\SingleInstanceChannel.cs" />
     <Compile Include="..\Services\ComparisonGeometry.cs" Link="Services\ComparisonGeometry.cs" />
     <Compile Include="..\Services\FormTextLimit.cs" Link="Services\FormTextLimit.cs" />
+    <Compile Include="..\Services\OcrPdfOutputSuggestion.cs" Link="Services\OcrPdfOutputSuggestion.cs" />
     <Compile Include="..\Services\SourceFontKind.cs" Link="Services\SourceFontKind.cs" />
     <Compile Include="..\Services\ScanPixels.cs" Link="Services\ScanPixels.cs" />
     <Compile Include="..\Services\TranslationFileReader.cs" Link="Services\TranslationFileReader.cs" />
