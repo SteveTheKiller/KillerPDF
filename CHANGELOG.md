@@ -30,7 +30,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Added
 
 - Native FP16 presentation preserves frames, resizes within pixel limits, reports composition failures and discovers the window's display, outputs, active color mode, reported SDR white level and standard profile association. Named ICC profiles load into the portable color engine. Viewer integration is in progress. (#264)
-- Captured read revisions render PDF and native EPUB/DjVu sources directly, preserve opened content, cancel active leases on close and rebuild retired PDF rendering resources, preparing viewer integration. (#264, #472)
+- Captured rendering supports PDF and native EPUB/DjVu sources, cancellation and resource rebuilding. Native sources retain their original bytes for Save a Copy; viewer integration is in progress. (#264, #472)
 
 ## [1.9.2] - 2026-11-02
 

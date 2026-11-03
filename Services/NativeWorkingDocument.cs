@@ -1,0 +1,95 @@
+using System.IO;
+using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Formats.Epub;
+
+namespace KillerPDF.Services;
+
+internal sealed class NativeWorkingDocument : IDisposable
+{
+    private const int MaximumSourceBytes = 64 * 1024 * 1024;
+    private const int CopyChunkBytes = 64 * 1024;
+    private readonly byte[] _source;
+    private readonly PdfReadSnapshot _snapshot;
+    private readonly Lock _sync = new();
+    private PdfCapturedReadRevision? _revision;
+    private bool _closed;
+
+    private NativeWorkingDocument(byte[] source, PdfReadSnapshot snapshot)
+    {
+        _source = source;
+        _snapshot = snapshot;
+    }
+
+    internal static NativeWorkingDocument OpenDjvu(ReadOnlyMemory<byte> source,
+        CancellationToken cancellationToken = default)
+    {
+        byte[] captured = CaptureSource(source, cancellationToken);
+        return new NativeWorkingDocument(captured, PdfReadSnapshot.OpenDjvu(captured, cancellationToken));
+    }
+
+    internal static NativeWorkingDocument OpenEpub(ReadOnlyMemory<byte> source, EpubLayoutOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(options);
+        byte[] captured = CaptureSource(source, cancellationToken);
+        return new NativeWorkingDocument(captured, PdfReadSnapshot.OpenEpub(captured, options, cancellationToken));
+    }
+
+    private static byte[] CaptureSource(ReadOnlyMemory<byte> source, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (source.Length > MaximumSourceBytes)
+            throw new InvalidDataException("Native document input exceeds the 64 MiB limit.");
+        return source.ToArray();
+    }
+
+    internal PdfDocumentFormat Format => _snapshot.Format;
+    internal string ContentIdentity => _snapshot.SourceSha256;
+    internal int PageCount => _snapshot.PageCount;
+
+    internal PdfCapturedReadRevision CaptureReadRevision()
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_closed, this);
+            if (_revision is { IsClosed: false } revision) return revision;
+            return _revision = new PdfCapturedReadRevision(_snapshot);
+        }
+    }
+
+    internal void WriteCopyTo(Stream destination, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(destination);
+        if (!destination.CanWrite)
+            throw new ArgumentException("The destination must be writable.", nameof(destination));
+        byte[] source;
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_closed, this);
+            source = _source;
+        }
+        for (int offset = 0; offset < source.Length; offset += CopyChunkBytes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            destination.Write(source.AsSpan(offset, Math.Min(CopyChunkBytes, source.Length - offset)));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    internal void Close()
+    {
+        PdfCapturedReadRevision? revision;
+        lock (_sync)
+        {
+            if (_closed) return;
+            _closed = true;
+            revision = _revision;
+            _revision = null;
+        }
+        revision?.Dispose();
+    }
+
+    public void Dispose() => Close();
+}
