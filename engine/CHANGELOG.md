@@ -6,12 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.3] - Unreleased
 
-The 1.9.3 engine adds floating-point rendering and portable profile conversion.
+The 1.9.3 engine adds floating-point rendering, portable profile conversion and initial native-format readers.
 
 ### Added
 
 - Float32 page frames preserve precise device RGB/Gray and calibrated Gray fills, opacity and aligned 8/16-bit images, with explicit sRGB byte output. (#264)
 - Portable ICC profile conversion supports D50 XYZ linking, rendering intents and opt-in black-point compensation. (#264)
+- Native readers inspect EPUB packages, navigation and structural text, plus DjVu containers and uncompressed text, with initial Smmr bitonal rendering. (#472)
 
 ## [1.9.2] - Unreleased
 
