@@ -2,18 +2,18 @@ using System.Runtime.InteropServices;
 
 namespace KillerPDF.Presentation;
 
-// Owns one fixed-size native surface. Only the viewport dispatcher calls this transport.
+// Owns one native surface. Only the viewport dispatcher calls this transport.
 internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : IDisposable
 {
     const uint FloatRgbaFormat = 10;
     const uint LinearSrgbColorSpace = 1;
     readonly List<nint> _owned = [];
-    nint _composition, _target, _context, _swap, _buffer, _visual;
+    nint _composition, _target, _context, _swap, _swap3, _buffer, _visual;
     bool _attached;
     bool _disposed;
 
-    internal int Width { get; } = width;
-    internal int Height { get; } = height;
+    internal int Width { get; private set; } = width;
+    internal int Height { get; private set; } = height;
 
     internal void Initialize(nint viewport)
     {
@@ -53,6 +53,7 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
             || observed.Scaling != 0 || observed.SwapEffect != 3 || observed.AlphaMode != 1)
             throw new NotSupportedException("The native swap chain does not match linear premultiplied FP16 composition.");
         nint swap3 = Query(swap, new Guid("94d99bdb-f1f8-4ab0-b236-7da0170edab1"), "QueryInterface.IDXGISwapChain3");
+        _swap3 = swap3;
         uint support = 0;
         Check("CheckColorSpaceSupport.Before", ((delegate* unmanaged[Stdcall]<nint, uint, uint*, int>)Slot(swap3, 37))(swap3, LinearSrgbColorSpace, &support));
         if ((support & 1) == 0) throw new NotSupportedException("The native swap chain does not support linear scRGB presentation.");
@@ -73,6 +74,46 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
         hr = ((delegate* unmanaged[Stdcall]<nint, nint*, int>)Slot(composition, 7))(composition, &visual);
         Capture(visual); Check("CreateVisual", hr); Require(visual); _visual = visual;
         Check("SetContent", ((delegate* unmanaged[Stdcall]<nint, nint, int>)Slot(visual, 15))(visual, swap));
+    }
+
+    internal void Resize(int width, int height)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (width <= 0 || width > 16384) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0 || height > 16384) throw new ArgumentOutOfRangeException(nameof(height));
+        if (Width == width && Height == height) return;
+        // ResizeBuffers requires every owned back-buffer reference and context binding released.
+        ((delegate* unmanaged[Stdcall]<nint, void>)Slot(_context, 110))(_context);
+        nint previousBuffer = _buffer;
+        _buffer = 0;
+        _owned.Remove(previousBuffer);
+        Release(previousBuffer);
+        Check("ResizeBuffers", ((delegate* unmanaged[Stdcall]<nint, uint, uint, uint, uint, uint, int>)Slot(_swap, 13))(
+            _swap, 2, checked((uint)width), checked((uint)height), FloatRgbaFormat, 0));
+        SwapDesc observed = default;
+        Check("GetDesc1.AfterResize", ((delegate* unmanaged[Stdcall]<nint, SwapDesc*, int>)Slot(_swap, 18))(_swap, &observed));
+        if (observed.Width != (uint)width || observed.Height != (uint)height || observed.Format != FloatRgbaFormat
+            || observed.Stereo != 0 || observed.SampleCount != 1 || observed.SampleQuality != 0 || observed.BufferCount != 2
+            || observed.BufferUsage != 0x20 || observed.Scaling != 0 || observed.SwapEffect != 3 || observed.AlphaMode != 1 || observed.Flags != 0)
+            throw new NotSupportedException("The resized swap chain does not match linear premultiplied FP16 composition.");
+        uint support = 0;
+        Check("CheckColorSpaceSupport.Resize.Before", ((delegate* unmanaged[Stdcall]<nint, uint, uint*, int>)Slot(_swap3, 37))(_swap3, LinearSrgbColorSpace, &support));
+        if ((support & 1) == 0) throw new NotSupportedException("The resized swap chain does not support linear scRGB presentation.");
+        Check("SetColorSpace1.AfterResize", ((delegate* unmanaged[Stdcall]<nint, uint, int>)Slot(_swap3, 38))(_swap3, LinearSrgbColorSpace));
+        Check("CheckColorSpaceSupport.Resize.After", ((delegate* unmanaged[Stdcall]<nint, uint, uint*, int>)Slot(_swap3, 37))(_swap3, LinearSrgbColorSpace, &support));
+        if ((support & 1) == 0) throw new NotSupportedException("The resized swap chain did not retain linear scRGB presentation support.");
+        Guid textureId = new("6f15aaf2-d208-4e89-9ab4-489535d34f9c");
+        nint buffer = 0;
+        int hr = ((delegate* unmanaged[Stdcall]<nint, uint, Guid*, nint*, int>)Slot(_swap, 9))(_swap, 0, &textureId, &buffer);
+        Capture(buffer); Check("GetBuffer.AfterResize", hr); Require(buffer); _buffer = buffer;
+        TextureDesc actualBuffer = default;
+        ((delegate* unmanaged[Stdcall]<nint, TextureDesc*, void>)Slot(buffer, 10))(buffer, &actualBuffer);
+        if (actualBuffer.Width != (uint)width || actualBuffer.Height != (uint)height || actualBuffer.Format != FloatRgbaFormat
+            || actualBuffer.SampleCount != 1 || actualBuffer.SampleQuality != 0 || actualBuffer.MipLevels != 1 || actualBuffer.ArraySize != 1
+            || actualBuffer.Usage != 0 || actualBuffer.CpuAccessFlags != 0 || (actualBuffer.BindFlags & 0x20) == 0)
+            throw new NotSupportedException("The resized back buffer does not match the FP16 frame upload.");
+        Width = width;
+        Height = height;
     }
 
     internal void Upload(Half[] pixels)
@@ -117,7 +158,7 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
         }
         if (_context != 0) ((delegate* unmanaged[Stdcall]<nint, void>)Slot(_context, 110))(_context);
         for (int i = _owned.Count - 1; i >= 0; i--) Release(_owned[i]);
-        _owned.Clear(); _composition = _target = _context = _swap = _buffer = _visual = 0;
+        _owned.Clear(); _composition = _target = _context = _swap = _swap3 = _buffer = _visual = 0;
     }
 
     nint Query(nint pointer, Guid id, string operation)

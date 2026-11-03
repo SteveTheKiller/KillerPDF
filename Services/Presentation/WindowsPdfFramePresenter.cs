@@ -77,8 +77,6 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
             throw new ArgumentException("Frame and surface dimensions must agree.", nameof(submission));
         if (!double.IsFinite(state.ReferenceWhiteScale) || state.ReferenceWhiteScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(state), "Reference white must be finite and positive.");
-        if (_transport != null && (_transport.Width != state.SurfacePixelWidth || _transport.Height != state.SurfacePixelHeight))
-            throw new NotSupportedException("Changing the native surface dimensions is not implemented.");
 
         // Per pixel: RGBA32F input (16), Half upload (8), two native FP16 buffers (16).
         if ((long)submission.Frame.Width * submission.Frame.Height > _maximumCombinedPixelBytes / 40)
@@ -99,6 +97,12 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
                 rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
                 if (rejected != null) { transport.Dispose(); return ValueTask.FromResult(rejected); }
                 _transport = transport;
+            }
+            if (transport.Width != state.SurfacePixelWidth || transport.Height != state.SurfacePixelHeight)
+            {
+                transport.Resize(state.SurfacePixelWidth, state.SurfacePixelHeight);
+                rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
+                if (rejected != null) return ValueTask.FromResult(rejected);
             }
             transport.Upload(pixels);
             rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
