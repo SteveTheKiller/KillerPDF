@@ -185,6 +185,14 @@ It represents CGATS TR 001-1995, an older North American web-printing condition,
 and supports perceptual forward conversion only. Use its `EffectiveIntent` for
 that conversion and identify the assumed printing condition to the reader.
 
+`PdfColorProfile.GetTransformSelection` reports the requested intent, direction,
+actual table signature, table intent, fallback and media-white scaling separately.
+For this profile, a relative-colorimetric forward request selects perceptual
+`A2B0` and reports fallback; reverse conversion is unavailable. This diagnostic
+API reports the existing conversion policy without changing it. Matrix/TRC
+transforms have no table intent, and absolute media-white scaling is reported
+separately from the colorimetric table it uses.
+
 ```csharp
 using KillerPdf.Engine.ColorManagement;
 

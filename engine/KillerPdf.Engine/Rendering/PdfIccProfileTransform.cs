@@ -10,6 +10,8 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
 {
     private readonly PdfIccTable? _forward;
     private readonly PdfIccTable? _reverse;
+    private readonly string? _forwardTag;
+    private readonly string? _reverseTag;
     private readonly PdfIccCurve[]? _curves;
     private readonly double[]? _matrix;
     private readonly double[]? _inverseMatrix;
@@ -31,6 +33,9 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
     internal string ContentSha256 => Convert.ToHexString(_profileFingerprint);
     internal bool IsLabInput { get; }
     internal bool IsLutBased => _forward is not null;
+    internal string? ForwardTableSignature => _forwardTag;
+    internal string? ReverseTableSignature => _reverseTag;
+    internal bool AppliesMediaWhiteScaling => _absoluteScale is not null;
     internal int RenderingIntent => _intent;
     internal bool SupportsBlackPointCompensation { get; }
     internal bool HasExplicitValidMediaWhite => _mediaWhiteScale is not null && !_invalidWhite;
@@ -166,12 +171,14 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
             || tags.TryGetValue("A2B0", out forward))
         {
             _forward = ReadTable(forward);
+            _forwardTag = tags.ContainsKey($"A2B{tableIntent}") ? $"A2B{tableIntent}" : "A2B0";
             if (_forward.InputChannels != Components || _forward.OutputChannels != 3)
                 throw new FormatException("An ICC forward transform has invalid channel counts.");
             if (tags.TryGetValue($"B2A{tableIntent}", out ReadOnlyMemory<byte> reverse)
                 || tags.TryGetValue("B2A0", out reverse))
             {
                 _reverse = ReadTable(reverse);
+                _reverseTag = tags.ContainsKey($"B2A{tableIntent}") ? $"B2A{tableIntent}" : "B2A0";
                 if (_reverse.InputChannels != 3 || _reverse.OutputChannels != Components)
                     throw new FormatException("An ICC reverse transform has invalid channel counts.");
             }

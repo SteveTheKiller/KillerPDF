@@ -25,6 +25,34 @@ public sealed class PdfColorProfile
     internal void ReadPaperWhite(Span<double> xyz) => _transform.ReadPaperWhite(xyz);
     internal void ReadPaperBlack(Span<double> xyz) => _transform.ReadPaperBlack(xyz);
 
+    /// <summary>Describes the transform selected for the requested intent and direction.</summary>
+    public PdfColorTransformSelection GetTransformSelection(
+        PdfRenderingIntent intent = PdfRenderingIntent.RelativeColorimetric,
+        PdfColorTransformDirection direction = PdfColorTransformDirection.DeviceToConnection)
+    {
+        int index = IntentIndex(intent);
+        if (direction is not (PdfColorTransformDirection.DeviceToConnection
+            or PdfColorTransformDirection.ConnectionToDevice))
+            throw new ArgumentOutOfRangeException(nameof(direction));
+        var transform = _transform.ForIntent(index);
+        if (transform is null || direction == PdfColorTransformDirection.ConnectionToDevice
+            && !transform.CanConvertFromXyz)
+            return new(intent, direction, false, false, null, null, false, false);
+
+        string? tag = direction == PdfColorTransformDirection.DeviceToConnection
+            ? transform.ForwardTableSignature : transform.ReverseTableSignature;
+        PdfRenderingIntent? tableIntent = tag is null ? null : tag[3] switch
+        {
+            '0' => PdfRenderingIntent.Perceptual,
+            '1' => PdfRenderingIntent.RelativeColorimetric,
+            '2' => PdfRenderingIntent.Saturation,
+            _ => throw new InvalidOperationException("The selected ICC table signature is invalid.")
+        };
+        int expectedTableIndex = index == 3 ? 1 : index;
+        return new(intent, direction, true, !transform.IsLutBased, tag, tableIntent,
+            tag is not null && tag[3] - '0' != expectedTableIndex, transform.AppliesMediaWhiteScaling);
+    }
+
     /// <summary>Converts device components into another profile through D50 XYZ.</summary>
     public void ConvertTo(PdfColorProfile destination, ReadOnlySpan<double> source, Span<double> result,
         PdfRenderingIntent intent = PdfRenderingIntent.RelativeColorimetric, bool blackPointCompensation = false)
