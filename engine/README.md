@@ -167,12 +167,15 @@ pixel buffers are limited to 128 MiB, and layout limits source text and placemen
 Cancellation is supported during layout and rendering. Logical text geometry remains
 separate from glyph ink, which can extend beyond a font's logical line box.
 
-`PdfReadSnapshot.OpenEpub(bytes, options)` captures the source identity and native
-layout together, exposes CSS-pixel page geometry with physical point dimensions,
-and renders the same float frames. `PdfLogicalDocument` gives each independent
+`PdfReadSnapshot.OpenEpub(bytes, options)` and `OpenDjvu(bytes)` capture source
+identity and native read state together, expose explicit page units and physical
+point dimensions, and render the same float frames. EPUB uses CSS pixels at 96 DPI;
+DjVu retains each page's recorded resolution. Geometry describes the page before
+intrinsic rotation, which `RenderPage` already applies. `PdfLogicalDocument` gives
+each independent
 open a fresh identity and retains an explicitly supplied snapshot. Equal source
-hashes do not share logical identity. This initial boundary supports EPUB only;
-desktop opening and other format adapters remain in development.
+hashes do not share logical identity. Native decoder limits still apply; desktop
+opening and the PDF read adapter remain in development.
 
 ## Bundled CMYK viewing assumption (1.9.3 development)
 

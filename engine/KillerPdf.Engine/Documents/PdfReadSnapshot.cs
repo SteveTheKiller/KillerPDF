@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using KillerPdf.Engine.Formats.Djvu;
 using KillerPdf.Engine.Formats.Epub;
 using KillerPdf.Engine.Rendering;
 
@@ -19,47 +20,86 @@ public enum PdfDocumentFormat
 public enum PdfReadPageUnit
 {
     /// <summary>A CSS pixel at 96 pixels per inch.</summary>
-    CssPixel
+    CssPixel,
+    /// <summary>A natural image pixel at the page's recorded resolution.</summary>
+    Pixel
 }
 
 /// <summary>Describes immutable natural page geometry.</summary>
 public sealed class PdfReadPageGeometry
 {
-    internal PdfReadPageGeometry(double width, double height)
+    internal PdfReadPageGeometry(double width, double height, PdfReadPageUnit unit,
+        double dpiX, double dpiY, int intrinsicRotation)
     {
         if (!double.IsFinite(width) || width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (!double.IsFinite(height) || height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (unit is not (PdfReadPageUnit.CssPixel or PdfReadPageUnit.Pixel))
+            throw new ArgumentOutOfRangeException(nameof(unit));
+        if (!double.IsFinite(dpiX) || dpiX <= 0) throw new ArgumentOutOfRangeException(nameof(dpiX));
+        if (!double.IsFinite(dpiY) || dpiY <= 0) throw new ArgumentOutOfRangeException(nameof(dpiY));
+        if (intrinsicRotation is not (0 or 90 or 180 or 270))
+            throw new ArgumentOutOfRangeException(nameof(intrinsicRotation));
         Width = width;
         Height = height;
+        Unit = unit;
+        DpiX = dpiX;
+        DpiY = dpiY;
+        IntrinsicRotation = intrinsicRotation;
     }
-    /// <summary>Gets the width in natural page units.</summary>
+    /// <summary>Gets the width in natural page units before intrinsic rotation.</summary>
     public double Width { get; }
-    /// <summary>Gets the height in natural page units.</summary>
+    /// <summary>Gets the height in natural page units before intrinsic rotation.</summary>
     public double Height { get; }
     /// <summary>Gets the horizontal natural units per inch.</summary>
-    public double DpiX => 96;
+    public double DpiX { get; }
     /// <summary>Gets the vertical natural units per inch.</summary>
-    public double DpiY => 96;
+    public double DpiY { get; }
     /// <summary>Gets the intrinsic clockwise rotation in degrees.</summary>
-    public int IntrinsicRotation => 0;
+    public int IntrinsicRotation { get; }
     /// <summary>Gets the natural coordinate unit.</summary>
-    public PdfReadPageUnit Unit => PdfReadPageUnit.CssPixel;
-    /// <summary>Gets the width in points.</summary>
+    public PdfReadPageUnit Unit { get; }
+    /// <summary>Gets the width in points before intrinsic rotation.</summary>
     public double WidthPoints => Width * 72 / DpiX;
-    /// <summary>Gets the height in points.</summary>
+    /// <summary>Gets the height in points before intrinsic rotation.</summary>
     public double HeightPoints => Height * 72 / DpiY;
 }
 
 /// <summary>Owns an immutable native read layout independently of logical document identity.</summary>
 public sealed class PdfReadSnapshot
 {
-    private readonly EpubLayoutDocument _layout;
-    private readonly PdfReadPageGeometry _geometry;
+    /// <summary>Captures source bytes and opens a native DjVu document.</summary>
+    public static PdfReadSnapshot OpenDjvu(ReadOnlyMemory<byte> bytes,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (bytes.Length > 64 * 1024 * 1024)
+            throw new InvalidDataException("DjVu input exceeds the 64 MiB limit.");
+        byte[] source = bytes.ToArray();
+        string sourceSha256 = Convert.ToHexString(SHA256.HashData(source));
+        var document = DjvuDocument.Open(source, cancellationToken);
+        if (document.Pages.Count == 0)
+            throw new NotSupportedException("The DjVu container has no local pages available for reading.");
+        return new PdfReadSnapshot(document, sourceSha256);
+    }
+
+    private readonly EpubLayoutDocument? _layout;
+    private readonly DjvuDocument? _djvu;
+    private readonly PdfReadPageGeometry[] _geometries;
 
     private PdfReadSnapshot(EpubLayoutDocument layout, PdfReadPageGeometry geometry, string sourceSha256)
     {
         _layout = layout;
-        _geometry = geometry;
+        _geometries = Enumerable.Repeat(geometry, layout.Pages.Count).ToArray();
+        Format = PdfDocumentFormat.Epub;
+        SourceSha256 = sourceSha256;
+    }
+
+    private PdfReadSnapshot(DjvuDocument document, string sourceSha256)
+    {
+        _djvu = document;
+        _geometries = document.Pages.Select(page => new PdfReadPageGeometry(page.Width, page.Height,
+            PdfReadPageUnit.Pixel, page.Dpi, page.Dpi, (int)page.Orientation)).ToArray();
+        Format = PdfDocumentFormat.Djvu;
         SourceSha256 = sourceSha256;
     }
 
@@ -76,24 +116,26 @@ public sealed class PdfReadSnapshot
         var capturedOptions = options with { };
         var layout = EpubDocument.Open(source, cancellationToken).CreateLayout(capturedOptions, cancellationToken);
         return new PdfReadSnapshot(layout,
-            new PdfReadPageGeometry(capturedOptions.PageWidth, capturedOptions.PageHeight), sourceSha256);
+            new PdfReadPageGeometry(capturedOptions.PageWidth, capturedOptions.PageHeight,
+                PdfReadPageUnit.CssPixel, 96, 96, 0), sourceSha256);
     }
     /// <summary>Gets the original source format.</summary>
-    public PdfDocumentFormat Format => PdfDocumentFormat.Epub;
+    public PdfDocumentFormat Format { get; }
     /// <summary>Gets the SHA-256 identity of the captured source bytes.</summary>
     public string SourceSha256 { get; }
     /// <summary>Gets the identity of this immutable layout.</summary>
     public Guid LayoutIdentity { get; } = Guid.NewGuid();
     /// <summary>Gets the native page count.</summary>
-    public int PageCount => _layout.Pages.Count;
+    public int PageCount => _geometries.Length;
     /// <summary>Gets the natural geometry of a native page.</summary>
     public PdfReadPageGeometry GetPageGeometry(int pageIndex)
     {
         if (pageIndex < 0 || pageIndex >= PageCount)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
-        return _geometry;
+        return _geometries[pageIndex];
     }
-    /// <summary>Renders a native page while preserving its frame encoding.</summary>
+    /// <summary>Renders a native page with intrinsic rotation already applied, preserving its frame encoding.</summary>
     public PdfRenderedFrame RenderPage(int pageIndex, CancellationToken cancellationToken = default) =>
-        _layout.RenderPage(pageIndex, cancellationToken);
+        _djvu is not null ? _djvu.RenderPage(pageIndex, cancellationToken)
+            : _layout!.RenderPage(pageIndex, cancellationToken);
 }
