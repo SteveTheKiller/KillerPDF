@@ -145,9 +145,10 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 `EpubDocument.Open` reads a bounded native package. `CreateLayout` currently supports
 plain printable-ASCII paragraphs that fit one page in one linear, reflowable XHTML spine
 item with an explicit fallback font. It returns immutable pages and logical UTF-16 text
-placements in CSS pixels. Paragraphs have one font-size gap between their line boxes.
+placements in CSS pixels. Whole words wrap at spaces, and paragraphs have one font-size
+gap between their line boxes. Words wider than the content box are diagnosed explicitly.
 `RenderPage` produces an owned linear-sRGB float frame through shared glyph rendering,
-without creating a PDF. Styling, wrapping, pagination, complex scripts and other unsupported content
+without creating a PDF. Styling, character breaking, pagination, complex scripts and other unsupported content
 produce explicit diagnoses; this initial API does not establish full EPUB support.
 
 ```csharp

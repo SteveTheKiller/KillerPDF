@@ -70,8 +70,35 @@ public sealed partial class EpubDocument
                 ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
             // The public advance API rounds to 1000 units; finer font-metric precision is a later slice.
             double width = font.GetPdfAdvanceWidth(glyph) / 1000d * options.FontSize;
+            if (character == ' ')
+            {
+                // Each collapsed separator scans only the following word, keeping lookahead linear.
+                double wordWidth = 0;
+                for (int next = index + 1; next < text.Length && text[next] is not (' ' or '\n'); next++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    char nextCharacter = text[next];
+                    if (nextCharacter is < ' ' or > '~')
+                        throw new NotSupportedException("Native EPUB layout currently supports only printable ASCII text.");
+                    ushort nextGlyph = font.GetGlyphId(nextCharacter);
+                    if (nextGlyph == 0)
+                        throw new NotSupportedException($"The native EPUB font has no glyph for U+{(int)nextCharacter:X4}.");
+                    wordWidth += font.GetPdfAdvanceWidth(nextGlyph) / 1000d * options.FontSize;
+                }
+                if (wordWidth > contentWidth)
+                    throw new NotSupportedException("The native EPUB word exceeds the available line width.");
+                if (left + width + wordWidth > options.PageWidth - options.Margin)
+                {
+                    top += options.FontSize;
+                    if (top + options.FontSize > options.PageHeight - options.Margin)
+                        throw new NotSupportedException("Native EPUB pagination is not implemented.");
+                    left = options.Margin;
+                    baseline = top + font.Ascender * options.FontSize / font.UnitsPerEm;
+                    continue;
+                }
+            }
             if (left + width > options.PageWidth - options.Margin)
-                throw new NotSupportedException("Native EPUB line wrapping is not implemented.");
+                throw new NotSupportedException("The native EPUB word exceeds the available line width.");
             placements.Add(new EpubTextPlacement(0, index, 1, left, top, width, options.FontSize));
             if (outline.Contours.Count != 0)
                 glyphs.Add(new NativeGlyphPaint(outline, left, baseline, options.FontSize / 1000));

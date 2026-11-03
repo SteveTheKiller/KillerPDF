@@ -100,7 +100,7 @@ public sealed class EpubNativeLayoutBoundaryTests
     }
 
     [Fact]
-    public void DiagnosesOneLineOverflowWithoutWrapping()
+    public void DiagnosesWrappedLineOverflowWithoutPagination()
     {
         var book = Book();
 
