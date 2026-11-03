@@ -32,6 +32,13 @@ namespace KillerPDF.Controls
 {
     internal static class DialogChrome
     {
+        /// <summary>Promoted touch presses can arrive after the mouse button was released.</summary>
+        public static void Drag(Window window, MouseButtonEventArgs e)
+        {
+            if (e.ButtonState != MouseButtonState.Pressed || Mouse.LeftButton != MouseButtonState.Pressed) return;
+            try { window.DragMove(); }
+            catch (InvalidOperationException) { }
+        }
         /// <summary>Product name shown in the caption, e.g. "KillerNotes".</summary>
         public static string AppName { get; set; } = "";
 

@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- The file picker loads icons and picture previews in the background, refreshes overwritten previews, and restores its position on any monitor.
 - PDF creation, modification, comment and attachment dates use the Gregorian calendar on Thai, Arabic and Persian region settings instead of writing years like 2569.
 - The visible signature date uses the same year-month-day format on every region setting.
 - Recent files appear immediately after an update reopens an empty window.

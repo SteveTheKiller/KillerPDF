@@ -62,7 +62,10 @@ namespace KillerPDF.Services
         /// <summary>32px icon for the icon grid.</summary>
         internal static ImageSource? Large(string path, bool isFolder) => Get(path, isFolder, false);
 
-        private static readonly Dictionary<string, ImageSource?> _thumbs = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly object CacheGate = new();
+        private const int ThumbnailLimit = 256;
+        private static readonly Dictionary<string, (ImageSource? Image, LinkedListNode<string> Node)> _thumbs = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly LinkedList<string> ThumbnailOrder = new();
 
         private static readonly HashSet<string> ThumbExts = new(StringComparer.OrdinalIgnoreCase)
         { ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tif", ".tiff", ".ico" };
@@ -84,27 +87,45 @@ namespace KillerPDF.Services
         /// </summary>
         internal static ImageSource? Thumbnail(string path, int px)
         {
-            string key = path + "|" + px;
-            if (_thumbs.TryGetValue(key, out var hit)) return hit;
-
             ImageSource? img = null;
             try
             {
-                if (CanThumbnail(path) && File.Exists(path))
+                if (!CanThumbnail(path)) return null;
+                var file = new FileInfo(path);
+                if (!file.Exists) return null;
+                string key = path + "|" + px + "|" + file.LastWriteTimeUtc.Ticks + "|" + file.Length;
+                lock (CacheGate)
+                {
+                    if (_thumbs.TryGetValue(key, out var hit))
+                    {
+                        ThumbnailOrder.Remove(hit.Node);
+                        ThumbnailOrder.AddLast(hit.Node);
+                        return hit.Image;
+                    }
+                }
                 {
                     var bmp = new BitmapImage();
                     bmp.BeginInit();
                     bmp.UriSource = new Uri(path);
                     bmp.DecodePixelWidth = px;
                     bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                    bmp.CreateOptions = BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.IgnoreImageCache;
                     bmp.EndInit();
                     bmp.Freeze();
                     img = bmp;
                 }
+                lock (CacheGate)
+                {
+                    if (_thumbs.ContainsKey(key)) return _thumbs[key].Image;
+                    _thumbs[key] = (img, ThumbnailOrder.AddLast(key));
+                    while (_thumbs.Count > ThumbnailLimit && ThumbnailOrder.First is { } first)
+                    {
+                        _thumbs.Remove(first.Value);
+                        ThumbnailOrder.RemoveFirst();
+                    }
+                }
             }
             catch { img = null; }   // unreadable, corrupt, or not really an image - fall back to the type icon
-            _thumbs[key] = img;
             return img;
         }
 
@@ -119,7 +140,7 @@ namespace KillerPDF.Services
         /// </summary>
         internal static ImageSource? Place(string path)
         {
-            if (_places.TryGetValue(path, out var hit)) return hit;
+            lock (CacheGate) if (_places.TryGetValue(path, out var hit)) return hit;
 
             ImageSource? img = null;
             var info = new SHFILEINFO();
@@ -137,7 +158,7 @@ namespace KillerPDF.Services
                 finally { DestroyIcon(info.hIcon); }
             }
 
-            _places[path] = img;
+            lock (CacheGate) _places[path] = img;
             return img;
         }
 
@@ -145,11 +166,11 @@ namespace KillerPDF.Services
         {
             string key = isFolder ? FolderKey : ExtOf(path);
             var cache = small ? _small : _large;
-            if (cache.TryGetValue(key, out var hit)) return hit;
+            lock (CacheGate) if (cache.TryGetValue(key, out var hit)) return hit;
 
             var img = Load(isFolder ? "dir" : "x" + key, isFolder, small);
             if (img != null) img.Freeze();          // shared across threads and rows
-            cache[key] = img;
+            lock (CacheGate) cache[key] = img;
             return img;
         }
 

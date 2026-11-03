@@ -327,6 +327,7 @@ namespace KillerPDF.Controls
             Closed += (_, _) => CloseDirectoryListing();
             if (!DialogChrome.SetTitleIcon(TitleIcon)) TitleIcon.Visibility = Visibility.Collapsed;
             Loaded += (_, _) => Anim.FadeIn(RootFade);
+            SourceInitialized += (_, _) => KillerFamily.Windowing.WorkAreaFit.Fit(this);
 
             // Size and placement remembered separately from the folder picker: this dialog is a
             // different shape and sharing the keys would make each one fight the other.
@@ -338,17 +339,15 @@ namespace KillerPDF.Controls
                     double.TryParse(Services.ThemeManager.GetSetting("FileDlgH"),
                         System.Globalization.NumberStyles.Float, ci, out double h))
                 {
-                    Width  = Math.Max(MinWidth,  Math.Min(w, SystemParameters.WorkArea.Width));
-                    Height = Math.Max(MinHeight, Math.Min(h, SystemParameters.WorkArea.Height));
+                    if (!double.IsNaN(w) && !double.IsInfinity(w) && w > 0) Width = Math.Max(MinWidth, w);
+                    if (!double.IsNaN(h) && !double.IsInfinity(h) && h > 0) Height = Math.Max(MinHeight, h);
                 }
                 if (double.TryParse(Services.ThemeManager.GetSetting("FileDlgX"),
                         System.Globalization.NumberStyles.Float, ci, out double x) &&
                     double.TryParse(Services.ThemeManager.GetSetting("FileDlgY"),
                         System.Globalization.NumberStyles.Float, ci, out double y))
                 {
-                    var wa = SystemParameters.WorkArea;
-                    if (x > wa.Left - Width + 80 && x < wa.Right - 80 &&
-                        y > wa.Top - 20 && y < wa.Bottom - 80)
+                    if (!double.IsNaN(x) && !double.IsInfinity(x) && !double.IsNaN(y) && !double.IsInfinity(y))
                     {
                         WindowStartupLocation = WindowStartupLocation.Manual;
                         Left = x;

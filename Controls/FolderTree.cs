@@ -86,8 +86,27 @@ namespace KillerPDF.Controls
 
         // A drive's REAL icon (USB, network, optical) via the real-path query; plain folders get
         // the shared generic folder icon so the tree never touches the disk per row.
+        private ImageSource? _icon;
+        private bool _iconRequested;
         public ImageSource? Icon
-            => IsDrive ? Services.ShellIcons.Place(Path) : Services.ShellIcons.Small(Path, true);
+        {
+            get
+            {
+                if (IsDrive && !_iconRequested)
+                {
+                    _iconRequested = true;
+                    LoadIcon(System.Windows.Threading.Dispatcher.CurrentDispatcher);
+                }
+                return _icon ?? Services.ShellIcons.Small(Path, true);
+            }
+        }
+
+        private async void LoadIcon(System.Windows.Threading.Dispatcher dispatcher)
+        {
+            var image = await Task.Run(() => Services.ShellIcons.Place(Path)).ConfigureAwait(false);
+            if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished) return;
+            await dispatcher.InvokeAsync(() => { _icon = image; Raise(nameof(Icon)); });
+        }
 
         private bool _isExpanded;
         public bool IsExpanded
