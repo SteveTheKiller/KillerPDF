@@ -3414,7 +3414,7 @@ public sealed partial class PdfPageRenderer
             try
             {
                 softMask ??= ReadSoftMask(stream.Dictionary, resources, diagnostics,
-                    transform, scaleX, scaleY, cancellationToken);
+                    transform, scaleX, scaleY, cancellationToken, precise: target.PreciseRgb is not null);
             }
             catch (NotSupportedException) when (_document.UsesCompatibilityRecovery)
             {
@@ -3475,7 +3475,7 @@ public sealed partial class PdfPageRenderer
                 : "Masked-image rendering is not implemented.";
             return false;
         }
-        SoftMask? paintSoftMask = preblendMatte is null
+        SoftMask? paintSoftMask = target.PreciseRgb is null && preblendMatte is null
             && softMask is { Bits: 8, DecodeStart: 0, DecodeEnd: 1 } opaqueMask
             && opaqueMask.Samples.AsSpan().IndexOfAnyExcept((byte)255) < 0
                 ? null : softMask;
@@ -5422,7 +5422,8 @@ public sealed partial class PdfPageRenderer
 
     private SoftMask? ReadSoftMask(PdfDictionary dictionary, PdfDictionary resources,
         HashSet<string>? diagnostics,
-        Matrix transform, double scaleX, double scaleY, CancellationToken cancellationToken)
+        Matrix transform, double scaleX, double scaleY, CancellationToken cancellationToken,
+        bool precise = false)
     {
         if (!dictionary.TryGetValue(Name("SMask"), out PdfObject? value)) return null;
         PdfObject resolved = Resolve(value);
@@ -5437,7 +5438,7 @@ public sealed partial class PdfPageRenderer
         PdfObject maskSpace = Resolve(colorSpaceValue);
         if (maskSpace is not PdfName gray || gray.ValueAsLatin1() != "DeviceGray")
         {
-            if (!_document.UsesCompatibilityRecovery
+            if (precise || !_document.UsesCompatibilityRecovery
                 || maskSpace is not PdfArray { Count: >= 2 } array
                 || Resolve(array[0]) is not PdfName kind
                 || kind.ValueAsLatin1() is not ("CalGray" or "ICCBased"))
@@ -5451,15 +5452,24 @@ public sealed partial class PdfPageRenderer
         if (bits is not (1 or 2 or 4 or 8 or 16)) throw new NotSupportedException();
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
+        if (precise && (bits is not (8 or 16)
+            || width != PositiveInteger(dictionary, "Width") || height != PositiveInteger(dictionary, "Height")
+            || stream.Dictionary.ContainsKey(Name("Matte"))
+            || stream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? stencil)
+                && Resolve(stencil) is PdfBoolean { Value: true }))
+            throw new NotSupportedException("This high-precision image soft mask is not implemented.");
         double deviceWidth = Math.Sqrt(Math.Pow(transform.A * scaleX, 2)
             + Math.Pow(transform.B * scaleY, 2));
         double deviceHeight = Math.Sqrt(Math.Pow(transform.C * scaleX, 2)
             + Math.Pow(transform.D * scaleY, 2));
         int reducedWidth = (int)Math.Clamp(Math.Ceiling(deviceWidth * 2), 1, width);
         int reducedHeight = (int)Math.Clamp(Math.Ceiling(deviceHeight * 2), 1, height);
-        if (reducedWidth == width && reducedHeight == height)
+        if (precise || reducedWidth == width && reducedHeight == height)
         {
             DecodedImage full = _imageCache.GetOrAdd(new ImageCacheKey(stream, -3), _ => DecodeMask());
+            if (precise && (!double.IsFinite(full.MaskDecodeStart) || !double.IsFinite(full.MaskDecodeEnd)
+                || full.MaskDecodeStart is < 0 or > 1 || full.MaskDecodeEnd is < 0 or > 1))
+                throw new NotSupportedException("This high-precision image soft-mask Decode is not implemented.");
             return new SoftMask(full.Samples, full.Width, full.Height,
                 full.MaskBits, full.MaskDecodeStart, full.MaskDecodeEnd);
         }
@@ -5739,7 +5749,9 @@ public sealed partial class PdfPageRenderer
                 && sampleStepX > 1 && sampleStepY > 1
                 && Math.Abs(sampleStepX - Math.Round(sampleStepX)) <= 1e-9
                 && Math.Abs(sampleStepY - Math.Round(sampleStepY)) <= 1e-9;
-            if (imageMask || softMask is not null || preblendMatte is not null
+            if (imageMask || explicitMask || preblendMatte is not null
+                || softMask is not null && (smoothImage || areaSamples || softMask.Bits is not (8 or 16)
+                    || softMask.Width != sourceWidth || softMask.Height != sourceHeight)
                 || colorKeyMask is not null && (smoothImage || areaSamples)
                 || graphicsSoftMask is not null || knockout is not null || overprint || jpeg2000
                 || colorSpace.Profile is not null || colorSpace.Converter is not null
@@ -5755,7 +5767,7 @@ public sealed partial class PdfPageRenderer
                 samples, rowBytes, sourceWidth, sourceHeight, components, bits, decode, colorSpace,
                 stencilAlpha, blendMode, clips, paintLeft, paintTop, paintRight, paintBottom,
                 smoothImage, areaSamples ? (int)Math.Round(sampleStepX) : 1,
-                areaSamples ? (int)Math.Round(sampleStepY) : 1, colorKeyMask, cancellationToken);
+                areaSamples ? (int)Math.Round(sampleStepY) : 1, colorKeyMask, softMask, cancellationToken);
             return;
         }
         if (smoothImage && colorKeyMask is null && preblendMatte is null
@@ -8697,6 +8709,14 @@ public sealed partial class PdfPageRenderer
     private sealed record SoftMask(byte[] Samples, int Width, int Height,
         int Bits = 8, double DecodeStart = 0, double DecodeEnd = 1)
     {
+        internal double SamplePrecise(int x, int y)
+        {
+            int offset = checked(y * ((Width * Bits + 7) / 8) + x * (Bits / 8));
+            int value = Bits == 16 ? Samples[offset] * 256 + Samples[offset + 1] : Samples[offset];
+            return Math.Clamp(DecodeStart + value / (double)((1u << Bits) - 1)
+                * (DecodeEnd - DecodeStart), 0, 1);
+        }
+
         internal long SumRow(int start, int end, int y)
         {
             long sum = 0;
