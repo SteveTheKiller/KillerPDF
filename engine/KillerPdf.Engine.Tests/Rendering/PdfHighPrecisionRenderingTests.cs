@@ -148,6 +148,36 @@ public sealed class PdfHighPrecisionRenderingTests
             128, 128, 128, 255, 128, 128, 128, 255 }, frame.ToSrgbBgra32());
     }
 
+    [Fact]
+    public void DefaultCalibratedRgbMatrixRetainsExtendedLinearChannels()
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            Encoding.ASCII.GetBytes("/Cal cs 0.5 0 0 sc 0 0 1 1 re f")).Build());
+        var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
+        var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+        var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+        var page = (PdfDictionary)source.Resolve(reference);
+        var calibrated = new PdfArray([Name("CalRGB"), new PdfDictionary([
+            Entry("WhitePoint", new PdfArray([new PdfReal(0.95047), new PdfInteger(1), new PdfReal(1.08883)]))])]);
+        var resources = new PdfDictionary([Entry("ColorSpace", new PdfDictionary([Entry("Cal", calibrated)]))]);
+        var document = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(reference.ObjectNumber, new PdfDictionary(page
+                .Where(pair => !pair.Key.Equals(Name("Resources"))).Append(Entry("Resources", resources))))
+            .Build());
+
+        var frame = new PdfPageRenderer(document).RenderFrame(0, new PdfRenderOptions(1, 1));
+
+        // Default gamma and matrix give D65 XYZ (0.5, 0, 0). The standard XYZ-to-sRGB
+        // inverse gives these linear values, including out-of-gamut red and green.
+        Assert.InRange(frame.Pixels[0], 1.620223f, 1.620231f);
+        Assert.InRange(frame.Pixels[1], -0.484637f, -0.484629f);
+        Assert.InRange(frame.Pixels[2], 0.0278177f, 0.0278257f);
+        Assert.Equal(1f, frame.Pixels[3]);
+        byte[] compatibility = frame.ToSrgbBgra32();
+        Assert.Equal(255, compatibility[2]);
+        Assert.Equal(0, compatibility[1]);
+    }
+
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     private static KeyValuePair<PdfName, PdfObject> Entry(string name, PdfObject value) => new(Name(name), value);
 }

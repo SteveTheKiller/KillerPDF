@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.ColorManagement;
 using Xunit;
 
@@ -42,6 +43,62 @@ public sealed class PdfProofTransformTests
         // BPC, it stays lifted above p instead of returning to 0.05.
         Assert.Equal(0.05, result[0], 12);
         Assert.Equal(new double[] { 0.05 }, source);
+    }
+
+    [Fact]
+    public void SelectedAbsoluteIntentAppliesOnlyToSourceToPrinterLeg()
+    {
+        var proof = new PdfProofTransform(MediaWhiteGray(), Profile(gray: true), Profile(gray: false),
+            PdfRenderingIntent.AbsoluteColorimetric, blackPointCompensation: false);
+        double[] source = [0.5];
+        double[] result = new double[3];
+        proof.Convert(source, result);
+        // ICC.1:2022 section 6.3.2: absolute source XYZ is media white times 0.5,
+        // [0.375,0.4375,0.25]. Printer gray is Y=0.4375. Relative display leg
+        // returns D50-scaled gray [0.4218375,0.4375,0.36089375].
+        Assert.Equal(0.4218375, result[0], 12);
+        Assert.Equal(0.4375, result[1], 12);
+        Assert.Equal(0.36089375, result[2], 12);
+        Assert.Equal(new double[] { 0.5 }, source);
+    }
+
+    [Fact]
+    public void DisablingSourceBlackPointCompensationKeepsDisplayNormalizationEnabled()
+    {
+        var proof = new PdfProofTransform(Profile(gray: true), RaisedBlackGray(), Profile(gray: true),
+            PdfRenderingIntent.RelativeColorimetric, blackPointCompensation: false);
+        double[] source = [0.05];
+        double[] result = new double[1];
+        proof.Convert(source, result);
+        // Source Y=0.05 lies below printer p=8192/65535 and clips to device zero.
+        // Printer forward yields p, then the always-enabled display BPC maps p
+        // to display black zero. Disabling both legs would instead leave p.
+        Assert.Equal(0, result[0], 12);
+        Assert.Equal(new double[] { 0.05 }, source);
+    }
+
+    private static PdfColorProfile MediaWhiteGray()
+    {
+        byte[] data = new byte[188];
+        Write32(data, 0, 188);
+        data[8] = 4;
+        "scnr"u8.CopyTo(data.AsSpan(12));
+        "GRAY"u8.CopyTo(data.AsSpan(16));
+        "XYZ "u8.CopyTo(data.AsSpan(20));
+        "acsp"u8.CopyTo(data.AsSpan(36));
+        Write32(data, 128, 2);
+        "kTRC"u8.CopyTo(data.AsSpan(132));
+        Write32(data, 136, 156);
+        Write32(data, 140, 12);
+        "wtpt"u8.CopyTo(data.AsSpan(144));
+        Write32(data, 148, 168);
+        Write32(data, 152, 20);
+        "curv"u8.CopyTo(data.AsSpan(156));
+        "XYZ "u8.CopyTo(data.AsSpan(168));
+        Write32(data, 176, 49152);
+        Write32(data, 180, 57344);
+        Write32(data, 184, 32768);
+        return PdfColorProfile.Load(data);
     }
 
     private static PdfColorProfile RaisedBlackGray()
