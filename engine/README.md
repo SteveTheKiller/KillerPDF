@@ -167,6 +167,13 @@ pixel buffers are limited to 128 MiB, and layout limits source text and placemen
 Cancellation is supported during layout and rendering. Logical text geometry remains
 separate from glyph ink, which can extend beyond a font's logical line box.
 
+`PdfReadSnapshot.OpenEpub(bytes, options)` captures the source identity and native
+layout together, exposes CSS-pixel page geometry with physical point dimensions,
+and renders the same float frames. `PdfLogicalDocument` gives each independent
+open a fresh identity and retains an explicitly supplied snapshot. Equal source
+hashes do not share logical identity. This initial boundary supports EPUB only;
+desktop opening and other format adapters remain in development.
+
 ## Bundled CMYK viewing assumption (1.9.3 development)
 
 `PdfCmykViewingDefault.LoadProfile()` loads an owned copy of the bundled CC0
