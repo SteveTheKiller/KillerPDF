@@ -1626,6 +1626,12 @@ public sealed partial class PdfPageRenderer
         if (perPixelClip && clips.Count(clip => !clip.StorageBounds) == 1
             && mask.HasSameCoverage(clips.First(clip => !clip.StorageBounds).Mask))
             perPixelClip = false;
+        if (pixels.PreciseRgb is not null)
+        {
+            PaintPreciseCoverage(pixels, width, mask, color, alpha, blendMode, clips,
+                graphicsSoftMask, knockout, left, top, right, bottom, perPixelClip, cancellationToken);
+            return;
+        }
         // Group alpha is maintained alongside the direct RGB paths with the compositor's own
         // formula, so tracked groups take the same fast paths as plain pages.
         bool simpleBlend = pixels.Ink is null && pixels.RgbProfile is null && graphicsSoftMask is null && knockout is null

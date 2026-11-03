@@ -1,0 +1,91 @@
+namespace KillerPdf.Engine.Rendering;
+
+/// <summary>Identifies the channel encoding and reference white of a floating-point frame.</summary>
+public enum PdfFrameColorEncoding
+{
+    /// <summary>sRGB primaries, D65 white and the sRGB transfer function.</summary>
+    SrgbD65,
+    /// <summary>sRGB primaries and D65 white with linear channels, including extended values.</summary>
+    LinearSrgbD65
+}
+
+/// <summary>An owned floating-point RGBA frame with straight alpha and a top-left origin.</summary>
+/// <remarks>
+/// RGB channels are relative to document white at one, without an implied absolute luminance.
+/// Finite extended RGB is retained; alpha stays between zero and one. Zero-alpha RGB is retained.
+/// Storage is copied, managed and never pooled. The frame can be read across threads and requires no disposal.
+/// </remarks>
+public sealed class PdfRenderedFrame
+{
+    private readonly float[] _pixels;
+
+    /// <summary>Gets the hard limit for the owned float pixel buffer, independent of other render buffers.</summary>
+    public const long MaximumPixelBytes = 512L * 1024 * 1024;
+
+    /// <summary>Copies tightly packed RGBA32F pixels into an independently owned frame.</summary>
+    public PdfRenderedFrame(int width, int height, ReadOnlySpan<float> pixels,
+        PdfFrameColorEncoding colorEncoding, long maximumPixelBytes = MaximumPixelBytes)
+    {
+        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (colorEncoding is not (PdfFrameColorEncoding.SrgbD65 or PdfFrameColorEncoding.LinearSrgbD65))
+            throw new ArgumentOutOfRangeException(nameof(colorEncoding));
+        if (maximumPixelBytes is <= 0 or > MaximumPixelBytes)
+            throw new ArgumentOutOfRangeException(nameof(maximumPixelBytes));
+        long pixelCount = (long)width * height;
+        if (pixelCount > maximumPixelBytes / (4 * sizeof(float)))
+            throw new ArgumentException("The floating-point frame exceeds its storage limit.");
+        if (pixels.Length != pixelCount * 4)
+            throw new ArgumentException("The pixel channels do not match the frame dimensions.", nameof(pixels));
+        for (int channel = 0; channel < pixels.Length; channel++)
+            if (!float.IsFinite(pixels[channel])
+                || (channel & 3) == 3 && pixels[channel] is < 0 or > 1)
+                throw new ArgumentException("Color channels must be finite and alpha must be between zero and one.",
+                    nameof(pixels));
+        _pixels = pixels.ToArray();
+        Width = width;
+        Height = height;
+        ColorEncoding = colorEncoding;
+    }
+
+    /// <summary>Gets tightly packed float32 RGBA channels with straight alpha.</summary>
+    public ReadOnlySpan<float> Pixels => _pixels;
+
+    /// <summary>Gets the pixel width.</summary>
+    public int Width { get; }
+    /// <summary>Gets the pixel height.</summary>
+    public int Height { get; }
+    /// <summary>Gets the tightly packed row stride measured in bytes.</summary>
+    public int StrideBytes => checked(Width * 4 * sizeof(float));
+    /// <summary>Gets the primaries, transfer function and relative white of the RGB channels.</summary>
+    public PdfFrameColorEncoding ColorEncoding { get; }
+
+    /// <summary>Copies the frame to straight-alpha BGRA32 in sRGB, clipping at this output boundary.</summary>
+    public byte[] ToSrgbBgra32(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var output = new byte[_pixels.Length];
+        bool linear = ColorEncoding == PdfFrameColorEncoding.LinearSrgbD65;
+        for (int offset = 0; offset < _pixels.Length; offset += 4)
+        {
+            if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            output[offset] = Encode(_pixels[offset + 2]);
+            output[offset + 1] = Encode(_pixels[offset + 1]);
+            output[offset + 2] = Encode(_pixels[offset]);
+            output[offset + 3] = Quantize(_pixels[offset + 3]);
+        }
+        return output;
+
+        byte Encode(double channel)
+        {
+            channel = Math.Clamp(channel, 0, 1);
+            if (linear)
+                channel = channel <= 0.0031308 ? 12.92 * channel
+                    : 1.055 * Math.Pow(channel, 1 / 2.4) - 0.055;
+            return Quantize(channel);
+        }
+
+        static byte Quantize(double channel) =>
+            (byte)Math.Round(Math.Clamp(channel, 0, 1) * 255, MidpointRounding.AwayFromZero);
+    }
+}

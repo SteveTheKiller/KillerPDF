@@ -4,6 +4,14 @@ All notable changes to The KillerPDF.Engine are documented here. Application cha
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.3] - Unreleased
+
+The 1.9.3 engine adds opt-in floating-point page rendering.
+
+### Added
+
+- Float32 page frames preserve precise RGB/Gray fills, opacity and aligned 8/16-bit images, with explicit sRGB byte output. (#264)
+
 ## [1.9.2] - Unreleased
 
 The 1.9.2 engine writes an edited document back under the encryption it was opened with and reads permissions by what their bits really forbid.

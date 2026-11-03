@@ -288,7 +288,7 @@ public sealed partial class PdfPageRenderer
 
     private PdfRenderedPage RenderUncached(int pageIndex, PdfRenderOptions options,
         CancellationToken cancellationToken, byte[]? destination = null,
-        (int Left, int Top, int Right, int Bottom)? region = null)
+        (int Left, int Top, int Right, int Bottom)? region = null, float[]? preciseRgb = null)
     {
         using PageGlyphMaskScope pageGlyphMasks = EnterPageGlyphMasks();
         bool pageHasGroup = _tree.Pages[pageIndex].Dictionary.TryGetValue(Name("Group"), out _);
@@ -309,11 +309,18 @@ public sealed partial class PdfPageRenderer
         int rasterWidth = Right - Left, rasterHeight = Bottom - Top;
         var pixels = new RasterSurface(destination ?? GC.AllocateUninitializedArray<byte>(
             checked(rasterWidth * rasterHeight * 4)), Left, Top, rasterWidth, rasterHeight,
-            _pdf20BlendEndpoints);
+            _pdf20BlendEndpoints) { PreciseRgb = preciseRgb };
         cancellationToken.ThrowIfCancellationRequested();
         System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
             pixels.Data.AsSpan(0, pixels.Length))
             .Fill(0x00FFFFFFu | (uint)background << 24);
+        if (preciseRgb is not null)
+            for (int offset = 0; offset < preciseRgb.Length; offset += 4)
+            {
+                if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                preciseRgb[offset] = preciseRgb[offset + 1] = preciseRgb[offset + 2] = 1;
+                preciseRgb[offset + 3] = background / 255f;
+            }
 
         PdfPageInformation page = _pages[pageIndex];
         PdfPageBoxBounds crop = _boxes[pageIndex].CropBox;
@@ -473,6 +480,8 @@ public sealed partial class PdfPageRenderer
             foreach (PdfContentInstruction instruction in instructions)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (pixels.PreciseRgb is not null && !PreciseOperationSupported(instruction.Operator))
+                    throw new NotSupportedException($"High-precision operator {instruction.Operator} is not implemented.");
                 using var inputProfile = pixels.PrepareInput(state.RenderingIntent);
                 IReadOnlyList<PdfObject> values = instruction.Operands;
                 double N(int index) => instruction.TryGetNumber(index, out double number)
@@ -786,6 +795,9 @@ public sealed partial class PdfPageRenderer
                         out bool unsupportedBlend, out PdfObject? softMaskValue,
                         out PdfObject? graphicsFontValue, out PdfDictionary? strokeSettings))
                     {
+                        if (pixels.PreciseRgb is not null && strokeSettings!.Keys.Any(key =>
+                            key.ValueAsLatin1() is not ("Type" or "ca" or "CA")))
+                            throw new NotSupportedException("This high-precision graphics state is not implemented.");
                         if (softMaskValue is not null) opaqueFills.Flush();
                         state = ApplyGraphicsStrokeSettings(state, strokeSettings!, diagnostics);
                         state = ApplyOverprintSettings(state, strokeSettings!);
@@ -1048,7 +1060,13 @@ public sealed partial class PdfPageRenderer
                                 ?? "Image rendering is not implemented.");
                     }
                     else if (IsName(xObject.Dictionary, "Subtype", "Form"))
+                    {
+                        if (pixels.PreciseRgb is not null)
+                            throw new NotSupportedException("High-precision form rendering is not implemented.");
                         RenderForm(xObject, resources, state, depth);
+                    }
+                    else if (pixels.PreciseRgb is not null)
+                        throw new NotSupportedException("The high-precision XObject type is not implemented.");
                     break;
                 case "BI" when values.Count == 1 && values[0] is PdfDictionary inlineDictionary
                     && instruction.InlineImageData.HasValue:
@@ -5689,6 +5707,22 @@ public sealed partial class PdfPageRenderer
         if (paintRight <= paintLeft || paintBottom <= paintTop) return;
         graphicsSoftMask = graphicsSoftMask?.ForBounds(paintLeft, paintTop, paintRight, paintBottom);
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
+        if (target.PreciseRgb is not null)
+        {
+            if (imageMask || softMask is not null || colorKeyMask is not null || preblendMatte is not null
+                || graphicsSoftMask is not null || knockout is not null || overprint || jpeg2000
+                || colorSpace.Profile is not null || colorSpace.Converter is not null
+                || colorSpace.MultiConverter is not null || colorSpace.Palette is not null
+                || colorSpace.HasIccSource || components is not (1 or 3) || bits is not (8 or 16)
+                || Math.Abs(sampleStepX - 1) > 1e-9 || Math.Abs(sampleStepY - 1) > 1e-9
+                || corners.Any(point => Math.Abs(point.X * scaleX - Math.Round(point.X * scaleX)) > 1e-9
+                    || Math.Abs(point.Y * scaleY - Math.Round(point.Y * scaleY)) > 1e-9))
+                throw new NotSupportedException("This high-precision image paint is not implemented.");
+            PaintPreciseImage(target, targetWidth, targetHeight, scaleX, scaleY, inverse,
+                samples, rowBytes, sourceWidth, sourceHeight, components, bits, decode, colorSpace,
+                stencilAlpha, blendMode, clips, paintLeft, paintTop, paintRight, paintBottom, cancellationToken);
+            return;
+        }
         if (smoothImage && colorKeyMask is null && preblendMatte is null
             && TryPaintInterpolatedDeviceImage(target, targetWidth, targetHeight, scaleX, scaleY,
                 inverse, samples, sourceWidth, sourceHeight, components, bits, decode,
@@ -7131,6 +7165,13 @@ public sealed partial class PdfPageRenderer
             return true;
         }
 
+        internal Color ConvertPrecise(int x, int y)
+        {
+            for (int component = 0; component < _components; component++)
+                _values[component] = Decode(component, Raw(x, y, component));
+            return _colorSpace.Convert(_values);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         internal uint Convert(int x, int y)
         {
@@ -8030,6 +8071,11 @@ public sealed partial class PdfPageRenderer
     {
         if (color.DoesNotPaint || !pixels.Contains(x, y)) return;
         int offset = pixels.Offset(x, y);
+        if (pixels.PreciseRgb is not null)
+        {
+            PaintPrecisePixel(pixels, offset, color, opacity, blendMode, graphicsSoftMask, knockout);
+            return;
+        }
         if ((knockout is not null || pixels.GroupShape is not null) && alphaIsShape)
         {
             opacity = Math.Clamp(opacity, 0, 1) * (graphicsSoftMask?.At(x, y) ?? 255) / 255d;
@@ -9441,6 +9487,15 @@ public sealed partial class PdfPageRenderer
 
     private readonly record struct Color(byte Red, byte Green, byte Blue)
     {
+        // A paint carries either a source RGB triple or a PCS connection value. Sharing
+        // their storage keeps byte-path shading tables from retaining two triples per color.
+        private readonly (double X, double Y, double Z)? _connection;
+        private readonly bool _connectionIsRgb;
+        internal (double Red, double Green, double Blue)? PreciseRgb
+        {
+            get => _connectionIsRgb ? _connection : null;
+            init { _connection = value; _connectionIsRgb = true; }
+        }
         internal byte OverprintComponents { get; init; }
         internal bool DoesNotPaint => (OverprintComponents & 32) != 0;
         internal static Color NonPainting => new(0, 0, 0) { OverprintComponents = 32 };
@@ -9452,16 +9507,28 @@ public sealed partial class PdfPageRenderer
         internal uint? ProcessInk { get; init; }
         internal byte SpotProcessMask { get; init; }
         internal PdfColorTransform? InkProfile { get; init; }
-        internal (double X, double Y, double Z)? Connection { get; init; }
-        internal static Color Black => new(0, 0, 0) { Ink = 0xFF000000 };
-        internal static Color White => new(255, 255, 255);
+        internal (double X, double Y, double Z)? Connection
+        {
+            get => _connectionIsRgb ? null : _connection;
+            init { _connection = value; _connectionIsRgb = false; }
+        }
+        internal static Color Black => new(0, 0, 0) { Ink = 0xFF000000, PreciseRgb = (0, 0, 0) };
+        internal static Color White => new(255, 255, 255) { PreciseRgb = (1, 1, 1) };
         internal static Color Gray(double gray)
         {
             byte value = Channel(gray);
-            return new(value, value, value) { Ink = (uint)(255 - value) << 24 };
+            double normalized = Math.Clamp(gray, 0, 1);
+            return new(value, value, value)
+            {
+                Ink = (uint)(255 - value) << 24,
+                PreciseRgb = (normalized, normalized, normalized)
+            };
         }
         internal static Color Rgb(double red, double green, double blue) =>
-            new(Channel(red), Channel(green), Channel(blue));
+            new(Channel(red), Channel(green), Channel(blue))
+            {
+                PreciseRgb = (Math.Clamp(red, 0, 1), Math.Clamp(green, 0, 1), Math.Clamp(blue, 0, 1))
+            };
         internal static Color LinearRgb(double red, double green, double blue) =>
             new(SrgbEncoding.Encode(red), SrgbEncoding.Encode(green), SrgbEncoding.Encode(blue));
         internal static Color Cmyk(double cyan, double magenta, double yellow, double black)
