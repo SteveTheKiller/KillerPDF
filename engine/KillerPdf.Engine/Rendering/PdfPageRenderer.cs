@@ -1641,7 +1641,7 @@ public sealed partial class PdfPageRenderer
                             textScale.Then(textMatrix).Then(state.Transform), frame);
                         PdfGlyphOutline? outline;
                         try { outline = extractionFont.GetGlyphOutline(character.Code); }
-                        catch (PdfFontResourceReader.GlyphRecursionException)
+                        catch (TrueTypeOutlineReader.GlyphRecursionException)
                             when (_document.UsesCompatibilityRecovery)
                         {
                             diagnostics.Add("A cyclic or excessively nested text glyph was omitted.");
