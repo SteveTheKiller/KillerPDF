@@ -138,12 +138,49 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
                 error = DisplayConfigGetDeviceInfo(ref target);
                 if (error != 0) { Fail("DisplayConfigGetDeviceInfo", error); continue; }
                 string identity = $"target:{unchecked((uint)path.Target.Adapter.High):X8}{path.Target.Adapter.Low:X8}/{path.Target.Id:X8}";
-                targets.TryAdd(identity, new(identity, string.IsNullOrEmpty(target.FriendlyName) ? null : target.FriendlyName));
+                if (!targets.ContainsKey(identity))
+                    targets.Add(identity, new(identity, string.IsNullOrEmpty(target.FriendlyName) ? null : target.FriendlyName)
+                        { ColorState = CaptureColorState(path.Target, cancellationToken) });
             }
             if (targets.Count == 0 && failureOperation is null) Fail("NoMatchingDisplayTarget", null);
             return Result();
         }
         throw new InvalidOperationException("Display configuration observation did not complete.");
+    }
+
+    static PdfDisplayColorState CaptureColorState(DisplayTarget target, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var advanced = new AdvancedColorInfo
+        {
+            Header = new() { Type = 15, Size = (uint)Marshal.SizeOf<AdvancedColorInfo>(),
+                Adapter = target.Adapter, Id = target.Id }
+        };
+        int advancedError = DisplayConfigGetDeviceInfo(ref advanced);
+        if (advancedError == 0)
+        {
+            bool active = (advanced.Flags & 2) != 0;
+            var mode = advanced.ActiveMode switch
+            {
+                0 when !active => PdfDisplayColorMode.ConventionalSdr,
+                1 when active => PdfDisplayColorMode.AdvancedColorSdr,
+                2 when active => PdfDisplayColorMode.Hdr,
+                _ => PdfDisplayColorMode.Unknown
+            };
+            return new(mode, 15, advanced.Flags, advanced.ActiveMode, advanced.Encoding,
+                advanced.Bits, null, null);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        var legacy = new LegacyColorInfo
+        {
+            Header = new() { Type = 9, Size = (uint)Marshal.SizeOf<LegacyColorInfo>(),
+                Adapter = target.Adapter, Id = target.Id }
+        };
+        int legacyError = DisplayConfigGetDeviceInfo(ref legacy);
+        return legacyError == 0
+            ? new(PdfDisplayColorMode.Unknown, 9, legacy.Flags, null, legacy.Encoding,
+                legacy.Bits, advancedError, null)
+            : new(PdfDisplayColorMode.Unknown, null, null, null, null, null, advancedError, legacyError);
     }
 
     /// <summary>Ends discovery without destroying the caller-owned window.</summary>
@@ -204,6 +241,12 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string DevicePath;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    struct AdvancedColorInfo { public DisplayQueryHeader Header; public uint Flags, Encoding, Bits, ActiveMode; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct LegacyColorInfo { public DisplayQueryHeader Header; public uint Flags, Encoding, Bits; }
+
     [DllImport("user32.dll", ExactSpelling = true)]
     static extern nint MonitorFromWindow(nint window, uint flags);
 
@@ -223,4 +266,10 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
 
     [DllImport("user32.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
     static extern int DisplayConfigGetDeviceInfo(ref DisplayTargetName request);
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    static extern int DisplayConfigGetDeviceInfo(ref AdvancedColorInfo request);
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    static extern int DisplayConfigGetDeviceInfo(ref LegacyColorInfo request);
 }

@@ -25,8 +25,34 @@ public enum PdfDisplayTargetStatus
     MultipleTargets
 }
 
+/// <summary>Describes the observed active display color mode.</summary>
+public enum PdfDisplayColorMode
+{
+    /// <summary>The active mode could not be established.</summary>
+    Unknown,
+    /// <summary>The display reports conventional SDR.</summary>
+    ConventionalSdr,
+    /// <summary>The display reports Advanced Color SDR.</summary>
+    AdvancedColorSdr,
+    /// <summary>The display reports active HDR.</summary>
+    Hdr
+}
+
+/// <summary>Retains active color-mode observations, query provenance and Win32 failures.</summary>
+/// <remarks>
+/// Raw flags belong to QueryType. A legacy query can preserve facts without identifying
+/// an active mode. Reported bit depth does not establish physical output accuracy.
+/// </remarks>
+public sealed record PdfDisplayColorState(PdfDisplayColorMode Mode, uint? QueryType,
+    uint? Flags, uint? ActiveColorMode, uint? ColorEncoding, uint? BitsPerColorChannel,
+    int? AdvancedQueryError, int? LegacyQueryError);
+
 /// <summary>Identifies one live output association without promising persistent physical identity.</summary>
-public sealed record PdfDisplayTarget(string Identity, string? FriendlyName);
+public sealed record PdfDisplayTarget(string Identity, string? FriendlyName)
+{
+    /// <summary>Gets active color observations, or null before they have been queried.</summary>
+    public PdfDisplayColorState? ColorState { get; init; }
+}
 
 /// <summary>Provides an immutable output association and any failed query.</summary>
 public sealed class PdfDisplayTargetAssociation
