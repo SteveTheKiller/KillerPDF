@@ -145,7 +145,7 @@ public sealed partial class EpubDocument
     {
         if (bytes.Length > MaxEntryBytes)
             throw new InvalidDataException("Native EPUB XHTML exceeds its 8 MiB resource limit.");
-        using var stream = new MemoryStream(bytes, false);
+        using var stream = new MemoryStream(XhtmlWithoutCanonicalDeclaration(bytes), false);
         using var xml = XmlReader.Create(stream, new XmlReaderSettings {
             DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null,
             MaxCharactersInDocument = MaxEntryBytes, MaxCharactersFromEntities = 1024 });

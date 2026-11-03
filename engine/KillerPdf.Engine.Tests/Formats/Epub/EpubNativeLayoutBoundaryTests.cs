@@ -129,6 +129,20 @@ public sealed class EpubNativeLayoutBoundaryTests
         Assert.Equal(new[] { new EpubTextPlacement(0, 2, 1, 2, 2, 6, 10) }, layout.Pages[1].TextPlacements);
     }
 
+    [Fact]
+    public void CanonicalXhtml11DeclarationPreservesOriginalTextInLayout()
+    {
+        var book = Book(xhtml: """
+            <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.1//EN' 'http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd'>
+            <html xmlns='http://www.w3.org/1999/xhtml'><head><title>Boundaries</title></head><body><p>A A</p></body></html>
+            """);
+
+        var layout = book.CreateLayout(Options(book));
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A A", page.Text);
+    }
+
     [Theory]
     [InlineData("<html xmlns='http://www.w3.org/1999/xhtml'><body><p>A</body></html>")]
     [InlineData("<!DOCTYPE html [<!ENTITY text 'A'>]><html xmlns='http://www.w3.org/1999/xhtml'><body><p>&text;</p></body></html>")]

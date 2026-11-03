@@ -156,10 +156,9 @@ Words wider than the content box are diagnosed explicitly.
 without creating a PDF. Styling, character breaking, complex scripts and other unsupported content
 produce explicit diagnoses; this initial API does not establish full EPUB support.
 
-`ReadText` accepts the canonical XHTML 1.1 external declaration without loading or
-processing a DTD. Original resource bytes stay unchanged. Internal subsets and unknown
-declarations remain rejected. Native layout's separate XHTML preflight currently
-diagnoses declarations before laying out pages.
+`ReadText` and the supported plain native layout accept the canonical XHTML 1.1
+external declaration without loading or processing a DTD. Original resource bytes
+stay unchanged. Internal subsets and unknown declarations remain rejected.
 
 ```csharp
 using KillerPdf.Engine.Fonts;
