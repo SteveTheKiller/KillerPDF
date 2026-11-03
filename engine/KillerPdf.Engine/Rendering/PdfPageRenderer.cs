@@ -5749,7 +5749,11 @@ public sealed partial class PdfPageRenderer
         {
             bool naturalSamples = Math.Abs(sampleStepX - 1) <= 1e-9
                 && Math.Abs(sampleStepY - 1) <= 1e-9;
-            bool preciseIcc = colorSpace is { IsIccBased: true, IsDefault: false, ComponentRange: null,
+            bool preciseCmyk = colorSpace is { IsIccBased: true, IsDefault: false, ComponentRange: null,
+                Profile: PdfIccProfileTransform { IsLutBased: true, IsLabInput: false,
+                    Components: 4, RenderingIntent: 1, ForwardTableSignature: "A2B1" } }
+                && colorSpace.Intent == 1 && !colorSpace.BlackPointCompensationEnabled;
+            bool preciseIcc = preciseCmyk || colorSpace is { IsIccBased: true, IsDefault: false, ComponentRange: null,
                 Profile: PdfIccProfileTransform { IsLutBased: false, IsLabInput: false,
                     Components: 1 or 3, RenderingIntent: 1 } }
                 && colorSpace.Intent == 1 && !colorSpace.BlackPointCompensationEnabled;
@@ -5766,7 +5770,8 @@ public sealed partial class PdfPageRenderer
                 || graphicsSoftMask is not null || knockout is not null || overprint || jpeg2000
                 || colorSpace.Profile is not null && !preciseIcc || colorSpace.Converter is not null
                 || colorSpace.MultiConverter is not null || colorSpace.Palette is not null
-                || colorSpace.HasIccSource && !preciseIcc || components is not (1 or 3) || bits is not (8 or 16)
+                || colorSpace.HasIccSource && !preciseIcc || components is not (1 or 3) && !preciseCmyk
+                || bits is not (8 or 16) || preciseCmyk && (!naturalSamples || smoothImage)
                 || preciseIcc && (!naturalSamples && !areaSamples && (sampleStepX > 1 || sampleStepY > 1)
                     || inverse.B != 0 || inverse.C != 0
                     || softMask is not null || colorKeyMask is not null || preblendMatte is not null)
