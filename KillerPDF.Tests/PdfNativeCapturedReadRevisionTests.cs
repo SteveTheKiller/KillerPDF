@@ -47,12 +47,14 @@ public sealed class PdfNativeCapturedReadRevisionTests
     }
 
     [Fact]
-    public void NativeDjvuLeaseForwardsNaturalSizeDiagnosisAndCallerPixelBudget()
+    public void NativeDjvuLeaseForwardsSizedRenderingAndCallerPixelBudget()
     {
         using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(DjvuPage()));
         using var lease = revision.Rent();
-        var sizeError = Assert.Throws<NotSupportedException>(() => lease.RenderFrame(0, new PdfRenderOptions(4, 6)));
-        Assert.Contains("natural oriented pixel dimensions", sizeError.Message);
+        var scaled = lease.RenderFrame(0, new PdfRenderOptions(4, 6));
+        Assert.Equal(4, scaled.Width);
+        Assert.Equal(6, scaled.Height);
+        Assert.Equal(.4375f, scaled.Pixels[(2 * 4 + 2) * 4]);
         Assert.Throws<ArgumentException>(() => lease.RenderFrame(0,
             new PdfRenderOptions(2, 3, maximumPixelBytes: 50)));
         PdfRenderedFrame frame = lease.RenderFrame(0, new PdfRenderOptions(2, 3, maximumPixelBytes: 192));

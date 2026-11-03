@@ -156,10 +156,13 @@ public sealed class PdfReadSnapshot
         int height = (int)Math.Ceiling(geometry.Height);
         if (geometry.IntrinsicRotation is 90 or 270)
             (width, height) = (height, width);
-        if (options.Width != width || options.Height != height)
-            throw new NotSupportedException("Native DjVu rendering currently requires the natural oriented pixel dimensions.");
-        if ((long)width * height > options.PixelByteLimit / (2 * 4 * sizeof(float)))
+        bool resized = options.Width != width || options.Height != height;
+        long pixels = checked((long)width * height + (resized ? (long)options.Width * options.Height : 0));
+        if (pixels > options.PixelByteLimit / (2 * 4 * sizeof(float)))
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
-        return _djvu!.RenderPage(pageIndex, cancellationToken);
+        if (resized)
+            PdfNativeFrameResampler.CheckWork(width, height, options.Width, options.Height);
+        var frame = _djvu!.RenderPage(pageIndex, cancellationToken);
+        return resized ? PdfNativeFrameResampler.Resize(frame, options.Width, options.Height, cancellationToken) : frame;
     }
 }

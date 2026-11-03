@@ -110,7 +110,7 @@ public sealed class PdfScaledReadSnapshotTests
     [InlineData(2, 3, 2)]
     [InlineData(5, 2, 3)]
     [InlineData(6, 2, 3)]
-    public void SizedDjvuPreservesNaturalOrientationAndRejectsScalingBeforeDecode(byte orientation, int width, int height)
+    public void SizedDjvuPreservesNaturalOrientationAndPropagatesDecodeFailures(byte orientation, int width, int height)
     {
         byte[] bytes = DjvuPage(orientation);
         var snapshot = PdfReadSnapshot.OpenDjvu(bytes);
@@ -131,7 +131,7 @@ public sealed class PdfScaledReadSnapshotTests
         Assert.Throws<ArgumentOutOfRangeException>(() => snapshot.RenderPage(-1, new PdfRenderOptions(width, height)));
         bytes[42] = 0;
         var malformed = PdfReadSnapshot.OpenDjvu(bytes);
-        Assert.Throws<NotSupportedException>(() => malformed.RenderPage(0, new PdfRenderOptions(width * 2, height * 2)));
+        Assert.Throws<InvalidDataException>(() => malformed.RenderPage(0, new PdfRenderOptions(width * 2, height * 2)));
         Assert.Throws<InvalidDataException>(() => malformed.RenderPage(0, new PdfRenderOptions(width, height)));
     }
 

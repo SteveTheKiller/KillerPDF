@@ -176,7 +176,9 @@ The EPUB `RenderPage(pageIndex, renderOptions)` overload rasterizes the original
 glyph outlines at the requested pixel dimensions without changing pagination or
 text placement. It checks the caller's combined float-buffer budget before
 allocating pixels. Native separation plates are unsupported. The DjVu overload
-currently accepts only natural oriented dimensions and diagnoses other sizes.
+resizes opaque linear frames with bilinear enlargement and area reduction,
+preserving intrinsic orientation. Combined source/output pixel storage and
+weighted sampling work are checked before decoding.
 
 `PdfReadSnapshot.OpenEpub(bytes, options)` and `OpenDjvu(bytes)` capture source
 identity and native read state together, expose explicit page units and physical
