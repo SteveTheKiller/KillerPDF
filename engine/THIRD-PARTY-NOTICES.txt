@@ -1,5 +1,17 @@
 Third-party code and data notices
 
+Compact ICC Profiles: CGATS001Compat-v2-micro.icc.
+Publisher: saucecontrol/Compact-ICC-Profiles.
+Source revision: bdd84663061bc4ae95ca70decff54f581e27f702.
+Source: https://github.com/saucecontrol/Compact-ICC-Profiles
+Unmodified profile SHA256: 73E1BA37D2BAD5BAB2A964F40A9EED96209666EFC067C3322626214BBEF234A0.
+Released under CC0 1.0 Universal. The complete license is included in
+KillerPdf.Engine/Resources/ColorProfiles/COMPACT-ICC-CC0-LICENSE.txt and the
+engine package's color_profiles/Resources/ColorProfiles directory.
+This forward-only perceptual source profile assumes CGATS TR 001-1995
+(North American web printing) for untagged CMYK viewing. It is not a selected
+printer/paper profile or a measured printing condition for the current printer.
+
 PDFium standard Symbol and ZapfDingbats CFF font data.
 Source revision: f91ca5a72358bb0b00b4da9481b21fe668157614
 Source: https://pdfium.googlesource.com/pdfium/+/f91ca5a72358bb0b00b4da9481b21fe668157614/core/fxge/fontdata/chromefontdata/

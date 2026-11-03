@@ -166,6 +166,24 @@ pixel buffers are limited to 128 MiB, and layout limits source text and placemen
 Cancellation is supported during layout and rendering. Logical text geometry remains
 separate from glyph ink, which can extend beyond a font's logical line box.
 
+## Bundled CMYK viewing assumption (1.9.3 development)
+
+`PdfCmykViewingDefault.LoadProfile()` loads an owned copy of the bundled CC0
+CGATS001Compat-v2-micro profile without accessing a file or network resource.
+It represents CGATS TR 001-1995, an older North American web-printing condition,
+and supports perceptual forward conversion only. Use its `EffectiveIntent` for
+that conversion and identify the assumed printing condition to the reader.
+
+```csharp
+using KillerPdf.Engine.ColorManagement;
+
+PdfColorProfile assumedCmyk = PdfCmykViewingDefault.LoadProfile();
+```
+
+Callers apply this source assumption explicitly. Printer proofing uses its selected
+printer/paper profile. The package includes the unmodified profile and its complete
+CC0 license in `color_profiles/Resources/ColorProfiles`.
+
 ## Rendering status
 
 The engine owns bounded CPU rendering for paths, text, images, clipping, shadings, transparency,
