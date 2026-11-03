@@ -206,6 +206,11 @@ API reports the existing conversion policy without changing it. Matrix/TRC
 transforms have no table intent, and absolute media-white scaling is reported
 separately from the colorimetric table it uses.
 
+`ProfileClassSignature`, `DeviceColorSpaceSignature`, `ConnectionColorSpaceSignature`
+and `MajorVersion` expose declared ICC metadata independently of transform selection.
+The bundled viewing profile reports input class `scnr`, device `CMYK`, connection
+`Lab ` and version 2. These declarations do not establish printer suitability.
+
 ```csharp
 using KillerPdf.Engine.ColorManagement;
 

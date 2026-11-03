@@ -8,14 +8,30 @@ public sealed class PdfColorProfile
 {
     private readonly PdfIccProfileTransform _transform;
 
-    private PdfColorProfile(PdfIccProfileTransform transform)
+    private PdfColorProfile(PdfIccProfileTransform transform, ReadOnlySpan<byte> header)
     {
         _transform = transform;
         ContentSha256 = transform.ContentSha256;
+        ProfileClassSignature = System.Text.Encoding.ASCII.GetString(header.Slice(12, 4));
+        DeviceColorSpaceSignature = System.Text.Encoding.ASCII.GetString(header.Slice(16, 4));
+        ConnectionColorSpaceSignature = System.Text.Encoding.ASCII.GetString(header.Slice(20, 4));
+        MajorVersion = header[8];
     }
 
     /// <summary>Gets the uppercase SHA256 identity of the validated declared ICC bytes.</summary>
     public string ContentSha256 { get; }
+
+    /// <summary>Gets the ICC profile-class signature.</summary>
+    public string ProfileClassSignature { get; }
+
+    /// <summary>Gets the ICC device color-space signature.</summary>
+    public string DeviceColorSpaceSignature { get; }
+
+    /// <summary>Gets the ICC connection color-space signature.</summary>
+    public string ConnectionColorSpaceSignature { get; }
+
+    /// <summary>Gets the ICC major version.</summary>
+    public int MajorVersion { get; }
 
     internal int ComponentCount => _transform.Components;
     internal bool HasExplicitValidMediaWhite => _transform.HasExplicitValidMediaWhite;
@@ -92,7 +108,7 @@ public sealed class PdfColorProfile
         if (!profileClass.SequenceEqual("scnr"u8) && !profileClass.SequenceEqual("mntr"u8)
             && !profileClass.SequenceEqual("prtr"u8) && !profileClass.SequenceEqual("spac"u8))
             throw new NotSupportedException("Only ICC input, display, output and color-space profiles are supported.");
-        return new PdfColorProfile(PdfIccProfileTransform.ReadAvailable(profile.Data));
+        return new PdfColorProfile(PdfIccProfileTransform.ReadAvailable(profile.Data), profile.Data.Span);
     }
 
     /// <summary>Converts device components to D50 XYZ using the requested rendering intent.</summary>
