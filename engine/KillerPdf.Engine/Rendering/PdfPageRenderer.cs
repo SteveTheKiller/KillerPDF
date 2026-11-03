@@ -5740,14 +5740,15 @@ public sealed partial class PdfPageRenderer
                 || colorSpace.Profile is not null || colorSpace.Converter is not null
                 || colorSpace.MultiConverter is not null || colorSpace.Palette is not null
                 || colorSpace.HasIccSource || components is not (1 or 3) || bits is not (8 or 16)
-                || !naturalSamples && (interpolate || smoothImage
-                    || sampleStepX > 1 || sampleStepY > 1 || inverse.B != 0 || inverse.C != 0)
+                || !naturalSamples && (sampleStepX > 1 || sampleStepY > 1 || inverse.B != 0 || inverse.C != 0)
+                || smoothImage && decode.Any(value => !double.IsFinite(value) || value < 0 || value > 1)
                 || corners.Any(point => Math.Abs(point.X * scaleX - Math.Round(point.X * scaleX)) > 1e-9
                     || Math.Abs(point.Y * scaleY - Math.Round(point.Y * scaleY)) > 1e-9))
                 throw new NotSupportedException("This high-precision image paint is not implemented.");
             PaintPreciseImage(target, targetWidth, targetHeight, scaleX, scaleY, inverse,
                 samples, rowBytes, sourceWidth, sourceHeight, components, bits, decode, colorSpace,
-                stencilAlpha, blendMode, clips, paintLeft, paintTop, paintRight, paintBottom, cancellationToken);
+                stencilAlpha, blendMode, clips, paintLeft, paintTop, paintRight, paintBottom,
+                smoothImage, cancellationToken);
             return;
         }
         if (smoothImage && colorKeyMask is null && preblendMatte is null
@@ -7196,6 +7197,26 @@ public sealed partial class PdfPageRenderer
         {
             for (int component = 0; component < _components; component++)
                 _values[component] = Decode(component, Raw(x, y, component));
+            return _colorSpace.Convert(_values);
+        }
+
+        internal Color ConvertPreciseBilinear(double x, double y, int width, int height)
+        {
+            x = Math.Clamp(x, 0, width - 1);
+            y = Math.Clamp(y, 0, height - 1);
+            int left = (int)Math.Floor(x), top = (int)Math.Floor(y);
+            int right = Math.Min(left + 1, width - 1), bottom = Math.Min(top + 1, height - 1);
+            double fractionX = x - left, fractionY = y - top;
+            for (int component = 0; component < _components; component++)
+            {
+                double first = Decode(component, Raw(left, top, component));
+                double second = Decode(component, Raw(right, top, component));
+                double third = Decode(component, Raw(left, bottom, component));
+                double fourth = Decode(component, Raw(right, bottom, component));
+                double upper = first + fractionX * (second - first);
+                double lower = third + fractionX * (fourth - third);
+                _values[component] = upper + fractionY * (lower - upper);
+            }
             return _colorSpace.Convert(_values);
         }
 

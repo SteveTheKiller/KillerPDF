@@ -7,7 +7,8 @@ public sealed partial class PdfPageRenderer
     /// Supports device RGB/Gray and calibrated Gray path fills, variable-width strokes,
     /// closed strokes, combined fill/stroke operations with either fill rule, opacity
     /// and aligned natural-size unmasked 8/16-bit images or axis-aligned enlargements
-    /// where the image sampling policy selects nearest samples. Device Gray/RGB axial and radial shadings
+    /// with nearest or bilinear sampling. Bilinear device samples require Decode values in [0,1].
+    /// Device Gray/RGB axial and radial shadings
     /// support a single type 2 function. Embedded TrueType text fills and strokes
     /// support explicit text matrices, strings and positioned text arrays.
     /// Unported paint operations are rejected instead of returning quantized pixels.
@@ -127,7 +128,7 @@ public sealed partial class PdfPageRenderer
         int sourceWidth, int sourceHeight, int components, int bits, double[] decode,
         ImageColorSpace colorSpace, double opacity, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips, int left, int top, int right, int bottom,
-        CancellationToken cancellationToken)
+        bool smooth, CancellationToken cancellationToken)
     {
         var converter = new ImageSampleConverter(samples, rowBytes, components, bits, decode,
             colorSpace, targetInk: false, targetProfile: null);
@@ -140,7 +141,10 @@ public sealed partial class PdfPageRenderer
                 if (unit.X < 0 || unit.X >= 1 || unit.Y < 0 || unit.Y >= 1) continue;
                 int sampleX = Math.Min((int)(unit.X * sourceWidth), sourceWidth - 1);
                 int sampleY = Math.Min((int)((1 - unit.Y) * sourceHeight), sourceHeight - 1);
-                Color color = converter.ConvertPrecise(sampleX, sampleY);
+                Color color = smooth
+                    ? converter.ConvertPreciseBilinear(unit.X * sourceWidth - 0.5,
+                        (1 - unit.Y) * sourceHeight - 0.5, sourceWidth, sourceHeight)
+                    : converter.ConvertPrecise(sampleX, sampleY);
                 SetPixel(target, targetWidth, x, y, color, opacity * ClipAlpha(clips, x, y), blendMode);
             }
         }

@@ -55,22 +55,6 @@ public sealed class PdfPrecisionImageSamplingTests
     }
 
     [Fact]
-    public void RequestedInterpolationIsRejected()
-    {
-        var renderer = Renderer(interpolate: true);
-
-        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0, new PdfRenderOptions(4, 1)));
-    }
-
-    [Fact]
-    public void AutomaticSmoothingIsRejectedWhenInterpolationHintIsFalse()
-    {
-        var renderer = Renderer(content: "4 0 0 4 0 0 cm /Image Do", sourceHeight: 2, pageHeight: 4);
-
-        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0, new PdfRenderOptions(4, 4)));
-    }
-
-    [Fact]
     public void ReductionThatNeedsAreaSamplingIsRejected()
     {
         var renderer = Renderer(content: "1 0 0 1 0 0 cm /Image Do", pageWidth: 1);
