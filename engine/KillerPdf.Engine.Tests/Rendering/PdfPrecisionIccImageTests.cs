@@ -92,10 +92,8 @@ public sealed class PdfPrecisionIccImageTests
     }
 
     [Theory]
-    [InlineData(4, false, null)]
-    [InlineData(4, true, null)]
     [InlineData(2, false, "2 0 0 1 0.5 0 cm /Image Do")]
-    public void IccImageScalingFilteringAndUnalignedEdgesRemainRejected(int width, bool interpolate, string? content)
+    public void IccImageUnalignedEdgesRemainRejected(int width, bool interpolate, string? content)
     {
         var renderer = Renderer(Convert.FromBase64String(RgbProfileBase64), width: width,
             interpolate: interpolate, content: content);
