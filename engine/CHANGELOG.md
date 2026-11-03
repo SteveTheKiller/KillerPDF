@@ -10,6 +10,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 
 ### Fixed
 
+- Text fields with automatic font sizing save with a valid appearance while retaining their automatic setting. Unstyled fields stay transparent.
 - Document, annotation and attachment dates are written with the Gregorian calendar whatever the current culture, so Thai, Arabic and Persian regions no longer write years like 2569. Preflight messages write their numbers with a decimal point.
 
 ### Added

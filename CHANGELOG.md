@@ -6,10 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.3] - Unreleased
 
-1.9.3 corrects the recent-files list after updates, makes updates and the file picker recover from more failures, and balances the About settings columns.
+1.9.3 fixes form saving, OCR output folders, updates and the file picker, and balances the About settings columns.
 
 ### Fixed
 
+- Text fields with automatic font sizing save correctly and keep their original border and background styling.
 - The file picker loads icons and picture previews in the background, refreshes overwritten previews, and restores its position on any monitor.
 - PDF creation, modification, comment and attachment dates use the Gregorian calendar on Thai, Arabic and Persian region settings instead of writing years like 2569.
 - The visible signature date uses the same year-month-day format on every region setting.

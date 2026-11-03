@@ -4141,7 +4141,7 @@ public sealed class PdfIncrementalPageEditor
                 field, QuaddingName, 0, 2, fieldName)
         };
         (double existingFontSize, PdfRgbColor textColor) = TextDefaultAppearance(field, form, fieldName);
-        double fontSize = pending.FontSize ?? existingFontSize;
+        double requestedFontSize = pending.FontSize ?? existingFontSize;
         PdfString? overriddenAppearance = pending.FontSize.HasValue
             || pending.AppearanceStyle is not null
             ? OverrideDefaultAppearance(field, form, fieldName,
@@ -4162,6 +4162,14 @@ public sealed class PdfIncrementalPageEditor
                 style = pending.AppearanceStyle;
             if (pending.HasBackgroundColor)
                 style = style with { BackgroundColor = pending.BackgroundColor };
+            double fontSize = requestedFontSize;
+            if (fontSize == 0)
+            {
+                // Resolve the automatic setting for this widget without replacing its /DA.
+                fontSize = Math.Min(height * 0.62, options.Multiline ? 11.5 : 15);
+                if (options.Comb && options.MaximumLength is { } maximumLength)
+                    fontSize = Math.Min(fontSize, width / maximumLength / 0.55);
+            }
             byte[] authored = new PdfDocumentBuilder()
                 .AddBlankPage(Math.Max(1, width), Math.Max(1, height))
                 .AddTextField(0, "field", 0, 0, width, height, pending.Value,
@@ -4508,7 +4516,7 @@ public sealed class PdfIncrementalPageEditor
             if (tokens[index] == "Tf" && index >= 1
                 && double.TryParse(tokens[index - 1], System.Globalization.NumberStyles.Float,
                     System.Globalization.CultureInfo.InvariantCulture, out double parsedSize)
-                && double.IsFinite(parsedSize) && parsedSize > 0)
+                && double.IsFinite(parsedSize) && parsedSize >= 0)
                 size = parsedSize;
             if (tokens[index] == "rg" && index >= 3
                 && TryUnit(tokens[index - 3], out double red)
@@ -4548,8 +4556,8 @@ public sealed class PdfIncrementalPageEditor
     private PdfFormFieldAppearanceStyle ExistingAppearanceStyle(
         PdfDictionary widget, PdfRgbColor textColor, string fieldName)
     {
-        PdfRgbColor? background = new PdfRgbColor(1, 1, 1);
-        PdfRgbColor? border = new PdfRgbColor(0, 0, 0);
+        PdfRgbColor? background = null;
+        PdfRgbColor? border = null;
         if (widget.TryGetValue(AppearanceCharacteristicsName, out PdfObject? mkValue))
         {
             PdfDictionary mk = ResolveDictionary(
