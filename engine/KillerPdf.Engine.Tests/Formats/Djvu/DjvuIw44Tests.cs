@@ -58,21 +58,18 @@ public sealed class DjvuIw44Tests
         Assert.Contains("Truncated IW44 initial chunk", error.Message);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    public void RejectsDuplicateOrProgressiveBackgroundChunks(byte secondSerial)
+    [Fact]
+    public void RejectsDuplicateBackgroundSerial()
     {
         var original = OneSliceImage();
         var input = new byte[74];
         original.CopyTo(input, 0);
         original.AsSpan(34, 19).CopyTo(input.AsSpan(54));
-        input[62] = secondSerial;
         BinaryPrimitives.WriteInt32BigEndian(input.AsSpan(8), input.Length - 12);
         var document = DjvuDocument.Open(input);
         Assert.Single(document.Pages);
-        var error = Assert.Throws<NotSupportedException>(() => document.RenderPage(0));
-        Assert.Contains("Progressive IW44 background chunks", error.Message);
+        var error = Assert.Throws<InvalidDataException>(() => document.RenderPage(0));
+        Assert.Contains("serial numbers must be consecutive", error.Message);
     }
 
     [Fact]
