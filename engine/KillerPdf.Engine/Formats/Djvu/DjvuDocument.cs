@@ -5,7 +5,7 @@ namespace KillerPdf.Engine.Formats.Djvu;
 /// <summary>Metadata from a DjVu container. Opening does not decode page images.</summary>
 public sealed partial class DjvuDocument
 {
-    /// <summary>Discovered pages in physical container order. Bundle directory indexing is not decoded.</summary>
+    /// <summary>Pages in directory offset order for bundled documents.</summary>
     public IReadOnlyList<DjvuPageInfo> Pages { get; }
 
     /// <summary>Bounded notices about unavailable features.</summary>
@@ -67,22 +67,29 @@ public sealed partial class DjvuDocument
             if (directory.Length < 3 + componentCount * 4)
                 throw new InvalidDataException("Truncated bundled directory offset table.");
             var componentOffsets = chunks.Where(c => c.Id == 0x464f524d).Select(c => (uint)(c.Offset - 8)).ToHashSet();
+            List<Chunk> orderedComponents = [];
             for (var i = 0; i < componentCount; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var offset = BinaryPrimitives.ReadUInt32BigEndian(directory[(3 + i * 4)..]);
                 if (!componentOffsets.Remove(offset)) throw new InvalidDataException("Directory offset does not identify a unique component start.");
+                orderedComponents.Add(chunks.First(c => c.Id == 0x464f524d && c.Offset - 8 == offset));
             }
             if (componentOffsets.Count != 0) throw new InvalidDataException("Directory does not cover every bundled component.");
-            diagnostics.Add(new("BundledDirectoryIndexUnsupported", "BZZ directory indexing is unavailable. Discovered pages use physical order, not verified reading order."));
-            foreach (var chunk in chunks.Skip(1))
+            var metadata = ReadDirectoryMetadata(directory[(3 + componentCount * 4)..], orderedComponents, cancellationToken);
+            if (metadata is null)
+                diagnostics.Add(new("BundledDirectoryIndexUnsupported", "The compressed directory metadata is missing. Pages follow the uncompressed offsets, but component flags, sizes and IDs are not verified."));
+            for (var componentIndex = 0; componentIndex < orderedComponents.Count; componentIndex++)
             {
+                var chunk = orderedComponents[componentIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 if (chunk.Id != 0x464f524d) continue;
                 if (chunk.Length < 4) throw new InvalidDataException("Truncated FORM type.");
                 var componentType = BinaryPrimitives.ReadUInt32BigEndian(span[chunk.Offset..]);
                 if (componentType is not (0x444a5655 or 0x444a5649 or 0x5448554d))
                     throw new InvalidDataException("Unsupported bundled component FORM type.");
+                if (metadata is not null && metadata[componentIndex].Kind != (componentType == 0x444a5655 ? 1 : componentType == 0x5448554d ? 2 : 0))
+                    throw new InvalidDataException("Directory component kind does not match its FORM type.");
                 var children = ReadChunks(span, chunk.Offset + 4, chunk.Offset + chunk.Length, cancellationToken, ref chunkBudget);
                 if (children.Any(c => c.Id == 0x464f524d)) throw new InvalidDataException("Nested FORM is not allowed inside a component.");
                 if (componentType != 0x444a5655 && children.Any(c => c.Id == 0x494e464f))
@@ -91,7 +98,7 @@ public sealed partial class DjvuDocument
                 if (span.Slice(chunk.Offset, 4).SequenceEqual("DJVU"u8))
                 {
                     if (pages.Count == 4096) throw new InvalidDataException("DjVu page count exceeds the 4096 page limit.");
-                    pages.Add(ReadPage(span, children));
+                    pages.Add(ReadPage(span, children) with { ComponentId = metadata?[componentIndex].Id });
                     pageForms.Add(chunk);
                 }
             }
@@ -173,7 +180,11 @@ public sealed partial class DjvuDocument
 public sealed record DjvuDiagnostic(string Code, string Message);
 
 /// <summary>Stored page information from an INFO chunk.</summary>
-public sealed record DjvuPageInfo(int Width, int Height, int Dpi, byte MinorVersion, byte MajorVersion, DjvuOrientation Orientation);
+public sealed record DjvuPageInfo(int Width, int Height, int Dpi, byte MinorVersion, byte MajorVersion, DjvuOrientation Orientation)
+{
+    /// <summary>The bundled directory component ID, or null when it is unavailable.</summary>
+    public string? ComponentId { get; init; }
+}
 
 /// <summary>Clockwise page rotation in degrees.</summary>
 public enum DjvuOrientation
