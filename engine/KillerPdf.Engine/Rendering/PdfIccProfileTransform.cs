@@ -28,6 +28,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
     private int _intent;
     private readonly bool _lab;
     private readonly byte[] _profileFingerprint;
+    internal string ContentSha256 => Convert.ToHexString(_profileFingerprint);
     internal bool IsLabInput { get; }
     internal bool IsLutBased => _forward is not null;
     internal int RenderingIntent => _intent;

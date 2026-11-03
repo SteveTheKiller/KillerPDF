@@ -8,7 +8,14 @@ public sealed class PdfColorProfile
 {
     private readonly PdfIccProfileTransform _transform;
 
-    private PdfColorProfile(PdfIccProfileTransform transform) => _transform = transform;
+    private PdfColorProfile(PdfIccProfileTransform transform)
+    {
+        _transform = transform;
+        ContentSha256 = transform.ContentSha256;
+    }
+
+    /// <summary>Gets the uppercase SHA256 identity of the validated declared ICC bytes.</summary>
+    public string ContentSha256 { get; }
 
     internal int ComponentCount => _transform.Components;
     internal bool HasExplicitValidMediaWhite => _transform.HasExplicitValidMediaWhite;
