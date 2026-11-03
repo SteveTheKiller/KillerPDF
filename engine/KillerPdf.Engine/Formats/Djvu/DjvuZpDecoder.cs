@@ -7,17 +7,19 @@ internal sealed class DjvuZpDecoder
     private readonly byte[] _input;
     private readonly CancellationToken _token;
     private readonly byte[] _contexts;
+    private readonly bool _callerBoundsDecisions;
     private int _bitPosition;
     private int _paddingBits;
     private int _a;
     private int _c;
 
-    internal DjvuZpDecoder(byte[] input, byte[] contexts, CancellationToken token)
+    internal DjvuZpDecoder(byte[] input, byte[] contexts, CancellationToken token, bool callerBoundsDecisions = false)
     {
         if (contexts.Length is < 1 or > 262) throw new ArgumentOutOfRangeException(nameof(contexts));
         _input = input;
         _contexts = contexts;
         _token = token;
+        _callerBoundsDecisions = callerBoundsDecisions;
         for (var i = 0; i < 16; i++) _c = (_c << 1) | NextBit();
     }
 
@@ -26,7 +28,7 @@ internal sealed class DjvuZpDecoder
         _token.ThrowIfCancellationRequested();
         if (_bitPosition >= _input.Length * 8)
         {
-            if (++_paddingBits > 32) throw new InvalidDataException("Truncated BZZ arithmetic stream.");
+            if (!_callerBoundsDecisions && ++_paddingBits > 32) throw new InvalidDataException("Truncated BZZ arithmetic stream.");
             return 1;
         }
         var value = (_input[_bitPosition / 8] >> (7 - _bitPosition % 8)) & 1;

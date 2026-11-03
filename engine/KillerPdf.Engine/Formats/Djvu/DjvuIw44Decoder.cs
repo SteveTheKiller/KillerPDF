@@ -12,7 +12,7 @@ internal static class DjvuIw44Decoder
         token.ThrowIfCancellationRequested();
         if (payloads.Count is < 1 or > 256) throw new InvalidDataException("Invalid IW44 chunk count.");
         var payload = payloads[0].Span;
-        if (payload.Length < 11) throw new InvalidDataException("Truncated IW44 initial chunk.");
+        if (payload.Length < 9) throw new InvalidDataException("Truncated IW44 initial chunk.");
         if (payload[0] != 0) throw new InvalidDataException("IW44 image must begin with serial zero.");
         if ((payload[2] & 0x80) == 0) throw new NotSupportedException("Color IW44 decoding is not supported.");
         if ((payload[2] & 0x7f) != 1 || payload[3] != 2)
@@ -50,7 +50,7 @@ internal static class DjvuIw44Decoder
         {
             token.ThrowIfCancellationRequested();
             var chunk = payloads[serial].Span;
-            var arithmetic = new DjvuZpDecoder(chunk[(serial == 0 ? 9 : 2)..].ToArray(), contexts, token);
+            var arithmetic = new DjvuZpDecoder(chunk[(serial == 0 ? 9 : 2)..].ToArray(), contexts, token, callerBoundsDecisions: true);
             DecodeSlices(coefficients, flags, steps, arithmetic, firstSlice, chunk[1], token);
             firstSlice += chunk[1];
         }
