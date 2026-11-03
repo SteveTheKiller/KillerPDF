@@ -129,6 +129,16 @@ public sealed partial class EpubDocumentTests
     }
 
     [Fact]
+    public void ReadsTextWithCanonicalXhtml11PublicDeclaration()
+    {
+        const string content = "<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.1//EN' 'http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd'>"
+            + "<html xmlns='http://www.w3.org/1999/xhtml'><head/><body><p>Text</p></body></html>";
+        var package = Package.Replace("href=\"one.xhtml\"", "href=\"text.xhtml\"");
+        var book = EpubDocument.Open(Book(package, ("EPUB/text.xhtml", content)));
+        Assert.Equal("Text", book.ReadText(0));
+    }
+
+    [Fact]
     public void AcceptsTextAtDepthAndNodeCountLimits()
     {
         var nested = string.Concat(Enumerable.Repeat("<span>", 126)) + "Text" + string.Concat(Enumerable.Repeat("</span>", 126));

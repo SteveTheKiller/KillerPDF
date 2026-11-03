@@ -21,7 +21,7 @@ public sealed partial class EpubDocument
         int nodeCount = 0;
         try
         {
-            using var stream = new MemoryStream(_resources[resource.Href], false);
+            using var stream = new MemoryStream(XhtmlWithoutCanonicalDeclaration(_resources[resource.Href]), false);
             using var reader = XmlReader.Create(stream, new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null,
