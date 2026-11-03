@@ -77,15 +77,18 @@ public sealed class EpubWordWrapLayoutTests
     }
 
     [Fact]
-    public void DiagnosesAWrappedLineThatExceedsThePageHeight()
+    public void PaginatesAWrappedLineThatExceedsThePageHeight()
     {
         var book = EpubDocument.Open(Book());
         var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
 
-        var error = Assert.Throws<NotSupportedException>(() => book.CreateLayout(
-            new EpubLayoutOptions(16, 23, font) { FontSize = 10, Margin = 2 }));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 23, font) { FontSize = 10, Margin = 2 });
 
-        Assert.Equal("Native EPUB pagination is not implemented.", error.Message);
+        Assert.Equal(2, layout.Pages.Count);
+        Assert.Equal(new[] { "A ", "A" }, layout.Pages.Select(page => page.Text));
+        Assert.Equal(new[] { 0, 2 }, layout.Pages.Select(page => page.TextStart));
+        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) }, layout.Pages[0].TextPlacements);
+        Assert.Equal(new[] { new EpubTextPlacement(0, 2, 1, 2, 2, 6, 10) }, layout.Pages[1].TextPlacements);
     }
 
     private static void AssertInterior(PdfRenderedFrame frame, int x, int y)

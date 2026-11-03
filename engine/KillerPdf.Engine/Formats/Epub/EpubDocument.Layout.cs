@@ -41,6 +41,8 @@ public sealed partial class EpubDocument
         var reader = new TrueTypeOutlineReader(font);
         var placements = new List<EpubTextPlacement>(text.Length);
         var glyphs = new List<NativeGlyphPaint>(text.Length);
+        var pages = new List<EpubLayoutPage>();
+        int pageStart = 0;
         double left = options.Margin;
         double top = options.Margin;
         double baseline = top + font.Ascender * options.FontSize / font.UnitsPerEm;
@@ -55,7 +57,10 @@ public sealed partial class EpubDocument
                 // Structural paragraph separators retain their source indices but have no placement.
                 top += 2 * options.FontSize;
                 if (top + options.FontSize > options.PageHeight - options.Margin)
-                    throw new NotSupportedException("Native EPUB pagination is not implemented.");
+                {
+                    FinishPage(index + 2);
+                    top = options.Margin;
+                }
                 left = options.Margin;
                 baseline = top + font.Ascender * options.FontSize / font.UnitsPerEm;
                 index++;
@@ -91,7 +96,10 @@ public sealed partial class EpubDocument
                 {
                     top += options.FontSize;
                     if (top + options.FontSize > options.PageHeight - options.Margin)
-                        throw new NotSupportedException("Native EPUB pagination is not implemented.");
+                    {
+                        FinishPage(index + 1);
+                        top = options.Margin;
+                    }
                     left = options.Margin;
                     baseline = top + font.Ascender * options.FontSize / font.UnitsPerEm;
                     continue;
@@ -105,7 +113,16 @@ public sealed partial class EpubDocument
             left += width;
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new EpubLayoutDocument(options, [new EpubLayoutPage(text, placements, glyphs)]);
+        FinishPage(text.Length);
+        return new EpubLayoutDocument(options, pages);
+
+        void FinishPage(int end)
+        {
+            pages.Add(new EpubLayoutPage(text[pageStart..end], pageStart, placements, glyphs));
+            pageStart = end;
+            placements.Clear();
+            glyphs.Clear();
+        }
     }
 
     private static void PreflightNativeXhtml(byte[] bytes, CancellationToken cancellationToken)

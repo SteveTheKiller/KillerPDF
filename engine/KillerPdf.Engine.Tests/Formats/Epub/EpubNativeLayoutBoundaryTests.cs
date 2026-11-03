@@ -100,11 +100,17 @@ public sealed class EpubNativeLayoutBoundaryTests
     }
 
     [Fact]
-    public void DiagnosesWrappedLineOverflowWithoutPagination()
+    public void PaginatesWrappedLineOverflowWithoutChangingSourceOffsets()
     {
         var book = Book();
 
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options(book) with { PageWidth = 20 }));
+        var layout = book.CreateLayout(Options(book) with { PageWidth = 20 });
+
+        Assert.Equal(2, layout.Pages.Count);
+        Assert.Equal(new[] { "A ", "A" }, layout.Pages.Select(page => page.Text));
+        Assert.Equal(new[] { 0, 2 }, layout.Pages.Select(page => page.TextStart));
+        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) }, layout.Pages[0].TextPlacements);
+        Assert.Equal(new[] { new EpubTextPlacement(0, 2, 1, 2, 2, 6, 10) }, layout.Pages[1].TextPlacements);
     }
 
     [Theory]
