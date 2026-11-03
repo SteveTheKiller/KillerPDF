@@ -3323,9 +3323,9 @@ public sealed partial class PdfPageRenderer
                 ? SelectJpeg2000ResolutionLevel(jpxShape, transform, scaleX, scaleY) : -1;
             int jpegReduction = jpeg
                 ? SelectJpegReduction(width, height, transform, scaleX, scaleY) : 1;
-            if (target.PreciseRgb is not null && colorSpace.HasIccSource && jpegReduction != 1)
+            if (target.PreciseRgb is not null && jpegReduction != 1)
             {
-                diagnostic = "Codec-reduced ICC images are not implemented at high precision.";
+                diagnostic = "Codec-reduced JPEG images are not implemented at high precision.";
                 return false;
             }
             int cacheLevel = recoveredPng ? -2

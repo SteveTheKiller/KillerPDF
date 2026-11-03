@@ -42,7 +42,11 @@ public sealed partial class PdfPageRenderer
         PdfRenderedPage compatibility = RenderUncached(pageIndex, options, cancellationToken,
             preciseRgb: pixels);
         if (compatibility.Diagnostics.Count != 0)
-            throw new NotSupportedException("The page contains rendering features unavailable to the high-precision path.");
+        {
+            string diagnostic = compatibility.Diagnostics[0];
+            throw new NotSupportedException("The page contains rendering features unavailable to the high-precision path. "
+                + diagnostic[..Math.Min(diagnostic.Length, 512)]);
+        }
         for (int offset = 0; offset < pixels.Length; offset += 4)
         {
             if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
