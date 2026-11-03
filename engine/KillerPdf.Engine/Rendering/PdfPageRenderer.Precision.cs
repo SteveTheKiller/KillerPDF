@@ -5,7 +5,7 @@ public sealed partial class PdfPageRenderer
     /// <summary>Renders a page into relative linear-sRGB float32 RGBA pixels.</summary>
     /// <remarks>
     /// Supports device RGB/Gray and calibrated Gray path fills, variable-width strokes,
-    /// closed strokes, combined fill/stroke operations with either fill rule, opacity
+    /// dashed and closed strokes, combined fill/stroke operations with either fill rule, opacity
     /// and aligned natural-size unmasked 8/16-bit images or axis-aligned enlargements
     /// with nearest or bilinear sampling. Bilinear device samples require Decode values in [0,1].
     /// Integer-factor reductions in both axes average encoded device samples with Decode in [0,1].
@@ -54,7 +54,7 @@ public sealed partial class PdfPageRenderer
     }
 
     private static bool PreciseOperationSupported(string operation) => operation is
-        "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "gs" or "w"
+        "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "gs" or "w" or "d"
         or "cs" or "CS" or "sc" or "SC" or "scn" or "SCN"
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"
