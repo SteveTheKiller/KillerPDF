@@ -177,6 +177,10 @@ open a fresh identity and retains an explicitly supplied snapshot. Equal source
 hashes do not share logical identity. Native decoder limits still apply; desktop
 opening and the PDF read adapter remain in development.
 
+`new PdfLogicalDocument()` creates logical identity without retaining reading
+resources; its optional `ReadSnapshot` is null. Supplying a native snapshot to
+the other constructor still retains that snapshot explicitly.
+
 ## Bundled CMYK viewing assumption (1.9.3 development)
 
 `PdfCmykViewingDefault.LoadProfile()` loads an owned copy of the bundled CC0
