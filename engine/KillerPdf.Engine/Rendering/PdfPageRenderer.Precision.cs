@@ -8,6 +8,7 @@ public sealed partial class PdfPageRenderer
     /// closed strokes, combined fill/stroke operations with either fill rule, opacity
     /// and aligned natural-size unmasked 8/16-bit images or axis-aligned enlargements
     /// with nearest or bilinear sampling. Bilinear device samples require Decode values in [0,1].
+    /// Integer-factor reductions in both axes average encoded device samples with Decode in [0,1].
     /// Device Gray/RGB axial and radial shadings
     /// support a single type 2 function. Embedded TrueType text fills and strokes
     /// support explicit text matrices, strings and positioned text arrays.
@@ -128,7 +129,7 @@ public sealed partial class PdfPageRenderer
         int sourceWidth, int sourceHeight, int components, int bits, double[] decode,
         ImageColorSpace colorSpace, double opacity, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips, int left, int top, int right, int bottom,
-        bool smooth, CancellationToken cancellationToken)
+        bool smooth, int reductionColumns, int reductionRows, CancellationToken cancellationToken)
     {
         var converter = new ImageSampleConverter(samples, rowBytes, components, bits, decode,
             colorSpace, targetInk: false, targetProfile: null);
@@ -141,7 +142,10 @@ public sealed partial class PdfPageRenderer
                 if (unit.X < 0 || unit.X >= 1 || unit.Y < 0 || unit.Y >= 1) continue;
                 int sampleX = Math.Min((int)(unit.X * sourceWidth), sourceWidth - 1);
                 int sampleY = Math.Min((int)((1 - unit.Y) * sourceHeight), sourceHeight - 1);
-                Color color = smooth
+                Color color = reductionColumns > 1 && reductionRows > 1
+                    ? converter.ConvertPreciseArea(unit.X * sourceWidth, (1 - unit.Y) * sourceHeight,
+                        sourceWidth, sourceHeight, reductionColumns, reductionRows, cancellationToken)
+                    : smooth
                     ? converter.ConvertPreciseBilinear(unit.X * sourceWidth - 0.5,
                         (1 - unit.Y) * sourceHeight - 0.5, sourceWidth, sourceHeight)
                     : converter.ConvertPrecise(sampleX, sampleY);

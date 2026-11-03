@@ -5735,20 +5735,26 @@ public sealed partial class PdfPageRenderer
         {
             bool naturalSamples = Math.Abs(sampleStepX - 1) <= 1e-9
                 && Math.Abs(sampleStepY - 1) <= 1e-9;
+            bool areaSamples = inverse.B == 0 && inverse.C == 0
+                && sampleStepX > 1 && sampleStepY > 1
+                && Math.Abs(sampleStepX - Math.Round(sampleStepX)) <= 1e-9
+                && Math.Abs(sampleStepY - Math.Round(sampleStepY)) <= 1e-9;
             if (imageMask || softMask is not null || colorKeyMask is not null || preblendMatte is not null
                 || graphicsSoftMask is not null || knockout is not null || overprint || jpeg2000
                 || colorSpace.Profile is not null || colorSpace.Converter is not null
                 || colorSpace.MultiConverter is not null || colorSpace.Palette is not null
                 || colorSpace.HasIccSource || components is not (1 or 3) || bits is not (8 or 16)
-                || !naturalSamples && (sampleStepX > 1 || sampleStepY > 1 || inverse.B != 0 || inverse.C != 0)
-                || smoothImage && decode.Any(value => !double.IsFinite(value) || value < 0 || value > 1)
+                || !naturalSamples && (inverse.B != 0 || inverse.C != 0
+                    || (sampleStepX > 1 || sampleStepY > 1) && !areaSamples)
+                || (smoothImage || areaSamples) && decode.Any(value => !double.IsFinite(value) || value < 0 || value > 1)
                 || corners.Any(point => Math.Abs(point.X * scaleX - Math.Round(point.X * scaleX)) > 1e-9
                     || Math.Abs(point.Y * scaleY - Math.Round(point.Y * scaleY)) > 1e-9))
                 throw new NotSupportedException("This high-precision image paint is not implemented.");
             PaintPreciseImage(target, targetWidth, targetHeight, scaleX, scaleY, inverse,
                 samples, rowBytes, sourceWidth, sourceHeight, components, bits, decode, colorSpace,
                 stencilAlpha, blendMode, clips, paintLeft, paintTop, paintRight, paintBottom,
-                smoothImage, cancellationToken);
+                smoothImage, areaSamples ? (int)Math.Round(sampleStepX) : 1,
+                areaSamples ? (int)Math.Round(sampleStepY) : 1, cancellationToken);
             return;
         }
         if (smoothImage && colorKeyMask is null && preblendMatte is null
@@ -7217,6 +7223,25 @@ public sealed partial class PdfPageRenderer
                 double lower = third + fractionX * (fourth - third);
                 _values[component] = upper + fractionY * (lower - upper);
             }
+            return _colorSpace.Convert(_values);
+        }
+
+        internal Color ConvertPreciseArea(double centerX, double centerY, int width, int height,
+            int columns, int rows, CancellationToken cancellationToken)
+        {
+            int left = Math.Clamp((int)Math.Round(centerX - columns / 2d), 0, width - columns);
+            int top = Math.Clamp((int)Math.Round(centerY - rows / 2d), 0, height - rows);
+            Array.Clear(_values);
+            for (int y = top; y < top + rows; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                for (int x = left; x < left + columns; x++)
+                    for (int component = 0; component < _components; component++)
+                        _values[component] += Decode(component, Raw(x, y, component));
+            }
+            double area = (double)columns * rows;
+            for (int component = 0; component < _components; component++)
+                _values[component] /= area;
             return _colorSpace.Convert(_values);
         }
 
