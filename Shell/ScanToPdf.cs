@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Interop;
@@ -22,7 +23,7 @@ namespace KillerPDF.Shell
             }
 
             IntPtr window = new WindowInteropHelper(this).Handle;
-            string folder = Path.Combine(Path.GetTempPath(), $"KillerPDF-scan-{DateTime.Now:yyyyMMdd-HHmmss-fff}");
+            string folder = Path.Combine(Path.GetTempPath(), string.Create(CultureInfo.InvariantCulture, $"KillerPDF-scan-{DateTime.Now:yyyyMMdd-HHmmss-fff}"));
             TwainScanResult result;
             try
             {
@@ -76,7 +77,7 @@ namespace KillerPDF.Shell
             bool opened = false;
             try
             {
-                string tempPath = Path.Combine(Path.GetTempPath(), $"Scanned-{DateTime.Now:yyyyMMdd-HHmmss-fff}.pdf");
+                string tempPath = Path.Combine(Path.GetTempPath(), string.Create(CultureInfo.InvariantCulture, $"Scanned-{DateTime.Now:yyyyMMdd-HHmmss-fff}.pdf"));
                 File.WriteAllBytes(tempPath, PdfEngineIntegration.MergeFiles(pages));
                 _doc = PdfWorkingDocument.Open(tempPath, null);
                 FinishOpenFile("Scanned.pdf", tempPath);

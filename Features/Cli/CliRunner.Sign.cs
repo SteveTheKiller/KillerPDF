@@ -129,7 +129,7 @@ namespace KillerPDF.Features
                     ? custom.Replace("\\n", "\n", StringComparison.Ordinal) : DefaultSignAppearanceText;
                 string text = template
                     .Replace("{name}", signer, StringComparison.OrdinalIgnoreCase)
-                    .Replace("{date}", DateTimeOffset.Now.ToString("g", CultureInfo.CurrentCulture), StringComparison.OrdinalIgnoreCase)
+                    .Replace("{date}", DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase)
                     .Replace("{reason}", reason ?? string.Empty, StringComparison.OrdinalIgnoreCase)
                     .Replace("{location}", location ?? string.Empty, StringComparison.OrdinalIgnoreCase);
                 appearance = new PdfSigner.VisibleSignatureInfo(pageNumber - 1, left, bottom, width, height, fontSize, text);

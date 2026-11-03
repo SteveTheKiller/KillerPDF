@@ -1,3 +1,4 @@
+using System.Globalization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -118,7 +119,7 @@ namespace KillerPDF.Services
         /// <summary>A fresh, dated folder under the user's data root for this recovery.</summary>
         internal static string CreateFolder(string root)
         {
-            string folder = Path.Combine(root, "Recovery", DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..6]);
+            string folder = Path.Combine(root, "Recovery", DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N")[..6]);
             Directory.CreateDirectory(folder);
             return folder;
         }

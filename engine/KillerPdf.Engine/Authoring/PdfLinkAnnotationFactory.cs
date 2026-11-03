@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using KillerPdf.Engine.Objects;
 
@@ -119,7 +120,8 @@ internal static class PdfLinkAnnotationFactory
         TimeSpan offset = value.Offset;
         char sign = offset < TimeSpan.Zero ? '-' : '+';
         offset = offset.Duration();
-        return $"D:{value:yyyyMMddHHmmss}{sign}{offset.Hours:00}'{offset.Minutes:00}'";
+        return string.Create(CultureInfo.InvariantCulture,
+            $"D:{value:yyyyMMddHHmmss}{sign}{offset.Hours:00}'{offset.Minutes:00}'");
     }
 
     private static string BorderStyleName(PdfLinkBorderStyle style) => style switch

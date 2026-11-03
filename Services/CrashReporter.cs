@@ -1,3 +1,4 @@
+using System.Globalization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -36,7 +37,7 @@ namespace KillerPDF
         {
             lock (_statusRing)
             {
-                _statusRing.Enqueue($"[{DateTime.Now:HH:mm:ss.fff}] {text}");
+                _statusRing.Enqueue(string.Create(CultureInfo.InvariantCulture, $"[{DateTime.Now:HH:mm:ss.fff}] {text}"));
                 while (_statusRing.Count > StatusBufferSize)
                     _statusRing.Dequeue();
             }
@@ -54,7 +55,7 @@ namespace KillerPDF
 
             var sb  = new StringBuilder();
             sb.AppendLine($"KillerPDF v{AppVersion.Display} crash report");
-            sb.AppendLine($"Time    : {DateTime.Now:yyyy-MM-dd HH:mm:ss zzz}");
+            sb.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Time    : {DateTime.Now:yyyy-MM-dd HH:mm:ss zzz}"));
             sb.AppendLine($"OS      : {Environment.OSVersion}");
             sb.AppendLine($"CLR     : {Environment.Version}");
             sb.AppendLine($"Context : {context}");
@@ -100,7 +101,7 @@ namespace KillerPDF
             }
 
             string logPath = Path.Combine(LogDir,
-                $"crash_{DateTime.Now:yyyyMMdd_HHmmss}_{ex.GetType().Name}.log");
+                string.Create(CultureInfo.InvariantCulture, $"crash_{DateTime.Now:yyyyMMdd_HHmmss}_{ex.GetType().Name}.log"));
 
             try
             {

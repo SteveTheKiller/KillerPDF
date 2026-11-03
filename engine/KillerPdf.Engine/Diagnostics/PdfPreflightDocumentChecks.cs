@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
@@ -125,7 +126,7 @@ internal static class PdfPreflightDocumentChecks
                 }
                 if (horizontal < minimumDpi || vertical < minimumDpi)
                     findings.Add(Warning("ImageResolution.BelowMinimum",
-                        $"An image is {horizontal:0.#} by {vertical:0.#} DPI; the minimum is {minimumDpi:0.#} DPI.",
+                        string.Create(CultureInfo.InvariantCulture, $"An image is {horizontal:0.#} by {vertical:0.#} DPI; the minimum is {minimumDpi:0.#} DPI."),
                         page.PageIndex));
             }
         }
@@ -329,7 +330,7 @@ internal static class PdfPreflightDocumentChecks
                     Number(document, operand)) * 100)
                 .Where(coverage => coverage > maximumInkCoveragePercent))
                 findings.Add(Warning("ColorUsage.InkCoverageAboveMaximum",
-                    $"A process color uses {coverage:0.#}% total ink; the maximum is {maximumInkCoveragePercent:0.#}%.",
+                    string.Create(CultureInfo.InvariantCulture, $"A process color uses {coverage:0.#}% total ink; the maximum is {maximumInkCoveragePercent:0.#}%."),
                     page.PageIndex));
         }
         try
@@ -619,7 +620,7 @@ internal static class PdfPreflightDocumentChecks
                         scale *= distanceScale;
                     }
                     findings.Add(Information("Measurement.Calibration",
-                        $"Measurement scale: {scale:R} {unit} per PDF point, precision {precision}.",
+                        string.Create(CultureInfo.InvariantCulture, $"Measurement scale: {scale:R} {unit} per PDF point, precision {precision}."),
                         page.Index, objectNumber));
                 }
                 catch (Exception error) when (IsDocumentFailure(error))

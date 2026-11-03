@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using KillerPdf.Engine.Objects;
@@ -122,6 +123,7 @@ internal static class PdfAttachmentFactory
         TimeSpan offset = value.Offset;
         char sign = offset < TimeSpan.Zero ? '-' : '+';
         offset = offset.Duration();
-        return $"D:{value:yyyyMMddHHmmss}{sign}{offset.Hours:00}'{offset.Minutes:00}'";
+        return string.Create(CultureInfo.InvariantCulture,
+            $"D:{value:yyyyMMddHHmmss}{sign}{offset.Hours:00}'{offset.Minutes:00}'");
     }
 }

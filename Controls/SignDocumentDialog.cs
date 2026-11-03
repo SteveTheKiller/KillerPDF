@@ -435,7 +435,7 @@ namespace KillerPDF
 
         private string ExpandAppearanceText(string template, string signerName) => template
             .Replace("{name}", signerName, StringComparison.OrdinalIgnoreCase)
-            .Replace("{date}", DateTimeOffset.Now.ToString("g", CultureInfo.CurrentCulture), StringComparison.OrdinalIgnoreCase)
+            .Replace("{date}", DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase)
             .Replace("{reason}", _reasonBox.Text ?? "", StringComparison.OrdinalIgnoreCase)
             .Replace("{location}", _locationBox.Text ?? "", StringComparison.OrdinalIgnoreCase);
 

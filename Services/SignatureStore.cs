@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace KillerPDF.Services
@@ -53,7 +54,7 @@ namespace KillerPDF.Services
                 // Unreadable is not the same as absent: keep the bytes before anything replaces them.
                 try
                 {
-                    string aside = _file + ".damaged-" + DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                    string aside = _file + ".damaged-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
                     System.IO.File.Copy(_file, aside, overwrite: false);
                     PreservedDamagedFile = aside;
                 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System;
 using KillerPDF.Controls;
 using KillerPDF.Shell;
@@ -1009,7 +1010,7 @@ namespace KillerPDF
         {
             var sb  = new StringBuilder();
             sb.AppendLine($"KillerPDF v{AppVersion.Display}");
-            sb.AppendLine($"Time : {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine(string.Create(CultureInfo.InvariantCulture, $"Time : {DateTime.Now:yyyy-MM-dd HH:mm:ss}"));
             sb.AppendLine($"OS   : {Environment.OSVersion}");
             sb.AppendLine();
             sb.Append(FormatExceptionChain(ex));

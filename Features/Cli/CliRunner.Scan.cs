@@ -1,3 +1,4 @@
+using System.Globalization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -35,7 +36,7 @@ namespace KillerPDF.Features
             // TWAIN talks to the driver through a window's messages, so the scan gets an invisible one
             // and this thread keeps its messages flowing until the scanner is done.
             using var window = new HwndSource(new HwndSourceParameters("KillerPDF scan") { Width = 0, Height = 0, WindowStyle = 0 });
-            string folder = Path.Combine(Path.GetTempPath(), $"KillerPDF-scan-{DateTime.Now:yyyyMMdd-HHmmss-fff}");
+            string folder = Path.Combine(Path.GetTempPath(), string.Create(CultureInfo.InvariantCulture, $"KillerPDF-scan-{DateTime.Now:yyyyMMdd-HHmmss-fff}"));
             bool publishedCompleteScan = false;
             try
             {
