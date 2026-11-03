@@ -90,13 +90,29 @@ public sealed class EpubNativeLayoutBoundaryTests
 
     [Theory]
     [InlineData(true, false, false)]
-    [InlineData(false, true, false)]
     [InlineData(false, false, true)]
-    public void DiagnosesFixedMultipleAndNonlinearSpines(bool fixedLayout, bool multipleSpines, bool nonlinear)
+    public void DiagnosesFixedAndNonlinearSpines(bool fixedLayout, bool multipleSpines, bool nonlinear)
     {
         var book = Book(fixedLayout: fixedLayout, multipleSpines: multipleSpines, nonlinear: nonlinear);
 
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options(book)));
+    }
+
+    [Fact]
+    public void MultipleLinearSpinesStartFreshPagesWithOriginalEntryOffsets()
+    {
+        var book = Book(multipleSpines: true);
+        var layout = book.CreateLayout(Options(book));
+
+        Assert.Equal(2, layout.Pages.Count);
+        Assert.Equal(new[] { "A A", "A" }, layout.Pages.Select(page => page.Text));
+        Assert.Equal(new[] { 0, 1 }, layout.Pages.Select(page => page.SpineIndex));
+        Assert.Equal(new[] { 0, 0 }, layout.Pages.Select(page => page.TextStart));
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10),
+            new EpubTextPlacement(0, 1, 1, 8, 2, 5, 10),
+            new EpubTextPlacement(0, 2, 1, 13, 2, 6, 10) }, layout.Pages[0].TextPlacements);
+        Assert.Equal(new[] { new EpubTextPlacement(1, 0, 1, 2, 2, 6, 10) }, layout.Pages[1].TextPlacements);
     }
 
     [Fact]

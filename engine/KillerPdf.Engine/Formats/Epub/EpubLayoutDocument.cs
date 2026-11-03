@@ -22,11 +22,12 @@ public sealed record EpubTextPlacement(int SpineIndex, int Start, int Length,
 /// <summary>Provides native page text and logical placement geometry.</summary>
 public sealed class EpubLayoutPage
 {
-    internal EpubLayoutPage(string text, int textStart, IEnumerable<EpubTextPlacement> placements,
+    internal EpubLayoutPage(string text, int textStart, int spineIndex, IEnumerable<EpubTextPlacement> placements,
         IEnumerable<NativeGlyphPaint> glyphs)
     {
         Text = text;
         TextStart = textStart;
+        SpineIndex = spineIndex;
         TextPlacements = Array.AsReadOnly(placements.ToArray());
         Glyphs = Array.AsReadOnly(glyphs.ToArray());
     }
@@ -34,6 +35,8 @@ public sealed class EpubLayoutPage
     public string Text { get; }
     /// <summary>Gets the original spine UTF-16 offset where this page's text starts.</summary>
     public int TextStart { get; }
+    /// <summary>Gets this page's original declared spine index.</summary>
+    public int SpineIndex { get; }
     /// <summary>Gets logical text placements independently of glyph ink.</summary>
     public IReadOnlyList<EpubTextPlacement> TextPlacements { get; }
     internal IReadOnlyList<NativeGlyphPaint> Glyphs { get; }
