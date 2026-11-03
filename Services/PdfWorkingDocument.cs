@@ -9,6 +9,9 @@ internal sealed class PdfWorkingDocument : IDisposable
     private readonly byte[] _source;
     private readonly OpenedProtection? _key;
     private PdfDocument? _parsedDocument;
+    private readonly Lock _readSync = new();
+    private PdfCapturedReadRevision? _readRevision;
+    private bool _closed;
 
     private PdfWorkingDocument(byte[] source, bool isReadOnly, OpenedProtection? protection)
     {
@@ -33,6 +36,16 @@ internal sealed class PdfWorkingDocument : IDisposable
     internal string ContentIdentity { get; }
     internal bool IsReadOnly { get; }
     internal PdfDocument? ParsedDocument => _parsedDocument;
+
+    internal PdfCapturedReadRevision CaptureReadRevision()
+    {
+        lock (_readSync)
+        {
+            ObjectDisposedException.ThrowIf(_closed, this);
+            return _readRevision ??= new PdfCapturedReadRevision(
+                _parsedDocument ?? PdfEngineIntegration.OpenForReading(_source, _key), ContentIdentity);
+        }
+    }
 
     internal void ReleaseParsedDocument(PdfDocument document) =>
         Interlocked.CompareExchange(ref _parsedDocument, null, document);
@@ -74,7 +87,7 @@ internal sealed class PdfWorkingDocument : IDisposable
                 // The working document is still usable if the file changes during registration.
             }
         }
-        if (!registered) working.Close();
+        if (!registered) Interlocked.Exchange(ref working._parsedDocument, null);
         return working;
     }
 
@@ -120,6 +133,18 @@ internal sealed class PdfWorkingDocument : IDisposable
         }
     }
 
-    internal void Close() => Interlocked.Exchange(ref _parsedDocument, null);
+    internal void Close()
+    {
+        PdfCapturedReadRevision? revision;
+        lock (_readSync)
+        {
+            if (_closed) return;
+            _closed = true;
+            revision = _readRevision;
+            _readRevision = null;
+            Interlocked.Exchange(ref _parsedDocument, null);
+        }
+        revision?.Dispose();
+    }
     public void Dispose() => Close();
 }

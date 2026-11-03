@@ -51,6 +51,13 @@ internal sealed class PdfPageRenderSession : IDisposable
     /// <summary>True when the document carries encryption, so its permissions decide what leaves it.</summary>
     internal bool IsEncrypted { get; }
 
+    internal static PdfPageRenderSession OpenCapturedDocument(EngineDocument document,
+        IReadOnlyList<EnginePageInformation> pages) => new(document, pages, 1, 1, 0);
+
+    internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex,
+        EngineRenderOptions options, CancellationToken cancellationToken) =>
+        Renderer.RenderFrame(pageIndex, options, cancellationToken);
+
     /// <summary>Opens a tab's file for rendering under the tab's protection, or a file that is no
     /// tab's with null.</summary>
     internal static PdfPageRenderSession OpenEngineFirst(
@@ -605,6 +612,148 @@ internal sealed class PdfBackgroundRenderCache
 
 internal readonly record struct PdfPageForEncoding(
     int Width, int Height, ReadOnlyMemory<byte> Pixels, IReadOnlyList<string> Diagnostics);
+
+internal sealed class PdfCapturedReadRevision : IDisposable
+{
+    private readonly Lock _sync = new();
+    private readonly CancellationTokenSource _closing = new();
+    private readonly IReadOnlyList<EnginePageInformation> _pages;
+    private EngineDocument? _document;
+    private PdfPageRenderSession? _idle;
+    private int _active;
+    private bool _closed;
+    private bool _cancellationIssued;
+    private bool _cancellationDisposed;
+
+    internal PdfCapturedReadRevision(EngineDocument document, string contentIdentity)
+    {
+        if (!document.CanReadPageContent)
+            throw new InvalidOperationException("Authenticate the document before capturing page content.");
+        _document = document;
+        _pages = EnginePageInformation.Read(document);
+        ContentIdentity = contentIdentity;
+    }
+
+    internal Guid Id { get; } = Guid.NewGuid();
+    internal string ContentIdentity { get; }
+    internal int PageCount => _pages.Count;
+
+    internal EnginePageInformation GetPageGeometry(int pageIndex)
+    {
+        if (pageIndex < 0 || pageIndex >= _pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        return _pages[pageIndex];
+    }
+
+    internal Lease Rent(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        EngineDocument document;
+        PdfPageRenderSession? session;
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_closed, this);
+            cancellationToken.ThrowIfCancellationRequested();
+            document = _document!;
+            _active++;
+            session = _idle;
+            _idle = null;
+        }
+        CancellationTokenSource? linked = null;
+        try
+        {
+            // The reservation keeps the owner's token source alive during session creation.
+            linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _closing.Token);
+            linked.Token.ThrowIfCancellationRequested();
+            session ??= PdfPageRenderSession.OpenCapturedDocument(document, _pages);
+            linked.Token.ThrowIfCancellationRequested();
+            return new Lease(this, session, linked);
+        }
+        catch
+        {
+            linked?.Dispose();
+            Return(session);
+            throw;
+        }
+    }
+
+    private void Return(PdfPageRenderSession? session)
+    {
+        bool disposeCancellation;
+        lock (_sync)
+        {
+            _active--;
+            if (!_closed && _idle is null)
+            {
+                _idle = session;
+                session = null;
+            }
+            disposeCancellation = ReleaseCancellation();
+        }
+        session?.Dispose();
+        if (disposeCancellation) _closing.Dispose();
+    }
+
+    // Called under _sync only. Cancel completes before the last reservation may dispose it.
+    private bool ReleaseCancellation()
+    {
+        if (!_closed || !_cancellationIssued || _active != 0 || _cancellationDisposed) return false;
+        _cancellationDisposed = true;
+        return true;
+    }
+
+    public void Dispose()
+    {
+        PdfPageRenderSession? idle;
+        lock (_sync)
+        {
+            if (_closed) return;
+            _closed = true;
+            _document = null;
+            idle = _idle;
+            _idle = null;
+        }
+        try
+        {
+            _closing.Cancel();
+        }
+        finally
+        {
+            idle?.Dispose();
+            bool disposeCancellation;
+            lock (_sync)
+            {
+                _cancellationIssued = true;
+                disposeCancellation = ReleaseCancellation();
+            }
+            if (disposeCancellation) _closing.Dispose();
+        }
+    }
+
+    // A task owns its lease exclusively, including rendering and disposal.
+    internal sealed class Lease(PdfCapturedReadRevision owner, PdfPageRenderSession session,
+        CancellationTokenSource cancellation) : IDisposable
+    {
+        private PdfPageRenderSession? _session = session;
+
+        internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex, EngineRenderOptions options)
+        {
+            PdfPageRenderSession active = _session ?? throw new ObjectDisposedException(nameof(Lease));
+            cancellation.Token.ThrowIfCancellationRequested();
+            var frame = active.RenderFrame(pageIndex, options, cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
+            return frame;
+        }
+
+        public void Dispose()
+        {
+            PdfPageRenderSession? released = Interlocked.Exchange(ref _session, null);
+            if (released is null) return;
+            cancellation.Dispose();
+            owner.Return(released);
+        }
+    }
+}
 
 internal readonly record struct PdfRenderedPage(
     int Width, int Height, byte[] Pixels, PdfRenderBackend Backend, string? EngineFailure)
