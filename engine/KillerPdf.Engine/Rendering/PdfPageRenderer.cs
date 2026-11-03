@@ -4648,7 +4648,7 @@ public sealed partial class PdfPageRenderer
             if (!shading.TryGetValue(Name("ShadingType"), out PdfObject? typeValue)
                 || Resolve(typeValue) is not PdfInteger shadingType)
                 throw new NotSupportedException();
-            if (target.PreciseRgb is not null && shadingType.Value != 2)
+            if (target.PreciseRgb is not null && shadingType.Value is not (2 or 3))
                 throw new NotSupportedException("This high-precision shading type is not implemented.");
             if (shadingType.Value is >= 4 and <= 7
                 && (state.FillAlpha < 1 || state.GraphicsSoftMask is not null
@@ -5263,6 +5263,11 @@ public sealed partial class PdfPageRenderer
             throw new FormatException("A radial shading color space is missing.");
         ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0, diagnostics: diagnostics, intent: state.RenderingIntent)
             .ForDestination(target, state.BlackPointCompensation, diagnostics);
+        if (target.PreciseRgb is not null
+            && (colorSpace.Components is not (1 or 3) || colorSpace.Profile is not null
+                || colorSpace.Converter is not null || colorSpace.MultiConverter is not null
+                || colorSpace.Palette is not null || colorSpace.HasIccSource))
+            throw new NotSupportedException("This high-precision shading color space is not implemented.");
         if (!shading.TryGetValue(Name("Coords"), out PdfObject? coordinatesValue))
             throw new FormatException("A radial shading coordinate array is missing.");
         PdfArray coordinates = ResolveArray(coordinatesValue, 6,
@@ -5278,6 +5283,11 @@ public sealed partial class PdfPageRenderer
             throw new FormatException("A radial shading geometry is invalid.");
         if (!shading.TryGetValue(Name("Function"), out PdfObject? functionValue))
             throw new FormatException("A radial shading function is missing.");
+        if (target.PreciseRgb is not null
+            && (Resolve(functionValue) is not PdfDictionary preciseFunction
+                || !preciseFunction.TryGetValue(Name("FunctionType"), out PdfObject? preciseType)
+                || Resolve(preciseType) is not PdfInteger { Value: 2 }))
+            throw new NotSupportedException("This high-precision shading function is not implemented.");
         Func<double, Color> function = ReadColorFunction(
             functionValue, colorSpace, "radial shading function");
         double[] domain = shading.TryGetValue(Name("Domain"), out PdfObject? domainValue)
@@ -5305,7 +5315,8 @@ public sealed partial class PdfPageRenderer
             Math.Sqrt(transform.C * transform.C + transform.D * transform.D));
         double extentPixels = (Math.Sqrt(centerX * centerX + centerY * centerY) + Math.Abs(radius))
             * transformScale * Math.Max(scaleX, scaleY);
-        var colors = new ShadingColorTable(function, domain[0], domain[1], extentPixels, target.HasProfile);
+        var colors = new ShadingColorTable(function, domain[0], domain[1], extentPixels,
+            target.HasProfile || target.PreciseRgb is not null);
         for (int y = top; y < bottom; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();

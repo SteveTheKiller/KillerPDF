@@ -55,7 +55,6 @@ public sealed class PdfPrecisionAxialShadingTests
 
     [Theory]
     [InlineData(1)]
-    [InlineData(3)]
     [InlineData(4)]
     [InlineData(5)]
     [InlineData(6)]

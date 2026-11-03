@@ -6,7 +6,7 @@ public sealed partial class PdfPageRenderer
     /// <remarks>
     /// Supports device RGB/Gray and calibrated Gray path fills, variable-width strokes,
     /// closed strokes, combined fill/stroke operations with either fill rule, opacity
-    /// and aligned natural-size unmasked 8/16-bit images. Device Gray/RGB axial shadings
+    /// and aligned natural-size unmasked 8/16-bit images. Device Gray/RGB axial and radial shadings
     /// support a single type 2 function. Embedded TrueType text fills and strokes
     /// support explicit text matrices, strings and positioned text arrays.
     /// Unported paint operations are rejected instead of returning quantized pixels.
