@@ -3323,6 +3323,11 @@ public sealed partial class PdfPageRenderer
                 ? SelectJpeg2000ResolutionLevel(jpxShape, transform, scaleX, scaleY) : -1;
             int jpegReduction = jpeg
                 ? SelectJpegReduction(width, height, transform, scaleX, scaleY) : 1;
+            if (target.PreciseRgb is not null && colorSpace.HasIccSource && jpegReduction != 1)
+            {
+                diagnostic = "Codec-reduced ICC images are not implemented at high precision.";
+                return false;
+            }
             int cacheLevel = recoveredPng ? -2
                 : jpeg ? -10 - jpegReduction
                 : resolutionLevel;
@@ -5762,7 +5767,7 @@ public sealed partial class PdfPageRenderer
                 || colorSpace.Profile is not null && !preciseIcc || colorSpace.Converter is not null
                 || colorSpace.MultiConverter is not null || colorSpace.Palette is not null
                 || colorSpace.HasIccSource && !preciseIcc || components is not (1 or 3) || bits is not (8 or 16)
-                || preciseIcc && (!naturalSamples && (sampleStepX > 1 || sampleStepY > 1)
+                || preciseIcc && (!naturalSamples && !areaSamples && (sampleStepX > 1 || sampleStepY > 1)
                     || inverse.B != 0 || inverse.C != 0
                     || softMask is not null || colorKeyMask is not null || preblendMatte is not null)
                 || !naturalSamples && (inverse.B != 0 || inverse.C != 0
