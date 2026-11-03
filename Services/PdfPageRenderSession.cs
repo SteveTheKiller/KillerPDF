@@ -638,6 +638,14 @@ internal sealed class PdfCapturedReadRevision : IDisposable
     internal string ContentIdentity { get; }
     internal int PageCount => _pages.Count;
 
+    internal bool IsClosed
+    {
+        get
+        {
+            lock (_sync) return _closed;
+        }
+    }
+
     internal EnginePageInformation GetPageGeometry(int pageIndex)
     {
         if (pageIndex < 0 || pageIndex >= _pages.Count)

@@ -10,6 +10,51 @@ namespace KillerPDF.Tests;
 public sealed class PdfCapturedReadRevisionTests
 {
     [Fact]
+    public void OpenWorkingOwnerRecapturesItsProtectedContentAfterExplicitRevisionDisposal()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"captured-recapture-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder()
+                .SetPasswordEncryption(new PdfPasswordEncryptionOptions { UserPassword = "reader", OwnerPassword = "owner" })
+                .AddPage(2, 1, new PdfContentStreamBuilder().SetFillGray(.5001).Rectangle(0, 0, 2, 1).Fill()).Build());
+            OpenedProtection protection = OpenedProtection.Capture(path, "reader");
+            using PdfWorkingDocument working = PdfWorkingDocument.Open(path, protection);
+            using var first = working.CaptureReadRevision();
+            using var oldLease = first.Rent();
+            first.Dispose();
+            File.Delete(path);
+            File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(9, 3).Build());
+
+            using var second = working.CaptureReadRevision();
+            Assert.NotSame(first, second);
+            Assert.NotEqual(first.Id, second.Id);
+            Assert.Equal(first.ContentIdentity, second.ContentIdentity);
+            Assert.Equal(working.ContentIdentity, second.ContentIdentity);
+            Assert.ThrowsAny<OperationCanceledException>(() => oldLease.RenderFrame(0, new PdfRenderOptions(2, 1)));
+            Assert.Throws<ObjectDisposedException>(() => first.Rent());
+            Assert.Equal(2, second.GetPageGeometry(0).Width);
+            Assert.Equal(1, second.GetPageGeometry(0).Height);
+            using (var lease = second.Rent())
+            {
+                PdfRenderedFrame frame = lease.RenderFrame(0, new PdfRenderOptions(2, 1));
+                Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+                for (int pixel = 0; pixel < 2; pixel++)
+                {
+                    for (int channel = 0; channel < 3; channel++)
+                        Assert.InRange(frame.Pixels[pixel * 4 + channel], .21413370f, .21413373f);
+                    Assert.Equal(1f, frame.Pixels[pixel * 4 + 3]);
+                }
+            }
+            Assert.Same(second, working.CaptureReadRevision());
+            working.Close();
+            Assert.Throws<ObjectDisposedException>(() => working.CaptureReadRevision());
+            Assert.Throws<ObjectDisposedException>(() => second.Rent());
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
     public async Task OwnerCloseCancelsAnotherTasksAcquiredLeaseAndLetsThatTaskReleaseIt()
     {
         string path = Path.Combine(Path.GetTempPath(), $"captured-concurrent-{Guid.NewGuid():N}.pdf");

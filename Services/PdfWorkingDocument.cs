@@ -42,7 +42,8 @@ internal sealed class PdfWorkingDocument : IDisposable
         lock (_readSync)
         {
             ObjectDisposedException.ThrowIf(_closed, this);
-            return _readRevision ??= new PdfCapturedReadRevision(
+            if (_readRevision is { IsClosed: false } revision) return revision;
+            return _readRevision = new PdfCapturedReadRevision(
                 _parsedDocument ?? PdfEngineIntegration.OpenForReading(_source, _key), ContentIdentity);
         }
     }
