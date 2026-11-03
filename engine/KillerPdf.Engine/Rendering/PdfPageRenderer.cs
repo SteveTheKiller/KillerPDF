@@ -5733,12 +5733,15 @@ public sealed partial class PdfPageRenderer
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
         if (target.PreciseRgb is not null)
         {
+            bool naturalSamples = Math.Abs(sampleStepX - 1) <= 1e-9
+                && Math.Abs(sampleStepY - 1) <= 1e-9;
             if (imageMask || softMask is not null || colorKeyMask is not null || preblendMatte is not null
                 || graphicsSoftMask is not null || knockout is not null || overprint || jpeg2000
                 || colorSpace.Profile is not null || colorSpace.Converter is not null
                 || colorSpace.MultiConverter is not null || colorSpace.Palette is not null
                 || colorSpace.HasIccSource || components is not (1 or 3) || bits is not (8 or 16)
-                || Math.Abs(sampleStepX - 1) > 1e-9 || Math.Abs(sampleStepY - 1) > 1e-9
+                || !naturalSamples && (interpolate || smoothImage
+                    || sampleStepX > 1 || sampleStepY > 1 || inverse.B != 0 || inverse.C != 0)
                 || corners.Any(point => Math.Abs(point.X * scaleX - Math.Round(point.X * scaleX)) > 1e-9
                     || Math.Abs(point.Y * scaleY - Math.Round(point.Y * scaleY)) > 1e-9))
                 throw new NotSupportedException("This high-precision image paint is not implemented.");
