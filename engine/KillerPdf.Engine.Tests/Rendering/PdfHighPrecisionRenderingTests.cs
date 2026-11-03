@@ -109,6 +109,25 @@ public sealed class PdfHighPrecisionRenderingTests
         Assert.Equal(frame.ToSrgbBgra32()[0], frame.ToSrgbBgra32()[4]);
     }
 
+    [Fact]
+    public void DeviceRgbStrokesRetainSubByteColorDifferences()
+    {
+        var renderer = new PdfPageRenderer(PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 1, Encoding.ASCII.GetBytes(
+                "0.5 0.5 0.5 RG 0.5 0 m 0.5 1 l S "
+                + "0.5001 0.5001 0.5001 RG 1.5 0 m 1.5 1 l S"))
+            .Build()));
+
+        var frame = renderer.RenderFrame(0, new PdfRenderOptions(2, 1));
+
+        // Independently evaluated sRGB decoding with 60-digit decimal arithmetic.
+        Assert.InRange(frame.Pixels[0], 0.21404113f, 0.21404116f);
+        Assert.InRange(frame.Pixels[4], 0.21413370f, 0.21413373f);
+        Assert.True(frame.Pixels[4] > frame.Pixels[0]);
+        Assert.Equal(1f, frame.Pixels[3]);
+        Assert.Equal(1f, frame.Pixels[7]);
+    }
+
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     private static KeyValuePair<PdfName, PdfObject> Entry(string name, PdfObject value) => new(Name(name), value);
 }
