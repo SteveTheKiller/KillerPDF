@@ -128,6 +128,26 @@ public sealed class PdfHighPrecisionRenderingTests
         Assert.Equal(1f, frame.Pixels[7]);
     }
 
+    [Fact]
+    public void ExplicitStrokeWidthPreservesPreciseColorAndPageCoverage()
+    {
+        var renderer = new PdfPageRenderer(PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(4, 1, Encoding.ASCII.GetBytes(
+                "2 w 0.5 0.5 0.5 RG 1 0 m 1 1 l S "
+                + "0.5001 0.5001 0.5001 RG 3 0 m 3 1 l S"))
+            .Build()));
+
+        var frame = renderer.RenderFrame(0, new PdfRenderOptions(4, 1));
+
+        // Each two-point-wide vertical stroke covers exactly two whole pixels.
+        foreach (int offset in new[] { 0, 4 })
+            Assert.InRange(frame.Pixels[offset], 0.21404113f, 0.21404116f);
+        foreach (int offset in new[] { 8, 12 })
+            Assert.InRange(frame.Pixels[offset], 0.21413370f, 0.21413373f);
+        Assert.Equal(new byte[] { 128, 128, 128, 255, 128, 128, 128, 255,
+            128, 128, 128, 255, 128, 128, 128, 255 }, frame.ToSrgbBgra32());
+    }
+
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     private static KeyValuePair<PdfName, PdfObject> Entry(string name, PdfObject value) => new(Name(name), value);
 }

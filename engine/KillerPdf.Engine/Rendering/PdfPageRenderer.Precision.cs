@@ -4,7 +4,7 @@ public sealed partial class PdfPageRenderer
 {
     /// <summary>Renders a page into relative linear-sRGB float32 RGBA pixels.</summary>
     /// <remarks>
-    /// Supports device RGB/Gray and calibrated Gray path fills, default-width strokes,
+    /// Supports device RGB/Gray and calibrated Gray path fills, variable-width strokes,
     /// opacity and aligned natural-size unmasked 8/16-bit images.
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
@@ -46,7 +46,7 @@ public sealed partial class PdfPageRenderer
         ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
 
     private static bool PreciseOperationSupported(string operation) => operation is
-        "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "gs"
+        "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "gs" or "w"
         or "cs" or "CS" or "sc" or "SC" or "scn" or "SCN"
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "n" or "W" or "W*" or "Do";
