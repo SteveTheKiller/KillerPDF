@@ -5,7 +5,8 @@ public sealed partial class PdfPageRenderer
     /// <summary>Renders a page into relative linear-sRGB float32 RGBA pixels.</summary>
     /// <remarks>
     /// Supports device RGB/Gray and calibrated Gray path fills, variable-width strokes,
-    /// opacity and aligned natural-size unmasked 8/16-bit images.
+    /// closed strokes, combined fill/stroke operations with either fill rule, opacity
+    /// and aligned natural-size unmasked 8/16-bit images.
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
     public PdfRenderedFrame RenderFrame(int pageIndex, PdfRenderOptions options,
@@ -49,7 +50,8 @@ public sealed partial class PdfPageRenderer
         "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "gs" or "w"
         or "cs" or "CS" or "sc" or "SC" or "scn" or "SCN"
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
-        or "f" or "F" or "f*" or "S" or "n" or "W" or "W*" or "Do";
+        or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"
+        or "n" or "W" or "W*" or "Do";
 
     private static void PaintPrecisePixel(RasterSurface surface, int offset, in Color color,
         double opacity, RendererBlendMode blendMode, GraphicsSoftMask? softMask,
