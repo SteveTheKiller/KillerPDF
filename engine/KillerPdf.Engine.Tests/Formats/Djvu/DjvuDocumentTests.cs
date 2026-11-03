@@ -78,7 +78,6 @@ public sealed class DjvuDocumentTests
 
     [Theory]
     [InlineData("INCL", "IncludedComponentUnsupported")]
-    [InlineData("NAVM", "OutlineUnsupported")]
     [InlineData("BG44", "ImageDecodingUnsupported")]
     public void ReportsRecognizedFeaturesWithoutDecodingOrResolvingThem(string chunkId, string diagnostic)
     {

@@ -116,7 +116,6 @@ public sealed partial class DjvuDocument
             DjvuDiagnostic? diagnostic = chunk.Id switch
             {
                 0x494e434c => new("IncludedComponentUnsupported", "Included components are not resolved. External files and URLs are never fetched."),
-                0x4e41564d => new("OutlineUnsupported", "BZZ compressed document outlines are not decoded."),
                 0x536d6d72 => new("SmmrRenderingLimited", "Only nonstriped bitonal MMR rendering is supported. Other variants and layers require additional decoding."),
                 0x42473434 or 0x46473434 or 0x536a627a or 0x4667627a or 0x42476a70 or 0x46476a70 or 0x54483434
                     => new("ImageDecodingUnsupported", "Page image codecs are not decoded by the container reader."),

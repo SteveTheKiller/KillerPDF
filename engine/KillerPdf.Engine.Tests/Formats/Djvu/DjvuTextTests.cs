@@ -6,6 +6,17 @@ namespace KillerPdf.Engine.Tests.Formats.Djvu;
 public sealed class DjvuTextTests
 {
     [Fact]
+    public void ReadsTheIndependentLongRepeatedTextWithUnicodeAndNewline()
+    {
+        var input = Convert.FromHexString(
+            "41542654464F524D00000034444A5655494E464F0000000A000200011A002C011601" +
+            "5458547A00000016FFDFF3DFF35F9F519ED18F361186A71C92425F61C0E7");
+        Assert.Equal("BA04769BCF198FBCBF977EE28772A26F818118CF2744B902C04663A765664D65",
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(input)));
+        Assert.Equal(new string('A', 8192) + " Caf\u00e9\n", DjvuDocument.Open(input).ReadText(0));
+    }
+
+    [Fact]
     public void ReadsIndependentlyEncodedUnicodeTextWithoutZones()
     {
         var input = Convert.FromHexString(
