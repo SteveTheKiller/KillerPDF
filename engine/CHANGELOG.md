@@ -6,7 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.3] - Unreleased
 
-The 1.9.3 engine adds floating-point rendering, portable profile conversion and initial native-format readers.
+The 1.9.3 engine adds floating-point rendering, portable profile conversion and initial native-format readers, and writes Gregorian dates on every Windows region.
+
+### Fixed
+
+- Document, annotation and attachment dates are written with the Gregorian calendar whatever the current culture, so Thai, Arabic and Persian regions no longer write years like 2569. Preflight messages write their numbers with a decimal point.
 
 ### Added
 
@@ -14,13 +18,19 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Portable ICC profile conversion supports D50 XYZ linking, rendering intents and opt-in black-point compensation. (#264)
 - Native readers inspect EPUB packages, navigation and structural text, plus DjVu containers and uncompressed text, with initial Smmr bitonal rendering. (#472)
 
-## [1.9.2] - Unreleased
+## [1.9.2] - 2026-11-02
 
 The 1.9.2 engine writes an edited document back under the encryption it was opened with and reads permissions by what their bits really forbid.
 
 ### Fixed
 
 - A file that names a security handler but lost its `/Encrypt` entry fails the strict open when its first page with content reads as nothing but holds bytes after a percent sign that cannot be comment text, as ciphertext that begins with that sign does: a control byte that is not whitespace, or 16 bytes or more that are not UTF-8 and are at least a quarter high bytes. Only real content operators count as readable page content. A plain page written as nothing but a comment still opens, in any language and in UTF-8 or Latin-1.
+
+### Changed
+
+- Below revision 3, `PdfDocumentPermissions` reads filling from bit 6, accessibility extraction from bit 5 and assembly from bit 4.
+- A radio field of a repeated name with no state for the new value turns off instead of keeping its old selection.
+- `EncryptUnder` replaces a dangling reference as a plain save does.
 
 ### Added
 
@@ -32,31 +42,9 @@ The 1.9.2 engine writes an edited document back under the encryption it was open
 - Added `PdfPreflightRunner.Run` and `PdfDocumentInspector.InspectAuthenticated` overloads that take an already opened `PdfDocument`, so a document opened under held encryption is preflighted with no password at hand.
 - Added `PdfPageRasterInformation.ReadBitonalImagePageHints` and `ReadJpegImagePageHints` overloads that take a `CancellationToken` and stop between pages.
 
-### Changed
-
-- Below revision 3, `PdfDocumentPermissions` reads filling from bit 6, accessibility extraction from bit 5 and assembly from bit 4.
-- A radio field of a repeated name with no state for the new value turns off instead of keeping its old selection.
-- `EncryptUnder` replaces a dangling reference as a plain save does.
-
-## [1.9.1] - Unreleased
+## [1.9.1] - 2026-10-31
 
 The 1.9.1 engine clears redacted content from every copy that hides it, edits attachments by key, keeps document details it cannot read, and widens paragraph editing.
-
-### Added
-
-- Added `RemoveAttachmentByKey`, `RenameAttachmentByKey`, `ReplaceAttachmentByKey`, `SetAttachmentDescriptionByKey` and `SetAttachmentClassificationByKey` to `PdfIncrementalPageEditor`. Keys match exactly, and the name-based methods now refuse a name that several files share.
-- Added `includeBookmarks` overloads of `AddImportedDocument` and `InsertImportedDocument`, plus `DropTargetBookmarks` and `FailedBookmarksInTarget`, so a damaged outline costs only the document it belongs to.
-- Added `PdfDocumentInformation.UnreadableKeys` and `PdfDocumentMetadata.PreservedInfoKeys`, so a save keeps entries it could not read.
-- Added `ReadLinkAnnotationIndexes` to `PdfLinkReader`, so a caller can reach a link the reader could not parse.
-- Added `PdfParagraphEditor.DefaultBox`, the `PdfParagraphCandidate` members `TextLeft`, `FirstBaseline`, `TextRight`, `FirstLineIndent` and `RowTexts`, a `PdfTextReflow.Wrap` overload with a first-line indent, `PdfExtractionFont.IsType3`, `PdfParagraphRefusalCode.NoText`, the `PdfParagraphCandidate` members `RightLimit` and `HyphenGuesses`, `PdfParagraphEditor.PlanFitted` and `WidthRatio`, `PdfParagraphPlan.HorizontalScale`, `PdfParagraphLine.Scale`, `PdfPageRasterInformation.ReadScanSizes`, `PdfRewriteRefusal`, `PdfVersion2Upgrade.Apply` with `allowSignatureInvalidation`, and the macro step setting `invalidateSignatures`.
-
-### Changed
-
-- `PdfRedactionSearch.Find` accepts null pages: a page that could not be read keeps its number and has no matches.
-- A rewrite that merges page resources repeats until nothing more merges, and stream identity ignores `/Length`.
-- A full rewrite treats catalog Reader usage rights like a signature: it refuses without `AllowSignatureInvalidation` and removes `/Perms` when allowed. `RemoveEncryption` is exempt, so opening a protected file still works.
-- Reading a named signature no longer requires `/Type`, which is optional, and a bad date or text value costs only that value.
-- A page frame is now one box everywhere: `PdfPageContentReader`, the renderer and redaction all use the crop box cut to the media box.
 
 ### Fixed
 
@@ -68,6 +56,22 @@ The 1.9.1 engine clears redacted content from every copy that hides it, edits at
 - Importing queues references instead of recursing, so a very long `/Next` chain no longer fails on depth. An `/OCProperties` with no `/OCGs` declares no layers and no longer stops an import.
 - A malformed bookmark destination or named-destination tree costs only those names, in both the bookmark and link readers.
 - Reading an hours-only date offset such as `+01` works, an unreadable XMP packet is replaced on save, and Type 3 widths go through the font's `/FontMatrix`.
+
+### Changed
+
+- `PdfRedactionSearch.Find` accepts null pages: a page that could not be read keeps its number and has no matches.
+- A rewrite that merges page resources repeats until nothing more merges, and stream identity ignores `/Length`.
+- A full rewrite treats catalog Reader usage rights like a signature: it refuses without `AllowSignatureInvalidation` and removes `/Perms` when allowed. `RemoveEncryption` is exempt, so opening a protected file still works.
+- Reading a named signature no longer requires `/Type`, which is optional, and a bad date or text value costs only that value.
+- A page frame is now one box everywhere: `PdfPageContentReader`, the renderer and redaction all use the crop box cut to the media box.
+
+### Added
+
+- Added `RemoveAttachmentByKey`, `RenameAttachmentByKey`, `ReplaceAttachmentByKey`, `SetAttachmentDescriptionByKey` and `SetAttachmentClassificationByKey` to `PdfIncrementalPageEditor`. Keys match exactly, and the name-based methods now refuse a name that several files share.
+- Added `includeBookmarks` overloads of `AddImportedDocument` and `InsertImportedDocument`, plus `DropTargetBookmarks` and `FailedBookmarksInTarget`, so a damaged outline costs only the document it belongs to.
+- Added `PdfDocumentInformation.UnreadableKeys` and `PdfDocumentMetadata.PreservedInfoKeys`, so a save keeps entries it could not read.
+- Added `ReadLinkAnnotationIndexes` to `PdfLinkReader`, so a caller can reach a link the reader could not parse.
+- Added `PdfParagraphEditor.DefaultBox`, the `PdfParagraphCandidate` members `TextLeft`, `FirstBaseline`, `TextRight`, `FirstLineIndent` and `RowTexts`, a `PdfTextReflow.Wrap` overload with a first-line indent, `PdfExtractionFont.IsType3`, `PdfParagraphRefusalCode.NoText`, the `PdfParagraphCandidate` members `RightLimit` and `HyphenGuesses`, `PdfParagraphEditor.PlanFitted` and `WidthRatio`, `PdfParagraphPlan.HorizontalScale`, `PdfParagraphLine.Scale`, `PdfPageRasterInformation.ReadScanSizes`, `PdfRewriteRefusal`, `PdfVersion2Upgrade.Apply` with `allowSignatureInvalidation`, and the macro step setting `invalidateSignatures`.
 
 ## [1.9.0] - 2026-10-29
 
