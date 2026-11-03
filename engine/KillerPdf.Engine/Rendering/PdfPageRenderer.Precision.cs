@@ -12,6 +12,7 @@ public sealed partial class PdfPageRenderer
     /// Raw color-key masks are supported with natural-size or eligible nearest-sampled images.
     /// Matching DeviceGray 8/16-bit image soft masks retain source alpha precision on those images.
     /// Their finite device-range Matte values are removed before color conversion and compositing.
+    /// Natural-size unmasked RGB/Gray ICC matrix/TRC images support relative colorimetric PCS conversion.
     /// Device Gray/RGB axial and radial shadings
     /// support a single type 2 function. Embedded TrueType text fills and strokes
     /// support explicit text matrices, strings and positioned text arrays.

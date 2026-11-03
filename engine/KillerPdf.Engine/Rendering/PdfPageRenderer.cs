@@ -5744,6 +5744,10 @@ public sealed partial class PdfPageRenderer
         {
             bool naturalSamples = Math.Abs(sampleStepX - 1) <= 1e-9
                 && Math.Abs(sampleStepY - 1) <= 1e-9;
+            bool preciseIcc = colorSpace is { IsIccBased: true, IsDefault: false, ComponentRange: null,
+                Profile: PdfIccProfileTransform { IsLutBased: false, IsLabInput: false,
+                    Components: 1 or 3, RenderingIntent: 1 } }
+                && colorSpace.Intent == 1 && !colorSpace.BlackPointCompensationEnabled;
             bool areaSamples = inverse.B == 0 && inverse.C == 0
                 && sampleStepX > 1 && sampleStepY > 1
                 && Math.Abs(sampleStepX - Math.Round(sampleStepX)) <= 1e-9
@@ -5755,9 +5759,11 @@ public sealed partial class PdfPageRenderer
                     || softMask.Width != sourceWidth || softMask.Height != sourceHeight)
                 || colorKeyMask is not null && (smoothImage || areaSamples)
                 || graphicsSoftMask is not null || knockout is not null || overprint || jpeg2000
-                || colorSpace.Profile is not null || colorSpace.Converter is not null
+                || colorSpace.Profile is not null && !preciseIcc || colorSpace.Converter is not null
                 || colorSpace.MultiConverter is not null || colorSpace.Palette is not null
-                || colorSpace.HasIccSource || components is not (1 or 3) || bits is not (8 or 16)
+                || colorSpace.HasIccSource && !preciseIcc || components is not (1 or 3) || bits is not (8 or 16)
+                || preciseIcc && (!naturalSamples || inverse.B != 0 || inverse.C != 0 || smoothImage
+                    || softMask is not null || colorKeyMask is not null || preblendMatte is not null)
                 || !naturalSamples && (inverse.B != 0 || inverse.C != 0
                     || (sampleStepX > 1 || sampleStepY > 1) && !areaSamples)
                 || (smoothImage || areaSamples) && decode.Any(value => !double.IsFinite(value) || value < 0 || value > 1)
