@@ -15,7 +15,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 ### Added
 
 - Float32 page frames preserve precise device RGB/Gray and calibrated Gray fills, strokes, opacity and aligned 8/16-bit images, with explicit sRGB byte output. (#264)
-- Portable ICC conversion supports D50 XYZ linking and source-to-printer-to-display proof transforms with selected intent and black-point compensation. (#264)
+- Portable ICC conversion and printer proof transforms support selected intent, black-point compensation, paper and black simulation, and a paper-only viewing aid. (#264)
 - Native EPUB and DjVu readers cover metadata, navigation and text. DjVu adds bundled page order and initial Smmr bitonal rendering. (#472)
 
 ## [1.9.2] - 2026-11-02

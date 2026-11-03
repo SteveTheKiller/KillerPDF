@@ -77,6 +77,119 @@ public sealed class PdfProofTransformTests
         Assert.Equal(new double[] { 0.05 }, source);
     }
 
+    [Fact]
+    public void BlackSimulationPreservesPrinterBlackWithoutPaperSimulation()
+    {
+        var proof = new PdfProofTransform(Profile(gray: true), RaisedBlackGray(), Profile(gray: true),
+            new PdfProofOptions { SimulateBlack = true, SimulatePaper = false });
+        double[] source = [0];
+        double[] result = new double[1];
+        proof.Convert(source, result);
+        // Source BPC maps source black to printer black. Relative display
+        // conversion with BPC disabled preserves printer Y=8192/65535.
+        Assert.Equal(0.1250019073777371, result[0], 12);
+        Assert.Equal(new double[] { 0 }, source);
+    }
+
+    [Fact]
+    public void PaperAndBlackSimulationUseAbsolutePrinterViewingWithoutViewCompensation()
+    {
+        var printer = SampledGrayWithWhite(8738, 49152, "scnr");
+        var display = SampledGrayWithWhite(4369, 65536, "mntr");
+        var proof = new PdfProofTransform(printer, printer, display, new PdfProofOptions
+        {
+            RenderingIntent = PdfRenderingIntent.RelativeColorimetric,
+            BlackPointCompensation = false,
+            SimulatePaper = true,
+            SimulateBlack = true
+        });
+        double[] source = [0.5];
+        double[] result = new double[1];
+        proof.Convert(source, result);
+        // ICC.1:2022 section 6.3.2.2: absolute Y is relative Y times media white Y.
+        // Printer curve is 2/15+(13/15)t. At t=1/2, absolute Y=(3/4)(17/30)=17/40.
+        // Display inverse is (Y-1/15)/(14/15), giving 43/112 without view BPC.
+        Assert.Equal(0.38392857142857142857, result[0], 12);
+        Assert.Equal(new double[] { 0.5 }, source);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(0.5, 0.36607142857142857143)]
+    [InlineData(1, 0.73214285714285714286)]
+    public void PaperOnlyViewingPreservesPaperAndNormalizesPrinterBlack(double input, double expected)
+    {
+        var printer = SampledGrayWithWhite(8738, 49152, "scnr");
+        var display = SampledGrayWithWhite(4369, 65536, "mntr");
+        var proof = new PdfProofTransform(printer, printer, display, new PdfProofOptions
+        {
+            BlackPointCompensation = false,
+            SimulatePaper = true,
+            SimulateBlack = false
+        });
+        double[] result = new double[1];
+        proof.Convert([input], result);
+        // Viewing-aid policy maps absolute printer black Y=1/10 to display
+        // black Y=1/15 while preserving paper Y=3/4. At t=1/2 this gives
+        // Y=49/120, then display inverse (Y-1/15)/(14/15) is 41/112.
+        Assert.Equal(expected, result[0], 12);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PaperSimulationRequiresExplicitMediaWhiteForBothProfiles(bool missingPrinterWhite)
+    {
+        var printer = missingPrinterWhite ? Profile(gray: true)
+            : SampledGrayWithWhite(8738, 49152, "scnr");
+        var display = missingPrinterWhite ? SampledGrayWithWhite(4369, 65536, "mntr")
+            : Profile(gray: true);
+
+        Assert.Throws<NotSupportedException>(() => new PdfProofTransform(printer, printer, display,
+            new PdfProofOptions { SimulatePaper = true, SimulateBlack = true }));
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(4)]
+    public void PaperSimulationRejectsNonD50DisplayMediaWhite(byte version)
+    {
+        var printer = SampledGrayWithWhite(8738, 49152, "scnr");
+        var display = SampledGrayWithWhite(4369, 49152, "mntr", version);
+        Assert.Throws<NotSupportedException>(() => new PdfProofTransform(printer, printer, display,
+            new PdfProofOptions { SimulatePaper = true, SimulateBlack = true }));
+        // v2 non-D50 display white is ambiguous without a verified adaptation
+        // policy. v4 display media white must be PCS D50 (ICC.1:2022 9.2.36).
+    }
+
+    private static PdfColorProfile SampledGrayWithWhite(ushort black, int whiteY, string profileClass,
+        byte version = 4)
+    {
+        byte[] data = new byte[192];
+        Write32(data, 0, 192);
+        data[8] = version;
+        Encoding.ASCII.GetBytes(profileClass).CopyTo(data, 12);
+        "GRAY"u8.CopyTo(data.AsSpan(16));
+        "XYZ "u8.CopyTo(data.AsSpan(20));
+        "acsp"u8.CopyTo(data.AsSpan(36));
+        Write32(data, 128, 2);
+        "kTRC"u8.CopyTo(data.AsSpan(132));
+        Write32(data, 136, 156);
+        Write32(data, 140, 16);
+        "wtpt"u8.CopyTo(data.AsSpan(144));
+        Write32(data, 148, 172);
+        Write32(data, 152, 20);
+        "curv"u8.CopyTo(data.AsSpan(156));
+        Write32(data, 164, 2);
+        BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(168), black);
+        BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(170), 65535);
+        "XYZ "u8.CopyTo(data.AsSpan(172));
+        Write32(data, 180, 63190);
+        Write32(data, 184, whiteY);
+        Write32(data, 188, 54061);
+        return PdfColorProfile.Load(data);
+    }
+
     private static PdfColorProfile MediaWhiteGray()
     {
         byte[] data = new byte[188];

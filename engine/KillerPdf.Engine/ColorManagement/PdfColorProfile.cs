@@ -11,6 +11,12 @@ public sealed class PdfColorProfile
     private PdfColorProfile(PdfIccProfileTransform transform) => _transform = transform;
 
     internal int ComponentCount => _transform.Components;
+    internal bool HasExplicitValidMediaWhite => _transform.HasExplicitValidMediaWhite;
+    internal bool HasD50MediaWhite => _transform.HasD50MediaWhite;
+    internal bool HasColorimetricForward => _transform.ForIntent(3) is { HasColorimetricForward: true };
+    internal bool HasColorimetricReverse => _transform.ForIntent(3) is { HasColorimetricReverse: true };
+    internal void ReadPaperWhite(Span<double> xyz) => _transform.ReadPaperWhite(xyz);
+    internal void ReadPaperBlack(Span<double> xyz) => _transform.ReadPaperBlack(xyz);
 
     /// <summary>Converts device components into another profile through D50 XYZ.</summary>
     public void ConvertTo(PdfColorProfile destination, ReadOnlySpan<double> source, Span<double> result,

@@ -16,6 +16,9 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
     private double[]? _absoluteScale;
     private readonly double[]? _mediaWhiteScale;
     private readonly bool _invalidWhite;
+    private readonly bool _hasColorimetricForward;
+    private readonly bool _hasColorimetricReverse;
+    private readonly bool _hasPerceptualReverse;
     private readonly ReadOnlyMemory<byte> _tableData;
     private readonly Dictionary<ReadOnlyMemory<byte>, PdfIccTable>? _tables;
     private static readonly Lock IntentGate = new();
@@ -29,8 +32,54 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
     internal bool IsLutBased => _forward is not null;
     internal int RenderingIntent => _intent;
     internal bool SupportsBlackPointCompensation { get; }
+    internal bool HasExplicitValidMediaWhite => _mediaWhiteScale is not null && !_invalidWhite;
+    internal bool HasColorimetricForward => _curves is not null || _hasColorimetricForward;
+    internal bool HasColorimetricReverse => CanConvertFromXyz
+        && (_curves is not null || _hasColorimetricReverse);
+    internal bool HasD50MediaWhite => HasExplicitValidMediaWhite
+        && Math.Abs(_mediaWhiteScale![0] - 1) * 0.9642 <= 2d / 65536
+        && Math.Abs(_mediaWhiteScale[1] - 1) <= 2d / 65536
+        && Math.Abs(_mediaWhiteScale[2] - 1) * 0.8249 <= 2d / 65536;
     internal override int Components { get; }
     internal override bool SupportsBlending => !IsLabInput;
+    internal void ReadPaperBlack(Span<double> xyz)
+    {
+        var absolute = ForIntent(3)
+            ?? throw new NotSupportedException("The ICC profile has no absolute colorimetric transform.");
+        Span<double> deviceBlack = stackalloc double[Components];
+        deviceBlack.Clear();
+        if (Components == 4)
+        {
+            var perceptual = ForIntent(0);
+            if (!_hasPerceptualReverse || perceptual is not { HasReverseLut: true })
+                throw new NotSupportedException("CMYK paper-only viewing requires a perceptual reverse table for black estimation.");
+            // ICC black estimation convention: request PCS zero through B2A0,
+            // then measure those device coordinates with colorimetric forward.
+            // This does not claim a physical darkest black or use 400% ink.
+            perceptual.FromXyz([0, 0, 0], deviceBlack);
+        }
+        else if (IsLabInput)
+            throw new NotSupportedException("The ICC profile has no supported paper-viewing black endpoint.");
+        absolute.ToXyz(deviceBlack, xyz);
+    }
+    internal void ReadPaperWhite(Span<double> xyz)
+    {
+        if (IsLabInput || !HasExplicitValidMediaWhite)
+            throw new NotSupportedException("The ICC profile has no supported paper-white endpoint.");
+        var absolute = ForIntent(3)
+            ?? throw new NotSupportedException("The ICC profile has no absolute colorimetric transform.");
+        Span<double> deviceWhite = stackalloc double[Components];
+        deviceWhite.Fill(Components == 4 ? 0 : 1);
+        absolute.ToXyz(deviceWhite, xyz);
+        ReadOnlySpan<double> reference = [0.9642, 1, 0.8249];
+        // Conservative endpoint reliability policy, allowing small LUT and tag
+        // encoding differences up to 0.001 PCS XYZ units per channel.
+        const double whiteEndpointTolerance = 0.001;
+        for (int channel = 0; channel < 3; channel++)
+            if (!double.IsFinite(xyz[channel])
+                || Math.Abs(xyz[channel] - _mediaWhiteScale![channel] * reference[channel]) > whiteEndpointTolerance)
+                throw new NotSupportedException("The ICC forward white endpoint disagrees with its declared media white.");
+    }
     internal override bool HasSameIdentity(PdfColorTransform? other) => ReferenceEquals(this, other)
         || other is PdfIccProfileTransform profile && _intent == profile._intent
             && _profileFingerprint.AsSpan().SequenceEqual(profile._profileFingerprint);
@@ -81,6 +130,9 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
                 || !tags.TryAdd(name, data.Slice((int)offset, (int)size)))
                 throw new FormatException("An ICC profile tag has invalid bounds or a duplicate signature.");
         }
+        _hasColorimetricForward = tags.ContainsKey("A2B1");
+        _hasColorimetricReverse = tags.ContainsKey("B2A1");
+        _hasPerceptualReverse = tags.ContainsKey("B2A0");
         if (tags.ContainsKey("A2B0") || tags.ContainsKey("A2B1") || tags.ContainsKey("A2B2"))
         {
             _tableData = data[..(int)length];
