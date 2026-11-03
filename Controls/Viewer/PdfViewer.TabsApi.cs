@@ -50,6 +50,15 @@ namespace KillerPDF.Controls
 
         private static ComparisonDocument? ComparisonDocumentFromSession(DocumentSession? session)
         {
+            if (session?.NativeDoc != null) return null;
+            if (session?.Doc == null)
+            {
+                string extension = System.IO.Path.GetExtension(session?.DeferredPath ?? session?.OriginalFile ?? "");
+                if (string.Equals(extension, ".djvu", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(extension, ".djv", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(extension, ".epub", StringComparison.OrdinalIgnoreCase))
+                    return null;
+            }
             string? working = session?.CurrentFile ?? session?.DeferredPath ?? session?.OriginalFile;
             // Pane B reopens the chosen document from its saved file, so a document with no saved
             // home (a new blank document, a browser download) cannot be offered.

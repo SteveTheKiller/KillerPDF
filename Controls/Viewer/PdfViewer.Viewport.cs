@@ -871,7 +871,7 @@ namespace KillerPDF.Controls
         private async Task RenderPrimaryAsync(int pageIndex, bool keepTiles)
         {
             CancelPrimaryRender();
-            if (_currentFile is null || _doc is null) return;
+            if (_currentFile is null || !HasReadDocument) return;
             // Cancel any adjacent-page prefetch from the previous page; a new prefetch is
             // scheduled at the tail of this render.
             CancelAdjacentPrefetch();
@@ -894,6 +894,7 @@ namespace KillerPDF.Controls
             var primaryToken = primaryCts.Token;
             long generation = _primaryRenderGeneration;
             var primarySession = _active;
+            var primaryNative = _nativeDoc;
             string primaryFile = _currentFile;
             long primaryRevision = primarySession?.RenderRevision ?? 0;
             var primaryMode = _viewMode;
@@ -907,6 +908,7 @@ namespace KillerPDF.Controls
             }
             bool Current() => !primaryToken.IsCancellationRequested && generation == _primaryRenderGeneration
                 && ReferenceEquals(primarySession, _active) && primaryFile == _currentFile
+                && ReferenceEquals(primaryNative, _nativeDoc)
                 && primaryRevision == (_active?.RenderRevision ?? 0) && primaryMode == _viewMode
                 && primaryInvert == DocInvert;
             try
@@ -938,11 +940,24 @@ namespace KillerPDF.Controls
                 }
                 else
                 {
-                    var request = _backgroundRenderCache.Capture(primaryFile, primaryRevision, _protection);
-                    var (preparedBitmap, preparedMeasurement) = await _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
-                        8L * scaledMax * scaledMax,
-                        token => PreparePrimaryBitmap(request, pageIndex, scaledMax, pgRot, primaryInvert, token),
-                        primaryToken);
+                    Task<(BitmapSource Bitmap, RenderMeasurement Measurement)> render;
+                    if (primaryNative is not null)
+                    {
+                        var revision = primaryNative.CaptureReadRevision();
+                        render = _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
+                            40L * scaledMax * scaledMax,
+                            token => PrepareNativePrimaryBitmap(revision, pageIndex, scaledMax, pgRot, primaryInvert, token),
+                            primaryToken);
+                    }
+                    else
+                    {
+                        var request = _backgroundRenderCache.Capture(primaryFile, primaryRevision, _protection);
+                        render = _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
+                            8L * scaledMax * scaledMax,
+                            token => PreparePrimaryBitmap(request, pageIndex, scaledMax, pgRot, primaryInvert, token),
+                            primaryToken);
+                    }
+                    var (preparedBitmap, preparedMeasurement) = await render;
                     if (!Current()) return;
                     bitmap = preparedBitmap;
                     LastPrimaryRenderMeasurement = preparedMeasurement;
@@ -974,7 +989,7 @@ namespace KillerPDF.Controls
                 if (!keepTiles) ClearSecondaryPages();
                 _pages[pageIndex] = _annotationCanvas;   // the primary is a normal entry in the unified map
                 RenderAllAnnotations(pageIndex);
-                SetStatus(string.Format(Loc("Str_PageOf"), pageIndex + 1, _doc!.PageCount));
+                SetStatus(string.Format(Loc("Str_PageOf"), pageIndex + 1, ReadPageCount));
                 // Defer additional pages until layout has settled so ActualWidth is valid.
                 // RenderPageLinks runs AFTER RenderAdditionalPages so ClearSecondaryPages
                 // inside RenderAdditionalPages doesn't wipe the overlays we just added.
@@ -1466,11 +1481,11 @@ namespace KillerPDF.Controls
             {
                 Host.CloseFileEnabled = true;
                 Host.PageJumpEnabled = true;
-                Host.PageTotalText = $"/ {_doc!.PageCount}";
+                Host.PageTotalText = $"/ {ReadPageCount}";
             }
-            if (_doc!.PageCount > 0)
+            if (ReadPageCount > 0)
             {
-                int page = Math.Max(0, Math.Min(initialPage, _doc.PageCount - 1));
+                int page = Math.Max(0, Math.Min(initialPage, ReadPageCount - 1));
                 // Show the panel that matches THIS tab's view mode. This must run for every mode, not
                 // only Continuous: switching from a Continuous tab to a Single/Two-Page/Grid tab has to
                 // collapse the continuous panel, otherwise the previous tab's continuous render stays on
@@ -1779,11 +1794,10 @@ namespace KillerPDF.Controls
         private bool TryDisplayZoomFactor(out double factor)
         {
             factor = 1.0;
-            if (_doc is null) return false;
+            if (!HasReadDocument) return false;
             if (_viewMode == ViewMode.Continuous) return true;
-            PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
             int idx = _viewMode == ViewMode.Grid ? 0 : Math.Max(0, State.CurrentPage);   // never the shared sidebar's index (see ApplyZoom)
-            if (idx < 0 || idx >= engineSession.PageCount) return false;
+            if (idx < 0 || idx >= ReadPageCount) return false;
             if (!_renderDims.TryGetValue(idx, out var d) || d.w <= 0) return false;
             double displayedWidth = d.w;
             if (_viewMode == ViewMode.TwoPage && idx != SpreadStart(idx))
@@ -1791,7 +1805,7 @@ namespace KillerPDF.Controls
                 if (!TryGetSecondaryPageSize(idx, out var size)) return false;
                 displayedWidth = size.w;
             }
-            var (wpt, _) = engineSession.PhysicalPageSize(idx, _pageRotations);
+            var (wpt, _) = ReadPhysicalPageSize(idx);
             double naturalW = wpt * 96.0 / 72.0;
             if (!double.IsFinite(naturalW) || naturalW <= 0) return false;
             factor = displayedWidth / naturalW;
@@ -1875,7 +1889,7 @@ namespace KillerPDF.Controls
 
         private bool DeferTrueZoom(double requested)
         {
-            if (_active is null || _doc is null || TryDisplayZoomFactor(out _) || double.IsNaN(requested)) return false;
+            if (_active is null || !HasReadDocument || TryDisplayZoomFactor(out _) || double.IsNaN(requested)) return false;
             _fitMode = FitMode.None;
             _active.PendingFitRestore = null;
             _active.PendingZoom = new DeferredManualZoom(double.IsPositiveInfinity(requested) ? double.MaxValue
@@ -1885,7 +1899,7 @@ namespace KillerPDF.Controls
 
         private bool DeferFit(FitMode fit)
         {
-            if (_active is null || _doc is null) return false;
+            if (_active is null || !HasReadDocument) return false;
             bool ready = TryDisplayZoomFactor(out _)
                 && IsFitLayoutReady(fit)
                 && (_viewMode == ViewMode.Continuous ? _continuousPageW > 0 : PageImage.Source != null);
@@ -2168,7 +2182,7 @@ namespace KillerPDF.Controls
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax,
                 Math.Min(slotW2 / dipW, viewH / dipH2)));
             ApplyZoom(lite);
-            SetStatus(string.Format(Loc("Str_FitPage"), idx + 1, _doc!.PageCount, $"{DisplayZoomPct():F0}"));
+            SetStatus(string.Format(Loc("Str_FitPage"), idx + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
         }
 
         // Re-fit the main view after a reload. Grid keeps its column-fit (FitToWidth alone would

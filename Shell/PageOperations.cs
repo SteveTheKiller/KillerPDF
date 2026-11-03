@@ -382,13 +382,14 @@ namespace KillerPDF.Shell
             _thumbCts = freshCts;
             var ct = freshCts.Token;
 
-            if (_doc is null || _currentFile is null)
+            var nativeRevision = thumbnailOwner.NativeDocumentRef?.CaptureReadRevision();
+            if ((_doc is null && nativeRevision is null) || _currentFile is null)
             {
                 _sidebarPages.Show(null);
                 return;
             }
 
-            int    pageCount = EnsureEngineDocumentSession().Pages.Count;
+            int    pageCount = nativeRevision?.PageCount ?? EnsureEngineDocumentSession().Pages.Count;
             string filePath  = _currentFile;
             OpenedProtection protection = _protection;
             int preservedPage = ActiveViewer.CurrentPageIndex;
@@ -405,9 +406,10 @@ namespace KillerPDF.Shell
             for (int i = 0; i < pageCount; i++)
             {
                 rotSnap.TryGetValue(i, out int rot);
-                items[i] = new PageThumbnailVm(i, filePath, protection, rot);
+                items[i] = nativeRevision is not null ? new PageThumbnailVm(i, nativeRevision, rot)
+                    : new PageThumbnailVm(i, filePath, protection, rot);
                 // Seed with stale thumbnail - better than blank while reloading
-                if (oldItems != null && i < oldItems.Length)
+                if (nativeRevision is null && oldItems != null && i < oldItems.Length)
                 {
                     var prev = oldItems[i].Thumbnail;
                     if (prev != null) items[i].SetThumbnailDirect(prev);
@@ -427,12 +429,24 @@ namespace KillerPDF.Shell
             {
                 try
                 {
-                    using var renderSession = PdfPageRenderSession.OpenEngineFirst(filePath, 128, 256, protection);
+                    using var renderSession = nativeRevision is null
+                        ? PdfPageRenderSession.OpenEngineFirst(filePath, 128, 256, protection) : null;
                     for (int i = 0; i < pageCount; i++)
                     {
                         if (ct.IsCancellationRequested) return;
                         try
                         {
+                            if (nativeRevision is not null)
+                            {
+                                rotSnap.TryGetValue(i, out int nativeRotation);
+                                var nativeThumb = PageThumbnailVm.BuildNativeThumb(nativeRevision, i,
+                                    nativeRotation, 128, 256, ct);
+                                if (nativeThumb is not null && !ct.IsCancellationRequested)
+                                    items[i].SetThumbnail(nativeThumb);
+                                continue;
+                            }
+                            if (renderSession is null)
+                                throw new InvalidOperationException("A PDF thumbnail renderer is required.");
                             PdfRenderedPage page = renderSession.RenderPreview(i);
                             int tw = page.Width;
                             int th = page.Height;

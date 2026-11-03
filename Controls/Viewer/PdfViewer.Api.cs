@@ -73,15 +73,15 @@ namespace KillerPDF.Controls
         internal void ShowMissingComparisonPageExt(int page, string text)
             => ShowMissingComparisonPage(page, text);
         internal string? CurrentFilePathExt => _currentFile;
-        internal int PageCountExt => _doc?.PageCount ?? 0;
+        internal int PageCountExt => ReadPageCount;
         internal (string Label, string Details, bool Metric, string Pixels, string Inches,
             string Millimeters, string Points)? CurrentPageSizeExt(bool? metric = null, bool imagePixels = false)
         {
             int page = State.CurrentPage;
-            if (_doc is null || page < 0 || page >= _doc.PageCount) return null;
-            PdfEngineDocumentSession session = EnsureEngineDocumentSession();
-            var (width, height) = session.PhysicalPageSize(page, _pageRotations);
-            return PageSizeFormatter.Format(width, height, metric, imagePixels ? session.PageImagePixels(page, _pageRotations) : null);
+            if (!HasReadDocument || page < 0 || page >= ReadPageCount) return null;
+            var (width, height) = ReadPhysicalPageSize(page);
+            return PageSizeFormatter.Format(width, height, metric,
+                imagePixels && _nativeDoc is null ? EnsureEngineDocumentSession().PageImagePixels(page, _pageRotations) : null);
         }
         internal double ZoomLevelExt => _zoomLevel;
         internal void SetZoomExt(double level) => SetZoom(level);

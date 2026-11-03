@@ -148,11 +148,12 @@ namespace KillerPDF.Shell
         private void RefreshToolbarAvailability()
         {
             bool hasDoc = _doc is not null;
+            bool hasReadingDocument = ActiveViewer.HasReadDocumentExt;
             foreach (UIElement control in new UIElement[] { PageSizeLabel, ViewContinuousRadio, ViewSingleRadio,
                          ViewTwoPageRadio, ViewGridRadio, FooterDisplayControls, ZoomOutBtn, ZoomBox, ZoomInBtn })
             {
-                control.IsEnabled = hasDoc;
-                control.Opacity = hasDoc ? 1 : .4;
+                control.IsEnabled = hasReadingDocument;
+                control.Opacity = hasReadingDocument ? 1 : .4;
             }
             bool pendingText = ActiveViewer.HasPendingTextEditExt;
             var state = new ToolbarAvailability.State(hasDoc,

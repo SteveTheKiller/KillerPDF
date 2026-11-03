@@ -37,6 +37,10 @@ namespace KillerPDF
         private readonly string _filePath = filePath;
         private readonly Services.OpenedProtection? _protection = protection;   // the tab's, so its own file reads under its key
         private readonly int    _rotation = ((rotation % 360) + 360) % 360; // degrees: 0, 90, 180, 270
+        private readonly PdfCapturedReadRevision? _nativeRevision;
+
+        internal PageThumbnailVm(int pageIndex, PdfCapturedReadRevision revision, int rotation = 0)
+            : this(pageIndex, string.Empty, null, rotation) => _nativeRevision = revision;
 
         public BitmapSource? Thumbnail => _thumb;
 
@@ -77,11 +81,25 @@ namespace KillerPDF
             await _loadSem.WaitAsync().ConfigureAwait(false);
             try
             {
-                var src = BuildThumb(_filePath, _protection, PageIndex, _rotation);
+                var src = _nativeRevision is not null
+                    ? BuildNativeThumb(_nativeRevision, PageIndex, _rotation, 288, 576, CancellationToken.None)
+                    : BuildThumb(_filePath, _protection, PageIndex, _rotation);
                 if (src != null) SetThumbnail(src);
             }
             catch { /* thumbnail not critical */ }
             finally { _loadSem.Release(); }
+        }
+
+        internal static BitmapSource? BuildNativeThumb(PdfCapturedReadRevision revision, int pageIndex,
+            int rotation, int maximumWidth, int maximumHeight, CancellationToken cancellationToken)
+        {
+            var frame = Controls.PdfViewer.RenderNativeFrame(revision, pageIndex, maximumWidth, maximumHeight, cancellationToken);
+            int width = frame.Width, height = frame.Height;
+            byte[] pixels = frame.ToSrgbBgra32(cancellationToken);
+            if (rotation != 0)
+                (pixels, width, height) = BitmapHelpers.RotateBitmap(pixels, width, height, rotation);
+            cancellationToken.ThrowIfCancellationRequested();
+            return EncodeToBitmapSource(pixels, width, height);
         }
 
         internal static BitmapSource? BuildThumb(string filePath, Services.OpenedProtection? protection, int pageIndex, int rotation = 0)

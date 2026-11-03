@@ -1,0 +1,258 @@
+using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Windows;
+using System.Windows.Automation.Peers;
+using System.Windows.Automation.Provider;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+
+internal static class NativeReadingSmoke
+{
+    internal static int Run(Window owner, string appPath, string folder)
+    {
+        string stage = "fixture";
+        var events = new List<object>();
+        var modals = new List<object>();
+        var sources = new Dictionary<string, byte[]>();
+        Exception? failure = null;
+        bool control = false, native = false;
+        Assembly engine = Assembly.Load("KillerPdf.Engine");
+        var timer = new DispatcherTimer(DispatcherPriority.Send) { Interval = TimeSpan.FromMilliseconds(25) };
+        var seen = new HashSet<Window>();
+        var deadline = Stopwatch.StartNew();
+        timer.Tick += (_, _) =>
+        {
+            if (deadline.Elapsed > TimeSpan.FromSeconds(100))
+                failure ??= new TimeoutException("Overall native reading deadline expired at " + stage);
+            foreach (Window window in Application.Current.Windows.Cast<Window>()
+                .Where(window => window != owner && window.IsVisible).ToArray())
+            {
+                if (seen.Add(window)) modals.Add(new { stage, type = window.GetType().FullName, window.Title,
+                    text = string.Join("\n", Descendants<TextBlock>(window).Select(block => block.Text)) });
+                // Application.Windows belongs to this isolated host, never another process.
+                try { window.Close(); }
+                catch (Exception error) { failure ??= error; }
+            }
+        };
+        try
+        {
+            Type builderType = engine.GetType("KillerPdf.Engine.Authoring.PdfDocumentBuilder", true)!;
+            ConstructorInfo constructor = builderType.GetConstructors().Single();
+            dynamic builder = constructor.Invoke(constructor.GetParameters().Select(p => p.DefaultValue).ToArray());
+            sources.Add(Path.Combine(folder, "blank-control.pdf"), (byte[])builder.AddBlankPage(300d, 200d).Build());
+            sources.Add(Path.Combine(folder, "native-upright.djvu"), DjvuFixture());
+            foreach (var source in sources) File.WriteAllBytes(source.Key, source.Value);
+            owner.WindowState = WindowState.Normal;
+            owner.Width = Math.Min(1000, SystemParameters.WorkArea.Width - 64);
+            owner.Height = Math.Min(800, SystemParameters.WorkArea.Height - 64);
+            owner.Activate();
+            timer.Start();
+            ImageSource? previous = null;
+            foreach (var source in sources)
+            {
+                bool isNative = source.Key.EndsWith(".djvu", StringComparison.Ordinal);
+                stage = isNative ? "native-open" : "control-open";
+                MethodInfo open = owner.GetType().GetMethod("OpenFromExternal", BindingFlags.Public | BindingFlags.Instance)
+                    ?? throw new MissingMethodException("MainWindow.OpenFromExternal");
+                try { open.Invoke(owner, [source.Key]); }
+                catch (TargetInvocationException error) when (error.InnerException is not null)
+                { ExceptionDispatchInfo.Capture(error.InnerException).Throw(); throw; }
+                stage = isNative ? "native-readiness" : "control-readiness";
+                Wait(() => owner.IsLoaded && owner.IsVisible && owner.IsEnabled
+                    && Named<RadioButton>(owner, "ViewSingleRadio") is { IsVisible: true, IsEnabled: true });
+                var radio = Named<RadioButton>(owner, "ViewSingleRadio")!;
+                var peer = UIElementAutomationPeer.CreatePeerForElement(radio) ?? new RadioButtonAutomationPeer(radio);
+                ((ISelectionItemProvider)peer.GetPattern(PatternInterface.SelectionItem)!).Select();
+                Image? page = null;
+                Rect last = Rect.Empty;
+                Rect lastWindow = Rect.Empty, lastViewport = Rect.Empty;
+                ImageSource? stableSource = null;
+                int stable = 0;
+                Wait(() =>
+                {
+                    owner.UpdateLayout();
+                    if (Named<TextBlock>(owner, "FileNameLabel") is not { IsVisible: true } label
+                        || label.Text != Path.GetFileName(source.Key)
+                        || Named<ListBox>(owner, "PageList") is not { IsVisible: true, IsEnabled: true } list
+                        || list.Items.Count != 1) return false;
+                    var viewport = Descendants<ScrollViewer>(owner).SingleOrDefault(v => v.Name == "PagePreviewPanel" && v.IsVisible);
+                    if (viewport is null || !viewport.IsEnabled || viewport.Opacity < .999) { stable = 0; return false; }
+                    Image[] pages = Descendants<Image>(viewport).Where(i => i.IsVisible && i.IsEnabled
+                        && i.Source is BitmapSource && i.ActualWidth > 20 && i.ActualHeight > 20).ToArray();
+                    if (pages.Length != 1 || ReferenceEquals(pages[0].Source, previous)) return false;
+                    page = pages[0];
+                    for (DependencyObject? visual = page; visual is Visual; visual = VisualTreeHelper.GetParent(visual))
+                        if (visual is UIElement { Opacity: < .999 }) { stable = 0; return false; }
+                    Rect bounds = ScreenBounds(page);
+                    ScrollContentPresenter? presenter = Descendants<ScrollContentPresenter>(viewport)
+                        .SingleOrDefault(element => element.IsVisible);
+                    if (presenter is null) return false;
+                    Rect visibleViewport = ScreenBounds(presenter), windowBounds = ScreenBounds(owner);
+                    if (!visibleViewport.Contains(bounds) || !windowBounds.Contains(bounds)) return false;
+                    Rect work = new(owner.PointToScreen(new Point(SystemParameters.WorkArea.Left - owner.Left,
+                        SystemParameters.WorkArea.Top - owner.Top)), new Size(SystemParameters.WorkArea.Width * VisualTreeHelper.GetDpi(owner).DpiScaleX,
+                        SystemParameters.WorkArea.Height * VisualTreeHelper.GetDpi(owner).DpiScaleY));
+                    if (!work.Contains(bounds) || Math.Abs(bounds.Width / bounds.Height - 1.5) > .03) return false;
+                    stable = bounds == last && lastWindow == windowBounds && lastViewport == visibleViewport
+                        && ReferenceEquals(stableSource, page.Source) ? stable + 1 : 0;
+                    last = bounds; lastWindow = windowBounds; lastViewport = visibleViewport; stableSource = page.Source;
+                    return stable >= 5;
+                });
+                previous = page!.Source;
+                stage = isNative ? "native-pixels" : "control-pixels";
+                var ancestry = new List<object>();
+                for (DependencyObject? visual = page; visual is Visual; visual = VisualTreeHelper.GetParent(visual))
+                    if (visual is FrameworkElement element)
+                        ancestry.Add(new { type = element.GetType().FullName, element.Name, element.Opacity,
+                            element.IsVisible, element.ActualWidth, element.ActualHeight,
+                            bounds = ScreenBounds(element).ToString(), effect = element.Effect?.GetType().FullName });
+                var sourceBitmap = (BitmapSource)page.Source;
+                var sourceEncoder = new PngBitmapEncoder();
+                sourceEncoder.Frames.Add(BitmapFrame.Create(sourceBitmap));
+                using (var sourceOutput = File.Create(Path.Combine(folder, isNative ? "native-source-diagnostic.png" : "control-source-diagnostic.png")))
+                    sourceEncoder.Save(sourceOutput);
+                events.Add(new { stage, diagnostic = "source-and-ancestry", sourceBitmap.PixelWidth,
+                    sourceBitmap.PixelHeight, format = sourceBitmap.Format.ToString(), sourceBitmap.DpiX,
+                    sourceBitmap.DpiY, tooltip = page.ToolTip?.ToString(), ancestry });
+                var capture = Capture(owner, last);
+                string path = Path.Combine(folder, isNative ? "native-page.png" : "blank-control-page.png");
+                var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(capture));
+                using (var output = File.Create(path)) encoder.Save(output);
+                double[] upper = Patch(capture, .125, .125), upperRight = Patch(capture, .875, .125), lower = Patch(capture, .875, .875);
+                bool whiteUpper = upper.All(value => value >= 224);
+                bool whiteLower = lower.All(value => value >= 224);
+                bool blackUpperRight = upperRight.All(value => value <= 32);
+                bool detector = whiteUpper && blackUpperRight && whiteLower;
+                events.Add(new { stage, filename = Path.GetFileName(source.Key), pages = 1, bounds = last.ToString(), upper, upperRight, lower, detector });
+                if (isNative ? !detector : !whiteUpper || !whiteLower || !upperRight.All(value => value >= 224) || detector)
+                    throw new InvalidOperationException(isNative ? "Native white/black screen detector failed." : "Blank PDF absence control failed.");
+                if (isNative) native = true; else control = true;
+            }
+
+            void Wait(Func<bool> ready)
+            {
+                var watch = Stopwatch.StartNew();
+                while (true)
+                {
+                    owner.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                    if (failure is not null) ExceptionDispatchInfo.Capture(failure).Throw();
+                    if (modals.Count > 0) throw new InvalidOperationException("Unexpected isolated-host modal during " + stage);
+                    if (ready()) return;
+                    if (watch.Elapsed > TimeSpan.FromSeconds(30)) throw new TimeoutException("Readiness deadline expired at " + stage);
+                    Thread.Sleep(25);
+                }
+            }
+        }
+        catch (Exception error) { failure = error; }
+        finally
+        {
+            timer.Stop();
+            bool preserved = sources.All(source => File.Exists(source.Key) && File.ReadAllBytes(source.Key).AsSpan().SequenceEqual(source.Value));
+            bool passed = control && native && preserved && failure is null && modals.Count == 0;
+            File.WriteAllText(Path.Combine(folder, "result.json"), JsonSerializer.Serialize(new
+            {
+                passed, stage, control, native, preserved, machine = Environment.MachineName,
+                failureKind = failure is null ? null : stage == "fixture" ? "fixture"
+                    : modals.Count > 0 ? "unexpected-modal" : stage.EndsWith("readiness", StringComparison.Ordinal)
+                    ? "readiness-or-locator" : stage.EndsWith("open", StringComparison.Ordinal) ? "open" : "rendered-pixels",
+                error = failure?.ToString(), modals, events,
+                binaries = new[] { appPath, engine.Location, typeof(NativeReadingSmoke).Assembly.Location }
+                    .Select(path => new { path, sha256 = string.IsNullOrEmpty(path) ? null : Hash(File.ReadAllBytes(path)) }).ToArray(),
+                loadedEngine = new { engine.FullName, engine.ManifestModule.ModuleVersionId, engine.Location },
+                inputs = sources.Select(source => new { path = source.Key, length = source.Value.Length, sha256 = Hash(source.Value) }).ToArray()
+            }, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        return control && native && failure is null && modals.Count == 0
+            && sources.All(source => File.ReadAllBytes(source.Key).AsSpan().SequenceEqual(source.Value)) ? 0 : 1;
+    }
+
+    private static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
+    private static T? Named<T>(DependencyObject root, string name) where T : FrameworkElement =>
+        Descendants<T>(root).SingleOrDefault(element => element.Name == name);
+    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match) yield return match;
+            foreach (T nested in Descendants<T>(child)) yield return nested;
+        }
+    }
+    private static Rect ScreenBounds(FrameworkElement element)
+    {
+        Point a = element.PointToScreen(new Point()), b = element.PointToScreen(new Point(element.ActualWidth, element.ActualHeight));
+        return new Rect(a, b);
+    }
+    private static double[] Patch(BitmapSource image, double x, double y)
+    {
+        int px = (int)(image.PixelWidth * x), py = (int)(image.PixelHeight * y);
+        var patch = new Int32Rect(px - 2, py - 2, 5, 5);
+        byte[] bytes = new byte[100]; image.CopyPixels(patch, bytes, 20, 0);
+        return Enumerable.Range(0, 3).Select(channel => Enumerable.Range(0, 25).Average(i => bytes[i * 4 + channel])).ToArray();
+    }
+    private static byte[] DjvuFixture() => [.. "AT&T"u8, .. Chunk("FORM", [.. "DJVU"u8,
+        .. Chunk("INFO", [0, 3, 0, 2, 26, 0, 0x2c, 1, 22, 1]),
+        .. Chunk("Smmr", [.. "MMR"u8, 0, 0, 3, 0, 2, 0x23, 0xe1, 0x80, 0x08, 0, 0x80])])];
+    private static byte[] Chunk(string id, byte[] payload) => [.. System.Text.Encoding.ASCII.GetBytes(id),
+        (byte)(payload.Length >> 24), (byte)(payload.Length >> 16), (byte)(payload.Length >> 8), (byte)payload.Length,
+        .. payload, .. (payload.Length % 2 == 1 ? new byte[1] : [])];
+
+    private static BitmapSource Capture(Window owner, Rect bounds)
+    {
+        int left = (int)Math.Ceiling(bounds.Left), top = (int)Math.Ceiling(bounds.Top);
+        int width = (int)Math.Floor(bounds.Right) - left, height = (int)Math.Floor(bounds.Bottom) - top;
+        if (width < 40 || height < 40 || width > 4096 || height > 4096) throw new InvalidOperationException("Invalid owned capture size.");
+        IntPtr hwnd = new WindowInteropHelper(owner).Handle;
+        foreach (var point in new[] { new NativePoint(left + 1, top + 1), new(left + width - 2, top + 1),
+            new(left + 1, top + height - 2), new(left + width - 2, top + height - 2), new(left + width / 2, top + height / 2) })
+            if (GetAncestor(WindowFromPoint(point), 2) != hwnd) throw new InvalidOperationException("Capture rectangle is obscured by another window.");
+        IntPtr screen = IntPtr.Zero, dc = IntPtr.Zero, bitmap = IntPtr.Zero, old = IntPtr.Zero;
+        try
+        {
+            screen = GetDC(IntPtr.Zero); if (screen == IntPtr.Zero) throw new Win32Exception();
+            dc = CreateCompatibleDC(screen); if (dc == IntPtr.Zero) throw new Win32Exception();
+            bitmap = CreateCompatibleBitmap(screen, width, height); if (bitmap == IntPtr.Zero) throw new Win32Exception();
+            old = SelectObject(dc, bitmap); if (old == IntPtr.Zero || old == new IntPtr(-1)) throw new Win32Exception();
+            if (!BitBlt(dc, 0, 0, width, height, screen, left, top, 0x00CC0020)) throw new Win32Exception();
+            IntPtr restored = SelectObject(dc, old);
+            if (restored == IntPtr.Zero || restored == new IntPtr(-1)) throw new Win32Exception();
+            old = IntPtr.Zero;
+            byte[] pixels = new byte[checked(width * height * 4)];
+            var info = new BitmapInfo { Size = 40, Width = width, Height = -height, Planes = 1, BitCount = 32 };
+            if (GetDIBits(dc, bitmap, 0, (uint)height, pixels, ref info, 0) != height) throw new Win32Exception();
+            for (int i = 3; i < pixels.Length; i += 4) pixels[i] = 255;
+            return BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, width * 4);
+        }
+        finally
+        {
+            if (old != IntPtr.Zero && old != new IntPtr(-1)) SelectObject(dc, old);
+            if (bitmap != IntPtr.Zero) DeleteObject(bitmap);
+            if (dc != IntPtr.Zero) DeleteDC(dc);
+            if (screen != IntPtr.Zero) ReleaseDC(IntPtr.Zero, screen);
+        }
+    }
+    [StructLayout(LayoutKind.Sequential)] private readonly record struct NativePoint(int X, int Y);
+    [StructLayout(LayoutKind.Sequential)] private struct BitmapInfo
+    { public uint Size; public int Width, Height; public ushort Planes, BitCount; public uint Compression, SizeImage; public int XPels, YPels; public uint Used, Important, Colors; }
+    [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(NativePoint point);
+    [DllImport("user32.dll")] private static extern IntPtr GetAncestor(IntPtr hwnd, uint flags);
+    [DllImport("user32.dll", SetLastError = true)] private static extern IntPtr GetDC(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr hwnd, IntPtr dc);
+    [DllImport("gdi32.dll", SetLastError = true)] private static extern IntPtr CreateCompatibleDC(IntPtr dc);
+    [DllImport("gdi32.dll", SetLastError = true)] private static extern IntPtr CreateCompatibleBitmap(IntPtr dc, int width, int height);
+    [DllImport("gdi32.dll", SetLastError = true)] private static extern IntPtr SelectObject(IntPtr dc, IntPtr item);
+    [DllImport("gdi32.dll", SetLastError = true)] private static extern bool BitBlt(IntPtr target, int x, int y, int width, int height, IntPtr source, int sx, int sy, uint operation);
+    [DllImport("gdi32.dll", SetLastError = true)] private static extern int GetDIBits(IntPtr dc, IntPtr bitmap, uint start, uint lines, byte[] pixels, ref BitmapInfo info, uint usage);
+    [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr item);
+    [DllImport("gdi32.dll")] private static extern bool DeleteDC(IntPtr dc);
+}

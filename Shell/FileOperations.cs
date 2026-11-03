@@ -41,6 +41,14 @@ namespace KillerPDF.Shell
             // Record real user files in the recent list (skips blank/new docs, which don't open a path).
             if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path)) App.AddRecentFile(path);
 
+            if (System.IO.Path.GetExtension(path).ToLowerInvariant() is ".djvu" or ".djv")
+            {
+                OpenNativeFile(path);
+                return;
+            }
+            ActiveViewer.NativeDocumentRef?.Close();
+            ActiveViewer.NativeDocumentRef = null;
+
             // Files on UNC / network shares - notably the WSL \\wsl$ 9P filesystem - can hand
             // back partial reads, making the PDF parser see a truncated file ("Unexpected EOF").
             // Copy such files to a local temp via File.ReadAllBytes (which reads to EOF) and open

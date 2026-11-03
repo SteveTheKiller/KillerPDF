@@ -43,6 +43,23 @@ compatible PowerShell runtime. Pass `-Configuration Release` for the same assemb
 Keep that check as separate evidence. Maintenance uses its actual app PDFium renderer;
 development uses the KillerPDF engine renderer. This tooling preserves that architecture difference.
 
+## Native reading screen check
+
+After building the app and this test project, run
+`--verify-native-reading APP_DLL APP_XAML OUTPUT_DIRECTORY --session-isolation`
+only on an exclusively owned SN01 or SN02 with an unlocked interactive desktop.
+Use a fresh evidence directory. The case opens an owned blank PDF through the public
+window entry, then an owned bitonal DjVu, and selects Single view. It waits for stable
+visible bounds and fully opaque ancestors before capturing the actual owned page region.
+The white PDF must fail the native black-and-white detector; the DjVu must pass it.
+Both original files must remain byte-exact, and any unexpected owned modal fails the case.
+
+The result records the stage, original exception, binary/input identities and screen PNGs.
+Source bitmap and visual ancestry captures are diagnostic only. This case verifies the
+initial native reading path, not full format support, physical color accuracy or HDR.
+It sends no mouse or keyboard input. A self-contained publish of the test host can run
+on a VM without installing a shared runtime; the command arguments are the same.
+
 ## Field preset selection regression
 
 From the development checkout, after building the app and this test project:

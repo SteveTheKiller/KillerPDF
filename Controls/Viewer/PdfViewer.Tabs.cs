@@ -38,6 +38,8 @@ namespace KillerPDF.Controls
         internal sealed class DocumentSession : System.ComponentModel.INotifyPropertyChanged
         {
             public PdfWorkingDocument? Doc;
+            public NativeWorkingDocument? NativeDoc;
+            public bool HasReadDocument => Doc != null || NativeDoc != null;
             public string? CurrentFile;
             public string? OriginalFile;
             // Set on a restored tab that hasn't been loaded yet (lazy tabs): Doc stays null until the
@@ -215,6 +217,7 @@ namespace KillerPDF.Controls
         private void CaptureSessionState(DocumentSession s)
         {
             s.Doc            = _doc;
+            s.NativeDoc      = _nativeDoc;
             s.CurrentFile    = _currentFile;
             s.OriginalFile   = _originalFile;
             s.ZoomLevel      = _zoomLevel;
@@ -276,7 +279,7 @@ namespace KillerPDF.Controls
             // A restored lazy tab has a path but no loaded document yet. Theme and locale refreshes
             // can briefly enter its pane before materialization; its placeholder 100% view must not
             // replace the real saved view state that OpenFile is about to restore.
-            if (s.Doc != null && CanPersistViewportExt
+            if (s.HasReadDocument && CanPersistViewportExt
                 && (Host == null || Host.IsViewerFocused(this) || !Host.OtherViewerHasFile(this, s.OriginalFile)))
                 SaveDocState(s.OriginalFile, s.Fit, s.ZoomLevel, s.View, s.PageIndex,
                     s.ScrollH, s.ScrollV, PersistableTrueZoomExt);
@@ -351,6 +354,7 @@ namespace KillerPDF.Controls
         private void ApplySessionState(DocumentSession s)
         {
             _doc            = s.Doc;
+            _nativeDoc      = s.NativeDoc;
             _currentFile    = s.CurrentFile;
             _originalFile   = s.OriginalFile;
             // The immutable engine view belongs to the file we are switching away from. This is the
@@ -573,9 +577,17 @@ namespace KillerPDF.Controls
             CancelRenderWork();
             CloseEngineDocumentSession();
             foreach (var session in _sessions)
+            {
+                CancelAndRelease(session.ThumbCts);
+                session.ThumbCts = null;
                 Services.TabRelease.Release(session.Doc, session.Protection);
+                session.NativeDoc?.Close();
+                session.NativeDoc = null;
+            }
             Services.TabRelease.Release(_doc, _protection);   // the front tab's live state may be newer than its session
             _doc = null;
+            _nativeDoc?.Close();
+            _nativeDoc = null;
             _active = null;
             _sessions.Clear();
             _annotations.Clear();
@@ -627,7 +639,7 @@ namespace KillerPDF.Controls
         // has no pixels to repaint and must cause no side effects at all.
         internal void RepaintPixelsExt()
         {
-            if (_doc is null) return;
+            if (!HasReadDocument) return;
             if (_viewMode == ViewMode.Continuous)
             {
                 CancelAndRelease(_continuousSharpenCts);
@@ -648,7 +660,7 @@ namespace KillerPDF.Controls
 
         private void RenderActiveSession()
         {
-            if (_active == null || _active.Doc == null) { ShowEmptyState(); return; }
+            if (_active == null || !_active.HasReadDocument) { ShowEmptyState(); return; }
 
             DocumentSession session = _active;
             int viewportRestore = _tabViewportRestoreGate.Begin();
@@ -734,7 +746,7 @@ namespace KillerPDF.Controls
             if (_active != null) CaptureSessionState(_active);
 
             DocumentSession target;
-            if (_active != null && _active.Doc == null && _active.DeferredPath == null && !_active.LoadPending)
+            if (_active != null && !_active.HasReadDocument && _active.DeferredPath == null && !_active.LoadPending)
             {
                 target = _active;          // reuse the current empty tab (never a deferred or loading one)
                 createdNew = false;
@@ -781,7 +793,7 @@ namespace KillerPDF.Controls
             if (createdNew) _sessions.Remove(target);
             if (prev == null || !_sessions.Contains(prev))
                 prev = _sessions.LastOrDefault(session => !ReferenceEquals(session, target)
-                    && (session.Doc != null || session.DeferredPath != null));
+                    && (session.HasReadDocument || session.DeferredPath != null));
             if (prev == null)
             {
                 prev = !createdNew && _sessions.Contains(target) ? target : new DocumentSession();
@@ -790,7 +802,7 @@ namespace KillerPDF.Controls
             SetActiveSession(prev);
             ApplySessionState(prev);
             _asyncOpenPending = _sessions.Any(session => session.LoadPending);
-            if (prev.Doc == null && prev.DeferredPath != null) MaterializeDeferred(prev);
+            if (!prev.HasReadDocument && prev.DeferredPath != null) MaterializeDeferred(prev);
             else RenderActiveSession();
             RebuildTabStrip();
         }
@@ -816,7 +828,7 @@ namespace KillerPDF.Controls
             string full;
             try { full = System.IO.Path.GetFullPath(path); } catch { full = path; }
             return _sessions.FirstOrDefault(s =>
-                (s.Doc != null || s.DeferredPath != null) &&
+                (s.HasReadDocument || s.DeferredPath != null) &&
                 !string.IsNullOrEmpty(s.OriginalFile) &&
                 string.Equals(SafeFullPath(s.OriginalFile!), full, StringComparison.OrdinalIgnoreCase));
         }
@@ -841,7 +853,7 @@ namespace KillerPDF.Controls
                 SwitchToTab(existing);
                 SetStatus(string.Format(Loc("Str_St_AlreadyOpen"), System.IO.Path.GetFileName(path)));
                 return new Services.TabOpen(existing.LoadPending, _asyncOpenPending,
-                    existing.OpenCompletion?.Task ?? System.Threading.Tasks.Task.FromResult(existing.Doc != null));
+                    existing.OpenCompletion?.Task ?? System.Threading.Tasks.Task.FromResult(existing.HasReadDocument));
             }
 
             var target = BeginTabLoad(out var prev, out bool createdNew);
@@ -850,7 +862,7 @@ namespace KillerPDF.Controls
             target.OpenCompletion = completion;
             OpenFile(path);
             var opened = new Services.TabOpen(target.LoadPending, _asyncOpenPending, completion.Task);
-            if (_doc == null)
+            if (!HasReadDocument)
             {
                 // A background open (encryption strip / repair) finalizes this tab itself, so the
                 // not-yet-loaded _doc isn't a failure - leave the tab in place. Another tab's open
@@ -871,7 +883,7 @@ namespace KillerPDF.Controls
         // Cycle to the next (dir = +1) or previous (dir = -1) open document tab.
         private void CycleTab(int dir)
         {
-            var docTabs = _sessions.Where(t => t.Doc != null || t.DeferredPath != null).ToList();
+            var docTabs = _sessions.Where(t => t.HasReadDocument || t.DeferredPath != null).ToList();
             if (docTabs.Count < 2 || _active == null) return;
             int i = docTabs.IndexOf(_active);
             if (i < 0) return;
@@ -932,7 +944,7 @@ namespace KillerPDF.Controls
             // single/grid panel and the continuous panel, so one fade covers every view mode.
             PageContentGrid.BeginAnimation(UIElement.OpacityProperty, null);
             PageContentGrid.Opacity = 0;
-            if (target.Doc == null && target.DeferredPath != null)
+            if (!target.HasReadDocument && target.DeferredPath != null)
                 MaterializeDeferred(target);
             else
                 RenderActiveSession();
@@ -974,7 +986,7 @@ namespace KillerPDF.Controls
                 return;
             }
             OpenFile(path!);                  // loads into the live fields and renders the view
-            if (_doc == null)
+            if (!HasReadDocument)
             {
                 // Its background strip/repair finalizes the tab itself. The pending flag reaches the
                 // tab through the active session, so a target that is not active falls back to the pane's.
@@ -989,7 +1001,7 @@ namespace KillerPDF.Controls
         // Closes every open document tab except `keep` (each may prompt to save if dirty, like a manual close).
         private void CloseOtherTabs(DocumentSession keep)
         {
-            foreach (var s in _sessions.Where(z => !ReferenceEquals(z, keep) && (z.Doc != null || z.DeferredPath != null)).ToList())
+            foreach (var s in _sessions.Where(z => !ReferenceEquals(z, keep) && (z.HasReadDocument || z.DeferredPath != null)).ToList())
                 CloseTab(s);
         }
 
@@ -1031,6 +1043,8 @@ namespace KillerPDF.Controls
                 CancelAndRelease(s.ThumbCts);
                 s.ThumbCts = null;
                 Services.TabRelease.Release(s.Doc, s.Protection);   // its key decrypts nothing more
+                s.NativeDoc?.Close();
+                s.NativeDoc = null;
                 _sessions.Remove(s);
                 App.ForgetClosedWindowFile(s.OriginalFile);
                 _renderLru.Remove(s);
@@ -1065,6 +1079,9 @@ namespace KillerPDF.Controls
             CancelRenderWork();
             Services.TabRelease.Release(_doc, s.Protection);   // its key decrypts nothing more
             _doc = null;
+            _nativeDoc?.Close();
+            _nativeDoc = null;
+            s.NativeDoc = null;
 
             _sessions.Remove(s);
             App.ForgetClosedWindowFile(s.OriginalFile);
@@ -1087,7 +1104,7 @@ namespace KillerPDF.Controls
                 var next = _sessions[Math.Min(idx, _sessions.Count - 1)];
                 SetActiveSession(next);
                 ApplySessionState(next);
-                if (next.Doc == null && next.DeferredPath != null) MaterializeDeferred(next);
+                if (!next.HasReadDocument && next.DeferredPath != null) MaterializeDeferred(next);
                 else RenderActiveSession();
             }
             RebuildTabStrip();
@@ -1101,7 +1118,7 @@ namespace KillerPDF.Controls
             CommitActiveTextBox();
             if (_active != null) CaptureSessionState(_active);
 
-            var docTabs = _sessions.Where(t => t.Doc != null || t.DeferredPath != null).ToList();
+            var docTabs = _sessions.Where(t => t.HasReadDocument || t.DeferredPath != null).ToList();
             if (docTabs.Count == 0) return;
 
             if (docTabs.Any(t => t.IsDirty))
@@ -1121,10 +1138,16 @@ namespace KillerPDF.Controls
             foreach (var s in docTabs)
             {
                 App.ForgetClosedWindowFile(s.OriginalFile);
+                CancelAndRelease(s.ThumbCts);
+                s.ThumbCts = null;
                 Services.TabRelease.Release(s.Doc, s.Protection);
+                s.NativeDoc?.Close();
+                s.NativeDoc = null;
             }
             try { _doc?.Close(); } catch { }
             _doc = null;
+            _nativeDoc?.Close();
+            _nativeDoc = null;
 
             _sessions.Clear();
             App.RemoveSetting("LastFile");   // a manually emptied window won't reopen on launch
