@@ -4,7 +4,7 @@ namespace KillerPdf.Engine.Formats.Djvu;
 
 public sealed partial class DjvuDocument
 {
-    /// <summary>Reads up to 4 MiB of uncompressed page text and validates up to 65536 optional zones without changing embedded separators.</summary>
+    /// <summary>Reads up to 4 MiB of page text and validates up to 65536 optional zones without changing embedded separators.</summary>
     public string ReadText(int pageIndex, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -12,12 +12,15 @@ public sealed partial class DjvuDocument
         var form = _pageForms[pageIndex];
         var budget = 65_535;
         var chunks = ReadChunks(_data, form.Offset + 4, form.Offset + form.Length, cancellationToken, ref budget);
-        if (chunks.Any(c => c.Id == 0x5458547a))
-            throw new NotSupportedException("TXTz requires BZZ decoding, which is not implemented.");
-        if (chunks.Count(c => c.Id == 0x54585461) > 1) throw new InvalidDataException("A page contains duplicate TXTa chunks.");
-        var text = chunks.FirstOrDefault(c => c.Id == 0x54585461);
+        if (chunks.Count(c => c.Id is 0x54585461 or 0x5458547a) > 1)
+            throw new InvalidDataException("A page contains duplicate or conflicting text chunks.");
+        var text = chunks.FirstOrDefault(c => c.Id == 0x5458547a);
+        if (text.Id == 0) text = chunks.FirstOrDefault(c => c.Id == 0x54585461);
         if (text.Id == 0) return string.Empty;
-        var payload = _data.AsSpan(text.Offset, text.Length);
+        ReadOnlySpan<byte> payload = text.Id == 0x5458547a
+            ? DjvuBzzDecoder.Decode(_data.AsSpan(text.Offset, text.Length), 4 * 1024 * 1024 + 4 + 17 * 65_536,
+                4 * 1024 * 1024, 32, cancellationToken)
+            : _data.AsSpan(text.Offset, text.Length);
         if (payload.Length < 4) throw new InvalidDataException("Truncated TXTa header.");
         var length = (payload[0] << 16) | (payload[1] << 8) | payload[2];
         if (length > 4 * 1024 * 1024) throw new InvalidDataException("TXTa text exceeds the 4 MiB read limit.");

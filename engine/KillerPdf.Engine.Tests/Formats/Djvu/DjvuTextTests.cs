@@ -6,6 +6,19 @@ namespace KillerPdf.Engine.Tests.Formats.Djvu;
 public sealed class DjvuTextTests
 {
     [Fact]
+    public void ReadsIndependentlyEncodedUnicodeTextWithoutZones()
+    {
+        var input = Convert.FromHexString(
+            "41542654464F524D00000038444A5655494E464F0000000A000200011A002C011601" +
+            "5458547A00000019FFFFEBDFFC5042E9EBF0318DC264BA9731BDA676E26E7DE13600");
+        Assert.Equal("A95ADEC7374850A4CDE21AAE4F0B831F292814D9ACAB7050F041212B3C49B289",
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(input)));
+        var document = DjvuDocument.Open(input);
+        Assert.Equal("Caf\u00e9 \u05e9\u05dc\u05d5\u05dd\n", document.ReadText(0));
+        Assert.DoesNotContain(document.Diagnostics, d => d.Code == "CompressedTextUnsupported");
+    }
+
+    [Fact]
     public void AcceptsACompleteZoneTreeWithSiblingWords()
     {
         byte[] parent = [1, 0x80, 0, 0x80, 0, 0x80, 100, 0x80, 100, 0x80, 0, 0, 0, 3, 0, 0, 2];
@@ -155,11 +168,30 @@ public sealed class DjvuTextTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void CompressedTextIsExplicitlyUnsupportedEvenWhenPlainTextIsAlsoPresent(bool includePlainText)
+    public void RejectsDuplicateOrConflictingTextChunks(bool includePlainText)
     {
-        var chunks = new List<byte[]> { Chunk("TXTz", [1, 2, 3]) };
-        if (includePlainText) chunks.Add(Chunk("TXTa", [0, 0, 1, 65, 1]));
-        Assert.Throws<NotSupportedException>(() => DjvuDocument.Open(Page(chunks.ToArray())).ReadText(0));
+        var compressed = Chunk("TXTz", Convert.FromHexString("FFFFEBDFFC5042E9EBF0318DC264BA9731BDA676E26E7DE136"));
+        var other = includePlainText ? Chunk("TXTa", [0, 0, 1, 65, 1]) : compressed;
+        Assert.Throws<InvalidDataException>(() => DjvuDocument.Open(Page(compressed, other)).ReadText(0));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("FF")]
+    [InlineData("FFFF")]
+    [InlineData("FFFFEBDF")]
+    public void RejectsMalformedOrInsufficientCompressedText(string compressed)
+    {
+        var document = DjvuDocument.Open(Page(Chunk("TXTz", Convert.FromHexString(compressed))));
+        Assert.Throws<InvalidDataException>(() => document.ReadText(0));
+    }
+
+    [Fact]
+    public void RejectsAnOversizedCompressedTextBlockBeforeTextParsing()
+    {
+        var document = DjvuDocument.Open(Page(Chunk("TXTz", Convert.FromHexString("BFFFFE00"))));
+        var error = Assert.Throws<InvalidDataException>(() => document.ReadText(0));
+        Assert.Contains("resource limits", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

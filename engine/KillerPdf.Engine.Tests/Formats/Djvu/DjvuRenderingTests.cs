@@ -30,11 +30,11 @@ public sealed class DjvuRenderingTests
     }
 
     [Fact]
-    public void NonvisualCompressedTextDoesNotRequireTextDecodingToRenderAnImage()
+    public void MalformedCompressedTextDoesNotPreventIndependentImageRendering()
     {
         var document = DjvuDocument.Open(Page(3, 1, 1, Chunk("Smmr", [.. "MMR"u8, 0, 0, 3, 0, 1, 0x23, 0xe0, 0x02, 0, 0x20]), Chunk("TXTz", [0])));
         Assert.Equal(3, document.RenderPage(0).Width);
-        Assert.Throws<NotSupportedException>(() => document.ReadText(0));
+        Assert.Throws<InvalidDataException>(() => document.ReadText(0));
     }
 
     [Fact]
