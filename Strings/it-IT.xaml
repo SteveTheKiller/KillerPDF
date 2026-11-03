@@ -1157,6 +1157,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Dlg_Preview">Anteprima</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Quel file non esiste.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Quella cartella non esiste.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Inserisci un nome file o un percorso valido.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">Vuoi sostituire {0}?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Posizioni</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Aggiungi ai luoghi</sys:String>

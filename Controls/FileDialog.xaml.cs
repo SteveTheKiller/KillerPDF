@@ -110,6 +110,63 @@ namespace KillerPDF.Controls
 
         private readonly List<PickerEntry> _raw = [];
         private string _currentDir = string.Empty;
+        private readonly List<string> _startCandidates = new List<string>();
+
+        /// <summary>The existence checks the accept rules use. They run on a background thread
+        /// under a timeout, so a dead network path cannot freeze the dialog.</summary>
+        public Func<string, bool> FolderExistsProbe { get; set; } = Directory.Exists;
+        public Func<string, bool> FileExistsProbe { get; set; } = File.Exists;
+
+        private string? NextStartCandidate()
+        {
+            if (_startCandidates.Count == 0) return null;
+            string next = _startCandidates[0];
+            _startCandidates.RemoveAt(0);
+            return next;
+        }
+
+        /// <summary>A folder remembered from an earlier run, or null when it cannot name a folder at all
+        /// (empty, relative, or holding characters no path can carry). Whether it still exists is the
+        /// listing's question.</summary>
+        internal static string? UsableRemembered(string? remembered)
+        {
+            if (string.IsNullOrWhiteSpace(remembered)) return null;
+            return IsMalformedTyped(remembered!) || !IsFullyQualified(remembered!) ? null : remembered;
+        }
+
+        /// <summary>The folders that exist, each probed on its own worker and under its own timeout, so one
+        /// dead network entry does not hide the healthy ones.</summary>
+        internal static async Task<List<string>> ExistingFoldersAsync(IEnumerable<string> folders, Func<string, bool> probe, TimeSpan timeout)
+        {
+            var all = folders.ToList();
+            var checks = all.Select(async folder =>
+            {
+                try { return await OnStaWorker(() => probe(folder), timeout); }
+                catch (Exception) { return false; }
+            }).ToList();
+            bool[] exists = await Task.WhenAll(checks);
+            return all.Where((_, index) => exists[index]).ToList();
+        }
+
+        private enum Presence { No, Yes, Unknown }
+
+        /// <summary>Whether a path exists, as a probe answers it. A probe that throws or times out has not
+        /// answered: that is Unknown, with the reason in the system's words, never a quiet "no".</summary>
+        private async Task<(Presence State, string Reason)> CheckAsync(Func<string, bool> probe, string path)
+        {
+            if (string.IsNullOrEmpty(path)) return (Presence.No, "");
+            try { return (await OnStaWorker(() => probe(path), ProbeTimeout) ? Presence.Yes : Presence.No, ""); }
+            catch (TimeoutException) { return (Presence.Unknown, new System.ComponentModel.Win32Exception(1460).Message); }
+            catch (Exception error) { return (Presence.Unknown, error.Message); }
+        }
+
+        private async Task<bool> ProbeAsync(Func<string, bool> probe, string path)
+            => (await CheckAsync(probe, path)).State == Presence.Yes;
+
+        /// <summary>Whether the dialog is closing or closed. Work that resumes after an await checks this
+        /// first: a cancel or a close that landed meanwhile must not become an accept, a navigation or a
+        /// prompt owned by a window that is gone.</summary>
+        private bool _closing;
 
         /// <summary>A typed name or path, resolved against the folder shown. "C:shot.png" and
         /// "\shot.png" are rooted but not fully qualified; they must not fall back on the
@@ -119,21 +176,63 @@ namespace KillerPDF.Controls
             // Written by hand: .NET Framework apps share this file and lack the two-argument GetFullPath.
             if (typed.Length == 0 || _currentDir.Length == 0) return typed;
             if (typed.StartsWith(@"\\") || typed.StartsWith("//")) return typed;
-            string combined;
-            if (typed.Length >= 2 && char.IsLetter(typed[0]) && typed[1] == ':')
+            string combined = typed;
+            try
             {
-                if (typed.Length >= 3 && (typed[2] == '\\' || typed[2] == '/')) return typed;
-                // "C:shot.png": the shown folder when it is on that drive, otherwise that drive's root.
-                bool sameDrive = _currentDir.Length >= 2 && _currentDir[1] == ':'
-                    && char.ToUpperInvariant(_currentDir[0]) == char.ToUpperInvariant(typed[0]);
-                combined = Path.Combine(sameDrive ? _currentDir : typed.Substring(0, 2) + @"\", typed.Substring(2));
+                if (typed.Length >= 2 && char.IsLetter(typed[0]) && typed[1] == ':')
+                {
+                    if (typed.Length >= 3 && (typed[2] == '\\' || typed[2] == '/')) return typed;
+                    // "C:shot.png": the shown folder when it is on that drive, otherwise that drive's root.
+                    bool sameDrive = _currentDir.Length >= 2 && _currentDir[1] == ':'
+                        && char.ToUpperInvariant(_currentDir[0]) == char.ToUpperInvariant(typed[0]);
+                    combined = Path.Combine(sameDrive ? _currentDir : typed.Substring(0, 2) + @"\", typed.Substring(2));
+                }
+                else if (typed[0] == '\\' || typed[0] == '/')
+                    combined = Path.Combine(Path.GetPathRoot(_currentDir) ?? _currentDir, typed.TrimStart('\\', '/'));
+                else combined = Path.Combine(_currentDir, typed);
+                return Path.GetFullPath(combined);
             }
-            else if (typed[0] == '\\' || typed[0] == '/')
-                combined = Path.Combine(Path.GetPathRoot(_currentDir) ?? _currentDir, typed.TrimStart('\\', '/'));
-            else combined = Path.Combine(_currentDir, typed);
-            try { return Path.GetFullPath(combined); }
             catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException)
             { return combined; }
+        }
+
+        /// <summary>Whether typed text holds a character or a name length no path can carry. The
+        /// checks run before the text is combined with the folder, because Path.Combine throws on
+        /// these on .NET Framework.</summary>
+        internal static bool IsMalformedTyped(string typed)
+        {
+            string rest = typed.StartsWith(@"\\?\") ? typed.Substring(4) : typed;
+            for (int index = 0; index < rest.Length; index++)
+            {
+                char c = rest[index];
+                if (c < ' ' || c == '"' || c == '<' || c == '>' || c == '|') return true;
+                if (c == ':' && !(index == 1 && char.IsLetter(rest[0]))) return true;
+            }
+            foreach (string part in rest.Split('\\', '/'))
+                if (part.Length > 255) return true;
+            return false;
+        }
+
+        /// <summary>The names in quoted multiselect text such as "a.txt" "b.txt", or null when the
+        /// text is not made only of quoted names.</summary>
+        private static string[]? QuotedNames(string typed)
+        {
+            if (typed.IndexOf('"') < 0) return null;
+            var matches = Regex.Matches(typed, "\"([^\"]*)\"");
+            if (matches.Count == 0 || Regex.Replace(typed, "\"[^\"]*\"", "").Trim().Length != 0) return null;
+            return matches.Cast<Match>().Select(x => x.Groups[1].Value).Where(x => x.Length > 0).ToArray();
+        }
+
+        private static bool IsFullyQualified(string path)
+        {
+            if (path.StartsWith(@"\\") || path.StartsWith("//")) return true;
+            return path.Length >= 3 && char.IsLetter(path[0]) && path[1] == ':' && (path[2] == '\\' || path[2] == '/');
+        }
+
+        private void RejectTyped()
+        {
+            SelMeta.Text = Loc("Str_Dlg_InvalidPath");
+            FileNameBox.Focus();
         }
         private bool _navigating;
         private bool _built;                 // suppresses filter events during construction
@@ -195,18 +294,31 @@ namespace KillerPDF.Controls
             if (!_fadingOut)
             {
                 _fadingOut = true;
+                _closing = true;
                 e.Cancel = true;
+                // The result is fixed here: an accept still waiting on an existence check finds _closing
+                // set when it resumes and does nothing, so a cancel can never turn into an OK.
+                bool? result = _pendingResult;
                 // Stop folder listing now, not after the fade, so a slow listing cannot land on a closing dialog.
                 CloseDirectoryListing();
-                Anim.FadeOut(RootFade, () =>
+                var completion = new FadeCompletion(() =>
                 {
-                    if (_pendingResult.HasValue) DialogResult = _pendingResult;   // this closes it
-                    else Close();                                                 // cancel path
+                    _fadeDone = true;
+                    if (result.HasValue) DialogResult = result;   // this closes it
+                    else Close();                                  // cancel path
                 });
+                Anim.FadeOut(RootFade, completion.Complete);
+                // A lost Completed callback (animation suppressed, element out of the tree) would leave the
+                // dialog open and refusing every close, so a timer finishes it a little after the fade.
+                completion.ArmFallback(Dispatcher);
                 return;
             }
+            // A second close request while the fade runs waits for it instead of cutting it short.
+            if (!_fadeDone) { e.Cancel = true; return; }
             base.OnClosing(e);
         }
+
+        private bool _fadeDone;
 
         public FileDialog(FileDialogMode mode = FileDialogMode.Open)
         {
@@ -319,28 +431,27 @@ namespace KillerPDF.Controls
             ApplyView();
 
             // A seeded FileName can be a bare name ("export.ics"), a full path, or empty.
-            string startDir = InitialDirectory;
+            // The first of these that lists becomes the start folder. The listing runs off the UI
+            // thread, so a dead network path cannot freeze the dialog before it shows.
             string seedName = "";
+            _startCandidates.Clear();
             if (!string.IsNullOrWhiteSpace(FileName))
             {
                 if (FileName.IndexOfAny(['\\', '/']) >= 0)
                 {
                     var d = Path.GetDirectoryName(FileName);
-                    if (!string.IsNullOrEmpty(d) && Directory.Exists(d)) startDir = d!;
+                    if (!string.IsNullOrEmpty(d)) _startCandidates.Add(d!);
                     seedName = Path.GetFileName(FileName);
                 }
                 else seedName = FileName;
             }
-            if (string.IsNullOrWhiteSpace(startDir) || !Directory.Exists(startDir))
-            {
-                string? remembered = Services.ThemeManager.GetSetting(LastDirKey);
-                startDir = !string.IsNullOrWhiteSpace(remembered) && Directory.Exists(remembered)
-                    ? remembered!
-                    : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            }
+            if (!string.IsNullOrWhiteSpace(InitialDirectory)) _startCandidates.Add(InitialDirectory);
+            string? remembered = UsableRemembered(Services.ThemeManager.GetSetting(LastDirKey));
+            if (!string.IsNullOrWhiteSpace(remembered)) _startCandidates.Add(remembered!);
+            _startCandidates.Add(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
             _built = true;
-            NavigateTo(startDir);
+            NavigateTo(NextStartCandidate()!);
             FileNameBox.Text = seedName;
             FileNameBox.IsReadOnly = IsFileNameReadOnly;
 
@@ -714,6 +825,7 @@ namespace KillerPDF.Controls
         // ── Navigation ───────────────────────────────────────────────────────────
 
         private void NavigateTo(string dir) => DirectoryListingTask = NavigateDirectoryAsync(dir);
+        private void RecoverTo(string dir, int attempt) => DirectoryListingTask = NavigateCoreAsync(dir, attempt);
 
         private static DateTime SafeTime(Func<DateTime> get)
         {
@@ -727,6 +839,12 @@ namespace KillerPDF.Controls
 
         private void Up_Click(object sender, RoutedEventArgs e)
         {
+            // After a recovery walk gave up, Up continues from where it stopped, not from the vanished folder.
+            if (_walkStopped != null)
+            {
+                if (ParentOf(_walkStopped) is { } above) RecoverTo(above, 1);
+                return;
+            }
             var parent = Directory.GetParent(_currentDir);
             if (parent != null) NavigateTo(parent.FullName);
         }
@@ -917,6 +1035,10 @@ namespace KillerPDF.Controls
             if (_treeSyncing) return;
             if (e.NewValue is not FolderNode node) return;
             if (string.IsNullOrEmpty(node.Path)) return;   // the placeholder, mid-load
+            // The tree follows the listing, so its node for the folder already shown is no request to list it again.
+            // Only while that listing is available and idle: after a failed or unfinished one the node is a retry.
+            if (IsDirectoryListingAvailable && !IsDirectoryListingBusy
+                && string.Equals(node.Path.TrimEnd('\\'), _currentDir.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)) return;
             NavigateTo(node.Path);
         }
 
@@ -1017,12 +1139,25 @@ namespace KillerPDF.Controls
             Services.ThemeManager.SetSetting(RecentsKey, string.Join("|", list));
         }
 
-        private void RecentsBtn_Click(object sender, RoutedEventArgs e)
+        // Recents are probed for a couple of seconds at most, and a click while a probe is still out does nothing.
+        private bool _recentsProbing;
+        internal static readonly TimeSpan RecentsDeadline = TimeSpan.FromSeconds(2);
+
+        /// <summary>The recent folders that answered in time, or null when a probe is already running.</summary>
+        internal async Task<List<string>?> ProbeRecentsAsync()
+        {
+            if (_recentsProbing) return null;
+            _recentsProbing = true;
+            try { return await ExistingFoldersAsync(LoadRecents(), FolderExistsProbe, RecentsDeadline); }
+            finally { _recentsProbing = false; }
+        }
+
+        private async void RecentsBtn_Click(object sender, RoutedEventArgs e)
         {
             // Stale entries (unplugged drive, deleted folder) are filtered at open rather than
             // scrubbed from the store - the drive may be back tomorrow.
-            var list = LoadRecents().Where(Directory.Exists).ToList();
-            if (list.Count == 0) return;
+            var list = await ProbeRecentsAsync();
+            if (list == null || list.Count == 0 || _closing) return;
 
             _navigating = true;              // rebinding must not raise a navigation
             RecentsList.ItemsSource = list;
@@ -1154,37 +1289,54 @@ namespace KillerPDF.Controls
         private void PathBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key != Key.Enter) return;
-            var typed = PathBox.Text?.Trim();
-            if (!string.IsNullOrEmpty(typed)) NavigateTo(typed!);
+            var typed = PathBox.Text?.Trim().Trim('"');
             e.Handled = true;
+            if (string.IsNullOrEmpty(typed)) return;
+            if (IsMalformedTyped(typed!)) { SelMeta.Text = Loc("Str_Dlg_InvalidPath"); return; }
+            string resolved = ResolveTyped(typed!);
+            // A drive-relative or unresolvable entry would otherwise be looked up against the process's folder.
+            if (!IsFullyQualified(resolved)) { SelMeta.Text = Loc("Str_Dlg_NoSuchFolder"); return; }
+            NavigateTo(resolved);
         }
 
-        private void FileNameBox_KeyDown(object sender, KeyEventArgs e)
+        private async void FileNameBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key != Key.Enter) return;
             e.Handled = true;
 
             var typed = FileNameBox.Text?.Trim() ?? "";
 
+            // Several quoted names are a multiselect answer, not a path.
+            var quoted = Multiselect && _mode == FileDialogMode.Open ? QuotedNames(typed) : null;
+            if (quoted != null && quoted.Length > 1) { Accept(); return; }
+            if (IsMalformedTyped(typed.Trim('"'))) { RejectTyped(); return; }
+
             // A directory typed into the name box navigates instead of accepting - matches the
             // Win32 dialogs, and is how people paste a path in.
-            if (typed.Length > 0)
+            string unquoted = typed.Trim('"');
+            if (unquoted.Length > 0)
             {
-                var asDir = ResolveTyped(typed);
-                if (Directory.Exists(asDir)) { NavigateTo(asDir); FileNameBox.Clear(); return; }
+                var asDir = ResolveTyped(unquoted);
+                bool isDirectory = await ProbeAsync(FolderExistsProbe, asDir);
+                if (_closing) return;
+                if (isDirectory) { NavigateTo(asDir); FileNameBox.Clear(); return; }
             }
 
-            // A wildcard retargets the listing rather than naming a file.
-            if (typed.IndexOfAny(['*', '?']) >= 0)
-            {
-                _filterPatterns.Insert(0, [typed]);
-                FilterCombo.Items.Insert(0, typed);
-                FilterCombo.SelectedIndex = 0;
-                FileNameBox.Clear();
-                return;
-            }
+            if (TryApplyWildcard(typed)) return;
 
             Accept();
+        }
+
+        /// <summary>A wildcard retargets the listing rather than naming a file: it becomes the first
+        /// filter and the name box is cleared. False when <paramref name="typed"/> holds no wildcard.</summary>
+        private bool TryApplyWildcard(string typed)
+        {
+            if (typed.IndexOfAny(['*', '?']) < 0) return false;
+            _filterPatterns.Insert(0, [typed]);
+            FilterCombo.Items.Insert(0, typed);
+            FilterCombo.SelectedIndex = 0;
+            FileNameBox.Clear();
+            return true;
         }
 
         private void UpdateInfoSummary()
@@ -1352,33 +1504,54 @@ namespace KillerPDF.Controls
         /// leaves the dialog OPEN with focus back in the name box - a file dialog that closes on a
         /// bad name and makes you start over is the worst outcome.
         /// </summary>
-        private void Accept()
+        private async void Accept()
         {
+            // A name no path can carry is refused with its message straight away: that needs no
+            // listing, so a folder still loading (after a filter change, say) must not swallow it.
+            if (_mode != FileDialogMode.Folder && !_accepting)
+            {
+                string raw = FileNameBox.Text?.Trim() ?? "";
+                bool quotedList = Multiselect && _mode == FileDialogMode.Open && QuotedNames(raw) is { Length: > 1 };
+                if (!quotedList && raw.Trim('"').Length > 0 && IsMalformedTyped(raw.Trim('"'))) { RejectTyped(); return; }
+            }
             // Accept stays off while a listing loads or an accept is already running, so a double
             // press or an Enter during the overwrite prompt cannot run it twice.
-            if (IsDirectoryListingBusy || !IsDirectoryListingAvailable || _accepting) return;
+            if (!PickerAcceptRule.CanAccept(IsDirectoryListingBusy, IsDirectoryListingAvailable, _accepting, _mode == FileDialogMode.Folder, FileNameBox.Text)) return;
             _accepting = true;
             AcceptButton.IsEnabled = false;
-            try { AcceptCore(); }
+            try { await AcceptCoreAsync(); }
             finally
             {
                 _accepting = false;
-                if (_pendingResult != true) AcceptButton.IsEnabled = IsDirectoryListingAvailable && !IsDirectoryListingBusy;
+                if (_pendingResult != true && !_closing) RefreshAcceptEnabled();
             }
         }
 
         private bool _accepting;
 
-        private void AcceptCore()
+        // Accept is on exactly when pressing it would do something.
+        private void RefreshAcceptEnabled()
+            => AcceptButton.IsEnabled = PickerAcceptRule.CanAccept(IsDirectoryListingBusy, IsDirectoryListingAvailable, _accepting, _mode == FileDialogMode.Folder, FileNameBox.Text);
+
+        private void ReportUnanswered(string reason)
+        {
+            SelMeta.Text = reason;
+            FileNameBox.Focus();
+        }
+
+        private async Task AcceptCoreAsync()
         {
             if (_mode == FileDialogMode.Folder)
             {
                 string folder = AcceptHighlightedFolder && FileList.SelectedItem is PickerEntry { IsFolder: true } selected
                     ? selected.FullPath : _currentDir;
-                if (!Directory.Exists(folder)) return;
+                var folderState = await CheckAsync(FolderExistsProbe, folder);
+                if (_closing) return;
+                if (folderState.State == Presence.Unknown) { SelMeta.Text = folderState.Reason; return; }
+                if (folderState.State == Presence.No) { SelMeta.Text = Loc("Str_Dlg_NoSuchFolder"); return; }
                 FileName  = folder;
                 FileNames = [folder];
-                if (AcceptHighlightedFolder) RememberAcceptedDirectory();
+                if (AcceptHighlightedFolder) RememberAcceptedDirectory(folder);
                 _pendingResult = true;   // applied after the fade - see OnClosing
                 Close();
                 return;
@@ -1404,7 +1577,39 @@ namespace KillerPDF.Controls
                 }
             }
 
-            var typed = FileNameBox.Text?.Trim().Trim('"') ?? "";
+            var rawTyped = FileNameBox.Text?.Trim() ?? "";
+            var quoted = Multiselect && _mode == FileDialogMode.Open ? QuotedNames(rawTyped) : null;
+            if (quoted != null && quoted.Length > 1)
+            {
+                var named = new string[quoted.Length];
+                for (int index = 0; index < quoted.Length; index++)
+                {
+                    if (IsMalformedTyped(quoted[index])) { RejectTyped(); return; }
+                    named[index] = ResolveTyped(quoted[index]);
+                }
+                if (CheckFileExists)
+                {
+                    var all = await AllExistAsync(named);
+                    if (_closing) return;
+                    if (all.State == Presence.Unknown) { ReportUnanswered(all.Reason); return; }
+                    if (all.State == Presence.No)
+                    {
+                        SelMeta.Text = Loc("Str_Dlg_NoSuchFile");
+                        FileNameBox.Focus();
+                        return;
+                    }
+                }
+                FileNames = named;
+                FileName  = named[0];
+                RememberAcceptedDirectory();
+                _pendingResult = true;   // applied after the fade - see OnClosing
+                Close();
+                return;
+            }
+
+            var typed = rawTyped.Trim('"');
+            if (TryApplyWildcard(typed)) return;
+            if (typed.Length > 0 && IsMalformedTyped(typed)) { RejectTyped(); return; }
             if (typed.Length == 0)
             {
                 // Nothing typed but a file is highlighted: take that.
@@ -1429,14 +1634,24 @@ namespace KillerPDF.Controls
 
                 // The directory must exist; we do not silently create trees on the user's behalf.
                 var dir = Path.GetDirectoryName(full);
-                if (CheckPathExists && (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)))
+                if (CheckPathExists)
                 {
-                    SelMeta.Text = Loc("Str_Dlg_NoSuchFolder");
-                    FileNameBox.Focus();
-                    return;
+                    var dirState = await CheckAsync(FolderExistsProbe, dir ?? "");
+                    if (_closing) return;
+                    if (dirState.State == Presence.Unknown) { ReportUnanswered(dirState.Reason); return; }
+                    if (dirState.State == Presence.No)
+                    {
+                        SelMeta.Text = Loc("Str_Dlg_NoSuchFolder");
+                        FileNameBox.Focus();
+                        return;
+                    }
                 }
 
-                if (OverwritePrompt && File.Exists(full))
+                // An overwrite check that cannot be answered is not "nothing there": Save stops rather than replace unasked.
+                var overwriteState = OverwritePrompt ? await CheckAsync(FileExistsProbe, full) : (State: Presence.No, Reason: "");
+                if (_closing) return;
+                if (overwriteState.State == Presence.Unknown) { ReportUnanswered(overwriteState.Reason); return; }
+                if (overwriteState.State == Presence.Yes)
                 {
                     // The app's own themed ConfirmDialog, the same prompt every other question in
                     // the app uses, rather than a system MessageBox.
@@ -1448,17 +1663,24 @@ namespace KillerPDF.Controls
                     // Enter keeps the existing file, as Windows' own replace prompt does.
                     confirm.DefaultToCancel();
                     confirm.ShowDialog();
+                    if (_closing) return;
                     if (!confirm.Confirmed) { FileNameBox.Focus(); return; }
                 }
             }
             else
             {
-                if (CheckFileExists && !File.Exists(full))
+                if (CheckFileExists)
                 {
-                    SelMeta.Text = Loc("Str_Dlg_NoSuchFile");
-                    FileNameBox.Focus();
-                    FileNameBox.SelectAll();
-                    return;
+                    var fileState = await CheckAsync(FileExistsProbe, full);
+                    if (_closing) return;
+                    if (fileState.State == Presence.Unknown) { ReportUnanswered(fileState.Reason); return; }
+                    if (fileState.State == Presence.No)
+                    {
+                        SelMeta.Text = Loc("Str_Dlg_NoSuchFile");
+                        FileNameBox.Focus();
+                        FileNameBox.SelectAll();
+                        return;
+                    }
                 }
             }
 
@@ -1469,10 +1691,21 @@ namespace KillerPDF.Controls
             Close();
         }
 
-        private void RememberAcceptedDirectory()
+        private async Task<(Presence State, string Reason)> AllExistAsync(string[] paths)
         {
-            if (_currentDir.Length > 0 && Directory.Exists(_currentDir))
-                Services.ThemeManager.SetSetting(LastDirKey, _currentDir);
+            foreach (string path in paths)
+            {
+                var one = await CheckAsync(FileExistsProbe, path);
+                if (one.State != Presence.Yes) return one;
+            }
+            return (Presence.Yes, "");
+        }
+
+        // _currentDir only changes after its listing succeeded, so it needs no existence check here.
+        private void RememberAcceptedDirectory(string? accepted = null)
+        {
+            string remembered = string.IsNullOrEmpty(accepted) ? _currentDir : accepted!;
+            if (remembered.Length > 0) Services.ThemeManager.SetSetting(LastDirKey, remembered);
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e) => Close();

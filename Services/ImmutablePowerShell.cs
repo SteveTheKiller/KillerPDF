@@ -18,7 +18,9 @@ namespace KillerPDF.Services
             // user's Documents\WindowsPowerShell\Modules, where any program running as the user could
             // plant a module named like New-Object and have it run inside an elevated helper.
             // An assignment and a .NET call cannot be shadowed by a module.
-            string bootstrap = "$env:PSModulePath=[IO.Path]::Combine($PSHOME,'Modules');"
+            // The value the user had is kept for the app the helper reopens (KillerUpdateGuard.Launch
+            // hands it back), which must not inherit the stripped one.
+            string bootstrap = "$env:KillerOriginalPSModulePath=$env:PSModulePath;$env:PSModulePath=[IO.Path]::Combine($PSHOME,'Modules');"
                 + "$stream=[IO.MemoryStream]::new([Convert]::FromBase64String('"
                 + Convert.ToBase64String(buffer.ToArray())
                 + "'));$reader=[IO.StreamReader]::new([IO.Compression.GZipStream]::new($stream,[IO.Compression.CompressionMode]::Decompress));"

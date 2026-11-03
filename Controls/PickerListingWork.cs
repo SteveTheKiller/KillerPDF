@@ -14,6 +14,9 @@ namespace KillerPDF.Controls
         private CancellationTokenSource? _pending;
         private bool _closed;
 
+        /// <summary>How long a request may take to read before it is abandoned.</summary>
+        internal TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(15);
+
         public void Cancel() { _pending?.Cancel(); _pending = null; }
         public void Dispose() { _closed = true; Cancel(); }
 
@@ -29,7 +32,7 @@ namespace KillerPDF.Controls
             Func<T, CancellationToken, Task> publish, Action<Exception> failed)
         {
             var token = request.Token;
-            request.CancelAfter(TimeSpan.FromSeconds(15));
+            request.CancelAfter(RequestTimeout);
             try
             {
                 await _workers.WaitAsync(token);
@@ -51,6 +54,8 @@ namespace KillerPDF.Controls
                 if (!ReferenceEquals(finished, reading)) ReleaseSlot();
                 token.ThrowIfCancellationRequested();
                 T result = await reading;
+                // The deadline is for the read; the listing is in, so showing it is no longer on the clock.
+                request.CancelAfter(Timeout.InfiniteTimeSpan);
                 if (!_closed && ReferenceEquals(_pending, request)) await publish(result, token);
             }
             catch (OperationCanceledException)
@@ -125,6 +130,8 @@ namespace KillerPDF.Controls
                 }
                 return new PickerListingResult(entries, true, complete, failure);
             }
+            catch (Exception error) when (error is ArgumentException || error is NotSupportedException)
+            { return new PickerListingResult(new List<PickerEntry>(), false, false); }
             catch (Exception error) when (error is IOException || error is UnauthorizedAccessException || error is System.Security.SecurityException)
             { return new PickerListingResult(entries, true, false, error.Message); }
         }

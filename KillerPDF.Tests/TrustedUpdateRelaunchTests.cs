@@ -32,7 +32,7 @@ public sealed class TrustedUpdateRelaunchTests : IDisposable
         string staged = Path.Combine(_directory, ".update-" + Guid.NewGuid().ToString("N") + ".exe");
         string target = Path.Combine(_directory, "KillerPDF.exe");
         UpdateImagePublication.RememberVerified(staged, new string('A', 64), new string('B', 40));
-        var start = TrustedUpdate.Publication(staged, target, "1.9.0", new string('C', 64), 4242, DateTime.UtcNow.Ticks, 4243, DateTime.UtcNow.Ticks);
+        var start = TrustedUpdate.Publication(staged, target, "1.9.0", new string('C', 64), 4242, DateTime.UtcNow.Ticks, 4243, DateTime.UtcNow.Ticks, new string('B', 40));
 
         string script = Decode(start.Arguments);
         int guard = script.IndexOf("'KillerUpdateGuard' -as [type]", StringComparison.Ordinal);

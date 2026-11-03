@@ -1157,6 +1157,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Dlg_Preview">Попередній перегляд</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Цього файлу не існує.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Цієї папки не існує.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Введіть припустиме ім’я файлу або шлях.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">Замінити {0}?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Місця</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Закріпити в місцях</sys:String>

@@ -1125,6 +1125,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Dlg_Preview">Önizleme</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Böyle bir dosya yok.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Böyle bir klasör yok.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Geçerli bir dosya adı veya yol girin.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">{0} değiştirilsin mi?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Konumlar</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Yerlere sabitle</sys:String>

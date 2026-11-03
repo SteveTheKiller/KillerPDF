@@ -133,7 +133,8 @@ public sealed class UpdateDownloadTests
             UpdateImagePublication.RememberVerified(download, new string('a', 64), new string('b', 40));
             string unelevated = UpdateService.PackageHelperScript(download, target.Replace!, target, elevate: false, 4242, 1);
             Assert.Contains("did not close within a minute", unelevated, StringComparison.Ordinal);
-            Assert.Contains("KillerPDF_update_x.exe.recovery.txt", unelevated, StringComparison.Ordinal);
+            // The report path travels as Base64 so no quote in it can end a PowerShell literal.
+            Assert.Contains(Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(download + ".recovery.txt")), unelevated, StringComparison.Ordinal);
 
             string elevated = UpdateService.PackageHelperScript(download, target.Replace!, target, elevate: true, 4242, 1);
             Assert.DoesNotContain("did not close within a minute", elevated, StringComparison.Ordinal);

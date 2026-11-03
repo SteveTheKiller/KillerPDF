@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.3] - Unreleased
 
-1.9.3 corrects the recent-files list after updates and balances the About settings columns.
+1.9.3 corrects the recent-files list after updates, makes updates and the file picker recover from more failures, and balances the About settings columns.
 
 ### Fixed
 
@@ -14,6 +14,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The visible signature date uses the same year-month-day format on every region setting.
 - Recent files appear immediately after an update reopens an empty window.
 - About places link confirmation in the left column and aligns Clear all Data on the same bottom row.
+- A per-user or portable update that fails now reopens KillerPDF instead of leaving it closed, including when antivirus or a locked-down PowerShell stops the update helper from loading, and a published copy that fails its final check is swapped back for the previous version and never started.
+- An update started from an administrator's copy reopens KillerPDF at normal rights. An update that is applied but cannot record its version in the registry now finishes and reopens instead of reporting failure, and putting the previous copy back after a failed update retries a busy file and survives a leftover from an earlier attempt.
+- Updating KillerPDF no longer removes a relaunch another Killer app scheduled for its own update.
+- The file picker no longer stalls on a disconnected network folder when it opens, a relative or malformed path typed in the path box is refused instead of being looked up against the wrong folder, a pattern such as *.log typed in the name box filters the list, and a full path typed in the name box can be accepted even when the shown folder failed to list.
+- Hiding shortcut hints removes the hints the app adds to tooltips in every language, including translated keys such as (Strg+D).
+- The update check reads only the release's own fields, so release notes that quote them cannot confuse it.
 
 ## [1.9.2] - 2026-11-02
 

@@ -1129,6 +1129,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Dlg_Preview">预览</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">该文件不存在。</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">该文件夹不存在。</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">请输入有效的文件名或路径。</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">要替换 {0} 吗？</sys:String>
     <sys:String x:Key="Str_Dlg_Places">位置</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">固定到位置</sys:String>

@@ -87,13 +87,13 @@ namespace KillerPDF.Shell
         // language that does not say Ctrl never shows a stale shortcut. A bracket counts as a
         // shortcut when it holds one key (a letter, a digit or an F key) or a chord with a plus.
         private static readonly Regex TrailingShortcut =
-            new(@"\s*\((?:[A-Z0-9]|F\d{1,2}|[^()]*\+[^()]*)\)\s*$", RegexOptions.CultureInvariant);
+            new(@"[\s​]*\((?:[A-Z0-9]|F\d{1,2}|[^()]*\+[^()]*)\)\s*$", RegexOptions.CultureInvariant);
 
         internal static string WithoutShortcut(string text) => TrailingShortcut.Replace(text, "");
 
         /// <summary>A label with its current shortcut appended: "Save (Ctrl+S)".</summary>
         private string WithGesture(string label, params string[] caps)
-            => caps.Length == 0 ? label : $"{label} ({GesturesFor(caps)})";
+            => caps.Length == 0 ? label : KillerFamily.Layout.ShortcutHints.WithHint(label, GesturesFor(caps));
 
         /// <summary>A tooltip resource with its current shortcut appended.</summary>
         private string ShortcutTip(string resourceKey, params string[] caps)
@@ -169,11 +169,11 @@ namespace KillerPDF.Shell
 
             Tip(ZoomOutBtn, "Str_TT_ZoomOut", "Ctrl:Minus");
             Tip(ZoomInBtn, "Str_TT_ZoomIn", "Ctrl:Equals");
-            ZoomBox.ToolTip = WithoutShortcut(Loc("Str_TT_ZoomLevel")) + " (" + KeyText("%ctrl%+%scroll%")
+            ZoomBox.ToolTip = KillerFamily.Layout.ShortcutHints.WithHint(WithoutShortcut(Loc("Str_TT_ZoomLevel")), KeyText("%ctrl%+%scroll%")
                 + " · " + GestureFor("Ctrl:Equals") + " / " + GestureFor("Ctrl:Minus")
-                + " · " + GestureFor("Ctrl:D0") + ")";
-            LogoBar.ToolTip = WithoutShortcut(Loc("Str_TT_AppSize")) + " (" + GestureFor("CtrlShift:Equals")
-                + " / " + GestureFor("CtrlShift:Minus") + " / " + GestureFor("CtrlShift:D0") + ")";
+                + " · " + GestureFor("Ctrl:D0"));
+            LogoBar.ToolTip = KillerFamily.Layout.ShortcutHints.WithHint(WithoutShortcut(Loc("Str_TT_AppSize")), GestureFor("CtrlShift:Equals")
+                + " / " + GestureFor("CtrlShift:Minus") + " / " + GestureFor("CtrlShift:D0"));
 
             _replaceToggleBtn?.ToolTip = ShortcutTip("Str_Replace_ToggleTT", "Ctrl:H");
 

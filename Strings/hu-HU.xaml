@@ -1155,6 +1155,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Dlg_Preview">Előnézet</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Ez a fájl nem létezik.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Ez a mappa nem létezik.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Adjon meg érvényes fájlnevet vagy elérési utat.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">Lecseréli a(z) {0} fájlt?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Helyek</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Rögzítés a helyekhez</sys:String>

@@ -1157,6 +1157,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Dlg_Preview">Visualização</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Esse arquivo não existe.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Essa pasta não existe.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Digite um nome de arquivo ou caminho válido.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">Substituir {0}?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Locais</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Fixar nos locais</sys:String>

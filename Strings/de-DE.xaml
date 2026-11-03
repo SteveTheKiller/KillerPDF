@@ -1131,6 +1131,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Dlg_Preview">Vorschau</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Diese Datei existiert nicht.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Dieser Ordner existiert nicht.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Geben Sie einen gültigen Dateinamen oder Pfad ein.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">{0} ersetzen?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Orte</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">An Orte anheften</sys:String>

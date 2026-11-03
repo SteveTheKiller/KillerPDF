@@ -1065,6 +1065,7 @@
     <sys:String x:Key="Str_Dlg_Preview">Predogled</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Ta datoteka ne obstaja.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Ta mapa ne obstaja.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Vnesi veljavno ime datoteke ali pot.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">Zamenjam {0}?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Mesta</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Pripni med mesta</sys:String>

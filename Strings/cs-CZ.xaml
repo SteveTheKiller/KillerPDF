@@ -1130,6 +1130,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Dlg_Preview">Náhled</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Tento soubor neexistuje.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Tato složka neexistuje.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Zadejte platný název souboru nebo cestu.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">Nahradit {0}?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Místa</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Připnout k místům</sys:String>

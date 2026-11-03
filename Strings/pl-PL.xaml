@@ -1122,6 +1122,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Dlg_Preview">Podgląd</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Ten plik nie istnieje.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Ten folder nie istnieje.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Wpisz prawidłową nazwę pliku lub ścieżkę.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">Zamienić {0}?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Miejsca</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Przypinaj do miejsc</sys:String>

@@ -1157,6 +1157,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Dlg_Preview">Xem trước</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Tệp đó không tồn tại.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Thư mục đó không tồn tại.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Nhập tên tệp hoặc đường dẫn hợp lệ.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">Thay thế {0}?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Vị trí</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Ghim vào danh mục</sys:String>

@@ -1158,6 +1158,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Dlg_Preview">Preview</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">That file does not exist.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">That folder does not exist.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Enter a valid file name or path.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">Replace {0}?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Places</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Pin to places</sys:String>

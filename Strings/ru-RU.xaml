@@ -1157,6 +1157,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Dlg_Preview">Предварительный просмотр</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Этот файл не существует.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Эта папка не существует.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Введите допустимое имя файла или путь.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">Заменить {0}?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Места</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Закреплять на местах</sys:String>

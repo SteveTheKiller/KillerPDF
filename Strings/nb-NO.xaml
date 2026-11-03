@@ -1157,6 +1157,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Dlg_Preview">Forhåndsvisning</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">Den filen finnes ikke.</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">Den mappen finnes ikke.</sys:String>
+    <sys:String x:Key="Str_Dlg_InvalidPath">Skriv inn et gyldig filnavn eller en gyldig bane.</sys:String>
     <sys:String x:Key="Str_Dlg_OverwriteMsg">Erstatte {0}?</sys:String>
     <sys:String x:Key="Str_Dlg_Places">Steder</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">Fest til steder</sys:String>

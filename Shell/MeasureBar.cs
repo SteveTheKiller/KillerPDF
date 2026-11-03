@@ -69,7 +69,7 @@ namespace KillerPDF.Shell
             _measurePageSizeText.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
             info.Children.Add(_measurePageSizeText);
             var report = MeasureBarButton(Loc("Str_Measure_Report"), "Str_Measure_TT_Report", ShowMeasurementReport);
-            report.ToolTip = Loc("Str_Measure_TT_Report") + " (" + GestureFor("CtrlShift:D") + ", Y)";
+            report.ToolTip = KillerFamily.Layout.ShortcutHints.WithHint(Loc("Str_Measure_TT_Report"), GestureFor("CtrlShift:D") + ", Y");
             info.Children.Add(report);
             RefreshMeasureBar();
             return (main, info);
