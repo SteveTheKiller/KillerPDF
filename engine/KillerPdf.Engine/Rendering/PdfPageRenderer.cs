@@ -4648,6 +4648,8 @@ public sealed partial class PdfPageRenderer
             if (!shading.TryGetValue(Name("ShadingType"), out PdfObject? typeValue)
                 || Resolve(typeValue) is not PdfInteger shadingType)
                 throw new NotSupportedException();
+            if (target.PreciseRgb is not null && shadingType.Value != 2)
+                throw new NotSupportedException("This high-precision shading type is not implemented.");
             if (shadingType.Value is >= 4 and <= 7
                 && (state.FillAlpha < 1 || state.GraphicsSoftMask is not null
                     || state.Knockout is not null || state.Clips.Any(clip => !clip.StorageBounds) || state.FillOverprint
@@ -4692,6 +4694,11 @@ public sealed partial class PdfPageRenderer
                 throw new FormatException("An axial shading color space is missing.");
             ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0, diagnostics: diagnostics, intent: state.RenderingIntent)
                 .ForDestination(target, state.BlackPointCompensation, diagnostics);
+            if (target.PreciseRgb is not null
+                && (colorSpace.Components is not (1 or 3) || colorSpace.Profile is not null
+                    || colorSpace.Converter is not null || colorSpace.MultiConverter is not null
+                    || colorSpace.Palette is not null || colorSpace.HasIccSource))
+                throw new NotSupportedException("This high-precision shading color space is not implemented.");
             if (!shading.TryGetValue(Name("Coords"), out PdfObject? coordinatesValue))
                 throw new FormatException("An axial shading coordinate array is missing.");
             PdfArray coordinates = ResolveArray(coordinatesValue, 4,
@@ -4706,6 +4713,11 @@ public sealed partial class PdfPageRenderer
                 throw new FormatException("An axial shading axis is invalid.");
             if (!shading.TryGetValue(Name("Function"), out PdfObject? functionValue))
                 throw new FormatException("An axial shading function is missing.");
+            if (target.PreciseRgb is not null
+                && (Resolve(functionValue) is not PdfDictionary preciseFunction
+                    || !preciseFunction.TryGetValue(Name("FunctionType"), out PdfObject? preciseType)
+                    || Resolve(preciseType) is not PdfInteger { Value: 2 }))
+                throw new NotSupportedException("This high-precision shading function is not implemented.");
             Func<double, Color> function = ReadColorFunction(
                 functionValue, colorSpace, "axial shading function");
             double[] domain = shading.TryGetValue(Name("Domain"), out PdfObject? domainValue)
@@ -4730,7 +4742,8 @@ public sealed partial class PdfPageRenderer
             double axisDeviceX = (deviceEnd.X - deviceStart.X) * scaleX;
             double axisDeviceY = (deviceEnd.Y - deviceStart.Y) * scaleY;
             double axisPixels = Math.Sqrt(axisDeviceX * axisDeviceX + axisDeviceY * axisDeviceY);
-            var colors = new ShadingColorTable(function, domain[0], domain[1], axisPixels, target.HasProfile);
+            var colors = new ShadingColorTable(function, domain[0], domain[1], axisPixels,
+                target.HasProfile || target.PreciseRgb is not null);
             long shadedPixels = (long)(right - left) * (bottom - top);
             // Profile-backed paints keep lazy color evaluation in the serial path.
             bool parallelPaint = !target.HasProfile && _rowParallelism > 1
@@ -9430,9 +9443,8 @@ public sealed partial class PdfPageRenderer
         private readonly Color[] _colors;
         private readonly bool[] _filled;
 
-        // compareConnection is true when the destination reads a color's XYZ connection
-        // value, which never repeats between samples; without it two samples agree when
-        // their quantized channels and ink agree.
+        // Compare complete colors when the destination reads unquantized RGB or XYZ.
+        // Byte destinations may reuse samples whose quantized channels and ink agree.
         internal ShadingColorTable(Func<double, Color> function, double start, double end,
             double pixelExtent, bool compareConnection)
         {

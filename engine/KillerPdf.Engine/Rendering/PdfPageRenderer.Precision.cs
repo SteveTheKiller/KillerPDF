@@ -6,7 +6,8 @@ public sealed partial class PdfPageRenderer
     /// <remarks>
     /// Supports device RGB/Gray and calibrated Gray path fills, variable-width strokes,
     /// closed strokes, combined fill/stroke operations with either fill rule, opacity
-    /// and aligned natural-size unmasked 8/16-bit images. Embedded TrueType text fills and strokes
+    /// and aligned natural-size unmasked 8/16-bit images. Device Gray/RGB axial shadings
+    /// support a single type 2 function. Embedded TrueType text fills and strokes
     /// support explicit text matrices, strings and positioned text arrays.
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
@@ -52,7 +53,7 @@ public sealed partial class PdfPageRenderer
         or "cs" or "CS" or "sc" or "SC" or "scn" or "SCN"
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"
-        or "n" or "W" or "W*" or "Do"
+        or "n" or "W" or "W*" or "Do" or "sh"
         or "BT" or "ET" or "Tf" or "Tm" or "Tj" or "TJ" or "Tr";
 
     private static void PaintPrecisePixel(RasterSurface surface, int offset, in Color color,
