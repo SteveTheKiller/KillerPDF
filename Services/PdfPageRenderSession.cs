@@ -1,6 +1,8 @@
 using System.IO;
 using EngineDocument = KillerPdf.Engine.Documents.PdfDocument;
+using EngineDocumentFormat = KillerPdf.Engine.Documents.PdfDocumentFormat;
 using EnginePageInformation = KillerPdf.Engine.Documents.PdfPageInformation;
+using EngineReadSnapshot = KillerPdf.Engine.Documents.PdfReadSnapshot;
 using EngineRenderOptions = KillerPdf.Engine.Rendering.PdfRenderOptions;
 using EngineRenderer = KillerPdf.Engine.Rendering.PdfPageRenderer;
 
@@ -619,7 +621,8 @@ internal sealed class PdfCapturedReadRevision : IDisposable
     private readonly CancellationTokenSource _closing = new();
     private readonly IReadOnlyList<EnginePageInformation> _pages;
     private EngineDocument? _document;
-    private PdfPageRenderSession? _idle;
+    private EngineReadSnapshot? _native;
+    private IRenderSession? _idle;
     private int _active;
     private bool _closed;
     private bool _cancellationIssued;
@@ -632,9 +635,29 @@ internal sealed class PdfCapturedReadRevision : IDisposable
         _document = document;
         _pages = EnginePageInformation.Read(document);
         ContentIdentity = contentIdentity;
+        Format = EngineDocumentFormat.Pdf;
     }
 
     internal Guid Id { get; } = Guid.NewGuid();
+    internal EngineDocumentFormat Format { get; }
+
+    internal PdfCapturedReadRevision(EngineReadSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        _native = snapshot;
+        _pages = [.. Enumerable.Range(0, snapshot.PageCount).Select(index =>
+        {
+            var geometry = snapshot.GetPageGeometry(index);
+            return new EnginePageInformation
+            {
+                Left = 0, Bottom = 0, Width = geometry.WidthPoints, Height = geometry.HeightPoints,
+                UserUnit = 1, Rotation = geometry.IntrinsicRotation
+            };
+        })];
+        ContentIdentity = snapshot.SourceSha256;
+        Format = snapshot.Format;
+    }
+
     internal string ContentIdentity { get; }
     internal int PageCount => _pages.Count;
 
@@ -656,13 +679,15 @@ internal sealed class PdfCapturedReadRevision : IDisposable
     internal Lease Rent(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        EngineDocument document;
-        PdfPageRenderSession? session;
+        EngineDocument? document;
+        EngineReadSnapshot? native;
+        IRenderSession? session;
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_closed, this);
             cancellationToken.ThrowIfCancellationRequested();
-            document = _document!;
+            document = _document;
+            native = _native;
             _active++;
             session = _idle;
             _idle = null;
@@ -673,7 +698,8 @@ internal sealed class PdfCapturedReadRevision : IDisposable
             // The reservation keeps the owner's token source alive during session creation.
             linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _closing.Token);
             linked.Token.ThrowIfCancellationRequested();
-            session ??= PdfPageRenderSession.OpenCapturedDocument(document, _pages);
+            session ??= native is not null ? new OwnedRenderSession(native)
+                : new OwnedRenderSession(PdfPageRenderSession.OpenCapturedDocument(document!, _pages));
             linked.Token.ThrowIfCancellationRequested();
             return new Lease(this, session, linked);
         }
@@ -685,7 +711,7 @@ internal sealed class PdfCapturedReadRevision : IDisposable
         }
     }
 
-    private void Return(PdfPageRenderSession? session)
+    private void Return(IRenderSession? session)
     {
         bool disposeCancellation;
         lock (_sync)
@@ -712,12 +738,13 @@ internal sealed class PdfCapturedReadRevision : IDisposable
 
     public void Dispose()
     {
-        PdfPageRenderSession? idle;
+        IRenderSession? idle;
         lock (_sync)
         {
             if (_closed) return;
             _closed = true;
             _document = null;
+            _native = null;
             idle = _idle;
             _idle = null;
         }
@@ -739,14 +766,42 @@ internal sealed class PdfCapturedReadRevision : IDisposable
     }
 
     // A task owns its lease exclusively, including rendering and disposal.
-    internal sealed class Lease(PdfCapturedReadRevision owner, PdfPageRenderSession session,
+    internal interface IRenderSession : IDisposable
+    {
+        KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex, EngineRenderOptions options,
+            CancellationToken cancellationToken);
+    }
+
+    private sealed class OwnedRenderSession : IRenderSession
+    {
+        private PdfPageRenderSession? _pdf;
+        private EngineReadSnapshot? _native;
+
+        internal OwnedRenderSession(PdfPageRenderSession pdf) => _pdf = pdf;
+        internal OwnedRenderSession(EngineReadSnapshot native) => _native = native;
+
+        public KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex, EngineRenderOptions options,
+            CancellationToken cancellationToken) => _pdf is not null
+                ? _pdf.RenderFrame(pageIndex, options, cancellationToken)
+                : (_native ?? throw new ObjectDisposedException(nameof(OwnedRenderSession)))
+                    .RenderPage(pageIndex, options, cancellationToken);
+
+        public void Dispose()
+        {
+            _pdf?.Dispose();
+            _pdf = null;
+            _native = null;
+        }
+    }
+
+    internal sealed class Lease(PdfCapturedReadRevision owner, IRenderSession session,
         CancellationTokenSource cancellation) : IDisposable
     {
-        private PdfPageRenderSession? _session = session;
+        private IRenderSession? _session = session;
 
         internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex, EngineRenderOptions options)
         {
-            PdfPageRenderSession active = _session ?? throw new ObjectDisposedException(nameof(Lease));
+            IRenderSession active = _session ?? throw new ObjectDisposedException(nameof(Lease));
             cancellation.Token.ThrowIfCancellationRequested();
             var frame = active.RenderFrame(pageIndex, options, cancellation.Token);
             cancellation.Token.ThrowIfCancellationRequested();
@@ -755,7 +810,7 @@ internal sealed class PdfCapturedReadRevision : IDisposable
 
         public void Dispose()
         {
-            PdfPageRenderSession? released = Interlocked.Exchange(ref _session, null);
+            IRenderSession? released = Interlocked.Exchange(ref _session, null);
             if (released is null) return;
             cancellation.Dispose();
             owner.Return(released);
