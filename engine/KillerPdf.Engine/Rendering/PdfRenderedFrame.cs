@@ -60,6 +60,45 @@ public sealed class PdfRenderedFrame
     /// <summary>Gets the primaries, transfer function and relative white of the RGB channels.</summary>
     public PdfFrameColorEncoding ColorEncoding { get; }
 
+    /// <summary>Copies linear RGBA to owned premultiplied IEEE half channels with scaled reference white.</summary>
+    /// <remarks>
+    /// RGB is rounded to half precision at this output boundary without clipping to zero through one.
+    /// Alpha is not white-scaled. The storage budget counts both input and output pixel buffers.
+    /// Nonfinite half results and meaningful color whose positive alpha rounds to zero are rejected.
+    /// </remarks>
+    public Half[] ToPremultipliedLinearHalfRgba(double referenceWhiteScale = 1,
+        long maximumCombinedPixelBytes = MaximumPixelBytes, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (ColorEncoding != PdfFrameColorEncoding.LinearSrgbD65)
+            throw new NotSupportedException("Half output requires a linear sRGB D65 frame.");
+        if (!double.IsFinite(referenceWhiteScale) || referenceWhiteScale <= 0)
+            throw new ArgumentOutOfRangeException(nameof(referenceWhiteScale));
+        if (maximumCombinedPixelBytes is <= 0 or > MaximumPixelBytes)
+            throw new ArgumentOutOfRangeException(nameof(maximumCombinedPixelBytes));
+        if (_pixels.LongLength > maximumCombinedPixelBytes / (sizeof(float) + sizeof(ushort)))
+            throw new ArgumentException("The input frame and half output exceed their combined pixel storage limit.",
+                nameof(maximumCombinedPixelBytes));
+        var output = new Half[_pixels.Length];
+        for (int offset = 0; offset < _pixels.Length; offset += 4)
+        {
+            if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (_pixels[offset + 3] == 0) continue;
+            double factor = referenceWhiteScale * _pixels[offset + 3];
+            for (int channel = 0; channel < 3; channel++)
+            {
+                output[offset + channel] = (Half)(_pixels[offset + channel] * factor);
+                if (!Half.IsFinite(output[offset + channel]))
+                    throw new NotSupportedException("A premultiplied color channel exceeds finite half precision.");
+            }
+            output[offset + 3] = (Half)_pixels[offset + 3];
+            if (output[offset + 3] == (Half)0
+                && (output[offset] != (Half)0 || output[offset + 1] != (Half)0 || output[offset + 2] != (Half)0))
+                throw new NotSupportedException("Half precision would lose positive alpha while retaining premultiplied color.");
+        }
+        return output;
+    }
+
     /// <summary>Copies the frame to straight-alpha BGRA32 in sRGB, clipping at this output boundary.</summary>
     public byte[] ToSrgbBgra32(CancellationToken cancellationToken = default)
     {
