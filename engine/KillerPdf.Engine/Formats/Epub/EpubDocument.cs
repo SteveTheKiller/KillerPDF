@@ -85,7 +85,8 @@ public sealed partial class EpubDocument
             ValidateArchivePath(entry.FullName);
             if (!names.Add(entry.FullName.Normalize()))
                 throw new InvalidDataException("Ambiguous EPUB resource name.");
-            if (entry.FullName.Equals("META-INF/encryption.xml", StringComparison.OrdinalIgnoreCase))
+            if (entry.FullName.Equals("META-INF/encryption.xml", StringComparison.OrdinalIgnoreCase) &&
+                entry.FullName != "META-INF/encryption.xml")
                 throw new InvalidDataException("Encrypted EPUB publications are unsupported.");
             if (entry.Length > MaxEntryBytes)
                 throw new InvalidDataException("EPUB resource exceeds the expanded size limit.");
@@ -121,7 +122,9 @@ public sealed partial class EpubDocument
         var path = ResolvePath("", Required(rootfile, "full-path"));
         if (!resources.TryGetValue(path, out var packageData))
             throw new InvalidDataException("Missing EPUB package document.");
-        return new EpubDocument(resources, Xml(packageData), path);
+        var document = new EpubDocument(resources, Xml(packageData), path);
+        document.RestoreObfuscatedFonts(cancellationToken);
+        return document;
     }
 
     private static void ValidateArchivePath(string path)
