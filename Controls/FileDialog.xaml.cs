@@ -518,6 +518,9 @@ namespace KillerPDF.Controls
             {
                 string? newExt = ActiveFilterExt();
                 string  name   = FileNameBox.Text?.Trim() ?? "";
+                // Path.GetExtension throws on characters no path can carry; such a name keeps its
+                // text and gets the invalid-path message instead of an extension swap.
+                if (name.Length > 0 && IsMalformedTyped(name.Trim('"'))) { RejectTyped(); ApplySort(); return; }
                 string  cur    = name.Length == 0 ? "" : Path.GetExtension(name);
                 if (newExt != null && cur.Length > 0 &&
                     !cur.Equals(newExt, StringComparison.OrdinalIgnoreCase) &&
