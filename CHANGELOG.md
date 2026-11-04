@@ -14,7 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - An update started from an administrator's copy reopens KillerPDF at normal rights. An update that is applied but cannot record its version in the registry now finishes and reopens instead of reporting failure, and putting the previous copy back after a failed update retries a busy file and survives a leftover from an earlier attempt.
 - Updating KillerPDF no longer removes a relaunch another Killer app scheduled for its own update.
 - Text fields with automatic font sizing save correctly and keep their original border and background styling.
-- Merge accepts popup annotations whose parent omits the reverse popup link. (#455)
+- Merge accepts more PDFs with optional popup links and saved highlight or polygon appearances. (#455)
 - Rasterize Region keeps earlier region images intact on repeated operations and leaves invisible clipping paths out of its content counts. (#369)
 - The file picker no longer stalls on a disconnected network folder when it opens, a relative or malformed path typed in the path box is refused instead of being looked up against the wrong folder, a pattern such as *.log typed in the name box filters the list, and a full path typed in the name box can be accepted even when the shown folder failed to list.
 - PDF creation, modification, comment and attachment dates use the Gregorian calendar on Thai, Arabic and Persian region settings instead of writing years like 2569.

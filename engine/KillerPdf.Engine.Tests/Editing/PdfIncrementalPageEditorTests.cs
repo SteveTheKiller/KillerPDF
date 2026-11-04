@@ -4932,7 +4932,6 @@ public sealed class PdfIncrementalPageEditorTests
     [InlineData("MalformedBacklink", "popup /Parent does not link back through /Popup")]
     [InlineData("DirectBacklink", "popup /Parent does not link back through /Popup")]
     [InlineData("ConflictingBacklink", "popup /Parent does not link back through /Popup")]
-    [InlineData("MissingParent", "popup annotation has no indirect /Parent dictionary")]
     [InlineData("NullParent", "popup annotation has no indirect /Parent dictionary")]
     [InlineData("UnregisteredParent", "popup /Parent is not registered on the imported page")]
     [InlineData("NonmarkupParent", "popup /Parent is not a markup annotation")]
@@ -4950,8 +4949,7 @@ public sealed class PdfIncrementalPageEditorTests
             new(Name("Subtype"), Name("Popup")),
             new(Name("Rect"), rectangle)
         ]);
-        if (scenario != "MissingParent")
-            popupEntries.Add(new(Name("Parent"), scenario == "NullParent" ? PdfNull.Instance : markup));
+        popupEntries.Add(new(Name("Parent"), scenario == "NullParent" ? PdfNull.Instance : markup));
         var popupDictionary = new PdfDictionary(popupEntries);
         update.SetObject(popup, popupDictionary);
         var markupEntries = new List<KeyValuePair<PdfName, PdfObject>>([
@@ -5609,6 +5607,8 @@ public sealed class PdfIncrementalPageEditorTests
                 new PdfInteger(10), new PdfInteger(10)
             ]))
         ]);
+        if (subtype == "Popup")
+            annotationEntries.Add(new(Name("Parent"), new PdfInteger(7)));
         if (subtype == "Redact")
             annotationEntries.Add(new(Name("Repeat"), new PdfInteger(1)));
         if (subtype == "RedactOverlay")

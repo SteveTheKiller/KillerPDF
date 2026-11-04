@@ -15717,13 +15717,13 @@ public sealed class PdfIncrementalPageEditor
                 || popupSubtypeName.ValueAsLatin1() != "Popup")
                 throw new InvalidOperationException(
                     $"{description} /Popup target has no /Subtype /Popup value.");
-            if (annotationReference is null
-                || !popupDictionary.TryGetValue(Name("Parent"), out PdfObject? popupParent)
+            if (popupDictionary.TryGetValue(Name("Parent"), out PdfObject? popupParent)
+                && (annotationReference is null
                 || ResolveCatalogWithIdentity(document, popupParent,
                     $"{description} popup /Parent value").FinalReference
                     is not PdfIndirectReference parentReference
                 || parentReference.ObjectNumber != annotationReference.ObjectNumber
-                || parentReference.Generation != annotationReference.Generation)
+                || parentReference.Generation != annotationReference.Generation))
                 throw new InvalidOperationException(
                     $"{description} /Popup target does not link back through /Parent.");
         }
@@ -16037,6 +16037,7 @@ public sealed class PdfIncrementalPageEditor
             appearanceState = Resolve(stateValue) as PdfName
                 ?? throw new InvalidOperationException(
                     $"{description} /AS value is not a name or resolves to null.");
+        bool hasNormalAppearanceStream = false;
         if (annotation.TryGetValue(Name("AP"), out PdfObject? appearances))
         {
             PdfDictionary appearanceDictionary = Resolve(appearances) as PdfDictionary
@@ -16058,6 +16059,7 @@ public sealed class PdfIncrementalPageEditor
                     ValidateAnnotationAppearanceStream(document, stream,
                         $"{description} /AP /{key} appearance", false,
                         annotationSubtype == "PrinterMark");
+                    if (key == "N") hasNormalAppearanceStream = true;
                     continue;
                 }
                 PdfDictionary states = resolvedAppearance as PdfDictionary
@@ -16115,7 +16117,8 @@ public sealed class PdfIncrementalPageEditor
                 $"{description} text annotation /Name value is not a name.");
         if (annotationSubtype is "Highlight" or "Underline" or "Squiggly" or "StrikeOut")
         {
-            if (!annotation.ContainsKey(Name("QuadPoints")))
+            // Preserve saved appearances from producers that omit regeneration geometry.
+            if (!annotation.ContainsKey(Name("QuadPoints")) && !hasNormalAppearanceStream)
                 throw new InvalidOperationException(
                     $"{description} {annotationSubtype} annotation has no /QuadPoints array.");
         }
@@ -16183,7 +16186,7 @@ public sealed class PdfIncrementalPageEditor
                 throw new InvalidOperationException(
                     $"{description} {annotationSubtype} annotation has no /Vertices array.");
             PdfArray points = RequireNumericArray(vertices, "Vertices");
-            int minimum = annotationSubtype == "Polygon" ? 6 : 4;
+            int minimum = annotationSubtype == "Polygon" && !hasNormalAppearanceStream ? 6 : 4;
             if (points.Count < minimum || points.Count % 2 != 0)
                 throw new InvalidOperationException(
                     $"{description} {annotationSubtype} /Vertices array has invalid point geometry.");
@@ -16257,10 +16260,10 @@ public sealed class PdfIncrementalPageEditor
                         $"{description} /InkList entry has invalid point geometry.");
             }
         }
-        if (annotationSubtype == "Popup")
+        if (annotationSubtype == "Popup"
+            && annotation.TryGetValue(Name("Parent"), out PdfObject? annotationPopupParent))
         {
-            if (!annotation.TryGetValue(Name("Parent"), out PdfObject? popupParent)
-                || ResolveCatalogWithIdentity(document, popupParent,
+            if (ResolveCatalogWithIdentity(document, annotationPopupParent,
                     $"{description} popup /Parent value") is not
                     { FinalReference: PdfIndirectReference popupParentReference,
                       Value: PdfDictionary parentDictionary })
@@ -16285,11 +16288,12 @@ public sealed class PdfIncrementalPageEditor
                 || parentPopupReference.Generation != annotationReference.Generation))
                 throw new InvalidOperationException(
                     $"{description} popup /Parent does not link back through /Popup.");
-            if (annotation.TryGetValue(Name("Open"), out PdfObject? popupOpen)
-                && Resolve(popupOpen) is not PdfBoolean)
-                throw new InvalidOperationException(
-                    $"{description} popup /Open value is not boolean.");
         }
+        if (annotationSubtype == "Popup"
+            && annotation.TryGetValue(Name("Open"), out PdfObject? popupOpen)
+            && Resolve(popupOpen) is not PdfBoolean)
+            throw new InvalidOperationException(
+                $"{description} popup /Open value is not boolean.");
         if (annotationSubtype is "Stamp" or "FileAttachment"
             && annotation.TryGetValue(Name("Name"), out PdfObject? iconName)
             && Resolve(iconName) is not PdfName)
