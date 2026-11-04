@@ -11,6 +11,24 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPrecisionGroupTests
 {
     [Fact]
+    public void AuthoredGraphicsDefaultsAlsoWorkInsideRgbPageGroup()
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            new PdfContentStreamBuilder()
+                .SetGraphicsState(new PdfGraphicsState(fillOpacity: .5, blendMode: PdfBlendMode.Multiply))
+                .SetFillRgb(1, 0, 0).Rectangle(0, 0, 1, 1).Fill()).Build());
+        var renderer = new PdfPageRenderer(WithRgbPageGroup(source,
+            isolated: false, minimalGraphicsState: false));
+
+        PdfRenderedFrame frame = renderer.RenderFrame(0, new PdfRenderOptions(1, 1));
+
+        Assert.Equal(1, frame.Pixels[0]);
+        Assert.InRange(frame.Pixels[1], .21404114f - .00000003f, .21404114f + .00000003f);
+        Assert.InRange(frame.Pixels[2], .21404114f - .00000003f, .21404114f + .00000003f);
+        Assert.Equal(1, frame.Pixels[3]);
+    }
+
+    [Fact]
     public void KnockoutPageGroupsAreDiagnosedBeforeReturningAPreciseFrame()
     {
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(1, 1).Build());
@@ -360,7 +378,8 @@ public sealed class PdfPrecisionGroupTests
                 .Append(Entry("Resources", Resources("Container", container))))).Build());
     }
 
-    private static PdfDocument WithRgbPageGroup(PdfDocument source, bool isolated, bool knockout = false)
+    private static PdfDocument WithRgbPageGroup(PdfDocument source, bool isolated, bool knockout = false,
+        bool minimalGraphicsState = true)
     {
         var catalog = Assert.IsType<PdfDictionary>(source.Resolve(
             Assert.IsType<PdfIndirectReference>(source.Trailer[Name("Root")])));
@@ -372,9 +391,11 @@ public sealed class PdfPrecisionGroupTests
             Entry("I", new PdfBoolean(isolated)), Entry("K", new PdfBoolean(knockout))]);
         var resources = new PdfDictionary([Entry("ExtGState", new PdfDictionary([
             Entry("Half", new PdfDictionary([Entry("ca", new PdfReal(.5)), Entry("BM", Name("Multiply"))]))]))]);
+        IEnumerable<KeyValuePair<PdfName, PdfObject>> entries = minimalGraphicsState
+            ? page.Where(pair => !pair.Key.Equals(Name("Resources"))).Append(Entry("Resources", resources))
+            : page;
         return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source).ReplaceObject(reference.ObjectNumber,
-            new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Resources")))
-                .Append(Entry("Resources", resources)).Append(Entry("Group", group)))).Build());
+            new PdfDictionary(entries.Append(Entry("Group", group)))).Build());
     }
 
     private static PdfArray Numbers(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));

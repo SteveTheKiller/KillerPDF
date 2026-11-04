@@ -803,8 +803,7 @@ public sealed partial class PdfPageRenderer
                         out bool unsupportedBlend, out PdfObject? softMaskValue,
                         out PdfObject? graphicsFontValue, out PdfDictionary? strokeSettings))
                     {
-                        if (pixels.PreciseRgb is not null && strokeSettings!.Keys.Any(key =>
-                            key.ValueAsLatin1() is not ("Type" or "ca" or "CA" or "BM")))
+                        if (pixels.PreciseRgb is not null && !PreciseGraphicsStateSupported(strokeSettings!))
                             throw new NotSupportedException("This high-precision graphics state is not implemented.");
                         if (softMaskValue is not null) opaqueFills.Flush();
                         state = ApplyGraphicsStrokeSettings(state, strokeSettings!, diagnostics);

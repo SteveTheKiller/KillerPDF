@@ -32,6 +32,7 @@ public sealed partial class PdfPageRenderer
     /// support text matrices, line positioning, spacing, scaling, rise,
     /// strings, positioned text arrays and quote text-showing operators.
     /// Ordinary Form XObjects retain supported paint precision through their matrix and bounding-box clip.
+    /// Explicit neutral graphics-state defaults, including a None soft-mask reset, retain precision.
     /// Eligible isolated and non-isolated non-knockout DeviceRGB Form groups support outer Normal
     /// or Multiply compositing, with independent source alpha when needed. Internal Normal or Multiply paints
     /// retain precision with rectangular clips and no effective group profile. Active nested group pixel arrays
@@ -122,6 +123,26 @@ public sealed partial class PdfPageRenderer
         or "n" or "W" or "W*" or "Do" or "sh"
         or "BT" or "ET" or "Tf" or "Tm" or "Td" or "TD" or "T*" or "TL" or "Tc" or "Tw" or "Tz" or "Ts"
         or "Tj" or "TJ" or "Tr" or "'" or "\"";
+
+    private bool PreciseGraphicsStateSupported(PdfDictionary settings)
+    {
+        foreach (var entry in settings)
+        {
+            string name = entry.Key.ValueAsLatin1();
+            if (name is "Type" or "ca" or "CA" or "BM") continue;
+            PdfObject value = Resolve(entry.Value);
+            bool neutral = name switch
+            {
+                "op" or "OP" or "AIS" => value is PdfBoolean { Value: false },
+                "TK" => value is PdfBoolean { Value: true },
+                "OPM" => value is PdfInteger { Value: 0 },
+                "SMask" => value is PdfName mask && mask.ValueAsLatin1() == "None",
+                _ => false
+            };
+            if (!neutral) return false;
+        }
+        return true;
+    }
 
     private static readonly Lazy<PdfColorProfile> PreciseCmykViewingProfile = new(PdfCmykViewingDefault.LoadProfile);
 
