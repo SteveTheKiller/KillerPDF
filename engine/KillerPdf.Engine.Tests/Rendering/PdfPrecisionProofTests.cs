@@ -12,6 +12,102 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPrecisionProofTests
 {
+    [Fact]
+    public void PrinterGamutCheckKeepsAnInRangeNeutralInside()
+    {
+        var result = new PdfPrinterGamutCheck(GrayPrinter()).EvaluateXyz([.4821, .5, .41245]);
+
+        Assert.InRange(result.DeltaE76, 0, .000000001);
+        Assert.Equal(PdfGamutClassification.Inside, result.Classification);
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(double.NegativeInfinity)]
+    public void PrinterGamutCheckRejectsNonfiniteIntendedColors(double value)
+    {
+        var check = new PdfPrinterGamutCheck(GrayPrinter());
+
+        Assert.Throws<ArgumentException>(() => check.EvaluateXyz([value, 0, 0]));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    [InlineData(4)]
+    public void PrinterGamutCheckRequiresExactlyThreeXyzChannels(int channels)
+    {
+        var check = new PdfPrinterGamutCheck(GrayPrinter());
+
+        Assert.Throws<ArgumentException>(() => check.EvaluateXyz(new double[channels]));
+    }
+
+    [Theory]
+    [InlineData("class")]
+    [InlineData("fallback")]
+    [InlineData("reverse")]
+    public void PrinterGamutCheckRequiresAnActualColorimetricPrinterPair(string condition)
+    {
+        var printer = Printer(condition == "class" ? "scnr" : "prtr",
+            perceptualOnly: condition == "fallback", includeReverse: condition != "reverse");
+
+        Assert.Throws<NotSupportedException>(() => new PdfPrinterGamutCheck(printer));
+    }
+
+    [Fact]
+    public void PrinterGamutCheckRejectsAMissingPrinter()
+    {
+        Assert.Throws<ArgumentNullException>(() => new PdfPrinterGamutCheck(null!));
+    }
+
+    [Theory]
+    [InlineData(.23990960485386035, .18418651851244413, .04143416994136701, 50)]
+    [InlineData(-.005337119193078847, -.005535282299397269, -.004566054368772807, 47.00029500625617)]
+    public void PrinterGamutCheckUsesChromaticDifferenceAndUnclippedIntendedColor(
+        double x, double y, double z, double expectedDifference)
+    {
+        var check = new PdfPrinterGamutCheck(GrayPrinter());
+        double[] intended = [x, y, z];
+
+        var result = check.EvaluateXyz(intended);
+
+        // Independent Lab[50,30,40] loses chroma30/40 to neutral gray, giving50.
+        // Lab[-5,0,0] compared with printer-black L42.000295 gives47.000295.
+        Assert.InRange(result.DeltaE76, expectedDifference - .000001, expectedDifference + .000001);
+        Assert.Equal(PdfGamutClassification.Outside, result.Classification);
+        Assert.Equal(new[] { x, y, z }, intended);
+    }
+
+    [Theory]
+    [InlineData(.10878026497312473, .11281919204845958, .09306455152077431, 1.949, PdfGamutClassification.Inside)]
+    [InlineData(.10877444289581614, .11281315380192506, .09305957057120798, 1.95, PdfGamutClassification.Boundary)]
+    [InlineData(.10848360382303521, .11251151609939350, .09281074963038970, 2, PdfGamutClassification.Boundary)]
+    [InlineData(.10819328363957597, .11221041655214268, .09256237261386250, 2.05, PdfGamutClassification.Boundary)]
+    [InlineData(.10818748252539598, .11220440004708150, .09255740959883753, 2.051, PdfGamutClassification.Outside)]
+    public void PrinterGamutBoundaryBandIncludesBothEdges(double x, double y, double z,
+        double expectedDifference, PdfGamutClassification classification)
+    {
+        var check = new PdfPrinterGamutCheck(GrayPrinter());
+
+        var result = check.EvaluateXyz([x, y, z]);
+
+        Assert.InRange(result.DeltaE76, expectedDifference - .0000000001, expectedDifference + .0000000001);
+        Assert.Equal(classification, result.Classification);
+    }
+
+    [Fact]
+    public void PrinterGamutCheckReportsIndependentBlackRoundTripDifference()
+    {
+        var check = new PdfPrinterGamutCheck(GrayPrinter());
+
+        var result = check.EvaluateXyz([0, 0, 0]);
+
+        // Independent CIE1976 neutral difference:116*cuberoot(8192/65535)-16.
+        Assert.InRange(result.DeltaE76, 42.00029500625617 - .0000001, 42.00029500625617 + .0000001);
+        Assert.Equal(PdfGamutClassification.Outside, result.Classification);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

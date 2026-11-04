@@ -274,6 +274,16 @@ Callers can also apply the source assumption explicitly.
 Printer proofing uses its selected printer/paper profile. The package includes the unmodified profile and its complete
 CC0 license in `color_profiles/Resources/ColorProfiles`.
 
+`PdfPrinterGamutCheck` evaluates intended relative D50 XYZ through an actual
+relative-colorimetric printer inverse/forward pair, without compensation, paper simulation
+or display clipping. It returns a separate CIE1976 Lab difference and classification.
+The application warning threshold is 2 with a closed boundary band from 1.95 through 2.05.
+These are profile-based warning estimates, separate from monitor limits and physical measurements.
+The [CIE Lab definition](https://cie.co.at/eilvterm/17-23-076) and
+[color-difference definition](https://cie.co.at/eilvterm/17-23-077) define the calculation;
+the warning threshold is application policy. Intended color remains unchanged.
+Render warning masks and desktop warning overlays still require integration.
+
 ## Rendering status
 
 The engine owns bounded CPU rendering for paths, text, images, clipping, shadings, transparency,
