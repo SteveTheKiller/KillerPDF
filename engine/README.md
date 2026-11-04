@@ -257,9 +257,10 @@ Untagged 8/16-bit CMYK images use the same assumption at aligned natural size
 or axis-aligned nearest or bilinear enlargement and integer-factor reduction in both axes.
 Interpolation and reduction retain fractional source samples before profile conversion.
 Matching 8/16-bit DeviceGray soft masks retain fractional alpha with natural or nearest sampling.
+Their finite device-range Matte colors are removed before the CMYK profile transform.
 Raw color-key masks also support natural or eligible nearest sampling.
 CMYK indexed images, other reductions,
-Matte recovery, gradients, groups and compatibility byte rendering still need broader adoption.
+gradients, groups and compatibility byte rendering still need broader adoption.
 Pages with OutputIntents remain outside the current float path.
 Callers can also apply the source assumption explicitly.
 Printer proofing uses its selected printer/paper profile. The package includes the unmodified profile and its complete

@@ -26,6 +26,7 @@ public sealed partial class PdfPageRenderer
     /// Integer-factor reduction in both axes averages encoded source samples before conversion.
     /// Natural or nearest sampling also supports matching DeviceGray 8/16-bit soft masks
     /// with retained fractional alpha, or raw color-key masks.
+    /// Supported CMYK Matte recovery removes the finite device-range matte before profile conversion.
     /// Device Gray/RGB axial and radial shadings
     /// support a single type 2 function. Embedded TrueType text fills and strokes
     /// support text matrices, line positioning, spacing, scaling, rise,

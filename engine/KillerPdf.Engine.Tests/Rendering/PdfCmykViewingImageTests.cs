@@ -230,6 +230,43 @@ public sealed class PdfCmykViewingImageTests
         Assert.Equal(0, frame.Pixels[7]);
     }
 
+    [Theory]
+    [InlineData(8, 0.5019608f)]
+    [InlineData(16, 0.50000763f)]
+    public void CmykMatteRecoveryPrecedesTheViewingProfileTransform(int bits, float expectedAlpha)
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            Encoding.ASCII.GetBytes("/Image Do")).Build());
+        PdfIndirectReference page = FirstPageReference(source);
+        var original = Assert.IsType<PdfDictionary>(source.Resolve(page));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        var mask = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)),
+            Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(bits)),
+            Entry("ColorSpace", Name("DeviceGray")),
+            Entry("Matte", new PdfArray([new PdfInteger(0), new PdfInteger(1), new PdfInteger(1), new PdfInteger(1)]))]),
+            bits == 8 ? [128] : [128, 0]));
+        var image = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)),
+            Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(bits)),
+            Entry("ColorSpace", Name("DeviceCMYK")), Entry("SMask", mask)]),
+            bits == 8 ? [128, 127, 127, 127] : [128, 0, 127, 255, 127, 255, 127, 255]));
+        var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Image", image)]))]);
+        var document = PdfDocument.Open(update.ReplaceObject(page.ObjectNumber,
+            new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))
+                .Append(Entry("Resources", resources)))).Build());
+
+        PdfRenderedFrame frame = new PdfPageRenderer(document)
+            .RenderFrame(0, new PdfRenderOptions(1, 1, transparentBackground: true));
+
+        // Exact rational preblending of cyan over [0,1,1,1] gives these 8/16-bit samples.
+        // Recovering it must yield the same independently evaluated cyan profile corner.
+        Assert.InRange(frame.Pixels[0], -0.20839846805136676f - 0.000002f, -0.20839846805136676f + 0.000002f);
+        Assert.InRange(frame.Pixels[1], 0.42131251226180745f - 0.000002f, 0.42131251226180745f + 0.000002f);
+        Assert.InRange(frame.Pixels[2], 0.86494485126038379f - 0.000002f, 0.86494485126038379f + 0.000002f);
+        Assert.Equal(expectedAlpha, frame.Pixels[3]);
+    }
+
     private static PdfIndirectReference FirstPageReference(PdfDocument document)
     {
         var catalog = Assert.IsType<PdfDictionary>(document.Resolve(

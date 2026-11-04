@@ -5775,8 +5775,7 @@ public sealed partial class PdfPageRenderer
                 || colorSpace.Profile is not null && !preciseIcc || colorSpace.Converter is not null && !assumedCmyk
                 || colorSpace.MultiConverter is not null || colorSpace.Palette is not null
                 || colorSpace.HasIccSource && !preciseIcc || components is not (1 or 3) && !preciseCmyk && !assumedCmyk
-                || assumedCmyk && (inverse.B != 0 || inverse.C != 0
-                    || preblendMatte is not null)
+                || assumedCmyk && (inverse.B != 0 || inverse.C != 0)
                 || bits is not (8 or 16) || preciseCmyk && (smoothImage
                     || !naturalSamples && (sampleStepX > 1 || sampleStepY > 1))
                 || preciseIcc && (!naturalSamples && !areaSamples && (sampleStepX > 1 || sampleStepY > 1)
