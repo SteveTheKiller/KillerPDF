@@ -1061,8 +1061,8 @@ public sealed partial class PdfPageRenderer
                     }
                     else if (IsName(xObject.Dictionary, "Subtype", "Form"))
                     {
-                        if (pixels.PreciseRgb is not null)
-                            throw new NotSupportedException("High-precision form rendering is not implemented.");
+                        if (pixels.PreciseRgb is not null && xObject.Dictionary.ContainsKey(Name("Group")))
+                            throw new NotSupportedException("High-precision form group rendering is not implemented.");
                         RenderForm(xObject, resources, state, depth);
                     }
                     else if (pixels.PreciseRgb is not null)

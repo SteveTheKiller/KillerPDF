@@ -31,6 +31,8 @@ public sealed partial class PdfPageRenderer
     /// support a single type 2 function. Embedded TrueType text fills and strokes
     /// support text matrices, line positioning, spacing, scaling, rise,
     /// strings, positioned text arrays and quote text-showing operators.
+    /// Ordinary Form XObjects retain supported paint precision through their matrix and bounding-box clip.
+    /// Transparency groups remain explicitly unsupported.
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
     public PdfRenderedFrame RenderFrame(int pageIndex, PdfRenderOptions options,

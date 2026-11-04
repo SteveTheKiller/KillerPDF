@@ -273,10 +273,11 @@ annotations, and forms. It returns platform-neutral BGRA32 pixel buffers and dia
 referencing a UI toolkit or native PDF renderer. The engine does not provide UI controls.
 
 The 1.9.3 development `RenderFrame` API also retains floating-point source colors for its
-supported path, text, gradient and image cases. It rejects unsupported precision features
+supported path, text, gradient and image cases, including ordinary Form XObjects with
+their matrices and bounding-box clips. It rejects unsupported precision features
 with a reason instead of returning colors quantized through the BGRA32 surface.
 Text widgets excluded by render options do not disable precise page rendering.
-Included annotation and form appearances remain explicitly unsupported.
+Included annotation and form-field appearances remain explicitly unsupported, as do transparency groups.
 `RenderFrameRegion` returns an owned float32 crop on the full page's pixel grid. Its
 combined pixel-storage limit counts only the requested region, and precision validation,
 diagnostics and cancellation match `RenderFrame`. Desktop refinement adoption remains in progress.
