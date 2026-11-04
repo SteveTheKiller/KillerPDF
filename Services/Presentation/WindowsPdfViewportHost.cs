@@ -72,6 +72,7 @@ internal partial class WindowsPdfViewportHost : HwndHost
     void ReleaseWindows()
     {
         editorMouseBridge = false;
+        pendingEditorMouse = null;
         try { presenter?.Dispose(); }
         finally
         {

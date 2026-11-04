@@ -10,6 +10,7 @@ namespace KillerPDF.Presentation;
 internal partial class WindowsPdfViewportHost
 {
     bool editorMouseBridge;
+    List<(uint Message, nint Keys, nint Position)>? pendingEditorMouse;
 
     bool BridgeEditorMouse(uint message, nint wParam, nint lParam)
     {
@@ -31,26 +32,56 @@ internal partial class WindowsPdfViewportHost
         var client = screen;
         if (!ScreenToClient(overlayHandle, ref client)) { editorMouseBridge = false; return false; }
         nint packed = (nint)((client.X & 0xffff) | ((client.Y & 0xffff) << 16));
-        if (message == 0x201)
+        if (message == 0x201 && editor is not null)
         {
-            TextBox target = editor!;
+            TextBox target = editor;
+            var messages = new List<(uint Message, nint Keys, nint Position)>
+                { (0x200, wParam, packed), (message, wParam, packed) };
+            pendingEditorMouse = messages;
             // Focus after returning from the native mouse input stack.
             Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
             {
+                if (!ReferenceEquals(pendingEditorMouse, messages)) return;
                 if (!ReferenceEquals(Overlay, overlay) || Viewport != viewport || !target.IsVisible
                     || !target.IsEnabled || target.IsReadOnly || PresentationSource.FromVisual(target) != overlay)
-                { editorMouseBridge = false; return; }
+                { pendingEditorMouse = null; editorMouseBridge = false; return; }
                 bool focused = target.Focus(), captured = target.CaptureMouse();
-                if (!focused || !captured || GetFocus() != overlayHandle || GetCapture() != overlayHandle
-                    || !PostMessage(overlayHandle, 0x200, wParam, packed)
-                    || !PostMessage(overlayHandle, message, wParam, packed))
+                pendingEditorMouse = null;
+                if (!focused || !captured || GetFocus() != overlayHandle || GetCapture() != overlayHandle)
                 {
                     editorMouseBridge = false;
                     target.ReleaseMouseCapture();
                     if (GetCapture() == overlayHandle) ReleaseCapture();
+                    return;
+                }
+                Point textPoint = target.PointFromScreen(new Point(screen.X, screen.Y));
+                int character = target.GetCharacterIndexFromPoint(textPoint, true);
+                if (character >= 0)
+                {
+                    Rect leading = target.GetRectFromCharacterIndex(character, false);
+                    Rect trailing = target.GetRectFromCharacterIndex(character, true);
+                    if (EdgeDistance(trailing) < EdgeDistance(leading)) character++;
+                    target.Select(Math.Min(character, target.Text.Length), 0);
+                }
+                foreach (var input in messages)
+                    if (!PostMessage(overlayHandle, input.Message, input.Keys, input.Position))
+                    {
+                        editorMouseBridge = false;
+                        target.ReleaseMouseCapture();
+                        if (GetCapture() == overlayHandle) ReleaseCapture();
+                        return;
+                    }
+
+                double EdgeDistance(Rect edge)
+                {
+                    if (edge.IsEmpty) return double.PositiveInfinity;
+                    double dx = textPoint.X - edge.X;
+                    double dy = textPoint.Y - Math.Clamp(textPoint.Y, edge.Top, edge.Bottom);
+                    return dx * dx + dy * dy;
                 }
             }));
         }
+        else if (pendingEditorMouse is { } messages) messages.Add((message, wParam, packed));
         else if (!PostMessage(overlayHandle, message, wParam, packed)) editorMouseBridge = false;
         return true;
     }
