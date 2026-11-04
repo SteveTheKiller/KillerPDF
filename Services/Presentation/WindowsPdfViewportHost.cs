@@ -8,7 +8,7 @@ using KillerPdf.Engine.Rendering;
 namespace KillerPDF.Presentation;
 
 /// <summary>Owns a native frame window and its transparent WPF overlay.</summary>
-internal class WindowsPdfViewportHost : HwndHost
+internal partial class WindowsPdfViewportHost : HwndHost
 {
     readonly WindowProcedure procedure;
     readonly string className = "KillerPdfViewport." + Guid.NewGuid().ToString("N");
@@ -71,6 +71,7 @@ internal class WindowsPdfViewportHost : HwndHost
 
     void ReleaseWindows()
     {
+        editorMouseBridge = false;
         try { presenter?.Dispose(); }
         finally
         {
@@ -100,8 +101,17 @@ internal class WindowsPdfViewportHost : HwndHost
         }
         return DefWindowProc(hwnd, message, wParam, lParam);
     }
-    protected virtual nint OnNativeMessage(nint hwnd, uint message, nint wParam, nint lParam, ref bool handled) => 0;
-    protected virtual nint OnOverlayMessage(nint hwnd, int message, nint wParam, nint lParam, ref bool handled) => 0;
+    protected virtual nint OnNativeMessage(nint hwnd, uint message, nint wParam, nint lParam, ref bool handled)
+    {
+        if (hwnd == Viewport && (message == 0x201 || editorMouseBridge && message is 0x200 or 0x202))
+            handled = BridgeEditorMouse(message, wParam, lParam);
+        return 0;
+    }
+    protected virtual nint OnOverlayMessage(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
+    {
+        ReleaseEditorMouse(hwnd, message);
+        return 0;
+    }
 
     delegate nint WindowProcedure(nint window, uint message, nint wParam, nint lParam);
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
