@@ -25,7 +25,7 @@ public sealed partial class PdfPageRenderer
     /// at aligned natural size or eligible axis-aligned nearest or bilinear enlargement.
     /// Integer-factor reduction in both axes averages encoded source samples before conversion.
     /// Natural or nearest sampling also supports matching DeviceGray 8/16-bit soft masks
-    /// with retained fractional alpha.
+    /// with retained fractional alpha, or raw color-key masks.
     /// Device Gray/RGB axial and radial shadings
     /// support a single type 2 function. Embedded TrueType text fills and strokes
     /// support text matrices, line positioning, spacing, scaling, rise,

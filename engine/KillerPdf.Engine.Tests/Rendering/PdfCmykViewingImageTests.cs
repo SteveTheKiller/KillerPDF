@@ -201,6 +201,35 @@ public sealed class PdfCmykViewingImageTests
         Assert.Equal(1, frame.Pixels[3]);
     }
 
+    [Fact]
+    public void CmykColorKeyMaskPreservesUnmaskedColorAndTransparentPixels()
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+            Encoding.ASCII.GetBytes("2 0 0 1 0 0 cm /Image Do")).Build());
+        PdfIndirectReference page = FirstPageReference(source);
+        var original = Assert.IsType<PdfDictionary>(source.Resolve(page));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        var image = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(2)),
+            Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)),
+            Entry("ColorSpace", Name("DeviceCMYK")),
+            Entry("Mask", new PdfArray(Enumerable.Range(0, 8).Select(_ => (PdfObject)new PdfInteger(0))))]),
+            [255, 0, 0, 0, 0, 0, 0, 0]));
+        var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Image", image)]))]);
+        var document = PdfDocument.Open(update.ReplaceObject(page.ObjectNumber,
+            new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))
+                .Append(Entry("Resources", resources)))).Build());
+
+        PdfRenderedFrame frame = new PdfPageRenderer(document)
+            .RenderFrame(0, new PdfRenderOptions(2, 1, transparentBackground: true));
+
+        Assert.InRange(frame.Pixels[0], -0.20839846805136676f - 0.000002f, -0.20839846805136676f + 0.000002f);
+        Assert.InRange(frame.Pixels[1], 0.42131251226180745f - 0.000002f, 0.42131251226180745f + 0.000002f);
+        Assert.InRange(frame.Pixels[2], 0.86494485126038379f - 0.000002f, 0.86494485126038379f + 0.000002f);
+        Assert.Equal(1, frame.Pixels[3]);
+        Assert.Equal(0, frame.Pixels[7]);
+    }
+
     private static PdfIndirectReference FirstPageReference(PdfDocument document)
     {
         var catalog = Assert.IsType<PdfDictionary>(document.Resolve(
