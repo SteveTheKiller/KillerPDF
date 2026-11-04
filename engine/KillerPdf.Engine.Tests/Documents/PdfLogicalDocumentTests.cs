@@ -8,6 +8,24 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfLogicalDocumentTests
 {
     [Fact]
+    public void CapturedProofRetainsItsSettingsAndGenerationAfterTheOwnerChanges()
+    {
+        var owner = new PdfLogicalDocument
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, gamutWarnings: true)
+        };
+
+        var captured = owner.CaptureProof();
+        owner.Proof = new PdfDocumentProofSettings();
+
+        Assert.Equal(1, captured.Generation);
+        Assert.True(captured.Settings.Enabled);
+        Assert.True(captured.Settings.GamutWarnings);
+        Assert.Equal(2, owner.ProofGeneration);
+        Assert.False(owner.Proof.Enabled);
+    }
+
+    [Fact]
     public void IndependentCopyInheritsProofPreferencesAndCanThenDiverge()
     {
         var original = new PdfLogicalDocument

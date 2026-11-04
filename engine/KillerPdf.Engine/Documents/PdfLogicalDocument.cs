@@ -51,4 +51,10 @@ public sealed class PdfLogicalDocument
     }
     /// <summary>Gets the version of the requested proof preferences.</summary>
     public long ProofGeneration { get { lock (_proofLock) return _proofGeneration; } }
+
+    /// <summary>Captures matching immutable preferences and generation for one render request.</summary>
+    public (PdfDocumentProofSettings Settings, long Generation) CaptureProof()
+    {
+        lock (_proofLock) return (_proof, _proofGeneration);
+    }
 }

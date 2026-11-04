@@ -225,6 +225,7 @@ the other constructor still retains that snapshot explicitly.
 Each logical owner has immutable requested `Proof` preferences, initially disabled,
 and a `ProofGeneration` that changes only when the requested selections change.
 Profile content identity avoids invalidation when identical bytes are reloaded.
+`CaptureProof()` returns matching immutable settings and generation for a render request.
 `CreateIndependentCopy()` retains the snapshot and proof preferences with a new
 identity and an independent generation. These portable ownership contracts do not
 yet connect desktop proof controls, rendering or persistence.
