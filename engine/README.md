@@ -262,6 +262,8 @@ referencing a UI toolkit or native PDF renderer. The engine does not provide UI 
 The 1.9.3 development `RenderFrame` API also retains floating-point source colors for its
 supported path, text, gradient and image cases. It rejects unsupported precision features
 with a reason instead of returning colors quantized through the BGRA32 surface.
+Text widgets excluded by render options do not disable precise page rendering.
+Included annotation and form appearances remain explicitly unsupported.
 Natural aligned CMYK images and eligible nearest enlargements retain 8/16-bit precision through supported colorimetric
 ICC source profiles, including a resource `DefaultCMYK` replacement for DeviceCMYK.
 Interpolated or reduced CMYK images, masks and unsupported profile directions remain diagnosed separately.

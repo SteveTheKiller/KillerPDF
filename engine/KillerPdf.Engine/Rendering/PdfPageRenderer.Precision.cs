@@ -1,3 +1,5 @@
+using KillerPdf.Engine.Objects;
+
 namespace KillerPdf.Engine.Rendering;
 
 public sealed partial class PdfPageRenderer
@@ -40,8 +42,23 @@ public sealed partial class PdfPageRenderer
             || OutputProfile(null) is not null)
             throw new NotSupportedException("High-precision profile and group rendering is not implemented.");
         if ((options.IncludeAnnotations || options.IncludeFormFields)
-            && page.ContainsKey(Name("Annots")))
-            throw new NotSupportedException("High-precision annotation and form rendering is not implemented.");
+            && page.TryGetValue(Name("Annots"), out PdfObject? annotationValue)
+            && Resolve(annotationValue) is PdfArray annotations)
+        {
+            foreach (PdfObject value in annotations)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (Resolve(value) is not PdfDictionary annotation) continue;
+                bool widget = IsName(annotation, "Subtype", "Widget");
+                bool included = widget
+                    ? options.IncludeFormFields
+                        || options.IncludeSignedSignatureFields && IsSignedSignatureWidget(annotation)
+                        || options.IncludePushButtonFields && IsPushButtonWidget(annotation)
+                    : options.IncludeAnnotations;
+                if (included)
+                    throw new NotSupportedException("High-precision annotation and form rendering is not implemented.");
+            }
+        }
         var pixels = new float[checked((int)pixelCount * 4)];
         PdfRenderedPage compatibility = RenderUncached(pageIndex, options, cancellationToken,
             preciseRgb: pixels);
