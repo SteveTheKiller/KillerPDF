@@ -6,15 +6,14 @@ namespace KillerPdf.Engine.Rendering;
 
 public sealed partial class PdfPageRenderer
 {
-    // ISO 32000-2 12.5.5 lets markup, square and circle annotations omit /AP. Viewers then draw
-    // them from the annotation's own geometry and colors; this builds that plain appearance in
-    // page coordinates with the annotation rectangle as its bounding box.
+    // Legacy annotations can omit /AP. Build their visible appearance from their own colors
+    // and geometry in default page coordinates, including points outside an inaccurate /Rect.
     private PdfStream? SynthesizedAppearance(PdfDictionary annotation)
     {
         if (!annotation.TryGetValue(Name("Subtype"), out PdfObject? subtypeValue)
             || Resolve(subtypeValue) is not PdfName subtypeName) return null;
         string subtype = subtypeName.ValueAsLatin1();
-        if (subtype is not ("Highlight" or "Underline" or "StrikeOut" or "Squiggly" or "Square" or "Circle"))
+        if (subtype is not ("Highlight" or "Underline" or "StrikeOut" or "Squiggly" or "Square" or "Circle" or "Ink" or "Text"))
             return null;
         double[]? rectangle = Numbers(annotation, "Rect");
         if (rectangle is not { Length: 4 }) return null;
@@ -31,7 +30,56 @@ public sealed partial class PdfPageRenderer
         var content = new StringBuilder();
         if (opacity < 1 || highlight) content.Append("/S gs\n");
 
-        if (subtype is "Square" or "Circle")
+        if (subtype == "Text")
+        {
+            // Small attachment-point rectangles must still yield a readable closed-note icon.
+            right = Math.Max(right, left + 18);
+            bottom = Math.Min(bottom, top - 20);
+            string? color = ColorOperator(annotation, "C", stroking: false)
+                ?? (annotation.ContainsKey(Name("C")) ? null : "1 1 0 rg");
+            if (color is null) return null;
+            double width = right - left, height = top - bottom;
+            double lineWidth = Math.Min(1, Math.Min(width, height) / 8);
+            double x0 = left + lineWidth / 2, x1 = right - lineWidth / 2;
+            double y0 = bottom + lineWidth / 2, y1 = top - lineWidth / 2;
+            double fold = Math.Min(width, height) / 4;
+            // A closed text annotation is represented by a note marker, not its popup contents.
+            content.Append(color).Append("\n0 G ").Append(Format(lineWidth)).Append(" w\n")
+                .Append($"{Format(x0)} {Format(y0)} m {Format(x1)} {Format(y0)} l ")
+                .Append($"{Format(x1)} {Format(y1 - fold)} l {Format(x1 - fold)} {Format(y1)} l ")
+                .Append($"{Format(x0)} {Format(y1)} l h B\n")
+                .Append($"{Format(x1 - fold)} {Format(y1)} m {Format(x1 - fold)} {Format(y1 - fold)} l ")
+                .Append($"{Format(x1)} {Format(y1 - fold)} l S\n");
+        }
+        else if (subtype == "Ink")
+        {
+            if (!annotation.TryGetValue(Name("InkList"), out PdfObject? inkValue)
+                || Resolve(inkValue) is not PdfArray paths) return null;
+            stroke ??= annotation.ContainsKey(Name("C")) ? null : "0 G";
+            if (stroke is null) return null;
+            double lineWidth = BorderWidth(annotation);
+            content.Append(stroke).Append('\n').Append(Format(lineWidth)).Append(" w 1 J 1 j\n");
+            if (DashPattern(annotation) is string dash) content.Append(dash).Append('\n');
+            foreach (PdfObject pathValue in paths)
+            {
+                if (Resolve(pathValue) is not PdfArray path || path.Count < 2 || path.Count % 2 != 0)
+                    throw new FormatException("An ink annotation path must contain coordinate pairs.");
+                for (int index = 0; index < path.Count; index += 2)
+                {
+                    double x = Number(Resolve(path[index])), y = Number(Resolve(path[index + 1]));
+                    if (!double.IsFinite(x) || !double.IsFinite(y))
+                        throw new FormatException("An ink annotation path contains an invalid coordinate.");
+                    left = Math.Min(left, x - lineWidth / 2);
+                    right = Math.Max(right, x + lineWidth / 2);
+                    bottom = Math.Min(bottom, y - lineWidth / 2);
+                    top = Math.Max(top, y + lineWidth / 2);
+                    content.Append($"{Format(x)} {Format(y)} {(index == 0 ? "m" : "l")} ");
+                    if (path.Count == 2) content.Append($"{Format(x)} {Format(y)} l ");
+                }
+                content.Append("S\n");
+            }
+        }
+        else if (subtype is "Square" or "Circle")
         {
             double width = BorderWidth(annotation);
             if (stroke is null) width = 0;
@@ -59,6 +107,13 @@ public sealed partial class PdfPageRenderer
             if (!highlight) content.Append("1 w\n");
             double[] quads = Numbers(annotation, "QuadPoints") is { Length: >= 8 } points
                 ? points : [left, top, right, top, left, bottom, right, bottom];
+            for (int index = 0; index + 1 < quads.Length; index += 2)
+            {
+                left = Math.Min(left, quads[index] - 1);
+                right = Math.Max(right, quads[index] + 1);
+                bottom = Math.Min(bottom, quads[index + 1] - 1);
+                top = Math.Max(top, quads[index + 1] + 1);
+            }
             for (int index = 0; index + 8 <= quads.Length; index += 8)
                 AppendMarkup(content, subtype, quads.AsSpan(index, 8));
         }

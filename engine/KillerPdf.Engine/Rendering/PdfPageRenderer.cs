@@ -2537,7 +2537,13 @@ public sealed partial class PdfPageRenderer
                             diagnostics.Add("Invalid form-field regeneration data retained the saved appearance.");
                         }
                     }
-                    if (appearance is null && !widget) appearance = SynthesizedAppearance(annotation);
+                    if (appearance is null && !widget)
+                    {
+                        appearance = SynthesizedAppearance(annotation);
+                        if (appearance is not null)
+                            RenderForm(appearance, pageResources, initialState, 0);
+                        continue;
+                    }
                     if (appearance is null) continue;
                     if (!annotation.TryGetValue(Name("Rect"), out PdfObject? rectangleValue)) continue;
                     PdfArray rectangle = ResolveArray(rectangleValue, 4, "Annotation rectangle");
