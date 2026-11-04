@@ -319,18 +319,31 @@ namespace KillerPDF.Services
             catch { DiscardDownload(path); throw; }
         }
 
-        /// <summary>The hash SHA256SUMS.txt publishes for <paramref name="asset"/>: the first line that is
-        /// exactly "&lt;asset&gt; &lt;hash&gt;" for exactly this asset name (KillerBench's checksum rule), so
-        /// "KillerApp.exe" never takes the line of "KillerApp-Portable.exe". Null when there is none.</summary>
+        /// <summary>The hash SHA256SUMS.txt publishes for <paramref name="asset"/>: the first two-token line
+        /// for exactly this asset name (KillerBench's checksum rule), so "KillerApp.exe" never takes the
+        /// line of "KillerApp-Portable.exe". Both line orders are read: the standard "&lt;hash&gt;  &lt;asset&gt;"
+        /// form, with or without sha256sum's '*' binary marker on the name, and the older
+        /// "&lt;asset&gt; &lt;hash&gt;" form. A 64-digit hex token is always the hash. Null when there is none.</summary>
         internal static string? ChecksumFor(string sums, string asset)
         {
             foreach (var line in sums.Replace("\r", "").Split('\n'))
             {
                 var parts = line.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length == 2 && string.Equals(parts[0], asset, StringComparison.OrdinalIgnoreCase))
+                if (parts.Length != 2) continue;
+                if (IsSha256(parts[0]) && string.Equals(parts[1].TrimStart('*'), asset, StringComparison.OrdinalIgnoreCase))
+                    return parts[0];
+                if (IsSha256(parts[1]) && string.Equals(parts[0], asset, StringComparison.OrdinalIgnoreCase))
                     return parts[1];
             }
             return null;
+        }
+
+        private static bool IsSha256(string token)
+        {
+            if (token.Length != 64) return false;
+            foreach (char c in token)
+                if (!Uri.IsHexDigit(c)) return false;
+            return true;
         }
 
         /// <summary>Starts a helper that waits for this process to exit, swaps

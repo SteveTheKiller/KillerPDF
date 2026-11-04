@@ -32,10 +32,7 @@ namespace KillerPDF.Services
         {
             var installed = CodeSignature.GetSignerInfo();
             var incoming = CodeSignature.GetSignerInfo(exe);
-            AssemblyName name;
-            try { name = AssemblyName.GetAssemblyName(exe); }
-            catch (Exception error) when (error is BadImageFormatException or FileLoadException)
-            { throw new SecurityException("The update is not a " + AppInfo.DisplayName + " executable.", error); }
+            AssemblyName name = ReadIdentity(exe);
             Verify(name, version, Assembly.GetExecutingAssembly().GetName().Version!,
                 (installed.valid, installed.subject), (incoming.valid, incoming.subject), requireInstalledSignature);
             // KillerShell's same-publisher rule: a signed copy only takes a replacement from the same
@@ -46,6 +43,22 @@ namespace KillerPDF.Services
             if (!CodeSignature.MayReplace(current, exe))
                 throw new SecurityException("The update is not signed by the publisher of the installed copy.");
             return incoming.thumb;
+        }
+
+        /// <summary>The product name and version an update image declares in its version resource.
+        /// A release exe can be a single-file bundle or an apphost, which carry no managed assembly
+        /// header, so the name comes from the original file name the build stamps, the way
+        /// VerifyPackage reads an installer.</summary>
+        internal static AssemblyName ReadIdentity(string exe)
+        {
+            var file = FileVersionInfo.GetVersionInfo(exe);
+            string original = Path.GetFileNameWithoutExtension(file.OriginalFilename ?? string.Empty);
+            if (string.IsNullOrEmpty(original) || string.IsNullOrEmpty(file.FileVersion))
+                throw new SecurityException("The update is not a " + AppInfo.DisplayName + " executable.");
+            return new AssemblyName(original)
+            {
+                Version = new Version(file.FileMajorPart, file.FileMinorPart, file.FileBuildPart, file.FilePrivatePart),
+            };
         }
 
         /// <summary>Throws unless <paramref name="package"/> (an installer or launcher, not this
