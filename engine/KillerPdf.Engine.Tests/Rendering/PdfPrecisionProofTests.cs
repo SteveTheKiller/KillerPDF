@@ -12,6 +12,86 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPrecisionProofTests
 {
+    [Theory]
+    [InlineData(.25, false, 0)]
+    [InlineData(.25, true, .050876088171556791)]
+    [InlineData(.7353569830524495, false, .428570182934272710)]
+    [InlineData(.7353569830524495, true, .5)]
+    public void DisablingBlackSimulationNormalizesPrinterAppearanceToReferenceBlack(
+        double encoded, bool compensation, double expectedLuminance)
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            new PdfContentStreamBuilder().SetFillRgb(encoded, encoded, encoded)
+                .Rectangle(0, 0, 1, 1).Fill()).Build());
+        var options = new PdfRenderOptions(1, 1)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: GrayPrinter(),
+                options: new PdfProofOptions { BlackPointCompensation = compensation, SimulateBlack = false })
+        };
+
+        PdfRenderedFrame frame = new PdfPageRenderer(PageGroup(source)).RenderFrame(0, options);
+
+        // Independent normalization (printerY-p)/(1-p), p=8192/65535.
+        // The low sample clips to printer black without first-leg compensation;
+        // the interior sample distinguishes normalization from copying original pixels.
+        double luminance = .2126 * frame.Pixels[0] + .7152 * frame.Pixels[1] + .0722 * frame.Pixels[2];
+        Assert.InRange(luminance, expectedLuminance - .00003, expectedLuminance + .00003);
+        Assert.InRange(Math.Abs(frame.Pixels[0] - frame.Pixels[1]), 0, .00005);
+        Assert.InRange(Math.Abs(frame.Pixels[1] - frame.Pixels[2]), 0, .00005);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        Assert.Equal(1, frame.Pixels[3]);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public void CompensationRejectsCollapsedPrinterBlackAndWhiteEndpoints(bool lut, bool sourceCompensation)
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            Encoding.ASCII.GetBytes(".25 g 0 0 1 1 re f")).Build());
+        var options = new PdfRenderOptions(1, 1)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true,
+                printerProfile: lut ? Printer(wideGamut: true, perceptualTables: true) : GrayPrinter(collapsed: true),
+                options: new PdfProofOptions { BlackPointCompensation = sourceCompensation, SimulateBlack = sourceCompensation })
+        };
+
+        var error = Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(PageGroup(source)).RenderFrame(0, options));
+
+        Assert.Contains("proof", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(.25, false, .125001907377737087)]
+    [InlineData(.25, true, .169518387487931350)]
+    [InlineData(.7353569830524495, false, .5)]
+    [InlineData(.7353569830524495, true, .562500953688868543)]
+    public void SourceCompensationPreservesShadowsBeforeThePrinterInverse(
+        double encoded, bool compensation, double expectedLuminance)
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            new PdfContentStreamBuilder().SetFillRgb(encoded, encoded, encoded)
+                .Rectangle(0, 0, 1, 1).Fill()).Build());
+        var options = new PdfRenderOptions(1, 1)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: GrayPrinter(),
+                options: new PdfProofOptions { BlackPointCompensation = compensation, SimulateBlack = true })
+        };
+
+        PdfRenderedFrame frame = new PdfPageRenderer(PageGroup(source)).RenderFrame(0, options);
+
+        // Independent encoded curve p=8192/65535: printer Y=p+(1-p)*device.
+        // Without source BPC, the low sample clips to p; with it, Y becomes p+(1-p)*sourceY.
+        double luminance = .2126 * frame.Pixels[0] + .7152 * frame.Pixels[1] + .0722 * frame.Pixels[2];
+        Assert.InRange(luminance, expectedLuminance - .00003, expectedLuminance + .00003);
+        Assert.InRange(Math.Abs(frame.Pixels[0] - frame.Pixels[1]), 0, .00005);
+        Assert.InRange(Math.Abs(frame.Pixels[1] - frame.Pixels[2]), 0, .00005);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        Assert.Equal(1, frame.Pixels[3]);
+    }
+
     [Fact]
     public void ProofRetainsPrinterAppearanceOutsideTheReferenceRgbGamut()
     {
@@ -241,7 +321,7 @@ public sealed class PdfPrecisionProofTests
     }
 
     private static PdfColorProfile Printer(string profileClass = "prtr", bool perceptualOnly = false,
-        bool includeReverse = true, bool wideGamut = false)
+        bool includeReverse = true, bool wideGamut = false, bool perceptualTables = false)
     {
         byte[] forward = wideGamut ? Table(4, 3, _ => [6554, 22938, 3277]) : Table(4, 3, cell => (cell % 3) switch
         {
@@ -252,6 +332,11 @@ public sealed class PdfPrecisionProofTests
         byte[] reverse = Table(3, 4, cell => [0, 0, 0, (ushort)((cell / 3) % 3 == 0 ? 65535 : 0)]);
         List<(string Name, byte[] Data)> tags = [(perceptualOnly ? "A2B0" : "A2B1", forward)];
         if (includeReverse) tags.Add((perceptualOnly ? "B2A0" : "B2A1", reverse));
+        if (perceptualTables)
+        {
+            tags.Add(("A2B0", forward));
+            tags.Add(("B2A0", reverse));
+        }
         int offset = 132 + 12 * tags.Count;
         byte[] data = new byte[offset + tags.Sum(tag => (tag.Data.Length + 3) & ~3)];
         Write32(data, 0, data.Length);
@@ -293,6 +378,29 @@ public sealed class PdfPrecisionProofTests
             foreach (ushort value in vertex(cell)) Append(value);
         for (int channel = 0; channel < outputs; channel++) { Append(0); Append(65535); }
         return data;
+    }
+
+    private static PdfColorProfile GrayPrinter(bool collapsed = false)
+    {
+        byte[] data = new byte[192];
+        Write32(data, 0, data.Length);
+        data[8] = 4;
+        "prtr"u8.CopyTo(data.AsSpan(12));
+        "GRAY"u8.CopyTo(data.AsSpan(16));
+        "XYZ "u8.CopyTo(data.AsSpan(20));
+        "acsp"u8.CopyTo(data.AsSpan(36));
+        Write32(data, 128, 2);
+        "kTRC"u8.CopyTo(data.AsSpan(132));
+        Write32(data, 136, 156); Write32(data, 140, 16);
+        "wtpt"u8.CopyTo(data.AsSpan(144));
+        Write32(data, 148, 172); Write32(data, 152, 20);
+        "curv"u8.CopyTo(data.AsSpan(156));
+        Write32(data, 164, 2);
+        BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(168), 8192);
+        BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(170), collapsed ? (ushort)8192 : (ushort)65535);
+        "XYZ "u8.CopyTo(data.AsSpan(172));
+        Write32(data, 180, 63190); Write32(data, 184, 65536); Write32(data, 188, 54061);
+        return PdfColorProfile.Load(data);
     }
 
     private static void Write32(byte[] data, int offset, int value) =>

@@ -298,7 +298,9 @@ precision through final Normal imposition on white for opaque output. Transparen
 keeps the page group's alpha, and direct page output ignores its isolation flag.
 Other blend spaces, knockout, fractional group clips and other group blend modes remain unsupported.
 Optional `PdfRenderOptions.Proof` initially supports opaque, unprofiled DeviceRGB page groups
-with direct RGB/Gray paths, relative intent, source BPC off, black simulation on and paper/warnings off.
+with direct RGB/Gray paths, relative intent, optional source BPC and independent black simulation,
+with paper simulation and warnings off. Compensation uses bounded ICC estimates against
+mathematical zero-black RGB reference, with unavailable or degenerate conditions diagnosed.
 The selected output profile must have actual colorimetric transforms in both directions.
 Conversion occurs after group compositing through D50 XYZ, retaining extended reference RGB.
 Other requests are diagnosed. Byte rendering and native layouts reject enabled proof;

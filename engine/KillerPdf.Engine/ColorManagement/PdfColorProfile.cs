@@ -41,6 +41,40 @@ public sealed class PdfColorProfile
     internal void ReadPaperWhite(Span<double> xyz) => _transform.ReadPaperWhite(xyz);
     internal void ReadPaperBlack(Span<double> xyz) => _transform.ReadPaperBlack(xyz);
 
+    internal PdfBlackPointCompensation ReferenceBlackToDeviceCompensation(PdfRenderingIntent intent)
+    {
+        // The unprofiled RGB page-group reference uses mathematical XYZ zero black.
+        ValidateReferenceBlackRange(intent);
+        if (!PdfBlackPointCompensation.TryCreate(null, _transform, IntentIndex(intent), out var compensation))
+            throw new NotSupportedException("Printer proof source black-point compensation is unavailable for this profile.");
+        return compensation;
+    }
+
+    internal PdfBlackPointCompensation DeviceToReferenceBlackCompensation(PdfRenderingIntent intent)
+    {
+        ValidateReferenceBlackRange(intent);
+        if (!PdfBlackPointCompensation.TryCreate(_transform, null, IntentIndex(intent), out var compensation))
+            throw new NotSupportedException("Printer proof black normalization is unavailable for this profile.");
+        return compensation;
+    }
+
+    private void ValidateReferenceBlackRange(PdfRenderingIntent intent)
+    {
+        Span<double> device = stackalloc double[ComponentCount];
+        Span<double> black = stackalloc double[3];
+        Span<double> white = stackalloc double[3];
+        FromXyz([0, 0, 0], device, intent);
+        ToXyz(device, black, intent);
+        FromXyz([.9642, 1, .8249], device, intent);
+        ToXyz(device, white, intent);
+        for (int channel = 0; channel < 3; channel++)
+            if (!double.IsFinite(black[channel]) || !double.IsFinite(white[channel]))
+                throw new NotSupportedException("Printer proof compensation has nonfinite reference endpoints.");
+        double range = white[1] - black[1];
+        if (!double.IsFinite(range) || range <= 1e-9)
+            throw new NotSupportedException("Printer proof compensation has a collapsed reference range.");
+    }
+
     /// <summary>Describes the transform selected for the requested intent and direction.</summary>
     public PdfColorTransformSelection GetTransformSelection(
         PdfRenderingIntent intent = PdfRenderingIntent.RelativeColorimetric,
