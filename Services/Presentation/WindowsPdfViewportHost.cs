@@ -104,7 +104,9 @@ internal partial class WindowsPdfViewportHost : HwndHost
     }
     protected virtual nint OnNativeMessage(nint hwnd, uint message, nint wParam, nint lParam, ref bool handled)
     {
-        if (hwnd == Viewport && (message == 0x201 || editorMouseBridge && message is 0x200 or 0x202))
+        if (hwnd == Viewport && message == 0x20A)
+            handled = BridgeWheel(wParam, lParam);
+        else if (hwnd == Viewport && (message == 0x201 || editorMouseBridge && message is 0x200 or 0x202))
             handled = BridgeEditorMouse(message, wParam, lParam);
         return 0;
     }

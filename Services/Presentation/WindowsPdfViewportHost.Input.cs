@@ -12,6 +12,31 @@ internal partial class WindowsPdfViewportHost
     bool editorMouseBridge;
     List<(uint Message, nint Keys, nint Position)>? pendingEditorMouse;
 
+    bool BridgeWheel(nint wParam, nint lParam)
+    {
+        if (Overlay is not { } overlay || !OverlayRoot.IsVisible) return false;
+        var screen = new PointI { X = unchecked((short)(lParam.ToInt64() & 0xffff)), Y = unchecked((short)((lParam.ToInt64() >> 16) & 0xffff)) };
+        if (WindowFromPoint(screen) != Viewport) return false;
+        Point point = OverlayRoot.PointFromScreen(new Point(screen.X, screen.Y));
+        DependencyObject? hit = OverlayRoot.InputHitTest(point) as DependencyObject;
+        while (hit is not null && hit is not UIElement) hit = LogicalTreeHelper.GetParent(hit);
+        UIElement target = hit as UIElement ?? OverlayRoot;
+        int delta = unchecked((short)((wParam.ToInt64() >> 16) & 0xffff));
+        int timestamp = Environment.TickCount;
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+        {
+            if (!ReferenceEquals(Overlay, overlay) || !target.IsVisible || !target.IsEnabled
+                || PresentationSource.FromVisual(target) != overlay) return;
+            var preview = new MouseWheelEventArgs(Mouse.PrimaryDevice, timestamp, delta)
+                { RoutedEvent = Mouse.PreviewMouseWheelEvent, Source = target };
+            target.RaiseEvent(preview);
+            if (!preview.Handled)
+                target.RaiseEvent(new MouseWheelEventArgs(Mouse.PrimaryDevice, timestamp, delta)
+                    { RoutedEvent = Mouse.MouseWheelEvent, Source = target });
+        }));
+        return true;
+    }
+
     bool BridgeEditorMouse(uint message, nint wParam, nint lParam)
     {
         if (Overlay is not { } overlay) return false;
