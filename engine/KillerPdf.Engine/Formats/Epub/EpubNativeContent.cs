@@ -16,6 +16,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     }
 
     private readonly Stack<Element> _ancestors = new();
+    private readonly Dictionary<string, CssProperties> _typeRules = new(StringComparer.Ordinal);
     private int _characters;
     internal List<SourceCharacter?> Characters { get; } = new();
     internal Style DefaultStyle { get; } = new(fallbackSize, null);
@@ -28,7 +29,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "html" => parent is null && xml.Depth == 0,
             "head" or "body" => parent?.Name == "html",
             "title" => parent?.Name == "head",
-            "link" => parent?.Name == "head" && xml.GetAttribute("rel") == "icon"
+            "link" => parent?.Name == "head" && xml.GetAttribute("rel") is "icon" or "stylesheet"
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
             "p" => parent?.Name == "body",
             "span" => parent?.Name is "p" or "span",
@@ -37,6 +38,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             throw new NotSupportedException("Native EPUB XHTML element is not implemented: " + name + ".");
         bool empty = xml.IsEmptyElement;
         Style style = parent?.Style ?? DefaultStyle;
+        if (_typeRules.TryGetValue(name, out var rule)) style = rule.Apply(style);
         while (xml.MoveToNextAttribute())
         {
             Count(xml.Value.Length);
@@ -44,7 +46,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 style = ParseStyle(xml.Value, style);
             else if (name == "link" && xml.NamespaceURI == "" && xml.LocalName is "href" or "rel" or "type" or "id")
             {
-                // The structural reader validates the packaged reference; icons do not paint body content.
+                // Packaged references are validated separately from body painting.
             }
             else if (xml.NamespaceURI != "http://www.w3.org/2000/xmlns/"
                 && !(xml.LocalName == "lang" && xml.NamespaceURI is "" or "http://www.w3.org/XML/1998/namespace"))
@@ -81,10 +83,41 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             throw new InvalidDataException("Native EPUB XHTML exceeds its character work limit.");
     }
 
-    private Style ParseStyle(string declarations, Style inherited)
+    internal void AddStylesheet(string css, CancellationToken cancellationToken)
     {
-        double size = inherited.FontSize;
-        double? height = inherited.LineHeight;
+        Count(css.Length);
+        int position = 0;
+        while (position < css.Length)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            while (position < css.Length && char.IsWhiteSpace(css[position])) position++;
+            if (position == css.Length) break;
+            int open = css.IndexOf('{', position);
+            int close = open < 0 ? -1 : css.IndexOf('}', open + 1);
+            if (close < 0) throw new NotSupportedException("Native EPUB CSS rule syntax is not implemented.");
+            string selector = css[position..open].Trim();
+            if (selector.Length is 0 or > 128 || !char.IsAsciiLetter(selector[0])
+                || selector.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_')))
+                throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+            CssProperties properties = ParseProperties(css[(open + 1)..close]);
+            if (_typeRules.TryGetValue(selector, out var previous))
+                properties = new(properties.FontSize ?? previous.FontSize, properties.LineHeight ?? previous.LineHeight);
+            _typeRules[selector] = properties;
+            position = close + 1;
+        }
+    }
+
+    private readonly record struct CssProperties(double? FontSize, double? LineHeight)
+    {
+        internal Style Apply(Style inherited) =>
+            new(FontSize ?? inherited.FontSize, LineHeight ?? inherited.LineHeight);
+    }
+
+    private Style ParseStyle(string declarations, Style inherited) => ParseProperties(declarations).Apply(inherited);
+
+    private CssProperties ParseProperties(string declarations)
+    {
+        double? size = null, height = null;
         foreach (string declaration in declarations.Split(';'))
         {
             string part = declaration.Trim();
@@ -104,6 +137,6 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new Style(size, height);
+        return new CssProperties(size, height);
     }
 }

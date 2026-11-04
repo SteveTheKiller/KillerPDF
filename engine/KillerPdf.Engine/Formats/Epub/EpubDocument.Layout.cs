@@ -31,10 +31,13 @@ public sealed partial class EpubDocument
         var pages = new List<EpubLayoutPage>();
         var reader = new TrueTypeOutlineReader(options.DefaultFont);
         int remainingTextLength = 100_000;
+        int remainingStylesheetBytes = 1_000_000;
+        int remainingStylesheetReferences = 1024;
         for (int spineIndex = 0; spineIndex < Spine.Count; spineIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, ref remainingTextLength, cancellationToken);
+            AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages,
+                ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
         return new EpubLayoutDocument(options, pages);
@@ -42,7 +45,7 @@ public sealed partial class EpubDocument
 
     private void AppendNativeSpinePages(int spineIndex, EpubLayoutOptions options, double contentWidth,
         TrueTypeOutlineReader reader, List<EpubLayoutPage> pages, ref int remainingTextLength,
-        CancellationToken cancellationToken)
+        ref int remainingStylesheetBytes, ref int remainingStylesheetReferences, CancellationToken cancellationToken)
     {
         var entry = Spine[spineIndex];
         if (!entry.IsLinear || !string.IsNullOrWhiteSpace(entry.Properties))
@@ -53,6 +56,8 @@ public sealed partial class EpubDocument
         if (_resources[resource.Href].Length > MaxEntryBytes)
             throw new InvalidDataException("Native EPUB XHTML exceeds its 8 MiB resource limit.");
         var content = new EpubNativeContent(options.FontSize, options.PageHeight - 2 * options.Margin);
+        LoadNativeStylesheets(resource.Href, content, ref remainingStylesheetBytes,
+            ref remainingStylesheetReferences, cancellationToken);
         string text = ReadStructuralText(spineIndex, cancellationToken, content);
         if (text.Length > remainingTextLength)
             throw new InvalidDataException("Native EPUB text exceeds its 100,000 placement limit.");

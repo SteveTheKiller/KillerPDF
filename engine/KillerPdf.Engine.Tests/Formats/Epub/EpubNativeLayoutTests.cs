@@ -113,6 +113,85 @@ public sealed class EpubNativeLayoutTests
             new EpubTextPlacement(0, 4, 1, 36, 8, 12, 20) }, page.TextPlacements);
     }
 
+    [Fact]
+    public void NativeLayoutAppliesPackagedStylesheetThroughCollapsedSpacesAndParentRestoration()
+    {
+        const string stylesheet = "p { font-size:20px; line-height:20px } span { font-size:10px; line-height:10px }";
+        byte[] stylesheetBytes = Encoding.UTF8.GetBytes(stylesheet);
+        var book = EpubDocument.Open(Book("<p>A<span>  A </span>A</p>", stylesheet));
+        Assert.Equal(stylesheetBytes, book.ReadResource("EPUB/styles/book.css"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        Assert.Equal("A A A", book.ReadText(0));
+        var options = new EpubLayoutOptions(64, 40, font) {
+            FontSize = 10, Margin = 8, TextColor = new PdfRgbColor(0.5001, 0.5001, 0.5001) };
+
+        var layout = book.CreateLayout(options);
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A A A", page.Text);
+        Assert.Equal(0, page.SpineIndex);
+        Assert.Equal(0, page.TextStart);
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 8, 8, 12, 20),
+            new EpubTextPlacement(0, 1, 1, 20, 16, 5, 10),
+            new EpubTextPlacement(0, 2, 1, 25, 16, 6, 10),
+            new EpubTextPlacement(0, 3, 1, 31, 16, 5, 10),
+            new EpubTextPlacement(0, 4, 1, 36, 8, 12, 20) }, page.TextPlacements);
+
+        var frame = layout.RenderPage(0);
+
+        Assert.Equal(64, frame.Width);
+        Assert.Equal(40, frame.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        AssertInterior(frame, 30, 19);
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((10 * 64 + 30) * 4, 4).ToArray());
+        int apexOffset = (14 * 64 + 30) * 4;
+        for (int channel = 0; channel < 3; channel++)
+            Assert.InRange(frame.Pixels[apexOffset + channel], 0.73795803f, 0.73795843f);
+        Assert.Equal(1f, frame.Pixels[apexOffset + 3]);
+        Assert.Equal(stylesheetBytes, book.ReadResource("EPUB/styles/book.css"));
+    }
+
+    [Fact]
+    public void StylesheetReferenceWorkIsBoundedEvenForEmptySharedResources()
+    {
+        var allowed = EpubDocument.Open(Book(stylesheet: "", stylesheetReferences: 1024));
+        var font = TrueTypeFont.Load(allowed.ReadResource("EPUB/fonts/test.ttf"));
+        var options = new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 };
+        Assert.Equal("A A", Assert.Single(allowed.CreateLayout(options).Pages).Text);
+        var excessive = EpubDocument.Open(Book(stylesheet: "", stylesheetReferences: 1025));
+        Assert.Empty(excessive.ReadResource("EPUB/styles/book.css"));
+        Assert.Equal("A A", excessive.ReadText(0));
+
+        Assert.Throws<InvalidDataException>(() => excessive.CreateLayout(options));
+    }
+
+    [Fact]
+    public void RootInheritanceCascadeOrderAndInlineOverrideRetainSourceRanges()
+    {
+        const string css = "html {font-size:20px;line-height:20px} span {font-size:20px;line-height:20px} span {font-size:10px;line-height:10px}";
+        var book = EpubDocument.Open(Book("""
+            <p>A<span> A </span><span style="font-size:20px;line-height:20px">A</span></p>
+            """, css));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        Assert.Equal("A A A", book.ReadText(0));
+
+        var layout = book.CreateLayout(new EpubLayoutOptions(64, 40, font) {
+            FontSize = 10, Margin = 8, TextColor = new PdfRgbColor(0.5001, 0.5001, 0.5001) });
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A A A", page.Text);
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 8, 8, 12, 20),
+            new EpubTextPlacement(0, 1, 1, 20, 16, 5, 10),
+            new EpubTextPlacement(0, 2, 1, 25, 16, 6, 10),
+            new EpubTextPlacement(0, 3, 1, 31, 16, 5, 10),
+            new EpubTextPlacement(0, 4, 1, 36, 8, 12, 20) }, page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        AssertInterior(frame, 30, 19);
+        AssertInterior(frame, 46, 14);
+    }
+
     private static void AssertInterior(PdfRenderedFrame frame, int x, int y)
     {
         int offset = (y * frame.Width + x) * 4;
@@ -121,7 +200,7 @@ public sealed class EpubNativeLayoutTests
         Assert.Equal(1f, frame.Pixels[offset + 3]);
     }
 
-    private static byte[] Book(string body = "<p>A A</p>")
+    private static byte[] Book(string body = "<p>A A</p>", string? stylesheet = null, int stylesheetReferences = 1)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -130,19 +209,24 @@ public sealed class EpubNativeLayoutTests
             Add("META-INF/container.xml", """
                 <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0"><rootfiles><rootfile full-path="EPUB/book.opf" media-type="application/oebps-package+xml"/></rootfiles></container>
                 """);
-            Add("EPUB/book.opf", """
+            string stylesheetManifest = stylesheet is null ? "" : "<item id=\"stylesheet\" href=\"styles/book.css\" media-type=\"text/css\"/>";
+            string stylesheetLink = stylesheet is null ? "" : "<link rel=\"stylesheet\" type=\"text/css\" href=\"styles/book.css\"/>";
+            stylesheetLink = string.Concat(Enumerable.Repeat(stylesheetLink, stylesheetReferences));
+            Add("EPUB/book.opf", $"""
                 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
                   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:native-layout</dc:identifier><dc:title>Native layout</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2026-11-03T00:00:00Z</meta></metadata>
-                  <manifest><item id="chapter" href="text.xhtml" media-type="application/xhtml+xml"/><item id="font" href="fonts/test.ttf" media-type="font/ttf"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest>
+                  <manifest><item id="chapter" href="text.xhtml" media-type="application/xhtml+xml"/><item id="font" href="fonts/test.ttf" media-type="font/ttf"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>{stylesheetManifest}</manifest>
                   <spine><itemref idref="chapter"/></spine>
                 </package>
                 """);
             Add("EPUB/text.xhtml", $"""
-                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native layout</title></head><body>{body}</body></html>
+                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native layout</title>{stylesheetLink}</head><body>{body}</body></html>
                 """);
             Add("EPUB/nav.xhtml", """
                 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text.xhtml">Native layout</a></li></ol></nav></body></html>
                 """);
+            if (stylesheet is not null)
+                Add("EPUB/styles/book.css", stylesheet);
             using var font = zip.CreateEntry("EPUB/fonts/test.ttf", CompressionLevel.NoCompression).Open();
             font.Write(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));
 

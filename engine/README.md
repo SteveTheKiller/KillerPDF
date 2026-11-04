@@ -153,14 +153,17 @@ slice, `SpineIndex` and `TextStart` offset; placement offsets remain relative to
 that chapter's spine text. The text-work limit applies across all chapters.
 Words wider than the content box are diagnosed explicitly.
 `RenderPage` produces an owned linear-sRGB float frame through shared glyph rendering,
-without creating a PDF. Inline `font-size` and `line-height` support positive CSS-pixel
+without creating a PDF. Inline and packaged CSS `font-size` and `line-height` support positive CSS-pixel
 lengths that fit the content height. Mixed sizes share a baseline; collapsed spaces
 retain their original inline style. The default normal line height follows each
 inline font's ascent and descent; explicit pixel line heights inherit as lengths.
 Other styling, character breaking, complex scripts and other unsupported content
 produce explicit diagnoses; this initial API does not establish full EPUB support.
 Packaged head links with `rel="icon"` are validated as local references without
-decoding or painting the icon in body pages. Stylesheets remain a separate capability.
+decoding or painting the icon in body pages. Packaged UTF-8 CSS stylesheets support
+ASCII type selectors, source order, inheritance and inline overrides. Loading stays
+inside the package, with shared limits of 1,000,000 stylesheet bytes and 1024 references
+per layout, including repeated empty resources. Other CSS syntax remains diagnosed.
 
 `ReadText` and the supported plain native layout accept the canonical XHTML 1.1
 external declaration without loading or processing a DTD. Original resource bytes
