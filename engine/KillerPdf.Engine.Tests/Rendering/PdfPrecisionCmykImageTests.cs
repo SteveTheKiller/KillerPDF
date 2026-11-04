@@ -98,8 +98,32 @@ public sealed class PdfPrecisionCmykImageTests
         Assert.True(frame.Pixels[0] > frame.Pixels[4]);
     }
 
+    [Fact]
+    public void NearestEnlargementRetainsBothAdjacentSixteenBitCmykLevels()
+    {
+        var renderer = Renderer(Convert.FromBase64String(ProfileBase64), scenario: "scaledFullUp");
+
+        var frame = renderer.RenderFrame(0, new PdfRenderOptions(4, 1, transparentBackground: true));
+
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        AssertPixel(frame, 0, 0.25656640931229085f, 0.24270025515688283f, 0.31217781759250244f);
+        AssertPixel(frame, 1, 0.25656640931229085f, 0.24270025515688283f, 0.31217781759250244f);
+        AssertPixel(frame, 2, 0.25655445469789561f, 0.24270398889375892f, 0.31217754305628471f);
+        AssertPixel(frame, 3, 0.25655445469789561f, 0.24270398889375892f, 0.31217754305628471f);
+        Assert.True(frame.Pixels[0] > frame.Pixels[8]);
+    }
+
+    [Fact]
+    public void ClippedNearestCmykEnlargementKeepsTheOriginalSampleFootprint()
+    {
+        var frame = Renderer(Convert.FromBase64String(ProfileBase64), scenario: "scaledUp")
+            .RenderFrame(0, new PdfRenderOptions(2, 1, transparentBackground: true));
+
+        AssertPixel(frame, 0, 0.25656640931229085f, 0.24270025515688283f, 0.31217781759250244f);
+        AssertPixel(frame, 1, 0.25656640931229085f, 0.24270025515688283f, 0.31217781759250244f);
+    }
+
     [Theory]
-    [InlineData("scaledUp")]
     [InlineData("scaledDown")]
     [InlineData("interpolated")]
     [InlineData("rotated")]
@@ -121,12 +145,12 @@ public sealed class PdfPrecisionCmykImageTests
         string? scenario = null)
     {
         string content = scenario switch {
-            "scaledUp" or "interpolated" => "4 0 0 1 0 0 cm /Image Do",
+            "scaledUp" or "scaledFullUp" or "interpolated" => "4 0 0 1 0 0 cm /Image Do",
             "scaledDown" => "1 0 0 1 0 0 cm /Image Do",
             "rotated" => "0 2 -1 0 1 0 cm /Image Do",
             _ => "2 0 0 1 0 0 cm /Image Do"
         };
-        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(scenario == "scaledFullUp" ? 4 : 2, 1,
             Encoding.ASCII.GetBytes(content)).Build());
         var page = PdfPageTree.Read(source).Pages[0];
         var original = Assert.IsType<PdfDictionary>(source.Resolve(page.Reference));
