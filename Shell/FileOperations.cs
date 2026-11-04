@@ -41,7 +41,7 @@ namespace KillerPDF.Shell
             // Record real user files in the recent list (skips blank/new docs, which don't open a path).
             if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path)) App.AddRecentFile(path);
 
-            if (System.IO.Path.GetExtension(path).ToLowerInvariant() is ".djvu" or ".djv")
+            if (System.IO.Path.GetExtension(path).ToLowerInvariant() is ".djvu" or ".djv" or ".epub")
             {
                 OpenNativeFile(path);
                 return;

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -18,7 +19,7 @@ using System.Windows.Threading;
 
 internal static class NativeReadingSmoke
 {
-    internal static int Run(Window owner, string appPath, string folder, bool continuous = false, bool grid = false, bool gridSwitch = false)
+    internal static int Run(Window owner, string appPath, string folder, bool continuous = false, bool grid = false, bool gridSwitch = false, bool epub = false)
     {
         string stage = "fixture";
         var events = new List<object>();
@@ -63,11 +64,11 @@ internal static class NativeReadingSmoke
             Type builderType = engine.GetType("KillerPdf.Engine.Authoring.PdfDocumentBuilder", true)!;
             ConstructorInfo constructor = builderType.GetConstructors().Single();
             dynamic builder = constructor.Invoke(constructor.GetParameters().Select(p => p.DefaultValue).ToArray());
-            sources.Add(Path.Combine(folder, "blank-control.pdf"), (byte[])builder.AddBlankPage(300d, 200d).Build());
-            byte[] nativeBytes = continuous || grid ? ContinuousFixture() : DjvuFixture();
+            sources.Add(Path.Combine(folder, "blank-control.pdf"), (byte[])builder.AddBlankPage(epub ? 600d : 300d, epub ? 750d : 200d).Build());
+            byte[] nativeBytes = epub ? EpubFixture() : continuous || grid ? ContinuousFixture() : DjvuFixture();
             if ((continuous || grid) && (nativeBytes.Length != 100 || Hash(nativeBytes) != "A6112B847B6731E478086F5A14528540B155D8A871AF2F39BE362F7BF682C609"))
                 throw new InvalidOperationException("Frozen Continuous fixture hash mismatch.");
-            sources.Add(Path.Combine(folder, continuous || grid ? "rectangle-300x200-300dpi.djvu" : "native-upright.djvu"), nativeBytes);
+            sources.Add(Path.Combine(folder, epub ? "native-letter.epub" : continuous || grid ? "rectangle-300x200-300dpi.djvu" : "native-upright.djvu"), nativeBytes);
             foreach (var source in sources) File.WriteAllBytes(source.Key, source.Value);
             owner.WindowState = WindowState.Normal;
             owner.Width = Math.Min(1000, SystemParameters.WorkArea.Width - 64);
@@ -80,7 +81,7 @@ internal static class NativeReadingSmoke
             foreach (var step in steps)
             {
                 var source = step.Source;
-                bool isNative = source.Key.EndsWith(".djvu", StringComparison.Ordinal);
+                bool isNative = source.Key.EndsWith(".djvu", StringComparison.Ordinal) || source.Key.EndsWith(".epub", StringComparison.Ordinal);
                 stage = isNative ? "native-open" : "control-open";
                 if (step.Open)
                 {
@@ -154,7 +155,7 @@ internal static class NativeReadingSmoke
                     Rect work = new(owner.PointToScreen(new Point(SystemParameters.WorkArea.Left - owner.Left,
                         SystemParameters.WorkArea.Top - owner.Top)), new Size(SystemParameters.WorkArea.Width * VisualTreeHelper.GetDpi(owner).DpiScaleX,
                         SystemParameters.WorkArea.Height * VisualTreeHelper.GetDpi(owner).DpiScaleY));
-                    if (!work.Contains(bounds) || Math.Abs(bounds.Width / bounds.Height - 1.5) > .03) return false;
+                    if (!work.Contains(bounds) || Math.Abs(bounds.Width / bounds.Height - (epub ? .8 : 1.5)) > .03) return false;
                     stable = bounds == last && lastWindow == windowBounds && lastViewport == visibleViewport
                         && ReferenceEquals(stableSource, page.Source) ? stable + 1 : 0;
                     last = bounds; lastWindow = windowBounds; lastViewport = visibleViewport; stableSource = page.Source;
@@ -194,8 +195,10 @@ internal static class NativeReadingSmoke
                 bool whiteUpper = upper.All(value => value >= 224);
                 bool whiteLower = lower.All(value => value >= 224);
                 bool blackUpperRight = upperRight.All(value => value <= 32);
-                bool detector = whiteUpper && blackUpperRight && whiteLower;
-                events.Add(new { stage, filename = Path.GetFileName(source.Key), pages = 1, bounds = last.ToString(), upper, upperRight, lower, detector });
+                int darkPixels = epub ? DarkPixels(capture) : 0;
+                bool detector = epub ? whiteLower && darkPixels > 100 && darkPixels < capture.PixelWidth * capture.PixelHeight / 4
+                    : whiteUpper && blackUpperRight && whiteLower;
+                events.Add(new { stage, filename = Path.GetFileName(source.Key), pages = 1, bounds = last.ToString(), upper, upperRight, lower, darkPixels, detector });
                 if (isNative ? !detector : !whiteUpper || !whiteLower || !upperRight.All(value => value >= 224) || detector)
                     throw new InvalidOperationException(isNative ? "Native white/black screen detector failed." : "Blank PDF absence control failed.");
                 if (isNative) native = true; else control = true;
@@ -281,7 +284,7 @@ internal static class NativeReadingSmoke
             bool passed = control && native && preserved && failure is null && modals.Count == 0 && (!gridSwitch || switched);
             File.WriteAllText(Path.Combine(folder, "result.json"), JsonSerializer.Serialize(new
             {
-                passed, stage, control, native, preserved, continuous, grid, gridSwitch, switched, machine = Environment.MachineName,
+                passed, stage, control, native, preserved, continuous, grid, gridSwitch, switched, epub, machine = Environment.MachineName,
                 failureKind = failure is null ? null : stage == "fixture" ? "fixture"
                     : grid && failure is TimeoutException && modals.Count == 0 ? "grid-readiness-review-required"
                     : continuous && stage == "native-render-readiness" && modals.Count == 0 ? "native-render-readiness-review-required"
@@ -341,6 +344,48 @@ internal static class NativeReadingSmoke
     private static byte[] DjvuFixture() => [.. "AT&T"u8, .. Chunk("FORM", [.. "DJVU"u8,
         .. Chunk("INFO", [0, 3, 0, 2, 26, 0, 0x2c, 1, 22, 1]),
         .. Chunk("Smmr", [.. "MMR"u8, 0, 0, 3, 0, 2, 0x23, 0xe1, 0x80, 0x08, 0, 0x80])])];
+    private static byte[] EpubFixture()
+    {
+        using var output = new MemoryStream();
+        using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
+        {
+            Add("mimetype", "application/epub+zip", CompressionLevel.NoCompression);
+            Add("META-INF/container.xml", """
+                <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0"><rootfiles><rootfile full-path="EPUB/book.opf" media-type="application/oebps-package+xml"/></rootfiles></container>
+                """);
+            Add("EPUB/book.opf", """
+                <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:native-screen</dc:identifier><dc:title>Native letter</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2000-01-01T00:00:00Z</meta></metadata><manifest><item id="chapter" href="text.xhtml" media-type="application/xhtml+xml"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest><spine><itemref idref="chapter"/></spine></package>
+                """);
+            Add("EPUB/text.xhtml", """
+                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native letter</title></head><body><p style="font-size:160px">A</p></body></html>
+                """);
+            Add("EPUB/nav.xhtml", """
+                <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text.xhtml">Letter</a></li></ol></nav></body></html>
+                """);
+            void Add(string path, string text, CompressionLevel compression = CompressionLevel.Optimal)
+            {
+                var entry = zip.CreateEntry(path, compression);
+                entry.LastWriteTime = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+                using var stream = entry.Open();
+                stream.Write(System.Text.Encoding.UTF8.GetBytes(text));
+            }
+        }
+        return output.ToArray();
+    }
+    private static int DarkPixels(BitmapSource image)
+    {
+        int stride = checked(image.PixelWidth * 4);
+        byte[] pixels = new byte[checked(stride * image.PixelHeight)];
+        image.CopyPixels(pixels, stride, 0);
+        int count = 0;
+        for (int y = 8; y < image.PixelHeight - 8; y++)
+            for (int x = 8; x < image.PixelWidth - 8; x++)
+            {
+                int offset = y * stride + x * 4;
+                if (pixels[offset] < 64 && pixels[offset + 1] < 64 && pixels[offset + 2] < 64) count++;
+            }
+        return count;
+    }
     private static byte[] ContinuousFixture() => Convert.FromBase64String(
         "QVQmVEZPUk0AAABYREpWVUlORk8AAAAKASwAyBoALAEWAVNtbXIAAAA5TU1SAAEsAMgyBhkA3/////////////////////////////////LctDf////////////////gAgAgAA==");
     private static byte[] Chunk(string id, byte[] payload) => [.. System.Text.Encoding.ASCII.GetBytes(id),

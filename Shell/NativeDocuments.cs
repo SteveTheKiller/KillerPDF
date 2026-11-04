@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using KillerPDF.Services;
+using KillerPdf.Engine.Formats.Epub;
 
 namespace KillerPDF.Shell;
 
@@ -17,7 +18,13 @@ public partial class MainWindow
                     throw new InvalidDataException("Native document input exceeds the 64 MiB limit.");
                 byte[] bytes = new byte[checked((int)source.Length)];
                 source.ReadExactly(bytes);
-                opened = NativeWorkingDocument.OpenDjvu(bytes);
+                if (Path.GetExtension(path).Equals(".epub", StringComparison.OrdinalIgnoreCase))
+                {
+                    var face = PdfEngineIntegration.LoadTextFont("Segoe UI", "A", bold: false, italic: false)
+                        ?? throw new NotSupportedException("Native EPUB fallback font is unavailable.");
+                    opened = NativeWorkingDocument.OpenEpub(bytes, new EpubLayoutOptions(800, 1000, face.Font));
+                }
+                else opened = NativeWorkingDocument.OpenDjvu(bytes);
             }
             _doc?.Close();
             _doc = null;

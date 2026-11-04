@@ -70,6 +70,11 @@ Dispatcher exceptions in the isolated transition case fail the check and retain 
 original stacks. Native bitmap cache reuse across modes is allowed; PDF pixels are not.
 
 The result records the stage, original exception, binary/input identities and screen PNGs.
+`--verify-native-reading-epub` uses the same arguments and isolated host. It first
+checks a blank portrait PDF, then opens an original EPUB containing one large letter
+through the public window entry. The owned screen region must contain dark glyph
+ink with white background; the blank PDF must fail that detector. Original bytes,
+stable portrait page bounds, opaque ancestry and unexpected-modal checks still apply.
 Source bitmap and visual ancestry captures are diagnostic only. This case verifies the
 initial native reading path, not full format support, physical color accuracy or HDR.
 It sends no mouse or keyboard input. A self-contained publish of the test host can run
