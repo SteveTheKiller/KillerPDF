@@ -452,9 +452,6 @@ public sealed partial class PdfPageRenderer
                     && (!(space.HasIccSource || state.BlackPointCompensation) || space.Intent == state.RenderingIntent)) return space;
                 string name = components switch { 1 => "DeviceGray", 3 => "DeviceRGB", _ => "DeviceCMYK" };
                 space = ReadColorSpace(Name(name), resources, 0, diagnostics: diagnostics, intent: state.RenderingIntent);
-                if (pixels.PreciseRgb is not null && space is { Components: 4, IsDeviceCmyk: true,
-                    Profile: null, HasIccSource: false, IsDefault: false, Converter: null, MultiConverter: null })
-                    space = space with { Converter = PreciseCmykViewingColor };
                 space = space.ForDestination(pixels, state.BlackPointCompensation, diagnostics);
                 if (components == 1) deviceGray = space;
                 else if (components == 3) deviceRgb = space;
@@ -9275,6 +9272,9 @@ public sealed partial class PdfPageRenderer
             if (enabled && BlackPointSource is not null
                 && SameProfile(BlackPointDestination, destination.InputProfile)) return this;
             ImageColorSpace source = BlackPointSource ?? this;
+            if (destination.PreciseRgb is not null && source is { Components: 4, IsDeviceCmyk: true,
+                Profile: null, HasIccSource: false, IsDefault: false, Converter: null, MultiConverter: null })
+                source = source with { Converter = PreciseCmykViewingColor };
             ImageColorSpace bound = source.ForNativeDestination(destination);
             return enabled ? BindBlackPointCompensation(source, bound, destination, diagnostics) : bound;
         }

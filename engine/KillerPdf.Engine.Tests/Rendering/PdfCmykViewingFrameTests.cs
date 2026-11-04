@@ -55,6 +55,42 @@ public sealed class PdfCmykViewingFrameTests
         Assert.Equal(1, frame.Pixels[3]);
     }
 
+    [Fact]
+    public void NamedDeviceCmykFillUsesTheSameUnclippedViewingAssumption()
+    {
+        byte[] source = new PdfDocumentBuilder().AddPage(1, 1,
+            Encoding.ASCII.GetBytes("/DeviceCMYK cs 1 0 0 0 sc 0 0 1 1 re f")).Build();
+
+        PdfRenderedFrame frame = new PdfPageRenderer(PdfDocument.Open(source))
+            .RenderFrame(0, new PdfRenderOptions(1, 1));
+
+        // The same frozen profile-corner oracle applies to named device source samples.
+        Assert.InRange(frame.Pixels[0], -0.20839846805136676f - 0.000002f, -0.20839846805136676f + 0.000002f);
+        Assert.InRange(frame.Pixels[1], 0.42131251226180745f - 0.000002f, 0.42131251226180745f + 0.000002f);
+        Assert.InRange(frame.Pixels[2], 0.86494485126038379f - 0.000002f, 0.86494485126038379f + 0.000002f);
+        Assert.Equal(1, frame.Pixels[3]);
+    }
+
+    [Theory]
+    [InlineData("1 0 0 0 K")]
+    [InlineData("/DeviceCMYK CS 1 0 0 0 SC")]
+    public void CmykStrokeRetainsTheViewingProfileCyan(string paint)
+    {
+        byte[] source = new PdfDocumentBuilder().AddPage(10, 8,
+            Encoding.ASCII.GetBytes($"2 w {paint} 2 2 m 8 2 l S")).Build();
+
+        PdfRenderedFrame frame = new PdfPageRenderer(PdfDocument.Open(source))
+            .RenderFrame(0, new PdfRenderOptions(10, 8, transparentBackground: true));
+
+        // Full coverage inside the stroke, away from its ends, uses the same color oracle.
+        int offset = (6 * 10 + 5) * 4;
+        Assert.InRange(frame.Pixels[offset], -0.20839846805136676f - 0.000002f, -0.20839846805136676f + 0.000002f);
+        Assert.InRange(frame.Pixels[offset + 1], 0.42131251226180745f - 0.000002f, 0.42131251226180745f + 0.000002f);
+        Assert.InRange(frame.Pixels[offset + 2], 0.86494485126038379f - 0.000002f, 0.86494485126038379f + 0.000002f);
+        Assert.Equal(1, frame.Pixels[offset + 3]);
+        Assert.Equal(0, frame.Pixels[3]);
+    }
+
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     private static KeyValuePair<PdfName, PdfObject> Entry(string name, PdfObject value) => new(Name(name), value);
 }

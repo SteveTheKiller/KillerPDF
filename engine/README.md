@@ -249,12 +249,12 @@ using KillerPdf.Engine.ColorManagement;
 PdfColorProfile assumedCmyk = PdfCmykViewingDefault.LoadProfile();
 ```
 
-`RenderFrame` applies this assumption to untagged opaque CMYK path fills set by
-the `k` operator when no resource default or usable OutputIntent supplies a profile.
+`RenderFrame` applies this assumption to untagged CMYK path fills and strokes set by
+`k`/`K` or `/DeviceCMYK cs`/`CS` when no resource default supplies a profile.
 It uses the profile's perceptual forward table and retains out-of-gamut values in
 the linear frame. Resource defaults and embedded profiles remain authoritative.
-Named CMYK spaces, strokes, images, gradients, groups and compatibility byte rendering
-still need broader adoption. Pages with OutputIntents remain outside the current float path.
+Images, gradients, groups and compatibility byte rendering still need broader adoption.
+Pages with OutputIntents remain outside the current float path.
 Callers can also apply the source assumption explicitly.
 Printer proofing uses its selected printer/paper profile. The package includes the unmodified profile and its complete
 CC0 license in `color_profiles/Resources/ColorProfiles`.
