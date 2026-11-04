@@ -222,6 +222,13 @@ opening and the PDF read adapter remain in development.
 resources; its optional `ReadSnapshot` is null. Supplying a native snapshot to
 the other constructor still retains that snapshot explicitly.
 
+Each logical owner has immutable requested `Proof` preferences, initially disabled,
+and a `ProofGeneration` that changes only when the requested selections change.
+Profile content identity avoids invalidation when identical bytes are reloaded.
+`CreateIndependentCopy()` retains the snapshot and proof preferences with a new
+identity and an independent generation. These portable ownership contracts do not
+yet connect desktop proof controls, rendering or persistence.
+
 ## Bundled CMYK viewing assumption (1.9.3 development)
 
 `PdfCmykViewingDefault.LoadProfile()` loads an owned copy of the bundled CC0
