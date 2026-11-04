@@ -13,6 +13,67 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPrecisionProofTests
 {
     [Fact]
+    public void ProofGamutWarningsReturnASeparateMaskWithoutChangingColorOrByteExports()
+    {
+        var printer = GrayPrinter();
+        var source = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+            Encoding.ASCII.GetBytes("0 g 0 0 1 1 re f")).Build()));
+        var renderer = new PdfPageRenderer(source);
+        PdfRenderOptions Options(bool warnings) => new(2, 1)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: printer,
+                gamutWarnings: warnings, options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+        var normal = renderer.RenderFrame(0, Options(false));
+
+        var warned = renderer.RenderFrame(0, Options(true));
+
+        var mask = Assert.IsType<PdfGamutWarningMask>(warned.PrinterGamutWarnings);
+        Assert.Equal(2, mask.Width);
+        Assert.Equal(1, mask.Height);
+        Assert.Equal(printer.ContentSha256, mask.PrinterProfileSha256);
+        Assert.Equal(PdfGamutClassification.Outside, mask.GetClassification(0, 0));
+        Assert.Equal(PdfGamutClassification.Inside, mask.GetClassification(1, 0));
+        Assert.Equal(1, mask.WarningPixelCount);
+        Assert.Equal(0, mask.BoundaryPixelCount);
+        Assert.Equal(normal.Pixels.ToArray(), warned.Pixels.ToArray());
+        Assert.Equal(normal.ToSrgbBgra32(), warned.ToSrgbBgra32());
+        Assert.Throws<ArgumentException>(() => warned.ToPremultipliedLinearHalfRgba(maximumCombinedPixelBytes: 49));
+        Assert.Equal(normal.ToPremultipliedLinearHalfRgba(maximumCombinedPixelBytes: 48),
+            warned.ToPremultipliedLinearHalfRgba(maximumCombinedPixelBytes: 50));
+        Assert.Null(normal.PrinterGamutWarnings);
+        Assert.Throws<ArgumentOutOfRangeException>(() => mask.GetClassification(-1, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => mask.GetClassification(0, 1));
+    }
+
+    [Fact]
+    public void ProofGamutRegionOwnsLocalClassificationsAndCountsBothMaskPlanes()
+    {
+        var printer = GrayPrinter();
+        var source = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+            Encoding.ASCII.GetBytes("0 g 0 0 1 1 re f")).Build()));
+        var renderer = new PdfPageRenderer(source);
+        PdfRenderOptions Options(long limit) => new(2, 1, maximumPixelBytes: limit)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: printer,
+                gamutWarnings: true, options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+        Assert.Throws<ArgumentException>(() => renderer.RenderFrame(0, Options(75)));
+        var full = renderer.RenderFrame(0, Options(76));
+        Assert.Throws<ArgumentException>(() => renderer.RenderFrameRegion(0, Options(37), 1, 0, 1, 1));
+        var region = renderer.RenderFrameRegion(0, Options(38), 1, 0, 1, 1);
+        var mask = Assert.IsType<PdfGamutWarningMask>(region.PrinterGamutWarnings);
+        Assert.Equal(1, mask.Width);
+        Assert.Equal(1, mask.Height);
+        Assert.Equal(PdfGamutClassification.Inside, mask.GetClassification(0, 0));
+        Assert.Equal(0, mask.WarningPixelCount);
+        Assert.Equal(full.Pixels.Slice(4, 4).ToArray(), region.Pixels.ToArray());
+        Assert.Equal(PdfGamutClassification.Outside, full.PrinterGamutWarnings!.GetClassification(0, 0));
+        Assert.Throws<OperationCanceledException>(() => renderer.RenderFrameRegion(0, Options(38),
+            1, 0, 1, 1, new CancellationToken(canceled: true)));
+    }
+
+    [Fact]
     public void PrinterGamutCheckKeepsAnInRangeNeutralInside()
     {
         var result = new PdfPrinterGamutCheck(GrayPrinter()).EvaluateXyz([.4821, .5, .41245]);
@@ -482,7 +543,6 @@ public sealed class PdfPrecisionProofTests
     [InlineData("black")]
     [InlineData("paper")]
     [InlineData("intent")]
-    [InlineData("warnings")]
     [InlineData("transparent")]
     [InlineData("printing")]
     public void UnavailableProofSelectionsAreDiagnosedInsteadOfSilentlyIgnored(string selection)

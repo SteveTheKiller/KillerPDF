@@ -25,6 +25,11 @@ public sealed class PdfRenderedFrame
     /// <summary>Copies tightly packed RGBA32F pixels into an independently owned frame.</summary>
     public PdfRenderedFrame(int width, int height, ReadOnlySpan<float> pixels,
         PdfFrameColorEncoding colorEncoding, long maximumPixelBytes = MaximumPixelBytes)
+        : this(width, height, pixels, colorEncoding, maximumPixelBytes, null) { }
+
+    /// <summary>Copies color pixels and retains an immutable, independently owned printer-gamut mask.</summary>
+    public PdfRenderedFrame(int width, int height, ReadOnlySpan<float> pixels,
+        PdfFrameColorEncoding colorEncoding, long maximumPixelBytes, PdfGamutWarningMask? printerGamutWarnings)
     {
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
@@ -32,6 +37,9 @@ public sealed class PdfRenderedFrame
             throw new ArgumentOutOfRangeException(nameof(colorEncoding));
         if (maximumPixelBytes is <= 0 or > MaximumPixelBytes)
             throw new ArgumentOutOfRangeException(nameof(maximumPixelBytes));
+        if (printerGamutWarnings is not null
+            && (printerGamutWarnings.Width != width || printerGamutWarnings.Height != height))
+            throw new ArgumentException("The printer gamut mask must match the color frame dimensions.", nameof(printerGamutWarnings));
         long pixelCount = (long)width * height;
         if (pixelCount > maximumPixelBytes / (4 * sizeof(float)))
             throw new ArgumentException("The floating-point frame exceeds its storage limit.");
@@ -46,10 +54,14 @@ public sealed class PdfRenderedFrame
         Width = width;
         Height = height;
         ColorEncoding = colorEncoding;
+        PrinterGamutWarnings = printerGamutWarnings;
     }
 
     /// <summary>Gets tightly packed float32 RGBA channels with straight alpha.</summary>
     public ReadOnlySpan<float> Pixels => _pixels;
+
+    /// <summary>Gets separate printer-gamut classifications, or null when none were requested.</summary>
+    public PdfGamutWarningMask? PrinterGamutWarnings { get; }
 
     /// <summary>Gets the pixel width.</summary>
     public int Width { get; }
@@ -63,7 +75,7 @@ public sealed class PdfRenderedFrame
     /// <summary>Copies linear RGBA to owned premultiplied IEEE half channels with scaled reference white.</summary>
     /// <remarks>
     /// RGB is rounded to half precision at this output boundary without clipping to zero through one.
-    /// Alpha is not white-scaled. The storage budget counts both input and output pixel buffers.
+    /// Alpha is not white-scaled. The storage budget counts input/output pixel buffers and any owned gamut mask.
     /// Nonfinite half results and meaningful color whose positive alpha rounds to zero are rejected.
     /// </remarks>
     public Half[] ToPremultipliedLinearHalfRgba(double referenceWhiteScale = 1,
@@ -76,7 +88,9 @@ public sealed class PdfRenderedFrame
             throw new ArgumentOutOfRangeException(nameof(referenceWhiteScale));
         if (maximumCombinedPixelBytes is <= 0 or > MaximumPixelBytes)
             throw new ArgumentOutOfRangeException(nameof(maximumCombinedPixelBytes));
-        if (_pixels.LongLength > maximumCombinedPixelBytes / (sizeof(float) + sizeof(ushort)))
+        long combinedBytes = _pixels.LongLength * (sizeof(float) + sizeof(ushort))
+            + (PrinterGamutWarnings is null ? 0 : (long)Width * Height);
+        if (combinedBytes > maximumCombinedPixelBytes)
             throw new ArgumentException("The input frame and half output exceed their combined pixel storage limit.",
                 nameof(maximumCombinedPixelBytes));
         var output = new Half[_pixels.Length];

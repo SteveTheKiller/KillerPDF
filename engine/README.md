@@ -282,7 +282,11 @@ These are profile-based warning estimates, separate from monitor limits and phys
 The [CIE Lab definition](https://cie.co.at/eilvterm/17-23-076) and
 [color-difference definition](https://cie.co.at/eilvterm/17-23-077) define the calculation;
 the warning threshold is application policy. Intended color remains unchanged.
-Render warning masks and desktop warning overlays still require integration.
+Supported RGB page-group proof frames expose an immutable `PrinterGamutWarnings` mask
+when requested. Classification uses intended color before compensation and proof conversion.
+Frame-local coordinates, printer-profile identity and warning/boundary counts stay separate
+from color pixels and byte/half output. Rendering counts both mask planes in its storage limit;
+half output counts the retained mask. Desktop warning overlays still require integration.
 
 ## Rendering status
 
@@ -314,7 +318,7 @@ keeps the page group's alpha, and direct page output ignores its isolation flag.
 Other blend spaces, knockout, fractional group clips and other group blend modes remain unsupported.
 Optional `PdfRenderOptions.Proof` initially supports opaque, unprofiled DeviceRGB page groups
 with direct RGB/Gray paths, all four intents, optional source BPC and independent paper/black simulation,
-with warnings off. Paper simulation requires reliable explicit media white and uses absolute colorimetric
+and separate gamut-warning masks. Paper simulation requires reliable explicit media white and uses absolute colorimetric
 appearance. Paper-only viewing preserves paper tint while mapping estimated printer black to reference zero;
 it is a viewing aid rather than an ICC intent. Compensation uses bounded ICC estimates against
 mathematical zero-black RGB reference, with unavailable or degenerate conditions diagnosed.

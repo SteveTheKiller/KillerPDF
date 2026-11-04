@@ -41,7 +41,7 @@ public sealed partial class PdfPageRenderer
     /// on white for opaque output; transparent output preserves their alpha.
     /// Initial printer proof rendering accepts opaque, unprofiled DeviceRGB page groups with direct
     /// DeviceRGB/Gray path paints, all four intents with an actual selected inverse, optional source BPC and independent paper/black simulation,
-    /// with warnings off. Paper-only viewing preserves paper tint while mapping estimated printer black to reference zero.
+    /// with separate gamut-warning masks. Paper-only viewing preserves paper tint while mapping estimated printer black to reference zero.
     /// Compensation uses bounded ICC estimates against reference zero black.
     /// It uses actual colorimetric printer transforms and preserves extended reference RGB output.
     /// Intent fallback is diagnosed, and absolute source conversion requires explicit valid media white.
@@ -60,7 +60,7 @@ public sealed partial class PdfPageRenderer
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         cancellationToken.ThrowIfCancellationRequested();
         if (options.Proof is { Enabled: true } requested
-            && (options.TransparentBackground || options.ForPrinting || requested.GamutWarnings
+            && (options.TransparentBackground || options.ForPrinting
                 || requested.Options.RenderingIntent is not (Authoring.PdfRenderingIntent.RelativeColorimetric
                     or Authoring.PdfRenderingIntent.Perceptual or Authoring.PdfRenderingIntent.Saturation
                     or Authoring.PdfRenderingIntent.AbsoluteColorimetric)))
@@ -70,7 +70,9 @@ public sealed partial class PdfPageRenderer
         int width = region is { } bounds ? bounds.Right - bounds.Left : options.Width;
         int height = region is { } verticalBounds ? verticalBounds.Bottom - verticalBounds.Top : options.Height;
         long pixelCount = (long)width * height;
-        if (pixelCount > options.PixelByteLimit / (4 + 2 * 4 * sizeof(float)))
+        int pixelStorage = 4 + 2 * 4 * sizeof(float)
+            + (options.Proof is { Enabled: true, GamutWarnings: true } ? 2 : 0);
+        if (pixelCount > options.PixelByteLimit / pixelStorage)
             throw new ArgumentException("The high-precision render exceeds its combined pixel storage limit.", nameof(options));
         var page = _tree.Pages[pageIndex].Dictionary;
         if (options.Proof is { Enabled: true } proofRequest)
@@ -126,17 +128,18 @@ public sealed partial class PdfPageRenderer
             throw new NotSupportedException("The page contains rendering features unavailable to the high-precision path. "
                 + diagnostic[..Math.Min(diagnostic.Length, 512)]);
         }
+        PdfGamutWarningMask? gamutWarnings = null;
         if (options.Proof is { Enabled: true } proof)
-            ApplyPreciseProof(pixels, proof.PrinterProfile
+            gamutWarnings = ApplyPreciseProof(pixels, width, height, proof.PrinterProfile
                 ?? throw new NotSupportedException("The requested printer proof profile is unavailable."),
-                proof.Options, cancellationToken);
+                proof.Options, proof.GamutWarnings, cancellationToken);
         FloatRgbCompositor.DecodeSrgbInPlace(pixels, cancellationToken);
         return new PdfRenderedFrame(width, height, pixels,
-            PdfFrameColorEncoding.LinearSrgbD65, options.PixelByteLimit);
+            PdfFrameColorEncoding.LinearSrgbD65, options.PixelByteLimit, gamutWarnings);
     }
 
-    private static void ApplyPreciseProof(float[] pixels, PdfColorProfile printer,
-        PdfProofOptions options, CancellationToken cancellationToken)
+    private static PdfGamutWarningMask? ApplyPreciseProof(float[] pixels, int width, int height,
+        PdfColorProfile printer, PdfProofOptions options, bool gamutWarnings, CancellationToken cancellationToken)
     {
         Span<double> paperBlack = stackalloc double[3];
         Span<double> paperScale = stackalloc double[3];
@@ -165,6 +168,8 @@ public sealed partial class PdfPageRenderer
             : printer.DeviceToReferenceBlackCompensation(Authoring.PdfRenderingIntent.RelativeColorimetric);
         Span<double> xyz = stackalloc double[3];
         Span<double> device = stackalloc double[printer.ComponentCount];
+        var gamutCheck = gamutWarnings ? new PdfPrinterGamutCheck(printer) : null;
+        byte[]? classifications = gamutWarnings ? new byte[pixels.Length / 4] : null;
         for (int offset = 0; offset < pixels.Length; offset += 4)
         {
             if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -173,6 +178,8 @@ public sealed partial class PdfPageRenderer
             xyz[0] = .4360747 * r + .3850649 * g + .1430804 * b;
             xyz[1] = .2225045 * r + .7168786 * g + .0606169 * b;
             xyz[2] = .0139322 * r + .0971045 * g + .7141733 * b;
+            if (gamutCheck is not null)
+                classifications![offset / 4] = (byte)gamutCheck.EvaluateXyz(xyz).Classification;
             sourceCompensation.Apply(xyz);
             printer.FromXyz(xyz, device, options.RenderingIntent);
             printer.ToXyz(device, xyz, options.SimulatePaper
@@ -186,6 +193,7 @@ public sealed partial class PdfPageRenderer
             pixels[offset + 1] = (float)color.Green;
             pixels[offset + 2] = (float)color.Blue;
         }
+        return classifications is null ? null : new PdfGamutWarningMask(width, height, classifications, printer.ContentSha256);
 
         static double Linear(double value) => value <= .04045
             ? value / 12.92 : Math.Pow((value + .055) / 1.055, 2.4);
