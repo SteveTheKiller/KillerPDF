@@ -264,6 +264,10 @@ supported path, text, gradient and image cases. It rejects unsupported precision
 with a reason instead of returning colors quantized through the BGRA32 surface.
 Text widgets excluded by render options do not disable precise page rendering.
 Included annotation and form appearances remain explicitly unsupported.
+`RenderFrameRegion` returns an owned float32 crop on the full page's pixel grid. Its
+combined pixel-storage limit counts only the requested region, and precision validation,
+diagnostics and cancellation match `RenderFrame`. Desktop refinement adoption remains in progress.
+The supplied `PdfRenderOptions` still validate the full page's byte-raster dimensions and limit.
 Natural aligned CMYK images and eligible nearest enlargements retain 8/16-bit precision through supported colorimetric
 ICC source profiles, including a resource `DefaultCMYK` replacement for DeviceCMYK.
 Interpolated or reduced CMYK images, masks and unsupported profile directions remain diagnosed separately.

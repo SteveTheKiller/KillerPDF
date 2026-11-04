@@ -26,7 +26,11 @@ public sealed partial class PdfPageRenderer
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
     public PdfRenderedFrame RenderFrame(int pageIndex, PdfRenderOptions options,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        RenderPreciseFrame(pageIndex, options, null, cancellationToken);
+
+    private PdfRenderedFrame RenderPreciseFrame(int pageIndex, PdfRenderOptions options,
+        (int Left, int Top, int Right, int Bottom)? region, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
         if (pageIndex < 0 || pageIndex >= _pages.Count)
@@ -34,7 +38,9 @@ public sealed partial class PdfPageRenderer
         cancellationToken.ThrowIfCancellationRequested();
         // During migration, encoded working pixels, the compatibility surface and the owned
         // returned copy coexist. Check their combined storage before allocating any of them.
-        long pixelCount = (long)options.Width * options.Height;
+        int width = region is { } bounds ? bounds.Right - bounds.Left : options.Width;
+        int height = region is { } verticalBounds ? verticalBounds.Bottom - verticalBounds.Top : options.Height;
+        long pixelCount = (long)width * height;
         if (pixelCount > options.PixelByteLimit / (4 + 2 * 4 * sizeof(float)))
             throw new ArgumentException("The high-precision render exceeds its combined pixel storage limit.", nameof(options));
         var page = _tree.Pages[pageIndex].Dictionary;
@@ -61,7 +67,7 @@ public sealed partial class PdfPageRenderer
         }
         var pixels = new float[checked((int)pixelCount * 4)];
         PdfRenderedPage compatibility = RenderUncached(pageIndex, options, cancellationToken,
-            preciseRgb: pixels);
+            region: region, preciseRgb: pixels);
         if (compatibility.Diagnostics.Count != 0)
         {
             string diagnostic = compatibility.Diagnostics[0];
@@ -69,8 +75,22 @@ public sealed partial class PdfPageRenderer
                 + diagnostic[..Math.Min(diagnostic.Length, 512)]);
         }
         FloatRgbCompositor.DecodeSrgbInPlace(pixels, cancellationToken);
-        return new PdfRenderedFrame(options.Width, options.Height, pixels,
+        return new PdfRenderedFrame(width, height, pixels,
             PdfFrameColorEncoding.LinearSrgbD65, options.PixelByteLimit);
+    }
+
+    /// <summary>Renders a pixel region into an owned relative linear-sRGB float32 RGBA frame.</summary>
+    /// <remarks>Coordinates use the full page raster. Precision support matches <see cref="RenderFrame"/>.</remarks>
+    public PdfRenderedFrame RenderFrameRegion(int pageIndex, PdfRenderOptions options,
+        int left, int top, int width, int height, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (pageIndex < 0 || pageIndex >= _pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (left < 0 || top < 0 || width <= 0 || height <= 0
+            || (long)left + width > options.Width || (long)top + height > options.Height)
+            throw new ArgumentOutOfRangeException(nameof(width), "The region must fit inside the page raster.");
+        return RenderPreciseFrame(pageIndex, options, (left, top, left + width, top + height), cancellationToken);
     }
 
     private static bool PreciseOperationSupported(string operation) => operation is
