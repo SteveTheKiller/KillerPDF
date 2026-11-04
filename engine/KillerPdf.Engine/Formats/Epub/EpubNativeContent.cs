@@ -18,6 +18,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private readonly Stack<Element> _ancestors = new();
     private readonly Dictionary<string, CssProperties> _typeRules = new(StringComparer.Ordinal);
     private int _characters;
+    private bool _bodySeen;
     internal List<SourceCharacter?> Characters { get; } = new();
     internal Style DefaultStyle { get; } = new(fallbackSize, null);
 
@@ -36,6 +37,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             _ => false };
         if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
             throw new NotSupportedException("Native EPUB XHTML element is not implemented: " + name + ".");
+        if (name == "head" && _bodySeen)
+            throw new InvalidDataException("Native EPUB head metadata must precede the body.");
+        if (name == "body") _bodySeen = true;
         bool empty = xml.IsEmptyElement;
         Style style = parent?.Style ?? DefaultStyle;
         if (_typeRules.TryGetValue(name, out var rule)) style = rule.Apply(style);

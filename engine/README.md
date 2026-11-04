@@ -165,6 +165,7 @@ the canonical `@charset "utf-8";` header and support ASCII type selectors, sourc
 inheritance and inline overrides. Loading stays
 inside the package, with shared limits of 1,000,000 stylesheet bytes and 1024 references
 per layout, including repeated empty resources. Other CSS syntax remains diagnosed.
+Head metadata after the body is rejected as malformed before layout returns.
 
 `ReadText` and the supported plain native layout accept the canonical XHTML 1.1
 external declaration without loading or processing a DTD. Original resource bytes

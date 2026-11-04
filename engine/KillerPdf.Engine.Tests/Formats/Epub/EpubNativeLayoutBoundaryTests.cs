@@ -144,6 +144,21 @@ public sealed class EpubNativeLayoutBoundaryTests
         Assert.Equal("A A", page.Text);
     }
 
+    [Fact]
+    public void MalformedLateHeadIsRejectedInsteadOfIgnoringItsStylesheet()
+    {
+        var book = Book(css: true, xhtml: """
+            <html xmlns='http://www.w3.org/1999/xhtml'>
+              <head><title>Boundaries</title></head><body><p>A A</p></body>
+              <head><link rel='stylesheet' href='style.css'/></head>
+            </html>
+            """);
+        Assert.Equal("p { color:red }", Encoding.UTF8.GetString(book.ReadResource("EPUB/style.css")));
+        Assert.Equal("A A", book.ReadText(0));
+
+        Assert.Throws<InvalidDataException>(() => book.CreateLayout(Options(book)));
+    }
+
     [Theory]
     [InlineData("<html xmlns='http://www.w3.org/1999/xhtml'><body><p>A</body></html>")]
     [InlineData("<!DOCTYPE html [<!ENTITY text 'A'>]><html xmlns='http://www.w3.org/1999/xhtml'><body><p>&text;</p></body></html>")]
