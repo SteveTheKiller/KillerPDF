@@ -277,6 +277,23 @@ public sealed class EpubNativeLayoutTests
         Assert.Equal(stylesheetBytes, book.ReadResource("EPUB/styles/book.css"));
     }
 
+    [Fact]
+    public void NativeLayoutBoundsSelectorMatchingWorkBeforeReturningPages()
+    {
+        string stylesheet = string.Concat(Enumerable.Repeat("span.a{font-size:10px}", 2000));
+        string body = "<p>" + string.Concat(Enumerable.Repeat("<span class=\"a\">A</span>", 1000)) + "</p>";
+        var book = EpubDocument.Open(Book(body, stylesheet));
+        Assert.Equal(Encoding.UTF8.GetBytes(stylesheet), book.ReadResource("EPUB/styles/book.css"));
+        Assert.Equal(new string('A', 1000), book.ReadText(0));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var options = new EpubLayoutOptions(8192, 40, font) { FontSize = 10, Margin = 8 };
+
+        var error = Assert.Throws<InvalidDataException>(() => book.CreateLayout(options));
+
+        Assert.Equal("Native EPUB CSS selector matching exceeds its work limit.", error.Message);
+        Assert.Equal(Encoding.UTF8.GetBytes(stylesheet), book.ReadResource("EPUB/styles/book.css"));
+    }
+
     private static void AssertInterior(PdfRenderedFrame frame, int x, int y)
     {
         int offset = (y * frame.Width + x) * 4;

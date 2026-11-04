@@ -14,7 +14,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Page import preserves popup annotations when their registered markup parent omits the reverse popup link. (#455)
 - Repeated partial rasterization preserves form-local image resources, and affected-content counts exclude unpainted paths. (#369)
 - Document, annotation and attachment dates are written with the Gregorian calendar whatever the current culture, so Thai, Arabic and Persian regions no longer write years like 2569. Preflight messages write their numbers with a decimal point.
-- EPUB head metadata after the body is diagnosed instead of returning unstyled pages. (#472)
+- EPUB diagnoses head metadata after the body instead of returning unstyled pages and bounds CSS selector matching work. (#472)
 
 ### Added
 

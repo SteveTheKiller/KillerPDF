@@ -159,7 +159,9 @@ retain their original inline style. The default normal line height follows each
 inline font's ascent and descent; explicit pixel line heights inherit as lengths.
 Packaged rules support grouped type selectors and compound classes such as
 `p, span.small.keep`, with class specificity and declaration order applied separately
-to each property. Inline declarations override packaged rules.
+to each property. Inline declarations override packaged rules. Each chapter limits
+selector candidate and class comparison work to 1,000,000 units, including compared
+class-name characters, and diagnoses excessive work before returning pages.
 Other styling, character breaking, complex scripts and other unsupported content
 produce explicit diagnoses; this initial API does not establish full EPUB support.
 Packaged head links with `rel="icon"` are validated as local references without

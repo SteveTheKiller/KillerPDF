@@ -18,6 +18,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private readonly Stack<Element> _ancestors = new();
     private readonly Dictionary<string, List<CssRule>> _typeRules = new(StringComparer.Ordinal);
     private int _characters;
+    private int _selectorWork;
     private bool _bodySeen;
     internal List<SourceCharacter?> Characters { get; } = new();
     internal Style DefaultStyle { get; } = new(fallbackSize, null);
@@ -130,10 +131,19 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         int sizeSpecificity = -1, heightSpecificity = -1;
         foreach (var rule in rules)
         {
+            CountSelectorWork(1);
             bool matches = true;
             foreach (string required in rule.Classes)
             {
-                if (!Array.Exists(classes, candidate => string.Equals(candidate, required, StringComparison.Ordinal)))
+                bool found = false;
+                foreach (string candidate in classes)
+                {
+                    CountSelectorWork(1 + Math.Min(candidate.Length, required.Length));
+                    if (!string.Equals(candidate, required, StringComparison.Ordinal)) continue;
+                    found = true;
+                    break;
+                }
+                if (!found)
                 {
                     matches = false;
                     break;
@@ -153,6 +163,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
         }
         return new CssProperties(size, height).Apply(inherited);
+    }
+
+    private void CountSelectorWork(int amount)
+    {
+        if (amount > 1_000_000 - _selectorWork)
+            throw new InvalidDataException("Native EPUB CSS selector matching exceeds its work limit.");
+        _selectorWork += amount;
     }
 
     private readonly record struct CssProperties(double? FontSize, double? LineHeight)
