@@ -66,7 +66,7 @@ internal static class NativeReadingSmoke
             dynamic builder = constructor.Invoke(constructor.GetParameters().Select(p => p.DefaultValue).ToArray());
             sources.Add(Path.Combine(folder, "blank-control.pdf"), (byte[])builder.AddBlankPage(epub ? 600d : 300d, epub ? 750d : 200d).Build());
             byte[] nativeBytes = epub ? EpubFixture() : continuous || grid ? ContinuousFixture() : DjvuFixture();
-            if ((continuous || grid) && (nativeBytes.Length != 100 || Hash(nativeBytes) != "A6112B847B6731E478086F5A14528540B155D8A871AF2F39BE362F7BF682C609"))
+            if (!epub && (continuous || grid) && (nativeBytes.Length != 100 || Hash(nativeBytes) != "A6112B847B6731E478086F5A14528540B155D8A871AF2F39BE362F7BF682C609"))
                 throw new InvalidOperationException("Frozen Continuous fixture hash mismatch.");
             sources.Add(Path.Combine(folder, epub ? "native-letter.epub" : continuous || grid ? "rectangle-300x200-300dpi.djvu" : "native-upright.djvu"), nativeBytes);
             foreach (var source in sources) File.WriteAllBytes(source.Key, source.Value);
@@ -100,6 +100,18 @@ internal static class NativeReadingSmoke
                 var radio = Named<RadioButton>(owner, radioName)!;
                 var peer = UIElementAutomationPeer.CreatePeerForElement(radio) ?? new RadioButtonAutomationPeer(radio);
                 ((ISelectionItemProvider)peer.GetPattern(PatternInterface.SelectionItem)!).Select();
+                if (epub && step.Grid)
+                {
+                    stage = isNative ? "native-grid-zoom" : "control-grid-zoom";
+                    Wait(() => Named<ComboBox>(owner, "ZoomBox") is { IsVisible: true, IsEnabled: true });
+                    var zoom = Named<ComboBox>(owner, "ZoomBox")!;
+                    zoom.IsDropDownOpen = true;
+                    var choice = zoom.Items.OfType<ComboBoxItem>().Single(item => item.Tag as string == "0.5");
+                    Wait(() => choice.IsVisible && choice.IsEnabled);
+                    zoom.SelectedItem = choice;
+                    zoom.IsDropDownOpen = false;
+                    Wait(() => ReferenceEquals(zoom.SelectedItem, choice) && !zoom.IsDropDownOpen);
+                }
                 Image? page = null;
                 Rect last = Rect.Empty;
                 Rect lastWindow = Rect.Empty, lastViewport = Rect.Empty;

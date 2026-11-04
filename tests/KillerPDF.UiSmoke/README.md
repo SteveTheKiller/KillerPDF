@@ -75,6 +75,11 @@ checks a blank portrait PDF, then opens an original EPUB containing one large le
 through the public window entry. The owned screen region must contain dark glyph
 ink with white background; the blank PDF must fail that detector. Original bytes,
 stable portrait page bounds, opaque ancestry and unexpected-modal checks still apply.
+`--verify-native-reading-epub-continuous` checks the same EPUB in Continuous view.
+`--verify-native-reading-epub-grid-switch` checks a PDF Grid control, native EPUB
+Single view, then that same loaded EPUB switched into Grid with matching page bounds.
+The portrait Grid cases select the visible 50% zoom choice before capture so the
+whole page fits in the viewport; the same choice applies to the PDF and EPUB.
 Source bitmap and visual ancestry captures are diagnostic only. This case verifies the
 initial native reading path, not full format support, physical color accuracy or HDR.
 It sends no mouse or keyboard input. A self-contained publish of the test host can run
