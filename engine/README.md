@@ -260,7 +260,7 @@ Matching 8/16-bit DeviceGray soft masks retain fractional alpha with natural or 
 Their finite device-range Matte colors are removed before the CMYK profile transform.
 Raw color-key masks also support natural or eligible nearest sampling.
 CMYK indexed images, other reductions,
-gradients, groups and compatibility byte rendering still need broader adoption.
+gradients, other group semantics and compatibility byte rendering still need broader adoption.
 Pages with OutputIntents remain outside the current float path.
 Callers can also apply the source assumption explicitly.
 Printer proofing uses its selected printer/paper profile. The package includes the unmodified profile and its complete
@@ -277,7 +277,12 @@ supported path, text, gradient and image cases, including ordinary Form XObjects
 their matrices and bounding-box clips. It rejects unsupported precision features
 with a reason instead of returning colors quantized through the BGRA32 surface.
 Text widgets excluded by render options do not disable precise page rendering.
-Included annotation and form-field appearances remain explicitly unsupported, as do transparency groups.
+Included annotation and form-field appearances remain explicitly unsupported.
+Eligible isolated, non-knockout DeviceRGB Form groups retain floating-point colors and alpha
+through Normal compositing and apply invoking opacity once. They require an unprofiled
+effective blend space and rectangular clips without fractional coverage. Their exact pixel
+arrays share the render budget across active nested groups. Page groups, other blend spaces,
+knockout, fractional group clips and other group blend modes remain unsupported.
 `RenderFrameRegion` returns an owned float32 crop on the full page's pixel grid. Its
 combined pixel-storage limit counts only the requested region, and precision validation,
 diagnostics and cancellation match `RenderFrame`. Desktop refinement adoption remains in progress.

@@ -32,7 +32,9 @@ public sealed partial class PdfPageRenderer
     /// support text matrices, line positioning, spacing, scaling, rise,
     /// strings, positioned text arrays and quote text-showing operators.
     /// Ordinary Form XObjects retain supported paint precision through their matrix and bounding-box clip.
-    /// Transparency groups remain explicitly unsupported.
+    /// Eligible isolated non-knockout DeviceRGB Form groups support Normal compositing with
+    /// rectangular clips and no effective group profile. Active nested group pixel arrays
+    /// share the render storage budget. Other group semantics remain explicitly unsupported.
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
     public PdfRenderedFrame RenderFrame(int pageIndex, PdfRenderOptions options,

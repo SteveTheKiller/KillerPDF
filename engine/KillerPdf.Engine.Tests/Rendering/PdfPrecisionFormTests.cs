@@ -48,7 +48,7 @@ public sealed class PdfPrecisionFormTests
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public void TransparencyGroupIsDiagnosedInsteadOfReturningAQuantizedFrame(bool isolated, bool knockout)
+    public void FormGroupReturnsPrecisePixelsOrDiagnosesUnsupportedSemantics(bool isolated, bool knockout)
     {
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
             Encoding.ASCII.GetBytes("/Form Do")).Build());
@@ -70,6 +70,14 @@ public sealed class PdfPrecisionFormTests
             new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))
                 .Append(Entry("Resources", resources)))).Build());
 
+        if (isolated && !knockout)
+        {
+            PdfRenderedFrame frame = new PdfPageRenderer(document).RenderFrame(0, new PdfRenderOptions(1, 1));
+            for (int channel = 0; channel < 3; channel++)
+                Assert.InRange(frame.Pixels[channel], 0.21404114f - 0.00000003f, 0.21404114f + 0.00000003f);
+            Assert.Equal(1, frame.Pixels[3]);
+            return;
+        }
         var error = Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document)
             .RenderFrame(0, new PdfRenderOptions(1, 1)));
 

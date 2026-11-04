@@ -352,6 +352,7 @@ public sealed partial class PdfPageRenderer
         if (_recoveredPageResources.Contains(pageIndex))
             diagnostics.Add("Invalid page resources were treated as empty.");
         var activeForms = new HashSet<PdfStream>();
+        long preciseGroupStorage = 0;
         int recoveredFormExpansions = 0;
         int deepFormExpansions = 0;
         IReadOnlySet<int> hiddenOptionalContentGroups = options.ForPrinting
@@ -1061,8 +1062,6 @@ public sealed partial class PdfPageRenderer
                     }
                     else if (IsName(xObject.Dictionary, "Subtype", "Form"))
                     {
-                        if (pixels.PreciseRgb is not null && xObject.Dictionary.ContainsKey(Name("Group")))
-                            throw new NotSupportedException("High-precision form group rendering is not implemented.");
                         RenderForm(xObject, resources, state, depth);
                     }
                     else if (pixels.PreciseRgb is not null)
@@ -2026,6 +2025,62 @@ public sealed partial class PdfPageRenderer
                 bool knockout = transparencyGroup
                     && group!.TryGetValue(Name("K"), out PdfObject? knockoutValue)
                     && Resolve(knockoutValue) is PdfBoolean { Value: true };
+                if (pixels.PreciseRgb is not null && form.Dictionary.ContainsKey(Name("Group")))
+                {
+                    if (!isolated || knockout || !IsName(group!, "CS", "DeviceRGB")
+                        || ReadColorSpace(Name("DeviceRGB"), formResources, 0, diagnostics: diagnostics).IsDefault
+                        || parentState.BlendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible)
+                        || parentState.GraphicsSoftMask is not null || parentState.Knockout is not null
+                        || pixels.HasProfile || pixels.GroupAlpha is not null || pixels.GroupShape is not null
+                        || formState.Clips.Any(clip => clip.Mask.Coverage is not null))
+                        throw new NotSupportedException("This high-precision form group is not implemented.");
+                    RasterSurface parentPixels = pixels;
+                    var bounds = Within(GetRasterBounds(formState.Clips, formBounds,
+                        options.Width, options.Height, scaleX, scaleY), parentPixels);
+                    int groupWidth = bounds.Right - bounds.Left, groupHeight = bounds.Bottom - bounds.Top;
+                    if (groupWidth <= 0 || groupHeight <= 0) return;
+                    long storage = checked((long)groupWidth * groupHeight * 20);
+                    long rootStorage = checked((long)rasterWidth * rasterHeight * 36);
+                    if (checked(rootStorage + preciseGroupStorage + storage) > options.PixelByteLimit)
+                        throw new ArgumentException("The high-precision groups exceed the combined pixel storage limit.", nameof(options));
+                    preciseGroupStorage += storage;
+                    RasterSurface? groupPixels = null;
+                    try
+                    {
+                        int channels = checked(groupWidth * groupHeight * 4);
+                        // Exact arrays keep this reservation independent of pooled bucket capacity.
+                        groupPixels = new RasterSurface(GC.AllocateUninitializedArray<byte>(channels),
+                            bounds.Left, bounds.Top, groupWidth, groupHeight, pixels.Pdf20BlendEndpoints)
+                        { PreciseRgb = new float[channels] };
+                        pixels = groupPixels;
+                        Process(instructions, formResources, formState with
+                        {
+                            FillAlpha = 1, StrokeAlpha = 1, BlendMode = RendererBlendMode.Normal,
+                            GraphicsSoftMask = null, Knockout = null
+                        }, depth + 1);
+                        pixels = parentPixels;
+                        float[] completed = groupPixels.PreciseRgb;
+                        for (int y = bounds.Top; y < bounds.Bottom; y++)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            for (int x = bounds.Left; x < bounds.Right; x++)
+                            {
+                                int offset = groupPixels.Offset(x, y);
+                                double alpha = completed[offset + 3] * parentState.FillAlpha;
+                                if (alpha == 0) continue;
+                                FloatRgbCompositor.SourceOver(parentPixels.PreciseRgb!, parentPixels.Offset(x, y),
+                                    completed[offset], completed[offset + 1], completed[offset + 2], alpha);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        pixels = parentPixels;
+                        if (groupPixels is not null) groupPixels.PreciseRgb = null;
+                        preciseGroupStorage -= storage;
+                    }
+                    return;
+                }
                 bool multipleKnockoutObjects = knockout && !isolated
                     && instructions.Count(IsPaintingOperation) > 1;
                 if (multipleKnockoutObjects
