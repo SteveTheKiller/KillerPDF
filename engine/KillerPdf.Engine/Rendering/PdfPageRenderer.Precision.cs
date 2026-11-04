@@ -40,8 +40,9 @@ public sealed partial class PdfPageRenderer
     /// Unprofiled non-knockout DeviceRGB page groups retain precision through final imposition
     /// on white for opaque output; transparent output preserves their alpha.
     /// Initial printer proof rendering accepts opaque, unprofiled DeviceRGB page groups with direct
-    /// DeviceRGB/Gray path paints, relative intent, optional source BPC and independent black simulation,
-    /// with paper simulation and warnings off. Compensation uses bounded ICC estimates against reference zero black.
+    /// DeviceRGB/Gray path paints, relative intent, optional source BPC and independent paper/black simulation,
+    /// with warnings off. Paper-only viewing preserves paper tint while mapping estimated printer black to reference zero.
+    /// Compensation uses bounded ICC estimates against reference zero black.
     /// It uses actual colorimetric printer transforms and preserves extended reference RGB output.
     /// Other proof requests are diagnosed; original device ink preservation requires a source-aware path.
     /// Unported paint operations are rejected instead of returning quantized pixels.
@@ -59,8 +60,7 @@ public sealed partial class PdfPageRenderer
         cancellationToken.ThrowIfCancellationRequested();
         if (options.Proof is { Enabled: true } requested
             && (options.TransparentBackground || options.ForPrinting || requested.GamutWarnings
-                || requested.Options.RenderingIntent != Authoring.PdfRenderingIntent.RelativeColorimetric
-                || requested.Options.SimulatePaper))
+                || requested.Options.RenderingIntent != Authoring.PdfRenderingIntent.RelativeColorimetric))
             throw new NotSupportedException("The requested printer proof controls are not implemented for this render path.");
         // During migration, encoded working pixels, the compatibility surface and the owned
         // returned copy coexist. Check their combined storage before allocating any of them.
@@ -128,9 +128,29 @@ public sealed partial class PdfPageRenderer
     private static void ApplyPreciseProof(float[] pixels, PdfColorProfile printer,
         PdfProofOptions options, CancellationToken cancellationToken)
     {
+        Span<double> paperBlack = stackalloc double[3];
+        Span<double> paperScale = stackalloc double[3];
+        if (options.SimulatePaper)
+        {
+            if (!printer.HasExplicitValidMediaWhite)
+                throw new NotSupportedException("Printer proof paper simulation requires explicit valid media-white data.");
+            Span<double> paper = stackalloc double[3];
+            printer.ReadPaperWhite(paper);
+            if (!options.SimulateBlack)
+            {
+                printer.ReadPaperBlack(paperBlack);
+                for (int channel = 0; channel < 3; channel++)
+                {
+                    double range = paper[channel] - paperBlack[channel];
+                    if (!double.IsFinite(range) || range <= 1e-9 || !double.IsFinite(paper[channel]) || paper[channel] <= 0)
+                        throw new NotSupportedException("Printer proof paper-only viewing requires distinct finite paper and black endpoints.");
+                    paperScale[channel] = paper[channel] / range;
+                }
+            }
+        }
         PdfBlackPointCompensation sourceCompensation = options.BlackPointCompensation
             ? printer.ReferenceBlackToDeviceCompensation(options.RenderingIntent) : new(1);
-        PdfBlackPointCompensation viewingCompensation = options.SimulateBlack ? new(1)
+        PdfBlackPointCompensation viewingCompensation = options.SimulateBlack || options.SimulatePaper ? new(1)
             : printer.DeviceToReferenceBlackCompensation(Authoring.PdfRenderingIntent.RelativeColorimetric);
         Span<double> xyz = stackalloc double[3];
         Span<double> device = stackalloc double[printer.ComponentCount];
@@ -144,7 +164,11 @@ public sealed partial class PdfPageRenderer
             xyz[2] = .0139322 * r + .0971045 * g + .7141733 * b;
             sourceCompensation.Apply(xyz);
             printer.FromXyz(xyz, device, options.RenderingIntent);
-            printer.ToXyz(device, xyz, Authoring.PdfRenderingIntent.RelativeColorimetric);
+            printer.ToXyz(device, xyz, options.SimulatePaper
+                ? Authoring.PdfRenderingIntent.AbsoluteColorimetric : Authoring.PdfRenderingIntent.RelativeColorimetric);
+            if (options.SimulatePaper && !options.SimulateBlack)
+                for (int channel = 0; channel < 3; channel++)
+                    xyz[channel] = (xyz[channel] - paperBlack[channel]) * paperScale[channel];
             viewingCompensation.Apply(xyz);
             var color = PreciseConnectionToRgb(xyz[0], xyz[1], xyz[2]);
             pixels[offset] = (float)color.Red;

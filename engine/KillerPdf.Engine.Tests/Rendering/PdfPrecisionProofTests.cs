@@ -13,6 +13,55 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPrecisionProofTests
 {
     [Theory]
+    [InlineData(0, false, 0, 0, 0)]
+    [InlineData(1, false, .7084205909186849, .9649073041724270, .8354998544865850)]
+    [InlineData(.7353569830524495, false, .3036079422444264, .4135304998637930, .3580703254788740)]
+    [InlineData(0, true, 0, 0, 0)]
+    [InlineData(1, true, .7084205909186849, .9649073041724270, .8354998544865850)]
+    [InlineData(.7353569830524495, true, .3542102954593425, .4824536520862135, .4177499272432925)]
+    public void PaperOnlyViewingKeepsPaperTintAndMapsPrinterBlackToReferenceBlack(
+        double encoded, bool compensation, double red, double green, double blue)
+    {
+        var source = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            new PdfContentStreamBuilder().SetFillRgb(encoded, encoded, encoded).Rectangle(0, 0, 1, 1).Fill()).Build()));
+        var options = new PdfRenderOptions(1, 1)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: GrayPrinter(tintedPaper: true),
+                options: new PdfProofOptions { BlackPointCompensation = compensation, SimulatePaper = true, SimulateBlack = false })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // Preserve the independently calculated paper RGB endpoint. Interior values
+        // scale by (.5-p)/(1-p), where p=8192/65535, or by .5 with source BPC.
+        Assert.InRange(frame.Pixels[0], red - .000005, red + .000005);
+        Assert.InRange(frame.Pixels[1], green - .000005, green + .000005);
+        Assert.InRange(frame.Pixels[2], blue - .000005, blue + .000005);
+        Assert.Equal(1, frame.Pixels[3]);
+    }
+
+    [Fact]
+    public void PaperAndBlackSimulationPreserveTheSelectedPrinterPaperWhite()
+    {
+        var source = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(1, 1).Build()));
+        var options = new PdfRenderOptions(1, 1)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: GrayPrinter(tintedPaper: true),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulatePaper = true, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // Independent Decimal50 Bradford adaptation from quantized wtpt to D65,
+        // then inversion of the standard sRGB primary matrix. ICC D50 is [.9642,1,.8249].
+        Assert.InRange(frame.Pixels[0], .7084205909186849 - .000005, .7084205909186849 + .000005);
+        Assert.InRange(frame.Pixels[1], .9649073041724270 - .000005, .9649073041724270 + .000005);
+        Assert.InRange(frame.Pixels[2], .8354998544865850 - .000005, .8354998544865850 + .000005);
+        Assert.Equal(1, frame.Pixels[3]);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+    }
+
+    [Theory]
     [InlineData(.25, false, 0)]
     [InlineData(.25, true, .050876088171556791)]
     [InlineData(.7353569830524495, false, .428570182934272710)]
@@ -252,7 +301,7 @@ public sealed class PdfPrecisionProofTests
     [InlineData("warnings")]
     [InlineData("transparent")]
     [InlineData("printing")]
-    public void UnimplementedProofSelectionsAreDiagnosedInsteadOfSilentlyIgnored(string selection)
+    public void UnavailableProofSelectionsAreDiagnosedInsteadOfSilentlyIgnored(string selection)
     {
         var document = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(1, 1).Build()));
         var options = new PdfRenderOptions(1, 1, transparentBackground: selection == "transparent")
@@ -380,7 +429,7 @@ public sealed class PdfPrecisionProofTests
         return data;
     }
 
-    private static PdfColorProfile GrayPrinter(bool collapsed = false)
+    private static PdfColorProfile GrayPrinter(bool collapsed = false, bool tintedPaper = false)
     {
         byte[] data = new byte[192];
         Write32(data, 0, data.Length);
@@ -399,7 +448,9 @@ public sealed class PdfPrecisionProofTests
         BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(168), 8192);
         BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(170), collapsed ? (ushort)8192 : (ushort)65535);
         "XYZ "u8.CopyTo(data.AsSpan(172));
-        Write32(data, 180, 63190); Write32(data, 184, 65536); Write32(data, 188, 54061);
+        Write32(data, 180, tintedPaper ? 52429 : 63190);
+        Write32(data, 184, tintedPaper ? 58982 : 65536);
+        Write32(data, 188, tintedPaper ? 45875 : 54061);
         return PdfColorProfile.Load(data);
     }
 
