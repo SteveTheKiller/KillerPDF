@@ -317,7 +317,7 @@ for each required source-alpha plane. Unprofiled, non-knockout DeviceRGB page gr
 precision through final Normal imposition on white for opaque output. Transparent output
 keeps the page group's alpha, and direct page output ignores its isolation flag.
 Other blend spaces, knockout, fractional group clips and other group blend modes remain unsupported.
-Optional `PdfRenderOptions.Proof` initially supports unprofiled DeviceRGB page groups
+Optional `PdfRenderOptions.Proof` initially supports pages without explicit groups and unprofiled DeviceRGB page groups
 with direct RGB/Gray paths, all four intents, optional source BPC and independent paper/black simulation,
 and separate gamut-warning masks. Paper simulation requires reliable explicit media white and uses absolute colorimetric
 appearance. Paper-only viewing preserves paper tint while mapping estimated printer black to reference zero;

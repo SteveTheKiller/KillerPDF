@@ -559,18 +559,25 @@ public sealed class PdfPrecisionProofTests
     }
 
     [Fact]
-    public void InitialProofSubsetRequiresAnExplicitRgbPageGroup()
+    public void ProofConvertsPagesWithoutExplicitGroupsAfterCompositing()
     {
-        var document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(1, 1).Build());
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            new PdfContentStreamBuilder().SetFillRgb(0, 0, 0).Rectangle(0, 0, 1, 1).Fill()
+                .SetGraphicsState(new PdfGraphicsState(fillOpacity: .5))
+                .SetFillRgb(1, 1, 1).Rectangle(0, 0, 1, 1).Fill()).Build());
         var options = new PdfRenderOptions(1, 1)
         {
             Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
                 options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
         };
 
-        var error = Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0, options));
+        var frame = new PdfPageRenderer(document).RenderFrame(0, options);
 
-        Assert.Contains("proof", error.Message, StringComparison.OrdinalIgnoreCase);
+        // Completed encoded gray1/2 gives linear Y=.21404114048223255.
+        // The fixture printer's inverse/forward pair maps this to Y=.3570205702411163.
+        double luminance = .2126 * frame.Pixels[0] + .7152 * frame.Pixels[1] + .0722 * frame.Pixels[2];
+        Assert.InRange(luminance, .3570205702411163 - .0001, .3570205702411163 + .0001);
+        Assert.Equal(1f, frame.Pixels[3]);
     }
 
     [Theory]
