@@ -21,6 +21,29 @@ public sealed class DamagedSaveGuardTests : IDisposable
         try { Directory.Delete(_directory, recursive: true); } catch (IOException) { }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ADuplicateInfoTrailerSavesAndKeepsThePageAndSelectedMetadata(bool conflicting)
+    {
+        byte[] damaged = Encoding.Latin1.GetBytes(Encoding.Latin1.GetString(RawPdf("", "",
+            "<< /Title (First title) >>", "<< /Title (Last title) >>"))
+            .Replace("/Root 1 0 R >>",
+                $"/Root 1 0 R /Info 5 0 R /Info {(conflicting ? 6 : 5)} 0 R >>", StringComparison.Ordinal));
+        var error = Assert.Throws<KillerPdf.Engine.Syntax.PdfSyntaxException>(() => PdfDocument.Open(damaged));
+        Assert.Contains("duplicate key /Info", error.Message);
+        string original = Write("original.pdf", damaged);
+        string copy = Write("copy.pdf", damaged);
+
+        PdfEngineIntegration.RepairHarmlessSaveArtifacts(copy);
+
+        PdfDocument saved = PdfDocument.Open(File.ReadAllBytes(copy));
+        Assert.Single(PdfPageInformation.Read(saved));
+        Assert.NotEmpty(new PdfPageContentReader(saved).ReadInstructions(0));
+        Assert.Equal(conflicting ? "Last title" : "First title", PdfDocumentInformation.Read(saved).Title);
+        Assert.Equal(damaged, File.ReadAllBytes(original));
+    }
+
     // A field listed twice and a dangling field both make the signature reader throw. The refusal
     // has to come out as this exception type, because IsXRefException turns any other error into
     // the repair fallbacks, and those drop the signature.
