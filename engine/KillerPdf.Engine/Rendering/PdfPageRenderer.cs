@@ -3278,13 +3278,8 @@ public sealed partial class PdfPageRenderer
         if (opacityChannel < 0 && embeddedMaskMode != 0)
             opacityChannel = jpeg2000Shape!.Value.Components - 1;
         int bits = imageMask ? 1
-            : stream.Dictionary.ContainsKey(Name("BitsPerComponent"))
-                ? PositiveInteger(stream.Dictionary, "BitsPerComponent")
-                : jpeg2000Shape?.Bits
-                    ?? PositiveInteger(stream.Dictionary, "BitsPerComponent");
-        if (!imageMask && _document.UsesCompatibilityRecovery
-            && jpeg2000Shape is Jpeg2000Shape sampleShape)
-            bits = sampleShape.Bits;
+            : jpeg2000Shape?.Bits
+                ?? PositiveInteger(stream.Dictionary, "BitsPerComponent");
         ImageColorSpace colorSpace;
         try
         {

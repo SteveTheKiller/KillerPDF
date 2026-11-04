@@ -5330,7 +5330,9 @@ public sealed class PdfPageRendererTests
             Convert.FromBase64String(encoded));
         PdfDocument strict = AddImageDictionaryEntry(filtered, "BitsPerComponent", new PdfInteger(dictionaryBits));
         var options = new PdfRenderOptions(20, 10, includeAnnotations: false, includeFormFields: false);
-        Assert.Throws<FormatException>(() => new PdfPageRenderer(strict).Render(0, options));
+        PdfRenderedPage strictRendered = new PdfPageRenderer(strict).Render(0, options);
+        Assert.Equal([0, 0, 255, 255], Pixel(strictRendered, 2, 5));
+        Assert.Equal([0, 255, 0, 255], Pixel(strictRendered, 15, 5));
 
         PdfDocument recovered = PdfDocument.OpenWithCompatibilityRecovery(PdfDocumentWriter.Write(strict));
         PdfRenderedPage rendered = new PdfPageRenderer(recovered).Render(0, options);
