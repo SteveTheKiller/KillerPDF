@@ -20,6 +20,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Document, annotation and attachment dates are written with the Gregorian calendar whatever the current culture, so Thai, Arabic and Persian regions no longer write years like 2569. Preflight messages write their numbers with a decimal point.
 - EPUB diagnoses head metadata after the body instead of returning unstyled pages and bounds CSS selector matching work. (#472)
 - EPUB preserves body backgrounds across native page sizes and honors transparent overrides. (#472)
+- DjVu raw-bit arithmetic decoding assigns split equality to the correct interval. (#472)
 
 ### Added
 

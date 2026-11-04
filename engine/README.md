@@ -286,6 +286,11 @@ Render warning masks and desktop warning overlays still require integration.
 
 ## Rendering status
 
+DjVu raw arithmetic decoding includes equality in the most-probable interval.
+A frozen native-reference column exercises this boundary through public page rendering.
+This repair does not resolve the separate patterned IW44 reconstruction discrepancy;
+the original full-image regression and independent reference disagreement remain open.
+
 The engine owns bounded CPU rendering for paths, text, images, clipping, shadings, transparency,
 annotations, and forms. It returns platform-neutral BGRA32 pixel buffers and diagnostics without
 referencing a UI toolkit or native PDF renderer. The engine does not provide UI controls.
