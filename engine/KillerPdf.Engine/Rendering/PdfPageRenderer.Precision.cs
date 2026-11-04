@@ -33,7 +33,7 @@ public sealed partial class PdfPageRenderer
     /// strings, positioned text arrays and quote text-showing operators.
     /// Ordinary Form XObjects retain supported paint precision through their matrix and bounding-box clip.
     /// Eligible isolated and non-isolated non-knockout DeviceRGB Form groups support outer Normal
-    /// compositing. Isolated groups also support outer Multiply. Internal Normal or Multiply paints
+    /// or Multiply compositing, with independent source alpha when needed. Internal Normal or Multiply paints
     /// retain precision with rectangular clips and no effective group profile. Active nested group pixel arrays
     /// share the render storage budget. Other group semantics remain explicitly unsupported.
     /// Unported paint operations are rejected instead of returning quantized pixels.
@@ -142,6 +142,15 @@ public sealed partial class PdfPageRenderer
         else
             FloatRgbCompositor.SourceOver(surface.PreciseRgb!, offset,
                 source.Red, source.Green, source.Blue, opacity);
+        AccumulatePreciseGroupAlpha(surface, offset, opacity);
+    }
+
+    private static void AccumulatePreciseGroupAlpha(RasterSurface surface, int offset, double opacity)
+    {
+        if (surface.PreciseGroupAlpha is not { } alpha) return;
+        double source = Math.Clamp(opacity, 0, 1);
+        int pixel = offset / 4;
+        alpha[pixel] = (float)(source + alpha[pixel] * (1 - source));
     }
 
     private static (double Red, double Green, double Blue) PreciseConnectionToRgb(double x, double y, double z)

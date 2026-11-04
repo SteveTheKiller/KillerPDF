@@ -12,6 +12,8 @@ public sealed partial class PdfPageRenderer
         internal byte[] Data { get; } = data;
         // Precision-aware paints never read the compatibility byte storage.
         internal float[]? PreciseRgb { get; set; }
+        // Accumulated object alpha excludes a non-isolated group's copied backdrop.
+        internal float[]? PreciseGroupAlpha { get; set; }
         internal byte[]? Ink { get; private set; }
         internal PdfColorTransform? InkProfile { get; private set; }
         internal PdfColorTransform? RgbProfile { get; private set; }

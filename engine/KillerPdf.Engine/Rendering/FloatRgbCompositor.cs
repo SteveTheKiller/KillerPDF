@@ -34,6 +34,27 @@ internal static class FloatRgbCompositor
         pixels[offset + 3] = (float)outputAlpha;
     }
 
+    internal static void MultiplyBackdrop(float[] pixels, int offset,
+        float[] completed, int completedOffset, double groupAlpha, double opacity)
+    {
+        double weight = Math.Clamp(opacity, 0, 1);
+        double sourceAlpha = Math.Clamp(groupAlpha, 0, 1) * weight;
+        if (sourceAlpha == 0) return;
+        double backdropAlpha = pixels[offset + 3];
+        double outputAlpha = sourceAlpha + backdropAlpha * (1 - sourceAlpha);
+        for (int channel = 0; channel < 3; channel++)
+        {
+            double backdrop = pixels[offset + channel];
+            double original = backdrop * backdropAlpha;
+            double residual = completed[completedOffset + channel] * (double)completed[completedOffset + 3]
+                - original * (1 - groupAlpha);
+            double premultiplied = original * (1 - sourceAlpha)
+                + weight * residual * ((1 - backdropAlpha) + backdropAlpha * backdrop);
+            pixels[offset + channel] = (float)(premultiplied / outputAlpha);
+        }
+        pixels[offset + 3] = (float)outputAlpha;
+    }
+
     internal static void InterpolateBackdrop(float[] pixels, int offset,
         float[] completed, int completedOffset, double opacity)
     {

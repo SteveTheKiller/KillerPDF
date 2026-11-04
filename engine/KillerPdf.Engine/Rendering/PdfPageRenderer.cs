@@ -2029,8 +2029,7 @@ public sealed partial class PdfPageRenderer
                 {
                     if (!transparencyGroup || knockout || !IsName(group!, "CS", "DeviceRGB")
                         || ReadColorSpace(Name("DeviceRGB"), formResources, 0, diagnostics: diagnostics).IsDefault
-                        || (parentState.BlendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible)
-                            && !(isolated && parentState.BlendMode == RendererBlendMode.Multiply))
+                        || parentState.BlendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible or RendererBlendMode.Multiply)
                         || parentState.GraphicsSoftMask is not null || parentState.Knockout is not null
                         || pixels.HasProfile || pixels.GroupAlpha is not null || pixels.GroupShape is not null
                         || formState.Clips.Any(clip => clip.Mask.Coverage is not null))
@@ -2040,7 +2039,9 @@ public sealed partial class PdfPageRenderer
                         options.Width, options.Height, scaleX, scaleY), parentPixels);
                     int groupWidth = bounds.Right - bounds.Left, groupHeight = bounds.Bottom - bounds.Top;
                     if (groupWidth <= 0 || groupHeight <= 0) return;
-                    long storage = checked((long)groupWidth * groupHeight * 20);
+                    bool trackAlpha = !isolated && (parentState.BlendMode == RendererBlendMode.Multiply
+                        || parentPixels.PreciseGroupAlpha is not null);
+                    long storage = checked((long)groupWidth * groupHeight * (trackAlpha ? 24 : 20));
                     long rootStorage = checked((long)rasterWidth * rasterHeight * 36);
                     if (checked(rootStorage + preciseGroupStorage + storage) > options.PixelByteLimit)
                         throw new ArgumentException("The high-precision groups exceed the combined pixel storage limit.", nameof(options));
@@ -2052,7 +2053,10 @@ public sealed partial class PdfPageRenderer
                         // Exact arrays keep this reservation independent of pooled bucket capacity.
                         groupPixels = new RasterSurface(GC.AllocateUninitializedArray<byte>(channels),
                             bounds.Left, bounds.Top, groupWidth, groupHeight, pixels.Pdf20BlendEndpoints)
-                        { PreciseRgb = new float[channels] };
+                        {
+                            PreciseRgb = new float[channels],
+                            PreciseGroupAlpha = trackAlpha ? new float[channels / 4] : null
+                        };
                         if (!isolated)
                         {
                             for (int y = bounds.Top; y < bounds.Bottom; y++)
@@ -2076,10 +2080,19 @@ public sealed partial class PdfPageRenderer
                             for (int x = bounds.Left; x < bounds.Right; x++)
                             {
                                 int offset = groupPixels.Offset(x, y);
+                                int parentOffset = parentPixels.Offset(x, y);
+                                double objectAlpha = isolated ? completed[offset + 3]
+                                    : groupPixels.PreciseGroupAlpha?[offset / 4] ?? 0;
+                                AccumulatePreciseGroupAlpha(parentPixels, parentOffset,
+                                    objectAlpha * parentState.FillAlpha);
                                 if (!isolated)
                                 {
-                                    FloatRgbCompositor.InterpolateBackdrop(parentPixels.PreciseRgb!, parentPixels.Offset(x, y),
-                                        completed, offset, parentState.FillAlpha);
+                                    if (parentState.BlendMode == RendererBlendMode.Multiply)
+                                        FloatRgbCompositor.MultiplyBackdrop(parentPixels.PreciseRgb!, parentOffset,
+                                            completed, offset, objectAlpha, parentState.FillAlpha);
+                                    else
+                                        FloatRgbCompositor.InterpolateBackdrop(parentPixels.PreciseRgb!, parentOffset,
+                                            completed, offset, parentState.FillAlpha);
                                     continue;
                                 }
                                 double alpha = completed[offset + 3] * parentState.FillAlpha;
@@ -2096,7 +2109,11 @@ public sealed partial class PdfPageRenderer
                     finally
                     {
                         pixels = parentPixels;
-                        if (groupPixels is not null) groupPixels.PreciseRgb = null;
+                        if (groupPixels is not null)
+                        {
+                            groupPixels.PreciseRgb = null;
+                            groupPixels.PreciseGroupAlpha = null;
+                        }
                         preciseGroupStorage -= storage;
                     }
                     return;

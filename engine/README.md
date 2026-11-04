@@ -279,11 +279,12 @@ with a reason instead of returning colors quantized through the BGRA32 surface.
 Text widgets excluded by render options do not disable precise page rendering.
 Included annotation and form-field appearances remain explicitly unsupported.
 Eligible isolated and non-isolated, non-knockout DeviceRGB Form groups retain floating-point
-colors and alpha through outer Normal compositing and apply invoking opacity once.
-Isolated groups also support invoking Multiply blending against their immediate backdrop.
+colors and alpha through outer Normal or Multiply compositing and apply invoking opacity once.
+Non-isolated groups track source alpha separately when their outer blend or parent requires it.
 Internal Normal and Multiply paints retain backdrop alpha and color. They require an unprofiled
 effective blend space and rectangular clips without fractional coverage. Their exact pixel
-arrays share the render budget across active nested groups. Page groups, other blend spaces,
+arrays share the render budget across active nested groups, including four extra bytes per pixel
+for each required source-alpha plane. Page groups, other blend spaces,
 knockout, fractional group clips and other group blend modes remain unsupported.
 `RenderFrameRegion` returns an owned float32 crop on the full page's pixel grid. Its
 combined pixel-storage limit counts only the requested region, and precision validation,
