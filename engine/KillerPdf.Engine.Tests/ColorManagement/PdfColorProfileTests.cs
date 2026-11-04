@@ -7,6 +7,30 @@ namespace KillerPdf.Engine.Tests.ColorManagement;
 
 public sealed class PdfColorProfileTests
 {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(.5)]
+    [InlineData(1)]
+    public void LargeParametricCurveValuesRetainRequiredOutputClipping(double input)
+    {
+        byte[] data = IdentityGray();
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(140), 24);
+        "para"u8.CopyTo(data.AsSpan(144));
+        BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(152), 1);
+        for (int offset = 156; offset <= 164; offset += 4)
+            BinaryPrimitives.WriteInt32BigEndian(data.AsSpan(offset), 32767 << 16);
+
+        // Type1 evaluates (32767*x+32767)^32767 throughout [0,1].
+        // ICC.1:2022 section10.18 clips function values to [0,1].
+        // https://www.color.org/specifications/ICC.1-2022-05.pdf
+        var profile = PdfColorProfile.Load(data);
+        double[] xyz = new double[3];
+        profile.ToXyz([input], xyz);
+        Assert.Equal(.9642, xyz[0], 10);
+        Assert.Equal(1, xyz[1], 10);
+        Assert.Equal(.8249, xyz[2], 10);
+    }
+
     [Fact]
     public void IdentityGrayUsesRelativeD50ConnectionValues()
     {
