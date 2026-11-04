@@ -40,7 +40,8 @@ public sealed partial class PdfPageRenderer
     /// Unprofiled non-knockout DeviceRGB page groups retain precision through final imposition
     /// on white for opaque output; transparent output preserves their alpha.
     /// Initial printer proof rendering accepts pages without explicit groups and unprofiled DeviceRGB page groups with direct
-    /// DeviceRGB/Gray path paints including supported DefaultGray calibration, all four intents with an actual selected inverse,
+    /// DeviceRGB/Gray paths and basic embedded TrueType text, including supported DefaultGray calibration,
+    /// all four intents with an actual selected inverse,
     /// optional source BPC and independent paper/black simulation,
     /// with separate gamut-warning masks. Paper-only viewing preserves paper tint while mapping estimated printer black to reference zero.
     /// Compensation uses bounded ICC estimates against reference zero black.
@@ -220,7 +221,8 @@ public sealed partial class PdfPageRenderer
         "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "gs" or "w" or "d"
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"
-        or "n" or "W" or "W*";
+        or "n" or "W" or "W*"
+        or "BT" or "ET" or "Tf" or "Tm" or "Tj" or "TJ" or "Tr";
 
     private static bool PreciseOperationSupported(string operation) => operation is
         "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "k" or "K" or "gs" or "w" or "d"

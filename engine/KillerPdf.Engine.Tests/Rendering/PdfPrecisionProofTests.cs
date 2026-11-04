@@ -3,8 +3,10 @@ using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.ColorManagement;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Rendering;
+using KillerPdf.Engine.Tests.Fonts;
 using KillerPdf.Engine.Writing;
 using Xunit;
 
@@ -12,6 +14,86 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPrecisionProofTests
 {
+    [Fact]
+    public void ProofConvertsGlyphStrokesWithoutFillingTheirInterior()
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(16, 16,
+            new PdfContentStreamBuilder().SetLineWidth(2).SetStrokeGray(.5)
+                .BeginText().SetFont(font, 10).SetTextRenderingMode(PdfTextRenderingMode.Stroke)
+                .SetTextMatrix(1, 0, 0, 1, 2, 2).ShowUnicodeText("A").EndText()).Build());
+        var options = new PdfRenderOptions(16, 16, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // The two-point stroke at the triangle's horizontal base fully covers (7,14).
+        int offset = (14 * 16 + 7) * 4;
+        double luminance = .2126 * frame.Pixels[offset] + .7152 * frame.Pixels[offset + 1]
+            + .0722 * frame.Pixels[offset + 2];
+        Assert.InRange(luminance, .3570205702411163 - .0001, .3570205702411163 + .0001);
+        Assert.Equal(1f, frame.Pixels[offset + 3]);
+        Assert.Equal(0f, frame.Pixels[(9 * 16 + 7) * 4 + 3]);
+    }
+
+    [Fact]
+    public void ProofRetainsPositionedTextArraySpacingAndConvertsBothGlyphs()
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(30, 16,
+            new PdfContentStreamBuilder().SetFillGray(.5).BeginText().SetFont(font, 10)
+                .SetTextMatrix(1, 0, 0, 1, 2, 2).ShowPositionedUnicodeText(["A", "A"], [-800]).EndText()).Build());
+        var options = new PdfRenderOptions(30, 16, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // Six-point advance plus the eight-point TJ adjustment puts the second
+        // triangle at x16. Independent interior samples have the same proof color.
+        foreach (int x in new[] { 7, 21 })
+        {
+            int offset = (9 * 30 + x) * 4;
+            double luminance = .2126 * frame.Pixels[offset] + .7152 * frame.Pixels[offset + 1]
+                + .0722 * frame.Pixels[offset + 2];
+            Assert.InRange(luminance, .3570205702411163 - .0001, .3570205702411163 + .0001);
+            Assert.Equal(1f, frame.Pixels[offset + 3]);
+        }
+        Assert.Equal(0f, frame.Pixels[(9 * 30 + 14) * 4 + 3]);
+    }
+
+    [Fact]
+    public void ProofTransformsEmbeddedGlyphColorAfterTextPainting()
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(16, 16,
+            new PdfContentStreamBuilder().SetFillGray(.5).BeginText().SetFont(font, 10)
+                .SetTextMatrix(1, 0, 0, 1, 2, 2).ShowUnicodeText("A").EndText()).Build());
+        var options = new PdfRenderOptions(16, 16, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                gamutWarnings: true, options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // The independent synthetic glyph is the triangle (0,0),(1000,0),(500,1000).
+        // Pixel(7,9) lies wholly inside its translated 10-point outline.
+        // Encoded gray1/2 and the fixture printer give linear Y=.3570205702411163.
+        int offset = (9 * 16 + 7) * 4;
+        double luminance = .2126 * frame.Pixels[offset] + .7152 * frame.Pixels[offset + 1]
+            + .0722 * frame.Pixels[offset + 2];
+        Assert.InRange(luminance, .3570205702411163 - .0001, .3570205702411163 + .0001);
+        Assert.Equal(1f, frame.Pixels[offset + 3]);
+        Assert.Equal(0f, frame.Pixels[3]);
+        Assert.Equal(PdfGamutClassification.NotEvaluated, frame.PrinterGamutWarnings!.GetClassification(0, 0));
+    }
+
     [Theory]
     [InlineData(".5 g 0 0 1 1 re f")]
     [InlineData(".5 G 1 w 0 .5 m 1 .5 l S")]
@@ -585,8 +667,7 @@ public sealed class PdfPrecisionProofTests
     [InlineData("0 1 0 0 K 1 w 0 .5 m 1 .5 l S")]
     [InlineData("/DeviceCMYK cs 0 1 0 0 sc 0 0 1 1 re f")]
     [InlineData("/DeviceRGB cs .5 .5 .5 sc 0 0 1 1 re f")]
-    [InlineData("BT ET")]
-    public void InitialProofSubsetDiagnosesSourcesOutsideItsPathOnlyRgbContract(string content)
+    public void ProofDiagnosesUnportedSourceColorOperators(string content)
     {
         var document = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
             Encoding.ASCII.GetBytes(content)).Build()));
