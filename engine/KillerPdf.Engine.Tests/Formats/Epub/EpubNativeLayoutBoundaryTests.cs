@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Formats.Epub;
+using KillerPdf.Engine.Rendering;
 using KillerPdf.Engine.Tests.Fonts;
 using Xunit;
 
@@ -184,12 +185,41 @@ public sealed class EpubNativeLayoutBoundaryTests
         Assert.Equal("A A", page.Text);
     }
 
+    [Fact]
+    public void LocalHeadIconMetadataPreservesBodyLayoutAndResourceBytes()
+    {
+        var book = Book(head: "<link href='cover.png' rel='icon' type='image/x-cover' id='id-cover'/>", icon: true);
+        byte[] before = book.ReadResource("EPUB/cover.png");
+        Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, before);
+        Assert.Equal("A A", book.ReadText(0));
+
+        var layout = book.CreateLayout(Options(book));
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A A", page.Text);
+        Assert.Equal(0, page.SpineIndex);
+        Assert.Equal(0, page.TextStart);
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10),
+            new EpubTextPlacement(0, 1, 1, 8, 2, 5, 10),
+            new EpubTextPlacement(0, 2, 1, 13, 2, 6, 10) }, page.TextPlacements);
+
+        var frame = layout.RenderPage(0);
+
+        Assert.Equal(30, frame.Width);
+        Assert.Equal(16, frame.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((5 * 30 + 7) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice(15 * 30 * 4, 4).ToArray());
+        Assert.Equal(before, book.ReadResource("EPUB/cover.png"));
+    }
+
     private static EpubLayoutOptions Options(EpubDocument book) =>
         new(30, 16, TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { FontSize = 10, Margin = 2 };
 
     private static EpubDocument Book(string body = "<p>A A</p>", string head = "", bool css = false,
         bool scripted = false, bool fixedLayout = false, bool multipleSpines = false,
-        bool nonlinear = false, string? xhtml = null)
+        bool nonlinear = false, string? xhtml = null, bool icon = false)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -201,13 +231,14 @@ public sealed class EpubNativeLayoutBoundaryTests
             string layoutMetadata = fixedLayout ? "<meta property='rendition:layout'>pre-paginated</meta>" : "";
             string properties = scripted ? " properties='scripted'" : "";
             string cssItem = css ? "<item id='css' href='style.css' media-type='text/css'/>" : "";
+            string iconItem = icon ? "<item id='cover' href='cover.png' media-type='image/png'/>" : "";
             string secondItem = multipleSpines ? "<item id='second' href='second.xhtml' media-type='application/xhtml+xml'/>" : "";
             string secondSpine = multipleSpines ? "<itemref idref='second'/>" : "";
             string linear = nonlinear ? " linear='no'" : "";
             Add("EPUB/book.opf", $"""
                 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
                   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:native-boundary</dc:identifier><dc:title>Native boundaries</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2026-11-03T00:00:00Z</meta>{layoutMetadata}</metadata>
-                  <manifest><item id="chapter" href="text.xhtml" media-type="application/xhtml+xml"{properties}/><item id="font" href="fonts/test.ttf" media-type="font/ttf"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>{cssItem}{secondItem}</manifest>
+                  <manifest><item id="chapter" href="text.xhtml" media-type="application/xhtml+xml"{properties}/><item id="font" href="fonts/test.ttf" media-type="font/ttf"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>{cssItem}{secondItem}{iconItem}</manifest>
                   <spine><itemref idref="chapter"{linear}/>{secondSpine}</spine>
                 </package>
                 """);
@@ -217,6 +248,11 @@ public sealed class EpubNativeLayoutBoundaryTests
                 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text.xhtml">Boundaries</a></li></ol></nav></body></html>
                 """);
             if (css) Add("EPUB/style.css", "p { color:red }");
+            if (icon)
+            {
+                using var cover = zip.CreateEntry("EPUB/cover.png", CompressionLevel.NoCompression).Open();
+                cover.Write(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+            }
             if (multipleSpines)
                 Add("EPUB/second.xhtml", "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Second</title></head><body><p>A</p></body></html>");
             using var font = zip.CreateEntry("EPUB/fonts/test.ttf", CompressionLevel.NoCompression).Open();

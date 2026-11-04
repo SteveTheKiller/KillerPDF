@@ -28,6 +28,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "html" => parent is null && xml.Depth == 0,
             "head" or "body" => parent?.Name == "html",
             "title" => parent?.Name == "head",
+            "link" => parent?.Name == "head" && xml.GetAttribute("rel") == "icon"
+                && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
             "p" => parent?.Name == "body",
             "span" => parent?.Name is "p" or "span",
             _ => false };
@@ -40,6 +42,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             Count(xml.Value.Length);
             if (xml.NamespaceURI == "" && xml.LocalName == "style" && name is "p" or "span")
                 style = ParseStyle(xml.Value, style);
+            else if (name == "link" && xml.NamespaceURI == "" && xml.LocalName is "href" or "rel" or "type" or "id")
+            {
+                // The structural reader validates the packaged reference; icons do not paint body content.
+            }
             else if (xml.NamespaceURI != "http://www.w3.org/2000/xmlns/"
                 && !(xml.LocalName == "lang" && xml.NamespaceURI is "" or "http://www.w3.org/XML/1998/namespace"))
                 throw new NotSupportedException("Native EPUB XHTML attributes and styling are not implemented.");
