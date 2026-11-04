@@ -9,6 +9,10 @@ internal sealed class FlattenOptionsDialog : Window
     private readonly ComboBox _colorMode;
     private readonly TextBox _dpi;
     private readonly CheckBox _keepResolution;
+    private readonly TextBlock _pixelDimensions;
+    private readonly double _pageWidthPoints;
+    private readonly double _pageHeightPoints;
+    private readonly (int Width, int Height)? _imagePixels;
     private readonly Slider _threshold;
     private readonly TextBlock _thresholdValue;
     private readonly CheckBox _useJpeg;
@@ -23,8 +27,12 @@ internal sealed class FlattenOptionsDialog : Window
     internal bool Confirmed { get; private set; }
     internal PdfRasterize.FlattenOptions Options { get; private set; } = new();
 
-    internal FlattenOptionsDialog(Window owner)
+    internal FlattenOptionsDialog(Window owner, double pageWidthPoints = 0,
+        double pageHeightPoints = 0, (int Width, int Height)? imagePixels = null)
     {
+        _pageWidthPoints = pageWidthPoints;
+        _pageHeightPoints = pageHeightPoints;
+        _imagePixels = imagePixels;
         Title = "KillerPDF - " + L("Str_Dlg_SaveFlattened");
         Width = 420;
         SizeToContent = SizeToContent.Height;
@@ -51,14 +59,24 @@ internal sealed class FlattenOptionsDialog : Window
         body.Children.Add(UiKit.GroupLabel(L("Str_ExportImg_Dpi")));
         _dpi = UiKit.Field();
         _dpi.Text = "150";
+        _dpi.TextChanged += (_, _) => UpdatePixelDimensions();
         _dpi.Margin = new Thickness(0, 3, 0, 4);
         body.Children.Add(_dpi);
         _keepResolution = UiKit.CheckBox(L("Str_Output_KeepResolution"));
-        _keepResolution.Margin = new Thickness(0, 0, 0, 10);
-        _keepResolution.Checked += (_, _) => _dpi.IsEnabled = false;
-        _keepResolution.Unchecked += (_, _) => _dpi.IsEnabled = true;
+        _keepResolution.Margin = new Thickness(0, 0, 0, 0);
+        _keepResolution.Checked += (_, _) => { _dpi.IsEnabled = false; UpdatePixelDimensions(); };
+        _keepResolution.Unchecked += (_, _) => { _dpi.IsEnabled = true; UpdatePixelDimensions(); };
         _keepResolution.IsChecked = true;
         body.Children.Add(_keepResolution);
+        _pixelDimensions = new TextBlock
+        {
+            Foreground = UiKit.Brush("MutedTextBrush"),
+            FontFamily = UiKit.MonoFont,
+            FontSize = 10,
+            Margin = new Thickness(0, 4, 0, 10)
+        };
+        body.Children.Add(_pixelDimensions);
+        UpdatePixelDimensions();
 
         body.Children.Add(UiKit.GroupLabel(L("Str_Tf_Threshold")));
         _threshold = new Slider
@@ -165,6 +183,23 @@ internal sealed class FlattenOptionsDialog : Window
         Options.Validate();
         Confirmed = true;
         Close();
+    }
+
+    private void UpdatePixelDimensions()
+    {
+        if (_pixelDimensions is null) return;
+        double dpi = double.TryParse(_dpi.Text.Trim(), out double parsed)
+            && parsed >= 24 && parsed <= 1200 ? parsed : 150;
+        var (width, height) = OutputPixelDimensions.ExportSize(
+            _pageWidthPoints, _pageHeightPoints, dpi, _keepResolution.IsChecked == true, _imagePixels);
+        var (referenceWidth, referenceHeight) = OutputPixelDimensions.FromPoints(
+            _pageWidthPoints, _pageHeightPoints, 150);
+        var (baseWidth, baseHeight) = OutputPixelDimensions.ScaleBase(referenceWidth, referenceHeight,
+            referenceWidth, referenceHeight, _imagePixels);
+        _pixelDimensions.Text = width > 0 && height > 0
+            ? string.Format(L("Str_OutputPixels"), width, height) + "  |  " +
+              OutputPixelDimensions.ScaleLabel(width, height, baseWidth, baseHeight)
+            : "";
     }
 
     private static TextBlock ValueLabel(string text) => new()

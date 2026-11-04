@@ -19,6 +19,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Text extraction recovers missing marked-content properties and stray closing tags in compatibility mode.
 - JPEG 2000 images use their encoded sample depth when the PDF declares a different value.
 - Rasterize Region keeps earlier region images intact on repeated operations and leaves invisible clipping paths out of its content counts. (#369)
+- Save Flattened shows output pixel dimensions and scale, matching image export. (#462)
 - The file picker no longer stalls on a disconnected network folder when it opens, a relative or malformed path typed in the path box is refused instead of being looked up against the wrong folder, a pattern such as *.log typed in the name box filters the list, and a full path typed in the name box can be accepted even when the shown folder failed to list.
 - PDF creation, modification, comment and attachment dates use the Gregorian calendar on Thai, Arabic and Persian region settings instead of writing years like 2569.
 - The update check reads only the release's own fields, so release notes that quote them cannot confuse it.

@@ -1951,7 +1951,11 @@ namespace KillerPDF.Shell
                           { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SaveFlattened"),
                             CheckFileExists = false, CheckPathExists = true, RequireFilterExtension = true };
             if (dlg.ShowDialog(this) != true) return;
-            var optionsDialog = new FlattenOptionsDialog(this);
+            PdfEngineDocumentSession previewSession = EnsureEngineDocumentSession();
+            int previewPage = Math.Clamp(PageList.SelectedIndex, 0, previewSession.PageCount - 1);
+            var (previewWidth, previewHeight) = previewSession.PhysicalPageSize(previewPage, _pageRotations);
+            var optionsDialog = new FlattenOptionsDialog(this, previewWidth, previewHeight,
+                previewSession.PageImagePixels(previewPage, _pageRotations));
             optionsDialog.ShowDialog();
             if (!optionsDialog.Confirmed) return;
             PdfRasterize.FlattenOptions flattenOptions = optionsDialog.Options;
