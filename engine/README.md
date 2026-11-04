@@ -284,8 +284,10 @@ Non-isolated groups track source alpha separately when their outer blend or pare
 Internal Normal and Multiply paints retain backdrop alpha and color. They require an unprofiled
 effective blend space and rectangular clips without fractional coverage. Their exact pixel
 arrays share the render budget across active nested groups, including four extra bytes per pixel
-for each required source-alpha plane. Page groups, other blend spaces,
-knockout, fractional group clips and other group blend modes remain unsupported.
+for each required source-alpha plane. Unprofiled, non-knockout DeviceRGB page groups retain
+precision through final Normal imposition on white for opaque output. Transparent output
+keeps the page group's alpha, and direct page output ignores its isolation flag.
+Other blend spaces, knockout, fractional group clips and other group blend modes remain unsupported.
 `RenderFrameRegion` returns an owned float32 crop on the full page's pixel grid. Its
 combined pixel-storage limit counts only the requested region, and precision validation,
 diagnostics and cancellation match `RenderFrame`. Desktop refinement adoption remains in progress.

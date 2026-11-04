@@ -36,6 +36,8 @@ public sealed partial class PdfPageRenderer
     /// or Multiply compositing, with independent source alpha when needed. Internal Normal or Multiply paints
     /// retain precision with rectangular clips and no effective group profile. Active nested group pixel arrays
     /// share the render storage budget. Other group semantics remain explicitly unsupported.
+    /// Unprofiled non-knockout DeviceRGB page groups retain precision through final imposition
+    /// on white for opaque output; transparent output preserves their alpha.
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
     public PdfRenderedFrame RenderFrame(int pageIndex, PdfRenderOptions options,
@@ -57,9 +59,15 @@ public sealed partial class PdfPageRenderer
         if (pixelCount > options.PixelByteLimit / (4 + 2 * 4 * sizeof(float)))
             throw new ArgumentException("The high-precision render exceeds its combined pixel storage limit.", nameof(options));
         var page = _tree.Pages[pageIndex].Dictionary;
-        if (options.SeparationPlate is not null || page.ContainsKey(Name("Group"))
-            || OutputProfile(null) is not null)
+        if (options.SeparationPlate is not null || OutputProfile(null) is not null)
             throw new NotSupportedException("High-precision profile and group rendering is not implemented.");
+        if (page.TryGetValue(Name("Group"), out PdfObject? groupValue)
+            && (Resolve(groupValue) is not PdfDictionary group
+                || !IsName(group, "S", "Transparency") || !IsName(group, "CS", "DeviceRGB")
+                || ReadColorSpace(Name("DeviceRGB"), _pageResources[pageIndex], 0).IsDefault
+                || group.TryGetValue(Name("K"), out PdfObject? knockoutValue)
+                    && Resolve(knockoutValue) is PdfBoolean { Value: true }))
+            throw new NotSupportedException("This high-precision page group is not implemented.");
         if ((options.IncludeAnnotations || options.IncludeFormFields)
             && page.TryGetValue(Name("Annots"), out PdfObject? annotationValue)
             && Resolve(annotationValue) is PdfArray annotations)

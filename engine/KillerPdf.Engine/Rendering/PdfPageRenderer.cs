@@ -408,6 +408,13 @@ public sealed partial class PdfPageRenderer
                 for (int offset = 0; offset < pixels.Length; offset += 4)
                 {
                     if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    if (preciseRgb is not null)
+                    {
+                        float preciseAlpha = preciseRgb[offset + 3];
+                        for (int channel = 0; channel < 3; channel++)
+                            preciseRgb[offset + channel] = preciseRgb[offset + channel] * preciseAlpha + (1 - preciseAlpha);
+                        preciseRgb[offset + 3] = 1;
+                    }
                     int alpha = pixels.Data[offset + 3];
                     for (int channel = 0; channel < 3; channel++)
                         pixels.Data[offset + channel] = (byte)((pixels.Data[offset + channel] * alpha

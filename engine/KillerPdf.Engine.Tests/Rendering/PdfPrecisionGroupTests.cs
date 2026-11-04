@@ -10,6 +10,38 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPrecisionGroupTests
 {
+    [Fact]
+    public void KnockoutPageGroupsAreDiagnosedBeforeReturningAPreciseFrame()
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(1, 1).Build());
+        var renderer = new PdfPageRenderer(WithRgbPageGroup(source, isolated: false, knockout: true));
+
+        var error = Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0, new PdfRenderOptions(1, 1)));
+
+        Assert.Contains("page group", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void RgbPageGroupIsImposedOnlyForOpaqueOutput(bool isolated, bool transparent)
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            Encoding.ASCII.GetBytes("/Half gs 1 0 0 rg 0 0 1 1 re f")).Build());
+        var renderer = new PdfPageRenderer(WithRgbPageGroup(source, isolated));
+
+        PdfRenderedFrame frame = renderer.RenderFrame(0,
+            new PdfRenderOptions(1, 1, transparentBackground: transparent));
+
+        Assert.Equal(1, frame.Pixels[0]);
+        float expected = transparent ? 0 : .21404114f;
+        Assert.InRange(frame.Pixels[1], expected - .00000003f, expected + .00000003f);
+        Assert.InRange(frame.Pixels[2], expected - .00000003f, expected + .00000003f);
+        Assert.Equal(transparent ? .5f : 1, frame.Pixels[3]);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -326,6 +358,23 @@ public sealed class PdfPrecisionGroupTests
         return PdfDocument.Open(update.ReplaceObject(page.ObjectNumber,
             new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))
                 .Append(Entry("Resources", Resources("Container", container))))).Build());
+    }
+
+    private static PdfDocument WithRgbPageGroup(PdfDocument source, bool isolated, bool knockout = false)
+    {
+        var catalog = Assert.IsType<PdfDictionary>(source.Resolve(
+            Assert.IsType<PdfIndirectReference>(source.Trailer[Name("Root")])));
+        var pages = Assert.IsType<PdfDictionary>(source.Resolve(
+            Assert.IsType<PdfIndirectReference>(catalog[Name("Pages")])));
+        var reference = Assert.IsType<PdfIndirectReference>(Assert.Single(Assert.IsType<PdfArray>(pages[Name("Kids")])));
+        var page = Assert.IsType<PdfDictionary>(source.Resolve(reference));
+        var group = new PdfDictionary([Entry("S", Name("Transparency")), Entry("CS", Name("DeviceRGB")),
+            Entry("I", new PdfBoolean(isolated)), Entry("K", new PdfBoolean(knockout))]);
+        var resources = new PdfDictionary([Entry("ExtGState", new PdfDictionary([
+            Entry("Half", new PdfDictionary([Entry("ca", new PdfReal(.5)), Entry("BM", Name("Multiply"))]))]))]);
+        return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source).ReplaceObject(reference.ObjectNumber,
+            new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Resources")))
+                .Append(Entry("Resources", resources)).Append(Entry("Group", group)))).Build());
     }
 
     private static PdfArray Numbers(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));
