@@ -5598,9 +5598,17 @@ public sealed class PdfIncrementalPageEditor
                 QuaddingName, out PdfObject? q)
                     ? ResolveCatalogValue(source, q,
                         "A source /AcroForm /Q value") as PdfInteger : null;
-            importer.AddDictionaryTransform((_, dictionary) =>
-                TransformFormDictionary(dictionary, renames, defaultAppearance,
-                    defaultQuadding, importer.ResolveImportedSourceValue));
+            importer.AddDictionaryTransform((reference, dictionary) =>
+            {
+                bool fieldRoot = !dictionary.ContainsKey(ParentName)
+                    && (reference is not null
+                        ? sourceFieldReferences.Contains((reference.ObjectNumber, reference.Generation))
+                        : dictionary.ContainsKey(FieldTypeName)
+                            || dictionary.ContainsKey(Name("T")) && dictionary.ContainsKey(KidsName));
+                return TransformFormDictionary(dictionary, renames,
+                    fieldRoot ? defaultAppearance : null,
+                    fieldRoot ? defaultQuadding : null, importer.ResolveImportedSourceValue);
+            });
             if (!isPartial)
                 foreach (var entry in form.Where(entry =>
                              !supportedFormKeys.Contains(entry.Key)))
@@ -5973,7 +5981,21 @@ public sealed class PdfIncrementalPageEditor
     private static PdfArray FormFields(PdfDocument document, PdfDictionary form)
     {
         if (!form.TryGetValue(FieldsName, out PdfObject? value))
-            throw new InvalidOperationException("An /AcroForm has no /Fields array.");
+        {
+            foreach (PdfPageTreeEntry page in PdfPageTree.Read(document).Pages)
+            {
+                if (!page.Dictionary.TryGetValue(AnnotsName, out PdfObject? annotations)) continue;
+                foreach (PdfObject item in ResolveArray(document, annotations, "A page /Annots value"))
+                {
+                    PdfDictionary annotation = ResolveDictionary(document, item, "A page annotation");
+                    if (annotation.TryGetValue(SubtypeName, out PdfObject? subtype)
+                        && ResolveCatalogValue(document, subtype, "A page annotation /Subtype value")
+                            is PdfName name && name.Equals(WidgetName))
+                        throw new InvalidOperationException("An /AcroForm has no /Fields array for its page widgets.");
+                }
+            }
+            return new PdfArray([]);
+        }
         return ResolveArray(document, value, "An /AcroForm /Fields value");
     }
 
@@ -6301,17 +6323,12 @@ public sealed class PdfIncrementalPageEditor
                 ?? throw new InvalidOperationException("A form field /DA value is not a string.");
             replacements[DefaultAppearanceName] = RewriteDefaultAppearance(appearance, renames);
         }
-        else if (formDefaultAppearance is not null
-            && dictionary.TryGetValue(FieldTypeName, out PdfObject? fieldType)
-            && resolve(fieldType) is PdfName type && type.ValueAsLatin1() is "Tx" or "Ch")
+        else if (formDefaultAppearance is not null)
         {
             replacements[DefaultAppearanceName] =
                 RewriteDefaultAppearance(formDefaultAppearance, renames);
         }
-        if (formDefaultQuadding is not null && !dictionary.ContainsKey(QuaddingName)
-            && dictionary.TryGetValue(FieldTypeName, out PdfObject? quaddingFieldType)
-            && resolve(quaddingFieldType) is PdfName quaddingType
-            && quaddingType.ValueAsLatin1() is "Tx" or "Ch")
+        if (formDefaultQuadding is not null && !dictionary.ContainsKey(QuaddingName))
             replacements[QuaddingName] = formDefaultQuadding;
         return replacements.Count == 0 ? dictionary : ReplaceMany(dictionary, replacements);
     }
@@ -9304,6 +9321,7 @@ public sealed class PdfIncrementalPageEditor
         foreach (var entry in tree.Catalog.Where(entry =>
                      !entry.Key.Equals(TypeName)
                      && !entry.Key.Equals(PagesName)
+                     && !entry.Key.Equals(AcroFormName)
                      && !entry.Key.Equals(NamesName)
                      && !entry.Key.Equals(PermissionsName)
                      && !entry.Key.Equals(AssociatedFilesName)))
@@ -12900,6 +12918,8 @@ public sealed class PdfIncrementalPageEditor
                 }
                 continue;
             }
+            if (categoryName is not ("XObject" or "Font" or "ExtGState" or "Shading"
+                or "Pattern" or "ColorSpace" or "Properties")) continue;
             PdfDictionary entries = resolvedCategory as PdfDictionary
                 ?? throw new InvalidOperationException(
                     $"{description} /{categoryName} category is not a dictionary.");
@@ -13067,7 +13087,7 @@ public sealed class PdfIncrementalPageEditor
                 throw new InvalidOperationException(
                     $"{description} /Pattern color space has an invalid element count.");
             if (colorSpace.Count == 2)
-                ValidateProcessColorSpace(colorSpace[1], "Pattern base");
+                ValidateProcessColorSpace(colorSpace[1], "Pattern base", allowSpecial: true);
             return;
         }
         if (family == "Separation")
@@ -13122,7 +13142,7 @@ public sealed class PdfIncrementalPageEditor
                 throw new InvalidOperationException(
                     $"{description} /{family} color space has an invalid element count.");
         }
-        void ValidateProcessColorSpace(PdfObject item, string context)
+        void ValidateProcessColorSpace(PdfObject item, string context, bool allowSpecial = false)
         {
             ValidatePageColorSpace(document, item,
                 $"{description} /{context}", depth + 1);
@@ -13134,7 +13154,8 @@ public sealed class PdfIncrementalPageEditor
                     && Resolve(array[0]) is PdfName name => name.ValueAsLatin1(),
                 _ => null
             };
-            if (processFamily is "Pattern" or "Indexed" or "Separation" or "DeviceN")
+            if (processFamily == "Pattern"
+                || !allowSpecial && processFamily is "Indexed" or "Separation" or "DeviceN")
                 throw new InvalidOperationException(
                     $"{description} /{context} is not a device or CIE-based color space.");
         }
@@ -13716,8 +13737,7 @@ public sealed class PdfIncrementalPageEditor
                     $"{description} OCG /Usage");
             return;
         }
-        if (type != "OCMD")
-            throw new InvalidOperationException($"{description} has an undefined /Type /{type}.");
+        if (type != "OCMD") return;
         if (property.TryGetValue(Name("OCGs"), out PdfObject? groups))
         {
             PdfObject resolvedGroups = Resolve(groups);
@@ -13809,7 +13829,8 @@ public sealed class PdfIncrementalPageEditor
                     ValidateOnOff(criteria, "ExportState", category, required: true);
                     break;
                 case "Print":
-                    RequireName(criteria, "Subtype", category);
+                    if (criteria.ContainsKey(Name("Subtype")))
+                        RequireName(criteria, "Subtype", category);
                     ValidateOnOff(criteria, "PrintState", category, required: true);
                     break;
                 case "View":
@@ -14801,9 +14822,7 @@ public sealed class PdfIncrementalPageEditor
                 throw new InvalidOperationException(
                     $"{descriptorDescription} /Style value is not a dictionary.");
             if (descriptor.TryGetValue(Name("Lang"), out PdfObject? language)
-                && Resolve(language) is not PdfString
-                && !(subtype is "CIDFontType0" or "CIDFontType2"
-                    && Resolve(language) is PdfName))
+                && Resolve(language) is not (PdfString or PdfName))
                 throw new InvalidOperationException(
                     $"{descriptorDescription} /Lang value is not a supported language name or string.");
             int embeddedPrograms = 0;
@@ -14870,7 +14889,7 @@ public sealed class PdfIncrementalPageEditor
 
     private static void ValidatePageXObject(
         PdfDocument document, PdfStream stream, string description, int depth = 0,
-        HashSet<PdfStream>? validatedXObjects = null)
+        HashSet<PdfStream>? validatedXObjects = null, bool allowImplicitForm = false)
     {
         validatedXObjects ??= new(ReferenceEqualityComparer.Instance);
         if (!validatedXObjects.Add(stream)) return;
@@ -14887,7 +14906,8 @@ public sealed class PdfIncrementalPageEditor
             ? (Resolve(subtypeValue) as PdfName)?.ValueAsLatin1()
                 ?? throw new InvalidOperationException(
                     $"{description} /Subtype value is not a name.")
-            : throw new InvalidOperationException($"{description} has no /Subtype value.");
+            : allowImplicitForm ? "Form"
+                : throw new InvalidOperationException($"{description} has no /Subtype value.");
         if (dictionary.TryGetValue(Name("OPI"), out PdfObject? opiValue))
             ValidateOpiVersionDictionary(document, opiValue,
                 $"{description} /OPI value");
@@ -15021,9 +15041,6 @@ public sealed class PdfIncrementalPageEditor
             }
             if (dictionary.TryGetValue(Name("SMask"), out PdfObject? softMask))
             {
-                if (dictionary.ContainsKey(Name("Mask")))
-                    throw new InvalidOperationException(
-                        $"{description} defines both /Mask and /SMask.");
                 PdfStream maskStream = Resolve(softMask) as PdfStream
                     ?? throw new InvalidOperationException(
                         $"{description} /SMask value is not an image stream.");
@@ -15796,14 +15813,16 @@ public sealed class PdfIncrementalPageEditor
             if (annotationSubtype != "Text")
                 throw new InvalidOperationException(
                     $"{description} /State and /StateModel are only defined for text annotations.");
-            if (!hasState || Resolve(annotationStateValue!) is not PdfString stateString
-                || !hasStateModel || Resolve(stateModelValue!) is not PdfString modelString)
+            if (!hasState || Resolve(annotationStateValue!) is not (PdfString or PdfName)
+                || !hasStateModel || Resolve(stateModelValue!) is not (PdfString or PdfName))
                 throw new InvalidOperationException(
-                    $"{description} /State and /StateModel values must both be text strings.");
-            string model = DecodeAnnotationText(modelString,
-                $"{description} /StateModel value");
-            string state = DecodeAnnotationText(stateString,
-                $"{description} /State value");
+                    $"{description} /State and /StateModel values must both be text strings or names.");
+            string model = Resolve(stateModelValue!) is PdfString modelString
+                ? DecodeAnnotationText(modelString, $"{description} /StateModel value")
+                : ((PdfName)Resolve(stateModelValue!)).ValueAsLatin1();
+            string state = Resolve(annotationStateValue!) is PdfString stateString
+                ? DecodeAnnotationText(stateString, $"{description} /State value")
+                : ((PdfName)Resolve(annotationStateValue!)).ValueAsLatin1();
             bool validState = model switch
             {
                 "Marked" => state is "Marked" or "Unmarked",
@@ -18032,12 +18051,12 @@ public sealed class PdfIncrementalPageEditor
     {
         PdfObject Resolve(PdfObject item) => ResolveCatalogValue(
             document, item, description);
-        if (!stream.Dictionary.TryGetValue(Name("Subtype"), out PdfObject? subtype)
-            || Resolve(subtype) is not PdfName subtypeName
-            || subtypeName.ValueAsLatin1() != "Form")
+        if (stream.Dictionary.TryGetValue(Name("Subtype"), out PdfObject? subtype)
+            && (Resolve(subtype) is not PdfName subtypeName
+            || subtypeName.ValueAsLatin1() != "Form"))
             throw new InvalidOperationException(
                 $"{description} has no valid /Subtype /Form value.");
-        ValidatePageXObject(document, stream, description);
+        ValidatePageXObject(document, stream, description, allowImplicitForm: true);
         if (printerMark)
         {
             if (stream.Dictionary.TryGetValue(Name("MarkStyle"), out PdfObject? markStyle)

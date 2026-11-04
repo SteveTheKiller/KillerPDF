@@ -11434,7 +11434,8 @@ public sealed class PdfIncrementalPageEditorTests
         Assert.Equal([targetChildReference.ObjectNumber, sourceChildReference.ObjectNumber],
             calculationOrder.Select(value =>
                 Assert.IsType<PdfIndirectReference>(value).ObjectNumber));
-        Assert.Equal(2, Assert.IsType<PdfInteger>(sourceChild[Name("Q")]).Value);
+        Assert.Equal(2, Assert.IsType<PdfInteger>(sourceParent[Name("Q")]).Value);
+        Assert.False(sourceChild.ContainsKey(Name("Q")));
 
         static PdfDocument WithIndirectFormScalars(
             PdfDocument document, long signatureFlags, long quadding, bool needAppearances)

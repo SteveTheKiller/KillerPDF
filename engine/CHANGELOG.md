@@ -11,7 +11,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 ### Fixed
 
 - Text fields with automatic font sizing save with a valid appearance while retaining their automatic setting. Unstyled fields stay transparent.
-- Page import preserves optional popup links and saved markup appearances with missing or degenerate regeneration geometry. (#455)
+- Page import preserves optional popup links, saved markup appearances, resource metadata, image-mask precedence and inherited form fonts and alignment. (#455)
 - Rendering synthesizes missing note and ink appearances and keeps markup geometry in page coordinates.
 - Compatibility text extraction recovers missing non-visibility properties and stray marked-content closing tags while preserving ActualText replacements.
 - JPX rendering uses codestream precision in strict and compatibility modes while retaining dimension checks.

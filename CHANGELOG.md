@@ -14,7 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - An update started from an administrator's copy reopens KillerPDF at normal rights. An update that is applied but cannot record its version in the registry now finishes and reopens instead of reporting failure, and putting the previous copy back after a failed update retries a busy file and survives a leftover from an earlier attempt.
 - Updating KillerPDF no longer removes a relaunch another Killer app scheduled for its own update.
 - Text fields with automatic font sizing save correctly and keep their original border and background styling.
-- Merge accepts more PDFs with optional popup links and saved highlight or polygon appearances. (#455)
+- Merge accepts more PDFs with optional popup links, saved appearances and resource metadata, and preserves nested form fonts and alignment. (#455)
 - PDFs without saved annotation appearances show note markers and ink strokes, and highlights keep their page positions when their stored rectangle is incorrect.
 - Text extraction recovers missing marked-content properties and stray closing tags in compatibility mode.
 - JPEG 2000 images use their encoded sample depth when the PDF declares a different value.
