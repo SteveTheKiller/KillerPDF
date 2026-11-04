@@ -250,6 +250,7 @@ public sealed class PdfPageContentReader
         int recoveredFormExpansions = 0;
         long decodedBytes = 0;
         int visitedInstructions = 0;
+        int markedContentDepth = 0;
         var initial = new Matrix(1, 0, 0, 1, -box.Left, -box.Bottom);
         instructions.Add(Instruction("cm", 1, 0, 0, 1, -box.Left, -box.Bottom));
         if (appearance is not null)
@@ -341,11 +342,16 @@ public sealed class PdfPageContentReader
             }
             return bytes;
         }
-        PdfObject Resource(PdfDictionary current, string category, PdfName key)
+        PdfObject Resource(PdfDictionary current, string category, PdfName key, bool allowMissingProperties = false)
         {
             if (Lookup(current) is { } value) return value;
             // An appearance sits on the page, so a nested form with no resources of its own draws with the page's.
             if (appearance is not null && Lookup(resources) is { } inherited) return inherited;
+            if (allowMissingProperties && _document.UsesCompatibilityRecovery)
+            {
+                diagnostics.Add("Missing marked-content properties were ignored.");
+                return Empty;
+            }
             throw new FormatException($"Missing {category} resource {key.ValueAsLatin1()}.");
 
             PdfObject? Lookup(PdfDictionary scope) =>
@@ -364,10 +370,21 @@ public sealed class PdfPageContentReader
                 _document.UsesCompatibilityRecovery, cancellationToken, diagnostics))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                interpretedInstructions.Add(instruction);
-                var args = instruction.Operands;
                 if (++visitedInstructions > 1_000_000)
                     throw new FormatException("Expanded page instruction limit exceeded.");
+                if (instruction.Operator is "BMC" or "BDC") markedContentDepth++;
+                else if (instruction.Operator == "EMC")
+                {
+                    if (markedContentDepth == 0 && instruction.Operands.Count == 0
+                        && _document.UsesCompatibilityRecovery)
+                    {
+                        diagnostics.Add("An unmatched marked-content closing operator was ignored.");
+                        continue;
+                    }
+                    markedContentDepth--;
+                }
+                interpretedInstructions.Add(instruction);
+                var args = instruction.Operands;
                 switch (instruction.Operator)
                 {
                     case "q":
@@ -459,7 +476,8 @@ public sealed class PdfPageContentReader
                         if (args.Count == 2 && args[1] is PdfName propertyName)
                         {
                             Add(new PdfContentInstruction("BDC", instruction.Offset,
-                                [args[0], Resolve(Resource(current, "Properties", propertyName))]));
+                                [args[0], Resolve(Resource(current, "Properties", propertyName,
+                                    allowMissingProperties: args[0] is PdfName tag && tag.ValueAsLatin1() != "OC"))]));
                             continue;
                         }
                         break;

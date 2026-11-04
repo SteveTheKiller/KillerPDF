@@ -13,6 +13,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Text fields with automatic font sizing save with a valid appearance while retaining their automatic setting. Unstyled fields stay transparent.
 - Page import preserves optional popup links and saved markup appearances with missing or degenerate regeneration geometry. (#455)
 - Rendering synthesizes missing note and ink appearances and keeps markup geometry in page coordinates.
+- Compatibility text extraction recovers missing non-visibility properties and stray marked-content closing tags while preserving ActualText replacements.
 - Repeated partial rasterization preserves form-local image resources, and affected-content counts exclude unpainted paths. (#369)
 - Document, annotation and attachment dates are written with the Gregorian calendar whatever the current culture, so Thai, Arabic and Persian regions no longer write years like 2569. Preflight messages write their numbers with a decimal point.
 - EPUB diagnoses head metadata after the body instead of returning unstyled pages and bounds CSS selector matching work. (#472)
