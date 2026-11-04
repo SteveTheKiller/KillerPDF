@@ -86,7 +86,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal void AddStylesheet(string css, CancellationToken cancellationToken)
     {
         Count(css.Length);
-        int position = 0;
+        const string utf8Declaration = "@charset \"utf-8\";";
+        int position = css.StartsWith(utf8Declaration, StringComparison.Ordinal) ? utf8Declaration.Length : 0;
         while (position < css.Length)
         {
             cancellationToken.ThrowIfCancellationRequested();

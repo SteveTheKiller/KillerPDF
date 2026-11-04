@@ -153,6 +153,45 @@ public sealed class EpubNativeLayoutTests
     }
 
     [Fact]
+    public void NativeLayoutAppliesPackagedStylesheetWithCanonicalUtf8CharsetDeclaration()
+    {
+        const string stylesheet = "@charset \"utf-8\";\np { font-size:20px; line-height:20px } span { font-size:10px; line-height:10px }";
+        byte[] stylesheetBytes = Encoding.UTF8.GetBytes(stylesheet);
+        var book = EpubDocument.Open(Book("<p>A<span>  A </span>A</p>", stylesheet));
+        Assert.Equal(stylesheetBytes, book.ReadResource("EPUB/styles/book.css"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        Assert.Equal("A A A", book.ReadText(0));
+        var options = new EpubLayoutOptions(64, 40, font) {
+            FontSize = 10, Margin = 8, TextColor = new PdfRgbColor(0.5001, 0.5001, 0.5001) };
+
+        var layout = book.CreateLayout(options);
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A A A", page.Text);
+        Assert.Equal(0, page.SpineIndex);
+        Assert.Equal(0, page.TextStart);
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 8, 8, 12, 20),
+            new EpubTextPlacement(0, 1, 1, 20, 16, 5, 10),
+            new EpubTextPlacement(0, 2, 1, 25, 16, 6, 10),
+            new EpubTextPlacement(0, 3, 1, 31, 16, 5, 10),
+            new EpubTextPlacement(0, 4, 1, 36, 8, 12, 20) }, page.TextPlacements);
+
+        var frame = layout.RenderPage(0);
+
+        Assert.Equal(64, frame.Width);
+        Assert.Equal(40, frame.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        AssertInterior(frame, 30, 19);
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((10 * 64 + 30) * 4, 4).ToArray());
+        int apexOffset = (14 * 64 + 30) * 4;
+        for (int channel = 0; channel < 3; channel++)
+            Assert.InRange(frame.Pixels[apexOffset + channel], 0.73795803f, 0.73795843f);
+        Assert.Equal(1f, frame.Pixels[apexOffset + 3]);
+        Assert.Equal(stylesheetBytes, book.ReadResource("EPUB/styles/book.css"));
+    }
+
+    [Fact]
     public void StylesheetReferenceWorkIsBoundedEvenForEmptySharedResources()
     {
         var allowed = EpubDocument.Open(Book(stylesheet: "", stylesheetReferences: 1024));

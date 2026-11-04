@@ -160,8 +160,9 @@ inline font's ascent and descent; explicit pixel line heights inherit as lengths
 Other styling, character breaking, complex scripts and other unsupported content
 produce explicit diagnoses; this initial API does not establish full EPUB support.
 Packaged head links with `rel="icon"` are validated as local references without
-decoding or painting the icon in body pages. Packaged UTF-8 CSS stylesheets support
-ASCII type selectors, source order, inheritance and inline overrides. Loading stays
+decoding or painting the icon in body pages. Packaged UTF-8 CSS stylesheets accept
+the canonical `@charset "utf-8";` header and support ASCII type selectors, source order,
+inheritance and inline overrides. Loading stays
 inside the package, with shared limits of 1,000,000 stylesheet bytes and 1024 references
 per layout, including repeated empty resources. Other CSS syntax remains diagnosed.
 
