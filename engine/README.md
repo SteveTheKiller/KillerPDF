@@ -280,9 +280,9 @@ Text widgets excluded by render options do not disable precise page rendering.
 Explicit neutral graphics-state defaults retain precise painting.
 Included annotation and form-field appearances remain explicitly unsupported.
 Eligible isolated and non-isolated, non-knockout DeviceRGB Form groups retain floating-point
-colors and alpha through outer Normal or Multiply compositing and apply invoking opacity once.
+colors and alpha through outer Normal, Multiply or Screen compositing and apply invoking opacity once.
 Non-isolated groups track source alpha separately when their outer blend or parent requires it.
-Internal Normal and Multiply paints retain backdrop alpha and color. They require an unprofiled
+Internal Normal, Multiply and Screen paints retain backdrop alpha and color. They require an unprofiled
 effective blend space and rectangular clips without fractional coverage. Their exact pixel
 arrays share the render budget across active nested groups, including four extra bytes per pixel
 for each required source-alpha plane. Unprofiled, non-knockout DeviceRGB page groups retain

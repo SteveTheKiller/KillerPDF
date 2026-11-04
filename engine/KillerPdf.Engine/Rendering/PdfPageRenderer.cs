@@ -2035,7 +2035,7 @@ public sealed partial class PdfPageRenderer
                 {
                     if (!transparencyGroup || knockout || !IsName(group!, "CS", "DeviceRGB")
                         || ReadColorSpace(Name("DeviceRGB"), formResources, 0, diagnostics: diagnostics).IsDefault
-                        || parentState.BlendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible or RendererBlendMode.Multiply)
+                        || parentState.BlendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible or RendererBlendMode.Multiply or RendererBlendMode.Screen)
                         || parentState.GraphicsSoftMask is not null || parentState.Knockout is not null
                         || pixels.HasProfile || pixels.GroupAlpha is not null || pixels.GroupShape is not null
                         || formState.Clips.Any(clip => clip.Mask.Coverage is not null))
@@ -2045,7 +2045,7 @@ public sealed partial class PdfPageRenderer
                         options.Width, options.Height, scaleX, scaleY), parentPixels);
                     int groupWidth = bounds.Right - bounds.Left, groupHeight = bounds.Bottom - bounds.Top;
                     if (groupWidth <= 0 || groupHeight <= 0) return;
-                    bool trackAlpha = !isolated && (parentState.BlendMode == RendererBlendMode.Multiply
+                    bool trackAlpha = !isolated && (parentState.BlendMode is RendererBlendMode.Multiply or RendererBlendMode.Screen
                         || parentPixels.PreciseGroupAlpha is not null);
                     long storage = checked((long)groupWidth * groupHeight * (trackAlpha ? 24 : 20));
                     long rootStorage = checked((long)rasterWidth * rasterHeight * 36);
@@ -2096,6 +2096,9 @@ public sealed partial class PdfPageRenderer
                                     if (parentState.BlendMode == RendererBlendMode.Multiply)
                                         FloatRgbCompositor.MultiplyBackdrop(parentPixels.PreciseRgb!, parentOffset,
                                             completed, offset, objectAlpha, parentState.FillAlpha);
+                                    else if (parentState.BlendMode == RendererBlendMode.Screen)
+                                        FloatRgbCompositor.ScreenBackdrop(parentPixels.PreciseRgb!, parentOffset,
+                                            completed, offset, objectAlpha, parentState.FillAlpha);
                                     else
                                         FloatRgbCompositor.InterpolateBackdrop(parentPixels.PreciseRgb!, parentOffset,
                                             completed, offset, parentState.FillAlpha);
@@ -2105,6 +2108,9 @@ public sealed partial class PdfPageRenderer
                                 if (alpha == 0) continue;
                                 if (parentState.BlendMode == RendererBlendMode.Multiply)
                                     FloatRgbCompositor.Multiply(parentPixels.PreciseRgb!, parentPixels.Offset(x, y),
+                                        completed[offset], completed[offset + 1], completed[offset + 2], alpha);
+                                else if (parentState.BlendMode == RendererBlendMode.Screen)
+                                    FloatRgbCompositor.Screen(parentPixels.PreciseRgb!, parentPixels.Offset(x, y),
                                         completed[offset], completed[offset + 1], completed[offset + 2], alpha);
                                 else
                                     FloatRgbCompositor.SourceOver(parentPixels.PreciseRgb!, parentPixels.Offset(x, y),

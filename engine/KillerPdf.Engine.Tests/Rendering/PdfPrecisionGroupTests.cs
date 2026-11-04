@@ -10,6 +10,28 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPrecisionGroupTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PageScreenIsBlendedBeforeOpaqueOutputIsImposed(bool transparent)
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            new PdfContentStreamBuilder()
+                .SetGraphicsState(new PdfGraphicsState(fillOpacity: .5, blendMode: PdfBlendMode.Screen))
+                .SetFillRgb(1, 0, 0).Rectangle(0, 0, 1, 1).Fill()).Build());
+        var renderer = new PdfPageRenderer(WithRgbPageGroup(source,
+            isolated: false, minimalGraphicsState: false));
+
+        PdfRenderedFrame frame = renderer.RenderFrame(0,
+            new PdfRenderOptions(1, 1, transparentBackground: transparent));
+
+        Assert.Equal(1, frame.Pixels[0]);
+        float expected = transparent ? 0 : .21404114f;
+        Assert.InRange(frame.Pixels[1], expected - .00000003f, expected + .00000003f);
+        Assert.InRange(frame.Pixels[2], expected - .00000003f, expected + .00000003f);
+        Assert.Equal(transparent ? .5f : 1, frame.Pixels[3]);
+    }
+
     [Fact]
     public void AuthoredGraphicsDefaultsAlsoWorkInsideRgbPageGroup()
     {
@@ -95,12 +117,15 @@ public sealed class PdfPrecisionGroupTests
     }
 
     [Theory]
-    [InlineData(0, .5)]
-    [InlineData(.5, 0)]
-    public void ZeroGroupOrInvokingOpacityLeavesTheBackdropUnchanged(double opacity, double outerOpacity)
+    [InlineData(0, .5, false)]
+    [InlineData(.5, 0, false)]
+    [InlineData(0, .5, true)]
+    [InlineData(.5, 0, true)]
+    public void ZeroGroupOrInvokingOpacityLeavesTheBackdropUnchanged(double opacity, double outerOpacity, bool screen)
     {
         var renderer = new PdfPageRenderer(MemoryDocument(depth: 1, siblings: false,
-            opacity: opacity, outerOpacity: outerOpacity, multiply: true, backdrop: true, isolated: false));
+            opacity: opacity, outerOpacity: outerOpacity, multiply: !screen, backdrop: true, isolated: false,
+            screen: screen));
 
         PdfRenderedFrame frame = renderer.RenderFrame(0, new PdfRenderOptions(1, 1));
 
@@ -127,11 +152,13 @@ public sealed class PdfPrecisionGroupTests
         Assert.Equal(1, frame.Pixels[3]);
     }
 
-    [Fact]
-    public void TrackedGroupAlphaUsesLocalRegionCoordinatesAndExactStorageLimits()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TrackedGroupAlphaUsesLocalRegionCoordinatesAndExactStorageLimits(bool screen)
     {
         var renderer = new PdfPageRenderer(MemoryDocument(depth: 1, siblings: false,
-            opacity: .5, outerOpacity: .5, multiply: true, isolated: false, translated: true));
+            opacity: .5, outerOpacity: .5, multiply: !screen, isolated: false, translated: true, screen: screen));
 
         Assert.Throws<ArgumentException>(() => renderer.RenderFrame(0,
             new PdfRenderOptions(3, 1, transparentBackground: true, maximumPixelBytes: 131)));
@@ -173,12 +200,16 @@ public sealed class PdfPrecisionGroupTests
     }
 
     [Theory]
-    [InlineData(false, true, false, false)]
-    [InlineData(true, true, false, false)]
-    [InlineData(false, false, true, false)]
-    [InlineData(true, false, true, true)]
+    [InlineData(false, true, false, false, false)]
+    [InlineData(true, true, false, false, false)]
+    [InlineData(false, false, true, false, false)]
+    [InlineData(true, false, true, true, false)]
+    [InlineData(false, true, false, false, true)]
+    [InlineData(false, false, false, false, true)]
+    [InlineData(true, false, false, true, true)]
+    [InlineData(true, true, false, true, true)]
     public void RgbGroupAppliesOuterOpacityOnceAfterInternalCompositing(
-        bool transparent, bool isolated, bool multiply, bool fractionalBackdrop)
+        bool transparent, bool isolated, bool multiply, bool fractionalBackdrop, bool outerScreen)
     {
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
             Encoding.ASCII.GetBytes(fractionalBackdrop ? "/Backdrop gs 0.25 g 0 0 1 1 re f /Outer gs /Form Do"
@@ -192,6 +223,7 @@ public sealed class PdfPrecisionGroupTests
         var original = Assert.IsType<PdfDictionary>(source.Resolve(page));
         var update = new PdfIncrementalUpdateBuilder(source);
         var half = new PdfDictionary([Entry("ca", new PdfReal(0.5))]);
+        var outerState = outerScreen ? new PdfDictionary(half.Append(Entry("BM", Name("Screen")))) : half;
         var internalState = multiply ? new PdfDictionary(half.Append(Entry("BM", Name("Multiply")))) : half;
         var group = new PdfDictionary([Entry("S", Name("Transparency")), Entry("CS", Name("DeviceRGB")),
             Entry("I", new PdfBoolean(isolated))]);
@@ -201,7 +233,7 @@ public sealed class PdfPrecisionGroupTests
             Entry("BBox", Numbers(0, 0, 1, 1)), Entry("Group", group), Entry("Resources", formResources)]),
             Encoding.ASCII.GetBytes("/Half gs 1 0 0 rg 0 0 1 1 re f 0 0 1 rg 0 0 1 1 re f")));
         var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Form", form)])),
-            Entry("ExtGState", new PdfDictionary([Entry("Outer", half),
+            Entry("ExtGState", new PdfDictionary([Entry("Outer", outerState),
                 Entry("Backdrop", new PdfDictionary([Entry("ca", new PdfReal(0.25))]))]))]);
         var document = PdfDocument.Open(update.ReplaceObject(page.ObjectNumber,
             new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))
@@ -213,7 +245,10 @@ public sealed class PdfPrecisionGroupTests
         // Independent rational examples decoded with Decimal60. Non-isolated Multiply
         // produces [3/16,5/32,3/16]; treating its backdrop as transparent would differ.
         // With backdrop alpha1/4, straight RGB is [9/34,5/68,9/34] and alpha17/32.
-        float[] expected = fractionalBackdrop ? [0.05696336044816294f, 0.006394405075904889f, 0.05696336044816294f]
+        float[] expected = outerScreen && fractionalBackdrop
+            ? [.09361815402628544f, .012983032342173008f, .2725828787027534f]
+            : outerScreen ? [.09680009141340733f, .05087608817155679f, .16068267771848722f]
+            : fractionalBackdrop ? [0.05696336044816294f, 0.006394405075904889f, 0.05696336044816294f]
             : !isolated ? [0.02934284908133909f, 0.021072022394623186f, 0.02934284908133909f]
             : transparent ? [0.09084171118340768f, 0, 0.4019777798321958f]
             : [0.06429594741141245f, 0.021072022394623186f, 0.13729079089421661f];
@@ -303,7 +338,8 @@ public sealed class PdfPrecisionGroupTests
 
     private static PdfDocument MemoryDocument(int depth, bool siblings, double opacity = 1, bool defaultRgb = false,
         bool stroke = false, double outerOpacity = 1, bool translated = false, bool isolated = true,
-        bool multiply = false, bool backdrop = false, bool fractionalBackdrop = false, bool internalMultiply = false)
+        bool multiply = false, bool backdrop = false, bool fractionalBackdrop = false, bool internalMultiply = false,
+        bool screen = false)
     {
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(translated ? 3 : 1, 1,
             Encoding.ASCII.GetBytes((fractionalBackdrop ? "/Backdrop gs " : "")
@@ -339,14 +375,31 @@ public sealed class PdfPrecisionGroupTests
         var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Form", child!)])),
             Entry("ExtGState", new PdfDictionary([Entry("Outer", new PdfDictionary([
                 Entry("ca", new PdfReal(outerOpacity)), Entry("CA", new PdfReal(0.125)),
-                Entry("BM", Name(multiply ? "Multiply" : "Normal"))])),
+                Entry("BM", Name(screen ? "Screen" : multiply ? "Multiply" : "Normal"))])),
                 Entry("Backdrop", new PdfDictionary([Entry("ca", new PdfReal(.25))]))]))]);
         return PdfDocument.Open(update.ReplaceObject(page.ObjectNumber,
             new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))
                 .Append(Entry("Resources", resources)))).Build());
     }
 
-    private static PdfDocument NestedMultiplyDocument()
+    [Fact]
+    public void NormalChildPropagatesItsOwnAlphaToAnOuterScreenGroup()
+    {
+        var renderer = new PdfPageRenderer(NestedMultiplyDocument(screen: true));
+
+        Assert.Throws<ArgumentException>(() => renderer.RenderFrame(0,
+            new PdfRenderOptions(1, 1, maximumPixelBytes: 103)));
+        PdfRenderedFrame frame = renderer.RenderFrame(0,
+            new PdfRenderOptions(1, 1, maximumPixelBytes: 104));
+
+        // Independent nested-group example: encoded179/256 after imposition on white.
+        for (int channel = 0; channel < 3; channel++)
+            Assert.InRange(frame.Pixels[channel], .44687666419113527f - .00000006f,
+                .44687666419113527f + .00000006f);
+        Assert.Equal(1, frame.Pixels[3]);
+    }
+
+    private static PdfDocument NestedMultiplyDocument(bool screen = false)
     {
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
             Encoding.ASCII.GetBytes("/Container Do")).Build());
@@ -358,7 +411,7 @@ public sealed class PdfPrecisionGroupTests
         var original = Assert.IsType<PdfDictionary>(source.Resolve(page));
         var update = new PdfIncrementalUpdateBuilder(source);
         var half = new PdfDictionary([Entry("ca", new PdfReal(.5))]);
-        var multiply = new PdfDictionary([Entry("ca", new PdfReal(.5)), Entry("BM", Name("Multiply"))]);
+        var multiply = new PdfDictionary([Entry("ca", new PdfReal(.5)), Entry("BM", Name(screen ? "Screen" : "Multiply"))]);
         PdfIndirectReference Form(string stream, bool isolated, PdfDictionary resources) =>
             update.AddObject(new PdfStream(new PdfDictionary([
                 Entry("Type", Name("XObject")), Entry("Subtype", Name("Form")),

@@ -158,7 +158,7 @@ public sealed partial class PdfPageRenderer
         double opacity, RendererBlendMode blendMode, GraphicsSoftMask? softMask,
         KnockoutState? knockout)
     {
-        if (blendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible or RendererBlendMode.Multiply)
+        if (blendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible or RendererBlendMode.Multiply or RendererBlendMode.Screen)
             || softMask is not null || knockout is not null || surface.HasProfile
             || surface.GroupAlpha is not null || surface.GroupShape is not null)
             throw new NotSupportedException("This high-precision compositing operation is not implemented.");
@@ -167,6 +167,9 @@ public sealed partial class PdfPageRenderer
             : throw new NotSupportedException("The paint does not retain its source color precision."));
         if (blendMode == RendererBlendMode.Multiply)
             FloatRgbCompositor.Multiply(surface.PreciseRgb!, offset,
+                source.Red, source.Green, source.Blue, opacity);
+        else if (blendMode == RendererBlendMode.Screen)
+            FloatRgbCompositor.Screen(surface.PreciseRgb!, offset,
                 source.Red, source.Green, source.Blue, opacity);
         else
             FloatRgbCompositor.SourceOver(surface.PreciseRgb!, offset,

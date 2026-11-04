@@ -34,6 +34,26 @@ internal static class FloatRgbCompositor
         pixels[offset + 3] = (float)outputAlpha;
     }
 
+    internal static void Screen(float[] pixels, int offset,
+        double red, double green, double blue, double opacity)
+    {
+        double sourceAlpha = Math.Clamp(opacity, 0, 1);
+        double backdropAlpha = pixels[offset + 3];
+        double outputAlpha = sourceAlpha + backdropAlpha * (1 - sourceAlpha);
+        if (outputAlpha == 0) return;
+        Span<double> source = [red, green, blue];
+        for (int channel = 0; channel < 3; channel++)
+        {
+            double backdrop = pixels[offset + channel];
+            double blended = backdrop + source[channel] - backdrop * source[channel];
+            double premultiplied = (1 - sourceAlpha) * backdropAlpha * backdrop
+                + (1 - backdropAlpha) * sourceAlpha * source[channel]
+                + sourceAlpha * backdropAlpha * blended;
+            pixels[offset + channel] = (float)(premultiplied / outputAlpha);
+        }
+        pixels[offset + 3] = (float)outputAlpha;
+    }
+
     internal static void MultiplyBackdrop(float[] pixels, int offset,
         float[] completed, int completedOffset, double groupAlpha, double opacity)
     {
@@ -51,6 +71,24 @@ internal static class FloatRgbCompositor
             double premultiplied = original * (1 - sourceAlpha)
                 + weight * residual * ((1 - backdropAlpha) + backdropAlpha * backdrop);
             pixels[offset + channel] = (float)(premultiplied / outputAlpha);
+        }
+        pixels[offset + 3] = (float)outputAlpha;
+    }
+
+    internal static void ScreenBackdrop(float[] pixels, int offset,
+        float[] completed, int completedOffset, double groupAlpha, double opacity)
+    {
+        double weight = Math.Clamp(opacity, 0, 1);
+        double sourceAlpha = Math.Clamp(groupAlpha, 0, 1) * weight;
+        if (sourceAlpha == 0) return;
+        double backdropAlpha = pixels[offset + 3];
+        double outputAlpha = sourceAlpha + backdropAlpha * (1 - sourceAlpha);
+        for (int channel = 0; channel < 3; channel++)
+        {
+            double original = pixels[offset + channel] * backdropAlpha;
+            double residual = completed[completedOffset + channel] * (double)completed[completedOffset + 3]
+                - original * (1 - groupAlpha);
+            pixels[offset + channel] = (float)((original + weight * residual * (1 - original)) / outputAlpha);
         }
         pixels[offset + 3] = (float)outputAlpha;
     }
