@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.ColorManagement;
 
 namespace KillerPdf.Engine.Rendering;
 
@@ -6,7 +7,8 @@ public sealed partial class PdfPageRenderer
 {
     /// <summary>Renders a page into relative linear-sRGB float32 RGBA pixels.</summary>
     /// <remarks>
-    /// Supports device RGB/Gray and calibrated Gray path fills, variable-width strokes,
+    /// Supports device RGB/Gray and calibrated Gray path fills, untagged CMYK k fills
+    /// through the bundled perceptual source viewing profile, variable-width strokes,
     /// dashed and closed strokes, combined fill/stroke operations with either fill rule, opacity
     /// and aligned natural-size unmasked 8/16-bit images or axis-aligned enlargements
     /// with nearest or bilinear sampling. Bilinear device samples require Decode values in [0,1].
@@ -94,13 +96,23 @@ public sealed partial class PdfPageRenderer
     }
 
     private static bool PreciseOperationSupported(string operation) => operation is
-        "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "gs" or "w" or "d"
+        "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "k" or "gs" or "w" or "d"
         or "cs" or "CS" or "sc" or "SC" or "scn" or "SCN"
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"
         or "n" or "W" or "W*" or "Do" or "sh"
         or "BT" or "ET" or "Tf" or "Tm" or "Td" or "TD" or "T*" or "TL" or "Tc" or "Tw" or "Tz" or "Ts"
         or "Tj" or "TJ" or "Tr" or "'" or "\"";
+
+    private static readonly Lazy<PdfColorProfile> PreciseCmykViewingProfile = new(PdfCmykViewingDefault.LoadProfile);
+
+    private static Color PreciseCmykViewingColor(double cyan, double magenta, double yellow, double black)
+    {
+        Span<double> device = [cyan, magenta, yellow, black];
+        Span<double> xyz = stackalloc double[3];
+        PreciseCmykViewingProfile.Value.ToXyz(device, xyz, PdfCmykViewingDefault.EffectiveIntent);
+        return IccXyzToDisplay(xyz[0], xyz[1], xyz[2]) with { Connection = (xyz[0], xyz[1], xyz[2]) };
+    }
 
     private static void PaintPrecisePixel(RasterSurface surface, int offset, in Color color,
         double opacity, RendererBlendMode blendMode, GraphicsSoftMask? softMask,
