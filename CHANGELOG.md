@@ -15,6 +15,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Updating KillerPDF no longer removes a relaunch another Killer app scheduled for its own update.
 - Text fields with automatic font sizing save correctly and keep their original border and background styling.
 - Merge accepts more PDFs with optional popup links, saved appearances and resource metadata, and preserves nested form fonts and alignment. (#455)
+- Filled Shapes rectangles retain their color and opacity in print previews, printed output and flattened copies. (#474)
 - PDFs without saved annotation appearances show note markers and ink strokes, and highlights keep their page positions when their stored rectangle is incorrect.
 - Text extraction recovers missing marked-content properties and stray closing tags in compatibility mode.
 - Text selection keeps separate rectangular panels apart. New searchable PDFs fit TrueType text to OCR word heights so short words stay on their lines. (#465)

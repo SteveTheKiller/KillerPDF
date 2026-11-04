@@ -478,8 +478,6 @@ internal static class PdfEngineBurn
         Rect rect = highlight.DrawRect();
         content.SaveState().SetFillRgb(color.R / 255d, color.G / 255d, color.B / 255d)
             .SetOpacity(color.A / 255d);
-        if (highlight is not CoverAnnotation && highlight.Style == HighlightStyle.Fill)
-            content.SetBlendMode(PdfBlendMode.Multiply);
         if (PdfBurn.HighlightEraseGeometry(highlight) is { } geometry)
         {
             foreach (var figure in geometry.GetFlattenedPathGeometry().Figures)
