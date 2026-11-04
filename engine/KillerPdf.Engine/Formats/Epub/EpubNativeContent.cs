@@ -16,7 +16,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     }
 
     private readonly Stack<Element> _ancestors = new();
-    private readonly Dictionary<string, CssProperties> _typeRules = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<CssRule>> _typeRules = new(StringComparer.Ordinal);
     private int _characters;
     private bool _bodySeen;
     internal List<SourceCharacter?> Characters { get; } = new();
@@ -41,13 +41,14 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             throw new InvalidDataException("Native EPUB head metadata must precede the body.");
         if (name == "body") _bodySeen = true;
         bool empty = xml.IsEmptyElement;
-        Style style = parent?.Style ?? DefaultStyle;
-        if (_typeRules.TryGetValue(name, out var rule)) style = rule.Apply(style);
+        string? classNames = null, inlineStyle = null;
         while (xml.MoveToNextAttribute())
         {
             Count(xml.Value.Length);
             if (xml.NamespaceURI == "" && xml.LocalName == "style" && name is "p" or "span")
-                style = ParseStyle(xml.Value, style);
+                inlineStyle = xml.Value;
+            else if (xml.NamespaceURI == "" && xml.LocalName == "class")
+                classNames = xml.Value;
             else if (name == "link" && xml.NamespaceURI == "" && xml.LocalName is "href" or "rel" or "type" or "id")
             {
                 // Packaged references are validated separately from body painting.
@@ -57,6 +58,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 throw new NotSupportedException("Native EPUB XHTML attributes and styling are not implemented.");
         }
         xml.MoveToElement();
+        Style style = ApplyRules(name, classNames, parent?.Style ?? DefaultStyle);
+        if (inlineStyle is not null) style = ParseStyle(inlineStyle, style);
         var element = new Element(name, parent, style, name == "p" ? style : parent?.BlockStyle ?? style);
         if (!empty) _ancestors.Push(element);
     }
@@ -100,16 +103,56 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             int open = css.IndexOf('{', position);
             int close = open < 0 ? -1 : css.IndexOf('}', open + 1);
             if (close < 0) throw new NotSupportedException("Native EPUB CSS rule syntax is not implemented.");
-            string selector = css[position..open].Trim();
-            if (selector.Length is 0 or > 128 || !char.IsAsciiLetter(selector[0])
-                || selector.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_')))
-                throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
             CssProperties properties = ParseProperties(css[(open + 1)..close]);
-            if (_typeRules.TryGetValue(selector, out var previous))
-                properties = new(properties.FontSize ?? previous.FontSize, properties.LineHeight ?? previous.LineHeight);
-            _typeRules[selector] = properties;
+            foreach (string group in css[position..open].Split(','))
+            {
+                string selector = group.Trim();
+                string[] parts = selector.Split('.');
+                if (selector.Length is 0 or > 128 || parts.Any(part => part.Length == 0
+                    || !char.IsAsciiLetter(part[0])
+                    || part.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_'))))
+                    throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                if (!_typeRules.TryGetValue(parts[0], out var rules))
+                    _typeRules.Add(parts[0], rules = new());
+                rules.Add(new(parts[1..], properties));
+            }
             position = close + 1;
         }
+    }
+
+    private sealed record CssRule(string[] Classes, CssProperties Properties);
+
+    private Style ApplyRules(string name, string? classNames, Style inherited)
+    {
+        if (!_typeRules.TryGetValue(name, out var rules)) return inherited;
+        string[] classes = classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [];
+        double? size = null, height = null;
+        int sizeSpecificity = -1, heightSpecificity = -1;
+        foreach (var rule in rules)
+        {
+            bool matches = true;
+            foreach (string required in rule.Classes)
+            {
+                if (!Array.Exists(classes, candidate => string.Equals(candidate, required, StringComparison.Ordinal)))
+                {
+                    matches = false;
+                    break;
+                }
+            }
+            if (!matches) continue;
+            int specificity = rule.Classes.Length;
+            if (rule.Properties.FontSize is { } fontSize && specificity >= sizeSpecificity)
+            {
+                size = fontSize;
+                sizeSpecificity = specificity;
+            }
+            if (rule.Properties.LineHeight is { } lineHeight && specificity >= heightSpecificity)
+            {
+                height = lineHeight;
+                heightSpecificity = specificity;
+            }
+        }
+        return new CssProperties(size, height).Apply(inherited);
     }
 
     private readonly record struct CssProperties(double? FontSize, double? LineHeight)
