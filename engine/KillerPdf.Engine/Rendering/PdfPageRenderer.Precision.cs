@@ -22,8 +22,9 @@ public sealed partial class PdfPageRenderer
     /// relative colorimetric conversion at aligned natural size or eligible nearest enlargement,
     /// including DeviceCMYK images mapped through a supported resource DefaultCMYK profile.
     /// Untagged CMYK 8/16-bit images use the bundled perceptual source viewing profile
-    /// at aligned natural size or eligible axis-aligned nearest enlargement, including
-    /// matching DeviceGray 8/16-bit soft masks with retained fractional alpha.
+    /// at aligned natural size or eligible axis-aligned nearest or bilinear enlargement.
+    /// Natural or nearest sampling also supports matching DeviceGray 8/16-bit soft masks
+    /// with retained fractional alpha.
     /// Device Gray/RGB axial and radial shadings
     /// support a single type 2 function. Embedded TrueType text fills and strokes
     /// support text matrices, line positioning, spacing, scaling, rise,

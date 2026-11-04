@@ -139,6 +139,41 @@ public sealed class PdfCmykViewingImageTests
         Assert.NotEqual(frame.Pixels[3], frame.Pixels[7]);
     }
 
+    [Fact]
+    public void InterpolatedCmykImageTransformsFractionalSourceSamplesWithoutClipping()
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(4, 1,
+            Encoding.ASCII.GetBytes("4 0 0 1 0 0 cm /Image Do")).Build());
+        PdfIndirectReference page = FirstPageReference(source);
+        var original = Assert.IsType<PdfDictionary>(source.Resolve(page));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        var image = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(2)),
+            Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)),
+            Entry("ColorSpace", Name("DeviceCMYK")), Entry("Interpolate", new PdfBoolean(true))]),
+            [255, 0, 0, 0, 0, 0, 0, 0]));
+        var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Image", image)]))]);
+        var document = PdfDocument.Open(update.ReplaceObject(page.ObjectNumber,
+            new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))
+                .Append(Entry("Resources", resources)))).Build());
+
+        PdfRenderedFrame frame = new PdfPageRenderer(document).RenderFrame(0, new PdfRenderOptions(4, 1));
+
+        // Frozen independent Decimal60 profile evaluation at cyan1,0.75,0.25,0.
+        float[] expected = [
+            -0.20839846805136676f, 0.42131251226180745f, 0.86494485126038379f,
+            -0.064408642855458584f, 0.50750615395636853f, 0.89033893714993766f,
+            0.48473577029252958f, 0.78667994515043308f, 0.96039978421692345f,
+            1, 1, 1];
+        for (int pixel = 0; pixel < 4; pixel++)
+        {
+            for (int channel = 0; channel < 3; channel++)
+                Assert.InRange(frame.Pixels[pixel * 4 + channel],
+                    expected[pixel * 3 + channel] - 0.000002f, expected[pixel * 3 + channel] + 0.000002f);
+            Assert.Equal(1, frame.Pixels[pixel * 4 + 3]);
+        }
+    }
+
     private static PdfIndirectReference FirstPageReference(PdfDocument document)
     {
         var catalog = Assert.IsType<PdfDictionary>(document.Resolve(
