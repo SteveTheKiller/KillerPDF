@@ -32,7 +32,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
-- Native FP16 presentation preserves frames, resizes within pixel limits, reports composition failures and discovers the window's display, outputs, active color mode, reported SDR white level and standard profile association. Named ICC profiles load into the portable color engine. Viewer integration is in progress. (#264)
+- Native FP16 presentation preserves frames, resizes within pixel limits, clips owned containers to layout geometry, reports composition failures and discovers the window's display, outputs, active color mode, reported SDR white level and standard profile association. Named ICC profiles load into the portable color engine. Viewer integration is in progress. (#264)
 - Native PDF/EPUB/DjVu read sessions support cancellation, resource rebuilding and original-byte copies. EPUB accepts canonical XHTML 1.1 declarations, lays out initial inline and packaged CSS typography, and opens natively in Single/Continuous views with switching into Grid. Initial DjVu viewing includes tabs, thumbnails, Single/Continuous views and switching into Grid; broader viewer integration is in progress. (#264, #472)
 
 ## [1.9.2] - 2026-11-02
