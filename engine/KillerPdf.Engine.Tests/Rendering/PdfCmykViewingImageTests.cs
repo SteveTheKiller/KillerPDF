@@ -174,6 +174,33 @@ public sealed class PdfCmykViewingImageTests
         }
     }
 
+    [Fact]
+    public void ReducedCmykImageAveragesFractionalSourceSamplesBeforeProfileConversion()
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            Encoding.ASCII.GetBytes("/Image Do")).Build());
+        PdfIndirectReference page = FirstPageReference(source);
+        var original = Assert.IsType<PdfDictionary>(source.Resolve(page));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        var image = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(2)),
+            Entry("Height", new PdfInteger(2)), Entry("BitsPerComponent", new PdfInteger(8)),
+            Entry("ColorSpace", Name("DeviceCMYK"))]),
+            [255, 0, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0]));
+        var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Image", image)]))]);
+        var document = PdfDocument.Open(update.ReplaceObject(page.ObjectNumber,
+            new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))
+                .Append(Entry("Resources", resources)))).Build());
+
+        PdfRenderedFrame frame = new PdfPageRenderer(document).RenderFrame(0, new PdfRenderOptions(1, 1));
+
+        // Frozen independent Decimal60 profile evaluation at exactly half cyan.
+        Assert.InRange(frame.Pixels[0], 0.15355671724217867f - 0.000002f, 0.15355671724217867f + 0.000002f);
+        Assert.InRange(frame.Pixels[1], 0.62660205535969480f - 0.000002f, 0.62660205535969480f + 0.000002f);
+        Assert.InRange(frame.Pixels[2], 0.92293920654478820f - 0.000002f, 0.92293920654478820f + 0.000002f);
+        Assert.Equal(1, frame.Pixels[3]);
+    }
+
     private static PdfIndirectReference FirstPageReference(PdfDocument document)
     {
         var catalog = Assert.IsType<PdfDictionary>(document.Resolve(

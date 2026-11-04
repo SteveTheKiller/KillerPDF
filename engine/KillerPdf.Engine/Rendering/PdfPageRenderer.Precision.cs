@@ -23,6 +23,7 @@ public sealed partial class PdfPageRenderer
     /// including DeviceCMYK images mapped through a supported resource DefaultCMYK profile.
     /// Untagged CMYK 8/16-bit images use the bundled perceptual source viewing profile
     /// at aligned natural size or eligible axis-aligned nearest or bilinear enlargement.
+    /// Integer-factor reduction in both axes averages encoded source samples before conversion.
     /// Natural or nearest sampling also supports matching DeviceGray 8/16-bit soft masks
     /// with retained fractional alpha.
     /// Device Gray/RGB axial and radial shadings

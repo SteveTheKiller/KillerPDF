@@ -254,9 +254,10 @@ PdfColorProfile assumedCmyk = PdfCmykViewingDefault.LoadProfile();
 It uses the profile's perceptual forward table and retains out-of-gamut values in
 the linear frame. Resource defaults and embedded profiles remain authoritative.
 Untagged 8/16-bit CMYK images use the same assumption at aligned natural size
-or axis-aligned nearest or bilinear enlargement. Bilinear sampling retains fractional
-source samples before profile conversion. Matching 8/16-bit DeviceGray soft masks retain
-fractional alpha with natural or nearest sampling. CMYK indexed images, reduction, color-key masks,
+or axis-aligned nearest or bilinear enlargement and integer-factor reduction in both axes.
+Interpolation and reduction retain fractional source samples before profile conversion.
+Matching 8/16-bit DeviceGray soft masks retain fractional alpha with natural or nearest sampling.
+CMYK indexed images, other reductions, color-key masks,
 Matte recovery, gradients, groups and compatibility byte rendering still need broader adoption.
 Pages with OutputIntents remain outside the current float path.
 Callers can also apply the source assumption explicitly.
