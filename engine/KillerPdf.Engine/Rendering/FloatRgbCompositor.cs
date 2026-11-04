@@ -15,6 +15,39 @@ internal static class FloatRgbCompositor
         pixels[offset + 3] = (float)outputAlpha;
     }
 
+    internal static void Multiply(float[] pixels, int offset,
+        double red, double green, double blue, double opacity)
+    {
+        double sourceAlpha = Math.Clamp(opacity, 0, 1);
+        double backdropAlpha = pixels[offset + 3];
+        double outputAlpha = sourceAlpha + backdropAlpha * (1 - sourceAlpha);
+        if (outputAlpha == 0) return;
+        Span<double> source = [red, green, blue];
+        for (int channel = 0; channel < 3; channel++)
+        {
+            double backdrop = pixels[offset + channel];
+            double premultiplied = (1 - sourceAlpha) * backdropAlpha * backdrop
+                + (1 - backdropAlpha) * sourceAlpha * source[channel]
+                + sourceAlpha * backdropAlpha * backdrop * source[channel];
+            pixels[offset + channel] = (float)(premultiplied / outputAlpha);
+        }
+        pixels[offset + 3] = (float)outputAlpha;
+    }
+
+    internal static void InterpolateBackdrop(float[] pixels, int offset,
+        float[] completed, int completedOffset, double opacity)
+    {
+        double weight = Math.Clamp(opacity, 0, 1);
+        double originalWeight = pixels[offset + 3] * (1 - weight);
+        double completedWeight = completed[completedOffset + 3] * weight;
+        double outputAlpha = originalWeight + completedWeight;
+        if (outputAlpha == 0) return;
+        for (int channel = 0; channel < 3; channel++)
+            pixels[offset + channel] = (float)((pixels[offset + channel] * originalWeight
+                + completed[completedOffset + channel] * completedWeight) / outputAlpha);
+        pixels[offset + 3] = (float)outputAlpha;
+    }
+
     internal static void DecodeSrgbInPlace(float[] pixels, CancellationToken cancellationToken)
     {
         for (int offset = 0; offset < pixels.Length; offset += 4)

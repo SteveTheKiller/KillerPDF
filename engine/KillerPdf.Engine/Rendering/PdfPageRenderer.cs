@@ -797,7 +797,7 @@ public sealed partial class PdfPageRenderer
                         out PdfObject? graphicsFontValue, out PdfDictionary? strokeSettings))
                     {
                         if (pixels.PreciseRgb is not null && strokeSettings!.Keys.Any(key =>
-                            key.ValueAsLatin1() is not ("Type" or "ca" or "CA")))
+                            key.ValueAsLatin1() is not ("Type" or "ca" or "CA" or "BM")))
                             throw new NotSupportedException("This high-precision graphics state is not implemented.");
                         if (softMaskValue is not null) opaqueFills.Flush();
                         state = ApplyGraphicsStrokeSettings(state, strokeSettings!, diagnostics);
@@ -2027,7 +2027,7 @@ public sealed partial class PdfPageRenderer
                     && Resolve(knockoutValue) is PdfBoolean { Value: true };
                 if (pixels.PreciseRgb is not null && form.Dictionary.ContainsKey(Name("Group")))
                 {
-                    if (!isolated || knockout || !IsName(group!, "CS", "DeviceRGB")
+                    if (!transparencyGroup || knockout || !IsName(group!, "CS", "DeviceRGB")
                         || ReadColorSpace(Name("DeviceRGB"), formResources, 0, diagnostics: diagnostics).IsDefault
                         || parentState.BlendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible)
                         || parentState.GraphicsSoftMask is not null || parentState.Knockout is not null
@@ -2052,6 +2052,15 @@ public sealed partial class PdfPageRenderer
                         groupPixels = new RasterSurface(GC.AllocateUninitializedArray<byte>(channels),
                             bounds.Left, bounds.Top, groupWidth, groupHeight, pixels.Pdf20BlendEndpoints)
                         { PreciseRgb = new float[channels] };
+                        if (!isolated)
+                        {
+                            for (int y = bounds.Top; y < bounds.Bottom; y++)
+                            {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                parentPixels.PreciseRgb!.AsSpan(parentPixels.Offset(bounds.Left, y), groupWidth * 4)
+                                    .CopyTo(groupPixels.PreciseRgb.AsSpan(groupPixels.Offset(bounds.Left, y), groupWidth * 4));
+                            }
+                        }
                         pixels = groupPixels;
                         Process(instructions, formResources, formState with
                         {
@@ -2066,6 +2075,12 @@ public sealed partial class PdfPageRenderer
                             for (int x = bounds.Left; x < bounds.Right; x++)
                             {
                                 int offset = groupPixels.Offset(x, y);
+                                if (!isolated)
+                                {
+                                    FloatRgbCompositor.InterpolateBackdrop(parentPixels.PreciseRgb!, parentPixels.Offset(x, y),
+                                        completed, offset, parentState.FillAlpha);
+                                    continue;
+                                }
                                 double alpha = completed[offset + 3] * parentState.FillAlpha;
                                 if (alpha == 0) continue;
                                 FloatRgbCompositor.SourceOver(parentPixels.PreciseRgb!, parentPixels.Offset(x, y),

@@ -70,7 +70,7 @@ public sealed class PdfPrecisionFormTests
             new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))
                 .Append(Entry("Resources", resources)))).Build());
 
-        if (isolated && !knockout)
+        if (!knockout)
         {
             PdfRenderedFrame frame = new PdfPageRenderer(document).RenderFrame(0, new PdfRenderOptions(1, 1));
             for (int channel = 0; channel < 3; channel++)

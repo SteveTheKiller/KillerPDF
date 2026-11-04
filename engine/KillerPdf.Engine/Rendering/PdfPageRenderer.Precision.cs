@@ -32,8 +32,9 @@ public sealed partial class PdfPageRenderer
     /// support text matrices, line positioning, spacing, scaling, rise,
     /// strings, positioned text arrays and quote text-showing operators.
     /// Ordinary Form XObjects retain supported paint precision through their matrix and bounding-box clip.
-    /// Eligible isolated non-knockout DeviceRGB Form groups support Normal compositing with
-    /// rectangular clips and no effective group profile. Active nested group pixel arrays
+    /// Eligible isolated and non-isolated non-knockout DeviceRGB Form groups support outer Normal
+    /// compositing and internal Normal or Multiply paints with rectangular clips and no effective
+    /// group profile. Active nested group pixel arrays
     /// share the render storage budget. Other group semantics remain explicitly unsupported.
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
@@ -128,15 +129,19 @@ public sealed partial class PdfPageRenderer
         double opacity, RendererBlendMode blendMode, GraphicsSoftMask? softMask,
         KnockoutState? knockout)
     {
-        if (blendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible)
+        if (blendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible or RendererBlendMode.Multiply)
             || softMask is not null || knockout is not null || surface.HasProfile
             || surface.GroupAlpha is not null || surface.GroupShape is not null)
             throw new NotSupportedException("This high-precision compositing operation is not implemented.");
         var source = color.PreciseRgb ?? (color.Connection is { } connection
             ? PreciseConnectionToRgb(connection.X, connection.Y, connection.Z)
             : throw new NotSupportedException("The paint does not retain its source color precision."));
-        FloatRgbCompositor.SourceOver(surface.PreciseRgb!, offset,
-            source.Red, source.Green, source.Blue, opacity);
+        if (blendMode == RendererBlendMode.Multiply)
+            FloatRgbCompositor.Multiply(surface.PreciseRgb!, offset,
+                source.Red, source.Green, source.Blue, opacity);
+        else
+            FloatRgbCompositor.SourceOver(surface.PreciseRgb!, offset,
+                source.Red, source.Green, source.Blue, opacity);
     }
 
     private static (double Red, double Green, double Blue) PreciseConnectionToRgb(double x, double y, double z)

@@ -11,12 +11,16 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPrecisionGroupTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void IsolatedRgbGroupAppliesOuterOpacityOnceAfterInternalCompositing(bool transparent)
+    [InlineData(false, true, false, false)]
+    [InlineData(true, true, false, false)]
+    [InlineData(false, false, true, false)]
+    [InlineData(true, false, true, true)]
+    public void RgbGroupAppliesOuterOpacityOnceAfterInternalCompositing(
+        bool transparent, bool isolated, bool multiply, bool fractionalBackdrop)
     {
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
-            Encoding.ASCII.GetBytes(transparent ? "/Outer gs /Form Do"
+            Encoding.ASCII.GetBytes(fractionalBackdrop ? "/Backdrop gs 0.25 g 0 0 1 1 re f /Outer gs /Form Do"
+                : transparent ? "/Outer gs /Form Do"
                 : "0.25 g 0 0 1 1 re f /Outer gs /Form Do")).Build());
         var catalog = Assert.IsType<PdfDictionary>(source.Resolve(
             Assert.IsType<PdfIndirectReference>(source.Trailer[Name("Root")])));
@@ -26,15 +30,17 @@ public sealed class PdfPrecisionGroupTests
         var original = Assert.IsType<PdfDictionary>(source.Resolve(page));
         var update = new PdfIncrementalUpdateBuilder(source);
         var half = new PdfDictionary([Entry("ca", new PdfReal(0.5))]);
+        var internalState = multiply ? new PdfDictionary(half.Append(Entry("BM", Name("Multiply")))) : half;
         var group = new PdfDictionary([Entry("S", Name("Transparency")), Entry("CS", Name("DeviceRGB")),
-            Entry("I", new PdfBoolean(true))]);
-        var formResources = new PdfDictionary([Entry("ExtGState", new PdfDictionary([Entry("Half", half)]))]);
+            Entry("I", new PdfBoolean(isolated))]);
+        var formResources = new PdfDictionary([Entry("ExtGState", new PdfDictionary([Entry("Half", internalState)]))]);
         var form = update.AddObject(new PdfStream(new PdfDictionary([
             Entry("Type", Name("XObject")), Entry("Subtype", Name("Form")),
             Entry("BBox", Numbers(0, 0, 1, 1)), Entry("Group", group), Entry("Resources", formResources)]),
             Encoding.ASCII.GetBytes("/Half gs 1 0 0 rg 0 0 1 1 re f 0 0 1 rg 0 0 1 1 re f")));
         var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Form", form)])),
-            Entry("ExtGState", new PdfDictionary([Entry("Outer", half)]))]);
+            Entry("ExtGState", new PdfDictionary([Entry("Outer", half),
+                Entry("Backdrop", new PdfDictionary([Entry("ca", new PdfReal(0.25))]))]))]);
         var document = PdfDocument.Open(update.ReplaceObject(page.ObjectNumber,
             new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))
                 .Append(Entry("Resources", resources)))).Build());
@@ -42,18 +48,24 @@ public sealed class PdfPrecisionGroupTests
         PdfRenderedFrame frame = new PdfPageRenderer(document)
             .RenderFrame(0, new PdfRenderOptions(1, 1, transparentBackground: transparent));
 
-        // Rational encoded RGB [9/32,5/32,13/32], decoded independently with Decimal60.
-        float[] expected = transparent ? [0.09084171118340768f, 0, 0.4019777798321958f]
+        // Independent rational examples decoded with Decimal60. Non-isolated Multiply
+        // produces [3/16,5/32,3/16]; treating its backdrop as transparent would differ.
+        // With backdrop alpha1/4, straight RGB is [9/34,5/68,9/34] and alpha17/32.
+        float[] expected = fractionalBackdrop ? [0.05696336044816294f, 0.006394405075904889f, 0.05696336044816294f]
+            : !isolated ? [0.02934284908133909f, 0.021072022394623186f, 0.02934284908133909f]
+            : transparent ? [0.09084171118340768f, 0, 0.4019777798321958f]
             : [0.06429594741141245f, 0.021072022394623186f, 0.13729079089421661f];
         for (int channel = 0; channel < 3; channel++)
             Assert.InRange(frame.Pixels[channel], expected[channel] - 0.0000003f, expected[channel] + 0.0000003f);
-        Assert.Equal(transparent ? 0.375f : 1, frame.Pixels[3]);
+        Assert.Equal(fractionalBackdrop ? 0.53125f : transparent ? 0.375f : 1, frame.Pixels[3]);
     }
 
-    [Fact]
-    public void NestedGroupStorageRejectsOneByteBelowItsLimitAndRecovers()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void NestedGroupStorageRejectsOneByteBelowItsLimitAndRecovers(bool isolated)
     {
-        var renderer = new PdfPageRenderer(MemoryDocument(depth: 2, siblings: false));
+        var renderer = new PdfPageRenderer(MemoryDocument(depth: 2, siblings: false, isolated: isolated));
 
         Assert.Throws<ArgumentException>(() => renderer.RenderFrame(0,
             new PdfRenderOptions(1, 1, maximumPixelBytes: 75)));
@@ -108,10 +120,12 @@ public sealed class PdfPrecisionGroupTests
         Assert.Equal(0.5f, frame.Pixels[3]);
     }
 
-    [Fact]
-    public void TranslatedGroupUsesLocalStorageAndMatchesTheFullFrameRegion()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TranslatedGroupUsesLocalStorageAndMatchesTheFullFrameRegion(bool isolated)
     {
-        var renderer = new PdfPageRenderer(MemoryDocument(depth: 1, siblings: false, translated: true));
+        var renderer = new PdfPageRenderer(MemoryDocument(depth: 1, siblings: false, translated: true, isolated: isolated));
 
         PdfRenderedFrame full = renderer.RenderFrame(0,
             new PdfRenderOptions(3, 1, transparentBackground: true, maximumPixelBytes: 128));
@@ -126,7 +140,7 @@ public sealed class PdfPrecisionGroupTests
     }
 
     private static PdfDocument MemoryDocument(int depth, bool siblings, double opacity = 1, bool defaultRgb = false,
-        bool stroke = false, double outerOpacity = 1, bool translated = false)
+        bool stroke = false, double outerOpacity = 1, bool translated = false, bool isolated = true)
     {
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(translated ? 3 : 1, 1,
             Encoding.ASCII.GetBytes(siblings ? "/Outer gs /Form Do /Form Do" : "/Outer gs /Form Do")).Build());
@@ -138,7 +152,7 @@ public sealed class PdfPrecisionGroupTests
         var original = Assert.IsType<PdfDictionary>(source.Resolve(page));
         var update = new PdfIncrementalUpdateBuilder(source);
         var group = new PdfDictionary([Entry("S", Name("Transparency")), Entry("CS", Name("DeviceRGB")),
-            Entry("I", new PdfBoolean(true))]);
+            Entry("I", new PdfBoolean(isolated))]);
         PdfIndirectReference? child = null;
         for (int level = 0; level < depth; level++)
         {

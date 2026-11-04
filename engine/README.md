@@ -278,8 +278,9 @@ their matrices and bounding-box clips. It rejects unsupported precision features
 with a reason instead of returning colors quantized through the BGRA32 surface.
 Text widgets excluded by render options do not disable precise page rendering.
 Included annotation and form-field appearances remain explicitly unsupported.
-Eligible isolated, non-knockout DeviceRGB Form groups retain floating-point colors and alpha
-through Normal compositing and apply invoking opacity once. They require an unprofiled
+Eligible isolated and non-isolated, non-knockout DeviceRGB Form groups retain floating-point
+colors and alpha through outer Normal compositing and apply invoking opacity once.
+Internal Normal and Multiply paints retain backdrop alpha and color. They require an unprofiled
 effective blend space and rectangular clips without fractional coverage. Their exact pixel
 arrays share the render budget across active nested groups. Page groups, other blend spaces,
 knockout, fractional group clips and other group blend modes remain unsupported.
