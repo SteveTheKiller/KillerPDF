@@ -19,7 +19,7 @@ public sealed class PdfGamutWarningMask
         int warnings = 0, boundary = 0;
         foreach (byte classification in classifications)
         {
-            if (classification > (byte)PdfGamutClassification.Outside)
+            if (classification > (byte)PdfGamutClassification.NotEvaluated)
                 throw new ArgumentException("The gamut classification is invalid.", nameof(classifications));
             if (classification == (byte)PdfGamutClassification.Outside) warnings++;
             if (classification == (byte)PdfGamutClassification.Boundary) boundary++;

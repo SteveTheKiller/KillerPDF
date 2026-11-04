@@ -8,7 +8,9 @@ public enum PdfGamutClassification
     /// <summary>The difference lies in the numerical warning boundary band.</summary>
     Boundary,
     /// <summary>The difference exceeds the warning boundary band.</summary>
-    Outside
+    Outside,
+    /// <summary>No color was evaluated, such as a fully transparent frame pixel.</summary>
+    NotEvaluated
 }
 
 /// <summary>An independent printer-gamut observation without modified color pixels.</summary>

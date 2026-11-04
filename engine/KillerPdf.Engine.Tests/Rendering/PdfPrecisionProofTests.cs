@@ -12,6 +12,41 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPrecisionProofTests
 {
+    [Theory]
+    [InlineData(0, .5, .1250019, PdfGamutClassification.Outside)]
+    [InlineData(.5, .5, .21404114048223255, PdfGamutClassification.Inside)]
+    [InlineData(0, .0001, .1250019, PdfGamutClassification.Outside)]
+    [InlineData(.5, .0001, .21404114048223255, PdfGamutClassification.Inside)]
+    public void TransparentProofTransformsStraightColorAndLeavesUnpaintedPixelsUnevaluated(
+        double gray, double alpha, double expectedLuminance, PdfGamutClassification expectedClassification)
+    {
+        var source = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+            new PdfContentStreamBuilder().SetGraphicsState(new PdfGraphicsState(fillOpacity: alpha))
+                .SetFillRgb(gray, gray, gray).Rectangle(0, 0, 1, 1).Fill()).Build()));
+        var options = new PdfRenderOptions(2, 1, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: GrayPrinter(),
+                gamutWarnings: true, options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // Independent references: black maps to Y=8192/65535; encoded gray1/2
+        // has linear Y=.21404114048223255 and remains above the printer black.
+        double luminance = .2126 * frame.Pixels[0] + .7152 * frame.Pixels[1] + .0722 * frame.Pixels[2];
+        Assert.InRange(luminance, expectedLuminance - .0001, expectedLuminance + .0001);
+        Assert.Equal((float)alpha, frame.Pixels[3]);
+        Assert.Equal(0f, frame.Pixels[7]);
+        var mask = Assert.IsType<PdfGamutWarningMask>(frame.PrinterGamutWarnings);
+        Assert.Equal(expectedClassification, mask.GetClassification(0, 0));
+        Assert.Equal(PdfGamutClassification.NotEvaluated, mask.GetClassification(1, 0));
+        Assert.Equal(expectedClassification == PdfGamutClassification.Outside ? 1 : 0, mask.WarningPixelCount);
+        Assert.Equal(0, mask.BoundaryPixelCount);
+        Half[] half = frame.ToPremultipliedLinearHalfRgba();
+        Assert.Equal((Half)alpha, half[3]);
+        Assert.Equal(new Half[4], half.AsSpan(4, 4).ToArray());
+    }
+
     [Fact]
     public void ProofGamutWarningsReturnASeparateMaskWithoutChangingColorOrByteExports()
     {
@@ -543,7 +578,6 @@ public sealed class PdfPrecisionProofTests
     [InlineData("black")]
     [InlineData("paper")]
     [InlineData("intent")]
-    [InlineData("transparent")]
     [InlineData("printing")]
     public void UnavailableProofSelectionsAreDiagnosedInsteadOfSilentlyIgnored(string selection)
     {

@@ -286,7 +286,8 @@ Supported RGB page-group proof frames expose an immutable `PrinterGamutWarnings`
 when requested. Classification uses intended color before compensation and proof conversion.
 Frame-local coordinates, printer-profile identity and warning/boundary counts stay separate
 from color pixels and byte/half output. Rendering counts both mask planes in its storage limit;
-half output counts the retained mask. Desktop warning overlays still require integration.
+half output counts the retained mask. Fully transparent pixels are `NotEvaluated` and
+do not contribute warnings or boundary counts. Desktop warning overlays still require integration.
 
 ## Rendering status
 
@@ -316,7 +317,7 @@ for each required source-alpha plane. Unprofiled, non-knockout DeviceRGB page gr
 precision through final Normal imposition on white for opaque output. Transparent output
 keeps the page group's alpha, and direct page output ignores its isolation flag.
 Other blend spaces, knockout, fractional group clips and other group blend modes remain unsupported.
-Optional `PdfRenderOptions.Proof` initially supports opaque, unprofiled DeviceRGB page groups
+Optional `PdfRenderOptions.Proof` initially supports unprofiled DeviceRGB page groups
 with direct RGB/Gray paths, all four intents, optional source BPC and independent paper/black simulation,
 and separate gamut-warning masks. Paper simulation requires reliable explicit media white and uses absolute colorimetric
 appearance. Paper-only viewing preserves paper tint while mapping estimated printer black to reference zero;
@@ -326,6 +327,8 @@ The selected output profile must have actual colorimetric transforms in both dir
 The requested inverse must be available without intent fallback. Absolute source conversion
 also requires explicit valid media white; source BPC is an identity for that intent.
 Conversion occurs after group compositing through D50 XYZ, retaining extended reference RGB.
+Transparent output converts straight color while retaining alpha and unpainted hidden RGB;
+premultiplication occurs only when requested by the output format.
 Other requests are diagnosed. Byte rendering and native layouts reject enabled proof;
 disabled proof preserves their normal output. Original CMYK ink preservation, other proof controls
 and desktop proof integration still require the full source-aware pipeline.

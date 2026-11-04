@@ -39,11 +39,12 @@ public sealed partial class PdfPageRenderer
     /// share the render storage budget. Other group semantics remain explicitly unsupported.
     /// Unprofiled non-knockout DeviceRGB page groups retain precision through final imposition
     /// on white for opaque output; transparent output preserves their alpha.
-    /// Initial printer proof rendering accepts opaque, unprofiled DeviceRGB page groups with direct
+    /// Initial printer proof rendering accepts unprofiled DeviceRGB page groups with direct
     /// DeviceRGB/Gray path paints, all four intents with an actual selected inverse, optional source BPC and independent paper/black simulation,
     /// with separate gamut-warning masks. Paper-only viewing preserves paper tint while mapping estimated printer black to reference zero.
     /// Compensation uses bounded ICC estimates against reference zero black.
     /// It uses actual colorimetric printer transforms and preserves extended reference RGB output.
+    /// Transparent output retains straight color and alpha; zero-alpha pixels are not gamut-evaluated.
     /// Intent fallback is diagnosed, and absolute source conversion requires explicit valid media white.
     /// Other proof requests are diagnosed; original device ink preservation requires a source-aware path.
     /// Unported paint operations are rejected instead of returning quantized pixels.
@@ -60,7 +61,7 @@ public sealed partial class PdfPageRenderer
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         cancellationToken.ThrowIfCancellationRequested();
         if (options.Proof is { Enabled: true } requested
-            && (options.TransparentBackground || options.ForPrinting
+            && (options.ForPrinting
                 || requested.Options.RenderingIntent is not (Authoring.PdfRenderingIntent.RelativeColorimetric
                     or Authoring.PdfRenderingIntent.Perceptual or Authoring.PdfRenderingIntent.Saturation
                     or Authoring.PdfRenderingIntent.AbsoluteColorimetric)))
@@ -173,7 +174,12 @@ public sealed partial class PdfPageRenderer
         for (int offset = 0; offset < pixels.Length; offset += 4)
         {
             if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            if (pixels[offset + 3] == 0) continue;
+            if (pixels[offset + 3] == 0)
+            {
+                if (classifications is not null)
+                    classifications[offset / 4] = (byte)PdfGamutClassification.NotEvaluated;
+                continue;
+            }
             double r = Linear(pixels[offset]), g = Linear(pixels[offset + 1]), b = Linear(pixels[offset + 2]);
             xyz[0] = .4360747 * r + .3850649 * g + .1430804 * b;
             xyz[1] = .2225045 * r + .7168786 * g + .0606169 * b;
