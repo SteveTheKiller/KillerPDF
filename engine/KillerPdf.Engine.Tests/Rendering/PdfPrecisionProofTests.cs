@@ -13,6 +13,94 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPrecisionProofTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AbsoluteProofDoesNotRequireCompensationEndpointsForAnIdentityPolicy(bool compensation)
+    {
+        var source = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(1, 1).Build()));
+        var options = new PdfRenderOptions(1, 1)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: GrayPrinter(collapsed: true),
+                options: new PdfProofOptions { RenderingIntent = PdfRenderingIntent.AbsoluteColorimetric,
+                    BlackPointCompensation = compensation, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // Absolute source BPC is an identity, even for a valid constant printer curve.
+        double luminance = .2126 * frame.Pixels[0] + .7152 * frame.Pixels[1] + .0722 * frame.Pixels[2];
+        Assert.InRange(luminance, .1250019073777371 - .00003, .1250019073777371 + .00003);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AbsoluteProofUsesPrinterMediaWhiteDuringTheSourceConversion(bool compensation)
+    {
+        var source = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            new PdfContentStreamBuilder().SetFillRgb(.7353569830524495, .7353569830524495, .7353569830524495)
+                .Rectangle(0, 0, 1, 1).Fill()).Build()));
+        var options = new PdfRenderOptions(1, 1)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: GrayPrinter(tintedPaper: true),
+                options: new PdfProofOptions { RenderingIntent = PdfRenderingIntent.AbsoluteColorimetric,
+                    BlackPointCompensation = compensation, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // Absolute source Y1/2 divided by media-white Y58982/65536 gives this
+        // relative printer appearance when paper simulation is off.
+        Assert.InRange(frame.Pixels[0], .5555593231833441 - .00005, .5555593231833441 + .00005);
+        Assert.InRange(frame.Pixels[1], .5555593231833441 - .00005, .5555593231833441 + .00005);
+        Assert.InRange(frame.Pixels[2], .5555593231833441 - .00005, .5555593231833441 + .00005);
+        Assert.Equal(1, frame.Pixels[3]);
+    }
+
+    [Theory]
+    [InlineData(PdfRenderingIntent.Perceptual)]
+    [InlineData(PdfRenderingIntent.Saturation)]
+    [InlineData(PdfRenderingIntent.AbsoluteColorimetric)]
+    public void ProofDiagnosesIntentFallbackAndMissingAbsoluteWhite(PdfRenderingIntent intent)
+    {
+        var source = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(1, 1).Build()));
+        var options = new PdfRenderOptions(1, 1)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { RenderingIntent = intent, BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var error = Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(source).RenderFrame(0, options));
+
+        Assert.Contains(intent == PdfRenderingIntent.AbsoluteColorimetric ? "media-white" : "fallback", error.Message);
+    }
+
+    [Theory]
+    [InlineData(PdfRenderingIntent.Perceptual, 1)]
+    [InlineData(PdfRenderingIntent.Saturation, .5)]
+    public void IntentProofUsesTheActualRequestedPrinterInverse(PdfRenderingIntent intent, double expected)
+    {
+        var source = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            Encoding.ASCII.GetBytes(".5 g 0 0 1 1 re f")).Build()));
+        var options = new PdfRenderOptions(1, 1)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true,
+                printerProfile: Printer(perceptualTables: true, perceptualReverseWhite: true, saturationReverseHalf: true),
+                options: new PdfProofOptions { RenderingIntent = intent,
+                    BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // B2A0 returns zero ink, B2A2 returns half black; A2B1 gives Y1 or Y1/2.
+        // B2A1 would instead produce the existing approximately .357 luminance.
+        Assert.InRange(frame.Pixels[0], expected - .0001, expected + .0001);
+        Assert.InRange(frame.Pixels[1], expected - .0001, expected + .0001);
+        Assert.InRange(frame.Pixels[2], expected - .0001, expected + .0001);
+        Assert.Equal(1, frame.Pixels[3]);
+    }
+
+    [Theory]
     [InlineData(0, false, 0, 0, 0)]
     [InlineData(1, false, .7084205909186849, .9649073041724270, .8354998544865850)]
     [InlineData(.7353569830524495, false, .3036079422444264, .4135304998637930, .3580703254788740)]
@@ -370,7 +458,8 @@ public sealed class PdfPrecisionProofTests
     }
 
     private static PdfColorProfile Printer(string profileClass = "prtr", bool perceptualOnly = false,
-        bool includeReverse = true, bool wideGamut = false, bool perceptualTables = false)
+        bool includeReverse = true, bool wideGamut = false, bool perceptualTables = false,
+        bool perceptualReverseWhite = false, bool saturationReverseHalf = false)
     {
         byte[] forward = wideGamut ? Table(4, 3, _ => [6554, 22938, 3277]) : Table(4, 3, cell => (cell % 3) switch
         {
@@ -384,8 +473,9 @@ public sealed class PdfPrecisionProofTests
         if (perceptualTables)
         {
             tags.Add(("A2B0", forward));
-            tags.Add(("B2A0", reverse));
+            tags.Add(("B2A0", perceptualReverseWhite ? Table(3, 4, _ => [0, 0, 0, 0]) : reverse));
         }
+        if (saturationReverseHalf) tags.Add(("B2A2", Table(3, 4, _ => [0, 0, 0, 32768])));
         int offset = 132 + 12 * tags.Count;
         byte[] data = new byte[offset + tags.Sum(tag => (tag.Data.Length + 3) & ~3)];
         Write32(data, 0, data.Length);

@@ -298,12 +298,14 @@ precision through final Normal imposition on white for opaque output. Transparen
 keeps the page group's alpha, and direct page output ignores its isolation flag.
 Other blend spaces, knockout, fractional group clips and other group blend modes remain unsupported.
 Optional `PdfRenderOptions.Proof` initially supports opaque, unprofiled DeviceRGB page groups
-with direct RGB/Gray paths, relative intent, optional source BPC and independent paper/black simulation,
+with direct RGB/Gray paths, all four intents, optional source BPC and independent paper/black simulation,
 with warnings off. Paper simulation requires reliable explicit media white and uses absolute colorimetric
 appearance. Paper-only viewing preserves paper tint while mapping estimated printer black to reference zero;
 it is a viewing aid rather than an ICC intent. Compensation uses bounded ICC estimates against
 mathematical zero-black RGB reference, with unavailable or degenerate conditions diagnosed.
 The selected output profile must have actual colorimetric transforms in both directions.
+The requested inverse must be available without intent fallback. Absolute source conversion
+also requires explicit valid media white; source BPC is an identity for that intent.
 Conversion occurs after group compositing through D50 XYZ, retaining extended reference RGB.
 Other requests are diagnosed. Byte rendering and native layouts reject enabled proof;
 disabled proof preserves their normal output. Original CMYK ink preservation, other proof controls
