@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Rendering;
 using System.Runtime.InteropServices;
+using System.Windows.Interop;
 using System.Windows.Threading;
 
 namespace KillerPDF.Presentation;
@@ -16,6 +17,9 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
     PdfDisplayDiscoverySnapshot _status = new(0, PdfDisplayDiscoveryStatus.Uninitialized,
         null, null, null, null);
     bool _disposed;
+    HwndSource? _observationSource;
+    DispatcherOperation? _pendingObservation;
+    long _invalidationSerial, _capturedInvalidationSerial, _lastNotifiedGeneration;
 
     /// <summary>Creates discovery for a nonzero caller-owned viewport window.</summary>
     public WindowsPdfDisplayDiscovery(nint ownedViewport)
@@ -29,12 +33,73 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
     /// <summary>Gets the latest immutable observation.</summary>
     public PdfDisplayDiscoverySnapshot Status => Volatile.Read(ref _status);
 
+    /// <summary>Occurs when observed display configuration is invalidated.</summary>
+    public event EventHandler? Changed;
+
+    /// <summary>Observes display notifications from the viewport's owning WPF window.</summary>
+    /// <remarks>
+    /// Repeated calls are idempotent. Window notifications are coalesced on the dispatcher.
+    /// Settings, color-space, display and DPI messages invalidate the generation even when
+    /// profile names are unchanged; window movement refreshes only changed observations.
+    /// This does not watch profile files. Disposal or closure of the source stops observation.
+    /// </remarks>
+    public void ObserveChanges()
+    {
+        _dispatcher.VerifyAccess();
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_observationSource is not null) return;
+        var source = HwndSource.FromHwnd(GetAncestor(_ownedViewport, 2))
+            ?? throw new NotSupportedException("Display notifications require an attached WPF window.");
+        source.Dispatcher.VerifyAccess();
+        source.AddHook(OnWindowMessage);
+        source.Disposed += OnObservationSourceDisposed;
+        _observationSource = source;
+        try { _lastNotifiedGeneration = Capture().Generation; }
+        catch { DetachObservation(); throw; }
+    }
+
+    nint OnWindowMessage(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
+    {
+        bool invalidate = message is 0x1A or 0x7E or 0x320 or 0x2E0;
+        if (!invalidate && message is not (0x47 or 0x6 or 0x18)) return 0;
+        if (invalidate) _invalidationSerial = checked(_invalidationSerial + 1);
+        if (_pendingObservation is not null || _disposed) return 0;
+        _pendingObservation = _dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+        {
+            _pendingObservation = null;
+            if (_disposed || _observationSource is null) return;
+            var observed = Capture();
+            if (observed.Generation == _lastNotifiedGeneration) return;
+            _lastNotifiedGeneration = observed.Generation;
+            Changed?.Invoke(this, EventArgs.Empty);
+        });
+        return 0;
+    }
+
+    void OnObservationSourceDisposed(object? sender, EventArgs args)
+    {
+        _pendingObservation?.Abort();
+        _pendingObservation = null;
+        _observationSource = null;
+    }
+
+    void DetachObservation()
+    {
+        _pendingObservation?.Abort();
+        _pendingObservation = null;
+        if (_observationSource is not { } source) return;
+        _observationSource = null;
+        source.Disposed -= OnObservationSourceDisposed;
+        source.RemoveHook(OnWindowMessage);
+    }
+
     /// <summary>Captures the viewport's selected display without changing display settings.</summary>
     public PdfDisplayDiscoverySnapshot Capture(CancellationToken cancellationToken = default)
     {
         _dispatcher.VerifyAccess();
         ObjectDisposedException.ThrowIf(_disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
+        long invalidation = _invalidationSerial;
         nint monitor = MonitorFromWindow(_ownedViewport, 2);
         var info = new MonitorInfo { Size = (uint)Marshal.SizeOf<MonitorInfo>(), Device = string.Empty };
         PdfDisplayDiscoverySnapshot observed;
@@ -52,11 +117,13 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
                 { TargetAssociation = CaptureTargets(info.Device, cancellationToken) };
         cancellationToken.ThrowIfCancellationRequested();
         var previous = Status;
-        if (observed.Status == previous.Status && observed.MonitorIdentity == previous.MonitorIdentity
+        if (invalidation == _capturedInvalidationSerial
+            && observed.Status == previous.Status && observed.MonitorIdentity == previous.MonitorIdentity
             && observed.Bounds == previous.Bounds && observed.FailureOperation == previous.FailureOperation
             && observed.NativeErrorCode == previous.NativeErrorCode
             && SameTargets(observed.TargetAssociation, previous.TargetAssociation)) return previous;
         observed = observed with { Generation = checked(previous.Generation + 1) };
+        _capturedInvalidationSerial = invalidation;
         Volatile.Write(ref _status, observed);
         return observed;
     }
@@ -248,7 +315,10 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
     public void Dispose()
     {
         _dispatcher.VerifyAccess();
+        if (_disposed) return;
         _disposed = true;
+        DetachObservation();
+        Changed = null;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -320,6 +390,9 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
 
     [DllImport("kernel32.dll", ExactSpelling = true)]
     static extern nint LocalFree(nint memory);
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    static extern nint GetAncestor(nint window, uint flags);
 
     [DllImport("user32.dll", ExactSpelling = true)]
     static extern nint MonitorFromWindow(nint window, uint flags);
