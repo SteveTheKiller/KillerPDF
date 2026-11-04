@@ -12,6 +12,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 
 - Text fields with automatic font sizing save with a valid appearance while retaining their automatic setting. Unstyled fields stay transparent.
 - Page import preserves optional popup links, saved markup appearances, resource metadata, image-mask precedence and inherited form fonts and alignment. (#455)
+- Compatibility rendering recovers PDFs whose empty layer configuration omits the group list. (#476)
 - Rendering synthesizes missing note and ink appearances and keeps markup geometry in page coordinates.
 - Compatibility text extraction recovers missing non-visibility properties and stray marked-content closing tags while preserving ActualText replacements.
 - Searchable text fits supported TrueType glyph heights to OCR word boxes, keeping short words on their visual lines. (#465)

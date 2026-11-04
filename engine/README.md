@@ -300,6 +300,9 @@ The engine owns bounded CPU rendering for paths, text, images, clipping, shading
 annotations, and forms. It returns platform-neutral BGRA32 pixel buffers and diagnostics without
 referencing a UI toolkit or native PDF renderer. The engine does not provide UI controls.
 
+Compatibility documents can render when empty optional-content metadata omits `/OCGs`.
+Strict layer parsing still rejects a missing required group list; present malformed lists remain errors.
+
 The 1.9.3 development `RenderFrame` API also retains floating-point source colors for its
 supported path, text, gradient and image cases, including ordinary Form XObjects with
 their matrices and bounding-box clips. It rejects unsupported precision features

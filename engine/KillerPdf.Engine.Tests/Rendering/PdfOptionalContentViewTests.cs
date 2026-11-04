@@ -1,13 +1,46 @@
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Rendering;
+using KillerPdf.Engine.Writing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfOptionalContentViewTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CompatibilityRecoversMissingLayerListsWhileRejectingMalformedLists(bool malformedList)
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+            Encoding.ASCII.GetBytes("0 g 0 0 1 1 re f")).Build());
+        var root = Assert.IsType<PdfIndirectReference>(source.Trailer[Name("Root")]);
+        var catalog = Assert.IsType<PdfDictionary>(source.Resolve(root));
+        var emptyConfiguration = new PdfDictionary([new(Name("Order"), new PdfArray([]))]);
+        var properties = malformedList
+            ? new PdfDictionary([new(Name("D"), emptyConfiguration), new(Name("OCGs"), new PdfInteger(42))])
+            : new PdfDictionary([new(Name("D"), emptyConfiguration)]);
+        byte[] bytes = new PdfIncrementalUpdateBuilder(source).ReplaceObject(root.ObjectNumber,
+            new PdfDictionary(catalog.Append(new KeyValuePair<PdfName, PdfObject>(Name("OCProperties"), properties)))).Build();
+        Assert.Throws<InvalidOperationException>(() => new PdfPageRenderer(PdfDocument.Open(bytes)));
+        if (malformedList)
+        {
+            Assert.Throws<InvalidOperationException>(() => new PdfPageRenderer(PdfDocument.OpenWithCompatibilityRecovery(bytes)));
+            return;
+        }
+
+        var page = new PdfPageRenderer(PdfDocument.OpenWithCompatibilityRecovery(bytes)).Render(0,
+            new PdfRenderOptions(2, 1, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal(new byte[] { 0, 0, 0, 255 }, Pixel(page, 0));
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, Pixel(page, 1));
+        static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+    }
+
     [Fact]
     public void Render_ViewAutoStateReversesRawDefaultForTwoLayeredForms()
     {

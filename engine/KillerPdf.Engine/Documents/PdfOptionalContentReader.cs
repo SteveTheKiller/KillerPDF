@@ -19,7 +19,9 @@ public static class PdfOptionalContentReader
             return new PdfOptionalContentInfo();
         PdfDictionary properties = propertiesValue as PdfDictionary
             ?? throw new InvalidOperationException("The catalog /OCProperties value is not a dictionary.");
-        PdfArray groupsArray = RequiredArray(document, properties, "OCGs");
+        PdfArray groupsArray = document.UsesCompatibilityRecovery
+            && !TryValue(document, properties, "OCGs", out _)
+                ? new PdfArray([]) : RequiredArray(document, properties, "OCGs");
         var groupReferences = new List<PdfIndirectReference>(groupsArray.Count);
         var groupNames = new List<string>(groupsArray.Count);
         var printVisibility = new List<bool?>(groupsArray.Count);
