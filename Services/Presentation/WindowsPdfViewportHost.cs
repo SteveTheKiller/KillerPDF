@@ -13,6 +13,10 @@ internal partial class WindowsPdfViewportHost : HwndHost
     readonly WindowProcedure procedure;
     readonly string className = "KillerPdfViewport." + Guid.NewGuid().ToString("N");
     WindowsPdfFramePresenter? presenter;
+    readonly WindowsPdfViewportRegion clipRegion = new();
+    string? installedClip;
+    uint installedClipDpi;
+    bool refreshingClip;
     bool registered;
     internal FrameworkElement OverlayRoot { get; }
     internal nint Container { get; private set; }
@@ -26,6 +30,7 @@ internal partial class WindowsPdfViewportHost : HwndHost
         OverlayRoot = overlayRoot;
         AddLogicalChild(overlayRoot);
         procedure = WindowProc;
+        LayoutUpdated += (_, _) => RefreshNativeClip();
     }
 
     internal IPdfFramePresenter GetPresenter()
@@ -69,8 +74,27 @@ internal partial class WindowsPdfViewportHost : HwndHost
 
     protected override void DestroyWindowCore(HandleRef hwnd) => ReleaseWindows();
 
+    void RefreshNativeClip()
+    {
+        if (Container == 0 || !IsArrangeValid || refreshingClip) return;
+        refreshingClip = true;
+        try
+        {
+            Geometry clip = IsVisible ? WindowsPdfViewportLayout.Capture(this) : Geometry.Empty;
+            string description = clip.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            uint dpi = GetDpiForWindow(Container);
+            if (description == installedClip && dpi == installedClipDpi) return;
+            clipRegion.Update(Container, clip);
+            installedClip = description;
+            installedClipDpi = dpi;
+        }
+        finally { refreshingClip = false; }
+    }
+
     void ReleaseWindows()
     {
+        installedClip = null;
+        installedClipDpi = 0;
         editorMouseBridge = false;
         pendingEditorMouse = null;
         try { presenter?.Dispose(); }
@@ -144,6 +168,7 @@ internal partial class WindowsPdfViewportHost : HwndHost
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern nint DefWindowProc(nint window, uint message, nint wParam, nint lParam);
     [DllImport("user32.dll")] static extern nint LoadCursor(nint instance, int cursor);
     [DllImport("user32.dll")] static extern bool GetClientRect(nint window, out RectI rect);
+    [DllImport("user32.dll")] static extern uint GetDpiForWindow(nint window);
     [DllImport("user32.dll", SetLastError = true)] static extern bool SetWindowPos(nint window, nint after, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")] static extern nint BeginPaint(nint window, out Paint paint);
     [DllImport("user32.dll")] static extern bool EndPaint(nint window, ref Paint paint);
