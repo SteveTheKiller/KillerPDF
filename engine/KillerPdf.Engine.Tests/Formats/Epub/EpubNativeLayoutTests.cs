@@ -11,6 +11,46 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubNativeLayoutTests
 {
+    [Theory]
+    [InlineData("background-color:transparent", "body{background-color:#800000}")]
+    [InlineData("background-color:TrAnSpArEnT", "body{background-color:#800000}")]
+    [InlineData(null, "body{background-color:#800000}body{background-color:transparent}")]
+    public void TransparentBodyDeclarationClearsEarlierOpaqueBackground(string? inline, string stylesheet)
+    {
+        var book = EpubDocument.Open(Book("<p>A</p>", stylesheet, bodyStyle: inline));
+        Assert.Equal("A", book.ReadText(0));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 });
+        var frame = layout.RenderPage(0);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice(15 * 30 * 4, 4).ToArray());
+    }
+
+    [Fact]
+    public void TransparentBodyBackgroundExposesWhiteCanvasAndRetainsExplicitWhiteGlyphInk()
+    {
+        const string stylesheet = "body{color:white;background-color:transparent}";
+        byte[] stylesheetBytes = Encoding.UTF8.GetBytes(stylesheet);
+        var book = EpubDocument.Open(Book("<p>A</p>", stylesheet));
+        Assert.Equal(stylesheetBytes, book.ReadResource("EPUB/styles/book.css"));
+        Assert.Equal("A", book.ReadText(0));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 16, font) {
+            FontSize = 10, Margin = 2, TextColor = new PdfRgbColor(.5001, .5001, .5001) });
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A", page.Text);
+        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) }, page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        Assert.Equal(30, frame.Width);
+        Assert.Equal(16, frame.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((5 * 30 + 7) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice(15 * 30 * 4, 4).ToArray());
+        Assert.Equal(stylesheetBytes, book.ReadResource("EPUB/styles/book.css"));
+    }
+
     [Fact]
     public void CapturedSnapshotPreservesBodyCanvasWithIndependentAxisScaling()
     {
@@ -436,7 +476,7 @@ public sealed class EpubNativeLayoutTests
         Assert.Equal(1f, frame.Pixels[offset + 3]);
     }
 
-    private static byte[] Book(string body = "<p>A A</p>", string? stylesheet = null, int stylesheetReferences = 1)
+    private static byte[] Book(string body = "<p>A A</p>", string? stylesheet = null, int stylesheetReferences = 1, string? bodyStyle = null)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -456,7 +496,7 @@ public sealed class EpubNativeLayoutTests
                 </package>
                 """);
             Add("EPUB/text.xhtml", $"""
-                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native layout</title>{stylesheetLink}</head><body>{body}</body></html>
+                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native layout</title>{stylesheetLink}</head><body{(bodyStyle is null ? "" : " style=\"" + bodyStyle + "\"")}>{body}</body></html>
                 """);
             Add("EPUB/nav.xhtml", """
                 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text.xhtml">Native layout</a></li></ol></nav></body></html>

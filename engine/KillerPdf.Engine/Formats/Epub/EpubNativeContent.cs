@@ -7,7 +7,8 @@ namespace KillerPdf.Engine.Formats.Epub;
 // Source nodes survive normalization so collapsed whitespace keeps its original inline style.
 internal sealed class EpubNativeContent(double fallbackSize, double contentHeight)
 {
-    internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null, PdfRgbColor? Background = null);
+    internal readonly record struct BackgroundColor(PdfRgbColor? Color);
+    internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null);
     internal sealed record Element(string Name, Element? Parent, Style Style, Style BlockStyle);
     internal sealed record Text(string Value, Element Owner);
     internal sealed record SourceCharacter(Text Node, int Offset)
@@ -48,7 +49,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         while (xml.MoveToNextAttribute())
         {
             Count(xml.Value.Length);
-            if (xml.NamespaceURI == "" && xml.LocalName == "style" && name is "p" or "span")
+            if (xml.NamespaceURI == "" && xml.LocalName == "style" && name is "body" or "p" or "span")
                 inlineStyle = xml.Value;
             else if (xml.NamespaceURI == "" && xml.LocalName == "class")
                 classNames = xml.Value;
@@ -69,7 +70,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             if (name != "body")
                 throw new NotSupportedException("Native EPUB element background painting is not implemented.");
-            CanvasBackground = background;
+            CanvasBackground = background.Color;
         }
         var element = new Element(name, parent, style, name == "p" ? style : parent?.BlockStyle ?? style);
         if (!empty) _ancestors.Push(element);
@@ -138,7 +139,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         if (!_typeRules.TryGetValue(name, out var rules)) return inherited;
         string[] classes = classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [];
         double? size = null, height = null;
-        PdfRgbColor? color = null, background = null;
+        PdfRgbColor? color = null;
+        BackgroundColor? background = null;
         int sizeSpecificity = -1, heightSpecificity = -1, colorSpecificity = -1, backgroundSpecificity = -1;
         foreach (var rule in rules)
         {
@@ -193,7 +195,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         _selectorWork += amount;
     }
 
-    private readonly record struct CssProperties(double? FontSize, double? LineHeight, PdfRgbColor? Color = null, PdfRgbColor? Background = null)
+    private readonly record struct CssProperties(double? FontSize, double? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null)
     {
         internal Style Apply(Style inherited) =>
             new(FontSize ?? inherited.FontSize, LineHeight ?? inherited.LineHeight, Color ?? inherited.Color, Background ?? inherited.Background);
@@ -204,7 +206,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private CssProperties ParseProperties(string declarations)
     {
         double? size = null, height = null;
-        PdfRgbColor? color = null, background = null;
+        PdfRgbColor? color = null;
+        BackgroundColor? background = null;
         foreach (string declaration in declarations.Split(';'))
         {
             string part = declaration.Trim();
@@ -220,7 +223,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
             if (property == "background-color")
             {
-                background = ParseColor(value);
+                background = new BackgroundColor(string.Equals(value, "transparent", StringComparison.OrdinalIgnoreCase)
+                    ? null : ParseColor(value));
                 continue;
             }
             if (!value.EndsWith("px", StringComparison.OrdinalIgnoreCase)
