@@ -1,4 +1,5 @@
 using System.IO;
+using Engine = KillerPdf.Engine.Documents;
 using PdfDocument = KillerPDF.Services.PdfContentDocument;
 
 namespace KillerPDF.Services
@@ -194,11 +195,69 @@ namespace KillerPDF.Services
             return [.. sections.OrderByDescending(section => section.Top).Select(section => section.Lines)];
         }
 
+        private static Dictionary<Engine.PdfExtractedWord, int> PanelMembership(
+            Engine.PdfPageContent page, IReadOnlyList<Engine.PdfExtractedWord> words)
+        {
+            static bool Contains(Engine.PdfContentBounds outer, Engine.PdfContentBounds inner) =>
+                inner.Left >= outer.Left && inner.Right <= outer.Right
+                && inner.Bottom >= outer.Bottom && inner.Top <= outer.Top;
+            var frames = new List<Engine.PdfContentBounds>();
+            foreach (var path in page.Paths)
+            {
+                if (path.IsClippingPath || path.PaintOperator is not ("S" or "s" or "f" or "F" or "f*" or "B" or "B*" or "b" or "b*")
+                    || path.Segments.Count != 1 || path.Segments[0].Operator != "re"
+                    || path.Segments[0].Points.Count != 4) continue;
+                var bounds = path.BoundingBox;
+                if (!double.IsFinite(bounds.Width) || !double.IsFinite(bounds.Height)
+                    || bounds.Width <= 0 || bounds.Height <= 0) continue;
+                var points = path.Segments[0].Points;
+                if (Enumerable.Range(0, 4).Any(index =>
+                    Math.Abs(points[index].X - points[(index + 1) % 4].X) > .000001
+                    && Math.Abs(points[index].Y - points[(index + 1) % 4].Y) > .000001)) continue;
+                if (words.Any(word => word.BoundingBox.Left < bounds.Right
+                    && word.BoundingBox.Right > bounds.Left && word.BoundingBox.Bottom < bounds.Top
+                    && word.BoundingBox.Top > bounds.Bottom && !Contains(bounds, word.BoundingBox))) continue;
+                var inside = words.Where(word => Contains(bounds, word.BoundingBox)).ToArray();
+                if (inside.Length == 0) continue;
+                if (path.PaintOperator is "f" or "F" or "f*")
+                {
+                    var first = inside[0];
+                    bool vertical = IsVertical(first.Letters[0].WritingDirection);
+                    double baseline = vertical ? first.Letters[0].StartBaseLine.X : first.Letters[0].StartBaseLine.Y;
+                    bool multipleLines = inside.Skip(1).Any(word =>
+                        word.Letters[0].WritingDirection == first.Letters[0].WritingDirection
+                        && Math.Abs((vertical ? word.Letters[0].StartBaseLine.X : word.Letters[0].StartBaseLine.Y) - baseline)
+                            > Math.Max(vertical ? first.BoundingBox.Width : first.BoundingBox.Height,
+                                vertical ? word.BoundingBox.Width : word.BoundingBox.Height) * .5);
+                    if (!multipleLines) continue;
+                }
+                frames.Add(bounds);
+            }
+            frames = frames.Distinct().OrderBy(frame => frame.Width * frame.Height).ToList();
+            var ambiguous = new HashSet<Engine.PdfContentBounds>();
+            for (int first = 0; first < frames.Count; first++)
+                for (int second = first + 1; second < frames.Count; second++)
+                {
+                    var a = frames[first];
+                    var b = frames[second];
+                    if (a.Left < b.Right && a.Right > b.Left && a.Bottom < b.Top && a.Top > b.Bottom
+                        && !Contains(a, b) && !Contains(b, a))
+                    {
+                        ambiguous.Add(a);
+                        ambiguous.Add(b);
+                    }
+                }
+            frames.RemoveAll(ambiguous.Contains);
+            return words.ToDictionary(word => word,
+                word => frames.FindIndex(frame => Contains(frame, word.BoundingBox)));
+        }
+
         private static PageTextRuns Build(KillerPdf.Engine.Documents.PdfPageContent page)
         {
             var result = new PageTextRuns { PdfWidth = page.Width, PdfHeight = page.Height };
             var words = page.GetWords().ToList();
             if (words.Count == 0) return result;
+            var panels = PanelMembership(page, words);
 
             // Group words into lines: a word joins a line when its vertical band overlaps the line's
             // band by at least half the smaller height. Bands grow as members join.
@@ -211,6 +270,7 @@ namespace KillerPDF.Services
                 int found = -1;
                 for (int i = 0; i < lineWords.Count; i++)
                 {
+                    if (panels[lineWords[i].Words[0]] != panels[w]) continue;
                     var (_, lTop, lBottom) = lineWords[i];
                     double overlap = Math.Min(lTop, wTop) - Math.Max(lBottom, wBottom);
                     double minH = Math.Min(lTop - lBottom, wTop - wBottom);
@@ -248,6 +308,7 @@ namespace KillerPDF.Services
                 var bounds = word.BoundingBox;
                 var group = verticalLines.FirstOrDefault(line =>
                 {
+                    if (panels[line[0]] != panels[word]) return false;
                     if (line[0].Letters[0].WritingDirection != word.Letters[0].WritingDirection) return false;
                     double left = line.Min(w => w.BoundingBox.Left);
                     double right = line.Max(w => w.BoundingBox.Right);

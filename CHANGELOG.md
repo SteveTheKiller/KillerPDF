@@ -17,7 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Merge accepts more PDFs with optional popup links, saved appearances and resource metadata, and preserves nested form fonts and alignment. (#455)
 - PDFs without saved annotation appearances show note markers and ink strokes, and highlights keep their page positions when their stored rectangle is incorrect.
 - Text extraction recovers missing marked-content properties and stray closing tags in compatibility mode.
-- New searchable PDFs fit TrueType text to OCR word heights so short words stay on their lines. (#465)
+- Text selection keeps separate rectangular panels apart. New searchable PDFs fit TrueType text to OCR word heights so short words stay on their lines. (#465)
 - JPEG 2000 images use their encoded sample depth when the PDF declares a different value.
 - Rasterize Region keeps earlier region images intact on repeated operations and leaves invisible clipping paths out of its content counts. (#369)
 - Save Flattened shows output pixel dimensions and scale, matching image export. (#462)
