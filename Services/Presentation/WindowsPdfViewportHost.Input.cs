@@ -18,15 +18,18 @@ internal partial class WindowsPdfViewportHost
         nint viewport = Viewport, overlayHandle = overlay.Handle;
         var screen = new PointI { X = unchecked((short)(lParam.ToInt64() & 0xffff)), Y = unchecked((short)((lParam.ToInt64() >> 16) & 0xffff)) };
         if (!ClientToScreen(viewport, ref screen)) return false;
-        TextBox? editor = null;
+        UIElement? editor = null;
         if (!editorMouseBridge)
         {
             if (message != 0x201 || WindowFromPoint(screen) != viewport || !OverlayRoot.IsVisible) return false;
             Point point = OverlayRoot.PointFromScreen(new Point(screen.X, screen.Y));
             for (DependencyObject? hit = OverlayRoot.InputHitTest(point) as DependencyObject;
                 hit is not null; hit = VisualTreeHelper.GetParent(hit))
+            {
                 if (hit is TextBox textBox) { editor = textBox; break; }
-            if (editor is null || !editor.IsEnabled || editor.IsReadOnly) return false;
+                if (hit is Canvas canvas && !ReferenceEquals(canvas, OverlayRoot)) { editor = canvas; break; }
+            }
+            if (editor is null || !editor.IsEnabled || editor is TextBox { IsReadOnly: true }) return false;
             editorMouseBridge = true;
         }
         var client = screen;
@@ -34,7 +37,7 @@ internal partial class WindowsPdfViewportHost
         nint packed = (nint)((client.X & 0xffff) | ((client.Y & 0xffff) << 16));
         if (message == 0x201 && editor is not null)
         {
-            TextBox target = editor;
+            UIElement target = editor;
             var messages = new List<(uint Message, nint Keys, nint Position)>
                 { (0x200, wParam, packed), (message, wParam, packed) };
             pendingEditorMouse = messages;
@@ -43,9 +46,12 @@ internal partial class WindowsPdfViewportHost
             {
                 if (!ReferenceEquals(pendingEditorMouse, messages)) return;
                 if (!ReferenceEquals(Overlay, overlay) || Viewport != viewport || !target.IsVisible
-                    || !target.IsEnabled || target.IsReadOnly || PresentationSource.FromVisual(target) != overlay)
+                    || !target.IsEnabled || target is TextBox { IsReadOnly: true } || PresentationSource.FromVisual(target) != overlay)
                 { pendingEditorMouse = null; editorMouseBridge = false; return; }
-                bool focused = target.Focus(), captured = target.CaptureMouse();
+                bool focused;
+                if (target is TextBox) focused = target.Focus();
+                else { SetFocus(overlayHandle); focused = GetFocus() == overlayHandle; }
+                bool captured = Mouse.Capture(target, target is TextBox ? CaptureMode.Element : CaptureMode.SubTree);
                 pendingEditorMouse = null;
                 if (!focused || !captured || GetFocus() != overlayHandle || GetCapture() != overlayHandle)
                 {
@@ -54,14 +60,18 @@ internal partial class WindowsPdfViewportHost
                     if (GetCapture() == overlayHandle) ReleaseCapture();
                     return;
                 }
-                Point textPoint = target.PointFromScreen(new Point(screen.X, screen.Y));
-                int character = target.GetCharacterIndexFromPoint(textPoint, true);
-                if (character >= 0)
+                Point textPoint = default;
+                if (target is TextBox textTarget)
                 {
-                    Rect leading = target.GetRectFromCharacterIndex(character, false);
-                    Rect trailing = target.GetRectFromCharacterIndex(character, true);
-                    if (EdgeDistance(trailing) < EdgeDistance(leading)) character++;
-                    target.Select(Math.Min(character, target.Text.Length), 0);
+                    textPoint = textTarget.PointFromScreen(new Point(screen.X, screen.Y));
+                    int character = textTarget.GetCharacterIndexFromPoint(textPoint, true);
+                    if (character >= 0)
+                    {
+                        Rect leading = textTarget.GetRectFromCharacterIndex(character, false);
+                        Rect trailing = textTarget.GetRectFromCharacterIndex(character, true);
+                        if (EdgeDistance(trailing) < EdgeDistance(leading)) character++;
+                        textTarget.Select(Math.Min(character, textTarget.Text.Length), 0);
+                    }
                 }
                 foreach (var input in messages)
                     if (!PostMessage(overlayHandle, input.Message, input.Keys, input.Position))
@@ -101,6 +111,7 @@ internal partial class WindowsPdfViewportHost
     [DllImport("user32.dll")] static extern bool ScreenToClient(nint window, ref PointI point);
     [DllImport("user32.dll")] static extern nint WindowFromPoint(PointI point);
     [DllImport("user32.dll")] static extern nint GetFocus();
+    [DllImport("user32.dll")] static extern nint SetFocus(nint window);
     [DllImport("user32.dll")] static extern nint GetCapture();
     [DllImport("user32.dll")] static extern bool ReleaseCapture();
     [DllImport("user32.dll")] static extern bool PostMessage(nint window, uint message, nint wParam, nint lParam);
