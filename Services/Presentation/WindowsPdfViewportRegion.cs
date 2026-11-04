@@ -25,7 +25,7 @@ internal sealed class WindowsPdfViewportRegion
             double scale = GetDpiForWindow(container) / 96d;
             if (scale <= 0) throw new InvalidOperationException("Viewport DPI is unavailable.");
             var flat = clip.GetFlattenedPathGeometry(.1 / scale, ToleranceType.Absolute);
-            if (flat.Figures.Count is < 1 or > 256)
+            if (flat.Figures.Count > 256)
                 throw new NotSupportedException("Viewport clipping exceeds the contour limit.");
             var points = new List<Point>();
             var counts = new List<int>();
@@ -51,7 +51,8 @@ internal sealed class WindowsPdfViewportRegion
                     throw new NotSupportedException("Viewport contour coordinates exceed the supported range.");
                 return new PointI { X = (int)Math.Round(x), Y = (int)Math.Round(y) };
             }).ToArray();
-            region = CreatePolyPolygonRgn(native, counts.ToArray(), counts.Count, flat.FillRule == FillRule.Nonzero ? 2 : 1);
+            region = counts.Count == 0 ? CreateRectRgn(0, 0, 0, 0)
+                : CreatePolyPolygonRgn(native, counts.ToArray(), counts.Count, flat.FillRule == FillRule.Nonzero ? 2 : 1);
             if (region == 0 || SetWindowRgn(container, region, true) == 0)
                 throw new InvalidOperationException("The native viewport clip could not be installed.");
             region = 0;
@@ -73,5 +74,6 @@ internal sealed class WindowsPdfViewportRegion
     [DllImport("user32.dll")] static extern int SetWindowRgn(nint window, nint region, bool redraw);
     [DllImport("user32.dll")] static extern bool ShowWindow(nint window, int command);
     [DllImport("gdi32.dll")] static extern nint CreatePolyPolygonRgn(PointI[] points, int[] counts, int polygonCount, int mode);
+    [DllImport("gdi32.dll")] static extern nint CreateRectRgn(int left, int top, int right, int bottom);
     [DllImport("gdi32.dll")] static extern bool DeleteObject(nint region);
 }
