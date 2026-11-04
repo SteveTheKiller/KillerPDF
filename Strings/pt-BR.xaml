@@ -838,6 +838,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Bar_Fill">Preenchimento:</sys:String>
     <sys:String x:Key="Str_Bar_Size">Tamanho:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Espaçamento:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Desfoque:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Opacidade:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Opacidade do preenchimento:</sys:String>
     <sys:String x:Key="Str_Bar_Font">Fonte:</sys:String>

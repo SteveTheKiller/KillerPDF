@@ -838,6 +838,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Bar_Fill">塗り :</sys:String>
     <sys:String x:Key="Str_Bar_Size">サイズ :</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">文字間隔 :</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">ぼかし:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">不透明度 :</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">塗りの不透明度 :</sys:String>
     <sys:String x:Key="Str_Bar_Font">フォント :</sys:String>

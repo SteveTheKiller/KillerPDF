@@ -614,6 +614,7 @@ namespace KillerPDF.Controls
             int page = box.Tag is int index ? index : _currentPage;
             TextAnnotation annotation = BuildCommittedTextAnnotation(box, page, box.Text.Trim(),
                 TurnedEditOrigin(box), _pendingCover?.PairId ?? _reeditOriginal?.PairId ?? "");
+            annotation.BlurRadius = _reeditOriginal?.BlurRadius ?? 0;
             return new PendingTextRecovery(box.Text, annotation, _pendingDirectEdit, _pendingCover,
                 _textFontSize, _textLetterSpacing, _textColor);
         }
@@ -1244,6 +1245,7 @@ namespace KillerPDF.Controls
             RemoveTextEditHandles();
             RemoveReeditCoverOutline();   // the re-edit is ending; drop its cover hint (repaint follows)
             string reeditPair = _reeditOriginal?.PairId ?? "";   // preserve a re-edited text's cover pairing
+            double reeditBlur = _reeditOriginal?.BlurRadius ?? 0;
             _reeditOriginal = null;   // committing replaces any annotation being re-edited
 
             string content = tb.Text.Trim();
@@ -1304,6 +1306,7 @@ namespace KillerPDF.Controls
                 // Carry the pairing so the cover knows its partner text exists (renders dashed).
                 TextAnnotation ta = BuildCommittedTextAnnotation(tb, pageIdx, content, turnedOrigin,
                     _pendingCover is not null ? _pendingCover.PairId : reeditPair);
+                ta.BlurRadius = reeditBlur;
                 if (_pendingCover is not null)
                 {
                     // Existing-text edit: the cover is already in _annotations. Add the text beside it and

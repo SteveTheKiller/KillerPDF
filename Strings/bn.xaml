@@ -752,6 +752,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Bar_Fill">ফিল:</sys:String>
     <sys:String x:Key="Str_Bar_Size">আকার:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">অক্ষর ব্যবধান:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">ঝাপসা:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">অস্বচ্ছতা:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">ফিল অস্বচ্ছতা:</sys:String>
     <sys:String x:Key="Str_Bar_Font">ফন্ট:</sys:String>

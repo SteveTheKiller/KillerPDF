@@ -752,6 +752,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Bar_Fill">Dolgu:</sys:String>
     <sys:String x:Key="Str_Bar_Size">Boyut:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Harf aralığı:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Bulanıklık:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Opaklık:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Dolgu Opaklığı:</sys:String>
     <sys:String x:Key="Str_Bar_Font">Yazı tipi:</sys:String>

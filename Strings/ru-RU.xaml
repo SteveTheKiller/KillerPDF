@@ -838,6 +838,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Bar_Fill">Заливка:</sys:String>
     <sys:String x:Key="Str_Bar_Size">Размер:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Интервал:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Размытие:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Непрозрачность:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Непрозрачность заливки:</sys:String>
     <sys:String x:Key="Str_Bar_Font">Шрифт:</sys:String>

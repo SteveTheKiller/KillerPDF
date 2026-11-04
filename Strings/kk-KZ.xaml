@@ -1406,6 +1406,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Lbl_Measure">Өлшеу</sys:String>
     <sys:String x:Key="Str_Ocr_FormAware">Пішінді ескеретін OCR</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Әріп аралығы:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Бұлыңғырлық:</sys:String>
     <sys:String x:Key="Str_Sign_VisibleAppearance">Көрінетін қолтаңба көрсету</sys:String>
     <sys:String x:Key="Str_Sign_AppearanceText">Қолтаңба мәтіні</sys:String>
     <sys:String x:Key="Str_Sign_AppearanceDefault">Цифрлық қол қойған: {name}&#10;Күні: {date}&#10;Себеп: {reason}&#10;Орын: {location}</sys:String>

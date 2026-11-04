@@ -754,6 +754,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Bar_Fill">填滿：</sys:String>
     <sys:String x:Key="Str_Bar_Size">大小：</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">字元間距：</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">模糊:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">不透明度：</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">填滿不透明度：</sys:String>
     <sys:String x:Key="Str_Bar_Font">字型：</sys:String>

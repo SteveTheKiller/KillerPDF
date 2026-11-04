@@ -89,6 +89,13 @@ namespace KillerPDF.Controls
                 VerticalAlignment = VerticalAlignment.Top
             };
             ApplyLetterSpacing(tb, ta.Content, ta.LetterSpacing);
+            if (ta.PairId.Length > 0 && double.IsFinite(ta.BlurRadius) && ta.BlurRadius > 0)
+                tb.Effect = new System.Windows.Media.Effects.BlurEffect
+                {
+                    Radius = Math.Min(100, ta.BlurRadius * 3),
+                    KernelType = System.Windows.Media.Effects.KernelType.Gaussian,
+                    RenderingBias = System.Windows.Media.Effects.RenderingBias.Quality
+                };
             // Crisp glyphs: pixel-snapped layout + grayscale AA (ClearType can't subpixel on the
             // transparent overlay, and the default left the placed text looking aliased).
             TextOptions.SetTextFormattingMode(tb, TextFormattingMode.Display);

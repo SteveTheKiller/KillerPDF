@@ -838,6 +838,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Bar_Fill">Kitöltés:</sys:String>
     <sys:String x:Key="Str_Bar_Size">Méret:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Betűköz:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Elmosás:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Átlátszatlanság:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Kitöltés átlátszatlansága:</sys:String>
     <sys:String x:Key="Str_Bar_Font">Betűtípus:</sys:String>

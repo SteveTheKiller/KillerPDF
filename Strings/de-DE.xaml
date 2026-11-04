@@ -752,6 +752,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Bar_Fill">Füllung:</sys:String>
     <sys:String x:Key="Str_Bar_Size">Größe:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Zeichenabstand:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Weichzeichnung:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Deckkraft:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Füll-Deckkraft:</sys:String>
     <sys:String x:Key="Str_Bar_Font">Schriftart:</sys:String>

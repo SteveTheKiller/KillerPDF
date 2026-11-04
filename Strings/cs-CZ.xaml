@@ -829,6 +829,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Bar_Fill">Výplň:</sys:String>
     <sys:String x:Key="Str_Bar_Size">Velikost:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Rozestup:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Rozmazání:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Krytí:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Krytí výplně:</sys:String>
     <sys:String x:Key="Str_Bar_Font">Písmo:</sys:String>

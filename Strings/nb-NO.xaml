@@ -838,6 +838,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Bar_Fill">Fyll:</sys:String>
     <sys:String x:Key="Str_Bar_Size">Størrelse:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Avstand:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Uskarphet:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Ugjennomsiktighet:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Fyllets ugjennomsiktighet:</sys:String>
     <sys:String x:Key="Str_Bar_Font">Skrifttype:</sys:String>

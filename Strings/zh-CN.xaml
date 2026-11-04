@@ -752,6 +752,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Bar_Fill">填充：</sys:String>
     <sys:String x:Key="Str_Bar_Size">大小：</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">字符间距：</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">模糊:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">不透明度：</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">填充不透明度：</sys:String>
     <sys:String x:Key="Str_Bar_Font">字体：</sys:String>

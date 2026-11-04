@@ -473,6 +473,7 @@ namespace KillerPDF.Shell
                 Content = t.Content,
                 FontSize = t.FontSize,
                 LetterSpacing = t.LetterSpacing,
+                BlurRadius = t.BlurRadius,
                 FontName = t.FontName,
                 Bold = t.Bold,
                 Italic = t.Italic,

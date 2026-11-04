@@ -772,6 +772,7 @@
     <sys:String x:Key="Str_Bar_Fill">Polnilo:</sys:String>
     <sys:String x:Key="Str_Bar_Size">Velikost:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Razmik:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Zameglitev:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Prekrivnost:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Prekrivnost polnila:</sys:String>
     <sys:String x:Key="Str_Bar_Font">Pisava:</sys:String>

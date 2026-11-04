@@ -820,6 +820,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Bar_Fill">Wypełnij:</sys:String>
     <sys:String x:Key="Str_Bar_Size">Rozmiar:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Odstęp:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Rozmycie:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Krycie:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Krycie wypełnienia:</sys:String>
     <sys:String x:Key="Str_Bar_Font">Czcionka:</sys:String>

@@ -8,6 +8,7 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Rendering;
 using EngineImage = KillerPdf.Engine.Authoring.PdfImage;
 using WpfPoint = System.Windows.Point;
 
@@ -316,13 +317,21 @@ internal static class PdfEngineBurn
 
     private static void DrawTextBox(PdfContentStreamBuilder content, TextAnnotation text,
         double x, double y, double width, double height, double sx, double sy,
-        Dictionary<string, TrueTypeFont> fonts)
+        Dictionary<string, TrueTypeFont> fonts, bool allowBlur = true, bool invisible = false)
     {
-        if (text.HasFill) FillRect(content, x, y, width, height,
+        if (allowBlur && text.HasFill) FillRect(content, x, y, width, height,
             text.BgR, text.BgG, text.BgB, text.BgA);
         if (string.IsNullOrEmpty(text.Content)) return;
         TrueTypeFont? font = Font(fonts, text.FontName, text.Content, text.Bold, text.Italic);
         if (font is null) return;
+        double blur = text.PairId.Length > 0 && double.IsFinite(text.BlurRadius)
+            ? Math.Clamp(text.BlurRadius * sy, 0, 8) : 0;
+        if (allowBlur && blur > 0)
+        {
+            DrawBlurredText(content, text, x, y, width, height, sx, sy, blur, fonts);
+            DrawTextBox(content, text, x, y, width, height, sx, sy, fonts, allowBlur: false, invisible: true);
+            return;
+        }
         double size = Math.Max(1, text.FontSize * sy);
         double padX = 2 * sx, padY = 2 * sy;
         double lineHeight = size * 1.2;
@@ -330,6 +339,7 @@ internal static class PdfEngineBurn
         var lines = Wrap(text.Content, font, size, Math.Max(1, width - 2 * padX), characterSpacing);
         content.SaveState().SetFillRgb(text.ColorR / 255d, text.ColorG / 255d, text.ColorB / 255d)
             .SetOpacity(text.ColorA / 255d).BeginText().SetFont(font, size)
+            .SetTextRenderingMode(invisible ? PdfTextRenderingMode.Invisible : PdfTextRenderingMode.Fill)
             .SetCharacterSpacing(characterSpacing);
         // WPF positions glyphs at the typeface's own baseline, which is not necessarily one em below
         // the top of the TextBlock. Assuming a full em here made saved text jump vertically even
@@ -381,11 +391,77 @@ internal static class PdfEngineBurn
                     }
                 }
             }
-            if (text.Underline) DrawRuleAfterText(content, x + padX, baseline + size * .12, lineWidth, size);
-            if (text.Strike) DrawRuleAfterText(content, x + padX, baseline - size * .3, lineWidth, size);
+            if (!invisible && text.Underline) DrawRuleAfterText(content, x + padX, baseline + size * .12, lineWidth, size);
+            if (!invisible && text.Strike) DrawRuleAfterText(content, x + padX, baseline - size * .3, lineWidth, size);
             baseline += lineHeight;
         }
         content.EndText().RestoreState();
+    }
+
+    private static void DrawBlurredText(PdfContentStreamBuilder content, TextAnnotation text,
+        double x, double y, double width, double height, double sx, double sy, double blur,
+        Dictionary<string, TrueTypeFont> fonts)
+    {
+        double margin = Math.Ceiling(blur * 3 + Math.Max(1, text.FontSize * sy) * .5);
+        double layerWidth = width + 2 * margin, layerHeight = height + 2 * margin;
+        double density = Math.Min(600d / 72, Math.Min(4096 / layerWidth, 4096 / layerHeight));
+        density = Math.Min(density, Math.Sqrt(1_048_576d / (layerWidth * layerHeight)));
+        int pixelWidth = Math.Max(1, (int)Math.Floor(layerWidth * density));
+        int pixelHeight = Math.Max(1, (int)Math.Floor(layerHeight * density));
+        var layer = new PdfContentStreamBuilder().SaveState().Transform(1, 0, 0, -1, 0, layerHeight);
+        DrawTextBox(layer, text, margin, margin, width, height, sx, sy, fonts, allowBlur: false);
+        layer.RestoreState();
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(layerWidth, layerHeight, layer).Build());
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(pixelWidth, pixelHeight, transparentBackground: true) { CacheResult = false });
+        float[] alpha = new float[pixelWidth * pixelHeight];
+        for (int pixel = 0; pixel < alpha.Length; pixel++) alpha[pixel] = rendered.Pixels.Span[pixel * 4 + 3];
+        float[] temporary = new float[alpha.Length];
+        BlurAlpha(alpha, temporary, pixelWidth, pixelHeight, blur * pixelWidth / layerWidth, horizontal: true);
+        BlurAlpha(temporary, alpha, pixelWidth, pixelHeight, blur * pixelHeight / layerHeight, horizontal: false);
+        byte[] rgba = new byte[alpha.Length * 4];
+        for (int pixel = 0; pixel < alpha.Length; pixel++)
+        {
+            rgba[pixel * 4] = text.ColorR;
+            rgba[pixel * 4 + 1] = text.ColorG;
+            rgba[pixel * 4 + 2] = text.ColorB;
+            rgba[pixel * 4 + 3] = (byte)Math.Clamp(Math.Round(alpha[pixel]), 0, 255);
+        }
+        content.SaveState().DrawImage(EngineImage.FromRgba(pixelWidth, pixelHeight, rgba),
+            x - margin, y - margin + layerHeight, layerWidth, -layerHeight).RestoreState();
+    }
+
+    private static void BlurAlpha(float[] source, float[] destination, int width, int height,
+        double sigma, bool horizontal)
+    {
+        if (sigma < .01)
+        {
+            source.CopyTo(destination, 0);
+            return;
+        }
+        int radius = Math.Max(1, (int)Math.Ceiling(sigma * 3));
+        double[] kernel = new double[radius * 2 + 1];
+        double total = 0;
+        for (int index = -radius; index <= radius; index++)
+        {
+            double weight = Math.Exp(-index * index / (2 * sigma * sigma));
+            kernel[index + radius] = weight;
+            total += weight;
+        }
+        for (int index = 0; index < kernel.Length; index++) kernel[index] /= total;
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                double value = 0;
+                for (int offset = -radius; offset <= radius; offset++)
+                {
+                    int sampleX = horizontal ? x + offset : x;
+                    int sampleY = horizontal ? y : y + offset;
+                    if ((uint)sampleX < (uint)width && (uint)sampleY < (uint)height)
+                        value += source[sampleY * width + sampleX] * kernel[offset + radius];
+                }
+                destination[y * width + x] = (float)value;
+            }
     }
 
     private static void DrawRuleAfterText(PdfContentStreamBuilder content, double x, double y,

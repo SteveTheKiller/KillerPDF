@@ -839,6 +839,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Bar_Fill">Fill:</sys:String>
     <sys:String x:Key="Str_Bar_Size">Size:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Spacing:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Blur:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Opacity:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Fill Opacity:</sys:String>
     <sys:String x:Key="Str_Bar_Font">Font:</sys:String>

@@ -59,6 +59,8 @@ namespace KillerPDF
         // Additional distance between adjacent characters, in canvas units. Zero preserves text
         // created before the letter-spacing control was introduced.
         public double LetterSpacing { get; set; }
+        // Softening of paired replacement text, in canvas units. Zero keeps ordinary sharp text.
+        public double BlurRadius { get; set; }
         // Typeface and style. FontName is a font-family name (any installed system font). Bold/Italic/Strike
         // apply to the whole box. Defaults keep text placed before these existed rendering as plain Segoe UI.
         public string FontName { get; set; } = "Segoe UI";

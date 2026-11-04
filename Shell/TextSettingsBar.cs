@@ -235,10 +235,8 @@ namespace KillerPDF.Shell
                 _textSettingsBar = null;
             }
 
-            // Six self-contained single-row groups. The finished text bar deliberately pairs them
-            // into two aligned rows: font/style over size, text color over fill color, and text
-            // opacity over fill opacity. This avoids a lone Fill Opacity group looking like an
-            // accidental wrap at otherwise comfortable window widths.
+            // Keep each row's controls together as the bar wraps. The paired columns group
+            // font, size and replacement blur; text and fill colors; and their opacities.
             StackPanel Group()
             {
                 return new StackPanel
@@ -518,6 +516,53 @@ namespace KillerPDF.Shell
             spacingStack.Children.Add(spacingSlider);
             spacingStack.Children.Add(spacingLabel);
 
+            StackPanel? blurStack = null;
+            if (_selectedAnnotation is TextAnnotation { PairId.Length: > 0 } replacement)
+            {
+                blurStack = Group();
+                blurStack.Children.Add(DimLabel(Loc("Str_Bar_Blur"), 0));
+                double BlurUnit()
+                {
+                    if (_doc is not null && _renderDims.TryGetValue(replacement.PageIndex, out var dimensions)
+                        && dimensions.h > 0)
+                    {
+                        double unit = PointsPerCanvasUnit(replacement.PageIndex, dimensions.h);
+                        if (unit > 0) return unit;
+                    }
+                    return 1;
+                }
+                var blurSlider = new Slider
+                {
+                    Name = "ReplacementTextBlurSlider", Minimum = 0, Maximum = 2,
+                    Value = Math.Clamp(replacement.BlurRadius * BlurUnit(), 0, 2),
+                    Width = 90, TickFrequency = .05, IsSnapToTickEnabled = true,
+                    VerticalAlignment = VerticalAlignment.Center, Style = (Style)FindResource("DarkSlider")
+                };
+                System.Windows.Automation.AutomationProperties.SetName(blurSlider, Loc("Str_Bar_Blur"));
+                var blurLabel = new TextBlock
+                {
+                    Text = $"{blurSlider.Value:0.##} pt", Width = 48,
+                    FontFamily = UiKit.MonoFont, FontSize = 11, Margin = new Thickness(4, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center, TextAlignment = TextAlignment.Right
+                };
+                blurLabel.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+                blurSlider.ValueChanged += (_, e) =>
+                {
+                    if (!ReferenceEquals(_selectedAnnotation, replacement)) return;
+                    double radius = Math.Round(e.NewValue, 2) / BlurUnit();
+                    if (replacement.BlurRadius == radius) return;
+                    ActiveViewer.PushPageSnapshotUndoExt(replacement.PageIndex);
+                    replacement.BlurRadius = radius;
+                    blurLabel.Text = $"{e.NewValue:0.##} pt";
+                    MarkDirty();
+                    RenderAllAnnotations(replacement.PageIndex);
+                    if (_selectionBorder is not null) _activeCanvas.Children.Add(_selectionBorder);
+                    foreach (var handle in _resizeHandles) _activeCanvas.Children.Add(handle);
+                };
+                blurStack.Children.Add(blurSlider);
+                blurStack.Children.Add(blurLabel);
+            }
+
             // Font group: typeface selector + Bold / Italic / Strikethrough / Underline.
             // A small square toggle whose glyph previews its own effect (bold B, italic I, struck-through S).
             Border StyleToggle(string glyph, string tip, bool active, FontWeight fw, FontStyle fs, TextDecorationCollection? deco, Action onClick)
@@ -657,6 +702,7 @@ namespace KillerPDF.Shell
             fontPair.Children.Add(fontStack);
             fontPair.Children.Add(sizeStack);
             fontPair.Children.Add(spacingStack);
+            if (blurStack is not null) fontPair.Children.Add(blurStack);
 
             // Edit paragraph takes the free third row under the swatches, so it adds no width.
             var paragraphButton = UiKit.Make(Loc("Str_Paragraph_Title"), false);

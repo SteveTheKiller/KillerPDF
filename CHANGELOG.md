@@ -36,6 +36,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - Native FP16 presentation owns frame and overlay lifetimes, preserves bindings, resources, page clicks, wheel scrolling and transparent text editing including quick clicks, resizes within pixel limits, follows layout clipping automatically including fully clipped views, reports composition failures and observes the window's display, outputs, color mode, SDR white level and profile association with notification-driven invalidation. Portable policy selects conversion ownership and HDR white scaling; named ICC profiles load into the portable color engine. Viewer integration is in progress. (#264)
 - Native PDF/EPUB/DjVu read sessions support cancellation, resource rebuilding and original-byte copies. EPUB accepts canonical XHTML 1.1 declarations, lays out initial inline and packaged CSS typography, and opens natively in Single/Continuous views with switching into Grid. Initial DjVu viewing includes tabs, thumbnails, Single/Continuous views and switching into Grid; broader viewer integration is in progress. (#264, #472)
+- Replacement text on scans has an optional blur control and stays searchable when saved. (#467)
 
 ## [1.9.2] - 2026-11-02
 

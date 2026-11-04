@@ -838,6 +838,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Bar_Fill">Màu tô:</sys:String>
     <sys:String x:Key="Str_Bar_Size">Kích thước:</sys:String>
     <sys:String x:Key="Str_Bar_LetterSpacing">Khoảng cách chữ:</sys:String>
+    <sys:String x:Key="Str_Bar_Blur">Độ nhòe:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Độ mờ:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Độ mờ màu tô:</sys:String>
     <sys:String x:Key="Str_Bar_Font">Phông chữ:</sys:String>
