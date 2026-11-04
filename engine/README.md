@@ -323,6 +323,7 @@ and separate gamut-warning masks. Paper simulation requires reliable explicit me
 appearance. Paper-only viewing preserves paper tint while mapping estimated printer black to reference zero;
 it is a viewing aid rather than an ICC intent. Compensation uses bounded ICC estimates against
 mathematical zero-black RGB reference, with unavailable or degenerate conditions diagnosed.
+Supported calibrated `DefaultGray` resources are applied to fill and stroke colors before proof conversion.
 The selected output profile must have actual colorimetric transforms in both directions.
 The requested inverse must be available without intent fallback. Absolute source conversion
 also requires explicit valid media white; source BPC is an identity for that intent.

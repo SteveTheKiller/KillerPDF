@@ -13,6 +13,28 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPrecisionProofTests
 {
     [Theory]
+    [InlineData(".5 g 0 0 1 1 re f")]
+    [InlineData(".5 G 1 w 0 .5 m 1 .5 l S")]
+    public void ProofHonorsCalibratedDefaultGrayBeforePrinterConversion(string content)
+    {
+        var source = PageGroup(PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            Encoding.ASCII.GetBytes(content)).Build()), defaultGray: true);
+        var options = new PdfRenderOptions(1, 1)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: GrayPrinter(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // CalGray gamma2 gives Y=.25. It remains inside the gray printer range.
+        // Treating the same token as assumed sRGB would instead give Y=.21404114.
+        double luminance = .2126 * frame.Pixels[0] + .7152 * frame.Pixels[1] + .0722 * frame.Pixels[2];
+        Assert.InRange(luminance, .25 - .0001, .25 + .0001);
+        Assert.Equal(1f, frame.Pixels[3]);
+    }
+
+    [Theory]
     [InlineData(0, .5, .1250019, PdfGamutClassification.Outside)]
     [InlineData(.5, .5, .21404114048223255, PdfGamutClassification.Inside)]
     [InlineData(0, .0001, .1250019, PdfGamutClassification.Outside)]
@@ -484,11 +506,10 @@ public sealed class PdfPrecisionProofTests
     }
 
     [Theory]
-    [InlineData("default-gray")]
     [InlineData("class")]
     [InlineData("fallback")]
     [InlineData("reverse")]
-    public void InitialProofSubsetDiagnosesResourceDefaultsAndUnusablePrintingConditions(string condition)
+    public void ProofDiagnosesUnusablePrintingConditions(string condition)
     {
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
             Encoding.ASCII.GetBytes(".5 g 0 0 1 1 re f")).Build());
@@ -499,7 +520,7 @@ public sealed class PdfPrecisionProofTests
                     perceptualOnly: condition == "fallback", includeReverse: condition != "reverse"),
                 options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
         };
-        var document = PageGroup(source, defaultGray: condition == "default-gray");
+        var document = PageGroup(source);
 
         var error = Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0, options));
 

@@ -40,7 +40,8 @@ public sealed partial class PdfPageRenderer
     /// Unprofiled non-knockout DeviceRGB page groups retain precision through final imposition
     /// on white for opaque output; transparent output preserves their alpha.
     /// Initial printer proof rendering accepts unprofiled DeviceRGB page groups with direct
-    /// DeviceRGB/Gray path paints, all four intents with an actual selected inverse, optional source BPC and independent paper/black simulation,
+    /// DeviceRGB/Gray path paints including supported DefaultGray calibration, all four intents with an actual selected inverse,
+    /// optional source BPC and independent paper/black simulation,
     /// with separate gamut-warning masks. Paper-only viewing preserves paper tint while mapping estimated printer black to reference zero.
     /// Compensation uses bounded ICC estimates against reference zero black.
     /// It uses actual colorimetric printer transforms and preserves extended reference RGB output.
@@ -80,8 +81,6 @@ public sealed partial class PdfPageRenderer
         {
             if (!page.TryGetValue(Name("Group"), out _))
                 throw new NotSupportedException("Printer proof rendering requires an explicit supported RGB page group.");
-            if (ReadColorSpace(Name("DeviceGray"), _pageResources[pageIndex], 0).IsDefault)
-                throw new NotSupportedException("Printer proof rendering does not yet support a resource DefaultGray space.");
             if (proofRequest.PrinterProfile is not { ProfileClassSignature: "prtr",
                 HasColorimetricForward: true, HasColorimetricReverse: true })
                 throw new NotSupportedException("Printer proof rendering requires an output profile with actual colorimetric transforms in both directions.");
