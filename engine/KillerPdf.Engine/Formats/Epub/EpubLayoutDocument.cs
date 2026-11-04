@@ -23,13 +23,14 @@ public sealed record EpubTextPlacement(int SpineIndex, int Start, int Length,
 public sealed class EpubLayoutPage
 {
     internal EpubLayoutPage(string text, int textStart, int spineIndex, IEnumerable<EpubTextPlacement> placements,
-        IEnumerable<NativeGlyphPaint> glyphs)
+        IEnumerable<NativeGlyphPaint> glyphs, PdfRgbColor? canvasBackground = null)
     {
         Text = text;
         TextStart = textStart;
         SpineIndex = spineIndex;
         TextPlacements = Array.AsReadOnly(placements.ToArray());
         Glyphs = Array.AsReadOnly(glyphs.ToArray());
+        CanvasBackground = canvasBackground;
     }
     /// <summary>Gets the page's original structural text.</summary>
     public string Text { get; }
@@ -40,6 +41,7 @@ public sealed class EpubLayoutPage
     /// <summary>Gets logical text placements independently of glyph ink.</summary>
     public IReadOnlyList<EpubTextPlacement> TextPlacements { get; }
     internal IReadOnlyList<NativeGlyphPaint> Glyphs { get; }
+    internal PdfRgbColor? CanvasBackground { get; }
 }
 
 /// <summary>Owns native EPUB pages, typography and rendering state.</summary>
@@ -61,7 +63,7 @@ public sealed class EpubLayoutDocument
         if (pageIndex < 0 || pageIndex >= Pages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         return NativeGlyphPainter.Render((int)Math.Ceiling(_options.PageWidth), (int)Math.Ceiling(_options.PageHeight),
-            Pages[pageIndex].Glyphs, _options.TextColor, cancellationToken);
+            Pages[pageIndex].Glyphs, _options.TextColor, cancellationToken, background: Pages[pageIndex].CanvasBackground);
     }
 
     /// <summary>Renders original glyph outlines at exact pixel dimensions without reflowing text.</summary>
@@ -78,6 +80,6 @@ public sealed class EpubLayoutDocument
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
         return NativeGlyphPainter.Render(options.Width, options.Height, Pages[pageIndex].Glyphs,
             _options.TextColor, cancellationToken, options.Width / _options.PageWidth,
-            options.Height / _options.PageHeight);
+            options.Height / _options.PageHeight, Pages[pageIndex].CanvasBackground);
     }
 }

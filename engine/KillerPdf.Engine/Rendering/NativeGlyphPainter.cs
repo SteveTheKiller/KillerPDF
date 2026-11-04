@@ -10,7 +10,7 @@ internal static class NativeGlyphPainter
     private const long MaximumWorkingPixelBytes = 128L * 1024 * 1024;
 
     internal static PdfRenderedFrame Render(int width, int height, IReadOnlyList<NativeGlyphPaint> glyphs,
-        PdfRgbColor color, CancellationToken cancellationToken, double scaleX = 1, double scaleY = 1)
+        PdfRgbColor color, CancellationToken cancellationToken, double scaleX = 1, double scaleY = 1, PdfRgbColor? background = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
@@ -23,7 +23,18 @@ internal static class NativeGlyphPainter
         if (glyphs.Count > 100_000)
             throw new InvalidDataException("The native page exceeds its glyph limit.");
         var pixels = new float[checked((int)pixelCount * 4)];
-        Array.Fill(pixels, 1f);
+        if (background is { } canvas)
+        {
+            for (int offset = 0; offset < pixels.Length; offset += 4)
+            {
+                if ((offset & 16383) == 0) cancellationToken.ThrowIfCancellationRequested();
+                pixels[offset] = (float)canvas.Red;
+                pixels[offset + 1] = (float)canvas.Green;
+                pixels[offset + 2] = (float)canvas.Blue;
+                pixels[offset + 3] = 1f;
+            }
+        }
+        else Array.Fill(pixels, 1f);
         foreach (var glyph in glyphs)
         {
             cancellationToken.ThrowIfCancellationRequested();

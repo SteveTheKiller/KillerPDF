@@ -11,6 +11,63 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubNativeLayoutTests
 {
+    [Fact]
+    public void CapturedSnapshotPreservesBodyCanvasWithIndependentAxisScaling()
+    {
+        byte[] source = Book("<p>A</p>", "body{color:white;background-color:#800000}");
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var snapshot = KillerPdf.Engine.Documents.PdfReadSnapshot.OpenEpub(source,
+            new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 });
+
+        var frame = snapshot.RenderPage(0, new PdfRenderOptions(60, 48));
+
+        Assert.Equal(1, snapshot.PageCount);
+        Assert.Equal(60, frame.Width);
+        Assert.Equal(48, frame.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((15 * 60 + 14) * 4, 4).ToArray());
+        int offset = 47 * 60 * 4;
+        Assert.InRange(frame.Pixels[offset], .2158603f, .2158607f);
+        Assert.Equal(0f, frame.Pixels[offset + 1]);
+        Assert.Equal(0f, frame.Pixels[offset + 2]);
+        Assert.Equal(1f, frame.Pixels[offset + 3]);
+    }
+
+    [Fact]
+    public void NativeLayoutPropagatesBodyBackgroundToCanvasBeforePaintingGlyphInk()
+    {
+        const string stylesheet = "body{color:white;background-color:#800000}";
+        byte[] stylesheetBytes = Encoding.UTF8.GetBytes(stylesheet);
+        var book = EpubDocument.Open(Book("<p>A</p>", stylesheet));
+        Assert.Equal(stylesheetBytes, book.ReadResource("EPUB/styles/book.css"));
+        Assert.Equal("A", book.ReadText(0));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var options = new EpubLayoutOptions(30, 16, font) {
+            FontSize = 10, Margin = 2, TextColor = new PdfRgbColor(.5001, .5001, .5001) };
+
+        var layout = book.CreateLayout(options);
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A", page.Text);
+        Assert.Equal(0, page.SpineIndex);
+        Assert.Equal(0, page.TextStart);
+        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) }, page.TextPlacements);
+
+        var frame = layout.RenderPage(0);
+
+        Assert.Equal(30, frame.Width);
+        Assert.Equal(16, frame.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((5 * 30 + 7) * 4, 4).ToArray());
+        int backgroundOffset = 15 * 30 * 4;
+        Assert.InRange(frame.Pixels[backgroundOffset], .2158603f, .2158607f);
+        Assert.Equal(0f, frame.Pixels[backgroundOffset + 1]);
+        Assert.Equal(0f, frame.Pixels[backgroundOffset + 2]);
+        Assert.Equal(1f, frame.Pixels[backgroundOffset + 3]);
+        Assert.Equal(stylesheetBytes, book.ReadResource("EPUB/styles/book.css"));
+    }
+
     [Theory]
     [InlineData("black", 0f, 0f, 0f)]
     [InlineData("silver", .5271151f, .5271151f, .5271151f)]

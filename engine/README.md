@@ -160,6 +160,10 @@ inline font's ascent and descent; explicit pixel line heights inherit as lengths
 Foreground `color` accepts six-digit sRGB hex values and the 16 basic CSS color
 keywords, case-insensitively. It inherits and follows property-specific cascade
 precedence. Individual glyphs retain their foreground color through rendering.
+Body `background-color` uses the same color syntax and paints the whole reading
+canvas, including margins, at natural and requested pixel sizes. Backgrounds do
+not inherit; backgrounds on other elements are explicitly diagnosed until box
+painting is implemented.
 Packaged rules support grouped type selectors and compound classes such as
 `p, span.small.keep`, with class specificity and declaration order applied separately
 to each property. Inline declarations override packaged rules. Each chapter limits

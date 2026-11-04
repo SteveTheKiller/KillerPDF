@@ -7,7 +7,7 @@ namespace KillerPdf.Engine.Formats.Epub;
 // Source nodes survive normalization so collapsed whitespace keeps its original inline style.
 internal sealed class EpubNativeContent(double fallbackSize, double contentHeight)
 {
-    internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null);
+    internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null, PdfRgbColor? Background = null);
     internal sealed record Element(string Name, Element? Parent, Style Style, Style BlockStyle);
     internal sealed record Text(string Value, Element Owner);
     internal sealed record SourceCharacter(Text Node, int Offset)
@@ -23,6 +23,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private bool _bodySeen;
     internal List<SourceCharacter?> Characters { get; } = new();
     internal Style DefaultStyle { get; } = new(fallbackSize, null);
+    internal PdfRgbColor? CanvasBackground { get; private set; }
 
     internal void Enter(XmlReader xml)
     {
@@ -60,8 +61,16 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 throw new NotSupportedException("Native EPUB XHTML attributes and styling are not implemented.");
         }
         xml.MoveToElement();
-        Style style = ApplyRules(name, classNames, parent?.Style ?? DefaultStyle);
+        Style inherited = parent?.Style ?? DefaultStyle;
+        if (inherited.Background is not null) inherited = inherited with { Background = null };
+        Style style = ApplyRules(name, classNames, inherited);
         if (inlineStyle is not null) style = ParseStyle(inlineStyle, style);
+        if (style.Background is { } background)
+        {
+            if (name != "body")
+                throw new NotSupportedException("Native EPUB element background painting is not implemented.");
+            CanvasBackground = background;
+        }
         var element = new Element(name, parent, style, name == "p" ? style : parent?.BlockStyle ?? style);
         if (!empty) _ancestors.Push(element);
     }
@@ -129,8 +138,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         if (!_typeRules.TryGetValue(name, out var rules)) return inherited;
         string[] classes = classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [];
         double? size = null, height = null;
-        PdfRgbColor? color = null;
-        int sizeSpecificity = -1, heightSpecificity = -1, colorSpecificity = -1;
+        PdfRgbColor? color = null, background = null;
+        int sizeSpecificity = -1, heightSpecificity = -1, colorSpecificity = -1, backgroundSpecificity = -1;
         foreach (var rule in rules)
         {
             CountSelectorWork(1);
@@ -168,8 +177,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 color = foreground;
                 colorSpecificity = specificity;
             }
+            if (rule.Properties.Background is { } fill && specificity >= backgroundSpecificity)
+            {
+                background = fill;
+                backgroundSpecificity = specificity;
+            }
         }
-        return new CssProperties(size, height, color).Apply(inherited);
+        return new CssProperties(size, height, color, background).Apply(inherited);
     }
 
     private void CountSelectorWork(int amount)
@@ -179,10 +193,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         _selectorWork += amount;
     }
 
-    private readonly record struct CssProperties(double? FontSize, double? LineHeight, PdfRgbColor? Color = null)
+    private readonly record struct CssProperties(double? FontSize, double? LineHeight, PdfRgbColor? Color = null, PdfRgbColor? Background = null)
     {
         internal Style Apply(Style inherited) =>
-            new(FontSize ?? inherited.FontSize, LineHeight ?? inherited.LineHeight, Color ?? inherited.Color);
+            new(FontSize ?? inherited.FontSize, LineHeight ?? inherited.LineHeight, Color ?? inherited.Color, Background ?? inherited.Background);
     }
 
     private Style ParseStyle(string declarations, Style inherited) => ParseProperties(declarations).Apply(inherited);
@@ -190,7 +204,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private CssProperties ParseProperties(string declarations)
     {
         double? size = null, height = null;
-        PdfRgbColor? color = null;
+        PdfRgbColor? color = null, background = null;
         foreach (string declaration in declarations.Split(';'))
         {
             string part = declaration.Trim();
@@ -204,6 +218,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 color = ParseColor(value);
                 continue;
             }
+            if (property == "background-color")
+            {
+                background = ParseColor(value);
+                continue;
+            }
             if (!value.EndsWith("px", StringComparison.OrdinalIgnoreCase)
                 || !double.TryParse(value[..^2], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double pixels)
                 || !double.IsFinite(pixels) || pixels <= 0 || pixels > contentHeight)
@@ -215,7 +234,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new CssProperties(size, height, color);
+        return new CssProperties(size, height, color, background);
     }
 
     private static PdfRgbColor ParseColor(string value)
@@ -228,7 +247,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             _ => -1 };
         if (rgb < 0 && !(value.Length == 7 && value[0] == '#'
             && int.TryParse(value.AsSpan(1), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out rgb)))
-            throw new NotSupportedException("Native EPUB foreground color is not implemented.");
+            throw new NotSupportedException("Native EPUB CSS color is not implemented.");
         return new((rgb >> 16) / 255d, ((rgb >> 8) & 255) / 255d, (rgb & 255) / 255d);
     }
 }

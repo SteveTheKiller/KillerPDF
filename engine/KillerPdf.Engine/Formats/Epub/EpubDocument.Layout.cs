@@ -187,7 +187,7 @@ public sealed partial class EpubDocument
 
         void FinishPage(int end)
         {
-            pages.Add(new EpubLayoutPage(text[pageStart..end], pageStart, spineIndex, placements, glyphs));
+            pages.Add(new EpubLayoutPage(text[pageStart..end], pageStart, spineIndex, placements, glyphs, content.CanvasBackground));
             pageStart = end;
             placements.Clear();
             glyphs.Clear();

@@ -16,6 +16,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Repeated partial rasterization preserves form-local image resources, and affected-content counts exclude unpainted paths. (#369)
 - Document, annotation and attachment dates are written with the Gregorian calendar whatever the current culture, so Thai, Arabic and Persian regions no longer write years like 2569. Preflight messages write their numbers with a decimal point.
 - EPUB diagnoses head metadata after the body instead of returning unstyled pages and bounds CSS selector matching work. (#472)
+- EPUB preserves body background colors across native page sizes. (#472)
 
 ### Added
 
