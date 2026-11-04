@@ -36,6 +36,23 @@ public sealed class PdfPrecisionCmykImageTests
     }
 
     [Fact]
+    public void DefaultCmykSourceProfileRetainsAdjacentSixteenBitLevels()
+    {
+        var renderer = Renderer(Convert.FromBase64String(ProfileBase64), scenario: "default");
+
+        var frame = renderer.RenderFrame(0, new PdfRenderOptions(2, 1, transparentBackground: true));
+
+        // The same independent affine PCS oracle applies when the resource default
+        // supplies this ICC profile for the original DeviceCMYK samples.
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        AssertPixel(frame, 0, 0.25656640931229085f, 0.24270025515688283f, 0.31217781759250244f);
+        AssertPixel(frame, 1, 0.25655445469789561f, 0.24270398889375892f, 0.31217754305628471f);
+        Assert.True(frame.Pixels[0] > frame.Pixels[4]);
+        byte[] quantized = frame.ToSrgbBgra32();
+        Assert.Equal(quantized[..4], quantized[4..]);
+    }
+
+    [Fact]
     public void VersionTwoColorimetricCmykImageUsesTheSameXyzEncoding()
     {
         byte[] profile = Convert.FromBase64String(ProfileBase64);
@@ -87,7 +104,6 @@ public sealed class PdfPrecisionCmykImageTests
     [InlineData("interpolated")]
     [InlineData("rotated")]
     [InlineData("mask")]
-    [InlineData("default")]
     [InlineData("invalid")]
     [InlineData("missingColorimetricTable")]
     [InlineData("range")]

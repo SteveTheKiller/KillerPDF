@@ -5749,7 +5749,7 @@ public sealed partial class PdfPageRenderer
         {
             bool naturalSamples = Math.Abs(sampleStepX - 1) <= 1e-9
                 && Math.Abs(sampleStepY - 1) <= 1e-9;
-            bool preciseCmyk = colorSpace is { IsIccBased: true, IsDefault: false, ComponentRange: null,
+            bool preciseCmyk = colorSpace is { IsIccBased: true, ComponentRange: null,
                 Profile: PdfIccProfileTransform { IsLutBased: true, IsLabInput: false,
                     Components: 4, RenderingIntent: 1, ForwardTableSignature: "A2B1" } }
                 && colorSpace.Intent == 1 && !colorSpace.BlackPointCompensationEnabled;
