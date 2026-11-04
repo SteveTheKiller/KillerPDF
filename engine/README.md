@@ -323,6 +323,9 @@ report interpretation, supported boundaries, and previewed corrections.
 
 See [OCR integration and review](docs/ocr.md) for models, provider selection,
 coordinates, correction, searchable output, and held-out validation.
+New pixel-space searchable text fits known TrueType word ink heights to recognized
+boxes, preserving the line placement of short words. Fonts without usable glyph
+bounds retain the em-based placement fallback.
 
 See [AcroForm values and interchange](docs/forms.md) for widget reading,
 XFDF export, reviewed imports, incremental saves, and flattening boundaries.

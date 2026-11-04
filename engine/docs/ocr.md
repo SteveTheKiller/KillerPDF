@@ -125,6 +125,14 @@ the corresponding rendered page. A null font skips that word; inspect
 `WrittenWords` rather than assuming every recognition was written. If no words
 can be written, handle that case before requesting an empty incremental update.
 
+The pixel-space writer fits each word's known TrueType glyph ink height to its
+recognized rectangle. This keeps short word boxes aligned with taller words on
+the same visual line. Horizontal scale continues to fit the word's advance to
+the recognized width. Missing, empty, or unavailable glyph bounds retain the
+em-based placement fallback. This affects newly written searchable text; it
+does not rewrite an existing PDF's text layer or establish the reading order of
+separate panels.
+
 ## Select a local provider
 
 `IPdfOcrRasterProvider` accepts BGRA pixels, width, height, and row stride.

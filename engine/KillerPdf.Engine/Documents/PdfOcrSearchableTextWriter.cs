@@ -26,6 +26,7 @@ public static class PdfOcrSearchableTextWriter
             throw new ArgumentException(
                 "The OCR page count must match the PDF page count.", nameof(pages));
         var editor = new PdfIncrementalPageEditor(document);
+        var outlines = new Dictionary<TrueTypeFont, TrueTypeOutlineReader>();
         int writtenWords = 0;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++)
         {
@@ -56,14 +57,33 @@ public static class PdfOcrSearchableTextWriter
                 if (font is null) continue;
                 double height = (word.Bottom - (double)word.Top) * scaleY;
                 double width = (word.Right - (double)word.Left) * scaleX;
-                double naturalWidth = font.MapText(word.Text)
+                var mappings = font.MapText(word.Text);
+                if (!outlines.TryGetValue(font, out TrueTypeOutlineReader? reader))
+                    outlines.Add(font, reader = new TrueTypeOutlineReader(font));
+                double bottom = double.PositiveInfinity, top = double.NegativeInfinity;
+                bool knownBounds = true;
+                foreach (var mapping in mappings)
+                {
+                    PdfGlyphBounds? bounds = mapping.Glyph == 0 ? null : reader.Bounds(mapping.Glyph);
+                    if (bounds is null) { knownBounds = false; break; }
+                    if (bounds.Value.Top <= bounds.Value.Bottom) continue;
+                    bottom = Math.Min(bottom, bounds.Value.Bottom);
+                    top = Math.Max(top, bounds.Value.Top);
+                }
+                double size = height, baseline = height * 0.8;
+                if (knownBounds && top > bottom)
+                {
+                    size = height * 1000 / (top - bottom);
+                    baseline = top * size / 1000;
+                }
+                double naturalWidth = mappings
                     .Sum(mapping => font.GetPdfAdvanceWidth(mapping.Glyph))
-                    * height / 1000;
+                    * size / 1000;
                 double horizontalScale = naturalWidth > 0
                     ? Math.Clamp(width / naturalWidth * 100, 10, 1000) : 100;
-                content.SetFont(font, height).SetHorizontalTextScale(horizontalScale)
+                content.SetFont(font, size).SetHorizontalTextScale(horizontalScale)
                     .SetTextMatrix(1, 0, 0, -1, word.Left * scaleX,
-                        word.Top * scaleY + height * 0.8)
+                        word.Top * scaleY + baseline)
                     .ShowUnicodeText(word.Text);
                 pageWords++;
             }

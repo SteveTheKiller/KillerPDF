@@ -14,6 +14,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Page import preserves optional popup links, saved markup appearances, resource metadata, image-mask precedence and inherited form fonts and alignment. (#455)
 - Rendering synthesizes missing note and ink appearances and keeps markup geometry in page coordinates.
 - Compatibility text extraction recovers missing non-visibility properties and stray marked-content closing tags while preserving ActualText replacements.
+- Searchable text fits supported TrueType glyph heights to OCR word boxes, keeping short words on their visual lines. (#465)
 - JPX rendering uses codestream precision in strict and compatibility modes while retaining dimension checks.
 - Repeated partial rasterization preserves form-local image resources, and affected-content counts exclude unpainted paths. (#369)
 - Document, annotation and attachment dates are written with the Gregorian calendar whatever the current culture, so Thai, Arabic and Persian regions no longer write years like 2569. Preflight messages write their numbers with a decimal point.
