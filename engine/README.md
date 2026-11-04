@@ -266,6 +266,14 @@ Natural aligned CMYK images and eligible nearest enlargements retain 8/16-bit pr
 ICC source profiles, including a resource `DefaultCMYK` replacement for DeviceCMYK.
 Interpolated or reduced CMYK images, masks and unsupported profile directions remain diagnosed separately.
 
+`PdfDisplayPresentationPolicy.Resolve` interprets Windows display observations without
+accessing the operating system. Conventional SDR requires application monitor conversion;
+Advanced Color uses compositor conversion. HDR scales document white from the reported
+SDR-white setting, while Advanced Color SDR uses display-relative white at one. Missing
+HDR white data and ambiguous outputs leave the policy unavailable. A decision does not
+load a monitor profile, initialize a transport or establish physical accuracy. Desktop
+viewer integration remains in progress.
+
 See the [rendering guide](docs/rendering.md) for integration, pixel layout, authentication,
 diagnostics, resource limits, and validation guidance.
 
