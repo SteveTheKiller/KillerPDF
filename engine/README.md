@@ -280,6 +280,7 @@ Text widgets excluded by render options do not disable precise page rendering.
 Included annotation and form-field appearances remain explicitly unsupported.
 Eligible isolated and non-isolated, non-knockout DeviceRGB Form groups retain floating-point
 colors and alpha through outer Normal compositing and apply invoking opacity once.
+Isolated groups also support invoking Multiply blending against their immediate backdrop.
 Internal Normal and Multiply paints retain backdrop alpha and color. They require an unprofiled
 effective blend space and rectangular clips without fractional coverage. Their exact pixel
 arrays share the render budget across active nested groups. Page groups, other blend spaces,

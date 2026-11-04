@@ -2029,7 +2029,8 @@ public sealed partial class PdfPageRenderer
                 {
                     if (!transparencyGroup || knockout || !IsName(group!, "CS", "DeviceRGB")
                         || ReadColorSpace(Name("DeviceRGB"), formResources, 0, diagnostics: diagnostics).IsDefault
-                        || parentState.BlendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible)
+                        || (parentState.BlendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible)
+                            && !(isolated && parentState.BlendMode == RendererBlendMode.Multiply))
                         || parentState.GraphicsSoftMask is not null || parentState.Knockout is not null
                         || pixels.HasProfile || pixels.GroupAlpha is not null || pixels.GroupShape is not null
                         || formState.Clips.Any(clip => clip.Mask.Coverage is not null))
@@ -2083,8 +2084,12 @@ public sealed partial class PdfPageRenderer
                                 }
                                 double alpha = completed[offset + 3] * parentState.FillAlpha;
                                 if (alpha == 0) continue;
-                                FloatRgbCompositor.SourceOver(parentPixels.PreciseRgb!, parentPixels.Offset(x, y),
-                                    completed[offset], completed[offset + 1], completed[offset + 2], alpha);
+                                if (parentState.BlendMode == RendererBlendMode.Multiply)
+                                    FloatRgbCompositor.Multiply(parentPixels.PreciseRgb!, parentPixels.Offset(x, y),
+                                        completed[offset], completed[offset + 1], completed[offset + 2], alpha);
+                                else
+                                    FloatRgbCompositor.SourceOver(parentPixels.PreciseRgb!, parentPixels.Offset(x, y),
+                                        completed[offset], completed[offset + 1], completed[offset + 2], alpha);
                             }
                         }
                     }

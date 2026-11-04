@@ -11,6 +11,27 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPrecisionGroupTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void IsolatedGroupAppliesInvokingMultiplyToTheCompletedGroup(bool fractionalBackdrop)
+    {
+        var renderer = new PdfPageRenderer(MemoryDocument(depth: 1, siblings: false,
+            opacity: .5, outerOpacity: .5, multiply: true, backdrop: true,
+            fractionalBackdrop: fractionalBackdrop));
+
+        PdfRenderedFrame frame = renderer.RenderFrame(0,
+            new PdfRenderOptions(1, 1, transparentBackground: fractionalBackdrop));
+
+        // Gray1/2 at alpha1/2, invoked at alpha1/2, multiplies the gray1/4 backdrop.
+        // Encoded output is7/32, or19/56 at alpha7/16 for a backdrop at alpha1/4.
+        // Independent Decimal60 sRGB decoding is frozen here.
+        float expected = fractionalBackdrop ? 0.09421945717187386f : 0.03925039247382094f;
+        for (int channel = 0; channel < 3; channel++)
+            Assert.InRange(frame.Pixels[channel], expected - .00000003f, expected + .00000003f);
+        Assert.Equal(fractionalBackdrop ? .4375f : 1, frame.Pixels[3]);
+    }
+
+    [Theory]
     [InlineData(false, true, false, false)]
     [InlineData(true, true, false, false)]
     [InlineData(false, false, true, false)]
@@ -140,10 +161,13 @@ public sealed class PdfPrecisionGroupTests
     }
 
     private static PdfDocument MemoryDocument(int depth, bool siblings, double opacity = 1, bool defaultRgb = false,
-        bool stroke = false, double outerOpacity = 1, bool translated = false, bool isolated = true)
+        bool stroke = false, double outerOpacity = 1, bool translated = false, bool isolated = true,
+        bool multiply = false, bool backdrop = false, bool fractionalBackdrop = false)
     {
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(translated ? 3 : 1, 1,
-            Encoding.ASCII.GetBytes(siblings ? "/Outer gs /Form Do /Form Do" : "/Outer gs /Form Do")).Build());
+            Encoding.ASCII.GetBytes((fractionalBackdrop ? "/Backdrop gs " : "")
+                + (backdrop ? "0.25 g 0 0 1 1 re f " : "")
+                + (siblings ? "/Outer gs /Form Do /Form Do" : "/Outer gs /Form Do"))).Build());
         var catalog = Assert.IsType<PdfDictionary>(source.Resolve(
             Assert.IsType<PdfIndirectReference>(source.Trailer[Name("Root")])));
         var pages = Assert.IsType<PdfDictionary>(source.Resolve(
@@ -172,7 +196,9 @@ public sealed class PdfPrecisionGroupTests
         }
         var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Form", child!)])),
             Entry("ExtGState", new PdfDictionary([Entry("Outer", new PdfDictionary([
-                Entry("ca", new PdfReal(outerOpacity)), Entry("CA", new PdfReal(0.125))]))]))]);
+                Entry("ca", new PdfReal(outerOpacity)), Entry("CA", new PdfReal(0.125)),
+                Entry("BM", Name(multiply ? "Multiply" : "Normal"))])),
+                Entry("Backdrop", new PdfDictionary([Entry("ca", new PdfReal(.25))]))]))]);
         return PdfDocument.Open(update.ReplaceObject(page.ObjectNumber,
             new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))
                 .Append(Entry("Resources", resources)))).Build());

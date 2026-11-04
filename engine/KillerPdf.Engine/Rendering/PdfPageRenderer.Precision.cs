@@ -33,8 +33,8 @@ public sealed partial class PdfPageRenderer
     /// strings, positioned text arrays and quote text-showing operators.
     /// Ordinary Form XObjects retain supported paint precision through their matrix and bounding-box clip.
     /// Eligible isolated and non-isolated non-knockout DeviceRGB Form groups support outer Normal
-    /// compositing and internal Normal or Multiply paints with rectangular clips and no effective
-    /// group profile. Active nested group pixel arrays
+    /// compositing. Isolated groups also support outer Multiply. Internal Normal or Multiply paints
+    /// retain precision with rectangular clips and no effective group profile. Active nested group pixel arrays
     /// share the render storage budget. Other group semantics remain explicitly unsupported.
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
