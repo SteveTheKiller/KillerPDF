@@ -221,6 +221,8 @@ public sealed partial class PdfPageRenderer
         if (pageIndex < 0 || pageIndex >= _pages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         cancellationToken.ThrowIfCancellationRequested();
+        if (options.Proof is { Enabled: true })
+            throw new NotSupportedException("Printer proof output is not implemented for byte rendering.");
         if (!options.CacheResult || options.SeparationPlate is not null)
             return RenderUncached(pageIndex, options, cancellationToken);
         var key = new RenderCacheKey(pageIndex, options.Width, options.Height,
@@ -290,6 +292,8 @@ public sealed partial class PdfPageRenderer
         CancellationToken cancellationToken, byte[]? destination = null,
         (int Left, int Top, int Right, int Bottom)? region = null, float[]? preciseRgb = null)
     {
+        if (preciseRgb is null && options.Proof is { Enabled: true })
+            throw new NotSupportedException("Printer proof output is not implemented for byte rendering.");
         using PageGlyphMaskScope pageGlyphMasks = EnterPageGlyphMasks();
         bool pageHasGroup = _tree.Pages[pageIndex].Dictionary.TryGetValue(Name("Group"), out _);
         // Compositing an RGB or gray page group on a transparent backdrop and imposing it on
@@ -488,6 +492,9 @@ public sealed partial class PdfPageRenderer
             foreach (PdfContentInstruction instruction in instructions)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (pixels.PreciseRgb is not null && options.Proof is { Enabled: true }
+                    && !PreciseProofOperationSupported(instruction.Operator))
+                    throw new NotSupportedException($"Printer proof operator {instruction.Operator} is not implemented.");
                 if (pixels.PreciseRgb is not null && !PreciseOperationSupported(instruction.Operator))
                     throw new NotSupportedException($"High-precision operator {instruction.Operator} is not implemented.");
                 using var inputProfile = pixels.PrepareInput(state.RenderingIntent);

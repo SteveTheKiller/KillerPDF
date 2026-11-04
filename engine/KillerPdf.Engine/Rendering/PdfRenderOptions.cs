@@ -1,8 +1,14 @@
+using KillerPdf.Engine.ColorManagement;
+
 namespace KillerPdf.Engine.Rendering;
 
 /// <summary>Controls one bounded page rasterization.</summary>
 public sealed record PdfRenderOptions
 {
+    /// <summary>Gets optional requested printer proof preferences for float frame rendering.</summary>
+    /// <remarks>Unsupported requests, including enabled proof on byte or native renderers, are diagnosed.</remarks>
+    public PdfDocumentProofSettings? Proof { get; init; }
+
     /// <summary>Creates render options for an exact pixel size.</summary>
     public PdfRenderOptions(int width, int height, bool transparentBackground = false,
         bool includeAnnotations = true, bool includeFormFields = true,

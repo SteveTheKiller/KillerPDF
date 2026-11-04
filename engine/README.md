@@ -297,6 +297,13 @@ for each required source-alpha plane. Unprofiled, non-knockout DeviceRGB page gr
 precision through final Normal imposition on white for opaque output. Transparent output
 keeps the page group's alpha, and direct page output ignores its isolation flag.
 Other blend spaces, knockout, fractional group clips and other group blend modes remain unsupported.
+Optional `PdfRenderOptions.Proof` initially supports opaque, unprofiled DeviceRGB page groups
+with direct RGB/Gray paths, relative intent, source BPC off, black simulation on and paper/warnings off.
+The selected output profile must have actual colorimetric transforms in both directions.
+Conversion occurs after group compositing through D50 XYZ, retaining extended reference RGB.
+Other requests are diagnosed. Byte rendering and native layouts reject enabled proof;
+disabled proof preserves their normal output. Original CMYK ink preservation, other proof controls
+and desktop proof integration still require the full source-aware pipeline.
 `RenderFrameRegion` returns an owned float32 crop on the full page's pixel grid. Its
 combined pixel-storage limit counts only the requested region, and precision validation,
 diagnostics and cancellation match `RenderFrame`. Desktop refinement adoption remains in progress.

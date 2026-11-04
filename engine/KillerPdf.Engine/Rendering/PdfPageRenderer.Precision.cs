@@ -34,11 +34,15 @@ public sealed partial class PdfPageRenderer
     /// Ordinary Form XObjects retain supported paint precision through their matrix and bounding-box clip.
     /// Explicit neutral graphics-state defaults, including a None soft-mask reset, retain precision.
     /// Eligible isolated and non-isolated non-knockout DeviceRGB Form groups support outer Normal
-    /// or Multiply compositing, with independent source alpha when needed. Internal Normal or Multiply paints
+    /// or Multiply or Screen compositing, with independent source alpha when needed. Internal Normal, Multiply or Screen paints
     /// retain precision with rectangular clips and no effective group profile. Active nested group pixel arrays
     /// share the render storage budget. Other group semantics remain explicitly unsupported.
     /// Unprofiled non-knockout DeviceRGB page groups retain precision through final imposition
     /// on white for opaque output; transparent output preserves their alpha.
+    /// Initial printer proof rendering accepts opaque, unprofiled DeviceRGB page groups with direct
+    /// DeviceRGB/Gray path paints, relative intent, source BPC off, black simulation on and paper/warnings off.
+    /// It uses actual colorimetric printer transforms and preserves extended reference RGB output.
+    /// Other proof requests are diagnosed; original device ink preservation requires a source-aware path.
     /// Unported paint operations are rejected instead of returning quantized pixels.
     /// </remarks>
     public PdfRenderedFrame RenderFrame(int pageIndex, PdfRenderOptions options,
@@ -52,6 +56,12 @@ public sealed partial class PdfPageRenderer
         if (pageIndex < 0 || pageIndex >= _pages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         cancellationToken.ThrowIfCancellationRequested();
+        if (options.Proof is { Enabled: true } requested
+            && (options.TransparentBackground || options.ForPrinting || requested.GamutWarnings
+                || requested.Options.RenderingIntent != Authoring.PdfRenderingIntent.RelativeColorimetric
+                || requested.Options.BlackPointCompensation || !requested.Options.SimulateBlack
+                || requested.Options.SimulatePaper))
+            throw new NotSupportedException("The requested printer proof controls are not implemented for this render path.");
         // During migration, encoded working pixels, the compatibility surface and the owned
         // returned copy coexist. Check their combined storage before allocating any of them.
         int width = region is { } bounds ? bounds.Right - bounds.Left : options.Width;
@@ -60,6 +70,16 @@ public sealed partial class PdfPageRenderer
         if (pixelCount > options.PixelByteLimit / (4 + 2 * 4 * sizeof(float)))
             throw new ArgumentException("The high-precision render exceeds its combined pixel storage limit.", nameof(options));
         var page = _tree.Pages[pageIndex].Dictionary;
+        if (options.Proof is { Enabled: true } proofRequest)
+        {
+            if (!page.TryGetValue(Name("Group"), out _))
+                throw new NotSupportedException("Printer proof rendering requires an explicit supported RGB page group.");
+            if (ReadColorSpace(Name("DeviceGray"), _pageResources[pageIndex], 0).IsDefault)
+                throw new NotSupportedException("Printer proof rendering does not yet support a resource DefaultGray space.");
+            if (proofRequest.PrinterProfile is not { ProfileClassSignature: "prtr",
+                HasColorimetricForward: true, HasColorimetricReverse: true })
+                throw new NotSupportedException("Printer proof rendering requires an output profile with actual colorimetric transforms in both directions.");
+        }
         if (options.SeparationPlate is not null || OutputProfile(null) is not null)
             throw new NotSupportedException("High-precision profile and group rendering is not implemented.");
         if (page.TryGetValue(Name("Group"), out PdfObject? groupValue)
@@ -96,9 +116,38 @@ public sealed partial class PdfPageRenderer
             throw new NotSupportedException("The page contains rendering features unavailable to the high-precision path. "
                 + diagnostic[..Math.Min(diagnostic.Length, 512)]);
         }
+        if (options.Proof is { Enabled: true } proof)
+            ApplyPreciseProof(pixels, proof.PrinterProfile
+                ?? throw new NotSupportedException("The requested printer proof profile is unavailable."),
+                proof.Options, cancellationToken);
         FloatRgbCompositor.DecodeSrgbInPlace(pixels, cancellationToken);
         return new PdfRenderedFrame(width, height, pixels,
             PdfFrameColorEncoding.LinearSrgbD65, options.PixelByteLimit);
+    }
+
+    private static void ApplyPreciseProof(float[] pixels, PdfColorProfile printer,
+        PdfProofOptions options, CancellationToken cancellationToken)
+    {
+        Span<double> xyz = stackalloc double[3];
+        Span<double> device = stackalloc double[printer.ComponentCount];
+        for (int offset = 0; offset < pixels.Length; offset += 4)
+        {
+            if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (pixels[offset + 3] == 0) continue;
+            double r = Linear(pixels[offset]), g = Linear(pixels[offset + 1]), b = Linear(pixels[offset + 2]);
+            xyz[0] = .4360747 * r + .3850649 * g + .1430804 * b;
+            xyz[1] = .2225045 * r + .7168786 * g + .0606169 * b;
+            xyz[2] = .0139322 * r + .0971045 * g + .7141733 * b;
+            printer.FromXyz(xyz, device, options.RenderingIntent);
+            printer.ToXyz(device, xyz, Authoring.PdfRenderingIntent.RelativeColorimetric);
+            var color = PreciseConnectionToRgb(xyz[0], xyz[1], xyz[2]);
+            pixels[offset] = (float)color.Red;
+            pixels[offset + 1] = (float)color.Green;
+            pixels[offset + 2] = (float)color.Blue;
+        }
+
+        static double Linear(double value) => value <= .04045
+            ? value / 12.92 : Math.Pow((value + .055) / 1.055, 2.4);
     }
 
     /// <summary>Renders a pixel region into an owned relative linear-sRGB float32 RGBA frame.</summary>
@@ -114,6 +163,12 @@ public sealed partial class PdfPageRenderer
             throw new ArgumentOutOfRangeException(nameof(width), "The region must fit inside the page raster.");
         return RenderPreciseFrame(pageIndex, options, (left, top, left + width, top + height), cancellationToken);
     }
+
+    private static bool PreciseProofOperationSupported(string operation) => operation is
+        "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "gs" or "w" or "d"
+        or "m" or "l" or "c" or "v" or "y" or "h" or "re"
+        or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"
+        or "n" or "W" or "W*";
 
     private static bool PreciseOperationSupported(string operation) => operation is
         "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "k" or "K" or "gs" or "w" or "d"

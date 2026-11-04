@@ -74,6 +74,8 @@ public sealed class EpubLayoutDocument
         ArgumentNullException.ThrowIfNull(options);
         if (pageIndex < 0 || pageIndex >= Pages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (options.Proof is { Enabled: true })
+            throw new NotSupportedException("Printer proof rendering is unavailable for native EPUB documents.");
         if (options.SeparationPlate is not null)
             throw new NotSupportedException("Native EPUB rendering does not support color separations.");
         if ((long)options.Width * options.Height > options.PixelByteLimit / (2 * 4 * sizeof(float)))

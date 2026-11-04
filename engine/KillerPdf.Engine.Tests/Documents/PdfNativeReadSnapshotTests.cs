@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.ColorManagement;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Formats.Epub;
@@ -12,6 +13,19 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfNativeReadSnapshotTests
 {
+    [Fact]
+    public void EpubSnapshotRejectsEnabledProofUntilNativeProofRenderingIsSupported()
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var snapshot = PdfReadSnapshot.OpenEpub(Book(),
+            new EpubLayoutOptions(16, 14, font) { FontSize = 10, Margin = 2 });
+
+        var error = Assert.Throws<NotSupportedException>(() => snapshot.RenderPage(0,
+            new PdfRenderOptions(16, 14) { Proof = new PdfDocumentProofSettings(enabled: true) }));
+
+        Assert.Contains("proof", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void NativeEpubSnapshotsRetainReadStateWithoutSharingLogicalOwners()
     {

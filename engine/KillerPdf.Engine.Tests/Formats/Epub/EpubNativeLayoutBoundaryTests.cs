@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using KillerPdf.Engine.ColorManagement;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Formats.Epub;
 using KillerPdf.Engine.Rendering;
@@ -10,6 +11,18 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubNativeLayoutBoundaryTests
 {
+    [Fact]
+    public void NativeLayoutRejectsEnabledProofInsteadOfReturningNormalPixels()
+    {
+        var book = Book();
+        var layout = book.CreateLayout(Options(book));
+
+        var error = Assert.Throws<NotSupportedException>(() => layout.RenderPage(0,
+            new PdfRenderOptions(16, 14) { Proof = new PdfDocumentProofSettings(enabled: true) }));
+
+        Assert.Contains("proof", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void HonorsCancellationBeforeCreatingLayout()
     {

@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text;
+using KillerPdf.Engine.ColorManagement;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Rendering;
 using Xunit;
@@ -8,6 +9,17 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfDjvuReadSnapshotTests
 {
+    [Fact]
+    public void DjvuSnapshotRejectsEnabledProofUntilNativeProofRenderingIsSupported()
+    {
+        var snapshot = PdfReadSnapshot.OpenDjvu(Page(300, 1));
+
+        var error = Assert.Throws<NotSupportedException>(() => snapshot.RenderPage(0,
+            new PdfRenderOptions(3, 2) { Proof = new PdfDocumentProofSettings(enabled: true) }));
+
+        Assert.Contains("proof", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void NativeDjvuKeepsNaturalGeometryAndRendersItsIntrinsicRotationOnce()
     {

@@ -147,6 +147,8 @@ public sealed class PdfReadSnapshot
         ArgumentNullException.ThrowIfNull(options);
         if (pageIndex < 0 || pageIndex >= PageCount)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (options.Proof is { Enabled: true })
+            throw new NotSupportedException("Printer proof rendering is unavailable for native documents.");
         if (_layout is not null)
             return _layout.RenderPage(pageIndex, options, cancellationToken);
         if (options.SeparationPlate is not null)
