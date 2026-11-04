@@ -143,7 +143,7 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 ## Native EPUB layout (1.9.3 development)
 
 `EpubDocument.Open` reads a bounded native package. `CreateLayout` currently supports
-plain printable-ASCII paragraphs in linear, reflowable XHTML spine
+printable-ASCII paragraphs and nested spans in linear, reflowable XHTML spine
 items with an explicit fallback font. Chapters follow declared spine order and
 begin on fresh pages. It returns immutable pages and logical UTF-16 text
 placements in CSS pixels. Whole words wrap at spaces, and paragraphs have one font-size
@@ -153,7 +153,11 @@ slice, `SpineIndex` and `TextStart` offset; placement offsets remain relative to
 that chapter's spine text. The text-work limit applies across all chapters.
 Words wider than the content box are diagnosed explicitly.
 `RenderPage` produces an owned linear-sRGB float frame through shared glyph rendering,
-without creating a PDF. Styling, character breaking, complex scripts and other unsupported content
+without creating a PDF. Inline `font-size` and `line-height` support positive CSS-pixel
+lengths that fit the content height. Mixed sizes share a baseline; collapsed spaces
+retain their original inline style. The default normal line height follows each
+inline font's ascent and descent; explicit pixel line heights inherit as lengths.
+Other styling, character breaking, complex scripts and other unsupported content
 produce explicit diagnoses; this initial API does not establish full EPUB support.
 
 `ReadText` and the supported plain native layout accept the canonical XHTML 1.1

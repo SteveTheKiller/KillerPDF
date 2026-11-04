@@ -52,6 +52,67 @@ public sealed class EpubNativeLayoutTests
         Assert.Equal(1f, frame.Pixels[7 * 4 + 3]);
     }
 
+    [Fact]
+    public void NativeLayoutPreservesInlineStyleThroughCollapsedSpacesAndParentRestoration()
+    {
+        var book = EpubDocument.Open(Book("""
+            <p style="font-size:20px;line-height:20px">A<span style="font-size:10px;line-height:10px">  A </span>A</p>
+            """));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        Assert.Equal("A A A", book.ReadText(0));
+        var options = new EpubLayoutOptions(64, 40, font) {
+            FontSize = 10, Margin = 8, TextColor = new PdfRgbColor(0.5001, 0.5001, 0.5001) };
+
+        var layout = book.CreateLayout(options);
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A A A", page.Text);
+        Assert.Equal(0, page.SpineIndex);
+        Assert.Equal(0, page.TextStart);
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 8, 8, 12, 20),
+            new EpubTextPlacement(0, 1, 1, 20, 16, 5, 10),
+            new EpubTextPlacement(0, 2, 1, 25, 16, 6, 10),
+            new EpubTextPlacement(0, 3, 1, 31, 16, 5, 10),
+            new EpubTextPlacement(0, 4, 1, 36, 8, 12, 20) }, page.TextPlacements);
+
+        var frame = layout.RenderPage(0);
+
+        Assert.Equal(64, frame.Width);
+        Assert.Equal(40, frame.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        AssertInterior(frame, 30, 19);
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((10 * 64 + 30) * 4, 4).ToArray());
+        // Baseline 24 puts the small triangle apex at (30,14), with pixel area 1/4.
+        // Coverage 64/255 over encoded white gives independent linear RGB .7379582286993577.
+        int apexOffset = (14 * 64 + 30) * 4;
+        for (int channel = 0; channel < 3; channel++)
+            Assert.InRange(frame.Pixels[apexOffset + channel], 0.73795803f, 0.73795843f);
+        Assert.Equal(1f, frame.Pixels[apexOffset + 3]);
+    }
+
+    [Fact]
+    public void InheritedNormalLineHeightUsesEachInlineFontSize()
+    {
+        var book = EpubDocument.Open(Book("""
+            <p style="font-size:20px">A<span style="font-size:10px"> A </span>A</p>
+            """));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+
+        var page = Assert.Single(book.CreateLayout(new EpubLayoutOptions(64, 40, font) {
+            FontSize = 10, Margin = 8 }).Pages);
+
+        // The synthetic font's ascent/descent are 800/-200 of 1000 units.
+        // Normal line height uses those metrics at each size, sharing baseline 24.
+        Assert.Equal("A A A", page.Text);
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 8, 8, 12, 20),
+            new EpubTextPlacement(0, 1, 1, 20, 16, 5, 10),
+            new EpubTextPlacement(0, 2, 1, 25, 16, 6, 10),
+            new EpubTextPlacement(0, 3, 1, 31, 16, 5, 10),
+            new EpubTextPlacement(0, 4, 1, 36, 8, 12, 20) }, page.TextPlacements);
+    }
+
     private static void AssertInterior(PdfRenderedFrame frame, int x, int y)
     {
         int offset = (y * frame.Width + x) * 4;
@@ -60,7 +121,7 @@ public sealed class EpubNativeLayoutTests
         Assert.Equal(1f, frame.Pixels[offset + 3]);
     }
 
-    private static byte[] Book()
+    private static byte[] Book(string body = "<p>A A</p>")
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -76,8 +137,8 @@ public sealed class EpubNativeLayoutTests
                   <spine><itemref idref="chapter"/></spine>
                 </package>
                 """);
-            Add("EPUB/text.xhtml", """
-                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native layout</title></head><body><p>A A</p></body></html>
+            Add("EPUB/text.xhtml", $"""
+                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native layout</title></head><body>{body}</body></html>
                 """);
             Add("EPUB/nav.xhtml", """
                 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text.xhtml">Native layout</a></li></ol></nav></body></html>

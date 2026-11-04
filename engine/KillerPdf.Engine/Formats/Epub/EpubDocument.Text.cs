@@ -7,6 +7,9 @@ public sealed partial class EpubDocument
 {
     /// <summary>Reads structural XHTML body text in source order without computing CSS layout or fetching resources.</summary>
     public string ReadText(int spineIndex, CancellationToken cancellationToken = default)
+        => ReadStructuralText(spineIndex, cancellationToken, null);
+
+    private string ReadStructuralText(int spineIndex, CancellationToken cancellationToken, EpubNativeContent? native)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var resource = Spine[spineIndex].Item;
@@ -15,6 +18,7 @@ public sealed partial class EpubDocument
         const string html = "http://www.w3.org/1999/xhtml";
         var result = new StringBuilder();
         bool pendingSpace = false;
+        EpubNativeContent.SourceCharacter? pendingSource = null;
         bool foundBody = false;
         int bodyDepth = -1;
         int styleDepth = -1;
@@ -34,8 +38,11 @@ public sealed partial class EpubDocument
                     throw new InvalidDataException("EPUB XHTML text exceeds processing limits.");
                 if (reader.NodeType == XmlNodeType.ProcessingInstruction)
                     throw new NotSupportedException("EPUB XHTML processing instructions are unsupported.");
+                if (reader.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace)
+                    native?.Count(reader.Value.Length);
                 if (reader.NodeType == XmlNodeType.Element)
                 {
+                    native?.Enter(reader);
                     if (reader.LocalName == "script")
                         throw new NotSupportedException("Scripted EPUB XHTML text is unsupported.");
                     while (reader.MoveToNextAttribute())
@@ -80,18 +87,26 @@ public sealed partial class EpubDocument
                     if (reader.Depth == styleDepth) styleDepth = -1;
                     if (reader.Depth == bodyDepth) bodyDepth = -1;
                     else if (bodyDepth >= 0 && styleDepth < 0) Separate(TextBlockLines(reader.LocalName));
+                    native?.Exit();
                 }
                 else if (bodyDepth >= 0 && styleDepth < 0 && reader.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace)
                 {
-                    foreach (char character in reader.Value)
+                    var source = native?.TextNode(reader.Value);
+                    for (int offset = 0; offset < reader.Value.Length; offset++)
                     {
+                        char character = reader.Value[offset];
                         cancellationToken.ThrowIfCancellationRequested();
-                        if (character is ' ' or '\t' or '\r' or '\n') pendingSpace = result.Length > 0;
+                        if (character is ' ' or '\t' or '\r' or '\n')
+                        {
+                            if (!pendingSpace && result.Length > 0)
+                                pendingSource = source is null ? null : new(source, offset);
+                            pendingSpace = result.Length > 0;
+                        }
                         else
                         {
-                            if (pendingSpace && result.Length > 0 && result[^1] != '\n') result.Append(' ');
+                            if (pendingSpace && result.Length > 0 && result[^1] != '\n') Append(' ', pendingSource);
                             pendingSpace = false;
-                            result.Append(character);
+                            Append(character, source is null ? null : new(source, offset));
                         }
                     }
                 }
@@ -102,7 +117,15 @@ public sealed partial class EpubDocument
             throw new InvalidDataException("Invalid EPUB XHTML text document.", exception);
         }
         if (!foundBody) throw new InvalidDataException("Missing EPUB XHTML body.");
-        return result.ToString().TrimEnd(' ', '\n');
+        string text = result.ToString().TrimEnd(' ', '\n');
+        native?.Trim(text.Length);
+        return text;
+
+        void Append(char character, EpubNativeContent.SourceCharacter? source = null)
+        {
+            result.Append(character);
+            native?.Append(source);
+        }
 
         void Separate(int lines)
         {
@@ -111,7 +134,7 @@ public sealed partial class EpubDocument
             if (result.Length == 0) return;
             int existing = 0;
             for (int i = result.Length - 1; i >= 0 && result[i] == '\n'; i--) existing++;
-            while (existing++ < lines) result.Append('\n');
+            while (existing++ < lines) Append('\n');
         }
     }
 

@@ -1,4 +1,3 @@
-using System.Xml;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Rendering;
 
@@ -51,8 +50,10 @@ public sealed partial class EpubDocument
         var resource = entry.Item;
         if (resource.MediaType != "application/xhtml+xml" || !string.IsNullOrWhiteSpace(resource.Properties))
             throw new NotSupportedException("Native EPUB layout requires plain unscripted XHTML.");
-        PreflightNativeXhtml(_resources[resource.Href], cancellationToken);
-        string text = ReadText(spineIndex, cancellationToken);
+        if (_resources[resource.Href].Length > MaxEntryBytes)
+            throw new InvalidDataException("Native EPUB XHTML exceeds its 8 MiB resource limit.");
+        var content = new EpubNativeContent(options.FontSize, options.PageHeight - 2 * options.Margin);
+        string text = ReadStructuralText(spineIndex, cancellationToken, content);
         if (text.Length > remainingTextLength)
             throw new InvalidDataException("Native EPUB text exceeds its 100,000 placement limit.");
         remainingTextLength -= text.Length;
@@ -62,7 +63,8 @@ public sealed partial class EpubDocument
         int pageStart = 0;
         double left = options.Margin;
         double top = options.Margin;
-        double baseline = top + font.Ascender * options.FontSize / font.UnitsPerEm;
+        var line = new List<(int Index, double Left, double Width, PdfGlyphOutline Outline)>();
+        int lineStart = 0;
         for (int index = 0; index < text.Length; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -72,14 +74,15 @@ public sealed partial class EpubDocument
                 if (index + 1 >= text.Length || text[index + 1] != '\n')
                     throw new NotSupportedException("Native EPUB line breaking is not implemented.");
                 // Structural paragraph separators retain their source indices but have no placement.
-                top += 2 * options.FontSize;
+                FlushLine();
+                top += options.FontSize;
                 if (top + options.FontSize > options.PageHeight - options.Margin)
                 {
                     FinishPage(index + 2);
                     top = options.Margin;
                 }
                 left = options.Margin;
-                baseline = top + font.Ascender * options.FontSize / font.UnitsPerEm;
+                lineStart = index + 2;
                 index++;
                 continue;
             }
@@ -91,7 +94,7 @@ public sealed partial class EpubDocument
             PdfGlyphOutline outline = reader.Outline(glyph)
                 ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
             // The public advance API rounds to 1000 units; finer font-metric precision is a later slice.
-            double width = font.GetPdfAdvanceWidth(glyph) / 1000d * options.FontSize;
+            double width = font.GetPdfAdvanceWidth(glyph) / 1000d * StyleAt(index).FontSize;
             if (character == ' ')
             {
                 // Each collapsed separator scans only the following word, keeping lookahead linear.
@@ -105,32 +108,77 @@ public sealed partial class EpubDocument
                     ushort nextGlyph = font.GetGlyphId(nextCharacter);
                     if (nextGlyph == 0)
                         throw new NotSupportedException($"The native EPUB font has no glyph for U+{(int)nextCharacter:X4}.");
-                    wordWidth += font.GetPdfAdvanceWidth(nextGlyph) / 1000d * options.FontSize;
+                    wordWidth += font.GetPdfAdvanceWidth(nextGlyph) / 1000d * StyleAt(next).FontSize;
                 }
                 if (wordWidth > contentWidth)
                     throw new NotSupportedException("The native EPUB word exceeds the available line width.");
                 if (left + width + wordWidth > options.PageWidth - options.Margin)
                 {
-                    top += options.FontSize;
+                    FlushLine();
                     if (top + options.FontSize > options.PageHeight - options.Margin)
                     {
                         FinishPage(index + 1);
                         top = options.Margin;
                     }
                     left = options.Margin;
-                    baseline = top + font.Ascender * options.FontSize / font.UnitsPerEm;
+                    lineStart = index + 1;
                     continue;
                 }
             }
             if (left + width > options.PageWidth - options.Margin)
                 throw new NotSupportedException("The native EPUB word exceeds the available line width.");
-            placements.Add(new EpubTextPlacement(spineIndex, index, 1, left, top, width, options.FontSize));
-            if (outline.Contours.Count != 0)
-                glyphs.Add(new NativeGlyphPaint(outline, left, baseline, options.FontSize / 1000));
+            line.Add((index, left, width, outline));
             left += width;
         }
         cancellationToken.ThrowIfCancellationRequested();
+        FlushLine();
         FinishPage(text.Length);
+
+        EpubNativeContent.Style StyleAt(int index) => content.Characters[index]?.Style ?? content.DefaultStyle;
+
+        void FlushLine()
+        {
+            if (line.Count == 0) return;
+            var block = content.Characters[line[0].Index]?.BlockStyle ?? content.DefaultStyle;
+            double ascent = AboveBaseline(block), descent = BelowBaseline(block);
+            foreach (var item in line)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                ascent = Math.Max(ascent, AboveBaseline(StyleAt(item.Index)));
+                descent = Math.Max(descent, BelowBaseline(StyleAt(item.Index)));
+            }
+            double height = ascent + descent;
+            if (height > options.PageHeight - 2 * options.Margin)
+                throw new NotSupportedException("The native EPUB line exceeds the available page height.");
+            if (top + height > options.PageHeight - options.Margin)
+            {
+                FinishPage(lineStart);
+                top = options.Margin;
+            }
+            double baseline = top + ascent;
+            foreach (var item in line)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                double size = StyleAt(item.Index).FontSize;
+                double logicalTop = baseline - font.Ascender * size / font.UnitsPerEm;
+                placements.Add(new EpubTextPlacement(spineIndex, item.Index, 1, item.Left, logicalTop, item.Width, size));
+                if (item.Outline.Contours.Count != 0)
+                    glyphs.Add(new NativeGlyphPaint(item.Outline, item.Left, baseline, size / 1000));
+            }
+            top += height;
+            line.Clear();
+        }
+
+        double AboveBaseline(EpubNativeContent.Style style) =>
+            font.Ascender * style.FontSize / font.UnitsPerEm + HalfLeading(style);
+
+        double BelowBaseline(EpubNativeContent.Style style) =>
+            -font.Descender * style.FontSize / font.UnitsPerEm + HalfLeading(style);
+
+        double HalfLeading(EpubNativeContent.Style style) =>
+            style.LineHeight is double height
+                ? (height - (font.Ascender - font.Descender) * style.FontSize / font.UnitsPerEm) / 2
+                : 0;
 
         void FinishPage(int end)
         {
@@ -141,64 +189,4 @@ public sealed partial class EpubDocument
         }
     }
 
-    private static void PreflightNativeXhtml(byte[] bytes, CancellationToken cancellationToken)
-    {
-        if (bytes.Length > MaxEntryBytes)
-            throw new InvalidDataException("Native EPUB XHTML exceeds its 8 MiB resource limit.");
-        using var stream = new MemoryStream(XhtmlWithoutCanonicalDeclaration(bytes), false);
-        using var xml = XmlReader.Create(stream, new XmlReaderSettings {
-            DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null,
-            MaxCharactersInDocument = MaxEntryBytes, MaxCharactersFromEntities = 1024 });
-        var ancestors = new Stack<string>();
-        int nodes = 0, characters = 0;
-        try
-        {
-            while (xml.Read())
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (++nodes > 100_000 || xml.Depth > 128)
-                    throw new InvalidDataException("Native EPUB XHTML exceeds its processing limits.");
-                if (xml.NodeType == XmlNodeType.ProcessingInstruction)
-                    throw new NotSupportedException("Native EPUB processing instructions are not implemented.");
-                if (xml.NodeType == XmlNodeType.Element)
-                {
-                    string name = xml.LocalName;
-                    string? parent = ancestors.TryPeek(out string? ancestor) ? ancestor : null;
-                    bool allowed = name switch {
-                        "html" => parent is null && xml.Depth == 0,
-                        "head" or "body" => parent == "html",
-                        "title" => parent == "head",
-                        "p" => parent == "body",
-                        _ => false };
-                    if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
-                        throw new NotSupportedException("Native EPUB XHTML element is not implemented: " + name + ".");
-                    bool empty = xml.IsEmptyElement;
-                    while (xml.MoveToNextAttribute())
-                    {
-                        if (xml.NamespaceURI != "http://www.w3.org/2000/xmlns/"
-                            && !(xml.LocalName == "lang" && xml.NamespaceURI is "" or "http://www.w3.org/XML/1998/namespace"))
-                            throw new NotSupportedException("Native EPUB XHTML attributes and styling are not implemented.");
-                        characters += xml.Value.Length;
-                        if (characters > 100_000)
-                            throw new InvalidDataException("Native EPUB XHTML exceeds its character work limit.");
-                    }
-                    xml.MoveToElement();
-                    if (!empty) ancestors.Push(name);
-                }
-                else if (xml.NodeType == XmlNodeType.EndElement)
-                    ancestors.Pop();
-                else if (xml.NodeType is XmlNodeType.Text or XmlNodeType.CDATA
-                    or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace)
-                {
-                    characters += xml.Value.Length;
-                    if (characters > 100_000)
-                        throw new InvalidDataException("Native EPUB XHTML exceeds its character work limit.");
-                }
-            }
-        }
-        catch (XmlException exception)
-        {
-            throw new InvalidDataException("Invalid native EPUB XHTML document.", exception);
-        }
-    }
 }
