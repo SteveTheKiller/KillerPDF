@@ -108,7 +108,6 @@ public sealed class EpubMultipleSpineLayoutTests
     }
 
     [Theory]
-    [InlineData("<p style='color:red'>AA</p>", "", "")]
     [InlineData("<p>AA</p>", " linear='no'", "")]
     [InlineData("<p>AA</p>", " properties='page-spread-left'", "")]
     [InlineData("<p>AA</p>", "", " properties='scripted'")]

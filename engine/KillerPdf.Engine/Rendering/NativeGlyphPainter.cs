@@ -3,7 +3,7 @@ using KillerPdf.Engine.Fonts;
 
 namespace KillerPdf.Engine.Rendering;
 
-internal sealed record NativeGlyphPaint(PdfGlyphOutline Outline, double Left, double Baseline, double Scale);
+internal sealed record NativeGlyphPaint(PdfGlyphOutline Outline, double Left, double Baseline, double Scale, PdfRgbColor? Color = null);
 
 internal static class NativeGlyphPainter
 {
@@ -27,6 +27,7 @@ internal static class NativeGlyphPainter
         foreach (var glyph in glyphs)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            PdfRgbColor foreground = glyph.Color ?? color;
             double left = glyph.Left * scaleX;
             double baseline = glyph.Baseline * scaleY;
             double glyphScaleX = glyph.Scale * scaleX;
@@ -47,7 +48,7 @@ internal static class NativeGlyphPainter
                         double coverage = mask.At(x, y) / 255d;
                         if (coverage == 0) continue;
                         FloatRgbCompositor.SourceOver(pixels, (y * width + x) * 4,
-                            color.Red, color.Green, color.Blue, coverage);
+                            foreground.Red, foreground.Green, foreground.Blue, coverage);
                     }
                 }
             }

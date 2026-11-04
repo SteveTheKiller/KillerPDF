@@ -157,6 +157,9 @@ without creating a PDF. Inline and packaged CSS `font-size` and `line-height` su
 lengths that fit the content height. Mixed sizes share a baseline; collapsed spaces
 retain their original inline style. The default normal line height follows each
 inline font's ascent and descent; explicit pixel line heights inherit as lengths.
+Foreground `color` accepts six-digit sRGB hex values and the 16 basic CSS color
+keywords, case-insensitively. It inherits and follows property-specific cascade
+precedence. Individual glyphs retain their foreground color through rendering.
 Packaged rules support grouped type selectors and compound classes such as
 `p, span.small.keep`, with class specificity and declaration order applied separately
 to each property. Inline declarations override packaged rules. Each chapter limits

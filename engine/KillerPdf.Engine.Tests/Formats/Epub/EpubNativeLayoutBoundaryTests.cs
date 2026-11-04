@@ -75,9 +75,7 @@ public sealed class EpubNativeLayoutBoundaryTests
     }
 
     [Theory]
-    [InlineData("<p style='color:red'>A</p>", "", false, false)]
     [InlineData("<p>A</p>", "<style>p { color:red }</style>", false, false)]
-    [InlineData("<p>A</p>", "<link rel='stylesheet' href='style.css'/>", true, false)]
     [InlineData("<p><a href='text.xhtml'>A</a></p>", "", false, false)]
     [InlineData("<p>A</p>", "<script type='text/javascript'>void 0;</script>", false, true)]
     [InlineData("<p>\u00e9</p>", "", false, false)]

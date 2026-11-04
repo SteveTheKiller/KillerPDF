@@ -11,6 +11,83 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubNativeLayoutTests
 {
+    [Theory]
+    [InlineData("black", 0f, 0f, 0f)]
+    [InlineData("silver", .5271151f, .5271151f, .5271151f)]
+    [InlineData("gray", .2158605f, .2158605f, .2158605f)]
+    [InlineData("white", 1f, 1f, 1f)]
+    [InlineData("maroon", .2158605f, 0f, 0f)]
+    [InlineData("red", 1f, 0f, 0f)]
+    [InlineData("purple", .2158605f, 0f, .2158605f)]
+    [InlineData("fuchsia", 1f, 0f, 1f)]
+    [InlineData("green", 0f, .2158605f, 0f)]
+    [InlineData("lime", 0f, 1f, 0f)]
+    [InlineData("olive", .2158605f, .2158605f, 0f)]
+    [InlineData("yellow", 1f, 1f, 0f)]
+    [InlineData("navy", 0f, 0f, .2158605f)]
+    [InlineData("bLuE", 0f, 0f, 1f)]
+    [InlineData("teal", 0f, .2158605f, .2158605f)]
+    [InlineData("aqua", 0f, 1f, 1f)]
+    public void NativeLayoutRendersBasicCssNamedForegroundColors(string color, float red, float green, float blue)
+    {
+        var book = EpubDocument.Open(Book("<p style=\"color:" + color + "\">A</p>"));
+        Assert.Equal("A", book.ReadText(0));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 16, font) {
+            FontSize = 10, Margin = 2, TextColor = new PdfRgbColor(.5001, .5001, .5001) });
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A", page.Text);
+        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) }, page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        int offset = (5 * 30 + 7) * 4;
+        float[] expected = [red, green, blue];
+        for (int channel = 0; channel < 3; channel++)
+            Assert.InRange(frame.Pixels[offset + channel], expected[channel] - .0000002f, expected[channel] + .0000002f);
+        Assert.Equal(1f, frame.Pixels[offset + 3]);
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice(15 * 30 * 4, 4).ToArray());
+    }
+
+    [Fact]
+    public void NativeLayoutRendersPackagedForegroundColorsAsLinearSrgbGlyphInk()
+    {
+        const string stylesheet = "p{font-size:10px;color:#800000}span{color:blue}";
+        byte[] stylesheetBytes = Encoding.UTF8.GetBytes(stylesheet);
+        var book = EpubDocument.Open(Book("<p>A<span> A</span></p>", stylesheet));
+        Assert.Equal(stylesheetBytes, book.ReadResource("EPUB/styles/book.css"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        Assert.Equal("A A", book.ReadText(0));
+        var options = new EpubLayoutOptions(30, 16, font) {
+            FontSize = 10, Margin = 2, TextColor = new PdfRgbColor(0.5001, 0.5001, 0.5001) };
+
+        var layout = book.CreateLayout(options);
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A A", page.Text);
+        Assert.Equal(0, page.SpineIndex);
+        Assert.Equal(0, page.TextStart);
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10),
+            new EpubTextPlacement(0, 1, 1, 8, 2, 5, 10),
+            new EpubTextPlacement(0, 2, 1, 13, 2, 6, 10) }, page.TextPlacements);
+
+        var frame = layout.RenderPage(0);
+
+        Assert.Equal(30, frame.Width);
+        Assert.Equal(16, frame.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        int redOffset = (5 * 30 + 7) * 4;
+        Assert.InRange(frame.Pixels[redOffset], 0.2158603f, 0.2158607f);
+        Assert.Equal(0f, frame.Pixels[redOffset + 1]);
+        Assert.Equal(0f, frame.Pixels[redOffset + 2]);
+        Assert.Equal(1f, frame.Pixels[redOffset + 3]);
+        Assert.Equal(new float[] { 0, 0, 1, 1 }, frame.Pixels.Slice((5 * 30 + 18) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice(15 * 30 * 4, 4).ToArray());
+        Assert.Equal(stylesheetBytes, book.ReadResource("EPUB/styles/book.css"));
+    }
+
     [Fact]
     public void NativeLayoutKeepsLogicalTextGeometrySeparateFromPreciseGlyphInk()
     {
