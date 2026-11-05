@@ -84,6 +84,8 @@ The authoring model covers pages, content streams, graphics state, paths, text, 
 
 KillerPDF uses these typed content APIs for annotations, stamps and print/export burn-in. Text boxes can save as standard FreeText annotations with logical contents and caller-authored appearances. `PdfIncrementalAnnotationEditor.AddFreeText` and `AddStamp` import the appearance's fonts, images and nested forms, preserve insertion order above existing annotations, and add logical descriptions when the source is tagged. `PdfCommentReader.ReadPageAnnotationCount` reports raw array length, including entries omitted by comment extraction.
 
+`PdfEditablePageOverlayEditor.Append` keeps opaque editing data with a dedicated page-content overlay, preserving its ordinary rendering and searchable text. `Read` returns intact tail batches in content order; `Remove` revalidates them and removes only their drawing, isolation wrappers and owned tagged descriptions. Current foreign form values, markup and other page data remain intact. Changed resources, malformed ownership data, a foreign content tail or a changed page frame prevent extraction. Editing payloads are limited to 8 MiB per batch and resource fingerprints to 32 MiB, 16,384 visits and depth 64. The optional `expectedRotation` supports saves that apply final page rotation later. Authentication, copying/modification permissions and certification restrictions still apply.
+
 ### Edit document structure
 
 Pages can be inserted, imported, removed, reordered, rotated, cropped, resized, trimmed, and assigned page boxes, labels, transitions, thumbnails, annotations, form widgets, and structure relationships. Object graphs and dependent resources are imported with collision handling rather than copied as isolated dictionaries.

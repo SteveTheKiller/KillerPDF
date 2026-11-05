@@ -31,6 +31,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Portable presentation contracts identify frame generations, display selections, outputs, color states, white levels and profile associations, with policy selecting monitor-conversion ownership and HDR white scaling from observations. (#264)
 - Native EPUB/DjVu readers provide metadata, text, read snapshots and captured outlines with local destinations. EPUB adds bounded ASCII layout, initial CSS, line breaks, paginated anchor destinations and standard font obfuscation. DjVu adds bundled geometry, Smmr bitonal and grayscale IW44 rendering, resizing and component/ordinal/relative navigation. Malformed outlines remain isolated from page reading. (#472)
 - Incremental free-text and stamp annotations accept caller-authored appearances with embedded resources and tagged descriptions. (#466)
+- Editable page-content overlays retain bounded editing data and preserve unrelated content, form values and markup when restored. (#467)
 
 ## [1.9.2] - 2026-11-02
 
