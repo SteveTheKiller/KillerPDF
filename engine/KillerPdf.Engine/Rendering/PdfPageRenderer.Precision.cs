@@ -18,6 +18,7 @@ public sealed partial class PdfPageRenderer
     /// Their finite device-range Matte values are removed before color conversion and compositing.
     /// Unmasked RGB/Gray ICC matrix/TRC images support relative colorimetric PCS conversion at natural size,
     /// aligned enlargement or integer-factor reduction in both axes, averaging encoded source samples before ICC conversion.
+    /// Supported resource DefaultRGB and DefaultGray profiles use the same image conversion.
     /// Unmasked CMYK ICC LUT images with an actual colorimetric forward table support
     /// relative colorimetric conversion at aligned natural size or eligible nearest enlargement,
     /// including DeviceCMYK images mapped through a supported resource DefaultCMYK profile.
@@ -40,7 +41,7 @@ public sealed partial class PdfPageRenderer
     /// Unprofiled non-knockout DeviceRGB page groups retain precision through final imposition
     /// on white for opaque output; transparent output preserves their alpha.
     /// Initial printer proof rendering accepts pages without explicit groups and unprofiled DeviceRGB page groups with direct
-    /// DeviceRGB/Gray paths, supported direct DeviceRGB/Gray images and embedded TrueType text,
+    /// DeviceRGB/Gray paths, supported direct and ICC RGB/Gray images and embedded TrueType text,
     /// including supported DefaultGray calibration,
     /// all four intents with an actual selected inverse,
     /// optional source BPC and independent paper/black simulation,
@@ -216,6 +217,22 @@ public sealed partial class PdfPageRenderer
             || (long)left + width > options.Width || (long)top + height > options.Height)
             throw new ArgumentOutOfRangeException(nameof(width), "The region must fit inside the page raster.");
         return RenderPreciseFrame(pageIndex, options, (left, top, left + width, top + height), cancellationToken);
+    }
+
+    private bool PreciseProofImageSupported(PdfStream image)
+    {
+        if (!IsName(image.Dictionary, "Subtype", "Image")
+            || image.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? mask)
+                && Resolve(mask) is PdfBoolean { Value: true }) return false;
+        if (IsName(image.Dictionary, "ColorSpace", "DeviceRGB")
+            || IsName(image.Dictionary, "ColorSpace", "DeviceGray")) return true;
+        if (!image.Dictionary.TryGetValue(Name("ColorSpace"), out PdfObject? value)
+            || Resolve(value) is not PdfArray { Count: 2 } space
+            || Resolve(space[0]) is not PdfName name || name.ValueAsLatin1() != "ICCBased"
+            || Resolve(space[1]) is not PdfStream profile
+            || !profile.Dictionary.TryGetValue(Name("N"), out PdfObject? channels)) return false;
+        // The existing precise image path validates profile transforms and sampling.
+        return Resolve(channels) is PdfInteger { Value: 1 or 3 };
     }
 
     private static bool PreciseProofOperationSupported(string operation) => operation is

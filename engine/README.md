@@ -335,9 +335,11 @@ Basic embedded TrueType text retains its color through proof conversion after gl
 Text matrices, strings and positioned arrays support filled and stroked glyphs.
 Proof rendering also preserves character and word spacing, horizontal scale, text rise,
 line positioning, explicit or move-defined leading, and both quote text-showing operators.
-Direct DeviceRGB and DeviceGray image XObjects use the existing precise image path before proof conversion,
-retaining supported source sample depths, Decode mapping and alpha. Other proof XObject
-types and image color spaces remain diagnosed pending source-aware integration.
+Direct DeviceRGB/Gray and supported RGB/Gray ICC image XObjects use the existing precise image path
+before proof conversion, retaining supported source sample depths, Decode mapping and alpha.
+Embedded profiles and resource defaults are applied before the printer transform; extended reference
+RGB is not clipped at that boundary. Other proof XObject types and image color spaces remain diagnosed
+pending source-aware integration.
 The selected output profile must have actual colorimetric transforms in both directions.
 The requested inverse must be available without intent fallback. Absolute source conversion
 also requires explicit valid media white; source BPC is an identity for that intent.
@@ -351,6 +353,8 @@ and desktop proof integration still require the full source-aware pipeline.
 combined pixel-storage limit counts only the requested region, and precision validation,
 diagnostics and cancellation match `RenderFrame`. Desktop refinement adoption remains in progress.
 The supplied `PdfRenderOptions` still validate the full page's byte-raster dimensions and limit.
+Supported RGB/Gray matrix/TRC image profiles can also replace DeviceRGB/Gray through
+resource `DefaultRGB` and `DefaultGray`, preserving their source precision and extended RGB.
 Natural aligned CMYK images and eligible nearest enlargements retain 8/16-bit precision through supported colorimetric
 ICC source profiles, including a resource `DefaultCMYK` replacement for DeviceCMYK.
 Interpolated or reduced CMYK images, masks and unsupported profile directions remain diagnosed separately.

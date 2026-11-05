@@ -15,6 +15,61 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPrecisionProofTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProofPreservesExtendedIccRgbUntilPrinterConversion(bool resourceDefault)
+    {
+        var renderer = PdfPrecisionIccImageTests.Renderer(
+            Convert.FromBase64String(PdfPrecisionIccImageTests.RgbProfileBase64), defaultSpace: resourceDefault);
+        var options = new PdfRenderOptions(2, 1, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = renderer.RenderFrame(0, options);
+
+        // The fixture's red matrix column contributes X only, giving PCS Y=0.
+        // Its reference RGB has red above1 and green below0. Clipping that RGB
+        // before the printer inverse would falsely raise Y above printer black0.25.
+        foreach (int offset in new[] { 0, 4 })
+        {
+            double luminance = .2126 * frame.Pixels[offset] + .7152 * frame.Pixels[offset + 1]
+                + .0722 * frame.Pixels[offset + 2];
+            Assert.InRange(luminance, .25 - .0001, .25 + .0001);
+            Assert.Equal(1f, frame.Pixels[offset + 3]);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProofUsesGrayIccBeforePrinterConversion(bool resourceDefault)
+    {
+        var renderer = PdfPrecisionIccImageTests.Renderer(
+            Convert.FromBase64String(PdfPrecisionIccImageTests.GrayProfileBase64), components: 1,
+            defaultSpace: resourceDefault);
+        var options = new PdfRenderOptions(2, 1, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = renderer.RenderFrame(0, options);
+
+        // Identity gray TRC gives linear samples32768/65535 and32769/65535.
+        // Above the fixture printer's middle node, its inverse/forward keeps that Y.
+        // Tolerance covers quantized ICC white and matrix constants, not byte rounding.
+        double first = .2126 * frame.Pixels[0] + .7152 * frame.Pixels[1] + .0722 * frame.Pixels[2];
+        double second = .2126 * frame.Pixels[4] + .7152 * frame.Pixels[5] + .0722 * frame.Pixels[6];
+        Assert.InRange(first, .5000076295109483 - .0001, .5000076295109483 + .0001);
+        Assert.InRange(second, .500022888532845 - .0001, .500022888532845 + .0001);
+        Assert.True(second > first);
+        Assert.Equal(1f, frame.Pixels[3]);
+        Assert.Equal(1f, frame.Pixels[7]);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]

@@ -12,9 +12,9 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPrecisionIccImageTests
 {
-    private const string RgbProfileBase64 =
+    internal const string RgbProfileBase64 =
         "AAAB/AAAAAACQAAAbW50clJHQiBYWVogB+oACwADAAAAAAAAYWNzcE1TRlQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAPbWAAEAAAAA0y10ZXN0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJZGVzYwAAAPAAAAByY3BydAAAAWQAAAAjd3RwdAAAAYgAAAAUclhZWgAAAZwAAAAUZ1hZWgAAAbAAAAAUYlhZWgAAAcQAAAAUclRSQwAAAdgAAAAMZ1RSQwAAAeQAAAAMYlRSQwAAAfAAAAAMZGVzYwAAAAAAAAAYU3ludGhldGljIFhZWi1iYXNpcyBSR0IAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB0ZXh0AAAAAFB1YmxpYyBkb21haW4gdGVzdCBmaXh0dXJlAABYWVogAAAAAAAA9tYAAQAAAADTLVhZWiAAAAAAAAD21gAAAAAAAAAAWFlaIAAAAAAAAAAAAAEAAAAAAABYWVogAAAAAAAAAAAAAAAAAADTLWN1cnYAAAAAAAAAAGN1cnYAAAAAAAAAAGN1cnYAAAAAAAAAAA==";
-    private const string GrayProfileBase64 =
+    internal const string GrayProfileBase64 =
         "AAABaAAAAAACQAAAbW50ckdSQVlYWVogB+oACwADAAAAAAAAYWNzcE1TRlQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAPbWAAEAAAAA0y10ZXN0AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEZGVzYwAAALQAAABwY3BydAAAASQAAAAjd3RwdAAAAUgAAAAUa1RSQwAAAVwAAAAMZGVzYwAAAAAAAAAWU3ludGhldGljIGxpbmVhciBHcmF5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHRleHQAAAAAUHVibGljIGRvbWFpbiB0ZXN0IGZpeHR1cmUAAFhZWiAAAAAAAAD21gABAAAAANMtY3VydgAAAAAAAAAA";
 
     [Fact]
@@ -133,12 +133,15 @@ public sealed class PdfPrecisionIccImageTests
     }
 
     [Fact]
-    public void DefaultDeviceProfileSubstitutionIsNotClassifiedAsTheDirectIccImageSlice()
+    public void DefaultDeviceProfileSubstitutionRetainsIccImagePrecision()
     {
         var renderer = Renderer(Convert.FromBase64String(RgbProfileBase64), defaultSpace: true);
 
         Assert.Empty(renderer.Render(0, new PdfRenderOptions(2, 1)).Diagnostics);
-        Assert.Throws<NotSupportedException>(() => renderer.RenderFrame(0, new PdfRenderOptions(2, 1)));
+        var frame = renderer.RenderFrame(0, new PdfRenderOptions(2, 1));
+        AssertPixel(frame, 0, 1.51082417f, -0.47186967f, 0.03469589f);
+        AssertPixel(frame, 1, 1.51087027f, -0.47188407f, 0.03469695f);
+        Assert.True(frame.Pixels[4] > frame.Pixels[0]);
     }
 
     [Fact]
@@ -166,7 +169,7 @@ public sealed class PdfPrecisionIccImageTests
         Assert.Equal(compatibility.Pixels.ToArray(), frame.ToSrgbBgra32());
     }
 
-    private static PdfPageRenderer Renderer(byte[] profile, int components = 3, int bits = 16,
+    internal static PdfPageRenderer Renderer(byte[] profile, int components = 3, int bits = 16,
         int width = 2, string? content = null, bool interpolate = false, string? mask = null,
         string? intent = null, bool defaultSpace = false, PdfObject? overrideSpace = null)
     {
@@ -183,7 +186,7 @@ public sealed class PdfPrecisionIccImageTests
         var iccSpace = new PdfArray([Name("ICCBased"), icc]);
         var imageEntries = new List<KeyValuePair<PdfName, PdfObject>> {
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(2)), Entry("Height", new PdfInteger(1)),
-            Entry("ColorSpace", overrideSpace ?? (defaultSpace ? Name("DeviceRGB") : iccSpace)),
+            Entry("ColorSpace", overrideSpace ?? (defaultSpace ? Name(components == 1 ? "DeviceGray" : "DeviceRGB") : iccSpace)),
             Entry("BitsPerComponent", new PdfInteger(bits)), Entry("Interpolate", new PdfBoolean(interpolate))
         };
         if (intent is not null) imageEntries.Add(Entry("Intent", Name(intent)));
@@ -206,7 +209,8 @@ public sealed class PdfPrecisionIccImageTests
             Entry("ExtGState", new PdfDictionary([Entry("Bpc",
                 new PdfDictionary([Entry("UseBlackPtComp", new PdfBoolean(true))]))]))
         };
-        if (defaultSpace) resourceEntries.Add(Entry("ColorSpace", new PdfDictionary([Entry("DefaultRGB", iccSpace)])));
+        if (defaultSpace) resourceEntries.Add(Entry("ColorSpace", new PdfDictionary([
+            Entry(components == 1 ? "DefaultGray" : "DefaultRGB", iccSpace)])));
         var resources = new PdfDictionary(resourceEntries);
         var document = PdfDocument.Open(update.ReplaceObject(page.Reference.ObjectNumber,
             new PdfDictionary(original.Where(pair => !pair.Key.Equals(Name("Resources")))

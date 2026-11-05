@@ -1060,11 +1060,8 @@ public sealed partial class PdfPageRenderer
                             hiddenOptionalContentGroups, 0))
                         break;
                     else if (pixels.PreciseRgb is not null && options.Proof is { Enabled: true }
-                        && (!IsName(xObject.Dictionary, "Subtype", "Image")
-                            || IsImageMask(xObject)
-                            || !(IsName(xObject.Dictionary, "ColorSpace", "DeviceRGB")
-                                || IsName(xObject.Dictionary, "ColorSpace", "DeviceGray"))))
-                        throw new NotSupportedException("Printer proof XObjects currently require a direct DeviceRGB or DeviceGray image.");
+                        && !PreciseProofImageSupported(xObject))
+                        throw new NotSupportedException("This printer proof XObject or source image color space is not implemented.");
                     else if (IsName(xObject.Dictionary, "Subtype", "Image"))
                     {
                         if (state.FillPattern is not null && IsImageMask(xObject))
@@ -5874,7 +5871,7 @@ public sealed partial class PdfPageRenderer
                 Profile: PdfIccProfileTransform { IsLutBased: true, IsLabInput: false,
                     Components: 4, RenderingIntent: 1, ForwardTableSignature: "A2B1" } }
                 && colorSpace.Intent == 1 && !colorSpace.BlackPointCompensationEnabled;
-            bool preciseIcc = preciseCmyk || colorSpace is { IsIccBased: true, IsDefault: false, ComponentRange: null,
+            bool preciseIcc = preciseCmyk || colorSpace is { IsIccBased: true, ComponentRange: null,
                 Profile: PdfIccProfileTransform { IsLutBased: false, IsLabInput: false,
                     Components: 1 or 3, RenderingIntent: 1 } }
                 && colorSpace.Intent == 1 && !colorSpace.BlackPointCompensationEnabled;
