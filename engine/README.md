@@ -339,6 +339,14 @@ referencing a UI toolkit or native PDF renderer. The engine does not provide UI 
 Compatibility documents can render when empty optional-content metadata omits `/OCGs`.
 Strict layer parsing still rejects a missing required group list; present malformed lists remain errors.
 
+`PdfRenderedFrame.ToDisplayBgra32` converts encoded or linear sRGB frames through D50 XYZ
+to an RGB monitor profile using relative colorimetric intent. It retains straight alpha
+and clips only at the final device-byte boundary. Use these monitor device bytes only
+when the application owns final monitor conversion, not with compositor-owned conversion.
+The combined storage limit counts input floats, output bytes and a retained gamut mask;
+cancellation and unsupported profile types are diagnosed. This portable conversion does
+not select an operating-system profile or establish desktop integration or physical accuracy.
+
 The 1.9.3 development `RenderFrame` API also retains floating-point source colors for its
 supported path, text, gradient and image cases, including ordinary Form XObjects with
 their matrices and bounding-box clips. It rejects unsupported precision features

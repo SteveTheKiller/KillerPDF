@@ -113,6 +113,52 @@ public sealed class PdfRenderedFrame
         return output;
     }
 
+    /// <summary>Copies the frame to straight-alpha BGRA32 in an RGB monitor profile.</summary>
+    /// <remarks>
+    /// Converts through D50 XYZ with relative colorimetric intent before final byte clipping.
+    /// Output channels are monitor device values, not sRGB. Use only when the application owns
+    /// monitor conversion. The combined budget counts input floats, output bytes and any retained gamut mask.
+    /// </remarks>
+    public byte[] ToDisplayBgra32(KillerPdf.Engine.ColorManagement.PdfColorProfile monitor,
+        CancellationToken cancellationToken = default, long maximumCombinedPixelBytes = MaximumPixelBytes)
+    {
+        ArgumentNullException.ThrowIfNull(monitor);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (monitor.ProfileClassSignature != "mntr")
+            throw new NotSupportedException("Display output requires a monitor profile.");
+        if (monitor.DeviceColorSpaceSignature != "RGB ")
+            throw new NotSupportedException("BGRA display output requires an RGB monitor profile.");
+        if (maximumCombinedPixelBytes is <= 0 or > MaximumPixelBytes)
+            throw new ArgumentOutOfRangeException(nameof(maximumCombinedPixelBytes));
+        long combinedBytes = _pixels.LongLength * (sizeof(float) + sizeof(byte))
+            + (PrinterGamutWarnings is null ? 0 : (long)Width * Height);
+        if (combinedBytes > maximumCombinedPixelBytes)
+            throw new ArgumentException("The input frame and display bytes exceed their combined pixel storage limit.",
+                nameof(maximumCombinedPixelBytes));
+        var output = new byte[_pixels.Length];
+        Span<double> xyz = stackalloc double[3];
+        Span<double> device = stackalloc double[3];
+        for (int offset = 0; offset < _pixels.Length; offset += 4)
+        {
+            if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            double r = Linear(_pixels[offset]), g = Linear(_pixels[offset + 1]), b = Linear(_pixels[offset + 2]);
+            xyz[0] = .4360747 * r + .3850649 * g + .1430804 * b;
+            xyz[1] = .2225045 * r + .7168786 * g + .0606169 * b;
+            xyz[2] = .0139322 * r + .0971045 * g + .7141733 * b;
+            monitor.FromXyz(xyz, device);
+            output[offset] = Quantize(device[2]);
+            output[offset + 1] = Quantize(device[1]);
+            output[offset + 2] = Quantize(device[0]);
+            output[offset + 3] = Quantize(_pixels[offset + 3]);
+        }
+        return output;
+
+        double Linear(double value) => ColorEncoding == PdfFrameColorEncoding.LinearSrgbD65 ? value
+            : value <= .04045 ? value / 12.92 : Math.Pow((value + .055) / 1.055, 2.4);
+        static byte Quantize(double value) =>
+            (byte)Math.Round(Math.Clamp(value, 0, 1) * 255, MidpointRounding.AwayFromZero);
+    }
+
     /// <summary>Copies the frame to straight-alpha BGRA32 in sRGB, clipping at this output boundary.</summary>
     public byte[] ToSrgbBgra32(CancellationToken cancellationToken = default)
     {
