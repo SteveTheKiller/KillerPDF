@@ -3621,7 +3621,10 @@ public sealed class PdfIncrementalPageEditor
             _pagePresentationChanged = true;
         }
         if (_tree.Catalog.ContainsKey(StructTreeRootName))
-            _removedTaggedWidgets.UnionWith(removedWidgets);
+            _removedTaggedWidgets.UnionWith(removedWidgets.Where(widget =>
+                ResolveDictionary(_document,
+                    new PdfIndirectReference(widget.ObjectNumber, widget.Generation),
+                    "A removed form widget").ContainsKey(StructureParentName)));
 
         List<PdfObject> RewriteList(PdfArray list, string? parentName, int depth)
         {

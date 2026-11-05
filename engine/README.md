@@ -96,7 +96,7 @@ The KillerPDF.Engine supports bookmarks, destinations, links, attachments, visua
 
 ### Handle standards and accessibility
 
-The engine includes PDF/A-4, PDF/A-4e, PDF/A-4f, tagged PDF, and PDF/UA-2 authoring safeguards. Structure trees, parent trees, semantic roles, alternate descriptions, output intents, embedded fonts, metadata, annotations, forms, and associated files are validated as coordinated document features.
+The engine includes PDF/A-4, PDF/A-4e, PDF/A-4f, tagged PDF, and PDF/UA-2 authoring safeguards. Structure trees, parent trees, semantic roles, alternate descriptions, output intents, embedded fonts, metadata, annotations, forms, and associated files are validated as coordinated document features. Removing untagged form widgets preserves the page's existing content tags; removing tagged widgets updates their structure and parent-tree mappings.
 
 ### Protect and sign documents
 
