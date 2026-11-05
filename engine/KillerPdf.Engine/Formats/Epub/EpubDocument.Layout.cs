@@ -86,14 +86,35 @@ public sealed partial class EpubDocument
             PngDecodedImage? Image, EpubNativeContent.Style Style, EpubNativeContent.Style BlockStyle)>();
         int lineStart = 0;
         EpubNativeContent.Element? lineBlock = null;
-        int imageIndex = 0;
+        int inlineIndex = 0;
         for (int index = 0; index <= text.Length; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            while (imageIndex < content.Images.Count && content.Images[imageIndex].Offset == index)
+            while (inlineIndex < content.Inlines.Count && content.Inlines[inlineIndex].Offset == index)
             {
-                var reference = content.Images[imageIndex++];
+                cancellationToken.ThrowIfCancellationRequested();
+                var reference = content.Inlines[inlineIndex++];
                 BeginInline(reference.Owner, index);
+                if (reference.Source is null)
+                {
+                    if (line.Count == 0)
+                    {
+                        double height = Math.Max(AboveBaseline(reference.Owner.BlockStyle), AboveBaseline(reference.Owner.Style))
+                            + Math.Max(BelowBaseline(reference.Owner.BlockStyle), BelowBaseline(reference.Owner.Style));
+                        if (height > options.PageHeight - 2 * options.Margin)
+                            throw new NotSupportedException("The native EPUB line exceeds the available page height.");
+                        if (top + height > options.PageHeight - options.Margin)
+                        {
+                            FinishPage(index);
+                            top = options.Margin;
+                        }
+                        top += height;
+                    }
+                    else FlushLine();
+                    left = options.Margin;
+                    lineStart = index;
+                    continue;
+                }
                 var image = ReadNativeImage(resource.Href, reference.Source, imageCache, ref retainedImageBytes, cancellationToken);
                 if (left + image.Width > options.PageWidth - options.Margin)
                     throw new NotSupportedException("The native EPUB image exceeds the available line width.");
@@ -106,24 +127,16 @@ public sealed partial class EpubDocument
             {
                 var source = content.Characters[index];
                 bool explicitBreak = source?.Node.Owner.Name == "br";
+                if (explicitBreak)
+                {
+                    lineStart = index + 1;
+                    continue;
+                }
                 bool paragraph = !explicitBreak && index + 1 < text.Length && text[index + 1] == '\n'
                     && content.Characters[index + 1] is null;
                 int separatorLength = paragraph ? 2 : 1;
                 // Separators retain their source indices but have no placement.
-                if (explicitBreak && line.Count == 0)
-                {
-                    double height = Math.Max(AboveBaseline(source!.BlockStyle), AboveBaseline(source.Style))
-                        + Math.Max(BelowBaseline(source.BlockStyle), BelowBaseline(source.Style));
-                    if (height > options.PageHeight - 2 * options.Margin)
-                        throw new NotSupportedException("The native EPUB line exceeds the available page height.");
-                    if (top + height > options.PageHeight - options.Margin)
-                    {
-                        FinishPage(index);
-                        top = options.Margin;
-                    }
-                    top += height;
-                }
-                else FlushLine();
+                FlushLine();
                 if (paragraph) top += options.FontSize;
                 if (top + options.FontSize > options.PageHeight - options.Margin)
                 {

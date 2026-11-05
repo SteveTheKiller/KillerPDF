@@ -12,6 +12,55 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubEmbeddedImageLayoutTests
 {
     [Fact]
+    public void ConsecutiveBreaksAfterImageReserveBlankLineBeforeOriginalTextOffset()
+    {
+        var book = EpubDocument.Open(Package(RgbPng(),
+            "<p><img src='../images/check.png' alt=''/><br/><br/>A</p>"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 40,
+            TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { Margin = 2, FontSize = 10 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A", book.ReadText(0));
+        Assert.Equal("A", page.Text);
+        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 22, 6, 10) }, page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, frame.Pixels.Slice((8 * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 1, 0, 1 }, frame.Pixels.Slice((8 * 16 + 3) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 1, 1 }, frame.Pixels.Slice((9 * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((9 * 16 + 3) * 4, 4).ToArray());
+        for (int y = 12; y < 20; y++)
+        for (int x = 0; x < 16; x++)
+            Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((y * 16 + x) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((25 * 16 + 7) * 4, 4).ToArray());
+    }
+
+    [Fact]
+    public void ExplicitBreakSeparatesImageOnlyLinesWithoutParagraphSpacing()
+    {
+        byte[] png = RgbPng();
+        var book = EpubDocument.Open(Package(png,
+            "<p><img src='../images/check.png' alt=''/><br/><img src='../images/check.png' alt=''/></p>"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 30,
+            TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { Margin = 2, FontSize = 10 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("", book.ReadText(0));
+        Assert.Equal("", page.Text);
+        Assert.Empty(page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        for (int y = 0; y < 30; y++)
+        for (int x = 0; x < 16; x++)
+        {
+            float[] expected = (x, y) switch {
+                (2, 8) or (2, 18) => [1, 0, 0, 1],
+                (3, 8) or (3, 18) => [0, 1, 0, 1],
+                (2, 9) or (2, 19) => [0, 0, 1, 1],
+                (3, 9) or (3, 19) => [0, 0, 0, 1],
+                _ => [1, 1, 1, 1] };
+            Assert.Equal(expected, frame.Pixels.Slice((y * 16 + x) * 4, 4).ToArray());
+        }
+        Assert.Equal(png, book.ReadResource("EPUB/images/check.png"));
+    }
+
+    [Fact]
     public void ImageOnlyParagraphRendersPackagedRgbPngAtIntrinsicSizeOnBaseline()
     {
         byte[] png = RgbPng();

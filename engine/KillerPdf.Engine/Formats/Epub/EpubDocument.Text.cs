@@ -87,13 +87,15 @@ public sealed partial class EpubDocument
                             Append(' ', pendingSource);
                         pendingSpace = false;
                         if (native is not null)
-                            native.Images.Add(new(result.Length, reference, native.ImageElement!));
+                            native.Inlines.Add(new(result.Length, reference, native.ImageElement!));
                     }
                     if (native is not null && reader.GetAttribute("id") is { } id)
                         native.Anchors.Add((id, result.Length + (pendingSpace && result.Length > 0 && result[^1] != '\n' ? 1 : 0)));
                     if (reader.LocalName == "br")
                     {
                         pendingSpace = false;
+                        if (native is not null)
+                            native.Inlines.Add(new(result.Length, null, native.LineBreakSource!.Node.Owner));
                         if (result.Length > 0) Append('\n', native?.LineBreakSource);
                     }
                 }

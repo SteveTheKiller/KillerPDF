@@ -160,7 +160,9 @@ leading breaks before any text and trims trailing breaks.
 Words wider than the content box are diagnosed explicitly.
 Packaged, untagged eight-bit RGB/RGBA PNG images with only IHDR/IDAT/IEND chunks can
 paint inline at intrinsic CSS-pixel dimensions, aligned to the shared baseline.
-Image-only paragraphs retain line boxes and paragraph spacing. Images do not
+Image-only paragraphs retain line boxes and paragraph spacing. Explicit breaks
+keep image-only lines and intervening blank lines in source order without
+inventing structural text characters. Images do not
 invent text offsets or alt-text glyphs, and preceding collapsed spaces keep source
 order. PNG alpha composites over the reading canvas before the final sRGB decode.
 The layout owns decoded image data and preserves original resource bytes.

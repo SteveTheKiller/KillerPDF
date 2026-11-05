@@ -11,7 +11,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null);
     internal sealed record Element(string Name, Element? Parent, Style Style, Style BlockStyle);
     internal sealed record Text(string Value, Element Owner);
-    internal sealed record ImageReference(int Offset, string Source, Element Owner);
+    internal sealed record InlineReference(int Offset, string? Source, Element Owner);
     internal sealed record SourceCharacter(Text Node, int Offset)
     {
         internal Style Style => Node.Owner.Style;
@@ -25,7 +25,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private bool _bodySeen;
     internal List<SourceCharacter?> Characters { get; } = new();
     internal List<(string Id, int Offset)> Anchors { get; } = new();
-    internal List<ImageReference> Images { get; } = new();
+    internal List<InlineReference> Inlines { get; } = new();
     internal Element? ImageElement { get; private set; }
     internal SourceCharacter? LineBreakSource { get; private set; }
     internal Style DefaultStyle { get; } = new(fallbackSize, null);
@@ -108,8 +108,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal void Trim(int length)
     {
         if (Characters.Count > length) Characters.RemoveRange(length, Characters.Count - length);
-        for (int i = 0; i < Images.Count; i++)
-            if (Images[i].Offset > length) Images[i] = Images[i] with { Offset = length };
+        for (int i = 0; i < Inlines.Count; i++)
+            if (Inlines[i].Offset > length) Inlines[i] = Inlines[i] with { Offset = length };
     }
 
     internal void Count(int length)
