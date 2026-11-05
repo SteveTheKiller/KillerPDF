@@ -15,6 +15,44 @@ namespace KillerPDF.Tests;
 public sealed class NativeWorkingDocumentTests
 {
     [Fact]
+    public void NativeOwnerResolvesLocalDestinationsAndHonorsCloseAndCancellation()
+    {
+        using var owner = NativeWorkingDocument.OpenDjvu(DjvuPage());
+
+        Assert.Equal(new PdfReadNavigationDestination(0, 0, 0), owner.ResolveNavigationTarget("#1"));
+
+        Assert.Throws<InvalidDataException>(() => owner.ResolveNavigationTarget("#2"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => owner.ResolveNavigationTarget("#1", 1));
+        owner.Close();
+        Assert.Throws<ObjectDisposedException>(() => owner.ResolveNavigationTarget("#1"));
+        Assert.Throws<OperationCanceledException>(() => owner.ResolveNavigationTarget(null!, -1, new CancellationToken(true)));
+    }
+
+    [Fact]
+    public void NativeOwnerReturnsCapturedOutlineAndRejectsNewReadsAfterClose()
+    {
+        byte[] source = Convert.FromHexString(
+            "41542654464F524D00000064444A564D4449524D0000001181000100000052FFFFF8BF9E1FCC877DC900" +
+            "4E41564D00000020FFFFDCFE710ED97FCE8AD681247C75F5957907266F39911034415499EB17C37B" +
+            "464F524D00000016444A5655494E464F0000000A000200011A002C011601");
+        byte[] original = source.ToArray();
+        using var owner = NativeWorkingDocument.OpenDjvu(source);
+        Array.Clear(source);
+
+        var root = Assert.Single(owner.ReadNavigation());
+
+        Assert.Equal("R\u00e9sum\u00e9", root.Label);
+        Assert.Equal("#1", root.Target);
+        using var copy = new MemoryStream();
+        owner.WriteCopyTo(copy);
+        Assert.Equal(original, copy.ToArray());
+        owner.Close();
+        Assert.Throws<ObjectDisposedException>(() => owner.ReadNavigation());
+        Assert.Throws<OperationCanceledException>(() => owner.ReadNavigation(new CancellationToken(true)));
+        Assert.Equal("#1", root.Target);
+    }
+
+    [Fact]
     public void NativeEpubOwnerCopiesOriginalPackageAndRendersItsOwnedSourceWithPortableFont()
     {
         using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
@@ -37,6 +75,9 @@ public sealed class NativeWorkingDocumentTests
         Assert.Equal(PdfDocumentFormat.Epub, owner.Format);
         Assert.Equal(direct.SourceSha256, owner.ContentIdentity);
         Assert.Equal(1, owner.PageCount);
+        var chapter = Assert.Single(owner.ReadNavigation());
+        Assert.Equal("EPUB/text.xhtml", chapter.Target);
+        Assert.Equal(new PdfReadNavigationDestination(0, 4, 4), owner.ResolveNavigationTarget(chapter.Target));
         using var revision = owner.CaptureReadRevision();
         Assert.Equal(PdfDocumentFormat.Epub, revision.Format);
         Assert.Equal(owner.ContentIdentity, revision.ContentIdentity);

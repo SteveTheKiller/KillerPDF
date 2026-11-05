@@ -65,7 +65,7 @@ public sealed class PdfReadPageGeometry
 }
 
 /// <summary>Owns an immutable native read layout independently of logical document identity.</summary>
-public sealed class PdfReadSnapshot
+public sealed partial class PdfReadSnapshot
 {
     /// <summary>Captures source bytes and opens a native DjVu document.</summary>
     public static PdfReadSnapshot OpenDjvu(ReadOnlyMemory<byte> bytes,
@@ -79,28 +79,36 @@ public sealed class PdfReadSnapshot
         var document = DjvuDocument.Open(source, cancellationToken);
         if (document.Pages.Count == 0)
             throw new NotSupportedException("The DjVu container has no local pages available for reading.");
-        return new PdfReadSnapshot(document, sourceSha256);
+        return new PdfReadSnapshot(document, sourceSha256, cancellationToken);
     }
 
     private readonly EpubLayoutDocument? _layout;
     private readonly DjvuDocument? _djvu;
     private readonly PdfReadPageGeometry[] _geometries;
 
-    private PdfReadSnapshot(EpubLayoutDocument layout, PdfReadPageGeometry geometry, string sourceSha256)
+    private PdfReadSnapshot(EpubLayoutDocument layout, PdfReadPageGeometry geometry, string sourceSha256,
+        Func<IReadOnlyList<EpubNavigationEntry>> navigation, CancellationToken cancellationToken)
     {
         _layout = layout;
         _geometries = Enumerable.Repeat(geometry, layout.Pages.Count).ToArray();
         Format = PdfDocumentFormat.Epub;
         SourceSha256 = sourceSha256;
+        var captured = CaptureNavigation(() => navigation().Select(entry => CaptureEntry(entry, cancellationToken)), cancellationToken);
+        _navigation = captured.Entries;
+        _navigationFailure = captured.Failure;
     }
 
-    private PdfReadSnapshot(DjvuDocument document, string sourceSha256)
+    private PdfReadSnapshot(DjvuDocument document, string sourceSha256, CancellationToken cancellationToken)
     {
         _djvu = document;
         _geometries = document.Pages.Select(page => new PdfReadPageGeometry(page.Width, page.Height,
             PdfReadPageUnit.Pixel, page.Dpi, page.Dpi, (int)page.Orientation)).ToArray();
         Format = PdfDocumentFormat.Djvu;
         SourceSha256 = sourceSha256;
+        var captured = CaptureNavigation(() => document.ReadNavigation(cancellationToken)
+            .Select(entry => CaptureEntry(entry, cancellationToken)), cancellationToken);
+        _navigation = captured.Entries;
+        _navigationFailure = captured.Failure;
     }
 
     /// <summary>Captures source bytes and creates a native EPUB layout.</summary>
@@ -114,10 +122,12 @@ public sealed class PdfReadSnapshot
         byte[] source = bytes.ToArray();
         string sourceSha256 = Convert.ToHexString(SHA256.HashData(source));
         var capturedOptions = options with { };
-        var layout = EpubDocument.Open(source, cancellationToken).CreateLayout(capturedOptions, cancellationToken);
+        var publication = EpubDocument.Open(source, cancellationToken);
+        var layout = publication.CreateLayout(capturedOptions, cancellationToken);
         return new PdfReadSnapshot(layout,
             new PdfReadPageGeometry(capturedOptions.PageWidth, capturedOptions.PageHeight,
-                PdfReadPageUnit.CssPixel, 96, 96, 0), sourceSha256);
+                PdfReadPageUnit.CssPixel, 96, 96, 0), sourceSha256,
+            () => publication.ReadNavigation(cancellationToken), cancellationToken);
     }
     /// <summary>Gets the original source format.</summary>
     public PdfDocumentFormat Format { get; }

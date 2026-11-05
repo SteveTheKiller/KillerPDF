@@ -146,7 +146,7 @@ public sealed class EpubNavigationDestinationTests
         FontSize = 10, Margin = 2
     };
 
-    private static byte[] Book(string? entries = null, string? spine = null, string firstBody = "<p>A A</p>",
+    internal static byte[] Book(string? entries = null, string? spine = null, string firstBody = "<p>A A</p>",
         bool ncx = false, string firstHref = "first.xhtml")
     {
         entries ??= $"<li><a href='../later.xhtml'>Later</a></li><li><a href='../{firstHref}'>First</a></li>";

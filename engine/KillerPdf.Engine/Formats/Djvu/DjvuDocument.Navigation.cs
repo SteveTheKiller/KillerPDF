@@ -5,6 +5,74 @@ namespace KillerPdf.Engine.Formats.Djvu;
 
 public sealed partial class DjvuDocument
 {
+    /// <summary>Resolves a local page target to a zero-based page index without fetching resources.</summary>
+    public int ResolveNavigationTarget(string target, int? currentPageIndex = null, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(target);
+        if (target.Length > 4096)
+            throw new ArgumentException("The DjVu navigation target exceeds the 4096 character limit.", nameof(target));
+        if (currentPageIndex is { } current && (current < 0 || current >= Pages.Count))
+            throw new ArgumentOutOfRangeException(nameof(currentPageIndex));
+        if (target.Length == 0)
+            throw new InvalidDataException("The DjVu navigation target is empty.");
+        if (target[0] != '#')
+            throw new NotSupportedException("Only local DjVu page targets are supported; external resources and viewer commands are not opened.");
+        var pageTarget = DecodeLocalTarget(target[1..]);
+        if (pageTarget.Any(char.IsControl))
+            throw new InvalidDataException("The DjVu navigation target contains a control character.");
+        for (var index = 0; index < Pages.Count; index++)
+            if (string.Equals(Pages[index].ComponentId, pageTarget, StringComparison.Ordinal)) return index;
+        if (pageTarget.Contains('?', StringComparison.Ordinal))
+            throw new NotSupportedException("Only local DjVu page targets are supported; viewer commands are not executed.");
+        if (int.TryParse(pageTarget, System.Globalization.NumberStyles.None,
+            System.Globalization.CultureInfo.InvariantCulture, out var ordinal) && ordinal >= 1 && ordinal <= Pages.Count)
+            return ordinal - 1;
+        if (pageTarget.Length > 1 && pageTarget[0] is '+' or '-' &&
+            int.TryParse(pageTarget.AsSpan(1), System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out var displacement))
+        {
+            if (currentPageIndex is null)
+                throw new ArgumentException("A relative DjVu target requires the current page index.", nameof(currentPageIndex));
+            var destination = (long)currentPageIndex.Value + (pageTarget[0] == '+' ? displacement : -(long)displacement);
+            if (destination >= 0 && destination < Pages.Count) return (int)destination;
+        }
+        throw new InvalidDataException("The DjVu navigation target does not identify an available page.");
+    }
+
+    private static string DecodeLocalTarget(string target)
+    {
+        var utf8 = new UTF8Encoding(false, true);
+        try
+        {
+            var bytes = utf8.GetBytes(target);
+            var length = 0;
+            for (var position = 0; position < bytes.Length; position++)
+            {
+                var value = bytes[position];
+                if (value == '%')
+                {
+                    if (position + 2 >= bytes.Length ||
+                        !byte.TryParse(Encoding.ASCII.GetString(bytes, position + 1, 2),
+                            System.Globalization.NumberStyles.AllowHexSpecifier,
+                            System.Globalization.CultureInfo.InvariantCulture, out value))
+                        throw new InvalidDataException("The DjVu navigation target contains a malformed percent escape.");
+                    position += 2;
+                }
+                bytes[length++] = value;
+            }
+            return utf8.GetString(bytes, 0, length);
+        }
+        catch (EncoderFallbackException exception)
+        {
+            throw new InvalidDataException("The DjVu navigation target contains invalid UTF-8.", exception);
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw new InvalidDataException("The DjVu navigation target contains invalid UTF-8.", exception);
+        }
+    }
+
     /// <summary>Reads document bookmarks without executing links or fetching resources.</summary>
     public IReadOnlyList<DjvuNavigationEntry> ReadNavigation(CancellationToken cancellationToken = default)
     {
