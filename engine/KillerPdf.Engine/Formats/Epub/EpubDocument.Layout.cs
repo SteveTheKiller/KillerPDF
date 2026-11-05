@@ -208,6 +208,14 @@ public sealed partial class EpubDocument
             int value = scalar.Value;
             if (value is >= ' ' and <= '~') return scalar;
             UnicodeCategory category = Rune.GetUnicodeCategory(scalar);
+            if (value is >= 0x20A0 and <= 0x20CF && category == UnicodeCategory.CurrencySymbol)
+                return scalar;
+            // General punctuation does not enable embedded direction or formatting controls.
+            if (value is >= 0x2000 and <= 0x206F
+                && category is UnicodeCategory.ConnectorPunctuation or UnicodeCategory.DashPunctuation
+                    or UnicodeCategory.OpenPunctuation or UnicodeCategory.ClosePunctuation
+                    or UnicodeCategory.InitialQuotePunctuation or UnicodeCategory.FinalQuotePunctuation
+                    or UnicodeCategory.OtherPunctuation) return scalar;
             // Unshaped LTR text is limited to precomposed Latin, Greek, Cyrillic, and mathematical alphanumerics.
             if ((value is >= 0x00A0 and <= 0x02FF or >= 0x0370 and <= 0x052F
                     or >= 0x1E00 and <= 0x1FFF

@@ -54,6 +54,70 @@ public sealed class EpubUnicodeLayoutTests
         Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((12 * 20 + 7) * 4, 4).ToArray());
     }
 
+    [Theory]
+    [InlineData("<p>A&#8217;A</p>", "A\u2019A")]
+    [InlineData("<p>A&#8220;A</p>", "A\u201CA")]
+    [InlineData("<p>A&#8226;A</p>", "A\u2022A")]
+    [InlineData("<p>A&#8230;A</p>", "A\u2026A")]
+    public void MappedTypographicQuotePreservesNativeInkAndSelectableConvertedText(string body, string expected)
+    {
+        byte[] source = Book(body);
+        byte[] original = source.ToArray();
+        var book = EpubDocument.Open(source);
+
+        var layout = book.CreateLayout(Options());
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal(expected, page.Text);
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10),
+            new EpubTextPlacement(0, 1, 1, 8, 2, 6, 10),
+            new EpubTextPlacement(0, 2, 1, 14, 2, 6, 10) }, page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((5 * 30 + 13) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((5 * 30 + 27) * 4, 4).ToArray());
+        byte[] converted = book.ConvertToPdf(new EpubPdfConversionOptions(Font()));
+        var reader = new PdfPageContentReader(PdfDocument.Open(converted));
+        Assert.Equal(expected, string.Concat(reader.Read(0).Letters.Select(letter => letter.Value)));
+        Assert.Equal(original, source);
+        Assert.Equal(expected, book.ReadText(0));
+    }
+
+    [Fact]
+    public void TypographicQuoteAfterSpaceRetainsTheWholeWordAndSourceOffsetsWhenWrapping()
+    {
+        var book = EpubDocument.Open(Book("<p>A A&#8217;A</p>"));
+        var layout = book.CreateLayout(Options() with { PageWidth = 24, PageHeight = 24 });
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A A\u2019A", page.Text);
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10),
+            new EpubTextPlacement(0, 2, 1, 2, 12, 6, 10),
+            new EpubTextPlacement(0, 3, 1, 8, 12, 6, 10),
+            new EpubTextPlacement(0, 4, 1, 14, 12, 6, 10) }, page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((15 * 24 + 13) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((23 * 24 + 13) * 4, 4).ToArray());
+    }
+
+    [Fact]
+    public void MappedCurrencySymbolPreservesNativeLayoutAndSelectablePdfText()
+    {
+        var book = EpubDocument.Open(Book("<p>A&#8364;A</p>"));
+
+        var layout = book.CreateLayout(Options());
+
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A\u20ACA", page.Text);
+        Assert.Equal(new EpubTextPlacement(0, 1, 1, 8, 2, 6, 10), page.TextPlacements[1]);
+        var frame = layout.RenderPage(0);
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((5 * 30 + 13) * 4, 4).ToArray());
+        byte[] converted = book.ConvertToPdf(new EpubPdfConversionOptions(Font()));
+        var reader = new PdfPageContentReader(PdfDocument.Open(converted));
+        Assert.Equal("A\u20ACA", string.Concat(reader.Read(0).Letters.Select(letter => letter.Value)));
+    }
+
     private static EpubLayoutOptions Options() => new(30, 36, Font()) { FontSize = 10, Margin = 2 };
 
     [Theory]
@@ -109,7 +173,7 @@ public sealed class EpubUnicodeLayoutTests
 
     private static TrueTypeFont Font()
     {
-        int[] scalars = [0x41, 0xE9, 0x301, 0x3A9, 0x416, 0x5D0, 0x627, 0x915, 0x200D, 0x202E, 0xFE0F, 0x1D400];
+        int[] scalars = [0x41, 0xE9, 0x301, 0x3A9, 0x416, 0x5D0, 0x627, 0x915, 0x200D, 0x2019, 0x201C, 0x2022, 0x2026, 0x202E, 0x20AC, 0xFE0F, 0x1D400];
         byte[] cmap = new byte[28 + scalars.Length * 12];
         BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(2), 1);
         BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(4), 3);
