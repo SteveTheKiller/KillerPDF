@@ -726,7 +726,7 @@ internal sealed class PdfCapturedReadRevision : IDisposable
             session ??= native is not null ? new OwnedRenderSession(native)
                 : new OwnedRenderSession(PdfPageRenderSession.OpenCapturedDocument(document!, _pages));
             linked.Token.ThrowIfCancellationRequested();
-            return new Lease(this, session, linked);
+            return new Lease(this, session, linked, native);
         }
         catch
         {
@@ -820,9 +820,21 @@ internal sealed class PdfCapturedReadRevision : IDisposable
     }
 
     internal sealed class Lease(PdfCapturedReadRevision owner, IRenderSession session,
-        CancellationTokenSource cancellation) : IDisposable
+        CancellationTokenSource cancellation, EngineReadSnapshot? nativeSnapshot = null) : IDisposable
     {
         private IRenderSession? _session = session;
+        private EngineReadSnapshot? _nativeSnapshot = nativeSnapshot;
+
+        internal KillerPdf.Engine.Documents.PdfReadTextPage ReadNativeTextPage(int pageIndex)
+        {
+            _ = _session ?? throw new ObjectDisposedException(nameof(Lease));
+            cancellation.Token.ThrowIfCancellationRequested();
+            EngineReadSnapshot snapshot = _nativeSnapshot
+                ?? throw new NotSupportedException("Native text is available only for captured native documents.");
+            var page = snapshot.ReadTextPage(pageIndex, cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
+            return page;
+        }
 
         internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex, EngineRenderOptions options)
         {
@@ -837,6 +849,7 @@ internal sealed class PdfCapturedReadRevision : IDisposable
         {
             IRenderSession? released = Interlocked.Exchange(ref _session, null);
             if (released is null) return;
+            _nativeSnapshot = null;
             cancellation.Dispose();
             owner.Return(released);
         }

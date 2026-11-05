@@ -184,8 +184,10 @@ Intrinsic rotation remains in `GetPageGeometry` for the caller to apply once.
 Missing zones do not create artificial character boxes. Separator-only DjVu zones
 remain in the source text but do not become selectable page-sized rectangles.
 Selection filtering is linear in text plus zones, with at most another 16,777,220
-bytes of integer elements plus bounded region storage. Application search, selection
-and accessibility integration still require implementation and runtime acceptance.
+bytes of integer elements plus bounded region storage. The Windows shell's captured
+read lease retains the immutable native snapshot and links text reads to caller and
+document closure cancellation without reopening the source path. Application search,
+selection and accessibility integration still require implementation and runtime acceptance.
 
 ## Native EPUB layout (1.9.3 development)
 
