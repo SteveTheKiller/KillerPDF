@@ -924,6 +924,8 @@ namespace KillerPDF.Shell
                 dOpacityUnit.Children.Add(barCheck);
             }
             panel.Children.Add(dOpacityUnit);
+            if (BuildReplacementLayerControls() is { } replacementLayers)
+                panel.Children.Add(replacementLayers);
             var drawOverflowBtn = MakeBarOverflow(out var drawOverflowPopup, out var drawOverflowStack);
             panel.Children.Add(drawOverflowBtn);
             panel.Children.Add(drawOverflowPopup);   // renders nothing; keeps the popup in the tree for DynamicResource

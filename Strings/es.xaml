@@ -345,6 +345,10 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_View_Single">Página Individual</sys:String>
     <sys:String x:Key="Str_View_Continuous">Continuo</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Dos Páginas</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Reemplazo</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Permitir mover y cambiar el tamaño de esta capa</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Mover el fondo y el texto juntos</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Seleccionar fondo y texto</sys:String>
     <sys:String x:Key="Str_View_Grid">Cuadrícula</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Cambia a Página Individual para usar herramientas de edición</sys:String>
 

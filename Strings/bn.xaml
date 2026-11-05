@@ -345,6 +345,10 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_View_Single">একক পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_View_Continuous">ধারাবাহিক</sys:String>
     <sys:String x:Key="Str_View_TwoPage">দুই পৃষ্ঠা</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">প্রতিস্থাপন</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">এই স্তরটি সরানো ও আকার পরিবর্তনের অনুমতি দিন</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">কভার ও টেক্সট একসঙ্গে সরান</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">কভার ও টেক্সট নির্বাচন করুন</sys:String>
     <sys:String x:Key="Str_View_Grid">গ্রিড</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">সম্পাদনা টুল ব্যবহার করতে একক পৃষ্ঠায় স্যুইচ করুন</sys:String>
 

@@ -409,6 +409,10 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_View_Single">Egyoldalas</sys:String>
     <sys:String x:Key="Str_View_Continuous">Folyamatos</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Kétoldalas</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Csere</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">A réteg mozgatásának és átméretezésének engedélyezése</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">A fedőréteg és a szöveg együttes mozgatása</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">A fedőréteg és a szöveg kijelölése</sys:String>
     <sys:String x:Key="Str_View_Grid">Rács</sys:String>
     <sys:String x:Key="Str_View_BookMode">Könyv elrendezés</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">A szerkesztőeszközök használatához váltson Egyoldalas nézetre</sys:String>

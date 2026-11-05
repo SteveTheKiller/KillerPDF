@@ -331,6 +331,10 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_View_Single">Бір бет</sys:String>
     <sys:String x:Key="Str_View_Continuous">Үздіксіз</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Екі бет</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Ауыстыру</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Бұл қабатты жылжытуға және өлшемін өзгертуге рұқсат беру</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Жабын мен мәтінді бірге жылжыту</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Жабын мен мәтінді таңдау</sys:String>
     <sys:String x:Key="Str_View_Grid">Тор</sys:String>
     <sys:String x:Key="Str_View_BookMode">Кітап орналасуы</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Өңдеу құралдарын пайдалану үшін Бір бет режиміне ауысыңыз</sys:String>

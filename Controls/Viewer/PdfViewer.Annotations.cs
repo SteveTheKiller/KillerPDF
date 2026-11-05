@@ -134,6 +134,7 @@ namespace KillerPDF.Controls
             if (_annotations.TryGetValue(pageIndex, out var annotList))
             foreach (var annot in annotList)
             {
+                if (!ReplacementLayers.IsVisible(annot)) continue;
                 switch (annot)
                 {
                     case TextAnnotation ta:
@@ -499,8 +500,13 @@ namespace KillerPDF.Controls
                 ? "Str_St_DeletedAnnotationOne" : "Str_St_DeletedAnnotationMany"), toDelete.Count));
         }
 
-        private static bool HitTestAnnotation(PageAnnotation annot, Point pos, out Rect bounds)
+        private static bool HitTestAnnotation(PageAnnotation annot, Point pos, out Rect bounds, bool includeHidden = false)
         {
+            if (!includeHidden && !ReplacementLayers.IsVisible(annot))
+            {
+                bounds = Rect.Empty;
+                return false;
+            }
             switch (annot)
             {
                 case CoverAnnotation cov:
@@ -661,7 +667,11 @@ namespace KillerPDF.Controls
             }
 
             // A measurement gets a handle on each point and one on its label instead of corners.
-            if (annot is MeasurementAnnotation measured)
+            if (!ReplacementLayers.CanMove(annot))
+            {
+                SetStatus(Loc("Str_Panel_LayerLocked"));
+            }
+            else if (annot is MeasurementAnnotation measured)
             {
                 AddMeasurementHandles(measured, selBrush, inv);
                 SetStatus(string.Format(Loc("Str_St_AnnotSelected"), Loc("Str_Annot_Measurement"),
@@ -828,7 +838,7 @@ namespace KillerPDF.Controls
                 double maxX = ia.Points.Max(p => p.X), maxY = ia.Points.Max(p => p.Y);
                 return new Rect(minX, minY, Math.Max(1, maxX - minX), Math.Max(1, maxY - minY));
             }
-            HitTestAnnotation(a, new Point(double.MinValue, double.MinValue), out Rect b);
+            HitTestAnnotation(a, new Point(double.MinValue, double.MinValue), out Rect b, includeHidden: true);
             return b;
         }
 
@@ -884,6 +894,10 @@ namespace KillerPDF.Controls
                     selected.Add(annotation);
 
             if (selected.Count == 0) return false;
+
+            selected = [.. selected.SelectMany(annotation => _annotations.TryGetValue(annotation.PageIndex, out var page)
+                ? ReplacementLayers.SelectionMembers(annotation, page) : new[] { annotation }).Distinct()];
+            if (!ReplacementLayers.CanMoveTogether(selected)) return true;
 
             var constraints = selected
                 .Where(annotation => _renderDims.ContainsKey(annotation.PageIndex))
@@ -1090,6 +1104,9 @@ namespace KillerPDF.Controls
                         pos.Y >= hy && pos.Y <= hy + hd.Height)
                     {
                         _resizeCorner = hd.Tag as string ?? "SE";
+                        if (_selectedAnnotation is PlacedAnnotation or TextAnnotation or HighlightAnnotation
+                            or InkAnnotation { Points.Count: > 0 })
+                            PushPageSnapshotUndo(_selectedAnnotation.PageIndex);
                         // Anchor on the opposite corner so it stays put while the dragged corner moves.
                         if (_selectedAnnotation is PlacedAnnotation rsa)
                         {
@@ -1239,7 +1256,7 @@ namespace KillerPDF.Controls
                                             && _selectedAnnotation.PageIndex == pageIdx)
                                             _dragGroupOrig.Add((_selectedAnnotation, AnnotGetPos(_selectedAnnotation)));
                                     }
-                                    else if (pa.GroupId.Length > 0)
+                                    else if (pa.GroupId.Length > 0 || pa.PairLinked && pa.PairId.Length > 0)
                                     {
                                         SelectGroup(pa);
                                         foreach (var m in _selectedSet) _dragGroupOrig.Add((m, AnnotGetPos(m)));
@@ -1250,11 +1267,15 @@ namespace KillerPDF.Controls
                                         RenderAllAnnotations(pageIdx);
                                         SelectAnnotation(pa, paBounds);
                                     }
-                                    _isDraggingAnnot = true;
-                                    _dragAnnotStart = pos;
-                                    _dragAnnotOrigPos = AnnotGetPos(pa);
-                                    _dragAnnot = pa;
-                                    _activeCanvas.CaptureMouse();
+                                    if (ReplacementLayers.CanMoveTogether(new[] { pa }.Concat(
+                                        _dragGroupOrig.Select(member => member.a))))
+                                    {
+                                        _isDraggingAnnot = true;
+                                        _dragAnnotStart = pos;
+                                        _dragAnnotOrigPos = AnnotGetPos(pa);
+                                        _dragAnnot = pa;
+                                        _activeCanvas.CaptureMouse();
+                                    }
                                     e.Handled = true;
                                     hitPlaced = true;
                                     break;
@@ -1979,7 +2000,7 @@ namespace KillerPDF.Controls
                         ReattachSelectionVisuals();
                         ReattachMultiOutlines();
                     }
-                    else if (da.GroupId.Length > 0) SelectGroup(da);
+                    else if (da.GroupId.Length > 0 || da.PairLinked && da.PairId.Length > 0) SelectGroup(da);
                     else SelectAnnotation(da, AnnotBounds(da));
                     MarkDirty();
                 }
@@ -2445,6 +2466,9 @@ namespace KillerPDF.Controls
         // Select an annotation and, if it's grouped, every other member of its group - so the whole group
         // shows selected and can move together. The lead is the primary selection; the rest get outlines.
         private void SelectGroup(PageAnnotation lead)
+            => SelectGroupCore(lead, includeReplacementPair: false);
+
+        private void SelectGroupCore(PageAnnotation lead, bool includeReplacementPair)
         {
             int pg = lead.PageIndex;
             ClearSelection();
@@ -2459,9 +2483,11 @@ namespace KillerPDF.Controls
                 (_pairedCoverOutline.Parent as Canvas)?.Children.Remove(_pairedCoverOutline);
                 _pairedCoverOutline = null;
             }
-            if (lead.GroupId.Length > 0 && _annotations.TryGetValue(pg, out var list))
-                foreach (var m in list)
-                    if (!ReferenceEquals(m, lead) && m.GroupId == lead.GroupId && IsDraggable(m))
+            if (_annotations.TryGetValue(pg, out var list))
+                foreach (var m in ReplacementLayers.SelectionMembers(lead, list).Concat(
+                    includeReplacementPair && ReplacementLayers.FindPair(lead, list) is { } pair
+                        ? new PageAnnotation[] { pair.Text, pair.Cover } : Array.Empty<PageAnnotation>()).Distinct())
+                    if (!ReferenceEquals(m, lead) && IsDraggable(m))
                     {
                         _selectedSet.Add(m);
                         AddSelectionOutline(AnnotBounds(m), _activeCanvas);

@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
@@ -27,6 +28,73 @@ public static class PdfOverlayAnnotations
         IgnoreReadOnlyProperties = true, MaxDepth = 32,
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
     };
+
+    internal static byte[] AppendPageBatch(PdfDocument document, int pageIndex,
+        int renderWidth, int renderHeight, int rotation, IReadOnlyList<PageAnnotation> annotations,
+        PdfContentStreamBuilder content, string? description)
+    {
+        ValidateCanvas(renderWidth, renderHeight, rotation);
+        if (annotations.Count is 0 or > 10000) throw new ArgumentException("Invalid overlay batch size.");
+        PdfPageInformation frame = PdfPageInformation.Read(document)[pageIndex];
+        var identities = new HashSet<Guid>();
+        var items = annotations.Select(annotation =>
+        {
+            ValidateModel(annotation);
+            if (annotation.PageIndex != pageIndex || !identities.Add(annotation.HistoryId))
+                throw new ArgumentException("Invalid overlay batch identity.");
+            string kind = Kind(annotation);
+            return new BatchItem(kind, annotation.HistoryId,
+                JsonSerializer.SerializeToElement(annotation, ModelType(kind), Json));
+        }).ToArray();
+        var envelope = new BatchEnvelope(1, renderWidth, renderHeight, rotation,
+            frame.Left, frame.Bottom, frame.Width, frame.Height, frame.UserUnit, items);
+        byte[] payload = JsonSerializer.SerializeToUtf8Bytes(envelope, Json);
+        if (payload.Length > MaximumPayload) throw new ArgumentException("Overlay batch exceeds the payload limit.");
+        using (JsonDocument check = JsonDocument.Parse(payload, new() { MaxDepth = 32 })) ValidateJson(check.RootElement);
+        return PdfEditablePageOverlayEditor.Append(document, pageIndex, frame.Width, frame.Height,
+            content, payload, description, expectedRotation: rotation);
+    }
+
+    private static IReadOnlyList<PageBatch> ReadPageBatches(PdfDocument document)
+    {
+        var result = new List<PageBatch>();
+        var pages = PdfPageInformation.Read(document);
+        foreach (var overlay in PdfEditablePageOverlayEditor.Read(document))
+        {
+            try
+            {
+                if (overlay.EditingData.Length > MaximumPayload) continue;
+                using (JsonDocument check = JsonDocument.Parse(overlay.EditingData,
+                    new() { MaxDepth = 32 })) ValidateJson(check.RootElement);
+                BatchEnvelope envelope = JsonSerializer.Deserialize<BatchEnvelope>(overlay.EditingData.Span, Json)
+                    ?? throw new InvalidOperationException("Missing overlay batch.");
+                if (envelope.Version != 1 || envelope.Items is not { Length: > 0 and <= 10000 }) continue;
+                ValidateCanvas(envelope.RenderWidth, envelope.RenderHeight, envelope.Rotation);
+                PdfPageInformation frame = pages[overlay.PageIndex];
+                if (envelope.Rotation != frame.Rotation || envelope.Left != frame.Left
+                    || envelope.Bottom != frame.Bottom || envelope.Width != frame.Width
+                    || envelope.Height != frame.Height || envelope.UserUnit != frame.UserUnit) continue;
+                var identities = new HashSet<Guid>();
+                var records = new List<OverlayRecord>();
+                foreach (BatchItem item in envelope.Items)
+                {
+                    if (item is null || item.HistoryId == Guid.Empty || !identities.Add(item.HistoryId))
+                        throw new ArgumentException("Invalid overlay batch identity.");
+                    PageAnnotation model = (PageAnnotation?)item.Model.Deserialize(ModelType(item.Kind), Json)
+                        ?? throw new InvalidOperationException("Missing overlay model.");
+                    ValidateShape(item.Model, JsonSerializer.SerializeToElement(model, ModelType(item.Kind), Json));
+                    if (model.PageIndex != overlay.PageIndex) throw new ArgumentException("Invalid overlay page.");
+                    model.HistoryId = item.HistoryId;
+                    ValidateModel(model);
+                    records.Add(new(model, envelope.RenderWidth, envelope.RenderHeight, envelope.Rotation,
+                        -1, overlay.FormObjectNumber));
+                }
+                result.Add(new(overlay, records.AsReadOnly()));
+            }
+            catch (Exception error) when (Unsupported(error)) { }
+        }
+        return result.AsReadOnly();
+    }
 
     /// <summary>Attaches a bounded editing representation to explicitly identified new annotations.
     /// The supplied rotation is the intended final page rotation; extraction waits until it matches.</summary>
@@ -81,6 +149,7 @@ public static class PdfOverlayAnnotations
             var pages = PdfPageInformation.Read(document);
             foreach (PdfCommentInfo comment in PdfCommentReader.Read(document, true))
                 if (TryRead(document, comment, pages[comment.PageIndex]) is { } record) result.Add(record);
+            foreach (PageBatch batch in ReadPageBatches(document)) result.AddRange(batch.Records);
         }
         catch (Exception error) when (Unsupported(error)) { return []; }
         return result.AsReadOnly();
@@ -117,7 +186,17 @@ public static class PdfOverlayAnnotations
                 foreach (OverlayRecord record in tail) editor.RemoveAnnotationAt(page, record.AnnotationIndex);
                 extracted.AddRange(tail.AsEnumerable().Reverse());
             }
-            return extracted.Count == 0 ? new(sourceBytes, []) : new(editor.Build(), extracted.AsReadOnly());
+            byte[] bytes = extracted.Count == 0 ? sourceBytes : editor.Build();
+            PdfDocument remaining = PdfDocument.Open(bytes);
+            // A page-content layer cannot be promoted above a remaining native annotation.
+            var batches = ReadPageBatches(remaining).Where(batch =>
+                PdfCommentReader.ReadPageAnnotationCount(remaining, batch.Overlay.PageIndex) == 0).ToArray();
+            if (batches.Length > 0)
+            {
+                bytes = PdfEditablePageOverlayEditor.Remove(remaining, batches.Select(batch => batch.Overlay).ToArray());
+                extracted.InsertRange(0, batches.SelectMany(batch => batch.Records));
+            }
+            return extracted.Count == 0 ? new(sourceBytes, []) : new(bytes, extracted.AsReadOnly());
         }
         catch (Exception error) when (Unsupported(error)) { return new(sourceBytes, []); }
     }
@@ -378,4 +457,8 @@ public static class PdfOverlayAnnotations
     private sealed record Envelope(string Kind, Guid HistoryId, int RenderWidth, int RenderHeight,
         int Rotation, double Left, double Bottom, double Width, double Height, double UserUnit,
         string Fingerprint, JsonElement Model);
+    private sealed record BatchItem(string Kind, Guid HistoryId, JsonElement Model);
+    private sealed record BatchEnvelope(int Version, int RenderWidth, int RenderHeight, int Rotation,
+        double Left, double Bottom, double Width, double Height, double UserUnit, BatchItem[] Items);
+    private sealed record PageBatch(PdfEditablePageOverlay Overlay, IReadOnlyList<OverlayRecord> Records);
 }

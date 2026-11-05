@@ -409,6 +409,10 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_View_Single">Jedna stránka</sys:String>
     <sys:String x:Key="Str_View_Continuous">Souvislé</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Dvoustrana</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Náhrada</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Povolit přesouvání a změnu velikosti této vrstvy</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Přesouvat překrytí a text společně</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Vybrat překrytí a text</sys:String>
     <sys:String x:Key="Str_View_Grid">Mřížka</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Pro nástroje úprav přepněte na zobrazení jedné stránky</sys:String>
 

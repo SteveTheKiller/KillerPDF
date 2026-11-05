@@ -410,6 +410,10 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_View_Single">Single Page</sys:String>
     <sys:String x:Key="Str_View_Continuous">Continuous</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Two Page</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Replacement</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Allow moving and resizing this layer</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Move cover and text together</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Select cover and text</sys:String>
     <sys:String x:Key="Str_View_Grid">Grid</sys:String>
     <sys:String x:Key="Str_View_BookMode">Book layout</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Switch to Single Page to use editing tools</sys:String>

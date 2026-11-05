@@ -409,6 +409,10 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_View_Single">Enkeltside</sys:String>
     <sys:String x:Key="Str_View_Continuous">Kontinuerlig</sys:String>
     <sys:String x:Key="Str_View_TwoPage">To sider</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Erstatning</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Tillat flytting og endring av størrelse på dette laget</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Flytt dekke og tekst sammen</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Velg dekke og tekst</sys:String>
     <sys:String x:Key="Str_View_Grid">Rutenett</sys:String>
     <sys:String x:Key="Str_View_BookMode">Bokoppsett</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Bytt til Enkeltside for å bruke redigeringsverktøyene</sys:String>

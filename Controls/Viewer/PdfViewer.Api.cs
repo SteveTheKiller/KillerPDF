@@ -38,6 +38,7 @@ namespace KillerPDF.Controls
         internal void ToggleMultiSelectExt(PageAnnotation a, Rect bounds, Canvas canvas)
             => ToggleMultiSelect(a, bounds, canvas);
         internal void SelectGroupExt(PageAnnotation lead) => SelectGroup(lead);
+        internal void SelectReplacementGroupExt(PageAnnotation lead) => SelectGroupCore(lead, includeReplacementPair: true);
         internal PageAnnotation? SelectedPairedExt() => SelectedPaired();
         internal int SelectionCountExt() => SelectionCount();
         internal void ReattachSelectionVisualsExt() => ReattachSelectionVisuals();

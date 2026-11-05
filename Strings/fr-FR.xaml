@@ -409,6 +409,10 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_View_Single">Page unique</sys:String>
     <sys:String x:Key="Str_View_Continuous">Défilement continu</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Page double</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Remplacement</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Autoriser le déplacement et le redimensionnement de ce calque</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Déplacer le cache et le texte ensemble</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Sélectionner le cache et le texte</sys:String>
     <sys:String x:Key="Str_View_Grid">Grille</sys:String>
     <sys:String x:Key="Str_View_BookMode">Mise en page livre</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Passer en vue page unique pour utiliser les outils d'édition</sys:String>

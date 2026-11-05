@@ -409,6 +409,10 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_View_Single">Pagina singola</sys:String>
     <sys:String x:Key="Str_View_Continuous">Pagine continue</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Due pagine affiancate</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Sostituzione</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Consenti di spostare e ridimensionare questo livello</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Sposta copertura e testo insieme</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Seleziona copertura e testo</sys:String>
     <sys:String x:Key="Str_View_Grid">Griglia</sys:String>
     <sys:String x:Key="Str_View_BookMode">Layout libro</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Per gli strumenti di modifica passa a 'Pagina singola'</sys:String>

@@ -734,6 +734,8 @@ namespace KillerPDF.Shell
             pairHost.Children.Add(fontPair);
             pairHost.Children.Add(colorPair);
             pairHost.Children.Add(opacityPair);
+            if (BuildReplacementLayerControls() is { } replacementLayers)
+                pairHost.Children.Add(replacementLayers);
             _annotBarDragInners.Clear();
 
             _textSettingsBar = new Border

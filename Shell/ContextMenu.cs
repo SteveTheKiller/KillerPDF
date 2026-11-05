@@ -436,7 +436,15 @@ namespace KillerPDF.Shell
 
         // Deep-copy an annotation so the clipboard (and paste) is fully independent of the live object.
         // CoverAnnotation must be matched before HighlightAnnotation since it derives from it.
-        private static PageAnnotation? CloneAnnotation(PageAnnotation a) => a switch
+        private static PageAnnotation? CloneAnnotation(PageAnnotation a)
+        {
+            PageAnnotation? clone = CloneAnnotationCore(a);
+            if (clone is not null)
+                clone.CopyLayerStateFrom(a);
+            return clone;
+        }
+
+        private static PageAnnotation? CloneAnnotationCore(PageAnnotation a) => a switch
         {
             CoverAnnotation c => new CoverAnnotation
             {

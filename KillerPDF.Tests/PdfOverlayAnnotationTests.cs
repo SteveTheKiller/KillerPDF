@@ -1,7 +1,9 @@
+using System.IO;
 using System.Windows;
 using KillerPDF.Services;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
@@ -13,6 +15,113 @@ namespace KillerPDF.Tests;
 
 public sealed class PdfOverlayAnnotationTests
 {
+    [Fact]
+    public void ReplacementAddedAfterAnOrdinaryTextBoxRetainsHiddenLinkedEditingState()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-mixed-paired-overlay-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(200, 100).Build());
+            var plain = new TextAnnotation { Content = "Ordinary", Position = new Point(10, 70), Width = 160, Height = 25 };
+            var pair = new ReplacementPair(
+                new TextAnnotation { PairId = "later-pair", Content = "Replacement", Position = new Point(20, 20), Width = 150, Height = 40 },
+                new CoverAnnotation { PairId = "later-pair", Bounds = new Rect(15, 15, 160, 50) });
+            ReplacementLayers.SetLinked(pair, true);
+            ReplacementLayers.SetVisibility(pair, ReplacementLayer.Text, false);
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [plain, pair.Cover, pair.Text] },
+                new Dictionary<int, (int w, int h)> { [0] = (200, 100) });
+            OverlayExtraction extracted = PdfOverlayAnnotations.TakeEditableTail(File.ReadAllBytes(path));
+            Assert.Equal(3, extracted.Records.Count);
+            Assert.Equal("Ordinary", Assert.IsType<TextAnnotation>(extracted.Records[0].Annotation).Content);
+            Assert.IsType<CoverAnnotation>(extracted.Records[1].Annotation);
+            TextAnnotation restored = Assert.IsType<TextAnnotation>(extracted.Records[2].Annotation);
+            Assert.Equal("Replacement", restored.Content);
+            Assert.False(restored.IsVisible);
+            Assert.True(restored.PairLinked);
+            Assert.Equal(1, SearchService.Search(path, "Ordinary").TotalHits);
+            Assert.Equal(0, SearchService.Search(path, "Replacement").TotalHits);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
+    public void HiddenReplacementRetainsItsEditingStateWithoutSavedSearchOrReadingOrderText()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-hidden-paired-overlay-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder()
+                .SetMetadata(new PdfDocumentMetadata { Title = "Hidden pair", Language = "en-US" })
+                .EnablePdfUa2Conformance()
+                .AddPage(200, 100, new PdfContentStreamBuilder()
+                    .BeginMarkedContent(PdfStructureType.Figure, 0)
+                    .Rectangle(0, 0, 5, 5).Fill().EndMarkedContent())
+                .AddStructureContainer(PdfStructureType.Document)
+                .AddStructureElement(PdfStructureType.Figure, 0, 0, 1, alternateDescription: "Original figure")
+                .Build());
+            var pair = new ReplacementPair(
+                new TextAnnotation { PairId = "hidden-pair", Content = "Hidden replacement", Width = 150, Height = 40 },
+                new CoverAnnotation { PairId = "hidden-pair", Bounds = new Rect(15, 15, 160, 50) });
+            ReplacementLayers.SetLinked(pair, true);
+            ReplacementLayers.SetVisibility(pair, ReplacementLayer.Group, false);
+            ReplacementLayers.SetMovementAllowed(pair, ReplacementLayer.Text, false);
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [pair.Cover, pair.Text] },
+                new Dictionary<int, (int w, int h)> { [0] = (200, 100) });
+            byte[] saved = File.ReadAllBytes(path);
+            var document = PdfDocument.Open(saved);
+            Assert.DoesNotContain(new PdfPageContentReader(document).Read(0).Words,
+                word => word.Text.Contains("Hidden", StringComparison.Ordinal));
+            Assert.Equal(0, SearchService.Search(path, "Hidden replacement").TotalHits);
+            Assert.DoesNotContain(PdfAccessibilityReadingOrder.Read(document).Items,
+                item => item.AlternateDescription?.Contains("Hidden replacement") == true);
+            OverlayExtraction extracted = PdfOverlayAnnotations.TakeEditableTail(saved);
+            Assert.Equal(2, extracted.Records.Count);
+            TextAnnotation text = Assert.IsType<TextAnnotation>(extracted.Records[1].Annotation);
+            CoverAnnotation cover = Assert.IsType<CoverAnnotation>(extracted.Records[0].Annotation);
+            Assert.False(ReplacementLayers.IsVisible(text));
+            Assert.False(ReplacementLayers.IsVisible(cover));
+            Assert.False(ReplacementLayers.CanMove(text));
+            Assert.True(ReplacementLayers.CanMove(cover));
+            Assert.True(text.PairLinked && cover.PairLinked);
+            Assert.Equal("Hidden replacement", text.Content);
+            Assert.True(extracted.Bytes.AsSpan(0, saved.Length).SequenceEqual(saved));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
+    [Fact]
+    public void SavedReplacementRetainsItsEditableLinkedTextAndCover()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-paired-overlay-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(200, 100).Build());
+            var pair = new ReplacementPair(
+                new TextAnnotation { PairId = "saved-pair", Content = "Replacement", Position = new Point(20, 20),
+                    Width = 150, Height = 40, FontSize = 18 },
+                new CoverAnnotation { PairId = "saved-pair", Bounds = new Rect(15, 15, 160, 50) });
+            ReplacementLayers.SetLinked(pair, true);
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [pair.Cover, pair.Text] },
+                new Dictionary<int, (int w, int h)> { [0] = (200, 100) });
+
+            OverlayExtraction extracted = PdfOverlayAnnotations.TakeEditableTail(File.ReadAllBytes(path));
+            Assert.Equal(2, extracted.Records.Count);
+            var text = Assert.IsType<TextAnnotation>(extracted.Records[1].Annotation);
+            var cover = Assert.IsType<CoverAnnotation>(extracted.Records[0].Annotation);
+            Assert.Equal("Replacement", text.Content);
+            Assert.Equal(new Point(20, 20), text.Position);
+            Assert.Equal(new Rect(15, 15, 160, 50), cover.Bounds);
+            Assert.Equal("saved-pair", text.PairId);
+            Assert.Equal(text.PairId, cover.PairId);
+            Assert.True(text.PairLinked);
+            Assert.True(cover.PairLinked);
+            Assert.Equal(pair.Text.HistoryId, text.HistoryId);
+            Assert.Equal(pair.Cover.HistoryId, cover.HistoryId);
+            Assert.Equal(1, SearchService.Search(path, "Replacement").TotalHits);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
     [Fact]
     public void WholeTextBoxSurvivesReopenWithItsEditingState()
     {

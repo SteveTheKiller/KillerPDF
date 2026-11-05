@@ -347,6 +347,10 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_View_Single">單頁</sys:String>
     <sys:String x:Key="Str_View_Continuous">連續捲動</sys:String>
     <sys:String x:Key="Str_View_TwoPage">雙頁</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">取代</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">允許移動此圖層及調整其大小</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">同時移動遮蓋與文字</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">選取遮蓋與文字</sys:String>
     <sys:String x:Key="Str_View_Grid">格狀</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">請切換至單頁模式以使用編輯工具</sys:String>
 

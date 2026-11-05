@@ -401,6 +401,10 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_View_Single">Pojedyncza strona</sys:String>
     <sys:String x:Key="Str_View_Continuous">Ciągłe</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Dwie strony</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Zastąpienie</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Zezwalaj na przenoszenie i zmianę rozmiaru tej warstwy</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Przenoś zakrycie i tekst razem</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Wybierz zakrycie i tekst</sys:String>
     <sys:String x:Key="Str_View_Grid">Siatka</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Przełącz na pojedynczą stronę, aby skorzystać z narzędzi edycji</sys:String>
 

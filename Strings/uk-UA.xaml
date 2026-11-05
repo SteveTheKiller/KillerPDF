@@ -409,6 +409,10 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_View_Single">Одна сторінка</sys:String>
     <sys:String x:Key="Str_View_Continuous">Безперервно</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Дві сторінки</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Заміна</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Дозволити переміщення та зміну розміру цього шару</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Переміщувати накладку й текст разом</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Вибрати накладку й текст</sys:String>
     <sys:String x:Key="Str_View_Grid">Сітка</sys:String>
     <sys:String x:Key="Str_View_BookMode">Розкладка книги</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Перейдіть до режиму «Одна сторінка», щоб користуватися інструментами редагування</sys:String>

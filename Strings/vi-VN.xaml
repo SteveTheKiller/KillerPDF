@@ -409,6 +409,10 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_View_Single">Một trang</sys:String>
     <sys:String x:Key="Str_View_Continuous">Liên tục</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Hai trang</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Thay thế</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Cho phép di chuyển và thay đổi kích thước lớp này</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Di chuyển lớp phủ che và văn bản cùng nhau</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Chọn lớp phủ che và văn bản</sys:String>
     <sys:String x:Key="Str_View_Grid">Lưới</sys:String>
     <sys:String x:Key="Str_View_BookMode">Bố cục sách</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Chuyển sang chế độ Một trang để sử dụng công cụ chỉnh sửa</sys:String>

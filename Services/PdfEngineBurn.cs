@@ -117,6 +117,8 @@ internal static class PdfEngineBurn
         HashSet<int> watermarkPages = stamps is { WmEnabled: true }
             ? [.. PdfBurn.StampPageRange(stamps.WmRange, pages.Count)] : [];
         int firstNumberPage = numberPages.Count == 0 ? 0 : numberPages.Min();
+        var pageBatches = new List<(int Page, int Width, int Height, int Rotation,
+            List<PageAnnotation> Models, PdfContentStreamBuilder Content, string? Description)>();
 
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++)
         {
@@ -134,7 +136,12 @@ internal static class PdfEngineBurn
             double visualWidth = rotation is 90 or 270 ? page.Height : page.Width;
             double visualHeight = rotation is 90 or 270 ? page.Width : page.Height;
             HashSet<PageAnnotation> nativeTail = hasAnnotations && !forRasterization
-                ? NativeTextTail(pageAnnotations!).ToHashSet() : [];
+                ? NativeTextTail(pageAnnotations!, PdfCommentReader.ReadPageAnnotationCount(document, pageIndex) > 0).ToHashSet() : [];
+            var pageModels = hasAnnotations ? pageAnnotations!.Where(annotation => !nativeTail.Contains(annotation)
+                && !(measurementsAsAnnotations && annotation is MeasurementAnnotation)).ToList() : [];
+            bool editableBatch = !forRasterization
+                && pageModels.Any(annotation => annotation is TextAnnotation { PairId.Length: > 0 })
+                && pageModels.All(annotation => annotation is TextAnnotation or HighlightAnnotation or InkAnnotation or PlacedAnnotation);
             var content = new PdfContentStreamBuilder().SaveState();
             ApplyVisualTransform(content, page.Left, page.Bottom, page.Width, page.Height, rotation);
 
@@ -146,13 +153,25 @@ internal static class PdfEngineBurn
                 var (renderWidth, renderHeight) = AnnotationSpace(renderDims, pageIndex, visualWidth, visualHeight);
                 double sx = visualWidth / renderWidth;
                 double sy = visualHeight / renderHeight;
+                var annotationContent = editableBatch ? new PdfContentStreamBuilder().SaveState() : content;
+                if (editableBatch)
+                    ApplyVisualTransform(annotationContent, page.Left, page.Bottom, page.Width, page.Height, rotation);
                 foreach (PageAnnotation annotation in pageAnnotations!)
                 {
                     // A save writes measurements as real measurement annotations instead
                     // (PdfEngineIntegration.WriteMeasurements); prints and exports draw them in.
                     if (measurementsAsAnnotations && annotation is MeasurementAnnotation) continue;
                     if (nativeTail.Contains(annotation)) continue;
-                    DrawAnnotation(content, annotation, sx, sy, fonts);
+                    DrawAnnotation(annotationContent, annotation, sx, sy, fonts);
+                }
+                if (editableBatch)
+                {
+                    annotationContent.RestoreState();
+                    string[] descriptions = pageModels.Where(ReplacementLayers.IsVisible).Select(annotation =>
+                        annotation is TextAnnotation text && !string.IsNullOrWhiteSpace(text.Content)
+                            ? text.Content : annotation is SignatureAnnotation ? "Signature" : "Markup").ToArray();
+                    pageBatches.Add((pageIndex, renderWidth, renderHeight, rotation, pageModels,
+                        annotationContent, descriptions.Length == 0 ? null : string.Join("\n", descriptions)));
                 }
             }
 
@@ -165,7 +184,7 @@ internal static class PdfEngineBurn
                 if (hasAnnotations)
                     foreach (PageAnnotation annotation in pageAnnotations!)
                     {
-                        if (!ReplacementLayers.IsVisible(annotation) || nativeTail.Contains(annotation)
+                        if (editableBatch || !ReplacementLayers.IsVisible(annotation) || nativeTail.Contains(annotation)
                             || measurementsAsAnnotations && annotation is MeasurementAnnotation) continue;
                         descriptions.Add(annotation is TextAnnotation text && !string.IsNullOrWhiteSpace(text.Content)
                             ? text.Content : annotation is SignatureAnnotation ? "Signature" : "Markup");
@@ -182,6 +201,12 @@ internal static class PdfEngineBurn
 
         cancellationToken.ThrowIfCancellationRequested();
         byte[] result = editor.Build();
+        foreach (var batch in pageBatches)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            result = PdfOverlayAnnotations.AppendPageBatch(PdfDocument.Open(result), batch.Page,
+                batch.Width, batch.Height, batch.Rotation, batch.Models, batch.Content, batch.Description);
+        }
         if (!forRasterization)
             result = SaveTextAnnotations(result, annotations, renderDims, onlyPage, rotations, fonts, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -208,7 +233,7 @@ internal static class PdfEngineBurn
             double visualHeight = rotation is 90 or 270 ? page.Width : page.Height;
             var (renderWidth, renderHeight) = AnnotationSpace(renderDims, pageIndex, visualWidth, visualHeight);
             int annotationIndex = PdfCommentReader.ReadPageAnnotationCount(document, pageIndex);
-            foreach (PageAnnotation annotation in NativeTextTail(items))
+            foreach (PageAnnotation annotation in NativeTextTail(items, annotationIndex > 0))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!ReplacementLayers.IsVisible(annotation)) continue;
@@ -253,8 +278,10 @@ internal static class PdfEngineBurn
         return PdfOverlayAnnotations.Attach(saved, records);
     }
 
-    private static IEnumerable<PageAnnotation> NativeTextTail(List<PageAnnotation> annotations)
+    private static IEnumerable<PageAnnotation> NativeTextTail(List<PageAnnotation> annotations, bool hasNativeAnnotations)
     {
+        if (!hasNativeAnnotations && annotations.Any(annotation => annotation is TextAnnotation { PairId.Length: > 0 }))
+            return [];
         int first = annotations.FindIndex(annotation => annotation is TextAnnotation { PairId.Length: 0 });
         return first < 0 ? [] : annotations.Skip(first).Where(annotation => annotation is not MeasurementAnnotation);
     }

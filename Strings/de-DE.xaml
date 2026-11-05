@@ -345,6 +345,10 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_View_Single">Einzelseite</sys:String>
     <sys:String x:Key="Str_View_Continuous">Fortlaufend</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Doppelseite</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Ersetzung</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Verschieben und Größenänderung dieser Ebene erlauben</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Abdeckung und Text gemeinsam verschieben</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Abdeckung und Text auswählen</sys:String>
     <sys:String x:Key="Str_View_Grid">Raster</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Für Bearbeitungswerkzeuge zur Einzelseitenansicht wechseln</sys:String>
 

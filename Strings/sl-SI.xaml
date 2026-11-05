@@ -360,6 +360,10 @@
     <sys:String x:Key="Str_View_Single">Ena stran</sys:String>
     <sys:String x:Key="Str_View_Continuous">Neprekinjeno</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Dve strani</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Zamenjava</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Dovoli premikanje in spreminjanje velikosti te plasti</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Premikaj prekrivno ploskev in besedilo skupaj</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Izberi prekrivno ploskev in besedilo</sys:String>
     <sys:String x:Key="Str_View_Grid">Mreža</sys:String>
     <sys:String x:Key="Str_View_BookMode">Postavitev knjige</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Za uporabo orodij za urejanje preklopite na pogled ene strani</sys:String>

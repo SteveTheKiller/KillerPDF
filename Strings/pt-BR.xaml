@@ -409,6 +409,10 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_View_Single">Página única</sys:String>
     <sys:String x:Key="Str_View_Continuous">Contínuo</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Duas páginas</sys:String>
+    <sys:String x:Key="Str_Replacement_Group">Substituição</sys:String>
+    <sys:String x:Key="Str_Replacement_LayerMove">Permitir mover e redimensionar esta camada</sys:String>
+    <sys:String x:Key="Str_Replacement_Link">Mover cobertura e texto juntos</sys:String>
+    <sys:String x:Key="Str_Replacement_SelectGroup">Selecionar cobertura e texto</sys:String>
     <sys:String x:Key="Str_View_Grid">Grade</sys:String>
     <sys:String x:Key="Str_View_BookMode">Layout de livro</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">Mude para Página única para usar as ferramentas de edição</sys:String>
