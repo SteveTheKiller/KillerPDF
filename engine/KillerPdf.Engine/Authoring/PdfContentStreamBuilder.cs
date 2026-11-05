@@ -990,6 +990,68 @@ public sealed class PdfContentStreamBuilder
         return this;
     }
 
+    /// <summary>Paints explicit glyphs with one logical replacement string, outside a text object.</summary>
+    /// <remarks>Origins are in current user space before the CTM. Glyph zero is rejected.
+    /// Calls must follow logical cluster order for extraction. Each cluster accepts at most
+    /// 4096 glyphs and 65536 UTF-16 code units, with at least one of each.</remarks>
+    public PdfContentStreamBuilder DrawGlyphCluster(TrueTypeFont font, double fontSize,
+        string logicalText, IReadOnlyList<PdfPositionedGlyph> glyphs)
+    {
+        if (_insideText)
+            throw new InvalidOperationException("A glyph cluster requires a closed text object.");
+        ArgumentNullException.ThrowIfNull(font);
+        ArgumentNullException.ThrowIfNull(logicalText);
+        ArgumentNullException.ThrowIfNull(glyphs);
+        if (!font.EmbeddingAllowed)
+            throw new InvalidOperationException($"The embedding permissions in {font.PostScriptName} prohibit PDF embedding.");
+        if (!double.IsFinite(fontSize) || fontSize <= 0)
+            throw new ArgumentOutOfRangeException(nameof(fontSize));
+        if (logicalText.Length is < 1 or > 65536)
+            throw new ArgumentOutOfRangeException(nameof(logicalText));
+        if (glyphs.Count is < 1 or > 4096)
+            throw new ArgumentOutOfRangeException(nameof(glyphs));
+        byte[] text = PdfUnicodeEncoding.EncodeBigEndian(logicalText);
+        PdfPositionedGlyph[] positioned = glyphs.ToArray();
+        foreach (PdfPositionedGlyph glyph in positioned)
+        {
+            if (glyph.GlyphId == 0 || glyph.GlyphId >= font.GlyphCount)
+                throw new ArgumentOutOfRangeException(nameof(glyphs), "Glyph IDs must be nonzero and belong to the font.");
+            if (!double.IsFinite(glyph.X) || !double.IsFinite(glyph.Y))
+                throw new ArgumentOutOfRangeException(nameof(glyphs), "Glyph origins must be finite.");
+        }
+        _embeddedFonts.TryGetValue(font, out EmbeddedFontUsage? usage);
+        usage ??= new EmbeddedFontUsage(font, new PdfName("Pending"u8));
+        usage.ValidateUnmappedGlyphCapacity(positioned.Select(glyph => glyph.GlyphId));
+        byte[] replacement = new byte[text.Length + 2];
+        replacement[0] = 0xFE;
+        replacement[1] = 0xFF;
+        text.CopyTo(replacement, 2);
+        byte[] actualText = PdfObjectWriter.Write(new PdfString(replacement, PdfStringForm.Hexadecimal));
+
+        EmbeddedFontUsage? previousFont = _activeEmbeddedFont;
+        SaveState().BeginText().SetFont(font, fontSize)
+            .SetHorizontalTextScale(100).SetCharacterSpacing(0).SetWordSpacing(0)
+            .SetTextRise(0).SetTextRenderingMode(PdfTextRenderingMode.Fill);
+        usage = _activeEmbeddedFont!;
+        RecordPaintedContent();
+        _output.Write("/Span << /ActualText "u8);
+        _output.Write(actualText);
+        _output.Write(" >> BDC\n"u8);
+        foreach (PdfPositionedGlyph glyph in positioned)
+        {
+            ushort code = usage.AddUnmappedGlyph(glyph.GlyphId);
+            SetTextMatrix(1, 0, 0, 1, glyph.X, glyph.Y);
+            _output.WriteByte((byte)'<');
+            WriteHexByte((byte)(code >> 8));
+            WriteHexByte((byte)code);
+            _output.Write("> Tj\n"u8);
+        }
+        _output.Write("EMC\n"u8);
+        EndText().RestoreState();
+        _activeEmbeddedFont = previousFont;
+        return this;
+    }
+
     /// <summary>Writes embedded Unicode text segments separated by PDF text-position adjustments.</summary>
     public PdfContentStreamBuilder ShowPositionedUnicodeText(
         IReadOnlyList<string> segments, IReadOnlyList<double> adjustments)
@@ -1329,10 +1391,31 @@ internal sealed class EmbeddedFontUsage(TrueTypeFont font, PdfName resourceName)
     private readonly SortedDictionary<ushort, EmbeddedCharacterMapping> _mappings = [];
     private readonly Dictionary<string, ushort> _codeByUnicode = new(StringComparer.Ordinal);
     private readonly Dictionary<(ushort Glyph, string Unicode), ushort> _substituteCodes = [];
+    private readonly Dictionary<ushort, ushort> _unmappedGlyphCodes = [];
 
     public TrueTypeFont Font { get; } = font;
     public PdfName ResourceName { get; } = resourceName;
     public IReadOnlyDictionary<ushort, EmbeddedCharacterMapping> Mappings => _mappings;
+
+    public void ValidateUnmappedGlyphCapacity(IEnumerable<ushort> glyphs)
+    {
+        int required = glyphs.Distinct().Count(glyph => !_unmappedGlyphCodes.ContainsKey(glyph));
+        int available = ushort.MaxValue - _mappings.Count + (_mappings.ContainsKey(0) ? 1 : 0);
+        if (required > available)
+            throw new InvalidOperationException("The embedded-font character-code range is exhausted.");
+    }
+
+    public ushort AddUnmappedGlyph(ushort glyph)
+    {
+        if (_unmappedGlyphCodes.TryGetValue(glyph, out ushort existing)) return existing;
+        ushort code = glyph;
+        if (_mappings.ContainsKey(code))
+            code = (ushort)Enumerable.Range(1, ushort.MaxValue)
+                .First(candidate => !_mappings.ContainsKey((ushort)candidate));
+        _mappings.Add(code, new EmbeddedCharacterMapping(glyph, null));
+        _unmappedGlyphCodes.Add(glyph, code);
+        return code;
+    }
 
     public ushort AddMapping(ushort glyph, int unicodeScalar)
         => AddMapping(glyph, char.ConvertFromUtf32(unicodeScalar));
@@ -1384,4 +1467,4 @@ internal sealed class EmbeddedFontUsage(TrueTypeFont font, PdfName resourceName)
     }
 }
 
-internal sealed record EmbeddedCharacterMapping(ushort Glyph, string UnicodeSequence);
+internal sealed record EmbeddedCharacterMapping(ushort Glyph, string? UnicodeSequence);

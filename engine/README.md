@@ -82,6 +82,18 @@ Application save pipelines can also repair harmless serialization artifacts with
 
 The authoring model covers pages, content streams, graphics state, paths, text, fonts, images, color spaces, shadings, tiling patterns, transparency, resources, metadata, navigation, optional content, attachments, and viewer behavior. The API uses typed PDF concepts instead of exposing raw application state.
 
+`DrawGlyphCluster(font, fontSize, logicalText, glyphs)` paints explicitly selected
+embedded-font glyphs while recording logical text once through inline `ActualText`.
+Each `PdfPositionedGlyph` supplies a font-owned glyph ID and baseline origin in current
+user space before the CTM. Call outside a text object and emit clusters in logical order;
+visual coordinates may differ. The operation preserves surrounding graphics/text state,
+embedding rights and substituted/composite glyphs. It accepts 1..4096 nonzero glyphs and
+1..65536 well-formed UTF-16 code units, validating requests before changing output.
+Unmapped glyph codes have no empty or invented ToUnicode destinations. Readers must
+honor `ActualText` to recover their logical text; consumers that ignore it can expose
+raw character codes. This is transport for caller-supplied glyphs, not a shaping engine,
+per-character caret policy or completed native EPUB shaping integration.
+
 KillerPDF uses these typed content APIs for annotations, stamps and print/export burn-in. Text boxes can save as standard FreeText annotations with logical contents and caller-authored appearances. `PdfIncrementalAnnotationEditor.AddFreeText` and `AddStamp` import the appearance's fonts, images and nested forms, preserve insertion order above existing annotations, and add logical descriptions when the source is tagged. Caller-authored annotations with empty contents and the explicit `Hidden` flag remain outside tagged reading order and are neither displayed nor printed. Other visibility flags do not waive required descriptions. `PdfCommentReader.ReadPageAnnotationCount` reports raw array length, including entries omitted by comment extraction.
 
 `PdfEditablePageOverlayEditor.Append` keeps opaque editing data with a dedicated page-content overlay, preserving its ordinary rendering and searchable text. `Read` returns intact tail batches in content order; `Remove` revalidates them and removes only their drawing, isolation wrappers and owned tagged descriptions. Current foreign form values, markup and other page data remain intact. Changed resources, malformed ownership data, a foreign content tail or a changed page frame prevent extraction. Editing payloads are limited to 8 MiB per batch and resource fingerprints to 32 MiB, 16,384 visits and depth 64. The optional `expectedRotation` supports saves that apply final page rotation later. Authentication, copying/modification permissions and certification restrictions still apply.

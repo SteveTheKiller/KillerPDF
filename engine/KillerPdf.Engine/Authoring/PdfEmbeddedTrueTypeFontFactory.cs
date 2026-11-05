@@ -98,13 +98,14 @@ internal static class PdfEmbeddedTrueTypeFontFactory
             "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n" +
             "/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n" +
             "1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n");
-        foreach (KeyValuePair<ushort, EmbeddedCharacterMapping>[] chunk in mappings.Chunk(100))
+        foreach (KeyValuePair<ushort, EmbeddedCharacterMapping>[] chunk in mappings
+            .Where(mapping => mapping.Value.UnicodeSequence is not null).Chunk(100))
         {
             text.Append(chunk.Length).Append(" beginbfchar\n");
             foreach ((ushort code, EmbeddedCharacterMapping mapping) in chunk)
             {
                 text.Append('<').Append(code.ToString("X4", CultureInfo.InvariantCulture)).Append("> <");
-                foreach (byte value in PdfUnicodeEncoding.EncodeBigEndian(mapping.UnicodeSequence))
+                foreach (byte value in PdfUnicodeEncoding.EncodeBigEndian(mapping.UnicodeSequence!))
                     text.Append(value.ToString("X2", CultureInfo.InvariantCulture));
                 text.Append(">\n");
             }
