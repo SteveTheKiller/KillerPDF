@@ -1942,4 +1942,7 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_Drop_Busy">Pred uvozom dodatnih datotek dokončajte ali prekličite trenutno opravilo.</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">Mapa ali arhiv vsebuje nevarno pot ali povezavo in ni bil uvožen.</sys:String>
     <sys:String x:Key="Str_Drop_Limits">Uvoz dovoljuje do {0:N0} vnosov in {1} ravni map, z omejitvijo {2} GiB na datoteko in {3} GiB skupno. Uporabite manjšo mapo ali arhiv.</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">Pretvori v PDF</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF se odpre v novem zavihku. Izvirna datoteka ostane nespremenjena.</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">Vnesite veljavno velikost papirja in robove, ki pustijo prostor za vsebino.</sys:String>
 </ResourceDictionary>

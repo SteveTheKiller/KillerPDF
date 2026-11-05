@@ -14,6 +14,225 @@ namespace KillerPDF.Tests;
 
 public sealed class NativeWorkingDocumentTests
 {
+    [Fact]
+    public void DjvuConversionHonorsCancellationCloseAndFormatBeforeStartingWork()
+    {
+        using var owner = NativeWorkingDocument.OpenDjvu(DjvuPage());
+        using var revision = owner.CaptureReadRevision();
+        var canceled = new CancellationToken(true);
+        Assert.Throws<OperationCanceledException>(() => owner.ConvertDjvuToPdf(canceled));
+        Assert.Same(revision, owner.CaptureReadRevision());
+        owner.Close();
+        Assert.Throws<ObjectDisposedException>(() => owner.ConvertDjvuToPdf());
+        Assert.Throws<OperationCanceledException>(() => owner.ConvertDjvuToPdf(canceled));
+
+        using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        byte[] original = Book();
+        using var epub = NativeWorkingDocument.OpenEpub(original,
+            new EpubLayoutOptions(80, 48, TrueTypeFont.Load(fontBytes.ToArray())) { FontSize = 12, Margin = 4 });
+        using var epubRevision = epub.CaptureReadRevision();
+        Assert.Throws<NotSupportedException>(() => epub.ConvertDjvuToPdf());
+        Assert.Throws<OperationCanceledException>(() => epub.ConvertDjvuToPdf(canceled));
+        Assert.Equal(PdfDocumentFormat.Epub, epub.Format);
+        Assert.Same(epubRevision, epub.CaptureReadRevision());
+        using var copy = new MemoryStream();
+        epub.WriteCopyTo(copy);
+        Assert.Equal(original, copy.ToArray());
+        Assert.Throws<ArgumentNullException>(() => NativePdfConversion.WriteNewDjvu(null!, null!, null!));
+        Assert.Throws<OperationCanceledException>(() => NativePdfConversion.WriteNewDjvu(null!, null!, null!, canceled));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DjvuPublicationCannotReuseSourcePathThroughCaseOrRelativeAliases(bool originalExists)
+    {
+        string folder = Path.Combine(Path.GetTempPath(), "KillerPDF-DjvuConversion-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            string originalPath = Path.Combine(folder, "original.PDF");
+            string alias = Path.Combine(folder, ".", "ORIGINAL.pdf");
+            byte[] original = DjvuPage();
+            if (originalExists) File.WriteAllBytes(originalPath, original);
+            using var owner = NativeWorkingDocument.OpenDjvu(original);
+            using var revision = owner.CaptureReadRevision();
+
+            Assert.Throws<ArgumentException>(() => NativePdfConversion.WriteNewDjvu(owner, originalPath, alias));
+
+            Assert.Equal(originalExists ? 1 : 0, Directory.GetFiles(folder).Length);
+            if (originalExists) Assert.Equal(original, File.ReadAllBytes(originalPath));
+            Assert.Equal(PdfDocumentFormat.Djvu, owner.Format);
+            Assert.Same(revision, owner.CaptureReadRevision());
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    [Theory]
+    [InlineData("converted.djvu")]
+    [InlineData("converted.txt")]
+    [InlineData("converted")]
+    public void DjvuPublicationRequiresAPdfDestination(string outputName)
+    {
+        string folder = Path.Combine(Path.GetTempPath(), "KillerPDF-DjvuConversion-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            using var owner = NativeWorkingDocument.OpenDjvu(DjvuPage());
+
+            Assert.Throws<ArgumentException>(() => NativePdfConversion.WriteNewDjvu(owner,
+                Path.Combine(folder, "original.djvu"), Path.Combine(folder, outputName)));
+
+            Assert.Empty(Directory.GetFiles(folder));
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    [Theory]
+    [InlineData("existing")]
+    [InlineData("canceled")]
+    [InlineData("closed")]
+    [InlineData("wrong-format")]
+    [InlineData("text")]
+    [InlineData("navigation")]
+    [InlineData("malformed")]
+    public void FailedDjvuPublicationPreservesOriginalAndLeavesNoPartialOutput(string failure)
+    {
+        string folder = Path.Combine(Path.GetTempPath(), "KillerPDF-DjvuConversion-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            byte[] original = failure switch
+            {
+                "wrong-format" => Book(),
+                "text" => [.. "AT&T"u8, .. Chunk("FORM", [.. DjvuPage()[12..], .. Chunk("TXTa", [0, 0, 1, (byte)'A', 1])])],
+                "navigation" => Convert.FromHexString(
+                    "41542654464F524D00000064444A564D4449524D0000001181000100000052FFFFF8BF9E1FCC877DC900" +
+                    "4E41564D00000020FFFFDCFE710ED97FCE8AD681247C75F5957907266F39911034415499EB17C37B" +
+                    "464F524D00000016444A5655494E464F0000000A000200011A002C011601"),
+                _ => DjvuPage()
+            };
+            if (failure == "malformed") original[42] = 0;
+            using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+                "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+            using var fontBytes = new MemoryStream();
+            resource.CopyTo(fontBytes);
+            using var owner = failure == "wrong-format" ? NativeWorkingDocument.OpenEpub(original,
+                new EpubLayoutOptions(80, 48, TrueTypeFont.Load(fontBytes.ToArray())) { FontSize = 12, Margin = 4 })
+                : NativeWorkingDocument.OpenDjvu(original);
+            string originalPath = Path.Combine(folder, failure == "wrong-format" ? "original.epub" : "original.djvu");
+            string destination = Path.Combine(folder, "converted.pdf");
+            byte[] priorOutput = "Existing output must survive."u8.ToArray();
+            File.WriteAllBytes(originalPath, original);
+            if (failure == "existing") File.WriteAllBytes(destination, priorOutput);
+            if (failure == "closed") owner.Close();
+            Action publish = () => NativePdfConversion.WriteNewDjvu(owner, originalPath, destination,
+                new CancellationToken(failure == "canceled"));
+
+            switch (failure)
+            {
+                case "existing": Assert.Throws<IOException>(publish); break;
+                case "canceled": Assert.Throws<OperationCanceledException>(publish); break;
+                case "closed": Assert.Throws<ObjectDisposedException>(publish); break;
+                case "malformed": Assert.Throws<InvalidDataException>(publish); break;
+                default: Assert.Throws<NotSupportedException>(publish); break;
+            }
+
+            Assert.Equal(original, File.ReadAllBytes(originalPath));
+            if (failure == "existing") Assert.Equal(priorOutput, File.ReadAllBytes(destination));
+            else Assert.False(File.Exists(destination));
+            Assert.Equal(failure == "existing" ? 2 : 1, Directory.GetFiles(folder).Length);
+            if (failure != "closed")
+            {
+                using var copy = new MemoryStream();
+                owner.WriteCopyTo(copy);
+                Assert.Equal(original, copy.ToArray());
+            }
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    [Fact]
+    public void ExplicitDjvuPublicationCreatesSeparatePdfAndPreservesNativeSession()
+    {
+        string folder = Path.Combine(Path.GetTempPath(), "KillerPDF-DjvuConversion-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            string originalPath = Path.Combine(folder, "original.djvu");
+            string destination = Path.Combine(folder, "converted.PDF");
+            byte[] original = DjvuPage();
+            File.WriteAllBytes(originalPath, original);
+            using var owner = NativeWorkingDocument.OpenDjvu(original);
+            using var revision = owner.CaptureReadRevision();
+            using var lease = revision.Rent();
+            var geometry = owner.GetNativePageGeometry(0);
+            string identity = owner.ContentIdentity;
+            float[] pixels = lease.RenderFrame(0, new PdfRenderOptions(2, 3)).Pixels.ToArray();
+
+            NativePdfConversion.WriteNewDjvu(owner, originalPath, destination);
+
+            var pdf = PdfDocument.Open(File.ReadAllBytes(destination));
+            var paper = Assert.Single(PdfPageInformation.Read(pdf));
+            Assert.Equal(.48, paper.PhysicalWidth, 6);
+            Assert.Equal(.72, paper.PhysicalHeight, 6);
+            Assert.Equal(new byte[] { 255, 255, 255, 0, 255, 0 },
+                new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(2, 3)).Pixels.ToArray().Where((_, i) => i % 4 == 0));
+            Assert.Equal(original, File.ReadAllBytes(originalPath));
+            Assert.Equal(PdfDocumentFormat.Djvu, owner.Format);
+            Assert.Equal(identity, owner.ContentIdentity);
+            Assert.Same(revision, owner.CaptureReadRevision());
+            Assert.Same(geometry, owner.GetNativePageGeometry(0));
+            Assert.Equal(pixels, lease.RenderFrame(0, new PdfRenderOptions(2, 3)).Pixels.ToArray());
+            using var copy = new MemoryStream();
+            owner.WriteCopyTo(copy);
+            Assert.Equal(original, copy.ToArray());
+            Assert.Equal(2, Directory.GetFiles(folder).Length);
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    [Fact]
+    public void ExplicitDjvuConversionPreservesLiteralPixelsNaturalSizeAndNativeSession()
+    {
+        byte[] source = DjvuPage();
+        byte[] original = source.ToArray();
+        using var owner = NativeWorkingDocument.OpenDjvu(source);
+        using var revision = owner.CaptureReadRevision();
+        using var lease = revision.Rent();
+        string identity = owner.ContentIdentity;
+        var geometry = owner.GetNativePageGeometry(0);
+        float[] nativePixels = lease.RenderFrame(0, new PdfRenderOptions(2, 3)).Pixels.ToArray();
+        Assert.Equal(new float[] { 1, 1, 1, 0, 1, 0 }, nativePixels.Where((_, i) => i % 4 == 0));
+        Array.Clear(source);
+
+        var pdf = PdfDocument.Open(owner.ConvertDjvuToPdf());
+
+        var paper = Assert.Single(PdfPageInformation.Read(pdf));
+        Assert.Equal(.48, paper.PhysicalWidth, 6);
+        Assert.Equal(.72, paper.PhysicalHeight, 6);
+        var rendered = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(2, 3));
+        Assert.Empty(rendered.Diagnostics);
+        byte[] pixels = rendered.Pixels.ToArray();
+        byte[] expected = [255, 255, 255, 0, 255, 0];
+        for (int i = 0; i < expected.Length; i++)
+            Assert.Equal(new byte[] { expected[i], expected[i], expected[i], 255 }, pixels.AsSpan(i * 4, 4).ToArray());
+        Assert.Equal(PdfDocumentFormat.Djvu, owner.Format);
+        Assert.Equal(identity, owner.ContentIdentity);
+        Assert.Equal(1, owner.PageCount);
+        Assert.Same(revision, owner.CaptureReadRevision());
+        Assert.Same(geometry, owner.GetNativePageGeometry(0));
+        Assert.Equal(.72, geometry.WidthPoints, 6);
+        Assert.Equal(.48, geometry.HeightPoints, 6);
+        Assert.Equal(nativePixels, lease.RenderFrame(0, new PdfRenderOptions(2, 3)).Pixels.ToArray());
+        using var copy = new MemoryStream();
+        owner.WriteCopyTo(copy);
+        Assert.Equal(original, copy.ToArray());
+    }
+
     [Theory]
     [InlineData("existing")]
     [InlineData("canceled")]

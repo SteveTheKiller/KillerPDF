@@ -21,6 +21,14 @@ public partial class MainWindow
     // shortcuts overlay reads too, so the three cannot disagree.
     private List<Control> BuildDocumentToolsItems()
     {
+        if (ActiveViewer.NativeDocumentRef is not null)
+            return
+            [
+                MakeMenuItem(Loc("Str_NativePdf_Convert") + "...", (_, _) => ConvertNativeDocumentToPdf(), "", "\uE8AB"),
+                new Separator(),
+                DocumentToolItem("Str_DocumentTools_Macros", OpenMacroDialog, "\uE945"),
+                DocumentToolItem("Str_CertCatalog_Title", OpenCertificateCatalog, "\uEB95"),
+            ];
         if (_doc is null)
             return
             [

@@ -2053,4 +2053,7 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_Drop_Busy">Terminez ou annulez l’opération en cours avant d’importer d’autres fichiers.</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">Le dossier ou l’archive contient un chemin ou un lien non sécurisé et n’a pas été importé.</sys:String>
     <sys:String x:Key="Str_Drop_Limits">L’importation autorise jusqu’à {0:N0} entrées et {1} niveaux de dossiers, avec {2} GiB par fichier et {3} GiB au total. Utilisez un dossier ou une archive plus petit.</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">Convertir en PDF</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">Le PDF s’ouvre dans un nouvel onglet. Votre fichier d’origine reste inchangé.</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">Saisissez un format de papier valide et des marges qui laissent de la place au contenu.</sys:String>
 </ResourceDictionary>

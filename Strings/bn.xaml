@@ -2033,4 +2033,7 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_Drop_Busy">আরও ফাইল আমদানি করার আগে বর্তমান কাজটি শেষ করুন বা বাতিল করুন।</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">ফোল্ডার বা আর্কাইভে অনিরাপদ পথ বা লিংক রয়েছে, তাই এটি আমদানি করা হয়নি।</sys:String>
     <sys:String x:Key="Str_Drop_Limits">আমদানিতে সর্বোচ্চ {0:N0}টি আইটেম ও {1}টি ফোল্ডার স্তর থাকতে পারে। প্রতি ফাইলের সীমা {2} GiB এবং মোট সীমা {3} GiB। ছোট ফোল্ডার বা আর্কাইভ ব্যবহার করুন।</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">PDF-এ রূপান্তর করুন</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF একটি নতুন ট্যাবে খুলবে। আপনার মূল ফাইল অপরিবর্তিত থাকবে।</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">কাগজের একটি বৈধ আকার ও এমন মার্জিন দিন যাতে বিষয়বস্তুর জন্য জায়গা থাকে।</sys:String>
 </ResourceDictionary>

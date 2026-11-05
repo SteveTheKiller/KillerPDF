@@ -49,6 +49,9 @@ internal static class Program
             if (args.Length == 5 && (args[0] is "--verify-native-outlines" or "--verify-native-outlines-djvu") && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);
+            if (args.Length == 5 && (args[0] is "--verify-native-conversion" or "--verify-native-conversion-djvu" or "--verify-native-conversion-custom") && args[4] == "--session-isolation")
+                return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
+                    windowSession: true, windowSessionCase: args[0]);
             if (args.Length == 5 && (args[0] is "--verify-two-page-continuous" or "--verify-paired-thumbnails") && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);

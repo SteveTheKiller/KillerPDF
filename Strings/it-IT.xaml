@@ -2054,4 +2054,7 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_Drop_Busy">Completa o annulla l’operazione in corso prima di importare altri file.</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">La cartella o l’archivio contiene un percorso o un collegamento non sicuro e non è stato importato.</sys:String>
     <sys:String x:Key="Str_Drop_Limits">L’importazione consente fino a {0:N0} elementi e {1} livelli di cartelle, con {2} GiB per file e {3} GiB totali. Usa una cartella o un archivio più piccolo.</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">Converti in PDF</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">Il PDF si apre in una nuova scheda. Il file originale rimane invariato.</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">Inserisci un formato carta valido e margini che lascino spazio per il contenuto.</sys:String>
 </ResourceDictionary>

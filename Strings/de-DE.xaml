@@ -2042,4 +2042,7 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_Drop_Busy">Beenden Sie den aktuellen Vorgang oder brechen Sie ihn ab, bevor Sie weitere Dateien importieren.</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">Der Ordner oder das Archiv enthält einen unsicheren Pfad oder eine Verknüpfung und wurde nicht importiert.</sys:String>
     <sys:String x:Key="Str_Drop_Limits">Beim Import sind bis zu {0:N0} Einträge und {1} Ordnerebenen zulässig, mit {2} GiB pro Datei und {3} GiB insgesamt. Verwenden Sie einen kleineren Ordner oder ein kleineres Archiv.</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">In PDF konvertieren</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">Die PDF wird in einem neuen Tab geöffnet. Ihre Originaldatei bleibt unverändert.</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">Geben Sie ein gültiges Papierformat und Ränder ein, die Platz für den Inhalt lassen.</sys:String>
 </ResourceDictionary>

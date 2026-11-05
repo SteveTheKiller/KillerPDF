@@ -2053,4 +2053,7 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_Drop_Busy">Fullfør eller avbryt den gjeldende operasjonen før du importerer flere filer.</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">Mappen eller arkivet inneholder en usikker bane eller lenke og ble ikke importert.</sys:String>
     <sys:String x:Key="Str_Drop_Limits">Import tillater opptil {0:N0} oppføringer og {1} mappenivåer, med {2} GiB per fil og {3} GiB totalt. Bruk en mindre mappe eller et mindre arkiv.</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">Konverter til PDF</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF-en åpnes i en ny fane. Originalfilen din forblir uendret.</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">Angi en gyldig papirstørrelse og marger som gir plass til innholdet.</sys:String>
 </ResourceDictionary>

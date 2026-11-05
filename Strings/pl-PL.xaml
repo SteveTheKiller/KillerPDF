@@ -2041,4 +2041,7 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_Drop_Busy">Przed zaimportowaniem kolejnych plików zakończ lub anuluj bieżącą operację.</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">Folder lub archiwum zawiera niebezpieczną ścieżkę lub łącze i nie zostało zaimportowane.</sys:String>
     <sys:String x:Key="Str_Drop_Limits">Import pozwala na maksymalnie {0:N0} elementów i {1} poziomów folderów, z limitem {2} GiB na plik i {3} GiB łącznie. Użyj mniejszego folderu lub archiwum.</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">Konwertuj do PDF</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF otworzy się w nowej karcie. Oryginalny plik pozostanie bez zmian.</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">Podaj prawidłowy rozmiar papieru i marginesy, które pozostawią miejsce na treść.</sys:String>
 </ResourceDictionary>

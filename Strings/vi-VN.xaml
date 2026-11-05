@@ -2053,4 +2053,7 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_Drop_Busy">Hoàn tất hoặc hủy thao tác hiện tại trước khi nhập thêm tệp.</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">Thư mục hoặc tệp nén chứa đường dẫn hoặc liên kết không an toàn nên chưa được nhập.</sys:String>
     <sys:String x:Key="Str_Drop_Limits">Có thể nhập tối đa {0:N0} mục và {1} cấp thư mục, với giới hạn {2} GiB mỗi tệp và tổng cộng {3} GiB. Hãy dùng thư mục hoặc tệp nén nhỏ hơn.</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">Chuyển đổi sang PDF</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF sẽ mở trong một tab mới. Tệp gốc của bạn không thay đổi.</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">Nhập kích thước giấy hợp lệ và lề sao cho còn chỗ cho nội dung.</sys:String>
 </ResourceDictionary>

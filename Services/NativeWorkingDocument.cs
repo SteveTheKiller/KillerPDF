@@ -1,5 +1,6 @@
 using System.IO;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Formats.Djvu;
 using KillerPdf.Engine.Formats.Epub;
 
 namespace KillerPDF.Services;
@@ -47,6 +48,20 @@ internal sealed class NativeWorkingDocument : IDisposable
     internal PdfDocumentFormat Format => _snapshot.Format;
     internal string ContentIdentity => _snapshot.SourceSha256;
     internal int PageCount => _snapshot.PageCount;
+
+    internal byte[] ConvertDjvuToPdf(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] source;
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_closed, this);
+            if (Format != PdfDocumentFormat.Djvu)
+                throw new NotSupportedException("DjVu conversion requires a DjVu document.");
+            source = _source;
+        }
+        return DjvuDocument.Open(source, cancellationToken).ConvertToPdf(cancellationToken);
+    }
 
     internal byte[] ConvertEpubToPdf(EpubPdfConversionOptions options,
         CancellationToken cancellationToken = default)

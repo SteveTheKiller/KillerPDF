@@ -2056,4 +2056,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Drop_Busy">Завершите или отмените текущую операцию перед импортом других файлов.</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">Папка или архив содержит небезопасный путь или ссылку и не был импортирован.</sys:String>
     <sys:String x:Key="Str_Drop_Limits">При импорте допускается до {0:N0} элементов и {1} уровней папок, не более {2} GiB на файл и {3} GiB всего. Используйте папку или архив меньшего размера.</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">Преобразовать в PDF</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF откроется в новой вкладке. Исходный файл останется без изменений.</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">Укажите допустимый размер бумаги и поля, оставляющие место для содержимого.</sys:String>
 </ResourceDictionary>

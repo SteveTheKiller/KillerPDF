@@ -2053,4 +2053,7 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_Drop_Busy">追加のファイルを読み込む前に、現在の操作を完了するかキャンセルしてください。</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">フォルダーまたはアーカイブに安全でないパスやリンクが含まれているため、読み込みませんでした。</sys:String>
     <sys:String x:Key="Str_Drop_Limits">読み込みの上限は {0:N0} 項目、フォルダー階層 {1}、1 ファイルあたり {2} GiB、合計 {3} GiB です。より小さいフォルダーまたはアーカイブを使用してください。</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">PDF に変換</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF は新しいタブで開きます。元のファイルは変更されません。</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">有効な用紙サイズと、コンテンツを配置するスペースを確保できる余白を入力してください。</sys:String>
 </ResourceDictionary>

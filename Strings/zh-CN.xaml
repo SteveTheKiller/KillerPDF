@@ -2037,4 +2037,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Drop_Busy">请先完成或取消当前操作，再导入更多文件。</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">文件夹或压缩包包含不安全的路径或链接，因此未导入。</sys:String>
     <sys:String x:Key="Str_Drop_Limits">最多可导入 {0:N0} 个条目和 {1} 层文件夹，每个文件不超过 {2} GiB，总大小不超过 {3} GiB。请使用较小的文件夹或压缩包。</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">转换为 PDF</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF 会在新标签页中打开。原始文件保持不变。</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">请输入有效的纸张大小和页边距，确保有足够的空间容纳内容。</sys:String>
 </ResourceDictionary>

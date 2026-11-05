@@ -2038,4 +2038,7 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_Drop_Busy">Před importem dalších souborů dokončete nebo zrušte aktuální operaci.</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">Složka nebo archiv obsahuje nebezpečnou cestu nebo odkaz a nebyl importován.</sys:String>
     <sys:String x:Key="Str_Drop_Limits">Import umožňuje nejvýše {0:N0} položek a {1} úrovní složek, {2} GiB na soubor a {3} GiB celkem. Použijte menší složku nebo archiv.</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">Převést do PDF</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF se otevře na nové kartě. Původní soubor zůstane beze změny.</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">Zadejte platný formát papíru a okraje, které ponechají místo pro obsah.</sys:String>
 </ResourceDictionary>

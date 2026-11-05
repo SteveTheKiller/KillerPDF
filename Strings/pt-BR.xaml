@@ -2053,4 +2053,7 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_Drop_Busy">Conclua ou cancele a operação atual antes de importar mais arquivos.</sys:String>
     <sys:String x:Key="Str_Drop_Unsafe">A pasta ou o arquivo compactado contém um caminho ou link inseguro e não foi importado.</sys:String>
     <sys:String x:Key="Str_Drop_Limits">A importação permite até {0:N0} itens e {1} níveis de pastas, com {2} GiB por arquivo e {3} GiB no total. Use uma pasta ou um arquivo compactado menor.</sys:String>
+    <sys:String x:Key="Str_NativePdf_Convert">Converter para PDF</sys:String>
+    <sys:String x:Key="Str_NativePdf_KeepOriginal">O PDF abre em uma nova guia. Seu arquivo original permanece inalterado.</sys:String>
+    <sys:String x:Key="Str_NativePdf_InvalidLayout">Informe um tamanho de papel válido e margens que deixem espaço para o conteúdo.</sys:String>
 </ResourceDictionary>
