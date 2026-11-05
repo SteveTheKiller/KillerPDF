@@ -122,7 +122,7 @@ namespace KillerPDF.Shell
             {
                 foreach (TreeViewItem node in items)
                 {
-                    if (node.Tag is not OutlineNodeRef)
+                    if (!IsOutlineRow(node.Tag))
                     {
                         if (node.Header is FrameworkElement header)
                         {
@@ -158,6 +158,23 @@ namespace KillerPDF.Shell
         private void OutlineTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             if (_suppressOutlineNav) return;   // programmatic re-select (e.g. after a move) must not jump the view
+            if (e.NewValue is TreeViewItem { Tag: NativeOutlineNodeRef native })
+            {
+                if (!ReferenceEquals(ActiveViewer.NativeDocumentRef, native.Owner)
+                    || string.IsNullOrEmpty(native.Entry.Target)) return;
+                try
+                {
+                    var destination = native.Owner.ResolveNavigationTarget(native.Entry.Target, PageList.SelectedIndex);
+                    RecordNavJump();
+                    PageList.SelectedIndex = destination.PageIndex;
+                }
+                catch (Exception error) when (error is InvalidDataException or NotSupportedException
+                    or ArgumentException or ObjectDisposedException)
+                {
+                    SetStatus(string.Format(Loc("Str_Pages_Failed"), error.Message));
+                }
+                return;
+            }
             if (e.NewValue is TreeViewItem item && item.Tag is OutlineNodeRef nref && nref.PageIndex >= 0 && _doc is not null)
             {
                 if (nref.PageIndex < _doc.PageCount)
@@ -186,6 +203,14 @@ namespace KillerPDF.Shell
             OutlineTree.Items.Clear();
             try
             {
+                if (ActiveViewer.NativeDocumentRef is { } native)
+                {
+                    var entries = native.ReadNavigation();
+                    SidebarOutlinesTab.IsEnabled = entries.Count > 0;
+                    AddNativeOutlineItems(OutlineTree.Items, native, entries);
+                    ApplyOutlineExpandState();
+                    return;
+                }
                 IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> outlines = ReadEngineBookmarks();
                 if (outlines.Count == 0)
                 {
@@ -201,10 +226,12 @@ namespace KillerPDF.Shell
                 AddOutlineItems(OutlineTree.Items, outlines);
                 ApplyOutlineExpandState();   // re-apply the user's expand/collapse choices for this file
             }
-            catch
+            catch (Exception error)
             {
                 // Malformed outline - show a placeholder and don't crash
                 SidebarOutlinesTab.IsEnabled = false;
+                if (ActiveViewer.NativeDocumentRef is not null)
+                    SetStatus(string.Format(Loc("Str_Pages_Failed"), error.Message));
             }
             finally
             {
@@ -258,6 +285,32 @@ namespace KillerPDF.Shell
         private void OutlineItemExpansionChanged(object sender, RoutedEventArgs e) =>
             UpdateOutlineExpandCollapseButton();
 
+        private sealed record NativeOutlineNodeRef(NativeWorkingDocument Owner,
+            KillerPdf.Engine.Documents.PdfReadNavigationEntry Entry);
+
+        private static bool IsOutlineRow(object? tag) => tag is OutlineNodeRef or NativeOutlineNodeRef;
+
+        private void AddNativeOutlineItems(ItemCollection target, NativeWorkingDocument owner,
+            IReadOnlyList<KillerPdf.Engine.Documents.PdfReadNavigationEntry> entries, int depth = 0)
+        {
+            foreach (var entry in entries)
+            {
+                string label = string.IsNullOrEmpty(entry.Label) ? Loc("Str_Outline_Untitled") : entry.Label;
+                var item = new TreeViewItem
+                {
+                    Header = label,
+                    ToolTip = label,
+                    IsExpanded = depth == 0,
+                    Tag = new NativeOutlineNodeRef(owner, entry),
+                    Style = (Style)FindResource("OutlineItemStyle")
+                };
+                item.Expanded += OutlineItemExpansionChanged;
+                item.Collapsed += OutlineItemExpansionChanged;
+                AddNativeOutlineItems(item.Items, owner, entry.Children, depth + 1);
+                target.Add(item);
+            }
+        }
+
         private void OutlineExpandCollapseAll_Click(object sender, RoutedEventArgs e)
         {
             bool collapse = HasExpandedOutline(OutlineTree.Items);
@@ -269,7 +322,7 @@ namespace KillerPDF.Shell
         private static bool HasExpandedOutline(ItemCollection items)
         {
             foreach (var value in items)
-                if (value is TreeViewItem item && item.Tag is OutlineNodeRef &&
+                if (value is TreeViewItem item && IsOutlineRow(item.Tag) &&
                     item.Items.Count > 0 && item.IsExpanded)
                     return true;
             return false;
@@ -279,7 +332,7 @@ namespace KillerPDF.Shell
         {
             foreach (var value in items)
             {
-                if (value is not TreeViewItem item || item.Tag is not OutlineNodeRef) continue;
+                if (value is not TreeViewItem item || !IsOutlineRow(item.Tag)) continue;
                 if (item.Items.Count > 0) item.IsExpanded = expanded;
                 SetOutlineExpansion(item.Items, expanded);
             }
@@ -288,7 +341,7 @@ namespace KillerPDF.Shell
         private void UpdateOutlineExpandCollapseButton()
         {
             bool hasBranches = OutlineTree.Items.OfType<TreeViewItem>()
-                .Any(item => item.Tag is OutlineNodeRef && item.Items.Count > 0);
+                .Any(item => IsOutlineRow(item.Tag) && item.Items.Count > 0);
             bool collapse = hasBranches && HasExpandedOutline(OutlineTree.Items);
             string key = collapse ? "Str_Outline_CollapseAll" : "Str_Outline_ExpandAll";
             OutlineExpandCollapseAllButton.IsEnabled = hasBranches;
@@ -315,7 +368,7 @@ namespace KillerPDF.Shell
                 int i = 0;
                 foreach (var o in items)
                 {
-                    if (o is not TreeViewItem it || it.Tag is not OutlineNodeRef) continue;
+                    if (o is not TreeViewItem it || !IsOutlineRow(it.Tag)) continue;
                     string path = prefix.Length == 0 ? i.ToString() : prefix + "/" + i;
                     any = true;
                     if (it.IsExpanded) expanded.Add(path);
@@ -338,7 +391,7 @@ namespace KillerPDF.Shell
                 int i = 0;
                 foreach (var o in items)
                 {
-                    if (o is not TreeViewItem it || it.Tag is not OutlineNodeRef) continue;
+                    if (o is not TreeViewItem it || !IsOutlineRow(it.Tag)) continue;
                     string path = prefix.Length == 0 ? i.ToString() : prefix + "/" + i;
                     it.IsExpanded = expanded.Contains(path);
                     Walk(it.Items, path);

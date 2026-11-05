@@ -534,3 +534,11 @@ handoff through the real update-restart store, exits, and the host consumes it b
 window loads. A saved recent PDF must appear immediately, disappear on a narrow pane and
 return when widened. Both modes use only task-owned settings and synthetic files on an
 owned UI VM.
+
+`--verify-native-outlines APP_DLL APP_XAML OUTPUT --session-isolation` runs only on
+an exclusively owned SN01 or SN02. It checks an editable PDF outline control and a
+two-chapter EPUB through public open, sidebar and selection providers. Owned screen
+captures verify chapter navigation, expansion and PDF/native document switching.
+The result distinguishes product failures from setup failures and records candidate
+identities, original preservation and window teardown. It does not certify DjVu
+outline rendering or the complete native-format acceptance matrix.

@@ -327,7 +327,7 @@ namespace KillerPDF.Shell
             {
                 SwapActiveViewer(previous);
                 focused.RestoreActiveFieldsOnly();
-                SyncRailPanelAvailability(_doc is not null);
+                SyncRailPanelAvailability(ActiveViewer.HasReadDocumentExt);
             }
         }
     }
