@@ -79,7 +79,7 @@ public sealed partial class EpubDocument
                     if (reader.LocalName == "br")
                     {
                         pendingSpace = false;
-                        if (result.Length > 0) result.Append('\n');
+                        if (result.Length > 0) Append('\n', native?.LineBreakSource);
                     }
                 }
                 else if (reader.NodeType == XmlNodeType.EndElement)

@@ -151,6 +151,10 @@ gap between their line boxes. Wrapped lines and paragraphs continue onto new pag
 when the next line box does not fit. Each page exposes its original structural text
 slice, `SpineIndex` and `TextStart` offset; placement offsets remain relative to
 that chapter's spine text. The text-work limit applies across all chapters.
+Explicit `br` elements within supported paragraphs and spans advance lines without
+paragraph gaps. Consecutive breaks retain blank line heights through pagination,
+and styled text keeps its source offsets. Structural normalization still omits
+leading breaks before any text and trims trailing breaks.
 Words wider than the content box are diagnosed explicitly.
 `RenderPage` produces an owned linear-sRGB float frame through shared glyph rendering,
 without creating a PDF. Inline and packaged CSS `font-size` and `line-height` support positive CSS-pixel

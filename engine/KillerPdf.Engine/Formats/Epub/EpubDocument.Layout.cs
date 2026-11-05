@@ -76,19 +76,35 @@ public sealed partial class EpubDocument
             char character = text[index];
             if (character == '\n')
             {
-                if (index + 1 >= text.Length || text[index + 1] != '\n')
-                    throw new NotSupportedException("Native EPUB line breaking is not implemented.");
-                // Structural paragraph separators retain their source indices but have no placement.
-                FlushLine();
-                top += options.FontSize;
+                var source = content.Characters[index];
+                bool explicitBreak = source?.Node.Owner.Name == "br";
+                bool paragraph = !explicitBreak && index + 1 < text.Length && text[index + 1] == '\n'
+                    && content.Characters[index + 1] is null;
+                int separatorLength = paragraph ? 2 : 1;
+                // Separators retain their source indices but have no placement.
+                if (explicitBreak && line.Count == 0)
+                {
+                    double height = Math.Max(AboveBaseline(source!.BlockStyle), AboveBaseline(source.Style))
+                        + Math.Max(BelowBaseline(source.BlockStyle), BelowBaseline(source.Style));
+                    if (height > options.PageHeight - 2 * options.Margin)
+                        throw new NotSupportedException("The native EPUB line exceeds the available page height.");
+                    if (top + height > options.PageHeight - options.Margin)
+                    {
+                        FinishPage(index);
+                        top = options.Margin;
+                    }
+                    top += height;
+                }
+                else FlushLine();
+                if (paragraph) top += options.FontSize;
                 if (top + options.FontSize > options.PageHeight - options.Margin)
                 {
-                    FinishPage(index + 2);
+                    FinishPage(index + separatorLength);
                     top = options.Margin;
                 }
                 left = options.Margin;
-                lineStart = index + 2;
-                index++;
+                lineStart = index + separatorLength;
+                index += separatorLength - 1;
                 continue;
             }
             if (character is < ' ' or > '~')

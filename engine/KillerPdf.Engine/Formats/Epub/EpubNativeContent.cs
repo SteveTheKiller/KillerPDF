@@ -23,6 +23,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private int _selectorWork;
     private bool _bodySeen;
     internal List<SourceCharacter?> Characters { get; } = new();
+    internal SourceCharacter? LineBreakSource { get; private set; }
     internal Style DefaultStyle { get; } = new(fallbackSize, null);
     internal PdfRgbColor? CanvasBackground { get; private set; }
 
@@ -37,7 +38,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "link" => parent?.Name == "head" && xml.GetAttribute("rel") is "icon" or "stylesheet"
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
             "p" => parent?.Name == "body",
-            "span" => parent?.Name is "p" or "span",
+            "span" or "br" => parent?.Name is "p" or "span",
             _ => false };
         if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
             throw new NotSupportedException("Native EPUB XHTML element is not implemented: " + name + ".");
@@ -73,6 +74,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             CanvasBackground = background.Color;
         }
         var element = new Element(name, parent, style, name == "p" ? style : parent?.BlockStyle ?? style);
+        if (name == "br") LineBreakSource = new(new Text("\n", element), 0);
         if (!empty) _ancestors.Push(element);
     }
 
