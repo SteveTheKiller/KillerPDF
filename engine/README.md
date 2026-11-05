@@ -171,9 +171,21 @@ IW44's image-specific operation, including across compressed block boundaries.
 UTF16 source ranges and unrotated bottom-left pixel rectangles. Encoded separators
 remain part of their original ranges. UTF8 endpoints inside a scalar are rejected.
 Mapping uses at most 16,777,220 bytes of integer elements plus bounded zone records;
-it is omitted when there are no zones. Snapshot and application selection/search
-integration, broader BZZ coverage and mixed visual layers still need acceptance.
+it is omitted when there are no zones. Application selection/search integration,
+broader BZZ coverage and mixed visual layers still need acceptance.
 Text extraction does not prove visual fidelity.
+
+## Native text snapshots (1.9.3 development)
+
+`PdfReadSnapshot.ReadTextPage` exposes original page text and immutable regions with
+page-local UTF16 ranges and unrotated bottom-left bounds in PDF points. EPUB uses its
+existing shaped placements; DjVu uses the finest encoded zones and recorded DPI.
+Intrinsic rotation remains in `GetPageGeometry` for the caller to apply once.
+Missing zones do not create artificial character boxes. Separator-only DjVu zones
+remain in the source text but do not become selectable page-sized rectangles.
+Selection filtering is linear in text plus zones, with at most another 16,777,220
+bytes of integer elements plus bounded region storage. Application search, selection
+and accessibility integration still require implementation and runtime acceptance.
 
 ## Native EPUB layout (1.9.3 development)
 
