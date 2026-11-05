@@ -27,7 +27,7 @@ public sealed record EpubNavigationDestination(int PageIndex, int SpineIndex, in
 public sealed class EpubLayoutPage
 {
     internal EpubLayoutPage(string text, int textStart, int spineIndex, IEnumerable<EpubTextPlacement> placements,
-        IEnumerable<NativeGlyphPaint> glyphs, PdfRgbColor? canvasBackground = null)
+        IEnumerable<NativePagePaint> glyphs, PdfRgbColor? canvasBackground = null)
     {
         Text = text;
         TextStart = textStart;
@@ -44,7 +44,7 @@ public sealed class EpubLayoutPage
     public int SpineIndex { get; }
     /// <summary>Gets logical text placements independently of glyph ink.</summary>
     public IReadOnlyList<EpubTextPlacement> TextPlacements { get; }
-    internal IReadOnlyList<NativeGlyphPaint> Glyphs { get; }
+    internal IReadOnlyList<NativePagePaint> Glyphs { get; }
     internal PdfRgbColor? CanvasBackground { get; }
 }
 

@@ -1,0 +1,219 @@
+using System.Buffers.Binary;
+using System.IO.Compression;
+using System.Text;
+using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Formats.Epub;
+using KillerPdf.Engine.Rendering;
+using KillerPdf.Engine.Tests.Fonts;
+using Xunit;
+
+namespace KillerPdf.Engine.Tests.Formats.Epub;
+
+public sealed class EpubEmbeddedImageLayoutTests
+{
+    [Fact]
+    public void ImageOnlyParagraphRendersPackagedRgbPngAtIntrinsicSizeOnBaseline()
+    {
+        byte[] png = RgbPng();
+        var book = EpubDocument.Open(Package(png));
+        Assert.Equal(png, book.ReadResource("EPUB/images/check.png"));
+        var options = new EpubLayoutOptions(16, 16,
+            TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { Margin = 2, FontSize = 10 };
+
+        var layout = book.CreateLayout(options);
+
+        Assert.Equal("", book.ReadText(0));
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("", page.Text);
+        Assert.Empty(page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        Assert.Equal(16, frame.Width);
+        Assert.Equal(16, frame.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        for (int y = 0; y < 16; y++)
+        for (int x = 0; x < 16; x++)
+        {
+            float[] expected = (x, y) switch {
+                (2, 8) => [1, 0, 0, 1],
+                (3, 8) => [0, 1, 0, 1],
+                (2, 9) => [0, 0, 1, 1],
+                (3, 9) => [0, 0, 0, 1],
+                _ => [1, 1, 1, 1] };
+            Assert.Equal(expected, frame.Pixels.Slice((y * 16 + x) * 4, 4).ToArray());
+        }
+        Assert.Equal(png, book.ReadResource("EPUB/images/check.png"));
+    }
+
+    [Fact]
+    public void ImageOnlyParagraphsRetainSeparateLinesAndParagraphSpacing()
+    {
+        const string image = "<p><img src='../images/check.png' alt=''/></p>";
+        var book = EpubDocument.Open(Package(RgbPng(), image + image));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 40,
+            TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { Margin = 2, FontSize = 10 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("", page.Text);
+        Assert.Empty(page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        for (int y = 0; y < 40; y++)
+        for (int x = 0; x < 16; x++)
+        {
+            float[] expected = (x, y) switch {
+                (2, 8) or (2, 28) => [1, 0, 0, 1],
+                (3, 8) or (3, 28) => [0, 1, 0, 1],
+                (2, 9) or (2, 29) => [0, 0, 1, 1],
+                (3, 9) or (3, 29) => [0, 0, 0, 1],
+                _ => [1, 1, 1, 1] };
+            Assert.Equal(expected, frame.Pixels.Slice((y * 16 + x) * 4, 4).ToArray());
+        }
+    }
+
+    [Fact]
+    public void InlineImageAdvancesFollowingTextWithoutInventingTextOffsets()
+    {
+        var book = EpubDocument.Open(Package(RgbPng(),
+            "<p>A<img src='../images/check.png' alt='Illustration'/>A</p>"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(24, 16,
+            TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { Margin = 2, FontSize = 10 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("AA", book.ReadText(0));
+        Assert.Equal("AA", page.Text);
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10),
+            new EpubTextPlacement(0, 1, 1, 10, 2, 6, 10)
+        }, page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, frame.Pixels.Slice((8 * 24 + 8) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 1, 0, 1 }, frame.Pixels.Slice((8 * 24 + 9) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 1, 1 }, frame.Pixels.Slice((9 * 24 + 8) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((9 * 24 + 9) * 4, 4).ToArray());
+    }
+
+    [Fact]
+    public void CollapsedSpaceBeforeImageKeepsItsSourceOrderAndPlacement()
+    {
+        var book = EpubDocument.Open(Package(RgbPng(),
+            "<p>A <img src='../images/check.png' alt=''/>A</p>"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 16,
+            TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { Margin = 2, FontSize = 10 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A A", book.ReadText(0));
+        Assert.Equal("A A", page.Text);
+        Assert.Equal(new[] {
+            new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10),
+            new EpubTextPlacement(0, 1, 1, 8, 2, 5, 10),
+            new EpubTextPlacement(0, 2, 1, 15, 2, 6, 10)
+        }, page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, frame.Pixels.Slice((8 * 30 + 13) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 1, 0, 1 }, frame.Pixels.Slice((8 * 30 + 14) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 1, 1 }, frame.Pixels.Slice((9 * 30 + 13) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((9 * 30 + 14) * 4, 4).ToArray());
+    }
+
+    [Fact]
+    public void RgbaPngCompositesItsAlphaBeforeSingleSrgbDecode()
+    {
+        byte[] png = RgbPng(6, [
+            0, 255, 0, 0, 128, 0, 255, 0, 255,
+            0, 0, 0, 255, 0, 0, 0, 0, 64 ]);
+        var book = EpubDocument.Open(Package(png));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 16,
+            TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { Margin = 2, FontSize = 10 });
+        var frame = layout.RenderPage(0);
+        int red = (8 * 16 + 2) * 4, black = (9 * 16 + 3) * 4;
+        Assert.Equal(1f, frame.Pixels[red]);
+        Assert.InRange(frame.Pixels[red + 1], .2122306f, .2122309f);
+        Assert.InRange(frame.Pixels[red + 2], .2122306f, .2122309f);
+        Assert.Equal(new float[] { 0, 1, 0, 1 }, frame.Pixels.Slice((8 * 16 + 3) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((9 * 16 + 2) * 4, 4).ToArray());
+        for (int channel = 0; channel < 3; channel++)
+            Assert.InRange(frame.Pixels[black + channel], .5209954f, .5209958f);
+        for (int alpha = 3; alpha < frame.Pixels.Length; alpha += 4) Assert.Equal(1f, frame.Pixels[alpha]);
+        Assert.Equal(png, book.ReadResource("EPUB/images/check.png"));
+    }
+
+    [Fact]
+    public void ImageAfterFinalTextParagraphSurvivesTrailingTextNormalization()
+    {
+        var book = EpubDocument.Open(Package(RgbPng(),
+            "<p>A</p><p><img src='../images/check.png' alt=''/></p>"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 40,
+            TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { Margin = 2, FontSize = 10 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A", page.Text);
+        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) }, page.TextPlacements);
+        var frame = layout.RenderPage(0);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, frame.Pixels.Slice((28 * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 1, 0, 1 }, frame.Pixels.Slice((28 * 16 + 3) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 1, 1 }, frame.Pixels.Slice((29 * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((29 * 16 + 3) * 4, 4).ToArray());
+    }
+
+    private static byte[] Package(byte[] png, string? body = null)
+    {
+        using var output = new MemoryStream();
+        using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
+        {
+            Add("mimetype", "application/epub+zip", CompressionLevel.NoCompression);
+            Add("META-INF/container.xml", """
+                <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0"><rootfiles><rootfile full-path="EPUB/book.opf" media-type="application/oebps-package+xml"/></rootfiles></container>
+                """);
+            Add("EPUB/book.opf", """
+                <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
+                  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:embedded-image</dc:identifier><dc:title>Embedded image</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2026-11-05T00:00:00Z</meta></metadata>
+                  <manifest><item id="chapter" href="text/chapter.xhtml" media-type="application/xhtml+xml"/><item id="image" href="images/check.png" media-type="image/png"/><item id="font" href="fonts/test.ttf" media-type="font/ttf"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest>
+                  <spine><itemref idref="chapter"/></spine>
+                </package>
+                """);
+            Add("EPUB/text/chapter.xhtml", "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Image</title></head><body>"
+                + (body ?? "<p><img src='../images/check.png' alt=''/></p>") + "</body></html>");
+            Add("EPUB/nav.xhtml", """
+                <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text/chapter.xhtml">Image</a></li></ol></nav></body></html>
+                """);
+            using (var image = zip.CreateEntry("EPUB/images/check.png", CompressionLevel.NoCompression).Open())
+                image.Write(png);
+            using (var font = zip.CreateEntry("EPUB/fonts/test.ttf", CompressionLevel.NoCompression).Open())
+                font.Write(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));
+
+            void Add(string path, string content, CompressionLevel compression = CompressionLevel.Optimal)
+            {
+                using var entry = zip.CreateEntry(path, compression).Open();
+                entry.Write(Encoding.UTF8.GetBytes(content));
+            }
+        }
+        return output.ToArray();
+    }
+
+    private static byte[] RgbPng(byte colorType = 2, byte[]? scanlines = null)
+    {
+        using var output = new MemoryStream();
+        output.Write(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
+        Chunk("IHDR", [0, 0, 0, 2, 0, 0, 0, 2, 8, colorType, 0, 0, 0]);
+        using var compressed = new MemoryStream();
+        using (var zlib = new ZLibStream(compressed, CompressionLevel.SmallestSize, true))
+            zlib.Write(scanlines ?? new byte[] { 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 255, 0, 0, 0 });
+        Chunk("IDAT", compressed.ToArray());
+        Chunk("IEND", []);
+        return output.ToArray();
+
+        void Chunk(string type, byte[] data)
+        {
+            Span<byte> integer = stackalloc byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(integer, (uint)data.Length);
+            output.Write(integer);
+            byte[] name = Encoding.ASCII.GetBytes(type);
+            output.Write(name);
+            output.Write(data);
+            uint crc = uint.MaxValue;
+            foreach (byte value in name.Concat(data))
+            {
+                crc ^= value;
+                for (int bit = 0; bit < 8; bit++)
+                    crc = (crc >> 1) ^ ((crc & 1) == 0 ? 0u : 0xedb88320u);
+            }
+            BinaryPrimitives.WriteUInt32BigEndian(integer, ~crc);
+            output.Write(integer);
+        }
+    }
+}

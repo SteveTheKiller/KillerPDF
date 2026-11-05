@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Rendering;
+using KillerPdf.Engine.Filters;
 
 namespace KillerPdf.Engine.Formats.Epub;
 
@@ -34,11 +35,14 @@ public sealed partial class EpubDocument
         int remainingTextLength = 100_000;
         int remainingStylesheetBytes = 1_000_000;
         int remainingStylesheetReferences = 1024;
+        var imageCache = new Dictionary<string, PngDecodedImage>(StringComparer.Ordinal);
+        long retainedImageBytes = 0;
         for (int spineIndex = 0; spineIndex < Spine.Count; spineIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors,
-                ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences, cancellationToken);
+                ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences,
+                imageCache, ref retainedImageBytes, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
         return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors);
@@ -47,7 +51,8 @@ public sealed partial class EpubDocument
     private void AppendNativeSpinePages(int spineIndex, EpubLayoutOptions options, double contentWidth,
         TrueTypeOutlineReader reader, List<EpubLayoutPage> pages,
         List<(int SpineIndex, string Id, int Offset)> anchors, ref int remainingTextLength,
-        ref int remainingStylesheetBytes, ref int remainingStylesheetReferences, CancellationToken cancellationToken)
+        ref int remainingStylesheetBytes, ref int remainingStylesheetReferences,
+        Dictionary<string, PngDecodedImage> imageCache, ref long retainedImageBytes, CancellationToken cancellationToken)
     {
         var entry = Spine[spineIndex];
         if (!entry.IsLinear || !string.IsNullOrWhiteSpace(entry.Properties))
@@ -73,15 +78,29 @@ public sealed partial class EpubDocument
         }
         var font = options.DefaultFont;
         var placements = new List<EpubTextPlacement>(text.Length);
-        var glyphs = new List<NativeGlyphPaint>(text.Length);
+        var glyphs = new List<NativePagePaint>(text.Length);
         int pageStart = 0;
         double left = options.Margin;
         double top = options.Margin;
-        var line = new List<(int Index, double Left, double Width, PdfGlyphOutline Outline)>();
+        var line = new List<(int Index, double Left, double Width, PdfGlyphOutline? Outline,
+            PngDecodedImage? Image, EpubNativeContent.Style Style, EpubNativeContent.Style BlockStyle)>();
         int lineStart = 0;
-        for (int index = 0; index < text.Length; index++)
+        EpubNativeContent.Element? lineBlock = null;
+        int imageIndex = 0;
+        for (int index = 0; index <= text.Length; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            while (imageIndex < content.Images.Count && content.Images[imageIndex].Offset == index)
+            {
+                var reference = content.Images[imageIndex++];
+                BeginInline(reference.Owner, index);
+                var image = ReadNativeImage(resource.Href, reference.Source, imageCache, ref retainedImageBytes, cancellationToken);
+                if (left + image.Width > options.PageWidth - options.Margin)
+                    throw new NotSupportedException("The native EPUB image exceeds the available line width.");
+                line.Add((index, left, image.Width, null, image, reference.Owner.Style, reference.Owner.BlockStyle));
+                left += image.Width;
+            }
+            if (index == text.Length) break;
             char character = text[index];
             if (character == '\n')
             {
@@ -118,6 +137,7 @@ public sealed partial class EpubDocument
             }
             if (character is < ' ' or > '~')
                 throw new NotSupportedException("Native EPUB layout currently supports only printable ASCII text.");
+            if (content.Characters[index] is { } characterSource) BeginInline(characterSource.Node.Owner, index);
             ushort glyph = font.GetGlyphId(character);
             if (glyph == 0 && character != ' ')
                 throw new NotSupportedException($"The native EPUB font has no glyph for U+{(int)character:X4}.");
@@ -157,7 +177,8 @@ public sealed partial class EpubDocument
             }
             if (left + width > options.PageWidth - options.Margin)
                 throw new NotSupportedException("The native EPUB word exceeds the available line width.");
-            line.Add((index, left, width, outline));
+            line.Add((index, left, width, outline, null, StyleAt(index),
+                content.Characters[index]?.BlockStyle ?? content.DefaultStyle));
             left += width;
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -166,16 +187,30 @@ public sealed partial class EpubDocument
 
         EpubNativeContent.Style StyleAt(int index) => content.Characters[index]?.Style ?? content.DefaultStyle;
 
+        void BeginInline(EpubNativeContent.Element owner, int index)
+        {
+            var block = owner;
+            while (block.Name != "p" && block.Parent is { } parent) block = parent;
+            if (line.Count > 0 && !ReferenceEquals(lineBlock, block))
+            {
+                FlushLine();
+                top += options.FontSize;
+                left = options.Margin;
+                lineStart = index;
+            }
+            lineBlock = block;
+        }
+
         void FlushLine()
         {
             if (line.Count == 0) return;
-            var block = content.Characters[line[0].Index]?.BlockStyle ?? content.DefaultStyle;
+            var block = line[0].BlockStyle;
             double ascent = AboveBaseline(block), descent = BelowBaseline(block);
             foreach (var item in line)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                ascent = Math.Max(ascent, AboveBaseline(StyleAt(item.Index)));
-                descent = Math.Max(descent, BelowBaseline(StyleAt(item.Index)));
+                ascent = Math.Max(ascent, item.Image?.Height ?? AboveBaseline(item.Style));
+                descent = Math.Max(descent, item.Image is null ? BelowBaseline(item.Style) : 0);
             }
             double height = ascent + descent;
             if (height > options.PageHeight - 2 * options.Margin)
@@ -189,11 +224,16 @@ public sealed partial class EpubDocument
             foreach (var item in line)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                double size = StyleAt(item.Index).FontSize;
+                if (item.Image is { } image)
+                {
+                    glyphs.Add(new NativeImagePaint(image, item.Left, baseline - image.Height));
+                    continue;
+                }
+                double size = item.Style.FontSize;
                 double logicalTop = baseline - font.Ascender * size / font.UnitsPerEm;
                 placements.Add(new EpubTextPlacement(spineIndex, item.Index, 1, item.Left, logicalTop, item.Width, size));
-                if (item.Outline.Contours.Count != 0)
-                    glyphs.Add(new NativeGlyphPaint(item.Outline, item.Left, baseline, size / 1000, StyleAt(item.Index).Color));
+                if (item.Outline!.Contours.Count != 0)
+                    glyphs.Add(new NativeGlyphPaint(item.Outline, item.Left, baseline, size / 1000, item.Style.Color));
             }
             top += height;
             line.Clear();

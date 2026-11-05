@@ -1,15 +1,18 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Filters;
 
 namespace KillerPdf.Engine.Rendering;
 
-internal sealed record NativeGlyphPaint(PdfGlyphOutline Outline, double Left, double Baseline, double Scale, PdfRgbColor? Color = null);
+internal abstract record NativePagePaint;
+internal sealed record NativeGlyphPaint(PdfGlyphOutline Outline, double Left, double Baseline, double Scale, PdfRgbColor? Color = null) : NativePagePaint;
+internal sealed record NativeImagePaint(PngDecodedImage Image, double Left, double Top) : NativePagePaint;
 
 internal static class NativeGlyphPainter
 {
     private const long MaximumWorkingPixelBytes = 128L * 1024 * 1024;
 
-    internal static PdfRenderedFrame Render(int width, int height, IReadOnlyList<NativeGlyphPaint> glyphs,
+    internal static PdfRenderedFrame Render(int width, int height, IReadOnlyList<NativePagePaint> paints,
         PdfRgbColor color, CancellationToken cancellationToken, double scaleX = 1, double scaleY = 1, PdfRgbColor? background = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -20,8 +23,8 @@ internal static class NativeGlyphPainter
         long pixelCount = (long)width * height;
         if (pixelCount > MaximumWorkingPixelBytes / (2 * 4 * sizeof(float)))
             throw new InvalidDataException("The native page exceeds its combined 128 MiB pixel storage limit.");
-        if (glyphs.Count > 100_000)
-            throw new InvalidDataException("The native page exceeds its glyph limit.");
+        if (paints.Count > 100_000)
+            throw new InvalidDataException("The native page exceeds its paint limit.");
         var pixels = new float[checked((int)pixelCount * 4)];
         if (background is { } canvas)
         {
@@ -35,9 +38,41 @@ internal static class NativeGlyphPainter
             }
         }
         else Array.Fill(pixels, 1f);
-        foreach (var glyph in glyphs)
+        long imageWork = 0;
+        foreach (var paint in paints)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (paint is NativeImagePaint image)
+            {
+                double imageLeft = image.Left * scaleX, imageTop = image.Top * scaleY;
+                double imageWidth = image.Image.Width * scaleX, imageHeight = image.Image.Height * scaleY;
+                if (!double.IsFinite(imageLeft) || !double.IsFinite(imageTop)
+                    || !double.IsFinite(imageWidth) || !double.IsFinite(imageHeight))
+                    throw new InvalidDataException("The native image placement is invalid.");
+                int x0 = (int)Math.Clamp(Math.Ceiling(imageLeft - .5), 0, width);
+                int y0 = (int)Math.Clamp(Math.Ceiling(imageTop - .5), 0, height);
+                int x1 = (int)Math.Clamp(Math.Ceiling(imageLeft + imageWidth - .5), 0, width);
+                int y1 = (int)Math.Clamp(Math.Ceiling(imageTop + imageHeight - .5), 0, height);
+                imageWork += (long)Math.Max(0, x1 - x0) * Math.Max(0, y1 - y0);
+                if (imageWork > 16 * 1024 * 1024)
+                    throw new InvalidDataException("The native page exceeds its image paint work limit.");
+                for (int y = y0; y < y1; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int sy = Math.Clamp((int)((y + .5 - imageTop) / scaleY), 0, image.Image.Height - 1);
+                    for (int x = x0; x < x1; x++)
+                    {
+                        int sx = Math.Clamp((int)((x + .5 - imageLeft) / scaleX), 0, image.Image.Width - 1);
+                        int sample = (sy * image.Image.Width + sx) * 3;
+                        FloatRgbCompositor.SourceOver(pixels, (y * width + x) * 4,
+                            image.Image.Samples[sample] / 255d, image.Image.Samples[sample + 1] / 255d,
+                            image.Image.Samples[sample + 2] / 255d,
+                            image.Image.Alpha is { } alpha ? alpha[sy * image.Image.Width + sx] / 255d : 1);
+                    }
+                }
+                continue;
+            }
+            var glyph = (NativeGlyphPaint)paint;
             PdfRgbColor foreground = glyph.Color ?? color;
             double left = glyph.Left * scaleX;
             double baseline = glyph.Baseline * scaleY;

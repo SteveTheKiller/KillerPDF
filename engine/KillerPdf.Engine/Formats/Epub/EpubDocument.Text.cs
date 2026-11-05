@@ -78,6 +78,17 @@ public sealed partial class EpubDocument
                     if (reader.LocalName == "style") styleDepth = reader.IsEmptyElement ? -1 : reader.Depth;
                     if (styleDepth >= 0) continue;
                     Separate(TextBlockLines(reader.LocalName));
+                    if (reader.LocalName == "img")
+                    {
+                        string? reference = reader.GetAttribute("src");
+                        if (string.IsNullOrWhiteSpace(reference))
+                            throw new NotSupportedException("Native EPUB images require a packaged source.");
+                        if (pendingSpace && result.Length > 0 && result[^1] != '\n')
+                            Append(' ', pendingSource);
+                        pendingSpace = false;
+                        if (native is not null)
+                            native.Images.Add(new(result.Length, reference, native.ImageElement!));
+                    }
                     if (native is not null && reader.GetAttribute("id") is { } id)
                         native.Anchors.Add((id, result.Length + (pendingSpace && result.Length > 0 && result[^1] != '\n' ? 1 : 0)));
                     if (reader.LocalName == "br")
@@ -151,7 +162,7 @@ public sealed partial class EpubDocument
     };
 
     private static bool SupportsTextElement(string name) => TextBlockLines(name) > 0 || name is
-        "html" or "head" or "body" or "title" or "meta" or "link" or "style" or "br" or "wbr" or
+        "html" or "head" or "body" or "title" or "meta" or "link" or "style" or "br" or "wbr" or "img" or
         "span" or "a" or "em" or "strong" or "b" or "i" or "u" or "s" or "small" or "sub" or "sup" or
         "q" or "abbr" or "cite" or "code" or "kbd" or "samp" or "var" or "mark" or "time" or "bdi" or "bdo" or "dfn";
 }

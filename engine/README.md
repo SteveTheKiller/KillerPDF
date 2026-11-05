@@ -158,6 +158,17 @@ paragraph gaps. Consecutive breaks retain blank line heights through pagination,
 and styled text keeps its source offsets. Structural normalization still omits
 leading breaks before any text and trims trailing breaks.
 Words wider than the content box are diagnosed explicitly.
+Packaged, untagged eight-bit RGB/RGBA PNG images with only IHDR/IDAT/IEND chunks can
+paint inline at intrinsic CSS-pixel dimensions, aligned to the shared baseline.
+Image-only paragraphs retain line boxes and paragraph spacing. Images do not
+invent text offsets or alt-text glyphs, and preceding collapsed spaces keep source
+order. PNG alpha composites over the reading canvas before the final sRGB decode.
+The layout owns decoded image data and preserves original resource bytes.
+Each image is limited to 1,048,576 pixels; retained samples and decoded working
+buffers have a combined 32 MiB layout budget, separate from captured package bytes. The decoder itself is bounded but
+does not yet poll cancellation within a decode. Other PNG variants and metadata,
+JPEG, CSS image dimensions, image wrapping and complete image navigation still
+need implementation and acceptance. This is initial image support, not the full format matrix.
 `EpubLayoutDocument.ResolveNavigationTarget` maps resolved chapter targets from EPUB 2 NCX
 and EPUB 3 navigation to the chapter's first native page and logical margin coordinates.
 Targets use exact, case-sensitive package paths and a 4,096-character limit. Empty fragments

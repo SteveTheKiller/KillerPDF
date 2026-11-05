@@ -11,6 +11,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null);
     internal sealed record Element(string Name, Element? Parent, Style Style, Style BlockStyle);
     internal sealed record Text(string Value, Element Owner);
+    internal sealed record ImageReference(int Offset, string Source, Element Owner);
     internal sealed record SourceCharacter(Text Node, int Offset)
     {
         internal Style Style => Node.Owner.Style;
@@ -24,6 +25,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private bool _bodySeen;
     internal List<SourceCharacter?> Characters { get; } = new();
     internal List<(string Id, int Offset)> Anchors { get; } = new();
+    internal List<ImageReference> Images { get; } = new();
+    internal Element? ImageElement { get; private set; }
     internal SourceCharacter? LineBreakSource { get; private set; }
     internal Style DefaultStyle { get; } = new(fallbackSize, null);
     internal PdfRgbColor? CanvasBackground { get; private set; }
@@ -39,7 +42,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "link" => parent?.Name == "head" && xml.GetAttribute("rel") is "icon" or "stylesheet"
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
             "p" => parent?.Name == "body",
-            "span" or "br" => parent?.Name is "p" or "span",
+            "span" or "br" or "img" => parent?.Name is "p" or "span",
             _ => false };
         if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
             throw new NotSupportedException("Native EPUB XHTML element is not implemented: " + name + ".");
@@ -63,6 +66,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             {
                 // Packaged references are validated separately from body painting.
             }
+            else if (name == "img" && xml.NamespaceURI == "" && xml.LocalName is "src" or "alt")
+            {
+                // Image resources are resolved within the captured package.
+            }
             else if (xml.NamespaceURI != "http://www.w3.org/2000/xmlns/"
                 && !(xml.LocalName == "lang" && xml.NamespaceURI is "" or "http://www.w3.org/XML/1998/namespace"))
                 throw new NotSupportedException("Native EPUB XHTML attributes and styling are not implemented.");
@@ -79,6 +86,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             CanvasBackground = background.Color;
         }
         var element = new Element(name, parent, style, name == "p" ? style : parent?.BlockStyle ?? style);
+        if (name == "img") ImageElement = element;
         if (name == "br") LineBreakSource = new(new Text("\n", element), 0);
         if (!empty) _ancestors.Push(element);
     }
@@ -100,6 +108,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal void Trim(int length)
     {
         if (Characters.Count > length) Characters.RemoveRange(length, Characters.Count - length);
+        for (int i = 0; i < Images.Count; i++)
+            if (Images[i].Offset > length) Images[i] = Images[i] with { Offset = length };
     }
 
     internal void Count(int length)
