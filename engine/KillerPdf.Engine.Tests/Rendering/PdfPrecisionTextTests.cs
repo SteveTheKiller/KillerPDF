@@ -297,7 +297,7 @@ public sealed class PdfPrecisionTextTests
         Assert.Equal(renderer.Render(0, options).Pixels.ToArray(), frame.ToSrgbBgra32());
     }
 
-    private static PdfPageRenderer SimpleFontRenderer(string content)
+    internal static PdfPageRenderer SimpleFontRenderer(string content)
     {
         var document = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(30, 16, Encoding.ASCII.GetBytes(content)).Build());

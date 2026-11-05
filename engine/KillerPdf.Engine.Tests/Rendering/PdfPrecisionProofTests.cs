@@ -14,14 +14,45 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPrecisionProofTests
 {
-    [Fact]
-    public void ProofPreservesQuotedTextAtTheNextLineOrigin()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProofPreservesSingleByteWordSpacing(bool setByDoubleQuote)
+    {
+        var renderer = PdfPrecisionTextTests.SimpleFontRenderer(
+            setByDoubleQuote
+                ? ".5 g BT /F1 10 Tf 4 TL 1 0 0 1 2 6 Tm (A) Tj 3 0 (A A) \" ET"
+                : ".5 g BT /F1 10 Tf 3 Tw 1 0 0 1 2 2 Tm (A A) Tj ET");
+        var options = new PdfRenderOptions(30, 16, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = renderer.RenderFrame(0, options);
+
+        // A advances6; the one-byte space advances5 plus Tw3, placing the next A at16.
+        foreach (int x in new[] { 7, 21 })
+        {
+            int offset = (9 * 30 + x) * 4;
+            double luminance = .2126 * frame.Pixels[offset] + .7152 * frame.Pixels[offset + 1]
+                + .0722 * frame.Pixels[offset + 2];
+            Assert.InRange(luminance, .3570205702411163 - .0001, .3570205702411163 + .0001);
+            Assert.Equal(1f, frame.Pixels[offset + 3]);
+        }
+        Assert.Equal(0f, frame.Pixels[(9 * 30 + 14) * 4 + 3]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProofPreservesQuotedTextAtTheNextLineOrigin(bool doubleQuote)
     {
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(30, 16,
             new PdfContentStreamBuilder().SetFillGray(.5).BeginText().SetFont(font, 10)
                 .SetTextLeading(4).SetTextMatrix(1, 0, 0, 1, 2, 6).ShowUnicodeText("A")
-                .MoveToNextTextLine().ShowUnicodeText("A").EndText()).Build());
+                .MoveToNextTextLine().ShowUnicodeText(doubleQuote ? "AA" : "A").EndText()).Build());
         var page = PdfPageTree.Read(source).Pages[0];
         var reference = Assert.IsType<PdfIndirectReference>(page.Dictionary[Name("Contents")]);
         var stream = Assert.IsType<PdfStream>(source.Resolve(reference));
@@ -30,7 +61,13 @@ public sealed class PdfPrecisionProofTests
         raw = raw.Replace("T*\n", "", StringComparison.Ordinal);
         int lastShow = raw.LastIndexOf(" Tj", StringComparison.Ordinal);
         Assert.True(lastShow > 0);
-        raw = raw.Remove(lastShow, 3).Insert(lastShow, " '");
+        raw = raw.Remove(lastShow, 3).Insert(lastShow, doubleQuote ? " \"" : " '");
+        if (doubleQuote)
+        {
+            int operand = raw.LastIndexOf('<', lastShow);
+            Assert.True(operand > 0);
+            raw = raw.Insert(operand, "0 2 ");
+        }
         source = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
             .ReplaceObject(reference.ObjectNumber, new PdfStream(new PdfDictionary([]), Encoding.ASCII.GetBytes(raw))).Build());
         var options = new PdfRenderOptions(30, 16, transparentBackground: true)
@@ -50,7 +87,16 @@ public sealed class PdfPrecisionProofTests
             Assert.InRange(luminance, .3570205702411163 - .0001, .3570205702411163 + .0001);
             Assert.Equal(1f, frame.Pixels[offset + 3]);
         }
-        Assert.Equal(0f, frame.Pixels[(13 * 30 + 14) * 4 + 3]);
+        if (doubleQuote)
+        {
+            // Double quote sets character spacing2: glyph advance6 places the next origin at10.
+            int offset = (13 * 30 + 15) * 4;
+            double luminance = .2126 * frame.Pixels[offset] + .7152 * frame.Pixels[offset + 1]
+                + .0722 * frame.Pixels[offset + 2];
+            Assert.InRange(luminance, .3570205702411163 - .0001, .3570205702411163 + .0001);
+            Assert.Equal(1f, frame.Pixels[offset + 3]);
+        }
+        else Assert.Equal(0f, frame.Pixels[(13 * 30 + 14) * 4 + 3]);
     }
 
     [Theory]
