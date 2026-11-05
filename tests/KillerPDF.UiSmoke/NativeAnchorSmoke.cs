@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
@@ -213,6 +214,13 @@ internal static class NativeAnchorSmoke
             Capture(Bounds(owner), name + "-window");
             events.Add(new { stage, blue, offset, viewport.ScrollableHeight, viewport.ViewportHeight,
                 clip = lastClip.ToString(), page = lastPage.ToString(), footer = Named<TextBlock>(owner, "StatusText").Text });
+            if (requireFitWidth)
+            {
+                string expectedFooter = string.Format(CultureInfo.CurrentCulture, Resource("Str_FitWidth"), 1, 1, "{zoom}");
+                string pattern = "^" + Regex.Escape(expectedFooter).Replace(Regex.Escape("{zoom}"), @"\d+") + "$";
+                Product(Regex.IsMatch(Named<TextBlock>(owner, "StatusText").Text, pattern, RegexOptions.CultureInvariant),
+                    "The native footer must report the selected Fit Width mode with a zoom percentage.");
+            }
             assertions++;
         }
         void Wait(Func<bool> ready)

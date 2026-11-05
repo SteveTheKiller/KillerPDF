@@ -551,6 +551,7 @@ failure. These cases do not certify the complete native-format acceptance matrix
 `--verify-native-anchor APP_DLL APP_XAML OUTPUT --session-isolation` checks an EPUB
 outline destination below the viewport in Single mode at Fit Width. It waits for
 the initial render before changing zoom and selects the actual combo item peer.
+The visible footer must report Fit Width with a numeric zoom percentage.
 Owned screen captures prove the blue target is initially outside the viewport,
 appears after selecting Anchor without a page change, and disappears after Start.
 Native outline availability, source preservation and window teardown are checked.

@@ -2144,8 +2144,8 @@ namespace KillerPDF.Controls
                     ResetContinuousFitHorizontalOffset();
                     if (ci >= 0) NavigateContinuousToPage(ci);
                 }
-                if (ci >= 0 && _doc != null)
-                    SetStatus(string.Format(Loc("Str_FitWidth"), ci + 1, _doc.PageCount, $"{DisplayZoomPct():F0}"));
+                if (ci >= 0 && HasReadDocument)
+                    SetStatus(string.Format(Loc("Str_FitWidth"), ci + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
                 return;
             }
 
@@ -2159,8 +2159,8 @@ namespace KillerPDF.Controls
             _fitMode = FitMode.Width;
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, slotW / dipW));
             ApplyZoom(lite);
-            if (idx >= 0 && _doc != null)
-                SetStatus(string.Format(Loc("Str_FitWidth"), idx + 1, _doc.PageCount, $"{DisplayZoomPct():F0}"));
+            if (idx >= 0 && HasReadDocument)
+                SetStatus(string.Format(Loc("Str_FitWidth"), idx + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
         }
 
         internal void FitToPage(bool lite = false, FitScroll scroll = FitScroll.PageTop)
