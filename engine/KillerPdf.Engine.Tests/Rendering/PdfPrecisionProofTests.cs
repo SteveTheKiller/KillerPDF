@@ -15,9 +15,59 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPrecisionProofTests
 {
     [Fact]
-    public void ProofUsesDirectCmykIccImageBeforePrinterConversion()
+    public void ProofUsesResourceDefaultCmykImageBeforePrinterConversion()
     {
-        var renderer = DirectCmykImageRenderer();
+        var renderer = DirectCmykImageRenderer(resourceDefault: true);
+        var options = new PdfRenderOptions(2, 1, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { RenderingIntent = PdfRenderingIntent.RelativeColorimetric,
+                    BlackPointCompensation = false, SimulateBlack = true, SimulatePaper = false })
+        };
+
+        var frame = renderer.RenderFrame(0, options);
+
+        // Independent affine source Y=.5,.25 and printer Y=.25+.5*Y.
+        Assert.Equal(2, frame.Width);
+        Assert.Equal(1, frame.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        foreach (var (offset, expected) in new[] { (0, .5), (4, .375) })
+        {
+            double luminance = .2126 * frame.Pixels[offset] + .7152 * frame.Pixels[offset + 1]
+                + .0722 * frame.Pixels[offset + 2];
+            Assert.InRange(luminance, expected - .0001, expected + .0001);
+            Assert.Equal(1f, frame.Pixels[offset + 3]);
+        }
+    }
+
+    [Theory]
+    [InlineData("missingDefault")]
+    [InlineData("invalidDefault")]
+    [InlineData("invalidProfileDefault")]
+    [InlineData("nonCmykDefault")]
+    [InlineData("missingColorimetricTable")]
+    [InlineData("range")]
+    [InlineData("mask")]
+    [InlineData("scaledDown")]
+    [InlineData("interpolated")]
+    public void UnsupportedResourceDefaultCmykProofImageCasesRemainRejected(string scenario)
+    {
+        var options = new PdfRenderOptions(2, 1, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        Assert.Throws<NotSupportedException>(() =>
+            DirectCmykImageRenderer(scenario, resourceDefault: true).RenderFrame(0, options));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProofUsesDirectCmykIccImageBeforePrinterConversion(bool conflictingDefault)
+    {
+        var renderer = DirectCmykImageRenderer(conflictingDefault ? "invalidDefault" : null);
         var options = new PdfRenderOptions(2, 1, transparentBackground: true)
         {
             Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
@@ -41,10 +91,12 @@ public sealed class PdfPrecisionProofTests
         }
     }
 
-    [Fact]
-    public void DirectCmykIccImageWithoutProofRetainsSourceAppearance()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DirectCmykIccImageWithoutProofRetainsSourceAppearance(bool resourceDefault)
     {
-        var frame = DirectCmykImageRenderer().RenderFrame(0,
+        var frame = DirectCmykImageRenderer(resourceDefault: resourceDefault).RenderFrame(0,
             new PdfRenderOptions(2, 1, transparentBackground: true));
 
         // Independent Decimal60 affine PCS values [.5,.5,.5] and [.5,.25,.5],
@@ -78,10 +130,12 @@ public sealed class PdfPrecisionProofTests
         Assert.Throws<NotSupportedException>(() => DirectCmykImageRenderer(scenario).RenderFrame(0, options));
     }
 
-    [Fact]
-    public void DirectCmykIccProofImageRegionMatchesTheFullFrame()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DirectCmykIccProofImageRegionMatchesTheFullFrame(bool resourceDefault)
     {
-        var renderer = DirectCmykImageRenderer();
+        var renderer = DirectCmykImageRenderer(resourceDefault: resourceDefault);
         var options = new PdfRenderOptions(2, 1, transparentBackground: true)
         {
             Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
@@ -97,7 +151,7 @@ public sealed class PdfPrecisionProofTests
         Assert.Equal(full.Pixels[4..8], region.Pixels);
     }
 
-    private static PdfPageRenderer DirectCmykImageRenderer(string? scenario = null)
+    private static PdfPageRenderer DirectCmykImageRenderer(string? scenario = null, bool resourceDefault = false)
     {
         byte[] profile = Convert.FromBase64String(
             "AAABQAAAAAAEAAAAcHJ0ckNNWUtYWVogAAAAAAAAAAAAAAAAYWNzcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQTJCMQAAAJAAAACwbWZ0MgAAAAAEAwIAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAIAAgAA//8AAP//AAD//wAA//9AAEAAQAAgACAAIABAAEAAIAAgACAAAABAACAAQAAgAAAAIABAACAAIAAgAAAAAAAgAEAAQAAAACAAIAAgAEAAIAAAACAAAAAgACAAQAAAAAAAIAAgACAAIAAAAAAAAAAAAP//AAD//wAA//8=");
@@ -121,13 +175,24 @@ public sealed class PdfPrecisionProofTests
         var imageEntries = new List<KeyValuePair<PdfName, PdfObject>> {
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(2)),
             Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)),
-            Entry("ColorSpace", new PdfArray([Name("ICCBased"), icc]))
+            Entry("ColorSpace", resourceDefault ? Name("DeviceCMYK") : new PdfArray([Name("ICCBased"), icc]))
         };
         if (scenario == "mask")
             imageEntries.Add(Entry("Mask", new PdfArray(Enumerable.Repeat<PdfObject>(new PdfInteger(0), 8))));
         if (scenario == "interpolated") imageEntries.Add(Entry("Interpolate", new PdfBoolean(true)));
         var image = update.AddObject(new PdfStream(new PdfDictionary(imageEntries), [0, 0, 0, 0, 0, 255, 0, 0]));
-        var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Image", image)]))]);
+        var resourceEntries = new List<KeyValuePair<PdfName, PdfObject>> {
+            Entry("XObject", new PdfDictionary([Entry("Image", image)])) };
+        var defaultIcc = scenario == "invalidProfileDefault"
+            ? update.AddObject(new PdfStream(new PdfDictionary([Entry("N", new PdfInteger(4))]), [0]))
+            : scenario == "nonCmykDefault"
+            ? update.AddObject(new PdfStream(new PdfDictionary([Entry("N", new PdfInteger(3))]),
+                Convert.FromBase64String(PdfPrecisionIccImageTests.RgbProfileBase64))) : icc;
+        if (resourceDefault && scenario != "missingDefault" || scenario == "invalidDefault")
+            resourceEntries.Add(Entry("ColorSpace", new PdfDictionary([
+                Entry("DefaultCMYK", scenario == "invalidDefault" ? Name("Invalid")
+                    : new PdfArray([Name("ICCBased"), defaultIcc]))])));
+        var resources = new PdfDictionary(resourceEntries);
         return new PdfPageRenderer(PdfDocument.Open(update.ReplaceObject(page.Reference.ObjectNumber,
             new PdfDictionary(page.Dictionary.Where(pair => !pair.Key.Equals(Name("Resources")))
                 .Append(Entry("Resources", resources)))).Build()));

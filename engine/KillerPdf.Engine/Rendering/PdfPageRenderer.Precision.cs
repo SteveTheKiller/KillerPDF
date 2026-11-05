@@ -220,20 +220,26 @@ public sealed partial class PdfPageRenderer
         return RenderPreciseFrame(pageIndex, options, (left, top, left + width, top + height), cancellationToken);
     }
 
-    private bool PreciseProofImageSupported(PdfStream image)
+    private bool PreciseProofImageSupported(PdfStream image, PdfDictionary resources)
     {
         if (!IsName(image.Dictionary, "Subtype", "Image")
             || image.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? mask)
                 && Resolve(mask) is PdfBoolean { Value: true }) return false;
         if (IsName(image.Dictionary, "ColorSpace", "DeviceRGB")
             || IsName(image.Dictionary, "ColorSpace", "DeviceGray")) return true;
-        if (!image.Dictionary.TryGetValue(Name("ColorSpace"), out PdfObject? value)
-            || Resolve(value) is not PdfArray { Count: 2 } space
+        if (!image.Dictionary.TryGetValue(Name("ColorSpace"), out PdfObject? value)) return false;
+        bool defaultCmyk = Resolve(value) is PdfName device && device.ValueAsLatin1() == "DeviceCMYK";
+        if (defaultCmyk
+            && (!resources.TryGetValue(Name("ColorSpace"), out PdfObject? defaultsValue)
+                || Resolve(defaultsValue) is not PdfDictionary defaults
+                || !defaults.TryGetValue(Name("DefaultCMYK"), out value))) return false;
+        if (Resolve(value) is not PdfArray { Count: 2 } space
             || Resolve(space[0]) is not PdfName name || name.ValueAsLatin1() != "ICCBased"
             || Resolve(space[1]) is not PdfStream profile
             || !profile.Dictionary.TryGetValue(Name("N"), out PdfObject? channels)) return false;
         // The existing precise image path validates profile transforms and sampling.
-        return Resolve(channels) is PdfInteger { Value: 1 or 3 or 4 };
+        return Resolve(channels) is PdfInteger { Value: 1 or 3 or 4 } count
+            && (!defaultCmyk || count.Value == 4);
     }
 
     private static bool PreciseProofOperationSupported(string operation) => operation is

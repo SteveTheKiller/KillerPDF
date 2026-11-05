@@ -1062,7 +1062,7 @@ public sealed partial class PdfPageRenderer
                     else if (pixels.PreciseRgb is not null && options.Proof is { Enabled: true }
                         && !(IsName(xObject.Dictionary, "Subtype", "Form")
                             && !xObject.Dictionary.ContainsKey(Name("Group")))
-                        && !PreciseProofImageSupported(xObject))
+                        && !PreciseProofImageSupported(xObject, resources))
                         throw new NotSupportedException("This printer proof XObject or source image color space is not implemented.");
                     else if (IsName(xObject.Dictionary, "Subtype", "Image"))
                     {
