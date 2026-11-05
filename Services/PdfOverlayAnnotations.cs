@@ -239,7 +239,7 @@ public static class PdfOverlayAnnotations
     private static void ValidateNative(PdfDocument document, PdfDictionary annotation, PdfCommentInfo comment, PageAnnotation model)
     {
         if (comment.Subtype != (model is TextAnnotation ? "FreeText" : "Stamp")
-            || model is TextAnnotation text && comment.Contents != text.Content
+            || model is TextAnnotation text && comment.Contents != (ReplacementLayers.IsVisible(text) ? text.Content : string.Empty)
             || !annotation.TryGetValue(Name("AP"), out PdfObject? appearances)
             || Resolve(document, appearances) is not PdfDictionary ap
             || !ap.TryGetValue(Name("N"), out PdfObject? normal)

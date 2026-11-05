@@ -1540,6 +1540,17 @@ public sealed class PdfIncrementalAnnotationEditor
         }
         foreach (AllocatedAnnotation annotation in annotations)
         {
+            // Caller-authored annotations with no logical contents can carry editing data.
+            // Explicitly hidden carriers have no reading-order item; visible annotations still require one.
+            bool hiddenCarrier = annotation.Definition switch
+            {
+                PendingTypedFreeText { Contents: "", Metadata: { Flags: var flags } } =>
+                    (flags & PdfAnnotationFlags.Hidden) != 0,
+                PendingTypedStamp { Contents: "", Metadata: { Flags: var flags } } =>
+                    (flags & PdfAnnotationFlags.Hidden) != 0,
+                _ => false
+            };
+            if (hiddenCarrier) continue;
             string description = AnnotationDescription(annotation.Definition);
             if (string.IsNullOrWhiteSpace(description))
                 throw new InvalidOperationException(

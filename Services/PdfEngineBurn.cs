@@ -236,7 +236,7 @@ internal static class PdfEngineBurn
             foreach (PageAnnotation annotation in NativeTextTail(items, annotationIndex > 0))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!ReplacementLayers.IsVisible(annotation)) continue;
+                bool visible = ReplacementLayers.IsVisible(annotation);
                 Rect bounds = annotation switch
                 {
                     TextAnnotation text => new Rect(text.Position, text.FootprintSize),
@@ -259,10 +259,13 @@ internal static class PdfEngineBurn
                 content.RestoreState();
                 var appearance = new PdfFormXObject(right - left, top - bottom, content);
                 if (annotation is TextAnnotation textBox)
-                    editor.AddFreeText(pageIndex, left, bottom, right - left, top - bottom, textBox.Content, appearance);
+                    editor.AddFreeText(pageIndex, left, bottom, right - left, top - bottom,
+                        visible ? textBox.Content : string.Empty, appearance,
+                        visible ? null : new PdfAnnotationMetadata { Flags = PdfAnnotationFlags.Hidden });
                 else
                     editor.AddStamp(pageIndex, left, bottom, right - left, top - bottom, appearance,
-                        annotation is SignatureAnnotation ? "Signature" : "Markup");
+                        visible ? (annotation is SignatureAnnotation ? "Signature" : "Markup") : string.Empty,
+                        annotationMetadata: visible ? null : new PdfAnnotationMetadata { Flags = PdfAnnotationFlags.Hidden });
                 pending.Add((annotation, renderWidth, renderHeight, rotation, annotationIndex++));
             }
         }

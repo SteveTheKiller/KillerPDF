@@ -19,6 +19,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - JPX rendering uses codestream precision in strict and compatibility modes while retaining dimension checks.
 - Repeated partial rasterization preserves form-local image resources, and affected-content counts exclude unpainted paths. (#369)
 - Comment reading includes empty free-text markup without losing annotation-array positions. (#466)
+- Hidden caller-authored free-text and stamp annotations can retain editing data without adding tagged reading-order descriptions. (#467)
 - Document, annotation and attachment dates are written with the Gregorian calendar whatever the current culture, so Thai, Arabic and Persian regions no longer write years like 2569. Preflight messages write their numbers with a decimal point.
 - EPUB diagnoses head metadata after the body instead of returning unstyled pages and bounds CSS selector matching work. (#472)
 - EPUB preserves body backgrounds across native page sizes and honors transparent overrides. (#472)

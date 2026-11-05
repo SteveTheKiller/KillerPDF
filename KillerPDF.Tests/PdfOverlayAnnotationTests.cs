@@ -6,6 +6,7 @@ using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Rendering;
 using KillerPdf.Engine.Writing;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -15,6 +16,80 @@ namespace KillerPDF.Tests;
 
 public sealed class PdfOverlayAnnotationTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void HiddenReplacementAfterOrdinaryTextSurvivesAboveAnExistingComment(bool tagged, bool hideGroup)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-hidden-native-tail-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            var builder = new PdfDocumentBuilder();
+            byte[] source = tagged ? builder
+                .SetMetadata(new PdfDocumentMetadata { Title = "Hidden native tail", Language = "en-US" })
+                .EnablePdfUa2Conformance()
+                .AddPage(200, 100, new PdfContentStreamBuilder()
+                    .BeginMarkedContent(PdfStructureType.Figure, 0)
+                    .Rectangle(0, 0, 5, 5).Fill().EndMarkedContent())
+                .AddStructureContainer(PdfStructureType.Document)
+                .AddStructureElement(PdfStructureType.Figure, 0, 0, 1, alternateDescription: "Original figure")
+                .Build() : builder.AddBlankPage(200, 100).Build();
+            var blank = PdfDocument.Open(source);
+            File.WriteAllBytes(path, new PdfIncrementalAnnotationEditor(blank).AddRectangle(
+                0, 0, 0, 200, 100, fillColor: new PdfRgbColor(1, 1, 1), contents: "Original comment").Build());
+            var plain = new TextAnnotation { Content = "Ordinary", Position = new Point(10, 70), Width = 160, Height = 25 };
+            var pair = new ReplacementPair(
+                new TextAnnotation { PairId = "hidden-native-pair", Content = "Hidden replacement", Position = new Point(20, 20), Width = 150, Height = 40 },
+                new CoverAnnotation { PairId = "hidden-native-pair", Bounds = new Rect(15, 15, 160, 50) });
+            ReplacementLayers.SetLinked(pair, true);
+            ReplacementLayers.SetVisibility(pair, hideGroup ? ReplacementLayer.Group : ReplacementLayer.Text, false);
+            ReplacementLayers.SetMovementAllowed(pair, ReplacementLayer.Cover, false);
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [plain, pair.Cover, pair.Text] },
+                new Dictionary<int, (int w, int h)> { [0] = (200, 100) });
+            byte[] saved = File.ReadAllBytes(path);
+            Assert.Equal(3, PdfOverlayAnnotations.Read(PdfDocument.Open(saved)).Count);
+            Assert.Equal(1, SearchService.Search(path, "Ordinary").TotalHits);
+            Assert.Equal(0, SearchService.Search(path, "Hidden replacement").TotalHits);
+            Assert.DoesNotContain(PdfCommentReader.Read(PdfDocument.Open(saved), true),
+                comment => comment.Contents?.Contains("Hidden replacement", StringComparison.Ordinal) == true);
+            if (tagged)
+            {
+                Assert.DoesNotContain(PdfAccessibilityReadingOrder.Read(PdfDocument.Open(saved)).Items,
+                    item => item.AlternateDescription?.Contains("Hidden replacement", StringComparison.Ordinal) == true);
+                if (hideGroup)
+                    Assert.DoesNotContain(PdfAccessibilityReadingOrder.Read(PdfDocument.Open(saved)).Items,
+                        item => item.AlternateDescription == "Markup");
+            }
+            OverlayExtraction extracted = PdfOverlayAnnotations.TakeEditableTail(saved);
+            Assert.Equal(3, extracted.Records.Count);
+            CoverAnnotation restoredCover = Assert.IsType<CoverAnnotation>(extracted.Records[1].Annotation);
+            Assert.False(ReplacementLayers.CanMove(restoredCover));
+            TextAnnotation restored = Assert.IsType<TextAnnotation>(extracted.Records[2].Annotation);
+            Assert.Equal("Hidden replacement", restored.Content);
+            Assert.False(ReplacementLayers.IsVisible(restored));
+            Assert.Equal(hideGroup, restored.IsVisible);
+            Assert.True(restored.PairLinked);
+            Assert.Equal(pair.Text.HistoryId, restored.HistoryId);
+            Assert.Equal(pair.Cover.HistoryId, restoredCover.HistoryId);
+            Assert.Equal("Original comment", Assert.Single(PdfCommentReader.Read(PdfDocument.Open(extracted.Bytes), true)).Contents);
+            Assert.True(extracted.Bytes.AsSpan(0, saved.Length).SequenceEqual(saved));
+            byte[] pixels = new PdfPageRenderer(PdfDocument.Open(saved))
+                .Render(0, new PdfRenderOptions(200, 100)).Pixels.ToArray();
+            File.WriteAllBytes(path, extracted.Bytes);
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>>
+                { [0] = extracted.Records.Select(record => record.Annotation).ToList() },
+                new Dictionary<int, (int w, int h)> { [0] = (200, 100) });
+            byte[] resaved = File.ReadAllBytes(path);
+            Assert.Equal(pixels, new PdfPageRenderer(PdfDocument.Open(resaved))
+                .Render(0, new PdfRenderOptions(200, 100)).Pixels.ToArray());
+            Assert.Equal(3, PdfOverlayAnnotations.TakeEditableTail(resaved).Records.Count);
+            Assert.Equal(0, SearchService.Search(path, "Hidden replacement").TotalHits);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
     [Fact]
     public void ReplacementAddedAfterAnOrdinaryTextBoxRetainsHiddenLinkedEditingState()
     {
