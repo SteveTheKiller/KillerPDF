@@ -24,10 +24,20 @@ public sealed partial class EpubDocument
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (page.CanvasBackground is not null
-                || page.Glyphs.Any(paint => paint is not NativeGlyphPaint))
+                || page.Glyphs.Any(paint => paint is not NativeGlyphPaint
+                    && paint is not NativeImagePaint { Image: { Alpha: null, Components: 3, Bits: 8 } }))
                 throw new NotSupportedException(
-                    "EPUB PDF conversion currently supports text without images or backgrounds.");
+                    "EPUB PDF conversion currently supports text and opaque RGB PNG images without backgrounds.");
             var content = new PdfContentStreamBuilder();
+            foreach (var paint in page.Glyphs.OfType<NativeImagePaint>())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var image = paint.Image;
+                content.DrawImage(PdfImage.FromRgb(image.Width, image.Height, image.Samples),
+                    paint.Left * pointsPerCssPixel,
+                    options.PageHeightPoints - (paint.Top + image.Height) * pointsPerCssPixel,
+                    image.Width * pointsPerCssPixel, image.Height * pointsPerCssPixel);
+            }
             foreach (var placement in page.TextPlacements)
             {
                 cancellationToken.ThrowIfCancellationRequested();
