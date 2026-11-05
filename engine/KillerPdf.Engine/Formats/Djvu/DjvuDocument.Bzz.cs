@@ -9,7 +9,13 @@ internal static class DjvuBzzDecoder
         if (decodedByteLimit < 0 || blockByteLimit < 2 || blockCountLimit < 1)
             throw new ArgumentOutOfRangeException(nameof(decodedByteLimit));
         if (input.IsEmpty) throw new InvalidDataException("Missing BZZ stream.");
-        var arithmetic = new DjvuZpDecoder(input.ToArray(), new byte[262], cancellationToken);
+        // Each nonempty block emits at least one byte. Headers use 24 decisions,
+        // speed uses at most two, and each transformed symbol uses at most 16.
+        // Include the extra marker per block and the final zero-size header.
+        var blocks = Math.Min((long)blockCountLimit, decodedByteLimit);
+        var decisions = checked(24L + 42L * blocks + 16L * decodedByteLimit);
+        var arithmetic = new DjvuZpDecoder(input.ToArray(), new byte[262], cancellationToken,
+            decisionLimit: decisions);
         using var output = new MemoryStream();
         var blockCount = 0;
         while (true)

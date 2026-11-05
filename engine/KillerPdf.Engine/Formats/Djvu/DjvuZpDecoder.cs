@@ -8,30 +8,44 @@ internal sealed class DjvuZpDecoder
     private readonly CancellationToken _token;
     private readonly byte[] _contexts;
     private readonly bool _callerBoundsDecisions;
-    private int _bitPosition;
+    private long _bitPosition;
     private int _paddingBits;
+    private long? _remainingDecisions;
+    private long? _remainingInputBits;
     private int _a;
     private int _c;
 
-    internal DjvuZpDecoder(byte[] input, byte[] contexts, CancellationToken token, bool callerBoundsDecisions = false)
+    internal DjvuZpDecoder(byte[] input, byte[] contexts, CancellationToken token,
+        bool callerBoundsDecisions = false, long? decisionLimit = null)
     {
         if (contexts.Length is < 1 or > 262) throw new ArgumentOutOfRangeException(nameof(contexts));
         _input = input;
         _contexts = contexts;
         _token = token;
         _callerBoundsDecisions = callerBoundsDecisions;
+        if (decisionLimit is < 0) throw new ArgumentOutOfRangeException(nameof(decisionLimit));
+        _remainingDecisions = decisionLimit;
+        // Initialization needs 16 bits. A 16-bit interval can renormalize at
+        // most 16 times per decision. Physical and virtual bits share this limit.
+        _remainingInputBits = decisionLimit.HasValue ? checked(16L + 16L * decisionLimit.Value) : null;
         for (var i = 0; i < 16; i++) _c = (_c << 1) | NextBit();
     }
 
     private int NextBit()
     {
         _token.ThrowIfCancellationRequested();
-        if (_bitPosition >= _input.Length * 8)
+        if (_remainingInputBits.HasValue)
         {
-            if (!_callerBoundsDecisions && ++_paddingBits > 32) throw new InvalidDataException("Truncated BZZ arithmetic stream.");
+            if (_remainingInputBits.Value == 0) throw new InvalidDataException("BZZ arithmetic input exceeds the resource limits.");
+            _remainingInputBits--;
+        }
+        if (_bitPosition >= (long)_input.Length * 8)
+        {
+            if (!_remainingInputBits.HasValue && !_callerBoundsDecisions && ++_paddingBits > 32)
+                throw new InvalidDataException("Truncated BZZ arithmetic stream.");
             return 1;
         }
-        var value = (_input[_bitPosition / 8] >> (7 - _bitPosition % 8)) & 1;
+        var value = (_input[(int)(_bitPosition / 8)] >> (7 - (int)(_bitPosition % 8))) & 1;
         _bitPosition++;
         return value;
     }
@@ -54,6 +68,11 @@ internal sealed class DjvuZpDecoder
     internal int Bit(int context = -1)
     {
         _token.ThrowIfCancellationRequested();
+        if (_remainingDecisions.HasValue)
+        {
+            if (_remainingDecisions.Value == 0) throw new InvalidDataException("BZZ arithmetic decisions exceed the resource limits.");
+            _remainingDecisions--;
+        }
         var state = context < 0 ? default : States[_contexts[context]];
         var split = context < 0 ? 0x8000 + ((_a * 3) >> 3) :
             Math.Min(_a + state.Delta, 0x6000 + ((_a * 2 + state.Delta) >> 2));

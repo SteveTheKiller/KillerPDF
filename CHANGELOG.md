@@ -25,6 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Display fallback preserves page sizes, and zoomed page details stay aligned when scrolling. Switching from Continuous to Single-page viewing preserves the correct zoom. (#264)
 - Save Flattened shows output pixel dimensions and scale, matching image export. (#462)
 - Native page navigation recalculates fitting for different page sizes, keeps outlines available after pane focus and reports Fit Width correctly. (#472)
+- DjVu compressed text accepts valid arithmetic endings while retaining decoding resource limits. (#472)
 - View controls follow the active tab or pane, and opening a document during a sidebar transition keeps its thumbnails visible. (#473)
 - The file picker no longer stalls on a disconnected network folder when it opens, a relative or malformed path typed in the path box is refused instead of being looked up against the wrong folder, a pattern such as *.log typed in the name box filters the list, and a full path typed in the name box can be accepted even when the shown folder failed to list.
 - PDF creation, modification, comment and attachment dates use the Gregorian calendar on Thai, Arabic and Persian region settings instead of writing years like 2569.

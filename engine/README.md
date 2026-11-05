@@ -163,7 +163,9 @@ reference-readable legacy trees with repeated or decreasing labels. Validation u
 an explicit 64-level structural limit, at most 65,536 complete records, resolved
 global text ranges and nonempty rectangles. Parent and previous-sibling offsets use
 the format's signed relative coordinates. Reading is limited to 4 MiB of text and
-supports cancellation. BZZ coverage, mixed visual layers and native text geometry
+supports cancellation. Compressed text permits virtual final arithmetic bits within
+checked decision and input budgets derived from the decoded byte and block limits.
+BZZ coverage, mixed visual layers and native text geometry
 still need implementation and acceptance; text extraction does not prove visual fidelity.
 
 ## Native EPUB layout (1.9.3 development)
