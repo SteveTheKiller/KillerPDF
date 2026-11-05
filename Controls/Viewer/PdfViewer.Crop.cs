@@ -409,6 +409,7 @@ namespace KillerPDF.Controls
             {
                 Panel.SetZIndex(bar, 100);
                 previewArea.Children.Add(bar);
+                AttachCropBarPresentation();
                 PlaceAnnotationBar(bar, grip, fadeIn: false);
             }
             _annotBarTool = EditTool.Crop;   // so re-clicking the Crop tool minimizes this bar like the others
@@ -421,11 +422,9 @@ namespace KillerPDF.Controls
         {
             if (_cropConfirmBar is not null)
             {
-                // Remove from whichever panel it was added to (outer grid or canvas fallback)
-                (_annotationCanvas.Parent as Panel)?.Children.Remove(_cropConfirmBar);
-                _annotationCanvas.Children.Remove(_cropConfirmBar);   // no-op if not there
-                (PagePreviewPanel.Parent as Panel)?.Children.Remove(_cropConfirmBar);
+                (_cropConfirmBar.Parent as Panel)?.Children.Remove(_cropConfirmBar);
                 _cropConfirmBar = null;
+                ReleaseEmptyAnnotationPresentation();
             }
             if (_cropPreviewRectBorder is not null)
             {
@@ -445,15 +444,22 @@ namespace KillerPDF.Controls
             if (_annotBarTool == EditTool.Crop) _annotBarTool = null;   // release the shared annotate-bar slot
         }
 
+        private Panel CropHandleLayer()
+        {
+            var outer = PagePreviewPanel.Parent as Panel ?? _annotationCanvas;
+            return PresentationSource.FromVisual(_activeCanvas) is { } source
+                && !ReferenceEquals(source, PresentationSource.FromVisual(outer)) ? _activeCanvas : outer;
+        }
+
         private void AddCropHandles()
         {
             RemoveCropHandles();
             const double hSize = 24;
             var tags    = new[] { "NW", "NE", "SE", "SW" };
             var cursors = new[] { Cursors.SizeNWSE, Cursors.SizeNESW, Cursors.SizeNWSE, Cursors.SizeNESW };
-            // Handles live in the OUTER unscaled panel (same as the confirm bar) so they render
-            // at a fixed screen size regardless of canvas zoom level.
-            var outerGrid = PagePreviewPanel.Parent as Panel ?? (Panel)_annotationCanvas;
+            // Native pages need handles in their editing root, above the image window.
+            // Positioning compensates its scale to retain the outer panel's handle size.
+            var layer = CropHandleLayer();
 
             for (int i = 0; i < 4; i++)
             {
@@ -484,19 +490,15 @@ namespace KillerPDF.Controls
                     e.Handled = true;
                 };
                 _cropHandles.Add(h);
-                outerGrid.Children.Add(h);
+                layer.Children.Add(h);
             }
             PositionCropHandles();
         }
 
         private void RemoveCropHandles()
         {
-            var outerGrid = PagePreviewPanel.Parent as Panel ?? (Panel)_annotationCanvas;
             foreach (var h in _cropHandles)
-            {
-                outerGrid.Children.Remove(h);
-                _annotationCanvas.Children.Remove(h); // belt-and-suspenders in case it ended up in canvas
-            }
+                (h.Parent as Panel)?.Children.Remove(h);
             _cropHandles.Clear();
             _activeCropHandleTag = null;
             RemoveCropBrackets();   // no-op - list is always empty now, kept for safety
@@ -513,7 +515,11 @@ namespace KillerPDF.Controls
             if (_cropHandles.Count < 4) return;
             const double hSize = 24;
             var outerGrid = PagePreviewPanel.Parent as UIElement ?? _annotationCanvas;
-            // Translate canvas-space corners to outer-panel screen space (same as RepositionCropConfirmBar).
+            var layer = CropHandleLayer();
+            Point origin = outerGrid.TranslatePoint(new Point(), layer);
+            double scaleX = (outerGrid.TranslatePoint(new Point(1, 0), layer) - origin).Length;
+            double scaleY = (outerGrid.TranslatePoint(new Point(0, 1), layer) - origin).Length;
+            // Map corners and handle extents into the layer that actually draws the handles.
             var canvasCorners = new Point[]
             {
                 new(_cropCanvasRect.X,      _cropCanvasRect.Y),
@@ -524,17 +530,28 @@ namespace KillerPDF.Controls
             var offsets = new (double dx, double dy)[]
             {
                 (0,       0      ),   // NW: top-left at top-left corner
-                (-hSize,  0      ),   // NE: top-right at top-right corner
-                (-hSize, -hSize  ),   // SE: bottom-right at bottom-right corner
-                (0,      -hSize  ),   // SW: bottom-left at bottom-left corner
+                (-hSize * scaleX,  0      ),   // NE: top-right at top-right corner
+                (-hSize * scaleX, -hSize * scaleY),   // SE: bottom-right at bottom-right corner
+                (0,      -hSize * scaleY),   // SW: bottom-left at bottom-left corner
             };
             for (int i = 0; i < 4; i++)
             {
-                Point screen = _activeCanvas.TranslatePoint(canvasCorners[i], outerGrid);
-                _cropHandles[i].Margin = new Thickness(
-                    screen.X + offsets[i].dx,
-                    screen.Y + offsets[i].dy,
-                    0, 0);
+                var handle = _cropHandles[i];
+                if (!ReferenceEquals(handle.Parent, layer))
+                {
+                    (handle.Parent as Panel)?.Children.Remove(handle);
+                    layer.Children.Add(handle);
+                }
+                handle.LayoutTransform = new ScaleTransform(scaleX, scaleY);
+                Point corner = _activeCanvas.TranslatePoint(canvasCorners[i], layer);
+                double left = corner.X + offsets[i].dx, top = corner.Y + offsets[i].dy;
+                if (layer is Canvas)
+                {
+                    handle.Margin = new Thickness();
+                    Canvas.SetLeft(handle, left);
+                    Canvas.SetTop(handle, top);
+                }
+                else handle.Margin = new Thickness(left, top, 0, 0);
             }
         }
 

@@ -12,6 +12,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Microsoft.Win32;
 using KillerPDF.Services;
+using KillerPdf.Engine.Rendering;
+using PdfRenderedPage = KillerPDF.Services.PdfRenderedPage;
 using ContentDoc = KillerPDF.Services.PdfContentDocument;
 
 namespace KillerPDF.Controls
@@ -675,10 +677,14 @@ namespace KillerPDF.Controls
                 ? _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0, _protection) : null;
             bool invert = DocInvert;
             bool invertImages = BitmapHelpers.DocInvertImages;
+            var continuousDisplay = CapturePrimaryDisplay();
+            var continuousMonitor = !invert
+                && PdfDisplayPresentationPolicy.Resolve(continuousDisplay).TransformOwner == PdfMonitorTransformOwner.Application
+                ? _sdrDisplayConverter : null;
             var renderToken = cts.Token;
             bool Current() => !renderToken.IsCancellationRequested && _viewMode.IsContinuous()
                 && ReferenceEquals(_active, session) && ReferenceEquals(_nativeDoc, nativeOwner)
-                && _currentFile == currentFile;
+                && _currentFile == currentFile && ReferenceEquals(continuousDisplay, _presentationDisplay);
             var renderTask = System.Threading.Tasks.Task.Run(async () =>
             {
                 ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
@@ -690,7 +696,7 @@ namespace KillerPDF.Controls
                         int rot = rotations.TryGetValue(i, out int rr) ? rr : 0;
 
                         // Cache hit: attach the cached bitmap to its slot.
-                        var cb = TryGetCachedRender(session, i, renderW, rot);
+                        var cb = continuousMonitor is null ? TryGetCachedRender(session, i, renderW, rot, continuous: true) : null;
                         if (cb != null)
                         {
                             int fic = i;
@@ -703,6 +709,7 @@ namespace KillerPDF.Controls
                         }
 
                         PdfRenderedPage? rendered = null;
+                        string? monitorWarning = null;
                         int w, h;
                         byte[] raw;
                         if (nativeRevision is not null)
@@ -719,6 +726,31 @@ namespace KillerPDF.Controls
                         else
                         {
                             if (renderRequest is null) return;
+                            if (continuousMonitor is not null)
+                            {
+                                try
+                                {
+                                    var frame = await _viewportRenderQueue.Enqueue(
+                                        (renderRequest, "continuous-float", i), 10 + Math.Abs(i - centerPage),
+                                        80L * renderW * renderW, token =>
+                                        {
+                                            using var lease = renderRequest.Rent(token);
+                                            return lease.RenderFrame(i, renderW, renderW * 2, token);
+                                        }, renderToken);
+                                    var converted = continuousMonitor.Convert(frame, renderToken);
+                                    if (converted.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale) return;
+                                    monitorWarning = converted.FailureOperation;
+                                    w = frame.Width;
+                                    h = frame.Height;
+                                    raw = converted.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
+                                        ? converted.BgraPixels.ToArray() : frame.ToSrgbBgra32(renderToken);
+                                    if (rot != 0)
+                                        (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
+                                    PublishContinuousBitmap(i, w, h, rot, raw, null, monitorWarning);
+                                    continue;
+                                }
+                                catch (NotSupportedException exception) { monitorWarning = exception.Message; }
+                            }
                             var pdfRendered = await _viewportRenderQueue.Enqueue(
                                 (renderRequest, "continuous", i), 10 + Math.Abs(i - centerPage), 16L * renderW * renderW, token =>
                             {
@@ -738,8 +770,12 @@ namespace KillerPDF.Controls
                         if (rot != 0)
                             (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
 
-                        int fi = i, fw = w, fh = h, prot = rot;
-                        byte[] bytes = raw;
+                        PublishContinuousBitmap(i, w, h, rot, raw, rendered, monitorWarning);
+                    }
+
+                    void PublishContinuousBitmap(int fi, int fw, int fh, int prot, byte[] bytes,
+                        PdfRenderedPage? rendered, string? monitorWarning)
+                    {
                         if (cts.IsCancellationRequested) return;
                         // Use the window's own dispatcher, not Application.Current.Dispatcher: during app
                         // shutdown Application.Current goes null and this background render would NRE.
@@ -753,7 +789,9 @@ namespace KillerPDF.Controls
                             int ddh = Math.Max(1, (int)Math.Round(targetW * fh / fw));
                             var bmp = BitmapHelpers.BuildScaledBitmap(fw, fh, bytes, ddw, ddh);
                             if (rendered is { } pdfPage) RememberRenderWarning(bmp, pdfPage);
-                            CacheRender(session, fi, renderW, prot, bmp);
+                            if (monitorWarning is not null)
+                                RenderWarnings.GetValue(bmp, _ => new RenderWarning(monitorWarning));
+                            if (continuousMonitor is null) CacheRender(session, fi, renderW, prot, bmp, continuous: true);
                             SetContinuousSlot(fi, bmp);
                         });
                     }
@@ -907,6 +945,7 @@ namespace KillerPDF.Controls
         private async Task RenderPrimaryAsync(int pageIndex, bool keepTiles)
         {
             CancelPrimaryRender();
+            ShowPrimaryCompatibility();
             if (_currentFile is null || !HasReadDocument) return;
             // Cancel any adjacent-page prefetch from the previous page; a new prefetch is
             // scheduled at the tail of this render.
@@ -935,6 +974,7 @@ namespace KillerPDF.Controls
             long primaryRevision = primarySession?.RenderRevision ?? 0;
             var primaryMode = _viewMode;
             bool primaryInvert = DocInvert;
+            PdfDisplayDiscoverySnapshot? primaryDisplay = null;
             if (_annotationCanvas.Tag is not int displayedPage || displayedPage != pageIndex)
             {
                 PageImage.Source = null;
@@ -946,7 +986,8 @@ namespace KillerPDF.Controls
                 && ReferenceEquals(primarySession, _active) && primaryFile == _currentFile
                 && ReferenceEquals(primaryNative, _nativeDoc)
                 && primaryRevision == (_active?.RenderRevision ?? 0) && primaryMode == _viewMode
-                && primaryInvert == DocInvert;
+                && primaryInvert == DocInvert
+                && (primaryDisplay is null || ReferenceEquals(primaryDisplay, _presentationDisplay));
             try
             {
                 // Present a bounded base raster first. Settled visible regions receive
@@ -958,6 +999,11 @@ namespace KillerPDF.Controls
                 _lastRenderZoom = _zoomLevel;
 
                 int pgRot = _pageRotations.TryGetValue(pageIndex, out int pr0) ? pr0 : 0;
+                primaryDisplay = CapturePrimaryDisplay();
+                var presentationPolicy = PdfDisplayPresentationPolicy.Resolve(primaryDisplay);
+                bool linear = primaryMode == ViewMode.Single && !primaryInvert && pgRot == 0
+                    && (presentationPolicy.Mode == PdfPresentationMode.LinearFloat
+                        || presentationPolicy.TransformOwner == PdfMonitorTransformOwner.Application);
 
                 // #197: the cursor-trailing tooltip is gone; the corner badge announces the page.
                 ShowPageBadge(pageIndex);
@@ -966,7 +1012,8 @@ namespace KillerPDF.Controls
                 // rasterize once and cache it. On a switch back to a recent tab this skips pdfium entirely.
                 int width, height;
                 System.Windows.Media.Imaging.BitmapSource bitmap;
-                var cached = TryGetCachedRender(_active, pageIndex, scaledMax, pgRot);
+                PdfRenderedFrame? primaryFrame = null;
+                var cached = linear ? null : TryGetCachedRender(_active, pageIndex, scaledMax, pgRot);
                 if (cached != null)
                 {
                     LastPrimaryRenderMeasurement = null;
@@ -976,13 +1023,28 @@ namespace KillerPDF.Controls
                 }
                 else
                 {
-                    Task<(BitmapSource Bitmap, RenderMeasurement Measurement)> render;
-                    if (primaryNative is not null)
+                    Task<(BitmapSource Bitmap, RenderMeasurement Measurement, PdfRenderedFrame? Frame)> render;
+                    if (linear)
+                    {
+                        var revision = primaryNative?.CaptureReadRevision();
+                        var request = primaryNative is null
+                            ? _backgroundRenderCache.Capture(primaryFile, primaryRevision, _protection) : null;
+                        render = _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
+                            40L * scaledMax * scaledMax,
+                            token => PrepareLinearPrimaryBitmap(request, revision, pageIndex, scaledMax, token,
+                                presentationPolicy.TransformOwner == PdfMonitorTransformOwner.Application ? _sdrDisplayConverter : null),
+                            primaryToken);
+                    }
+                    else if (primaryNative is not null)
                     {
                         var revision = primaryNative.CaptureReadRevision();
                         render = _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
                             40L * scaledMax * scaledMax,
-                            token => PrepareNativePrimaryBitmap(revision, pageIndex, scaledMax, pgRot, primaryInvert, token),
+                            token =>
+                            {
+                                var prepared = PrepareNativePrimaryBitmap(revision, pageIndex, scaledMax, pgRot, primaryInvert, token);
+                                return (prepared.Bitmap, prepared.Measurement, (PdfRenderedFrame?)null);
+                            },
                             primaryToken);
                     }
                     else
@@ -990,16 +1052,21 @@ namespace KillerPDF.Controls
                         var request = _backgroundRenderCache.Capture(primaryFile, primaryRevision, _protection);
                         render = _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
                             8L * scaledMax * scaledMax,
-                            token => PreparePrimaryBitmap(request, pageIndex, scaledMax, pgRot, primaryInvert, token),
+                            token =>
+                            {
+                                var prepared = PreparePrimaryBitmap(request, pageIndex, scaledMax, pgRot, primaryInvert, token);
+                                return (prepared.Bitmap, prepared.Measurement, (PdfRenderedFrame?)null);
+                            },
                             primaryToken);
                     }
-                    var (preparedBitmap, preparedMeasurement) = await render;
+                    var (preparedBitmap, preparedMeasurement, preparedFrame) = await render;
                     if (!Current()) return;
                     bitmap = preparedBitmap;
                     LastPrimaryRenderMeasurement = preparedMeasurement;
+                    primaryFrame = preparedFrame;
                     width = bitmap.PixelWidth;
                     height = bitmap.PixelHeight;
-                    CacheRender(primarySession, pageIndex, scaledMax, pgRot, bitmap);
+                    if (primaryFrame is null && !linear) CacheRender(primarySession, pageIndex, scaledMax, pgRot, bitmap);
                 }
 
                 // Canonical render-dim space: longest side -> 2048 DIP, identical to the continuous and
@@ -1012,6 +1079,11 @@ namespace KillerPDF.Controls
                 _renderDims[pageIndex] = (dipW, dipH);
 
                 var presentationTimer = Stopwatch.StartNew();
+                if (_primaryViewport is { } viewport)
+                {
+                    viewport.Width = dipW;
+                    viewport.Height = dipH;
+                }
                 PageImage.Source = bitmap;
                 PresentRenderWarning(PageImage, bitmap, pageIndex);
                 _annotationCanvas.IsHitTestVisible = true;
@@ -1046,6 +1118,12 @@ namespace KillerPDF.Controls
                     RenderPageLinks(pageIndex, dipW, dipH);
                 });
                 _renderedPrimaryPage = pageIndex;
+                if (primaryFrame is not null)
+                {
+                    await PresentPrimaryFrameAsync(primaryFrame, primaryDisplay, presentationPolicy,
+                        pageIndex, primaryRevision, generation, Current, primaryToken);
+                    if (!Current()) return;
+                }
                 StartRerenderTimer();
                 if (LastPrimaryRenderMeasurement is { } measurement)
                     LastPrimaryRenderMeasurement = measurement with { PresentationMilliseconds = presentationTimer.Elapsed.TotalMilliseconds };

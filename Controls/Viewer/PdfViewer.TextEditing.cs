@@ -1147,6 +1147,11 @@ namespace KillerPDF.Controls
                 Rotation = turn,
                 PairId = pairId
             };
+            if (_reeditOriginal is { } original)
+            {
+                ta.CopyLayerStateFrom(original);
+                ta.GroupId = original.GroupId;
+            }
             ta.SetColor(tb.Foreground is SolidColorBrush scb ? scb.Color : Colors.Black);
             // A cover-paired edit gets no fill of its own - the opaque cover behind it is the backdrop.
             ta.SetFill(_pendingCover is not null ? Colors.Transparent : _textFillColor);

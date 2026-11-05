@@ -77,16 +77,16 @@ namespace KillerPDF.Controls
 
             public Dictionary<int, List<PageAnnotation>> Annotations = [];
             public Dictionary<int, (int w, int h)> RenderDims = [];
-            // LRU render cache: rasterized page bitmaps keyed by (page, size-bucket, rotation). Lets a
+            // Cache keys separate natural Continuous dimensions from canonical tile dimensions. Lets a
             // switch back to a recent tab reuse the bitmaps instead of re-running pdfium. Concurrent because
             // the continuous/secondary streamers read it from a background thread. Cleared on edits that change
             // a page's pixels or page order, and dropped entirely when the tab falls out of the LRU window.
-            public readonly System.Collections.Concurrent.ConcurrentDictionary<(int page, int bucket, int rot), System.Windows.Media.Imaging.BitmapSource> RenderCache = new();
+            public readonly System.Collections.Concurrent.ConcurrentDictionary<(int page, int bucket, int rot, bool continuous), System.Windows.Media.Imaging.BitmapSource> RenderCache = new();
             // #189: each entry's byte size, recorded by the INSERTING thread. The budget must
             // never be computed by reading PixelWidth/Height off the cached bitmaps - an entry
             // that could not freeze throws cross-thread from whatever renderer is evicting,
             // which killed the background render tasks (vanishing thumbnails after invert).
-            public readonly System.Collections.Concurrent.ConcurrentDictionary<(int page, int bucket, int rot), long> RenderCacheSize = new();
+            public readonly System.Collections.Concurrent.ConcurrentDictionary<(int page, int bucket, int rot, bool continuous), long> RenderCacheSize = new();
             public long RenderRevision;
             public Dictionary<int, int> PageRotations = [];
             public Dictionary<string, string> FormTextValues = [];
@@ -410,8 +410,8 @@ namespace KillerPDF.Controls
         private const int RenderCacheTabCap = 3;
 
         // Background-thread safe: a cached frozen bitmap for this render, or null (the caller must rasterize).
-        internal static System.Windows.Media.Imaging.BitmapSource? TryGetCachedRender(DocumentSession? s, int page, int bucket, int rot)
-            => (s != null && s.RenderCache.TryGetValue((page, bucket, rot), out var b)) ? b : null;
+        internal static System.Windows.Media.Imaging.BitmapSource? TryGetCachedRender(DocumentSession? s, int page, int bucket, int rot, bool continuous = false)
+            => (s != null && s.RenderCache.TryGetValue((page, bucket, rot, continuous), out var b)) ? b : null;
 
         // #122: cap the number of cached page bitmaps per tab. The cache used to grow without
         // bound (one bitmap per page ever rendered, several MB each), so scrolling a large
@@ -431,13 +431,13 @@ namespace KillerPDF.Controls
             return total;
         }
 
-        internal static void CacheRender(DocumentSession? s, int page, int bucket, int rot, System.Windows.Media.Imaging.BitmapSource bmp)
+        internal static void CacheRender(DocumentSession? s, int page, int bucket, int rot, System.Windows.Media.Imaging.BitmapSource bmp, bool continuous = false)
         {
             if (s == null) return;
             if (bmp.CanFreeze && !bmp.IsFrozen) bmp.Freeze();
             // Measured HERE, on the thread that made the bitmap - see RenderCacheSize.
-            s.RenderCacheSize[(page, bucket, rot)] = 4L * bmp.PixelWidth * bmp.PixelHeight;
-            s.RenderCache[(page, bucket, rot)] = bmp;
+            s.RenderCacheSize[(page, bucket, rot, continuous)] = 4L * bmp.PixelWidth * bmp.PixelHeight;
+            s.RenderCache[(page, bucket, rot, continuous)] = bmp;
             // Evict the entries farthest from the page just cached: renders arrive around the
             // viewport, so this keeps a moving window of nearby pages hot and stays safe to run
             // from any thread (no UI state needed).
@@ -447,12 +447,12 @@ namespace KillerPDF.Controls
                 bool overCount = count > RenderCachePageCap;
                 bool overBytes = count > 1 && RenderCacheBytes(s) > RenderCacheByteBudget;
                 if (!overCount && !overBytes) break;
-                var farthest = default((int page, int bucket, int rot));
+                var farthest = default((int page, int bucket, int rot, bool continuous));
                 int bestDist = -1;
                 foreach (var key in s.RenderCache.Keys)
                 {
                     int d = Math.Abs(key.page - page);
-                    if (key.page == page && key != (page, bucket, rot)) d = 1;
+                    if (key.page == page && key != (page, bucket, rot, continuous)) d = 1;
                     if (d > bestDist) { bestDist = d; farthest = key; }
                 }
                 if (bestDist <= 0) break;   // only current-page entries left; nothing sane to evict
@@ -575,6 +575,7 @@ namespace KillerPDF.Controls
             if (_windowResourcesReleased) return;
             _windowResourcesReleased = true;
             CancelRenderWork();
+            ReleasePresentationResources();
             CloseEngineDocumentSession();
             foreach (var session in _sessions)
             {

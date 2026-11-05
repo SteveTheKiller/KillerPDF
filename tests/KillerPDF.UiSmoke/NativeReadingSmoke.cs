@@ -131,7 +131,7 @@ internal static class NativeReadingSmoke
                     DependencyObject imageRoot = viewport;
                     if (continuous || step.Grid)
                     {
-                        Panel? panel = step.Grid ? Named<Panel>(viewport, "PageContentPanel") : Named<StackPanel>(viewport, "ContinuousPanel");
+                        Panel? panel = step.Grid ? Named<Panel>(viewport, "PageContentPanel") : Named<Panel>(viewport, "ContinuousPanel");
                         if (radio.IsChecked != true || panel is not { IsVisible: true, IsEnabled: true }
                             || step.Grid && panel.GetType().FullName != "KillerPDF.Controls.SafeWrapPanel")
                         { stable = 0; return false; }
@@ -247,7 +247,7 @@ internal static class NativeReadingSmoke
                 {
                     owner.UpdateLayout();
                     var viewport = Descendants<ScrollViewer>(owner).SingleOrDefault(v => v.Name == "PagePreviewPanel" && v.IsVisible);
-                    Panel? panel = viewport is null ? null : grid ? Named<Panel>(viewport, "PageContentPanel") : Named<StackPanel>(viewport, "ContinuousPanel");
+                    Panel? panel = viewport is null ? null : grid ? Named<Panel>(viewport, "PageContentPanel") : Named<Panel>(viewport, "ContinuousPanel");
                     events.Add(new { stage, diagnostic = "failure-visible-state", stable, viewportStable,
                         observedWindow = observedWindow.ToString(), observedViewport = observedViewport.ToString(),
                         filename = Named<TextBlock>(owner, "FileNameLabel")?.Text,

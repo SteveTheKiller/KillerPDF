@@ -23,6 +23,7 @@ internal static class TableExportSmoke
         bool visibleNative = windowSession && (windowSessionCase is "--verify-native-reading" or "--verify-native-reading-continuous" or "--verify-native-reading-grid" or "--verify-native-reading-grid-switch" or "--verify-native-reading-epub" or "--verify-native-reading-epub-continuous" or "--verify-native-reading-epub-grid-switch" or "--verify-shortcut-hints"
             || windowSessionCase is "--verify-two-page-continuous" or "--verify-paired-thumbnails" or "--verify-native-outlines" or "--verify-native-outlines-djvu" or "--verify-native-anchor" or "--verify-text-annotation-reopen" or "--verify-text-annotation-save"
             || windowSessionCase.StartsWith("--verify-page-navigation-", StringComparison.Ordinal));
+        visibleNative |= windowSession && windowSessionCase is "--verify-sdr-monitor" or "--verify-native-fallback" or "--verify-native-fallback-refinement" or "--verify-two-page-fallback-refinement";
         if (visibleNative && !new[] { "SN01", "SN02" }.Contains(Environment.MachineName, StringComparer.OrdinalIgnoreCase))
             throw new InvalidOperationException("Visible native hint acceptance may run only on SN01 or SN02.");
         if (!Environment.GetCommandLineArgs().Contains("--startup-smoke")
@@ -135,6 +136,10 @@ internal static class TableExportSmoke
             if (windowSessionCase == "--verify-native-outlines-djvu") return NativeOutlineSmoke.Run(owner, appPath, appXaml, folder, djvu: true);
             if (windowSessionCase == "--verify-two-page-continuous") return TwoPageContinuousSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-paired-thumbnails") return PairedThumbnailSmoke.Run(owner, appPath, appXaml, folder);
+            if (windowSessionCase == "--verify-sdr-monitor") return SdrMonitorSmoke.Run(owner, appPath, folder);
+            if (windowSessionCase == "--verify-native-fallback") return NativeFallbackSmoke.Run(owner, appPath, folder);
+            if (windowSessionCase == "--verify-native-fallback-refinement") return NativeFallbackRefinementSmoke.Run(owner, appPath, folder);
+            if (windowSessionCase == "--verify-two-page-fallback-refinement") return TwoPageFallbackRefinementSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-native-reading") return NativeReadingSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-native-reading-epub") return NativeReadingSmoke.Run(owner, appPath, folder, epub: true);
             if (windowSessionCase == "--verify-native-reading-epub-continuous") return NativeReadingSmoke.Run(owner, appPath, folder, continuous: true, epub: true);

@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 
@@ -11,6 +12,43 @@ internal partial class WindowsPdfViewportHost
 {
     bool editorMouseBridge;
     List<(uint Message, nint Keys, nint Position)>? pendingEditorMouse;
+    bool translatingAccelerator;
+
+    sealed class NativeWheelEventArgs(int timestamp, int delta, Point screenPosition, FrameworkElement pageRoot)
+        : MouseWheelEventArgs(Mouse.PrimaryDevice, timestamp, delta)
+    {
+        internal Point ScreenPosition { get; } = screenPosition;
+        internal FrameworkElement PageRoot { get; } = pageRoot;
+    }
+
+    internal static Point GetWheelPosition(MouseWheelEventArgs args, FrameworkElement relativeTo)
+        => args is NativeWheelEventArgs native
+            ? relativeTo.PointFromScreen(native.ScreenPosition)
+            : args.GetPosition(relativeTo);
+
+    internal static Action? CaptureWheelAnchor(MouseWheelEventArgs args, ScrollViewer viewport)
+    {
+        if (args is not NativeWheelEventArgs native) return null;
+        FrameworkElement page = native.PageRoot;
+        var source = PresentationSource.FromVisual(page);
+        Point local = page.PointFromScreen(native.ScreenPosition);
+        return () =>
+        {
+            if (!page.IsVisible || PresentationSource.FromVisual(page) != source) return;
+            Point actual = viewport.PointFromScreen(page.PointToScreen(local));
+            Point intended = viewport.PointFromScreen(native.ScreenPosition);
+            viewport.ScrollToHorizontalOffset(viewport.HorizontalOffset + actual.X - intended.X);
+            viewport.ScrollToVerticalOffset(viewport.VerticalOffset + actual.Y - intended.Y);
+        };
+    }
+
+    protected override bool TranslateAcceleratorCore(ref MSG message, ModifierKeys modifiers)
+    {
+        if (translatingAccelerator || Overlay is not IKeyboardInputSink sink || !sink.HasFocusWithin()) return false;
+        translatingAccelerator = true;
+        try { return sink.TranslateAccelerator(ref message, modifiers); }
+        finally { translatingAccelerator = false; }
+    }
 
     bool BridgeWheel(nint wParam, nint lParam)
     {
@@ -27,11 +65,13 @@ internal partial class WindowsPdfViewportHost
         {
             if (!ReferenceEquals(Overlay, overlay) || !target.IsVisible || !target.IsEnabled
                 || PresentationSource.FromVisual(target) != overlay) return;
-            var preview = new MouseWheelEventArgs(Mouse.PrimaryDevice, timestamp, delta)
+            // The native page does not update WPF's mouse device position. Keep the message's
+            // screen point so consumers can anchor the gesture across presentation sources.
+            var preview = new NativeWheelEventArgs(timestamp, delta, new Point(screen.X, screen.Y), OverlayRoot)
                 { RoutedEvent = Mouse.PreviewMouseWheelEvent, Source = target };
             target.RaiseEvent(preview);
             if (!preview.Handled)
-                target.RaiseEvent(new MouseWheelEventArgs(Mouse.PrimaryDevice, timestamp, delta)
+                target.RaiseEvent(new NativeWheelEventArgs(timestamp, delta, new Point(screen.X, screen.Y), OverlayRoot)
                     { RoutedEvent = Mouse.MouseWheelEvent, Source = target });
         }));
         return true;
@@ -48,11 +88,14 @@ internal partial class WindowsPdfViewportHost
         {
             if (message != 0x201 || WindowFromPoint(screen) != viewport || !OverlayRoot.IsVisible) return false;
             Point point = OverlayRoot.PointFromScreen(new Point(screen.X, screen.Y));
-            for (DependencyObject? hit = OverlayRoot.InputHitTest(point) as DependencyObject;
+            DependencyObject? inputTarget = OverlayRoot.InputHitTest(point) as DependencyObject;
+            for (DependencyObject? hit = inputTarget;
                 hit is not null; hit = VisualTreeHelper.GetParent(hit))
             {
                 if (hit is TextBox textBox) { editor = textBox; break; }
-                if (hit is Canvas canvas && !ReferenceEquals(canvas, OverlayRoot)) { editor = canvas; break; }
+                // Preserve the hit child so canvas capture does not swallow its drag-start event.
+                if (hit is Canvas canvas && !ReferenceEquals(canvas, OverlayRoot))
+                { editor = inputTarget as UIElement ?? canvas; break; }
             }
             if (editor is null || !editor.IsEnabled || editor is TextBox { IsReadOnly: true }) return false;
             editorMouseBridge = true;

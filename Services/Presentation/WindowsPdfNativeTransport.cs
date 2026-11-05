@@ -8,7 +8,7 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
     const uint FloatRgbaFormat = 10;
     const uint LinearSrgbColorSpace = 1;
     readonly List<nint> _owned = [];
-    nint _composition, _target, _context, _swap, _swap3, _buffer, _visual;
+    nint _composition, _target, _context, _swap, _swap3, _buffer, _visual, _viewport;
     bool _attached;
     bool _disposed;
 
@@ -18,6 +18,7 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
     internal void Initialize(nint viewport)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        _viewport = viewport;
         if (IntPtr.Size != 8 || sizeof(SwapDesc) != 48 || sizeof(TextureDesc) != 44)
             throw new PlatformNotSupportedException("Native presentation requires the Windows x64 SDK layout.");
         Guid compositionId = new("C37EA93A-E7AA-450D-B16F-9746CB0407F3");
@@ -143,6 +144,18 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
     internal void Commit()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        if (!GetClientRect(_viewport, out NativeRect client))
+            throw new NativeFailure("GetClientRect", Marshal.GetHRForLastWin32Error());
+        int clientWidth = client.Right - client.Left;
+        int clientHeight = client.Bottom - client.Top;
+        if (clientWidth <= 0 || clientHeight <= 0)
+            throw new NativeFailure("ViewportDimensions", unchecked((int)0x80070057));
+        var transform = new CompositionMatrix
+        {
+            M11 = (float)clientWidth / Width,
+            M22 = (float)clientHeight / Height
+        };
+        Check("SetTransform", ((delegate* unmanaged[Stdcall]<nint, CompositionMatrix*, int>)Slot(_visual, 8))(_visual, &transform));
         Check("Commit", ((delegate* unmanaged[Stdcall]<nint, int>)Slot(_composition, 3))(_composition));
     }
 
@@ -187,6 +200,17 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
     {
         public uint Width, Height, MipLevels, ArraySize, Format, SampleCount, SampleQuality, Usage, BindFlags, CpuAccessFlags, MiscFlags;
     }
+    [StructLayout(LayoutKind.Sequential)] struct CompositionMatrix
+    {
+        public float M11, M12, M21, M22, M31, M32;
+    }
+    [StructLayout(LayoutKind.Sequential)] struct NativeRect
+    {
+        public int Left, Top, Right, Bottom;
+    }
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    static extern bool GetClientRect(nint window, out NativeRect rectangle);
     [DllImport("dcomp.dll", ExactSpelling = true)] static extern int DCompositionCreateDevice(nint dxgiDevice, ref Guid iid, out nint compositionDevice);
     [DllImport("d3d11.dll", ExactSpelling = true)] static extern int D3D11CreateDevice(nint adapter, int driverType, nint software, uint flags, nint featureLevels, uint featureLevelCount, uint sdkVersion, out nint device, out uint featureLevel, out nint immediateContext);
     [DllImport("dxgi.dll", ExactSpelling = true)] static extern int CreateDXGIFactory2(uint flags, ref Guid iid, out nint factory);

@@ -12,10 +12,14 @@ internal partial class WindowsPdfViewportHost : HwndHost
 {
     readonly WindowProcedure procedure;
     readonly string className = "KillerPdfViewport." + Guid.NewGuid().ToString("N");
-    WindowsPdfFramePresenter? presenter;
+    IPdfFramePresenter? presenter;
+    readonly Func<nint, IPdfFramePresenter> presenterFactory;
+    readonly Transform overlayTransform;
+    (double Width, double Height, double ScaleX, double ScaleY) overlayLayout;
     readonly WindowsPdfViewportRegion clipRegion = new();
     string? installedClip;
     uint installedClipDpi;
+    (Size Layout, int Width, int Height) installedClipSize;
     bool refreshingClip;
     bool registered;
     internal FrameworkElement OverlayRoot { get; }
@@ -24,10 +28,12 @@ internal partial class WindowsPdfViewportHost : HwndHost
     internal HwndSource? Overlay { get; private set; }
     protected override IEnumerator LogicalChildren => new[] { OverlayRoot }.GetEnumerator();
 
-    internal WindowsPdfViewportHost(FrameworkElement overlayRoot)
+    internal WindowsPdfViewportHost(FrameworkElement overlayRoot, Func<nint, IPdfFramePresenter>? presenterFactory = null)
     {
         ArgumentNullException.ThrowIfNull(overlayRoot);
         OverlayRoot = overlayRoot;
+        overlayTransform = overlayRoot.LayoutTransform;
+        this.presenterFactory = presenterFactory ?? (window => new WindowsPdfFramePresenter(window));
         AddLogicalChild(overlayRoot);
         procedure = WindowProc;
         LayoutUpdated += (_, _) => RefreshNativeClip();
@@ -37,8 +43,11 @@ internal partial class WindowsPdfViewportHost : HwndHost
     {
         VerifyAccess();
         if (Viewport == 0) throw new InvalidOperationException("The native viewport is not attached.");
-        return presenter ??= new WindowsPdfFramePresenter(Viewport);
+        return presenter ??= presenterFactory(Viewport);
     }
+
+    internal (int Width, int Height) PixelSize => GetClientRect(Viewport, out var client)
+        ? (client.Right, client.Bottom) : (0, 0);
 
     protected override HandleRef BuildWindowCore(HandleRef parent)
     {
@@ -70,6 +79,31 @@ internal partial class WindowsPdfViewportHost : HwndHost
         if (!SetWindowPos(Viewport, 0, 0, 0, Math.Max(1, client.Right), Math.Max(1, client.Bottom), 0x14)
             || !SetWindowPos(Overlay.Handle, 0, 0, 0, Math.Max(1, client.Right), Math.Max(1, client.Bottom), 0x10))
             throw new System.ComponentModel.Win32Exception();
+        FitOverlay(client);
+        PositionDetail();
+        if (presenter is WindowsPdfFramePresenter native) native.RefreshViewport();
+    }
+
+    void FitOverlay(RectI client)
+    {
+        double width = RenderSize.Width, height = RenderSize.Height;
+        double dpi = GetDpiForWindow(Container) / 96d;
+        if (width <= 0 || height <= 0 || dpi <= 0) return;
+        var layout = (width, height, client.Right / (width * dpi), client.Bottom / (height * dpi));
+        if (layout == overlayLayout) return;
+        overlayLayout = layout;
+        var scale = new ScaleTransform(layout.Item3, layout.Item4);
+        Transform transform = scale;
+        if (!overlayTransform.Value.IsIdentity)
+        {
+            var combined = new TransformGroup();
+            combined.Children.Add(overlayTransform);
+            combined.Children.Add(scale);
+            transform = combined;
+        }
+        OverlayRoot.SetCurrentValue(WidthProperty, width);
+        OverlayRoot.SetCurrentValue(HeightProperty, height);
+        OverlayRoot.SetCurrentValue(LayoutTransformProperty, transform);
     }
 
     protected override void DestroyWindowCore(HandleRef hwnd) => ReleaseWindows();
@@ -83,18 +117,34 @@ internal partial class WindowsPdfViewportHost : HwndHost
             Geometry clip = IsVisible ? WindowsPdfViewportLayout.Capture(this) : Geometry.Empty;
             string description = clip.ToString(System.Globalization.CultureInfo.InvariantCulture);
             uint dpi = GetDpiForWindow(Container);
-            if (description == installedClip && dpi == installedClipDpi) return;
+            var pixels = PixelSize;
+            var size = (RenderSize, pixels.Width, pixels.Height);
+            if (description == installedClip && dpi == installedClipDpi && size == installedClipSize) return;
+            if (!clip.IsEmpty())
+            {
+                if (RenderSize.Width <= 0 || RenderSize.Height <= 0 || pixels.Width <= 0 || pixels.Height <= 0 || dpi == 0)
+                    throw new InvalidOperationException("Viewport clip geometry is unavailable.");
+                clip = clip.CloneCurrentValue();
+                var transforms = new TransformGroup();
+                if (clip.Transform is { } existing) transforms.Children.Add(existing);
+                transforms.Children.Add(new ScaleTransform(pixels.Width / (RenderSize.Width * dpi / 96d),
+                    pixels.Height / (RenderSize.Height * dpi / 96d)));
+                clip.Transform = transforms;
+            }
             clipRegion.Update(Container, clip);
             installedClip = description;
             installedClipDpi = dpi;
+            installedClipSize = size;
         }
         finally { refreshingClip = false; }
     }
 
     void ReleaseWindows()
     {
+        ClearDetail();
         installedClip = null;
         installedClipDpi = 0;
+        installedClipSize = default;
         editorMouseBridge = false;
         pendingEditorMouse = null;
         try { presenter?.Dispose(); }

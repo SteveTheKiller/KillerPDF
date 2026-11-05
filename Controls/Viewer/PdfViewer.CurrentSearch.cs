@@ -18,13 +18,13 @@ public partial class PdfViewer
             if (pageIndex < 0 || pageIndex >= pages.Count) continue;
             EnsureRenderDims(pageIndex, pages[pageIndex].Width, pages[pageIndex].Height);
             if (!TryCanvasFrame(pageIndex, out var frame)) continue;
-            foreach (CoverAnnotation cover in annotations.OfType<CoverAnnotation>())
+            foreach (CoverAnnotation cover in annotations.OfType<CoverAnnotation>().Where(ReplacementLayers.IsVisible))
             {
                 var (left, bottom, right, top) = RedactionGeometry.CanvasToPage(cover.Bounds,
                     frame.PdfWidth, frame.PdfHeight, frame.RenderWidth, frame.RenderHeight, frame.Rotation);
                 covers.Add(new SearchTextSource(pageIndex, left, bottom, right, top, "", cover.HistoryId));
             }
-            foreach (TextAnnotation annotation in annotations.OfType<TextAnnotation>())
+            foreach (TextAnnotation annotation in annotations.OfType<TextAnnotation>().Where(ReplacementLayers.IsVisible))
             {
                 var (left, bottom, right, top) = RedactionGeometry.CanvasToPage(AnnotBounds(annotation),
                     frame.PdfWidth, frame.PdfHeight, frame.RenderWidth, frame.RenderHeight, frame.Rotation);

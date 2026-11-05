@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using KillerPDF.Services;
+using PdfRenderedFrame = KillerPdf.Engine.Rendering.PdfRenderedFrame;
 
 namespace KillerPDF.Controls;
 
@@ -29,6 +30,52 @@ public partial class PdfViewer
     internal RenderMeasurement? LastPrimaryRenderMeasurement { get; private set; }
     internal sealed record RenderMeasurement(int Page, double ParseMilliseconds,
         double RasterMilliseconds, double CopyMilliseconds, double PresentationMilliseconds);
+
+    private (BitmapSource Bitmap, RenderMeasurement Measurement, PdfRenderedFrame? Frame) PrepareLinearPrimaryBitmap(
+        PdfBackgroundRenderCache.Request? request, PdfCapturedReadRevision? native, int page,
+        int maximumSize, CancellationToken token, KillerPDF.Presentation.PdfSdrDisplayConverter? monitor = null)
+    {
+        var timer = Stopwatch.StartNew();
+        try
+        {
+            PdfRenderedFrame frame;
+            double parse = 0;
+            if (native is not null) frame = RenderNativeFrame(native, page, maximumSize, maximumSize, token);
+            else
+            {
+                using var lease = request!.Rent(token);
+                parse = timer.Elapsed.TotalMilliseconds;
+                timer.Restart();
+                frame = lease.RenderFrame(page, maximumSize, maximumSize, token);
+            }
+            double raster = timer.Elapsed.TotalMilliseconds;
+            timer.Restart();
+            int width = frame.Width, height = frame.Height;
+            var conversion = monitor?.Convert(frame, token);
+            if (conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale)
+                throw new OperationCanceledException(token);
+            byte[] pixels = conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
+                ? conversion.BgraPixels.ToArray() : frame.ToSrgbBgra32(token);
+            int dipWidth = Math.Max(1, (int)Math.Round(2048d * width / Math.Max(width, height)));
+            int dipHeight = Math.Max(1, (int)Math.Round(2048d * height / Math.Max(width, height)));
+            var bitmap = new WriteableBitmap(width, height, 96d * width / dipWidth,
+                96d * height / dipHeight, PixelFormats.Bgra32, null);
+            bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
+            bitmap.Freeze();
+            if (conversion?.FailureOperation is { } failure)
+                RenderWarnings.GetValue(bitmap, _ => new RenderWarning(failure));
+            return (bitmap, new RenderMeasurement(page, parse, raster, timer.Elapsed.TotalMilliseconds, 0),
+                monitor is null ? frame : null);
+        }
+        catch (NotSupportedException exception)
+        {
+            var fallback = native is not null
+                ? PrepareNativePrimaryBitmap(native, page, maximumSize, 0, false, token)
+                : PreparePrimaryBitmap(request!, page, maximumSize, 0, false, token);
+            RenderWarnings.GetValue(fallback.Bitmap, _ => new RenderWarning(exception.Message));
+            return (fallback.Bitmap, fallback.Measurement, null);
+        }
+    }
 
     private (BitmapSource Bitmap, RenderMeasurement Measurement) PrepareNativePrimaryBitmap(
         PdfCapturedReadRevision revision, int page, int maximumSize, int rotation,

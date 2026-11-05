@@ -62,7 +62,7 @@ namespace KillerPDF.Controls
                         if (DescribeAnnotation(file, page, comment) is { } line) lines.Add(line);
                 // Text boxes added in KillerPDF and not yet saved are on screen too.
                 if (viewer._annotations.TryGetValue(page, out var placed))
-                    foreach (var text in placed.OfType<TextAnnotation>())
+                    foreach (var text in placed.OfType<TextAnnotation>().Where(ReplacementLayers.IsVisible))
                         if (!string.IsNullOrWhiteSpace(text.Content)) lines.Add(text.Content.Trim());
                 return lines;
             }
@@ -197,12 +197,20 @@ namespace KillerPDF.Controls
                 return result;
             }
 
-            private static Rect Viewport(FrameworkElement canvas)
+            private Rect Viewport(FrameworkElement canvas)
             {
                 for (DependencyObject? parent = canvas; parent is not null; parent = VisualTreeHelper.GetParent(parent))
                     if (parent is ScrollContentPresenter viewport)
                         return new Rect(viewport.PointToScreen(new Point()),
                             viewport.PointToScreen(new Point(viewport.ActualWidth, viewport.ActualHeight)));
+                // A native page has its own visual root. Its owning scroll content remains
+                // in the viewer's visual tree and supplies the same visible viewport.
+                for (DependencyObject? parent = viewer.PagePreviewPanel.Content as DependencyObject;
+                     parent is not null && !ReferenceEquals(parent, viewer.PagePreviewPanel);
+                     parent = VisualTreeHelper.GetParent(parent))
+                    if (parent is ScrollContentPresenter viewport)
+                        return viewport.IsVisible ? new Rect(viewport.PointToScreen(new Point()),
+                            viewport.PointToScreen(new Point(viewport.ActualWidth, viewport.ActualHeight))) : Rect.Empty;
                 return Rect.Empty;
             }
 
@@ -334,6 +342,35 @@ namespace KillerPDF.Controls
                     var line = runs.Lines[runs.Chars[start].Line];
                     var lineBounds = viewer.CaretRangeRects(scroll.Page, runs, line.Start, line.End, dimensions);
                     Visual? content = viewer.PagePreviewPanel.Content as Visual;
+                    if (PresentationSource.FromVisual(canvas) != PresentationSource.FromVisual(viewer.PagePreviewPanel))
+                    {
+                        Rect InViewport(Rect local) => new(
+                            viewer.PagePreviewPanel.PointFromScreen(canvas.PointToScreen(local.TopLeft)),
+                            viewer.PagePreviewPanel.PointFromScreen(canvas.PointToScreen(local.BottomRight)));
+                        if (lineBounds.Count > 0)
+                        {
+                            Rect context = InViewport(lineBounds[0]);
+                            if (context.Width <= viewer.PagePreviewPanel.ViewportWidth
+                                && context.Height <= viewer.PagePreviewPanel.ViewportHeight) target = lineBounds[0];
+                        }
+                        Rect visibleTarget = InViewport(target);
+                        double x = viewer.PagePreviewPanel.HorizontalOffset, y = viewer.PagePreviewPanel.VerticalOffset;
+                        if (visibleTarget.Left < 0) x += visibleTarget.Left;
+                        else if (visibleTarget.Right > viewer.PagePreviewPanel.ViewportWidth)
+                            x += visibleTarget.Right - viewer.PagePreviewPanel.ViewportWidth;
+                        if (visibleTarget.Top < 0) y += visibleTarget.Top;
+                        else if (visibleTarget.Bottom > viewer.PagePreviewPanel.ViewportHeight)
+                            y += visibleTarget.Bottom - viewer.PagePreviewPanel.ViewportHeight;
+                        if (scroll.AlignToTop is bool alignTop)
+                        {
+                            Rect caret = InViewport(rectangle);
+                            y = viewer.PagePreviewPanel.VerticalOffset + (alignTop ? caret.Top
+                                : caret.Bottom - viewer.PagePreviewPanel.ViewportHeight);
+                        }
+                        viewer.PagePreviewPanel.ScrollToHorizontalOffset(x);
+                        viewer.PagePreviewPanel.ScrollToVerticalOffset(y);
+                        break;
+                    }
                     // Reveal readable context when it fits instead of leaving one glyph at the edge.
                     if (lineBounds.Count > 0 && content is not null)
                     {

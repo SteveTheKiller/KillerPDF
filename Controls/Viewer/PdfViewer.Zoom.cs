@@ -68,7 +68,8 @@ namespace KillerPDF.Controls
                 MarkViewportIntent();
                 if (AdjustPendingTrueZoom(Math.Pow(WheelZoomFactor, e.Delta / 120.0))) return;
 
-                Point cursorInViewport = e.GetPosition(PagePreviewPanel);
+                Point cursorInViewport = KillerPDF.Presentation.WindowsPdfViewportHost.GetWheelPosition(e, PagePreviewPanel);
+                Action? restoreNativeAnchor = KillerPDF.Presentation.WindowsPdfViewportHost.CaptureWheelAnchor(e, PagePreviewPanel);
                 if (!_wheelZoomAnchorActive)
                 {
                     (_wheelZoomAnchorX, _wheelZoomAnchorY) = PinchZoomMath.CaptureAnchor(
@@ -100,6 +101,7 @@ namespace KillerPDF.Controls
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
                 {
                     if (revision != _wheelZoomRevision) return;
+                    if (restoreNativeAnchor is not null) { restoreNativeAnchor(); return; }
                     PagePreviewPanel.ScrollToHorizontalOffset(anchored.HorizontalOffset);
                     PagePreviewPanel.ScrollToVerticalOffset(anchored.VerticalOffset);
                 }));

@@ -842,23 +842,77 @@ namespace KillerPDF.Controls
             return b;
         }
 
-        // Draws the selection marquee on the top-most MarqueeLayer (above every page) so a drag can span
-        // pages. Maps the two corners from the start page's canvas into the layer's coordinate space.
+        private readonly Dictionary<Canvas, Rectangle> _nativeMarquees = new();
+
+        // The shared outline covers ordinary pages and gaps. Native page roots need
+        // local projections above their image windows, using the same screen bounds.
         internal void UpdateMarquee(Point startInStartCanvas, Point currentInStartCanvas)
         {
             var gc = _gestureCanvas ?? _activeCanvas;
             if (_selectRect is null || gc is null) return;
-            var t = gc.TransformToVisual(MarqueeLayer);
-            Point a = t.Transform(startInStartCanvas), b = t.Transform(currentInStartCanvas);
-            Canvas.SetLeft(_selectRect, Math.Min(a.X, b.X));
-            Canvas.SetTop(_selectRect, Math.Min(a.Y, b.Y));
-            _selectRect.Width = Math.Abs(a.X - b.X);
-            _selectRect.Height = Math.Abs(a.Y - b.Y);
+            if (!ReferenceEquals(_selectRect.Parent, MarqueeLayer))
+            {
+                (_selectRect.Parent as Panel)?.Children.Remove(_selectRect);
+                MarqueeLayer.Children.Add(_selectRect);
+            }
+            Point a = gc.PointToScreen(startInStartCanvas);
+            Point b = gc.PointToScreen(currentInStartCanvas);
+            PlaceMarquee(_selectRect, MarqueeLayer, a, b);
+            var sharedSource = PresentationSource.FromVisual(MarqueeLayer);
+            var nativePages = _pages.Values.Where(canvas => canvas.IsVisible
+                && PresentationSource.FromVisual(canvas) is { } source
+                && !ReferenceEquals(source, sharedSource)).ToHashSet();
+            foreach (var canvas in _nativeMarquees.Keys.Where(canvas => !nativePages.Contains(canvas)).ToArray())
+            {
+                canvas.Children.Remove(_nativeMarquees[canvas]);
+                _nativeMarquees.Remove(canvas);
+            }
+            Point sharedOrigin = MarqueeLayer.PointToScreen(new Point());
+            double sharedScale = (MarqueeLayer.PointToScreen(new Point(1, 0)) - sharedOrigin).Length;
+            foreach (var canvas in nativePages)
+            {
+                if (!_nativeMarquees.TryGetValue(canvas, out var projection))
+                {
+                    projection = new Rectangle { IsHitTestVisible = false };
+                    _nativeMarquees.Add(canvas, projection);
+                    canvas.Children.Add(projection);
+                }
+                projection.Fill = _selectRect.Fill;
+                projection.Stroke = _selectRect.Stroke;
+                projection.Opacity = _selectRect.Opacity;
+                Point origin = canvas.PointToScreen(new Point());
+                double scale = (canvas.PointToScreen(new Point(1, 0)) - origin).Length;
+                projection.StrokeThickness = _selectRect.StrokeThickness * sharedScale / Math.Max(double.Epsilon, scale);
+                PlaceMarquee(projection, canvas, a, b);
+            }
+        }
+
+        private static void PlaceMarquee(Rectangle rectangle, Canvas layer, Point screenStart, Point screenEnd)
+        {
+            Point a = layer.PointFromScreen(screenStart);
+            Point b = layer.PointFromScreen(screenEnd);
+            Canvas.SetLeft(rectangle, Math.Min(a.X, b.X));
+            Canvas.SetTop(rectangle, Math.Min(a.Y, b.Y));
+            rectangle.Width = Math.Abs(a.X - b.X);
+            rectangle.Height = Math.Abs(a.Y - b.Y);
+        }
+
+        private void RemoveSelectionMarquee()
+        {
+            if (_selectRect is not null)
+                (_selectRect.Parent as Panel)?.Children.Remove(_selectRect);
+            _selectRect = null;
+            foreach (var (canvas, rectangle) in _nativeMarquees)
+                canvas.Children.Remove(rectangle);
+            _nativeMarquees.Clear();
         }
 
         // Maps a rectangle from one visual's coordinate space into another's, for cross-page hit-testing.
         private static Rect MapRect(UIElement from, System.Windows.Media.Visual to, Rect r)
         {
+            if (!ReferenceEquals(PresentationSource.FromVisual(from), PresentationSource.FromVisual(to)))
+                return new Rect(to.PointFromScreen(from.PointToScreen(r.TopLeft)),
+                                to.PointFromScreen(from.PointToScreen(r.BottomRight)));
             var t = from.TransformToVisual(to);
             return new Rect(t.Transform(new Point(r.Left, r.Top)), t.Transform(new Point(r.Right, r.Bottom)));
         }
@@ -1000,6 +1054,10 @@ namespace KillerPDF.Controls
             // Don't intercept clicks on an active text editing box
             if (_activeTextBox is not null && e.OriginalSource is DependencyObject src &&
                 IsDescendantOf(src, _activeTextBox))
+                return;
+            // Let crop handles receive their own drag start before the canvas starts a new box.
+            if (e.OriginalSource is DependencyObject cropHandleSource &&
+                _cropHandles.Any(handle => IsDescendantOf(cropHandleSource, handle)))
                 return;
             // Don't intercept clicks on the crop confirm bar (canvas uses Preview events which
             // tunnel before child Button clicks fire - we must not swallow them here).
@@ -2095,11 +2153,7 @@ namespace KillerPDF.Controls
 
                 if (_ocrRegionMode)
                 {
-                    if (_selectRect is not null)
-                    {
-                        (_selectRect.Parent as Canvas)?.Children.Remove(_selectRect);
-                        _selectRect = null;
-                    }
+                    RemoveSelectionMarquee();
                     _ocrRegionMode = false;
                     if (dragW >= 4 && dragH >= 4)
                         OcrRegion(pageIdx, new Rect(Math.Min(pos.X, _selectStart.X), Math.Min(pos.Y, _selectStart.Y), dragW, dragH));
@@ -2152,11 +2206,7 @@ namespace KillerPDF.Controls
                     }
                     if (hits.Count > 0)
                     {
-                        if (_selectRect is not null)
-                        {
-                            (_selectRect.Parent as Canvas)?.Children.Remove(_selectRect);
-                            _selectRect = null;
-                        }
+                        RemoveSelectionMarquee();
                         ClearSelection();
                         foreach (var (a, b, cv) in hits) ToggleMultiSelect(a, b, cv);
                         SetStatus(hits.Count == 1 ? Loc("Str_St_SelectedOne") : string.Format(Loc("Str_St_SelectedMany"), hits.Count));

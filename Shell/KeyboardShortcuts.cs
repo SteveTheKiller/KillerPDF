@@ -130,6 +130,7 @@ namespace KillerPDF.Shell
             bool editableTextFocused =
                 e.OriginalSource is TextBox tbSrc && !tbSrc.IsReadOnly
                 || e.OriginalSource is PasswordBox
+                || e.OriginalSource is HwndHost && Keyboard.FocusedElement is TextBox { IsReadOnly: false } or PasswordBox
                 || _activeTextBox is not null && _activeTextBox.IsFocused;
             if (editableTextFocused && key == Key.Escape
                 && mods == ModifierKeys.None)

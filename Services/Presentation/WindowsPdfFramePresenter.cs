@@ -134,6 +134,19 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
         catch { ReleaseTransport(transport); throw; }
     }
 
+    internal void RefreshViewport()
+    {
+        _dispatcher.VerifyAccess();
+        if (_disposed || _transport is not { } transport || Status.Mode != PdfPresentationMode.LinearFloat) return;
+        try { transport.Commit(); }
+        catch (WindowsPdfNativeTransport.NativeFailure failure)
+        {
+            ReleaseTransport(transport);
+            Volatile.Write(ref _status, new(PdfPresentationMode.Unavailable,
+                PdfMonitorTransformOwner.Unknown, null, failure.Operation, failure.HResult));
+        }
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {

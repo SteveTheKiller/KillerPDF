@@ -341,11 +341,26 @@ internal sealed class PdfPageRenderSession : IDisposable
             CreateRenderOptions(pageIndex, false, true, includeFormFields, maximumWidth, maximumHeight), cancellationToken);
     }
 
+    internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFittedFrame(int pageIndex,
+        int maximumWidth, int maximumHeight, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumWidth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumHeight);
+        return Renderer.RenderFrame(pageIndex,
+            CreateRenderOptions(pageIndex, false, true, false, maximumWidth, maximumHeight), cancellationToken);
+    }
+
     internal (int Width, int Height) FittedDimensions(int pageIndex, int maximumWidth, int maximumHeight)
     {
         var options = CreateRenderOptions(pageIndex, false, true, false, maximumWidth, maximumHeight);
         return (options.Width, options.Height);
     }
+
+    internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFittedFrameRegion(int pageIndex,
+        int maximumWidth, int maximumHeight, VisibleRenderRegion region, CancellationToken cancellationToken)
+        => Renderer.RenderFrameRegion(pageIndex,
+            CreateRenderOptions(pageIndex, false, true, false, maximumWidth, maximumHeight),
+            region.Left, region.Top, region.Width, region.Height, cancellationToken);
 
     internal PdfRenderedPage RenderFittedRegion(int pageIndex, int maximumWidth, int maximumHeight,
         int left, int top, int width, int height, CancellationToken cancellationToken = default)
@@ -586,6 +601,16 @@ internal sealed class PdfBackgroundRenderCache
             CancellationToken cancellationToken = default) =>
             (_session ?? throw new ObjectDisposedException(nameof(Lease))).RenderFittedPage(
                 pageIndex, maximumWidth, maximumHeight, cancellationToken: cancellationToken);
+
+        internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex,
+            int maximumWidth, int maximumHeight, CancellationToken cancellationToken) =>
+            (_session ?? throw new ObjectDisposedException(nameof(Lease))).RenderFittedFrame(
+                pageIndex, maximumWidth, maximumHeight, cancellationToken);
+
+        internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrameRegion(int pageIndex,
+            int maximumWidth, int maximumHeight, VisibleRenderRegion region, CancellationToken cancellationToken) =>
+            (_session ?? throw new ObjectDisposedException(nameof(Lease))).RenderFittedFrameRegion(
+                pageIndex, maximumWidth, maximumHeight, region, cancellationToken);
 
         public void Dispose()
         {
