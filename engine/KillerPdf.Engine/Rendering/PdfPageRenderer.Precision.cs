@@ -222,7 +222,8 @@ public sealed partial class PdfPageRenderer
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"
         or "n" or "W" or "W*"
-        or "BT" or "ET" or "Tf" or "Tm" or "Tj" or "TJ" or "Tr";
+        or "BT" or "ET" or "Tf" or "Tm" or "Tj" or "TJ" or "Tr" or "Tc" or "Tz" or "Ts"
+        or "Td" or "TD" or "T*" or "TL" or "'";
 
     private static bool PreciseOperationSupported(string operation) => operation is
         "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "k" or "K" or "gs" or "w" or "d"

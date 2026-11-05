@@ -15,6 +15,118 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPrecisionProofTests
 {
     [Fact]
+    public void ProofPreservesQuotedTextAtTheNextLineOrigin()
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(30, 16,
+            new PdfContentStreamBuilder().SetFillGray(.5).BeginText().SetFont(font, 10)
+                .SetTextLeading(4).SetTextMatrix(1, 0, 0, 1, 2, 6).ShowUnicodeText("A")
+                .MoveToNextTextLine().ShowUnicodeText("A").EndText()).Build());
+        var page = PdfPageTree.Read(source).Pages[0];
+        var reference = Assert.IsType<PdfIndirectReference>(page.Dictionary[Name("Contents")]);
+        var stream = Assert.IsType<PdfStream>(source.Resolve(reference));
+        string raw = Encoding.ASCII.GetString(source.DecodeStream(stream));
+        Assert.Contains("T*\n", raw);
+        raw = raw.Replace("T*\n", "", StringComparison.Ordinal);
+        int lastShow = raw.LastIndexOf(" Tj", StringComparison.Ordinal);
+        Assert.True(lastShow > 0);
+        raw = raw.Remove(lastShow, 3).Insert(lastShow, " '");
+        source = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(reference.ObjectNumber, new PdfStream(new PdfDictionary([]), Encoding.ASCII.GetBytes(raw))).Build());
+        var options = new PdfRenderOptions(30, 16, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // Quote resets the advanced x coordinate and moves the baseline from6 to2.
+        foreach (int y in new[] { 3, 13 })
+        {
+            int offset = (y * 30 + 7) * 4;
+            double luminance = .2126 * frame.Pixels[offset] + .7152 * frame.Pixels[offset + 1]
+                + .0722 * frame.Pixels[offset + 2];
+            Assert.InRange(luminance, .3570205702411163 - .0001, .3570205702411163 + .0001);
+            Assert.Equal(1f, frame.Pixels[offset + 3]);
+        }
+        Assert.Equal(0f, frame.Pixels[(13 * 30 + 14) * 4 + 3]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProofPreservesLineOriginsAndExplicitOrMoveDefinedLeading(bool moveDefinesLeading)
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));
+        var content = new PdfContentStreamBuilder().SetFillGray(.5).BeginText().SetFont(font, 10);
+        if (!moveDefinesLeading) content.SetTextLeading(4);
+        content.SetTextMatrix(1, 0, 0, 1, 2, 10).MoveText(0, -4).ShowUnicodeText("A")
+            .MoveToNextTextLine().ShowUnicodeText("A").EndText();
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(30, 16, content).Build());
+        if (moveDefinesLeading)
+        {
+            var page = PdfPageTree.Read(source).Pages[0];
+            var reference = Assert.IsType<PdfIndirectReference>(page.Dictionary[Name("Contents")]);
+            var stream = Assert.IsType<PdfStream>(source.Resolve(reference));
+            string raw = Encoding.ASCII.GetString(source.DecodeStream(stream));
+            Assert.Contains("0 -4 Td\n", raw);
+            byte[] replaced = Encoding.ASCII.GetBytes(raw.Replace("0 -4 Td\n", "0 -4 TD\n", StringComparison.Ordinal));
+            source = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+                .ReplaceObject(reference.ObjectNumber, new PdfStream(new PdfDictionary([]), replaced)).Build());
+        }
+        var options = new PdfRenderOptions(30, 16, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // Both forms set origins (2,6), then (2,2), independent of glyph advance.
+        foreach (int y in new[] { 3, 13 })
+        {
+            int offset = (y * 30 + 7) * 4;
+            double luminance = .2126 * frame.Pixels[offset] + .7152 * frame.Pixels[offset + 1]
+                + .0722 * frame.Pixels[offset + 2];
+            Assert.InRange(luminance, .3570205702411163 - .0001, .3570205702411163 + .0001);
+            Assert.Equal(1f, frame.Pixels[offset + 3]);
+        }
+        Assert.Equal(0f, frame.Pixels[(13 * 30 + 14) * 4 + 3]);
+    }
+
+    [Fact]
+    public void ProofPreservesCharacterSpacingHorizontalScaleAndTextRise()
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(30, 16,
+            new PdfContentStreamBuilder().SetFillGray(.5).BeginText().SetFont(font, 10)
+                .SetCharacterSpacing(8).SetHorizontalTextScale(50).SetTextRise(4)
+                .SetTextMatrix(1, 0, 0, 1, 2, 2).ShowUnicodeText("AA")
+                .SetTextRise(0).ShowUnicodeText("A").EndText()).Build());
+        var options = new PdfRenderOptions(30, 16, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(source).RenderFrame(0, options);
+
+        // (6-point glyph advance + 8-point spacing) * 50% gives origins x2,9,16.
+        // Glyph widths are5; the first two baselines rise to6, then reset to2.
+        foreach (var (x, y) in new[] { (4, 5), (11, 5), (18, 11) })
+        {
+            int offset = (y * 30 + x) * 4;
+            double luminance = .2126 * frame.Pixels[offset] + .7152 * frame.Pixels[offset + 1]
+                + .0722 * frame.Pixels[offset + 2];
+            Assert.InRange(luminance, .3570205702411163 - .0001, .3570205702411163 + .0001);
+            Assert.Equal(1f, frame.Pixels[offset + 3]);
+        }
+        Assert.Equal(0f, frame.Pixels[(5 * 30 + 7) * 4 + 3]);
+        Assert.Equal(0f, frame.Pixels[(13 * 30 + 4) * 4 + 3]);
+    }
+
+    [Fact]
     public void ProofConvertsGlyphStrokesWithoutFillingTheirInterior()
     {
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));

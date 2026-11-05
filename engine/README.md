@@ -329,7 +329,9 @@ mathematical zero-black RGB reference, with unavailable or degenerate conditions
 Supported calibrated `DefaultGray` resources are applied to fill and stroke colors before proof conversion.
 Basic embedded TrueType text retains its color through proof conversion after glyph painting.
 Text matrices, strings and positioned arrays support filled and stroked glyphs.
-Other text-state operators remain diagnosed during migration.
+Proof rendering also preserves character spacing, horizontal scale, text rise,
+line positioning, explicit or move-defined leading, and single-quote line advances.
+Word spacing and double-quote text remain diagnosed during migration.
 The selected output profile must have actual colorimetric transforms in both directions.
 The requested inverse must be available without intent fallback. Absolute source conversion
 also requires explicit valid media white; source BPC is an identity for that intent.
