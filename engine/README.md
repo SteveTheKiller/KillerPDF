@@ -207,6 +207,13 @@ against the parent after cascade selection. Relative line heights compute agains
 element's font and inherit as lengths; unitless line-height factors recalculate for each
 descendant's font. Mixed sizes share a baseline; collapsed spaces retain their original
 inline style. Default normal line height follows each inline font's ascent and descent.
+Initial Latin ligatures use the font's GSUB 1.0 default-language `liga` feature with
+type 4, flags 0, format 1 and coverage format 1. Original UTF-16 cluster ranges and
+selected glyph advances drive both native ink and explicit PDF conversion. Style,
+block and explicit-break boundaries remain separate. Natural text keeps its Unicode
+font mappings; substituted clusters require readers to honor `ActualText`. Parsing
+and shaping have separate work limits and cancellation. Other GSUB routes, positioning,
+Arabic/Indic shaping, bidi processing and per-character carets remain incomplete.
 Foreground `color` accepts six-digit sRGB hex values and the 16 basic CSS color
 keywords, case-insensitively. It inherits and follows property-specific cascade
 precedence. Individual glyphs retain their foreground color through rendering.

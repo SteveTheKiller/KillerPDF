@@ -31,7 +31,8 @@ public sealed record EpubNavigationDestination(int PageIndex, int SpineIndex, in
 public sealed class EpubLayoutPage
 {
     internal EpubLayoutPage(string text, int textStart, int spineIndex, IEnumerable<EpubTextPlacement> placements,
-        IEnumerable<NativePagePaint> glyphs, PdfRgbColor? canvasBackground = null)
+        IEnumerable<NativePagePaint> glyphs, PdfRgbColor? canvasBackground = null,
+        IEnumerable<EpubGlyphCluster>? clusters = null)
     {
         Text = text;
         TextStart = textStart;
@@ -39,6 +40,7 @@ public sealed class EpubLayoutPage
         TextPlacements = Array.AsReadOnly(placements.ToArray());
         Glyphs = Array.AsReadOnly(glyphs.ToArray());
         CanvasBackground = canvasBackground;
+        Clusters = (clusters ?? []).ToDictionary(cluster => cluster.Start);
     }
     /// <summary>Gets the page's original structural text.</summary>
     public string Text { get; }
@@ -49,6 +51,7 @@ public sealed class EpubLayoutPage
     /// <summary>Gets logical text placements independently of glyph ink.</summary>
     public IReadOnlyList<EpubTextPlacement> TextPlacements { get; }
     internal IReadOnlyList<NativePagePaint> Glyphs { get; }
+    internal IReadOnlyDictionary<int, EpubGlyphCluster> Clusters { get; }
     internal PdfRgbColor? CanvasBackground { get; }
 }
 

@@ -62,6 +62,23 @@ public sealed partial class EpubDocument
                 double baseline = (placement.Top + options.DefaultFont.Ascender
                     * placement.Height / options.DefaultFont.UnitsPerEm) * pointsPerCssPixel;
                 var color = placement.Color ?? new PdfRgbColor(0, 0, 0);
+                var cluster = page.Clusters[placement.Start];
+                if (cluster.Substituted)
+                {
+                    double advance = 0;
+                    var positioned = new List<PdfPositionedGlyph>();
+                    foreach (var glyph in cluster.Glyphs)
+                    {
+                        positioned.Add(new(glyph.GlyphId,
+                            placement.Left * pointsPerCssPixel + (advance + glyph.OffsetX) * size,
+                            options.PageHeightPoints - baseline + glyph.OffsetY * size));
+                        advance += glyph.Advance;
+                    }
+                    content.SetFillRgb(color.Red, color.Green, color.Blue)
+                        .DrawGlyphCluster(cluster.Font, size,
+                            page.Text.Substring(cluster.Start - page.TextStart, cluster.Length), positioned);
+                    continue;
+                }
                 content.SetFillRgb(color.Red, color.Green, color.Blue)
                     .BeginText()
                     .SetFont(options.DefaultFont, size)

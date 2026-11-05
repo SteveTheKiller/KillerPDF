@@ -79,6 +79,73 @@ public sealed partial class EpubDocument
             anchors.Add((spineIndex, anchor.Id, Math.Min(anchor.Offset, text.Length)));
         }
         var font = options.DefaultFont;
+        OpenTypeGlyphSubstitution? substitution = null;
+        var clusters = new Dictionary<int, EpubGlyphCluster>();
+        var inlineOffsets = content.Inlines.Select(item => item.Offset).ToHashSet();
+        int shapingWork = 0;
+        for (int runStart = 0; runStart < text.Length;)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (text[runStart] == '\n') { runStart++; continue; }
+            int runEnd = runStart;
+            var run = new List<EpubGlyphCluster>();
+            var owner = content.Characters[runStart]?.Node.Owner;
+            bool latin = IsLatin(runStart);
+            while (runEnd < text.Length && text[runEnd] != '\n'
+                && ReferenceEquals(content.Characters[runEnd]?.Node.Owner, owner)
+                && IsLatin(runEnd) == latin
+                && (runEnd == runStart || !inlineOffsets.Contains(runEnd)))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Rune scalar = ReadScalar(runEnd);
+                ushort glyph = font.GetGlyphId(scalar.Value);
+                if (glyph == 0 && scalar.Value != ' ')
+                    throw new NotSupportedException($"The native EPUB font has no glyph for U+{scalar.Value:X4}.");
+                run.Add(Cluster(runEnd, scalar.Utf16SequenceLength, glyph));
+                runEnd += scalar.Utf16SequenceLength;
+            }
+            if (latin)
+                foreach (var lookup in (substitution ??= new OpenTypeGlyphSubstitution(font, cancellationToken)).Lookups)
+                {
+                    var selected = new List<EpubGlyphCluster>(run.Count);
+                    for (int at = 0; at < run.Count; at++)
+                    {
+                        ChargeShapingWork();
+                        var chosen = run[at];
+                        foreach (var ligature in lookup)
+                        {
+                            ChargeShapingWork();
+                            if (ligature.Components.Length > run.Count - at) continue;
+                            bool match = true;
+                            for (int c = 0; c < ligature.Components.Length; c++)
+                            {
+                                ChargeShapingWork();
+                                if (run[at + c].Glyphs[0].GlyphId != ligature.Components[c]) { match = false; break; }
+                            }
+                            if (!match) continue;
+                            int length = run[at + ligature.Components.Length - 1].Start
+                                + run[at + ligature.Components.Length - 1].Length - run[at].Start;
+                            chosen = Cluster(run[at].Start, length, ligature.Output, true);
+                            at += ligature.Components.Length - 1;
+                            break;
+                        }
+                        selected.Add(chosen);
+                    }
+                    run = selected;
+                }
+            foreach (var cluster in run) clusters.Add(cluster.Start, cluster);
+            runStart = runEnd;
+        }
+        void ChargeShapingWork()
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++shapingWork > 1_000_000)
+                throw new InvalidDataException("The EPUB GSUB shaping work limit was exceeded.");
+        }
+        bool IsLatin(int at) => text[at] is >= 'A' and <= 'Z' or >= 'a' and <= 'z'
+            or >= '\u00C0' and <= '\u02FF' or >= '\u1E00' and <= '\u1EFF';
+        EpubGlyphCluster Cluster(int start, int length, ushort glyph, bool substituted = false) => new(start, length, font,
+            [new(glyph, font.GetPdfAdvanceWidth(glyph) / 1000d, 0, 0)], substituted);
         var placements = new List<EpubTextPlacement>(text.Length);
         var glyphs = new List<NativePagePaint>(text.Length);
         int pageStart = 0;
@@ -150,15 +217,15 @@ public sealed partial class EpubDocument
                 index += separatorLength - 1;
                 continue;
             }
-            Rune scalar = ReadScalar(index);
+            var cluster = clusters[index];
             if (content.Characters[index] is { } characterSource) BeginInline(characterSource.Node.Owner, index);
-            ushort glyph = font.GetGlyphId(scalar.Value);
+            ushort glyph = cluster.Glyphs[0].GlyphId;
             if (glyph == 0 && character != ' ')
-                throw new NotSupportedException($"The native EPUB font has no glyph for U+{scalar.Value:X4}.");
+                throw new NotSupportedException("The native EPUB font has no glyph for this cluster.");
             PdfGlyphOutline outline = reader.Outline(glyph)
                 ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
             // The public advance API rounds to 1000 units; finer font-metric precision is a later slice.
-            double width = font.GetPdfAdvanceWidth(glyph) / 1000d * StyleAt(index).FontSize;
+            double width = cluster.Advance * StyleAt(index).FontSize;
             if (character == ' ')
             {
                 // Each collapsed separator scans only the following word, keeping lookahead linear.
@@ -166,12 +233,9 @@ public sealed partial class EpubDocument
                 for (int next = index + 1; next < text.Length && text[next] is not (' ' or '\n');)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    Rune nextScalar = ReadScalar(next);
-                    ushort nextGlyph = font.GetGlyphId(nextScalar.Value);
-                    if (nextGlyph == 0)
-                        throw new NotSupportedException($"The native EPUB font has no glyph for U+{nextScalar.Value:X4}.");
-                    wordWidth += font.GetPdfAdvanceWidth(nextGlyph) / 1000d * StyleAt(next).FontSize;
-                    next += nextScalar.Utf16SequenceLength;
+                    var nextCluster = clusters[next];
+                    wordWidth += nextCluster.Advance * StyleAt(next).FontSize;
+                    next += nextCluster.Length;
                 }
                 if (wordWidth > contentWidth)
                     throw new NotSupportedException("The native EPUB word exceeds the available line width.");
@@ -190,10 +254,10 @@ public sealed partial class EpubDocument
             }
             if (left + width > options.PageWidth - options.Margin)
                 throw new NotSupportedException("The native EPUB word exceeds the available line width.");
-            line.Add((index, scalar.Utf16SequenceLength, left, width, outline, null, StyleAt(index),
+            line.Add((index, cluster.Length, left, width, outline, null, StyleAt(index),
                 content.Characters[index]?.BlockStyle ?? content.DefaultStyle));
             left += width;
-            index += scalar.Utf16SequenceLength - 1;
+            index += cluster.Length - 1;
         }
         cancellationToken.ThrowIfCancellationRequested();
         FlushLine();
@@ -296,7 +360,8 @@ public sealed partial class EpubDocument
 
         void FinishPage(int end)
         {
-            pages.Add(new EpubLayoutPage(text[pageStart..end], pageStart, spineIndex, placements, glyphs, content.CanvasBackground));
+            pages.Add(new EpubLayoutPage(text[pageStart..end], pageStart, spineIndex, placements, glyphs,
+                content.CanvasBackground, placements.Select(placement => clusters[placement.Start])));
             pageStart = end;
             placements.Clear();
             glyphs.Clear();

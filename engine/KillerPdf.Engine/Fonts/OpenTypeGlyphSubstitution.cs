@@ -1,0 +1,113 @@
+using System.Buffers.Binary;
+
+namespace KillerPdf.Engine.Fonts;
+
+// The first supported route is Latin default-language standard ligatures.
+internal sealed class OpenTypeGlyphSubstitution
+{
+    internal sealed record Ligature(ushort Output, ushort[] Components);
+    internal IReadOnlyList<IReadOnlyList<Ligature>> Lookups { get; }
+    private readonly ReadOnlyMemory<byte> _data;
+    private int _work;
+    private readonly CancellationToken _cancellation;
+
+    internal OpenTypeGlyphSubstitution(TrueTypeFont font, CancellationToken cancellation)
+    {
+        _cancellation = cancellation;
+        var selected = new List<IReadOnlyList<Ligature>>();
+        Lookups = selected.AsReadOnly();
+        if (!font.TryGetTableRange("GSUB", out int offset, out int length)) return;
+        _data = font.FontData.Slice(offset, length);
+        if (U16(0) != 1 || U16(2) != 0)
+            throw new NotSupportedException("The EPUB GSUB version is not implemented.");
+        int scripts = Relative(0, 4), features = Relative(0, 6), lookups = Relative(0, 8);
+        int script = 0;
+        for (int i = 0, count = U16(scripts); i < count; i++)
+        {
+            int record = scripts + 2 + 6 * i;
+            if (Tag(record) == 0x6C61746E) script = Relative(scripts, record + 4);
+        }
+        if (script == 0 || U16(script) == 0) return;
+        int language = Relative(script, script);
+        if (U16(language) != 0)
+            throw new NotSupportedException("The EPUB GSUB language lookup order is not implemented.");
+        int featureCount = U16(features), lookupCount = U16(lookups);
+        var indices = new List<int>();
+        int required = U16(language + 2);
+        if (required != 0xFFFF) indices.Add(required);
+        for (int i = 0, count = U16(language + 4); i < count; i++) indices.Add(U16(language + 6 + i * 2));
+        var selectedIndices = new SortedSet<int>();
+        foreach (int index in indices)
+        {
+            if (index >= featureCount) throw Invalid();
+            int record = features + 2 + index * 6;
+            if (Tag(record) != 0x6C696761)
+            {
+                if (index == required)
+                    throw new NotSupportedException("The EPUB GSUB required feature is not implemented.");
+                continue;
+            }
+            int feature = Relative(features, record + 4);
+            for (int i = 0, count = U16(feature + 2); i < count; i++)
+            {
+                int lookup = U16(feature + 4 + 2 * i);
+                if (lookup >= lookupCount) throw Invalid();
+                selectedIndices.Add(lookup);
+            }
+        }
+        foreach (int index in selectedIndices)
+        {
+            int lookup = Relative(lookups, lookups + 2 + 2 * index);
+            if (U16(lookup) != 4 || U16(lookup + 2) != 0)
+                throw new NotSupportedException("The selected EPUB GSUB lookup type or flags are not implemented.");
+            var ligatures = new List<Ligature>();
+            for (int sub = 0, count = U16(lookup + 4); sub < count; sub++)
+            {
+                int table = Relative(lookup, lookup + 6 + 2 * sub);
+                if (U16(table) != 1) throw new NotSupportedException("The EPUB ligature substitution format is not implemented.");
+                int coverage = Relative(table, table + 2);
+                if (U16(coverage) != 1) throw new NotSupportedException("The EPUB GSUB coverage format is not implemented.");
+                int sets = U16(table + 4);
+                if (U16(coverage + 2) != sets) throw Invalid();
+                for (int setIndex = 0; setIndex < sets; setIndex++)
+                {
+                    ushort first = U16(coverage + 4 + 2 * setIndex);
+                    ValidateGlyph(first);
+                    int set = Relative(table, table + 6 + 2 * setIndex);
+                    for (int n = 0, ligatureCount = U16(set); n < ligatureCount; n++)
+                    {
+                        int at = Relative(set, set + 2 + 2 * n);
+                        ushort output = U16(at); ValidateGlyph(output);
+                        int components = U16(at + 2);
+                        if (components is < 2 or > 256) throw Invalid();
+                        var input = new ushort[components]; input[0] = first;
+                        for (int c = 1; c < components; c++) { input[c] = U16(at + 2 + 2 * c); ValidateGlyph(input[c]); }
+                        ligatures.Add(new(output, input));
+                    }
+                }
+            }
+            selected.Add(ligatures.AsReadOnly());
+        }
+
+        void ValidateGlyph(ushort glyph)
+        {
+            if (glyph == 0 || glyph >= font.GlyphCount) throw Invalid();
+        }
+    }
+
+    private ushort U16(int at)
+    {
+        _cancellation.ThrowIfCancellationRequested();
+        if (++_work > 100_000) throw new InvalidDataException("The EPUB GSUB parsing work limit was exceeded.");
+        if (at < 0 || at > _data.Length - 2) throw Invalid();
+        return BinaryPrimitives.ReadUInt16BigEndian(_data.Span.Slice(at, 2));
+    }
+    private uint Tag(int at) => ((uint)U16(at) << 16) | U16(at + 2);
+    private int Relative(int origin, int at)
+    {
+        int relative = U16(at);
+        if (relative == 0 || origin > _data.Length - relative) throw Invalid();
+        return origin + relative;
+    }
+    private static InvalidDataException Invalid() => new("The EPUB GSUB table is truncated or invalid.");
+}
