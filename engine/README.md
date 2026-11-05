@@ -228,6 +228,14 @@ pixel buffers are limited to 128 MiB, and layout limits source text and placemen
 Cancellation is supported during layout and rendering. Logical text geometry remains
 separate from glyph ink, which can extend beyond a font's logical line box.
 
+`book.ConvertToPdf(new EpubPdfConversionOptions(font))` explicitly creates an
+independent PDF with A4 paper and 15 mm margins. Paper geometry and fallback font
+size are configurable in points. Initial conversion retains selectable embedded
+text from the supported native layout; images, colored glyphs and backgrounds
+are diagnosed as unsupported. It leaves the native package and existing read
+snapshots unchanged. Destination-file publication and desktop conversion actions
+are separate application work.
+
 The EPUB `RenderPage(pageIndex, renderOptions)` overload rasterizes the original
 glyph outlines at the requested pixel dimensions without changing pagination or
 text placement. It checks the caller's combined float-buffer budget before
