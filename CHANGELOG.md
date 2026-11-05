@@ -14,7 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - An update started from an administrator's copy reopens KillerPDF at normal rights. An update that is applied but cannot record its version in the registry now finishes and reopens instead of reporting failure, and putting the previous copy back after a failed update retries a busy file and survives a leftover from an earlier attempt.
 - Updating KillerPDF no longer removes a relaunch another Killer app scheduled for its own update.
 - Text fields with automatic font sizing save correctly and keep their original border and background styling.
-- Independent unlisted form fields no longer share values or checkbox states and save without replacing existing form settings. (#466)
+- Independent fields keep their own values and form settings. Added text saves above existing comments and reopens as one editable multiline box. (#466)
 - Merge accepts more PDFs with optional popup links, saved appearances and resource metadata, and preserves nested form fonts and alignment. (#455)
 - Filled Shapes rectangles retain their color and opacity in print previews, printed output and flattened copies. (#474)
 - PDFs without saved annotation appearances show note markers and ink strokes, and highlights keep their page positions when their stored rectangle is incorrect.

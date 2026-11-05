@@ -133,6 +133,8 @@ internal static class PdfEngineBurn
                 ? NormalizeRotation(overrideRotation) : page.Rotation;
             double visualWidth = rotation is 90 or 270 ? page.Height : page.Width;
             double visualHeight = rotation is 90 or 270 ? page.Width : page.Height;
+            HashSet<PageAnnotation> nativeTail = hasAnnotations && !forRasterization
+                ? NativeTextTail(pageAnnotations!).ToHashSet() : [];
             var content = new PdfContentStreamBuilder().SaveState();
             ApplyVisualTransform(content, page.Left, page.Bottom, page.Width, page.Height, rotation);
 
@@ -149,6 +151,7 @@ internal static class PdfEngineBurn
                     // A save writes measurements as real measurement annotations instead
                     // (PdfEngineIntegration.WriteMeasurements); prints and exports draw them in.
                     if (measurementsAsAnnotations && annotation is MeasurementAnnotation) continue;
+                    if (nativeTail.Contains(annotation)) continue;
                     DrawAnnotation(content, annotation, sx, sy, fonts);
                 }
             }
@@ -161,19 +164,98 @@ internal static class PdfEngineBurn
                 var descriptions = new List<string>();
                 if (hasAnnotations)
                     foreach (PageAnnotation annotation in pageAnnotations!)
+                    {
+                        if (nativeTail.Contains(annotation) || measurementsAsAnnotations && annotation is MeasurementAnnotation) continue;
                         descriptions.Add(annotation is TextAnnotation text && !string.IsNullOrWhiteSpace(text.Content)
                             ? text.Content : annotation is SignatureAnnotation ? "Signature" : "Markup");
+                    }
                 if (hasNumber) descriptions.Add("Page number");
                 if (hasWatermark) descriptions.Add("Watermark");
-                editor.AppendPageDescribedContent(pageIndex, page.Width, page.Height, content,
-                    string.Join("\n", descriptions));
+                if (descriptions.Count == 0)
+                    editor.AppendPageArtifact(pageIndex, page.Width, page.Height, content);
+                else
+                    editor.AppendPageDescribedContent(pageIndex, page.Width, page.Height, content,
+                        string.Join("\n", descriptions));
             }
         }
 
         cancellationToken.ThrowIfCancellationRequested();
         byte[] result = editor.Build();
+        if (!forRasterization)
+            result = SaveTextAnnotations(result, annotations, renderDims, onlyPage, rotations, fonts, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         Replace(path, result);
+    }
+
+    private static byte[] SaveTextAnnotations(byte[] bytes,
+        IReadOnlyDictionary<int, List<PageAnnotation>> annotations,
+        IReadOnlyDictionary<int, (int w, int h)> renderDims, int? onlyPage,
+        IReadOnlyDictionary<int, int>? rotations, Dictionary<string, TrueTypeFont> fonts,
+        CancellationToken cancellationToken)
+    {
+        PdfDocument document = PdfDocument.Open(bytes);
+        var pages = PdfPageInformation.Read(document);
+        var editor = new PdfIncrementalAnnotationEditor(document);
+        var pending = new List<(PageAnnotation Annotation, int Width, int Height, int Rotation, int Index)>();
+        foreach ((int pageIndex, List<PageAnnotation> items) in annotations)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (pageIndex < 0 || pageIndex >= pages.Count || onlyPage.HasValue && pageIndex != onlyPage.Value) continue;
+            PdfPageInformation page = pages[pageIndex];
+            int rotation = rotations?.TryGetValue(pageIndex, out int requested) == true ? NormalizeRotation(requested) : page.Rotation;
+            double visualWidth = rotation is 90 or 270 ? page.Height : page.Width;
+            double visualHeight = rotation is 90 or 270 ? page.Width : page.Height;
+            var (renderWidth, renderHeight) = AnnotationSpace(renderDims, pageIndex, visualWidth, visualHeight);
+            int annotationIndex = PdfCommentReader.ReadPageAnnotationCount(document, pageIndex);
+            foreach (PageAnnotation annotation in NativeTextTail(items))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!ReplacementLayers.IsVisible(annotation)) continue;
+                Rect bounds = annotation switch
+                {
+                    TextAnnotation text => new Rect(text.Position, text.FootprintSize),
+                    HighlightAnnotation highlight => highlight.DrawRect(),
+                    PlacedAnnotation placed => new Rect(placed.Position,
+                        new System.Windows.Size(placed.SourceWidth * placed.Scale, placed.SourceHeight * placed.Scale)),
+                    InkAnnotation ink when ink.Points.Count > 0 => new Rect(
+                        new WpfPoint(ink.Points.Min(p => p.X) - ink.StrokeWidth, ink.Points.Min(p => p.Y) - ink.StrokeWidth),
+                        new WpfPoint(ink.Points.Max(p => p.X) + ink.StrokeWidth, ink.Points.Max(p => p.Y) + ink.StrokeWidth)),
+                    _ => Rect.Empty
+                };
+                if (bounds.IsEmpty) continue;
+                var (left, bottom, right, top) = RedactionGeometry.CanvasToPage(
+                    bounds, page.Width, page.Height, renderWidth, renderHeight, rotation);
+                if (right <= left || top <= bottom) continue;
+                left += page.Left; right += page.Left; bottom += page.Bottom; top += page.Bottom;
+                var content = new PdfContentStreamBuilder().SaveState().Transform(1, 0, 0, 1, -left, -bottom);
+                ApplyVisualTransform(content, page.Left, page.Bottom, page.Width, page.Height, rotation);
+                DrawAnnotation(content, annotation, visualWidth / renderWidth, visualHeight / renderHeight, fonts);
+                content.RestoreState();
+                var appearance = new PdfFormXObject(right - left, top - bottom, content);
+                if (annotation is TextAnnotation textBox)
+                    editor.AddFreeText(pageIndex, left, bottom, right - left, top - bottom, textBox.Content, appearance);
+                else
+                    editor.AddStamp(pageIndex, left, bottom, right - left, top - bottom, appearance,
+                        annotation is SignatureAnnotation ? "Signature" : "Markup");
+                pending.Add((annotation, renderWidth, renderHeight, rotation, annotationIndex++));
+            }
+        }
+        if (pending.Count == 0) return bytes;
+        PdfDocument saved = PdfDocument.Open(editor.Build());
+        var comments = PdfCommentReader.Read(saved, true);
+        var records = pending.Select(item =>
+        {
+            PdfCommentInfo comment = comments.Single(c => c.PageIndex == item.Annotation.PageIndex && c.AnnotationIndex == item.Index);
+            return new OverlayWriteRecord(item.Annotation, item.Width, item.Height, item.Rotation,
+                item.Index, comment.ObjectNumber!.Value);
+        }).ToArray();
+        return PdfOverlayAnnotations.Attach(saved, records);
+    }
+
+    private static IEnumerable<PageAnnotation> NativeTextTail(List<PageAnnotation> annotations)
+    {
+        int first = annotations.FindIndex(annotation => annotation is TextAnnotation { PairId.Length: 0 });
+        return first < 0 ? [] : annotations.Skip(first).Where(annotation => annotation is not MeasurementAnnotation);
     }
 
     // An in-place edit replaces a line of the page's own text: its cover hides the old glyphs and its

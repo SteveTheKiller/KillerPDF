@@ -82,7 +82,7 @@ Application save pipelines can also repair harmless serialization artifacts with
 
 The authoring model covers pages, content streams, graphics state, paths, text, fonts, images, color spaces, shadings, tiling patterns, transparency, resources, metadata, navigation, optional content, attachments, and viewer behavior. The API uses typed PDF concepts instead of exposing raw application state.
 
-KillerPDF itself now uses those typed content APIs for its complete annotation and stamp burn-in pipeline. Text boxes, highlights, redactions, freehand ink, filled shapes, signatures, placed images, page numbers, and watermarks are written as isolated page overlays with rotation-aware placement and self-contained resources.
+KillerPDF uses these typed content APIs for annotations, stamps and print/export burn-in. Text boxes can save as standard FreeText annotations with logical contents and caller-authored appearances. `PdfIncrementalAnnotationEditor.AddFreeText` and `AddStamp` import the appearance's fonts, images and nested forms, preserve insertion order above existing annotations, and add logical descriptions when the source is tagged. `PdfCommentReader.ReadPageAnnotationCount` reports raw array length, including entries omitted by comment extraction.
 
 ### Edit document structure
 

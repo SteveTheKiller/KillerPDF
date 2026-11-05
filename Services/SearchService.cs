@@ -250,6 +250,35 @@ namespace KillerPDF.Services
             }
 
             failures.RequireAReadablePage(doc.NumberOfPages);
+            var saved = PdfEngineIntegration.OpenForReading(source, protection);
+            var owned = PdfOverlayAnnotations.Read(saved);
+            if (owned.Count > 0)
+            {
+                var comments = KillerPdf.Engine.Documents.PdfCommentReader.Read(saved, true)
+                    .ToDictionary(comment => (comment.PageIndex, comment.AnnotationIndex));
+                var pages = KillerPdf.Engine.Documents.PdfPageInformation.Read(saved);
+                foreach (OverlayRecord record in owned)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (record.Annotation is not TextAnnotation text || !ReplacementLayers.IsVisible(text)
+                        || !comments.TryGetValue((text.PageIndex, record.AnnotationIndex), out var comment)
+                        || comment.ObjectNumber != record.ObjectNumber || comment.Bounds is not { } bounds) continue;
+                    foreach (var span in TextReplacePlanner.FindSpans(text.Content, query, matchCase, wholeWord))
+                    {
+                        var page = pages[text.PageIndex];
+                        var hit = new SearchHit(text.PageIndex, bounds.Left - page.Left, bounds.Bottom - page.Bottom,
+                            bounds.Right - page.Left, bounds.Top - page.Bottom, span.Start, span.Length);
+                        result.Hits.Add(hit);
+                        if (!result.PageRects.TryGetValue(text.PageIndex, out var rectangles))
+                        {
+                            result.PageRects[text.PageIndex] = rectangles = [];
+                            result.ResultPages.Add(text.PageIndex);
+                        }
+                        rectangles.Add((hit.left, hit.bottom, hit.right, hit.top));
+                        result.TotalHits++;
+                    }
+                }
+            }
             return result;
         }
 

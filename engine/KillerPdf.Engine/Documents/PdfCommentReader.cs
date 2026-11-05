@@ -103,6 +103,27 @@ public static partial class PdfCommentReader
         }
     }
 
+    /// <summary>
+    /// Returns the raw page annotation-array count, including entries omitted by comment reading.
+    /// A missing array has count zero; a malformed array is rejected.
+    /// </summary>
+    public static int ReadPageAnnotationCount(PdfDocument document, int pageIndex)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (!document.IsDecrypted)
+            throw new InvalidOperationException(
+                "Authenticate the document before reading annotations.");
+        IReadOnlyList<PdfPageTreeEntry> pages = PdfPageTree.Read(document).Pages;
+        if ((uint)pageIndex >= (uint)pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (!pages[pageIndex].Dictionary.TryGetValue(Name("Annots"), out PdfObject? value))
+            return 0;
+        return Resolve(document, value) is PdfArray annotations
+            ? annotations.Count
+            : throw new InvalidOperationException(
+                $"Page {pageIndex + 1} /Annots value is not an array.");
+    }
+
     /// <summary>Returns annotations that contain review text, in page annotation order.</summary>
     public static IReadOnlyList<PdfCommentInfo> Read(PdfDocument document) => Read(document, includeMarkupWithoutText: false);
 
@@ -193,7 +214,7 @@ public static partial class PdfCommentReader
 
     /// <summary>Annotation subtypes that mark up the page itself: text markup, drawings and stamps.</summary>
     public static bool IsMarkup(string subtype) => subtype is "Highlight" or "Underline" or "StrikeOut"
-        or "Squiggly" or "Ink" or "Square" or "Circle" or "Line" or "Polygon" or "PolyLine" or "Stamp";
+        or "Squiggly" or "Ink" or "Square" or "Circle" or "Line" or "Polygon" or "PolyLine" or "Stamp" or "FreeText";
 
     internal static PdfContentBounds? Bounds(PdfDocument document,
         PdfDictionary annotation, int pageIndex, int annotationIndex)

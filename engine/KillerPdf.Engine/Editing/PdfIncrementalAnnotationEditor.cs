@@ -450,6 +450,29 @@ public sealed class PdfIncrementalAnnotationEditor
         return this;
     }
 
+    /// <summary>
+    /// Adds free text with a caller-authored normal appearance and separate logical contents.
+    /// The appearance's local bounds are mapped to the annotation rectangle.
+    /// </summary>
+    public PdfIncrementalAnnotationEditor AddFreeText(
+        int pageIndex, double x, double y, double width, double height,
+        string contents, PdfFormXObject normalAppearance,
+        PdfAnnotationMetadata? annotationMetadata = null)
+    {
+        ValidatePage(pageIndex);
+        ValidateRectangle(x, y, width, height);
+        ArgumentNullException.ThrowIfNull(contents);
+        ArgumentNullException.ThrowIfNull(normalAppearance);
+        // Keep the default editing font local to a wrapper so it cannot collide with
+        // resources inside the supplied appearance or alter its drawing operations.
+        var appearance = new PdfFormXObject(normalAppearance.Width, normalAppearance.Height,
+            new PdfContentStreamBuilder().DrawForm(normalAppearance, 0, 0)
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12).EndText());
+        _annotations.Add(new PendingTypedFreeText(
+            pageIndex, x, y, width, height, contents, appearance, annotationMetadata));
+        return this;
+    }
+
     /// <summary>Adds a line annotation with optional endpoint symbols and dimension intent.</summary>
     public PdfIncrementalAnnotationEditor AddLine(
         int pageIndex, PdfPoint start, PdfPoint end, PdfRgbColor? color = null,
@@ -695,6 +718,23 @@ public sealed class PdfIncrementalAnnotationEditor
             pageIndex, [.. strokes.Select(stroke => stroke.ToArray())],
             color ?? new PdfRgbColor(0, 0, 0), lineWidth, opacity, contents,
             annotationMetadata, dash));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a stamp with a caller-authored normal appearance mapped to its rectangle.
+    /// Stamps and other annotations retain their insertion order above existing annotations.
+    /// </summary>
+    public PdfIncrementalAnnotationEditor AddStamp(
+        int pageIndex, double x, double y, double width, double height,
+        PdfFormXObject normalAppearance, string? contents = null,
+        PdfAnnotationMetadata? annotationMetadata = null)
+    {
+        ValidatePage(pageIndex);
+        ValidateRectangle(x, y, width, height);
+        ArgumentNullException.ThrowIfNull(normalAppearance);
+        _annotations.Add(new PendingTypedStamp(
+            pageIndex, x, y, width, height, normalAppearance, contents, annotationMetadata));
         return this;
     }
 
@@ -1223,6 +1263,19 @@ public sealed class PdfIncrementalAnnotationEditor
                             structureParentKeys));
                     update.SetObject(item.AppearanceReference!, TextMarkupAppearance(markup));
                     break;
+                case PendingTypedFreeText typedFreeText:
+                    var typedEntries = CommonEntries("FreeText", typedFreeText.X, typedFreeText.Y,
+                        typedFreeText.Width, typedFreeText.Height, page.Reference,
+                        item.AnnotationReference, item.AppearanceReference!, new PdfRgbColor(0, 0, 0),
+                        1, typedFreeText.Contents, typedFreeText.Metadata);
+                    typedEntries.Add(("DA", Latin1String(
+                        $"{NameToken(typedFreeText.Appearance.Fonts[PdfStandardFont.Helvetica])} 12 Tf 0 g")));
+                    typedEntries.Add(("BS", BorderStyle(0)));
+                    update.SetObject(item.AnnotationReference,
+                        WithStructureParent(Dictionary([.. typedEntries]), item, structureParentKeys));
+                    update.SetObject(item.AppearanceReference!,
+                        ImportTypedAppearance(update, typedFreeText.Appearance));
+                    break;
                 case PendingFreeText freeText:
                     EditorFontBinding binding = fonts[freeText.Font];
                     update.SetObject(item.AnnotationReference,
@@ -1263,6 +1316,16 @@ public sealed class PdfIncrementalAnnotationEditor
                             item.AnnotationReference, item.AppearanceReference!), item,
                             structureParentKeys));
                     update.SetObject(item.AppearanceReference!, InkAppearance(ink));
+                    break;
+                case PendingTypedStamp typedStamp:
+                    update.SetObject(item.AnnotationReference,
+                        WithStructureParent(Dictionary([.. CommonEntries("Stamp",
+                            typedStamp.X, typedStamp.Y, typedStamp.Width, typedStamp.Height,
+                            page.Reference, item.AnnotationReference, item.AppearanceReference!,
+                            new PdfRgbColor(0, 0, 0), 1, typedStamp.Contents, typedStamp.Metadata)]),
+                            item, structureParentKeys));
+                    update.SetObject(item.AppearanceReference!,
+                        ImportTypedAppearance(update, typedStamp.Appearance));
                     break;
                 case PendingImageStamp stamp:
                     update.SetObject(item.AnnotationReference,
@@ -1354,11 +1417,12 @@ public sealed class PdfIncrementalAnnotationEditor
         {
             PendingTextNote => "Note",
             PendingTextMarkup markup => markup.Type.ToString(),
-            PendingFreeText => "FreeText",
+            PendingFreeText or PendingTypedFreeText => "FreeText",
             PendingLine => "Line",
             PendingShape shape => shape.Type.ToString(),
             PendingVertex vertex => vertex.Closed ? "Polygon" : "PolyLine",
             PendingInk => "Ink",
+            PendingTypedStamp => "Stamp",
             PendingImageStamp => "Image",
             PendingCaret => "Caret",
             PendingRedaction => "Redact",
@@ -1882,10 +1946,12 @@ public sealed class PdfIncrementalAnnotationEditor
         PendingTextNote value => value.Contents,
         PendingTextMarkup value => value.Contents ?? string.Empty,
         PendingFreeText value => value.Contents,
+        PendingTypedFreeText value => value.Contents,
         PendingLine value => value.Contents ?? string.Empty,
         PendingShape value => value.Contents ?? string.Empty,
         PendingVertex value => value.Contents ?? string.Empty,
         PendingInk value => value.Contents ?? string.Empty,
+        PendingTypedStamp value => value.Contents ?? string.Empty,
         PendingImageStamp value => value.Contents ?? string.Empty,
         PendingCaret value => value.Contents ?? string.Empty,
         PendingRedaction value => value.Contents ?? string.Empty,
@@ -3153,6 +3219,24 @@ public sealed class PdfIncrementalAnnotationEditor
         Math.Sqrt(Math.Pow(right.X - left.X, 2)
             + Math.Pow(right.Y - left.Y, 2));
 
+    private static PdfStream ImportTypedAppearance(
+        PdfIncrementalUpdateBuilder update, PdfFormXObject appearance)
+    {
+        // The authoring pipeline owns resource serialization and font subsetting.
+        // Import the complete graph, including resources of nested forms and images.
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(appearance.Width, appearance.Height,
+                new PdfContentStreamBuilder().DrawForm(appearance, 0, 0)).Build());
+        PdfDictionary page = PdfPageTree.Read(source).Pages[0].Dictionary;
+        PdfObject Resolve(PdfObject value) => value is PdfIndirectReference reference
+            ? source.Resolve(reference) : value;
+        var resources = (PdfDictionary)Resolve(page[Name("Resources")]);
+        var forms = (PdfDictionary)Resolve(resources[Name("XObject")]);
+        var form = (PdfStream)Resolve(forms.Single().Value);
+        var importer = new PdfObjectGraphImporter(source, update, []);
+        return (PdfStream)importer.Import(form);
+    }
+
     private static PdfDictionary FreeTextDictionary(
         PendingFreeText value, PdfIndirectReference page, PdfIndirectReference annotation,
         PdfIndirectReference appearance, PdfName fontResource)
@@ -4209,7 +4293,7 @@ public sealed class PdfIncrementalAnnotationEditor
             annotation is PendingVertex or PendingCaret)
                 ? new PdfVersion(1, 5)
                 : _annotations.Any(annotation => annotation is
-                    PendingTextMarkup or PendingFreeText or PendingLine
+                    PendingTextMarkup or PendingFreeText or PendingTypedFreeText or PendingTypedStamp or PendingLine
                     or PendingShape or PendingInk)
                     ? new PdfVersion(1, 4)
                     : _annotations.OfType<PendingTextNote>().Any(note =>
@@ -4331,6 +4415,14 @@ public sealed class PdfIncrementalAnnotationEditor
         PdfRgbColor Color, double Opacity,
         PdfAnnotationMetadata? Metadata, string? Name,
         string? InReplyTo) : PendingAnnotation(PageIndex);
+    private sealed record PendingTypedStamp(
+        int PageIndex, double X, double Y, double Width, double Height,
+        PdfFormXObject Appearance, string? Contents, PdfAnnotationMetadata? Metadata)
+        : PendingAnnotation(PageIndex);
+    private sealed record PendingTypedFreeText(
+        int PageIndex, double X, double Y, double Width, double Height,
+        string Contents, PdfFormXObject Appearance, PdfAnnotationMetadata? Metadata)
+        : PendingAnnotation(PageIndex);
     private sealed record PendingFreeText(
         int PageIndex, double X, double Y, double Width, double Height, string Contents,
         TrueTypeFont Font, double FontSize, PdfRgbColor TextColor, PdfRgbColor? FillColor,

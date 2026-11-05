@@ -201,6 +201,7 @@
     <Compile Include="..\Services\FormOcrPolicy.cs" Link="Services\FormOcrPolicy.cs" />
     <Compile Include="..\Services\CombFieldLayout.cs" Link="Services\CombFieldLayout.cs" />
     <Compile Include="..\Services\ContinuousRenderOrder.cs" Link="Services\ContinuousRenderOrder.cs" />
+    <Compile Include="..\Services\PdfOverlayAnnotations.cs" Link="Services\PdfOverlayAnnotations.cs" />
     <Compile Include="..\Services\ReplacementLayers.cs" Link="Services\ReplacementLayers.cs" />
     <Compile Include="..\Services\SaveFileNamePolicy.cs" Link="Services\SaveFileNamePolicy.cs" />
     <Compile Include="..\Services\DeferredActionGate.cs" Link="Services\DeferredActionGate.cs" />

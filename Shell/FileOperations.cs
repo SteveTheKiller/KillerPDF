@@ -243,6 +243,7 @@ namespace KillerPDF.Shell
             }
             workingPath = _completeDocumentSource.Path;
             List<PdfEngineIntegration.MeasurementData> openedMeasurements = TakeMeasurementsFromWorkingCopy(ref workingPath);
+            IReadOnlyList<OverlayRecord> openedOverlays = TakeTextOverlaysFromWorkingCopy(ref workingPath);
             _currentFile = workingPath;
             // A document with no pages is refused before any of the previous document's session state
             // (annotations, labels, undo history) is replaced, so a declined repair leaves nothing half-open.
@@ -277,6 +278,18 @@ namespace KillerPDF.Shell
             _formFontSizes.Clear();
             _formRadioValues.Clear();
             LoadRedactionMarksFromDocument();
+            foreach (OverlayRecord record in openedOverlays)
+            {
+                int page = record.Annotation.PageIndex;
+                var geometry = engineSession.Pages[page];
+                bool turned = geometry.Rotation is 90 or 270;
+                var (width, height) = PdfEngineBurn.CanonicalRenderDimensions(
+                    turned ? geometry.Height : geometry.Width, turned ? geometry.Width : geometry.Height);
+                AnnotationScale.Remap(record.Annotation, record.RenderWidth, record.RenderHeight, width, height);
+                if (!_annotations.TryGetValue(page, out var annotations)) _annotations[page] = annotations = [];
+                annotations.Add(record.Annotation);
+                _renderDims[page] = (width, height);
+            }
             ActiveViewer.LoadMeasurements(openedMeasurements);
             Search.ClearPageResults();
             _gridScrollToPage = -1;
@@ -350,6 +363,27 @@ namespace KillerPDF.Shell
             {
                 System.Diagnostics.Debug.WriteLine($"TakeMeasurementsFromWorkingCopy: {ex}");
                 return [];
+            }
+        }
+
+        private IReadOnlyList<OverlayRecord> TakeTextOverlaysFromWorkingCopy(ref string workingPath)
+        {
+            if (_doc is null || _doc.IsReadOnly) return [];
+            try
+            {
+                OverlayExtraction extracted = PdfOverlayAnnotations.TakeEditableTail(File.ReadAllBytes(workingPath));
+                if (extracted.Records.Count == 0) return [];
+                string stripped = App.MakeTempFile("overlays");
+                File.WriteAllBytes(stripped, extracted.Bytes);
+                var reopened = PdfWorkingDocument.Open(stripped, null);
+                _doc.Close();
+                _doc = reopened;
+                workingPath = stripped;
+                return extracted.Records;
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                throw new WorkingCopyUnavailableException(error);
             }
         }
 

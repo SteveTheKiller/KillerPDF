@@ -6,6 +6,7 @@ using System.Windows;
 using KillerPDF.Services;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
 using Xunit;
@@ -61,7 +62,9 @@ public sealed class AnnotationSaveDiagnosticTests
             Assert.Contains("20 30 40 12 re", streams);
             Assert.Contains("1 J", streams);
             Assert.Contains(" Do", streams);
-            Assert.Contains(forRasterization ? "/Artifact BMC" : tagged ? "/Figure <</MCID 0>> BDC" : "q", streams);
+            Assert.Contains(forRasterization ? "/Artifact BMC" : "q", streams);
+            if (tagged && !forRasterization)
+                Assert.Equal(5, PdfAccessibilityReadingOrder.Read(reopened).Items.Count(item => item.Role == "Annot"));
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }
@@ -83,7 +86,7 @@ public sealed class AnnotationSaveDiagnosticTests
                 Assert.Contains("BT", streams);
                 Assert.Contains("1 J", streams);
                 Assert.Contains(" Do", streams);
-                Assert.Contains("/Figure <</MCID 0>> BDC", streams);
+                Assert.Equal(5, PdfAccessibilityReadingOrder.Read(reopened).Items.Count(item => item.Role == "Annot"));
             }
             finally { if (File.Exists(path)) File.Delete(path); }
         }

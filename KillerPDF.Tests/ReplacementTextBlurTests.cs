@@ -80,7 +80,8 @@ public sealed class ReplacementTextBlurTests
             PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
             string[] words = new PdfPageContentReader(document).Read(0).Words.Select(word => word.Text).ToArray();
             Assert.Single(words, word => word == "Receipt");
-            Assert.Single(words, word => word == "Plain");
+            Assert.Equal(1, SearchService.Search(path, "Receipt").TotalHits);
+            Assert.Equal(1, SearchService.Search(path, "Plain").TotalHits);
             return new PdfPageRenderer(document).Render(0, new PdfRenderOptions(800, 800)).Pixels.ToArray();
         }
         finally { File.Delete(path); }

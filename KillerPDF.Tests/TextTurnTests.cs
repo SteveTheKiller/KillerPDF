@@ -127,10 +127,10 @@ public sealed class TextTurnTests
             Assert.InRange(readingInk.Top - readingOrigin.Y, 0, 14);
             Assert.True(readingInk.Width > readingInk.Height, "the text runs along its reading direction");
 
-            var letter = new PdfPageContentReader(burned).Read(0).Letters.First(l => l.Value == "M");
-            Point Canvas(double x, double y) => RedactionGeometry.PageToCanvas(x, y, x, y, 300, 300, 300, 300, 0).TopLeft;
-            Assert.Equal(turn, TextTurn.FromBaseline(Canvas(letter.StartBaseLine.X, letter.StartBaseLine.Y),
-                Canvas(letter.EndBaseLine.X, letter.EndBaseLine.Y)));
+            TextAnnotation savedBox = Assert.IsType<TextAnnotation>(Assert.Single(PdfOverlayAnnotations.Read(burned)).Annotation);
+            Assert.Equal(turn, savedBox.Rotation);
+            Assert.Equal("MMMM", savedBox.Content);
+            Assert.Equal(1, SearchService.Search(path, "MMMM").TotalHits);
         }
         finally { File.Delete(path); }
     }

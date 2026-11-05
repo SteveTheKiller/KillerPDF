@@ -18,6 +18,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Searchable text fits supported TrueType glyph heights to OCR word boxes, keeping short words on their visual lines. (#465)
 - JPX rendering uses codestream precision in strict and compatibility modes while retaining dimension checks.
 - Repeated partial rasterization preserves form-local image resources, and affected-content counts exclude unpainted paths. (#369)
+- Comment reading includes empty free-text markup without losing annotation-array positions. (#466)
 - Document, annotation and attachment dates are written with the Gregorian calendar whatever the current culture, so Thai, Arabic and Persian regions no longer write years like 2569. Preflight messages write their numbers with a decimal point.
 - EPUB diagnoses head metadata after the body instead of returning unstyled pages and bounds CSS selector matching work. (#472)
 - EPUB preserves body backgrounds across native page sizes and honors transparent overrides. (#472)
@@ -29,6 +30,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Portable ICC conversion and RGB proof rendering support all four intents, compensation, independent paper/black simulation, calibrated gray, direct and ICC RGB/Gray images, retained alpha and embedded TrueType text with line positioning, character and word spacing, scale, rise and quote advances. Documents own proof settings; profile inspection reports identity, support and fallback. Separate gamut masks preserve color output. Bundles a CC0 CMYK viewing profile. (#264)
 - Portable presentation contracts identify frame generations, display selections, outputs, color states, white levels and profile associations, with policy selecting monitor-conversion ownership and HDR white scaling from observations. (#264)
 - Native EPUB/DjVu readers provide metadata, text, read snapshots and captured outlines with local destinations. EPUB adds bounded ASCII layout, initial CSS, line breaks, paginated anchor destinations and standard font obfuscation. DjVu adds bundled geometry, Smmr bitonal and grayscale IW44 rendering, resizing and component/ordinal/relative navigation. Malformed outlines remain isolated from page reading. (#472)
+- Incremental free-text and stamp annotations accept caller-authored appearances with embedded resources and tagged descriptions. (#466)
 
 ## [1.9.2] - 2026-11-02
 

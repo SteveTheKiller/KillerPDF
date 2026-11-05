@@ -555,3 +555,11 @@ The visible footer must report Fit Width with a numeric zoom percentage.
 Owned screen captures prove the blue target is initially outside the viewport,
 appears after selecting Anchor without a page change, and disappears after Start.
 Native outline availability, source preservation and window teardown are checked.
+
+`--verify-text-annotation-reopen APP_DLL APP_XAML OUTPUT --session-isolation`
+opens saved multiline text through the real application, checks its visible box
+against known page coordinates, and opens both complete lines with the Text tool.
+`--verify-text-annotation-save` uses the same arguments and adds physical editing,
+the actual Save As picker, saved appearance and document-search checks, and a fresh
+window reopening one editable multiline box. Both preserve the source and close
+owned windows. Search uses the public saved-file service; search UI is not covered.
