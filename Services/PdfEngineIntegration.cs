@@ -217,7 +217,7 @@ internal static partial class PdfEngineIntegration
         PdfDocument document, int pageIndex, bool forDisplay = false)
     {
         ArgumentNullException.ThrowIfNull(document);
-        IReadOnlyList<PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(document, pageIndex);
+        IReadOnlyList<PdfFormWidgetInfo> widgets = FormBindings(document).Pages[pageIndex];
         // Hidden and NoView apply to interactive controls as well as saved appearances.
         return forDisplay ? [.. widgets.Where(widget => (widget.AnnotationFlags & 34) == 0)] : widgets;
     }
@@ -230,12 +230,7 @@ internal static partial class PdfEngineIntegration
         string path, OpenedProtection? protection)
     {
         PdfDocument document = OpenTabFile(path, protection);
-        int pageCount = PdfPageInformation.Read(document).Count;
-        return
-        [
-            .. Enumerable.Range(0, pageCount).Select(index =>
-                (IReadOnlyList<PdfFormWidgetInfo>)PdfFormWidgetReader.ReadPage(document, index))
-        ];
+        return FormBindings(document).Pages;
     }
 
     /// <summary>Inspects page boxes, colorants, and output intents for print workflows.</summary>
@@ -813,7 +808,7 @@ internal static partial class PdfEngineIntegration
         int pageCount = PdfPageInformation.Read(document).Count;
         PdfFormWidgetInfo? widget = null;
         for (int index = 0; index < pageCount && widget is null; index++)
-            widget = PdfFormWidgetReader.ReadPage(document, index).FirstOrDefault(candidate =>
+            widget = ReadPageFormWidgets(document, index).FirstOrDefault(candidate =>
                 candidate.FieldKind == PdfFormFieldKind.Text
                 && string.Equals(candidate.FieldName, fieldName, StringComparison.Ordinal));
         if (widget is null)
@@ -891,11 +886,7 @@ internal static partial class PdfEngineIntegration
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
-        document = AttachUnlistedFormFields(document,
-        [
-            .. Enumerable.Range(0, PdfPageInformation.Read(document).Count)
-                .SelectMany(pageIndex => PdfFormWidgetReader.ReadPage(document, pageIndex))
-        ]);
+        document = AttachUnlistedFormFields(document);
         byte[] result = new PdfIncrementalPageEditor(document)
             .RemoveFormField(fieldName)
             .Build();
@@ -912,6 +903,7 @@ internal static partial class PdfEngineIntegration
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
         var background = new PdfRgbColor(
             color.R / 255d, color.G / 255d, color.B / 255d);
+        document = AttachUnlistedFormFields(document);
         var fonts = new Dictionary<string, TrueTypeFont>(StringComparer.OrdinalIgnoreCase);
         byte[] result = new PdfIncrementalPageEditor(document)
             .SetTextFieldBackground(fieldName, background, fontSize,
@@ -1013,7 +1005,7 @@ internal static partial class PdfEngineIntegration
                 0, PdfPageInformation.Read(document).Count)
                 .SelectMany(pageIndex => PdfFormWidgetReader.ReadPage(document, pageIndex))
         ];
-        document = AttachUnlistedFormFields(document, widgets);
+        document = AttachUnlistedFormFields(document);
         var editor = new PdfIncrementalPageEditor(document);
         foreach ((string name, string value) in edits.TextValues.OrderBy(item => item.Key))
             editor.SetTextFieldValue(name, value, EmbeddedFormFont(value, fonts), fontSize:
@@ -1052,40 +1044,153 @@ internal static partial class PdfEngineIntegration
         return built;
     }
 
-    private static PdfDocument AttachUnlistedFormFields(
-        PdfDocument document, IReadOnlyList<PdfFormWidgetInfo> widgets)
+    private static PdfDocument AttachUnlistedFormFields(PdfDocument document)
     {
+        FormBindingPlan plan = FormBindings(document);
+        if (plan.SaveRefusal is string reason) throw new NotSupportedException(reason);
+        if (plan.Orphans.Count == 0) return document;
         var rootName = new PdfName("Root"u8);
         var acroFormName = new PdfName("AcroForm"u8);
         if (!document.CrossReferences.TryGetTrailerValue(rootName, out PdfObject rootValue)
             || rootValue is not PdfIndirectReference catalogReference
             || document.Resolve(catalogReference) is not PdfDictionary catalog)
             throw new InvalidOperationException("The PDF has no valid document catalog.");
-        if (catalog.ContainsKey(acroFormName) || widgets.Count == 0) return document;
-
-        var names = new HashSet<string>(StringComparer.Ordinal);
-        var fields = new List<PdfObject>(widgets.Count);
-        foreach (PdfFormWidgetInfo widget in widgets)
+        var fieldsName = new PdfName("Fields"u8);
+        var fieldName = new PdfName("T"u8);
+        var fields = new List<PdfObject>(plan.Fields);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        foreach (((int number, int generation), string name) in plan.Orphans)
         {
-            if (widget.ObjectNumber == 0 || !names.Add(widget.FieldName))
-                throw new NotSupportedException(
-                    "This PDF has unlisted form fields that cannot be saved safely.");
-            var reference = new PdfIndirectReference(widget.ObjectNumber, widget.Generation);
-            if (document.Resolve(reference) is not PdfDictionary field
-                || field.ContainsKey(new PdfName("Parent"u8)))
-                throw new NotSupportedException(
-                    "This PDF has unlisted form fields that cannot be saved safely.");
+            var reference = new PdfIndirectReference(number, generation);
+            var field = (PdfDictionary)document.Resolve(reference);
+            byte[] encoded = [0xfe, 0xff, .. Encoding.BigEndianUnicode.GetBytes(name)];
+            update.ReplaceObject(number, new PdfDictionary(field.Where(entry => !entry.Key.Equals(fieldName))
+                .Append(new KeyValuePair<PdfName, PdfObject>(fieldName, new PdfString(encoded, PdfStringForm.Hexadecimal)))));
             fields.Add(reference);
         }
+        var form = new PdfDictionary((plan.Form ?? new PdfDictionary([]))
+            .Where(entry => !entry.Key.Equals(fieldsName))
+            .Append(new KeyValuePair<PdfName, PdfObject>(fieldsName, new PdfArray(fields))));
+        if (plan.FormReference is PdfIndirectReference existing)
+            update.ReplaceObject(existing.ObjectNumber, form);
+        else
+        {
+            PdfIndirectReference formReference = update.AddObject(form);
+            update.ReplaceObject(catalogReference.ObjectNumber, new PdfDictionary(
+                catalog.Where(entry => !entry.Key.Equals(acroFormName))
+                    .Append(new KeyValuePair<PdfName, PdfObject>(acroFormName, formReference))));
+        }
+        byte[] built = update.Build();
+        return document.CaptureEncryption() is { } encryption
+            ? PdfDocument.OpenWithEncryption(built, encryption) : PdfDocument.Open(built);
+    }
 
-        var update = new PdfIncrementalUpdateBuilder(document);
-        PdfIndirectReference formReference = update.AddObject(new PdfDictionary(
-        [
-            new(new PdfName("Fields"u8), new PdfArray(fields))
-        ]));
-        update.ReplaceObject(catalogReference.ObjectNumber, new PdfDictionary(
-            catalog.Append(new KeyValuePair<PdfName, PdfObject>(acroFormName, formReference))));
-        return PdfDocument.Open(update.Build());
+    private sealed record FormBindingPlan(
+        IReadOnlyList<IReadOnlyList<PdfFormWidgetInfo>> Pages,
+        Dictionary<(int Number, int Generation), string> Orphans,
+        PdfDictionary? Form, PdfIndirectReference? FormReference, IReadOnlyList<PdfObject> Fields,
+        string? SaveRefusal = null);
+
+    private sealed class FormBindingRefusedException(string message) : Exception(message);
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfDocument, FormBindingPlan>
+        FormBindingPlans = new();
+
+    private static FormBindingPlan FormBindings(PdfDocument document) =>
+        FormBindingPlans.GetValue(document, BuildFormBindings);
+
+    private static FormBindingPlan BuildFormBindings(PdfDocument document)
+    {
+        var reader = new PdfFormWidgetReader(document);
+        IReadOnlyList<PdfFormWidgetInfo>[] pages = Enumerable.Range(0, PdfPageInformation.Read(document).Count)
+            .Select(reader.Read).ToArray();
+        try { return Bind(); }
+        catch (FormBindingRefusedException error)
+        {
+            return new FormBindingPlan(pages, [], null, null, [], error.Message);
+        }
+
+        FormBindingPlan Bind()
+        {
+        PdfObject Resolve(PdfObject value) => value is PdfIndirectReference reference ? document.Resolve(reference) : value;
+        var acroName = new PdfName("AcroForm"u8);
+        var fieldsName = new PdfName("Fields"u8);
+        var kidsName = new PdfName("Kids"u8);
+        var nameName = new PdfName("T"u8);
+        var parentName = new PdfName("Parent"u8);
+        var registered = new HashSet<(int, int)>();
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var active = new HashSet<PdfDictionary>(ReferenceEqualityComparer.Instance);
+        int remaining = 100_000;
+        void Visit(PdfObject raw, string parent, int depth)
+        {
+            if (depth >= 256 || --remaining < 0)
+                throw new FormBindingRefusedException("The form field registry exceeds the supported traversal limits.");
+            if (Resolve(raw) is not PdfDictionary field || !active.Add(field))
+                throw new FormBindingRefusedException("The form field registry is invalid or cyclic.");
+            if (raw is PdfIndirectReference reference) registered.Add((reference.ObjectNumber, reference.Generation));
+            string fullName = parent;
+            if (field.TryGetValue(nameName, out PdfObject text) && Resolve(text) is PdfString partial)
+            {
+                ReadOnlySpan<byte> bytes = partial.Bytes.Span;
+                string part = bytes.StartsWith(new byte[] { 0xfe, 0xff })
+                    ? Encoding.BigEndianUnicode.GetString(bytes[2..])
+                    : bytes.StartsWith(new byte[] { 0xef, 0xbb, 0xbf })
+                        ? Encoding.UTF8.GetString(bytes[3..]) : Encoding.Latin1.GetString(bytes);
+                fullName = parent.Length == 0 ? part : part.Length == 0 ? parent : parent + "." + part;
+                names.Add(fullName);
+            }
+            if (field.TryGetValue(kidsName, out PdfObject kids))
+            {
+                if (Resolve(kids) is not PdfArray children)
+                    throw new FormBindingRefusedException("The form field registry has invalid children.");
+                foreach (PdfObject child in children) Visit(child, fullName, depth + 1);
+            }
+            active.Remove(field);
+        }
+        PdfDictionary? form = null;
+        PdfIndirectReference? formReference = null;
+        IReadOnlyList<PdfObject> fields = [];
+        if (document.CrossReferences.TryGetTrailerValue(new PdfName("Root"u8), out PdfObject root)
+            && Resolve(root) is PdfDictionary catalog && catalog.TryGetValue(acroName, out PdfObject rawForm))
+        {
+            form = Resolve(rawForm) as PdfDictionary
+                ?? throw new FormBindingRefusedException("The AcroForm registry is invalid.");
+            formReference = rawForm as PdfIndirectReference;
+            if (form.TryGetValue(fieldsName, out PdfObject rawFields))
+                fields = Resolve(rawFields) as PdfArray
+                    ?? throw new FormBindingRefusedException("The AcroForm field list is invalid.");
+            foreach (PdfObject field in fields) Visit(field, string.Empty, 0);
+        }
+        PdfFormWidgetInfo[] all = [.. pages.SelectMany(page => page)];
+        var counts = all.GroupBy(widget => widget.FieldName, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key,
+                group => group.Select(widget => (widget.ObjectNumber, widget.Generation)).Distinct().Count(), StringComparer.Ordinal);
+        var reserved = new HashSet<string>(names, StringComparer.Ordinal);
+        reserved.UnionWith(all.Select(widget => widget.FieldName));
+        var orphans = new Dictionary<(int, int), string>();
+        foreach (PdfFormWidgetInfo widget in all.OrderBy(widget => widget.ObjectNumber).ThenBy(widget => widget.Generation))
+        {
+            var identity = (widget.ObjectNumber, widget.Generation);
+            if (registered.Contains(identity) || orphans.ContainsKey(identity)) continue;
+            if (widget.ObjectNumber == 0 || document.Resolve(new PdfIndirectReference(identity.ObjectNumber, identity.Generation))
+                is not PdfDictionary dictionary || dictionary.ContainsKey(parentName) || dictionary.ContainsKey(kidsName))
+                throw new FormBindingRefusedException("This PDF has unlisted form fields that cannot be saved safely.");
+            string binding = widget.FieldName;
+            if (counts[binding] > 1 || names.Contains(binding))
+            {
+                string stem = $"KillerPDF_orphan_{widget.ObjectNumber}_{widget.Generation}";
+                binding = stem;
+                int suffix = 1;
+                while (!reserved.Add(binding)) binding = stem + "_" + suffix++;
+            }
+            orphans.Add(identity, binding);
+        }
+        IReadOnlyList<IReadOnlyList<PdfFormWidgetInfo>> boundPages = [.. pages.Select(page =>
+            (IReadOnlyList<PdfFormWidgetInfo>)[.. page.Select(widget => orphans.TryGetValue(
+                (widget.ObjectNumber, widget.Generation), out string? binding) ? widget with { FieldName = binding } : widget)])];
+        return new FormBindingPlan(boundPages, orphans, form, formReference, fields);
+        }
     }
 
     private static TrueTypeFont? EmbeddedFormFont(
