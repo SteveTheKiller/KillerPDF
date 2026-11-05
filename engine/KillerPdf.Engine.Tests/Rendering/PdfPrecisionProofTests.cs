@@ -15,9 +15,11 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPrecisionProofTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ProofConvertsSixteenBitRgbImageAfterDecode(bool halfOpacity)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void ProofConvertsSixteenBitImageAfterDecode(bool halfOpacity, bool gray)
     {
         var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
             Encoding.ASCII.GetBytes(halfOpacity ? "/Half gs /Image Do" : "/Image Do")).Build());
@@ -26,10 +28,10 @@ public sealed class PdfPrecisionProofTests
         var image = update.AddObject(new PdfStream(new PdfDictionary([
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)),
             Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(16)),
-            Entry("ColorSpace", Name("DeviceRGB")),
-            Entry("Decode", new PdfArray(Enumerable.Range(0, 6).Select(index =>
+            Entry("ColorSpace", Name(gray ? "DeviceGray" : "DeviceRGB")),
+            Entry("Decode", new PdfArray(Enumerable.Range(0, gray ? 2 : 6).Select(index =>
                 (PdfObject)new PdfReal(index % 2 == 0 ? 0 : 65535d / 65536))))]),
-            new byte[] { 128, 0, 128, 0, 128, 0 }));
+            gray ? new byte[] { 128, 0 } : new byte[] { 128, 0, 128, 0, 128, 0 }));
         var resources = new PdfDictionary([
             Entry("XObject", new PdfDictionary([Entry("Image", image)])),
             Entry("ExtGState", new PdfDictionary([Entry("Half", new PdfDictionary([
