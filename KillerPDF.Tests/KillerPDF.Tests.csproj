@@ -226,6 +226,7 @@
 
   <ItemGroup>
     <Compile Include="..\Controls\PageThumbnailSpreadPanel.cs" Link="Controls\PageThumbnailSpreadPanel.cs" />
+    <Compile Include="..\Services\Presentation\PdfSdrDisplayConverter.cs" Link="Services\Presentation\PdfSdrDisplayConverter.cs" />
     <ProjectReference Include="..\engine\KillerPdf.Engine\KillerPdf.Engine.csproj" />
     <ProjectReference Include="..\third_party\NTwain\NTwain\NTwain.csproj" />
   </ItemGroup>
