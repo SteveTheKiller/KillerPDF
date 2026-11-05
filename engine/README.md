@@ -355,7 +355,9 @@ line positioning, explicit or move-defined leading, and both quote text-showing 
 Direct DeviceRGB/Gray and supported RGB/Gray ICC image XObjects use the existing precise image path
 before proof conversion, retaining supported source sample depths, Decode mapping and alpha.
 Embedded profiles and resource defaults are applied before the printer transform; extended reference
-RGB is not clipped at that boundary. Other proof XObject types and image color spaces remain diagnosed
+RGB is not clipped at that boundary. Ordinary Form XObjects preserve supported paints through
+composed matrices, bounding-box clips and inherited alpha before final proof conversion.
+Explicit Form groups, other XObject types and unsupported source color spaces remain diagnosed
 pending source-aware integration.
 The selected output profile must have actual colorimetric transforms in both directions.
 The requested inverse must be available without intent fallback. Absolute source conversion

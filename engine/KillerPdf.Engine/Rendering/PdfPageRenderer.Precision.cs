@@ -41,7 +41,8 @@ public sealed partial class PdfPageRenderer
     /// Unprofiled non-knockout DeviceRGB page groups retain precision through final imposition
     /// on white for opaque output; transparent output preserves their alpha.
     /// Initial printer proof rendering accepts pages without explicit groups and unprofiled DeviceRGB page groups with direct
-    /// DeviceRGB/Gray paths, supported direct and ICC RGB/Gray images and embedded TrueType text,
+    /// DeviceRGB/Gray paths, ordinary Form XObjects containing supported paints,
+    /// supported direct and ICC RGB/Gray images and embedded TrueType text,
     /// including supported DefaultGray calibration,
     /// all four intents with an actual selected inverse,
     /// optional source BPC and independent paper/black simulation,
