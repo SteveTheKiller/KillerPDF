@@ -200,6 +200,7 @@ internal static class PdfEngineBurn
             var (renderWidth, renderHeight) = AnnotationSpace(renderDims, pageIndex, visualWidth, visualHeight);
             foreach (CoverAnnotation cover in items.OfType<CoverAnnotation>())
             {
+                if (!ReplacementLayers.IsVisible(cover)) continue;
                 if (!edits.Contains(cover.PairId) || cover.GetColor().A < 255 || cover.Erases is { Count: > 0 })
                     continue;
                 var (left, bottom, right, top) = RedactionGeometry.CanvasToPage(cover.DrawRect(),
@@ -238,6 +239,7 @@ internal static class PdfEngineBurn
     private static void DrawAnnotation(PdfContentStreamBuilder content, PageAnnotation annotation,
         double sx, double sy, Dictionary<string, TrueTypeFont> fonts)
     {
+        if (!ReplacementLayers.IsVisible(annotation)) return;
         switch (annotation)
         {
             case TextAnnotation text: DrawText(content, text, sx, sy, fonts); break;

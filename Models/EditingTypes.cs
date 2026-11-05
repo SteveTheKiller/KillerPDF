@@ -24,6 +24,20 @@ namespace KillerPDF
         internal virtual void CopyHistoryIdentityFrom(PageAnnotation source) =>
             HistoryId = source.HistoryId;
         public int PageIndex { get; set; }
+        public bool IsVisible { get; set; } = true;
+        public bool IsMovementLocked { get; set; }
+        public bool PairVisible { get; set; } = true;
+        public bool PairMovementLocked { get; set; }
+        public bool PairLinked { get; set; }
+
+        internal void CopyLayerStateFrom(PageAnnotation source)
+        {
+            IsVisible = source.IsVisible;
+            IsMovementLocked = source.IsMovementLocked;
+            PairVisible = source.PairVisible;
+            PairMovementLocked = source.PairMovementLocked;
+            PairLinked = source.PairLinked;
+        }
         // Links a text-edit cover to its replacement text (same non-empty id on both). A cover with a
         // PairId renders dashed (it's "paired"); when the partner text is deleted the cover's PairId is
         // cleared and it renders as a solid box. Empty for everything else.
