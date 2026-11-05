@@ -25,15 +25,29 @@ public sealed partial class EpubDocument
             cancellationToken.ThrowIfCancellationRequested();
             if (page.CanvasBackground is not null
                 || page.Glyphs.Any(paint => paint is not NativeGlyphPaint
-                    && paint is not NativeImagePaint { Image: { Alpha: null, Components: 3, Bits: 8 } }))
+                    && paint is not NativeImagePaint { Image: { Components: 3, Bits: 8 } }))
                 throw new NotSupportedException(
-                    "EPUB PDF conversion currently supports text and opaque RGB PNG images without backgrounds.");
+                    "EPUB PDF conversion currently supports text and RGB PNG images without backgrounds.");
             var content = new PdfContentStreamBuilder();
             foreach (var paint in page.Glyphs.OfType<NativeImagePaint>())
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var image = paint.Image;
-                content.DrawImage(PdfImage.FromRgb(image.Width, image.Height, image.Samples),
+                PdfImage pdfImage;
+                if (image.Alpha is { } alpha)
+                {
+                    byte[] rgba = new byte[checked(alpha.Length * 4)];
+                    for (int pixel = 0; pixel < alpha.Length; pixel++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        image.Samples.AsSpan(pixel * 3, 3).CopyTo(rgba.AsSpan(pixel * 4, 3));
+                        rgba[pixel * 4 + 3] = alpha[pixel];
+                    }
+                    pdfImage = PdfImage.FromRgba(image.Width, image.Height, rgba);
+                }
+                else
+                    pdfImage = PdfImage.FromRgb(image.Width, image.Height, image.Samples);
+                content.DrawImage(pdfImage,
                     paint.Left * pointsPerCssPixel,
                     options.PageHeightPoints - (paint.Top + image.Height) * pointsPerCssPixel,
                     image.Width * pointsPerCssPixel, image.Height * pointsPerCssPixel);
