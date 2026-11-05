@@ -94,6 +94,7 @@
     <Compile Include="..\Services\NativeWicJpegDecoder.cs" Link="Services\NativeWicJpegDecoder.cs" />
     <Compile Include="..\Services\PdfWorkingDocument.cs" Link="Services\PdfWorkingDocument.cs" />
     <Compile Include="..\Services\NativeWorkingDocument.cs" Link="Services\NativeWorkingDocument.cs" />
+    <Compile Include="..\Services\NativePdfConversion.cs" Link="Services\NativePdfConversion.cs" />
     <Compile Include="..\Services\PdfEncodingBufferPool.cs" Link="Services\PdfEncodingBufferPool.cs" />
     <Compile Include="..\Services\InstalledPdfFontResolver.cs" Link="Services\InstalledPdfFontResolver.cs" />
     <Compile Include="..\Services\PdfBurn.cs" Link="Services\PdfBurn.cs" />

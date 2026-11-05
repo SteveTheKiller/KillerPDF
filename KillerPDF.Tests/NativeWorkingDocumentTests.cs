@@ -14,6 +14,222 @@ namespace KillerPDF.Tests;
 
 public sealed class NativeWorkingDocumentTests
 {
+    [Theory]
+    [InlineData("existing")]
+    [InlineData("canceled")]
+    [InlineData("closed")]
+    [InlineData("unsupported")]
+    public void FailedEpubPublicationPreservesTheSourceAndAnyExistingDestination(string failure)
+    {
+        using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        var font = TrueTypeFont.Load(fontBytes.ToArray());
+        string folder = Path.Combine(Path.GetTempPath(), "KillerPDF-NativeConversion-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            string originalPath = Path.Combine(folder, failure == "unsupported" ? "original.djvu" : "original.epub");
+            string destination = Path.Combine(folder, "converted.PDF");
+            byte[] original = failure == "unsupported" ? DjvuPage() : Book();
+            byte[] priorOutput = "Existing output must survive."u8.ToArray();
+            File.WriteAllBytes(originalPath, original);
+            using var owner = failure == "unsupported" ? NativeWorkingDocument.OpenDjvu(original)
+                : NativeWorkingDocument.OpenEpub(original,
+                    new EpubLayoutOptions(80, 48, font) { FontSize = 12, Margin = 4 });
+            if (failure == "existing") File.WriteAllBytes(destination, priorOutput);
+            if (failure == "closed") owner.Close();
+            Action publish = () => NativePdfConversion.WriteNewEpub(owner, originalPath, destination,
+                new EpubPdfConversionOptions(font), new CancellationToken(failure == "canceled"));
+
+            switch (failure)
+            {
+                case "existing": Assert.Throws<IOException>(publish); break;
+                case "canceled": Assert.Throws<OperationCanceledException>(publish); break;
+                case "closed": Assert.Throws<ObjectDisposedException>(publish); break;
+                case "unsupported": Assert.Throws<NotSupportedException>(publish); break;
+            }
+
+            Assert.Equal(original, File.ReadAllBytes(originalPath));
+            if (failure == "existing") Assert.Equal(priorOutput, File.ReadAllBytes(destination));
+            else Assert.False(File.Exists(destination));
+            Assert.Equal(failure == "existing" ? 2 : 1, Directory.GetFiles(folder).Length);
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    [Theory]
+    [InlineData("converted.epub")]
+    [InlineData("converted.txt")]
+    [InlineData("converted")]
+    public void EpubPublicationRequiresAPdfDestination(string outputName)
+    {
+        using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        var font = TrueTypeFont.Load(fontBytes.ToArray());
+        string folder = Path.Combine(Path.GetTempPath(), "KillerPDF-NativeConversion-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            using var owner = NativeWorkingDocument.OpenEpub(Book(),
+                new EpubLayoutOptions(80, 48, font) { FontSize = 12, Margin = 4 });
+
+            Assert.Throws<ArgumentException>(() => NativePdfConversion.WriteNewEpub(owner,
+                Path.Combine(folder, "original.epub"), Path.Combine(folder, outputName),
+                new EpubPdfConversionOptions(font)));
+
+            Assert.Empty(Directory.GetFiles(folder));
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    [Fact]
+    public void EpubPublicationCannotReuseTheSourcePathEvenWhenTheOriginalWasRemoved()
+    {
+        using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        var font = TrueTypeFont.Load(fontBytes.ToArray());
+        string folder = Path.Combine(Path.GetTempPath(), "KillerPDF-NativeConversion-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            string originalPath = Path.Combine(folder, "original.epub");
+            using var owner = NativeWorkingDocument.OpenEpub(Book(),
+                new EpubLayoutOptions(80, 48, font) { FontSize = 12, Margin = 4 });
+
+            Assert.Throws<ArgumentException>(() => NativePdfConversion.WriteNewEpub(owner, originalPath,
+                originalPath, new EpubPdfConversionOptions(font)));
+
+            Assert.Empty(Directory.GetFiles(folder));
+            Assert.Equal(PdfDocumentFormat.Epub, owner.Format);
+            Assert.Equal(1, owner.PageCount);
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    [Fact]
+    public void ExplicitEpubConversionPublishesSeparatePdfAndPreservesNativeSession()
+    {
+        using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        var font = TrueTypeFont.Load(fontBytes.ToArray());
+        string folder = Path.Combine(Path.GetTempPath(), "KillerPDF-NativeConversion-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            string originalPath = Path.Combine(folder, "original.epub");
+            string destination = Path.Combine(folder, "converted.pdf");
+            byte[] original = Book();
+            File.WriteAllBytes(originalPath, original);
+            using var owner = NativeWorkingDocument.OpenEpub(File.ReadAllBytes(originalPath),
+                new EpubLayoutOptions(80, 48, font) { FontSize = 12, Margin = 4 });
+            using var revision = owner.CaptureReadRevision();
+            string identity = owner.ContentIdentity;
+
+            NativePdfConversion.WriteNewEpub(owner, originalPath, destination, new EpubPdfConversionOptions(font));
+
+            var pdf = PdfDocument.Open(File.ReadAllBytes(destination));
+            Assert.Equal("A", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(letter => letter.Value)));
+            var paper = Assert.Single(PdfPageInformation.Read(pdf));
+            Assert.InRange(paper.PhysicalWidth, 595.274, 595.277);
+            Assert.InRange(paper.PhysicalHeight, 841.888, 841.892);
+            Assert.Equal(original, File.ReadAllBytes(originalPath));
+            Assert.Equal(PdfDocumentFormat.Epub, owner.Format);
+            Assert.Equal(identity, owner.ContentIdentity);
+            Assert.Same(revision, owner.CaptureReadRevision());
+            Assert.Equal(2, Directory.GetFiles(folder).Length);
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    [Fact]
+    public void EpubConversionRejectsDjvuWithoutChangingItsNativeContent()
+    {
+        using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        var font = TrueTypeFont.Load(fontBytes.ToArray());
+        byte[] original = DjvuPage();
+        using var owner = NativeWorkingDocument.OpenDjvu(original);
+        using var revision = owner.CaptureReadRevision();
+        using var lease = revision.Rent();
+        float[] nativePixels = lease.RenderFrame(0, new PdfRenderOptions(3, 2)).Pixels.ToArray();
+
+        Assert.Throws<NotSupportedException>(() => owner.ConvertEpubToPdf(new EpubPdfConversionOptions(font)));
+
+        Assert.Equal(PdfDocumentFormat.Djvu, owner.Format);
+        Assert.Same(revision, owner.CaptureReadRevision());
+        Assert.Equal(nativePixels, lease.RenderFrame(0, new PdfRenderOptions(3, 2)).Pixels.ToArray());
+        using var copy = new MemoryStream();
+        owner.WriteCopyTo(copy);
+        Assert.Equal(original, copy.ToArray());
+        Assert.Throws<OperationCanceledException>(() => owner.ConvertEpubToPdf(null!, new CancellationToken(true)));
+    }
+
+    [Fact]
+    public void ExplicitEpubConversionCannotStartAfterNativeSessionCloses()
+    {
+        using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        var font = TrueTypeFont.Load(fontBytes.ToArray());
+        using var owner = NativeWorkingDocument.OpenEpub(Book(),
+            new EpubLayoutOptions(80, 48, font) { FontSize = 12, Margin = 4 });
+        owner.Close();
+
+        Assert.Throws<ObjectDisposedException>(() => owner.ConvertEpubToPdf(new EpubPdfConversionOptions(font)));
+    }
+
+    [Fact]
+    public void ExplicitEpubConversionUsesSeparatePaperAndPreservesOpenNativeSession()
+    {
+        using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        var font = TrueTypeFont.Load(fontBytes.ToArray());
+        byte[] source = Book();
+        byte[] original = source.ToArray();
+        using var owner = NativeWorkingDocument.OpenEpub(source,
+            new EpubLayoutOptions(80, 48, font) { FontSize = 12, Margin = 4 });
+        using var revision = owner.CaptureReadRevision();
+        using var lease = revision.Rent();
+        string identity = owner.ContentIdentity;
+        var geometry = owner.GetNativePageGeometry(0);
+        float[] nativePixels = lease.RenderFrame(0, new PdfRenderOptions(160, 144)).Pixels.ToArray();
+        Array.Clear(source);
+
+        byte[] converted = owner.ConvertEpubToPdf(new EpubPdfConversionOptions(font)
+        {
+            PageWidthPoints = 200, PageHeightPoints = 300, MarginPoints = 20
+        });
+
+        var pdf = PdfDocument.Open(converted);
+        var paper = Assert.Single(PdfPageInformation.Read(pdf));
+        Assert.Equal(200, paper.PhysicalWidth);
+        Assert.Equal(300, paper.PhysicalHeight);
+        Assert.Equal("A", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(letter => letter.Value)));
+        Assert.Equal(PdfDocumentFormat.Epub, owner.Format);
+        Assert.Equal(identity, owner.ContentIdentity);
+        Assert.Same(revision, owner.CaptureReadRevision());
+        Assert.Same(geometry, owner.GetNativePageGeometry(0));
+        Assert.Equal(60, geometry.WidthPoints);
+        Assert.Equal(36, geometry.HeightPoints);
+        Assert.Equal(nativePixels, lease.RenderFrame(0, new PdfRenderOptions(160, 144)).Pixels.ToArray());
+        using var copy = new MemoryStream();
+        owner.WriteCopyTo(copy);
+        Assert.Equal(original, copy.ToArray());
+    }
+
     [Fact]
     public void NativeOwnerResolvesLocalDestinationsAndHonorsCloseAndCancellation()
     {

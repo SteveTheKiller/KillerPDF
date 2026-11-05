@@ -233,8 +233,16 @@ independent PDF with A4 paper and 15 mm margins. Paper geometry and fallback fon
 size are configurable in points. Initial conversion retains selectable embedded
 text, resolved CSS text colors, RGB/RGBA PNG images and solid canvas backgrounds
 from the supported native layout. PNG transparency remains a PDF soft mask. It leaves the native package and existing read
-snapshots unchanged. Destination-file publication and desktop conversion actions
-are separate application work.
+snapshots unchanged. The application's native EPUB session can convert its captured
+source and publish a separate new PDF atomically, without replacing an existing
+destination. Desktop conversion actions still require integration.
+
+`DjvuDocument.ConvertToPdf()` initially supports text-free, navigation-free bitonal
+Smmr pages. It embeds lossless one-bit images at the page's recorded DPI, preserves
+intrinsic orientation and bundled page order, and leaves the source and native
+rendering unchanged. It rejects text and navigation rather than dropping them.
+Other native decoder diagnoses propagate; grayscale/color conversion and complete
+text/navigation preservation remain unfinished.
 
 The EPUB `RenderPage(pageIndex, renderOptions)` overload rasterizes the original
 glyph outlines at the requested pixel dimensions without changing pagination or

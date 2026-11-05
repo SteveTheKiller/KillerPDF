@@ -48,6 +48,21 @@ internal sealed class NativeWorkingDocument : IDisposable
     internal string ContentIdentity => _snapshot.SourceSha256;
     internal int PageCount => _snapshot.PageCount;
 
+    internal byte[] ConvertEpubToPdf(EpubPdfConversionOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] source;
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_closed, this);
+            if (Format != PdfDocumentFormat.Epub)
+                throw new NotSupportedException("EPUB conversion requires an EPUB document.");
+            source = _source;
+        }
+        return EpubDocument.Open(source, cancellationToken).ConvertToPdf(options, cancellationToken);
+    }
+
     internal PdfReadPageGeometry GetNativePageGeometry(int pageIndex, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
