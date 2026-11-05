@@ -17,6 +17,44 @@ public sealed class PdfPrecisionProofTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void ProofConvertsSixteenBitRgbImageAfterDecode(bool halfOpacity)
+    {
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+            Encoding.ASCII.GetBytes(halfOpacity ? "/Half gs /Image Do" : "/Image Do")).Build());
+        var page = PdfPageTree.Read(document).Pages[0];
+        var update = new PdfIncrementalUpdateBuilder(document);
+        var image = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)),
+            Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(16)),
+            Entry("ColorSpace", Name("DeviceRGB")),
+            Entry("Decode", new PdfArray(Enumerable.Range(0, 6).Select(index =>
+                (PdfObject)new PdfReal(index % 2 == 0 ? 0 : 65535d / 65536))))]),
+            new byte[] { 128, 0, 128, 0, 128, 0 }));
+        var resources = new PdfDictionary([
+            Entry("XObject", new PdfDictionary([Entry("Image", image)])),
+            Entry("ExtGState", new PdfDictionary([Entry("Half", new PdfDictionary([
+                Entry("ca", new PdfReal(.5))]))]))]);
+        document = PdfDocument.Open(update.ReplaceObject(page.Reference.ObjectNumber,
+            new PdfDictionary(page.Dictionary.Where(pair => !pair.Key.Equals(Name("Resources")))
+                .Append(Entry("Resources", resources)))).Build());
+        var options = new PdfRenderOptions(2, 1, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var frame = new PdfPageRenderer(document).RenderFrame(0, options);
+
+        // Decode maps sample32768 exactly to encoded gray0.5 before the printer transform.
+        double luminance = .2126 * frame.Pixels[0] + .7152 * frame.Pixels[1] + .0722 * frame.Pixels[2];
+        Assert.InRange(luminance, .3570205702411163 - .0001, .3570205702411163 + .0001);
+        Assert.Equal(halfOpacity ? .5f : 1f, frame.Pixels[3]);
+        Assert.Equal(0f, frame.Pixels[7]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void ProofPreservesSingleByteWordSpacing(bool setByDoubleQuote)
     {
         var renderer = PdfPrecisionTextTests.SimpleFontRenderer(

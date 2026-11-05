@@ -1059,6 +1059,10 @@ public sealed partial class PdfPageRenderer
                         && !EvaluateOptionalContent(optionalContent,
                             hiddenOptionalContentGroups, 0))
                         break;
+                    else if (pixels.PreciseRgb is not null && options.Proof is { Enabled: true }
+                        && (!IsName(xObject.Dictionary, "Subtype", "Image")
+                            || IsImageMask(xObject) || !IsName(xObject.Dictionary, "ColorSpace", "DeviceRGB")))
+                        throw new NotSupportedException("Printer proof XObjects currently require a direct DeviceRGB image.");
                     else if (IsName(xObject.Dictionary, "Subtype", "Image"))
                     {
                         if (state.FillPattern is not null && IsImageMask(xObject))

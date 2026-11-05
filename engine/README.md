@@ -331,6 +331,9 @@ Basic embedded TrueType text retains its color through proof conversion after gl
 Text matrices, strings and positioned arrays support filled and stroked glyphs.
 Proof rendering also preserves character and word spacing, horizontal scale, text rise,
 line positioning, explicit or move-defined leading, and both quote text-showing operators.
+Direct DeviceRGB image XObjects use the existing precise image path before proof conversion,
+retaining supported source sample depths, Decode mapping and alpha. Other proof XObject
+types and image color spaces remain diagnosed pending source-aware integration.
 The selected output profile must have actual colorimetric transforms in both directions.
 The requested inverse must be available without intent fallback. Absolute source conversion
 also requires explicit valid media white; source BPC is an identity for that intent.
