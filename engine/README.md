@@ -231,8 +231,8 @@ separate from glyph ink, which can extend beyond a font's logical line box.
 `book.ConvertToPdf(new EpubPdfConversionOptions(font))` explicitly creates an
 independent PDF with A4 paper and 15 mm margins. Paper geometry and fallback font
 size are configurable in points. Initial conversion retains selectable embedded
-text from the supported native layout; images, colored glyphs and backgrounds
-are diagnosed as unsupported. It leaves the native package and existing read
+text and resolved CSS text colors from the supported native layout; images and
+backgrounds are diagnosed as unsupported. It leaves the native package and existing read
 snapshots unchanged. Destination-file publication and desktop conversion actions
 are separate application work.
 

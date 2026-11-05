@@ -17,7 +17,11 @@ public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, True
 
 /// <summary>Locates a UTF-16 range within structural spine text and its logical CSS-pixel bounds.</summary>
 public sealed record EpubTextPlacement(int SpineIndex, int Start, int Length,
-    double Left, double Top, double Width, double Height);
+    double Left, double Top, double Width, double Height)
+{
+    /// <summary>Gets the resolved CSS text color, or null for the fallback color.</summary>
+    public PdfRgbColor? Color { get; init; }
+}
 
 /// <summary>Locates a native EPUB navigation destination in logical CSS pixels.</summary>
 public sealed record EpubNavigationDestination(int PageIndex, int SpineIndex, int TextOffset,

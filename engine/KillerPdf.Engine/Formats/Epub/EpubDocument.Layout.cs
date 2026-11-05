@@ -244,7 +244,10 @@ public sealed partial class EpubDocument
                 }
                 double size = item.Style.FontSize;
                 double logicalTop = baseline - font.Ascender * size / font.UnitsPerEm;
-                placements.Add(new EpubTextPlacement(spineIndex, item.Index, 1, item.Left, logicalTop, item.Width, size));
+                placements.Add(new EpubTextPlacement(spineIndex, item.Index, 1, item.Left, logicalTop, item.Width, size)
+                {
+                    Color = item.Style.Color
+                });
                 if (item.Outline!.Contours.Count != 0)
                     glyphs.Add(new NativeGlyphPaint(item.Outline, item.Left, baseline, size / 1000, item.Style.Color));
             }

@@ -24,9 +24,9 @@ public sealed partial class EpubDocument
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (page.CanvasBackground is not null
-                || page.Glyphs.Any(paint => paint is not NativeGlyphPaint { Color: null }))
+                || page.Glyphs.Any(paint => paint is not NativeGlyphPaint))
                 throw new NotSupportedException(
-                    "EPUB PDF conversion currently supports uncolored text without images or backgrounds.");
+                    "EPUB PDF conversion currently supports text without images or backgrounds.");
             var content = new PdfContentStreamBuilder();
             foreach (var placement in page.TextPlacements)
             {
@@ -34,7 +34,9 @@ public sealed partial class EpubDocument
                 double size = placement.Height * pointsPerCssPixel;
                 double baseline = (placement.Top + options.DefaultFont.Ascender
                     * placement.Height / options.DefaultFont.UnitsPerEm) * pointsPerCssPixel;
-                content.BeginText()
+                var color = placement.Color ?? new PdfRgbColor(0, 0, 0);
+                content.SetFillRgb(color.Red, color.Green, color.Blue)
+                    .BeginText()
                     .SetFont(options.DefaultFont, size)
                     .SetTextMatrix(1, 0, 0, 1, placement.Left * pointsPerCssPixel,
                         options.PageHeightPoints - baseline)

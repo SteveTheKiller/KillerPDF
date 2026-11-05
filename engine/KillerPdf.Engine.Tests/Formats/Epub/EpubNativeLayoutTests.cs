@@ -41,7 +41,7 @@ public sealed class EpubNativeLayoutTests
 
         var page = Assert.Single(layout.Pages);
         Assert.Equal("A", page.Text);
-        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) }, page.TextPlacements);
+        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) { Color = new PdfRgbColor(1, 1, 1) } }, page.TextPlacements);
         var frame = layout.RenderPage(0);
         Assert.Equal(30, frame.Width);
         Assert.Equal(16, frame.Height);
@@ -92,7 +92,7 @@ public sealed class EpubNativeLayoutTests
         Assert.Equal("A", page.Text);
         Assert.Equal(0, page.SpineIndex);
         Assert.Equal(0, page.TextStart);
-        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) }, page.TextPlacements);
+        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) { Color = new PdfRgbColor(1, 1, 1) } }, page.TextPlacements);
 
         var frame = layout.RenderPage(0);
 
@@ -109,23 +109,24 @@ public sealed class EpubNativeLayoutTests
     }
 
     [Theory]
-    [InlineData("black", 0f, 0f, 0f)]
-    [InlineData("silver", .5271151f, .5271151f, .5271151f)]
-    [InlineData("gray", .2158605f, .2158605f, .2158605f)]
-    [InlineData("white", 1f, 1f, 1f)]
-    [InlineData("maroon", .2158605f, 0f, 0f)]
-    [InlineData("red", 1f, 0f, 0f)]
-    [InlineData("purple", .2158605f, 0f, .2158605f)]
-    [InlineData("fuchsia", 1f, 0f, 1f)]
-    [InlineData("green", 0f, .2158605f, 0f)]
-    [InlineData("lime", 0f, 1f, 0f)]
-    [InlineData("olive", .2158605f, .2158605f, 0f)]
-    [InlineData("yellow", 1f, 1f, 0f)]
-    [InlineData("navy", 0f, 0f, .2158605f)]
-    [InlineData("bLuE", 0f, 0f, 1f)]
-    [InlineData("teal", 0f, .2158605f, .2158605f)]
-    [InlineData("aqua", 0f, 1f, 1f)]
-    public void NativeLayoutRendersBasicCssNamedForegroundColors(string color, float red, float green, float blue)
+    [InlineData("black", 0f, 0f, 0f, 0, 0, 0)]
+    [InlineData("silver", .5271151f, .5271151f, .5271151f, 192, 192, 192)]
+    [InlineData("gray", .2158605f, .2158605f, .2158605f, 128, 128, 128)]
+    [InlineData("white", 1f, 1f, 1f, 255, 255, 255)]
+    [InlineData("maroon", .2158605f, 0f, 0f, 128, 0, 0)]
+    [InlineData("red", 1f, 0f, 0f, 255, 0, 0)]
+    [InlineData("purple", .2158605f, 0f, .2158605f, 128, 0, 128)]
+    [InlineData("fuchsia", 1f, 0f, 1f, 255, 0, 255)]
+    [InlineData("green", 0f, .2158605f, 0f, 0, 128, 0)]
+    [InlineData("lime", 0f, 1f, 0f, 0, 255, 0)]
+    [InlineData("olive", .2158605f, .2158605f, 0f, 128, 128, 0)]
+    [InlineData("yellow", 1f, 1f, 0f, 255, 255, 0)]
+    [InlineData("navy", 0f, 0f, .2158605f, 0, 0, 128)]
+    [InlineData("bLuE", 0f, 0f, 1f, 0, 0, 255)]
+    [InlineData("teal", 0f, .2158605f, .2158605f, 0, 128, 128)]
+    [InlineData("aqua", 0f, 1f, 1f, 0, 255, 255)]
+    public void NativeLayoutRendersBasicCssNamedForegroundColors(string color, float red, float green, float blue,
+        int cssRed, int cssGreen, int cssBlue)
     {
         var book = EpubDocument.Open(Book("<p style=\"color:" + color + "\">A</p>"));
         Assert.Equal("A", book.ReadText(0));
@@ -136,7 +137,10 @@ public sealed class EpubNativeLayoutTests
 
         var page = Assert.Single(layout.Pages);
         Assert.Equal("A", page.Text);
-        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) }, page.TextPlacements);
+        Assert.Equal(new[] { new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10)
+        {
+            Color = new PdfRgbColor(cssRed / 255d, cssGreen / 255d, cssBlue / 255d)
+        } }, page.TextPlacements);
         var frame = layout.RenderPage(0);
         Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
         int offset = (5 * 30 + 7) * 4;
@@ -166,9 +170,9 @@ public sealed class EpubNativeLayoutTests
         Assert.Equal(0, page.SpineIndex);
         Assert.Equal(0, page.TextStart);
         Assert.Equal(new[] {
-            new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10),
-            new EpubTextPlacement(0, 1, 1, 8, 2, 5, 10),
-            new EpubTextPlacement(0, 2, 1, 13, 2, 6, 10) }, page.TextPlacements);
+            new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10) { Color = new PdfRgbColor(128 / 255d, 0, 0) },
+            new EpubTextPlacement(0, 1, 1, 8, 2, 5, 10) { Color = new PdfRgbColor(0, 0, 1) },
+            new EpubTextPlacement(0, 2, 1, 13, 2, 6, 10) { Color = new PdfRgbColor(0, 0, 1) } }, page.TextPlacements);
 
         var frame = layout.RenderPage(0);
 

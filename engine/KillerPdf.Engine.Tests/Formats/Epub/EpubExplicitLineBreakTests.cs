@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Formats.Epub;
 using KillerPdf.Engine.Tests.Fonts;
@@ -22,7 +23,7 @@ public sealed class EpubExplicitLineBreakTests
         Assert.Equal("A\nA", page.Text);
         Assert.Equal(new[] {
             new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10),
-            new EpubTextPlacement(0, 2, 1, 2, 12, 6, 10) }, page.TextPlacements);
+            new EpubTextPlacement(0, 2, 1, 2, 12, 6, 10) { Color = new PdfRgbColor(1, 0, 0) } }, page.TextPlacements);
         var frame = layout.RenderPage(0);
         Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((5 * 30 + 7) * 4, 4).ToArray());
         Assert.Equal(new float[] { 1, 0, 0, 1 }, frame.Pixels.Slice((15 * 30 + 7) * 4, 4).ToArray());
