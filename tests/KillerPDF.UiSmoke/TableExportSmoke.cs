@@ -24,7 +24,7 @@ internal static class TableExportSmoke
             || windowSessionCase is "--verify-two-page-continuous" or "--verify-paired-thumbnails" or "--verify-native-outlines" or "--verify-native-outlines-djvu" or "--verify-native-anchor" or "--verify-text-annotation-reopen" or "--verify-text-annotation-save"
             || windowSessionCase.StartsWith("--verify-page-navigation-", StringComparison.Ordinal));
         visibleNative |= windowSession && windowSessionCase is "--verify-sdr-monitor" or "--verify-native-fallback" or "--verify-native-fallback-refinement" or "--verify-two-page-fallback-refinement";
-        visibleNative |= windowSession && windowSessionCase is "--verify-native-conversion" or "--verify-native-conversion-djvu" or "--verify-native-conversion-custom";
+        visibleNative |= windowSession && windowSessionCase is "--verify-native-conversion" or "--verify-native-conversion-djvu" or "--verify-native-conversion-custom" or "--verify-native-conversion-unicode";
         if (visibleNative && !new[] { "SN01", "SN02" }.Contains(Environment.MachineName, StringComparer.OrdinalIgnoreCase))
             throw new InvalidOperationException("Visible native hint acceptance may run only on SN01 or SN02.");
         if (!Environment.GetCommandLineArgs().Contains("--startup-smoke")
@@ -138,6 +138,7 @@ internal static class TableExportSmoke
             if (windowSessionCase == "--verify-native-conversion") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder);
             if (windowSessionCase == "--verify-native-conversion-djvu") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder, djvu: true);
             if (windowSessionCase == "--verify-native-conversion-custom") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder, customPaper: true);
+            if (windowSessionCase == "--verify-native-conversion-unicode") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder, unicode: true);
             if (windowSessionCase == "--verify-two-page-continuous") return TwoPageContinuousSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-paired-thumbnails") return PairedThumbnailSmoke.Run(owner, appPath, appXaml, folder);
             if (windowSessionCase == "--verify-sdr-monitor") return SdrMonitorSmoke.Run(owner, appPath, folder);

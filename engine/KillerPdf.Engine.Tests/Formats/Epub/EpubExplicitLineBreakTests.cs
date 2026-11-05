@@ -103,7 +103,7 @@ public sealed class EpubExplicitLineBreakTests
     }
 
     [Theory]
-    [InlineData("<p>A<br/>&#937;</p>", "Native EPUB layout currently supports only printable ASCII text.")]
+    [InlineData("<p>A<br/>&#937;</p>", "The native EPUB font has no glyph for U+03A9.")]
     [InlineData("<p>A<br/>AAA</p>", "The native EPUB word exceeds the available line width.")]
     [InlineData("<p>A<br onclick=\"go()\"/>A</p>", "Native EPUB XHTML attributes and styling are not implemented.")]
     [InlineData("<br/>", "Native EPUB XHTML element is not implemented: br.")]

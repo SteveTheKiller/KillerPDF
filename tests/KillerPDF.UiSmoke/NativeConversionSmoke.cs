@@ -22,7 +22,7 @@ using KillerPdf.Engine.Rendering;
 
 internal static class NativeConversionSmoke
 {
-    public static int Run(Window owner, string appPath, string appXaml, string folder, bool djvu = false, bool customPaper = false)
+    public static int Run(Window owner, string appPath, string appXaml, string folder, bool djvu = false, bool customPaper = false, bool unicode = false)
     {
         string stage = "vm-guard";
         string? failedAt = null;
@@ -151,7 +151,7 @@ internal static class NativeConversionSmoke
             hashes["driver"] = Hash(File.ReadAllBytes(typeof(NativeConversionSmoke).Assembly.Location));
             hashes["engine"] = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
             hashes["loadedApp"] = SelectedAssemblyIdentity.HashLoaded(owner.GetType().Assembly, appPath);
-            original = djvu ? DjvuFixture() : EpubFixture();
+            original = djvu ? DjvuFixture() : EpubFixture(unicode);
             hashes["nativeOriginal"] = Hash(original);
             File.WriteAllBytes(native, original);
             byte[] ordinary = new PdfDocumentBuilder().AddBlankPage(600, 750).Build();
@@ -207,7 +207,7 @@ internal static class NativeConversionSmoke
             {
                 Product(Math.Abs(pages[0].PhysicalWidth - 360) < .002
                     && Math.Abs(pages[0].PhysicalHeight - 504) < .002, "Custom EPUB conversion must use 360 x 504 point paper.");
-                Product(text == "ALPHA BRAVO", "Custom EPUB conversion must preserve the exact selectable ASCII content.");
+                Product(text == (unicode ? "ALPHA \u03A9MEGA" : "ALPHA BRAVO"), "Custom EPUB conversion must preserve the exact selectable source content.");
                 Product(reader.Read(0).Letters.All(letter => letter.BoundingBox.Left >= 28.3455 - .002
                     && letter.BoundingBox.Right <= 331.6545 + .002 && letter.BoundingBox.Bottom >= 28.3455 - .002
                     && letter.BoundingBox.Top <= 475.6545 + .002), "EPUB text must respect the selected 10 mm margins.");
@@ -216,7 +216,7 @@ internal static class NativeConversionSmoke
             {
                 Product(Math.Abs(pages[0].PhysicalWidth - 595.2755905511812) < .001
                     && Math.Abs(pages[0].PhysicalHeight - 841.8897637795276) < .001, "Default EPUB conversion must use A4 paper.");
-                Product(text == "ALPHA BRAVO", "EPUB conversion must preserve the exact selectable ASCII content.");
+                Product(text == (unicode ? "ALPHA \u03A9MEGA" : "ALPHA BRAVO"), "EPUB conversion must preserve the exact selectable source content.");
                 Product(reader.Read(0).Letters.All(letter => letter.BoundingBox.Left >= 42.518 - .001
                     && letter.BoundingBox.Right <= 552.757 + .001 && letter.BoundingBox.Bottom >= 42.518 - .001
                     && letter.BoundingBox.Top <= 799.372 + .001), "EPUB text must respect the default 15 mm margins.");
@@ -352,7 +352,7 @@ internal static class NativeConversionSmoke
         void Write(string name, object value) => File.WriteAllText(Path.Combine(folder, name), JsonSerializer.Serialize(value, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    private static byte[] EpubFixture()
+    private static byte[] EpubFixture(bool unicode)
     {
         using var buffer = new MemoryStream();
         using (var zip = new ZipArchive(buffer, ZipArchiveMode.Create, true))
@@ -360,7 +360,8 @@ internal static class NativeConversionSmoke
             Add("mimetype", "application/epub+zip", CompressionLevel.NoCompression);
             Add("META-INF/container.xml", "<container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" version=\"1.0\"><rootfiles><rootfile full-path=\"EPUB/book.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>");
             Add("EPUB/book.opf", "<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"id\"><metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:identifier id=\"id\">urn:test:epub-conversion</dc:identifier><dc:title>Conversion</dc:title><dc:language>en</dc:language></metadata><manifest><item id=\"chapter\" href=\"text.xhtml\" media-type=\"application/xhtml+xml\"/></manifest><spine><itemref idref=\"chapter\"/></spine></package>");
-            Add("EPUB/text.xhtml", "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Conversion</title></head><body><p>ALPHA BRAVO</p></body></html>");
+            Add("EPUB/text.xhtml", "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Conversion</title></head><body><p>"
+                + (unicode ? "ALPHA &#937;MEGA" : "ALPHA BRAVO") + "</p></body></html>");
             void Add(string path, string text, CompressionLevel level = CompressionLevel.Optimal)
             { var entry = zip.CreateEntry(path, level); entry.LastWriteTime = new DateTimeOffset(2026, 11, 5, 0, 0, 0, TimeSpan.Zero); using var stream = entry.Open(); stream.Write(Encoding.UTF8.GetBytes(text)); }
         }

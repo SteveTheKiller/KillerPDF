@@ -145,8 +145,14 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 ## Native EPUB layout (1.9.3 development)
 
 `EpubDocument.Open` reads a bounded native package. `CreateLayout` currently supports
-printable-ASCII paragraphs and nested spans in linear, reflowable XHTML spine
-items with an explicit fallback font. Chapters follow declared spine order and
+paragraphs and nested spans in linear, reflowable XHTML spine items with an explicit
+fallback font. Text supports printable ASCII, precomposed Latin/Greek/Cyrillic blocks
+and supplementary mathematical alphanumeric letters and digits when the font has
+their glyphs. Each Unicode scalar paints once while retaining UTF-16 source ranges,
+including after wrapping, pagination, anchor resolution and explicit PDF conversion.
+Combining marks, complex scripts, bidi controls, joiners, variation selectors and
+most non-ASCII punctuation still require implementation and are diagnosed explicitly.
+Missing supported glyphs report their full code point. Chapters follow declared spine order and
 begin on fresh pages. It returns immutable pages and logical UTF-16 text
 placements in CSS pixels. Whole words wrap at spaces, and paragraphs have one font-size
 gap between their line boxes. Wrapped lines and paragraphs continue onto new pages

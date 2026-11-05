@@ -1,6 +1,8 @@
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Rendering;
 using KillerPdf.Engine.Filters;
+using System.Globalization;
+using System.Text;
 
 namespace KillerPdf.Engine.Formats.Epub;
 
@@ -82,7 +84,7 @@ public sealed partial class EpubDocument
         int pageStart = 0;
         double left = options.Margin;
         double top = options.Margin;
-        var line = new List<(int Index, double Left, double Width, PdfGlyphOutline? Outline,
+        var line = new List<(int Index, int Length, double Left, double Width, PdfGlyphOutline? Outline,
             PngDecodedImage? Image, EpubNativeContent.Style Style, EpubNativeContent.Style BlockStyle)>();
         int lineStart = 0;
         EpubNativeContent.Element? lineBlock = null;
@@ -118,7 +120,7 @@ public sealed partial class EpubDocument
                 var image = ReadNativeImage(resource.Href, reference.Source, imageCache, ref retainedImageBytes, cancellationToken);
                 if (left + image.Width > options.PageWidth - options.Margin)
                     throw new NotSupportedException("The native EPUB image exceeds the available line width.");
-                line.Add((index, left, image.Width, null, image, reference.Owner.Style, reference.Owner.BlockStyle));
+                line.Add((index, 0, left, image.Width, null, image, reference.Owner.Style, reference.Owner.BlockStyle));
                 left += image.Width;
             }
             if (index == text.Length) break;
@@ -148,12 +150,11 @@ public sealed partial class EpubDocument
                 index += separatorLength - 1;
                 continue;
             }
-            if (character is < ' ' or > '~')
-                throw new NotSupportedException("Native EPUB layout currently supports only printable ASCII text.");
+            Rune scalar = ReadScalar(index);
             if (content.Characters[index] is { } characterSource) BeginInline(characterSource.Node.Owner, index);
-            ushort glyph = font.GetGlyphId(character);
+            ushort glyph = font.GetGlyphId(scalar.Value);
             if (glyph == 0 && character != ' ')
-                throw new NotSupportedException($"The native EPUB font has no glyph for U+{(int)character:X4}.");
+                throw new NotSupportedException($"The native EPUB font has no glyph for U+{scalar.Value:X4}.");
             PdfGlyphOutline outline = reader.Outline(glyph)
                 ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
             // The public advance API rounds to 1000 units; finer font-metric precision is a later slice.
@@ -162,16 +163,15 @@ public sealed partial class EpubDocument
             {
                 // Each collapsed separator scans only the following word, keeping lookahead linear.
                 double wordWidth = 0;
-                for (int next = index + 1; next < text.Length && text[next] is not (' ' or '\n'); next++)
+                for (int next = index + 1; next < text.Length && text[next] is not (' ' or '\n');)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    char nextCharacter = text[next];
-                    if (nextCharacter is < ' ' or > '~')
-                        throw new NotSupportedException("Native EPUB layout currently supports only printable ASCII text.");
-                    ushort nextGlyph = font.GetGlyphId(nextCharacter);
+                    Rune nextScalar = ReadScalar(next);
+                    ushort nextGlyph = font.GetGlyphId(nextScalar.Value);
                     if (nextGlyph == 0)
-                        throw new NotSupportedException($"The native EPUB font has no glyph for U+{(int)nextCharacter:X4}.");
+                        throw new NotSupportedException($"The native EPUB font has no glyph for U+{nextScalar.Value:X4}.");
                     wordWidth += font.GetPdfAdvanceWidth(nextGlyph) / 1000d * StyleAt(next).FontSize;
+                    next += nextScalar.Utf16SequenceLength;
                 }
                 if (wordWidth > contentWidth)
                     throw new NotSupportedException("The native EPUB word exceeds the available line width.");
@@ -190,15 +190,35 @@ public sealed partial class EpubDocument
             }
             if (left + width > options.PageWidth - options.Margin)
                 throw new NotSupportedException("The native EPUB word exceeds the available line width.");
-            line.Add((index, left, width, outline, null, StyleAt(index),
+            line.Add((index, scalar.Utf16SequenceLength, left, width, outline, null, StyleAt(index),
                 content.Characters[index]?.BlockStyle ?? content.DefaultStyle));
             left += width;
+            index += scalar.Utf16SequenceLength - 1;
         }
         cancellationToken.ThrowIfCancellationRequested();
         FlushLine();
         FinishPage(text.Length);
 
         EpubNativeContent.Style StyleAt(int index) => content.Characters[index]?.Style ?? content.DefaultStyle;
+
+        Rune ReadScalar(int index)
+        {
+            if (!Rune.TryGetRuneAt(text, index, out Rune scalar))
+                throw new NotSupportedException("Native EPUB layout requires valid Unicode scalar text.");
+            int value = scalar.Value;
+            if (value is >= ' ' and <= '~') return scalar;
+            UnicodeCategory category = Rune.GetUnicodeCategory(scalar);
+            // Unshaped LTR text is limited to precomposed Latin, Greek, Cyrillic, and mathematical alphanumerics.
+            if ((value is >= 0x00A0 and <= 0x02FF or >= 0x0370 and <= 0x052F
+                    or >= 0x1E00 and <= 0x1FFF
+                    || value is >= 0x1D400 and <= 0x1D7FF
+                        && category is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter
+                            or UnicodeCategory.DecimalDigitNumber)
+                && category is not (UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark
+                    or UnicodeCategory.EnclosingMark or UnicodeCategory.Format or UnicodeCategory.Control
+                    or UnicodeCategory.OtherNotAssigned)) return scalar;
+            throw new NotSupportedException($"Native EPUB layout requires unsupported shaping or bidirectional processing for U+{value:X4}.");
+        }
 
         void BeginInline(EpubNativeContent.Element owner, int index)
         {
@@ -244,7 +264,7 @@ public sealed partial class EpubDocument
                 }
                 double size = item.Style.FontSize;
                 double logicalTop = baseline - font.Ascender * size / font.UnitsPerEm;
-                placements.Add(new EpubTextPlacement(spineIndex, item.Index, 1, item.Left, logicalTop, item.Width, size)
+                placements.Add(new EpubTextPlacement(spineIndex, item.Index, item.Length, item.Left, logicalTop, item.Width, size)
                 {
                     Color = item.Style.Color
                 });
