@@ -6,6 +6,10 @@ public sealed partial class DjvuDocument
 {
     /// <summary>Reads up to 4 MiB of page text and validates up to 65536 optional zones without changing embedded separators.</summary>
     public string ReadText(int pageIndex, CancellationToken cancellationToken = default)
+        => ReadTextPage(pageIndex, cancellationToken).Text;
+
+    /// <summary>Reads original text and ordered unrotated pixel zones for a physical page.</summary>
+    public DjvuTextPage ReadTextPage(int pageIndex, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if ((uint)pageIndex >= (uint)_pageForms.Length) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -16,7 +20,7 @@ public sealed partial class DjvuDocument
             throw new InvalidDataException("A page contains duplicate or conflicting text chunks.");
         var text = chunks.FirstOrDefault(c => c.Id == 0x5458547a);
         if (text.Id == 0) text = chunks.FirstOrDefault(c => c.Id == 0x54585461);
-        if (text.Id == 0) return string.Empty;
+        if (text.Id == 0) return new DjvuTextPage(string.Empty, []);
         ReadOnlySpan<byte> payload = text.Id == 0x5458547a
             ? DjvuBzzDecoder.Decode(_data.AsSpan(text.Offset, text.Length), 4 * 1024 * 1024 + 4 + 17 * 65_536,
                 4 * 1024 * 1024, 32, cancellationToken)
@@ -26,13 +30,12 @@ public sealed partial class DjvuDocument
         if (length > 4 * 1024 * 1024) throw new InvalidDataException("TXTa text exceeds the 4 MiB read limit.");
         if (length > payload.Length - 4) throw new InvalidDataException("TXTa text or version is truncated.");
         if (payload[length + 3] != 1) throw new NotSupportedException("Only TXTa text version 1 is supported.");
-        ValidateTextZones(payload[(length + 4)..], length, cancellationToken);
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             var result = new UTF8Encoding(false, true).GetString(payload.Slice(3, length));
             cancellationToken.ThrowIfCancellationRequested();
-            return result;
+            return new DjvuTextPage(result, ReadTextZones(payload[(length + 4)..], payload.Slice(3, length), cancellationToken));
         }
         catch (DecoderFallbackException exception)
         {
@@ -40,11 +43,29 @@ public sealed partial class DjvuDocument
         }
     }
 
-    private static void ValidateTextZones(ReadOnlySpan<byte> zones, int textLength, CancellationToken cancellationToken)
+    private static DjvuTextZone[] ReadTextZones(ReadOnlySpan<byte> zones, ReadOnlySpan<byte> text, CancellationToken cancellationToken)
     {
         if (zones.Length / 17 > 65_536) throw new InvalidDataException("TXTa zone count exceeds the 65536 zone limit.");
         if (zones.Length % 17 != 0) throw new InvalidDataException("Truncated TXTa zone record.");
+        if (zones.IsEmpty) return [];
+        var textLength = text.Length;
+        // Only scalar boundaries have UTF16 offsets. Interior UTF8 bytes remain -1.
+        var utf16Offsets = new int[textLength + 1];
+        Array.Fill(utf16Offsets, -1);
+        var utf16Offset = 0;
+        for (var offset = 0; offset < text.Length;)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            utf16Offsets[offset] = utf16Offset;
+            if (Rune.DecodeFromUtf8(text[offset..], out var rune, out var consumed) != System.Buffers.OperationStatus.Done)
+                throw new InvalidDataException("TXTa contains invalid UTF8.");
+            offset += consumed;
+            utf16Offset += rune.Utf16SequenceLength;
+        }
+        utf16Offsets[textLength] = utf16Offset;
+        var result = new DjvuTextZone[zones.Length / 17];
         Span<int> childrenRemaining = stackalloc int[64];
+        Span<int> parentIndexes = stackalloc int[64];
         Span<int> parentTextStarts = stackalloc int[64];
         Span<int> previousTextEnds = stackalloc int[65];
         Span<(long Left, long Bottom, long Right, long Top)> parents = stackalloc (long, long, long, long)[64];
@@ -91,15 +112,21 @@ public sealed partial class DjvuDocument
                 }
                 childrenRemaining[depth - 1]--;
             }
-            var bounds = (Left: left, Bottom: bottom, Right: left + width, Top: bottom + height);
+            var bounds = (Left: left, Bottom: bottom, Right: checked(left + width), Top: checked(bottom + height));
             if (bounds.Right <= bounds.Left || bounds.Top <= bounds.Bottom)
                 throw new InvalidDataException("TXTa zone rectangle is empty or inverted.");
             if (start < 0 || start > textLength || length > textLength - start)
                 throw new InvalidDataException("TXTa zone text range exceeds the page text.");
+            if (utf16Offsets[start] < 0 || utf16Offsets[start + length] < 0)
+                throw new InvalidDataException("TXTa zone text range splits a UTF8 scalar.");
+            var index = position / 17;
+            result[index] = new DjvuTextZone((DjvuTextZoneType)type, depth == 0 ? -1 : parentIndexes[depth - 1],
+                utf16Offsets[start], utf16Offsets[start + length] - utf16Offsets[start], left, bottom, width, height);
             previousTextEnds[depth] = start + length;
             previous[depth] = bounds;
             if (childCount > 0)
             {
+                parentIndexes[depth] = index;
                 parentTextStarts[depth] = start;
                 parents[depth] = bounds;
                 childrenRemaining[depth++] = childCount;
@@ -108,5 +135,7 @@ public sealed partial class DjvuDocument
         }
         for (var i = 0; i < depth; i++)
             if (childrenRemaining[i] != 0) throw new InvalidDataException("TXTa zone children are truncated.");
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
     }
 }
