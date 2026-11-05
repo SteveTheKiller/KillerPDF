@@ -165,8 +165,10 @@ global text ranges and nonempty rectangles. Parent and previous-sibling offsets 
 the format's signed relative coordinates. Reading is limited to 4 MiB of text and
 supports cancellation. Compressed text permits virtual final arithmetic bits within
 checked decision and input budgets derived from the decoded byte and block limits.
-BZZ coverage, mixed visual layers and native text geometry
-still need implementation and acceptance; text extraction does not prove visual fidelity.
+BZZ headers and speed decisions use ordinary unmodeled arithmetic, independently of
+IW44's image-specific operation, including across compressed block boundaries.
+Broader BZZ coverage, mixed visual layers and native text geometry still need
+implementation and acceptance; text extraction does not prove visual fidelity.
 
 ## Native EPUB layout (1.9.3 development)
 

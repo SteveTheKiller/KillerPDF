@@ -6,6 +6,25 @@ namespace KillerPdf.Engine.Tests.Formats.Djvu;
 public sealed class DjvuBzzTerminationTests
 {
     [Fact]
+    public void ReadsIndependentTextAcrossCompressedBlockBoundaries()
+    {
+        // Original 20,480-character payload independently encoded with 10 KB blocks.
+        var compressed = Convert.FromHexString("FFD7FFFF7DCD61156B1D141CBE0FFE2E34DC527F9DDA69F2128F");
+        var document = DjvuDocument.Open(Page(compressed));
+        Assert.Equal(new string('A', 20_480), document.ReadText(0));
+    }
+
+    [Fact]
+    public void PreservesIndependentPatternedTextAcrossCompressedBlockBoundaries()
+    {
+        // Same independent encoder, with the original alphabet pattern as the oracle.
+        var compressed = Convert.FromHexString(
+            "FFD7FFFF77CD6872D7C480542EC41D8DE5502D203C439397929DC4D0E8ECC1AB8B4E98DD12524BC5CEC9D66D371D6D69EC86BD8DE28B54AD383817612A820F97B40FFB49F8191E0B12EB2D328E5B8470F9C1389F2E9F2CE9DD96D6D6245DD379079752F4F73CE25763790D989E90903DACF288B4DB3EB5D92B9C0B409E07BFE178A71477BC403D18");
+        var expected = string.Concat(Enumerable.Range(0, 20_480).Select(i => (char)('A' + i * 17 % 26)));
+        Assert.Equal(expected, DjvuDocument.Open(Page(compressed)).ReadText(0));
+    }
+
+    [Fact]
     public void ReadsIndependentNineCharacterTextWithVirtualFinalBits()
     {
         // Independently encoded text payload: 000009, nine ASCII A bytes, version 1.

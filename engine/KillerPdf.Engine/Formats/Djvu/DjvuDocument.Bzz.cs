@@ -15,7 +15,7 @@ internal static class DjvuBzzDecoder
         var blocks = Math.Min((long)blockCountLimit, decodedByteLimit);
         var decisions = checked(24L + 42L * blocks + 16L * decodedByteLimit);
         var arithmetic = new DjvuZpDecoder(input.ToArray(), new byte[262], cancellationToken,
-            decisionLimit: decisions);
+            decisionLimit: decisions, ordinaryUnmodeled: true);
         using var output = new MemoryStream();
         var blockCount = 0;
         while (true)

@@ -8,6 +8,7 @@ internal sealed class DjvuZpDecoder
     private readonly CancellationToken _token;
     private readonly byte[] _contexts;
     private readonly bool _callerBoundsDecisions;
+    private readonly bool _ordinaryUnmodeled;
     private long _bitPosition;
     private int _paddingBits;
     private long? _remainingDecisions;
@@ -16,13 +17,14 @@ internal sealed class DjvuZpDecoder
     private int _c;
 
     internal DjvuZpDecoder(byte[] input, byte[] contexts, CancellationToken token,
-        bool callerBoundsDecisions = false, long? decisionLimit = null)
+        bool callerBoundsDecisions = false, long? decisionLimit = null, bool ordinaryUnmodeled = false)
     {
         if (contexts.Length is < 1 or > 262) throw new ArgumentOutOfRangeException(nameof(contexts));
         _input = input;
         _contexts = contexts;
         _token = token;
         _callerBoundsDecisions = callerBoundsDecisions;
+        _ordinaryUnmodeled = ordinaryUnmodeled;
         if (decisionLimit is < 0) throw new ArgumentOutOfRangeException(nameof(decisionLimit));
         _remainingDecisions = decisionLimit;
         // Initialization needs 16 bits. A 16-bit interval can renormalize at
@@ -74,7 +76,8 @@ internal sealed class DjvuZpDecoder
             _remainingDecisions--;
         }
         var state = context < 0 ? default : States[_contexts[context]];
-        var split = context < 0 ? 0x8000 + ((_a * 3) >> 3) :
+        // BZZ uses the ordinary unmodeled operation; IW44 uses its image-specific split.
+        var split = context < 0 ? 0x8000 + (_ordinaryUnmodeled ? _a >> 1 : (_a * 3) >> 3) :
             Math.Min(_a + state.Delta, 0x6000 + ((_a * 2 + state.Delta) >> 2));
         var most = context < 0 ? 0 : _contexts[context] & 1;
         int result;
