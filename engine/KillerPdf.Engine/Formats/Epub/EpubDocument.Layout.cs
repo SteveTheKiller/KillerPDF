@@ -40,7 +40,7 @@ public sealed partial class EpubDocument
                 ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new EpubLayoutDocument(options, pages);
+        return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href));
     }
 
     private void AppendNativeSpinePages(int spineIndex, EpubLayoutOptions options, double contentWidth,

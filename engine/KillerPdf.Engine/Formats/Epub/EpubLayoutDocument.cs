@@ -19,6 +19,10 @@ public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, True
 public sealed record EpubTextPlacement(int SpineIndex, int Start, int Length,
     double Left, double Top, double Width, double Height);
 
+/// <summary>Locates a native EPUB navigation destination in logical CSS pixels.</summary>
+public sealed record EpubNavigationDestination(int PageIndex, int SpineIndex, int TextOffset,
+    double Left, double Top);
+
 /// <summary>Provides native page text and logical placement geometry.</summary>
 public sealed class EpubLayoutPage
 {
@@ -48,14 +52,40 @@ public sealed class EpubLayoutPage
 public sealed class EpubLayoutDocument
 {
     private readonly EpubLayoutOptions _options;
+    private readonly string[] _spineHrefs;
 
-    internal EpubLayoutDocument(EpubLayoutOptions options, IEnumerable<EpubLayoutPage> pages)
+    internal EpubLayoutDocument(EpubLayoutOptions options, IEnumerable<EpubLayoutPage> pages,
+        IEnumerable<string> spineHrefs)
     {
         _options = options with { };
         Pages = Array.AsReadOnly(pages.ToArray());
+        _spineHrefs = spineHrefs.ToArray();
     }
     /// <summary>Gets the immutable native pages.</summary>
     public IReadOnlyList<EpubLayoutPage> Pages { get; }
+
+    /// <summary>Resolves an exact, case-sensitive package-relative chapter target returned by EPUB navigation.</summary>
+    /// <remarks>Targets are limited to 4,096 characters. Nonempty anchor fragments are unsupported.</remarks>
+    public EpubNavigationDestination ResolveNavigationTarget(string target,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(target);
+        if (target.Length > 4096)
+            throw new ArgumentException("The EPUB navigation target exceeds its 4,096 character limit.", nameof(target));
+        int fragmentStart = target.IndexOf('#');
+        if (fragmentStart >= 0 && fragmentStart < target.Length - 1)
+            throw new NotSupportedException("Native EPUB navigation does not support anchor fragments.");
+        if (fragmentStart >= 0) target = target[..fragmentStart];
+        int spineIndex = Array.IndexOf(_spineHrefs, target);
+        if (spineIndex >= 0 && Array.IndexOf(_spineHrefs, target, spineIndex + 1) >= 0)
+            throw new InvalidDataException("The EPUB navigation target occurs more than once in the native spine.");
+        for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++)
+            if (Pages[pageIndex].SpineIndex == spineIndex)
+                return new EpubNavigationDestination(pageIndex, spineIndex, 0, _options.Margin, _options.Margin);
+        throw new ArgumentException("The EPUB navigation target is not in the native spine.", nameof(target));
+    }
+
     /// <summary>Renders a native page at its natural CSS-pixel dimensions.</summary>
     public PdfRenderedFrame RenderPage(int pageIndex, CancellationToken cancellationToken = default)
     {

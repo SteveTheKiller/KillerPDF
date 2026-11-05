@@ -156,6 +156,11 @@ paragraph gaps. Consecutive breaks retain blank line heights through pagination,
 and styled text keeps its source offsets. Structural normalization still omits
 leading breaks before any text and trims trailing breaks.
 Words wider than the content box are diagnosed explicitly.
+`EpubLayoutDocument.ResolveNavigationTarget` maps resolved chapter targets from EPUB 2 NCX
+and EPUB 3 navigation to the chapter's first native page and logical margin coordinates.
+Targets use exact, case-sensitive package paths and a 4,096-character limit. Empty fragments
+refer to the chapter start; nonempty anchor fragments remain unsupported. Duplicate spine
+targets are diagnosed as ambiguous. Captured-session and desktop navigation wiring remain unfinished.
 `RenderPage` produces an owned linear-sRGB float frame through shared glyph rendering,
 without creating a PDF. Inline and packaged CSS `font-size` and `line-height` support positive CSS-pixel
 lengths that fit the content height. Mixed sizes share a baseline; collapsed spaces
