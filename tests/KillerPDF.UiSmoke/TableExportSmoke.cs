@@ -21,7 +21,7 @@ internal static class TableExportSmoke
     internal static int Run(string appPath, string appXaml, string folder, bool officeExport = false, bool grainThemes = false, bool dialogText = false, bool sidebarActions = false, bool paragraphEdit = false, bool accessibilityReview = false, bool formFieldEditing = false, bool guidedTasks = false, bool signedCopy = false, bool renderRecovery = false, bool toolbarAvailability = false, bool windowLifecycle = false, bool windowSession = false, string windowSessionCase = "--verify-window-session", string? updateRestartState = null, bool referenceRepairNotice = false, bool reductionRepairNotice = false)
     {
         bool visibleNative = windowSession && (windowSessionCase is "--verify-native-reading" or "--verify-native-reading-continuous" or "--verify-native-reading-grid" or "--verify-native-reading-grid-switch" or "--verify-native-reading-epub" or "--verify-native-reading-epub-continuous" or "--verify-native-reading-epub-grid-switch" or "--verify-shortcut-hints"
-            || windowSessionCase == "--verify-native-outlines"
+            || windowSessionCase is "--verify-native-outlines" or "--verify-native-outlines-djvu"
             || windowSessionCase.StartsWith("--verify-page-navigation-", StringComparison.Ordinal));
         if (visibleNative && !new[] { "SN01", "SN02" }.Contains(Environment.MachineName, StringComparer.OrdinalIgnoreCase))
             throw new InvalidOperationException("Visible native hint acceptance may run only on SN01 or SN02.");
@@ -129,6 +129,7 @@ internal static class TableExportSmoke
             owner.ShowInTaskbar = false; owner.ShowActivated = visibleNative;
             owner.Show();
             if (windowSessionCase == "--verify-native-outlines") return NativeOutlineSmoke.Run(owner, appPath, appXaml, folder);
+            if (windowSessionCase == "--verify-native-outlines-djvu") return NativeOutlineSmoke.Run(owner, appPath, appXaml, folder, djvu: true);
             if (windowSessionCase == "--verify-native-reading") return NativeReadingSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-native-reading-epub") return NativeReadingSmoke.Run(owner, appPath, folder, epub: true);
             if (windowSessionCase == "--verify-native-reading-epub-continuous") return NativeReadingSmoke.Run(owner, appPath, folder, continuous: true, epub: true);

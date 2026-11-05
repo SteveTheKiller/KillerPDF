@@ -40,7 +40,7 @@ internal static class Program
                 Console.WriteLine("PASS selected engine identity: " + SelectedAssemblyIdentity.HashLoaded(engine, appPath));
                 return 0;
             }
-            if (args.Length == 5 && args[0] == "--verify-native-outlines" && args[4] == "--session-isolation")
+            if (args.Length == 5 && (args[0] is "--verify-native-outlines" or "--verify-native-outlines-djvu") && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);
             if (args.Length == 5 && args[0] is "--verify-native-reading" or "--verify-native-reading-continuous" or "--verify-native-reading-grid" or "--verify-native-reading-grid-switch" or "--verify-native-reading-epub" or "--verify-native-reading-epub-continuous" or "--verify-native-reading-epub-grid-switch" && args[4] == "--session-isolation")

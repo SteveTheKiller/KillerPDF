@@ -136,7 +136,9 @@ namespace KillerPDF.Controls
                 PagePreviewPanel.ScrollToTop();
                 PagePreviewPanel.ScrollToHorizontalOffset(0);
                 RenderPage(_currentPage);
-                ApplyZoom();
+                if (_nativeDoc is not null && _fitMode == FitMode.Page) FitToPage();
+                else if (_nativeDoc is not null && _fitMode == FitMode.Width) FitToWidth();
+                else ApplyZoom();
                 // Update page jump box
                 Host?.PageJumpText = (_currentPage + 1).ToString();
                 // Re-highlight search results on this page if a search is active

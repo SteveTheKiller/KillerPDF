@@ -20,7 +20,7 @@ using System.Windows.Threading;
 
 internal static class NativeOutlineSmoke
 {
-    internal static int Run(Window owner, string appPath, string appXaml, string folder)
+    internal static int Run(Window owner, string appPath, string appXaml, string folder, bool djvu = false)
     {
         Application? app = Application.Current;
         string stage = "starting";
@@ -70,9 +70,10 @@ internal static class NativeOutlineSmoke
             var builderType = engine.GetType("KillerPdf.Engine.Authoring.PdfDocumentBuilder", true)!;
             var constructor = builderType.GetConstructors().Single();
             dynamic builder = constructor.Invoke(constructor.GetParameters().Select(p => p.DefaultValue).ToArray());
-            string pdf = Path.Combine(folder, "blank-editable-control.pdf"), epub = Path.Combine(folder, "native-two-chapters.epub");
+            string pdf = Path.Combine(folder, "blank-editable-control.pdf"), epub = Path.Combine(folder,
+                djvu ? "native-two-pages.djvu" : "native-two-chapters.epub");
             sources.Add(pdf, (byte[])builder.AddBlankPage(600d, 750d).Build());
-            sources.Add(epub, EpubFixture());
+            sources.Add(epub, djvu ? DjvuFixture() : EpubFixture());
             foreach (var input in sources) File.WriteAllBytes(input.Key, input.Value);
             foreach (string color in new[] { "red", "blue", "blank" })
             {
@@ -103,11 +104,11 @@ internal static class NativeOutlineSmoke
             Capture(Bounds(owner), "pdf-outline-control-window");
             assertions++;
 
-            Open(epub); Ready(epub, 2, 1, "red", "native-first");
+            Open(epub); Ready(epub, 2, 1, djvu ? "blank" : "red", "native-first", djvu ? .5 : null);
             Stage("native-outline-enabled");
             tab = Named<Button>(owner, "SidebarOutlinesTab");
             Capture(Bounds(owner), "native-ready-before-outline-window");
-            Product(tab.IsEnabled, "Rendered native EPUB has a disabled outline tab.");
+            Product(tab.IsEnabled, "Rendered native document has a disabled outline tab.");
             if (!tab.IsVisible) throw new InvalidOperationException("Enabled native outline tab is not visible.");
             ShowOutlines();
             Wait(() => Named<TreeView>(owner, "OutlineTree").IsVisible);
@@ -128,7 +129,7 @@ internal static class NativeOutlineSmoke
             TreeViewItem second = (TreeViewItem)group.Items[1];
             var peer = UIElementAutomationPeer.CreatePeerForElement(second) ?? new TreeViewItemAutomationPeer(second);
             Require<ISelectionItemProvider>(peer.GetPattern(PatternInterface.SelectionItem)).Select();
-            Ready(epub, 2, 2, "blue", "native-second");
+            Ready(epub, 2, 2, djvu ? "blank" : "blue", "native-second", djvu ? 2 : null);
             Product(second.IsSelected, "Second chapter selection was lost.");
 
             Open(pdf); Ready(pdf, 1, 1, "blank", "pdf-return");
@@ -154,7 +155,7 @@ internal static class NativeOutlineSmoke
             var firstPeer = UIElementAutomationPeer.CreatePeerForElement((TreeViewItem)group.Items[0])
                 ?? new TreeViewItemAutomationPeer((TreeViewItem)group.Items[0]);
             Require<ISelectionItemProvider>(firstPeer.GetPattern(PatternInterface.SelectionItem)).Select();
-            Ready(epub, 2, 1, "red", "native-return-first");
+            Ready(epub, 2, 1, djvu ? "blank" : "red", "native-return-first", djvu ? .5 : null);
             Stage("complete");
         }
         catch (Exception error)
@@ -200,7 +201,7 @@ internal static class NativeOutlineSmoke
             if (app is not null) app.DispatcherUnhandledException -= dispatcherFailure;
             Write("result.json", new { passed = failure is null && preserved && closed,
                 verdict = failure is null ? "GREEN_NATIVE_OUTLINES" : failure is OutlineAssertionException ? "RED_NATIVE_OUTLINES" : "SETUP_FAILURE",
-                stage, failedAt, failure = failure?.ToString(), assertions, preserved, closed,
+                stage, failedAt, failure = failure?.ToString(), assertions, preserved, closed, format = djvu ? "DjVu" : "EPUB",
                 machine = Environment.MachineName, processId = Environment.ProcessId, ownerHandle = hwnd.ToInt64(), hashes, events,
                 inputs = sources.Select(s => new { path = s.Key, length = s.Value.Length, sha256 = Hash(s.Value) }),
                 scope = "Owned native WPF window screen pixels, public external-open, footer radio, sidebar Invoke and tree SelectionItem providers. No private model injection, native pointer input or screen-reader claim." });
@@ -243,7 +244,7 @@ internal static class NativeOutlineSmoke
             catch (TargetInvocationException error) when (error.InnerException is not null)
             { ExceptionDispatchInfo.Capture(error.InnerException).Throw(); }
         }
-        void Ready(string path, int count, int? pageNumber, string? color, string name)
+        void Ready(string path, int count, int? pageNumber, string? color, string name, double? aspect = null)
         {
             Stage(name + "-readiness");
             Wait(() => owner.IsVisible && owner.IsEnabled && Named<RadioButton>(owner, "ViewSingleRadio") is { IsVisible: true, IsEnabled: true });
@@ -253,6 +254,7 @@ internal static class NativeOutlineSmoke
             Rect last = Rect.Empty, lastWindow = Rect.Empty, lastViewport = Rect.Empty;
             ImageSource? previous = null;
             int stable = 0;
+            var geometryAge = Stopwatch.StartNew();
             Wait(() =>
             {
                 owner.UpdateLayout();
@@ -271,9 +273,16 @@ internal static class NativeOutlineSmoke
                 if (presenters.Length != 1 || images.Length != 1 || !Opaque(images[0])) { stable = 0; return false; }
                 page = images[0];
                 Rect bounds = Bounds(page), window = Bounds(owner), clip = Bounds(presenters[0]);
-                if (!window.Contains(bounds) || !clip.Contains(bounds)) { stable = 0; return false; }
-                stable = bounds == last && window == lastWindow && clip == lastViewport && ReferenceEquals(previous, page.Source) ? stable + 1 : 0;
+                bool sameGeometry = bounds == last && window == lastWindow && clip == lastViewport && ReferenceEquals(previous, page.Source);
+                stable = sameGeometry ? stable + 1 : 0;
+                if (!sameGeometry) geometryAge.Restart();
                 last = bounds; lastWindow = window; lastViewport = clip; previous = page.Source;
+                if (!window.Contains(bounds) || !clip.Contains(bounds))
+                {
+                    if (stable >= 7 && geometryAge.Elapsed > TimeSpan.FromSeconds(3))
+                        Product(false, "Settled native navigation leaves the page clipped in Fit Page mode: " + name);
+                    return false;
+                }
                 return stable >= 7;
             });
             Stage(name + "-screen-pixels");
@@ -283,6 +292,9 @@ internal static class NativeOutlineSmoke
             events.Add(new { stage, red, blue, blank, footer = Named<TextBlock>(owner, "StatusText").Text, bounds = last.ToString(), opaque = Opaque(page!) });
             if (color is not null && (red != (color == "red") || blue != (color == "blue") || blank != (color == "blank")))
                 throw new InvalidOperationException("Owned screen color readiness control failed: " + name);
+            if (aspect is double expectedAspect)
+                Product(Math.Abs(last.Width / last.Height - expectedAspect) < .003,
+                    "Native page screen proportions differ from the independently verified fixture: " + name);
             assertions++;
         }
         void Wait(Func<bool> ready)
@@ -368,6 +380,22 @@ internal static class NativeOutlineSmoke
             }
         return total > 0 && (double)hit / total > .95;
     }
+    private static byte[] DjvuFixture()
+    {
+        // Original synthetic Smmr pages, independently parsed and rendered with DjVu.js 0.5.4.
+        byte[] bytes = Convert.FromHexString(
+            "41542654464F524D00000138444A564D4449524D0000001C81000200000070000000ECFFFFF0BF347824065FD6A4C55EC2BC" +
+            "44674E41564D00000033FFFFBEFE6DD38AA52493D4433E784CD631829A67BDBF018EABC277460B64E63BF349CD6017842A22" +
+            "E0C4A39E1E9C9FC2B82A1F00464F524D00000074444A5655494E464F0000000A012C02581A002C011601536D6D7200000056" +
+            "4D4D5200012C0258FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" +
+            "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF001001464F524D00000050444A5655494E" +
+            "464F0000000A0258012C1A002C011601536D6D72000000314D4D52000258012CFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" +
+            "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF001001000");
+        if (Hash(bytes) != "8866CF1665B130CB5C5B8C54AD6EE83117E7BE030B23219BBBB3CE2868AED70B")
+            throw new InvalidOperationException("Independent DjVu outline fixture identity differs.");
+        return bytes;
+    }
+
     private static byte[] EpubFixture()
     {
         using var output = new MemoryStream();

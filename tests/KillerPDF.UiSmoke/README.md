@@ -540,5 +540,10 @@ an exclusively owned SN01 or SN02. It checks an editable PDF outline control and
 two-chapter EPUB through public open, sidebar and selection providers. Owned screen
 captures verify chapter navigation, expansion and PDF/native document switching.
 The result distinguishes product failures from setup failures and records candidate
-identities, original preservation and window teardown. It does not certify DjVu
-outline rendering or the complete native-format acceptance matrix.
+identities, original preservation and window teardown.
+`--verify-native-outlines-djvu` takes the same arguments and exercises a separate
+bundled DjVu fixture with nested outlines and portrait/landscape Smmr pages. Its
+directory, outline and white page pixels were independently checked with DjVu.js
+0.5.4, commit `eca3e69c966f3b7fcf0453f39029bc1e409fea8a`. Screen proportions identify
+each page, including after PDF/native return, and settled clipping is a product
+failure. These cases do not certify the complete native-format acceptance matrix.
