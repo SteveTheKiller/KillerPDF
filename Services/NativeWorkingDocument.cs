@@ -48,6 +48,16 @@ internal sealed class NativeWorkingDocument : IDisposable
     internal string ContentIdentity => _snapshot.SourceSha256;
     internal int PageCount => _snapshot.PageCount;
 
+    internal PdfReadPageGeometry GetNativePageGeometry(int pageIndex, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_closed, this);
+            return _snapshot.GetPageGeometry(pageIndex);
+        }
+    }
+
     internal IReadOnlyList<PdfReadNavigationEntry> ReadNavigation(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

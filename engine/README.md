@@ -163,8 +163,8 @@ refer to the chapter start. Body, paragraph, span and line-break IDs retain stru
 nonempty fragments decode once and resolve their actual paginated logical position. IDs retain
 case and Unicode identity. Empty elements use the next text placement or the chapter's final
 logical cursor. Duplicate spine targets or anchor IDs are diagnosed as ambiguous, and missing
-anchors are rejected. A layout owns at most 100,000 anchors. Desktop chapter navigation is
-available; scrolling to an anchor's exact within-page position remains unfinished.
+anchors are rejected. A layout owns at most 100,000 anchors. Desktop chapter and within-page
+outline navigation are available in Single mode; broader native workflows still need acceptance.
 `RenderPage` produces an owned linear-sRGB float frame through shared glyph rendering,
 without creating a PDF. Inline and packaged CSS `font-size` and `line-height` support positive CSS-pixel
 lengths that fit the content height. Mixed sizes share a baseline; collapsed spaces

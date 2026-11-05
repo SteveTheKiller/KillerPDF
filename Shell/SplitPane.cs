@@ -531,7 +531,7 @@ namespace KillerPDF.Shell
             if (!Services.PageDropRoute.MayFocus(pane, Viewer, ViewerB)) return;
             if (ReferenceEquals(ActiveViewer, pane))
             {
-                SyncRailPanelAvailability(_doc is not null);
+                SyncRailPanelAvailability(pane.HasReadDocumentExt);
                 return;
             }
 
@@ -559,7 +559,7 @@ namespace KillerPDF.Shell
             // document costs seconds on every click between panes.
             RestorePageListForActivePane();
             LoadOutlines();
-            SyncRailPanelAvailability(_doc is not null);
+            SyncRailPanelAvailability(pane.HasReadDocumentExt);
             SyncZoomBox();
             SyncPickerState();
             UpdatePageSizeDisplay();

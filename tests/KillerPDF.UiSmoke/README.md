@@ -547,3 +547,10 @@ directory, outline and white page pixels were independently checked with DjVu.js
 0.5.4, commit `eca3e69c966f3b7fcf0453f39029bc1e409fea8a`. Screen proportions identify
 each page, including after PDF/native return, and settled clipping is a product
 failure. These cases do not certify the complete native-format acceptance matrix.
+
+`--verify-native-anchor APP_DLL APP_XAML OUTPUT --session-isolation` checks an EPUB
+outline destination below the viewport in Single mode at Fit Width. It waits for
+the initial render before changing zoom and selects the actual combo item peer.
+Owned screen captures prove the blue target is initially outside the viewport,
+appears after selecting Anchor without a page change, and disappears after Start.
+Native outline availability, source preservation and window teardown are checked.

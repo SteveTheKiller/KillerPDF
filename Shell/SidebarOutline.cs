@@ -167,6 +167,7 @@ namespace KillerPDF.Shell
                     var destination = native.Owner.ResolveNavigationTarget(native.Entry.Target, PageList.SelectedIndex);
                     RecordNavJump();
                     PageList.SelectedIndex = destination.PageIndex;
+                    _ = ActiveViewer.RevealNativeNavigationExt(native.Owner, destination);
                 }
                 catch (Exception error) when (error is InvalidDataException or NotSupportedException
                     or ArgumentException or ObjectDisposedException)
