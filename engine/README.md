@@ -201,10 +201,12 @@ logical cursor. Duplicate spine targets or anchor IDs are diagnosed as ambiguous
 anchors are rejected. A layout owns at most 100,000 anchors. Desktop chapter and within-page
 outline navigation are available in Single mode; broader native workflows still need acceptance.
 `RenderPage` produces an owned linear-sRGB float frame through shared glyph rendering,
-without creating a PDF. Inline and packaged CSS `font-size` and `line-height` support positive CSS-pixel
-lengths that fit the content height. Mixed sizes share a baseline; collapsed spaces
-retain their original inline style. The default normal line height follows each
-inline font's ascent and descent; explicit pixel line heights inherit as lengths.
+without creating a PDF. Inline and packaged CSS `font-size` and `line-height` support
+positive `px`, `em` and percentage values that fit the content height. Font sizes resolve
+against the parent after cascade selection. Relative line heights compute against the
+element's font and inherit as lengths; unitless line-height factors recalculate for each
+descendant's font. Mixed sizes share a baseline; collapsed spaces retain their original
+inline style. Default normal line height follows each inline font's ascent and descent.
 Foreground `color` accepts six-digit sRGB hex values and the 16 basic CSS color
 keywords, case-insensitively. It inherits and follows property-specific cascade
 precedence. Individual glyphs retain their foreground color through rendering.

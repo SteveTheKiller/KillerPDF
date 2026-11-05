@@ -8,7 +8,10 @@ namespace KillerPdf.Engine.Formats.Epub;
 internal sealed class EpubNativeContent(double fallbackSize, double contentHeight)
 {
     internal readonly record struct BackgroundColor(PdfRgbColor? Color);
-    internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null);
+    internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null)
+    {
+        internal double? LineHeightFactor { get; init; }
+    }
     internal sealed record Element(string Name, Element? Parent, Style Style, Style BlockStyle);
     internal sealed record Text(string Value, Element Owner);
     internal sealed record InlineReference(int Offset, string? Source, Element Owner);
@@ -77,8 +80,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         xml.MoveToElement();
         Style inherited = parent?.Style ?? DefaultStyle;
         if (inherited.Background is not null) inherited = inherited with { Background = null };
-        Style style = ApplyRules(name, classNames, inherited);
-        if (inlineStyle is not null) style = ParseStyle(inlineStyle, style);
+        CssProperties properties = ResolveRules(name, classNames);
+        if (inlineStyle is not null) properties = properties.Override(ParseProperties(inlineStyle));
+        Style style = properties.Apply(inherited, contentHeight);
         if (style.Background is { } background)
         {
             if (name != "body")
@@ -151,11 +155,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
 
     private sealed record CssRule(string[] Classes, CssProperties Properties);
 
-    private Style ApplyRules(string name, string? classNames, Style inherited)
+    private CssProperties ResolveRules(string name, string? classNames)
     {
-        if (!_typeRules.TryGetValue(name, out var rules)) return inherited;
+        if (!_typeRules.TryGetValue(name, out var rules)) return default;
         string[] classes = classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [];
-        double? size = null, height = null;
+        CssLength? size = null, height = null;
         PdfRgbColor? color = null;
         BackgroundColor? background = null;
         int sizeSpecificity = -1, heightSpecificity = -1, colorSpecificity = -1, backgroundSpecificity = -1;
@@ -202,7 +206,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 backgroundSpecificity = specificity;
             }
         }
-        return new CssProperties(size, height, color, background).Apply(inherited);
+        return new CssProperties(size, height, color, background);
     }
 
     private void CountSelectorWork(int amount)
@@ -212,17 +216,37 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         _selectorWork += amount;
     }
 
-    private readonly record struct CssProperties(double? FontSize, double? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null)
+    private readonly record struct CssLength(double Value, bool Relative, bool Unitless = false)
     {
-        internal Style Apply(Style inherited) =>
-            new(FontSize ?? inherited.FontSize, LineHeight ?? inherited.LineHeight, Color ?? inherited.Color, Background ?? inherited.Background);
+        internal double Compute(double reference, double maximum)
+        {
+            double pixels = Relative ? Value * reference : Value;
+            if (!double.IsFinite(pixels) || pixels <= 0 || pixels > maximum)
+                throw new NotSupportedException("Native EPUB typography requires positive CSS lengths that fit the page.");
+            return pixels;
+        }
     }
 
-    private Style ParseStyle(string declarations, Style inherited) => ParseProperties(declarations).Apply(inherited);
+    private readonly record struct CssProperties(CssLength? FontSize, CssLength? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null)
+    {
+        internal CssProperties Override(CssProperties inline) =>
+            new(inline.FontSize ?? FontSize, inline.LineHeight ?? LineHeight,
+                inline.Color ?? Color, inline.Background ?? Background);
+
+        internal Style Apply(Style inherited, double maximum)
+        {
+            double size = FontSize?.Compute(inherited.FontSize, maximum) ?? inherited.FontSize;
+            double? factor = LineHeight is { Unitless: true } height ? height.Value
+                : LineHeight is null ? inherited.LineHeightFactor : null;
+            double? pixels = LineHeight?.Compute(size, maximum)
+                ?? (factor is double multiplier ? new CssLength(multiplier, true).Compute(size, maximum) : inherited.LineHeight);
+            return new(size, pixels, Color ?? inherited.Color, Background ?? inherited.Background) { LineHeightFactor = factor };
+        }
+    }
 
     private CssProperties ParseProperties(string declarations)
     {
-        double? size = null, height = null;
+        CssLength? size = null, height = null;
         PdfRgbColor? color = null;
         BackgroundColor? background = null;
         foreach (string declaration in declarations.Split(';'))
@@ -244,14 +268,33 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     ? null : ParseColor(value));
                 continue;
             }
+            if (property is "font-size" or "line-height"
+                && (value.EndsWith('%') || value.EndsWith("em", StringComparison.OrdinalIgnoreCase)))
+            {
+                bool percentage = value.EndsWith('%');
+                if (!double.TryParse(value[..(value.Length - (percentage ? 1 : 2))], NumberStyles.AllowDecimalPoint,
+                        CultureInfo.InvariantCulture, out double relative)
+                    || !double.IsFinite(relative) || relative <= 0)
+                    throw new NotSupportedException("Native EPUB typography requires positive CSS lengths that fit the page.");
+                var length = new CssLength(percentage ? relative / 100 : relative, true);
+                if (property == "font-size") size = length;
+                else height = length;
+                continue;
+            }
+            if (property == "line-height" && double.TryParse(value, NumberStyles.AllowDecimalPoint,
+                    CultureInfo.InvariantCulture, out double factor) && double.IsFinite(factor) && factor > 0)
+            {
+                height = new CssLength(factor, true, Unitless: true);
+                continue;
+            }
             if (!value.EndsWith("px", StringComparison.OrdinalIgnoreCase)
                 || !double.TryParse(value[..^2], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double pixels)
                 || !double.IsFinite(pixels) || pixels <= 0 || pixels > contentHeight)
                 throw new NotSupportedException("Native EPUB typography requires positive CSS pixel lengths that fit the page.");
             switch (property)
             {
-                case "font-size": size = pixels; break;
-                case "line-height": height = pixels; break;
+                case "font-size": size = new CssLength(pixels, false); break;
+                case "line-height": height = new CssLength(pixels, false); break;
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
