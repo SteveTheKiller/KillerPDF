@@ -233,7 +233,7 @@ public sealed partial class PdfPageRenderer
             || Resolve(space[1]) is not PdfStream profile
             || !profile.Dictionary.TryGetValue(Name("N"), out PdfObject? channels)) return false;
         // The existing precise image path validates profile transforms and sampling.
-        return Resolve(channels) is PdfInteger { Value: 1 or 3 };
+        return Resolve(channels) is PdfInteger { Value: 1 or 3 or 4 };
     }
 
     private static bool PreciseProofOperationSupported(string operation) => operation is

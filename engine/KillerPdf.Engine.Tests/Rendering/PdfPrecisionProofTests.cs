@@ -14,6 +14,125 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPrecisionProofTests
 {
+    [Fact]
+    public void ProofUsesDirectCmykIccImageBeforePrinterConversion()
+    {
+        var renderer = DirectCmykImageRenderer();
+        var options = new PdfRenderOptions(2, 1, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { RenderingIntent = PdfRenderingIntent.RelativeColorimetric,
+                    BlackPointCompensation = false, SimulateBlack = true, SimulatePaper = false })
+        };
+
+        var frame = renderer.RenderFrame(0, options);
+
+        // Independent affine fixture PCS Y=.5,.25. Printer inverse K=1-Y followed
+        // by its lower-half forward branch Y=.25+.5*Y gives .5,.375.
+        Assert.Equal(2, frame.Width);
+        Assert.Equal(1, frame.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        foreach (var (offset, expected) in new[] { (0, .5), (4, .375) })
+        {
+            double luminance = .2126 * frame.Pixels[offset] + .7152 * frame.Pixels[offset + 1]
+                + .0722 * frame.Pixels[offset + 2];
+            Assert.InRange(luminance, expected - .0001, expected + .0001);
+            Assert.Equal(1f, frame.Pixels[offset + 3]);
+        }
+    }
+
+    [Fact]
+    public void DirectCmykIccImageWithoutProofRetainsSourceAppearance()
+    {
+        var frame = DirectCmykImageRenderer().RenderFrame(0,
+            new PdfRenderOptions(2, 1, transparentBackground: true));
+
+        // Independent Decimal60 affine PCS values [.5,.5,.5] and [.5,.25,.5],
+        // adapted by inverse Bradford D50-to-D65 and the standard sRGB matrix.
+        // These source PCS Y=.5,.25 are not the D65 frame's luminances.
+        float[] expected = [.5131406486489755f, .4854079171638025f, .6243651623866893f, 1f,
+            .9173600969017678f, .00637379475990296f, .6816219306918492f, 1f];
+        for (int offset = 0; offset < expected.Length; offset++)
+        {
+            Assert.InRange(frame.Pixels[offset], expected[offset] - .000002f, expected[offset] + .000002f);
+        }
+        Assert.Equal(1f, frame.Pixels[3]);
+        Assert.Equal(1f, frame.Pixels[7]);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+    }
+
+    [Theory]
+    [InlineData("missingColorimetricTable")]
+    [InlineData("range")]
+    [InlineData("mask")]
+    [InlineData("scaledDown")]
+    [InlineData("interpolated")]
+    public void UnsupportedDirectCmykIccProofImageCasesRemainRejected(string scenario)
+    {
+        var options = new PdfRenderOptions(2, 1, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        Assert.Throws<NotSupportedException>(() => DirectCmykImageRenderer(scenario).RenderFrame(0, options));
+    }
+
+    [Fact]
+    public void DirectCmykIccProofImageRegionMatchesTheFullFrame()
+    {
+        var renderer = DirectCmykImageRenderer();
+        var options = new PdfRenderOptions(2, 1, transparentBackground: true)
+        {
+            Proof = new PdfDocumentProofSettings(enabled: true, printerProfile: Printer(),
+                options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
+        };
+
+        var full = renderer.RenderFrame(0, options);
+        var region = renderer.RenderFrameRegion(0, options, 1, 0, 1, 1);
+
+        Assert.Equal(1, region.Width);
+        Assert.Equal(1, region.Height);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, region.ColorEncoding);
+        Assert.Equal(full.Pixels[4..8], region.Pixels);
+    }
+
+    private static PdfPageRenderer DirectCmykImageRenderer(string? scenario = null)
+    {
+        byte[] profile = Convert.FromBase64String(
+            "AAABQAAAAAAEAAAAcHJ0ckNNWUtYWVogAAAAAAAAAAAAAAAAYWNzcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQTJCMQAAAJAAAACwbWZ0MgAAAAAEAwIAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAIAAgAA//8AAP//AAD//wAA//9AAEAAQAAgACAAIABAAEAAIAAgACAAAABAACAAQAAgAAAAIABAACAAIAAgAAAAAAAgAEAAQAAAACAAIAAgAEAAIAAAACAAAAAgACAAQAAAAAAAIAAgACAAIAAAAAAAAAAAAP//AAD//wAA//8=");
+        Assert.Equal("5D23FAF99558BAAB5B83FED13B42532C9CD7E839CE07C5960BDEED8B701E55CF",
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(profile)));
+        if (scenario == "missingColorimetricTable") "A2B0"u8.CopyTo(profile.AsSpan(132));
+        string content = scenario switch {
+            "scaledDown" => "1 0 0 1 0 0 cm /Image Do",
+            "interpolated" => "4 0 0 1 0 0 cm /Image Do",
+            _ => "2 0 0 1 0 0 cm /Image Do"
+        };
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+            Encoding.ASCII.GetBytes(content)).Build());
+        var page = PdfPageTree.Read(document).Pages[0];
+        var update = new PdfIncrementalUpdateBuilder(document);
+        var profileEntries = new List<KeyValuePair<PdfName, PdfObject>> { Entry("N", new PdfInteger(4)) };
+        if (scenario == "range")
+            profileEntries.Add(Entry("Range", new PdfArray(new[] { 0, .75, 0, 1, 0, 1, 0, 1 }
+                .Select(value => (PdfObject)new PdfReal(value)))));
+        var icc = update.AddObject(new PdfStream(new PdfDictionary(profileEntries), profile));
+        var imageEntries = new List<KeyValuePair<PdfName, PdfObject>> {
+            Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(2)),
+            Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)),
+            Entry("ColorSpace", new PdfArray([Name("ICCBased"), icc]))
+        };
+        if (scenario == "mask")
+            imageEntries.Add(Entry("Mask", new PdfArray(Enumerable.Repeat<PdfObject>(new PdfInteger(0), 8))));
+        if (scenario == "interpolated") imageEntries.Add(Entry("Interpolate", new PdfBoolean(true)));
+        var image = update.AddObject(new PdfStream(new PdfDictionary(imageEntries), [0, 0, 0, 0, 0, 255, 0, 0]));
+        var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("Image", image)]))]);
+        return new PdfPageRenderer(PdfDocument.Open(update.ReplaceObject(page.Reference.ObjectNumber,
+            new PdfDictionary(page.Dictionary.Where(pair => !pair.Key.Equals(Name("Resources")))
+                .Append(Entry("Resources", resources)))).Build()));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

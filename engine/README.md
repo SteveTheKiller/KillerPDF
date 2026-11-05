@@ -367,7 +367,7 @@ Basic embedded TrueType text retains its color through proof conversion after gl
 Text matrices, strings and positioned arrays support filled and stroked glyphs.
 Proof rendering also preserves character and word spacing, horizontal scale, text rise,
 line positioning, explicit or move-defined leading, and both quote text-showing operators.
-Direct DeviceRGB/Gray and supported RGB/Gray ICC image XObjects use the existing precise image path
+Direct DeviceRGB/Gray and supported RGB/Gray/CMYK ICC image XObjects use the existing precise image path
 before proof conversion, retaining supported source sample depths, Decode mapping and alpha.
 Embedded profiles and resource defaults are applied before the printer transform; extended reference
 RGB is not clipped at that boundary. Ordinary Form XObjects preserve supported paints through
