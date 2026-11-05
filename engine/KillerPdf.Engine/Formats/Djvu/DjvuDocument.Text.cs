@@ -44,8 +44,11 @@ public sealed partial class DjvuDocument
     {
         if (zones.Length / 17 > 65_536) throw new InvalidDataException("TXTa zone count exceeds the 65536 zone limit.");
         if (zones.Length % 17 != 0) throw new InvalidDataException("Truncated TXTa zone record.");
-        Span<byte> types = stackalloc byte[7];
-        Span<int> childrenRemaining = stackalloc int[7];
+        Span<int> childrenRemaining = stackalloc int[64];
+        Span<int> parentTextStarts = stackalloc int[64];
+        Span<int> previousTextEnds = stackalloc int[65];
+        Span<(long Left, long Bottom, long Right, long Top)> parents = stackalloc (long, long, long, long)[64];
+        Span<(long Left, long Bottom, long Right, long Top)> previous = stackalloc (long, long, long, long)[65];
         var depth = 0;
         for (var position = 0; position < zones.Length; position += 17)
         {
@@ -54,19 +57,53 @@ public sealed partial class DjvuDocument
             var type = zone[0];
             if (type is < 1 or > 7) throw new InvalidDataException("Invalid TXTa zone type.");
             var length = (zone[11] << 16) | (zone[12] << 8) | zone[13];
-            if (length > textLength) throw new InvalidDataException("TXTa zone text length exceeds the page text.");
             var childCount = (zone[14] << 16) | (zone[15] << 8) | zone[16];
             while (depth > 0 && childrenRemaining[depth - 1] == 0) depth--;
+            if (depth == 64) throw new InvalidDataException("TXTa zone hierarchy exceeds the 64 level limit.");
+            var start = ((zone[9] << 8) | zone[10]) - 0x8000;
+            long left = ((zone[1] << 8) | zone[2]) - 0x8000;
+            long bottom = ((zone[3] << 8) | zone[4]) - 0x8000;
+            var width = ((zone[5] << 8) | zone[6]) - 0x8000;
+            var height = ((zone[7] << 8) | zone[8]) - 0x8000;
             if (depth > 0)
             {
-                if (type <= types[depth - 1]) throw new InvalidDataException("TXTa child zone does not have a smaller hierarchical type.");
+                if (previousTextEnds[depth] >= 0)
+                {
+                    var sibling = previous[depth];
+                    start += previousTextEnds[depth];
+                    if (type is 1 or 4 or 5)
+                    {
+                        left += sibling.Left;
+                        bottom = sibling.Bottom - bottom - height;
+                    }
+                    else
+                    {
+                        left += sibling.Right;
+                        bottom += sibling.Bottom;
+                    }
+                }
+                else
+                {
+                    var parent = parents[depth - 1];
+                    start += parentTextStarts[depth - 1];
+                    left += parent.Left;
+                    bottom = parent.Top - bottom - height;
+                }
                 childrenRemaining[depth - 1]--;
             }
+            var bounds = (Left: left, Bottom: bottom, Right: left + width, Top: bottom + height);
+            if (bounds.Right <= bounds.Left || bounds.Top <= bounds.Bottom)
+                throw new InvalidDataException("TXTa zone rectangle is empty or inverted.");
+            if (start < 0 || start > textLength || length > textLength - start)
+                throw new InvalidDataException("TXTa zone text range exceeds the page text.");
+            previousTextEnds[depth] = start + length;
+            previous[depth] = bounds;
             if (childCount > 0)
             {
-                if (depth == 7) throw new InvalidDataException("TXTa zone hierarchy is too deep.");
-                types[depth] = type;
+                parentTextStarts[depth] = start;
+                parents[depth] = bounds;
                 childrenRemaining[depth++] = childCount;
+                previousTextEnds[depth] = -1;
             }
         }
         for (var i = 0; i < depth; i++)

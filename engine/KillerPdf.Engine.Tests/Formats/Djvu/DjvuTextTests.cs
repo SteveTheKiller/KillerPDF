@@ -140,7 +140,7 @@ public sealed class DjvuTextTests
     [InlineData("partial")]
     [InlineData("type")]
     [InlineData("children")]
-    [InlineData("hierarchy")]
+    [InlineData("range")]
     [InlineData("length")]
     public void RejectsMalformedOptionalTextZoneStructure(string defect)
     {
@@ -150,7 +150,7 @@ public sealed class DjvuTextTests
         if (defect == "type") zones[0] = 0;
         if (defect == "children") zones[16] = 1;
         if (defect == "length") zones[13] = 2;
-        if (defect == "hierarchy") { zones = [.. zone, .. zone]; zones[16] = 1; }
+        if (defect == "range") { zones[10] = 1; }
         var document = DjvuDocument.Open(Page(Chunk("TXTa", [0, 0, 1, 65, 1, .. zones])));
         Assert.Throws<InvalidDataException>(() => document.ReadText(0));
     }

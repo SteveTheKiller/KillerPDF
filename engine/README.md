@@ -154,6 +154,17 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 - Imposition, headers, footers, Bates numbering, calibrated measurement, layers, attachments, bookmarks and links, macros, and structural comparison
 - Structural diagnostics, bounded parsing, implementation limits, round-trip validation, and fail-closed import validation
 
+## Native DjVu text (1.9.3 development)
+
+`DjvuDocument.ReadText` preserves page text and embedded separators without changing
+the original. Optional zone labels remain in the documented 1..7 range, including
+reference-readable legacy trees with repeated or decreasing labels. Validation uses
+an explicit 64-level structural limit, at most 65,536 complete records, resolved
+global text ranges and nonempty rectangles. Parent and previous-sibling offsets use
+the format's signed relative coordinates. Reading is limited to 4 MiB of text and
+supports cancellation. BZZ coverage, mixed visual layers and native text geometry
+still need implementation and acceptance; text extraction does not prove visual fidelity.
+
 ## Native EPUB layout (1.9.3 development)
 
 `EpubDocument.Open` reads a bounded native package. `CreateLayout` currently supports
