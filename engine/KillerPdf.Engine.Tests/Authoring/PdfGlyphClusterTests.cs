@@ -16,7 +16,24 @@ namespace KillerPdf.Engine.Tests.Authoring;
 public sealed class PdfGlyphClusterTests
 {
     [Fact]
-    public void FullCharacterCodeSpaceKeepsTheLastNonzeroSlotAndReusesExistingClusterCodes()
+    public void SingleGlyphClusterKeepsLogicalTextInTheSavedFontMapping()
+    {
+        TrueTypeFont font = UnmappedFont();
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
+            new PdfContentStreamBuilder().DrawGlyphCluster(font, 10, "fi", [new(1, 10, 10)])).Build());
+        PdfDictionary fonts = Fonts(document);
+        PdfExtractionFont reopened = PdfFontResourceReader.Read(document,
+            ResolveDictionary(document, fonts[new PdfName("F1"u8)]));
+
+        Assert.Equal("fi", Assert.Single(reopened.Decode(new byte[] { 0, 1 })).Text);
+        Assert.Equal(600, reopened.GetWidth(1));
+        Assert.NotNull(reopened.GetGlyphOutline(1));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FullCharacterCodeSpaceKeepsTheLastNonzeroSlotAndReusesExistingClusterCodes(bool singleGlyph)
     {
         TrueTypeFont font = FullMappedFont();
         string text = "\0" + string.Concat(Enumerable.Range(0x10000, 65534).Select(char.ConvertFromUtf32));
@@ -24,13 +41,21 @@ public sealed class PdfGlyphClusterTests
             .ShowUnicodeText(text).EndText();
 
         // Natural mappings occupy CID 0 through FFFE. FFFF is still available.
-        content.DrawGlyphCluster(font, 10, "a", [new(1, 0, 0)]);
+        content.DrawGlyphCluster(font, 10, "a", Glyphs(1, 0));
         byte[] full = content.Build();
         Assert.Contains("<FFFF> Tj", Encoding.ASCII.GetString(full));
-        Assert.Throws<InvalidOperationException>(() => content.DrawGlyphCluster(font, 10, "b", [new(2, 1, 0)]));
+        Assert.Throws<InvalidOperationException>(() => content.DrawGlyphCluster(font, 10, "b", Glyphs(2, 1)));
         Assert.Equal(full, content.Build());
-        content.DrawGlyphCluster(font, 10, "c", [new(1, 2, 0)]);
-        Assert.Equal(2, Encoding.ASCII.GetString(content.Build()).Split("<FFFF> Tj").Length - 1);
+        if (singleGlyph)
+        {
+            Assert.Throws<InvalidOperationException>(() => content.DrawGlyphCluster(font, 10, "c", Glyphs(1, 2)));
+            Assert.Equal(full, content.Build());
+        }
+        content.DrawGlyphCluster(font, 10, singleGlyph ? "a" : "c", Glyphs(1, 2));
+        Assert.Equal(singleGlyph ? 2 : 4, Encoding.ASCII.GetString(content.Build()).Split("<FFFF> Tj").Length - 1);
+
+        PdfPositionedGlyph[] Glyphs(ushort glyph, double x) => singleGlyph
+            ? [new(glyph, x, 0)] : [new(glyph, x, 0), new(glyph, x + 1, 0)];
     }
 
     [Theory]
@@ -188,7 +213,8 @@ public sealed class PdfGlyphClusterTests
         string cmap = Encoding.ASCII.GetString(PdfStreamDecoder.Decode(Assert.IsType<PdfStream>(
             document.Resolve(Assert.IsType<PdfIndirectReference>(embedded[new PdfName("ToUnicode"u8)])))));
         Assert.DoesNotContain("> <>", cmap);
-        Assert.DoesNotContain("beginbfchar", cmap);
+        Assert.Contains("<0003> <0063>", cmap);
+        Assert.DoesNotContain("<00610062>", cmap);
         Assert.Contains("+KillerTest", reopened.FontName);
     }
 

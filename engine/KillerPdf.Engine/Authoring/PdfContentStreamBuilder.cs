@@ -993,7 +993,8 @@ public sealed class PdfContentStreamBuilder
     /// <summary>Paints explicit glyphs with one logical replacement string, outside a text object.</summary>
     /// <remarks>Origins are in current user space before the CTM. Glyph zero is rejected.
     /// Calls must follow logical cluster order for extraction. Each cluster accepts at most
-    /// 4096 glyphs and 65536 UTF-16 code units, with at least one of each.</remarks>
+    /// 4096 glyphs and 65536 UTF-16 code units, with at least one of each.
+    /// A single glyph also records logical text in ToUnicode; multiple glyphs rely on ActualText.</remarks>
     public PdfContentStreamBuilder DrawGlyphCluster(TrueTypeFont font, double fontSize,
         string logicalText, IReadOnlyList<PdfPositionedGlyph> glyphs)
     {
@@ -1021,7 +1022,10 @@ public sealed class PdfContentStreamBuilder
         }
         _embeddedFonts.TryGetValue(font, out EmbeddedFontUsage? usage);
         usage ??= new EmbeddedFontUsage(font, new PdfName("Pending"u8));
-        usage.ValidateUnmappedGlyphCapacity(positioned.Select(glyph => glyph.GlyphId));
+        if (positioned.Length == 1)
+            usage.ValidateSubstituteGlyphCapacity(positioned[0].GlyphId, logicalText);
+        else
+            usage.ValidateUnmappedGlyphCapacity(positioned.Select(glyph => glyph.GlyphId));
         byte[] replacement = new byte[text.Length + 2];
         replacement[0] = 0xFE;
         replacement[1] = 0xFF;
@@ -1039,7 +1043,9 @@ public sealed class PdfContentStreamBuilder
         _output.Write(" >> BDC\n"u8);
         foreach (PdfPositionedGlyph glyph in positioned)
         {
-            ushort code = usage.AddUnmappedGlyph(glyph.GlyphId);
+            ushort code = positioned.Length == 1
+                ? usage.AddSubstituteMapping(glyph.GlyphId, logicalText)
+                : usage.AddUnmappedGlyph(glyph.GlyphId);
             SetTextMatrix(1, 0, 0, 1, glyph.X, glyph.Y);
             _output.WriteByte((byte)'<');
             WriteHexByte((byte)(code >> 8));
@@ -1396,6 +1402,15 @@ internal sealed class EmbeddedFontUsage(TrueTypeFont font, PdfName resourceName)
     public TrueTypeFont Font { get; } = font;
     public PdfName ResourceName { get; } = resourceName;
     public IReadOnlyDictionary<ushort, EmbeddedCharacterMapping> Mappings => _mappings;
+
+    public void ValidateSubstituteGlyphCapacity(ushort glyph, string unicodeSequence)
+    {
+        if (_codeByUnicode.TryGetValue(unicodeSequence, out ushort natural) && _mappings[natural].Glyph == glyph
+            || _substituteCodes.ContainsKey((glyph, unicodeSequence))) return;
+        int available = ushort.MaxValue - _mappings.Count + (_mappings.ContainsKey(0) ? 1 : 0);
+        if (available == 0)
+            throw new InvalidOperationException("The embedded-font character-code range is exhausted.");
+    }
 
     public void ValidateUnmappedGlyphCapacity(IEnumerable<ushort> glyphs)
     {

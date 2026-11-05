@@ -89,9 +89,10 @@ user space before the CTM. Call outside a text object and emit clusters in logic
 visual coordinates may differ. The operation preserves surrounding graphics/text state,
 embedding rights and substituted/composite glyphs. It accepts 1..4096 nonzero glyphs and
 1..65536 well-formed UTF-16 code units, validating requests before changing output.
-Unmapped glyph codes have no empty or invented ToUnicode destinations. Readers must
-honor `ActualText` to recover their logical text; consumers that ignore it can expose
-raw character codes. This is transport for caller-supplied glyphs, not a shaping engine,
+Single-glyph clusters also retain their full logical string in ToUnicode, with codes
+keyed by glyph and text. Multi-glyph clusters leave individual glyph codes unmapped;
+readers must honor their `ActualText` span to recover logical text without duplicates.
+No empty or invented ToUnicode destinations are emitted. This is caller-supplied transport, not a shaping engine,
 per-character caret policy or completed native EPUB shaping integration.
 
 KillerPDF uses these typed content APIs for annotations, stamps and print/export burn-in. Text boxes can save as standard FreeText annotations with logical contents and caller-authored appearances. `PdfIncrementalAnnotationEditor.AddFreeText` and `AddStamp` import the appearance's fonts, images and nested forms, preserve insertion order above existing annotations, and add logical descriptions when the source is tagged. Caller-authored annotations with empty contents and the explicit `Hidden` flag remain outside tagged reading order and are neither displayed nor printed. Other visibility flags do not waive required descriptions. `PdfCommentReader.ReadPageAnnotationCount` reports raw array length, including entries omitted by comment extraction.
@@ -171,7 +172,7 @@ still need implementation and acceptance; text extraction does not prove visual 
 paragraphs and nested spans in linear, reflowable XHTML spine items with an explicit
 fallback font. Text supports printable ASCII, precomposed Latin/Greek/Cyrillic blocks
 and supplementary mathematical alphanumeric letters and digits when the font has
-their glyphs. Each Unicode scalar paints once while retaining UTF-16 source ranges,
+their glyphs. Text retains UTF-16 source ranges when scalars share a supported ligature,
 including after wrapping, pagination, anchor resolution and explicit PDF conversion.
 Mapped punctuation characters in the General Punctuation block and mapped characters
 in the Currency Symbols block are also supported. Combining marks, complex scripts,
@@ -221,8 +222,8 @@ inline style. Default normal line height follows each inline font's ascent and d
 Initial Latin ligatures use the font's GSUB 1.0 default-language `liga` feature with
 type 4, flags 0, format 1 and coverage format 1. Original UTF-16 cluster ranges and
 selected glyph advances drive both native ink and explicit PDF conversion. Style,
-block and explicit-break boundaries remain separate. Natural text keeps its Unicode
-font mappings; substituted clusters require readers to honor `ActualText`. Parsing
+block and explicit-break boundaries remain separate. Natural text and single-glyph
+ligatures keep their Unicode font mappings as well as logical replacement text. Parsing
 and shaping have separate work limits and cancellation. Other GSUB routes, positioning,
 Arabic/Indic shaping, bidi processing and per-character carets remain incomplete.
 Foreground `color` accepts six-digit sRGB hex values and the 16 basic CSS color
