@@ -70,12 +70,16 @@ public sealed partial class EpubDocument
                         if (foundBody) throw new InvalidDataException("Duplicate EPUB XHTML body.");
                         foundBody = true;
                         bodyDepth = reader.IsEmptyElement ? -1 : reader.Depth;
+                        if (native is not null && reader.GetAttribute("id") is { } bodyId)
+                            native.Anchors.Add((bodyId, 0));
                         continue;
                     }
                     if (bodyDepth < 0 || reader.Depth <= bodyDepth) continue;
                     if (reader.LocalName == "style") styleDepth = reader.IsEmptyElement ? -1 : reader.Depth;
                     if (styleDepth >= 0) continue;
                     Separate(TextBlockLines(reader.LocalName));
+                    if (native is not null && reader.GetAttribute("id") is { } id)
+                        native.Anchors.Add((id, result.Length + (pendingSpace && result.Length > 0 && result[^1] != '\n' ? 1 : 0)));
                     if (reader.LocalName == "br")
                     {
                         pendingSpace = false;

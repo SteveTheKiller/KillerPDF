@@ -86,7 +86,7 @@ public sealed class PdfNativeNavigationTests
         Assert.Throws<OperationCanceledException>(() => snapshot.ResolveNavigationTarget(null!, -1, canceled));
         Assert.Throws<ArgumentOutOfRangeException>(() => snapshot.ResolveNavigationTarget("EPUB/later.xhtml", -1));
         Assert.Throws<ArgumentOutOfRangeException>(() => snapshot.ResolveNavigationTarget("EPUB/later.xhtml", snapshot.PageCount));
-        Assert.Throws<NotSupportedException>(() => snapshot.ResolveNavigationTarget("EPUB/later.xhtml#anchor"));
+        Assert.Throws<ArgumentException>(() => snapshot.ResolveNavigationTarget("EPUB/later.xhtml#anchor"));
         Assert.Equal(new PdfReadNavigationDestination(2, 2, 2), snapshot.ResolveNavigationTarget("EPUB/later.xhtml"));
     }
 

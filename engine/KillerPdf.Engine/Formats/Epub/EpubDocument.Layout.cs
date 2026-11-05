@@ -29,6 +29,7 @@ public sealed partial class EpubDocument
             || Spine.Count == 0)
             throw new NotSupportedException("Native EPUB layout requires linear, reflowable, left-to-right spine items.");
         var pages = new List<EpubLayoutPage>();
+        var anchors = new List<(int SpineIndex, string Id, int Offset)>();
         var reader = new TrueTypeOutlineReader(options.DefaultFont);
         int remainingTextLength = 100_000;
         int remainingStylesheetBytes = 1_000_000;
@@ -36,15 +37,16 @@ public sealed partial class EpubDocument
         for (int spineIndex = 0; spineIndex < Spine.Count; spineIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages,
+            AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors,
                 ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href));
+        return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors);
     }
 
     private void AppendNativeSpinePages(int spineIndex, EpubLayoutOptions options, double contentWidth,
-        TrueTypeOutlineReader reader, List<EpubLayoutPage> pages, ref int remainingTextLength,
+        TrueTypeOutlineReader reader, List<EpubLayoutPage> pages,
+        List<(int SpineIndex, string Id, int Offset)> anchors, ref int remainingTextLength,
         ref int remainingStylesheetBytes, ref int remainingStylesheetReferences, CancellationToken cancellationToken)
     {
         var entry = Spine[spineIndex];
@@ -62,6 +64,13 @@ public sealed partial class EpubDocument
         if (text.Length > remainingTextLength)
             throw new InvalidDataException("Native EPUB text exceeds its 100,000 placement limit.");
         remainingTextLength -= text.Length;
+        foreach (var anchor in content.Anchors)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (anchors.Count >= 100_000)
+                throw new InvalidDataException("Native EPUB anchors exceed their 100,000 destination limit.");
+            anchors.Add((spineIndex, anchor.Id, Math.Min(anchor.Offset, text.Length)));
+        }
         var font = options.DefaultFont;
         var placements = new List<EpubTextPlacement>(text.Length);
         var glyphs = new List<NativeGlyphPaint>(text.Length);

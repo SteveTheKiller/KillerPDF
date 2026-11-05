@@ -10,6 +10,90 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubNavigationDestinationTests
 {
     [Fact]
+    public void InlineAnchorUsesItsPaginatedTextPosition()
+    {
+        var book = EpubDocument.Open(Book(firstBody: "<p>A <span id='second'>A</span></p>"));
+        Assert.Equal(new EpubNavigationDestination(1, 0, 2, 2, 2),
+            book.CreateLayout(Options()).ResolveNavigationTarget("EPUB/first.xhtml#second"));
+    }
+
+    [Fact]
+    public void DuplicateAnchorIdentityIsAmbiguousWithinItsChapter()
+    {
+        var layout = EpubDocument.Open(Book(firstBody: "<p><span id='same'>A</span> <span id='same'>A</span></p>"))
+            .CreateLayout(Options());
+        Assert.Throws<InvalidDataException>(() => layout.ResolveNavigationTarget("EPUB/first.xhtml#same"));
+    }
+
+    [Theory]
+    [InlineData("<p id='empty'/>", 0, 0, 2)]
+    [InlineData("<p>A <span>A<span id='empty'/></span></p>", 1, 3, 8)]
+    public void EmptyAnchorsResolveTheLogicalTextCursor(string body, int page, int offset, double left)
+    {
+        var layout = EpubDocument.Open(Book(firstBody: body)).CreateLayout(Options());
+        Assert.Equal(new EpubNavigationDestination(page, 0, offset, left, 2),
+            layout.ResolveNavigationTarget("EPUB/first.xhtml#empty"));
+    }
+
+    [Fact]
+    public void BodyAnchorResolvesTheFirstLogicalPosition()
+    {
+        var layout = EpubDocument.Open(Book(firstBodyAttributes: "id='chapter'")).CreateLayout(Options());
+        Assert.Equal(new EpubNavigationDestination(0, 0, 0, 2, 2),
+            layout.ResolveNavigationTarget("EPUB/first.xhtml#chapter"));
+    }
+
+    [Fact]
+    public void AnchorWorkIsBoundedAcrossRepeatedEmptySpineContent()
+    {
+        string body = "<p>" + string.Concat(Enumerable.Repeat("<span id='a'/>", 50_001)) + "</p>";
+        var book = EpubDocument.Open(Book(firstBody: body, spine: "<itemref idref='first'/><itemref idref='first'/>"));
+        var exception = Assert.Throws<InvalidDataException>(() => book.CreateLayout(Options()));
+        Assert.Contains("anchor", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("Case", "Case", "case")]
+    [InlineData("a%20b", "a%2520b", "a%20b")]
+    [InlineData("caf\u00e9", "caf%C3%A9", "cafe%CC%81")]
+    [InlineData("cafe\u0301", "cafe%CC%81", "caf%C3%A9")]
+    [InlineData("a&amp;b", "a%26b", "a%2526b")]
+    [InlineData("part#two", "part%23two", "part%2523two")]
+    public void NavigationFragmentsDecodeOnceAndPreserveExactIdIdentity(string id, string reference, string missing)
+    {
+        var book = EpubDocument.Open(Book($"<li><a href='../first.xhtml#{reference}'>Anchor</a></li>",
+            firstBody: $"<p>A <span id='{id}'>A</span></p>"));
+        string target = Assert.Single(book.ReadNavigation()).Target;
+        Assert.Equal("EPUB/first.xhtml#" + reference, target);
+        var layout = book.CreateLayout(Options());
+        Assert.Equal(new EpubNavigationDestination(1, 0, 2, 2, 2), layout.ResolveNavigationTarget(target));
+        Assert.Throws<ArgumentException>(() => layout.ResolveNavigationTarget("EPUB/first.xhtml#" + missing));
+        Assert.Throws<ArgumentException>(() => layout.ResolveNavigationTarget("EPUB/later.xhtml#" + reference));
+    }
+
+    [Theory]
+    [InlineData("<p>A<span id='target'> A</span></p>", 1)]
+    [InlineData("<p>A <span id='target'>A</span></p>", 2)]
+    [InlineData("<p>A<span id='target'/> A</p>", 1)]
+    [InlineData("<p>A</p><p id='target'>A</p>", 3)]
+    [InlineData("<p>A</p><p id='target'/><p>A</p>", 3)]
+    public void AnchorOffsetsRetainCollapsedWhitespaceAndParagraphSeparators(string body, int offset)
+    {
+        var layout = EpubDocument.Open(Book(firstBody: body)).CreateLayout(Options());
+        Assert.Equal(new EpubNavigationDestination(1, 0, offset, 2, 2),
+            layout.ResolveNavigationTarget("EPUB/first.xhtml#target"));
+    }
+
+    [Fact]
+    public void AnchorUsesLogicalCssGeometryIncludingInlineAdvanceAndLeading()
+    {
+        var layout = EpubDocument.Open(Book(firstBody: "<p style='line-height:18px'>A<span id='target'>A</span></p>"))
+            .CreateLayout(Options());
+        Assert.Equal(new EpubNavigationDestination(0, 0, 1, 8, 6),
+            layout.ResolveNavigationTarget("EPUB/first.xhtml#target"));
+    }
+
+    [Fact]
     public void ChapterTargetsUseDeclaredSpineOrderAndTheFirstPageOfEachChapter()
     {
         var book = EpubDocument.Open(Book());
@@ -29,7 +113,7 @@ public sealed class EpubNavigationDestinationTests
         var book = EpubDocument.Open(Book("<li><a href='../first.xhtml#chapter'>Chapter</a></li>"));
         string target = Assert.Single(book.ReadNavigation()).Target;
         Assert.Equal("EPUB/first.xhtml#chapter", target);
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options()).ResolveNavigationTarget(target));
+        Assert.Throws<ArgumentException>(() => book.CreateLayout(Options()).ResolveNavigationTarget(target));
     }
 
     [Fact]
@@ -147,7 +231,7 @@ public sealed class EpubNavigationDestinationTests
     };
 
     internal static byte[] Book(string? entries = null, string? spine = null, string firstBody = "<p>A A</p>",
-        bool ncx = false, string firstHref = "first.xhtml")
+        bool ncx = false, string firstHref = "first.xhtml", string firstBodyAttributes = "")
     {
         entries ??= $"<li><a href='../later.xhtml'>Later</a></li><li><a href='../{firstHref}'>First</a></li>";
         spine ??= "<itemref idref='first'/><itemref idref='later'/>";
@@ -165,7 +249,7 @@ public sealed class EpubNavigationDestinationTests
                   <spine{(ncx ? " toc='ncx'" : "")}>{spine}</spine>
                 </package>
                 """);
-            Add("EPUB/" + firstHref, Html(firstBody));
+            Add("EPUB/" + firstHref, Html(firstBody, firstBodyAttributes));
             Add("EPUB/later.xhtml", Html("<p>AA</p>"));
             Add("EPUB/extra.xhtml", Html("<p>A</p>"));
             if (ncx) Add("EPUB/toc/nav.ncx", $"""
@@ -183,6 +267,6 @@ public sealed class EpubNavigationDestinationTests
         return output.ToArray();
     }
 
-    private static string Html(string body) =>
-        "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Chapter</title></head><body>" + body + "</body></html>";
+    private static string Html(string body, string attributes = "") =>
+        "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Chapter</title></head><body " + attributes + ">" + body + "</body></html>";
 }

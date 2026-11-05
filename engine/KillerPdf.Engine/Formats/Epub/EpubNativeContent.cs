@@ -23,6 +23,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private int _selectorWork;
     private bool _bodySeen;
     internal List<SourceCharacter?> Characters { get; } = new();
+    internal List<(string Id, int Offset)> Anchors { get; } = new();
     internal SourceCharacter? LineBreakSource { get; private set; }
     internal Style DefaultStyle { get; } = new(fallbackSize, null);
     internal PdfRgbColor? CanvasBackground { get; private set; }
@@ -54,6 +55,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 inlineStyle = xml.Value;
             else if (xml.NamespaceURI == "" && xml.LocalName == "class")
                 classNames = xml.Value;
+            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && name is "body" or "p" or "span" or "br")
+            {
+                // Navigation identity is captured by the structural text reader.
+            }
             else if (name == "link" && xml.NamespaceURI == "" && xml.LocalName is "href" or "rel" or "type" or "id")
             {
                 // Packaged references are validated separately from body painting.

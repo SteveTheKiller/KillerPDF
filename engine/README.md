@@ -159,8 +159,12 @@ Words wider than the content box are diagnosed explicitly.
 `EpubLayoutDocument.ResolveNavigationTarget` maps resolved chapter targets from EPUB 2 NCX
 and EPUB 3 navigation to the chapter's first native page and logical margin coordinates.
 Targets use exact, case-sensitive package paths and a 4,096-character limit. Empty fragments
-refer to the chapter start; nonempty anchor fragments remain unsupported. Duplicate spine
-targets are diagnosed as ambiguous. Desktop navigation wiring remains unfinished.
+refer to the chapter start. Body, paragraph, span and line-break IDs retain structural offsets;
+nonempty fragments decode once and resolve their actual paginated logical position. IDs retain
+case and Unicode identity. Empty elements use the next text placement or the chapter's final
+logical cursor. Duplicate spine targets or anchor IDs are diagnosed as ambiguous, and missing
+anchors are rejected. A layout owns at most 100,000 anchors. Desktop chapter navigation is
+available; scrolling to an anchor's exact within-page position remains unfinished.
 `RenderPage` produces an owned linear-sRGB float frame through shared glyph rendering,
 without creating a PDF. Inline and packaged CSS `font-size` and `line-height` support positive CSS-pixel
 lengths that fit the content height. Mixed sizes share a baseline; collapsed spaces
@@ -230,10 +234,10 @@ opening and the PDF read adapter remain in development.
 `PdfReadSnapshot.ReadNavigation` returns captured, read-only outline trees for EPUB and DjVu.
 Invalid or unsupported outline metadata is reported when requested without preventing page reading.
 `ResolveNavigationTarget` returns a common page index and top-left position in the already oriented
-native page's units. It uses the captured EPUB layout for chapter targets. DjVu matches exact component
+native page's units. It uses the captured EPUB layout for chapter and anchor targets. DjVu matches exact component
 identifiers before ordinal page numbers, decodes percent escapes once with strict UTF-8, and supports
 signed page displacements when a current page is supplied. Viewer commands and external resources
-are not executed or fetched. DjVu title aliases and EPUB anchors remain unfinished.
+are not executed or fetched. DjVu title aliases remain unfinished.
 
 `new PdfLogicalDocument()` creates logical identity without retaining reading
 resources; its optional `ReadSnapshot` is null. Supplying a native snapshot to
