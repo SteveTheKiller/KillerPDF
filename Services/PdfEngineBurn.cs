@@ -165,7 +165,8 @@ internal static class PdfEngineBurn
                 if (hasAnnotations)
                     foreach (PageAnnotation annotation in pageAnnotations!)
                     {
-                        if (nativeTail.Contains(annotation) || measurementsAsAnnotations && annotation is MeasurementAnnotation) continue;
+                        if (!ReplacementLayers.IsVisible(annotation) || nativeTail.Contains(annotation)
+                            || measurementsAsAnnotations && annotation is MeasurementAnnotation) continue;
                         descriptions.Add(annotation is TextAnnotation text && !string.IsNullOrWhiteSpace(text.Content)
                             ? text.Content : annotation is SignatureAnnotation ? "Signature" : "Markup");
                     }

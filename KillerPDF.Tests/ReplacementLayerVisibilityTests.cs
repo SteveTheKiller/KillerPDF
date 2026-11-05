@@ -5,6 +5,7 @@ using System.Windows;
 using KillerPDF.Services;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Rendering;
 using Xunit;
 
@@ -12,6 +13,36 @@ namespace KillerPDF.Tests;
 
 public sealed class ReplacementLayerVisibilityTests
 {
+    [Fact]
+    public void HiddenReplacementTextIsAbsentFromSavedTaggedReadingOrder()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-hidden-reading-order-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder()
+                .SetMetadata(new PdfDocumentMetadata { Title = "Layer visibility", Language = "en-US" })
+                .EnablePdfUa2Conformance()
+                .AddPage(200, 100, new PdfContentStreamBuilder()
+                    .BeginMarkedContent(PdfStructureType.Figure, 0)
+                    .Rectangle(0, 0, 5, 5).Fill().EndMarkedContent())
+                .AddStructureContainer(PdfStructureType.Document)
+                .AddStructureElement(PdfStructureType.Figure, 0, 0, 1, alternateDescription: "Original figure")
+                .Build());
+            var pair = new ReplacementPair(
+                new TextAnnotation { Content = "Hidden replacement", Width = 160, Height = 70, PairId = "pair" },
+                new CoverAnnotation { Bounds = new Rect(0, 0, 160, 70), PairId = "pair" });
+            ReplacementLayers.SetVisibility(pair, ReplacementLayer.Group, false);
+            PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>> { [0] = [pair.Cover, pair.Text] },
+                new Dictionary<int, (int w, int h)> { [0] = (200, 100) });
+            var order = PdfAccessibilityReadingOrder.Read(PdfDocument.Open(File.ReadAllBytes(path)));
+            Assert.DoesNotContain(order.Items, item => item.AlternateDescription?.Contains("Hidden replacement") == true
+                || item.ActualText?.Contains("Hidden replacement") == true);
+            Assert.Single(order.Items, item => item.AlternateDescription == "Original figure");
+            Assert.Equal(0, SearchService.Search(path, "Hidden replacement").TotalHits);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
     [Fact]
     public void HidingBothReplacementLayersKeepsTheOriginalTextWhenSaving()
     {
