@@ -2967,7 +2967,7 @@ namespace KillerPDF.Controls
                 // RefreshPageList only updates the sidebar, and re-selecting the same page does not
                 // fire SelectionChanged, so grid/two-page tiles would otherwise stay stale.
                 int reIdx = _currentPage;
-                if (_viewMode == ViewMode.Continuous)
+                if (_viewMode.IsContinuous())
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
                         (Action)(() => SetupContinuousView(reIdx)));
                 else

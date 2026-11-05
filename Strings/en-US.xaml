@@ -410,6 +410,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_View_Single">Single Page</sys:String>
     <sys:String x:Key="Str_View_Continuous">Continuous</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Two Page</sys:String>
+    <sys:String x:Key="Str_View_TwoPageContinuous">Two Page (Continuous)</sys:String>
     <sys:String x:Key="Str_Replacement_Group">Replacement</sys:String>
     <sys:String x:Key="Str_Replacement_LayerMove">Allow moving and resizing this layer</sys:String>
     <sys:String x:Key="Str_Replacement_Link">Move cover and text together</sys:String>
@@ -929,6 +930,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Sidebar_Right">Right</sys:String>
     <sys:String x:Key="Str_Sidebar_Top">Top</sys:String>
     <sys:String x:Key="Str_Sidebar_Bottom">Bottom</sys:String>
+    <sys:String x:Key="Str_Sidebar_TwoPageThumbnails">Two-page thumbnails</sys:String>
     <sys:String x:Key="Str_Rail_Flip">Move icons to the other side</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Toggle sidebar</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Toolbar appearance</sys:String>

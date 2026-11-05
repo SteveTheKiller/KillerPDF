@@ -24,6 +24,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Rasterize Region keeps earlier region images intact on repeated operations and leaves invisible clipping paths out of its content counts. (#369)
 - Save Flattened shows output pixel dimensions and scale, matching image export. (#462)
 - Native page navigation recalculates fitting for different page sizes, keeps outlines available after pane focus and reports Fit Width correctly. (#472)
+- View controls follow the active tab or pane, and opening a document during a sidebar transition keeps its thumbnails visible. (#473)
 - The file picker no longer stalls on a disconnected network folder when it opens, a relative or malformed path typed in the path box is refused instead of being looked up against the wrong folder, a pattern such as *.log typed in the name box filters the list, and a full path typed in the name box can be accepted even when the shown folder failed to list.
 - PDF creation, modification, comment and attachment dates use the Gregorian calendar on Thai, Arabic and Persian region settings instead of writing years like 2569.
 - The update check reads only the release's own fields, so release notes that quote them cannot confuse it.
@@ -40,6 +41,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Native FP16 presentation owns frame and overlay lifetimes, preserves bindings, resources, page clicks, wheel scrolling and transparent text editing including quick clicks, resizes within pixel limits, follows layout clipping automatically including fully clipped views, reports composition failures and observes the window's display, outputs, color mode, SDR white level and profile association with notification-driven invalidation. Portable policy selects conversion ownership and HDR white scaling; named ICC profiles load into the portable color engine. Viewer integration is in progress. (#264)
 - Native read sessions preserve original copies and support cancellation and rebuilding. EPUB/DjVu sessions expose captured outlines and local destinations. Initial native viewing includes tabs, thumbnails and Single/Continuous modes with Grid switching. EPUB adds initial CSS typography, packaged RGB/RGBA PNG images, canonical XHTML declarations, explicit line breaks, blank lines, paginated anchor destinations and a read-only outline sidebar with chapter and anchor navigation; broader format and viewer integration is in progress. (#264, #472)
 - Replacement text on scans supports searchable blur, separate cover/text visibility, movement and resizing, linked movement, and saved editing state. Hidden layers retain their editing state on pages with existing comments and stay out of visible output and reading-order descriptions. (#467)
+- Two-page continuous viewing scrolls facing page rows, supports a centered book cover and preserves each tab's view mode. An optional two-column thumbnail sidebar supports page selection and reordering. (#473)
 
 ## [1.9.2] - 2026-11-02
 

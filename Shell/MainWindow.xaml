@@ -2793,6 +2793,20 @@
                             <Border Width="7" Height="13" Margin="2,0,0,0" BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" BorderThickness="1"/>
                         </StackPanel>
                     </RadioButton>
+                    <RadioButton x:Name="ViewTwoPageContinuousRadio" GroupName="ViewGroup"
+                                 Style="{StaticResource FooterModeButton}"
+                                 AutomationProperties.Name="{DynamicResource Str_View_TwoPageContinuous}"
+                                 ToolTip="{DynamicResource Str_View_TwoPageContinuous}"
+                                 Checked="ViewTwoPageContinuousRadio_Checked">
+                        <Grid Width="16" Height="17">
+                            <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                            <Border Grid.Row="0" Grid.Column="0" Margin="0,0,1,1" BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" BorderThickness="1"/>
+                            <Border Grid.Row="0" Grid.Column="1" Margin="1,0,0,1" BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" BorderThickness="1"/>
+                            <Border Grid.Row="1" Grid.Column="0" Margin="0,1,1,0" BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" BorderThickness="1"/>
+                            <Border Grid.Row="1" Grid.Column="1" Margin="1,1,0,0" BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" BorderThickness="1"/>
+                        </Grid>
+                    </RadioButton>
                     <RadioButton x:Name="ViewGridRadio" GroupName="ViewGroup"
                                  Style="{StaticResource FooterModeButton}"
                                  Checked="ViewGridRadio_Checked">

@@ -164,7 +164,7 @@ namespace KillerPDF.Shell
             // In Continuous view the strip caches one rendered slot per page. After a
             // page-modifying reload (e.g. crop) it must be rebuilt so the main view reflects the
             // new pages; the slot-sizing in RenderContinuousPages makes cropped pages fit cleanly.
-            if (_viewMode == ViewMode.Continuous)
+            if (_viewMode.IsContinuous())
             {
                 int contIdx = PageList.SelectedIndex;
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,

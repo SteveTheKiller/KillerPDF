@@ -154,7 +154,7 @@ namespace KillerPDF.Controls
             int page = _gesturePage;
             Canvas? cv = _gestureCanvas ?? _activeCanvas;
 
-            if (_viewMode == ViewMode.Continuous)
+            if (_viewMode.IsContinuous())
             {
                 foreach (var kv in _pages)
                 {

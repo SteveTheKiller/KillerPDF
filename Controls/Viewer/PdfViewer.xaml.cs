@@ -106,7 +106,7 @@ namespace KillerPDF.Controls
         internal Border PaneShadowBorder => PaneShadow;
         internal Border PaneCardBorder => PaneBorder;
         internal Grid ContentHost => DocPaneContent;
-        internal StackPanel ContinuousHost => ContinuousPanel;
+        internal Canvas ContinuousHost => ContinuousPanel;
         internal WrapPanel PageHost => PageContentPanel;
         internal Grid PageGrid => PageContentGrid;
         internal ScrollViewer PreviewScroller => PagePreviewPanel;

@@ -438,6 +438,28 @@ namespace KillerPDF.Shell
         private DataTemplate? _pageColumnTemplate;    // the page list's own (column) item template
         private ItemsPanelTemplate? _pageColumnPanel;
         private ItemsPanelTemplate? _pageStripPanel;
+        private ItemsPanelTemplate? _pairedThumbnailPanel;
+
+        private bool PairedThumbnailsActive => !_sidebarStripLayout
+            && (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
+            && App.GetSetting("TwoPageThumbnails") == "1";
+
+        private void ApplyPageThumbnailLayout()
+        {
+            if (PageList is null) return;
+            _pageColumnPanel ??= PageList.ItemsPanel;
+            ItemsPanelTemplate desired = _pageColumnPanel;
+            if (_sidebarStripLayout)
+                desired = _pageStripPanel ?? PageList.ItemsPanel;
+            else if (PairedThumbnailsActive)
+                desired = _pairedThumbnailPanel ??= new ItemsPanelTemplate(
+                    new FrameworkElementFactory(typeof(PageThumbnailSpreadPanel)));
+            if (ReferenceEquals(PageList.ItemsPanel, desired)) return;
+            EndPageBoxSelection(cancel: true);
+            HidePageDropIndicator();
+            PageList.ItemsPanel = desired;
+            if (PageList.SelectedItem is { } selected) PageList.ScrollIntoView(selected);
+        }
 
         /// <summary>
         /// Turns the rail, the panel header and the page list between a column (left or right
@@ -462,6 +484,7 @@ namespace KillerPDF.Shell
             }
             PageList.ItemTemplate = strip ? (DataTemplate)FindResource("PageThumbStripTemplate") : _pageColumnTemplate;
             PageList.ItemsPanel = strip ? _pageStripPanel : _pageColumnPanel;
+            ApplyPageThumbnailLayout();
             ScrollViewer.SetVerticalScrollBarVisibility(PageList, strip ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto);
             ScrollViewer.SetHorizontalScrollBarVisibility(PageList, strip ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled);
             if (PageListFadeHost.OpacityMask is LinearGradientBrush mask)

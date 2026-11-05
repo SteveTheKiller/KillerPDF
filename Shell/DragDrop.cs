@@ -469,11 +469,31 @@ namespace KillerPDF.Shell
             return null;
         }
 
-        /// <summary>Returns the insertion slot from 0 through Count and the matching visual offset
-        /// along the list: Y in a column, X in a top or bottom strip. Both the marker and the drop
-        /// consume this result so what the user sees is authoritative.</summary>
-        private (int Index, double Offset)? PageDropSlot(Point position)
+        /// <summary>Returns the insertion slot and its marker geometry: a row/column edge for
+        /// paired thumbnails, Y in a column, or X in a strip. The marker and drop share this result.</summary>
+        private (int Index, double Offset, Rect? Marker)? PageDropSlot(Point position)
         {
+            if (PairedThumbnailsActive)
+            {
+                var cells = new List<(int Index, ListBoxItem Item, Rect Bounds)>();
+                for (int i = 0; i < PageList.Items.Count; i++)
+                    if (PageList.ItemContainerGenerator.ContainerFromIndex(i) is ListBoxItem cell)
+                        cells.Add((i, cell, new Rect(cell.TranslatePoint(new Point(), PageList),
+                            new Size(cell.ActualWidth, cell.ActualHeight))));
+                if (cells.Count == 0) return null;
+                var row = cells.GroupBy(cell => cell.Index / 2)
+                    .FirstOrDefault(row => position.Y < row.Max(cell => cell.Bounds.Bottom))
+                    ?? cells.GroupBy(cell => cell.Index / 2).Last();
+                foreach (var cell in row)
+                    if (position.X < cell.Bounds.Left + cell.Bounds.Width / 2)
+                    {
+                        Point start = cell.Item.TranslatePoint(new Point(), PageListFadeHost);
+                        return (cell.Index, 0, new Rect(start.X - 1.5, start.Y, 3, cell.Item.ActualHeight));
+                    }
+                var lastCell = row.Last();
+                Point end = lastCell.Item.TranslatePoint(new Point(lastCell.Item.ActualWidth, 0), PageListFadeHost);
+                return (lastCell.Index + 1, 0, new Rect(end.X - 1.5, end.Y, 3, lastCell.Item.ActualHeight));
+            }
             bool strip = _sidebarStripLayout;
             double Along(Point p) => strip ? p.X : p.Y;
             ListBoxItem? last = null;
@@ -484,13 +504,13 @@ namespace KillerPDF.Shell
                 var start = item.TranslatePoint(new Point(0, 0), PageList);
                 double length = strip ? item.ActualWidth : item.ActualHeight;
                 if (Along(position) < Along(start) + length / 2)
-                    return (i, Along(item.TranslatePoint(new Point(0, 0), PageListFadeHost)));
+                    return (i, Along(item.TranslatePoint(new Point(0, 0), PageListFadeHost)), null);
                 last = item;
                 lastIndex = i;
             }
             if (last is null) return null;
             Point lastEnd = strip ? new Point(last.ActualWidth, 0) : new Point(0, last.ActualHeight);
-            return (lastIndex + 1, Along(last.TranslatePoint(lastEnd, PageListFadeHost)));
+            return (lastIndex + 1, Along(last.TranslatePoint(lastEnd, PageListFadeHost)), null);
         }
 
         private void ShowPageDropIndicator(Point position)
@@ -500,6 +520,25 @@ namespace KillerPDF.Shell
             _pageDropInsertionIndex = slot.Value.Index;
             if (PageDropIndicator.RenderTransform is TranslateTransform move)
             {
+                move.X = 0;
+                move.Y = 0;
+                if (slot.Value.Marker is Rect marker)
+                {
+                    PageDropIndicator.Width = marker.Width;
+                    PageDropIndicator.Height = marker.Height;
+                    PageDropIndicator.Margin = new Thickness(0);
+                    PageDropIndicator.HorizontalAlignment = HorizontalAlignment.Left;
+                    PageDropIndicator.VerticalAlignment = VerticalAlignment.Top;
+                    move.X = Math.Clamp(marker.X, 0, Math.Max(0, PageListFadeHost.ActualWidth - marker.Width));
+                    move.Y = marker.Y;
+                    PageDropIndicator.Visibility = Visibility.Visible;
+                    return;
+                }
+                PageDropIndicator.Width = _sidebarStripLayout ? 3 : double.NaN;
+                PageDropIndicator.Height = _sidebarStripLayout ? double.NaN : 3;
+                PageDropIndicator.HorizontalAlignment = _sidebarStripLayout ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+                PageDropIndicator.VerticalAlignment = _sidebarStripLayout ? VerticalAlignment.Stretch : VerticalAlignment.Top;
+                PageDropIndicator.Margin = _sidebarStripLayout ? new Thickness(0, 4, 0, 14) : new Thickness(8, 0, 20, 0);
                 const double bar = 3;   // the marker's thickness across the list
                 double room = (_sidebarStripLayout ? PageListFadeHost.ActualWidth : PageListFadeHost.ActualHeight) - bar;
                 double at = Math.Max(0, Math.Min(room, slot.Value.Offset - bar / 2));

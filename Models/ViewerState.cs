@@ -105,7 +105,7 @@ namespace KillerPDF
             // code-built primary tile (Viewport.BuildPrimaryTile) and ActiveCanvas is re-pointed
             // on mouse-down. Holding them here is what lets the next stage hand each viewer its
             // own tile tree without touching any of the ~250 call sites that use them.
-            public StackPanel ContinuousPanel = null!;
+            public Canvas ContinuousPanel = null!;
             public WrapPanel PageContentPanel = null!;
             public Grid PageContentGrid = null!;
             /// <summary>The hardcoded primary tile's overlay, shown in Single/Grid/TwoPage.</summary>

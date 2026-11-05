@@ -79,7 +79,7 @@ public partial class MainWindow
         Canvas.SetLeft(PageSelectionBox, origin.X); Canvas.SetTop(PageSelectionBox, origin.Y);
         PageSelectionBox.Width = visible.Width; PageSelectionBox.Height = visible.Height;
         PageSelectionBox.Visibility = Visibility.Visible;
-        if (FindSidebarDescendant<VirtualizingStackPanel>(PageList) is { } panel)
+        if (FindSidebarDescendant<VirtualizingPanel>(PageList) is { } panel)
         {
             foreach (var item in panel.Children.OfType<ListBoxItem>())
             {

@@ -409,6 +409,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_View_Single">Página única</sys:String>
     <sys:String x:Key="Str_View_Continuous">Contínuo</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Duas páginas</sys:String>
+    <sys:String x:Key="Str_View_TwoPageContinuous">Duas páginas (Contínuo)</sys:String>
     <sys:String x:Key="Str_Replacement_Group">Substituição</sys:String>
     <sys:String x:Key="Str_Replacement_LayerMove">Permitir mover e redimensionar esta camada</sys:String>
     <sys:String x:Key="Str_Replacement_Link">Mover cobertura e texto juntos</sys:String>
@@ -928,6 +929,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Sidebar_Right">Direita</sys:String>
     <sys:String x:Key="Str_Sidebar_Top">Em cima</sys:String>
     <sys:String x:Key="Str_Sidebar_Bottom">Embaixo</sys:String>
+    <sys:String x:Key="Str_Sidebar_TwoPageThumbnails">Miniaturas de duas páginas lado a lado</sys:String>
     <sys:String x:Key="Str_Rail_Flip">Mover os ícones para o outro lado</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Alternar barra lateral</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Aparência da barra de ferramentas</sys:String>

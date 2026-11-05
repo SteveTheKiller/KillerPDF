@@ -409,6 +409,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_View_Single">Pagina singola</sys:String>
     <sys:String x:Key="Str_View_Continuous">Pagine continue</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Due pagine affiancate</sys:String>
+    <sys:String x:Key="Str_View_TwoPageContinuous">Due pagine affiancate (Pagine continue)</sys:String>
     <sys:String x:Key="Str_Replacement_Group">Sostituzione</sys:String>
     <sys:String x:Key="Str_Replacement_LayerMove">Consenti di spostare e ridimensionare questo livello</sys:String>
     <sys:String x:Key="Str_Replacement_Link">Sposta copertura e testo insieme</sys:String>
@@ -928,6 +929,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Sidebar_Right">A destra</sys:String>
     <sys:String x:Key="Str_Sidebar_Top">In alto</sys:String>
     <sys:String x:Key="Str_Sidebar_Bottom">In basso</sys:String>
+    <sys:String x:Key="Str_Sidebar_TwoPageThumbnails">Miniature di due pagine affiancate</sys:String>
     <sys:String x:Key="Str_Rail_Flip">Sposta le icone sull'altro lato</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Attiva/disattiva barra laterale</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Aspetto della barra strumenti</sys:String>

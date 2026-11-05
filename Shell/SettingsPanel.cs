@@ -37,7 +37,9 @@ namespace KillerPDF.Shell
             ViewSingleRadio.IsChecked     = vm == ViewMode.Single;
             ViewContinuousRadio.IsChecked = vm == ViewMode.Continuous;
             ViewTwoPageRadio.IsChecked    = vm == ViewMode.TwoPage;
+            ViewTwoPageContinuousRadio.IsChecked = vm == ViewMode.TwoPageContinuous;
             ViewGridRadio.IsChecked       = vm == ViewMode.Grid;
+            ApplyPageThumbnailLayout();
             // (The toolbar picker lives on the toolbar's own right-click menu, and the sidebar
             // side on the sidebar's - both build their checks fresh on open, nothing to sync here.)
         }
@@ -238,7 +240,7 @@ namespace KillerPDF.Shell
             }
 
             if (_doc is null) return;
-            if (_viewMode == ViewMode.Continuous)
+            if (_viewMode.IsContinuous())
             {
                 // Null every slot's bitmap so the render pass (which skips filled slots)
                 // repaints the window around the viewport; far slots stay empty scaffolds
@@ -410,6 +412,7 @@ namespace KillerPDF.Shell
         private void ViewContinuousRadio_Checked(object sender, RoutedEventArgs e) => SelectViewMode(ViewMode.Continuous);
         private void ViewSingleRadio_Checked(object sender, RoutedEventArgs e)     => SelectViewMode(ViewMode.Single);
         private void ViewTwoPageRadio_Checked(object sender, RoutedEventArgs e)    => SelectViewMode(ViewMode.TwoPage);
+        private void ViewTwoPageContinuousRadio_Checked(object sender, RoutedEventArgs e) => SelectViewMode(ViewMode.TwoPageContinuous);
         private void ViewGridRadio_Checked(object sender, RoutedEventArgs e)       => SelectViewMode(ViewMode.Grid);
 
         // #193: book layout toggle (cover page alone in Two-Page). Global, persisted; both panes

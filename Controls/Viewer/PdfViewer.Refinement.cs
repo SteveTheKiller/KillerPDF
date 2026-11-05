@@ -53,7 +53,7 @@ public partial class PdfViewer
             && file == _currentFile && revision == (_active?.RenderRevision ?? 0) && invert == DocInvert
             && mode == _viewMode && zoom == _zoomLevel;
         var images = new List<(int Page, Image Image)>();
-        if (_viewMode == ViewMode.Continuous)
+        if (_viewMode.IsContinuous())
         {
             for (int p = 0; p < _continuousPanel.Children.Count; p++)
                 if (_continuousPanel.Children[p] is Border { Child: Grid g }

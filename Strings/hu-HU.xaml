@@ -409,6 +409,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_View_Single">Egyoldalas</sys:String>
     <sys:String x:Key="Str_View_Continuous">Folyamatos</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Kétoldalas</sys:String>
+    <sys:String x:Key="Str_View_TwoPageContinuous">Kétoldalas (Folyamatos)</sys:String>
     <sys:String x:Key="Str_Replacement_Group">Csere</sys:String>
     <sys:String x:Key="Str_Replacement_LayerMove">A réteg mozgatásának és átméretezésének engedélyezése</sys:String>
     <sys:String x:Key="Str_Replacement_Link">A fedőréteg és a szöveg együttes mozgatása</sys:String>
@@ -928,6 +929,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Sidebar_Right">Jobb</sys:String>
     <sys:String x:Key="Str_Sidebar_Top">Fent</sys:String>
     <sys:String x:Key="Str_Sidebar_Bottom">Lent</sys:String>
+    <sys:String x:Key="Str_Sidebar_TwoPageThumbnails">Két oldal miniatűrje egymás mellett</sys:String>
     <sys:String x:Key="Str_Rail_Flip">Ikonok áthelyezése a másik oldalra</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Oldalsáv be-/kikapcsolása</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Eszköztár megjelenése</sys:String>

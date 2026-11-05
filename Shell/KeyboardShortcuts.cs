@@ -494,7 +494,7 @@ namespace KillerPDF.Shell
                 e.Handled = true;
             }
             else if (key == Key.B && mods == ModifierKeys.None && _doc is not null
-                     && _viewMode == ViewMode.TwoPage
+                     && (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
                      && ShortcutsOverlay.Visibility != Visibility.Visible
                      && AboutOverlay.Visibility != Visibility.Visible)
             {
@@ -818,7 +818,7 @@ namespace KillerPDF.Shell
         private void ScrollOrFlipByKey(bool up)
         {
             double step = up ? -ArrowScrollStep : ArrowScrollStep;
-            if (_viewMode == ViewMode.Grid || _viewMode == ViewMode.Continuous)
+            if (_viewMode == ViewMode.Grid || _viewMode.IsContinuous())
             {
                 PagePreviewPanel.ScrollToVerticalOffset(PagePreviewPanel.VerticalOffset + step);
                 return;

@@ -409,6 +409,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_View_Single">Một trang</sys:String>
     <sys:String x:Key="Str_View_Continuous">Liên tục</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Hai trang</sys:String>
+    <sys:String x:Key="Str_View_TwoPageContinuous">Hai trang (Liên tục)</sys:String>
     <sys:String x:Key="Str_Replacement_Group">Thay thế</sys:String>
     <sys:String x:Key="Str_Replacement_LayerMove">Cho phép di chuyển và thay đổi kích thước lớp này</sys:String>
     <sys:String x:Key="Str_Replacement_Link">Di chuyển lớp phủ che và văn bản cùng nhau</sys:String>
@@ -928,6 +929,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Sidebar_Right">Phải</sys:String>
     <sys:String x:Key="Str_Sidebar_Top">Trên</sys:String>
     <sys:String x:Key="Str_Sidebar_Bottom">Dưới</sys:String>
+    <sys:String x:Key="Str_Sidebar_TwoPageThumbnails">Hình thu nhỏ hai trang cạnh nhau</sys:String>
     <sys:String x:Key="Str_Rail_Flip">Chuyển biểu tượng sang phía đối diện</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Bật/tắt thanh bên</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Giao diện thanh công cụ</sys:String>

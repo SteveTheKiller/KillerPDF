@@ -343,7 +343,7 @@ namespace KillerPDF.Controls
                     _ = double.TryParse(p[6], System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture, out scrollV);
                 }
-                trueZoom = DocumentViewportState.ReadTrueZoom(p, zoom, view == ViewMode.Continuous);
+                trueZoom = DocumentViewportState.ReadTrueZoom(p, zoom, view.IsContinuous());
                 if (!double.IsFinite(zoom) || zoom <= 0) zoom = 1.0;
                 return true;
             }
@@ -640,7 +640,7 @@ namespace KillerPDF.Controls
         internal void RepaintPixelsExt()
         {
             if (!HasReadDocument) return;
-            if (_viewMode == ViewMode.Continuous)
+            if (_viewMode.IsContinuous())
             {
                 CancelAndRelease(_continuousSharpenCts);
                 _continuousSharpenCts = null;
@@ -673,7 +673,8 @@ namespace KillerPDF.Controls
             _annotationCanvas.Children.Clear();
             MarkDirty(_isDirty);   // sync the Save button color to this tab's dirty state
             BootstrapDocumentView(session.PageIndex, autoFit: false,
-                restoreVerticalOffset: session.View == ViewMode.Continuous ? session.ScrollV : null);
+                restoreVerticalOffset: session.View.IsContinuous() ? session.ScrollV : null);
+            Host?.ViewerNavigationChanged(this);
             SetTool(_active.Tool); // restore this document's active editing tool (and its tool bar)
 
             // Restore the saved scroll position after the Background zoom pass queued inside

@@ -110,7 +110,7 @@ namespace KillerPDF.Controls
             // wheel must never be hijacked for page navigation there - it always scrolls. (Page-nav
             // hijacking here was the old grid-refuses-to-scroll bug: right after a zoom/column change
             // the extent can momentarily measure as zero and the nav fallback fired instead.)
-            if (_viewMode == ViewMode.Grid || _viewMode == ViewMode.Continuous)
+            if (_viewMode == ViewMode.Grid || _viewMode.IsContinuous())
             {
                 ScrollWheel(e);
                 return;
@@ -383,7 +383,7 @@ namespace KillerPDF.Controls
             // discards the click.
             if (e.OriginalSource is DependencyObject fieldSrc && IsFormFieldElement(fieldSrc))
                 return null;
-            if (_viewMode == ViewMode.Continuous)
+            if (_viewMode.IsContinuous())
             {
                 if (e.OriginalSource is DependencyObject osc && IsWithinPageOverlay(osc)) return null;
                 int pg = _currentPage;

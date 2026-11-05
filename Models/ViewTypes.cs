@@ -13,7 +13,13 @@ namespace KillerPDF
     /// <summary>Page layout for a document view. RenderPage is Single/TwoPage/Grid only and is
     /// guarded to no-op in Continuous - see the render pipeline's notes on why the two pipelines
     /// cannot be mixed.</summary>
-    internal enum ViewMode { Single, Continuous, TwoPage, Grid }
+    internal enum ViewMode { Single, Continuous, TwoPage, Grid, TwoPageContinuous }
+
+    internal static class ViewModePolicy
+    {
+        internal static bool IsContinuous(this ViewMode mode) =>
+            mode is ViewMode.Continuous or ViewMode.TwoPageContinuous;
+    }
 
     /// <summary>Automatic fit applied on resize, or None when the user has set a zoom.</summary>
     internal enum FitMode { None, Width, Page }

@@ -225,7 +225,7 @@ namespace KillerPDF.Controls
         internal void NavigateToPageExt(int pageIndex)
         {
             if (_doc is null || pageIndex < 0 || pageIndex >= _doc.PageCount) return;
-            if (_viewMode == ViewMode.Continuous)
+            if (_viewMode.IsContinuous())
                 NavigateContinuousToPage(pageIndex);
             else
             {

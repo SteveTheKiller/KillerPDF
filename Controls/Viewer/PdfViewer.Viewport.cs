@@ -273,7 +273,7 @@ namespace KillerPDF.Controls
                 RepositionAnnotationBars();
             }
 
-            if (_viewMode == ViewMode.Continuous && _continuousTops.Count > 0)
+            if (_viewMode.IsContinuous() && _continuousTops.Count > 0)
             {
                 double viewportCenter = (PagePreviewPanel.VerticalOffset + PagePreviewPanel.ViewportHeight * 0.5)
                                         / Math.Max(0.01, _zoomLevel);
@@ -479,6 +479,26 @@ namespace KillerPDF.Controls
             _annotationCanvas = overlay;
         }
 
+        private double ContinuousLayoutWidth => _viewMode == ViewMode.TwoPageContinuous
+            ? _continuousPageW * 2 + 12 : _continuousPageW;
+
+        private void LayoutContinuousSlots()
+        {
+            double[] heights = [.. _continuousPanel.Children.Cast<FrameworkElement>()
+                .Select(slot => double.IsFinite(slot.Height) ? slot.Height : 0)];
+            var layout = ContinuousPageLayout.Create(heights, _continuousPageW,
+                _viewMode == ViewMode.TwoPageContinuous, BookMode);
+            _continuousTops.Clear();
+            _continuousPanel.Width = ContinuousLayoutWidth;
+            _continuousPanel.Height = layout.Count == 0 ? 0 : layout.Max(slot => slot.Top + slot.Height) + 12;
+            for (int page = 0; page < layout.Count; page++)
+            {
+                _continuousTops.Add(layout[page].Top);
+                Canvas.SetLeft(_continuousPanel.Children[page], layout[page].Left);
+                Canvas.SetTop(_continuousPanel.Children[page], layout[page].Top);
+            }
+        }
+
         internal void SetupContinuousView(int initialPage, bool fitDefault = true,
             double? restoreVerticalOffset = null)
         {
@@ -523,10 +543,8 @@ namespace KillerPDF.Controls
             var (referenceWidth, _) = ReadPhysicalPageSize(0);
             _continuousPageW = Math.Max(200.0, referenceWidth * (96.0 / 72.0));
 
-            double y = 0;
             for (int i = 0; i < ReadPageCount; i++)
             {
-                _continuousTops.Add(y);
                 var (pw, ph) = ReadVisualPageSize(i);
                 // Scaffold: reuse this tab's cached render dimensions (from a prior render of this page) so
                 // the frame is built at its REAL size up front. On a tab switch the page slots are already the
@@ -572,8 +590,8 @@ namespace KillerPDF.Controls
                 // #128: no click-to-select in Continuous. The current page follows the viewport via
                 // scroll-sync (like Acrobat/Sumatra), so a click must not scroll or move the counter.
                 _continuousPanel.Children.Add(placeholder);
-                y += slotH + 12;
             }
+            LayoutContinuousSlots();
 
             // Paint existing annotations onto the freshly built per-page overlays so they show
             // immediately. Without this they stayed invisible until the next tool/page change
@@ -658,7 +676,7 @@ namespace KillerPDF.Controls
             bool invert = DocInvert;
             bool invertImages = BitmapHelpers.DocInvertImages;
             var renderToken = cts.Token;
-            bool Current() => !renderToken.IsCancellationRequested && _viewMode == ViewMode.Continuous
+            bool Current() => !renderToken.IsCancellationRequested && _viewMode.IsContinuous()
                 && ReferenceEquals(_active, session) && ReferenceEquals(_nativeDoc, nativeOwner)
                 && _currentFile == currentFile;
             var renderTask = System.Threading.Tasks.Task.Run(async () =>
@@ -786,14 +804,7 @@ namespace KillerPDF.Controls
             }
 
             // Slot heights are now exact; recompute scroll offsets from them.
-            double yy = 0;
-            for (int k = 0; k < _continuousPanel.Children.Count && k < _continuousTops.Count; k++)
-            {
-                _continuousTops[k] = yy;
-                double hk = ((FrameworkElement)_continuousPanel.Children[k]).Height;
-                if (double.IsNaN(hk)) hk = 0;
-                yy += hk + 12;
-            }
+            LayoutContinuousSlots();
 
             // Pages render in order, so when the target page is reached every page above it has its final
             // height; re-scroll so a crop lands you back on the same page instead of drifting.
@@ -828,7 +839,7 @@ namespace KillerPDF.Controls
         // the same debounced timer as the re-sharpen pass.
         private void VirtualizeContinuousSlots()
         {
-            if (_viewMode != ViewMode.Continuous || !HasReadDocument) return;
+            if (!_viewMode.IsContinuous() || !HasReadDocument) return;
             if (_continuousTops.Count == 0 || _continuousPanel.Children.Count == 0) return;
 
             // Visible slot range - same zoom-independent mapping the re-sharpen pass uses.
@@ -911,7 +922,7 @@ namespace KillerPDF.Controls
             // DPI-change handler) can fire RenderPage while continuous is active; ignore them. The mode
             // switch sets _viewMode to the new (non-continuous) mode BEFORE calling RenderPage, so this
             // guard never blocks a legitimate switch-into-single/grid render.
-            if (_viewMode == ViewMode.Continuous) return;
+            if (_viewMode.IsContinuous()) return;
             // Two-page spreads pair (0,1),(2,3),...; render the pair's left (even) page as primary so
             // selecting the right page of a pair still shows the whole spread, not a lone page.
             if (_viewMode == ViewMode.TwoPage) pageIndex = SpreadStart(pageIndex);   // #193: book-aware
@@ -1515,7 +1526,7 @@ namespace KillerPDF.Controls
                 // only Continuous: switching from a Continuous tab to a Single/Two-Page/Grid tab has to
                 // collapse the continuous panel, otherwise the previous tab's continuous render stays on
                 // screen over the new document.
-                bool isContinuous = _viewMode == ViewMode.Continuous;
+                bool isContinuous = _viewMode.IsContinuous();
                 _pageContentPanel.Visibility = isContinuous ? Visibility.Collapsed : Visibility.Visible;
                 _continuousPanel.Visibility  = isContinuous ? Visibility.Visible   : Visibility.Collapsed;
                 _currentPage = page;
@@ -1604,7 +1615,7 @@ namespace KillerPDF.Controls
 
         internal void RefreshPageView(int pageIndex)
         {
-            if (_viewMode == ViewMode.Continuous)
+            if (_viewMode.IsContinuous())
                 return; // continuous mode manages its own rendering
             if (_viewMode == ViewMode.TwoPage) pageIndex = SpreadStart(pageIndex);   // snap to the spread's left page (#193: book-aware)
 
@@ -1703,7 +1714,7 @@ namespace KillerPDF.Controls
             // Continuous re-sharpens on ANY zoom change (zoom-in sharpens the visible pages, zoom-out
             // restores base bitmaps so hi-res memory is released); the other modes only on a >10% zoom-in.
             if (applyIdx >= 0 && _doc is not null && _viewMode != ViewMode.Grid
-                && (_viewMode == ViewMode.Continuous || _zoomLevel > _lastRenderZoom * 1.10))
+                && (_viewMode.IsContinuous() || _zoomLevel > _lastRenderZoom * 1.10))
             {
                 StartRerenderTimer();
             }
@@ -1724,9 +1735,9 @@ namespace KillerPDF.Controls
                     if (!HasReadDocument) return;
                     // Synchronized scrolling also exposes new pages in the unfocused pane.
                     // Its page images must load even while optional sharpening waits for focus.
-                    if (_viewMode == ViewMode.Continuous) VirtualizeContinuousSlots();
+                    if (_viewMode.IsContinuous()) VirtualizeContinuousSlots();
                     if (Host != null && !Host.IsViewerFocused(this)) return;
-                    if (_viewMode == ViewMode.Continuous)
+                    if (_viewMode.IsContinuous())
                     {
                         RefineVisibleRegions();
                         return;
@@ -1820,7 +1831,7 @@ namespace KillerPDF.Controls
         {
             factor = 1.0;
             if (!HasReadDocument) return false;
-            if (_viewMode == ViewMode.Continuous) return true;
+            if (_viewMode.IsContinuous()) return true;
             int idx = _viewMode == ViewMode.Grid ? 0 : Math.Max(0, State.CurrentPage);   // never the shared sidebar's index (see ApplyZoom)
             if (idx < 0 || idx >= ReadPageCount) return false;
             if (!_renderDims.TryGetValue(idx, out var d) || d.w <= 0) return false;
@@ -1927,7 +1938,7 @@ namespace KillerPDF.Controls
             if (_active is null || !HasReadDocument) return false;
             bool ready = TryDisplayZoomFactor(out _)
                 && IsFitLayoutReady(fit)
-                && (_viewMode == ViewMode.Continuous ? _continuousPageW > 0 : PageImage.Source != null);
+                && (_viewMode.IsContinuous() ? _continuousPageW > 0 : PageImage.Source != null);
             if (ready) return false;
             ClearPendingTrueZoom();
             _fitMode = fit;
@@ -2114,7 +2125,7 @@ namespace KillerPDF.Controls
             PagePreviewPanel.ScrollToHorizontalOffset(0);
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
             {
-                if (_viewMode == ViewMode.Continuous)
+                if (_viewMode.IsContinuous())
                     PagePreviewPanel.ScrollToHorizontalOffset(0);
             }));
         }
@@ -2130,12 +2141,12 @@ namespace KillerPDF.Controls
             // Continuous mode: pages are laid out at _continuousPageW (natural DIPs width)
             // and scaled by the ScaleTransform on PageContentGrid. PageImage is hidden, so
             // we cannot use its Source as a guard; use _continuousPageW directly instead.
-            if (_viewMode == ViewMode.Continuous)
+            if (_viewMode.IsContinuous())
             {
                 if (_continuousPageW <= 0) return;
                 double previousZoom = _zoomLevel;
                 _fitMode   = FitMode.Width;
-                _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, viewW / _continuousPageW));
+                _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, viewW / ContinuousLayoutWidth));
                 ApplyZoom(lite);
                 int ci = State.CurrentPage;   // this pane's page, never the shared sidebar's (see ApplyZoom)
                 if (lite || scroll == FitScroll.KeepOffset) CarryContinuousOffset(previousZoom);
@@ -2174,7 +2185,7 @@ namespace KillerPDF.Controls
 
             // Continuous mode: derive the current page's natural height from its PDF aspect
             // ratio and _continuousPageW, then fit both axes.
-            if (_viewMode == ViewMode.Continuous)
+            if (_viewMode.IsContinuous())
             {
                 if (_continuousPageW <= 0 || !HasReadDocument) return;
                 int ci = State.CurrentPage;   // this pane's page, never the shared sidebar's (see ApplyZoom)
@@ -2182,10 +2193,20 @@ namespace KillerPDF.Controls
                 var (pageWidth, pageHeight) = ReadVisualPageSize(ci);
                 double ratio = Math.Max(0.1, pageHeight / Math.Max(1.0, pageWidth));
                 double dipH  = _continuousPageW * ratio;
+                if (_viewMode == ViewMode.TwoPageContinuous)
+                {
+                    int first = SpreadStart(ci);
+                    int last = BookMode && first == 0 ? first : Math.Min(first + 1, ReadPageCount - 1);
+                    for (int page = first; page <= last; page++)
+                    {
+                        var (width, height) = ReadVisualPageSize(page);
+                        dipH = Math.Max(dipH, _continuousPageW * height / Math.Max(1, width));
+                    }
+                }
                 double previousZoom = _zoomLevel;
                 _fitMode   = FitMode.Page;
                 _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax,
-                    Math.Min(viewW / _continuousPageW, viewH / dipH)));
+                    Math.Min(viewW / ContinuousLayoutWidth, viewH / dipH)));
                 ApplyZoom(lite);
                 if (lite || scroll == FitScroll.KeepOffset) CarryContinuousOffset(previousZoom);
                 else
@@ -2251,7 +2272,7 @@ namespace KillerPDF.Controls
         // pairing rule changes, so treating it as a no-op leaves the old cover/spread tiles visible.
         internal void ReapplyViewMode()
         {
-            if (_viewMode == ViewMode.TwoPage)
+            if (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
                 ApplyViewMode(_viewMode, force: true);
         }
 
@@ -2484,7 +2505,7 @@ namespace KillerPDF.Controls
             _gridScrollToPage = -1;
             App.SetSetting("ViewMode", mode.ToString());
 
-            bool isContinuous = mode == ViewMode.Continuous;
+            bool isContinuous = mode.IsContinuous();
             _pageContentPanel.Visibility = isContinuous ? Visibility.Collapsed : Visibility.Visible;
             _continuousPanel.Visibility  = isContinuous ? Visibility.Visible   : Visibility.Collapsed;
 
@@ -2502,7 +2523,7 @@ namespace KillerPDF.Controls
             int idx = _currentPage;
             var modeSession = _active;
             bool ModeCurrent() => _viewMode == mode && ReferenceEquals(_active, modeSession);
-            if (mode == ViewMode.Continuous)
+            if (mode.IsContinuous())
             {
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
                     () => { if (ModeCurrent()) SetupContinuousView(idx); });

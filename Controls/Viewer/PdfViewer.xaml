@@ -629,9 +629,8 @@
                                      inserted at index 0; additional pages are rendered dynamically too. -->
                             </local:SafeWrapPanel>
                             <!-- Continuous scroll panel - shown in Continuous view mode -->
-                            <StackPanel x:Name="ContinuousPanel"
+                            <Canvas x:Name="ContinuousPanel"
                                         HorizontalAlignment="Center"
-                                        Orientation="Vertical"
                                         Visibility="Collapsed"/>
                             <!-- Top-most layer for the selection marquee, so a drag can span pages -->
                             <Canvas x:Name="MarqueeLayer" IsHitTestVisible="False"/>

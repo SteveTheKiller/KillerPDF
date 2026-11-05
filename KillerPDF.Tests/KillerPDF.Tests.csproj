@@ -201,6 +201,7 @@
     <Compile Include="..\Services\FormOcrPolicy.cs" Link="Services\FormOcrPolicy.cs" />
     <Compile Include="..\Services\CombFieldLayout.cs" Link="Services\CombFieldLayout.cs" />
     <Compile Include="..\Services\ContinuousRenderOrder.cs" Link="Services\ContinuousRenderOrder.cs" />
+    <Compile Include="..\Services\ContinuousPageLayout.cs" Link="Services\ContinuousPageLayout.cs" />
     <Compile Include="..\Services\PdfOverlayAnnotations.cs" Link="Services\PdfOverlayAnnotations.cs" />
     <Compile Include="..\Services\ReplacementLayers.cs" Link="Services\ReplacementLayers.cs" />
     <Compile Include="..\Services\SaveFileNamePolicy.cs" Link="Services\SaveFileNamePolicy.cs" />
@@ -224,6 +225,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Controls\PageThumbnailSpreadPanel.cs" Link="Controls\PageThumbnailSpreadPanel.cs" />
     <ProjectReference Include="..\engine\KillerPdf.Engine\KillerPdf.Engine.csproj" />
     <ProjectReference Include="..\third_party\NTwain\NTwain\NTwain.csproj" />
   </ItemGroup>

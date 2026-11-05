@@ -97,9 +97,9 @@ namespace KillerPDF.Controls
             double zoom = Math.Clamp(trueZoom / DisplayZoomFactor(), ZoomMin, ZoomMax);
             // Fit Width uses each pane's page size; equal percentages can leave wide gutters
             // when the two documents have different physical widths.
-            if (source._fitMode == FitMode.Width && _viewMode == ViewMode.Continuous
+            if (source._fitMode == FitMode.Width && _viewMode.IsContinuous()
                 && _continuousPageW > 0 && PagePreviewPanel.ActualWidth > 40)
-                zoom = Math.Clamp((PagePreviewPanel.ActualWidth - 40) / _continuousPageW, ZoomMin, ZoomMax);
+                zoom = Math.Clamp((PagePreviewPanel.ActualWidth - 40) / ContinuousLayoutWidth, ZoomMin, ZoomMax);
             bool changed = Math.Abs(_zoomLevel - zoom) >= 0.0001 || _fitMode != source._fitMode;
             _zoomLevel = zoom;
             _fitMode = source._fitMode;
@@ -114,7 +114,7 @@ namespace KillerPDF.Controls
 
         internal void ScrollToComparisonPositionExt(PdfViewer source, double horizontalRatio, double verticalRatio)
         {
-            if (source._viewMode != ViewMode.Continuous || _viewMode != ViewMode.Continuous
+            if (!source._viewMode.IsContinuous() || !_viewMode.IsContinuous()
                 || source._continuousTops.Count == 0 || _continuousTops.Count == 0)
             {
                 ScrollToRatioExt(horizontalRatio, verticalRatio);

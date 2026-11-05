@@ -87,7 +87,7 @@ namespace KillerPDF.Controls
                 ClearSelection();
                 ClearTextSelection();
                 Host?.EnsureSidebarPageVisible(this, _currentPage);
-                if (_viewMode == ViewMode.Continuous)
+                if (_viewMode.IsContinuous())
                 {
                     Host?.PageJumpText = (_currentPage + 1).ToString();
                     NavigateContinuousToPage(_currentPage);

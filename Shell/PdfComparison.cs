@@ -394,7 +394,7 @@ public partial class MainWindow
         {
             // Continuous scrolling already carries the page and position within it. A second
             // page-jump request would snap that position to the page top after layout.
-            if (other.PageCountExt > 0 && source.CaptureComparisonViewStateExt().View != ViewMode.Continuous)
+            if (other.PageCountExt > 0 && !source.CaptureComparisonViewStateExt().View.IsContinuous())
                 other.NavigateToPageExt(Math.Min(pageIndex, other.PageCountExt - 1));
         }
         finally { _comparisonSyncing = false; }

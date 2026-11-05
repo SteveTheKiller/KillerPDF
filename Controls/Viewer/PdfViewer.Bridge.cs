@@ -60,7 +60,7 @@ namespace KillerPDF.Controls
         private Canvas? _gestureCanvas { get => State.GestureCanvas; set => State.GestureCanvas = value; }
         private int _gesturePage { get => State.GesturePage; set => State.GesturePage = value; }
         private Image PageImage { get => State.PageImage; set => State.PageImage = value; }
-        private StackPanel _continuousPanel { get => State.ContinuousPanel; set => State.ContinuousPanel = value; }
+        private Canvas _continuousPanel { get => State.ContinuousPanel; set => State.ContinuousPanel = value; }
         private WrapPanel _pageContentPanel { get => State.PageContentPanel; set => State.PageContentPanel = value; }
         private Grid _pageContentGrid { get => State.PageContentGrid; set => State.PageContentGrid = value; }
         private int _currentPage

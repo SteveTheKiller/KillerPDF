@@ -409,6 +409,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_View_Single">単ページ</sys:String>
     <sys:String x:Key="Str_View_Continuous">連続</sys:String>
     <sys:String x:Key="Str_View_TwoPage">見開き</sys:String>
+    <sys:String x:Key="Str_View_TwoPageContinuous">見開き (連続)</sys:String>
     <sys:String x:Key="Str_Replacement_Group">置換</sys:String>
     <sys:String x:Key="Str_Replacement_LayerMove">このレイヤーの移動とサイズ変更を許可</sys:String>
     <sys:String x:Key="Str_Replacement_Link">カバーとテキストを一緒に移動</sys:String>
@@ -928,6 +929,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Sidebar_Right">右</sys:String>
     <sys:String x:Key="Str_Sidebar_Top">上</sys:String>
     <sys:String x:Key="Str_Sidebar_Bottom">下</sys:String>
+    <sys:String x:Key="Str_Sidebar_TwoPageThumbnails">2ページのサムネイルを並べて表示</sys:String>
     <sys:String x:Key="Str_Rail_Flip">アイコンを反対側に移動</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">サイドバーの切り替え</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">ツールバーの外観</sys:String>

@@ -345,6 +345,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_View_Single">একক পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_View_Continuous">ধারাবাহিক</sys:String>
     <sys:String x:Key="Str_View_TwoPage">দুই পৃষ্ঠা</sys:String>
+    <sys:String x:Key="Str_View_TwoPageContinuous">দুই পৃষ্ঠা (ধারাবাহিক)</sys:String>
     <sys:String x:Key="Str_Replacement_Group">প্রতিস্থাপন</sys:String>
     <sys:String x:Key="Str_Replacement_LayerMove">এই স্তরটি সরানো ও আকার পরিবর্তনের অনুমতি দিন</sys:String>
     <sys:String x:Key="Str_Replacement_Link">কভার ও টেক্সট একসঙ্গে সরান</sys:String>
@@ -841,6 +842,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Sidebar_Right">ডান দিকে</sys:String>
     <sys:String x:Key="Str_Sidebar_Top">উপরে</sys:String>
     <sys:String x:Key="Str_Sidebar_Bottom">নিচে</sys:String>
+    <sys:String x:Key="Str_Sidebar_TwoPageThumbnails">পাশাপাশি দুই পৃষ্ঠার থাম্বনেইল</sys:String>
     <sys:String x:Key="Str_Rail_Flip">আইকন অন্য পাশে সরান</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">সাইডবার টগল করুন</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">টুলবারের চেহারা</sys:String>

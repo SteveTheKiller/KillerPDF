@@ -49,7 +49,7 @@ namespace KillerPDF.Shell
         private ViewerState _view => ActiveViewer.State;
 
         private ViewMode _viewMode { get => _view.Mode; set => _view.Mode = value; }
-        private StackPanel _continuousPanel { get => _view.ContinuousPanel; set => _view.ContinuousPanel = value; }
+        private Canvas _continuousPanel { get => _view.ContinuousPanel; set => _view.ContinuousPanel = value; }
         private System.Threading.CancellationTokenSource? _continuousRenderCts { get => _view.ContinuousRenderCts; set => _view.ContinuousRenderCts = value; }
         private System.Threading.CancellationTokenSource? _continuousSharpenCts { get => _view.ContinuousSharpenCts; set => _view.ContinuousSharpenCts = value; }
         private HashSet<int> _continuousSharpPages => _view.ContinuousSharpPages;

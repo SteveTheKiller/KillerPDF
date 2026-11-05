@@ -150,7 +150,7 @@ namespace KillerPDF.Shell
             bool hasDoc = _doc is not null;
             bool hasReadingDocument = ActiveViewer.HasReadDocumentExt;
             foreach (UIElement control in new UIElement[] { PageSizeLabel, ViewContinuousRadio, ViewSingleRadio,
-                         ViewTwoPageRadio, ViewGridRadio, FooterDisplayControls, ZoomOutBtn, ZoomBox, ZoomInBtn })
+                         ViewTwoPageRadio, ViewTwoPageContinuousRadio, ViewGridRadio, FooterDisplayControls, ZoomOutBtn, ZoomBox, ZoomInBtn })
             {
                 control.IsEnabled = hasReadingDocument;
                 control.Opacity = hasReadingDocument ? 1 : .4;

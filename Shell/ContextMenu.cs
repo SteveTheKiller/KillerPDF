@@ -344,7 +344,7 @@ namespace KillerPDF.Shell
         // from drifting apart (including the live check state and keyboard hint).
         private void AppendBookLayoutItem(ContextMenu menu)
         {
-            if (_viewMode != ViewMode.TwoPage) return;
+            if (_viewMode is not (ViewMode.TwoPage or ViewMode.TwoPageContinuous)) return;
 
             var book = MakeMenuItem(Loc("Str_View_BookMode"), (s, e) => ToggleBookMode(), GestureFor("B"), "");
             book.IsCheckable = true;
@@ -810,6 +810,23 @@ namespace KillerPDF.Shell
         {
             if (menu.Items.Count > 0) menu.Items.Add(new Separator());
             menu.Items.Add(new MenuItem { Header = Loc("Str_Sidebar"), IsEnabled = false });
+            if (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
+            {
+                var paired = new MenuItem
+                {
+                    Name = "TwoPageThumbnailsMenuItem",
+                    Header = Loc("Str_Sidebar_TwoPageThumbnails"),
+                    IsCheckable = true,
+                    IsChecked = App.GetSetting("TwoPageThumbnails") == "1",
+                    IsEnabled = !_sidebarStripLayout
+                };
+                paired.Click += (_, _) =>
+                {
+                    App.SetSetting("TwoPageThumbnails", paired.IsChecked ? "1" : "0");
+                    ApplyPageThumbnailLayout();
+                };
+                menu.Items.Add(paired);
+            }
             foreach (SidebarSide side in new[] { SidebarSide.Left, SidebarSide.Right, SidebarSide.Top, SidebarSide.Bottom })
             {
                 var item = new MenuItem { Header = Loc(side.StringKey()), IsCheckable = true, IsChecked = side == _sidebarSide, Icon = side.MenuIcon() };

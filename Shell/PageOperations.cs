@@ -365,6 +365,7 @@ namespace KillerPDF.Shell
             // to finish - canceling it was what left a pane showing page labels with no pictures
             // after any focus change.
             _sidebarPages.Show(cached);
+            ApplyPageThumbnailLayout();
             ActiveViewer.SyncPageListSelection(preservedPage);
         }
 
@@ -416,6 +417,7 @@ namespace KillerPDF.Shell
                 }
             }
             _sidebarPages.Show(items);
+            ApplyPageThumbnailLayout();
             ActiveViewer.SyncPageListSelection(preservedPage);
 
             // Hand the array to the pane it belongs to, so focusing away and back can re-seat it

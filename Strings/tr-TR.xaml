@@ -345,6 +345,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_View_Single">Tek Sayfa</sys:String>
     <sys:String x:Key="Str_View_Continuous">Sürekli</sys:String>
     <sys:String x:Key="Str_View_TwoPage">İki Sayfa</sys:String>
+    <sys:String x:Key="Str_View_TwoPageContinuous">İki Sayfa (Sürekli)</sys:String>
     <sys:String x:Key="Str_Replacement_Group">Değiştirme</sys:String>
     <sys:String x:Key="Str_Replacement_LayerMove">Bu katmanın taşınmasına ve yeniden boyutlandırılmasına izin ver</sys:String>
     <sys:String x:Key="Str_Replacement_Link">Örtüyü ve metni birlikte taşı</sys:String>
@@ -841,6 +842,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Sidebar_Right">Sağ</sys:String>
     <sys:String x:Key="Str_Sidebar_Top">Üst</sys:String>
     <sys:String x:Key="Str_Sidebar_Bottom">Alt</sys:String>
+    <sys:String x:Key="Str_Sidebar_TwoPageThumbnails">İki sayfanın küçük resimlerini yan yana göster</sys:String>
     <sys:String x:Key="Str_Rail_Flip">Simgeleri diğer tarafa taşı</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Kenar çubuğunu aç/kapat</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Araç çubuğu görünümü</sys:String>

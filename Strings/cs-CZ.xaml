@@ -409,6 +409,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_View_Single">Jedna stránka</sys:String>
     <sys:String x:Key="Str_View_Continuous">Souvislé</sys:String>
     <sys:String x:Key="Str_View_TwoPage">Dvoustrana</sys:String>
+    <sys:String x:Key="Str_View_TwoPageContinuous">Dvoustrana (Souvislé)</sys:String>
     <sys:String x:Key="Str_Replacement_Group">Náhrada</sys:String>
     <sys:String x:Key="Str_Replacement_LayerMove">Povolit přesouvání a změnu velikosti této vrstvy</sys:String>
     <sys:String x:Key="Str_Replacement_Link">Přesouvat překrytí a text společně</sys:String>
@@ -918,6 +919,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Sidebar_Right">Vpravo</sys:String>
     <sys:String x:Key="Str_Sidebar_Top">Nahoře</sys:String>
     <sys:String x:Key="Str_Sidebar_Bottom">Dole</sys:String>
+    <sys:String x:Key="Str_Sidebar_TwoPageThumbnails">Miniatury dvou stran vedle sebe</sys:String>
     <sys:String x:Key="Str_Rail_Flip">Přesunout ikony na druhou stranu</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Přepnout postranní panel</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">Vzhled panelu nástrojů</sys:String>

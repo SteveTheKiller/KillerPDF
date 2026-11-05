@@ -347,6 +347,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_View_Single">單頁</sys:String>
     <sys:String x:Key="Str_View_Continuous">連續捲動</sys:String>
     <sys:String x:Key="Str_View_TwoPage">雙頁</sys:String>
+    <sys:String x:Key="Str_View_TwoPageContinuous">雙頁 (連續捲動)</sys:String>
     <sys:String x:Key="Str_Replacement_Group">取代</sys:String>
     <sys:String x:Key="Str_Replacement_LayerMove">允許移動此圖層及調整其大小</sys:String>
     <sys:String x:Key="Str_Replacement_Link">同時移動遮蓋與文字</sys:String>
@@ -843,6 +844,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Sidebar_Right">右側</sys:String>
     <sys:String x:Key="Str_Sidebar_Top">頂部</sys:String>
     <sys:String x:Key="Str_Sidebar_Bottom">底部</sys:String>
+    <sys:String x:Key="Str_Sidebar_TwoPageThumbnails">雙頁並排縮圖</sys:String>
     <sys:String x:Key="Str_Rail_Flip">將圖示移至另一側</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">切換側邊欄</sys:String>
     <sys:String x:Key="Str_KS_ToolbarStyle">工具列外觀</sys:String>

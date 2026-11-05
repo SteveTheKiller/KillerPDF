@@ -269,8 +269,11 @@ namespace KillerPDF.Shell
         // Completed doubled up with that settle pass and read as a two-step stutter. Completion
         // clears the animation and writes the target as a plain local value so the splitter,
         // side flip, and full screen can keep setting Width directly.
+        private long _sidebarAnimationGeneration;
+
         private void AnimateSidebarWidth(double target, Action? onDone = null)
         {
+            long generation = ++_sidebarAnimationGeneration;
             var anim = new GridLengthAnimation
             {
                 From     = new GridLength(Math.Max(0, _sidebarCol.ActualWidth)),
@@ -281,6 +284,8 @@ namespace KillerPDF.Shell
             };
             anim.Completed += (_, _) =>
             {
+                // An earlier clock can finish after a document starts the opposite transition.
+                if (generation != _sidebarAnimationGeneration) return;
                 _sidebarCol.BeginAnimation(null);
                 _sidebarCol.Width = new GridLength(target);
                 onDone?.Invoke();

@@ -140,7 +140,7 @@ namespace KillerPDF.Shell
 
         void IViewerHost.ViewerNavigationChanged(PdfViewer viewer)
         {
-            if (ReferenceEquals(ActiveViewer, viewer)) SyncPageNavigationButtons();
+            if (ReferenceEquals(ActiveViewer, viewer)) SyncPickerState();
         }
 
         void IViewerHost.ViewerPageChanged(PdfViewer viewer, int pageIndex)
