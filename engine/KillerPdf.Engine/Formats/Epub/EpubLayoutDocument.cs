@@ -140,14 +140,14 @@ public sealed class EpubLayoutDocument
         ArgumentNullException.ThrowIfNull(options);
         if (pageIndex < 0 || pageIndex >= Pages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
-        if (options.Proof is { Enabled: true })
-            throw new NotSupportedException("Printer proof rendering is unavailable for native EPUB documents.");
         if (options.SeparationPlate is not null)
             throw new NotSupportedException("Native EPUB rendering does not support color separations.");
         if ((long)options.Width * options.Height > options.PixelByteLimit / (2 * 4 * sizeof(float)))
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
-        return NativeGlyphPainter.Render(options.Width, options.Height, Pages[pageIndex].Glyphs,
+        PdfNativeFrameProof.Preflight(options);
+        var frame = NativeGlyphPainter.Render(options.Width, options.Height, Pages[pageIndex].Glyphs,
             _options.TextColor, cancellationToken, options.Width / _options.PageWidth,
             options.Height / _options.PageHeight, Pages[pageIndex].CanvasBackground);
+        return PdfNativeFrameProof.Apply(frame, options, cancellationToken);
     }
 }

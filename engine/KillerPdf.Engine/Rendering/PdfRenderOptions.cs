@@ -6,7 +6,7 @@ namespace KillerPdf.Engine.Rendering;
 public sealed record PdfRenderOptions
 {
     /// <summary>Gets optional requested printer proof preferences for float frame rendering.</summary>
-    /// <remarks>Unsupported requests, including enabled proof on byte or native renderers, are diagnosed.</remarks>
+    /// <remarks>Supported PDF and native float renderers apply proof; unsupported requests and byte rendering are diagnosed.</remarks>
     public PdfDocumentProofSettings? Proof { get; init; }
 
     /// <summary>Creates render options for an exact pixel size.</summary>

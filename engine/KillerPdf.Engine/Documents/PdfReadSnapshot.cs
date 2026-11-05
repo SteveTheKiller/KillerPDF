@@ -157,8 +157,6 @@ public sealed partial class PdfReadSnapshot
         ArgumentNullException.ThrowIfNull(options);
         if (pageIndex < 0 || pageIndex >= PageCount)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
-        if (options.Proof is { Enabled: true })
-            throw new NotSupportedException("Printer proof rendering is unavailable for native documents.");
         if (_layout is not null)
             return _layout.RenderPage(pageIndex, options, cancellationToken);
         if (options.SeparationPlate is not null)
@@ -174,7 +172,9 @@ public sealed partial class PdfReadSnapshot
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
         if (resized)
             PdfNativeFrameResampler.CheckWork(width, height, options.Width, options.Height);
+        PdfNativeFrameProof.Preflight(options, resized ? (long)width * height : 0);
         var frame = _djvu!.RenderPage(pageIndex, cancellationToken);
-        return resized ? PdfNativeFrameResampler.Resize(frame, options.Width, options.Height, cancellationToken) : frame;
+        var output = resized ? PdfNativeFrameResampler.Resize(frame, options.Width, options.Height, cancellationToken) : frame;
+        return PdfNativeFrameProof.Apply(output, options, cancellationToken);
     }
 }

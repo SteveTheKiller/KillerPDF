@@ -417,9 +417,16 @@ also requires explicit valid media white; source BPC is an identity for that int
 Conversion occurs after group compositing through D50 XYZ, retaining extended reference RGB.
 Transparent output converts straight color while retaining alpha and unpainted hidden RGB;
 premultiplication occurs only when requested by the output format.
-Other requests are diagnosed. Byte rendering and native layouts reject enabled proof;
-disabled proof preserves their normal output. Original CMYK ink preservation, other proof controls
-and desktop proof integration still require the full source-aware pipeline.
+Other requests are diagnosed. Byte rendering rejects enabled proof.
+Native EPUB layout and EPUB/DjVu snapshot `RenderPage(options)` also apply supported
+proof settings to their normalized linear-sRGB frames, preserving the source snapshot.
+Paper/black simulation, BPC, intent and separate gamut-mask policy match the PDF proof
+path. Combined storage limits count original, mutable and returned frame buffers,
+temporary and owned masks, and any retained natural-size DjVu frame during resizing.
+Missing or unusable printer transforms are diagnosed; disabled proof preserves normal
+output. Native runtime fixtures currently cover gray output profiles and opaque frames.
+Original CMYK ink preservation, broader profile/native format acceptance and desktop
+proof controls still require the full source-aware pipeline.
 `RenderFrameRegion` returns an owned float32 crop on the full page's pixel grid. Its
 combined pixel-storage limit counts only the requested region, and precision validation,
 diagnostics and cancellation match `RenderFrame`. Desktop refinement adoption remains in progress.
