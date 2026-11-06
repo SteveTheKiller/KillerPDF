@@ -31,6 +31,16 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal MarginLength?[]? Padding { get; init; }
         internal List<SourceNode> Children { get; } = new();
 
+        internal double VerticalMargin(int side, double width, double fallback)
+        {
+            if (Margins?[side] is not { } length) return fallback;
+            double value = length.Percentage ? length.Value * width / 100
+                : length.Em ? length.Value * Style.FontSize : length.Value;
+            if (!double.IsFinite(value) || value < 0 || value > 32768)
+                throw new NotSupportedException("Native EPUB paragraph margins exceed the supported dimensions.");
+            return value;
+        }
+
         internal (double Left, double Right) HorizontalInsets(double width, bool padding = false)
         {
             var sides = padding ? Padding : Margins;
@@ -142,8 +152,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             _bodyFontSize = style.FontSize;
         }
         else if (properties.Margins?.Any(side => side is { Value: > 0 }) == true
-            && (name != "p" || properties.Block == false
-                || properties.Margins[0] is { Value: > 0 } || properties.Margins[2] is { Value: > 0 }))
+            && (name != "p" || properties.Block == false))
             throw new NotSupportedException("Native EPUB nonzero margins are implemented only on the body.");
         if (name != "body" && properties.Padding?.Any(side => side is { Value: > 0 }) == true
             && (name != "p" || properties.Block == false

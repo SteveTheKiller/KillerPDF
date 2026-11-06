@@ -281,7 +281,7 @@ public sealed partial class EpubDocument
         EpubFormattingTree.Block lineBlock = formatting.Root;
         var startedBlocks = new HashSet<EpubFormattingTree.Block>();
         var activeBounds = new Dictionary<EpubFormattingTree.Block, (double Left, double Width)>();
-        bool pendingParagraphGap = false;
+        double pendingParagraphGap = 0;
         long imageBytes = retainedImageBytes;
         LayoutBlock(formatting.Root);
         retainedImageBytes = imageBytes;
@@ -327,20 +327,24 @@ public sealed partial class EpubDocument
             {
                 FinishPage(boundary);
                 top = options.Margin;
-                pendingParagraphGap = false;
+                pendingParagraphGap = 0;
             }
-            if (block.Source.Name == "p" && pageHasContent && block.Source.Margins?[0] is null)
-                pendingParagraphGap = true;
+            if (block.Source.Name == "p")
+            {
+                pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(0,
+                    activeBounds[formatting.Root].Width, pageHasContent ? options.FontSize : 0));
+            }
             if (block.Replaced is { Source: { } source } replaced)
             {
                 lineBlock = block;
                 var image = ReadNativeImage(resource.Href, source, imageCache, ref imageBytes, cancellationToken);
                 if (image.Width > contentWidth || image.Height > options.PageHeight - 2 * options.Margin)
                     throw new NotSupportedException("The native EPUB block image exceeds the available page dimensions.");
-                if (pendingParagraphGap)
+                if (pendingParagraphGap > 0)
                 {
-                    if (pageHasContent) top += options.FontSize;
-                    pendingParagraphGap = false;
+                    top += !pageHasContent && pages.Count == 0 && bodyPadding.Top == 0
+                        ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
+                    pendingParagraphGap = 0;
                 }
                 if (top + image.Height > options.PageHeight - options.Margin)
                 {
@@ -371,7 +375,8 @@ public sealed partial class EpubDocument
                 FlushLine();
             }
             if (block.Source.Name == "p" && pageHasContent)
-                pendingParagraphGap = block.Source.Margins?[2] is null;
+                pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(2,
+                    activeBounds[formatting.Root].Width, options.FontSize));
         }
 
         void LayoutInline(EpubFormattingTree.InlineSequence sequence)
@@ -386,10 +391,11 @@ public sealed partial class EpubDocument
                 var atom = sequence.Atoms[at];
                 int index = atom.Offset;
                 cancellationToken.ThrowIfCancellationRequested();
-                if (pendingParagraphGap)
+                if (pendingParagraphGap > 0)
                 {
-                    if (pageHasContent) top += options.FontSize;
-                    pendingParagraphGap = false;
+                    top += !pageHasContent && pages.Count == 0 && bodyPadding.Top == 0
+                        ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
+                    pendingParagraphGap = 0;
                 }
                 if (atom.Reference is { } reference)
                 {

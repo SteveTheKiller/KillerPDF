@@ -367,7 +367,7 @@ Horizontal insets persist across pages and reduce wrapping width. The initial to
 margin is not repeated on continuation pages. An auto-height terminal body's bottom
 margin does not reserve space on every page or create an extra empty page.
 Native pixels and reopened PDF geometry cover these cases. Negative/auto margins,
-vertical child margins, other units, exhausted content geometry and advanced fragment
+inline child margins, other units, exhausted content geometry and advanced fragment
 semantics remain explicitly unsupported; complete CSS layout remains in progress.
 
 Block paragraphs support nonnegative horizontal margins and padding in px, em and
@@ -377,8 +377,14 @@ after page breaks inside its content box. Backgrounds include padding and exclud
 margins, and sibling paragraphs recover their own bounds. Explicit zero top and
 bottom paragraph margins suppress their respective default spacing; an unspecified
 adjacent side retains the reader's default gap. Empty zero-margin paragraphs add no
-extra line. These rules also apply to explicit PDF conversion. Vertical paragraph box
-spacing, inline box insets and margin collapsing still require implementation.
+extra line. Nonnegative vertical paragraph margins accept px/em/percentages and
+collapse adjoining sibling and empty-block margins to their maximum. A body's top
+margin collapses with its initial paragraph chain when top padding does not separate
+them. Percentages use the containing content width before paragraph side insets.
+Forced breaks discard the preceding margin and retain the next top margin; automatic
+continuations do not repeat the paragraph's top margin. These rules also apply to
+explicit PDF conversion. Signed/auto margins, vertical paragraph padding, inline
+box insets and complete nested/terminal fragmentation still require implementation.
 
 Body padding accepts the same nonnegative px/em/percentage shorthand and longhand
 forms, with per-side cascade and no inheritance. Percentages use the original

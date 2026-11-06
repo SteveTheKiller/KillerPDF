@@ -267,7 +267,7 @@ public sealed class EpubBodyMarginTests
     }
 
     [Theory]
-    [InlineData("p{margin:1px}")]
+    [InlineData("p{display:inline;margin:1px}")]
     [InlineData("span{margin-left:1px}")]
     public void NonzeroChildMarginsRemainExplicitlyUnsupported(string css)
     {
