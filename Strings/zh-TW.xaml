@@ -2058,4 +2058,12 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_CM_ImportProfile">匯入描述檔...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">ICC 描述檔</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">無法匯入描述檔。請檢查檔案後再試一次。</sys:String>
+    <sys:String x:Key="Str_CM_Preset">校樣預設</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">選擇預設</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">載入預設</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">預設名稱</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">儲存預設</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">儲存或載入預設不會變更文件，直到您選擇「套用」。</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">無法讀取預設資料庫。目前的校樣設定維持不變。</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">無法儲存預設。請輸入不重複的名稱後再試一次。</sys:String>
 </ResourceDictionary>

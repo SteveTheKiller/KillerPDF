@@ -1965,4 +1965,12 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_CM_ImportProfile">Uvozi profil...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">Profili ICC</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">Profila ni bilo mogoče uvoziti. Preverite datoteko in poskusite znova.</sys:String>
+    <sys:String x:Key="Str_CM_Preset">Prednastavitev poskusnega odtisa</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">Izberite prednastavitev</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">Naloži prednastavitev</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">Ime prednastavitve</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">Shrani prednastavitev</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">Shranjevanje ali nalaganje prednastavitve ne spremeni dokumenta, dokler ne izberete Uporabi.</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Knjižnice prednastavitev ni bilo mogoče prebrati. Trenutne nastavitve poskusnega odtisa so nespremenjene.</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">Prednastavitve ni bilo mogoče shraniti. Vnesite enolično ime in poskusite znova.</sys:String>
 </ResourceDictionary>

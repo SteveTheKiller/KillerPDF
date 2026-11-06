@@ -21,7 +21,8 @@ internal static class ColorManagementSmoke
     internal static int Run(Window owner, string appPath, string folder)
     {
         if (Environment.MachineName is not ("SN01" or "SN02")) throw new InvalidOperationException("Color controls require an owned VM.");
-        SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
+        string engineHash = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
+        string codecHash = SelectedAssemblyIdentity.HashLoaded(Assembly.Load("CoreJ2K"), appPath);
         Directory.CreateDirectory(folder);
         string source = Path.Combine(folder, "color-controls.pdf");
         byte[] original = new PdfDocumentBuilder().AddBlankPage(600, 750).Build();
@@ -45,6 +46,83 @@ internal static class ColorManagementSmoke
                 Product(dialog.Title.Contains("Color Management", StringComparison.Ordinal), "The panel title must be readable English.");
                 var controls = Descendants(dialog).OfType<FrameworkElement>().ToArray();
                 T Control<T>(string id) where T : FrameworkElement => controls.OfType<T>().Single(item => AutomationProperties.GetAutomationId(item) == id);
+                if (stage is "save-preset" or "load-preset" or "apply-preset")
+                {
+                    var save = controls.OfType<Button>().SingleOrDefault(item => AutomationProperties.GetAutomationId(item) == "ProofSavePreset");
+                    Product(save is not null && save.IsVisible && save.IsEnabled, "The actual panel must offer Save preset.");
+                    var prior = View()!.CaptureProof();
+                    var presets = Control<ComboBox>("ProofPreset");
+                    if (stage == "save-preset")
+                    {
+                        foreach (string id in new[] { "ProofEnabled", "ProofBpc", "ProofPaper", "ProofBlack", "ProofGamut" })
+                            ((IToggleProvider)new CheckBoxAutomationPeer(Control<CheckBox>(id)).GetPattern(PatternInterface.Toggle)!).Toggle();
+                        Select(Control<ComboBox>("ProofIntent"), "Relative colorimetric");
+                        var name = Control<TextBox>("ProofPresetName");
+                        name.BringIntoView();
+                        dialog.UpdateLayout();
+                        Product(Reachable(name) && AutomationProperties.GetName(name) == "Preset name", "The named preset input must be reachable and accessible.");
+                        ((IValueProvider)new TextBoxAutomationPeer(name).GetPattern(PatternInterface.Value)!).SetValue("Reading proof");
+                        save!.BringIntoView();
+                        dialog.UpdateLayout();
+                        Product(Reachable(save), "Save preset must be reachable after scrolling.");
+                        Invoke(save);
+                        Wait(() => save.IsEnabled && presets.Items.Cast<object>().Any(item => item.ToString() == "Reading proof"));
+                        Product(presets.Items.Count == 2, "Saving a named preset must make one retained choice available.");
+                    }
+                    else
+                    {
+                        Product(presets.Items.Cast<object>().Any(item => item.ToString() == "Reading proof"),
+                            "A preset saved through the panel must be available after reopening.");
+                        presets.BringIntoView();
+                        dialog.UpdateLayout();
+                        Product(Reachable(presets), "The preset choice must be reachable after scrolling.");
+                        Select(presets, "Reading proof");
+                        var load = Control<Button>("ProofLoadPreset");
+                        Product(load.IsVisible && load.IsEnabled, "The selected preset must be loadable through the actual panel.");
+                        load.BringIntoView();
+                        Invoke(load);
+                        Wait(() => Control<TextBox>("ProofPresetName").Text == "Reading proof");
+                        Product(Control<CheckBox>("ProofEnabled").IsChecked == false, "Loading must restore proof off from the saved draft.");
+                        Product(Control<ComboBox>("ProofIntent").SelectedIndex == 1, "Loading must restore the saved relative intent.");
+                        Product(Control<CheckBox>("ProofBpc").IsChecked == true, "Loading must restore the saved BPC setting.");
+                        foreach (string id in new[] { "ProofPaper", "ProofBlack", "ProofGamut" })
+                            Product(Control<CheckBox>(id).IsChecked == false, "Loading must restore the saved " + id + " choice.");
+                        Product(Control<ComboBox>("ProofProfile").SelectedItem?.ToString() == "imported-paper", "Loading must retain the saved profile content selection.");
+                    }
+                    Product(View()!.CaptureProof() == prior, "Saving or loading a draft preset must not change the document before Apply.");
+                    if (stage == "load-preset")
+                    {
+                        Wait(() => !PresentationSource.CurrentSources.Cast<PresentationSource>().Any(source =>
+                            source.RootVisual is FrameworkElement { IsVisible: true } root && root.GetType().Name == "PopupRoot"));
+                        int frames = 0;
+                        EventHandler ready = (_, _) => frames++;
+                        CompositionTarget.Rendering += ready;
+                        try { Wait(() => frames >= 2); }
+                        finally { CompositionTarget.Rendering -= ready; }
+                        string? priorFrame = null;
+                        byte[]? settledFrame = null;
+                        int stableFrames = 0;
+                        Wait(() =>
+                        {
+                            var presetCapture = NativeReadingSmoke.Capture(dialog, new Rect(dialog.PointToScreen(new Point(4, 4)),
+                                dialog.PointToScreen(new Point(dialog.ActualWidth - 4, dialog.ActualHeight - 4))));
+                            var presetEncoder = new PngBitmapEncoder();
+                            presetEncoder.Frames.Add(BitmapFrame.Create(presetCapture));
+                            using var output = new MemoryStream();
+                            presetEncoder.Save(output);
+                            byte[] bytes = output.ToArray();
+                            string hash = Convert.ToHexString(SHA256.HashData(bytes));
+                            stableFrames = priorFrame == hash ? stableFrames + 1 : 0;
+                            priorFrame = hash;
+                            if (stableFrames < 2) return false;
+                            settledFrame = bytes;
+                            return true;
+                        });
+                        File.WriteAllBytes(Path.Combine(folder, "panel-presets.png"), settledFrame!);
+                    }
+                    owner.Dispatcher.BeginInvoke(new Action(() => Invoke(Control<Button>(stage == "apply-preset" ? "ColorManagementApply" : "ColorManagementClose"))));
+                    return;
+                }
                 if (stage is "import-profile" or "cancel-import" or "invalid-import")
                 {
                     bool cancel = stage == "cancel-import";
@@ -277,7 +355,7 @@ internal static class ColorManagementSmoke
             if (failure is not null) throw failure;
             Product(handled, "The actual panel must have been observed and closed.");
             Product(View()!.CaptureProof().Settings == before, "Closing the initial panel must preserve document proof preferences.");
-            foreach (string next in new[] { "apply", "reopen", "select-profile", "reopen-profile", "missing-profile", "import-profile", "reopen-imported", "cancel-import", "invalid-import", "corrupt-library" })
+            foreach (string next in new[] { "apply", "reopen", "select-profile", "reopen-profile", "missing-profile", "import-profile", "reopen-imported", "cancel-import", "invalid-import", "save-preset", "load-preset", "apply-preset", "corrupt-library" })
             {
                 if (next == "select-profile")
                 {
@@ -318,11 +396,13 @@ internal static class ColorManagementSmoke
                 ((IInvokeProvider)new MenuItemAutomationPeer(item).GetPattern(PatternInterface.Invoke)!).Invoke();
                 Wait(() => handled && !Application.Current.Windows.Cast<Window>().Any(window => window != owner && window.IsVisible));
                 var changed = View()!.CaptureProof().Settings;
-                Product(changed.Enabled && changed.Options.RenderingIntent == PdfRenderingIntent.AbsoluteColorimetric
-                    && !changed.Options.BlackPointCompensation && changed.Options.SimulatePaper
-                    && changed.Options.SimulateBlack && changed.GamutWarnings,
+                bool appliedPreset = next is "apply-preset" or "corrupt-library";
+                Product(changed.Enabled == !appliedPreset
+                    && changed.Options.RenderingIntent == (appliedPreset ? PdfRenderingIntent.RelativeColorimetric : PdfRenderingIntent.AbsoluteColorimetric)
+                    && changed.Options.BlackPointCompensation == appliedPreset && changed.Options.SimulatePaper == !appliedPreset
+                    && changed.Options.SimulateBlack == !appliedPreset && changed.GamutWarnings == !appliedPreset,
                     "Actual controls must apply and retain every requested preference on the public document session.");
-                if (next is "import-profile" or "reopen-imported" or "cancel-import" or "invalid-import" or "corrupt-library")
+                if (next is "import-profile" or "reopen-imported" or "cancel-import" or "invalid-import" or "save-preset" or "load-preset" or "apply-preset" or "corrupt-library")
                     Product(changed.PrinterProfile is not null
                         && changed.PrinterProfileSha256 == "C7E48BB35732B34F325CC92E08847232CA62A262F298840ECFBAC103C0577364",
                         "Apply must load the exact picker-imported ICC content and retain it through reopening and library damage.");
@@ -356,7 +436,7 @@ internal static class ColorManagementSmoke
             {
                 passed = failure is null, stage, assertions, handled, error = failure?.ToString(),
                 sourcePreserved = File.ReadAllBytes(source).SequenceEqual(original), closed = !owner.IsVisible,
-                appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)))
+                appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath))), engineHash, codecHash
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
         return failure is null ? 0 : 1;
@@ -370,6 +450,27 @@ internal static class ColorManagementSmoke
         {
             if (!condition) throw new InvalidOperationException(message);
             assertions++;
+        }
+        void Select(ComboBox combo, string name)
+        {
+            var peer = UIElementAutomationPeer.CreatePeerForElement(combo) ?? new ComboBoxAutomationPeer(combo);
+            var dropdown = (IExpandCollapseProvider)peer.GetPattern(PatternInterface.ExpandCollapse)!;
+            dropdown.Expand();
+            int index = combo.Items.Cast<object>().Select((item, at) => (item, at)).Single(pair => pair.item.ToString() == name).at;
+            Wait(() => combo.ItemContainerGenerator.ContainerFromIndex(index) is ComboBoxItem { IsVisible: true });
+            var entry = peer.GetChildren().Single(item => item.GetName() == name
+                && item.GetPattern(PatternInterface.SelectionItem) is ISelectionItemProvider);
+            ((ISelectionItemProvider)entry.GetPattern(PatternInterface.SelectionItem)!).Select();
+            dropdown.Collapse();
+        }
+        bool Reachable(FrameworkElement control)
+        {
+            var dialog = Window.GetWindow(control);
+            if (dialog is null || control.ActualWidth <= 0 || control.ActualHeight <= 0) return false;
+            var point = control.TranslatePoint(new Point(control.ActualWidth / 2, control.ActualHeight / 2), dialog);
+            for (DependencyObject? hit = VisualTreeHelper.HitTest(dialog, point)?.VisualHit; hit is not null; hit = VisualTreeHelper.GetParent(hit))
+                if (ReferenceEquals(hit, control)) return true;
+            return false;
         }
         void Wait(Func<bool> ready)
         {

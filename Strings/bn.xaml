@@ -2056,4 +2056,12 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_CM_ImportProfile">প্রোফাইল আমদানি করুন...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">ICC প্রোফাইল</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">প্রোফাইলটি আমদানি করা যায়নি। ফাইলটি পরীক্ষা করে আবার চেষ্টা করুন।</sys:String>
+    <sys:String x:Key="Str_CM_Preset">প্রুফ প্রিসেট</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">একটি প্রিসেট বেছে নিন</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">প্রিসেট লোড করুন</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">প্রিসেটের নাম</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">প্রিসেট সংরক্ষণ করুন</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">প্রয়োগ করুন বেছে না নেওয়া পর্যন্ত প্রিসেট সংরক্ষণ বা লোড করলে নথি বদলাবে না।</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">প্রিসেট লাইব্রেরি পড়া যায়নি। বর্তমান প্রুফ সেটিংস অপরিবর্তিত আছে।</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">প্রিসেটটি সংরক্ষণ করা যায়নি। একটি অনন্য নাম লিখে আবার চেষ্টা করুন।</sys:String>
 </ResourceDictionary>

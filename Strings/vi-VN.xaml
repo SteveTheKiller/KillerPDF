@@ -2076,4 +2076,12 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_CM_ImportProfile">Nhập hồ sơ...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">Hồ sơ ICC</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">Không thể nhập hồ sơ. Hãy kiểm tra tệp và thử lại.</sys:String>
+    <sys:String x:Key="Str_CM_Preset">Thiết lập sẵn cho in thử</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">Chọn thiết lập sẵn</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">Tải thiết lập sẵn</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">Tên thiết lập sẵn</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">Lưu thiết lập sẵn</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">Việc lưu hoặc tải thiết lập sẵn không thay đổi tài liệu cho đến khi bạn chọn Áp dụng.</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Không thể đọc thư viện thiết lập sẵn. Thiết lập in thử hiện tại không thay đổi.</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">Không thể lưu thiết lập sẵn. Hãy nhập tên duy nhất và thử lại.</sys:String>
 </ResourceDictionary>

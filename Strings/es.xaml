@@ -2056,4 +2056,12 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_CM_ImportProfile">Importar perfil...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">Perfiles ICC</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">No se pudo importar el perfil. Compruebe el archivo e inténtelo de nuevo.</sys:String>
+    <sys:String x:Key="Str_CM_Preset">Ajuste preestablecido de prueba</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">Elegir un ajuste preestablecido</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">Cargar ajuste preestablecido</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">Nombre del ajuste preestablecido</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">Guardar ajuste preestablecido</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">Guardar o cargar un ajuste preestablecido no modifica el documento hasta que elija Aplicar.</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">No se pudo leer la biblioteca de ajustes preestablecidos. Los ajustes de prueba actuales no han cambiado.</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">No se pudo guardar el ajuste preestablecido. Introduzca un nombre único e inténtelo de nuevo.</sys:String>
 </ResourceDictionary>

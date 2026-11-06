@@ -2079,4 +2079,12 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_CM_ImportProfile">Профильді импорттау...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">ICC профильдері</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">Профильді импорттау мүмкін болмады. Файлды тексеріп, қайталап көріңіз.</sys:String>
+    <sys:String x:Key="Str_CM_Preset">Түсті сынау үлгісі</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">Үлгіні таңдаңыз</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">Үлгіні жүктеу</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">Үлгі атауы</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">Үлгіні сақтау</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">Қолдану пәрменін таңдағанша, үлгіні сақтау немесе жүктеу құжатты өзгертпейді.</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Үлгілер кітапханасын оқу мүмкін болмады. Ағымдағы түсті сынау параметрлері өзгеріссіз қалды.</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">Үлгіні сақтау мүмкін болмады. Бірегей атауды енгізіп, қайталап көріңіз.</sys:String>
 </ResourceDictionary>

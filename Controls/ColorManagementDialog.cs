@@ -73,6 +73,30 @@ internal sealed class ColorManagementDialog : Window
         importStatus.Visibility = Visibility.Collapsed;
         AutomationProperties.SetAutomationId(importStatus, "ProofImportStatus");
         fields.Children.Add(importStatus);
+        var presetLibrary = new ProofPresetLibrary();
+        List<PdfProofPreset> presets;
+        bool presetsReadable = true;
+        try { presets = presetLibrary.GetPresets().ToList(); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or FormatException or NotSupportedException)
+        {
+            presets = [];
+            presetsReadable = false;
+        }
+        var presetChoice = Choice("Str_CM_Preset", "ProofPreset", [L("Str_CM_NoPreset"), .. presets.Select(item => item.Name)], 0);
+        var presetName = UiKit.Field();
+        presetName.MaxLength = 128;
+        presetName.Margin = new Thickness(0, 0, 0, 4);
+        AutomationProperties.SetAutomationId(presetName, "ProofPresetName");
+        AutomationProperties.SetName(presetName, L("Str_CM_PresetName"));
+        var loadPreset = UiKit.Make(L("Str_CM_LoadPreset"), accent: false);
+        var savePreset = UiKit.Make(L("Str_CM_SavePreset"), accent: false);
+        AutomationProperties.SetAutomationId(loadPreset, "ProofLoadPreset");
+        AutomationProperties.SetAutomationId(savePreset, "ProofSavePreset");
+        var presetStatus = Label("Str_CM_PresetLibraryUnavailable", 4);
+        presetStatus.Visibility = presetsReadable ? Visibility.Collapsed : Visibility.Visible;
+        AutomationProperties.SetAutomationId(presetStatus, "ProofPresetStatus");
+        SetOperationBusy(false);
+        presetChoice.SelectionChanged += (_, _) => loadPreset.IsEnabled = !importBusy && presetsReadable && presetChoice.SelectedIndex > 0;
         import.Click += async (_, _) =>
         {
             if (importBusy || !libraryReadable) return;
@@ -84,8 +108,8 @@ internal sealed class ColorManagementDialog : Window
             };
             if (picker.ShowDialog(this) != true) return;
             string path = picker.FileName;
-            importBusy = true;
-            import.IsEnabled = profile.IsEnabled = apply.IsEnabled = false;
+            string? priorReference = profile.SelectedIndex > 0 ? entries[profile.SelectedIndex - 1].ContentSha256 : null;
+            SetOperationBusy(true);
             importStatus.Text = "";
             importStatus.Visibility = Visibility.Collapsed;
             try
@@ -103,7 +127,7 @@ internal sealed class ColorManagementDialog : Window
                 });
                 if (closed) return;
                 entries = result.Entries;
-                if (settings.PrinterProfileSha256 is { } current && !entries.Any(entry => entry.ContentSha256 == current))
+                if (priorReference is { } current && !entries.Any(entry => entry.ContentSha256 == current))
                     entries.Insert(0, new ProofProfileEntry(L("Str_CM_UnavailableProfile"), current));
                 profile.ItemsSource = new[] { L("Str_CM_NoProfile") }.Concat(entries.Select(entry => entry.Name)).ToArray();
                 profile.SelectedIndex = entries.FindIndex(entry => entry.ContentSha256 == result.Entry.ContentSha256) + 1;
@@ -117,10 +141,9 @@ internal sealed class ColorManagementDialog : Window
             }
             finally
             {
-                importBusy = false;
                 if (!closed)
                 {
-                    import.IsEnabled = profile.IsEnabled = apply.IsEnabled = libraryReadable;
+                    SetOperationBusy(false);
                     UpdateProfileAvailability();
                 }
             }
@@ -161,9 +184,78 @@ internal sealed class ColorManagementDialog : Window
         var black = Toggle("Str_CM_Black", "ProofBlack", settings.Options.SimulateBlack);
         var gamut = Toggle("Str_CM_Gamut", "ProofGamut", settings.GamutWarnings);
         foreach (var toggle in new[] { bpc, paper, black, gamut }) fields.Children.Add(toggle);
+        fields.Children.Add(Label("Str_CM_Preset", 4));
+        fields.Children.Add(presetChoice);
+        fields.Children.Add(Label("Str_CM_PresetName", 4));
+        fields.Children.Add(presetName);
+        fields.Children.Add(UiKit.ButtonRow(loadPreset, savePreset));
+        fields.Children.Add(Label("Str_CM_PresetHint", 4));
+        fields.Children.Add(presetStatus);
+        loadPreset.Click += (_, _) =>
+        {
+            if (importBusy || !presetsReadable || presetChoice.SelectedIndex <= 0) return;
+            var chosen = presets[presetChoice.SelectedIndex - 1];
+            if (chosen.PrinterProfileSha256 is { } hash && !entries.Any(entry => entry.ContentSha256 == hash))
+                entries.Add(new ProofProfileEntry(L("Str_CM_UnavailableProfile"), hash));
+            profile.ItemsSource = new[] { L("Str_CM_NoProfile") }.Concat(entries.Select(entry => entry.Name)).ToArray();
+            profile.SelectedIndex = entries.FindIndex(entry => entry.ContentSha256 == chosen.PrinterProfileSha256) + 1;
+            enabled.IsChecked = chosen.Enabled;
+            intent.SelectedIndex = chosen.Options.RenderingIntent switch
+            {
+                PdfRenderingIntent.Perceptual => 0,
+                PdfRenderingIntent.RelativeColorimetric => 1,
+                PdfRenderingIntent.Saturation => 2,
+                PdfRenderingIntent.AbsoluteColorimetric => 3,
+                _ => throw new ArgumentOutOfRangeException(nameof(chosen))
+            };
+            bpc.IsChecked = chosen.Options.BlackPointCompensation;
+            paper.IsChecked = chosen.Options.SimulatePaper;
+            black.IsChecked = chosen.Options.SimulateBlack;
+            gamut.IsChecked = chosen.GamutWarnings;
+            presetName.Text = chosen.Name;
+            UpdateProfileAvailability();
+        };
+        savePreset.Click += async (_, _) =>
+        {
+            if (importBusy || !presetsReadable) return;
+            presetStatus.Visibility = Visibility.Collapsed;
+            try
+            {
+                var pending = CapturePreset(presetName.Text.Trim());
+                SetOperationBusy(true);
+                var saved = await Task.Run(() =>
+                {
+                    presetLibrary.Save(pending);
+                    return presetLibrary.GetPresets().ToList();
+                });
+                if (closed) return;
+                presets = saved;
+                presetChoice.ItemsSource = new[] { L("Str_CM_NoPreset") }.Concat(presets.Select(item => item.Name)).ToArray();
+                presetChoice.SelectedIndex = presets.FindIndex(item => item.Name == pending.Name) + 1;
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or FormatException
+                or NotSupportedException or ArgumentException or InvalidOperationException)
+            {
+                if (closed) return;
+                presetStatus.Text = L("Str_CM_PresetSaveFailed");
+                presetStatus.Visibility = Visibility.Visible;
+            }
+            finally
+            {
+                if (!closed) SetOperationBusy(false);
+            }
+        };
         apply.Click += (_, _) =>
         {
+            if (importBusy || !libraryReadable || profile.SelectedIndex < 0) return;
+            AppliedSettings = library.Resolve(CapturePreset("Document")).Settings;
+            DialogResult = true;
+        };
+
+        PdfProofPreset CapturePreset(string name)
+        {
             var preset = JsonNode.Parse(PdfProofPreset.Capture("Document", settings).ToJson())!;
+            preset["name"] = name;
             var proof = preset["proof"]!;
             proof["enabled"] = enabled.IsChecked == true;
             proof["printerProfileSha256"] = profile.SelectedIndex == 0 ? null : entries[profile.SelectedIndex - 1].ContentSha256;
@@ -172,9 +264,16 @@ internal sealed class ColorManagementDialog : Window
             proof["simulatePaper"] = paper.IsChecked == true;
             proof["simulateBlack"] = black.IsChecked == true;
             proof["gamutWarnings"] = gamut.IsChecked == true;
-            AppliedSettings = library.Resolve(PdfProofPreset.FromJson(preset.ToJsonString())).Settings;
-            DialogResult = true;
-        };
+            return PdfProofPreset.FromJson(preset.ToJsonString());
+        }
+
+        void SetOperationBusy(bool busy)
+        {
+            importBusy = busy;
+            import.IsEnabled = profile.IsEnabled = apply.IsEnabled = libraryReadable && !busy;
+            presetChoice.IsEnabled = presetName.IsEnabled = savePreset.IsEnabled = presetsReadable && !busy;
+            loadPreset.IsEnabled = presetsReadable && !busy && presetChoice.SelectedIndex > 0;
+        }
         body.Children.Add(new ScrollViewer { Content = fields, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         Loaded += (_, _) => fields.Children.OfType<CheckBox>().First().Focus();

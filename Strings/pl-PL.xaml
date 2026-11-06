@@ -2064,4 +2064,12 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_CM_ImportProfile">Importuj profil...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">Profile ICC</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">Nie udało się zaimportować profilu. Sprawdź plik i spróbuj ponownie.</sys:String>
+    <sys:String x:Key="Str_CM_Preset">Ustawienie wstępne próby</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">Wybierz ustawienie wstępne</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">Wczytaj ustawienie wstępne</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">Nazwa ustawienia wstępnego</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">Zapisz ustawienie wstępne</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">Zapisanie lub wczytanie ustawienia wstępnego nie zmienia dokumentu, dopóki nie wybierzesz Zastosuj.</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Nie można odczytać biblioteki ustawień wstępnych. Bieżące ustawienia próby pozostają bez zmian.</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">Nie udało się zapisać ustawienia wstępnego. Wpisz unikatową nazwę i spróbuj ponownie.</sys:String>
 </ResourceDictionary>

@@ -2076,4 +2076,12 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_CM_ImportProfile">Importer un profil...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">Profils ICC</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">Le profil n’a pas pu être importé. Vérifiez le fichier et réessayez.</sys:String>
+    <sys:String x:Key="Str_CM_Preset">Préréglage d’épreuvage</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">Choisir un préréglage</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">Charger le préréglage</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">Nom du préréglage</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">Enregistrer le préréglage</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">L’enregistrement ou le chargement d’un préréglage ne modifie pas le document tant que vous ne choisissez pas Appliquer.</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">La bibliothèque de préréglages n’a pas pu être lue. Les paramètres d’épreuvage actuels restent inchangés.</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">Le préréglage n’a pas pu être enregistré. Saisissez un nom unique et réessayez.</sys:String>
 </ResourceDictionary>

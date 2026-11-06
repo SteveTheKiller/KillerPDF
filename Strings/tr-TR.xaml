@@ -2056,4 +2056,12 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_CM_ImportProfile">Profil içe aktar...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">ICC profilleri</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">Profil içe aktarılamadı. Dosyayı kontrol edip yeniden deneyin.</sys:String>
+    <sys:String x:Key="Str_CM_Preset">Prova hazır ayarı</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">Bir hazır ayar seçin</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">Hazır ayarı yükle</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">Hazır ayar adı</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">Hazır ayarı kaydet</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">Bir hazır ayarı kaydetmek veya yüklemek, Uygula'yı seçene kadar belgeyi değiştirmez.</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Hazır ayar kitaplığı okunamadı. Geçerli prova ayarları değişmedi.</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">Hazır ayar kaydedilemedi. Benzersiz bir ad girip yeniden deneyin.</sys:String>
 </ResourceDictionary>

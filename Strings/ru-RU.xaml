@@ -2079,4 +2079,12 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_CM_ImportProfile">Импортировать профиль...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">Профили ICC</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">Не удалось импортировать профиль. Проверьте файл и повторите попытку.</sys:String>
+    <sys:String x:Key="Str_CM_Preset">Набор настроек цветопробы</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">Выберите набор настроек</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">Загрузить набор</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">Имя набора</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">Сохранить набор</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">Сохранение или загрузка набора настроек не изменяет документ, пока вы не выберете «Применить».</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Не удалось прочитать библиотеку наборов настроек. Текущие настройки цветопробы не изменены.</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">Не удалось сохранить набор настроек. Введите уникальное имя и повторите попытку.</sys:String>
 </ResourceDictionary>

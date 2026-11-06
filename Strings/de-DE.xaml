@@ -2065,4 +2065,12 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_CM_ImportProfile">Profil importieren...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">ICC-Profile</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">Das Profil konnte nicht importiert werden. Prüfen Sie die Datei und versuchen Sie es erneut.</sys:String>
+    <sys:String x:Key="Str_CM_Preset">Proof-Vorlage</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">Vorlage auswählen</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">Vorlage laden</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">Vorlagenname</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">Vorlage speichern</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">Das Speichern oder Laden einer Vorlage ändert das Dokument erst, wenn Sie Anwenden wählen.</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Die Vorlagenbibliothek konnte nicht gelesen werden. Die aktuellen Proof-Einstellungen bleiben unverändert.</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">Die Vorlage konnte nicht gespeichert werden. Geben Sie einen eindeutigen Namen ein und versuchen Sie es erneut.</sys:String>
 </ResourceDictionary>

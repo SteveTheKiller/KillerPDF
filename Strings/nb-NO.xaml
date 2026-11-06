@@ -2076,4 +2076,12 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_CM_ImportProfile">Importer profil...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">ICC-profiler</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">Profilen kunne ikke importeres. Kontroller filen og prøv igjen.</sys:String>
+    <sys:String x:Key="Str_CM_Preset">Forhåndsinnstilling for prøvetrykk</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">Velg en forhåndsinnstilling</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">Last inn forhåndsinnstilling</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">Navn på forhåndsinnstilling</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">Lagre forhåndsinnstilling</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">Lagring eller innlasting av en forhåndsinnstilling endrer ikke dokumentet før du velger Bruk.</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Biblioteket med forhåndsinnstillinger kunne ikke leses. De gjeldende innstillingene for prøvetrykk er uendret.</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">Forhåndsinnstillingen kunne ikke lagres. Skriv inn et unikt navn og prøv igjen.</sys:String>
 </ResourceDictionary>

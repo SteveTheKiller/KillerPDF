@@ -2060,4 +2060,12 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_CM_ImportProfile">导入配置文件...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">ICC 配置文件</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">无法导入配置文件。请检查文件后重试。</sys:String>
+    <sys:String x:Key="Str_CM_Preset">校样预设</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">选择预设</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">加载预设</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">预设名称</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">保存预设</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">保存或加载预设不会更改文档，直到您选择“应用”。</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">无法读取预设库。当前校样设置保持不变。</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">无法保存预设。请输入唯一的名称后重试。</sys:String>
 </ResourceDictionary>

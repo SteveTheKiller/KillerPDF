@@ -460,8 +460,12 @@ profile is rejected. Passing null preserves the unavailable reference in returne
 reference or changing profile availability advances the document/view proof stamp;
 equivalent available bytes or equivalent unavailable references do not.
 Matching content alone does not establish transform availability or effective proofing.
-Desktop profile-copy storage is separate from this portable API. Named preset storage,
-the panel and persistent document settings remain unfinished application work.
+Desktop profile-copy and named-preset storage are separate application services.
+The Color Management panel imports validated ICC copies and saves or loads named
+requested preferences. Saving and loading operate on draft controls; Apply updates
+the captured document or comparison view. Saved presets do not change open documents.
+Preset storage supports explicit replacement and recovery, while full management
+controls and persistent restoration when reopening documents remain in progress.
 
 `PdfDocumentProofView` shares its logical owner's request unless an explicit
 `ComparisonOverride` is selected. Its immutable capture includes view/document

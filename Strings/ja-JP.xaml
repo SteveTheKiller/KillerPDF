@@ -2076,4 +2076,12 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_CM_ImportProfile">プロファイルをインポート...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">ICCプロファイル</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">プロファイルをインポートできませんでした。ファイルを確認して、もう一度お試しください。</sys:String>
+    <sys:String x:Key="Str_CM_Preset">色校正プリセット</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">プリセットを選択</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">プリセットを読み込む</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">プリセット名</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">プリセットを保存</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">プリセットを保存または読み込んでも、「適用」を選択するまで文書は変更されません。</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">プリセットライブラリを読み取れませんでした。現在の色校正設定は変更されていません。</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">プリセットを保存できませんでした。重複しない名前を入力して、もう一度お試しください。</sys:String>
 </ResourceDictionary>

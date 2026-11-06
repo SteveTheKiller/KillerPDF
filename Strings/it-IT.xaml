@@ -2077,4 +2077,12 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_CM_ImportProfile">Importa profilo...</sys:String>
     <sys:String x:Key="Str_CM_ProfileFilter">Profili ICC</sys:String>
     <sys:String x:Key="Str_CM_ImportFailed">Impossibile importare il profilo. Controllare il file e riprovare.</sys:String>
+    <sys:String x:Key="Str_CM_Preset">Preimpostazione di prova</sys:String>
+    <sys:String x:Key="Str_CM_NoPreset">Scegliere una preimpostazione</sys:String>
+    <sys:String x:Key="Str_CM_LoadPreset">Carica preimpostazione</sys:String>
+    <sys:String x:Key="Str_CM_PresetName">Nome della preimpostazione</sys:String>
+    <sys:String x:Key="Str_CM_SavePreset">Salva preimpostazione</sys:String>
+    <sys:String x:Key="Str_CM_PresetHint">Il salvataggio o il caricamento di una preimpostazione non modifica il documento finché non si sceglie Applica.</sys:String>
+    <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Impossibile leggere la libreria delle preimpostazioni. Le impostazioni di prova attuali sono rimaste invariate.</sys:String>
+    <sys:String x:Key="Str_CM_PresetSaveFailed">Impossibile salvare la preimpostazione. Inserire un nome univoco e riprovare.</sys:String>
 </ResourceDictionary>
