@@ -78,9 +78,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         if (name == "body") _bodySeen = true;
         bool empty = xml.IsEmptyElement;
         string? classNames = null, inlineStyle = null;
+        var attributes = new Dictionary<(string Namespace, string Name), string>();
         while (xml.MoveToNextAttribute())
         {
             Count(xml.Value.Length);
+            attributes[(xml.NamespaceURI, xml.LocalName)] = xml.Value;
             if (xml.NamespaceURI == "" && xml.LocalName == "style" && name is "body" or "p" or "span")
                 inlineStyle = xml.Value;
             else if (xml.NamespaceURI == "" && xml.LocalName == "class")
@@ -97,6 +99,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             {
                 // Image resources are resolved within the captured package.
             }
+            else if (name is "p" or "span" && xml.LocalName == "type")
+            {
+                // Semantic type metadata is inert; selectors compare its expanded name.
+            }
             else if (xml.NamespaceURI != "http://www.w3.org/2000/xmlns/"
                 && !(xml.LocalName == "lang" && xml.NamespaceURI is "" or "http://www.w3.org/XML/1998/namespace"))
                 throw new NotSupportedException("Native EPUB XHTML attributes and styling are not implemented.");
@@ -104,7 +110,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         xml.MoveToElement();
         Style inherited = parent?.Style ?? DefaultStyle;
         if (inherited.Background is not null) inherited = inherited with { Background = null };
-        CssProperties properties = ResolveRules(name, xml.NamespaceURI, classNames);
+        CssProperties properties = ResolveRules(name, xml.NamespaceURI, classNames, attributes);
         if (inlineStyle is not null) properties = properties.Override(ParseProperties(inlineStyle));
         Style style = properties.Apply(inherited, contentHeight);
         if (properties.Border is { Visible: true, Nonzero: true })
@@ -273,6 +279,44 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 if (++_selectorCount > 4096)
                     throw new InvalidDataException("Native EPUB CSS selectors exceed their 4,096-selector limit.");
                 string selector = group.Trim();
+                if (selector.Length is 0 or > 128)
+                    throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                CssAttribute? attribute = null;
+                int bracket = selector.IndexOf('[');
+                if (bracket >= 0)
+                {
+                    if (!selector.EndsWith(']') || selector.IndexOf('[', bracket + 1) >= 0)
+                        throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                    string condition = selector[(bracket + 1)..^1].Trim();
+                    int operation = condition.IndexOf("~=", StringComparison.Ordinal);
+                    string attributeName = operation < 0 ? condition : condition[..operation].Trim();
+                    string? token = null;
+                    if (operation >= 0)
+                    {
+                        token = condition[(operation + 2)..].Trim();
+                        if (token.Length >= 2 && token[0] is '\'' or '"' && token[^1] == token[0])
+                            token = token[1..^1];
+                        else if (!IsIdentifier(token))
+                            throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                        if (token.Any(character => character is '\\' or '\'' or '"' or '[' or ']'))
+                            throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                    }
+                    string attributeNamespace = "";
+                    int attributeSeparator = attributeName.IndexOf('|');
+                    if (attributeSeparator >= 0)
+                    {
+                        string prefix = attributeName[..attributeSeparator];
+                        if (!IsIdentifier(prefix))
+                            throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                        if (!namespaces.TryGetValue(prefix, out attributeNamespace!))
+                            throw new NotSupportedException("Native EPUB CSS selector namespace prefix is not declared: " + prefix + ".");
+                        attributeName = attributeName[(attributeSeparator + 1)..];
+                    }
+                    if (!IsIdentifier(attributeName))
+                        throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                    attribute = new(attributeNamespace, attributeName, token);
+                    selector = selector[..bracket];
+                }
                 string[] parts = selector.Split('.');
                 string type = parts[0];
                 namespaces.TryGetValue("", out string? namespaceName);
@@ -292,13 +336,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     parts[0] = type;
                 }
                 bool classOnly = selector.StartsWith(".", StringComparison.Ordinal);
-                if (selector.Length is 0 or > 128 || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
+                if (classOnly && attribute is not null || selector.Length is 0 or > 128 || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
                     || !char.IsAsciiLetter(part[0])
                     || part.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_'))))
                     throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
                 if (!_typeRules.TryGetValue(type, out var rules))
                     _typeRules.Add(type, rules = new());
-                rules.Add(new(namespaceName, parts[1..], properties, _selectorCount, classOnly ? 0 : 1));
+                rules.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1));
             }
             position = close + 1;
         }
@@ -312,9 +356,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private static NotSupportedException NamespaceSyntax() =>
         new("Native EPUB CSS namespace syntax is not implemented.");
 
-    private sealed record CssRule(string? NamespaceName, string[] Classes, CssProperties Properties, int Order, int TypeSpecificity);
+    private sealed record CssAttribute(string NamespaceName, string Name, string? Token);
+    private sealed record CssRule(string? NamespaceName, string[] Classes, CssAttribute? Attribute, CssProperties Properties, int Order, int TypeSpecificity);
 
-    private CssProperties ResolveRules(string name, string namespaceName, string? classNames)
+    private CssProperties ResolveRules(string name, string namespaceName, string? classNames,
+        Dictionary<(string Namespace, string Name), string> attributes)
     {
         _typeRules.TryGetValue(name, out var typeRules);
         _typeRules.TryGetValue("", out var classRules);
@@ -370,7 +416,19 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 }
             }
             if (!matches) continue;
-            int specificity = rule.Classes.Length * 2 + rule.TypeSpecificity;
+            if (rule.Attribute is { } attribute)
+            {
+                CountSelectorWork(1 + attribute.NamespaceName.Length + attribute.Name.Length);
+                if (!attributes.TryGetValue((attribute.NamespaceName, attribute.Name), out string? value)) continue;
+                if (attribute.Token is { } token)
+                {
+                    CountSelectorWork(value.Length + token.Length);
+                    if (token.Length == 0 || token.Any(IsCssSpace)
+                    || !value.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries)
+                        .Contains(token, StringComparer.Ordinal)) continue;
+                }
+            }
+            int specificity = (rule.Classes.Length + (rule.Attribute is null ? 0 : 1)) * 2 + rule.TypeSpecificity;
             if (rule.Properties.FontWeight is { } weight && specificity >= weightSpecificity)
             {
                 fontWeight = weight;

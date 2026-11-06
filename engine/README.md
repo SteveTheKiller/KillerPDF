@@ -358,8 +358,15 @@ Class-only selectors and combinations match whitespace-separated class tokens.
 Class count outranks type presence, and equal specificity follows source order;
 properties still cascade independently. The default namespace constrains the
 implied universal selector. Identifiers use the bounded letter-leading ASCII
-subset. Escapes, comments, general identifiers and relationship/attribute/pseudo
-selectors remain unsupported, with strict diagnostics. This is partial CSS support.
+subset. Type selectors with optional classes also support one terminal attribute
+presence or whitespace-token predicate, such as `span[epub|type~='bridgehead']`.
+Attribute matching uses case-sensitive expanded names; namespace aliases bind by
+URI, and default element namespaces do not apply to unqualified attribute names.
+Inert `type` metadata is accepted on supported paragraphs and spans. Attribute
+predicates add class-level specificity and retain the selector work limits.
+Other attribute operators, class-only attribute selectors, multiple predicates,
+escapes, comments, general identifiers, relationship and pseudo selectors retain
+strict diagnostics. This is partial CSS support.
 
 Text alignment supports left, center, right and LTR justification, with inherited
 values, stylesheet cascade and inline overrides. Alignment uses the body content
