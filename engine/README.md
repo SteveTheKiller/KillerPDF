@@ -333,6 +333,14 @@ Declarations accept bounded ASCII identifier prefixes and quoted or url(...) nam
 Escapes, comments, general identifiers and relationship/attribute/pseudo/class-only
 selectors remain unsupported, with strict diagnostics. This is partial CSS support.
 
+Text alignment supports left, center, right and LTR justification, with inherited
+values, stylesheet cascade and inline overrides. Alignment uses the body content
+box after wrapping and pagination. Justification expands spaces on wrapped
+nonfinal lines; final and forced-break lines remain left aligned. Native pixels
+and independently reopened PDFs cover placement, backgrounds, anchors and inline
+images. Conversion retains text/image paint order, including glyph overhangs.
+Full bidi, shaping and CSS layout remain in progress.
+
 `ReadText`, `ReadNavigation` and the supported plain native layout accept the canonical HTML5
 `<!DOCTYPE html>` and XHTML 1.1 external declarations without loading or processing
 a DTD. Original resource bytes, Unicode and UTF-8/UTF-16 encodings stay unchanged.

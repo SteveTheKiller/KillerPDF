@@ -302,7 +302,7 @@ public sealed partial class EpubDocument
                     throw new NotSupportedException("The native EPUB word exceeds the available line width.");
                 if (left + width + wordWidth > contentRight)
                 {
-                    FlushLine();
+                    FlushLine(finalLine: false);
                     if (top + options.FontSize > options.PageHeight - options.Margin)
                     {
                         FinishPage(index + 1);
@@ -369,7 +369,7 @@ public sealed partial class EpubDocument
             lineBlock = block;
         }
 
-        void FlushLine()
+        void FlushLine(bool finalLine = true)
         {
             if (line.Count == 0) return;
             var block = line[0].BlockStyle;
@@ -388,6 +388,34 @@ public sealed partial class EpubDocument
                 FinishPage(lineStart);
                 top = options.Margin;
             }
+            double remainingWidth = contentRight - (line[^1].Left + line[^1].Width);
+            double alignmentOffset = block.TextAlign switch
+            {
+                "center" => remainingWidth / 2,
+                "right" => remainingWidth,
+                _ => 0
+            };
+            int spaces = 0;
+            if (block.TextAlign == "justify" && !finalLine)
+                foreach (var item in line)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (item.Length == 1 && text[item.Index] == ' ') spaces++;
+                }
+            double extraSpace = spaces == 0 ? 0 : remainingWidth / spaces;
+            if (alignmentOffset != 0 || extraSpace != 0)
+                for (int at = 0; at < line.Count; at++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var item = line[at];
+                    item.Left += alignmentOffset;
+                    if (extraSpace != 0 && item.Length == 1 && text[item.Index] == ' ')
+                    {
+                        item.Width += extraSpace;
+                        alignmentOffset += extraSpace;
+                    }
+                    line[at] = item;
+                }
             double baseline = top + ascent;
             if (block.Background?.Color is { } paragraphBackground)
                 blockBackgrounds.Add(new NativeRectanglePaint(contentLeft, top, contentWidth, height, paragraphBackground));
@@ -439,8 +467,8 @@ public sealed partial class EpubDocument
                 {
                     Color = item.Style.Color
                 });
-                if (item.Outline!.Contours.Count != 0)
-                    glyphs.Add(new NativeGlyphPaint(item.Outline, item.Left, baseline, size / 1000, item.Style.Color));
+                // Empty outlines retain text/image order for explicit PDF conversion.
+                glyphs.Add(new NativeGlyphPaint(item.Outline!, item.Left, baseline, size / 1000, item.Style.Color));
             }
             if (blockBackgrounds.Count + inlineBackgrounds.Count + glyphs.Count > 100_000)
                 throw new InvalidDataException("The native page exceeds its paint limit.");

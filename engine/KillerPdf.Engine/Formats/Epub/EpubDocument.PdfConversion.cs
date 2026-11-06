@@ -33,16 +33,30 @@ public sealed partial class EpubDocument
                 content.SetFillRgb(background.Red, background.Green, background.Blue)
                     .Rectangle(0, 0, options.PageWidthPoints, options.PageHeightPoints)
                     .Fill();
-            foreach (var paint in page.Glyphs.OfType<NativeRectanglePaint>())
+            int placementIndex = 0;
+            foreach (var paint in page.Glyphs)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                content.SetFillRgb(paint.Color.Red, paint.Color.Green, paint.Color.Blue)
-                    .Rectangle(paint.Left * pointsPerCssPixel,
-                        options.PageHeightPoints - (paint.Top + paint.Height) * pointsPerCssPixel,
-                        paint.Width * pointsPerCssPixel, paint.Height * pointsPerCssPixel)
-                    .Fill();
+                switch (paint)
+                {
+                    case NativeRectanglePaint rectangle:
+                        content.SetFillRgb(rectangle.Color.Red, rectangle.Color.Green, rectangle.Color.Blue)
+                            .Rectangle(rectangle.Left * pointsPerCssPixel,
+                                options.PageHeightPoints - (rectangle.Top + rectangle.Height) * pointsPerCssPixel,
+                                rectangle.Width * pointsPerCssPixel, rectangle.Height * pointsPerCssPixel)
+                            .Fill();
+                        break;
+                    case NativeImagePaint image:
+                        DrawImage(image);
+                        break;
+                    case NativeGlyphPaint:
+                        DrawText(page.TextPlacements[placementIndex++]);
+                        break;
+                }
             }
-            foreach (var paint in page.Glyphs.OfType<NativeImagePaint>())
+            builder.AddPage(options.PageWidthPoints, options.PageHeightPoints, content);
+
+            void DrawImage(NativeImagePaint paint)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var image = paint.Image;
@@ -65,7 +79,7 @@ public sealed partial class EpubDocument
                     options.PageHeightPoints - (paint.Top + image.Height) * pointsPerCssPixel,
                     image.Width * pointsPerCssPixel, image.Height * pointsPerCssPixel);
             }
-            foreach (var placement in page.TextPlacements)
+            void DrawText(EpubTextPlacement placement)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 double size = placement.Height * pointsPerCssPixel;
@@ -87,7 +101,7 @@ public sealed partial class EpubDocument
                     content.SetFillRgb(color.Red, color.Green, color.Blue)
                         .DrawGlyphCluster(cluster.Font, size,
                             page.Text.Substring(cluster.Start - page.TextStart, cluster.Length), positioned);
-                    continue;
+                    return;
                 }
                 content.SetFillRgb(color.Red, color.Green, color.Blue)
                     .BeginText()
@@ -97,7 +111,6 @@ public sealed partial class EpubDocument
                     .ShowUnicodeText(page.Text.Substring(placement.Start - page.TextStart, placement.Length))
                     .EndText();
             }
-            builder.AddPage(options.PageWidthPoints, options.PageHeightPoints, content);
         }
         AddBookmarks(ReadNavigation(cancellationToken), 0);
         cancellationToken.ThrowIfCancellationRequested();
