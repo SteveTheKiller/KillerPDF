@@ -417,6 +417,33 @@ internal static class NativeReadingSmoke
                     stage = "native-reading-reopen";
                     Wait(() => ActiveTextProvider()?.DocumentRange.GetText(-1) == "BB BB");
                     events.Add(new { stage, freshOwnerText = true });
+                    stage = "native-tab-menu";
+                    var nativeLabel = Descendants<TextBlock>(owner).Single(label => label.Name == "tabLbl"
+                        && label.IsVisible && label.Text == Path.GetFileNameWithoutExtension(reloadCopy));
+                    DependencyObject nativeTab = nativeLabel;
+                    while (nativeTab is not FrameworkElement { Name: "tabBd" })
+                        nativeTab = VisualTreeHelper.GetParent(nativeTab)
+                            ?? throw new InvalidOperationException("Native tab frame is missing.");
+                    ((UIElement)nativeTab).RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice,
+                        Environment.TickCount, MouseButton.Right) { RoutedEvent = UIElement.MouseRightButtonUpEvent });
+                    owner.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                    var menuRoots = PresentationSource.CurrentSources.Cast<PresentationSource>()
+                        .Select(source => source.RootVisual).OfType<DependencyObject>().ToArray();
+                    ContextMenu tabMenu = menuRoots.OfType<ContextMenu>()
+                        .Concat(menuRoots.SelectMany(Descendants<ContextMenu>)).Distinct().Single(menu => menu.IsOpen);
+                    try
+                    {
+                        var move = tabMenu.Items.OfType<MenuItem>().Single(item =>
+                            item.InputGestureText == "Ctrl+Shift+N");
+                        if (!move.IsEnabled)
+                            throw new InvalidOperationException("Native document tab cannot move to a new window.");
+                        var closeOthers = tabMenu.Items.OfType<MenuItem>().Single(item =>
+                            item.InputGestureText == "Ctrl+Shift+W");
+                        if (!closeOthers.IsEnabled)
+                            throw new InvalidOperationException("Native document tabs cannot close other open books.");
+                        events.Add(new { stage, moveEnabled = true, closeOthersEnabled = true });
+                    }
+                    finally { tabMenu.IsOpen = false; }
 
                     ITextProvider? ActiveTextProvider()
                     {
