@@ -24,7 +24,7 @@ public sealed class TwoPagePartnerWidthTests
     public void ACachedTileBuiltForAnotherWidthIsNotReused()
     {
         string method = RenderAdditionalPages();
-        int hit = method.IndexOf("var cachedTile = TryGetCachedRender(session, i, tileBucket, rot);", StringComparison.Ordinal);
+        int hit = method.IndexOf("TryGetCachedRender(session, i, tileBucket, rot", StringComparison.Ordinal);
         Assert.True(hit >= 0);
         string next = method[hit..method.IndexOf("if (cachedTile != null)", hit, StringComparison.Ordinal)];
         Assert.Contains("Math.Abs(cachedTile.Width - Math.Round(primaryDipW)) > 0.5", next, StringComparison.Ordinal);

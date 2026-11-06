@@ -384,6 +384,16 @@ Profile content identity avoids invalidation when identical bytes are reloaded.
 `CreateIndependentCopy()` retains the snapshot and proof preferences with a new
 identity and an independent generation.
 
+`PdfProofPreset.Capture(name, settings)` snapshots named requested preferences without
+embedding ICC bytes or file paths. `ToJson()` and `FromJson()` use preset schema 1,
+independent of the application's eventual settings schema. Imports require exact,
+unique properties, a nonblank name of at most 128 UTF-16 code units without controls,
+and a null or 64-character ASCII hexadecimal profile content reference. References
+use uppercase SHA256. JSON is limited to 1 MiB of UTF-8 and eight nesting levels.
+Malformed input produces sanitized `FormatException`; unsupported schema versions
+produce `NotSupportedException`. Import never reads a profile or fetches resources.
+The profile library, panel and persistent document settings remain application work.
+
 `PdfDocumentProofView` shares its logical owner's request unless an explicit
 `ComparisonOverride` is selected. Its immutable capture includes view/document
 identities and document/override generations. An unchanged comparison stays current
