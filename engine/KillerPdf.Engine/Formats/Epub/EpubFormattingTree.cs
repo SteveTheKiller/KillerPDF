@@ -69,6 +69,7 @@ internal sealed class EpubFormattingTree
                     continue;
                 }
                 var source = (EpubNativeContent.Element)child;
+                if (source.IsDisplayNone) continue;
                 Block target = containing;
                 if (source.IsBlock)
                 {

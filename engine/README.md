@@ -191,6 +191,13 @@ selection and accessibility integration still require implementation and runtime
 
 ## Native EPUB layout (1.9.3 development)
 
+Native layout omits `display:none` subtrees before font resolution, box creation,
+visible page text and PDF text emission. A descendant cannot restore display inside
+a suppressed ancestor. Hidden computed font sizes, geometry and body backgrounds
+are not applied; syntax and resource checks remain bounded. Structural `ReadText`
+continues to return source text without CSS evaluation. `visibility:hidden` remains
+unimplemented.
+
 `EpubDocument.Open` reads a bounded native package. `CreateLayout` currently supports
 paragraphs and nested spans in linear, reflowable XHTML spine items with an explicit
 fallback font. Text supports printable ASCII, precomposed Latin/Greek/Cyrillic blocks,
@@ -206,9 +213,10 @@ Missing supported glyphs report their full code point. Chapters follow declared 
 begin on fresh pages. It returns immutable pages and logical UTF-16 text
 placements in CSS pixels. Whole words wrap at spaces, and default block paragraphs have one font-size
 gap between their line boxes. Wrapped lines and paragraphs continue onto new pages
-when the next line box does not fit. Each page exposes its original structural text
+when the next line box does not fit. Each page exposes its normalized, display-filtered text
 slice, `SpineIndex` and `TextStart` offset; placement offsets remain relative to
-that chapter's spine text. The text-work limit applies across all chapters.
+that chapter's display-filtered text. These offsets can differ from structural `ReadText`
+when hidden content is present. The text-work limit applies across all chapters.
 Explicit `br` elements within supported paragraphs and spans advance lines without
 paragraph gaps. Consecutive breaks retain blank line heights through pagination,
 and styled text keeps its source offsets. Structural normalization still omits
@@ -248,7 +256,7 @@ need implementation and acceptance. This is initial image support, not the full 
 `EpubLayoutDocument.ResolveNavigationTarget` maps resolved chapter targets from EPUB 2 NCX
 and EPUB 3 navigation to the chapter's first native page and logical margin coordinates.
 Targets use exact, case-sensitive package paths and a 4,096-character limit. Empty fragments
-refer to the chapter start. Body, paragraph, span and line-break IDs retain structural offsets;
+refer to the chapter start. Body, paragraph, span and line-break IDs retain display-filtered offsets;
 nonempty fragments decode once and resolve their actual paginated logical position. IDs retain
 case and Unicode identity. Empty elements use the next text placement or the chapter's final
 logical cursor. Duplicate spine targets or anchor IDs are diagnosed as ambiguous, and missing

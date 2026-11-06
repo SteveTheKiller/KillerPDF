@@ -17,6 +17,31 @@ public sealed class EpubDisplayFormattingTests
     public EpubDisplayFormattingTests(ITestOutputHelper output) => output.WriteLine("Loaded engine SHA256: " +
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(EpubDocument).Assembly.Location))));
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DisplayNoneImageAddsNoSpacePaintOrConvertedImage(bool malformed)
+    {
+        byte[] image = malformed ? [1, 2, 3] : RedImage();
+        byte[] source = Book(false, "<p>A<img src='image.png' alt=''/>A</p>", "img{display:none}", image);
+        byte[] preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(40, 36, Font()) { FontSize = 10, Margin = 2 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("AA", page.Text);
+        Assert.Equal(2, page.TextPlacements.Count);
+        Assert.Equal(8, page.TextPlacements[1].Left, 6);
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, layout.RenderPage(0).Pixels.Slice((2 * 40 + 2) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 30, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var content = new PdfPageContentReader(pdf).Read(0);
+        Assert.Empty(content.Images);
+        Assert.Equal("AA", string.Concat(content.Letters.Select(letter => letter.Value)));
+        Assert.Equal(6, content.Letters[1].StartBaseLine.X, 6);
+        Assert.Equal(image, book.ReadResource("image.png"));
+        Assert.Equal(preserved, source);
+    }
+
     [Fact]
     public void BlockImageUsesItsIntrinsicHeightWithoutAnInlineFontStrut()
     {

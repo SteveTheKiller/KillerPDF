@@ -22,7 +22,7 @@ public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, True
     public Func<EpubFontFaceRequest, EpubFontFaceResult?>? FontFaceResolver { get; init; }
 }
 
-/// <summary>Locates a UTF-16 range within structural spine text and its logical CSS-pixel bounds.</summary>
+/// <summary>Locates a UTF-16 range within display-filtered spine text and its logical CSS-pixel bounds.</summary>
 public sealed record EpubTextPlacement(int SpineIndex, int Start, int Length,
     double Left, double Top, double Width, double Height)
 {
@@ -49,9 +49,9 @@ public sealed class EpubLayoutPage
         CanvasBackground = canvasBackground;
         Clusters = (clusters ?? []).ToDictionary(cluster => cluster.Start);
     }
-    /// <summary>Gets the page's original structural text.</summary>
+    /// <summary>Gets the page's normalized text with display-none subtrees omitted.</summary>
     public string Text { get; }
-    /// <summary>Gets the original spine UTF-16 offset where this page's text starts.</summary>
+    /// <summary>Gets the UTF-16 offset in display-filtered spine text where this page starts.</summary>
     public int TextStart { get; }
     /// <summary>Gets this page's original declared spine index.</summary>
     public int SpineIndex { get; }

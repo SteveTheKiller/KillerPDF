@@ -77,6 +77,7 @@ public sealed partial class EpubDocument
                     if (bodyDepth < 0 || reader.Depth <= bodyDepth) continue;
                     if (reader.LocalName == "style") styleDepth = reader.IsEmptyElement ? -1 : reader.Depth;
                     if (styleDepth >= 0) continue;
+                    if (native?.CurrentElementDisplayNone == true) continue;
                     Separate(TextBlockLines(reader.LocalName));
                     if (reader.LocalName == "img")
                     {
@@ -103,11 +104,12 @@ public sealed partial class EpubDocument
                 {
                     if (reader.Depth == styleDepth) styleDepth = -1;
                     if (reader.Depth == bodyDepth) bodyDepth = -1;
-                    else if (bodyDepth >= 0 && styleDepth < 0) Separate(TextBlockLines(reader.LocalName));
+                    else if (bodyDepth >= 0 && styleDepth < 0 && native?.InsideDisplayNone != true) Separate(TextBlockLines(reader.LocalName));
                     native?.Exit();
                 }
                 else if (bodyDepth >= 0 && styleDepth < 0 && reader.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace)
                 {
+                    if (native?.InsideDisplayNone == true) continue;
                     var source = native?.TextNode(reader.Value);
                     for (int offset = 0; offset < reader.Value.Length; offset++)
                     {
