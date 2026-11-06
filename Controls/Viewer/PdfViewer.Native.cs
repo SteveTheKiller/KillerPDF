@@ -68,7 +68,7 @@ public partial class PdfViewer
 
     internal static KillerPdf.Engine.Rendering.PdfRenderedFrame RenderNativeFrame(
         PdfCapturedReadRevision revision, int page, int maximumWidth, int maximumHeight,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
     {
         var geometry = revision.GetPageGeometry(page);
         double width = geometry.Width, height = geometry.Height;
@@ -78,7 +78,7 @@ public partial class PdfViewer
         int pixelsHigh = Math.Clamp((int)Math.Round(height * scale), 1, maximumHeight);
         using var lease = revision.Rent(cancellationToken);
         return lease.RenderFrame(page, new KillerPdf.Engine.Rendering.PdfRenderOptions(
-            pixelsWide, pixelsHigh, maximumPixelBytes: 128L << 20));
+            pixelsWide, pixelsHigh, maximumPixelBytes: (proof?.Enabled == true ? 256L : 128L) << 20) { Proof = proof });
     }
 
     private PdfPageInformation ReadPageInformation(int page)

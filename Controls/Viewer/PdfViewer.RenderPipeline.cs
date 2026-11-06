@@ -33,20 +33,21 @@ public partial class PdfViewer
 
     private (BitmapSource Bitmap, RenderMeasurement Measurement, PdfRenderedFrame? Frame) PrepareLinearPrimaryBitmap(
         PdfBackgroundRenderCache.Request? request, PdfCapturedReadRevision? native, int page,
-        int maximumSize, CancellationToken token, KillerPDF.Presentation.PdfSdrDisplayConverter? monitor = null)
+        int maximumSize, CancellationToken token, KillerPDF.Presentation.PdfSdrDisplayConverter? monitor = null,
+        KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
     {
         var timer = Stopwatch.StartNew();
         try
         {
             PdfRenderedFrame frame;
             double parse = 0;
-            if (native is not null) frame = RenderNativeFrame(native, page, maximumSize, maximumSize, token);
+            if (native is not null) frame = RenderNativeFrame(native, page, maximumSize, maximumSize, token, proof);
             else
             {
                 using var lease = request!.Rent(token);
                 parse = timer.Elapsed.TotalMilliseconds;
                 timer.Restart();
-                frame = lease.RenderFrame(page, maximumSize, maximumSize, token);
+                frame = lease.RenderFrame(page, maximumSize, maximumSize, token, proof);
             }
             double raster = timer.Elapsed.TotalMilliseconds;
             timer.Restart();
@@ -70,7 +71,7 @@ public partial class PdfViewer
         catch (NotSupportedException exception)
         {
             var fallback = native is not null
-                ? PrepareNativePrimaryBitmap(native, page, maximumSize, 0, false, token)
+                ? PrepareNativePrimaryBitmap(native, page, maximumSize, 0, false, token, proof)
                 : PreparePrimaryBitmap(request!, page, maximumSize, 0, false, token);
             RenderWarnings.GetValue(fallback.Bitmap, _ => new RenderWarning(exception.Message));
             return (fallback.Bitmap, fallback.Measurement, null);
@@ -79,10 +80,10 @@ public partial class PdfViewer
 
     private (BitmapSource Bitmap, RenderMeasurement Measurement) PrepareNativePrimaryBitmap(
         PdfCapturedReadRevision revision, int page, int maximumSize, int rotation,
-        bool invert, CancellationToken token)
+        bool invert, CancellationToken token, KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
     {
         var timer = Stopwatch.StartNew();
-        var frame = RenderNativeFrame(revision, page, maximumSize, maximumSize, token);
+        var frame = RenderNativeFrame(revision, page, maximumSize, maximumSize, token, proof);
         double raster = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
         int width = frame.Width, height = frame.Height;

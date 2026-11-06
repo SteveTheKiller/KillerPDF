@@ -342,12 +342,13 @@ internal sealed class PdfPageRenderSession : IDisposable
     }
 
     internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFittedFrame(int pageIndex,
-        int maximumWidth, int maximumHeight, CancellationToken cancellationToken)
+        int maximumWidth, int maximumHeight, CancellationToken cancellationToken,
+        KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumWidth);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumHeight);
         return Renderer.RenderFrame(pageIndex,
-            CreateRenderOptions(pageIndex, false, true, false, maximumWidth, maximumHeight), cancellationToken);
+            CreateRenderOptions(pageIndex, false, true, false, maximumWidth, maximumHeight) with { Proof = proof }, cancellationToken);
     }
 
     internal (int Width, int Height) FittedDimensions(int pageIndex, int maximumWidth, int maximumHeight)
@@ -357,9 +358,10 @@ internal sealed class PdfPageRenderSession : IDisposable
     }
 
     internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFittedFrameRegion(int pageIndex,
-        int maximumWidth, int maximumHeight, VisibleRenderRegion region, CancellationToken cancellationToken)
+        int maximumWidth, int maximumHeight, VisibleRenderRegion region, CancellationToken cancellationToken,
+        KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
         => Renderer.RenderFrameRegion(pageIndex,
-            CreateRenderOptions(pageIndex, false, true, false, maximumWidth, maximumHeight),
+            CreateRenderOptions(pageIndex, false, true, false, maximumWidth, maximumHeight) with { Proof = proof },
             region.Left, region.Top, region.Width, region.Height, cancellationToken);
 
     internal PdfRenderedPage RenderFittedRegion(int pageIndex, int maximumWidth, int maximumHeight,
@@ -603,14 +605,16 @@ internal sealed class PdfBackgroundRenderCache
                 pageIndex, maximumWidth, maximumHeight, cancellationToken: cancellationToken);
 
         internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex,
-            int maximumWidth, int maximumHeight, CancellationToken cancellationToken) =>
+            int maximumWidth, int maximumHeight, CancellationToken cancellationToken,
+            KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null) =>
             (_session ?? throw new ObjectDisposedException(nameof(Lease))).RenderFittedFrame(
-                pageIndex, maximumWidth, maximumHeight, cancellationToken);
+                pageIndex, maximumWidth, maximumHeight, cancellationToken, proof);
 
         internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrameRegion(int pageIndex,
-            int maximumWidth, int maximumHeight, VisibleRenderRegion region, CancellationToken cancellationToken) =>
+            int maximumWidth, int maximumHeight, VisibleRenderRegion region, CancellationToken cancellationToken,
+            KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null) =>
             (_session ?? throw new ObjectDisposedException(nameof(Lease))).RenderFittedFrameRegion(
-                pageIndex, maximumWidth, maximumHeight, region, cancellationToken);
+                pageIndex, maximumWidth, maximumHeight, region, cancellationToken, proof);
 
         public void Dispose()
         {

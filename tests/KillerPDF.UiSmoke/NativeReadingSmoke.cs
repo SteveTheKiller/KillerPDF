@@ -512,6 +512,77 @@ internal static class NativeReadingSmoke
                         || !(bool)proofSettingsType.GetProperty("GamutWarnings")!.GetValue(restoredProof)!)
                         throw new InvalidOperationException("Returning to the native book lost its proof request.");
                     events.Add(new { stage, isolatedRequests = true, restoredOwner = true });
+                    stage = "document-proof-pixels-control";
+                    object activeProofViewer = owner.GetType().GetProperty("ActiveViewer", instance)!.GetValue(owner)!;
+                    var proofProperty = restoredProofOwner.GetType().GetProperty("Proof")!;
+                    proofProperty.SetValue(restoredProofOwner, Activator.CreateInstance(proofSettingsType, [false, null, null, false]));
+                    RefreshProofPage();
+                    Image normalImage = ProofImage();
+                    if (!Patch((BitmapSource)normalImage.Source, .8, .8).All(value => value >= 254))
+                        throw new InvalidOperationException("Normal native paper is not white before proof.");
+                    var normalBounds = ProofBounds(normalImage);
+                    if (!Patch(Capture(owner, normalBounds), .8, .8).All(value => value >= 254))
+                        throw new InvalidOperationException("Normal native paper capture is not white before proof.");
+                    events.Add(new { stage, whiteSource = true, whiteScreen = true });
+                    byte[] printerBytes = ProofPrinterFixture();
+                    Type profileType = engine.GetType("KillerPdf.Engine.ColorManagement.PdfColorProfile", true)!;
+                    object printerProfile = profileType.GetMethod("Load")!.Invoke(null, [new ReadOnlyMemory<byte>(printerBytes)])!;
+                    Type optionsType = engine.GetType("KillerPdf.Engine.ColorManagement.PdfProofOptions", true)!;
+                    object proofOptions = Activator.CreateInstance(optionsType)!;
+                    optionsType.GetProperty("BlackPointCompensation")!.SetValue(proofOptions, false);
+                    optionsType.GetProperty("SimulatePaper")!.SetValue(proofOptions, true);
+                    optionsType.GetProperty("SimulateBlack")!.SetValue(proofOptions, true);
+                    stage = "document-proof-pixels";
+                    proofProperty.SetValue(restoredProofOwner,
+                        Activator.CreateInstance(proofSettingsType, [true, printerProfile, proofOptions, false]));
+                    RefreshProofPage();
+                    Image proofImage = ProofImage();
+                    double[] proofSource = Patch((BitmapSource)proofImage.Source, .8, .8);
+                    double[] expectedPaper = [236, 251, 219];
+                    events.Add(new { stage, proofSource, expectedPaper });
+                    if (!proofSource.Zip(expectedPaper).All(pair => Math.Abs(pair.First - pair.Second) <= 1))
+                        throw new InvalidOperationException("Native viewer ignored the selected proof paper tint.");
+                    var proofBounds = ProofBounds(proofImage);
+                    double[] proofScreen = [];
+                    try { Wait(() =>
+                    {
+                        proofScreen = Patch(Capture(owner, proofBounds), .8, .8);
+                        return proofScreen.Zip(expectedPaper).All(pair => Math.Abs(pair.First - pair.Second) <= 2);
+                    }); }
+                    finally
+                    {
+                        events.Add(new { stage, proofScreen });
+                        try { SaveCapture(owner, proofBounds, Path.Combine(folder, "native-proof-paper.png")); }
+                        catch (Exception error) { events.Add(new { stage, diagnostic = "proof-capture-failed", error = error.ToString() }); }
+                    }
+                    if (!proofScreen.Zip(expectedPaper).All(pair => Math.Abs(pair.First - pair.Second) <= 2))
+                        throw new InvalidOperationException("Native proof paper tint did not reach the visible page.");
+                    stage = "document-proof-pixels-off";
+                    proofProperty.SetValue(restoredProofOwner, Activator.CreateInstance(proofSettingsType, [false, null, null, false]));
+                    RefreshProofPage();
+                    Image restoredImage = ProofImage();
+                    if (!Patch((BitmapSource)restoredImage.Source, .8, .8).All(value => value >= 254))
+                        throw new InvalidOperationException("Disabling native proof did not restore normal white paper.");
+                    Wait(() => Patch(Capture(owner, ProofBounds(restoredImage)), .8, .8).All(value => value >= 254));
+                    events.Add(new { stage, restoredWhiteSource = true, restoredWhiteScreen = true });
+
+                    void RefreshProofPage()
+                    {
+                        activeProofViewer.GetType().GetMethod("RenderActiveSessionExt", instance)!.Invoke(activeProofViewer, null);
+                        Wait(() => (Task)activeProofViewer.GetType().GetProperty("PrimaryRenderTask", instance)!
+                            .GetValue(activeProofViewer)! is { IsCompletedSuccessfully: true });
+                    }
+                    Image ProofImage() => Descendants<Image>((DependencyObject)activeProofViewer)
+                        .Where(image => image.IsVisible && image.Source is BitmapSource { PixelWidth: > 100, PixelHeight: > 100 })
+                        .OrderByDescending(image => ((BitmapSource)image.Source).PixelWidth * ((BitmapSource)image.Source).PixelHeight).First();
+                    Rect ProofBounds(Image image)
+                    {
+                        var pageViewport = ((FrameworkElement)activeProofViewer).FindName("PagePreviewPanel") as ScrollViewer
+                            ?? throw new InvalidOperationException("Proof page viewport is missing.");
+                        var viewport = Descendants<ScrollContentPresenter>(pageViewport)
+                            .Single(element => element.IsVisible);
+                        return Rect.Intersect(ScreenBounds(image), ScreenBounds(viewport));
+                    }
 
                     object ActiveProofView()
                     {
@@ -679,6 +750,25 @@ internal static class NativeReadingSmoke
         byte[] bytes = new byte[100]; image.CopyPixels(patch, bytes, 20, 0);
         return Enumerable.Range(0, 3).Select(channel => Enumerable.Range(0, 25).Average(i => bytes[i * 4 + channel])).ToArray();
     }
+    private static byte[] ProofPrinterFixture()
+    {
+        byte[] data = new byte[192];
+        Write32(0, data.Length); data[8] = 4;
+        "prtr"u8.CopyTo(data.AsSpan(12)); "GRAY"u8.CopyTo(data.AsSpan(16));
+        "XYZ "u8.CopyTo(data.AsSpan(20)); "acsp"u8.CopyTo(data.AsSpan(36));
+        Write32(128, 2); "kTRC"u8.CopyTo(data.AsSpan(132));
+        Write32(136, 156); Write32(140, 16); "wtpt"u8.CopyTo(data.AsSpan(144));
+        Write32(148, 172); Write32(152, 20); "curv"u8.CopyTo(data.AsSpan(156));
+        Write32(164, 2);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(168), 8192);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(170), 65535);
+        "XYZ "u8.CopyTo(data.AsSpan(172));
+        Write32(180, 52429); Write32(184, 58982); Write32(188, 45875);
+        return data;
+        void Write32(int offset, int value) =>
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(data.AsSpan(offset), value);
+    }
+
     private static byte[] DjvuFixture() => [.. "AT&T"u8, .. Chunk("FORM", [.. "DJVU"u8,
         .. Chunk("INFO", [0, 3, 0, 2, 26, 0, 0x2c, 1, 22, 1]),
         .. Chunk("Smmr", [.. "MMR"u8, 0, 0, 3, 0, 2, 0x23, 0xe1, 0x80, 0x08, 0, 0x80])])];

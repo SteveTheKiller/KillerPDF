@@ -969,6 +969,7 @@ namespace KillerPDF.Controls
             var primaryToken = primaryCts.Token;
             long generation = _primaryRenderGeneration;
             var primarySession = _active;
+            var primaryProof = primarySession?.ProofView.CaptureProof();
             var primaryNative = _nativeDoc;
             string primaryFile = _currentFile;
             long primaryRevision = primarySession?.RenderRevision ?? 0;
@@ -986,6 +987,7 @@ namespace KillerPDF.Controls
                 && ReferenceEquals(primarySession, _active) && primaryFile == _currentFile
                 && ReferenceEquals(primaryNative, _nativeDoc)
                 && primaryRevision == (_active?.RenderRevision ?? 0) && primaryMode == _viewMode
+                && primaryProof?.Stamp == _active?.ProofView.CaptureProof().Stamp
                 && primaryInvert == DocInvert
                 && (primaryDisplay is null || ReferenceEquals(primaryDisplay, _presentationDisplay));
             try
@@ -1013,7 +1015,7 @@ namespace KillerPDF.Controls
                 int width, height;
                 System.Windows.Media.Imaging.BitmapSource bitmap;
                 PdfRenderedFrame? primaryFrame = null;
-                var cached = linear ? null : TryGetCachedRender(_active, pageIndex, scaledMax, pgRot);
+                var cached = linear ? null : TryGetCachedRender(_active, pageIndex, scaledMax, pgRot, proofStamp: primaryProof?.Stamp);
                 if (cached != null)
                 {
                     LastPrimaryRenderMeasurement = null;
@@ -1030,19 +1032,21 @@ namespace KillerPDF.Controls
                         var request = primaryNative is null
                             ? _backgroundRenderCache.Capture(primaryFile, primaryRevision, _protection) : null;
                         render = _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
-                            40L * scaledMax * scaledMax,
+                            (primaryProof?.Settings.Enabled == true ? 64L : 40L) * scaledMax * scaledMax,
                             token => PrepareLinearPrimaryBitmap(request, revision, pageIndex, scaledMax, token,
-                                presentationPolicy.TransformOwner == PdfMonitorTransformOwner.Application ? _sdrDisplayConverter : null),
+                                presentationPolicy.TransformOwner == PdfMonitorTransformOwner.Application ? _sdrDisplayConverter : null,
+                                primaryProof?.Settings),
                             primaryToken);
                     }
                     else if (primaryNative is not null)
                     {
                         var revision = primaryNative.CaptureReadRevision();
                         render = _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
-                            40L * scaledMax * scaledMax,
+                            (primaryProof?.Settings.Enabled == true ? 64L : 40L) * scaledMax * scaledMax,
                             token =>
                             {
-                                var prepared = PrepareNativePrimaryBitmap(revision, pageIndex, scaledMax, pgRot, primaryInvert, token);
+                                var prepared = PrepareNativePrimaryBitmap(revision, pageIndex, scaledMax, pgRot, primaryInvert, token,
+                                    primaryProof?.Settings);
                                 return (prepared.Bitmap, prepared.Measurement, (PdfRenderedFrame?)null);
                             },
                             primaryToken);
@@ -1066,7 +1070,8 @@ namespace KillerPDF.Controls
                     primaryFrame = preparedFrame;
                     width = bitmap.PixelWidth;
                     height = bitmap.PixelHeight;
-                    if (primaryFrame is null && !linear) CacheRender(primarySession, pageIndex, scaledMax, pgRot, bitmap);
+                    if (primaryFrame is null && !linear) CacheRender(primarySession, pageIndex, scaledMax, pgRot, bitmap,
+                        proofStamp: primaryProof?.Stamp);
                 }
 
                 // Canonical render-dim space: longest side -> 2048 DIP, identical to the continuous and

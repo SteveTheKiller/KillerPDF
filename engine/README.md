@@ -355,7 +355,8 @@ identities and document/override generations. An unchanged comparison stays curr
 when the owner's preferences change; clearing it adopts the latest owner request.
 Equivalent profile content and options do not advance the override generation.
 Desktop document sessions retain their own view wrapper across tab switches.
-Proof controls, rendering integration and persistence remain unfinished.
+Initial native Single-page rendering applies captured proof preferences.
+Proof controls, other rendering paths and persistence remain unfinished.
 
 ## Bundled CMYK viewing assumption (1.9.3 development)
 
