@@ -6,6 +6,8 @@ namespace KillerPDF.Services
         int Start, int Length)
     {
         internal SearchTextSource? Source { get; init; }
+        internal bool HasGeometry { get; init; } = true;
+        internal IReadOnlyList<KillerPdf.Engine.Documents.PdfContentBounds> Areas { get; init; } = [];
         internal (int page, double left, double bottom, double right, double top) Rectangle =>
             (page, left, bottom, right, top);
     }
@@ -25,6 +27,7 @@ namespace KillerPDF.Services
         /// <summary>The protection of the tab the bytes came from, so a file read under its key searches.</summary>
         internal OpenedProtection? Protection { get; init; }
         internal IReadOnlyList<int> UnreadablePages { get; init; } = [];
+        internal PdfCapturedReadRevision? NativeRevision { get; init; }
         internal string Fingerprint()
         {
             using var hash = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
@@ -33,9 +36,11 @@ namespace KillerPDF.Services
                 source.Content, source.AnnotationId, source.FieldName, source.Editable, source.WidgetId, source.RedactionBounds, source.Findable, source.MaximumLength };
             hash.AppendData(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new
                 { Text = Text.Select(Describe), Covers = Covers.Select(Describe), UnreadablePages }));
+            if (NativeRevision is { } native) hash.AppendData(native.Id.ToByteArray());
             return Convert.ToHexString(hash.GetHashAndReset());
         }
         internal bool SameContent(CurrentSearchSnapshot other) => Bytes.AsSpan().SequenceEqual(other.Bytes)
+            && NativeRevision?.Id == other.NativeRevision?.Id
             && Text.SequenceEqual(other.Text) && Covers.SequenceEqual(other.Covers) && UnreadablePages.SequenceEqual(other.UnreadablePages);
         internal bool IsCovered(int page, KillerPdf.Engine.Documents.PdfContentBounds bounds) => Covers.Any(cover =>
             cover.Page == page && Math.Max(0, Math.Min(bounds.Right, cover.Right) - Math.Max(bounds.Left, cover.Left))
@@ -45,6 +50,7 @@ namespace KillerPDF.Services
 
     internal sealed class SearchResult
     {
+        internal Guid? NativeRevisionId { get; init; }
         internal List<SearchHit> Hits { get; } = [];
         public Dictionary<int, List<(double Left, double Bottom, double Right, double Top)>> PageRects { get; } = [];
         public List<int> ResultPages { get; } = [];
@@ -160,6 +166,8 @@ namespace KillerPDF.Services
         internal static SearchResult Search(CurrentSearchSnapshot snapshot, string query, bool matchCase,
             bool wholeWord, CancellationToken cancellationToken)
         {
+            if (snapshot.NativeRevision is { } native)
+                return SearchNative(native, query, matchCase, wholeWord, cancellationToken);
             SearchResult result = Search(snapshot.Bytes, snapshot.Protection, query, matchCase, wholeWord, cancellationToken);
             foreach (int page in snapshot.UnreadablePages)
                 if (!result.UnreadablePages.Contains(page)) result.UnreadablePages.Add(page);
@@ -179,6 +187,99 @@ namespace KillerPDF.Services
                     result.TotalHits++;
                 }
             }
+            return result;
+        }
+
+        private static SearchResult SearchNative(PdfCapturedReadRevision revision, string query, bool matchCase,
+            bool wholeWord, CancellationToken cancellationToken)
+        {
+            var result = new SearchResult { NativeRevisionId = revision.Id };
+            if (string.IsNullOrWhiteSpace(query)) return result;
+            using var lease = revision.Rent(cancellationToken);
+            var failures = new PageFailures();
+            const int maximumHighlightAreas = 200_000;
+            const int maximumMatches = 100_000;
+            int highlightAreas = 0;
+            void CheckCancellation()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (revision.IsClosed) throw new OperationCanceledException("The captured native document was closed.");
+            }
+            for (int pageIndex = 0; pageIndex < revision.PageCount; pageIndex++)
+            {
+                CheckCancellation();
+                KillerPdf.Engine.Documents.PdfReadTextPage page;
+                try { page = lease.ReadNativeTextPage(pageIndex); }
+                catch (Exception error) when (CanSkipPage(error))
+                {
+                    result.UnreadablePages.Add(pageIndex);
+                    result.UnreadableMessages[pageIndex] = error.Message;
+                    failures.Refused(error);
+                    continue;
+                }
+                bool matchedPage = false;
+                var regions = page.Regions.OrderBy(region => region.Start).ToArray();
+                var activeRegions = new SortedDictionary<int, KillerPdf.Engine.Documents.PdfReadTextRegion>();
+                var regionEnds = new PriorityQueue<int, int>();
+                int nextRegion = 0;
+                foreach (var span in TextReplacePlanner.FindSpans(page.Text, query, matchCase, wholeWord))
+                {
+                    CheckCancellation();
+                    if (result.TotalHits == maximumMatches)
+                        throw new System.IO.InvalidDataException("Native search exceeded the match limit.");
+                    while (regionEnds.TryPeek(out int expired, out int end) && end <= span.Start)
+                    {
+                        CheckCancellation();
+                        regionEnds.Dequeue();
+                        activeRegions.Remove(expired);
+                    }
+                    while (nextRegion < regions.Length && regions[nextRegion].Start < span.Start + span.Length)
+                    {
+                        CheckCancellation();
+                        var region = regions[nextRegion];
+                        int regionEnd = region.Start + region.Length;
+                        if (regionEnd > span.Start)
+                        {
+                            activeRegions.Add(nextRegion, region);
+                            regionEnds.Enqueue(nextRegion, regionEnd);
+                        }
+                        nextRegion++;
+                    }
+                    var areas = new List<KillerPdf.Engine.Documents.PdfContentBounds>();
+                    foreach (var region in activeRegions.Values)
+                    {
+                        CheckCancellation();
+                        if (region.Start < span.Start + span.Length && region.Start + region.Length > span.Start)
+                        {
+                            if (highlightAreas == maximumHighlightAreas)
+                                throw new System.IO.InvalidDataException("Native search exceeded the highlight area limit.");
+                            areas.Add(region.Bounds);
+                            highlightAreas++;
+                        }
+                    }
+                    bool located = areas.Count > 0;
+                    double left = located ? areas.Min(area => area.Left) : 0, bottom = located ? areas.Min(area => area.Bottom) : 0;
+                    double right = located ? areas.Max(area => area.Right) : 0, top = located ? areas.Max(area => area.Top) : 0;
+                    var source = new SearchTextSource(pageIndex, left, bottom, right, top,
+                        page.Text, Guid.Empty, Editable: false);
+                    result.Hits.Add(new SearchHit(pageIndex, left, bottom, right, top, span.Start, span.Length)
+                        { Source = source, HasGeometry = located, Areas = areas.AsReadOnly() });
+                    if (!matchedPage)
+                    {
+                        result.ResultPages.Add(pageIndex);
+                        matchedPage = true;
+                    }
+                    if (located)
+                    {
+                        if (!result.PageRects.TryGetValue(pageIndex, out var rectangles))
+                            result.PageRects[pageIndex] = rectangles = [];
+                        rectangles.AddRange(areas.Select(area => (area.Left, area.Bottom, area.Right, area.Top)));
+                    }
+                    result.TotalHits++;
+                }
+            }
+            CheckCancellation();
+            failures.RequireAReadablePage(revision.PageCount);
             return result;
         }
 
