@@ -275,9 +275,12 @@ Foreground `color` accepts six-digit sRGB hex values and the 16 basic CSS color
 keywords, case-insensitively. It inherits and follows property-specific cascade
 precedence. Individual glyphs retain their foreground color through rendering.
 Body `background-color` uses the same color syntax, also accepts `transparent`, and paints the whole reading
-canvas, including margins, at natural and requested pixel sizes. Backgrounds do
-not inherit; backgrounds on other elements are explicitly diagnosed until box
-painting is implemented. Explicit transparent body declarations clear earlier
+canvas, including margins, at natural and requested pixel sizes. Paragraph backgrounds
+fill each content-width line, including reserved blank lines; span backgrounds follow
+their fragments across wrapping and page breaks. Backgrounds do not inherit.
+Transparent descendants reveal ancestor paint. Paragraph and ancestor-ordered span
+backgrounds paint before image and glyph ink, including tight line-height overlap.
+Other element backgrounds remain explicitly diagnosed. Explicit transparent body declarations clear earlier
 opaque backgrounds and expose the white reading canvas, including inline overrides.
 Packaged rules support grouped type selectors and compound classes such as
 `p, span.small.keep`, with class specificity and declaration order applied separately
@@ -327,7 +330,7 @@ separate from glyph ink, which can extend beyond a font's logical line box.
 `book.ConvertToPdf(new EpubPdfConversionOptions(font))` explicitly creates an
 independent PDF with A4 paper and 15 mm margins. Paper geometry and fallback font
 size are configurable in points. Initial conversion retains selectable embedded
-text, resolved CSS text colors, RGB/RGBA PNG images and solid canvas backgrounds
+text, resolved CSS text colors, RGB/RGBA PNG images and solid body/paragraph/span backgrounds
 from the supported native layout. PNG transparency remains a PDF soft mask. It leaves the native package and existing read
 snapshots unchanged. Native EPUB/DjVu sessions expose an explicit Document tools
 conversion action. It publishes a separate new PDF atomically, opens an independent

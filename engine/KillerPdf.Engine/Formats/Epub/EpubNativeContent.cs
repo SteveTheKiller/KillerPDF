@@ -86,9 +86,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         Style style = properties.Apply(inherited, contentHeight);
         if (style.Background is { } background)
         {
-            if (name != "body")
+            if (name is not ("body" or "p" or "span"))
                 throw new NotSupportedException("Native EPUB element background painting is not implemented.");
-            CanvasBackground = background.Color;
+            if (name == "body") CanvasBackground = background.Color;
         }
         var element = new Element(name, parent, style, name == "p" ? style : parent?.BlockStyle ?? style);
         if (name == "img") ImageElement = element;

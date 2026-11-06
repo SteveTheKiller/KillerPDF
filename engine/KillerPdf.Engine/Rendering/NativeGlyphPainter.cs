@@ -7,6 +7,7 @@ namespace KillerPdf.Engine.Rendering;
 internal abstract record NativePagePaint;
 internal sealed record NativeGlyphPaint(PdfGlyphOutline Outline, double Left, double Baseline, double Scale, PdfRgbColor? Color = null) : NativePagePaint;
 internal sealed record NativeImagePaint(PngDecodedImage Image, double Left, double Top) : NativePagePaint;
+internal sealed record NativeRectanglePaint(double Left, double Top, double Width, double Height, PdfRgbColor Color) : NativePagePaint;
 
 internal static class NativeGlyphPainter
 {
@@ -42,6 +43,33 @@ internal static class NativeGlyphPainter
         foreach (var paint in paints)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (paint is NativeRectanglePaint rectangle)
+            {
+                double x0 = rectangle.Left * scaleX, y0 = rectangle.Top * scaleY;
+                double x1 = x0 + rectangle.Width * scaleX, y1 = y0 + rectangle.Height * scaleY;
+                if (!double.IsFinite(x0) || !double.IsFinite(y0) || !double.IsFinite(x1) || !double.IsFinite(y1)
+                    || rectangle.Width < 0 || rectangle.Height < 0)
+                    throw new InvalidDataException("The native rectangle placement is invalid.");
+                int leftEdge = (int)Math.Clamp(Math.Floor(x0), 0, width);
+                int topEdge = (int)Math.Clamp(Math.Floor(y0), 0, height);
+                int rightEdge = (int)Math.Clamp(Math.Ceiling(x1), 0, width);
+                int bottomEdge = (int)Math.Clamp(Math.Ceiling(y1), 0, height);
+                imageWork += (long)(rightEdge - leftEdge) * (bottomEdge - topEdge);
+                if (imageWork > 16 * 1024 * 1024)
+                    throw new InvalidDataException("The native page exceeds its image paint work limit.");
+                for (int y = topEdge; y < bottomEdge; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    double vertical = Math.Min(y + 1, y1) - Math.Max(y, y0);
+                    for (int x = leftEdge; x < rightEdge; x++)
+                    {
+                        double coverage = vertical * (Math.Min(x + 1, x1) - Math.Max(x, x0));
+                        FloatRgbCompositor.SourceOver(pixels, (y * width + x) * 4,
+                            rectangle.Color.Red, rectangle.Color.Green, rectangle.Color.Blue, coverage);
+                    }
+                }
+                continue;
+            }
             if (paint is NativeImagePaint image)
             {
                 double imageLeft = image.Left * scaleX, imageTop = image.Top * scaleY;
