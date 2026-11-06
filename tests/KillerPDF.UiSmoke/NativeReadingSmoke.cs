@@ -481,6 +481,44 @@ internal static class NativeReadingSmoke
                         && Named<Border>(owner, "DropZone")!.IsVisible
                         && !Named<ScrollViewer>(owner, "PagePreviewPanel")!.IsVisible);
                     events.Add(new { stage, enabledForNativeOnly = true, emptyViewer = true });
+                    stage = "document-proof-owner";
+                    openBook.Invoke(owner, [source.Key]);
+                    Wait(() => Named<TextBlock>(owner, "FileNameLabel")?.Text == Path.GetFileName(source.Key)
+                        && ActiveTextProvider()?.DocumentRange.GetText(-1) == "AA AA");
+                    object proofView = ActiveProofView();
+                    object proofOwner = proofView.GetType().GetProperty("Document")!.GetValue(proofView)!;
+                    object proofIdentity = proofOwner.GetType().GetProperty("Id")!.GetValue(proofOwner)!;
+                    Type proofSettingsType = engine.GetType("KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings", true)!;
+                    object requestedProof = Activator.CreateInstance(proofSettingsType, [true, null, null, true])!;
+                    proofOwner.GetType().GetProperty("Proof")!.SetValue(proofOwner, requestedProof);
+                    openBook.Invoke(owner, [otherBook]);
+                    Wait(() => Named<TextBlock>(owner, "FileNameLabel")?.Text == Path.GetFileName(otherBook)
+                        && ActiveTextProvider()?.DocumentRange.GetText(-1) == "BB BB");
+                    object otherProofView = ActiveProofView();
+                    object otherProofOwner = otherProofView.GetType().GetProperty("Document")!.GetValue(otherProofView)!;
+                    object otherProof = otherProofOwner.GetType().GetProperty("Proof")!.GetValue(otherProofOwner)!;
+                    if (Equals(proofIdentity, otherProofOwner.GetType().GetProperty("Id")!.GetValue(otherProofOwner))
+                        || (bool)proofSettingsType.GetProperty("Enabled")!.GetValue(otherProof)!
+                        || (bool)proofSettingsType.GetProperty("GamutWarnings")!.GetValue(otherProof)!)
+                        throw new InvalidOperationException("Another native book inherited the first book's proof request.");
+                    openBook.Invoke(owner, [source.Key]);
+                    Wait(() => Named<TextBlock>(owner, "FileNameLabel")?.Text == Path.GetFileName(source.Key)
+                        && ActiveTextProvider()?.DocumentRange.GetText(-1) == "AA AA");
+                    object restoredProofView = ActiveProofView();
+                    object restoredProofOwner = restoredProofView.GetType().GetProperty("Document")!.GetValue(restoredProofView)!;
+                    object restoredProof = restoredProofOwner.GetType().GetProperty("Proof")!.GetValue(restoredProofOwner)!;
+                    if (!Equals(proofIdentity, restoredProofOwner.GetType().GetProperty("Id")!.GetValue(restoredProofOwner))
+                        || !(bool)proofSettingsType.GetProperty("Enabled")!.GetValue(restoredProof)!
+                        || !(bool)proofSettingsType.GetProperty("GamutWarnings")!.GetValue(restoredProof)!)
+                        throw new InvalidOperationException("Returning to the native book lost its proof request.");
+                    events.Add(new { stage, isolatedRequests = true, restoredOwner = true });
+
+                    object ActiveProofView()
+                    {
+                        object active = owner.GetType().GetProperty("ActiveViewer", instance)!.GetValue(owner)!;
+                        return active.GetType().GetProperty("DocumentProofView", BindingFlags.Public | BindingFlags.Instance)
+                            ?.GetValue(active) ?? throw new InvalidOperationException("The viewer has no document proof session.");
+                    }
 
                     ITextProvider? ActiveTextProvider()
                     {
@@ -584,7 +622,8 @@ internal static class NativeReadingSmoke
             {
                 passed, stage, control, native, preserved, continuous, grid, gridSwitch, switched, epub, machine = Environment.MachineName,
                 failureKind = failure is null ? null : stage == "fixture" ? "fixture"
-                    : stage.StartsWith("native-search-", StringComparison.Ordinal) ? stage
+                    : stage.StartsWith("native-search-", StringComparison.Ordinal)
+                        || stage.StartsWith("document-proof-", StringComparison.Ordinal) ? stage
                     : grid && failure is TimeoutException && modals.Count == 0 ? "grid-readiness-review-required"
                     : continuous && stage == "native-render-readiness" && modals.Count == 0 ? "native-render-readiness-review-required"
                     : modals.Count > 0 ? "unexpected-modal" : stage.EndsWith("readiness", StringComparison.Ordinal)

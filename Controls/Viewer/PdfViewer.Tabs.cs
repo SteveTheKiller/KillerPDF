@@ -40,6 +40,8 @@ namespace KillerPDF.Controls
             public PdfWorkingDocument? Doc;
             public NativeWorkingDocument? NativeDoc;
             public bool HasReadDocument => Doc != null || NativeDoc != null;
+            public KillerPdf.Engine.ColorManagement.PdfDocumentProofView ProofView =
+                new(new KillerPdf.Engine.Documents.PdfLogicalDocument());
             public string? CurrentFile;
             public string? OriginalFile;
             // Set on a restored tab that hasn't been loaded yet (lazy tabs): Doc stays null until the

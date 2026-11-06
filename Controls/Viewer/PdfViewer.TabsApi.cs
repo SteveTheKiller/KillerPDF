@@ -12,6 +12,10 @@ namespace KillerPDF.Controls
     /// </summary>
     public partial class PdfViewer
     {
+        /// <summary>Gets the active document's requested proof state, independently of rendering availability.</summary>
+        public KillerPdf.Engine.ColorManagement.PdfDocumentProofView? DocumentProofView =>
+            _active?.HasReadDocument == true ? _active.ProofView : null;
+
         /// <summary>Opens the page text editor at a position in the page's canvas coordinates.</summary>
         internal void BeginTextEditAtPosition(System.Windows.Point canvasPosition, int pageIndex)
         {

@@ -347,8 +347,15 @@ and a `ProofGeneration` that changes only when the requested selections change.
 Profile content identity avoids invalidation when identical bytes are reloaded.
 `CaptureProof()` returns matching immutable settings and generation for a render request.
 `CreateIndependentCopy()` retains the snapshot and proof preferences with a new
-identity and an independent generation. These portable ownership contracts do not
-yet connect desktop proof controls, rendering or persistence.
+identity and an independent generation.
+
+`PdfDocumentProofView` shares its logical owner's request unless an explicit
+`ComparisonOverride` is selected. Its immutable capture includes view/document
+identities and document/override generations. An unchanged comparison stays current
+when the owner's preferences change; clearing it adopts the latest owner request.
+Equivalent profile content and options do not advance the override generation.
+Desktop document sessions retain their own view wrapper across tab switches.
+Proof controls, rendering integration and persistence remain unfinished.
 
 ## Bundled CMYK viewing assumption (1.9.3 development)
 
