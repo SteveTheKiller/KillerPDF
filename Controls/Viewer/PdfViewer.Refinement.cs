@@ -43,6 +43,7 @@ public partial class PdfViewer
         var cts = _visibleRefineCts = new CancellationTokenSource();
         var token = cts.Token;
         var session = _active;
+        var proof = session?.ProofView.CaptureProof();
         string file = _currentFile;
         long revision = session?.RenderRevision ?? 0;
         bool invert = DocInvert;
@@ -55,7 +56,8 @@ public partial class PdfViewer
         var request = _backgroundRenderCache.Capture(file, revision, _protection);
         bool Current() => !token.IsCancellationRequested && ReferenceEquals(session, _active)
             && file == _currentFile && revision == (_active?.RenderRevision ?? 0) && invert == DocInvert
-            && mode == _viewMode && zoom == _zoomLevel && ReferenceEquals(display, _presentationDisplay);
+            && mode == _viewMode && zoom == _zoomLevel && ReferenceEquals(display, _presentationDisplay)
+            && proof?.Stamp == _active?.ProofView.CaptureProof().Stamp;
         var images = new List<(int Page, Image Image)>();
         if (_viewMode.IsContinuous())
         {
@@ -104,7 +106,8 @@ public partial class PdfViewer
                 double r = visible.Right / image.ActualWidth, b = visible.Bottom / image.ActualHeight;
                 // Reserve at most one bounded region result; its raster is never cached as a full page.
                 var result = await _viewportRenderQueue.Enqueue((request, "visible", page), 20,
-                    Math.Min((regionMonitor is null ? 8L : 40L) * maximum * maximum, 512L << 20), workToken =>
+                    Math.Min((proof?.Settings.Enabled == true ? 64L : regionMonitor is null ? 8L : 40L)
+                        * maximum * maximum, 512L << 20), workToken =>
                     {
                         using var lease = request.Rent(workToken);
                         var dimensions = lease.Dimensions(page, maximum, maximum);
@@ -112,17 +115,17 @@ public partial class PdfViewer
                             ?? throw new OperationCanceledException();
                         byte[]? managedPixels = null;
                         string? warning = null;
-                        if (regionMonitor is not null)
+                        if (regionMonitor is not null || proof?.Settings.Enabled == true)
                         {
                             try
                             {
-                                var frame = lease.RenderFrameRegion(page, maximum, maximum, region, workToken);
-                                var conversion = regionMonitor.Convert(frame, workToken);
-                                if (conversion.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale)
+                                var frame = lease.RenderFrameRegion(page, maximum, maximum, region, workToken, proof?.Settings);
+                                var conversion = regionMonitor?.Convert(frame, workToken);
+                                if (conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale)
                                     throw new OperationCanceledException(workToken);
-                                managedPixels = conversion.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
+                                managedPixels = conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
                                     ? conversion.BgraPixels.ToArray() : frame.ToSrgbBgra32(workToken);
-                                warning = conversion.FailureOperation;
+                                warning = conversion?.FailureOperation;
                             }
                             catch (NotSupportedException exception) { warning = exception.Message; }
                         }

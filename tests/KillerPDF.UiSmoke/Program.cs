@@ -64,6 +64,9 @@ internal static class Program
             if (args.Length == 5 && args[0] == "--verify-native-search-epub" && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);
+            if (args.Length == 5 && args[0] == "--verify-proof-refinement" && args[4] == "--session-isolation")
+                return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
+                    windowSession: true, windowSessionCase: args[0]);
             if (args.Length == 3 && args[0] == "--stage-empty-recent-restart")
                 return StartupLayoutSmoke.Stage(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]));
             if (args.Length == 5 && args[0] is "--verify-about-balanced" or "--verify-update-empty-recents" && args[4] == "--session-isolation")

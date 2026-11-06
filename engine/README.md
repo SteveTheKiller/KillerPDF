@@ -358,6 +358,9 @@ Desktop document sessions retain their own view wrapper across tab switches.
 Initial native Single-page rendering applies captured proof preferences.
 Primary presenter requests carry a generation derived from the captured view stamp;
 unchanged proof requests retain that generation.
+WPF PDF detail regions use the captured proof settings and reject publication
+when the view's proof stamp changes. Initial Single-page source and visible-region
+checks cover a generated printer profile; native FP16 detail proofing remains unfinished.
 Unsupported native proof requests retain their preferences and show normal viewing
 with a proof diagnostic.
 Proof controls, other rendering paths and persistence remain unfinished.

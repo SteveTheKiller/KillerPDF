@@ -839,7 +839,7 @@ internal static class NativeReadingSmoke
         byte[] bytes = new byte[100]; image.CopyPixels(patch, bytes, 20, 0);
         return Enumerable.Range(0, 3).Select(channel => Enumerable.Range(0, 25).Average(i => bytes[i * 4 + channel])).ToArray();
     }
-    private static byte[] ProofPrinterFixture()
+    internal static byte[] ProofPrinterFixture()
     {
         byte[] data = new byte[192];
         Write32(0, data.Length); data[8] = 4;
@@ -911,7 +911,7 @@ internal static class NativeReadingSmoke
         (byte)(payload.Length >> 24), (byte)(payload.Length >> 16), (byte)(payload.Length >> 8), (byte)payload.Length,
         .. payload, .. (payload.Length % 2 == 1 ? new byte[1] : [])];
 
-    private static BitmapSource Capture(Window owner, Rect bounds)
+    internal static BitmapSource Capture(Window owner, Rect bounds)
     {
         int left = (int)Math.Ceiling(bounds.Left), top = (int)Math.Ceiling(bounds.Top);
         int width = (int)Math.Floor(bounds.Right) - left, height = (int)Math.Floor(bounds.Bottom) - top;
