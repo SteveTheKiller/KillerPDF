@@ -26,6 +26,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private readonly Dictionary<string, List<CssRule>> _typeRules = new(StringComparer.Ordinal);
     private int _characters;
     private int _selectorWork;
+    private int _selectorCount;
     private bool _bodySeen;
     private MarginLength?[]? _bodyMargins;
     private MarginLength?[]? _bodyPadding;
@@ -84,7 +85,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         xml.MoveToElement();
         Style inherited = parent?.Style ?? DefaultStyle;
         if (inherited.Background is not null) inherited = inherited with { Background = null };
-        CssProperties properties = ResolveRules(name, classNames);
+        CssProperties properties = ResolveRules(name, xml.NamespaceURI, classNames);
         if (inlineStyle is not null) properties = properties.Override(ParseProperties(inlineStyle));
         Style style = properties.Apply(inherited, contentHeight);
         if (properties.Border is { Visible: true, Nonzero: true })
@@ -175,34 +176,112 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         Count(css.Length);
         const string utf8Declaration = "@charset \"utf-8\";";
         int position = css.StartsWith(utf8Declaration, StringComparison.Ordinal) ? utf8Declaration.Length : 0;
+        var namespaces = new Dictionary<string, string>(StringComparer.Ordinal);
+        int namespaceCount = 0;
+        bool styleSeen = false;
         while (position < css.Length)
         {
             cancellationToken.ThrowIfCancellationRequested();
             while (position < css.Length && char.IsWhiteSpace(css[position])) position++;
             if (position == css.Length) break;
+            if (css.AsSpan(position).StartsWith("@namespace", StringComparison.OrdinalIgnoreCase))
+            {
+                if (styleSeen) throw NamespaceSyntax();
+                if (++namespaceCount > 256)
+                    throw new InvalidDataException("Native EPUB CSS namespace declarations exceed their 256-declaration limit.");
+                position += 10;
+                if (position == css.Length || !IsCssSpace(css[position])) throw NamespaceSyntax();
+                SkipSpace();
+                string prefix = "";
+                if (position < css.Length && css[position] is not ('\'' or '"')
+                    && !css.AsSpan(position).StartsWith("url(", StringComparison.OrdinalIgnoreCase))
+                {
+                    int start = position;
+                    while (position < css.Length && !IsCssSpace(css[position])) position++;
+                    prefix = css[start..position];
+                    if (!IsIdentifier(prefix)) throw NamespaceSyntax();
+                    SkipSpace();
+                }
+                bool url = css.AsSpan(position).StartsWith("url(", StringComparison.OrdinalIgnoreCase);
+                if (url) { position += 4; SkipSpace(); }
+                if (position == css.Length) throw NamespaceSyntax();
+                char quote = css[position] is '\'' or '"' ? css[position++] : '\0';
+                if (quote == '\0' && !url) throw NamespaceSyntax();
+                int uriStart = position;
+                while (position < css.Length && (quote != '\0' ? css[position] != quote : css[position] != ')' && !IsCssSpace(css[position])))
+                {
+                    if (char.IsControl(css[position]) || css[position] == '\\'
+                        || quote == '\0' && css[position] is '"' or '\'' or '(') throw NamespaceSyntax();
+                    if (position - uriStart >= 2048)
+                        throw new InvalidDataException("Native EPUB CSS namespace name exceeds its 2,048-character limit.");
+                    position++;
+                }
+                string uri = css[uriStart..position];
+                if (quote != '\0')
+                {
+                    if (position == css.Length || css[position++] != quote) throw NamespaceSyntax();
+                }
+                SkipSpace();
+                if (url)
+                {
+                    if (position == css.Length || css[position++] != ')') throw NamespaceSyntax();
+                    SkipSpace();
+                }
+                if (position == css.Length || css[position++] != ';') throw NamespaceSyntax();
+                namespaces[prefix] = uri;
+                continue;
+            }
+            styleSeen = true;
             int open = css.IndexOf('{', position);
             int close = open < 0 ? -1 : css.IndexOf('}', open + 1);
             if (close < 0) throw new NotSupportedException("Native EPUB CSS rule syntax is not implemented.");
             CssProperties properties = ParseProperties(css[(open + 1)..close]);
             foreach (string group in css[position..open].Split(','))
             {
+                if (++_selectorCount > 4096)
+                    throw new InvalidDataException("Native EPUB CSS selectors exceed their 4,096-selector limit.");
                 string selector = group.Trim();
                 string[] parts = selector.Split('.');
+                string type = parts[0];
+                namespaces.TryGetValue("", out string? namespaceName);
+                int separator = type.IndexOf('|');
+                if (separator >= 0)
+                {
+                    string prefix = type[..separator];
+                    if (prefix == "*") namespaceName = null;
+                    else if (prefix.Length == 0) namespaceName = "";
+                    else
+                    {
+                        if (!IsIdentifier(prefix)) throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                        if (!namespaces.TryGetValue(prefix, out namespaceName))
+                            throw new NotSupportedException("Native EPUB CSS selector namespace prefix is not declared: " + prefix + ".");
+                    }
+                    type = type[(separator + 1)..];
+                    parts[0] = type;
+                }
                 if (selector.Length is 0 or > 128 || parts.Any(part => part.Length == 0
                     || !char.IsAsciiLetter(part[0])
                     || part.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_'))))
                     throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                if (!_typeRules.TryGetValue(parts[0], out var rules))
-                    _typeRules.Add(parts[0], rules = new());
-                rules.Add(new(parts[1..], properties));
+                if (!_typeRules.TryGetValue(type, out var rules))
+                    _typeRules.Add(type, rules = new());
+                rules.Add(new(namespaceName, parts[1..], properties));
             }
             position = close + 1;
         }
+        void SkipSpace() { while (position < css.Length && IsCssSpace(css[position])) position++; }
     }
 
-    private sealed record CssRule(string[] Classes, CssProperties Properties);
+    private static bool IsCssSpace(char value) => value is ' ' or '\t' or '\r' or '\n' or '\f';
+    private static bool IsIdentifier(string value) => value.Length is > 0 and <= 128
+        && (char.IsAsciiLetter(value[0]) || value[0] == '_')
+        && value.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_');
+    private static NotSupportedException NamespaceSyntax() =>
+        new("Native EPUB CSS namespace syntax is not implemented.");
 
-    private CssProperties ResolveRules(string name, string? classNames)
+    private sealed record CssRule(string? NamespaceName, string[] Classes, CssProperties Properties);
+
+    private CssProperties ResolveRules(string name, string namespaceName, string? classNames)
     {
         if (!_typeRules.TryGetValue(name, out var rules)) return default;
         string[] classes = classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [];
@@ -221,6 +300,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         foreach (var rule in rules)
         {
             CountSelectorWork(1);
+            if (rule.NamespaceName is { } requiredNamespace)
+            {
+                CountSelectorWork(1 + Math.Min(requiredNamespace.Length, namespaceName.Length));
+                if (!string.Equals(requiredNamespace, namespaceName, StringComparison.Ordinal)) continue;
+            }
             bool matches = true;
             foreach (string required in rule.Classes)
             {

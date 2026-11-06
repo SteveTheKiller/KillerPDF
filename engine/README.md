@@ -325,6 +325,14 @@ unsupported. Border shorthand accepts zero used widths, including `border:0`,
 Visible borders and border longhands remain unsupported. Public native and reopened
 PDF tests cover placement, wrapping, complete pixel comparisons and two-page controls.
 
+Initial CSS namespace support resolves per-sheet prefix/default declarations and
+qualified type/class selectors against expanded XML names. Prefix spelling adds no
+specificity, and namespace names remain literal without fetching resources. Explicit
+any/empty namespace forms, rebinding and independent property cascade are covered.
+Declarations accept bounded ASCII identifier prefixes and quoted or url(...) names.
+Escapes, comments, general identifiers and relationship/attribute/pseudo/class-only
+selectors remain unsupported, with strict diagnostics. This is partial CSS support.
+
 `ReadText`, `ReadNavigation` and the supported plain native layout accept the canonical HTML5
 `<!DOCTYPE html>` and XHTML 1.1 external declarations without loading or processing
 a DTD. Original resource bytes, Unicode and UTF-8/UTF-16 encodings stay unchanged.
