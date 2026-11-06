@@ -1939,12 +1939,13 @@ namespace KillerPDF.Shell
             if (openCopy)
             {
                 var source = ActiveViewer;
+                var proof = source.DocumentProofView?.CaptureProof().Settings;
                 var other = ReferenceEquals(source, Viewer) ? ViewerB : Viewer;
                 bool otherEmpty = !other.SessionsRef.Any(session => session.Doc is not null
                     || session.DeferredPath is not null || session.OriginalFile is not null);
                 var target = _isSplit && otherEmpty ? other : source;
                 FocusPane(target);
-                target.OpenInNewTabExt(outputPath);
+                target.OpenInNewTabExt(outputPath, proof);
                 return;
             }
             _originalFile = outputPath;
@@ -1960,6 +1961,7 @@ namespace KillerPDF.Shell
         private void SaveCopyAndOpen(string outputPath)
         {
             var source = ActiveViewer;
+            var proof = source.DocumentProofView?.CaptureProof().Settings;
             string snapshot = WriteSavedCopyToTemp();
             ProtectedDocumentFiles.Publish(snapshot, outputPath, _protection);
             var other = ReferenceEquals(source, Viewer) ? ViewerB : Viewer;
@@ -1967,7 +1969,7 @@ namespace KillerPDF.Shell
                 || session.DeferredPath is not null || session.OriginalFile is not null);
             var target = _isSplit && otherEmpty ? other : source;
             FocusPane(target);
-            target.OpenInNewTabExt(outputPath);
+            target.OpenInNewTabExt(outputPath, proof);
         }
 
         private Dictionary<int, int> SnapshotPageRotations()

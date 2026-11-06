@@ -847,7 +847,8 @@ namespace KillerPDF.Controls
         // Open a PDF in its own tab (reusing the current tab if it is empty). If the same file is
         // already open in an unedited tab, switch to that tab instead of opening a duplicate.
         // Says whether the tab it opened into is still loading on a background thread.
-        private Services.TabOpen OpenInNewTab(string path)
+        private Services.TabOpen OpenInNewTab(string path,
+            KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? initialProof = null)
         {
             EnsureInitialSession();
             CommitActiveTextBox();
@@ -863,6 +864,7 @@ namespace KillerPDF.Controls
             }
 
             var target = BeginTabLoad(out var prev, out bool createdNew);
+            if (initialProof is not null) target.ProofView.Document.Proof = initialProof;
             var completion = new System.Threading.Tasks.TaskCompletionSource<bool>(
                 System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
             target.OpenCompletion = completion;
