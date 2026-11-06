@@ -578,7 +578,9 @@ Color Management workflow on an exclusively owned SN01 or SN02. It applies disti
 requested settings through the panel, checks them after reopening the panel, closes
 the PDF with Ctrl+W and reopens its unchanged source into a new logical owner. The
 public document session must restore the requested settings without rewriting the
-PDF. Existing profile import and named-preset controls also run. Protected/native
+PDF. It repeats document close/reopen after selecting the known ICC profile and
+checks that the new owner receives the exact validated profile contents. Existing
+profile import and named-preset controls also run. Protected/native
 files, save publication and storage-failure UI need separate cases.
 
 `--verify-proof-replacement APP_DLL APP_XAML OUTPUT --session-isolation` also

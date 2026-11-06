@@ -463,6 +463,21 @@ internal static class ColorManagementSmoke
                         || !stored.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Profile fixture escaped owned evidence.");
                     File.Move(stored, held);
                 }
+                if (documentReopen && next == "reopen-profile")
+                {
+                    stage = "close-reopen-profile-document";
+                    var previousOwner = View()!.Document.Id;
+                    ShortcutHintsSmoke.Key(owner, 0x57, 0x11);
+                    Wait(() => View() is null);
+                    owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [source]);
+                    Wait(() => View() is not null && ((TextBlock)owner.FindName("FileNameLabel")).Text == Path.GetFileName(source));
+                    Product(View()!.Document.Id != previousOwner, "Reopening with a selected profile must create a new document owner.");
+                    var restored = View()!.CaptureProof().Settings;
+                    Product(restored.PrinterProfile?.ContentSha256 == "7F7BE1EAABD868E6F6D9C72E24DF59BB195CCEAAEBA23644FD0C814A72D49FB1"
+                        && restored.PrinterProfileSha256 == restored.PrinterProfile.ContentSha256,
+                        "Document reopening must restore the exact validated ICC content, not just its label or requested reference.");
+                    Product(File.ReadAllBytes(source).SequenceEqual(original), "Profile restoration must preserve the source PDF bytes.");
+                }
                 if (next == "import-profile")
                 {
                     byte[] imported = GrayProfile();
