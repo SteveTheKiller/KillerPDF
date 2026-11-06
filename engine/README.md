@@ -366,6 +366,10 @@ presenter boundary. This does not establish GPU submission or physical color acc
 Initial PDF Two-page viewing applies the document's proof request to both page
 rasters, with proof-aware cache and publication checks. Generated-profile source
 and visible-screen checks cover proof on and off; other mode/profile coverage remains open.
+The PDF Continuous and Two-page continuous application-managed SDR paths also
+carry captured proof settings. Generated-profile source and owned-screen checks
+cover both pages and proof on/off. Non-monitor and native-format continuous paths
+still require proof integration and acceptance.
 Unsupported native proof requests retain their preferences and show normal viewing
 with a proof diagnostic.
 Proof controls, other rendering paths and persistence remain unfinished.

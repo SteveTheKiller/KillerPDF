@@ -17,7 +17,7 @@ using KillerPdf.Engine.Rendering;
 
 internal static class ProofTwoPageSmoke
 {
-    internal static int Run(Window owner, string appPath, string folder)
+    internal static int Run(Window owner, string appPath, string folder, bool continuous = false, bool pairedContinuous = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Two-page proof checks require an owned VM.");
@@ -62,7 +62,8 @@ internal static class ProofTwoPageSmoke
             stage = "open";
             owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [path]);
             Wait(() => ((TextBlock)owner.FindName("FileNameLabel")).Text == Path.GetFileName(path));
-            var radio = (RadioButton)owner.FindName("ViewTwoPageRadio");
+            var radio = (RadioButton)owner.FindName(pairedContinuous ? "ViewTwoPageContinuousRadio"
+                : continuous ? "ViewContinuousRadio" : "ViewTwoPageRadio");
             Wait(() => radio.IsVisible && radio.IsEnabled);
             ((ISelectionItemProvider)new RadioButtonAutomationPeer(radio).GetPattern(PatternInterface.SelectionItem)!).Select();
             Wait(() => PrimaryReady() && Pages().Length == 2);
@@ -92,6 +93,7 @@ internal static class ProofTwoPageSmoke
             File.WriteAllText(Path.Combine(folder, "result.json"), JsonSerializer.Serialize(new
             {
                 passed = failure is null && modals.Count == 0 && preserved, stage, preserved,
+                mode = pairedContinuous ? "TwoPageContinuous" : continuous ? "Continuous" : "TwoPage",
                 error = failure?.ToString(), modals, events,
                 appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)))
             }, new JsonSerializerOptions { WriteIndented = true, IncludeFields = true }));
@@ -127,6 +129,11 @@ internal static class ProofTwoPageSmoke
             var clip = Descendants<ScrollContentPresenter>(viewport).Single(element => element.IsVisible);
             foreach (var page in Pages())
             {
+                if (continuous)
+                {
+                    page.Image.BringIntoView();
+                    owner.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                }
                 Rect bounds = Rect.Intersect(Bounds(page.Image), Bounds(clip));
                 Wait(() => ProofRefinementSmoke.StripeColors(NativeReadingSmoke.Capture(owner, bounds), proof) is var colors
                     && colors.Paper > colors.Pixels / 5 && colors.Ink > colors.Pixels / 5);

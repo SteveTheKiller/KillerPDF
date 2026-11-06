@@ -671,10 +671,13 @@ namespace KillerPDF.Controls
             var rotations = new Dictionary<int, int>(_pageRotations);
 
             var session = _active;
+            var proof = session?.ProofView.CaptureProof();
+            long revision = session?.RenderRevision ?? 0;
+            var mode = _viewMode;
             var nativeOwner = _nativeDoc;
             var nativeRevision = nativeOwner?.CaptureReadRevision();
             var renderRequest = nativeRevision is null
-                ? _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0, _protection) : null;
+                ? _backgroundRenderCache.Capture(currentFile, revision, _protection) : null;
             bool invert = DocInvert;
             bool invertImages = BitmapHelpers.DocInvertImages;
             var continuousDisplay = CapturePrimaryDisplay();
@@ -682,9 +685,11 @@ namespace KillerPDF.Controls
                 && PdfDisplayPresentationPolicy.Resolve(continuousDisplay).TransformOwner == PdfMonitorTransformOwner.Application
                 ? _sdrDisplayConverter : null;
             var renderToken = cts.Token;
-            bool Current() => !renderToken.IsCancellationRequested && _viewMode.IsContinuous()
+            bool Current() => !renderToken.IsCancellationRequested && mode == _viewMode && _viewMode.IsContinuous()
                 && ReferenceEquals(_active, session) && ReferenceEquals(_nativeDoc, nativeOwner)
-                && _currentFile == currentFile && ReferenceEquals(continuousDisplay, _presentationDisplay);
+                && _currentFile == currentFile && ReferenceEquals(continuousDisplay, _presentationDisplay)
+                && revision == (_active?.RenderRevision ?? 0) && invert == DocInvert
+                && proof?.Stamp == _active?.ProofView.CaptureProof().Stamp;
             var renderTask = System.Threading.Tasks.Task.Run(async () =>
             {
                 ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
@@ -696,7 +701,8 @@ namespace KillerPDF.Controls
                         int rot = rotations.TryGetValue(i, out int rr) ? rr : 0;
 
                         // Cache hit: attach the cached bitmap to its slot.
-                        var cb = continuousMonitor is null ? TryGetCachedRender(session, i, renderW, rot, continuous: true) : null;
+                        var cb = continuousMonitor is null ? TryGetCachedRender(session, i, renderW, rot,
+                            continuous: true, proofStamp: proof?.Stamp) : null;
                         if (cb != null)
                         {
                             int fic = i;
@@ -732,10 +738,10 @@ namespace KillerPDF.Controls
                                 {
                                     var frame = await _viewportRenderQueue.Enqueue(
                                         (renderRequest, "continuous-float", i), 10 + Math.Abs(i - centerPage),
-                                        80L * renderW * renderW, token =>
+                                        Math.Min((proof?.Settings.Enabled == true ? 128L : 80L) * renderW * renderW, 512L << 20), token =>
                                         {
                                             using var lease = renderRequest.Rent(token);
-                                            return lease.RenderFrame(i, renderW, renderW * 2, token);
+                                            return lease.RenderFrame(i, renderW, renderW * 2, token, proof?.Settings);
                                         }, renderToken);
                                     var converted = continuousMonitor.Convert(frame, renderToken);
                                     if (converted.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale) return;
@@ -791,7 +797,8 @@ namespace KillerPDF.Controls
                             if (rendered is { } pdfPage) RememberRenderWarning(bmp, pdfPage);
                             if (monitorWarning is not null)
                                 RenderWarnings.GetValue(bmp, _ => new RenderWarning(monitorWarning));
-                            if (continuousMonitor is null) CacheRender(session, fi, renderW, prot, bmp, continuous: true);
+                            if (continuousMonitor is null) CacheRender(session, fi, renderW, prot, bmp,
+                                continuous: true, proofStamp: proof?.Stamp);
                             SetContinuousSlot(fi, bmp);
                         });
                     }
