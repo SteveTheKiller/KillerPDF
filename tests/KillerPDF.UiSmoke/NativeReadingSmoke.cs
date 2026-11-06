@@ -442,8 +442,45 @@ internal static class NativeReadingSmoke
                         if (!closeOthers.IsEnabled)
                             throw new InvalidOperationException("Native document tabs cannot close other open books.");
                         events.Add(new { stage, moveEnabled = true, closeOthersEnabled = true });
+                        ((IInvokeProvider)new MenuItemAutomationPeer(closeOthers).GetPattern(PatternInterface.Invoke)!).Invoke();
                     }
                     finally { tabMenu.IsOpen = false; }
+                    stage = "native-close-other-tabs";
+                    Wait(() => Named<TextBlock>(owner, "FileNameLabel")?.Text == Path.GetFileName(reloadCopy)
+                        && !Named<Border>(owner, "TabStripBorder")!.IsVisible
+                        && ActiveTextProvider()?.DocumentRange.GetText(-1) == "BB BB");
+                    events.Add(new { stage, keptNativeBook = true, otherTabsClosed = true });
+                    openBook.Invoke(owner, [otherBook]);
+                    Wait(() => Named<TextBlock>(owner, "FileNameLabel")?.Text == Path.GetFileName(otherBook)
+                        && Named<Border>(owner, "TabStripBorder")!.IsVisible
+                        && ActiveTextProvider()?.DocumentRange.GetText(-1) == "BB BB");
+                    stage = "native-only-close-all";
+                    var otherLabel = Descendants<TextBlock>(owner).Single(label => label.Name == "tabLbl"
+                        && label.IsVisible && label.Text == Path.GetFileNameWithoutExtension(otherBook));
+                    DependencyObject otherTab = otherLabel;
+                    while (otherTab is not FrameworkElement { Name: "tabBd" })
+                        otherTab = VisualTreeHelper.GetParent(otherTab)
+                            ?? throw new InvalidOperationException("Other native tab frame is missing.");
+                    ((UIElement)otherTab).RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice,
+                        Environment.TickCount, MouseButton.Right) { RoutedEvent = UIElement.MouseRightButtonUpEvent });
+                    owner.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                    var nativeOnlyRoots = PresentationSource.CurrentSources.Cast<PresentationSource>()
+                        .Select(source => source.RootVisual).OfType<DependencyObject>().ToArray();
+                    ContextMenu nativeOnlyMenu = nativeOnlyRoots.OfType<ContextMenu>()
+                        .Concat(nativeOnlyRoots.SelectMany(Descendants<ContextMenu>)).Distinct().Single(menu => menu.IsOpen);
+                    try
+                    {
+                        var closeAll = nativeOnlyMenu.Items.OfType<MenuItem>().Single(item =>
+                            item.InputGestureText == "Ctrl+Shift+Q");
+                        if (!closeAll.IsEnabled)
+                            throw new InvalidOperationException("Close All is disabled when only native books remain.");
+                        ((IInvokeProvider)new MenuItemAutomationPeer(closeAll).GetPattern(PatternInterface.Invoke)!).Invoke();
+                    }
+                    finally { nativeOnlyMenu.IsOpen = false; }
+                    Wait(() => Named<TextBlock>(owner, "FileNameLabel")?.Text == ""
+                        && Named<Border>(owner, "DropZone")!.IsVisible
+                        && !Named<ScrollViewer>(owner, "PagePreviewPanel")!.IsVisible);
+                    events.Add(new { stage, enabledForNativeOnly = true, emptyViewer = true });
 
                     ITextProvider? ActiveTextProvider()
                     {
