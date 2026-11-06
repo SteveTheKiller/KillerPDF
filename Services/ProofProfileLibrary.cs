@@ -31,6 +31,9 @@ public sealed record ProofProfileResolution(PdfDocumentProofSettings Settings, P
 /// <summary>Owns application profile copies and resolves explicit proof content references.</summary>
 public sealed class ProofProfileLibrary(string directory)
 {
+    /// <summary>Uses the application's current user-data location.</summary>
+    public ProofProfileLibrary() : this(AppDataPaths.ProofProfilesDirectory) { }
+
     private readonly string _directory = Path.GetFullPath(directory);
     private string ManifestPath => Path.Combine(_directory, "profiles.json");
     private string GatePath => Path.Combine(_directory, "library.lock");

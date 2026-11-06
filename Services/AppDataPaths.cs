@@ -38,6 +38,9 @@ internal static class AppDataPaths
     internal static string TextFieldPresetsFile => Path.Combine(UserRoot, "text-field-presets.json");
     internal static string MacrosDirectory => Path.Combine(UserRoot, "macros");
     internal static string ImageAssetsDirectory => Path.Combine(UserRoot, "image-assets");
+    internal static string ProofProfilesDirectory => Path.Combine(UserRoot, "color-management", "profiles");
+    internal static string ProofPresetsDirectory => Path.Combine(UserRoot, "color-management", "presets");
+    internal static string DocumentProofDirectory => Path.Combine(UserRoot, "color-management", "documents");
     internal static string TessDataDirectory => Path.Combine(UserRoot, "tessdata");
 
     internal static string? GetPortableSetting(string name)

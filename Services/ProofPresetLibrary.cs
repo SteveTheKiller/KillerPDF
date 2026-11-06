@@ -7,6 +7,9 @@ namespace KillerPDF.Services;
 /// <summary>Stores named, immutable requested proof preferences.</summary>
 public sealed class ProofPresetLibrary(string directory)
 {
+    /// <summary>Uses the application's current user-data location.</summary>
+    public ProofPresetLibrary() : this(AppDataPaths.ProofPresetsDirectory) { }
+
     private readonly string _directory = Path.GetFullPath(directory);
     private string CatalogPath => Path.Combine(_directory, "proof-presets.json");
 

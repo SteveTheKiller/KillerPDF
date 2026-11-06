@@ -62,6 +62,7 @@
     <Compile Include="..\Services\ImageAssetStore.cs" Link="Services\ImageAssetStore.cs" />
     <Compile Include="..\Services\ProofProfileLibrary.cs" Link="Services\ProofProfileLibrary.cs" />
     <Compile Include="..\Services\ProofPresetLibrary.cs" Link="Services\ProofPresetLibrary.cs" />
+    <Compile Include="..\Services\DocumentProofStore.cs" Link="Services\DocumentProofStore.cs" />
     <Compile Include="..\Services\SvgSignatureImporter.cs" Link="Services\SvgSignatureImporter.cs" />
     <Compile Include="..\Services\SvgPathData.cs" Link="Services\SvgPathData.cs" />
     <Compile Include="..\Services\SignatureInk.cs" Link="Services\SignatureInk.cs" />
