@@ -1038,7 +1038,7 @@ namespace KillerPDF.Controls
                 int pgRot = _pageRotations.TryGetValue(pageIndex, out int pr0) ? pr0 : 0;
                 primaryDisplay = CapturePrimaryDisplay();
                 var presentationPolicy = PdfDisplayPresentationPolicy.Resolve(primaryDisplay);
-                var nativeMonitor = primaryNative is not null && !primaryInvert
+                var primaryMonitor = !primaryInvert
                     && presentationPolicy.TransformOwner == PdfMonitorTransformOwner.Application
                     ? _sdrDisplayConverter : null;
                 bool linear = primaryMode == ViewMode.Single && !primaryInvert && pgRot == 0
@@ -1053,7 +1053,7 @@ namespace KillerPDF.Controls
                 int width, height;
                 System.Windows.Media.Imaging.BitmapSource bitmap;
                 PdfRenderedFrame? primaryFrame = null;
-                var cached = linear || nativeMonitor is not null ? null
+                var cached = linear || primaryMonitor is not null ? null
                     : TryGetCachedRender(_active, pageIndex, scaledMax, pgRot, proofStamp: primaryProof?.Stamp);
                 if (cached != null)
                 {
@@ -1085,7 +1085,7 @@ namespace KillerPDF.Controls
                             token =>
                             {
                                 var prepared = PrepareNativePrimaryBitmap(revision, pageIndex, scaledMax, pgRot, primaryInvert, token,
-                                    primaryProof?.Settings, nativeMonitor);
+                                    primaryProof?.Settings, primaryMonitor);
                                 return (prepared.Bitmap, prepared.Measurement, (PdfRenderedFrame?)null);
                             },
                             primaryToken);
@@ -1094,11 +1094,11 @@ namespace KillerPDF.Controls
                     {
                         var request = _backgroundRenderCache.Capture(primaryFile, primaryRevision, _protection);
                         render = _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
-                            (primaryProof?.Settings.Enabled == true ? 64L : 8L) * scaledMax * scaledMax,
+                            (primaryProof?.Settings.Enabled == true ? 64L : primaryMonitor is not null ? 40L : 8L) * scaledMax * scaledMax,
                             token =>
                             {
                                 var prepared = PreparePrimaryBitmap(request, pageIndex, scaledMax, pgRot, primaryInvert, token,
-                                    primaryProof?.Settings);
+                                    primaryProof?.Settings, primaryMonitor);
                                 return (prepared.Bitmap, prepared.Measurement, (PdfRenderedFrame?)null);
                             },
                             primaryToken);
@@ -1110,7 +1110,7 @@ namespace KillerPDF.Controls
                     primaryFrame = preparedFrame;
                     width = bitmap.PixelWidth;
                     height = bitmap.PixelHeight;
-                    if (primaryFrame is null && !linear && nativeMonitor is null) CacheRender(primarySession, pageIndex, scaledMax, pgRot, bitmap,
+                    if (primaryFrame is null && !linear && primaryMonitor is null) CacheRender(primarySession, pageIndex, scaledMax, pgRot, bitmap,
                         proofStamp: primaryProof?.Stamp);
                 }
 
@@ -1391,13 +1391,13 @@ namespace KillerPDF.Controls
                 long revision = session?.RenderRevision ?? 0;
                 var mode = _viewMode;
                 bool invert = DocInvert;
-                var secondaryDisplay = nativeOwner is not null ? CapturePrimaryDisplay() : null;
-                var secondaryMonitor = !invert && secondaryDisplay is not null
+                var secondaryDisplay = CapturePrimaryDisplay();
+                var secondaryMonitor = !invert
                     && PdfDisplayPresentationPolicy.Resolve(secondaryDisplay).TransformOwner == PdfMonitorTransformOwner.Application
                     ? _sdrDisplayConverter : null;
                 bool Current() => !cts.IsCancellationRequested && HasReadDocument
                     && ReferenceEquals(nativeOwner, _nativeDoc)
-                    && (secondaryDisplay is null || ReferenceEquals(secondaryDisplay, _presentationDisplay))
+                    && ReferenceEquals(secondaryDisplay, _presentationDisplay)
                     && ReferenceEquals(session, _active) && currentFile == _currentFile
                     && revision == (_active?.RenderRevision ?? 0) && mode == _viewMode && invert == DocInvert
                     && proof?.Stamp == _active?.ProofView.CaptureProof().Stamp;
@@ -1480,10 +1480,12 @@ namespace KillerPDF.Controls
                                 }
                                 PdfRenderedPage rendered = await _viewportRenderQueue.Enqueue(
                                     (renderRequest, "secondary", i), 10 + i - primaryPageIdx,
-                                    (proof?.Settings.Enabled == true ? 64L : 8L) * secondaryMax * secondaryMax, token =>
+                                    Math.Min((proof?.Settings.Enabled == true ? 64L : secondaryMonitor is not null ? 40L : 8L)
+                                        * secondaryMax * secondaryMax, 512L << 20), token =>
                                     {
                                         using var lease = renderRequest!.Rent(token);
-                                        return RenderViewingPage(lease, i, secondaryMax, token, proof?.Settings);
+                                        return RenderViewingPage(lease, i, secondaryMax, token, proof?.Settings,
+                                            monitor: secondaryMonitor);
                                     }, secondaryToken);
                                 int w = rendered.Width;
                                 int h = rendered.Height;
@@ -1506,7 +1508,8 @@ namespace KillerPDF.Controls
                                     int ddh = Math.Max(1, (int)Math.Round(primaryDipW * ph / pw));
                                     var bmp = BitmapHelpers.BuildScaledBitmap(pw, ph, bytes, ddw, ddh);
                                     RememberRenderWarning(bmp, rendered);
-                                    CacheRender(session, pi, tileBucket, prot, bmp, proofStamp: proof?.Stamp);
+                                    if (secondaryMonitor is null)
+                                        CacheRender(session, pi, tileBucket, prot, bmp, proofStamp: proof?.Stamp);
                                     AddSecondaryTile(pi, bmp, primaryDipW);
                                 });
                             }

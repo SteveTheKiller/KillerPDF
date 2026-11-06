@@ -58,6 +58,9 @@ internal static class Program
             if (args.Length == 5 && args[0] == "--verify-native-font-family" && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);
+            if (args.Length == 5 && (args[0] is "--verify-monitor-pdf-two-page-device" or "--verify-monitor-pdf-grid-refresh") && args[4] == "--session-isolation")
+                return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
+                    windowSession: true, windowSessionCase: args[0]);
             if (args.Length == 5 && (args[0] is "--verify-two-page-continuous" or "--verify-paired-thumbnails") && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);

@@ -77,6 +77,17 @@ internal static class ProofTwoPageSmoke
             stage = "open";
             owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [path]);
             Wait(() => ((TextBlock)owner.FindName("FileNameLabel")).Text == Path.GetFileName(path));
+            if (deviceMonitor && !nativeEpub)
+            {
+                stage = "monitor-pdf-single-control";
+                var single = (RadioButton)owner.FindName("ViewSingleRadio");
+                ((ISelectionItemProvider)new RadioButtonAutomationPeer(single).GetPattern(PatternInterface.SelectionItem)!).Select();
+                Wait(() => PrimaryReady() && Pages().Length == 1);
+                var colors = ProofRefinementSmoke.StripeColors((BitmapSource)Pages()[0].Image.Source, false, true);
+                events.Add(new { stage, colors });
+                ProofRefinementSmoke.RequireStripeColors(colors);
+                CheckScreens(false);
+            }
             if (unavailableMonitor)
             {
                 stage = "monitor-single-control";
@@ -234,10 +245,27 @@ internal static class ProofTwoPageSmoke
                 Rect bounds = Rect.Intersect(Bounds(page.Image), Bounds(clip));
                 Wait(() => ProofRefinementSmoke.StripeColors(NativeReadingSmoke.Capture(owner, bounds), proof, deviceMonitor) is var colors
                     && colors.Paper > colors.Pixels / 5 && colors.Ink > colors.Pixels / 5);
+                if (deviceMonitor)
+                {
+                    int pendingSamples = 0;
+                    var readiness = Stopwatch.StartNew();
+                    Wait(() =>
+                    {
+                        bool ready = CheckDevicePatches(page, NativeReadingSmoke.Capture(owner, bounds), bounds, proof, assert: false);
+                        if (!ready) pendingSamples++;
+                        return ready;
+                    });
+                    events.Add(new { stage, page.Page, exactPatchReady = true, pendingSamples,
+                        readinessMilliseconds = readiness.ElapsedMilliseconds });
+                }
                 var capture = NativeReadingSmoke.Capture(owner, bounds);
                 var selected = ProofRefinementSmoke.StripeColors(capture, proof, deviceMonitor);
                 var other = ProofRefinementSmoke.StripeColors(capture, !proof, deviceMonitor);
-                events.Add(new { stage, page.Page, screen = true, selected, other });
+                var source = (BitmapSource)page.Image.Source;
+                events.Add(new { stage, page.Page, screen = true, selected, other,
+                    imageBounds = Bounds(page.Image).ToString(), capturedBounds = bounds.ToString(),
+                    page.Image.ActualWidth, page.Image.ActualHeight, source.Width, source.Height,
+                    source.PixelWidth, source.PixelHeight, source.DpiX, source.DpiY });
                 var encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(capture));
                 using var output = File.Create(Path.Combine(folder, stage + "-page-" + page.Page + ".png"));
@@ -247,24 +275,30 @@ internal static class ProofTwoPageSmoke
                 if (deviceMonitor) CheckDevicePatches(page, capture, bounds, proof);
             }
         }
-        void CheckDevicePatches((int Page, Image Image) page, BitmapSource capture, Rect capturedBounds, bool proof)
+        bool CheckDevicePatches((int Page, Image Image) page, BitmapSource capture, Rect capturedBounds, bool proof,
+            bool assert = true)
         {
             Rect full = Bounds(page.Image);
-            foreach (var patch in new[] { (PageX: 262, Paper: false), (PageX: 274, Paper: true) })
+            foreach (var patch in new[] { (PageX: nativeEpub ? 262 : 265, Paper: false),
+                (PageX: nativeEpub ? 274 : 275, Paper: true) })
             {
-                // Centers of adjacent solid stripes in the unchanged 800x1000 native page fixture.
-                int x = (int)Math.Round(full.Left + full.Width * patch.PageX / 800.0)
+                // Centers of adjacent solid stripes in each independent page fixture.
+                int x = (int)Math.Round(full.Left + full.Width * patch.PageX / (nativeEpub ? 800.0 : 600.0))
                     - (int)Math.Ceiling(capturedBounds.Left) - 1;
-                int y = (int)Math.Round(full.Top + full.Height * 456 / 1000.0)
+                int y = (int)Math.Round(full.Top + full.Height * (nativeEpub ? 456 / 1000.0 : 375 / 750.0))
                     - (int)Math.Ceiling(capturedBounds.Top) - 1;
                 if (x < 0 || y < 0 || x + 3 > capture.PixelWidth || y + 3 > capture.PixelHeight)
                     throw new InvalidOperationException("The independent device-color patch is outside the visible page.");
                 var colors = ProofRefinementSmoke.StripeColors(new CroppedBitmap(capture, new Int32Rect(x, y, 3, 3)),
                     proof, deviceMonitor: true);
-                events.Add(new { stage, page.Page, flatDevicePatch = true, patch.Paper, x, y, colors });
+                if (assert) events.Add(new { stage, page.Page, flatDevicePatch = true, patch.Paper, x, y, colors });
                 if (patch.Paper ? colors.Paper != 9 || colors.Ink != 0 : colors.Ink != 9 || colors.Paper != 0)
-                    throw new InvalidOperationException("A solid device-color patch differs from its independent endpoint.");
+                {
+                    if (assert) throw new InvalidOperationException("A solid device-color patch differs from its independent endpoint.");
+                    return false;
+                }
             }
+            return true;
         }
         void Wait(Func<bool> ready)
         {

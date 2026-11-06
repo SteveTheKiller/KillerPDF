@@ -121,13 +121,14 @@ public partial class PdfViewer
     private (BitmapSource Bitmap, RenderMeasurement Measurement) PreparePrimaryBitmap(
         PdfBackgroundRenderCache.Request request, int page, int maximumSize, int rotation,
         bool invert, CancellationToken token,
-        KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
+        KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null,
+        KillerPDF.Presentation.PdfSdrDisplayConverter? monitor = null)
     {
         var timer = Stopwatch.StartNew();
         using var lease = request.Rent(token);
         double parse = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
-        PdfRenderedPage rendered = RenderViewingPage(lease, page, maximumSize, token, proof);
+        PdfRenderedPage rendered = RenderViewingPage(lease, page, maximumSize, token, proof, monitor: monitor);
         double raster = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
         int width = rendered.Width, height = rendered.Height;
@@ -156,14 +157,23 @@ public partial class PdfViewer
 
     private static PdfRenderedPage RenderViewingPage(PdfBackgroundRenderCache.Lease lease, int page,
         int maximumSize, CancellationToken token, KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof,
-        int? maximumHeight = null)
+        int? maximumHeight = null, KillerPDF.Presentation.PdfSdrDisplayConverter? monitor = null)
     {
         int height = maximumHeight ?? maximumSize;
-        if (proof?.Enabled != true) return lease.Render(page, maximumSize, height, token);
+        if (proof?.Enabled != true && monitor is null) return lease.Render(page, maximumSize, height, token);
         try
         {
             var frame = lease.RenderFrame(page, maximumSize, height, token, proof);
-            return new(frame.Width, frame.Height, frame.ToSrgbBgra32(token), PdfRenderBackend.Engine, null);
+            var conversion = monitor?.Convert(frame, token);
+            if (conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale)
+                throw new OperationCanceledException(token);
+            byte[] pixels = conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
+                ? conversion.BgraPixels.ToArray() : frame.ToSrgbBgra32(token);
+            return new PdfRenderedPage(frame.Width, frame.Height, pixels, PdfRenderBackend.Engine, null)
+            {
+                RenderDiagnostics = conversion?.FailureOperation is { } failure
+                    ? [new(PdfRenderDiagnosticKind.Degraded, failure)] : []
+            };
         }
         catch (NotSupportedException error)
         {
