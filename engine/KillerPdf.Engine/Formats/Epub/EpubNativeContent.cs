@@ -31,9 +31,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal MarginLength?[]? Padding { get; init; }
         internal List<SourceNode> Children { get; } = new();
 
-        internal double VerticalMargin(int side, double width, double fallback)
+        internal double VerticalMargin(int side, double width, double fallback, bool padding = false)
         {
-            if (Margins?[side] is not { } length) return fallback;
+            var sides = padding ? Padding : Margins;
+            if (sides?[side] is not { } length) return fallback;
             double value = length.Percentage ? length.Value * width / 100
                 : length.Em ? length.Value * Style.FontSize : length.Value;
             if (!double.IsFinite(value) || value < 0 || value > 32768)
@@ -98,7 +99,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "title" => parent?.Name == "head",
             "link" => parent?.Name == "head" && xml.GetAttribute("rel") is "icon" or "stylesheet"
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
-            "p" => parent?.Name == "body",
+            "div" or "p" => parent?.Name is "body" or "div",
             "span" or "br" or "img" => parent?.Name is "p" or "span",
             _ => false };
         if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
@@ -113,11 +114,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             Count(xml.Value.Length);
             attributes[(xml.NamespaceURI, xml.LocalName)] = xml.Value;
-            if (xml.NamespaceURI == "" && xml.LocalName == "style" && name is "body" or "p" or "span")
+            if (xml.NamespaceURI == "" && xml.LocalName == "style" && name is "body" or "div" or "p" or "span")
                 inlineStyle = xml.Value;
             else if (xml.NamespaceURI == "" && xml.LocalName == "class")
                 classNames = xml.Value;
-            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && name is "body" or "p" or "span" or "br")
+            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && name is "body" or "div" or "p" or "span" or "br")
             {
                 // Navigation identity is captured by the structural text reader.
             }
@@ -155,16 +156,15 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             && (name != "p" || properties.Block == false))
             throw new NotSupportedException("Native EPUB nonzero margins are implemented only on the body.");
         if (name != "body" && properties.Padding?.Any(side => side is { Value: > 0 }) == true
-            && (name != "p" || properties.Block == false
-                || properties.Padding[0] is { Value: > 0 } || properties.Padding[2] is { Value: > 0 }))
+            && (name != "p" || properties.Block == false))
             throw new NotSupportedException("Native EPUB nonzero padding is implemented only on the body.");
         if (style.Background is { } background)
         {
-            if (name is not ("body" or "p" or "span"))
+            if (name is not ("body" or "div" or "p" or "span"))
                 throw new NotSupportedException("Native EPUB element background painting is not implemented.");
             if (name == "body") CanvasBackground = background.Color;
         }
-        var element = new Element(name, parent, style, properties.Block ?? name is "body" or "p", Characters.Count)
+        var element = new Element(name, parent, style, properties.Block ?? name is "body" or "div" or "p", Characters.Count)
         { Margins = properties.Margins, Padding = properties.Padding };
         parent?.Children.Add(element);
         if (name == "body") Body = element;

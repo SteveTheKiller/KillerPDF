@@ -13,6 +13,23 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubMultipleSpineLayoutTests
 {
     [Fact]
+    public void PaddingPageLimitIsSharedAcrossChaptersAndAcceptsTheExactBoundary()
+    {
+        const string body = "<p style='margin:0;padding-bottom:4999.5px'>A</p>";
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var options = new EpubLayoutOptions(100, 21, font) { Margin = 10, FontSize = .5 };
+        Assert.Equal(5000, EpubDocument.Open(Book([body])).CreateLayout(options).Pages.Count);
+        var exact = EpubDocument.Open(Book([body, body])).CreateLayout(options);
+        Assert.Equal(10000, exact.Pages.Count);
+        Assert.Equal(5000, exact.Pages.Count(page => page.SpineIndex == 0));
+        Assert.Equal(5000, exact.Pages.Count(page => page.SpineIndex == 1));
+        byte[] source = Book([body, body, "<p></p>"]), preserved = source.ToArray();
+        var error = Assert.Throws<InvalidDataException>(() => EpubDocument.Open(source).CreateLayout(options));
+        Assert.Equal("Native EPUB layout exceeds its 10000-page limit.", error.Message);
+        Assert.Equal(preserved, source);
+    }
+
+    [Fact]
     public void ChaptersStartFreshPagesAndPreserveTheirOwnSourceCoordinates()
     {
         var book = EpubDocument.Open(Book());

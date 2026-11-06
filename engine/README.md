@@ -383,15 +383,23 @@ margin collapses with its initial paragraph chain when top padding does not sepa
 them. Percentages use the containing content width before paragraph side insets.
 Forced breaks discard the preceding margin and retain the next top margin; automatic
 continuations do not repeat the paragraph's top margin. These rules also apply to
-explicit PDF conversion. Signed/auto margins, vertical paragraph padding, inline
-box insets and complete nested/terminal fragmentation still require implementation.
+explicit PDF conversion. Paragraph vertical padding supports these same lengths,
+separates empty-block margins and retains initial padding with the first line at
+automatic page breaks. Initial padding too tall to share a page with its first line
+flows across content areas before that line. Bottom padding also continues through
+content areas, including pages without text. Basic nested `div` containers retain block identity and solid
+backgrounds across transparent child paragraph padding. Layout retains at most
+10000 pages across the document, including pages created only by padding, and checks
+cancellation before retaining each page. Signed/auto margins, inline
+box insets, complete container CSS and resource acceptance
+still require implementation or verification.
 
 Body padding accepts the same nonnegative px/em/percentage shorthand and longhand
 forms, with per-side cascade and no inheritance. Percentages use the original
 configured content width before margins; padding reduces wrapping width. Top padding
 appears on the initial fragment, and fitting bottom padding only on the terminal
-fragment. Terminal padding overflow and vertical child padding remain explicitly
-unsupported. Border shorthand accepts zero used widths, including `border:0`,
+fragment. Terminal body padding overflow remains explicitly unsupported.
+Border shorthand accepts zero used widths, including `border:0`,
 `border:none` and a width with initial style none, with proper shorthand resets.
 Visible borders and border longhands remain unsupported. Public native and reopened
 PDF tests cover placement, wrapping, complete pixel comparisons and two-page controls.

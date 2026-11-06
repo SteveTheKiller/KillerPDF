@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
+using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Formats.Epub;
 using KillerPdf.Engine.Rendering;
@@ -11,6 +12,32 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubEmbeddedImageLayoutTests
 {
+    [Fact]
+    public void PaddingPageBreaksPreserveFollowingImageEventsAndSourceRanges()
+    {
+        byte[] source = Package(RgbPng(), "<p style='margin:0;padding-bottom:95px'>A</p>"
+            + "<p style='margin:0'><img src='../images/check.png' alt=''/></p><p style='margin:0'>A</p>");
+        byte[] preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 60, font) { Margin = 10, FontSize = 16 });
+        Assert.Equal(4, layout.Pages.Count);
+        Assert.Equal(book.ReadText(0), string.Concat(layout.Pages.Select(page => page.Text)));
+        for (int page = 1; page < layout.Pages.Count; page++)
+            Assert.Equal(layout.Pages[page - 1].TextStart + layout.Pages[page - 1].Text.Length, layout.Pages[page].TextStart);
+        Assert.Equal(26, Assert.Single(layout.Pages[3].TextPlacements).Top, 6);
+        var native = layout.RenderPage(3);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, native.Pixels.Slice((21 * 100 + 10) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 45, MarginPoints = 7.5, FontSizePoints = 12 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(4, reader.PageCount);
+        Assert.Equal("A", string.Concat(reader.Read(3).Letters.Select(letter => letter.Value)));
+        var saved = new PdfPageRenderer(pdf).Render(3, new PdfRenderOptions(100, 60));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, saved.Pixels.Slice((21 * 100 + 10) * 4, 4).ToArray());
+        Assert.Equal(preserved, source);
+    }
+
     [Theory]
     [InlineData(0, 0, "0000B18F", false)]
     [InlineData(1, 1, "000186A0", true)]
