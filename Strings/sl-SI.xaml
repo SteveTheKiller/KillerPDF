@@ -1973,4 +1973,6 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_CM_PresetHint">Shranjevanje ali nalaganje prednastavitve ne spremeni dokumenta, dokler ne izberete Uporabi.</sys:String>
     <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Knjižnice prednastavitev ni bilo mogoče prebrati. Trenutne nastavitve poskusnega odtisa so nespremenjene.</sys:String>
     <sys:String x:Key="Str_CM_PresetSaveFailed">Prednastavitve ni bilo mogoče shraniti. Vnesite enolično ime in poskusite znova.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesLoadFailed">Shranjenih nastavitev poskusnega odtisa ni bilo mogoče prebrati. Trenutne nastavitve poskusnega odtisa so nespremenjene.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesSaveFailed">Nastavitev poskusnega odtisa ni bilo mogoče shraniti. Trenutne nastavitve še naprej veljajo, dokler je ta dokument odprt.</sys:String>
 </ResourceDictionary>

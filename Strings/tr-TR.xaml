@@ -2064,4 +2064,6 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_CM_PresetHint">Bir hazır ayarı kaydetmek veya yüklemek, Uygula'yı seçene kadar belgeyi değiştirmez.</sys:String>
     <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Hazır ayar kitaplığı okunamadı. Geçerli prova ayarları değişmedi.</sys:String>
     <sys:String x:Key="Str_CM_PresetSaveFailed">Hazır ayar kaydedilemedi. Benzersiz bir ad girip yeniden deneyin.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesLoadFailed">Kaydedilmiş prova ayarları okunamadı. Geçerli prova ayarları değişmedi.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesSaveFailed">Prova ayarları kaydedilemedi. Bu belge açık olduğu sürece geçerli ayarlar uygulanmaya devam eder.</sys:String>
 </ResourceDictionary>

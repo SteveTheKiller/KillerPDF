@@ -2064,4 +2064,6 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_CM_PresetHint">Guardar o cargar un ajuste preestablecido no modifica el documento hasta que elija Aplicar.</sys:String>
     <sys:String x:Key="Str_CM_PresetLibraryUnavailable">No se pudo leer la biblioteca de ajustes preestablecidos. Los ajustes de prueba actuales no han cambiado.</sys:String>
     <sys:String x:Key="Str_CM_PresetSaveFailed">No se pudo guardar el ajuste preestablecido. Introduzca un nombre único e inténtelo de nuevo.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesLoadFailed">No se pudieron leer los ajustes de prueba guardados. Los ajustes de prueba actuales no han cambiado.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesSaveFailed">No se pudieron guardar los ajustes de prueba. Los ajustes actuales siguen aplicándose mientras este documento permanezca abierto.</sys:String>
 </ResourceDictionary>

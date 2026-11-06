@@ -93,7 +93,7 @@ namespace KillerPDF.Shell
                     return;
                 }
                 _currentFile = srcPath;
-                FinishOpenFile(path, srcPath);
+                FinishOpenFile(path, srcPath, sourceContentIdentity: _doc.ContentIdentity);
             }
             catch (WorkingCopyUnavailableException ex)
             {
@@ -229,7 +229,8 @@ namespace KillerPDF.Shell
         // A tab that reads its file where it lies, still encrypted, passes the protection that holds its
         // key, because finishing the open already reads and renders the file. Every other open is a
         // plain working copy, and the protected routes set what the file allowed after this returns.
-        private void FinishOpenFile(string displayPath, string workingPath, OpenedProtection? readingProtection = null)
+        private void FinishOpenFile(string displayPath, string workingPath, OpenedProtection? readingProtection = null,
+            string? sourceContentIdentity = null)
         {
             if (readingProtection is not null) _protection = readingProtection;
             try
@@ -298,6 +299,8 @@ namespace KillerPDF.Shell
             _restrictedByCertificate = false;
             _restrictedFormFillable = false;   // read once by TryOpenProtectedReadOnly after this returns
             _protection = readingProtection ?? OpenedProtection.None;   // read once by the protected-open paths after this returns
+            if (_originalFile is not null && sourceContentIdentity is not null)
+                ActiveViewer.RestoreProofPreferencesExt(_originalFile, sourceContentIdentity);
             // Restore this file's last page and zoom if we've seen it before. View mode is global:
             // the last mode selected with the footer controls becomes the default for every PDF.
             _viewMode = Enum.TryParse<ViewMode>(App.GetSetting("ViewMode"), out var preferredView)
@@ -324,7 +327,8 @@ namespace KillerPDF.Shell
                 }
                 else BootstrapDocumentView(0, autoFit: true);
             }
-            SetStatus(string.Format(Loc("Str_Opened"), System.IO.Path.GetFileName(displayPath), pageCount));
+            string openedStatus = string.Format(Loc("Str_Opened"), System.IO.Path.GetFileName(displayPath), pageCount);
+            SetStatus(ActiveViewer.ProofPreferenceNoticeKeyExt is { } notice ? openedStatus + " " + Loc(notice) : openedStatus);
             SyncSidebarToDocState(hasDoc: true, startup: false);   // a document is up: open the rail, show page controls
             ActiveViewer.CompleteTabLoadExt();
         }

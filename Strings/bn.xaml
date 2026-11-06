@@ -2064,4 +2064,6 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_CM_PresetHint">প্রয়োগ করুন বেছে না নেওয়া পর্যন্ত প্রিসেট সংরক্ষণ বা লোড করলে নথি বদলাবে না।</sys:String>
     <sys:String x:Key="Str_CM_PresetLibraryUnavailable">প্রিসেট লাইব্রেরি পড়া যায়নি। বর্তমান প্রুফ সেটিংস অপরিবর্তিত আছে।</sys:String>
     <sys:String x:Key="Str_CM_PresetSaveFailed">প্রিসেটটি সংরক্ষণ করা যায়নি। একটি অনন্য নাম লিখে আবার চেষ্টা করুন।</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesLoadFailed">সংরক্ষিত প্রুফ সেটিংস পড়া যায়নি। বর্তমান প্রুফ সেটিংস অপরিবর্তিত আছে।</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesSaveFailed">প্রুফ সেটিংস সংরক্ষণ করা যায়নি। এই নথিটি খোলা থাকা পর্যন্ত বর্তমান সেটিংস প্রযোজ্য থাকবে।</sys:String>
 </ResourceDictionary>

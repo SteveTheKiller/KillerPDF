@@ -2077,4 +2077,6 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_CM_PresetHint">Saving or loading a preset does not change the document until you choose Apply.</sys:String>
     <sys:String x:Key="Str_CM_PresetLibraryUnavailable">The preset library could not be read. Current proof settings are unchanged.</sys:String>
     <sys:String x:Key="Str_CM_PresetSaveFailed">The preset could not be saved. Enter a unique name and try again.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesLoadFailed">Saved proof settings could not be read. Current proof settings are unchanged.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesSaveFailed">Proof settings could not be saved. Current settings still apply while this document is open.</sys:String>
 </ResourceDictionary>

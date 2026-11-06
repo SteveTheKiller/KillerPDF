@@ -572,3 +572,11 @@ PDF reading checks exact text, distinct bold/regular embedded faces, advances, k
 glyph bearings, paper, margins, bookmark destinations and separate tabs. It preserves
 the original. Monospaced native geometry alone does not certify bold screen ink;
 rendered appearance and the remaining typography matrix require separate checks.
+
+`--verify-proof-reopen APP_DLL APP_XAML OUTPUT --session-isolation` extends the
+Color Management workflow on an exclusively owned SN01 or SN02. It applies distinct
+requested settings through the panel, checks them after reopening the panel, closes
+the PDF with Ctrl+W and reopens its unchanged source into a new logical owner. The
+public document session must restore the requested settings without rewriting the
+PDF. Existing profile import and named-preset controls also run. Protected/native
+files, replacement review, save publication and storage-failure UI need separate cases.

@@ -2084,4 +2084,6 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_CM_PresetHint">Việc lưu hoặc tải thiết lập sẵn không thay đổi tài liệu cho đến khi bạn chọn Áp dụng.</sys:String>
     <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Không thể đọc thư viện thiết lập sẵn. Thiết lập in thử hiện tại không thay đổi.</sys:String>
     <sys:String x:Key="Str_CM_PresetSaveFailed">Không thể lưu thiết lập sẵn. Hãy nhập tên duy nhất và thử lại.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesLoadFailed">Không thể đọc thiết lập in thử đã lưu. Thiết lập in thử hiện tại không thay đổi.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesSaveFailed">Không thể lưu thiết lập in thử. Thiết lập hiện tại vẫn được áp dụng khi tài liệu này còn mở.</sys:String>
 </ResourceDictionary>

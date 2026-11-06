@@ -13,7 +13,7 @@ internal sealed class ColorManagementDialog : Window
 {
     internal PdfDocumentProofSettings? AppliedSettings { get; private set; }
 
-    internal ColorManagementDialog(Window owner, PdfDocumentProofSettings settings)
+    internal ColorManagementDialog(Window owner, PdfDocumentProofSettings settings, string? preferenceNoticeKey = null)
     {
         Title = "KillerPDF - " + L("Str_CM_Title");
         Width = 560;
@@ -35,6 +35,12 @@ internal sealed class ColorManagementDialog : Window
         DockPanel.SetDock(footer, Dock.Bottom);
         body.Children.Add(footer);
         var fields = new StackPanel();
+        if (preferenceNoticeKey is not null)
+        {
+            var notice = Label(preferenceNoticeKey, 4);
+            AutomationProperties.SetAutomationId(notice, "ProofPreferencesStatus");
+            fields.Children.Add(notice);
+        }
         fields.Children.Add(Label("Str_CM_Hint", 12));
         var enabled = Toggle("Str_CM_Enable", "ProofEnabled", settings.Enabled);
         fields.Children.Add(enabled);

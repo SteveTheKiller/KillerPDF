@@ -2084,4 +2084,6 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_CM_PresetHint">Збереження або завантаження набору параметрів не змінює документ, доки ви не виберете «Застосувати».</sys:String>
     <sys:String x:Key="Str_CM_PresetLibraryUnavailable">Не вдалося прочитати бібліотеку наборів параметрів. Поточні параметри кольоропроби не змінено.</sys:String>
     <sys:String x:Key="Str_CM_PresetSaveFailed">Не вдалося зберегти набір параметрів. Введіть унікальну назву й повторіть спробу.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesLoadFailed">Не вдалося прочитати збережені параметри кольоропроби. Поточні параметри кольоропроби не змінено.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesSaveFailed">Не вдалося зберегти параметри кольоропроби. Поточні параметри продовжують діяти, поки цей документ відкритий.</sys:String>
 </ResourceDictionary>

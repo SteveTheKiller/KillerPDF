@@ -2066,4 +2066,6 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_CM_PresetHint">儲存或載入預設不會變更文件，直到您選擇「套用」。</sys:String>
     <sys:String x:Key="Str_CM_PresetLibraryUnavailable">無法讀取預設資料庫。目前的校樣設定維持不變。</sys:String>
     <sys:String x:Key="Str_CM_PresetSaveFailed">無法儲存預設。請輸入不重複的名稱後再試一次。</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesLoadFailed">無法讀取已儲存的校樣設定。目前的校樣設定維持不變。</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesSaveFailed">無法儲存校樣設定。在此文件保持開啟期間，目前的設定仍然適用。</sys:String>
 </ResourceDictionary>

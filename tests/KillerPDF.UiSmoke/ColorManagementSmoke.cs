@@ -18,7 +18,7 @@ using KillerPdf.Engine.Documents;
 
 internal static class ColorManagementSmoke
 {
-    internal static int Run(Window owner, string appPath, string folder)
+    internal static int Run(Window owner, string appPath, string folder, bool documentReopen = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02")) throw new InvalidOperationException("Color controls require an owned VM.");
         string engineHash = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
@@ -359,6 +359,23 @@ internal static class ColorManagementSmoke
             {
                 if (next == "select-profile")
                 {
+                    if (documentReopen)
+                    {
+                        stage = "close-reopen-document-proof";
+                        var expected = View()!.CaptureProof().Settings;
+                        var previousOwner = View()!.Document.Id;
+                        Product(expected.Enabled && expected.Options.RenderingIntent == PdfRenderingIntent.AbsoluteColorimetric
+                            && expected.GamutWarnings, "Proof must be visibly applied before closing the source document.");
+                        ShortcutHintsSmoke.Key(owner, 0x57, 0x11);
+                        Wait(() => View() is null);
+                        Product(owner.IsVisible, "Closing the document must retain the app window.");
+                        owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [source]);
+                        Wait(() => View() is not null && ((TextBlock)owner.FindName("FileNameLabel")).Text == Path.GetFileName(source));
+                        Product(View()!.Document.Id != previousOwner, "Reopening must create a new logical document owner.");
+                        Product(View()!.CaptureProof().Settings == expected,
+                            "Reopening identical file contents at the same path must restore the applied proof preferences.");
+                        Product(File.ReadAllBytes(source).SequenceEqual(original), "Proof persistence must not rewrite the source PDF.");
+                    }
                     var type = owner.GetType().Assembly.GetType("KillerPDF.Services.ProofProfileLibrary", throwOnError: true)!;
                     var library = Activator.CreateInstance(type)!;
                     type.GetMethod("Import")!.Invoke(library, ["Gray paper", new ReadOnlyMemory<byte>(GrayProfile())]);

@@ -42,6 +42,10 @@ namespace KillerPDF.Controls
             public bool HasReadDocument => Doc != null || NativeDoc != null;
             public KillerPdf.Engine.ColorManagement.PdfDocumentProofView ProofView =
                 new(new KillerPdf.Engine.Documents.PdfLogicalDocument());
+            public (string Path, string SourceSha256)? ProofPreferenceSource;
+            public string? ProofPreferenceNoticeKey;
+            public IReadOnlyList<DocumentProofReview>? PreviousProofPreferences;
+            public bool PreserveInitialProofOnLoad;
             public string? CurrentFile;
             public string? OriginalFile;
             // Set on a restored tab that hasn't been loaded yet (lazy tabs): Doc stays null until the
@@ -766,6 +770,10 @@ namespace KillerPDF.Controls
                 _sessions.Add(target);
                 createdNew = true;
             }
+            target.ProofPreferenceSource = null;
+            target.ProofPreferenceNoticeKey = null;
+            target.PreviousProofPreferences = null;
+            target.PreserveInitialProofOnLoad = false;
             SetActiveSession(target);
             ApplySessionState(target);     // blank live fields (target has no document yet)
             target.LoadRollback = new TabLoadRollback(prev, createdNew);
@@ -864,7 +872,11 @@ namespace KillerPDF.Controls
             }
 
             var target = BeginTabLoad(out var prev, out bool createdNew);
-            if (initialProof is not null) target.ProofView.Document.Proof = initialProof;
+            if (initialProof is not null)
+            {
+                target.ProofView.Document.Proof = initialProof;
+                target.PreserveInitialProofOnLoad = true;
+            }
             var completion = new System.Threading.Tasks.TaskCompletionSource<bool>(
                 System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
             target.OpenCompletion = completion;

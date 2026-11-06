@@ -2071,4 +2071,6 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_CM_PresetHint">A beállításkészlet mentése vagy betöltése nem módosítja a dokumentumot, amíg az Alkalmaz gombot nem választja.</sys:String>
     <sys:String x:Key="Str_CM_PresetLibraryUnavailable">A beállításkészletek könyvtára nem olvasható. A próbanyomat jelenlegi beállításai változatlanok.</sys:String>
     <sys:String x:Key="Str_CM_PresetSaveFailed">A beállításkészletet nem sikerült menteni. Adjon meg egy egyedi nevet, és próbálja újra.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesLoadFailed">A próbanyomat mentett beállításait nem sikerült beolvasni. A próbanyomat jelenlegi beállításai változatlanok.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesSaveFailed">A próbanyomat beállításait nem sikerült menteni. A jelenlegi beállítások továbbra is érvényesek, amíg ez a dokumentum nyitva van.</sys:String>
 </ResourceDictionary>

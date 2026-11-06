@@ -2084,4 +2084,6 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_CM_PresetHint">L’enregistrement ou le chargement d’un préréglage ne modifie pas le document tant que vous ne choisissez pas Appliquer.</sys:String>
     <sys:String x:Key="Str_CM_PresetLibraryUnavailable">La bibliothèque de préréglages n’a pas pu être lue. Les paramètres d’épreuvage actuels restent inchangés.</sys:String>
     <sys:String x:Key="Str_CM_PresetSaveFailed">Le préréglage n’a pas pu être enregistré. Saisissez un nom unique et réessayez.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesLoadFailed">Les paramètres d’épreuvage enregistrés n’ont pas pu être lus. Les paramètres d’épreuvage actuels restent inchangés.</sys:String>
+    <sys:String x:Key="Str_CM_PreferencesSaveFailed">Les paramètres d’épreuvage n’ont pas pu être enregistrés. Les paramètres actuels continuent de s’appliquer tant que ce document est ouvert.</sys:String>
 </ResourceDictionary>
