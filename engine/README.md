@@ -374,7 +374,10 @@ Block paragraphs support nonnegative horizontal margins and padding in px, em an
 percentages through the existing per-side cascade. Percentages use the parent's
 content width; em uses the paragraph's own font size. Text wraps, aligns and resumes
 after page breaks inside its content box. Backgrounds include padding and exclude
-margins, and sibling paragraphs recover their own bounds. Vertical paragraph box
+margins, and sibling paragraphs recover their own bounds. Explicit zero top and
+bottom paragraph margins suppress their respective default spacing; an unspecified
+adjacent side retains the reader's default gap. Empty zero-margin paragraphs add no
+extra line. These rules also apply to explicit PDF conversion. Vertical paragraph box
 spacing, inline box insets and margin collapsing still require implementation.
 
 Body padding accepts the same nonnegative px/em/percentage shorthand and longhand

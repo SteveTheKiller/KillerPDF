@@ -329,7 +329,8 @@ public sealed partial class EpubDocument
                 top = options.Margin;
                 pendingParagraphGap = false;
             }
-            if (block.Source.Name == "p" && pageHasContent) pendingParagraphGap = true;
+            if (block.Source.Name == "p" && pageHasContent && block.Source.Margins?[0] is null)
+                pendingParagraphGap = true;
             if (block.Replaced is { Source: { } source } replaced)
             {
                 lineBlock = block;
@@ -369,7 +370,8 @@ public sealed partial class EpubDocument
                 LayoutInline(sequence);
                 FlushLine();
             }
-            if (block.Source.Name == "p" && pageHasContent) pendingParagraphGap = true;
+            if (block.Source.Name == "p" && pageHasContent)
+                pendingParagraphGap = block.Source.Margins?[2] is null;
         }
 
         void LayoutInline(EpubFormattingTree.InlineSequence sequence)

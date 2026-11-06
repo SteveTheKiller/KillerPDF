@@ -11,6 +11,90 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubBodyBoxTests
 {
+    [Theory]
+    [InlineData("A</span></p><p></p><p><span>A", 100, 1)]
+    [InlineData("A</span></p><p><span>A", 44, 2)]
+    public void ZeroMarginsPreserveEmptyAndPaginatedParagraphFlow(string markup, double height, int pageCount)
+    {
+        byte[] source = Book("", "p{margin:0}", markup, ""), preserved = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, height, font) { Margin = 10, FontSize = 16 });
+        Assert.Equal(pageCount, layout.Pages.Count);
+        var positions = layout.Pages.SelectMany(p => p.TextPlacements).ToArray();
+        Assert.Equal(2, positions.Length);
+        Assert.Equal(10, positions[0].Top, 6);
+        Assert.Equal(pageCount == 1 ? 26 : 10, positions[1].Top, 6);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = height * .75, MarginPoints = 7.5, FontSizePoints = 12 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(pageCount, reader.PageCount);
+        Assert.Equal("AA", string.Concat(Enumerable.Range(0, pageCount).SelectMany(i => reader.Read(i).Letters).Select(l => l.Value)));
+        for (int index = 0; index < pageCount; index++)
+            Assert.Empty(new PdfPageRenderer(pdf).Render(index, new PdfRenderOptions(100, (int)height)).Diagnostics);
+        Assert.Equal(preserved, source);
+    }
+
+    [Theory]
+    [InlineData("", "", 42)]
+    [InlineData("margin:0", "", 42)]
+    [InlineData("", "margin:0", 42)]
+    [InlineData("margin-bottom:0", "margin-top:0", 26)]
+    public void AdjacentParagraphSidesRetainOnlyTheirUnspecifiedDefaultGap(string first, string second, double top)
+    {
+        byte[] source = Book("", "", "A</span></p><p style='" + second + "'><span>A", "");
+        using var input = new MemoryStream(source);
+        using var output = new MemoryStream();
+        using (var original = new ZipArchive(input, ZipArchiveMode.Read))
+        using (var revised = new ZipArchive(output, ZipArchiveMode.Create, true))
+            foreach (var entry in original.Entries)
+            {
+                using var read = entry.Open();
+                using var bytes = new MemoryStream();
+                read.CopyTo(bytes);
+                byte[] data = bytes.ToArray();
+                if (entry.FullName == "EPUB/text.xhtml")
+                    data = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(data).Replace("<p><span>A", "<p style='" + first + "'><span>A", StringComparison.Ordinal));
+                using var write = revised.CreateEntry(entry.FullName, CompressionLevel.NoCompression).Open();
+                write.Write(data);
+            }
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        byte[] dataBytes = output.ToArray(), preserved = dataBytes.ToArray();
+        var book = EpubDocument.Open(dataBytes);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 100, font)
+        { Margin = 10, FontSize = 16 });
+        var placements = Assert.Single(layout.Pages).TextPlacements;
+        Assert.Equal(2, placements.Count);
+        Assert.Equal(top, placements[1].Top, 6);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 7.5, FontSizePoints = 12 }));
+        var letters = new PdfPageContentReader(pdf).Read(0).Letters;
+        Assert.Equal("AA", string.Concat(letters.Select(p => p.Value)));
+        Assert.Equal(top == 26 ? 12 : 24, letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, 6);
+        Assert.Empty(new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(100, 100)).Diagnostics);
+        Assert.Equal(preserved, dataBytes);
+    }
+
+    [Fact]
+    public void ExplicitZeroParagraphMarginsSuppressTheDefaultParagraphGap()
+    {
+        byte[] source = Book("", "p{margin:0}", "A</span></p><p><span>A", "");
+        byte[] preserved = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 100, font) { Margin = 10, FontSize = 16 });
+        var placements = Assert.Single(layout.Pages).TextPlacements;
+        Assert.Equal(2, placements.Count);
+        Assert.Equal(10, placements[0].Top, 6);
+        Assert.Equal(26, placements[1].Top, 6);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 7.5, FontSizePoints = 12 }));
+        var letters = new PdfPageContentReader(pdf).Read(0).Letters;
+        Assert.Equal("AA", string.Concat(letters.Select(p => p.Value)));
+        Assert.Equal(12, letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, 6);
+        Assert.Equal(preserved, source);
+    }
+
     [Fact]
     public void ParagraphInsetsDoNotLeakIntoAnUnstyledSibling()
     {
