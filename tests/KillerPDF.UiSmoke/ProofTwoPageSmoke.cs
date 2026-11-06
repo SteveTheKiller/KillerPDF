@@ -19,7 +19,8 @@ using KillerPdf.Engine.Rendering;
 internal static class ProofTwoPageSmoke
 {
     internal static int Run(Window owner, string appPath, string folder, bool continuous = false,
-        bool pairedContinuous = false, bool compositorOwned = false, bool nativeEpub = false)
+        bool pairedContinuous = false, bool compositorOwned = false, bool nativeEpub = false, bool grid = false,
+        bool unavailableProof = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Two-page proof checks require an owned VM.");
@@ -68,7 +69,7 @@ internal static class ProofTwoPageSmoke
             stage = "open";
             owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [path]);
             Wait(() => ((TextBlock)owner.FindName("FileNameLabel")).Text == Path.GetFileName(path));
-            var radio = (RadioButton)owner.FindName(pairedContinuous ? "ViewTwoPageContinuousRadio"
+            var radio = (RadioButton)owner.FindName(grid ? "ViewGridRadio" : pairedContinuous ? "ViewTwoPageContinuousRadio"
                 : continuous ? "ViewContinuousRadio" : "ViewTwoPageRadio");
             Wait(() => radio.IsVisible && radio.IsEnabled);
             ((ISelectionItemProvider)new RadioButtonAutomationPeer(radio).GetPattern(PatternInterface.SelectionItem)!).Select();
@@ -84,19 +85,26 @@ internal static class ProofTwoPageSmoke
             CheckPages(false);
             var view = (PdfDocumentProofView)viewer.GetType().GetProperty("DocumentProofView")!.GetValue(viewer)!;
             view.Document.Proof = new PdfDocumentProofSettings(enabled: true,
-                printerProfile: PdfColorProfile.Load(NativeReadingSmoke.ProofPrinterFixture()),
+                printerProfile: unavailableProof ? null : PdfColorProfile.Load(NativeReadingSmoke.ProofPrinterFixture()),
                 options: new PdfProofOptions { BlackPointCompensation = false, SimulatePaper = true, SimulateBlack = true });
             stage = "proof-two-page";
             viewer.GetType().GetMethod("RenderActiveSessionExt", members)!.Invoke(viewer, null);
             Wait(() => PrimaryReady() && Pages().Length == 2);
-            CheckPages(true);
-            CheckScreens(true);
+            CheckPages(!unavailableProof);
+            CheckScreens(!unavailableProof);
+            if (unavailableProof)
+            {
+                if (!view.Document.Proof.Enabled || view.Document.Proof.PrinterProfile is not null)
+                    throw new InvalidOperationException("Unavailable proof changed the requested document settings.");
+                CheckWarnings(true);
+            }
             stage = "proof-off-two-page";
             view.Document.Proof = new PdfDocumentProofSettings();
             viewer.GetType().GetMethod("RenderActiveSessionExt", members)!.Invoke(viewer, null);
             Wait(() => PrimaryReady() && Pages().Length == 2);
             CheckPages(false);
             CheckScreens(false);
+            if (unavailableProof) CheckWarnings(false);
         }
         catch (Exception error) { failure = error; }
         finally
@@ -106,7 +114,7 @@ internal static class ProofTwoPageSmoke
             File.WriteAllText(Path.Combine(folder, "result.json"), JsonSerializer.Serialize(new
             {
                 passed = failure is null && modals.Count == 0 && preserved, stage, preserved,
-                mode = pairedContinuous ? "TwoPageContinuous" : continuous ? "Continuous" : "TwoPage",
+                mode = grid ? "Grid" : pairedContinuous ? "TwoPageContinuous" : continuous ? "Continuous" : "TwoPage",
                 format = nativeEpub ? "EPUB" : "PDF",
                 error = failure?.ToString(), modals, events,
                 appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)))
@@ -136,6 +144,13 @@ internal static class ProofTwoPageSmoke
                 if (page.other.Paper != 0 || page.other.Ink != 0)
                     throw new InvalidOperationException("A facing page retained colors from the other proof state.");
             }
+        }
+        void CheckWarnings(bool expected)
+        {
+            var warnings = Pages().Select(page => new { page.Page, warning = page.Image.ToolTip?.ToString() }).ToArray();
+            events.Add(new { stage, warnings, requestedProofRetained = expected });
+            if (warnings.Any(page => (page.warning?.Contains("proof", StringComparison.OrdinalIgnoreCase) == true) != expected))
+                throw new InvalidOperationException("A native page has an incorrect unavailable-proof diagnostic.");
         }
         void CheckScreens(bool proof)
         {

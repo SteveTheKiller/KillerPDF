@@ -720,10 +720,24 @@ namespace KillerPDF.Controls
                         byte[] raw;
                         if (nativeRevision is not null)
                         {
-                            var frame = await _viewportRenderQueue.Enqueue(
+                            var nativeRender = await _viewportRenderQueue.Enqueue(
                                 (nativeRevision, "continuous", i), 10 + Math.Abs(i - centerPage),
                                 Math.Min((proof?.Settings.Enabled == true ? 128L : 80L) * renderW * renderW, 512L << 20),
-                                token => RenderNativeFrame(nativeRevision, i, renderW, renderW * 2, token, proof?.Settings), renderToken);
+                                token =>
+                                {
+                                    try
+                                    {
+                                        return (Frame: RenderNativeFrame(nativeRevision, i, renderW, renderW * 2, token,
+                                            proof?.Settings), Warning: (string?)null);
+                                    }
+                                    catch (NotSupportedException exception) when (proof?.Settings.Enabled == true)
+                                    {
+                                        return (Frame: RenderNativeFrame(nativeRevision, i, renderW, renderW * 2, token),
+                                            Warning: exception.Message);
+                                    }
+                                }, renderToken);
+                            var frame = nativeRender.Frame;
+                            monitorWarning = nativeRender.Warning;
                             w = frame.Width;
                             h = frame.Height;
                             raw = frame.ToSrgbBgra32(renderToken);

@@ -375,12 +375,13 @@ The PDF Continuous and Two-page continuous application-managed SDR paths also
 carry captured proof settings. Generated-profile source and owned-screen checks
 cover both pages and proof on/off. Continuous compatibility viewing under
 compositor-owned policy also retains proof, verified with a synthetic display
-observation and actual source/screen on/off checks. Native EPUB Continuous and
-Two-page viewing also forward the captured proof request, with both-page source
+observation and actual source/screen on/off checks. Native EPUB Continuous,
+Two-page and Grid viewing also forward the captured proof request, with both-page source
 and owned-screen on/off checks. Native secondary tiles use captured read revisions
 and preserve proof diagnostics. Other formats, modes and profiles remain open.
-Unsupported native proof requests retain their preferences and show normal viewing
-with a proof diagnostic.
+Unsupported native Single-page and Continuous proof requests retain their preferences
+and show normal viewing with a proof diagnostic. Continuous missing-profile checks
+cover both pages and verify that disabling proof clears those diagnostics.
 Proof controls, other rendering paths and persistence remain unfinished.
 
 ## Bundled CMYK viewing assumption (1.9.3 development)
