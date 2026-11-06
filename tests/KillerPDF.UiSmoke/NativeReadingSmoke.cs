@@ -329,6 +329,35 @@ internal static class NativeReadingSmoke
                         lastPhrase, System.Windows.Automation.Text.TextPatternRangeEndpoint.Start) != 0)
                         throw new InvalidOperationException("Native reading point did not reach the last phrase's original start.");
                     events.Add(new { stage, exactSourceCaret = true });
+                    stage = "native-reading-scroll-setup";
+                    var zoomControl = Named<ComboBox>(owner, "ZoomBox")!;
+                    zoomControl.IsDropDownOpen = true;
+                    var zoom200 = zoomControl.Items.OfType<ComboBoxItem>().Single(item => item.Tag as string == "2.0");
+                    Wait(() => zoom200.IsVisible && zoom200.IsEnabled);
+                    zoomControl.SelectedItem = zoom200;
+                    zoomControl.IsDropDownOpen = false;
+                    var scrollViewer = Descendants<ScrollViewer>(owner)
+                        .Single(element => element.Name == "PagePreviewPanel" && element.IsVisible);
+                    double lastExtent = -1;
+                    int stableExtent = 0;
+                    Wait(() =>
+                    {
+                        owner.UpdateLayout();
+                        stableExtent = scrollViewer.ExtentHeight == lastExtent ? stableExtent + 1 : 0;
+                        lastExtent = scrollViewer.ExtentHeight;
+                        return stableExtent >= 4 && scrollViewer.ScrollableHeight > scrollViewer.ViewportHeight
+                            && (Task)viewer.GetType().GetProperty("PrimaryRenderTask", instance)!.GetValue(viewer)! is { IsCompletedSuccessfully: true };
+                    });
+                    scrollViewer.ScrollToBottom();
+                    Wait(() => scrollViewer.VerticalOffset > scrollViewer.ViewportHeight
+                        && phrase.GetBoundingRectangles().Length == 0);
+                    double offscreenOffset = scrollViewer.VerticalOffset;
+                    events.Add(new { stage, offscreenOffset, sourceAbsentFromViewport = true });
+                    stage = "native-reading-scroll";
+                    phrase.ScrollIntoView(alignToTop: true);
+                    Wait(() => phrase.GetBoundingRectangles().Length == 8
+                        && scrollViewer.VerticalOffset < offscreenOffset - 20);
+                    events.Add(new { stage, sourceVisible = true, scrollViewer.VerticalOffset });
                 }
                 if (gridSwitch && isNative && step.Grid)
                 {

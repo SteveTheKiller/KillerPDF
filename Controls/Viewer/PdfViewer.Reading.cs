@@ -339,13 +339,17 @@ namespace KillerPDF.Controls
                     || !viewer._renderDims.TryGetValue(scroll.Page, out var dimensions)
                     || viewer.VisibleCanvasForPage(scroll.Page) is not { IsVisible: true } canvas) return;
                 _pendingScroll = null;
-                if (viewer._textRuns.GetPage(file, viewer._protection,scroll.Page) is not { Chars.Count: > 0 } runs) return;
+                if (viewer.SelectionPageRuns(scroll.Page) is not { Chars.Count: > 0 } runs) return;
                 int start = Math.Clamp(scroll.Caret, 0, runs.Chars.Count - 1);
                 foreach (Rect rectangle in viewer.CaretRangeRects(scroll.Page, runs, start, start + 1, dimensions))
                 {
                     Rect target = rectangle;
-                    var line = runs.Lines[runs.Chars[start].Line];
-                    var lineBounds = viewer.CaretRangeRects(scroll.Page, runs, line.Start, line.End, dimensions);
+                    var lineBounds = new List<Rect>();
+                    if (runs.NativeSourceText is null)
+                    {
+                        var line = runs.Lines[runs.Chars[start].Line];
+                        lineBounds = viewer.CaretRangeRects(scroll.Page, runs, line.Start, line.End, dimensions);
+                    }
                     Visual? content = viewer.PagePreviewPanel.Content as Visual;
                     if (PresentationSource.FromVisual(canvas) != PresentationSource.FromVisual(viewer.PagePreviewPanel))
                     {
