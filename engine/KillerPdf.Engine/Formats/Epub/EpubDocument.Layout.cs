@@ -136,7 +136,7 @@ public sealed partial class EpubDocument
             anchors.Add((spineIndex, anchor.Id, Math.Min(anchor.Offset, text.Length)));
         }
         var font = options.DefaultFont;
-        var substitutions = new Dictionary<TrueTypeFont, OpenTypeGlyphSubstitution>();
+        var substitutions = new Dictionary<(TrueTypeFont Font, bool SmallCaps), OpenTypeGlyphSubstitution>();
         var readers = new Dictionary<TrueTypeFont, TrueTypeOutlineReader> { [font] = reader };
         int fontWork = 0;
         var clusters = new Dictionary<int, EpubGlyphCluster>();
@@ -149,6 +149,7 @@ public sealed partial class EpubDocument
             int runEnd = runStart;
             var run = new List<EpubGlyphCluster>();
             var owner = content.Characters[runStart]?.Node.Owner;
+            bool smallCaps = (owner?.Style ?? content.DefaultStyle).SmallCaps;
             font = FontFor(owner?.Style ?? content.DefaultStyle, ReadScalar(runStart).Value);
             bool latin = IsLatin(runStart);
             while (runEnd < text.Length && text[runEnd] != '\n'
@@ -166,8 +167,11 @@ public sealed partial class EpubDocument
                 run.Add(Cluster(runEnd, scalar.Utf16SequenceLength, glyph));
                 runEnd += scalar.Utf16SequenceLength;
             }
+            if (!latin && smallCaps && run.Any(cluster => Rune.GetUnicodeCategory(ReadScalar(cluster.Start))
+                    is UnicodeCategory.LowercaseLetter or UnicodeCategory.UppercaseLetter or UnicodeCategory.TitlecaseLetter))
+                throw new NotSupportedException("Native EPUB small capitals for this script are not implemented.");
             if (latin)
-                foreach (var lookup in Substitution(font).Lookups)
+                foreach (var lookup in Substitution(font, smallCaps).Lookups)
                 {
                     var selected = new List<EpubGlyphCluster>(run.Count);
                     for (int at = 0; at < run.Count; at++)
@@ -208,10 +212,12 @@ public sealed partial class EpubDocument
             or >= '\u00C0' and <= '\u02FF' or >= '\u1E00' and <= '\u1EFF';
         EpubGlyphCluster Cluster(int start, int length, ushort glyph, bool substituted = false) => new(start, length, font,
             [new(glyph, font.GetPdfAdvanceWidth(glyph) / 1000d, 0, 0)], substituted);
-        OpenTypeGlyphSubstitution Substitution(TrueTypeFont selected)
+        OpenTypeGlyphSubstitution Substitution(TrueTypeFont selected, bool smallCaps)
         {
-            if (!substitutions.TryGetValue(selected, out var value))
-                substitutions.Add(selected, value = new OpenTypeGlyphSubstitution(selected, cancellationToken));
+            if (!substitutions.TryGetValue((selected, smallCaps), out var value))
+                substitutions.Add((selected, smallCaps), value = new OpenTypeGlyphSubstitution(selected, cancellationToken, smallCaps));
+            if (smallCaps && !value.HasSmallCaps)
+                throw new NotSupportedException("Native EPUB synthetic small capitals are not implemented for fonts without the selected feature.");
             return value;
         }
         TrueTypeFont FontFor(EpubNativeContent.Style style, int? scalar = null)

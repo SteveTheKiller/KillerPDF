@@ -2,16 +2,17 @@ using System.Buffers.Binary;
 
 namespace KillerPdf.Engine.Fonts;
 
-// The first supported route is Latin default-language standard ligatures.
+// Selected Latin default-language substitutions retain their font lookup order.
 internal sealed class OpenTypeGlyphSubstitution
 {
     internal sealed record Ligature(ushort Output, ushort[] Components);
     internal IReadOnlyList<IReadOnlyList<Ligature>> Lookups { get; }
+    internal bool HasSmallCaps { get; }
     private readonly ReadOnlyMemory<byte> _data;
     private int _work;
     private readonly CancellationToken _cancellation;
 
-    internal OpenTypeGlyphSubstitution(TrueTypeFont font, CancellationToken cancellation)
+    internal OpenTypeGlyphSubstitution(TrueTypeFont font, CancellationToken cancellation, bool smallCaps = false)
     {
         _cancellation = cancellation;
         var selected = new List<IReadOnlyList<Ligature>>();
@@ -41,12 +42,14 @@ internal sealed class OpenTypeGlyphSubstitution
         {
             if (index >= featureCount) throw Invalid();
             int record = features + 2 + index * 6;
-            if (Tag(record) != 0x6C696761)
+            uint featureTag = Tag(record);
+            if (featureTag != 0x6C696761 && !(smallCaps && featureTag == 0x736D6370))
             {
                 if (index == required)
                     throw new NotSupportedException("The EPUB GSUB required feature is not implemented.");
                 continue;
             }
+            if (featureTag == 0x736D6370) HasSmallCaps = true;
             int feature = Relative(features, record + 4);
             for (int i = 0, count = U16(feature + 2); i < count; i++)
             {
@@ -59,7 +62,7 @@ internal sealed class OpenTypeGlyphSubstitution
         {
             int lookup = Relative(lookups, lookups + 2 + 2 * index);
             int lookupType = U16(lookup);
-            if (lookupType is not (4 or 7) || U16(lookup + 2) != 0)
+            if (lookupType is not (1 or 4 or 7) || U16(lookup + 2) != 0)
                 throw new NotSupportedException("The selected EPUB GSUB lookup type or flags are not implemented.");
             var ligatures = new List<Ligature>();
             for (int sub = 0, count = U16(lookup + 4); sub < count; sub++)
@@ -73,7 +76,25 @@ internal sealed class OpenTypeGlyphSubstitution
                     if (extension < 8 || extension > (uint)(_data.Length - table)) throw Invalid();
                     table += (int)extension;
                 }
-                if (U16(table) != 1) throw new NotSupportedException("The EPUB ligature substitution format is not implemented.");
+                int format = U16(table);
+                if (lookupType == 1 && format == 1)
+                {
+                    int singleCoverage = Relative(table, table + 2);
+                    if (U16(singleCoverage) != 1)
+                        throw new NotSupportedException("The EPUB delta substitution coverage format is not implemented.");
+                    int delta = U16(table + 4);
+                    for (int c = 0, glyphCount = U16(singleCoverage + 2); c < glyphCount; c++)
+                    {
+                        ushort input = U16(singleCoverage + 4 + 2 * c);
+                        ushort output = unchecked((ushort)(input + delta));
+                        ValidateGlyph(input);
+                        ValidateGlyph(output);
+                        ligatures.Add(new(output, [input]));
+                    }
+                    continue;
+                }
+                if (lookupType == 1 ? format != 2 : format != 1)
+                    throw new NotSupportedException("The EPUB selected substitution format is not implemented.");
                 int coverage = Relative(table, table + 2);
                 int sets = U16(table + 4);
                 int coverageFormat = U16(coverage);
@@ -106,6 +127,13 @@ internal sealed class OpenTypeGlyphSubstitution
                 {
                     ushort first = covered[setIndex];
                     ValidateGlyph(first);
+                    if (lookupType == 1)
+                    {
+                        ushort output = U16(table + 6 + 2 * setIndex);
+                        ValidateGlyph(output);
+                        ligatures.Add(new(output, [first]));
+                        continue;
+                    }
                     int set = Relative(table, table + 6 + 2 * setIndex);
                     for (int n = 0, ligatureCount = U16(set); n < ligatureCount; n++)
                     {

@@ -297,11 +297,17 @@ OS/2 numeric weights and CSS nearest-weight ordering. The font cache retains all
 registered candidates while preserving existing PDF editor style choices. Relative weights,
 packaged `@font-face`, italic matching, complex-script clusters and full bidi still
 require implementation; this is not complete typography.
-Initial Latin ligatures use the font's GSUB 1.0 default-language `liga` feature with
-type 4, flags 0, format 1 and coverage formats 1 or 2. Type 7 extension format 1
-can wrap that type 4 lookup. Single-component identity and replacement records
-preserve their source character while using the selected output glyph. Nested
-extensions, other selected lookup types and nonzero flags remain diagnosed.
+Initial Latin GSUB 1.0 processing selects default-language `liga` and, when requested,
+`smcp` features in font lookup order. `font-variant:small-caps` inherits, with normal,
+initial, inherit and unset handling. Font-provided small capitals preserve the original
+text, source ranges and CSS line metrics while using selected glyph advances and ink.
+Single substitution supports type 1 format 2 with coverage 1 or 2, and delta format 1
+with coverage 1. Ligature substitution supports type 4, flags 0, format 1 and coverage
+formats 1 or 2. Type 7 extension format 1 can wrap that type 4 lookup. Single-component
+identity and replacement records preserve their source character. Fonts without the
+selected small-caps feature, synthetic fallback, broader scripts/languages and the
+font-variant-caps longhand still require implementation and are diagnosed where used.
+Nested extensions, other selected lookup types and nonzero flags remain diagnosed.
 Original UTF-16 cluster ranges and
 selected glyph advances drive both native ink and explicit PDF conversion. Style,
 block and explicit-break boundaries remain separate. Natural text and single-glyph
