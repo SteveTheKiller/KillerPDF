@@ -203,7 +203,7 @@ bidi controls, joiners, variation selectors and other unsupported characters sti
 require implementation and are diagnosed explicitly.
 Missing supported glyphs report their full code point. Chapters follow declared spine order and
 begin on fresh pages. It returns immutable pages and logical UTF-16 text
-placements in CSS pixels. Whole words wrap at spaces, and paragraphs have one font-size
+placements in CSS pixels. Whole words wrap at spaces, and default block paragraphs have one font-size
 gap between their line boxes. Wrapped lines and paragraphs continue onto new pages
 when the next line box does not fit. Each page exposes its original structural text
 slice, `SpineIndex` and `TextStart` offset; placement offsets remain relative to
@@ -213,8 +213,21 @@ paragraph gaps. Consecutive breaks retain blank line heights through pagination,
 and styled text keeps its source offsets. Structural normalization still omits
 leading breaks before any text and trims trailing breaks.
 Words wider than the content box are diagnosed explicitly.
+CSS `display:block` and `display:inline` follow specificity, declaration order and
+inline overrides without inheriting the parent's display value. A bounded formatting
+tree separates source elements from generated block containers and inline sequences.
+Blocks inside spans split their inline continuations; block backgrounds fill the
+containing width while inline backgrounds follow actual fragments. Default block
+paragraphs retain the established paragraph gap. Inline paragraphs keep structural
+extraction separators and source offsets without forcing visual line breaks, and
+word measurement follows the visual sequence across those separators. Source spaces
+discarded by structural extraction remain collapsed layout advances where needed,
+without inventing extraction characters or selection placements. Block-edge spaces
+do not paint empty advances. Other display values remain explicitly diagnosed.
 Packaged eight-bit RGB/RGBA PNG images, untagged or explicitly sRGB, can
 paint inline at intrinsic CSS-pixel dimensions, aligned to the shared baseline.
+With `display:block`, images consume their intrinsic height without an inline font
+strut and remain in source order through pagination and explicit PDF conversion.
 Supported sRGB, gAMA and square-pixel pHYs metadata is validated for length,
 values, placement, duplication and checksum. Authoritative sRGB takes precedence
 over a supplied positive gamma value. Physical density does not rescale the
