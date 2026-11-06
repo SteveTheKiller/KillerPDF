@@ -252,6 +252,18 @@ against the parent after cascade selection. Relative line heights compute agains
 element's font and inherit as lengths; unitless line-height factors recalculate for each
 descendant's font. Mixed sizes share a baseline; collapsed spaces retain their original
 inline style. Default normal line height follows each inline font's ascent and descent.
+`font-family` preserves ordered unquoted identifiers, multiword names and quoted names
+(including commas). Generic requests are distinct from quoted names such as `"serif"`.
+The optional `FontFamilyResolver` on layout and conversion options receives an
+`EpubFontFamily` and returns a captured `TrueTypeFont`, or null for an unavailable face.
+The first face containing each supported scalar supplies its glyphs and advances;
+otherwise the explicit default font applies. Native outlines, mixed-face baselines,
+GSUB runs and saved PDF resources retain the selected face. Each list is limited to
+32 names of 256 characters; each layout permits 256 distinct lookups, 64 retained
+faces (including the default), 64 MiB of additional font bytes and bounded matching
+work. Backslash escapes and CSS-wide family keywords remain diagnosed. Packaged
+`@font-face`, font weight/style matching, complex-script clusters and full bidi still
+require implementation; this is initial family selection, not complete typography.
 Initial Latin ligatures use the font's GSUB 1.0 default-language `liga` feature with
 type 4, flags 0, format 1 and coverage format 1. Original UTF-16 cluster ranges and
 selected glyph advances drive both native ink and explicit PDF conversion. Style,

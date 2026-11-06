@@ -4,6 +4,9 @@ using KillerPdf.Engine.Rendering;
 
 namespace KillerPdf.Engine.Formats.Epub;
 
+/// <summary>Names a CSS font family, distinguishing a generic from a quoted family name.</summary>
+public sealed record EpubFontFamily(string Name, bool IsGeneric = false);
+
 /// <summary>Describes native page dimensions and fallback typography in CSS pixels.</summary>
 public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, TrueTypeFont DefaultFont)
 {
@@ -13,6 +16,8 @@ public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, True
     public double Margin { get; init; } = 16;
     /// <summary>Gets the fallback text color.</summary>
     public PdfRgbColor TextColor { get; init; } = new(0, 0, 0);
+    /// <summary>Gets an optional host font-family resolver. Missing faces fall back to DefaultFont.</summary>
+    public Func<EpubFontFamily, TrueTypeFont?>? FontFamilyResolver { get; init; }
 }
 
 /// <summary>Locates a UTF-16 range within structural spine text and its logical CSS-pixel bounds.</summary>

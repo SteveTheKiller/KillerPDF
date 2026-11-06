@@ -29,7 +29,8 @@ public partial class MainWindow
                 {
                     PageWidthPoints = options.WidthPoints,
                     PageHeightPoints = options.HeightPoints,
-                    MarginPoints = options.MarginPoints
+                    MarginPoints = options.MarginPoints,
+                    FontFamilyResolver = PdfEngineIntegration.ResolveEpubFontFamily
                 };
             }
             var picker = new Controls.FileDialog(Controls.FileDialogMode.Save)

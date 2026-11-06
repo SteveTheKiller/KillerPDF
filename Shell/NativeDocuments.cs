@@ -22,7 +22,10 @@ public partial class MainWindow
                 {
                     var face = PdfEngineIntegration.LoadTextFont("Segoe UI", "A", bold: false, italic: false)
                         ?? throw new NotSupportedException("Native EPUB fallback font is unavailable.");
-                    opened = NativeWorkingDocument.OpenEpub(bytes, new EpubLayoutOptions(800, 1000, face.Font));
+                    opened = NativeWorkingDocument.OpenEpub(bytes, new EpubLayoutOptions(800, 1000, face.Font)
+                    {
+                        FontFamilyResolver = PdfEngineIntegration.ResolveEpubFontFamily
+                    });
                 }
                 else opened = NativeWorkingDocument.OpenDjvu(bytes);
             }

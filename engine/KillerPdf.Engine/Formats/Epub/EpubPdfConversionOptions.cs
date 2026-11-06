@@ -13,4 +13,6 @@ public sealed record EpubPdfConversionOptions(TrueTypeFont DefaultFont)
     public double MarginPoints { get; init; } = 42.51968503937008;
     /// <summary>Gets the fallback font size in points.</summary>
     public double FontSizePoints { get; init; } = 12;
+    /// <summary>Gets an optional host font-family resolver used for layout and embedded PDF text.</summary>
+    public Func<EpubFontFamily, TrueTypeFont?>? FontFamilyResolver { get; init; }
 }

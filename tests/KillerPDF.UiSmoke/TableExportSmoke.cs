@@ -26,6 +26,7 @@ internal static class TableExportSmoke
         visibleNative |= windowSession && windowSessionCase is "--verify-sdr-monitor" or "--verify-native-fallback" or "--verify-native-fallback-refinement" or "--verify-two-page-fallback-refinement";
         visibleNative |= windowSession && windowSessionCase is "--verify-native-conversion" or "--verify-native-conversion-djvu" or "--verify-native-conversion-custom" or "--verify-native-conversion-unicode";
         visibleNative |= windowSession && windowSessionCase == "--verify-native-conversion-html5";
+        visibleNative |= windowSession && windowSessionCase == "--verify-native-font-family";
         visibleNative |= windowSession && windowSessionCase is "--verify-native-search-epub" or "--verify-proof-refinement" or "--verify-proof-presenter-refinement" or "--verify-proof-two-page" or "--verify-proof-continuous" or "--verify-proof-paired-continuous" or "--verify-proof-continuous-compositor" or "--verify-proof-epub-continuous" or "--verify-proof-epub-two-page" or "--verify-proof-epub-grid" or "--verify-proof-epub-continuous-unavailable" or "--verify-monitor-epub-continuous-unavailable" or "--verify-monitor-epub-continuous-device" or "--verify-monitor-epub-two-page-unavailable" or "--verify-monitor-epub-two-page-device" or "--verify-monitor-epub-grid-device" or "--verify-monitor-epub-two-page-refresh" or "--verify-monitor-epub-continuous-refresh" or "--verify-monitor-epub-paired-refresh";
         if (visibleNative && !new[] { "SN01", "SN02" }.Contains(Environment.MachineName, StringComparer.OrdinalIgnoreCase))
             throw new InvalidOperationException("Visible native hint acceptance may run only on SN01 or SN02.");
@@ -142,6 +143,7 @@ internal static class TableExportSmoke
             if (windowSessionCase == "--verify-native-conversion-custom") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder, customPaper: true);
             if (windowSessionCase == "--verify-native-conversion-unicode") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder, unicode: true);
             if (windowSessionCase == "--verify-native-conversion-html5") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder, html5: true);
+            if (windowSessionCase == "--verify-native-font-family") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder, html5: true, fontFamily: true);
             if (windowSessionCase == "--verify-two-page-continuous") return TwoPageContinuousSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-paired-thumbnails") return PairedThumbnailSmoke.Run(owner, appPath, appXaml, folder);
             if (windowSessionCase == "--verify-sdr-monitor") return SdrMonitorSmoke.Run(owner, appPath, folder);

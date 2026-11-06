@@ -11,6 +11,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null)
     {
         internal double? LineHeightFactor { get; init; }
+        internal EpubFontFamily[]? FontFamilies { get; init; }
     }
     internal sealed record Element(string Name, Element? Parent, Style Style, Style BlockStyle);
     internal sealed record Text(string Value, Element Owner);
@@ -163,6 +164,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         PdfRgbColor? color = null;
         BackgroundColor? background = null;
         int sizeSpecificity = -1, heightSpecificity = -1, colorSpecificity = -1, backgroundSpecificity = -1;
+        EpubFontFamily[]? families = null;
+        int familySpecificity = -1;
         foreach (var rule in rules)
         {
             CountSelectorWork(1);
@@ -205,8 +208,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 background = fill;
                 backgroundSpecificity = specificity;
             }
+            if (rule.Properties.FontFamilies is { } fontFamilies && specificity >= familySpecificity)
+            {
+                families = fontFamilies;
+                familySpecificity = specificity;
+            }
         }
-        return new CssProperties(size, height, color, background);
+        return new CssProperties(size, height, color, background, families);
     }
 
     private void CountSelectorWork(int amount)
@@ -227,11 +235,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         }
     }
 
-    private readonly record struct CssProperties(CssLength? FontSize, CssLength? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null)
+    private readonly record struct CssProperties(CssLength? FontSize, CssLength? LineHeight, PdfRgbColor? Color = null,
+        BackgroundColor? Background = null, EpubFontFamily[]? FontFamilies = null)
     {
         internal CssProperties Override(CssProperties inline) =>
             new(inline.FontSize ?? FontSize, inline.LineHeight ?? LineHeight,
-                inline.Color ?? Color, inline.Background ?? Background);
+                inline.Color ?? Color, inline.Background ?? Background, inline.FontFamilies ?? FontFamilies);
 
         internal Style Apply(Style inherited, double maximum)
         {
@@ -240,7 +249,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 : LineHeight is null ? inherited.LineHeightFactor : null;
             double? pixels = LineHeight?.Compute(size, maximum)
                 ?? (factor is double multiplier ? new CssLength(multiplier, true).Compute(size, maximum) : inherited.LineHeight);
-            return new(size, pixels, Color ?? inherited.Color, Background ?? inherited.Background) { LineHeightFactor = factor };
+            return new(size, pixels, Color ?? inherited.Color, Background ?? inherited.Background)
+            {
+                LineHeightFactor = factor, FontFamilies = FontFamilies ?? inherited.FontFamilies
+            };
         }
     }
 
@@ -249,6 +261,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         CssLength? size = null, height = null;
         PdfRgbColor? color = null;
         BackgroundColor? background = null;
+        EpubFontFamily[]? families = null;
         foreach (string declaration in declarations.Split(';'))
         {
             string part = declaration.Trim();
@@ -257,6 +270,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (colon < 0) throw new NotSupportedException("Native EPUB CSS declaration is unsupported.");
             string property = part[..colon].Trim().ToLowerInvariant();
             string value = part[(colon + 1)..].Trim();
+            if (property == "font-family")
+            {
+                families = ParseFontFamilies(value);
+                continue;
+            }
             if (property == "color")
             {
                 color = ParseColor(value);
@@ -298,7 +316,52 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new CssProperties(size, height, color, background);
+        return new CssProperties(size, height, color, background, families);
+    }
+
+    private static EpubFontFamily[] ParseFontFamilies(string value)
+    {
+        var result = new List<EpubFontFamily>();
+        int at = 0;
+        while (true)
+        {
+            while (at < value.Length && IsSpace(value[at])) at++;
+            if (at == value.Length) throw Syntax();
+            if (result.Count >= 32)
+                throw new InvalidDataException("Native EPUB font-family exceeds its 32-family limit.");
+            bool quoted = value[at] is '\'' or '"';
+            string name;
+            if (quoted)
+            {
+                char quote = value[at++];
+                int end = value.IndexOf(quote, at);
+                if (end < 0) throw Syntax();
+                name = value[at..end];
+                if (name.Any(character => char.IsControl(character) || character == '\\')) throw Syntax();
+                at = end + 1;
+                while (at < value.Length && IsSpace(value[at])) at++;
+                if (at < value.Length && value[at] != ',') throw Syntax();
+            }
+            else
+            {
+                int end = value.IndexOf(',', at);
+                if (end < 0) end = value.Length;
+                string[] words = value[at..end].Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries);
+                if (words.Length == 0 || words.Any(word => !char.IsLetter(word[0]) && word[0] != '_'
+                    || word.Any(character => !char.IsLetterOrDigit(character) && character is not ('-' or '_'))))
+                    throw Syntax();
+                name = string.Join(' ', words);
+                if (name.ToLowerInvariant() is "inherit" or "initial" or "unset" or "revert" or "revert-layer") throw Syntax();
+                at = end;
+            }
+            if (name.Length is 0 or > 256) throw Syntax();
+            bool generic = !quoted && name.ToLowerInvariant() is "serif" or "sans-serif" or "monospace" or "cursive" or "fantasy";
+            result.Add(new(name, generic));
+            if (at == value.Length) return result.ToArray();
+            at++;
+        }
+        static bool IsSpace(char character) => character is ' ' or '\t' or '\r' or '\n' or '\f';
+        static NotSupportedException Syntax() => new("Native EPUB font-family syntax is not implemented.");
     }
 
     private static PdfRgbColor ParseColor(string value)

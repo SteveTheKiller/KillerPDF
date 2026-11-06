@@ -17,7 +17,8 @@ public sealed partial class EpubDocument
             options.PageHeightPoints / pointsPerCssPixel, options.DefaultFont)
         {
             Margin = options.MarginPoints / pointsPerCssPixel,
-            FontSize = options.FontSizePoints / pointsPerCssPixel
+            FontSize = options.FontSizePoints / pointsPerCssPixel,
+            FontFamilyResolver = options.FontFamilyResolver
         }, cancellationToken);
         var builder = new PdfDocumentBuilder();
         foreach (var page in layout.Pages)
@@ -59,10 +60,10 @@ public sealed partial class EpubDocument
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 double size = placement.Height * pointsPerCssPixel;
-                double baseline = (placement.Top + options.DefaultFont.Ascender
-                    * placement.Height / options.DefaultFont.UnitsPerEm) * pointsPerCssPixel;
-                var color = placement.Color ?? new PdfRgbColor(0, 0, 0);
                 var cluster = page.Clusters[placement.Start];
+                double baseline = (placement.Top + cluster.Font.Ascender
+                    * placement.Height / cluster.Font.UnitsPerEm) * pointsPerCssPixel;
+                var color = placement.Color ?? new PdfRgbColor(0, 0, 0);
                 if (cluster.Substituted)
                 {
                     double advance = 0;
@@ -81,7 +82,7 @@ public sealed partial class EpubDocument
                 }
                 content.SetFillRgb(color.Red, color.Green, color.Blue)
                     .BeginText()
-                    .SetFont(options.DefaultFont, size)
+                    .SetFont(cluster.Font, size)
                     .SetTextMatrix(1, 0, 0, 1, placement.Left * pointsPerCssPixel,
                         options.PageHeightPoints - baseline)
                     .ShowUnicodeText(page.Text.Substring(placement.Start - page.TextStart, placement.Length))
