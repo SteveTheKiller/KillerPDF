@@ -14,6 +14,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal EpubFontFamily[]? FontFamilies { get; init; }
         internal double FontWeight { get; init; } = 400;
         internal string TextAlign { get; init; } = "left";
+        internal double TextIndent { get; init; }
+        internal bool TextIndentPercentage { get; init; }
         internal bool PageBreakBefore { get; init; }
     }
     internal abstract class SourceNode;
@@ -378,6 +380,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         int borderSpecificity = -1;
         string? textAlign = null;
         int alignmentSpecificity = -1;
+        IndentLength? textIndent = null;
+        int indentSpecificity = -1;
         bool? pageBreakBefore = null;
         int breakSpecificity = -1;
         bool? block = null;
@@ -429,6 +433,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 }
             }
             int specificity = (rule.Classes.Length + (rule.Attribute is null ? 0 : 1)) * 2 + rule.TypeSpecificity;
+            if (rule.Properties.TextIndent is { } indent && specificity >= indentSpecificity)
+            {
+                textIndent = indent;
+                indentSpecificity = specificity;
+            }
             if (rule.Properties.FontWeight is { } weight && specificity >= weightSpecificity)
             {
                 fontWeight = weight;
@@ -494,7 +503,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         paddingSpecificities[side] = specificity;
                     }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent);
     }
 
     private void CountSelectorWork(int amount)
@@ -516,19 +525,20 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     }
 
     private readonly record struct MarginLength(double Value, bool Em, bool Percentage = false);
+    private readonly record struct IndentLength(double Value, bool Em = false, bool Percentage = false, bool Inherit = false);
     private readonly record struct Border(bool Nonzero, bool Visible);
 
     private readonly record struct CssProperties(CssLength? FontSize, CssLength? LineHeight, PdfRgbColor? Color = null,
         BackgroundColor? Background = null, EpubFontFamily[]? FontFamilies = null, MarginLength?[]? Margins = null,
         Border? Border = null, MarginLength?[]? Padding = null, string? TextAlign = null, bool? PageBreakBefore = null,
-        bool? Block = null, double? FontWeight = null)
+        bool? Block = null, double? FontWeight = null, IndentLength? TextIndent = null)
     {
         internal CssProperties Override(CssProperties inline) =>
             new(inline.FontSize ?? FontSize, inline.LineHeight ?? LineHeight,
                 inline.Color ?? Color, inline.Background ?? Background, inline.FontFamilies ?? FontFamilies,
                 MergeMargins(Margins, inline.Margins), inline.Border ?? Border, MergeMargins(Padding, inline.Padding),
                 inline.TextAlign ?? TextAlign, inline.PageBreakBefore ?? PageBreakBefore, inline.Block ?? Block,
-                inline.FontWeight ?? FontWeight);
+                inline.FontWeight ?? FontWeight, inline.TextIndent ?? TextIndent);
 
         private static MarginLength?[]? MergeMargins(MarginLength?[]? earlier, MarginLength?[]? later) =>
             later is null ? earlier : Enumerable.Range(0, 4).Select(side => later[side] ?? earlier?[side]).ToArray();
@@ -536,6 +546,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal Style Apply(Style inherited, double maximum)
         {
             double size = FontSize?.Compute(inherited.FontSize, maximum) ?? inherited.FontSize;
+            double indent = TextIndent is { Inherit: false } length ? (length.Em ? length.Value * size : length.Value) : inherited.TextIndent;
+            bool indentPercentage = TextIndent is { Inherit: false } specified ? specified.Percentage : inherited.TextIndentPercentage;
+            if (!double.IsFinite(indent) || Math.Abs(indent) > 32768)
+                throw new NotSupportedException("Native EPUB text indentation exceeds the supported page dimensions.");
             double? factor = LineHeight is { Unitless: true } height ? height.Value
                 : LineHeight is null ? inherited.LineHeightFactor : null;
             double? pixels = LineHeight?.Compute(size, maximum)
@@ -545,6 +559,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 LineHeightFactor = factor, FontFamilies = FontFamilies ?? inherited.FontFamilies,
                 FontWeight = FontWeight ?? inherited.FontWeight,
                 TextAlign = TextAlign is null or "inherit" ? inherited.TextAlign : TextAlign,
+                TextIndent = indent,
+                TextIndentPercentage = indentPercentage,
                 PageBreakBefore = PageBreakBefore ?? false
             };
         }
@@ -552,6 +568,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
 
     private CssProperties ParseProperties(string declarations)
     {
+        IndentLength? textIndent = null;
         CssLength? size = null, height = null;
         PdfRgbColor? color = null;
         BackgroundColor? background = null;
@@ -571,6 +588,29 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (colon < 0) throw new NotSupportedException("Native EPUB CSS declaration is unsupported.");
             string property = part[..colon].Trim().ToLowerInvariant();
             string value = part[(colon + 1)..].Trim();
+            if (property == "text-indent")
+            {
+                if (value.Equals("inherit", StringComparison.OrdinalIgnoreCase) || value.Equals("unset", StringComparison.OrdinalIgnoreCase))
+                {
+                    textIndent = new IndentLength(0, Inherit: true);
+                    continue;
+                }
+                if (value.Equals("initial", StringComparison.OrdinalIgnoreCase))
+                {
+                    textIndent = new IndentLength(0);
+                    continue;
+                }
+                bool em = value.EndsWith("em", StringComparison.OrdinalIgnoreCase);
+                bool px = value.EndsWith("px", StringComparison.OrdinalIgnoreCase);
+                bool percentage = value.EndsWith('%');
+                string number = em || px ? value[..^2] : percentage ? value[..^1] : value;
+                if (!double.TryParse(number, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                        CultureInfo.InvariantCulture, out double indent) || !double.IsFinite(indent)
+                    || Math.Abs(indent) > 32768 || number.EndsWith('.') || !(em || px || percentage) && indent != 0)
+                    throw new NotSupportedException("Native EPUB text indentation requires supported CSS lengths.");
+                textIndent = new IndentLength(indent, em, percentage);
+                continue;
+            }
             if (property == "font-weight")
             {
                 if (value.Equals("normal", StringComparison.OrdinalIgnoreCase)) fontWeight = 400;
@@ -726,7 +766,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent);
     }
 
     private static Border ParseBorder(string value)

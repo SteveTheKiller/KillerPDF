@@ -248,6 +248,7 @@ public sealed partial class EpubDocument
             EpubNativeContent.Element? Owner)>();
         int lineStart = 0;
         EpubFormattingTree.Block lineBlock = formatting.Root;
+        var startedBlocks = new HashSet<EpubFormattingTree.Block>();
         bool pendingParagraphGap = false;
         long imageBytes = retainedImageBytes;
         LayoutBlock(formatting.Root);
@@ -260,6 +261,10 @@ public sealed partial class EpubDocument
         void LayoutBlock(EpubFormattingTree.Block block)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            double indent = block.Source.Style.TextIndentPercentage
+                ? block.Source.Style.TextIndent * contentWidth / 100 : block.Source.Style.TextIndent;
+            if (!double.IsFinite(indent) || Math.Abs(indent) > 32768)
+                throw new NotSupportedException("Native EPUB text indentation exceeds the supported page dimensions.");
             int boundary = Math.Min(block.Source.Offset, text.Length);
             while (boundary < text.Length && content.Characters[boundary] is null) boundary++;
             if (block.Parent is not null && block.Source.Style.PageBreakBefore && pageHasContent)
@@ -304,7 +309,7 @@ public sealed partial class EpubDocument
                 lineBlock = block;
                 var sequence = (EpubFormattingTree.InlineSequence)part;
                 lineStart = sequence.Atoms[0].Offset;
-                left = contentLeft;
+                left = contentLeft + (startedBlocks.Contains(block) ? 0 : indent);
                 LayoutInline(sequence);
                 FlushLine();
             }
@@ -313,6 +318,7 @@ public sealed partial class EpubDocument
 
         void LayoutInline(EpubFormattingTree.InlineSequence sequence)
         {
+            bool firstIndentedWord = !startedBlocks.Contains(lineBlock) && left > contentLeft;
             int first = 0, last = sequence.Atoms.Count - 1;
             while (first <= last && IsSpace(sequence.Atoms[first])) first++;
             while (last >= first && IsSpace(sequence.Atoms[last])) last--;
@@ -331,6 +337,7 @@ public sealed partial class EpubDocument
                 {
                     if (reference.Source is null)
                     {
+                        firstIndentedWord = false;
                         if (line.Count == 0)
                         {
                             var blockStyle = lineBlock.Source.Style;
@@ -347,6 +354,7 @@ public sealed partial class EpubDocument
                             if (backgrounds.Count + glyphs.Count > 100_000)
                                 throw new InvalidDataException("The native page exceeds its paint limit.");
                             pageHasContent = true;
+                            startedBlocks.Add(lineBlock);
                             top += height;
                         }
                         else FlushLine();
@@ -360,6 +368,7 @@ public sealed partial class EpubDocument
                     line.Add((index, 0, left, image.Width, FontFor(reference.Owner.Style), null, image,
                         reference.Owner.Style, lineBlock.Source.Style, reference.Owner));
                     left += image.Width;
+                    firstIndentedWord = false;
                     continue;
                 }
                 // Ligature and surrogate continuations keep their source indices but have no separate placement.
@@ -389,6 +398,7 @@ public sealed partial class EpubDocument
                 double width = cluster.Advance * style.FontSize;
                 if (character == ' ')
                 {
+                    firstIndentedWord = false;
                     // Each collapsed separator scans only the following word, keeping lookahead linear.
                     double wordWidth = 0;
                     for (int next = at + 1; next <= last; next++)
@@ -414,7 +424,7 @@ public sealed partial class EpubDocument
                         continue;
                     }
                 }
-                if (left + width > contentRight)
+                if (left + width > contentRight && !firstIndentedWord)
                     throw new NotSupportedException("The native EPUB word exceeds the available line width.");
                 line.Add((index, cluster.Length, left, width, cluster.Font, atom.HasSource ? outline : null, null, style,
                     lineBlock.Source.Style, atom.Owner));
@@ -476,6 +486,7 @@ public sealed partial class EpubDocument
                 && (line[^1].Length == 0 || line[^1].Length == 1 && text[line[^1].Index] == ' '))
                 line.RemoveAt(line.Count - 1);
             if (line.Count == 0) return;
+            startedBlocks.Add(lineBlock);
             var block = line[0].BlockStyle;
             double ascent = AboveBaseline(block), descent = BelowBaseline(block);
             foreach (var item in line)

@@ -265,6 +265,15 @@ against the parent after cascade selection. Relative line heights compute agains
 element's font and inherit as lengths; unitless line-height factors recalculate for each
 descendant's font. Mixed sizes share a baseline; collapsed spaces retain their original
 inline style. Default normal line height follows each inline font's ascent and descent.
+`text-indent` supports signed `px`, `em`, percentages, unitless zero and explicit
+`inherit`, `unset` and `initial`. An em length computes on the declaring element
+before inheritance; percentages resolve against the containing content width.
+Only the first formatted line is indented, including across wrapping and page
+continuations. A positive indent can put the first word beyond the line or page
+edge; subsequent words wrap normally. Native and converted PDF coordinates retain
+that overflow. Values and computed lengths are bounded to an absolute 32768;
+`calc()`, `hanging`, `each-line`, general long-word overflow and RTL indentation
+remain outside this initial slice.
 `font-family` preserves ordered unquoted identifiers, multiword names and quoted names
 (including commas). Generic requests are distinct from quoted names such as `"serif"`.
 The optional `FontFamilyResolver` on layout and conversion options receives an
@@ -289,7 +298,11 @@ registered candidates while preserving existing PDF editor style choices. Relati
 packaged `@font-face`, italic matching, complex-script clusters and full bidi still
 require implementation; this is not complete typography.
 Initial Latin ligatures use the font's GSUB 1.0 default-language `liga` feature with
-type 4, flags 0, format 1 and coverage format 1. Original UTF-16 cluster ranges and
+type 4, flags 0, format 1 and coverage formats 1 or 2. Type 7 extension format 1
+can wrap that type 4 lookup. Single-component identity and replacement records
+preserve their source character while using the selected output glyph. Nested
+extensions, other selected lookup types and nonzero flags remain diagnosed.
+Original UTF-16 cluster ranges and
 selected glyph advances drive both native ink and explicit PDF conversion. Style,
 block and explicit-break boundaries remain separate. Natural text and single-glyph
 ligatures keep their Unicode font mappings as well as logical replacement text. Parsing

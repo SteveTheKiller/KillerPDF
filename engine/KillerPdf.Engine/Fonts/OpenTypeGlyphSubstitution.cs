@@ -58,20 +58,53 @@ internal sealed class OpenTypeGlyphSubstitution
         foreach (int index in selectedIndices)
         {
             int lookup = Relative(lookups, lookups + 2 + 2 * index);
-            if (U16(lookup) != 4 || U16(lookup + 2) != 0)
+            int lookupType = U16(lookup);
+            if (lookupType is not (4 or 7) || U16(lookup + 2) != 0)
                 throw new NotSupportedException("The selected EPUB GSUB lookup type or flags are not implemented.");
             var ligatures = new List<Ligature>();
             for (int sub = 0, count = U16(lookup + 4); sub < count; sub++)
             {
                 int table = Relative(lookup, lookup + 6 + 2 * sub);
+                if (lookupType == 7)
+                {
+                    if (U16(table) != 1 || U16(table + 2) != 4)
+                        throw new NotSupportedException("The EPUB GSUB extension format or lookup type is not implemented.");
+                    uint extension = Tag(table + 4);
+                    if (extension < 8 || extension > (uint)(_data.Length - table)) throw Invalid();
+                    table += (int)extension;
+                }
                 if (U16(table) != 1) throw new NotSupportedException("The EPUB ligature substitution format is not implemented.");
                 int coverage = Relative(table, table + 2);
-                if (U16(coverage) != 1) throw new NotSupportedException("The EPUB GSUB coverage format is not implemented.");
                 int sets = U16(table + 4);
-                if (U16(coverage + 2) != sets) throw Invalid();
+                int coverageFormat = U16(coverage);
+                var covered = new ushort[sets];
+                if (coverageFormat == 1)
+                {
+                    if (U16(coverage + 2) != sets) throw Invalid();
+                    for (int c = 0; c < sets; c++) covered[c] = U16(coverage + 4 + 2 * c);
+                }
+                else if (coverageFormat == 2)
+                {
+                    int coveredCount = 0, previousEnd = -1;
+                    for (int r = 0, ranges = U16(coverage + 2); r < ranges; r++)
+                    {
+                        int record = coverage + 4 + 6 * r;
+                        int first = U16(record), last = U16(record + 2), startIndex = U16(record + 4);
+                        if (first > last || first <= previousEnd || startIndex != coveredCount
+                            || last - first + 1 > sets - coveredCount) throw Invalid();
+                        for (int glyph = first; glyph <= last; glyph++)
+                        {
+                            _cancellation.ThrowIfCancellationRequested();
+                            covered[coveredCount++] = (ushort)glyph;
+                        }
+                        previousEnd = last;
+                    }
+                    if (coveredCount != sets) throw Invalid();
+                }
+                else throw new NotSupportedException("The EPUB GSUB coverage format is not implemented.");
                 for (int setIndex = 0; setIndex < sets; setIndex++)
                 {
-                    ushort first = U16(coverage + 4 + 2 * setIndex);
+                    ushort first = covered[setIndex];
                     ValidateGlyph(first);
                     int set = Relative(table, table + 6 + 2 * setIndex);
                     for (int n = 0, ligatureCount = U16(set); n < ligatureCount; n++)
@@ -79,7 +112,7 @@ internal sealed class OpenTypeGlyphSubstitution
                         int at = Relative(set, set + 2 + 2 * n);
                         ushort output = U16(at); ValidateGlyph(output);
                         int components = U16(at + 2);
-                        if (components is < 2 or > 256) throw Invalid();
+                        if (components is < 1 or > 256) throw Invalid();
                         var input = new ushort[components]; input[0] = first;
                         for (int c = 1; c < components; c++) { input[c] = U16(at + 2 + 2 * c); ValidateGlyph(input[c]); }
                         ligatures.Add(new(output, input));
