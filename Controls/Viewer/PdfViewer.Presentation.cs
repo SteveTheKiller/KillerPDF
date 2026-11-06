@@ -27,6 +27,8 @@ public partial class PdfViewer
     private WindowsPdfViewportHost? _primaryViewport;
     private (nint Handle, int Width, int Height) _primarySurface;
     private long _primarySurfaceGeneration, _presentationRequestSequence;
+    private PdfDocumentProofViewStamp? _primaryProofStamp;
+    private long _primaryProofGeneration;
     private PdfPresentationState? _primaryPresentationState;
 
     private PdfDisplayDiscoverySnapshot CapturePrimaryDisplay()
@@ -84,8 +86,18 @@ public partial class PdfViewer
         if (_primaryViewport?.OverlayRoot is Panel panel) panel.Background = Brushes.White;
     }
 
+    private long CapturePrimaryProofGeneration(PdfDocumentProofViewSnapshot? proof)
+    {
+        if (_primaryProofStamp != proof?.Stamp)
+        {
+            _primaryProofGeneration = checked(_primaryProofGeneration + 1);
+            _primaryProofStamp = proof?.Stamp;
+        }
+        return _primaryProofGeneration;
+    }
+
     private async Task PresentPrimaryFrameAsync(PdfRenderedFrame frame, PdfDisplayDiscoverySnapshot display,
-        PdfDisplayPresentationDecision policy, int page, long revision, long renderGeneration,
+        PdfDisplayPresentationDecision policy, int page, long revision, long renderGeneration, long proofGeneration,
         Func<bool> current, CancellationToken token)
     {
         if (!current()) return;
@@ -123,7 +135,7 @@ public partial class PdfViewer
             _primarySurfaceGeneration = checked(_primarySurfaceGeneration + 1);
         }
         Guid document = _nativeDoc?.CaptureReadRevision().Id ?? _doc!.CaptureReadRevision().Id;
-        var stamp = new PdfPresentationStamp(document, revision, renderGeneration, 0, display.Generation,
+        var stamp = new PdfPresentationStamp(document, revision, renderGeneration, proofGeneration, display.Generation,
             _primarySurfaceGeneration, checked(++_presentationRequestSequence), page, 1);
         var presenter = _primaryViewport.GetPresenter();
         var state = new PdfPresentationState(stamp, frame.Width, frame.Height, policy.ReferenceWhiteScale, policy.TransformOwner);

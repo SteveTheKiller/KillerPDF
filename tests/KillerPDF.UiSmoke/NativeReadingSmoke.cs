@@ -17,6 +17,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using KillerPdf.Engine.Rendering;
 
 internal static class NativeReadingSmoke
 {
@@ -29,6 +30,7 @@ internal static class NativeReadingSmoke
         Exception? failure = null;
         IDataObject? previousClipboard = null;
         bool clipboardTouched = false;
+        Window? proofWindow = null;
         bool control = false, native = false;
         bool switched = false;
         ImageSource? controlSource = null;
@@ -54,7 +56,7 @@ internal static class NativeReadingSmoke
             if (deadline.Elapsed > TimeSpan.FromSeconds(100))
                 failure ??= new TimeoutException("Overall native reading deadline expired at " + stage);
             foreach (Window window in Application.Current.Windows.Cast<Window>()
-                .Where(window => window != owner && window.IsVisible).ToArray())
+                .Where(window => window != owner && window != proofWindow && window.IsVisible).ToArray())
             {
                 if (seen.Add(window)) modals.Add(new { stage, type = window.GetType().FullName, window.Title,
                     text = string.Join("\n", Descendants<TextBlock>(window).Select(block => block.Text)) });
@@ -580,6 +582,59 @@ internal static class NativeReadingSmoke
                     if (restoredImage.ToolTip?.ToString()?.Contains("proof", StringComparison.OrdinalIgnoreCase) == true)
                         throw new InvalidOperationException("Disabling native proof retained its unavailable diagnostic.");
                     events.Add(new { stage, restoredWhiteSource = true, restoredWhiteScreen = true });
+                    stage = "document-proof-stamp-setup";
+                    proofWindow = (Window)Activator.CreateInstance(owner.GetType())!;
+                    proofWindow.Width = owner.Width;
+                    proofWindow.Height = owner.Height;
+                    proofWindow.Left = owner.Left;
+                    proofWindow.Top = owner.Top;
+                    object adapterViewer = proofWindow.GetType().GetProperty("ActiveViewer", instance)!.GetValue(proofWindow)!;
+                    var submittedStamps = new List<PdfPresentationStamp>();
+                    var probeTarget = new PdfDisplayTarget("proof-stamp-probe", "Synthetic observed display")
+                        { ColorState = new(PdfDisplayColorMode.AdvancedColorSdr, 15, 1, 0, 0, 16, null, null) };
+                    var probeDisplay = new PdfDisplayDiscoverySnapshot(91, PdfDisplayDiscoveryStatus.Available,
+                        "proof-stamp-desktop", new(0, 0, 1920, 1080), null, null)
+                        { TargetAssociation = new(PdfDisplayTargetStatus.SingleTarget, [probeTarget]) };
+                    adapterViewer.GetType().GetProperty("DisplayCapture")!.SetValue(adapterViewer,
+                        (Func<nint, PdfDisplayDiscoverySnapshot>)(_ => probeDisplay));
+                    adapterViewer.GetType().GetProperty("FramePresenterFactory")!.SetValue(adapterViewer,
+                        (Func<nint, IPdfFramePresenter>)(_ => new ProofStampPresenter(stamp => submittedStamps.Add(stamp))));
+                    proofWindow.Show();
+                    proofWindow.Activate();
+                    openBook.Invoke(proofWindow, [source.Key]);
+                    Wait(() => Named<TextBlock>(proofWindow, "FileNameLabel")?.Text == Path.GetFileName(source.Key)
+                        && (Task)adapterViewer.GetType().GetProperty("PrimaryRenderTask", instance)!.GetValue(adapterViewer)!
+                            is { IsCompletedSuccessfully: true } && submittedStamps.Count > 0);
+                    PdfPresentationStamp initialStamp = submittedStamps.Last(stamp => stamp.RegionId == 1);
+                    object adapterProofView = adapterViewer.GetType().GetProperty("DocumentProofView")!.GetValue(adapterViewer)!;
+                    object adapterOwner = adapterProofView.GetType().GetProperty("Document")!.GetValue(adapterProofView)!;
+                    stage = "document-proof-stamp";
+                    proofProperty.SetValue(adapterOwner, Activator.CreateInstance(proofSettingsType,
+                        [true, printerProfile, proofOptions, false]));
+                    RefreshAdapter();
+                    PdfPresentationStamp proofStamp = submittedStamps.Last(stamp => stamp.RegionId == 1);
+                    events.Add(new { stage, initial = initialStamp.ProofGeneration, selected = proofStamp.ProofGeneration });
+                    if (proofStamp.ProofGeneration <= initialStamp.ProofGeneration)
+                        throw new InvalidOperationException("Presenter proof generation did not advance for the selected condition.");
+                    RefreshAdapter();
+                    PdfPresentationStamp unchangedStamp = submittedStamps.Last(stamp => stamp.RegionId == 1);
+                    if (unchangedStamp.ProofGeneration != proofStamp.ProofGeneration)
+                        throw new InvalidOperationException("An unchanged proof request advanced the presenter proof generation.");
+                    proofProperty.SetValue(adapterOwner, Activator.CreateInstance(proofSettingsType, [false, null, null, false]));
+                    RefreshAdapter();
+                    PdfPresentationStamp offStamp = submittedStamps.Last(stamp => stamp.RegionId == 1);
+                    if (offStamp.ProofGeneration <= proofStamp.ProofGeneration)
+                        throw new InvalidOperationException("Presenter proof generation did not advance after disabling proof.");
+                    events.Add(new { stage, unchanged = unchangedStamp.ProofGeneration, disabled = offStamp.ProofGeneration,
+                        recordingBoundaryOnly = true });
+
+                    void RefreshAdapter()
+                    {
+                        int previousCount = submittedStamps.Count;
+                        adapterViewer.GetType().GetMethod("RenderActiveSessionExt", instance)!.Invoke(adapterViewer, null);
+                        Wait(() => (Task)adapterViewer.GetType().GetProperty("PrimaryRenderTask", instance)!.GetValue(adapterViewer)!
+                            is { IsCompletedSuccessfully: true } && submittedStamps.Count > previousCount);
+                    }
 
                     void RefreshProofPage()
                     {
@@ -691,6 +746,8 @@ internal static class NativeReadingSmoke
         finally
         {
             timer.Stop();
+            try { proofWindow?.Close(); }
+            catch (Exception error) { failure ??= error; }
             if (clipboardTouched)
             {
                 try
@@ -723,6 +780,23 @@ internal static class NativeReadingSmoke
         }
         return control && native && failure is null && modals.Count == 0 && (!gridSwitch || switched)
             && sources.All(source => File.ReadAllBytes(source.Key).AsSpan().SequenceEqual(source.Value)) ? 0 : 1;
+    }
+
+    private sealed class ProofStampPresenter(Action<PdfPresentationStamp> record) : IPdfFramePresenter
+    {
+        private PdfPresentationState? _state;
+        public PdfPresentationStatus Status => new(PdfPresentationMode.Unavailable,
+            PdfMonitorTransformOwner.Compositor, null, "ProofStampProbe", null);
+        public void UpdateState(PdfPresentationState state) => _state = state;
+        public ValueTask<PdfFrameSubmissionResult> SubmitAsync(PdfFrameSubmission submission, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (submission.Stamp != _state?.Stamp)
+                return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Stale, Status));
+            record(submission.Stamp);
+            return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Unavailable, Status));
+        }
+        public void Dispose() { }
     }
 
     private static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));

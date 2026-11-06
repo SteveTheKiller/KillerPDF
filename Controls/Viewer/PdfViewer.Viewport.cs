@@ -970,6 +970,7 @@ namespace KillerPDF.Controls
             long generation = _primaryRenderGeneration;
             var primarySession = _active;
             var primaryProof = primarySession?.ProofView.CaptureProof();
+            long primaryProofGeneration = CapturePrimaryProofGeneration(primaryProof);
             var primaryNative = _nativeDoc;
             string primaryFile = _currentFile;
             long primaryRevision = primarySession?.RenderRevision ?? 0;
@@ -1126,7 +1127,7 @@ namespace KillerPDF.Controls
                 if (primaryFrame is not null)
                 {
                     await PresentPrimaryFrameAsync(primaryFrame, primaryDisplay, presentationPolicy,
-                        pageIndex, primaryRevision, generation, Current, primaryToken);
+                        pageIndex, primaryRevision, generation, primaryProofGeneration, Current, primaryToken);
                     if (!Current()) return;
                 }
                 StartRerenderTimer();
