@@ -92,9 +92,12 @@ public sealed partial class EpubDocument
             ref remainingStylesheetReferences, cancellationToken);
         string text = ReadStructuralText(spineIndex, cancellationToken, content);
         var bodyMargins = content.ResolveBodyMargins(contentWidth);
-        double contentLeft = options.Margin + bodyMargins.Left;
-        double contentRight = options.PageWidth - options.Margin - bodyMargins.Right;
+        var bodyPadding = content.ResolveBodyPadding(contentWidth);
+        double contentLeft = options.Margin + bodyMargins.Left + bodyPadding.Left;
+        double contentRight = options.PageWidth - options.Margin - bodyMargins.Right - bodyPadding.Right;
         contentWidth = contentRight - contentLeft;
+        if (contentWidth <= 0 || bodyMargins.Top + bodyPadding.Top >= options.PageHeight - 2 * options.Margin)
+            throw new NotSupportedException("Native EPUB body padding requires a positive content box within the page.");
         if (text.Length > remainingTextLength)
             throw new InvalidDataException("Native EPUB text exceeds its 100,000 placement limit.");
         remainingTextLength -= text.Length;
@@ -200,7 +203,7 @@ public sealed partial class EpubDocument
         var inlineBackgrounds = new List<(int Depth, NativePagePaint Paint)>();
         int pageStart = 0;
         double left = contentLeft;
-        double top = options.Margin + bodyMargins.Top;
+        double top = options.Margin + bodyMargins.Top + bodyPadding.Top;
         var line = new List<(int Index, int Length, double Left, double Width, TrueTypeFont Font, PdfGlyphOutline? Outline,
             PngDecodedImage? Image, EpubNativeContent.Style Style, EpubNativeContent.Style BlockStyle,
             EpubNativeContent.Element? Owner)>();
@@ -319,6 +322,8 @@ public sealed partial class EpubDocument
         }
         cancellationToken.ThrowIfCancellationRequested();
         FlushLine();
+        if (bodyPadding.Bottom > 0 && top + bodyPadding.Bottom > options.PageHeight - options.Margin)
+            throw new NotSupportedException("Native EPUB terminal body padding overflow is not implemented.");
         FinishPage(text.Length);
 
         EpubNativeContent.Style StyleAt(int index) => content.Characters[index]?.Style ?? content.DefaultStyle;

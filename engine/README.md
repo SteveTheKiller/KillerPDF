@@ -315,6 +315,16 @@ Native pixels and reopened PDF geometry cover these cases. Negative/auto margins
 nonzero child margins, other units, exhausted content geometry and advanced fragment
 semantics remain explicitly unsupported; complete CSS layout remains in progress.
 
+Body padding accepts the same nonnegative px/em/percentage shorthand and longhand
+forms, with per-side cascade and no inheritance. Percentages use the original
+configured content width before margins; padding reduces wrapping width. Top padding
+appears on the initial fragment, and fitting bottom padding only on the terminal
+fragment. Terminal padding overflow and positive child padding remain explicitly
+unsupported. Border shorthand accepts zero used widths, including `border:0`,
+`border:none` and a width with initial style none, with proper shorthand resets.
+Visible borders and border longhands remain unsupported. Public native and reopened
+PDF tests cover placement, wrapping, complete pixel comparisons and two-page controls.
+
 `ReadText`, `ReadNavigation` and the supported plain native layout accept the canonical HTML5
 `<!DOCTYPE html>` and XHTML 1.1 external declarations without loading or processing
 a DTD. Original resource bytes, Unicode and UTF-8/UTF-16 encodings stay unchanged.
