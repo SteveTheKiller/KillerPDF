@@ -398,7 +398,7 @@ public sealed class NativeSearchServiceTests
         Assert.Single(result.PageRects[0]);
     }
 
-    private static byte[] Book()
+    internal static byte[] Book()
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))

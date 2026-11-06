@@ -27,6 +27,8 @@ internal static class NativeReadingSmoke
         var modals = new List<object>();
         var sources = new Dictionary<string, byte[]>();
         Exception? failure = null;
+        IDataObject? previousClipboard = null;
+        bool clipboardTouched = false;
         bool control = false, native = false;
         bool switched = false;
         ImageSource? controlSource = null;
@@ -267,6 +269,18 @@ internal static class NativeReadingSmoke
                         return selected.Length == 2 && selected[0] > firstPositions[^1];
                     });
                     events.Add(new { stage, counter = "2 / 2", handled = nextKey.Handled, emphasisMoved = true });
+                    stage = "native-selection-copy";
+                    previousClipboard = Clipboard.GetDataObject();
+                    clipboardTouched = true;
+                    viewer.GetType().GetMethod("SelectAllTextExt", instance)!.Invoke(viewer, null);
+                    string? selectedText = (string?)viewer.GetType().GetProperty("SelectedTextRef", instance)!.GetValue(viewer);
+                    if (selectedText != "AA AA")
+                        throw new InvalidOperationException("Native viewer select-all did not preserve the original text.");
+                    Clipboard.SetText("native-copy-control");
+                    viewer.GetType().GetMethod("CopySelectedTextExt", instance)!.Invoke(viewer, null);
+                    if (!Clipboard.ContainsText() || Clipboard.GetText() != "AA AA")
+                        throw new InvalidOperationException("Native viewer copy did not publish the selected original text.");
+                    events.Add(new { stage, exactSelection = true, exactCopy = true });
                 }
                 if (gridSwitch && isNative && step.Grid)
                 {
@@ -345,6 +359,16 @@ internal static class NativeReadingSmoke
         finally
         {
             timer.Stop();
+            if (clipboardTouched)
+            {
+                try
+                {
+                    if (previousClipboard is null) Clipboard.Clear();
+                    else Clipboard.SetDataObject(previousClipboard, true);
+                    events.Add(new { cleanup = "clipboard", restored = true });
+                }
+                catch (Exception error) { failure ??= error; }
+            }
             if (gridSwitch) Application.Current.DispatcherUnhandledException -= dispatcherFailure;
             bool preserved = sources.All(source => File.Exists(source.Key) && File.ReadAllBytes(source.Key).AsSpan().SequenceEqual(source.Value));
             bool passed = control && native && preserved && failure is null && modals.Count == 0 && (!gridSwitch || switched);

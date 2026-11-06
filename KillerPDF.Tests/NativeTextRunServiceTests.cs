@@ -1,6 +1,9 @@
 using System.Buffers.Binary;
+using System.IO;
 using System.Text;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Formats.Epub;
 using KillerPDF.Services;
 using Xunit;
 
@@ -8,6 +11,31 @@ namespace KillerPDF.Tests;
 
 public sealed class NativeTextRunServiceTests
 {
+    [Fact]
+    public void CapturedEpubSelectionUsesOriginalLayoutAndTextWithoutPdfConversion()
+    {
+        using var resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        byte[] bytes = NativeSearchServiceTests.Book();
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenEpub(bytes,
+            new EpubLayoutOptions(80, 48, TrueTypeFont.Load(fontBytes.ToArray())) { FontSize = 12, Margin = 4 }));
+        Array.Clear(bytes);
+        var runs = new TextRunService().GetPage(revision, 0)!;
+        Assert.Equal("A A", TextRunService.TextForRange(runs, 0, runs.Chars.Count, out int words));
+        Assert.Equal(2, words);
+        Assert.Equal("A A", PageReadingText.Build(runs).Text);
+        Assert.Equal(60, runs.PdfWidth, 12);
+        Assert.Equal(36, runs.PdfHeight, 12);
+        var word = TextRunService.WordRangeFromPoint(runs, 4, 28)!.Value;
+        Assert.Equal("A", TextRunService.TextForRange(runs, word.Start, word.End, out _));
+        var bounds = Assert.Single(TextRunService.SelectionBounds(runs, word.Start, word.End));
+        Assert.Equal(3, bounds.Left, 12);
+        Assert.Equal(24, bounds.Bottom, 12);
+        Assert.Equal(33, bounds.Top, 12);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(" \t")]
