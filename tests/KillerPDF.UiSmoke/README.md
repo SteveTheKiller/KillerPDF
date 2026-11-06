@@ -622,3 +622,9 @@ a local one-spine package and DjVu is a known bitonal page. Requested settings,
 resolved ICC content and unavailable references must survive actual close/reopen
 without changing either source. The named profile, import and preset controls
 also run. These checks do not certify native color fidelity or all format content.
+
+`--verify-proof-epub-storage APP_DLL APP_XAML OUTPUT --session-isolation` repeats
+the native EPUB reopen workflow, then supplies a malformed document-preference
+catalog. Reopening must show a load notice with proof off. Apply must retain the
+requested settings in memory, show a save notice, and preserve the damaged catalog
+and original EPUB. This checks malformed JSON, not every storage failure.
