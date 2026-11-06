@@ -303,6 +303,34 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
 
     private static PdfRgbColor ParseColor(string value)
     {
+        if (value.StartsWith("rgb(", StringComparison.OrdinalIgnoreCase) && value.EndsWith(')'))
+        {
+            string[] components = value[4..^1].Split(',');
+            if (components.Length == 3)
+            {
+                bool percentage = components[0].Trim(' ', '\t', '\r', '\n', '\f').EndsWith('%');
+                double[] channels = new double[3];
+                for (int index = 0; index < channels.Length; index++)
+                {
+                    string number = components[index].Trim(' ', '\t', '\r', '\n', '\f');
+                    if (number.EndsWith('%') != percentage)
+                        throw new NotSupportedException("Native EPUB CSS color is not implemented.");
+                    if (percentage) number = number[..^1];
+                    int firstDigit = number.Length > 0 && number[0] is '+' or '-' ? 1 : 0;
+                    int decimalPoint = percentage ? number.IndexOf('.', firstDigit) : -1;
+                    bool validDigits = decimalPoint < 0
+                        ? number.Length > firstDigit && !number.AsSpan(firstDigit).ContainsAnyExceptInRange('0', '9')
+                        : decimalPoint < number.Length - 1
+                            && !number.AsSpan(firstDigit, decimalPoint - firstDigit).ContainsAnyExceptInRange('0', '9')
+                            && !number.AsSpan(decimalPoint + 1).ContainsAnyExceptInRange('0', '9');
+                    if (!validDigits || !double.TryParse(number, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                        CultureInfo.InvariantCulture, out double channel))
+                        throw new NotSupportedException("Native EPUB CSS color is not implemented.");
+                    channels[index] = Math.Clamp(channel / (percentage ? 100d : 255d), 0, 1);
+                }
+                return new(channels[0], channels[1], channels[2]);
+            }
+        }
         int rgb = value.ToLowerInvariant() switch {
             "black" => 0x000000, "silver" => 0xc0c0c0, "gray" => 0x808080, "white" => 0xffffff,
             "maroon" => 0x800000, "red" => 0xff0000, "purple" => 0x800080, "fuchsia" => 0xff00ff,

@@ -282,6 +282,13 @@ inside the package, with shared limits of 1,000,000 stylesheet bytes and 1024 re
 per layout, including repeated empty resources. Other CSS syntax remains diagnosed.
 Head metadata after the body is rejected as malformed before layout returns.
 
+Text and body background colors accept legacy comma-separated `rgb()` with three
+integers or three percentages, including signed values and decimal percentages.
+Channels clamp to their valid ranges and retain source precision until rendering.
+Inline and packaged styles follow the existing cascade and remain independent of
+Windows region settings. Mixed units, malformed values, alpha/HSL and modern
+space-separated syntax remain diagnosed; complete CSS color support is still pending.
+
 `ReadText`, `ReadNavigation` and the supported plain native layout accept the canonical HTML5
 `<!DOCTYPE html>` and XHTML 1.1 external declarations without loading or processing
 a DTD. Original resource bytes, Unicode and UTF-8/UTF-16 encodings stay unchanged.
