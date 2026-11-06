@@ -13,6 +13,7 @@ using System.Windows.Automation.Provider;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -229,26 +230,43 @@ internal static class NativeReadingSmoke
                             && method.GetParameters()[0].ParameterType == snapshot.GetType());
                     object result = find.Invoke(null, [snapshot, "AA", true, false, CancellationToken.None])!;
                     int hits = (int)result.GetType().GetProperty("TotalHits")!.GetValue(result)!;
-                    if (hits != 1) throw new InvalidOperationException("Native viewer search expected one original-text match.");
+                    if (hits != 2) throw new InvalidOperationException("Native viewer search expected two original-text matches.");
                     events.Add(new { stage, hits, capturedNative = true });
                     stage = "native-search-bar";
                     owner.GetType().GetMethod("ToggleSearchBar", instance)!.Invoke(owner, null);
                     var queryBox = (TextBox)owner.GetType().GetField("_searchBox", instance)!.GetValue(owner)!;
                     Wait(() => queryBox.IsVisible && queryBox.IsEnabled);
                     queryBox.Text = "AA";
-                    Wait(() => ((TextBlock?)owner.GetType().GetField("_searchStatus", instance)!.GetValue(owner))?.Text == "1 / 1");
+                    Wait(() => ((TextBlock?)owner.GetType().GetField("_searchStatus", instance)!.GetValue(owner))?.Text == "1 / 2");
                     stage = "native-search-highlights";
                     Wait(() => Descendants<System.Windows.Shapes.Rectangle>(owner)
                         .Any(rectangle => rectangle.Tag as string == "SearchHighlight" && rectangle.IsVisible));
-                    events.Add(new { stage, query = queryBox.Text, counter = "1 / 1", visibleHighlight = true });
+                    events.Add(new { stage, query = queryBox.Text, counter = "1 / 2", visibleHighlight = true });
                     stage = "native-search-emphasis";
                     Wait(() =>
                     {
                         var highlights = Descendants<System.Windows.Shapes.Rectangle>(owner)
                             .Where(rectangle => rectangle.Tag as string == "SearchHighlight" && rectangle.IsVisible).ToArray();
-                        return highlights.Length == 2 && highlights.All(rectangle => rectangle.StrokeThickness > 1);
+                        return highlights.Length == 4 && highlights.Count(rectangle => rectangle.StrokeThickness > 1) == 2;
                     });
                     events.Add(new { stage, emphasizedAreas = 2 });
+                    var firstPositions = Descendants<System.Windows.Shapes.Rectangle>(owner)
+                        .Where(rectangle => rectangle.Tag as string == "SearchHighlight" && rectangle.StrokeThickness > 1)
+                        .Select(Canvas.GetLeft).Order().ToArray();
+                    stage = "native-search-f3";
+                    var nextKey = new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(owner),
+                        Environment.TickCount, Key.F3) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+                    owner.RaiseEvent(nextKey);
+                    if (!nextKey.Handled) throw new InvalidOperationException("F3 was not handled by the window.");
+                    Wait(() => ((TextBlock?)owner.GetType().GetField("_searchStatus", instance)!.GetValue(owner))?.Text == "2 / 2");
+                    Wait(() =>
+                    {
+                        var selected = Descendants<System.Windows.Shapes.Rectangle>(owner)
+                            .Where(rectangle => rectangle.Tag as string == "SearchHighlight" && rectangle.StrokeThickness > 1)
+                            .Select(Canvas.GetLeft).Order().ToArray();
+                        return selected.Length == 2 && selected[0] > firstPositions[^1];
+                    });
+                    events.Add(new { stage, counter = "2 / 2", handled = nextKey.Handled, emphasisMoved = true });
                 }
                 if (gridSwitch && isNative && step.Grid)
                 {
@@ -406,7 +424,7 @@ internal static class NativeReadingSmoke
                 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:native-screen</dc:identifier><dc:title>Native letter</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2000-01-01T00:00:00Z</meta></metadata><manifest><item id="chapter" href="text.xhtml" media-type="application/xhtml+xml"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest><spine><itemref idref="chapter"/></spine></package>
                 """);
             Add("EPUB/text.xhtml", search ? """
-                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native letter</title></head><body><p style="font-size:160px">AA</p></body></html>
+                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native letter</title></head><body><p style="font-size:160px">AA AA</p></body></html>
                 """ : """
                 <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native letter</title></head><body><p style="font-size:160px">A</p></body></html>
                 """);
