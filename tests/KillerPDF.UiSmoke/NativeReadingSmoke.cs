@@ -385,6 +385,38 @@ internal static class NativeReadingSmoke
                     if (Clipboard.GetText() != (string.IsNullOrEmpty(restoredSelection) ? "native-owner-control" : "AA"))
                         throw new InvalidOperationException("Restored native book copied text from another document.");
                     events.Add(new { stage, exactRestoredText = true, isolatedSelection = true, isolatedCopy = true });
+                    stage = "native-reading-reopen-setup";
+                    string reloadCopy = Path.Combine(folder, "owned-reload-copy.epub");
+                    File.WriteAllBytes(reloadCopy, nativeBytes);
+                    DateTime savedTimestamp = File.GetLastWriteTimeUtc(reloadCopy);
+                    openBook.Invoke(owner, [reloadCopy]);
+                    Wait(() => Named<TextBlock>(owner, "FileNameLabel")?.Text == Path.GetFileName(reloadCopy)
+                        && ActiveTextProvider()?.DocumentRange.GetText(-1) == "AA AA");
+                    Button? closeBook = null;
+                    Wait(() => (closeBook = Descendants<Button>(owner).SingleOrDefault(button =>
+                        button.Name == "tabClose" && button.IsVisible && button.IsEnabled
+                        && VisualTreeHelper.GetParent(button) is DockPanel contents
+                        && contents.Children.OfType<TextBlock>().Any(label =>
+                            label.Name == "tabLbl" && label.Text == Path.GetFileNameWithoutExtension(reloadCopy)))) is not null);
+                    ((IInvokeProvider)new ButtonAutomationPeer(closeBook).GetPattern(PatternInterface.Invoke)!).Invoke();
+                    Wait(() => Named<TextBlock>(owner, "FileNameLabel")?.Text != Path.GetFileName(reloadCopy));
+                    File.WriteAllBytes(reloadCopy, otherBytes);
+                    File.SetLastWriteTimeUtc(reloadCopy, savedTimestamp);
+                    openBook.Invoke(owner, [reloadCopy]);
+                    Wait(() => Named<TextBlock>(owner, "FileNameLabel")?.Text == Path.GetFileName(reloadCopy)
+                        && owner.GetType().GetProperty("ActiveViewer", instance)!.GetValue(owner) is { } current
+                        && (Task)current.GetType().GetProperty("PrimaryRenderTask", instance)!.GetValue(current)! is { IsCompletedSuccessfully: true });
+                    object reloadedViewer = owner.GetType().GetProperty("ActiveViewer", instance)!.GetValue(owner)!;
+                    object reloadedSnapshot = reloadedViewer.GetType().GetMethod("CaptureCurrentSearchSnapshot", instance)!.Invoke(reloadedViewer, null)!;
+                    object reloadedResult = find.Invoke(null, [reloadedSnapshot, "BB", true, false, CancellationToken.None])!;
+                    if ((int)reloadedResult.GetType().GetProperty("TotalHits")!.GetValue(reloadedResult)! != 2)
+                        throw new InvalidOperationException("Reopened working copy did not capture its replacement native text.");
+                    if (File.GetLastWriteTimeUtc(reloadCopy) != savedTimestamp)
+                        throw new InvalidOperationException("Reopen fixture did not retain its timestamp.");
+                    events.Add(new { stage, replacementSourceCaptured = true, timestampPreserved = true, workingCopyOnly = true });
+                    stage = "native-reading-reopen";
+                    Wait(() => ActiveTextProvider()?.DocumentRange.GetText(-1) == "BB BB");
+                    events.Add(new { stage, freshOwnerText = true });
 
                     ITextProvider? ActiveTextProvider()
                     {

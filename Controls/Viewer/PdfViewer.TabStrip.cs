@@ -46,7 +46,7 @@ namespace KillerPDF.Controls
             foreach (var t in _sessions) t.RefreshTabLabel();
             UpdateRestrictionNotice();   // follows the active tab like the strip does
 
-            int docTabs = _sessions.Count(t => t.Doc != null || t.DeferredPath != null);
+            int docTabs = _sessions.Count(t => t.HasReadDocument || t.DeferredPath != null);
             // Only show the strip once THIS pane has more than one document - a single open PDF
             // doesn't need tabs, split or not. (KillerShell forces the band on in both panes whenever
             // either one has 2+ tabs, so the two card tops always line up; the simpler per-pane
@@ -273,7 +273,7 @@ namespace KillerPDF.Controls
         /// </remarks>
         private void ApplyTabWindow()
         {
-            var tabs = _sessions.Where(t => t.Doc != null || t.DeferredPath != null).ToList();
+            var tabs = _sessions.Where(t => t.HasReadDocument || t.DeferredPath != null).ToList();
             int n = tabs.Count;
             if (n == 0)
             {
