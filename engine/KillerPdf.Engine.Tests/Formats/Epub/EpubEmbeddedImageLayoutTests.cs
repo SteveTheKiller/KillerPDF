@@ -11,6 +11,136 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubEmbeddedImageLayoutTests
 {
+    [Theory]
+    [InlineData(0, 0, "0000B18F", false)]
+    [InlineData(1, 1, "000186A0", true)]
+    [InlineData(2, 0, "00000001", true)]
+    [InlineData(3, 1, "FFFFFFFF", false)]
+    public void SrgbIntentAndGammaPrecedenceRetainLiteralMidtoneAndPixelGeometry(
+        byte intent, byte unit, string gamma, bool gammaFirst)
+    {
+        (string Type, byte[] Data) srgb = ("sRGB", [intent]);
+        (string Type, byte[] Data) gama = ("gAMA", Convert.FromHexString(gamma));
+        byte[] png = RgbPng(scanlines: [0, 128, 128, 128, 0, 255, 0, 0, 0, 0, 255, 0, 0, 0],
+            metadata: [gammaFirst ? gama : srgb, gammaFirst ? srgb : gama,
+                ("pHYs", [0, 0, 0, 1, 0, 0, 0, 1, unit])]);
+        var book = EpubDocument.Open(Package(png));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 16,
+            TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { Margin = 2, FontSize = 10 });
+        var frame = layout.RenderPage(0);
+        Assert.Single(layout.Pages);
+        Assert.Equal(16, frame.Width);
+        Assert.Equal(16, frame.Height);
+        for (int channel = 0; channel < 3; channel++)
+            Assert.InRange(frame.Pixels[(8 * 16 + 2) * 4 + channel], .2158604f, .2158607f);
+        Assert.Equal(new float[] { 0, 1, 0, 1 }, frame.Pixels.Slice((8 * 16 + 3) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 1, 1 }, frame.Pixels.Slice((9 * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((9 * 16 + 3) * 4, 4).ToArray());
+        Assert.Equal(png, book.ReadResource("EPUB/images/check.png"));
+    }
+
+    [Theory]
+    [InlineData("sRGB", "03")]
+    [InlineData("pHYs", "000000010000000100")]
+    [InlineData("pHYs", "00000EC300000EC301")]
+    public void IndependentSupportedMetadataRendersLiteralPixels(string type, string hex)
+    {
+        var frame = ImageLayout(RgbPng(metadata: [(type, Convert.FromHexString(hex))])).RenderPage(0);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, frame.Pixels.Slice((8 * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 1, 0, 1 }, frame.Pixels.Slice((8 * 16 + 3) * 4, 4).ToArray());
+    }
+
+    [Theory]
+    [InlineData("iCCP")]
+    [InlineData("cHRM")]
+    [InlineData("cICP")]
+    [InlineData("acTL")]
+    [InlineData("tEXt")]
+    public void AdditionalColorAnimationAndUnimplementedChunksRemainUnsupported(string type)
+    {
+        Assert.Throws<NotSupportedException>(() => ImageLayout(RgbPng(metadata: [(type, [0])])));
+    }
+
+    [Theory]
+    [InlineData("gAMA", "00000001")]
+    [InlineData("gAMA", "0000B18F")]
+    [InlineData("gAMA", "000186A0")]
+    [InlineData("pHYs", "000000010000000200")]
+    [InlineData("pHYs", "00000EC300000EC401")]
+    [InlineData("pHYs", "000000000000000000")]
+    [InlineData("pHYs", "000000000000000101")]
+    public void UnsupportedGammaOrPixelAspectRatioIsDiagnosed(string type, string hex)
+    {
+        byte[] png = RgbPng(metadata: [(type, Convert.FromHexString(hex))]);
+        var exception = Assert.Throws<NotSupportedException>(() => ImageLayout(png));
+        Assert.Contains(type, exception.Message);
+    }
+
+    [Theory]
+    [InlineData("sRGB", "00", "duplicate")]
+    [InlineData("gAMA", "0000B18F", "duplicate")]
+    [InlineData("pHYs", "00000EC300000EC301", "duplicate")]
+    [InlineData("sRGB", "00", "late")]
+    [InlineData("gAMA", "0000B18F", "late")]
+    [InlineData("pHYs", "00000EC300000EC301", "late")]
+    [InlineData("sRGB", "00", "crc")]
+    [InlineData("gAMA", "0000B18F", "crc")]
+    [InlineData("pHYs", "00000EC300000EC301", "crc")]
+    public void DuplicateLateOrCorruptImageMetadataIsDiagnosed(string type, string hex, string fault)
+    {
+        (string Type, byte[] Data) chunk = (type, Convert.FromHexString(hex));
+        byte[] png = RgbPng(metadata: fault == "duplicate" ? [chunk, chunk] : [chunk],
+            afterImage: fault == "late");
+        if (fault == "crc") png[41 + chunk.Data.Length] ^= 1;
+        Assert.Throws<InvalidDataException>(() => ImageLayout(png));
+    }
+
+    [Theory]
+    [InlineData("sRGB", "")]
+    [InlineData("sRGB", "0000")]
+    [InlineData("sRGB", "04")]
+    [InlineData("gAMA", "000001")]
+    [InlineData("gAMA", "0000000001")]
+    [InlineData("gAMA", "00000000")]
+    [InlineData("pHYs", "00000EC300000EC3")]
+    [InlineData("pHYs", "00000EC300000EC30100")]
+    [InlineData("pHYs", "00000EC300000EC302")]
+    public void MalformedImageMetadataIsDiagnosed(string type, string hex)
+    {
+        byte[] png = RgbPng(metadata: [(type, Convert.FromHexString(hex))]);
+        Assert.Throws<InvalidDataException>(() => ImageLayout(png));
+    }
+
+    private static EpubLayoutDocument ImageLayout(byte[] png)
+    {
+        var book = EpubDocument.Open(Package(png));
+        return book.CreateLayout(new EpubLayoutOptions(16, 16,
+            TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { Margin = 2, FontSize = 10 });
+    }
+
+    [Fact]
+    public void SrgbGammaAndSquarePixelMetadataPreserveIntrinsicPixelsAndResource()
+    {
+        byte[] png = RgbPng(metadata: [("sRGB", [0]), ("gAMA", [0, 0, 177, 143]),
+            ("pHYs", [0, 0, 14, 195, 0, 0, 14, 195, 1])]);
+        var book = EpubDocument.Open(Package(png));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 16,
+            TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"))) { Margin = 2, FontSize = 10 });
+        Assert.Single(layout.Pages);
+        var frame = layout.RenderPage(0);
+        Assert.Equal(PdfFrameColorEncoding.LinearSrgbD65, frame.ColorEncoding);
+        for (int y = 0; y < 16; y++)
+        for (int x = 0; x < 16; x++)
+        {
+            float[] expected = (x, y) switch {
+                (2, 8) => [1, 0, 0, 1], (3, 8) => [0, 1, 0, 1],
+                (2, 9) => [0, 0, 1, 1], (3, 9) => [0, 0, 0, 1],
+                _ => [1, 1, 1, 1] };
+            Assert.Equal(expected, frame.Pixels.Slice((y * 16 + x) * 4, 4).ToArray());
+        }
+        Assert.Equal(png, book.ReadResource("EPUB/images/check.png"));
+    }
+
     [Fact]
     public void ConsecutiveBreaksAfterImageReserveBlankLineBeforeOriginalTextOffset()
     {
@@ -234,15 +364,20 @@ public sealed class EpubEmbeddedImageLayoutTests
         return output.ToArray();
     }
 
-    private static byte[] RgbPng(byte colorType = 2, byte[]? scanlines = null)
+    private static byte[] RgbPng(byte colorType = 2, byte[]? scanlines = null,
+        (string Type, byte[] Data)[]? metadata = null, bool afterImage = false)
     {
         using var output = new MemoryStream();
         output.Write(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
         Chunk("IHDR", [0, 0, 0, 2, 0, 0, 0, 2, 8, colorType, 0, 0, 0]);
+        if (!afterImage && metadata is not null)
+            foreach (var chunk in metadata) Chunk(chunk.Type, chunk.Data);
         using var compressed = new MemoryStream();
         using (var zlib = new ZLibStream(compressed, CompressionLevel.SmallestSize, true))
             zlib.Write(scanlines ?? new byte[] { 0, 255, 0, 0, 0, 255, 0, 0, 0, 0, 255, 0, 0, 0 });
         Chunk("IDAT", compressed.ToArray());
+        if (afterImage && metadata is not null)
+            foreach (var chunk in metadata) Chunk(chunk.Type, chunk.Data);
         Chunk("IEND", []);
         return output.ToArray();
 

@@ -31,6 +31,8 @@ public sealed partial class EpubDocument
         if (width is <= 0 or > 32768 || height is <= 0 or > 32768
             || width * height > 1_048_576 || retainedBytes + width * height * 12 + height * 2 > 32 * 1024 * 1024)
             throw new InvalidDataException("Native EPUB images exceed their decoded storage limit.");
+        int seenMetadata = 0;
+        bool imageDataStarted = false;
         for (int offset = 8; offset < data.Length;)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -38,10 +40,39 @@ public sealed partial class EpubDocument
             uint length = BinaryPrimitives.ReadUInt32BigEndian(data[offset..]);
             if (length > data.Length - offset - 12) throw new InvalidDataException("Truncated native EPUB PNG chunk.");
             var type = data.Slice(offset + 4, 4);
-            if (!type.SequenceEqual("IHDR"u8) && !type.SequenceEqual("IDAT"u8) && !type.SequenceEqual("IEND"u8))
+            var payload = data.Slice(offset + 8, (int)length);
+            if (type.SequenceEqual("sRGB"u8) && (length != 1 || payload[0] > 3)
+                || type.SequenceEqual("gAMA"u8) && (length != 4 || BinaryPrimitives.ReadUInt32BigEndian(payload) == 0)
+                || type.SequenceEqual("pHYs"u8) && (length != 9 || payload[8] > 1))
+                throw new InvalidDataException("Invalid native EPUB PNG image metadata.");
+            int metadata = type.SequenceEqual("sRGB"u8) ? 1 : type.SequenceEqual("gAMA"u8) ? 2
+                : type.SequenceEqual("pHYs"u8) ? 4 : 0;
+            if (metadata != 0)
+            {
+                if (imageDataStarted || (seenMetadata & metadata) != 0)
+                    throw new InvalidDataException("Native EPUB PNG image metadata must appear once before image data.");
+                uint crc = uint.MaxValue;
+                foreach (byte value in data.Slice(offset + 4, (int)length + 4))
+                {
+                    crc ^= value;
+                    for (int bit = 0; bit < 8; bit++)
+                        crc = (crc >> 1) ^ ((crc & 1) == 0 ? 0u : 0xedb88320u);
+                }
+                if (~crc != BinaryPrimitives.ReadUInt32BigEndian(data[(offset + 8 + (int)length)..]))
+                    throw new InvalidDataException("Native EPUB PNG image metadata checksum is invalid.");
+                seenMetadata |= metadata;
+                if (metadata == 4 && (BinaryPrimitives.ReadUInt32BigEndian(payload) == 0
+                    || BinaryPrimitives.ReadUInt32BigEndian(payload) != BinaryPrimitives.ReadUInt32BigEndian(payload[4..])))
+                    throw new NotSupportedException("Native EPUB PNG pHYs rendering requires a defined square pixel aspect ratio.");
+            }
+            if (type.SequenceEqual("IDAT"u8)) imageDataStarted = true;
+            if (!type.SequenceEqual("IHDR"u8) && !type.SequenceEqual("IDAT"u8) && !type.SequenceEqual("IEND"u8)
+                && !type.SequenceEqual("sRGB"u8) && !type.SequenceEqual("gAMA"u8) && !type.SequenceEqual("pHYs"u8))
                 throw new NotSupportedException("Native EPUB PNG metadata and additional chunk types are not implemented.");
             offset = checked(offset + (int)length + 12);
         }
+        if ((seenMetadata & 2) != 0 && (seenMetadata & 1) == 0)
+            throw new NotSupportedException("Native EPUB PNG gAMA rendering without authoritative sRGB metadata is not implemented.");
         var image = PdfPngDecoder.Decode(bytes, 4 * 1024 * 1024);
         cancellationToken.ThrowIfCancellationRequested();
         retainedBytes += image.Samples.LongLength + (image.Alpha?.LongLength ?? 0);

@@ -213,8 +213,13 @@ paragraph gaps. Consecutive breaks retain blank line heights through pagination,
 and styled text keeps its source offsets. Structural normalization still omits
 leading breaks before any text and trims trailing breaks.
 Words wider than the content box are diagnosed explicitly.
-Packaged, untagged eight-bit RGB/RGBA PNG images with only IHDR/IDAT/IEND chunks can
+Packaged eight-bit RGB/RGBA PNG images, untagged or explicitly sRGB, can
 paint inline at intrinsic CSS-pixel dimensions, aligned to the shared baseline.
+Supported sRGB, gAMA and square-pixel pHYs metadata is validated for length,
+values, placement, duplication and checksum. Authoritative sRGB takes precedence
+over a supplied positive gamma value. Physical density does not rescale the
+intrinsic CSS-pixel geometry. Gamma without sRGB, non-square or undefined pixel
+ratios, and other color/profile chunks remain explicitly unsupported.
 Image-only paragraphs retain line boxes and paragraph spacing. Explicit breaks
 keep image-only lines and intervening blank lines in source order without
 inventing structural text characters. Images do not
