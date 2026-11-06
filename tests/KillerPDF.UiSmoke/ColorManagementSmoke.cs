@@ -18,7 +18,8 @@ using KillerPdf.Engine.Documents;
 
 internal static class ColorManagementSmoke
 {
-    internal static int Run(Window owner, string appPath, string folder, bool documentReopen = false, bool replacementReview = false)
+    internal static int Run(Window owner, string appPath, string folder, bool documentReopen = false, bool replacementReview = false,
+        bool storageFailure = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02")) throw new InvalidOperationException("Color controls require an owned VM.");
         string engineHash = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
@@ -49,6 +50,31 @@ internal static class ColorManagementSmoke
                 Product(dialog.Title.Contains("Color Management", StringComparison.Ordinal), "The panel title must be readable English.");
                 var controls = Descendants(dialog).OfType<FrameworkElement>().ToArray();
                 T Control<T>(string id) where T : FrameworkElement => controls.OfType<T>().Single(item => AutomationProperties.GetAutomationId(item) == id);
+                if (stage is "storage-load" or "storage-apply" or "storage-save")
+                {
+                    var notice = Control<TextBlock>("ProofPreferencesStatus");
+                    string expectedNotice = stage == "storage-save"
+                        ? "Proof settings could not be saved. Current settings still apply while this document is open."
+                        : "Saved proof settings could not be read. Current proof settings are unchanged.";
+                    Product(notice.IsVisible && notice.Text == expectedNotice,
+                        "The actual panel must explain the document preference storage failure without exposing internal details.");
+                    Product(Control<CheckBox>("ProofEnabled").IsChecked == (stage == "storage-save"),
+                        "The panel must show default proof off after a failed restore and retain the applied request after a failed save.");
+                    if (stage == "storage-apply")
+                        ((IToggleProvider)new CheckBoxAutomationPeer(Control<CheckBox>("ProofEnabled")).GetPattern(PatternInterface.Toggle)!).Toggle();
+                    int storageFrames = 0;
+                    EventHandler storageReady = (_, _) => storageFrames++;
+                    CompositionTarget.Rendering += storageReady;
+                    try { Wait(() => storageFrames >= 2); }
+                    finally { CompositionTarget.Rendering -= storageReady; }
+                    var storageCapture = NativeReadingSmoke.Capture(dialog, new Rect(dialog.PointToScreen(new Point(4, 4)),
+                        dialog.PointToScreen(new Point(dialog.ActualWidth - 4, dialog.ActualHeight - 4))));
+                    var storageEncoder = new PngBitmapEncoder();
+                    storageEncoder.Frames.Add(BitmapFrame.Create(storageCapture));
+                    using (var output = File.Create(Path.Combine(folder, stage + ".png"))) storageEncoder.Save(output);
+                    owner.Dispatcher.BeginInvoke(new Action(() => Invoke(Control<Button>(stage == "storage-apply" ? "ColorManagementApply" : "ColorManagementClose"))));
+                    return;
+                }
                 if (stage is "review-replacement-close" or "review-replacement-apply")
                 {
                     var review = controls.OfType<Button>().SingleOrDefault(item => AutomationProperties.GetAutomationId(item) == "ProofReviewPrevious");
@@ -396,6 +422,30 @@ internal static class ColorManagementSmoke
             Product(View()!.CaptureProof().Settings == before, "Closing the initial panel must preserve document proof preferences.");
             foreach (string next in new[] { "apply", "reopen", "select-profile", "reopen-profile", "missing-profile", "import-profile", "reopen-imported", "cancel-import", "invalid-import", "save-preset", "load-preset", "apply-preset", "corrupt-library" })
             {
+                if (storageFailure && next == "corrupt-library")
+                {
+                    stage = "prepare-storage-failure";
+                    var previousOwner = View()!.Document.Id;
+                    ShortcutHintsSmoke.Key(owner, 0x57, 0x11);
+                    Wait(() => View() is null);
+                    string catalog = Path.GetFullPath(Path.Combine(folder, "data", "color-management", "documents", "proof-presets.json"));
+                    string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder)) + Path.DirectorySeparatorChar;
+                    if (!catalog.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Preference fixture escaped owned evidence.");
+                    Product(File.Exists(catalog), "Earlier actual Apply must have saved document preferences before the fault fixture replaces its catalog.");
+                    File.WriteAllText(catalog, "{invalid-document-preferences");
+                    owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [source]);
+                    Wait(() => View() is not null && ((TextBlock)owner.FindName("FileNameLabel")).Text == Path.GetFileName(source));
+                    Product(View()!.Document.Id != previousOwner, "A preference storage failure must not prevent reopening the PDF into a new owner.");
+                    Product(View()!.CaptureProof().Settings == new PdfDocumentProofSettings(), "Unreadable preferences must leave a new document at default proof off.");
+                    OpenReviewPanel("storage-load");
+                    OpenReviewPanel("storage-apply");
+                    Product(View()!.CaptureProof().Settings.Enabled && View()!.CaptureProof().Settings.PrinterProfile is null,
+                        "A failed preference save must retain the explicitly applied in-memory viewing request.");
+                    OpenReviewPanel("storage-save");
+                    Product(File.ReadAllText(catalog) == "{invalid-document-preferences", "Load and failed Save must preserve the damaged preference catalog for recovery.");
+                    Product(File.ReadAllBytes(source).SequenceEqual(original), "Preference storage faults must preserve the original PDF bytes.");
+                    break;
+                }
                 if (next == "select-profile")
                 {
                     if (documentReopen)
@@ -549,7 +599,7 @@ internal static class ColorManagementSmoke
             {
                 passed = failure is null, stage, assertions, handled, error = failure?.ToString(),
                 sourcePreserved = File.ReadAllBytes(source).SequenceEqual(original), closed = !owner.IsVisible,
-                replacementReview, restoredFixtureAfterFailure, replacementEvents,
+                replacementReview, storageFailure, restoredFixtureAfterFailure, replacementEvents,
                 appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath))), engineHash, codecHash
             }, new JsonSerializerOptions { WriteIndented = true }));
         }

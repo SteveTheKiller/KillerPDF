@@ -591,3 +591,11 @@ keeping its size and timestamp. Proof must start off. Review settings populates
 draft controls only; Close discards them and Apply adopts them without rewriting
 the replacement PDF. Reopening the original restores its own saved preferences.
 The workflow captures the actual review panel on the owned VM.
+
+`--verify-proof-storage APP_DLL APP_XAML OUTPUT --session-isolation` replaces the
+owned document-preference catalog with malformed JSON after the normal proof and
+preset workflow. The PDF must reopen at default proof off with a readable notice.
+Apply must retain the current in-memory request even when saving preferences fails,
+and the next panel must explain that failure. Both the damaged catalog and the
+original PDF remain unchanged. Actual load/save notice captures support rendered
+review; this does not cover every filesystem or storage failure.
