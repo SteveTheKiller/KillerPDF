@@ -89,9 +89,30 @@ public sealed partial class EpubDocument
             }
             builder.AddPage(options.PageWidthPoints, options.PageHeightPoints, content);
         }
+        AddBookmarks(ReadNavigation(cancellationToken), 0);
         cancellationToken.ThrowIfCancellationRequested();
         byte[] result = builder.Build();
         cancellationToken.ThrowIfCancellationRequested();
         return result;
+
+        void AddBookmarks(IReadOnlyList<EpubNavigationEntry> entries, int level)
+        {
+            foreach (var entry in entries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (entry.Target.Length == 0)
+                    builder.AddBookmarkHeading(entry.Label, level);
+                else
+                {
+                    var destination = layout.ResolveNavigationTarget(entry.Target, cancellationToken);
+                    builder.AddBookmark(entry.Label, destination.PageIndex, level, new PdfBookmarkOptions
+                    {
+                        Destination = PdfDestination.At(destination.Left * pointsPerCssPixel,
+                            options.PageHeightPoints - destination.Top * pointsPerCssPixel)
+                    });
+                }
+                AddBookmarks(entry.Children, level + 1);
+            }
+        }
     }
 }

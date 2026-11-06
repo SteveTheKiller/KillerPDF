@@ -107,7 +107,9 @@ public sealed partial class EpubDocumentTests
     public void ExplicitlyConvertsBookWithHtml5NavigationAndIndependentlyReopensPdf()
     {
         byte[] navigation = Encoding.UTF8.GetBytes("<!DOCTYPE html>" + Navigation);
-        var book = Html5NavigationBook(navigation);
+        var book = Html5NavigationBook(navigation,
+            ("EPUB/one.xhtml", "<!DOCTYPE html><html xmlns='http://www.w3.org/1999/xhtml'><body id='start'>One</body></html>"),
+            ("EPUB/two.xhtml", "<!DOCTYPE html><html xmlns='http://www.w3.org/1999/xhtml'><body id='detail'>Two</body></html>"));
         using Stream fontStream = typeof(TrueTypeFont).Assembly.GetManifestResourceStream(
             "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
         using var fontBytes = new MemoryStream();
@@ -125,11 +127,14 @@ public sealed partial class EpubDocumentTests
         Assert.Contains("Two", text);
         Assert.Equal("First chapter", entries[0].Label);
         Assert.Equal(navigation, book.ReadResource("EPUB/nav.xhtml"));
-        _output.WriteLine("Independently reopened PDF bookmark count (observation only): "
-            + PdfBookmarkReader.Read(reopened).Count);
+        var bookmarks = PdfBookmarkReader.Read(reopened);
+        Assert.Equal(new[] { "First chapter", "Second chapter" }, bookmarks.Select(item => item.Title));
+        Assert.Equal(0, bookmarks[0].DestinationPageIndex);
+        Assert.Equal(1, Assert.Single(bookmarks[0].Children).DestinationPageIndex);
     }
 
-    private static EpubDocument Html5NavigationBook(byte[] navigation)
+    private static EpubDocument Html5NavigationBook(byte[] navigation,
+        params (string Path, string Content)[] chapters)
     {
         string package = Package.Replace("page-progression-direction=\"rtl\"", "page-progression-direction=\"ltr\"")
             .Replace("</manifest>", "<item id='nav' href='nav.xhtml' media-type='application/xhtml+xml' properties='nav'/></manifest>");
@@ -137,8 +142,14 @@ public sealed partial class EpubDocumentTests
         output.Write(Book(package));
         using (var zip = new ZipArchive(output, ZipArchiveMode.Update, true))
         {
-            using var resource = zip.CreateEntry("EPUB/nav.xhtml").Open();
-            resource.Write(navigation);
+            using (var resource = zip.CreateEntry("EPUB/nav.xhtml").Open())
+                resource.Write(navigation);
+            foreach (var chapter in chapters)
+            {
+                zip.GetEntry(chapter.Path)!.Delete();
+                using var resource = zip.CreateEntry(chapter.Path).Open();
+                resource.Write(Encoding.UTF8.GetBytes(chapter.Content));
+            }
         }
         return EpubDocument.Open(output.ToArray());
     }

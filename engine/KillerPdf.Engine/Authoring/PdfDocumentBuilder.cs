@@ -519,6 +519,17 @@ public sealed partial class PdfDocumentBuilder
         return this;
     }
 
+    /// <summary>Adds a hierarchical bookmark heading without a destination.</summary>
+    public PdfDocumentBuilder AddBookmarkHeading(
+        string title, int level = 0, PdfBookmarkOptions? options = null)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("A bookmark title cannot be empty.", nameof(title));
+        ValidateBookmarkLevel(level);
+        _bookmarks.Add(new BookmarkDefinition(title, null, null, level, options ?? new PdfBookmarkOptions()));
+        return this;
+    }
+
     /// <summary>Adds a hierarchical bookmark targeting a previously defined named destination.</summary>
     public PdfDocumentBuilder AddNamedDestinationBookmark(
         string title, string destinationName, int level = 0,
@@ -2443,13 +2454,14 @@ public sealed partial class PdfDocumentBuilder
                     ("Title", UnicodeString(bookmark.Title)),
                     ("Parent", parents[index].HasValue
                         ? new PdfIndirectReference(bookmarkNumbers[parents[index]!.Value], 0)
-                        : new PdfIndirectReference(outlinesNumber.Value, 0)),
-                    ("Dest", bookmark.NamedDestination is not null
+                        : new PdfIndirectReference(outlinesNumber.Value, 0))
+                };
+                if (bookmark.NamedDestination is not null || bookmark.PageIndex.HasValue)
+                    entries.Add(("Dest", bookmark.NamedDestination is not null
                         ? UnicodeString(bookmark.NamedDestination)
                         : DestinationArray(
                             DestinationReference(bookmark.PageIndex!.Value),
-                            bookmark.Options.Destination))
-                };
+                            bookmark.Options.Destination)));
                 if (bookmark.Options.Color.HasValue)
                     entries.Add(("C", ColorArray(bookmark.Options.Color.Value)));
                 if (bookmark.Options.Style != PdfBookmarkStyle.Regular)
