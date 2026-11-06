@@ -9,6 +9,7 @@ public partial class PdfViewer
     internal readonly record struct ProofPreferenceTarget(PdfDocumentProofView View, string Path, string SourceSha256);
 
     internal string? ProofPreferenceNoticeKeyExt => _active?.ProofPreferenceNoticeKey;
+    internal IReadOnlyList<DocumentProofReview>? PreviousProofPreferencesExt => _active?.PreviousProofPreferences;
 
     internal ProofPreferenceTarget? CaptureProofPreferenceTargetExt() =>
         _active is { ProofPreferenceSource: { } source } session

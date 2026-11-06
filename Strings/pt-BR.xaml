@@ -2086,4 +2086,7 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_CM_PresetSaveFailed">Não foi possível salvar a predefinição. Digite um nome exclusivo e tente novamente.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">Não foi possível ler as configurações de prova salvas. As configurações de prova atuais permanecem inalteradas.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Não foi possível salvar as configurações de prova. As configurações atuais continuam sendo aplicadas enquanto este documento estiver aberto.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Este arquivo tem um conteúdo diferente. As configurações de prova anteriores estão disponíveis para revisão.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Configurações do arquivo anterior</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Revisar configurações</sys:String>
 </ResourceDictionary>

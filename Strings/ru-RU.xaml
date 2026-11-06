@@ -2089,4 +2089,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_CM_PresetSaveFailed">Не удалось сохранить набор настроек. Введите уникальное имя и повторите попытку.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">Не удалось прочитать сохраненные настройки цветопробы. Текущие настройки цветопробы не изменены.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Не удалось сохранить настройки цветопробы. Текущие настройки продолжают действовать, пока этот документ открыт.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Содержимое этого файла отличается. Предыдущие настройки цветопробы доступны для просмотра.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Настройки предыдущего файла</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Просмотреть настройки</sys:String>
 </ResourceDictionary>

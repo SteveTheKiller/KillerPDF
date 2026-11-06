@@ -2086,4 +2086,7 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_CM_PresetSaveFailed">プリセットを保存できませんでした。重複しない名前を入力して、もう一度お試しください。</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">保存された色校正設定を読み取れませんでした。現在の色校正設定は変更されていません。</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">色校正設定を保存できませんでした。この文書を開いている間は、現在の設定が引き続き適用されます。</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">このファイルの内容は以前と異なります。以前の色校正設定を確認できます。</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">以前のファイルの設定</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">設定を確認</sys:String>
 </ResourceDictionary>

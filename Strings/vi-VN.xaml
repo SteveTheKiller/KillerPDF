@@ -2086,4 +2086,7 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_CM_PresetSaveFailed">Không thể lưu thiết lập sẵn. Hãy nhập tên duy nhất và thử lại.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">Không thể đọc thiết lập in thử đã lưu. Thiết lập in thử hiện tại không thay đổi.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Không thể lưu thiết lập in thử. Thiết lập hiện tại vẫn được áp dụng khi tài liệu này còn mở.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Tệp này có nội dung khác. Bạn có thể xem lại các thiết lập in thử trước đó.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Thiết lập của tệp trước</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Xem lại thiết lập</sys:String>
 </ResourceDictionary>

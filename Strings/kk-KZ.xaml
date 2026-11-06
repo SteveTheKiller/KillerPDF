@@ -2089,4 +2089,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_CM_PresetSaveFailed">Үлгіні сақтау мүмкін болмады. Бірегей атауды енгізіп, қайталап көріңіз.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">Сақталған түсті сынау параметрлерін оқу мүмкін болмады. Ағымдағы түсті сынау параметрлері өзгеріссіз қалды.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Түсті сынау параметрлерін сақтау мүмкін болмады. Осы құжат ашық тұрғанда ағымдағы параметрлер қолданыла береді.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Бұл файлдың мазмұны басқа. Алдыңғы түсті сынау параметрлерін қарап шығуға болады.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Алдыңғы файлдың параметрлері</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Параметрлерді қарап шығу</sys:String>
 </ResourceDictionary>

@@ -2068,4 +2068,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_CM_PresetSaveFailed">無法儲存預設。請輸入不重複的名稱後再試一次。</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">無法讀取已儲存的校樣設定。目前的校樣設定維持不變。</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">無法儲存校樣設定。在此文件保持開啟期間，目前的設定仍然適用。</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">此檔案的內容與先前不同。可以檢視先前的校樣設定。</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">先前檔案的設定</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">檢視設定</sys:String>
 </ResourceDictionary>

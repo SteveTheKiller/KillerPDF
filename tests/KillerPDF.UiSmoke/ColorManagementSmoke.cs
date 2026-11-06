@@ -18,7 +18,7 @@ using KillerPdf.Engine.Documents;
 
 internal static class ColorManagementSmoke
 {
-    internal static int Run(Window owner, string appPath, string folder, bool documentReopen = false)
+    internal static int Run(Window owner, string appPath, string folder, bool documentReopen = false, bool replacementReview = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02")) throw new InvalidOperationException("Color controls require an owned VM.");
         string engineHash = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
@@ -27,6 +27,9 @@ internal static class ColorManagementSmoke
         string source = Path.Combine(folder, "color-controls.pdf");
         byte[] original = new PdfDocumentBuilder().AddBlankPage(600, 750).Build();
         File.WriteAllBytes(source, original);
+        DateTime originalWriteTime = File.GetLastWriteTimeUtc(source);
+        bool restoredFixtureAfterFailure = false;
+        var replacementEvents = new List<object>();
         int assertions = 0;
         string stage = "open";
         Exception? failure = null;
@@ -46,6 +49,42 @@ internal static class ColorManagementSmoke
                 Product(dialog.Title.Contains("Color Management", StringComparison.Ordinal), "The panel title must be readable English.");
                 var controls = Descendants(dialog).OfType<FrameworkElement>().ToArray();
                 T Control<T>(string id) where T : FrameworkElement => controls.OfType<T>().Single(item => AutomationProperties.GetAutomationId(item) == id);
+                if (stage is "review-replacement-close" or "review-replacement-apply")
+                {
+                    var review = controls.OfType<Button>().SingleOrDefault(item => AutomationProperties.GetAutomationId(item) == "ProofReviewPrevious");
+                    Product(review is not null && review.IsVisible && review.IsEnabled,
+                        "A replacement PDF must offer explicit review of its previous-file proof settings.");
+                    var previous = Control<ComboBox>("ProofPreviousSettings");
+                    Product(previous.Items.Count == 1 && previous.SelectedIndex == 0,
+                        "The saved previous-file request must be available as one review choice.");
+                    Product(Control<CheckBox>("ProofEnabled").IsChecked == false,
+                        "Choosing a previous-file record must not enable proof before review.");
+                    var beforeReview = View()!.CaptureProof().Settings;
+                    review!.BringIntoView();
+                    Wait(() => Reachable(review));
+                    Invoke(review);
+                    Wait(() => Control<CheckBox>("ProofEnabled").IsChecked == true);
+                    Product(Control<ComboBox>("ProofIntent").SelectedIndex == 3
+                        && Control<CheckBox>("ProofBpc").IsChecked == false
+                        && Control<CheckBox>("ProofPaper").IsChecked == true
+                        && Control<CheckBox>("ProofBlack").IsChecked == true
+                        && Control<CheckBox>("ProofGamut").IsChecked == true,
+                        "Review must populate the complete saved request in draft controls.");
+                    Product(View()!.CaptureProof().Settings == beforeReview,
+                        "Review must not change the replacement document before Apply.");
+                    int reviewFrames = 0;
+                    EventHandler reviewReady = (_, _) => reviewFrames++;
+                    CompositionTarget.Rendering += reviewReady;
+                    try { Wait(() => reviewFrames >= 2); }
+                    finally { CompositionTarget.Rendering -= reviewReady; }
+                    var reviewCapture = NativeReadingSmoke.Capture(dialog, new Rect(dialog.PointToScreen(new Point(4, 4)),
+                        dialog.PointToScreen(new Point(dialog.ActualWidth - 4, dialog.ActualHeight - 4))));
+                    var reviewEncoder = new PngBitmapEncoder();
+                    reviewEncoder.Frames.Add(BitmapFrame.Create(reviewCapture));
+                    using (var output = File.Create(Path.Combine(folder, stage + ".png"))) reviewEncoder.Save(output);
+                    owner.Dispatcher.BeginInvoke(new Action(() => Invoke(Control<Button>(stage == "review-replacement-apply" ? "ColorManagementApply" : "ColorManagementClose"))));
+                    return;
+                }
                 if (stage is "save-preset" or "load-preset" or "apply-preset")
                 {
                     var save = controls.OfType<Button>().SingleOrDefault(item => AutomationProperties.GetAutomationId(item) == "ProofSavePreset");
@@ -369,11 +408,45 @@ internal static class ColorManagementSmoke
                         ShortcutHintsSmoke.Key(owner, 0x57, 0x11);
                         Wait(() => View() is null);
                         Product(owner.IsVisible, "Closing the document must retain the app window.");
+                        byte[]? replacement = null;
+                        if (replacementReview)
+                        {
+                            replacement = original.ToArray();
+                            int width = replacement.AsSpan().IndexOf("600 750"u8);
+                            if (width < 0) throw new InvalidOperationException("Synthetic replacement fixture has no expected MediaBox.");
+                            replacement[width + 2] = (byte)'1';
+                            Product(new PdfPageContentReader(PdfDocument.Open(replacement)).PageCount == 1,
+                                "The independent replacement fixture must remain a valid one-page PDF.");
+                            File.WriteAllBytes(source, replacement);
+                            File.SetLastWriteTimeUtc(source, originalWriteTime);
+                            Product(new FileInfo(source).Length == original.Length && File.GetLastWriteTimeUtc(source) == originalWriteTime,
+                                "Replacement must keep the original size and timestamp to isolate content matching.");
+                            replacementEvents.Add(new { originalSHA256 = Convert.ToHexString(SHA256.HashData(original)),
+                                replacementSHA256 = Convert.ToHexString(SHA256.HashData(replacement)), sameSizeAndWriteTime = true });
+                        }
                         owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [source]);
                         Wait(() => View() is not null && ((TextBlock)owner.FindName("FileNameLabel")).Text == Path.GetFileName(source));
                         Product(View()!.Document.Id != previousOwner, "Reopening must create a new logical document owner.");
+                        if (replacement is not null)
+                        {
+                            Product(View()!.CaptureProof().Settings == new PdfDocumentProofSettings(),
+                                "Different contents at the same path must open with default proof off.");
+                            OpenReviewPanel("review-replacement-close");
+                            Product(View()!.CaptureProof().Settings == new PdfDocumentProofSettings(),
+                                "Closing reviewed draft controls must leave replacement proof off.");
+                            Product(File.ReadAllBytes(source).SequenceEqual(replacement), "Review and Close must preserve the replacement bytes.");
+                            OpenReviewPanel("review-replacement-apply");
+                            Product(View()!.CaptureProof().Settings == expected, "Explicit Apply must adopt the reviewed settings for the replacement.");
+                            Product(File.ReadAllBytes(source).SequenceEqual(replacement), "Applying reviewed settings must preserve replacement bytes.");
+                            ShortcutHintsSmoke.Key(owner, 0x57, 0x11);
+                            Wait(() => View() is null);
+                            File.WriteAllBytes(source, original);
+                            File.SetLastWriteTimeUtc(source, originalWriteTime);
+                            owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [source]);
+                            Wait(() => View() is not null);
+                        }
                         Product(View()!.CaptureProof().Settings == expected,
-                            "Reopening identical file contents at the same path must restore the applied proof preferences.");
+                            "Reopening original contents must restore their own request independently of replacement settings.");
                         Product(File.ReadAllBytes(source).SequenceEqual(original), "Proof persistence must not rewrite the source PDF.");
                     }
                     var type = owner.GetType().Assembly.GetType("KillerPDF.Services.ProofProfileLibrary", throwOnError: true)!;
@@ -449,14 +522,35 @@ internal static class ColorManagementSmoke
             if (renderReady is not null) CompositionTarget.Rendering -= renderReady;
             foreach (var modal in Application.Current.Windows.Cast<Window>().Where(item => item != owner && item.IsVisible).ToArray()) modal.Close();
             if (owner.IsVisible) owner.Close();
+            if (replacementReview && !File.ReadAllBytes(source).SequenceEqual(original))
+            {
+                File.WriteAllBytes(source, original);
+                File.SetLastWriteTimeUtc(source, originalWriteTime);
+                restoredFixtureAfterFailure = true;
+            }
             File.WriteAllText(Path.Combine(folder, "result.json"), JsonSerializer.Serialize(new
             {
                 passed = failure is null, stage, assertions, handled, error = failure?.ToString(),
                 sourcePreserved = File.ReadAllBytes(source).SequenceEqual(original), closed = !owner.IsVisible,
+                replacementReview, restoredFixtureAfterFailure, replacementEvents,
                 appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath))), engineHash, codecHash
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
         return failure is null ? 0 : 1;
+
+        void OpenReviewPanel(string requestedStage)
+        {
+            stage = requestedStage;
+            handled = false;
+            ShortcutHintsSmoke.Key(owner, 0x44, 0x11, 0x10);
+            ContextMenu? reviewMenu = null;
+            Wait(() => (reviewMenu = PresentationSource.CurrentSources.Cast<PresentationSource>().SelectMany(item => Descendants(item.RootVisual))
+                .OfType<ContextMenu>().FirstOrDefault(item => item.IsOpen)) is not null);
+            var command = reviewMenu!.Items.OfType<MenuItem>().Single(item => item.Header?.ToString() == "Color Management");
+            ((IInvokeProvider)new MenuItemAutomationPeer(command).GetPattern(PatternInterface.Invoke)!).Invoke();
+            Wait(() => handled && !Application.Current.Windows.Cast<Window>().Any(item => item != owner && item.IsVisible));
+            if (failure is not null) throw failure;
+        }
 
         PdfDocumentProofView? View()
         {

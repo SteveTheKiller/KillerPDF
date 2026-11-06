@@ -11,7 +11,8 @@ public partial class MainWindow
         if (view is null) return;
         var proof = view.CaptureProof();
         var target = viewer.CaptureProofPreferenceTargetExt();
-        var dialog = new ColorManagementDialog(this, proof.Settings, viewer.ProofPreferenceNoticeKeyExt);
+        var previous = proof.Stamp.IsComparison ? null : viewer.PreviousProofPreferencesExt;
+        var dialog = new ColorManagementDialog(this, proof.Settings, viewer.ProofPreferenceNoticeKeyExt, previous);
         if (dialog.ShowDialog() != true || dialog.AppliedSettings is not { } settings) return;
         if (proof.Stamp.IsComparison) view.ComparisonOverride = settings;
         else

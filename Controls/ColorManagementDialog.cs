@@ -13,7 +13,8 @@ internal sealed class ColorManagementDialog : Window
 {
     internal PdfDocumentProofSettings? AppliedSettings { get; private set; }
 
-    internal ColorManagementDialog(Window owner, PdfDocumentProofSettings settings, string? preferenceNoticeKey = null)
+    internal ColorManagementDialog(Window owner, PdfDocumentProofSettings settings, string? preferenceNoticeKey = null,
+        IReadOnlyList<DocumentProofReview>? previousProof = null)
     {
         Title = "KillerPDF - " + L("Str_CM_Title");
         Width = 560;
@@ -101,6 +102,8 @@ internal sealed class ColorManagementDialog : Window
         var presetStatus = Label("Str_CM_PresetLibraryUnavailable", 4);
         presetStatus.Visibility = presetsReadable ? Visibility.Collapsed : Visibility.Visible;
         AutomationProperties.SetAutomationId(presetStatus, "ProofPresetStatus");
+        ComboBox? previousChoice = null;
+        Button? reviewPrevious = null;
         SetOperationBusy(false);
         presetChoice.SelectionChanged += (_, _) => loadPreset.IsEnabled = !importBusy && presetsReadable && presetChoice.SelectedIndex > 0;
         import.Click += async (_, _) =>
@@ -190,6 +193,45 @@ internal sealed class ColorManagementDialog : Window
         var black = Toggle("Str_CM_Black", "ProofBlack", settings.Options.SimulateBlack);
         var gamut = Toggle("Str_CM_Gamut", "ProofGamut", settings.GamutWarnings);
         foreach (var toggle in new[] { bpc, paper, black, gamut }) fields.Children.Add(toggle);
+        if (previousProof is { Count: > 0 })
+        {
+            var previousFields = new StackPanel();
+            fields.Children.Insert(0, previousFields);
+            previousFields.Children.Add(Label("Str_CM_PreviousFileHint", 4));
+            previousFields.Children.Add(Label("Str_CM_PreviousFileSettings", 4));
+            previousChoice = Choice("Str_CM_PreviousFileSettings", "ProofPreviousSettings",
+                Enumerable.Range(1, previousProof.Count).Select(index => L("Str_CM_PreviousFileSettings") + " "
+                    + index.ToString(System.Globalization.CultureInfo.CurrentCulture)).ToArray(), 0);
+            previousFields.Children.Add(previousChoice);
+            reviewPrevious = UiKit.Make(L("Str_CM_ReviewPrevious"), accent: false);
+            reviewPrevious.HorizontalAlignment = HorizontalAlignment.Left;
+            AutomationProperties.SetAutomationId(reviewPrevious, "ProofReviewPrevious");
+            AutomationProperties.SetName(reviewPrevious, L("Str_CM_ReviewPrevious"));
+            previousFields.Children.Add(reviewPrevious);
+            reviewPrevious.Click += (_, _) =>
+            {
+                if (importBusy || previousChoice.SelectedIndex < 0) return;
+                var chosen = previousProof[previousChoice.SelectedIndex].Preset;
+                if (chosen.PrinterProfileSha256 is { } hash && !entries.Any(entry => entry.ContentSha256 == hash))
+                    entries.Add(new ProofProfileEntry(L("Str_CM_UnavailableProfile"), hash));
+                profile.ItemsSource = new[] { L("Str_CM_NoProfile") }.Concat(entries.Select(entry => entry.Name)).ToArray();
+                profile.SelectedIndex = entries.FindIndex(entry => entry.ContentSha256 == chosen.PrinterProfileSha256) + 1;
+                enabled.IsChecked = chosen.Enabled;
+                intent.SelectedIndex = chosen.Options.RenderingIntent switch
+                {
+                    PdfRenderingIntent.Perceptual => 0,
+                    PdfRenderingIntent.RelativeColorimetric => 1,
+                    PdfRenderingIntent.Saturation => 2,
+                    PdfRenderingIntent.AbsoluteColorimetric => 3,
+                    _ => throw new ArgumentOutOfRangeException(nameof(chosen))
+                };
+                bpc.IsChecked = chosen.Options.BlackPointCompensation;
+                paper.IsChecked = chosen.Options.SimulatePaper;
+                black.IsChecked = chosen.Options.SimulateBlack;
+                gamut.IsChecked = chosen.GamutWarnings;
+                UpdateProfileAvailability();
+            };
+        }
         fields.Children.Add(Label("Str_CM_Preset", 4));
         fields.Children.Add(presetChoice);
         fields.Children.Add(Label("Str_CM_PresetName", 4));
@@ -279,6 +321,8 @@ internal sealed class ColorManagementDialog : Window
             import.IsEnabled = profile.IsEnabled = apply.IsEnabled = libraryReadable && !busy;
             presetChoice.IsEnabled = presetName.IsEnabled = savePreset.IsEnabled = presetsReadable && !busy;
             loadPreset.IsEnabled = presetsReadable && !busy && presetChoice.SelectedIndex > 0;
+            if (previousChoice is not null) previousChoice.IsEnabled = !busy;
+            if (reviewPrevious is not null) reviewPrevious.IsEnabled = !busy;
         }
         body.Children.Add(new ScrollViewer { Content = fields, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
         Content = DialogFrame.Frame(this, owner, Title, Close, body);

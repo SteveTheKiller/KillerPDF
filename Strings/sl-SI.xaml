@@ -1975,4 +1975,7 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_CM_PresetSaveFailed">Prednastavitve ni bilo mogoče shraniti. Vnesite enolično ime in poskusite znova.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">Shranjenih nastavitev poskusnega odtisa ni bilo mogoče prebrati. Trenutne nastavitve poskusnega odtisa so nespremenjene.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Nastavitev poskusnega odtisa ni bilo mogoče shraniti. Trenutne nastavitve še naprej veljajo, dokler je ta dokument odprt.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Ta datoteka ima drugačno vsebino. Prejšnje nastavitve poskusnega odtisa so na voljo za pregled.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Nastavitve prejšnje datoteke</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Preglej nastavitve</sys:String>
 </ResourceDictionary>

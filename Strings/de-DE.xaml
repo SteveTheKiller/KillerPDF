@@ -2075,4 +2075,7 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_CM_PresetSaveFailed">Die Vorlage konnte nicht gespeichert werden. Geben Sie einen eindeutigen Namen ein und versuchen Sie es erneut.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">Die gespeicherten Proof-Einstellungen konnten nicht gelesen werden. Die aktuellen Proof-Einstellungen bleiben unverändert.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Die Proof-Einstellungen konnten nicht gespeichert werden. Die aktuellen Einstellungen gelten weiterhin, solange dieses Dokument geöffnet ist.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Diese Datei hat einen anderen Inhalt. Frühere Proof-Einstellungen stehen zur Überprüfung bereit.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Einstellungen der vorherigen Datei</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Einstellungen überprüfen</sys:String>
 </ResourceDictionary>

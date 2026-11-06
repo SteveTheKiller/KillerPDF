@@ -2086,4 +2086,7 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_CM_PresetSaveFailed">Le préréglage n’a pas pu être enregistré. Saisissez un nom unique et réessayez.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">Les paramètres d’épreuvage enregistrés n’ont pas pu être lus. Les paramètres d’épreuvage actuels restent inchangés.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Les paramètres d’épreuvage n’ont pas pu être enregistrés. Les paramètres actuels continuent de s’appliquer tant que ce document est ouvert.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Ce fichier a un contenu différent. Les paramètres d’épreuvage précédents peuvent être examinés.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Paramètres du fichier précédent</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Examiner les paramètres</sys:String>
 </ResourceDictionary>

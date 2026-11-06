@@ -2071,4 +2071,7 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_CM_PresetSaveFailed">Předvolbu se nepodařilo uložit. Zadejte jedinečný název a zkuste to znovu.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">Uložené nastavení nátisku se nepodařilo přečíst. Aktuální nastavení nátisku zůstává beze změny.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Nastavení nátisku se nepodařilo uložit. Aktuální nastavení nadále platí, dokud je tento dokument otevřený.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Tento soubor má jiný obsah. Předchozí nastavení nátisku jsou k dispozici ke kontrole.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Nastavení předchozího souboru</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Zkontrolovat nastavení</sys:String>
 </ResourceDictionary>

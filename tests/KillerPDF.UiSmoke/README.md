@@ -579,4 +579,11 @@ requested settings through the panel, checks them after reopening the panel, clo
 the PDF with Ctrl+W and reopens its unchanged source into a new logical owner. The
 public document session must restore the requested settings without rewriting the
 PDF. Existing profile import and named-preset controls also run. Protected/native
-files, replacement review, save publication and storage-failure UI need separate cases.
+files, save publication and storage-failure UI need separate cases.
+
+`--verify-proof-replacement APP_DLL APP_XAML OUTPUT --session-isolation` also
+replaces the closed synthetic PDF with different valid contents at the same path,
+keeping its size and timestamp. Proof must start off. Review settings populates
+draft controls only; Close discards them and Apply adopts them without rewriting
+the replacement PDF. Reopening the original restores its own saved preferences.
+The workflow captures the actual review panel on the owned VM.

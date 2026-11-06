@@ -2066,4 +2066,7 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_CM_PresetSaveFailed">No se pudo guardar el ajuste preestablecido. Introduzca un nombre único e inténtelo de nuevo.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">No se pudieron leer los ajustes de prueba guardados. Los ajustes de prueba actuales no han cambiado.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">No se pudieron guardar los ajustes de prueba. Los ajustes actuales siguen aplicándose mientras este documento permanezca abierto.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Este archivo tiene un contenido diferente. Los ajustes de prueba anteriores están disponibles para su revisión.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Ajustes del archivo anterior</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Revisar ajustes</sys:String>
 </ResourceDictionary>

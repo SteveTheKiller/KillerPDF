@@ -2074,4 +2074,7 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_CM_PresetSaveFailed">Nie udało się zapisać ustawienia wstępnego. Wpisz unikatową nazwę i spróbuj ponownie.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">Nie można odczytać zapisanych ustawień próby. Bieżące ustawienia próby pozostają bez zmian.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Nie udało się zapisać ustawień próby. Bieżące ustawienia nadal obowiązują, dopóki ten dokument jest otwarty.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Ten plik ma inną zawartość. Poprzednie ustawienia próby są dostępne do przeglądu.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Ustawienia poprzedniego pliku</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Przejrzyj ustawienia</sys:String>
 </ResourceDictionary>

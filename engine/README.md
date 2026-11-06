@@ -478,9 +478,12 @@ the captured document or comparison view. Saved presets do not change open docum
 Preset storage supports explicit replacement and recovery. Unchanged plain PDFs
 restore their owner's requested proof settings from matching paths and captured
 contents before view bootstrap; explicit initial copy settings take precedence.
+Different contents at the same path start with proof off. The panel offers the
+previous file's preferences for explicit draft review; Close discards the draft,
+and Apply adopts it without rewriting the PDF.
 Comparison overrides do not replace stored owner defaults. Storage failures leave
 PDF opening and viewing available, with a status and panel notice. Protected/native
-and repaired opens, saved-output identities, replacement review and full management
+and repaired opens, saved-output identities and full management
 controls remain in progress.
 
 `PdfDocumentProofView` shares its logical owner's request unless an explicit

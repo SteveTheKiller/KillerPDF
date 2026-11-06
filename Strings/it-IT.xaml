@@ -2087,4 +2087,7 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_CM_PresetSaveFailed">Impossibile salvare la preimpostazione. Inserire un nome univoco e riprovare.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">Impossibile leggere le impostazioni di prova salvate. Le impostazioni di prova attuali sono rimaste invariate.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Impossibile salvare le impostazioni di prova. Le impostazioni attuali continuano a essere applicate finché questo documento rimane aperto.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Questo file ha un contenuto diverso. Le precedenti impostazioni di prova sono disponibili per la revisione.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Impostazioni del file precedente</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Rivedi impostazioni</sys:String>
 </ResourceDictionary>

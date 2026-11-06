@@ -2073,4 +2073,7 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_CM_PresetSaveFailed">A beállításkészletet nem sikerült menteni. Adjon meg egy egyedi nevet, és próbálja újra.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">A próbanyomat mentett beállításait nem sikerült beolvasni. A próbanyomat jelenlegi beállításai változatlanok.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">A próbanyomat beállításait nem sikerült menteni. A jelenlegi beállítások továbbra is érvényesek, amíg ez a dokumentum nyitva van.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Ennek a fájlnak eltérő a tartalma. A próbanyomat korábbi beállításai áttekinthetők.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Az előző fájl beállításai</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Beállítások áttekintése</sys:String>
 </ResourceDictionary>

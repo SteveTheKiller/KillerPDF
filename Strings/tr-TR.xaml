@@ -2066,4 +2066,7 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_CM_PresetSaveFailed">Hazır ayar kaydedilemedi. Benzersiz bir ad girip yeniden deneyin.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">Kaydedilmiş prova ayarları okunamadı. Geçerli prova ayarları değişmedi.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Prova ayarları kaydedilemedi. Bu belge açık olduğu sürece geçerli ayarlar uygulanmaya devam eder.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Bu dosyanın içeriği farklı. Önceki prova ayarları gözden geçirilebilir.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Önceki dosyanın ayarları</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Ayarları gözden geçir</sys:String>
 </ResourceDictionary>

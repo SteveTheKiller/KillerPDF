@@ -2086,4 +2086,7 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_CM_PresetSaveFailed">Forhåndsinnstillingen kunne ikke lagres. Skriv inn et unikt navn og prøv igjen.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesLoadFailed">De lagrede innstillingene for prøvetrykk kunne ikke leses. De gjeldende innstillingene for prøvetrykk er uendret.</sys:String>
     <sys:String x:Key="Str_CM_PreferencesSaveFailed">Innstillingene for prøvetrykk kunne ikke lagres. De gjeldende innstillingene gjelder fortsatt så lenge dette dokumentet er åpent.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileHint">Denne filen har et annet innhold. Tidligere innstillinger for prøvetrykk er tilgjengelige for gjennomgang.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettings">Innstillinger for forrige fil</sys:String>
+    <sys:String x:Key="Str_CM_ReviewPrevious">Se gjennom innstillinger</sys:String>
 </ResourceDictionary>
