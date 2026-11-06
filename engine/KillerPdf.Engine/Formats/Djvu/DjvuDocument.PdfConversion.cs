@@ -4,12 +4,11 @@ namespace KillerPdf.Engine.Formats.Djvu;
 
 public sealed partial class DjvuDocument
 {
-    /// <summary>Converts supported bitonal pages without text or navigation to a separate PDF.</summary>
+    /// <summary>Converts supported text-free bitonal pages and local bookmarks to a separate PDF.</summary>
     public byte[] ConvertToPdf(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (ReadNavigation(cancellationToken).Count != 0)
-            throw new NotSupportedException("DjVu PDF conversion does not yet preserve navigation.");
+        var navigation = ReadNavigation(cancellationToken);
         if (Pages.Count == 0)
             throw new NotSupportedException("DjVu PDF conversion requires supported native pages.");
         var builder = new PdfDocumentBuilder();
@@ -39,9 +38,21 @@ public sealed partial class DjvuDocument
             var image = PdfImage.FromBitonal(frame.Width, frame.Height, samples);
             builder.AddPage(width, height, new PdfContentStreamBuilder().DrawImage(image, 0, 0, width, height));
         }
+        AddBookmarks(navigation, 0);
         cancellationToken.ThrowIfCancellationRequested();
         byte[] result = builder.Build();
         cancellationToken.ThrowIfCancellationRequested();
         return result;
+
+        void AddBookmarks(IReadOnlyList<DjvuNavigationEntry> entries, int level)
+        {
+            foreach (var entry in entries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int destination = ResolveNavigationTarget(entry.Target, cancellationToken: cancellationToken);
+                builder.AddBookmark(entry.Label, destination, level);
+                AddBookmarks(entry.Children, level + 1);
+            }
+        }
     }
 }

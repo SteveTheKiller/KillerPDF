@@ -304,12 +304,13 @@ initially A4 with 15 mm margins. Existing destinations are not overwritten, and
 unsupported content is diagnosed before any PDF is published. Full format and
 workflow acceptance remains in progress.
 
-`DjvuDocument.ConvertToPdf()` initially supports text-free, navigation-free bitonal
-Smmr pages. It embeds lossless one-bit images at the page's recorded DPI, preserves
-intrinsic orientation and bundled page order, and leaves the source and native
-rendering unchanged. It rejects text and navigation rather than dropping them.
-Other native decoder diagnoses propagate; grayscale/color conversion and complete
-text/navigation preservation remain unfinished.
+`DjvuDocument.ConvertToPdf()` initially supports text-free bitonal Smmr pages.
+It embeds lossless one-bit images at the page's recorded DPI and preserves intrinsic
+orientation, bundled page order and local bookmark labels, hierarchy and page
+destinations. The source, native rendering and navigation stay unchanged. Relative,
+external, invalid or unrepresentable bookmark entries reject the conversion rather
+than being omitted. Text and other unsupported native content are also diagnosed.
+Grayscale/color conversion and complete text/navigation preservation remain unfinished.
 
 The EPUB `RenderPage(pageIndex, renderOptions)` overload rasterizes the original
 glyph outlines at the requested pixel dimensions without changing pagination or

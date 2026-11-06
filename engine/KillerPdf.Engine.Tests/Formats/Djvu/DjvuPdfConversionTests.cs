@@ -80,15 +80,19 @@ public sealed class DjvuPdfConversionTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void ConversionRejectsNavigationRatherThanDroppingIt()
+    public void ConversionRejectsUnsupportedPagesWithoutChangingNavigation()
     {
         var native = DjvuDocument.Open(Convert.FromHexString(
             "41542654464F524D00000064444A564D4449524D0000001181000100000052FFFFF8BF9E1FCC877DC900" +
             "4E41564D00000020FFFFDCFE710ED97FCE8AD681247C75F5957907266F39911034415499EB17C37B" +
             "464F524D00000016444A5655494E464F0000000A000200011A002C011601"));
-        Assert.NotEmpty(native.ReadNavigation());
-        Assert.Contains("preserve navigation", Assert.Throws<NotSupportedException>(() => native.ConvertToPdf()).Message);
-        Assert.NotEmpty(native.ReadNavigation());
+        var original = Assert.Single(native.ReadNavigation());
+        Assert.Contains("no supported Smmr image content", Assert.Throws<NotSupportedException>(() => native.ConvertToPdf()).Message);
+        var retained = Assert.Single(native.ReadNavigation());
+        Assert.Equal(original.Label, retained.Label);
+        Assert.Equal(original.Target, retained.Target);
+        Assert.Equal(Assert.Single(original.Children).Label, Assert.Single(retained.Children).Label);
+        Assert.Equal(Assert.Single(original.Children).Target, Assert.Single(retained.Children).Target);
     }
 
     [Theory]
