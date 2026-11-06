@@ -2063,4 +2063,6 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_CM_Paper">Simulate paper color</sys:String>
     <sys:String x:Key="Str_CM_Black">Simulate black ink</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Show out-of-gamut warnings</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Unavailable profile</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">The selected profile is unavailable. Viewing uses normal color.</sys:String>
 </ResourceDictionary>

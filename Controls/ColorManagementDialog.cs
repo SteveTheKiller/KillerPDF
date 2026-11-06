@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Text.Json.Nodes;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.ColorManagement;
+using KillerPDF.Services;
 
 namespace KillerPDF.Controls;
 
@@ -37,8 +38,30 @@ internal sealed class ColorManagementDialog : Window
         var enabled = Toggle("Str_CM_Enable", "ProofEnabled", settings.Enabled);
         fields.Children.Add(enabled);
         fields.Children.Add(Label("Str_CM_Profile", 4));
-        var profile = Choice("Str_CM_Profile", "ProofProfile", [L("Str_CM_NoProfile")], 0);
+        var library = new ProofProfileLibrary();
+        var entries = library.GetProfiles().ToList();
+        if (settings.PrinterProfileSha256 is { } requested && !entries.Any(entry => entry.ContentSha256 == requested))
+            entries.Insert(0, new ProofProfileEntry(L("Str_CM_UnavailableProfile"), requested));
+        int selected = entries.FindIndex(entry => entry.ContentSha256 == settings.PrinterProfileSha256) + 1;
+        var profile = Choice("Str_CM_Profile", "ProofProfile",
+            [L("Str_CM_NoProfile"), .. entries.Select(entry => entry.Name)], selected);
         fields.Children.Add(profile);
+        var profileStatus = Label("Str_CM_ProfileUnavailable", 4);
+        AutomationProperties.SetAutomationId(profileStatus, "ProofProfileStatus");
+        fields.Children.Add(profileStatus);
+        profile.SelectionChanged += (_, _) => UpdateProfileAvailability();
+        enabled.Checked += (_, _) => UpdateProfileAvailability();
+        enabled.Unchecked += (_, _) => UpdateProfileAvailability();
+        UpdateProfileAvailability();
+
+        void UpdateProfileAvailability()
+        {
+            var preset = JsonNode.Parse(PdfProofPreset.Capture("Document", settings).ToJson())!;
+            preset["proof"]!["printerProfileSha256"] = profile.SelectedIndex == 0 ? null : entries[profile.SelectedIndex - 1].ContentSha256;
+            profileStatus.Visibility = enabled.IsChecked == true
+                && library.Resolve(PdfProofPreset.FromJson(preset.ToJsonString())).Kind != ProofProfileResolutionKind.Matched
+                ? Visibility.Visible : Visibility.Collapsed;
+        }
         fields.Children.Add(Label("Str_CM_Intent", 4));
         var intent = Choice("Str_CM_Intent", "ProofIntent",
             [L("Str_CM_Perceptual"), L("Str_CM_Relative"), L("Str_CM_Saturation"), L("Str_CM_Absolute")],
@@ -61,12 +84,13 @@ internal sealed class ColorManagementDialog : Window
             var preset = JsonNode.Parse(PdfProofPreset.Capture("Document", settings).ToJson())!;
             var proof = preset["proof"]!;
             proof["enabled"] = enabled.IsChecked == true;
+            proof["printerProfileSha256"] = profile.SelectedIndex == 0 ? null : entries[profile.SelectedIndex - 1].ContentSha256;
             proof["renderingIntent"] = new[] { "perceptual", "relativeColorimetric", "saturation", "absoluteColorimetric" }[intent.SelectedIndex];
             proof["blackPointCompensation"] = bpc.IsChecked == true;
             proof["simulatePaper"] = paper.IsChecked == true;
             proof["simulateBlack"] = black.IsChecked == true;
             proof["gamutWarnings"] = gamut.IsChecked == true;
-            AppliedSettings = PdfProofPreset.FromJson(preset.ToJsonString()).ResolveProfile(settings.PrinterProfile);
+            AppliedSettings = library.Resolve(PdfProofPreset.FromJson(preset.ToJsonString())).Settings;
             DialogResult = true;
         };
         body.Children.Add(new ScrollViewer { Content = fields, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });

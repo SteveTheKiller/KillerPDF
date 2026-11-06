@@ -2048,6 +2048,8 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_CM_Enable">Nyomtatási próbanyomat engedélyezése</sys:String>
     <sys:String x:Key="Str_CM_Profile">Nyomtató-/papírprofil</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Nincs kiválasztott profil</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Nem elérhető profil</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">A kiválasztott profil nem érhető el. A megjelenítés normál színeket használ.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Leképezési mód</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Érzékelési</sys:String>
     <sys:String x:Key="Str_CM_Relative">Relatív kolorimetrikus</sys:String>

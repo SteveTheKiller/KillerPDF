@@ -2061,6 +2061,8 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_CM_Enable">Bật xem thử màu máy in</sys:String>
     <sys:String x:Key="Str_CM_Profile">Hồ sơ máy in/giấy</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Chưa chọn hồ sơ</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Hồ sơ không khả dụng</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">Hồ sơ đã chọn không khả dụng. Chế độ xem sử dụng màu thông thường.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Phương thức chuyển đổi màu</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Cảm nhận</sys:String>
     <sys:String x:Key="Str_CM_Relative">Đo màu tương đối</sys:String>

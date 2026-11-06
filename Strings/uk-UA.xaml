@@ -2061,6 +2061,8 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_CM_Enable">Увімкнути кольоропробу принтера</sys:String>
     <sys:String x:Key="Str_CM_Profile">Профіль принтера/паперу</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Профіль не вибрано</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Недоступний профіль</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">Вибраний профіль недоступний. Під час перегляду використовуються звичайні кольори.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Метод передавання кольору</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Перцепційний</sys:String>
     <sys:String x:Key="Str_CM_Relative">Відносний колориметричний</sys:String>

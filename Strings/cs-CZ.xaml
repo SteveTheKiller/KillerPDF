@@ -2046,6 +2046,8 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_CM_Enable">Zapnout nátisk tiskárny</sys:String>
     <sys:String x:Key="Str_CM_Profile">Profil tiskárny/papíru</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Není vybrán žádný profil</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Nedostupný profil</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">Vybraný profil není dostupný. Zobrazení používá běžné barvy.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Záměr vykreslení</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Perceptuální</sys:String>
     <sys:String x:Key="Str_CM_Relative">Relativní kolorimetrický</sys:String>

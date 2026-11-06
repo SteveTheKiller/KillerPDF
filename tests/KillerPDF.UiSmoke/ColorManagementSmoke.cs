@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Buffers.Binary;
 using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -42,6 +43,46 @@ internal static class ColorManagementSmoke
                 Product(dialog.Title.Contains("Color Management", StringComparison.Ordinal), "The panel title must be readable English.");
                 var controls = Descendants(dialog).OfType<FrameworkElement>().ToArray();
                 T Control<T>(string id) where T : FrameworkElement => controls.OfType<T>().Single(item => AutomationProperties.GetAutomationId(item) == id);
+                if (stage == "missing-profile")
+                {
+                    var warning = controls.OfType<TextBlock>().SingleOrDefault(item => AutomationProperties.GetAutomationId(item) == "ProofProfileStatus");
+                    Product(warning is not null && warning.IsVisible
+                        && warning.Text == "The selected profile is unavailable. Viewing uses normal color.",
+                        "The actual panel must clearly diagnose the unavailable profile and ordinary viewing fallback.");
+                    dialog.UpdateLayout();
+                    var missingCapture = NativeReadingSmoke.Capture(dialog, new Rect(
+                        dialog.PointToScreen(new Point(4, 4)),
+                        dialog.PointToScreen(new Point(dialog.ActualWidth - 4, dialog.ActualHeight - 4))));
+                    var missingEncoder = new PngBitmapEncoder();
+                    missingEncoder.Frames.Add(BitmapFrame.Create(missingCapture));
+                    using (var output = File.Create(Path.Combine(folder, "panel-missing.png"))) missingEncoder.Save(output);
+                    owner.Dispatcher.BeginInvoke(new Action(() => Invoke(Control<Button>("ColorManagementApply"))));
+                    return;
+                }
+                if (stage is "select-profile" or "reopen-profile")
+                {
+                    var profile = Control<ComboBox>("ProofProfile");
+                    Product(profile.Items.Cast<object>().Any(item => item.ToString() == "Gray paper"),
+                        "The actual profile chooser must list the imported profile library entry.");
+                    if (stage == "select-profile")
+                    {
+                        var peer = UIElementAutomationPeer.CreatePeerForElement(profile) ?? new ComboBoxAutomationPeer(profile);
+                        var dropdown = (IExpandCollapseProvider)peer.GetPattern(PatternInterface.ExpandCollapse)!;
+                        dropdown.Expand();
+                        Wait(() => profile.ItemContainerGenerator.ContainerFromIndex(1) is ComboBoxItem { IsVisible: true });
+                        var entry = peer.GetChildren().Single(item => item.GetName() == "Gray paper"
+                            && item.GetPattern(PatternInterface.SelectionItem) is ISelectionItemProvider);
+                        ((ISelectionItemProvider)entry.GetPattern(PatternInterface.SelectionItem)!).Select();
+                        dropdown.Collapse();
+                        owner.Dispatcher.BeginInvoke(new Action(() => Invoke(Control<Button>("ColorManagementApply"))));
+                    }
+                    else
+                    {
+                        Product(profile.SelectedItem?.ToString() == "Gray paper", "Reopening must retain the selected named profile.");
+                        owner.Dispatcher.BeginInvoke(new Action(() => Invoke(Control<Button>("ColorManagementClose"))));
+                    }
+                    return;
+                }
                 if (stage == "apply")
                 {
                     var apply = controls.OfType<Button>().SingleOrDefault(item => AutomationProperties.GetAutomationId(item) == "ColorManagementApply");
@@ -117,8 +158,24 @@ internal static class ColorManagementSmoke
             if (failure is not null) throw failure;
             Product(handled, "The actual panel must have been observed and closed.");
             Product(View()!.CaptureProof().Settings == before, "Closing the initial panel must preserve document proof preferences.");
-            foreach (string next in new[] { "apply", "reopen" })
+            foreach (string next in new[] { "apply", "reopen", "select-profile", "reopen-profile", "missing-profile" })
             {
+                if (next == "select-profile")
+                {
+                    var type = owner.GetType().Assembly.GetType("KillerPDF.Services.ProofProfileLibrary", throwOnError: true)!;
+                    var library = Activator.CreateInstance(type)!;
+                    type.GetMethod("Import")!.Invoke(library, ["Gray paper", new ReadOnlyMemory<byte>(GrayProfile())]);
+                }
+                if (next == "missing-profile")
+                {
+                    string held = Path.GetFullPath(Path.Combine(folder, "held-profile.icc"));
+                    string stored = Path.GetFullPath(Path.Combine(folder, "data", "color-management", "profiles",
+                        "7F7BE1EAABD868E6F6D9C72E24DF59BB195CCEAAEBA23644FD0C814A72D49FB1.icc"));
+                    string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder)) + Path.DirectorySeparatorChar;
+                    if (!held.StartsWith(root, StringComparison.OrdinalIgnoreCase)
+                        || !stored.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Profile fixture escaped owned evidence.");
+                    File.Move(stored, held);
+                }
                 stage = next;
                 handled = false;
                 ShortcutHintsSmoke.Key(owner, 0x44, 0x11, 0x10);
@@ -132,8 +189,17 @@ internal static class ColorManagementSmoke
                     && !changed.Options.BlackPointCompensation && changed.Options.SimulatePaper
                     && changed.Options.SimulateBlack && changed.GamutWarnings,
                     "Actual controls must apply and retain every requested preference on the public document session.");
-                Product(changed.PrinterProfile is null && changed.PrinterProfileSha256 is null,
-                    "Applying without a profile must retain the explicit unavailable request without inventing a profile.");
+                if (next == "missing-profile")
+                    Product(changed.PrinterProfile is null
+                        && changed.PrinterProfileSha256 == "7F7BE1EAABD868E6F6D9C72E24DF59BB195CCEAAEBA23644FD0C814A72D49FB1",
+                        "Unavailable profile Apply must retain the requested content reference without substituting another profile.");
+                else if (next is "select-profile" or "reopen-profile")
+                    Product(changed.PrinterProfile is not null
+                        && changed.PrinterProfileSha256 == "7F7BE1EAABD868E6F6D9C72E24DF59BB195CCEAAEBA23644FD0C814A72D49FB1",
+                        "Selecting the named profile must load its exact validated content into the document session.");
+                else
+                    Product(changed.PrinterProfile is null && changed.PrinterProfileSha256 is null,
+                        "Applying without a profile must retain the explicit unavailable request without inventing a profile.");
             }
             Product(File.ReadAllBytes(source).SequenceEqual(original), "Opening and closing viewing controls must preserve the PDF bytes.");
             stage = "complete";
@@ -177,6 +243,23 @@ internal static class ColorManagementSmoke
     }
 
     private static void Invoke(Button button) => ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)!).Invoke();
+    private static byte[] GrayProfile()
+    {
+        byte[] data = new byte[156];
+        Write(0, 156);
+        data[8] = 4;
+        "mntr"u8.CopyTo(data.AsSpan(12));
+        "GRAY"u8.CopyTo(data.AsSpan(16));
+        "XYZ "u8.CopyTo(data.AsSpan(20));
+        "acsp"u8.CopyTo(data.AsSpan(36));
+        Write(128, 1);
+        "kTRC"u8.CopyTo(data.AsSpan(132));
+        Write(136, 144);
+        Write(140, 12);
+        "curv"u8.CopyTo(data.AsSpan(144));
+        return data;
+        void Write(int offset, int value) => BinaryPrimitives.WriteInt32BigEndian(data.AsSpan(offset), value);
+    }
     private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
     {
         yield return root;

@@ -2041,6 +2041,8 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_CM_Enable">Yazıcı provasını etkinleştir</sys:String>
     <sys:String x:Key="Str_CM_Profile">Yazıcı/kağıt profili</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Profil seçilmedi</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Kullanılamayan profil</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">Seçilen profil kullanılamıyor. Görüntülemede normal renkler kullanılır.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Oluşturma amacı</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Algısal</sys:String>
     <sys:String x:Key="Str_CM_Relative">Göreli kolorimetrik</sys:String>

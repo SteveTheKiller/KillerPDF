@@ -2050,6 +2050,8 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_CM_Enable">Drucker-Proof aktivieren</sys:String>
     <sys:String x:Key="Str_CM_Profile">Drucker-/Papierprofil</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Kein Profil ausgewählt</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Profil nicht verfügbar</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">Das ausgewählte Profil ist nicht verfügbar. Die Anzeige verwendet normale Farben.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Rendering-Intent</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Perzeptiv</sys:String>
     <sys:String x:Key="Str_CM_Relative">Relativ farbmetrisch</sys:String>

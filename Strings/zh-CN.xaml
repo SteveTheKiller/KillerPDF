@@ -2045,6 +2045,8 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_CM_Enable">启用打印机校样</sys:String>
     <sys:String x:Key="Str_CM_Profile">打印机/纸张配置文件</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">未选择配置文件</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">配置文件不可用</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">所选配置文件不可用。查看时使用正常颜色。</sys:String>
     <sys:String x:Key="Str_CM_Intent">渲染意图</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">可感知</sys:String>
     <sys:String x:Key="Str_CM_Relative">相对色度</sys:String>

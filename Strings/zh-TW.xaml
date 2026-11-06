@@ -2043,6 +2043,8 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_CM_Enable">啟用印表機校樣</sys:String>
     <sys:String x:Key="Str_CM_Profile">印表機/紙張描述檔</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">未選取描述檔</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">無法使用的描述檔</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">選取的描述檔無法使用。檢視時使用一般色彩。</sys:String>
     <sys:String x:Key="Str_CM_Intent">演算色彩比對方式</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">可感知</sys:String>
     <sys:String x:Key="Str_CM_Relative">相對色度</sys:String>

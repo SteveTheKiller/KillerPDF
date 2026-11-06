@@ -2061,6 +2061,8 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_CM_Enable">Ativar prova de impressora</sys:String>
     <sys:String x:Key="Str_CM_Profile">Perfil de impressora/papel</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Nenhum perfil selecionado</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Perfil indisponível</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">O perfil selecionado está indisponível. A visualização usa as cores normais.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Propósito de renderização</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Perceptual</sys:String>
     <sys:String x:Key="Str_CM_Relative">Colorimétrico relativo</sys:String>

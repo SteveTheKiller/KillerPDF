@@ -1950,6 +1950,8 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_CM_Enable">Omogoči poskusni odtis tiskalnika</sys:String>
     <sys:String x:Key="Str_CM_Profile">Profil tiskalnika/papirja</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Noben profil ni izbran</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Nedostopen profil</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">Izbrani profil ni dostopen. Prikaz uporablja običajne barve.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Namen upodabljanja</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Zaznavni</sys:String>
     <sys:String x:Key="Str_CM_Relative">Relativni kolorimetrični</sys:String>

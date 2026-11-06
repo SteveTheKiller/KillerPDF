@@ -2064,6 +2064,8 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_CM_Enable">Включить цветопробу принтера</sys:String>
     <sys:String x:Key="Str_CM_Profile">Профиль принтера/бумаги</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Профиль не выбран</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Недоступный профиль</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">Выбранный профиль недоступен. При просмотре используются обычные цвета.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Метод цветопередачи</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Перцепционный</sys:String>
     <sys:String x:Key="Str_CM_Relative">Относительный колориметрический</sys:String>

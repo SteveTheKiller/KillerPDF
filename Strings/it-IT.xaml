@@ -2062,6 +2062,8 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_CM_Enable">Attiva prova stampante</sys:String>
     <sys:String x:Key="Str_CM_Profile">Profilo stampante/carta</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Nessun profilo selezionato</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Profilo non disponibile</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">Il profilo selezionato non è disponibile. La visualizzazione usa i colori normali.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Intento di rendering</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Percettivo</sys:String>
     <sys:String x:Key="Str_CM_Relative">Colorimetrico relativo</sys:String>

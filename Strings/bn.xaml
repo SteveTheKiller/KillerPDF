@@ -2041,6 +2041,8 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_CM_Enable">প্রিন্টার প্রুফ চালু করুন</sys:String>
     <sys:String x:Key="Str_CM_Profile">প্রিন্টার/কাগজের প্রোফাইল</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">কোনো প্রোফাইল নির্বাচিত নেই</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">প্রোফাইল পাওয়া যাচ্ছে না</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">নির্বাচিত প্রোফাইলটি পাওয়া যাচ্ছে না। দেখানোর সময় স্বাভাবিক রং ব্যবহার করা হয়।</sys:String>
     <sys:String x:Key="Str_CM_Intent">রেন্ডারিং অভিপ্রায়</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">অনুভূতিনির্ভর</sys:String>
     <sys:String x:Key="Str_CM_Relative">আপেক্ষিক কালারিমেট্রিক</sys:String>

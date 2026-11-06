@@ -2049,6 +2049,8 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_CM_Enable">Włącz próbę drukarki</sys:String>
     <sys:String x:Key="Str_CM_Profile">Profil drukarki/papieru</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Nie wybrano profilu</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Niedostępny profil</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">Wybrany profil jest niedostępny. Podgląd używa zwykłych kolorów.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Metoda renderowania</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Percepcyjna</sys:String>
     <sys:String x:Key="Str_CM_Relative">Względna kolorymetryczna</sys:String>

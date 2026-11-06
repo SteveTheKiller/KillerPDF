@@ -2061,6 +2061,8 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_CM_Enable">Activer l’épreuvage de l’imprimante</sys:String>
     <sys:String x:Key="Str_CM_Profile">Profil d’imprimante/papier</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Aucun profil sélectionné</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Profil indisponible</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">Le profil sélectionné est indisponible. L’affichage utilise les couleurs normales.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Mode de rendu</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Perceptif</sys:String>
     <sys:String x:Key="Str_CM_Relative">Colorimétrie relative</sys:String>

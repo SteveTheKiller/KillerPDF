@@ -2061,6 +2061,8 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_CM_Enable">Aktiver prøvetrykk for skriver</sys:String>
     <sys:String x:Key="Str_CM_Profile">Skriver-/papirprofil</sys:String>
     <sys:String x:Key="Str_CM_NoProfile">Ingen profil valgt</sys:String>
+    <sys:String x:Key="Str_CM_UnavailableProfile">Utilgjengelig profil</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnavailable">Den valgte profilen er utilgjengelig. Visningen bruker vanlige farger.</sys:String>
     <sys:String x:Key="Str_CM_Intent">Gjengivelsesmetode</sys:String>
     <sys:String x:Key="Str_CM_Perceptual">Perseptuell</sys:String>
     <sys:String x:Key="Str_CM_Relative">Relativ kolorimetrisk</sys:String>
