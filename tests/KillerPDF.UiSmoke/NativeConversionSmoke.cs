@@ -22,7 +22,8 @@ using KillerPdf.Engine.Rendering;
 
 internal static class NativeConversionSmoke
 {
-    public static int Run(Window owner, string appPath, string appXaml, string folder, bool djvu = false, bool customPaper = false, bool unicode = false)
+    public static int Run(Window owner, string appPath, string appXaml, string folder, bool djvu = false,
+        bool customPaper = false, bool unicode = false, bool html5 = false)
     {
         string stage = "vm-guard";
         string? failedAt = null;
@@ -127,7 +128,8 @@ internal static class NativeConversionSmoke
                         events.Add(new { stage, expectedModal = window.GetType().FullName, output });
                         owner.Dispatcher.BeginInvoke(new Action(() => Invoke(accept))); continue;
                     }
-                    if (unexpected.Add(window)) events.Add(new { stage, unexpectedModal = window.GetType().FullName, window.Title });
+                    if (unexpected.Add(window)) events.Add(new { stage, unexpectedModal = window.GetType().FullName, window.Title,
+                        text = string.Join("\n", Descendants<TextBlock>(window).Select(block => block.Text)) });
                     throw new InvalidOperationException("Unexpected modal at " + stage + ": " + window.GetType().FullName);
                 }
                 catch (Exception error) { Fail(error); try { window.Close(); } catch (Exception closeError) { Fail(closeError); } }
@@ -151,7 +153,7 @@ internal static class NativeConversionSmoke
             hashes["driver"] = Hash(File.ReadAllBytes(typeof(NativeConversionSmoke).Assembly.Location));
             hashes["engine"] = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
             hashes["loadedApp"] = SelectedAssemblyIdentity.HashLoaded(owner.GetType().Assembly, appPath);
-            original = djvu ? DjvuFixture() : EpubFixture(unicode);
+            original = djvu ? DjvuFixture() : EpubFixture(unicode, html5);
             hashes["nativeOriginal"] = Hash(original);
             File.WriteAllBytes(native, original);
             byte[] ordinary = new PdfDocumentBuilder().AddBlankPage(600, 750).Build();
@@ -168,6 +170,27 @@ internal static class NativeConversionSmoke
             Stage("ordinary-pdf-negative-command-control");
             Menu(false); Escape();
             Open(native); Ready(native);
+            if (html5)
+            {
+                Stage("html5-native-outline");
+                TreeView tree = Named<TreeView>(owner, "OutlineTree");
+                if (!tree.IsVisible) Invoke(Named<Button>(owner, "SidebarOutlinesTab"));
+                Wait(() => tree.IsVisible && tree.Items.Count == 1);
+                var heading = (TreeViewItem)tree.Items[0];
+                Product(Equals(heading.Header, "Part one") && heading.Items.Count == 2,
+                    "Native HTML5 navigation must display the grouping heading and both child entries.");
+                var start = (TreeViewItem)heading.Items[0];
+                var ending = (TreeViewItem)heading.Items[1];
+                Product(Equals(start.Header, "Start") && Equals(ending.Header, "BRAVO"),
+                    "Native HTML5 navigation must preserve literal labels and order.");
+                Wait(() => ending.IsVisible && ending.IsEnabled);
+                var peer = UIElementAutomationPeer.CreatePeerForElement(ending) ?? new TreeViewItemAutomationPeer(ending);
+                Require<ISelectionItemProvider>(peer.GetPattern(PatternInterface.SelectionItem)).Select();
+                Wait(() => ReferenceEquals(tree.SelectedItem, ending)
+                    && Named<ListBox>(owner, "PageList").SelectedIndex == 0);
+                events.Add(new { stage, heading = heading.Header, children = new[] { start.Header, ending.Header },
+                    selected = ending.Header, page = 0 });
+            }
             Stage("native-positive-convert-command");
             MenuItem command = Menu(true);
             if (!djvu)
@@ -222,6 +245,24 @@ internal static class NativeConversionSmoke
                     && letter.BoundingBox.Top <= 799.372 + .001), "EPUB text must respect the default 15 mm margins.");
             }
             events.Add(new { stage, pages = pages.Count, text, width = pages[0].PhysicalWidth, height = pages[0].PhysicalHeight });
+            if (html5)
+            {
+                var bookmarks = PdfBookmarkReader.Read(pdf);
+                Product(bookmarks.Count == 1 && bookmarks[0].Title == "Part one"
+                    && bookmarks[0].Destination is null && bookmarks[0].DestinationPageIndex is null,
+                    "Converted HTML5 grouping heading must remain unlinked.");
+                var children = bookmarks[0].Children;
+                Product(children.Count == 2 && children.Select(item => item.Title).SequenceEqual(new[] { "Start", "BRAVO" })
+                    && children.All(item => item.DestinationPageIndex == 0),
+                    "Converted HTML5 bookmarks must preserve labels, hierarchy and page destinations.");
+                Product(children[0].Destination is { Kind: PdfDestinationKind.Xyz } first
+                    && Math.Abs(first.Values[0]!.Value - 42.51968503937008) < .001
+                    && Math.Abs(first.Values[1]!.Value - 799.3700787401575) < .001
+                    && children[1].Destination is { Kind: PdfDestinationKind.Xyz } last
+                    && last.Values[0] > first.Values[0] && last.Values[1] == first.Values[1],
+                    "Converted HTML5 bookmarks must retain distinct within-page anchors in PDF points.");
+                events.Add(new { stage, bookmarks });
+            }
             Menu(false); Escape();
             Stage("original-native-tab-preserved");
             SwitchExistingTab(native); Ready(native); Menu(true); Escape();
@@ -256,7 +297,7 @@ internal static class NativeConversionSmoke
             }
             preserved = original.Length > 0 && File.Exists(native) && File.ReadAllBytes(native).SequenceEqual(original);
             Write("result.json", new { passed = failure is null && closed && preserved, stage, failedAt, failure = failure?.ToString(),
-                assertions, admitted, closed, preserved, unexpectedModals = unexpected.Count, hashes, events,
+                assertions, admitted, closed, preserved, html5, unexpectedModals = unexpected.Count, hashes, events,
                 elapsedSeconds = overall.Elapsed.TotalSeconds, visualScope = "Visible WPF page and viewport only; no screen pixel acceptance claim." });
         }
         return failure is null && closed && preserved ? 0 : 1;
@@ -352,16 +393,23 @@ internal static class NativeConversionSmoke
         void Write(string name, object value) => File.WriteAllText(Path.Combine(folder, name), JsonSerializer.Serialize(value, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    private static byte[] EpubFixture(bool unicode)
+    private static byte[] EpubFixture(bool unicode, bool html5 = false)
     {
         using var buffer = new MemoryStream();
         using (var zip = new ZipArchive(buffer, ZipArchiveMode.Create, true))
         {
             Add("mimetype", "application/epub+zip", CompressionLevel.NoCompression);
             Add("META-INF/container.xml", "<container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" version=\"1.0\"><rootfiles><rootfile full-path=\"EPUB/book.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>");
-            Add("EPUB/book.opf", "<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"id\"><metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:identifier id=\"id\">urn:test:epub-conversion</dc:identifier><dc:title>Conversion</dc:title><dc:language>en</dc:language></metadata><manifest><item id=\"chapter\" href=\"text.xhtml\" media-type=\"application/xhtml+xml\"/></manifest><spine><itemref idref=\"chapter\"/></spine></package>");
-            Add("EPUB/text.xhtml", "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Conversion</title></head><body><p>"
-                + (unicode ? "ALPHA &#937;MEGA" : "ALPHA BRAVO") + "</p></body></html>");
+            Add("EPUB/book.opf", "<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"id\"><metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:identifier id=\"id\">urn:test:epub-conversion</dc:identifier><dc:title>Conversion</dc:title><dc:language>en</dc:language></metadata><manifest><item id=\"chapter\" href=\"text.xhtml\" media-type=\"application/xhtml+xml\"/>"
+                + (html5 ? "<item id='nav' href='nav.xhtml' media-type='application/xhtml+xml' properties='nav'/>" : "")
+                + "</manifest><spine><itemref idref=\"chapter\"/></spine></package>");
+            Add("EPUB/text.xhtml", (html5 ? "<!DOCTYPE html>" : "")
+                + "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Conversion</title></head><body"
+                + (html5 ? " style='color:rgb(0,0,0);background-color:rgb(255,255,255)'" : "") + ">"
+                + (html5 ? "<p id='start'>ALPHA <span id='ending'>BRAVO</span>"
+                    : "<p>" + (unicode ? "ALPHA &#937;MEGA" : "ALPHA BRAVO"))
+                + "</p></body></html>");
+            if (html5) Add("EPUB/nav.xhtml", "<!DOCTYPE html><html xmlns='http://www.w3.org/1999/xhtml' xmlns:epub='http://www.idpf.org/2007/ops'><head><title>Contents</title></head><body><nav epub:type='toc'><ol><li><span>Part one</span><ol><li><a href='text.xhtml#start'>Start</a></li><li><a href='text.xhtml#ending'>BRAVO</a></li></ol></li></ol></nav></body></html>");
             void Add(string path, string text, CompressionLevel level = CompressionLevel.Optimal)
             { var entry = zip.CreateEntry(path, level); entry.LastWriteTime = new DateTimeOffset(2026, 11, 5, 0, 0, 0, TimeSpan.Zero); using var stream = entry.Open(); stream.Write(Encoding.UTF8.GetBytes(text)); }
         }
