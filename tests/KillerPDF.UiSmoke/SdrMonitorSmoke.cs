@@ -344,6 +344,9 @@ internal static class SdrMonitorSmoke
 
     private static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
 
+    internal static void NotifyDisplayChanged(Window owner) =>
+        SendMessage(new WindowInteropHelper(owner).Handle, 0x7E, 0, 0);
+
     [DllImport("user32.dll", EntryPoint = "SendMessageW")]
     private static extern nint SendMessage(nint window, uint message, nint wParam, nint lParam);
 

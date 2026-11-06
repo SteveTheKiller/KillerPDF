@@ -20,7 +20,8 @@ internal static class ProofTwoPageSmoke
 {
     internal static int Run(Window owner, string appPath, string folder, bool continuous = false,
         bool pairedContinuous = false, bool compositorOwned = false, bool nativeEpub = false, bool grid = false,
-        bool unavailableProof = false, bool unavailableMonitor = false, bool deviceMonitor = false)
+        bool unavailableProof = false, bool unavailableMonitor = false, bool deviceMonitor = false,
+        bool refreshMonitor = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Two-page proof checks require an owned VM.");
@@ -130,6 +131,41 @@ internal static class ProofTwoPageSmoke
             CheckScreens(false);
             if (unavailableMonitor) CheckMonitorWarnings();
             if (unavailableProof) CheckWarnings(false);
+            if (refreshMonitor)
+            {
+                RefreshMonitor(false);
+                RefreshMonitor(true);
+
+                void RefreshMonitor(bool available)
+                {
+                    stage = available ? "monitor-refresh-device" : "monitor-refresh-unavailable";
+                    var previous = Pages().Select(page => page.Image.Source).ToArray();
+                    var viewport = (ScrollViewer)((FrameworkElement)viewer).FindName("PagePreviewPanel");
+                    double beforeHorizontal = viewport.HorizontalOffset, beforeVertical = viewport.VerticalOffset;
+                    deviceMonitor = available;
+                    viewer.GetType().GetProperty("DisplayProfileReader")!.SetValue(viewer,
+                        (Func<string, CancellationToken, PdfColorProfile>)((_, _) => available
+                            ? PdfColorProfile.Load(SdrMonitorSmoke.MonitorBytes())
+                            : throw new IOException("Synthetic monitor profile read failure after notification.")));
+                    display = display with { Generation = display.Generation + 1 };
+                    SdrMonitorSmoke.NotifyDisplayChanged(owner);
+                    Wait(() => PrimaryReady() && Pages().Length == 2
+                        && Pages().All(page => !previous.Any(source => ReferenceEquals(source, page.Image.Source))));
+                    if (continuous && (Math.Abs(viewport.HorizontalOffset - beforeHorizontal) > 1
+                        || Math.Abs(viewport.VerticalOffset - beforeVertical) > 1))
+                        throw new InvalidOperationException("Monitor refresh changed the Continuous scroll position.");
+                    if (radio.IsChecked != true || !ReferenceEquals(view,
+                        viewer.GetType().GetProperty("DocumentProofView")!.GetValue(viewer)))
+                        throw new InvalidOperationException("Monitor refresh changed the view mode or document proof owner.");
+                    CheckPages(false);
+                    CheckScreens(false);
+                    if (!available) CheckMonitorWarnings();
+                    else if (Pages().Any(page => page.Image.ToolTip is not null))
+                        throw new InvalidOperationException("Recovered monitor conversion retains a stale diagnostic.");
+                    events.Add(new { stage, display.Generation, available, allSourcesReplaced = true,
+                        beforeHorizontal, beforeVertical, viewModeAndProofOwnerPreserved = true });
+                }
+            }
         }
         catch (Exception error) { failure = error; }
         finally
@@ -140,7 +176,7 @@ internal static class ProofTwoPageSmoke
             {
                 passed = failure is null && modals.Count == 0 && preserved, stage, preserved,
                 mode = grid ? "Grid" : pairedContinuous ? "TwoPageContinuous" : continuous ? "Continuous" : "TwoPage",
-                format = nativeEpub ? "EPUB" : "PDF", deviceMonitor,
+                format = nativeEpub ? "EPUB" : "PDF", deviceMonitor, refreshMonitor,
                 error = failure?.ToString(), modals, events,
                 appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)))
             }, new JsonSerializerOptions { WriteIndented = true, IncludeFields = true }));
