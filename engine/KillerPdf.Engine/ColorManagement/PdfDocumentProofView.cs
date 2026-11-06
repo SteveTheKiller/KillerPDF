@@ -25,7 +25,8 @@ public sealed class PdfDocumentProofView(PdfLogicalDocument document)
                 if (_comparisonOverride is { } current && value is not null
                     && current.Enabled == value.Enabled && current.GamutWarnings == value.GamutWarnings
                     && current.Options == value.Options
-                    && current.PrinterProfile?.ContentSha256 == value.PrinterProfile?.ContentSha256) return;
+                    && (current.PrinterProfile is null) == (value.PrinterProfile is null)
+                    && current.PrinterProfileSha256 == value.PrinterProfileSha256) return;
                 long generation = checked(_overrideGeneration + 1);
                 _comparisonOverride = value;
                 _overrideGeneration = generation;

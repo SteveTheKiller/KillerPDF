@@ -392,6 +392,12 @@ and a null or 64-character ASCII hexadecimal profile content reference. Referenc
 use uppercase SHA256. JSON is limited to 1 MiB of UTF-8 and eight nesting levels.
 Malformed input produces sanitized `FormatException`; unsupported schema versions
 produce `NotSupportedException`. Import never reads a profile or fetches resources.
+`ResolveProfile(profile)` accepts only the referenced content; a different valid
+profile is rejected. Passing null preserves the unavailable reference in returned
+`PrinterProfileSha256` settings and later preset captures. Applying a different
+reference or changing profile availability advances the document/view proof stamp;
+equivalent available bytes or equivalent unavailable references do not.
+Matching content alone does not establish transform availability or effective proofing.
 The profile library, panel and persistent document settings remain application work.
 
 `PdfDocumentProofView` shares its logical owner's request unless an explicit

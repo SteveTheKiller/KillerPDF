@@ -42,7 +42,8 @@ public sealed class PdfLogicalDocument
             {
                 if (_proof.Enabled == value.Enabled && _proof.GamutWarnings == value.GamutWarnings
                     && _proof.Options == value.Options
-                    && _proof.PrinterProfile?.ContentSha256 == value.PrinterProfile?.ContentSha256) return;
+                    && (_proof.PrinterProfile is null) == (value.PrinterProfile is null)
+                    && _proof.PrinterProfileSha256 == value.PrinterProfileSha256) return;
                 long generation = checked(_proofGeneration + 1);
                 _proof = value;
                 _proofGeneration = generation;

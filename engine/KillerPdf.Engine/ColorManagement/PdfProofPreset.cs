@@ -35,7 +35,16 @@ public sealed class PdfProofPreset
         ArgumentNullException.ThrowIfNull(settings);
         if (!Enum.IsDefined(settings.Options.RenderingIntent))
             throw new ArgumentOutOfRangeException(nameof(settings), "The proof rendering intent is invalid.");
-        return new(name, settings.PrinterProfile?.ContentSha256, settings.Enabled, settings.GamutWarnings, settings.Options);
+        return new(name, settings.PrinterProfileSha256, settings.Enabled, settings.GamutWarnings, settings.Options);
+    }
+
+    /// <summary>Creates requested settings with an explicitly supplied matching profile, or an unavailable profile.</summary>
+    /// <remarks>Matching content does not establish transform support. Null preserves the requested profile reference.</remarks>
+    public PdfDocumentProofSettings ResolveProfile(PdfColorProfile? profile)
+    {
+        if (profile is not null && !string.Equals(profile.ContentSha256, PrinterProfileSha256, StringComparison.Ordinal))
+            throw new ArgumentException("The supplied profile does not match the preset's content reference.", nameof(profile));
+        return new(Enabled, profile, Options, GamutWarnings, PrinterProfileSha256);
     }
 
     /// <summary>Writes the preset schema and profile content reference.</summary>
