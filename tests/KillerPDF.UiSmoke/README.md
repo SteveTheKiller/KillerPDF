@@ -579,8 +579,10 @@ requested settings through the panel, checks them after reopening the panel, clo
 the PDF with Ctrl+W and reopens its unchanged source into a new logical owner. The
 public document session must restore the requested settings without rewriting the
 PDF. It repeats document close/reopen after selecting the known ICC profile and
-checks that the new owner receives the exact validated profile contents. Existing
-profile import and named-preset controls also run. Protected/native
+checks that the new owner receives the exact validated profile contents. Owned
+profile removal is followed by document close/reopen too: the requested content
+identity must remain selected, with ordinary viewing and a visible diagnosis.
+Profile import and named-preset controls also run. Protected/native
 files, save publication and storage-failure UI need separate cases.
 
 `--verify-proof-replacement APP_DLL APP_XAML OUTPUT --session-isolation` also
