@@ -341,6 +341,14 @@ and independently reopened PDFs cover placement, backgrounds, anchors and inline
 images. Conversion retains text/image paint order, including glyph overhangs.
 Full bidi, shaping and CSS layout remain in progress.
 
+Paragraph `page-break-before:always` forces a new occupied-page boundary;
+`auto` retains natural pagination. Cascade and inline overrides apply without
+inheritance. Ordered paragraph events retain empty blocks, anchors and image
+order without adding text, line height or extra first/fresh-page blanks.
+Blank lines count as page content even when they paint no ink. Native layout
+and independently reopened PDFs cover geometry, source positions, backgrounds,
+images and paper dimensions. Other break values remain explicitly unsupported.
+
 `ReadText`, `ReadNavigation` and the supported plain native layout accept the canonical HTML5
 `<!DOCTYPE html>` and XHTML 1.1 external declarations without loading or processing
 a DTD. Original resource bytes, Unicode and UTF-8/UTF-16 encodings stay unchanged.

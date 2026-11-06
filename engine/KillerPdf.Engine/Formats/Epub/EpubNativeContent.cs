@@ -13,10 +13,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal double? LineHeightFactor { get; init; }
         internal EpubFontFamily[]? FontFamilies { get; init; }
         internal string TextAlign { get; init; } = "left";
+        internal bool PageBreakBefore { get; init; }
     }
     internal sealed record Element(string Name, Element? Parent, Style Style, Style BlockStyle);
     internal sealed record Text(string Value, Element Owner);
-    internal sealed record InlineReference(int Offset, string? Source, Element Owner);
+    internal sealed record InlineReference(int Offset, string? Source, Element Owner, bool Paragraph = false);
     internal sealed record SourceCharacter(Text Node, int Offset)
     {
         internal Style Style => Node.Owner.Style;
@@ -28,6 +29,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private int _characters;
     private int _selectorWork;
     private int _selectorCount;
+    private int _paragraphCount;
     private bool _bodySeen;
     private MarginLength?[]? _bodyMargins;
     private MarginLength?[]? _bodyPadding;
@@ -108,6 +110,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (name == "body") CanvasBackground = background.Color;
         }
         var element = new Element(name, parent, style, name == "p" ? style : parent?.BlockStyle ?? style);
+        if (name == "p")
+        {
+            if (++_paragraphCount > 100_000)
+                throw new InvalidDataException("Native EPUB paragraphs exceed their 100,000-event limit.");
+            // Share the inline event stream so empty blocks and image-only blocks keep document order.
+            Inlines.Add(new(Characters.Count, null, element, Paragraph: true));
+        }
         if (name == "img") ImageElement = element;
         if (name == "br") LineBreakSource = new(new Text("\n", element), 0);
         if (!empty) _ancestors.Push(element);
@@ -296,6 +305,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         int borderSpecificity = -1;
         string? textAlign = null;
         int alignmentSpecificity = -1;
+        bool? pageBreakBefore = null;
+        int breakSpecificity = -1;
         var padding = new MarginLength?[4];
         int[] paddingSpecificities = [-1, -1, -1, -1];
         var margins = new MarginLength?[4];
@@ -327,6 +338,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
             if (!matches) continue;
             int specificity = rule.Classes.Length;
+            if (rule.Properties.PageBreakBefore is { } forcedBreak && specificity >= breakSpecificity)
+            {
+                pageBreakBefore = forcedBreak;
+                breakSpecificity = specificity;
+            }
             if (rule.Properties.TextAlign is { } alignment && specificity >= alignmentSpecificity)
             {
                 textAlign = alignment;
@@ -377,7 +393,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         paddingSpecificities[side] = specificity;
                     }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore);
     }
 
     private void CountSelectorWork(int amount)
@@ -403,13 +419,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
 
     private readonly record struct CssProperties(CssLength? FontSize, CssLength? LineHeight, PdfRgbColor? Color = null,
         BackgroundColor? Background = null, EpubFontFamily[]? FontFamilies = null, MarginLength?[]? Margins = null,
-        Border? Border = null, MarginLength?[]? Padding = null, string? TextAlign = null)
+        Border? Border = null, MarginLength?[]? Padding = null, string? TextAlign = null, bool? PageBreakBefore = null)
     {
         internal CssProperties Override(CssProperties inline) =>
             new(inline.FontSize ?? FontSize, inline.LineHeight ?? LineHeight,
                 inline.Color ?? Color, inline.Background ?? Background, inline.FontFamilies ?? FontFamilies,
                 MergeMargins(Margins, inline.Margins), inline.Border ?? Border, MergeMargins(Padding, inline.Padding),
-                inline.TextAlign ?? TextAlign);
+                inline.TextAlign ?? TextAlign, inline.PageBreakBefore ?? PageBreakBefore);
 
         private static MarginLength?[]? MergeMargins(MarginLength?[]? earlier, MarginLength?[]? later) =>
             later is null ? earlier : Enumerable.Range(0, 4).Select(side => later[side] ?? earlier?[side]).ToArray();
@@ -424,7 +440,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             return new(size, pixels, Color ?? inherited.Color, Background ?? inherited.Background)
             {
                 LineHeightFactor = factor, FontFamilies = FontFamilies ?? inherited.FontFamilies,
-                TextAlign = TextAlign is null or "inherit" ? inherited.TextAlign : TextAlign
+                TextAlign = TextAlign is null or "inherit" ? inherited.TextAlign : TextAlign,
+                PageBreakBefore = PageBreakBefore ?? false
             };
         }
     }
@@ -439,6 +456,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         MarginLength?[]? padding = null;
         Border? border = null;
         string? textAlign = null;
+        bool? pageBreakBefore = null;
         foreach (string declaration in declarations.Split(';'))
         {
             string part = declaration.Trim();
@@ -447,6 +465,16 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (colon < 0) throw new NotSupportedException("Native EPUB CSS declaration is unsupported.");
             string property = part[..colon].Trim().ToLowerInvariant();
             string value = part[(colon + 1)..].Trim();
+            if (property == "page-break-before")
+            {
+                pageBreakBefore = value.ToLowerInvariant() switch
+                {
+                    "always" => true,
+                    "auto" => false,
+                    _ => throw new NotSupportedException("Native EPUB page-break-before value is not implemented: " + value + ".")
+                };
+                continue;
+            }
             if (property == "text-align")
             {
                 textAlign = value.ToLowerInvariant() switch
@@ -547,7 +575,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore);
     }
 
     private static Border ParseBorder(string value)

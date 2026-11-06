@@ -202,6 +202,7 @@ public sealed partial class EpubDocument
         var blockBackgrounds = new List<NativePagePaint>();
         var inlineBackgrounds = new List<(int Depth, NativePagePaint Paint)>();
         int pageStart = 0;
+        bool pageHasContent = false;
         double left = contentLeft;
         double top = options.Margin + bodyMargins.Top + bodyPadding.Top;
         var line = new List<(int Index, int Length, double Left, double Width, TrueTypeFont Font, PdfGlyphOutline? Outline,
@@ -218,6 +219,7 @@ public sealed partial class EpubDocument
                 cancellationToken.ThrowIfCancellationRequested();
                 var reference = content.Inlines[inlineIndex++];
                 BeginInline(reference.Owner, index);
+                if (reference.Paragraph) continue;
                 if (reference.Source is null)
                 {
                     if (line.Count == 0)
@@ -235,6 +237,7 @@ public sealed partial class EpubDocument
                             blockBackgrounds.Add(new NativeRectanglePaint(contentLeft, top, contentWidth, height, blankBackground));
                         if (blockBackgrounds.Count + inlineBackgrounds.Count + glyphs.Count > 100_000)
                             throw new InvalidDataException("The native page exceeds its paint limit.");
+                        pageHasContent = true;
                         top += height;
                     }
                     else FlushLine();
@@ -359,6 +362,18 @@ public sealed partial class EpubDocument
         {
             var block = owner;
             while (block.Name != "p" && block.Parent is { } parent) block = parent;
+            if (!ReferenceEquals(lineBlock, block) && block.Name == "p" && block.Style.PageBreakBefore)
+            {
+                FlushLine();
+                // An existing natural break already satisfies a forced break at this boundary.
+                if (pageHasContent)
+                {
+                    FinishPage(index);
+                    top = options.Margin;
+                }
+                left = contentLeft;
+                lineStart = index;
+            }
             if (line.Count > 0 && !ReferenceEquals(lineBlock, block))
             {
                 FlushLine();
@@ -473,6 +488,7 @@ public sealed partial class EpubDocument
             if (blockBackgrounds.Count + inlineBackgrounds.Count + glyphs.Count > 100_000)
                 throw new InvalidDataException("The native page exceeds its paint limit.");
             top += height;
+            pageHasContent = true;
             line.Clear();
         }
 
@@ -500,6 +516,7 @@ public sealed partial class EpubDocument
             pages.Add(new EpubLayoutPage(text[pageStart..end], pageStart, spineIndex, placements, paints,
                 content.CanvasBackground, placements.Select(placement => clusters[placement.Start])));
             pageStart = end;
+            pageHasContent = false;
             placements.Clear();
             glyphs.Clear();
             blockBackgrounds.Clear();
