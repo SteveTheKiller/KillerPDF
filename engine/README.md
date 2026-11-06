@@ -371,7 +371,13 @@ inline child margins, other units, exhausted content geometry and advanced fragm
 semantics remain explicitly unsupported; complete CSS layout remains in progress.
 
 Block paragraphs support nonnegative horizontal margins and padding in px, em and
-percentages through the existing per-side cascade. Percentages use the parent's
+percentages. Paragraph and basic div content widths accept positive px/em/percentage
+lengths or auto, with independent cascade and inline overrides. Specified widths
+exclude padding; percentage widths and vertical margins use the actual containing
+content width before child side insets. Nested backgrounds retain their own bounds,
+and following siblings recover the parent's full available width. Native and saved
+PDF checks cover alignment, background edges, wrapping and page continuation.
+Horizontal insets use the existing per-side cascade. Percentages use the parent's
 content width; em uses the paragraph's own font size. Text wraps, aligns and resumes
 after page breaks inside its content box. Backgrounds include padding and exclude
 margins, and sibling paragraphs recover their own bounds. Explicit zero top and

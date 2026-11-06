@@ -12,6 +12,199 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubBodyBoxTests
 {
     [Fact]
+    public void ExactWidthLimitRendersClippedToTheRequestedPage()
+    {
+        byte[] source = Book("", "p{margin:0;width:32768px;background-color:rgb(255,0,0)}", "A", ""), preserved = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 100, font) { Margin = 10, FontSize = 16 });
+        Assert.Equal(10, Assert.Single(Assert.Single(layout.Pages).TextPlacements).Left, 6);
+        var native = layout.RenderPage(0);
+        Assert.Equal(100, native.Width);
+        Assert.Equal(100, native.Height);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, native.Pixels.Slice((10 * 100 + 99) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 7.5, FontSizePoints = 12 }));
+        Assert.Equal("A", Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters).Value);
+        var saved = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(100, 100));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, saved.Pixels.Slice((10 * 100 + 99) * 4, 4).ToArray());
+        Assert.Equal(preserved, source);
+    }
+
+    [Theory]
+    [InlineData("32769px")]
+    [InlineData("99999999999999999999999999999999999999999999999999999999999em")]
+    [InlineData("NaNpx")]
+    [InlineData("Infinitypx")]
+    [InlineData("-1px")]
+    [InlineData("calc(100% - 1px)")]
+    [InlineData("0")]
+    public void UnsupportedOrExcessiveWidthsDiagnoseWithoutChangingTheBook(string width)
+    {
+        byte[] source = Book("", "p{margin:0;width:" + width + "}", "A", ""), preserved = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(100, 100, font) { Margin = 10, FontSize = 16 }));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 7.5, FontSizePoints = 12 }));
+        Assert.Equal(preserved, source);
+    }
+
+    [Fact]
+    public void NestedPercentageMarginsUseTheirActualContainingWidth()
+    {
+        byte[] source = Book("", "p{margin:0}.pick{width:50%;margin:10% 0 20%}",
+            "</span></p><div style='width:50%'><p class='pick'><span>A</span></p></div><p><span>A", "");
+        byte[] preserved = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 100, font) { Margin = 10, FontSize = 16 });
+        var placements = Assert.Single(layout.Pages).TextPlacements;
+        Assert.Equal(2, placements.Count);
+        Assert.Equal(14, placements[0].Top, 6);
+        Assert.Equal(38, placements[1].Top, 6);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 7.5, FontSizePoints = 12 }));
+        var letters = new PdfPageContentReader(pdf).Read(0).Letters;
+        Assert.Equal(54.9, letters[0].StartBaseLine.Y, 6);
+        Assert.Equal(36.9, letters[1].StartBaseLine.Y, 6);
+        Assert.Equal(preserved, source);
+    }
+
+    [Fact]
+    public void NarrowSpecifiedWidthRetainsWrappingAndBackgroundAcrossPages()
+    {
+        byte[] source = Book("", "p{margin:0;width:25%;text-align:center;background-color:rgb(255,0,0)}", "A A A", "");
+        byte[] preserved = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 60, font) { Margin = 10, FontSize = 16 });
+        Assert.Equal(2, layout.Pages.Count);
+        Assert.Equal(2, layout.Pages[0].TextPlacements.Count);
+        Assert.Single(layout.Pages[1].TextPlacements);
+        Assert.All(layout.Pages.SelectMany(page => page.TextPlacements), placement => Assert.Equal(15.2, placement.Left, 6));
+        Assert.Equal(10, layout.Pages[1].TextPlacements[0].Top, 6);
+        Assert.Equal(book.ReadText(0), string.Concat(layout.Pages.Select(page => page.Text)));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 45, MarginPoints = 7.5, FontSizePoints = 12 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal("AA", string.Concat(reader.Read(0).Letters.Select(letter => letter.Value)));
+        Assert.Equal("A", string.Concat(reader.Read(1).Letters.Select(letter => letter.Value)));
+        Assert.Equal(11.4, Assert.Single(reader.Read(1).Letters).StartBaseLine.X, 6);
+        for (int page = 0; page < 2; page++)
+        {
+            var native = layout.RenderPage(page);
+            var saved = new PdfPageRenderer(pdf).Render(page, new PdfRenderOptions(100, 60));
+            Assert.Equal(new float[] { 1, 0, 0, 1 }, native.Pixels.Slice((10 * 100 + 29) * 4, 4).ToArray());
+            Assert.Equal(new float[] { 1, 1, 1, 1 }, native.Pixels.Slice((10 * 100 + 30) * 4, 4).ToArray());
+            Assert.Equal(new byte[] { 0, 0, 255, 255 }, saved.Pixels.Slice((10 * 100 + 29) * 4, 4).ToArray());
+            Assert.Equal(new byte[] { 255, 255, 255, 255 }, saved.Pixels.Slice((10 * 100 + 30) * 4, 4).ToArray());
+        }
+        Assert.Equal(preserved, source);
+    }
+
+    [Fact]
+    public void NestedPercentageWidthsUseTheParentContentBoxAndRestoreSiblingBounds()
+    {
+        byte[] source = Book("", "p{margin:0;text-align:center}.pick{width:50%;background-color:rgb(255,0,0)}",
+            "</span></p><div style='width:50%;background-color:rgb(0,0,255)'><p class='pick'><span>A</span></p></div><p><span>A", "");
+        byte[] preserved = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 100, font) { Margin = 10, FontSize = 16 });
+        var placements = Assert.Single(layout.Pages).TextPlacements;
+        Assert.Equal(2, placements.Count);
+        Assert.Equal(15.2, placements[0].Left, 6);
+        Assert.Equal(45.2, placements[1].Left, 6);
+        var native = layout.RenderPage(0);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 7.5, FontSizePoints = 12 }));
+        var letters = new PdfPageContentReader(pdf).Read(0).Letters;
+        Assert.Equal(11.4, letters[0].StartBaseLine.X, 6);
+        Assert.Equal(33.9, letters[1].StartBaseLine.X, 6);
+        var saved = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(100, 100));
+        foreach (var point in new[] { (X: 29, Color: 0), (X: 30, Color: 1), (X: 49, Color: 1), (X: 50, Color: 2) })
+        {
+            float[] expected = point.Color == 0 ? [1, 0, 0, 1] : point.Color == 1 ? [0, 0, 1, 1] : [1, 1, 1, 1];
+            byte[] expectedSaved = point.Color == 0 ? [0, 0, 255, 255] : point.Color == 1 ? [255, 0, 0, 255] : [255, 255, 255, 255];
+            Assert.Equal(expected, native.Pixels.Slice((10 * 100 + point.X) * 4, 4).ToArray());
+            Assert.Equal(expectedSaved, saved.Pixels.Slice((10 * 100 + point.X) * 4, 4).ToArray());
+        }
+        Assert.Equal(preserved, source);
+    }
+
+    [Fact]
+    public void SpecifiedWidthExcludesPaddingAndUsesTheContainingWidthBeforeMargins()
+    {
+        byte[] source = Book("", "p{margin:0 12px 0 8px;width:50%;padding:0 6px 0 4px;text-align:center;background-color:rgb(255,0,0)}", "A", "");
+        byte[] preserved = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 100, font) { Margin = 10, FontSize = 16 });
+        Assert.Equal(37.2, Assert.Single(Assert.Single(layout.Pages).TextPlacements).Left, 6);
+        var native = layout.RenderPage(0);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 7.5, FontSizePoints = 12 }));
+        Assert.Equal(27.9, Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters).StartBaseLine.X, 6);
+        var saved = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(100, 100));
+        foreach (var point in new[] { (X: 17, Red: false), (X: 18, Red: true), (X: 67, Red: true), (X: 68, Red: false) })
+        {
+            Assert.Equal(point.Red ? new float[] { 1, 0, 0, 1 } : new float[] { 1, 1, 1, 1 },
+                native.Pixels.Slice((10 * 100 + point.X) * 4, 4).ToArray());
+            Assert.Equal(point.Red ? new byte[] { 0, 0, 255, 255 } : new byte[] { 255, 255, 255, 255 },
+                saved.Pixels.Slice((10 * 100 + point.X) * 4, 4).ToArray());
+        }
+        Assert.Equal(preserved, source);
+    }
+
+    [Theory]
+    [InlineData("width:50%;width:auto", "")]
+    [InlineData("width:50%", "width:auto")]
+    public void AutoWidthClearsAnEarlierSpecifiedWidth(string rule, string inline)
+    {
+        byte[] source = Book("", "p{margin:0;text-align:center;background-color:rgb(255,0,0)}.pick{" + rule + "}",
+            "A", "", paragraphClass: "pick", paragraphStyle: inline), preserved = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 100, font) { Margin = 10, FontSize = 16 });
+        Assert.Equal(45.2, Assert.Single(Assert.Single(layout.Pages).TextPlacements).Left, 6);
+        var native = layout.RenderPage(0);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, native.Pixels.Slice((10 * 100 + 89) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, native.Pixels.Slice((10 * 100 + 90) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 7.5, FontSizePoints = 12 }));
+        Assert.Equal(33.9, Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters).StartBaseLine.X, 6);
+        var saved = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(100, 100));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, saved.Pixels.Slice((10 * 100 + 89) * 4, 4).ToArray());
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, saved.Pixels.Slice((10 * 100 + 90) * 4, 4).ToArray());
+        Assert.Equal(preserved, source);
+    }
+
+    [Theory]
+    [InlineData("50%")]
+    [InlineData("40px")]
+    [InlineData("2.5em")]
+    public void SpecifiedParagraphWidthControlsAlignmentAndBackgroundExtent(string width)
+    {
+        byte[] source = Book("", "p{margin:0;width:" + width + ";text-align:center;background-color:rgb(255,0,0)}", "A", "");
+        byte[] preserved = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 100, font) { Margin = 10, FontSize = 16 });
+        Assert.Equal(25.2, Assert.Single(Assert.Single(layout.Pages).TextPlacements).Left, 6);
+        var native = layout.RenderPage(0);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, native.Pixels.Slice((10 * 100 + 49) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, native.Pixels.Slice((10 * 100 + 50) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 7.5, FontSizePoints = 12 }));
+        Assert.Equal(18.9, Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters).StartBaseLine.X, 6);
+        var saved = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(100, 100));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, saved.Pixels.Slice((10 * 100 + 49) * 4, 4).ToArray());
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, saved.Pixels.Slice((10 * 100 + 50) * 4, 4).ToArray());
+        Assert.Equal(preserved, source);
+    }
+
+    [Fact]
     public void LeadingEmptyParagraphRetainsItsExplicitBottomMargin()
     {
         byte[] source = Book("", "p{margin:0}",

@@ -283,7 +283,7 @@ public sealed partial class EpubDocument
         var startedBlocks = new HashSet<EpubFormattingTree.Block>();
         var initialPadding = new Dictionary<EpubFormattingTree.Block,
             (double Height, int PaintStart, double BorderHeight, PdfRgbColor? BorderColor)>();
-        var activeBounds = new Dictionary<EpubFormattingTree.Block, (double Left, double Width)>();
+        var activeBounds = new Dictionary<EpubFormattingTree.Block, (double Left, double Width, double ContainingWidth)>();
         double pendingParagraphGap = 0;
         long imageBytes = retainedImageBytes;
         LayoutBlock(formatting.Root);
@@ -300,13 +300,21 @@ public sealed partial class EpubDocument
             var padding = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth, padding: true);
             contentLeft += margins.Left;
             contentRight -= margins.Right;
+            if (block.Source.Width is { Length: { } specifiedWidth })
+            {
+                double width = specifiedWidth.Percentage ? parentWidth * specifiedWidth.Value / 100
+                    : specifiedWidth.Em ? block.Source.Style.FontSize * specifiedWidth.Value : specifiedWidth.Value;
+                if (!double.IsFinite(width) || width < 0 || width > 32768)
+                    throw new NotSupportedException("Native EPUB block width exceeds the supported dimensions.");
+                contentRight = contentLeft + padding.Left + width + padding.Right;
+            }
             var backgroundBounds = (Left: contentLeft, Width: contentRight - contentLeft);
             contentLeft += padding.Left;
             contentRight -= padding.Right;
             contentWidth = contentRight - contentLeft;
             if (contentWidth <= 0)
                 throw new NotSupportedException("Native EPUB paragraph insets require a positive content box.");
-            activeBounds.Add(block, backgroundBounds);
+            activeBounds.Add(block, (backgroundBounds.Left, backgroundBounds.Width, parentWidth));
             try
             {
                 if (block.Parent is not null && block.Source.Style.PageBreakBefore && pageHasContent)
@@ -327,7 +335,7 @@ public sealed partial class EpubDocument
                 if ((paddingTop > 0 || paddingBottom > 0 || borderTop > 0) && block.Source.Name == "p")
                 {
                     pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(0,
-                        activeBounds[formatting.Root].Width, pageHasContent ? options.FontSize : 0));
+                        activeBounds[block].ContainingWidth, pageHasContent ? options.FontSize : 0));
                     top += !pageHasContent && pages.Count == 0 && bodyPadding.Top == 0
                         ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
                     pendingParagraphGap = 0;
@@ -428,12 +436,12 @@ public sealed partial class EpubDocument
             int boundary = Math.Min(block.Source.Offset, text.Length);
             while (boundary < text.Length && content.Characters[boundary] is null) boundary++;
             if (block.Source.Name == "p" && block.Source.VerticalMargin(0,
-                activeBounds[formatting.Root].Width, 0, padding: true) == 0
-                && block.Source.VerticalMargin(2, activeBounds[formatting.Root].Width, 0, padding: true) == 0
+                activeBounds[block].ContainingWidth, 0, padding: true) == 0
+                && block.Source.VerticalMargin(2, activeBounds[block].ContainingWidth, 0, padding: true) == 0
                 && block.Source.TopBorder is not { Visible: true, Width.Value: > 0 })
             {
                 pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(0,
-                    activeBounds[formatting.Root].Width, pageHasContent ? options.FontSize : 0));
+                    activeBounds[block].ContainingWidth, pageHasContent ? options.FontSize : 0));
             }
             if (block.Replaced is { Source: { } source } replaced)
             {
@@ -479,10 +487,10 @@ public sealed partial class EpubDocument
             {
                 bool hasExtent = pageHasContent
                     || block.Source.TopBorder is { Visible: true, Width.Value: > 0 }
-                    || block.Source.VerticalMargin(0, activeBounds[formatting.Root].Width, 0, padding: true) > 0
-                    || block.Source.VerticalMargin(2, activeBounds[formatting.Root].Width, 0, padding: true) > 0;
+                    || block.Source.VerticalMargin(0, activeBounds[block].ContainingWidth, 0, padding: true) > 0
+                    || block.Source.VerticalMargin(2, activeBounds[block].ContainingWidth, 0, padding: true) > 0;
                 pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(2,
-                    activeBounds[formatting.Root].Width, hasExtent ? options.FontSize : 0));
+                    activeBounds[block].ContainingWidth, hasExtent ? options.FontSize : 0));
             }
         }
 
