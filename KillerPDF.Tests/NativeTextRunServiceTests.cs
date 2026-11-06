@@ -12,6 +12,20 @@ namespace KillerPDF.Tests;
 public sealed class NativeTextRunServiceTests
 {
     [Fact]
+    public void NativeVisibleRangesUseAtomicSourceAreasAndExcludeUnlocatedSeparators()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("fi B",
+            Zone(10, 20, 30, 40, 0, 2), Zone(50, 80, 30, 40, 3, 1))));
+        var runs = new TextRunService().GetPage(revision, 0)!;
+        Assert.Equal(new[] { (0, 1), (2, 3) }, VisibleTextGeometry.VisibleCarets(runs, 24, 48, 0,
+            point => point, new System.Windows.Rect(0, 0, 24, 48)));
+        Assert.Equal(new[] { (0, 1) }, VisibleTextGeometry.VisibleCarets(runs, 24, 48, 0,
+            point => point, new System.Windows.Rect(2, 33, 8, 11)));
+        Assert.Empty(VisibleTextGeometry.VisibleCarets(runs, 24, 48, 0,
+            point => point, new System.Windows.Rect(10, 29, 1, 3)));
+    }
+
+    [Fact]
     public void CapturedEpubSelectionUsesOriginalLayoutAndTextWithoutPdfConversion()
     {
         using var resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
@@ -34,6 +48,8 @@ public sealed class NativeTextRunServiceTests
         Assert.Equal(3, bounds.Left, 12);
         Assert.Equal(24, bounds.Bottom, 12);
         Assert.Equal(33, bounds.Top, 12);
+        Assert.Equal(new[] { (0, 3) }, VisibleTextGeometry.VisibleCarets(runs, 60, 36, 0,
+            point => point, new System.Windows.Rect(0, 0, 60, 36)));
     }
 
     [Theory]

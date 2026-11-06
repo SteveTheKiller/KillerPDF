@@ -25,9 +25,15 @@ internal static class VisibleTextGeometry
         for (int caret = 0; caret < runs.Chars.Count; caret++)
         {
             RunChar character = runs.Chars[caret];
-            if (character.Line < 0 || character.Line >= runs.Lines.Count) continue;
-            RunLine line = runs.Lines[character.Line];
-            var bounds = TextRunService.CharacterBounds(character, line);
+            var bounds = new KillerPdf.Engine.Documents.PdfContentBounds(
+                character.Left, character.Bottom, character.Right, character.Top);
+            if (runs.NativeSourceText is null)
+            {
+                if (character.Line < 0 || character.Line >= runs.Lines.Count) continue;
+                bounds = TextRunService.CharacterBounds(character, runs.Lines[character.Line]);
+            }
+            else if (!double.IsFinite(bounds.Left) || !double.IsFinite(bounds.Bottom)
+                || !double.IsFinite(bounds.Right) || !double.IsFinite(bounds.Top)) continue;
             Rect rect = RedactionGeometry.PageToCanvas(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top,
                 runs.PdfWidth, runs.PdfHeight, canvasWidth, canvasHeight, rotation);
             Rect visible = Rect.Intersect(viewport, Rect.Transform(rect, matrix));

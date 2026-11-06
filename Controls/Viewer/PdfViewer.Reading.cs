@@ -230,7 +230,7 @@ namespace KillerPDF.Controls
                     Rect viewport = Viewport(canvas);
                     var pageBounds = new Rect(canvas.PointToScreen(new Point()),
                         canvas.PointToScreen(new Point(canvas.ActualWidth, canvas.ActualHeight)));
-                    if (!viewport.IntersectsWith(pageBounds) || viewer._textRuns.GetPage(file, viewer._protection,page) is not { } runs) continue;
+                    if (!viewport.IntersectsWith(pageBounds) || viewer.SelectionPageRuns(page) is not { } runs) continue;
                     foreach (var (start, end) in VisibleTextGeometry.VisibleCarets(runs, dimensions.w, dimensions.h,
                                  viewer.EffectiveRotation(page), canvas.PointToScreen, viewport))
                         result.Add((page, start, end));

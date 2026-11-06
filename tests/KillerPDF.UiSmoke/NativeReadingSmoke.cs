@@ -300,6 +300,11 @@ internal static class NativeReadingSmoke
                         if (readingBounds[index + 2] <= 0 || readingBounds[index + 3] <= 0)
                             throw new InvalidOperationException("Native reading phrase exposed an empty source area.");
                     events.Add(new { stage, sourceAreas = 2 });
+                    stage = "native-reading-visible";
+                    string[] visibleText = textProvider.GetVisibleRanges().Select(range => range.GetText(-1)).ToArray();
+                    if (!visibleText.SequenceEqual(new[] { "AA AA" }))
+                        throw new InvalidOperationException("Native reading visible ranges did not preserve the original visible text.");
+                    events.Add(new { stage, exactVisibleText = true });
                 }
                 if (gridSwitch && isNative && step.Grid)
                 {
