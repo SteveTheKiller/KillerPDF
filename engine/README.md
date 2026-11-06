@@ -363,6 +363,9 @@ when the view's proof stamp changes. Initial Single-page source and visible-regi
 checks cover a generated printer profile. Native detail frame requests also retain
 those settings and the primary proof generation, verified through a recording
 presenter boundary. This does not establish GPU submission or physical color accuracy.
+Initial PDF Two-page viewing applies the document's proof request to both page
+rasters, with proof-aware cache and publication checks. Generated-profile source
+and visible-screen checks cover proof on and off; other mode/profile coverage remains open.
 Unsupported native proof requests retain their preferences and show normal viewing
 with a proof diagnostic.
 Proof controls, other rendering paths and persistence remain unfinished.

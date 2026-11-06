@@ -113,13 +113,14 @@ public partial class PdfViewer
 
     private (BitmapSource Bitmap, RenderMeasurement Measurement) PreparePrimaryBitmap(
         PdfBackgroundRenderCache.Request request, int page, int maximumSize, int rotation,
-        bool invert, CancellationToken token)
+        bool invert, CancellationToken token,
+        KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
     {
         var timer = Stopwatch.StartNew();
         using var lease = request.Rent(token);
         double parse = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
-        PdfRenderedPage rendered = lease.Render(page, maximumSize, maximumSize, token);
+        PdfRenderedPage rendered = RenderViewingPage(lease, page, maximumSize, token, proof);
         double raster = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
         int width = rendered.Width, height = rendered.Height;
@@ -144,5 +145,22 @@ public partial class PdfViewer
         bitmap.Freeze();
         RememberRenderWarning(bitmap, rendered);
         return (bitmap, new RenderMeasurement(page, parse, raster, timer.Elapsed.TotalMilliseconds, 0));
+    }
+
+    private static PdfRenderedPage RenderViewingPage(PdfBackgroundRenderCache.Lease lease, int page,
+        int maximumSize, CancellationToken token, KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof)
+    {
+        if (proof?.Enabled != true) return lease.Render(page, maximumSize, maximumSize, token);
+        try
+        {
+            var frame = lease.RenderFrame(page, maximumSize, maximumSize, token, proof);
+            return new(frame.Width, frame.Height, frame.ToSrgbBgra32(token), PdfRenderBackend.Engine, null);
+        }
+        catch (NotSupportedException error)
+        {
+            var normal = lease.Render(page, maximumSize, maximumSize, token);
+            return normal with { RenderDiagnostics = [.. normal.RenderDiagnostics,
+                new(PdfRenderDiagnosticKind.Degraded, error.Message)] };
+        }
     }
 }

@@ -25,7 +25,7 @@ internal static class TableExportSmoke
             || windowSessionCase.StartsWith("--verify-page-navigation-", StringComparison.Ordinal));
         visibleNative |= windowSession && windowSessionCase is "--verify-sdr-monitor" or "--verify-native-fallback" or "--verify-native-fallback-refinement" or "--verify-two-page-fallback-refinement";
         visibleNative |= windowSession && windowSessionCase is "--verify-native-conversion" or "--verify-native-conversion-djvu" or "--verify-native-conversion-custom" or "--verify-native-conversion-unicode";
-        visibleNative |= windowSession && windowSessionCase is "--verify-native-search-epub" or "--verify-proof-refinement" or "--verify-proof-presenter-refinement";
+        visibleNative |= windowSession && windowSessionCase is "--verify-native-search-epub" or "--verify-proof-refinement" or "--verify-proof-presenter-refinement" or "--verify-proof-two-page";
         if (visibleNative && !new[] { "SN01", "SN02" }.Contains(Environment.MachineName, StringComparer.OrdinalIgnoreCase))
             throw new InvalidOperationException("Visible native hint acceptance may run only on SN01 or SN02.");
         if (!Environment.GetCommandLineArgs().Contains("--startup-smoke")
@@ -151,6 +151,7 @@ internal static class TableExportSmoke
             if (windowSessionCase == "--verify-native-search-epub") return NativeReadingSmoke.Run(owner, appPath, folder, epub: true, search: true);
             if (windowSessionCase == "--verify-proof-refinement") return ProofRefinementSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-proof-presenter-refinement") return ProofRefinementSmoke.Run(owner, appPath, folder, nativePresenter: true);
+            if (windowSessionCase == "--verify-proof-two-page") return ProofTwoPageSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-native-reading-epub-continuous") return NativeReadingSmoke.Run(owner, appPath, folder, continuous: true, epub: true);
             if (windowSessionCase == "--verify-native-reading-epub-grid-switch") return NativeReadingSmoke.Run(owner, appPath, folder, grid: true, gridSwitch: true, epub: true);
             if (windowSessionCase == "--verify-native-reading-continuous") return NativeReadingSmoke.Run(owner, appPath, folder, continuous: true);

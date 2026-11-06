@@ -229,12 +229,12 @@ internal static class ProofRefinementSmoke
         public void Dispose() { }
     }
 
-    private static void RequireStripeColors((int Paper, int Ink, int Pixels) colors)
+    internal static void RequireStripeColors((int Paper, int Ink, int Pixels) colors)
     {
         if (colors.Paper <= colors.Pixels / 5 || colors.Ink <= colors.Pixels / 5)
             throw new InvalidOperationException("The page region does not retain the expected paper and ink colors.");
     }
-    private static (int Paper, int Ink, int Pixels) StripeColors(BitmapSource source, bool proof)
+    internal static (int Paper, int Ink, int Pixels) StripeColors(BitmapSource source, bool proof)
     {
         var image = new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
         byte[] bytes = new byte[checked(image.PixelWidth * image.PixelHeight * 4)];

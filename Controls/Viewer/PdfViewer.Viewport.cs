@@ -1056,10 +1056,11 @@ namespace KillerPDF.Controls
                     {
                         var request = _backgroundRenderCache.Capture(primaryFile, primaryRevision, _protection);
                         render = _viewportRenderQueue.Enqueue(("primary", primarySession), 0,
-                            8L * scaledMax * scaledMax,
+                            (primaryProof?.Settings.Enabled == true ? 64L : 8L) * scaledMax * scaledMax,
                             token =>
                             {
-                                var prepared = PreparePrimaryBitmap(request, pageIndex, scaledMax, pgRot, primaryInvert, token);
+                                var prepared = PreparePrimaryBitmap(request, pageIndex, scaledMax, pgRot, primaryInvert, token,
+                                    primaryProof?.Settings);
                                 return (prepared.Bitmap, prepared.Measurement, (PdfRenderedFrame?)null);
                             },
                             primaryToken);
@@ -1346,6 +1347,14 @@ namespace KillerPDF.Controls
             try
             {
                 var session = _active;
+                var proof = session?.ProofView.CaptureProof();
+                long revision = session?.RenderRevision ?? 0;
+                var mode = _viewMode;
+                bool invert = DocInvert;
+                bool Current() => !cts.IsCancellationRequested && _doc is not null
+                    && ReferenceEquals(session, _active) && currentFile == _currentFile
+                    && revision == (_active?.RenderRevision ?? 0) && mode == _viewMode && invert == DocInvert
+                    && proof?.Stamp == _active?.ProofView.CaptureProof().Stamp;
                 // Cache by the actual raster budget, not the tile's fixed logical width. Two-page
                 // rendering follows zoom, while primaryDipW remains constant; using that width as
                 // the key let a lower-resolution bitmap from an earlier zoom replace the sharp
@@ -1366,7 +1375,7 @@ namespace KillerPDF.Controls
                             int rot = secRotations.TryGetValue(i, out int rr) ? rr : 0;
 
                             // Cache hit: skip pdfium entirely, just attach the cached tile bitmap.
-                            var cachedTile = TryGetCachedRender(session, i, tileBucket, rot);
+                            var cachedTile = TryGetCachedRender(session, i, tileBucket, rot, proofStamp: proof?.Stamp);
                             // The cache key has no width: a tile built beside a primary page of
                             // another width (book layout pairs pages differently, Grid anchors at
                             // page 0) would show at the wrong size, so render it again instead.
@@ -1379,7 +1388,7 @@ namespace KillerPDF.Controls
                                 {
                                     Dispatcher.Invoke(() =>
                                     {
-                                        if (cts.IsCancellationRequested || _doc is null) return;
+                                        if (!Current()) return;
                                         if (_viewMode != ViewMode.Grid && _viewMode != ViewMode.TwoPage) return;
                                         AddSecondaryTile(pic, cachedTile, primaryDipW);
                                     });
@@ -1396,10 +1405,10 @@ namespace KillerPDF.Controls
                             {
                                 PdfRenderedPage rendered = await _viewportRenderQueue.Enqueue(
                                     (renderRequest, "secondary", i), 10 + i - primaryPageIdx,
-                                    8L * secondaryMax * secondaryMax, token =>
+                                    (proof?.Settings.Enabled == true ? 64L : 8L) * secondaryMax * secondaryMax, token =>
                                     {
                                         using var lease = renderRequest.Rent(token);
-                                        return lease.Render(i, secondaryMax, secondaryMax, token);
+                                        return RenderViewingPage(lease, i, secondaryMax, token, proof?.Settings);
                                     }, secondaryToken);
                                 int w = rendered.Width;
                                 int h = rendered.Height;
@@ -1407,7 +1416,7 @@ namespace KillerPDF.Controls
                                 if (w <= 0 || h <= 0 || rawBytes is null) continue;
                                 // #135: dark mode with pictures excluded; invert before the rotation
                                 // so the carve-out rects stay in unrotated page space.
-                                if (DocInvert)
+                                if (invert)
                                     BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, w, h, ImageRectsFor(currentFile, renderRequest.Protection, i, ref contentDoc));
                                 if (rot != 0)
                                     (rawBytes, w, h) = BitmapHelpers.RotateBitmap(rawBytes, w, h, rot);
@@ -1416,13 +1425,13 @@ namespace KillerPDF.Controls
                                 byte[] bytes = rawBytes;
                                 Dispatcher.Invoke(() =>
                                 {
-                                    if (cts.IsCancellationRequested || _doc is null) return;
+                                    if (!Current()) return;
                                     if (_viewMode != ViewMode.Grid && _viewMode != ViewMode.TwoPage) return;
                                     int ddw = Math.Max(1, (int)Math.Round(primaryDipW));
                                     int ddh = Math.Max(1, (int)Math.Round(primaryDipW * ph / pw));
                                     var bmp = BitmapHelpers.BuildScaledBitmap(pw, ph, bytes, ddw, ddh);
                                     RememberRenderWarning(bmp, rendered);
-                                    CacheRender(session, pi, tileBucket, prot, bmp);
+                                    CacheRender(session, pi, tileBucket, prot, bmp, proofStamp: proof?.Stamp);
                                     AddSecondaryTile(pi, bmp, primaryDipW);
                                 });
                             }
