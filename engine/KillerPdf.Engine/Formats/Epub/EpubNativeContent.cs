@@ -27,6 +27,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private int _characters;
     private int _selectorWork;
     private bool _bodySeen;
+    private MarginLength?[]? _bodyMargins;
+    private double _bodyFontSize = fallbackSize;
     internal List<SourceCharacter?> Characters { get; } = new();
     internal List<(string Id, int Offset)> Anchors { get; } = new();
     internal List<InlineReference> Inlines { get; } = new();
@@ -84,6 +86,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         CssProperties properties = ResolveRules(name, classNames);
         if (inlineStyle is not null) properties = properties.Override(ParseProperties(inlineStyle));
         Style style = properties.Apply(inherited, contentHeight);
+        if (name == "body")
+        {
+            _bodyMargins = properties.Margins;
+            _bodyFontSize = style.FontSize;
+        }
+        else if (properties.Margins?.Any(side => side is { Value: > 0 }) == true)
+            throw new NotSupportedException("Native EPUB nonzero margins are implemented only on the body.");
         if (style.Background is { } background)
         {
             if (name is not ("body" or "p" or "span"))
@@ -97,6 +106,23 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     }
 
     internal void Exit() => _ancestors.Pop();
+
+    internal (double Top, double Right, double Bottom, double Left) ResolveBodyMargins(double width)
+    {
+        double Side(int index)
+        {
+            if (_bodyMargins?[index] is not { } length) return 0;
+            double pixels = length.Percentage ? length.Value * width / 100
+                : length.Em ? length.Value * _bodyFontSize : length.Value;
+            if (!double.IsFinite(pixels) || pixels < 0 || pixels > 32768)
+                throw new NotSupportedException("Native EPUB body margins exceed the supported page dimensions.");
+            return pixels;
+        }
+        var margins = (Top: Side(0), Right: Side(1), Bottom: Side(2), Left: Side(3));
+        if (margins.Left + margins.Right >= width || margins.Top >= contentHeight || margins.Bottom > contentHeight)
+            throw new NotSupportedException("Native EPUB body margins require a positive content box within the page.");
+        return margins;
+    }
 
     internal Text TextNode(string value)
     {
@@ -166,6 +192,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         int sizeSpecificity = -1, heightSpecificity = -1, colorSpecificity = -1, backgroundSpecificity = -1;
         EpubFontFamily[]? families = null;
         int familySpecificity = -1;
+        var margins = new MarginLength?[4];
+        int[] marginSpecificities = [-1, -1, -1, -1];
         foreach (var rule in rules)
         {
             CountSelectorWork(1);
@@ -213,8 +241,15 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 families = fontFamilies;
                 familySpecificity = specificity;
             }
+            if (rule.Properties.Margins is { } ruleMargins)
+                for (int side = 0; side < 4; side++)
+                    if (ruleMargins[side] is { } margin && specificity >= marginSpecificities[side])
+                    {
+                        margins[side] = margin;
+                        marginSpecificities[side] = specificity;
+                    }
         }
-        return new CssProperties(size, height, color, background, families);
+        return new CssProperties(size, height, color, background, families, margins);
     }
 
     private void CountSelectorWork(int amount)
@@ -235,12 +270,18 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         }
     }
 
+    private readonly record struct MarginLength(double Value, bool Em, bool Percentage = false);
+
     private readonly record struct CssProperties(CssLength? FontSize, CssLength? LineHeight, PdfRgbColor? Color = null,
-        BackgroundColor? Background = null, EpubFontFamily[]? FontFamilies = null)
+        BackgroundColor? Background = null, EpubFontFamily[]? FontFamilies = null, MarginLength?[]? Margins = null)
     {
         internal CssProperties Override(CssProperties inline) =>
             new(inline.FontSize ?? FontSize, inline.LineHeight ?? LineHeight,
-                inline.Color ?? Color, inline.Background ?? Background, inline.FontFamilies ?? FontFamilies);
+                inline.Color ?? Color, inline.Background ?? Background, inline.FontFamilies ?? FontFamilies,
+                MergeMargins(Margins, inline.Margins));
+
+        private static MarginLength?[]? MergeMargins(MarginLength?[]? earlier, MarginLength?[]? later) =>
+            later is null ? earlier : Enumerable.Range(0, 4).Select(side => later[side] ?? earlier?[side]).ToArray();
 
         internal Style Apply(Style inherited, double maximum)
         {
@@ -262,6 +303,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         PdfRgbColor? color = null;
         BackgroundColor? background = null;
         EpubFontFamily[]? families = null;
+        MarginLength?[]? margins = null;
         foreach (string declaration in declarations.Split(';'))
         {
             string part = declaration.Trim();
@@ -270,6 +312,23 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (colon < 0) throw new NotSupportedException("Native EPUB CSS declaration is unsupported.");
             string property = part[..colon].Trim().ToLowerInvariant();
             string value = part[(colon + 1)..].Trim();
+            if (property is "margin" or "margin-top" or "margin-right" or "margin-bottom" or "margin-left")
+            {
+                string[] sides = value.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries);
+                if (sides.Length == 0 || sides.Length > (property == "margin" ? 4 : 1))
+                    throw new NotSupportedException("Native EPUB body margin syntax is not implemented.");
+                var lengths = sides.Select(ParseMarginLength).ToArray();
+                margins ??= new MarginLength?[4];
+                if (property == "margin")
+                {
+                    margins[0] = lengths[0];
+                    margins[1] = lengths.Length > 1 ? lengths[1] : lengths[0];
+                    margins[2] = lengths.Length > 2 ? lengths[2] : lengths[0];
+                    margins[3] = lengths.Length > 3 ? lengths[3] : margins[1];
+                }
+                else margins[property switch { "margin-top" => 0, "margin-right" => 1, "margin-bottom" => 2, _ => 3 }] = lengths[0];
+                continue;
+            }
             if (property == "font-family")
             {
                 families = ParseFontFamilies(value);
@@ -316,7 +375,20 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new CssProperties(size, height, color, background, families);
+        return new CssProperties(size, height, color, background, families, margins);
+    }
+
+    private static MarginLength ParseMarginLength(string value)
+    {
+        bool em = value.EndsWith("em", StringComparison.OrdinalIgnoreCase);
+        bool px = value.EndsWith("px", StringComparison.OrdinalIgnoreCase);
+        bool percentage = value.EndsWith('%');
+        string number = em || px ? value[..^2] : percentage ? value[..^1] : value;
+        if (!double.TryParse(number, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out double length) || !double.IsFinite(length) || length < 0
+            || number.EndsWith('.') || !(em || px || percentage) && length != 0)
+            throw new NotSupportedException("Native EPUB body margins require supported nonnegative CSS lengths; auto and negative margins are not implemented.");
+        return new(length, em, percentage);
     }
 
     private static EpubFontFamily[] ParseFontFamilies(string value)

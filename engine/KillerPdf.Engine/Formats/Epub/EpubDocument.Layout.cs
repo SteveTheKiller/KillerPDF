@@ -91,6 +91,10 @@ public sealed partial class EpubDocument
         LoadNativeStylesheets(resource.Href, content, ref remainingStylesheetBytes,
             ref remainingStylesheetReferences, cancellationToken);
         string text = ReadStructuralText(spineIndex, cancellationToken, content);
+        var bodyMargins = content.ResolveBodyMargins(contentWidth);
+        double contentLeft = options.Margin + bodyMargins.Left;
+        double contentRight = options.PageWidth - options.Margin - bodyMargins.Right;
+        contentWidth = contentRight - contentLeft;
         if (text.Length > remainingTextLength)
             throw new InvalidDataException("Native EPUB text exceeds its 100,000 placement limit.");
         remainingTextLength -= text.Length;
@@ -195,8 +199,8 @@ public sealed partial class EpubDocument
         var blockBackgrounds = new List<NativePagePaint>();
         var inlineBackgrounds = new List<(int Depth, NativePagePaint Paint)>();
         int pageStart = 0;
-        double left = options.Margin;
-        double top = options.Margin;
+        double left = contentLeft;
+        double top = options.Margin + bodyMargins.Top;
         var line = new List<(int Index, int Length, double Left, double Width, TrueTypeFont Font, PdfGlyphOutline? Outline,
             PngDecodedImage? Image, EpubNativeContent.Style Style, EpubNativeContent.Style BlockStyle,
             EpubNativeContent.Element? Owner)>();
@@ -225,18 +229,18 @@ public sealed partial class EpubDocument
                             top = options.Margin;
                         }
                         if (reference.Owner.BlockStyle.Background?.Color is { } blankBackground)
-                            blockBackgrounds.Add(new NativeRectanglePaint(options.Margin, top, contentWidth, height, blankBackground));
+                            blockBackgrounds.Add(new NativeRectanglePaint(contentLeft, top, contentWidth, height, blankBackground));
                         if (blockBackgrounds.Count + inlineBackgrounds.Count + glyphs.Count > 100_000)
                             throw new InvalidDataException("The native page exceeds its paint limit.");
                         top += height;
                     }
                     else FlushLine();
-                    left = options.Margin;
+                    left = contentLeft;
                     lineStart = index;
                     continue;
                 }
                 var image = ReadNativeImage(resource.Href, reference.Source, imageCache, ref retainedImageBytes, cancellationToken);
-                if (left + image.Width > options.PageWidth - options.Margin)
+                if (left + image.Width > contentRight)
                     throw new NotSupportedException("The native EPUB image exceeds the available line width.");
                 line.Add((index, 0, left, image.Width, FontFor(reference.Owner.Style), null, image,
                     reference.Owner.Style, reference.Owner.BlockStyle, reference.Owner));
@@ -264,7 +268,7 @@ public sealed partial class EpubDocument
                     FinishPage(index + separatorLength);
                     top = options.Margin;
                 }
-                left = options.Margin;
+                left = contentLeft;
                 lineStart = index + separatorLength;
                 index += separatorLength - 1;
                 continue;
@@ -293,7 +297,7 @@ public sealed partial class EpubDocument
                 }
                 if (wordWidth > contentWidth)
                     throw new NotSupportedException("The native EPUB word exceeds the available line width.");
-                if (left + width + wordWidth > options.PageWidth - options.Margin)
+                if (left + width + wordWidth > contentRight)
                 {
                     FlushLine();
                     if (top + options.FontSize > options.PageHeight - options.Margin)
@@ -301,12 +305,12 @@ public sealed partial class EpubDocument
                         FinishPage(index + 1);
                         top = options.Margin;
                     }
-                    left = options.Margin;
+                    left = contentLeft;
                     lineStart = index + 1;
                     continue;
                 }
             }
-            if (left + width > options.PageWidth - options.Margin)
+            if (left + width > contentRight)
                 throw new NotSupportedException("The native EPUB word exceeds the available line width.");
             line.Add((index, cluster.Length, left, width, cluster.Font, outline, null, StyleAt(index),
                 content.Characters[index]?.BlockStyle ?? content.DefaultStyle, content.Characters[index]?.Node.Owner));
@@ -354,7 +358,7 @@ public sealed partial class EpubDocument
             {
                 FlushLine();
                 top += options.FontSize;
-                left = options.Margin;
+                left = contentLeft;
                 lineStart = index;
             }
             lineBlock = block;
@@ -381,7 +385,7 @@ public sealed partial class EpubDocument
             }
             double baseline = top + ascent;
             if (block.Background?.Color is { } paragraphBackground)
-                blockBackgrounds.Add(new NativeRectanglePaint(options.Margin, top, contentWidth, height, paragraphBackground));
+                blockBackgrounds.Add(new NativeRectanglePaint(contentLeft, top, contentWidth, height, paragraphBackground));
             var fragments = new List<(EpubNativeContent.Element Owner, double Left, double Right, double Top, double Bottom)>();
             var fragmentIndices = new Dictionary<EpubNativeContent.Element, int>(ReferenceEqualityComparer.Instance);
             var ancestors = new Stack<EpubNativeContent.Element>();

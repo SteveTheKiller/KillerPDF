@@ -304,6 +304,17 @@ Inline and packaged styles follow the existing cascade and remain independent of
 Windows region settings. Mixed units, malformed values, alpha/HSL and modern
 space-separated syntax remain diagnosed; complete CSS color support is still pending.
 
+Body margins accept nonnegative CSS pixels, em and percentages, including unitless
+zero, one-to-four-value shorthand and side-specific longhands. Each side follows
+stylesheet specificity/source order and inline overrides without inheriting to children.
+Percentages use the configured page content width; em uses the body's computed font size.
+Horizontal insets persist across pages and reduce wrapping width. The initial top
+margin is not repeated on continuation pages. An auto-height terminal body's bottom
+margin does not reserve space on every page or create an extra empty page.
+Native pixels and reopened PDF geometry cover these cases. Negative/auto margins,
+nonzero child margins, other units, exhausted content geometry and advanced fragment
+semantics remain explicitly unsupported; complete CSS layout remains in progress.
+
 `ReadText`, `ReadNavigation` and the supported plain native layout accept the canonical HTML5
 `<!DOCTYPE html>` and XHTML 1.1 external declarations without loading or processing
 a DTD. Original resource bytes, Unicode and UTF-8/UTF-16 encodings stay unchanged.
