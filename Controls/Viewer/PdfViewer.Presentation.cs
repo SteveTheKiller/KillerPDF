@@ -153,7 +153,8 @@ public partial class PdfViewer
     }
 
     private async Task RefinePrimaryFrameAsync(PdfBackgroundRenderCache.Request request, int page,
-        Image image, System.Windows.Media.Imaging.BitmapSource source, Func<bool> current, CancellationToken token)
+        Image image, System.Windows.Media.Imaging.BitmapSource source, PdfDocumentProofSettings? proof,
+        Func<bool> current, CancellationToken token)
     {
         if (_primaryViewport is not { } host || _primaryPresentationState is not { } baseline
             || baseline.Stamp.PageIndex != page) return;
@@ -169,13 +170,14 @@ public partial class PdfViewer
         double left = (visible.Left - drawn.Left) / drawn.Width, top = (visible.Top - drawn.Top) / drawn.Height;
         double right = (visible.Right - drawn.Left) / drawn.Width, bottom = (visible.Bottom - drawn.Top) / drawn.Height;
         var result = await _viewportRenderQueue.Enqueue((request, "visible-float", page), 20,
-            Math.Min(40L * (long)Math.Ceiling(visible.Width + 2) * (long)Math.Ceiling(visible.Height + 2), 512L << 20), workToken =>
+            Math.Min((proof?.Enabled == true ? 64L : 40L) * (long)Math.Ceiling(visible.Width + 2)
+                * (long)Math.Ceiling(visible.Height + 2), 512L << 20), workToken =>
             {
                 using var lease = request.Rent(workToken);
                 var dimensions = lease.Dimensions(page, maximum, maximum);
                 var region = VisibleRenderRegion.Create(dimensions.Width, dimensions.Height, 0, left, top, right, bottom)
                     ?? throw new OperationCanceledException();
-                return (Frame: lease.RenderFrameRegion(page, maximum, maximum, region, workToken), Region: region);
+                return (Frame: lease.RenderFrameRegion(page, maximum, maximum, region, workToken, proof), Region: region);
             }, token);
         bool Current() => current() && ReferenceEquals(host, _primaryViewport)
             && ReferenceEquals(baseline, _primaryPresentationState) && ReferenceEquals(image.Source, source)

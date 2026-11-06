@@ -360,7 +360,9 @@ Primary presenter requests carry a generation derived from the captured view sta
 unchanged proof requests retain that generation.
 WPF PDF detail regions use the captured proof settings and reject publication
 when the view's proof stamp changes. Initial Single-page source and visible-region
-checks cover a generated printer profile; native FP16 detail proofing remains unfinished.
+checks cover a generated printer profile. Native detail frame requests also retain
+those settings and the primary proof generation, verified through a recording
+presenter boundary. This does not establish GPU submission or physical color accuracy.
 Unsupported native proof requests retain their preferences and show normal viewing
 with a proof diagnostic.
 Proof controls, other rendering paths and persistence remain unfinished.

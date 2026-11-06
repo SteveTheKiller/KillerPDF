@@ -82,7 +82,7 @@ public partial class PdfViewer
                 if (ReferenceEquals(image, PageImage) && _primaryPresentationState is not null
                     && !invert && (!_pageRotations.TryGetValue(page, out int nativeRotation) || nativeRotation == 0))
                 {
-                    await RefinePrimaryFrameAsync(request, page, image, source, Current, token);
+                    await RefinePrimaryFrameAsync(request, page, image, source, proof?.Settings, Current, token);
                     continue;
                 }
                 // The retained native overlay and scroll viewport can have different visual roots.
