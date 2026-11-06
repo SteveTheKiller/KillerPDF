@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Buffers.Binary;
 using System.IO;
+using System.IO.Compression;
+using System.Text;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -19,14 +21,16 @@ using KillerPdf.Engine.Documents;
 internal static class ColorManagementSmoke
 {
     internal static int Run(Window owner, string appPath, string folder, bool documentReopen = false, bool replacementReview = false,
-        bool storageFailure = false, bool comparisonIsolation = false)
+        bool storageFailure = false, bool comparisonIsolation = false, bool nativeEpub = false, bool nativeDjvu = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02")) throw new InvalidOperationException("Color controls require an owned VM.");
         string engineHash = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
         string codecHash = SelectedAssemblyIdentity.HashLoaded(Assembly.Load("CoreJ2K"), appPath);
         Directory.CreateDirectory(folder);
-        string source = Path.Combine(folder, "color-controls.pdf");
-        byte[] original = new PdfDocumentBuilder().AddBlankPage(600, 750).Build();
+        string source = Path.Combine(folder, nativeEpub ? "color-controls.epub" : nativeDjvu ? "color-controls.djvu" : "color-controls.pdf");
+        byte[] original = nativeEpub ? EpubFixture() : nativeDjvu ? Convert.FromBase64String(
+            "QVQmVEZPUk0AAABYREpWVUlORk8AAAAKASwAyBoALAEWAVNtbXIAAAA5TU1SAAEsAMgyBhkA3/////////////////////////////////LctDf////////////////gAgAgAA==")
+            : new PdfDocumentBuilder().AddBlankPage(600, 750).Build();
         File.WriteAllBytes(source, original);
         DateTime originalWriteTime = File.GetLastWriteTimeUtc(source);
         bool restoredFixtureAfterFailure = false;
@@ -630,7 +634,7 @@ internal static class ColorManagementSmoke
             {
                 passed = failure is null, stage, assertions, handled, error = failure?.ToString(),
                 sourcePreserved = File.ReadAllBytes(source).SequenceEqual(original), closed = !owner.IsVisible,
-                replacementReview, storageFailure, comparisonIsolation, restoredFixtureAfterFailure, replacementEvents,
+                replacementReview, storageFailure, comparisonIsolation, nativeEpub, nativeDjvu, restoredFixtureAfterFailure, replacementEvents,
                 appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath))), engineHash, codecHash
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
@@ -724,5 +728,25 @@ internal static class ColorManagementSmoke
         int count = root is Visual ? VisualTreeHelper.GetChildrenCount(root) : 0;
         for (int index = 0; index < count; index++)
             foreach (var child in Descendants(VisualTreeHelper.GetChild(root, index))) yield return child;
+    }
+
+    private static byte[] EpubFixture()
+    {
+        using var output = new MemoryStream();
+        using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
+        {
+            Add("mimetype", "application/epub+zip");
+            Add("META-INF/container.xml", "<container xmlns='urn:oasis:names:tc:opendocument:xmlns:container' version='1.0'><rootfiles><rootfile full-path='book.opf' media-type='application/oebps-package+xml'/></rootfiles></container>");
+            Add("book.opf", "<package xmlns='http://www.idpf.org/2007/opf' version='3.0' unique-identifier='id'><metadata xmlns:dc='http://purl.org/dc/elements/1.1/'><dc:identifier id='id'>urn:proof-reopen</dc:identifier><dc:title>Proof letter</dc:title><dc:language>en</dc:language></metadata><manifest><item id='chapter' href='text.xhtml' media-type='application/xhtml+xml'/></manifest><spine><itemref idref='chapter'/></spine></package>");
+            Add("text.xhtml", "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Proof letter</title></head><body><p>A</p></body></html>");
+            void Add(string path, string text)
+            {
+                var entry = zip.CreateEntry(path, CompressionLevel.NoCompression);
+                entry.LastWriteTime = new DateTimeOffset(2026, 11, 6, 0, 0, 0, TimeSpan.Zero);
+                using var stream = entry.Open();
+                stream.Write(Encoding.UTF8.GetBytes(text));
+            }
+        }
+        return output.ToArray();
     }
 }

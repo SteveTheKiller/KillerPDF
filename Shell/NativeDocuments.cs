@@ -55,11 +55,14 @@ public partial class MainWindow
             _continuousLinks.Clear();
             Search.ClearPageResults();
             _docStampSpec = null;
+            ActiveViewer.RestoreProofPreferencesExt(path, opened.ContentIdentity);
             AcceptSavedCheckpoint();
             _viewMode = Enum.TryParse<ViewMode>(App.GetSetting("ViewMode"), out var preferredView)
                 ? preferredView : ViewMode.Continuous;
             BootstrapDocumentView(0, autoFit: true);
-            SetStatus(string.Format(Loc("Str_Opened"), Path.GetFileName(path), opened.PageCount));
+            string status = string.Format(Loc("Str_Opened"), Path.GetFileName(path), opened.PageCount);
+            if (ActiveViewer.ProofPreferenceNoticeKeyExt is { } notice) status += " " + Loc(notice);
+            SetStatus(status);
             SyncSidebarToDocState(hasDoc: true, startup: false);
             ActiveViewer.CompleteTabLoadExt();
         }

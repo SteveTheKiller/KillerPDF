@@ -490,7 +490,7 @@ Desktop profile-copy and named-preset storage are separate application services.
 The Color Management panel imports validated ICC copies and saves or loads named
 requested preferences. Saving and loading operate on draft controls; Apply updates
 the captured document or comparison view. Saved presets do not change open documents.
-Preset storage supports explicit replacement and recovery. Unchanged plain PDFs
+Preset storage supports explicit replacement and recovery. Unchanged plain PDFs and native documents
 restore their owner's requested proof settings from matching paths and captured
 contents before view bootstrap; explicit initial copy settings take precedence.
 The ordinary PDF save tail records owner preferences against the captured
@@ -500,7 +500,7 @@ Different contents at the same path start with proof off. The panel offers the
 previous file's preferences for explicit draft review; Close discards the draft,
 and Apply adopts it without rewriting the PDF.
 Comparison overrides do not replace stored owner defaults. Storage failures leave
-PDF opening and viewing available, with a status and panel notice. Protected/native
+document opening and viewing available, with a status and panel notice. Protected
 and repaired opens, specialized save paths and full management
 controls remain in progress.
 

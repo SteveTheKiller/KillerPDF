@@ -614,3 +614,11 @@ stay unchanged. Previous-file review must be absent for the comparison and prese
 again after removing its override. The existing replacement review and document
 reopen workflow also runs. Public view setup does not verify every user workflow
 for creating comparison views.
+
+`--verify-proof-epub-reopen APP_DLL APP_XAML OUTPUT --session-isolation` and
+`--verify-proof-djvu-reopen APP_DLL APP_XAML OUTPUT --session-isolation` repeat the
+actual panel and document reopen workflow with synthetic native sources. EPUB is
+a local one-spine package and DjVu is a known bitonal page. Requested settings,
+resolved ICC content and unavailable references must survive actual close/reopen
+without changing either source. The named profile, import and preset controls
+also run. These checks do not certify native color fidelity or all format content.
