@@ -18,7 +18,8 @@ public sealed partial class EpubDocument
         {
             Margin = options.MarginPoints / pointsPerCssPixel,
             FontSize = options.FontSizePoints / pointsPerCssPixel,
-            FontFamilyResolver = options.FontFamilyResolver
+            FontFamilyResolver = options.FontFamilyResolver,
+            FontFaceResolver = options.FontFaceResolver
         }, cancellationToken);
         var builder = new PdfDocumentBuilder();
         foreach (var page in layout.Pages)

@@ -274,9 +274,18 @@ otherwise the explicit default font applies. Native outlines, mixed-face baselin
 GSUB runs and saved PDF resources retain the selected face. Each list is limited to
 32 names of 256 characters; each layout permits 256 distinct lookups, 64 retained
 faces (including the default), 64 MiB of additional font bytes and bounded matching
-work. Backslash escapes and CSS-wide family keywords remain diagnosed. Packaged
-`@font-face`, font weight/style matching, complex-script clusters and full bidi still
-require implementation; this is initial family selection, not complete typography.
+work. Backslash escapes and CSS-wide family keywords remain diagnosed.
+`font-weight` accepts normal (400), bold (700), and numeric weights from 1 through
+1000, with inheritance, property-specific cascade and inline overrides. The optional
+`FontFaceResolver` replaces the legacy resolver and receives the requested family,
+computed weight and explicit default font. A null family requests a variant of that
+default. Return the actual font and weight with `Exact` or `Nearest`; inconsistent
+results are rejected. Real selected metrics and outlines flow into native rendering
+and PDF embedding. Without this resolver, the legacy callback and direct default
+remain available only for weight 400; unresolved other weights are diagnosed.
+The application's installed weight selection is not yet connected. Relative weights,
+packaged `@font-face`, italic matching, complex-script clusters and full bidi still
+require implementation; this is not complete typography.
 Initial Latin ligatures use the font's GSUB 1.0 default-language `liga` feature with
 type 4, flags 0, format 1 and coverage format 1. Original UTF-16 cluster ranges and
 selected glyph advances drive both native ink and explicit PDF conversion. Style,

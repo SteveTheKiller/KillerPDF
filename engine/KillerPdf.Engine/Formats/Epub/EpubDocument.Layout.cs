@@ -35,6 +35,7 @@ public sealed partial class EpubDocument
         var anchors = new List<(int SpineIndex, string Id, int Offset)>();
         var reader = new TrueTypeOutlineReader(options.DefaultFont);
         var familyFonts = new Dictionary<EpubFontFamily, TrueTypeFont?>();
+        var faceFonts = new Dictionary<EpubFontFaceRequest, EpubFontFaceResult?>();
         var retainedFonts = new HashSet<TrueTypeFont> { options.DefaultFont };
         long retainedFontBytes = 0;
         int remainingTextLength = 100_000;
@@ -52,23 +53,48 @@ public sealed partial class EpubDocument
         cancellationToken.ThrowIfCancellationRequested();
         return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors);
 
-        TrueTypeFont? ResolveFamily(EpubFontFamily family)
+        TrueTypeFont? ResolveFamily(EpubFontFamily? family, double weight)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (options.FontFamilyResolver is null) return null;
+            if (options.FontFaceResolver is { } resolveFace)
+            {
+                var request = new EpubFontFaceRequest(family, weight, options.DefaultFont);
+                var faceKey = request with { Family = family is null ? null : family with { Name = family.Name.ToUpperInvariant() } };
+                if (faceFonts.TryGetValue(faceKey, out var cachedFace)) return cachedFace?.Font;
+                if (faceFonts.Count >= 256)
+                    throw new InvalidDataException("Native EPUB exceeds its 256 font-face lookup limit.");
+                var result = resolveFace(request);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (result is not null)
+                {
+                    if (result.Font is null || !double.IsFinite(result.ActualWeight) || result.ActualWeight is < 1 or > 1000
+                        || !Enum.IsDefined(result.Match) || (result.Match == EpubFontMatch.Exact) != (result.ActualWeight == weight))
+                        throw new InvalidDataException("The native EPUB font resolver returned an inconsistent face match.");
+                    RetainFace(result.Font);
+                }
+                faceFonts.Add(faceKey, result);
+                return result?.Font;
+            }
+            if (weight != 400 || family is null || options.FontFamilyResolver is null) return null;
             var key = family with { Name = family.Name.ToUpperInvariant() };
             if (familyFonts.TryGetValue(key, out var cached)) return cached;
             if (familyFonts.Count >= 256)
                 throw new InvalidDataException("Native EPUB exceeds its 256 font-family lookup limit.");
             var selected = options.FontFamilyResolver(family);
-            if (selected is not null && retainedFonts.Add(selected))
+            cancellationToken.ThrowIfCancellationRequested();
+            if (selected is not null) RetainFace(selected);
+            familyFonts.Add(key, selected);
+            return selected;
+        }
+
+        void RetainFace(TrueTypeFont selected)
+        {
+            if (retainedFonts.Add(selected))
             {
                 retainedFontBytes += selected.FontData.Length;
                 if (retainedFonts.Count > 64 || retainedFontBytes > 64L << 20)
                     throw new InvalidDataException("Native EPUB exceeds its retained font limit.");
             }
-            familyFonts.Add(key, selected);
-            return selected;
         }
     }
 
@@ -77,7 +103,7 @@ public sealed partial class EpubDocument
         List<(int SpineIndex, string Id, int Offset)> anchors, ref int remainingTextLength,
         ref int remainingStylesheetBytes, ref int remainingStylesheetReferences,
         Dictionary<string, PngDecodedImage> imageCache, ref long retainedImageBytes,
-        Func<EpubFontFamily, TrueTypeFont?> resolveFamily, CancellationToken cancellationToken)
+        Func<EpubFontFamily?, double, TrueTypeFont?> resolveFamily, CancellationToken cancellationToken)
     {
         var entry = Spine[spineIndex];
         if (!entry.IsLinear || !string.IsNullOrWhiteSpace(entry.Properties))
@@ -188,15 +214,26 @@ public sealed partial class EpubDocument
                 substitutions.Add(selected, value = new OpenTypeGlyphSubstitution(selected, cancellationToken));
             return value;
         }
-        TrueTypeFont FontFor(EpubNativeContent.Style style, int scalar = ' ')
+        TrueTypeFont FontFor(EpubNativeContent.Style style, int? scalar = null)
         {
             foreach (var family in style.FontFamilies ?? [])
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (++fontWork > 1_000_000)
                     throw new InvalidDataException("Native EPUB font matching exceeds its work limit.");
-                if (resolveFamily(family) is { } selected && selected.GetGlyphId(scalar) != 0) return selected;
+                if (resolveFamily(family, style.FontWeight) is { } selected
+                    && (scalar is null || selected.GetGlyphId(scalar.Value) != 0)) return selected;
             }
+            if (options.FontFaceResolver is not null)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (++fontWork > 1_000_000)
+                    throw new InvalidDataException("Native EPUB font matching exceeds its work limit.");
+                if (resolveFamily(null, style.FontWeight) is { } selected
+                    && (scalar is null || selected.GetGlyphId(scalar.Value) != 0)) return selected;
+            }
+            if (style.FontWeight != 400)
+                throw new NotSupportedException("Native EPUB has no resolved font face for the requested weight.");
             return options.DefaultFont;
         }
         var placements = new List<EpubTextPlacement>(text.Length);
