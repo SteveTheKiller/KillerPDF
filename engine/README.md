@@ -409,7 +409,8 @@ profile is rejected. Passing null preserves the unavailable reference in returne
 reference or changing profile availability advances the document/view proof stamp;
 equivalent available bytes or equivalent unavailable references do not.
 Matching content alone does not establish transform availability or effective proofing.
-The profile library, panel and persistent document settings remain application work.
+Desktop profile-copy storage is separate from this portable API. Named preset storage,
+the panel and persistent document settings remain unfinished application work.
 
 `PdfDocumentProofView` shares its logical owner's request unless an explicit
 `ComparisonOverride` is selected. Its immutable capture includes view/document

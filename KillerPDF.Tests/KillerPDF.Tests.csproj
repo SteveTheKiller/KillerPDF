@@ -60,6 +60,7 @@
     <Compile Include="..\Services\PdfDataMergeWorkflow.cs" Link="Services\PdfDataMergeWorkflow.cs" />
     <Compile Include="..\Services\PdfMacroExportFiles.cs" Link="Services\PdfMacroExportFiles.cs" />
     <Compile Include="..\Services\ImageAssetStore.cs" Link="Services\ImageAssetStore.cs" />
+    <Compile Include="..\Services\ProofProfileLibrary.cs" Link="Services\ProofProfileLibrary.cs" />
     <Compile Include="..\Services\SvgSignatureImporter.cs" Link="Services\SvgSignatureImporter.cs" />
     <Compile Include="..\Services\SvgPathData.cs" Link="Services\SvgPathData.cs" />
     <Compile Include="..\Services\SignatureInk.cs" Link="Services\SignatureInk.cs" />
