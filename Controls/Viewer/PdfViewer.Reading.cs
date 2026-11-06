@@ -254,7 +254,7 @@ namespace KillerPDF.Controls
                     double dx = Math.Max(bounds.Left - point.X, Math.Max(0, point.X - bounds.Right));
                     double dy = Math.Max(bounds.Top - point.Y, Math.Max(0, point.Y - bounds.Bottom));
                     double candidate = dx * dx + dy * dy;
-                    if (candidate >= distance || viewer._textRuns.GetPage(file, viewer._protection,page) is not { } runs
+                    if (candidate >= distance || viewer.SelectionPageRuns(page) is not { } runs
                         || runs.Chars.Count == 0) continue;
                     var (x, y) = viewer.CanvasToPdf(page, canvas.PointFromScreen(point), dimensions.w, dimensions.h, runs);
                     closest = (page, TextRunService.CaretFromPoint(runs, x, y));

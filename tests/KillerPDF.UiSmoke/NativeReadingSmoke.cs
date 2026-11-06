@@ -305,6 +305,30 @@ internal static class NativeReadingSmoke
                     if (!visibleText.SequenceEqual(new[] { "AA AA" }))
                         throw new InvalidOperationException("Native reading visible ranges did not preserve the original visible text.");
                     events.Add(new { stage, exactVisibleText = true });
+                    stage = "native-reading-selection";
+                    Clipboard.SetText("native-range-control");
+                    phrase.Select();
+                    if (!textProvider.GetSelection().Select(range => range.GetText(-1)).SequenceEqual(new[] { "AA" })
+                        || (string?)viewer.GetType().GetProperty("SelectedTextRef", instance)!.GetValue(viewer) != "AA")
+                        throw new InvalidOperationException("Native reading phrase selection did not round-trip the original text.");
+                    if (Clipboard.GetText() != "native-range-control")
+                        throw new InvalidOperationException("Reading range selection unexpectedly changed the clipboard.");
+                    viewer.GetType().GetMethod("CopySelectedTextExt", instance)!.Invoke(viewer, null);
+                    if (!Clipboard.ContainsText() || Clipboard.GetText() != "AA")
+                        throw new InvalidOperationException("Native reading phrase copy did not preserve the selected text.");
+                    events.Add(new { stage, exactSelection = true, exactCopy = true, clipboardPreservedBeforeCopy = true });
+                    stage = "native-reading-point";
+                    var lastPhrase = textProvider.DocumentRange.FindText("AA", backward: true, ignoreCase: false)
+                        ?? throw new InvalidOperationException("Native reading provider did not find the last phrase.");
+                    double[] lastBounds = lastPhrase.GetBoundingRectangles();
+                    if (lastBounds.Length != 8)
+                        throw new InvalidOperationException("Native last phrase has no source areas for point testing.");
+                    var caret = textProvider.RangeFromPoint(new Point(lastBounds[0] + lastBounds[2] / 4,
+                        lastBounds[1] + lastBounds[3] / 2));
+                    if (caret.CompareEndpoints(System.Windows.Automation.Text.TextPatternRangeEndpoint.Start,
+                        lastPhrase, System.Windows.Automation.Text.TextPatternRangeEndpoint.Start) != 0)
+                        throw new InvalidOperationException("Native reading point did not reach the last phrase's original start.");
+                    events.Add(new { stage, exactSourceCaret = true });
                 }
                 if (gridSwitch && isNative && step.Grid)
                 {
