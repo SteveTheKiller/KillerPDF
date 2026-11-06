@@ -1232,7 +1232,7 @@ namespace KillerPDF.Controls
         /// </summary>
         private async void RenderAdditionalPages(int primaryPageIdx)
         {
-            if (_currentFile is null || _doc is null) return;
+            if (_currentFile is null || !HasReadDocument) return;
             // Grid is a stable overview anchored at page 0 (independent of the selected page), so it
             // always shows the whole document instead of only the selected page onward.
             if (_viewMode == ViewMode.Grid) primaryPageIdx = 0;
@@ -1255,7 +1255,7 @@ namespace KillerPDF.Controls
             // the full one-at-a-time rebuild. Skip instead - the existing tiles stay put (transform-
             // stretched) and the resize-settle refresh swaps crisp bitmaps into them in place.
             if (viewportW <= 0) return;
-            if (_doc.PageCount <= 1)
+            if (ReadPageCount <= 1)
             {
                 ClearSecondaryPages();
                 _pageContentPanel.Width = double.NaN;
@@ -1325,8 +1325,8 @@ namespace KillerPDF.Controls
                 _zoomLevel));
             // Grid shows the whole document; Two-Page shows one secondary; other modes peek ahead.
             int limit = _viewMode == ViewMode.Grid
-                ? _doc.PageCount
-                : Math.Min(_doc.PageCount, primaryPageIdx + 1 + (_viewMode == ViewMode.TwoPage
+                ? ReadPageCount
+                : Math.Min(ReadPageCount, primaryPageIdx + 1 + (_viewMode == ViewMode.TwoPage
                     ? (BookMode && primaryPageIdx == 0 ? 0 : 1)   // #193: the cover has no partner
                     : 25));
             if (limit <= primaryPageIdx + 1) { ClearSecondaryPages(); return; }
@@ -1357,11 +1357,14 @@ namespace KillerPDF.Controls
             try
             {
                 var session = _active;
+                var nativeOwner = _nativeDoc;
+                var nativeRevision = nativeOwner?.CaptureReadRevision();
                 var proof = session?.ProofView.CaptureProof();
                 long revision = session?.RenderRevision ?? 0;
                 var mode = _viewMode;
                 bool invert = DocInvert;
-                bool Current() => !cts.IsCancellationRequested && _doc is not null
+                bool Current() => !cts.IsCancellationRequested && HasReadDocument
+                    && ReferenceEquals(nativeOwner, _nativeDoc)
                     && ReferenceEquals(session, _active) && currentFile == _currentFile
                     && revision == (_active?.RenderRevision ?? 0) && mode == _viewMode && invert == DocInvert
                     && proof?.Stamp == _active?.ProofView.CaptureProof().Stamp;
@@ -1372,7 +1375,8 @@ namespace KillerPDF.Controls
                 // tile bitmap whose baked logical geometry follows the primary page cannot collide
                 // with a primary bitmap rendered at the same pixel budget.
                 int tileBucket = -secondaryMax;
-                var renderRequest = _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0, _protection);
+                var renderRequest = nativeRevision is null
+                    ? _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0, _protection) : null;
                 var secondaryToken = cts.Token;
                 await System.Threading.Tasks.Task.Run(async () =>
                 {
@@ -1413,11 +1417,37 @@ namespace KillerPDF.Controls
                             // tile, which read as "the grid's last column never refreshed".
                             try
                             {
+                                if (nativeRevision is not null)
+                                {
+                                    var prepared = await _viewportRenderQueue.Enqueue(
+                                        (nativeRevision, "secondary", i), 10 + i - primaryPageIdx,
+                                        Math.Min((proof?.Settings.Enabled == true ? 64L : 40L) * secondaryMax * secondaryMax, 512L << 20),
+                                        token => PrepareNativePrimaryBitmap(nativeRevision, i, secondaryMax, rot, invert, token,
+                                            proof?.Settings), secondaryToken);
+                                    int nativePage = i;
+                                    Dispatcher.Invoke(() =>
+                                    {
+                                        if (!Current()) return;
+                                        if (_viewMode is not (ViewMode.Grid or ViewMode.TwoPage)) return;
+                                        var source = prepared.Bitmap;
+                                        byte[] pixels = new byte[checked(source.PixelWidth * source.PixelHeight * 4)];
+                                        source.CopyPixels(pixels, source.PixelWidth * 4, 0);
+                                        int dipWidth = Math.Max(1, (int)Math.Round(primaryDipW));
+                                        int dipHeight = Math.Max(1, (int)Math.Round(primaryDipW * source.PixelHeight / source.PixelWidth));
+                                        var bitmap = BitmapHelpers.BuildScaledBitmap(source.PixelWidth, source.PixelHeight,
+                                            pixels, dipWidth, dipHeight);
+                                        if (RenderWarnings.TryGetValue(source, out var warning))
+                                            RenderWarnings.GetValue(bitmap, _ => warning);
+                                        CacheRender(session, nativePage, tileBucket, rot, bitmap, proofStamp: proof?.Stamp);
+                                        AddSecondaryTile(nativePage, bitmap, primaryDipW);
+                                    });
+                                    continue;
+                                }
                                 PdfRenderedPage rendered = await _viewportRenderQueue.Enqueue(
                                     (renderRequest, "secondary", i), 10 + i - primaryPageIdx,
                                     (proof?.Settings.Enabled == true ? 64L : 8L) * secondaryMax * secondaryMax, token =>
                                     {
-                                        using var lease = renderRequest.Rent(token);
+                                        using var lease = renderRequest!.Rent(token);
                                         return RenderViewingPage(lease, i, secondaryMax, token, proof?.Settings);
                                     }, secondaryToken);
                                 int w = rendered.Width;
@@ -1427,7 +1457,7 @@ namespace KillerPDF.Controls
                                 // #135: dark mode with pictures excluded; invert before the rotation
                                 // so the carve-out rects stay in unrotated page space.
                                 if (invert)
-                                    BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, w, h, ImageRectsFor(currentFile, renderRequest.Protection, i, ref contentDoc));
+                                    BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, w, h, ImageRectsFor(currentFile, renderRequest!.Protection, i, ref contentDoc));
                                 if (rot != 0)
                                     (rawBytes, w, h) = BitmapHelpers.RotateBitmap(rawBytes, w, h, rot);
 
