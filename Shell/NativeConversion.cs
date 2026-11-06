@@ -30,7 +30,7 @@ public partial class MainWindow
                     PageWidthPoints = options.WidthPoints,
                     PageHeightPoints = options.HeightPoints,
                     MarginPoints = options.MarginPoints,
-                    FontFamilyResolver = PdfEngineIntegration.ResolveEpubFontFamily
+                    FontFaceResolver = PdfEngineIntegration.EpubFontFaceResolver(face.Family)
                 };
             }
             var picker = new Controls.FileDialog(Controls.FileDialogMode.Save)

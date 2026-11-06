@@ -23,7 +23,7 @@ using KillerPdf.Engine.Rendering;
 internal static class NativeConversionSmoke
 {
     public static int Run(Window owner, string appPath, string appXaml, string folder, bool djvu = false,
-        bool customPaper = false, bool unicode = false, bool html5 = false, bool fontFamily = false)
+        bool customPaper = false, bool unicode = false, bool html5 = false, bool fontFamily = false, bool fontWeight = false)
     {
         string stage = "vm-guard";
         string? failedAt = null;
@@ -153,7 +153,7 @@ internal static class NativeConversionSmoke
             hashes["driver"] = Hash(File.ReadAllBytes(typeof(NativeConversionSmoke).Assembly.Location));
             hashes["engine"] = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
             hashes["loadedApp"] = SelectedAssemblyIdentity.HashLoaded(owner.GetType().Assembly, appPath);
-            original = djvu ? DjvuFixture() : EpubFixture(unicode, html5, fontFamily);
+            original = djvu ? DjvuFixture() : EpubFixture(unicode, html5, fontFamily, fontWeight);
             hashes["nativeOriginal"] = Hash(original);
             File.WriteAllBytes(native, original);
             byte[] ordinary = new PdfDocumentBuilder().AddBlankPage(600, 750).Build();
@@ -264,12 +264,17 @@ internal static class NativeConversionSmoke
                     && Math.Abs(pages[0].PhysicalHeight - 841.8897637795276) < .001, "Default EPUB conversion must use A4 paper.");
                 Product(text == (unicode ? "ALPHA \u03A9MEGA" : "ALPHA BRAVO"), "EPUB conversion must preserve the exact selectable source content.");
                 // Whitespace has no ink; its extracted bounds use rounded font descriptor metrics.
-                Product(reader.Read(0).Letters.All(letter => fontFamily && string.IsNullOrWhiteSpace(letter.Value)
-                    ? letter.StartBaseLine.X >= 42.519 && letter.EndBaseLine.X <= 552.757
-                        && letter.StartBaseLine.Y >= 42.519 && letter.StartBaseLine.Y <= 799.371
-                    : letter.BoundingBox.Left >= 42.518 - .001
-                    && letter.BoundingBox.Right <= 552.757 + .001 && letter.BoundingBox.Bottom >= 42.518 - .001
-                    && letter.BoundingBox.Top <= 799.372 + .001), "EPUB text must respect the default 15 mm margins.");
+                Product(reader.Read(0).Letters.Select((letter, index) => (letter, index)).All(item =>
+                    fontFamily && string.IsNullOrWhiteSpace(item.letter.Value)
+                    ? item.letter.StartBaseLine.X >= 42.519 && item.letter.EndBaseLine.X <= 552.757
+                        && item.letter.StartBaseLine.Y >= 42.519 && item.letter.StartBaseLine.Y <= 799.371
+                    : (fontWeight && item.index == 0
+                        // Courier New Bold A has xMin=-46 at 2048 units/em, independent of its advance origin.
+                        ? Math.Abs(item.letter.BoundingBox.Left - 42.25015378937008) < .001
+                            && Math.Abs(item.letter.StartBaseLine.X - 42.51968503937008) < .001
+                        : item.letter.BoundingBox.Left >= 42.518 - .001)
+                    && item.letter.BoundingBox.Right <= 552.757 + .001 && item.letter.BoundingBox.Bottom >= 42.518 - .001
+                    && item.letter.BoundingBox.Top <= 799.372 + .001), "EPUB text origins must respect the default 15 mm margins while retaining real glyph bearings.");
             }
             events.Add(new { stage, pages = pages.Count, text, width = pages[0].PhysicalWidth, height = pages[0].PhysicalHeight });
             if (html5)
@@ -280,6 +285,12 @@ internal static class NativeConversionSmoke
                     Product(letters.All(letter => letter.FontName.Contains("CourierNew", StringComparison.OrdinalIgnoreCase)
                         && Math.Abs(letter.EndBaseLine.X - letter.StartBaseLine.X - 7.2) < .001),
                         "Converted text must embed the requested Courier New face and its monospaced advances.");
+                    if (fontWeight)
+                    {
+                        Product(letters.Count == 11 && letters.Take(6).All(letter => letter.FontName.EndsWith("CourierNewPS-BoldMT", StringComparison.Ordinal))
+                            && letters.Skip(6).All(letter => letter.FontName.EndsWith("CourierNewPSMT", StringComparison.Ordinal)),
+                            "Inherited bold and explicit normal text must embed their distinct installed Courier New faces.");
+                    }
                     events.Add(new { stage, selectedFonts = letters.Select(letter => letter.FontName).Distinct().ToArray(),
                         advances = letters.Select(letter => letter.EndBaseLine.X - letter.StartBaseLine.X).ToArray() });
                 }
@@ -333,7 +344,7 @@ internal static class NativeConversionSmoke
             }
             preserved = original.Length > 0 && File.Exists(native) && File.ReadAllBytes(native).SequenceEqual(original);
             Write("result.json", new { passed = failure is null && closed && preserved, stage, failedAt, failure = failure?.ToString(),
-                assertions, admitted, closed, preserved, html5, fontFamily, unexpectedModals = unexpected.Count, hashes, events,
+                assertions, admitted, closed, preserved, html5, fontFamily, fontWeight, unexpectedModals = unexpected.Count, hashes, events,
                 elapsedSeconds = overall.Elapsed.TotalSeconds, visualScope = "Visible WPF page and viewport only; no screen pixel acceptance claim." });
         }
         return failure is null && closed && preserved ? 0 : 1;
@@ -429,7 +440,7 @@ internal static class NativeConversionSmoke
         void Write(string name, object value) => File.WriteAllText(Path.Combine(folder, name), JsonSerializer.Serialize(value, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    private static byte[] EpubFixture(bool unicode, bool html5 = false, bool fontFamily = false)
+    private static byte[] EpubFixture(bool unicode, bool html5 = false, bool fontFamily = false, bool fontWeight = false)
     {
         using var buffer = new MemoryStream();
         using (var zip = new ZipArchive(buffer, ZipArchiveMode.Create, true))
@@ -442,8 +453,9 @@ internal static class NativeConversionSmoke
             Add("EPUB/text.xhtml", (html5 ? "<!DOCTYPE html>" : "")
                 + "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Conversion</title></head><body"
                 + (html5 ? " style='color:rgb(0,0,0);background-color:rgb(255,255,255)"
-                    + (fontFamily ? ";font-family:&quot;Courier New&quot;" : "") + "'" : "") + ">"
-                + (html5 ? "<p id='start'>ALPHA <span id='ending'>BRAVO</span>"
+                    + (fontFamily ? ";font-family:&quot;Courier New&quot;" : "")
+                    + (fontWeight ? ";font-weight:bold" : "") + "'" : "") + ">"
+                + (html5 ? "<p id='start'>ALPHA <span id='ending'" + (fontWeight ? " style='font-weight:normal'" : "") + ">BRAVO</span>"
                     : "<p>" + (unicode ? "ALPHA &#937;MEGA" : "ALPHA BRAVO"))
                 + "</p></body></html>");
             if (html5) Add("EPUB/nav.xhtml", "<!DOCTYPE html><html xmlns='http://www.w3.org/1999/xhtml' xmlns:epub='http://www.idpf.org/2007/ops'><head><title>Contents</title></head><body><nav epub:type='toc'><ol><li><span>Part one</span><ol><li><a href='text.xhtml#start'>Start</a></li><li><a href='text.xhtml#ending'>BRAVO</a></li></ol></li></ol></nav></body></html>");

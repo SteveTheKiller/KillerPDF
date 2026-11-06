@@ -27,6 +27,7 @@ internal static class TableExportSmoke
         visibleNative |= windowSession && windowSessionCase is "--verify-native-conversion" or "--verify-native-conversion-djvu" or "--verify-native-conversion-custom" or "--verify-native-conversion-unicode";
         visibleNative |= windowSession && windowSessionCase == "--verify-native-conversion-html5";
         visibleNative |= windowSession && windowSessionCase == "--verify-native-font-family";
+        visibleNative |= windowSession && windowSessionCase == "--verify-native-font-weight";
         visibleNative |= windowSession && windowSessionCase is "--verify-monitor-pdf-two-page-device" or "--verify-monitor-pdf-grid-refresh";
         visibleNative |= windowSession && windowSessionCase == "--verify-proof-save-copy";
         visibleNative |= windowSession && windowSessionCase == "--verify-color-management";
@@ -147,6 +148,7 @@ internal static class TableExportSmoke
             if (windowSessionCase == "--verify-native-conversion-unicode") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder, unicode: true);
             if (windowSessionCase == "--verify-native-conversion-html5") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder, html5: true);
             if (windowSessionCase == "--verify-native-font-family") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder, html5: true, fontFamily: true);
+            if (windowSessionCase == "--verify-native-font-weight") return NativeConversionSmoke.Run(owner, appPath, appXaml, folder, html5: true, fontFamily: true, fontWeight: true);
             if (windowSessionCase == "--verify-two-page-continuous") return TwoPageContinuousSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-paired-thumbnails") return PairedThumbnailSmoke.Run(owner, appPath, appXaml, folder);
             if (windowSessionCase == "--verify-sdr-monitor") return SdrMonitorSmoke.Run(owner, appPath, folder);

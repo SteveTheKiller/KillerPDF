@@ -27,7 +27,7 @@ namespace KillerPDF.Services
     // i.e. CFF/.otf - which PdfCIDFont embeds WHOLE. That is why .otf is
     // enumerated last and only used when nothing else covers the text.
     // ============================================================
-    internal static class InstalledFontCatalog
+    internal static partial class InstalledFontCatalog
     {
         // faceKey -> the physical face. Keys only need to be unique inside this catalog.
         private static readonly Dictionary<string, FaceFile> Faces = new(StringComparer.OrdinalIgnoreCase);
@@ -37,7 +37,7 @@ namespace KillerPDF.Services
         private static bool _indexed;
         // Faces in registration order, so the persisted index replays the same first-wins choices.
         private static readonly List<(string Family, FaceStyle Style, string Path, int FaceIndex)> Order = [];
-        private const string IndexFormat = "killerpdf-font-index-1";
+        private const string IndexFormat = "killerpdf-font-index-2";
 
         private readonly record struct FaceFile(string Path, int FaceIndex);
         private enum FaceStyle { Regular, Bold, Italic, BoldItalic }
@@ -202,8 +202,8 @@ namespace KillerPDF.Services
             if (!byStyle.ContainsKey(style))
             {
                 byStyle[style] = faceKey;   // first wins = pattern order
-                Order.Add((family, style, path, faceIndex));
             }
+            Order.Add((family, style, path, faceIndex));
         }
 
         /// <summary>The regular face of a family as standalone font bytes, or null when the family

@@ -24,7 +24,7 @@ public partial class MainWindow
                         ?? throw new NotSupportedException("Native EPUB fallback font is unavailable.");
                     opened = NativeWorkingDocument.OpenEpub(bytes, new EpubLayoutOptions(800, 1000, face.Font)
                     {
-                        FontFamilyResolver = PdfEngineIntegration.ResolveEpubFontFamily
+                        FontFaceResolver = PdfEngineIntegration.EpubFontFaceResolver(face.Family)
                     });
                 }
                 else opened = NativeWorkingDocument.OpenDjvu(bytes);

@@ -283,7 +283,9 @@ default. Return the actual font and weight with `Exact` or `Nearest`; inconsiste
 results are rejected. Real selected metrics and outlines flow into native rendering
 and PDF embedding. Without this resolver, the legacy callback and direct default
 remain available only for weight 400; unresolved other weights are diagnosed.
-The application's installed weight selection is not yet connected. Relative weights,
+KillerPDF connects native opening and conversion to installed faces using their actual
+OS/2 numeric weights and CSS nearest-weight ordering. The font cache retains all
+registered candidates while preserving existing PDF editor style choices. Relative weights,
 packaged `@font-face`, italic matching, complex-script clusters and full bidi still
 require implementation; this is not complete typography.
 Initial Latin ligatures use the font's GSUB 1.0 default-language `liga` feature with

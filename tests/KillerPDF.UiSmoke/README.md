@@ -563,3 +563,12 @@ against known page coordinates, and opens both complete lines with the Text tool
 the actual Save As picker, saved appearance and document-search checks, and a fresh
 window reopening one editable multiline box. Both preserve the source and close
 owned windows. Search uses the public saved-file service; search UI is not covered.
+
+`--verify-native-font-weight APP_DLL APP_XAML OUTPUT --session-isolation` runs on
+an exclusively owned SN01 or SN02. It opens an EPUB with inherited Courier New bold
+and an explicit normal span, checks native text placement and navigation, cancels
+conversion once, then saves through the actual paper and file controls. Independent
+PDF reading checks exact text, distinct bold/regular embedded faces, advances, known
+glyph bearings, paper, margins, bookmark destinations and separate tabs. It preserves
+the original. Monospaced native geometry alone does not certify bold screen ink;
+rendered appearance and the remaining typography matrix require separate checks.
