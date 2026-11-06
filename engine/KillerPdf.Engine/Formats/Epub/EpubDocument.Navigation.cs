@@ -15,11 +15,20 @@ public sealed partial class EpubDocument
         if (declarations.Length != 1 || declarations[0].MediaType != "application/xhtml+xml")
             throw new InvalidDataException("Invalid EPUB navigation declaration.");
         var declaration = declarations[0];
+        if (Tokens(declaration.Properties).Contains("scripted", StringComparer.Ordinal))
+            throw new NotSupportedException("Scripted EPUB navigation is unsupported.");
         XNamespace html = "http://www.w3.org/1999/xhtml";
         XNamespace epub = "http://www.idpf.org/2007/ops";
-        var document = Xml(_resources[declaration.Href]);
+        var document = Xml(XhtmlWithoutCanonicalDeclaration(_resources[declaration.Href]));
         cancellationToken.ThrowIfCancellationRequested();
         if (document.Root?.Name != html + "html") throw new InvalidDataException("Invalid EPUB navigation document.");
+        foreach (var element in document.Descendants())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (element.Name.LocalName == "script" || element.Attributes().Any(attribute =>
+                    attribute.Name.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase)))
+                throw new NotSupportedException("Scripted EPUB navigation is unsupported.");
+        }
         var navs = document.Descendants(html + "nav").Where(x => Tokens((string?)x.Attribute(epub + "type") ?? "").Contains("toc", StringComparer.Ordinal)).Take(2).ToArray();
         if (navs.Length != 1) throw new InvalidDataException("EPUB navigation requires one table of contents.");
         var lists = navs[0].Elements(html + "ol").Take(2).ToArray();
