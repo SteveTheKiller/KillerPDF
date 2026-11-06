@@ -2061,4 +2061,7 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_CM_Black">Symuluj czarny tusz</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Pokaż ostrzeżenia o kolorach spoza gamutu</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">Nie można odczytać biblioteki profili. Bieżące ustawienia próby pozostają bez zmian.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Importuj profil...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">Profile ICC</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">Nie udało się zaimportować profilu. Sprawdź plik i spróbuj ponownie.</sys:String>
 </ResourceDictionary>

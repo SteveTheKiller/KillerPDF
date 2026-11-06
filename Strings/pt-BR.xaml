@@ -2073,4 +2073,7 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_CM_Black">Simular tinta preta</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Mostrar avisos de cores fora da gama</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">Não foi possível ler a biblioteca de perfis. Suas configurações de prova atuais permanecem inalteradas.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Importar perfil...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">Perfis ICC</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">Não foi possível importar o perfil. Verifique o arquivo e tente novamente.</sys:String>
 </ResourceDictionary>

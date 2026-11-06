@@ -32,6 +32,8 @@ internal static class ColorManagementSmoke
         bool handled = false;
         var clock = Stopwatch.StartNew();
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(60) };
+        DispatcherTimer? pickerTimer = null;
+        EventHandler? renderReady = null;
         timer.Tick += (_, _) =>
         {
             var dialog = Application.Current.Windows.Cast<Window>().FirstOrDefault(item => item != owner && item.IsVisible);
@@ -43,6 +45,107 @@ internal static class ColorManagementSmoke
                 Product(dialog.Title.Contains("Color Management", StringComparison.Ordinal), "The panel title must be readable English.");
                 var controls = Descendants(dialog).OfType<FrameworkElement>().ToArray();
                 T Control<T>(string id) where T : FrameworkElement => controls.OfType<T>().Single(item => AutomationProperties.GetAutomationId(item) == id);
+                if (stage is "import-profile" or "cancel-import" or "invalid-import")
+                {
+                    bool cancel = stage == "cancel-import";
+                    bool invalid = stage == "invalid-import";
+                    var import = controls.OfType<Button>().SingleOrDefault(item => AutomationProperties.GetAutomationId(item) == "ProofImportProfile");
+                    Product(import is not null && import.IsVisible && import.IsEnabled, "The actual panel must offer Import profile.");
+                    var prior = View()!.CaptureProof();
+                    Window? picker = null;
+                    bool submitted = false;
+                    bool invalidFramePending = false;
+                    bool invalidFrameReady = false;
+                    pickerTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(60) };
+                    pickerTimer.Tick += (_, _) =>
+                    {
+                        try
+                        {
+                            if (!submitted)
+                            {
+                                picker = Application.Current.Windows.Cast<Window>().FirstOrDefault(window => window.Owner == dialog
+                                    && window.IsVisible && window.GetType().FullName == "KillerPDF.Controls.FileDialog");
+                                if (picker is null) return;
+                                if (cancel)
+                                {
+                                    string caption = (string)Application.Current.FindResource("Str_Btn_Cancel");
+                                    var cancelButton = Descendants(picker).OfType<Button>().Single(button => button.Content?.ToString() == caption);
+                                    submitted = true;
+                                    owner.Dispatcher.BeginInvoke(new Action(() => Invoke(cancelButton)));
+                                    return;
+                                }
+                                var name = (TextBox)picker.FindName("FileNameBox");
+                                var accept = (Button)picker.FindName("AcceptButton");
+                                if (!name.IsVisible || !name.IsEnabled || !accept.IsVisible) return;
+                                ((IValueProvider)new TextBoxAutomationPeer(name).GetPattern(PatternInterface.Value)!)
+                                    .SetValue(Path.Combine(folder, invalid ? "invalid-paper.icc" : "imported-paper.icc"));
+                                if (!accept.IsEnabled) return;
+                                submitted = true;
+                                owner.Dispatcher.BeginInvoke(new Action(() => Invoke(accept)));
+                                return;
+                            }
+                            if (picker!.IsVisible) return;
+                            var status = Control<TextBlock>("ProofImportStatus");
+                            var failureText = status.Text;
+                            var profile = Control<ComboBox>("ProofProfile");
+                            if (!profile.IsEnabled || profile.SelectedItem?.ToString() != "imported-paper") return;
+                            if (invalid)
+                            {
+                                if (string.IsNullOrEmpty(failureText)) return;
+                                if (!invalidFramePending)
+                                {
+                                    invalidFramePending = true;
+                                    int frames = 0;
+                                    renderReady = (_, _) =>
+                                    {
+                                        if (++frames < 2) return;
+                                        CompositionTarget.Rendering -= renderReady;
+                                        renderReady = null;
+                                        invalidFrameReady = true;
+                                    };
+                                    CompositionTarget.Rendering += renderReady;
+                                    dialog.InvalidateVisual();
+                                    return;
+                                }
+                                if (!invalidFrameReady) return;
+                                Product(status.IsVisible && failureText == "The profile could not be imported. Check the file and try again.",
+                                    "An invalid ICC must produce a readable diagnosis.");
+                                Product(File.ReadAllBytes(Path.Combine(folder, "invalid-paper.icc")).SequenceEqual(InvalidProfile()),
+                                    "Refusing an ICC must preserve its source bytes.");
+                                dialog.UpdateLayout();
+                                var invalidCapture = NativeReadingSmoke.Capture(dialog, new Rect(dialog.PointToScreen(new Point(4, 4)),
+                                    dialog.PointToScreen(new Point(dialog.ActualWidth - 4, dialog.ActualHeight - 4))));
+                                var invalidEncoder = new PngBitmapEncoder();
+                                invalidEncoder.Frames.Add(BitmapFrame.Create(invalidCapture));
+                                using (var output = File.Create(Path.Combine(folder, "panel-invalid-import.png"))) invalidEncoder.Save(output);
+                            }
+                            else if (!string.IsNullOrEmpty(failureText)) throw new InvalidOperationException("Actual profile import failed: " + failureText);
+                            Product(profile.Items.Count == 3, "Import, cancellation and invalid input must preserve the expected profile list.");
+                            Product(View()!.CaptureProof() == prior, "Import must not apply draft proof settings to the document.");
+                            Product(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(folder, "imported-paper.icc"))))
+                                == "C7E48BB35732B34F325CC92E08847232CA62A262F298840ECFBAC103C0577364", "Import must preserve the original ICC file.");
+                            pickerTimer.Stop();
+                            owner.Dispatcher.BeginInvoke(new Action(() => Invoke(Control<Button>(cancel || invalid ? "ColorManagementClose" : "ColorManagementApply"))));
+                        }
+                        catch (Exception error)
+                        {
+                            failure = error;
+                            pickerTimer.Stop();
+                            if (picker?.IsVisible == true) picker.Close();
+                            dialog.Close();
+                        }
+                    };
+                    pickerTimer.Start();
+                    owner.Dispatcher.BeginInvoke(new Action(() => Invoke(import!)));
+                    return;
+                }
+                if (stage == "reopen-imported")
+                {
+                    Product(Control<ComboBox>("ProofProfile").SelectedItem?.ToString() == "imported-paper",
+                        "Reopening must show the profile imported through the actual picker.");
+                    owner.Dispatcher.BeginInvoke(new Action(() => Invoke(Control<Button>("ColorManagementClose"))));
+                    return;
+                }
                 if (stage == "corrupt-library")
                 {
                     Product(Control<TextBlock>("ProofProfileStatus").Text == "The profile library could not be read. Your current proof settings are unchanged.",
@@ -174,7 +277,7 @@ internal static class ColorManagementSmoke
             if (failure is not null) throw failure;
             Product(handled, "The actual panel must have been observed and closed.");
             Product(View()!.CaptureProof().Settings == before, "Closing the initial panel must preserve document proof preferences.");
-            foreach (string next in new[] { "apply", "reopen", "select-profile", "reopen-profile", "missing-profile", "corrupt-library" })
+            foreach (string next in new[] { "apply", "reopen", "select-profile", "reopen-profile", "missing-profile", "import-profile", "reopen-imported", "cancel-import", "invalid-import", "corrupt-library" })
             {
                 if (next == "select-profile")
                 {
@@ -192,6 +295,13 @@ internal static class ColorManagementSmoke
                         || !stored.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Profile fixture escaped owned evidence.");
                     File.Move(stored, held);
                 }
+                if (next == "import-profile")
+                {
+                    byte[] imported = GrayProfile();
+                    imported[48] = 65;
+                    File.WriteAllBytes(Path.Combine(folder, "imported-paper.icc"), imported);
+                }
+                if (next == "invalid-import") File.WriteAllBytes(Path.Combine(folder, "invalid-paper.icc"), InvalidProfile());
                 if (next == "corrupt-library")
                 {
                     string catalog = Path.GetFullPath(Path.Combine(folder, "data", "color-management", "profiles", "profiles.json"));
@@ -212,7 +322,11 @@ internal static class ColorManagementSmoke
                     && !changed.Options.BlackPointCompensation && changed.Options.SimulatePaper
                     && changed.Options.SimulateBlack && changed.GamutWarnings,
                     "Actual controls must apply and retain every requested preference on the public document session.");
-                if (next is "missing-profile" or "corrupt-library")
+                if (next is "import-profile" or "reopen-imported" or "cancel-import" or "invalid-import" or "corrupt-library")
+                    Product(changed.PrinterProfile is not null
+                        && changed.PrinterProfileSha256 == "C7E48BB35732B34F325CC92E08847232CA62A262F298840ECFBAC103C0577364",
+                        "Apply must load the exact picker-imported ICC content and retain it through reopening and library damage.");
+                else if (next == "missing-profile")
                     Product(changed.PrinterProfile is null
                         && changed.PrinterProfileSha256 == "7F7BE1EAABD868E6F6D9C72E24DF59BB195CCEAAEBA23644FD0C814A72D49FB1",
                         "Unavailable profile Apply must retain the requested content reference without substituting another profile.");
@@ -234,6 +348,8 @@ internal static class ColorManagementSmoke
         finally
         {
             timer.Stop();
+            pickerTimer?.Stop();
+            if (renderReady is not null) CompositionTarget.Rendering -= renderReady;
             foreach (var modal in Application.Current.Windows.Cast<Window>().Where(item => item != owner && item.IsVisible).ToArray()) modal.Close();
             if (owner.IsVisible) owner.Close();
             File.WriteAllText(Path.Combine(folder, "result.json"), JsonSerializer.Serialize(new
@@ -269,6 +385,12 @@ internal static class ColorManagementSmoke
     }
 
     private static void Invoke(Button button) => ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)!).Invoke();
+    private static byte[] InvalidProfile()
+    {
+        byte[] bytes = GrayProfile();
+        bytes[36] = 0;
+        return bytes;
+    }
     private static byte[] GrayProfile()
     {
         byte[] data = new byte[156];

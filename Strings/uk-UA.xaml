@@ -2073,4 +2073,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_CM_Black">Імітувати чорну фарбу</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Показувати попередження про кольори поза колірним охопленням</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">Не вдалося прочитати бібліотеку профілів. Поточні параметри кольоропроби не змінено.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Імпортувати профіль...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">Профілі ICC</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">Не вдалося імпортувати профіль. Перевірте файл і повторіть спробу.</sys:String>
 </ResourceDictionary>

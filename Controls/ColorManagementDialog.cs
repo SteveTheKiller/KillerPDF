@@ -59,6 +59,72 @@ internal sealed class ColorManagementDialog : Window
         var profileStatus = Label(libraryReadable ? "Str_CM_ProfileUnavailable" : "Str_CM_LibraryUnavailable", 4);
         AutomationProperties.SetAutomationId(profileStatus, "ProofProfileStatus");
         fields.Children.Add(profileStatus);
+        bool importBusy = false;
+        bool closed = false;
+        Closed += (_, _) => closed = true;
+        var import = UiKit.Make(L("Str_CM_ImportProfile"), accent: false);
+        import.IsEnabled = libraryReadable;
+        import.HorizontalAlignment = HorizontalAlignment.Left;
+        import.Margin = new Thickness(0, 4, 0, 0);
+        AutomationProperties.SetAutomationId(import, "ProofImportProfile");
+        fields.Children.Add(import);
+        var importStatus = Label("Str_CM_ImportFailed", 4);
+        importStatus.Text = "";
+        importStatus.Visibility = Visibility.Collapsed;
+        AutomationProperties.SetAutomationId(importStatus, "ProofImportStatus");
+        fields.Children.Add(importStatus);
+        import.Click += async (_, _) =>
+        {
+            if (importBusy || !libraryReadable) return;
+            var picker = new FileDialog(FileDialogMode.Open)
+            {
+                Title = L("Str_CM_ImportProfile"),
+                Filter = L("Str_CM_ProfileFilter") + "|*.icc;*.icm",
+                CheckFileExists = true
+            };
+            if (picker.ShowDialog(this) != true) return;
+            string path = picker.FileName;
+            importBusy = true;
+            import.IsEnabled = profile.IsEnabled = apply.IsEnabled = false;
+            importStatus.Text = "";
+            importStatus.Visibility = Visibility.Collapsed;
+            try
+            {
+                var result = await Task.Run(() =>
+                {
+                    using var file = File.OpenRead(path);
+                    if (file.Length < 128 || file.Length > 32L * 1024 * 1024)
+                        throw new FormatException("The ICC profile size is unsupported.");
+                    byte[] bytes = new byte[(int)file.Length];
+                    file.ReadExactly(bytes);
+                    if (file.ReadByte() != -1) throw new IOException("The ICC profile changed while it was read.");
+                    var entry = library.Import(Path.GetFileNameWithoutExtension(path), bytes);
+                    return (Entry: entry, Entries: library.GetProfiles().ToList());
+                });
+                if (closed) return;
+                entries = result.Entries;
+                if (settings.PrinterProfileSha256 is { } current && !entries.Any(entry => entry.ContentSha256 == current))
+                    entries.Insert(0, new ProofProfileEntry(L("Str_CM_UnavailableProfile"), current));
+                profile.ItemsSource = new[] { L("Str_CM_NoProfile") }.Concat(entries.Select(entry => entry.Name)).ToArray();
+                profile.SelectedIndex = entries.FindIndex(entry => entry.ContentSha256 == result.Entry.ContentSha256) + 1;
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or FormatException
+                or NotSupportedException or ArgumentException or InvalidOperationException)
+            {
+                if (closed) return;
+                importStatus.Text = L("Str_CM_ImportFailed");
+                importStatus.Visibility = Visibility.Visible;
+            }
+            finally
+            {
+                importBusy = false;
+                if (!closed)
+                {
+                    import.IsEnabled = profile.IsEnabled = apply.IsEnabled = libraryReadable;
+                    UpdateProfileAvailability();
+                }
+            }
+        };
         profile.SelectionChanged += (_, _) => UpdateProfileAvailability();
         enabled.Checked += (_, _) => UpdateProfileAvailability();
         enabled.Unchecked += (_, _) => UpdateProfileAvailability();
@@ -66,6 +132,7 @@ internal sealed class ColorManagementDialog : Window
 
         void UpdateProfileAvailability()
         {
+            if (importBusy || profile.SelectedIndex < 0) return;
             if (!libraryReadable)
             {
                 profileStatus.Visibility = Visibility.Visible;

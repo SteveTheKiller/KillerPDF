@@ -2053,4 +2053,7 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_CM_Black">কালো কালির অনুকরণ করুন</sys:String>
     <sys:String x:Key="Str_CM_Gamut">রঙের পরিসরের বাইরের রঙের সতর্কতা দেখান</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">প্রোফাইল লাইব্রেরি পড়া যায়নি। আপনার বর্তমান প্রুফ সেটিংস অপরিবর্তিত আছে।</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">প্রোফাইল আমদানি করুন...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">ICC প্রোফাইল</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">প্রোফাইলটি আমদানি করা যায়নি। ফাইলটি পরীক্ষা করে আবার চেষ্টা করুন।</sys:String>
 </ResourceDictionary>

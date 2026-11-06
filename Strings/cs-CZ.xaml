@@ -2058,4 +2058,7 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_CM_Black">Simulovat černou tiskovou barvu</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Zobrazit varování před barvami mimo gamut</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">Knihovnu profilů se nepodařilo přečíst. Vaše aktuální nastavení nátisku zůstává beze změny.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Importovat profil...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">Profily ICC</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">Profil se nepodařilo importovat. Zkontrolujte soubor a zkuste to znovu.</sys:String>
 </ResourceDictionary>

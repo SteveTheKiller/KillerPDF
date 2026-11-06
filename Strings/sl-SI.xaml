@@ -1962,4 +1962,7 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_CM_Black">Simuliraj črno črnilo</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Pokaži opozorila za barve zunaj barvnega obsega</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">Knjižnice profilov ni bilo mogoče prebrati. Trenutne nastavitve poskusnega odtisa so nespremenjene.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Uvozi profil...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">Profili ICC</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">Profila ni bilo mogoče uvoziti. Preverite datoteko in poskusite znova.</sys:String>
 </ResourceDictionary>

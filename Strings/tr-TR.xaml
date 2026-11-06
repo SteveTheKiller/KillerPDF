@@ -2053,4 +2053,7 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_CM_Black">Siyah mürekkebi benzet</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Renk gamı dışı uyarılarını göster</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">Profil kitaplığı okunamadı. Geçerli prova ayarlarınız değişmedi.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Profil içe aktar...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">ICC profilleri</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">Profil içe aktarılamadı. Dosyayı kontrol edip yeniden deneyin.</sys:String>
 </ResourceDictionary>

@@ -2066,4 +2066,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_CM_UnavailableProfile">Unavailable profile</sys:String>
     <sys:String x:Key="Str_CM_ProfileUnavailable">The selected profile is unavailable. Viewing uses normal color.</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">The profile library could not be read. Your current proof settings are unchanged.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Import profile...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">ICC profiles</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">The profile could not be imported. Check the file and try again.</sys:String>
 </ResourceDictionary>

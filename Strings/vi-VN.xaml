@@ -2073,4 +2073,7 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_CM_Black">Mô phỏng mực đen</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Hiện cảnh báo màu ngoài dải màu</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">Không thể đọc thư viện hồ sơ. Thiết lập in thử hiện tại của bạn không thay đổi.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Nhập hồ sơ...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">Hồ sơ ICC</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">Không thể nhập hồ sơ. Hãy kiểm tra tệp và thử lại.</sys:String>
 </ResourceDictionary>

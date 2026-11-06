@@ -2073,4 +2073,7 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_CM_Black">Simuler l’encre noire</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Afficher les avertissements de couleurs non imprimables</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">La bibliothèque de profils n’a pas pu être lue. Vos paramètres d’épreuvage actuels restent inchangés.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Importer un profil...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">Profils ICC</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">Le profil n’a pas pu être importé. Vérifiez le fichier et réessayez.</sys:String>
 </ResourceDictionary>

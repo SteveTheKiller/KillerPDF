@@ -2060,4 +2060,7 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_CM_Black">Fekete festék szimulálása</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Színtartományon kívüli színek jelzése</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">A profilkönyvtár nem olvasható. A próbanyomat jelenlegi beállításai változatlanok.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Profil importálása...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">ICC-profilok</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">A profilt nem sikerült importálni. Ellenőrizze a fájlt, és próbálja újra.</sys:String>
 </ResourceDictionary>

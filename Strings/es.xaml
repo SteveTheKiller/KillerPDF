@@ -2053,4 +2053,7 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_CM_Black">Simular tinta negra</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Mostrar avisos de colores fuera de gama</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">No se pudo leer la biblioteca de perfiles. Sus ajustes de prueba actuales no han cambiado.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Importar perfil...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">Perfiles ICC</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">No se pudo importar el perfil. Compruebe el archivo e inténtelo de nuevo.</sys:String>
 </ResourceDictionary>

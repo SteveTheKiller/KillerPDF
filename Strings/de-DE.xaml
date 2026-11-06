@@ -2062,4 +2062,7 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_CM_Black">Schwarze Druckfarbe simulieren</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Farbumfang-Warnungen anzeigen</sys:String>
     <sys:String x:Key="Str_CM_LibraryUnavailable">Die Profilbibliothek konnte nicht gelesen werden. Ihre aktuellen Proof-Einstellungen bleiben unverändert.</sys:String>
+    <sys:String x:Key="Str_CM_ImportProfile">Profil importieren...</sys:String>
+    <sys:String x:Key="Str_CM_ProfileFilter">ICC-Profile</sys:String>
+    <sys:String x:Key="Str_CM_ImportFailed">Das Profil konnte nicht importiert werden. Prüfen Sie die Datei und versuchen Sie es erneut.</sys:String>
 </ResourceDictionary>
