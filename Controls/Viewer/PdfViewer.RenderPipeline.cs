@@ -71,7 +71,7 @@ public partial class PdfViewer
         catch (NotSupportedException exception)
         {
             var fallback = native is not null
-                ? PrepareNativePrimaryBitmap(native, page, maximumSize, 0, false, token, proof)
+                ? PrepareNativePrimaryBitmap(native, page, maximumSize, 0, false, token, proof, monitor)
                 : PreparePrimaryBitmap(request!, page, maximumSize, 0, false, token);
             RenderWarnings.GetValue(fallback.Bitmap, _ => new RenderWarning(exception.Message));
             return (fallback.Bitmap, fallback.Measurement, null);
@@ -80,7 +80,8 @@ public partial class PdfViewer
 
     private (BitmapSource Bitmap, RenderMeasurement Measurement) PrepareNativePrimaryBitmap(
         PdfCapturedReadRevision revision, int page, int maximumSize, int rotation,
-        bool invert, CancellationToken token, KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
+        bool invert, CancellationToken token, KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null,
+        KillerPDF.Presentation.PdfSdrDisplayConverter? monitor = null)
     {
         var timer = Stopwatch.StartNew();
         PdfRenderedFrame frame;
@@ -94,7 +95,13 @@ public partial class PdfViewer
         double raster = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
         int width = frame.Width, height = frame.Height;
-        byte[] pixels = frame.ToSrgbBgra32(token);
+        var conversion = monitor?.Convert(frame, token);
+        if (conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale)
+            throw new OperationCanceledException(token);
+        byte[] pixels = conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
+            ? conversion.BgraPixels.ToArray() : frame.ToSrgbBgra32(token);
+        if (conversion?.FailureOperation is { } failure)
+            proofWarning = proofWarning is null ? failure : proofWarning + " " + failure;
         if (invert && BitmapHelpers.DocInvertImages)
             BitmapHelpers.InvertBgraInPlaceExcept(pixels, width, height, []);
         if (rotation != 0)

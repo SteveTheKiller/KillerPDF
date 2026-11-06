@@ -382,11 +382,13 @@ and preserve proof diagnostics. Other formats, modes and profiles remain open.
 Unsupported native Single-page and Continuous proof requests retain their preferences
 and show normal viewing with a proof diagnostic. Continuous missing-profile checks
 cover both pages and verify that disabling proof clears those diagnostics.
-Native EPUB Continuous SDR viewing applies the captured monitor converter and
-rejects stale conversions. Independent identity-XYZ monitor endpoints and actual
-page captures cover both pages with proof on/off; unreadable monitor-profile
-checks retain normal viewing and diagnostics. These are simulated-observation
-software checks, not physical color measurements or all-profile acceptance.
+Native EPUB Continuous, Two-page and Grid SDR viewing apply the captured monitor
+converter and reject stale conversions. Native facing/Grid monitor bytes bypass
+the cache shared across displays; secondary publication checks display identity.
+Independent identity-XYZ monitor endpoints and actual page captures cover both
+pages with proof on/off. Unreadable monitor-profile checks retain normal viewing
+and diagnostics in Single, Continuous and Two-page modes. These are simulated
+display observations, not physical measurements or all-profile acceptance.
 Proof controls, other rendering paths and persistence remain unfinished.
 
 ## Bundled CMYK viewing assumption (1.9.3 development)
