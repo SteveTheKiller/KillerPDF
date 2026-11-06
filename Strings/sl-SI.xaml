@@ -1945,4 +1945,18 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_NativePdf_Convert">Pretvori v PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF se odpre v novem zavihku. Izvirna datoteka ostane nespremenjena.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Vnesite veljavno velikost papirja in robove, ki pustijo prostor za vsebino.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Upravljanje barv</sys:String>
+    <sys:String x:Key="Str_CM_Hint">Nastavitve poskusnega odtisa veljajo za ta dokument. Prikaz ne spremeni datoteke.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Omogoči poskusni odtis tiskalnika</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Profil tiskalnika/papirja</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">Noben profil ni izbran</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Namen upodabljanja</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Zaznavni</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Relativni kolorimetrični</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Nasičenost</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Absolutni kolorimetrični</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Kompenzacija črne točke</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Simuliraj barvo papirja</sys:String>
+    <sys:String x:Key="Str_CM_Black">Simuliraj črno črnilo</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Pokaži opozorila za barve zunaj barvnega obsega</sys:String>
 </ResourceDictionary>

@@ -2056,4 +2056,18 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_NativePdf_Convert">PDF に変換</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF は新しいタブで開きます。元のファイルは変更されません。</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">有効な用紙サイズと、コンテンツを配置するスペースを確保できる余白を入力してください。</sys:String>
+    <sys:String x:Key="Str_CM_Title">カラーマネジメント</sys:String>
+    <sys:String x:Key="Str_CM_Hint">校正設定はこの文書に適用されます。表示してもファイルは変更されません。</sys:String>
+    <sys:String x:Key="Str_CM_Enable">プリンターの色校正を有効にする</sys:String>
+    <sys:String x:Key="Str_CM_Profile">プリンター／用紙プロファイル</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">プロファイルが選択されていません</sys:String>
+    <sys:String x:Key="Str_CM_Intent">レンダリングインテント</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">知覚的</sys:String>
+    <sys:String x:Key="Str_CM_Relative">相対的な色域を維持</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">彩度</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">絶対的な色域を維持</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">黒点の補正</sys:String>
+    <sys:String x:Key="Str_CM_Paper">用紙の色をシミュレート</sys:String>
+    <sys:String x:Key="Str_CM_Black">黒インキをシミュレート</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">色域外警告を表示</sys:String>
 </ResourceDictionary>

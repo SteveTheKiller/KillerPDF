@@ -2056,4 +2056,18 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_NativePdf_Convert">Konverter til PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF-en åpnes i en ny fane. Originalfilen din forblir uendret.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Angi en gyldig papirstørrelse og marger som gir plass til innholdet.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Fargestyring</sys:String>
+    <sys:String x:Key="Str_CM_Hint">Innstillingene for prøvetrykk gjelder dette dokumentet. Visningen endrer ikke filen.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Aktiver prøvetrykk for skriver</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Skriver-/papirprofil</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">Ingen profil valgt</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Gjengivelsesmetode</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Perseptuell</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Relativ kolorimetrisk</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Metning</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Absolutt kolorimetrisk</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Svartpunktkompensasjon</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Simuler papirfarge</sys:String>
+    <sys:String x:Key="Str_CM_Black">Simuler svart blekk</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Vis advarsler om farger utenfor fargeområdet</sys:String>
 </ResourceDictionary>

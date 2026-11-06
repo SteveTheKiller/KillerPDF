@@ -25,6 +25,7 @@ public partial class MainWindow
             return
             [
                 MakeMenuItem(Loc("Str_NativePdf_Convert") + "...", (_, _) => ConvertNativeDocumentToPdf(), "", "\uE8AB"),
+                DocumentToolItem("Str_CM_Title", OpenColorManagement, "\uE790"),
                 new Separator(),
                 DocumentToolItem("Str_DocumentTools_Macros", OpenMacroDialog, "\uE945"),
                 DocumentToolItem("Str_CertCatalog_Title", OpenCertificateCatalog, "\uEB95"),
@@ -43,6 +44,7 @@ public partial class MainWindow
         return
         [
             DocumentToolItem("Str_DocumentTools_Preflight", OpenPreflightTools, "\uE9D9"),
+            DocumentToolItem("Str_CM_Title", OpenColorManagement, "\uE790"),
             DocumentToolItem("Str_DocumentTools_PrintProduction", () => ShowDocumentReport(Loc("Str_DocumentTools_PrintProduction"),
                 (path, protection) => PdfEngineIntegration.InspectPrintProduction(path, protection).ToText()), "\uE7C3"),
             DocumentToolItem("Str_DocumentTools_Separations", ShowSeparationPreview, "\uE790"),
@@ -126,14 +128,15 @@ public partial class MainWindow
         menu.IsOpen = true;
     }
 
-    // A letter key while a Document tools menu is open runs the tool with that letter. Shift and
+    // A mapped key while a Document tools menu is open runs its tool. Shift and
     // Ctrl may still be held from the chord; Alt is left to the menu's own handling.
     private static void DocumentToolsMenu_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (sender is not ItemsControl owner || e.Key < Key.A || e.Key > Key.Z
-            || Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
+        if (sender is not ItemsControl owner || Keyboard.Modifiers.HasFlag(ModifierKeys.Alt))
             return;
-        char letter = (char)('A' + (e.Key - Key.A));
+        char letter = e.Key is Key.D0 or Key.NumPad0 ? '0'
+            : e.Key >= Key.A && e.Key <= Key.Z ? (char)('A' + (e.Key - Key.A)) : '\0';
+        if (letter == '\0') return;
         MenuItem? match = owner.Items.OfType<MenuItem>().FirstOrDefault(i => i.Tag is char c && c == letter);
         if (match is null) return;
         e.Handled = true;

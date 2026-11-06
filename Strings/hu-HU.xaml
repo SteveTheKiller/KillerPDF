@@ -2043,4 +2043,18 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_NativePdf_Convert">Konvertálás PDF-be</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">A PDF új lapon nyílik meg. Az eredeti fájl változatlan marad.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Adjon meg érvényes papírméretet és olyan margókat, amelyek mellett marad hely a tartalomnak.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Színkezelés</sys:String>
+    <sys:String x:Key="Str_CM_Hint">A próbanyomat beállításai erre a dokumentumra érvényesek. A megjelenítés nem módosítja a fájlt.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Nyomtatási próbanyomat engedélyezése</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Nyomtató-/papírprofil</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">Nincs kiválasztott profil</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Leképezési mód</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Érzékelési</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Relatív kolorimetrikus</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Telítettség</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Abszolút kolorimetrikus</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Feketepont-kompenzáció</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Papírszín szimulálása</sys:String>
+    <sys:String x:Key="Str_CM_Black">Fekete festék szimulálása</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Színtartományon kívüli színek jelzése</sys:String>
 </ResourceDictionary>

@@ -2056,4 +2056,18 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_NativePdf_Convert">Chuyển đổi sang PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF sẽ mở trong một tab mới. Tệp gốc của bạn không thay đổi.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Nhập kích thước giấy hợp lệ và lề sao cho còn chỗ cho nội dung.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Quản lý màu</sys:String>
+    <sys:String x:Key="Str_CM_Hint">Thiết lập in thử áp dụng cho tài liệu này. Việc xem không thay đổi tệp.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Bật xem thử màu máy in</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Hồ sơ máy in/giấy</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">Chưa chọn hồ sơ</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Phương thức chuyển đổi màu</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Cảm nhận</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Đo màu tương đối</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Độ bão hòa</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Đo màu tuyệt đối</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Bù điểm đen</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Mô phỏng màu giấy</sys:String>
+    <sys:String x:Key="Str_CM_Black">Mô phỏng mực đen</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Hiện cảnh báo màu ngoài dải màu</sys:String>
 </ResourceDictionary>

@@ -2041,4 +2041,18 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_NativePdf_Convert">Převést do PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF se otevře na nové kartě. Původní soubor zůstane beze změny.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Zadejte platný formát papíru a okraje, které ponechají místo pro obsah.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Správa barev</sys:String>
+    <sys:String x:Key="Str_CM_Hint">Nastavení nátisku platí pro tento dokument. Zobrazení soubor nemění.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Zapnout nátisk tiskárny</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Profil tiskárny/papíru</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">Není vybrán žádný profil</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Záměr vykreslení</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Perceptuální</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Relativní kolorimetrický</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Sytost</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Absolutní kolorimetrický</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Kompenzace černého bodu</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Simulovat barvu papíru</sys:String>
+    <sys:String x:Key="Str_CM_Black">Simulovat černou tiskovou barvu</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Zobrazit varování před barvami mimo gamut</sys:String>
 </ResourceDictionary>

@@ -252,16 +252,17 @@ namespace KillerPDF.Tests
             Assert.Equal("Str_DocumentTools", map[KbLayer.CtrlShift]["D"].Label);
         }
 
-        /// <summary>One letter per document tool, or the open menu could not tell two tools apart.</summary>
+        /// <summary>One key per document tool keeps the menu and shortcut rows unambiguous.</summary>
         [Fact]
-        public void DocumentToolLettersAreUniqueLettersWithRows()
+        public void DocumentToolKeysAreUniqueWithRows()
         {
             var letters = ShortcutTable.DocumentToolKeys.Select(t => t.Key).ToList();
             Assert.Equal(letters.Count, letters.Distinct().Count());
-            Assert.All(letters, c => Assert.True(c is >= 'A' and <= 'Z', $"{c} is not an A-Z letter"));
+            Assert.All(letters, c => Assert.True(c is >= 'A' and <= 'Z' or '0', $"{c} is not an allowed document-tool key"));
             Assert.Equal(ShortcutTable.DocumentToolKeys.Length,
                 ShortcutTable.KsAll.Count(b => b.Cat == "Docs" && b.Caps.Length == 0));
             Assert.Equal("Ctrl+Shift+D, P", ShortcutTable.DocumentToolGesture("Str_DocumentTools_Preflight"));
+            Assert.Equal("Ctrl+Shift+D, 0", ShortcutTable.DocumentToolGesture("Str_CM_Title"));
         }
 
         /// <summary>Every tool in the Document tools menu takes its letter from the table, so the

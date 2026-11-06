@@ -2059,4 +2059,18 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_NativePdf_Convert">PDF пішіміне түрлендіру</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF жаңа қойындыда ашылады. Бастапқы файлыңыз өзгеріссіз қалады.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Жарамды қағаз өлшемін және мазмұнға орын қалдыратын жиектерді енгізіңіз.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Түстерді басқару</sys:String>
+    <sys:String x:Key="Str_CM_Hint">Түсті сынау параметрлері осы құжатқа қолданылады. Қарау файлды өзгертпейді.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Принтердің түсті сынауын қосу</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Принтер/қағаз профилі</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">Профиль таңдалмаған</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Түстерді түрлендіру әдісі</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Қабылдауға негізделген</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Салыстырмалы колориметриялық</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Қанықтық</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Абсолютті колориметриялық</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Қара нүктені өтеу</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Қағаз түсін имитациялау</sys:String>
+    <sys:String x:Key="Str_CM_Black">Қара сияны имитациялау</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Түс ауқымынан тыс түстер туралы ескертулерді көрсету</sys:String>
 </ResourceDictionary>

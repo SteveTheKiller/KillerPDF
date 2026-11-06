@@ -2056,4 +2056,18 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_NativePdf_Convert">Converter para PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">O PDF abre em uma nova guia. Seu arquivo original permanece inalterado.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Informe um tamanho de papel válido e margens que deixem espaço para o conteúdo.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Gerenciamento de cores</sys:String>
+    <sys:String x:Key="Str_CM_Hint">As configurações de prova se aplicam a este documento. A visualização não altera o arquivo.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Ativar prova de impressora</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Perfil de impressora/papel</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">Nenhum perfil selecionado</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Propósito de renderização</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Perceptual</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Colorimétrico relativo</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Saturação</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Colorimétrico absoluto</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Compensação de ponto preto</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Simular cor do papel</sys:String>
+    <sys:String x:Key="Str_CM_Black">Simular tinta preta</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Mostrar avisos de cores fora da gama</sys:String>
 </ResourceDictionary>

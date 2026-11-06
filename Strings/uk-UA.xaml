@@ -2056,4 +2056,18 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_NativePdf_Convert">Перетворити на PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF відкриється в новій вкладці. Початковий файл залишиться без змін.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Укажіть допустимий розмір паперу й поля, що залишають місце для вмісту.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Керування кольором</sys:String>
+    <sys:String x:Key="Str_CM_Hint">Параметри кольоропроби застосовуються до цього документа. Перегляд не змінює файл.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Увімкнути кольоропробу принтера</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Профіль принтера/паперу</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">Профіль не вибрано</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Метод передавання кольору</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Перцепційний</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Відносний колориметричний</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Насиченість</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Абсолютний колориметричний</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Компенсація точки чорного</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Імітувати колір паперу</sys:String>
+    <sys:String x:Key="Str_CM_Black">Імітувати чорну фарбу</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Показувати попередження про кольори поза колірним охопленням</sys:String>
 </ResourceDictionary>

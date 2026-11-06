@@ -2057,4 +2057,18 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_NativePdf_Convert">Converti in PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">Il PDF si apre in una nuova scheda. Il file originale rimane invariato.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Inserisci un formato carta valido e margini che lascino spazio per il contenuto.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Gestione colore</sys:String>
+    <sys:String x:Key="Str_CM_Hint">Le impostazioni di prova si applicano a questo documento. La visualizzazione non modifica il file.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Attiva prova stampante</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Profilo stampante/carta</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">Nessun profilo selezionato</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Intento di rendering</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Percettivo</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Colorimetrico relativo</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Saturazione</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Colorimetrico assoluto</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Compensazione del punto nero</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Simula colore carta</sys:String>
+    <sys:String x:Key="Str_CM_Black">Simula inchiostro nero</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Mostra avvisi per i colori fuori gamma</sys:String>
 </ResourceDictionary>

@@ -2036,4 +2036,18 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_NativePdf_Convert">PDF&apos;ye dönüştür</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF yeni bir sekmede açılır. Özgün dosyanız değişmeden kalır.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Geçerli bir kağıt boyutu ve içeriğe yer bırakan kenar boşlukları girin.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Renk Yönetimi</sys:String>
+    <sys:String x:Key="Str_CM_Hint">Prova ayarları bu belgeye uygulanır. Görüntüleme dosyayı değiştirmez.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Yazıcı provasını etkinleştir</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Yazıcı/kağıt profili</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">Profil seçilmedi</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Oluşturma amacı</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Algısal</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Göreli kolorimetrik</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Doygunluk</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Mutlak kolorimetrik</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Siyah nokta telafisi</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Kağıt rengini benzet</sys:String>
+    <sys:String x:Key="Str_CM_Black">Siyah mürekkebi benzet</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Renk gamı dışı uyarılarını göster</sys:String>
 </ResourceDictionary>

@@ -2049,4 +2049,18 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_NativePdf_Convert">Convert to PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">The PDF opens in a new tab. Your original file stays unchanged.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Enter a valid paper size and margins that leave room for the content.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Color Management</sys:String>
+    <sys:String x:Key="Str_CM_Hint">Proof settings apply to this document. Viewing does not change the file.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Enable printer proof</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Printer/paper profile</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">No profile selected</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Rendering intent</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Perceptual</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Relative colorimetric</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Saturation</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Absolute colorimetric</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Black-point compensation</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Simulate paper color</sys:String>
+    <sys:String x:Key="Str_CM_Black">Simulate black ink</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Show out-of-gamut warnings</sys:String>
 </ResourceDictionary>

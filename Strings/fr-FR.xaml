@@ -2056,4 +2056,18 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_NativePdf_Convert">Convertir en PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">Le PDF s’ouvre dans un nouvel onglet. Votre fichier d’origine reste inchangé.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Saisissez un format de papier valide et des marges qui laissent de la place au contenu.</sys:String>
+    <sys:String x:Key="Str_CM_Title">Gestion des couleurs</sys:String>
+    <sys:String x:Key="Str_CM_Hint">Les paramètres d’épreuvage s’appliquent à ce document. L’affichage ne modifie pas le fichier.</sys:String>
+    <sys:String x:Key="Str_CM_Enable">Activer l’épreuvage de l’imprimante</sys:String>
+    <sys:String x:Key="Str_CM_Profile">Profil d’imprimante/papier</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">Aucun profil sélectionné</sys:String>
+    <sys:String x:Key="Str_CM_Intent">Mode de rendu</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">Perceptif</sys:String>
+    <sys:String x:Key="Str_CM_Relative">Colorimétrie relative</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">Saturation</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">Colorimétrie absolue</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">Compensation du point noir</sys:String>
+    <sys:String x:Key="Str_CM_Paper">Simuler la couleur du papier</sys:String>
+    <sys:String x:Key="Str_CM_Black">Simuler l’encre noire</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">Afficher les avertissements de couleurs non imprimables</sys:String>
 </ResourceDictionary>

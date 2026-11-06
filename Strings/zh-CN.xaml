@@ -2040,4 +2040,18 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_NativePdf_Convert">转换为 PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF 会在新标签页中打开。原始文件保持不变。</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">请输入有效的纸张大小和页边距，确保有足够的空间容纳内容。</sys:String>
+    <sys:String x:Key="Str_CM_Title">色彩管理</sys:String>
+    <sys:String x:Key="Str_CM_Hint">校样设置适用于此文档。查看不会更改文件。</sys:String>
+    <sys:String x:Key="Str_CM_Enable">启用打印机校样</sys:String>
+    <sys:String x:Key="Str_CM_Profile">打印机/纸张配置文件</sys:String>
+    <sys:String x:Key="Str_CM_NoProfile">未选择配置文件</sys:String>
+    <sys:String x:Key="Str_CM_Intent">渲染意图</sys:String>
+    <sys:String x:Key="Str_CM_Perceptual">可感知</sys:String>
+    <sys:String x:Key="Str_CM_Relative">相对色度</sys:String>
+    <sys:String x:Key="Str_CM_Saturation">饱和度</sys:String>
+    <sys:String x:Key="Str_CM_Absolute">绝对色度</sys:String>
+    <sys:String x:Key="Str_CM_Bpc">黑点补偿</sys:String>
+    <sys:String x:Key="Str_CM_Paper">模拟纸张颜色</sys:String>
+    <sys:String x:Key="Str_CM_Black">模拟黑色油墨</sys:String>
+    <sys:String x:Key="Str_CM_Gamut">显示色域外警告</sys:String>
 </ResourceDictionary>

@@ -126,9 +126,10 @@ namespace KillerPDF
             ('H', "Str_DocumentTools_FormData"),
             ('J', "Str_DocumentTools_BookmarkData"),
             ('Q', "Str_DocumentTools_ProductionLayouts"),
+            ('0', "Str_CM_Title"),
         ];
 
-        /// <summary>The letter that runs a document tool from the open Document tools menu.</summary>
+        /// <summary>The key that runs a document tool from the open Document tools menu.</summary>
         internal static char DocumentToolKey(string labelKey)
             => DocumentToolKeys.First(t => t.LabelKey == labelKey).Key;
 
