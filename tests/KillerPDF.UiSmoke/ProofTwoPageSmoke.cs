@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -18,7 +19,7 @@ using KillerPdf.Engine.Rendering;
 internal static class ProofTwoPageSmoke
 {
     internal static int Run(Window owner, string appPath, string folder, bool continuous = false,
-        bool pairedContinuous = false, bool compositorOwned = false)
+        bool pairedContinuous = false, bool compositorOwned = false, bool nativeEpub = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Two-page proof checks require an owned VM.");
@@ -28,8 +29,9 @@ internal static class ProofTwoPageSmoke
         for (int x = 0; x < 600; x += 20)
             paint.Append(x.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(" 0 10 750 re f ");
         byte[] content = Encoding.ASCII.GetBytes(paint.ToString());
-        byte[] original = new PdfDocumentBuilder().AddPage(600, 750, content).AddPage(600, 750, content).Build();
-        string path = Path.Combine(folder, "two-page-proof.pdf");
+        byte[] original = nativeEpub ? EpubFixture()
+            : new PdfDocumentBuilder().AddPage(600, 750, content).AddPage(600, 750, content).Build();
+        string path = Path.Combine(folder, nativeEpub ? "native-stripes.epub" : "two-page-proof.pdf");
         File.WriteAllBytes(path, original);
         const BindingFlags members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
         object viewer = owner.GetType().GetProperty("ActiveViewer", members)!.GetValue(owner)!;
@@ -43,7 +45,7 @@ internal static class ProofTwoPageSmoke
         {
             foreach (Window modal in Application.Current.Windows.Cast<Window>().Where(window => window != owner && window.IsVisible).ToArray())
             {
-                modals.Add(modal.Title);
+                modals.Add(modal.Title + ": " + string.Join(" ", Descendants<TextBlock>(modal).Select(text => text.Text)));
                 modal.Close();
             }
         };
@@ -71,6 +73,13 @@ internal static class ProofTwoPageSmoke
             Wait(() => radio.IsVisible && radio.IsEnabled);
             ((ISelectionItemProvider)new RadioButtonAutomationPeer(radio).GetPattern(PatternInterface.SelectionItem)!).Select();
             Wait(() => PrimaryReady() && Pages().Length == 2);
+            if (nativeEpub)
+            {
+                object snapshot = viewer.GetType().GetMethod("CaptureCurrentSearchSnapshot", members)!.Invoke(viewer, null)!;
+                if (snapshot.GetType().GetProperty("NativeRevision", members)!.GetValue(snapshot) is null)
+                    throw new InvalidOperationException("The EPUB did not retain its native reading session.");
+                events.Add(new { stage, capturedNative = true });
+            }
             stage = "normal-two-page-control";
             CheckPages(false);
             var view = (PdfDocumentProofView)viewer.GetType().GetProperty("DocumentProofView")!.GetValue(viewer)!;
@@ -98,6 +107,7 @@ internal static class ProofTwoPageSmoke
             {
                 passed = failure is null && modals.Count == 0 && preserved, stage, preserved,
                 mode = pairedContinuous ? "TwoPageContinuous" : continuous ? "Continuous" : "TwoPage",
+                format = nativeEpub ? "EPUB" : "PDF",
                 error = failure?.ToString(), modals, events,
                 appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)))
             }, new JsonSerializerOptions { WriteIndented = true, IncludeFields = true }));
@@ -167,6 +177,52 @@ internal static class ProofTwoPageSmoke
             }
         }
     }
+    private static byte[] EpubFixture()
+    {
+        const int width = 720, height = 880;
+        byte[] pixels = new byte[width * height * 3];
+        for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++)
+        {
+            byte shade = x % 24 < 12 ? (byte)0 : (byte)255;
+            int offset = (y * width + x) * 3;
+            pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = shade;
+        }
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(BitmapSource.Create(width, height, 96, 96,
+            PixelFormats.Rgb24, null, pixels, width * 3)));
+        using var png = new MemoryStream();
+        encoder.Save(png);
+        using var output = new MemoryStream();
+        using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
+        {
+            Add("mimetype", "application/epub+zip");
+            Add("META-INF/container.xml", """
+                <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0"><rootfiles><rootfile full-path="EPUB/book.opf" media-type="application/oebps-package+xml"/></rootfiles></container>
+                """);
+            Add("EPUB/book.opf", """
+                <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:proof-stripes</dc:identifier><dc:title>Native proof stripes</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2000-01-01T00:00:00Z</meta></metadata><manifest><item id="one" href="one.xhtml" media-type="application/xhtml+xml"/><item id="two" href="two.xhtml" media-type="application/xhtml+xml"/><item id="stripes" href="stripes.png" media-type="image/png"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest><spine><itemref idref="one"/><itemref idref="two"/></spine></package>
+                """);
+            foreach (string chapter in new[] { "one", "two" })
+                Add("EPUB/" + chapter + ".xhtml", """
+                    <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Stripes</title></head><body><p><img src="stripes.png" alt=""/></p></body></html>
+                    """);
+            Add("EPUB/nav.xhtml", """
+                <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="one.xhtml">One</a></li><li><a href="two.xhtml">Two</a></li></ol></nav></body></html>
+                """);
+            Write("EPUB/stripes.png", png.ToArray());
+            void Add(string entry, string text) => Write(entry, Encoding.UTF8.GetBytes(text));
+            void Write(string path, byte[] bytes)
+            {
+                var entry = zip.CreateEntry(path, CompressionLevel.NoCompression);
+                entry.LastWriteTime = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+                using var stream = entry.Open();
+                stream.Write(bytes);
+            }
+        }
+        return output.ToArray();
+    }
+
     private static Rect Bounds(FrameworkElement element) => new(element.PointToScreen(default),
         element.PointToScreen(new Point(element.ActualWidth, element.ActualHeight)));
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject

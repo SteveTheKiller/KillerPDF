@@ -721,8 +721,9 @@ namespace KillerPDF.Controls
                         if (nativeRevision is not null)
                         {
                             var frame = await _viewportRenderQueue.Enqueue(
-                                (nativeRevision, "continuous", i), 10 + Math.Abs(i - centerPage), 80L * renderW * renderW,
-                                token => RenderNativeFrame(nativeRevision, i, renderW, renderW * 2, token), renderToken);
+                                (nativeRevision, "continuous", i), 10 + Math.Abs(i - centerPage),
+                                Math.Min((proof?.Settings.Enabled == true ? 128L : 80L) * renderW * renderW, 512L << 20),
+                                token => RenderNativeFrame(nativeRevision, i, renderW, renderW * 2, token, proof?.Settings), renderToken);
                             w = frame.Width;
                             h = frame.Height;
                             raw = frame.ToSrgbBgra32(renderToken);
