@@ -356,6 +356,8 @@ when the owner's preferences change; clearing it adopts the latest owner request
 Equivalent profile content and options do not advance the override generation.
 Desktop document sessions retain their own view wrapper across tab switches.
 Initial native Single-page rendering applies captured proof preferences.
+Unsupported native proof requests retain their preferences and show normal viewing
+with a proof diagnostic.
 Proof controls, other rendering paths and persistence remain unfinished.
 
 ## Bundled CMYK viewing assumption (1.9.3 development)

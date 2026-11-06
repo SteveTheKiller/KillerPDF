@@ -521,8 +521,7 @@ internal static class NativeReadingSmoke
                     if (!Patch((BitmapSource)normalImage.Source, .8, .8).All(value => value >= 254))
                         throw new InvalidOperationException("Normal native paper is not white before proof.");
                     var normalBounds = ProofBounds(normalImage);
-                    if (!Patch(Capture(owner, normalBounds), .8, .8).All(value => value >= 254))
-                        throw new InvalidOperationException("Normal native paper capture is not white before proof.");
+                    Wait(() => Patch(Capture(owner, normalBounds), .8, .8).All(value => value >= 254));
                     events.Add(new { stage, whiteSource = true, whiteScreen = true });
                     byte[] printerBytes = ProofPrinterFixture();
                     Type profileType = engine.GetType("KillerPdf.Engine.ColorManagement.PdfColorProfile", true)!;
@@ -557,6 +556,20 @@ internal static class NativeReadingSmoke
                     }
                     if (!proofScreen.Zip(expectedPaper).All(pair => Math.Abs(pair.First - pair.Second) <= 2))
                         throw new InvalidOperationException("Native proof paper tint did not reach the visible page.");
+                    stage = "document-proof-unavailable";
+                    proofProperty.SetValue(restoredProofOwner, Activator.CreateInstance(proofSettingsType, [true, null, null, false]));
+                    RefreshProofPage();
+                    Image unavailableImage = ProofImage();
+                    if (!Patch((BitmapSource)unavailableImage.Source, .8, .8).All(value => value >= 254))
+                        throw new InvalidOperationException("Unavailable proof did not restore normal native viewing.");
+                    if (unavailableImage.ToolTip?.ToString()?.Contains("proof", StringComparison.OrdinalIgnoreCase) != true)
+                        throw new InvalidOperationException("Unavailable native proof lost its visible diagnostic.");
+                    object unavailableRequest = proofProperty.GetValue(restoredProofOwner)!;
+                    if (!(bool)proofSettingsType.GetProperty("Enabled")!.GetValue(unavailableRequest)!
+                        || proofSettingsType.GetProperty("PrinterProfile")!.GetValue(unavailableRequest) is not null)
+                        throw new InvalidOperationException("Unavailable native proof changed the requested settings.");
+                    Wait(() => Patch(Capture(owner, ProofBounds(unavailableImage)), .8, .8).All(value => value >= 254));
+                    events.Add(new { stage, normalSource = true, normalScreen = true, visibleDiagnostic = true, retainedRequest = true });
                     stage = "document-proof-pixels-off";
                     proofProperty.SetValue(restoredProofOwner, Activator.CreateInstance(proofSettingsType, [false, null, null, false]));
                     RefreshProofPage();
@@ -564,6 +577,8 @@ internal static class NativeReadingSmoke
                     if (!Patch((BitmapSource)restoredImage.Source, .8, .8).All(value => value >= 254))
                         throw new InvalidOperationException("Disabling native proof did not restore normal white paper.");
                     Wait(() => Patch(Capture(owner, ProofBounds(restoredImage)), .8, .8).All(value => value >= 254));
+                    if (restoredImage.ToolTip?.ToString()?.Contains("proof", StringComparison.OrdinalIgnoreCase) == true)
+                        throw new InvalidOperationException("Disabling native proof retained its unavailable diagnostic.");
                     events.Add(new { stage, restoredWhiteSource = true, restoredWhiteScreen = true });
 
                     void RefreshProofPage()

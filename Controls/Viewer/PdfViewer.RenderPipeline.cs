@@ -83,7 +83,14 @@ public partial class PdfViewer
         bool invert, CancellationToken token, KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
     {
         var timer = Stopwatch.StartNew();
-        var frame = RenderNativeFrame(revision, page, maximumSize, maximumSize, token, proof);
+        PdfRenderedFrame frame;
+        string? proofWarning = null;
+        try { frame = RenderNativeFrame(revision, page, maximumSize, maximumSize, token, proof); }
+        catch (NotSupportedException exception) when (proof?.Enabled == true)
+        {
+            proofWarning = exception.Message;
+            frame = RenderNativeFrame(revision, page, maximumSize, maximumSize, token);
+        }
         double raster = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
         int width = frame.Width, height = frame.Height;
@@ -100,6 +107,7 @@ public partial class PdfViewer
             96.0 * width / dipWidth, 96.0 * height / dipHeight, PixelFormats.Bgra32, null);
         bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
         bitmap.Freeze();
+        if (proofWarning is not null) RenderWarnings.GetValue(bitmap, _ => new RenderWarning(proofWarning));
         return (bitmap, new RenderMeasurement(page, 0, raster, timer.Elapsed.TotalMilliseconds, 0));
     }
 
