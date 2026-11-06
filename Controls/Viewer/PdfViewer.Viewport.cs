@@ -740,7 +740,17 @@ namespace KillerPDF.Controls
                             monitorWarning = nativeRender.Warning;
                             w = frame.Width;
                             h = frame.Height;
-                            raw = frame.ToSrgbBgra32(renderToken);
+                            if (continuousMonitor is not null)
+                            {
+                                var converted = continuousMonitor.Convert(frame, renderToken);
+                                if (converted.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale) return;
+                                if (converted.FailureOperation is not null)
+                                    monitorWarning = monitorWarning is null ? converted.FailureOperation
+                                        : monitorWarning + " " + converted.FailureOperation;
+                                raw = converted.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
+                                    ? converted.BgraPixels.ToArray() : frame.ToSrgbBgra32(renderToken);
+                            }
+                            else raw = frame.ToSrgbBgra32(renderToken);
                             if (invert && invertImages)
                                 BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h, []);
                         }

@@ -25,7 +25,7 @@ internal static class TableExportSmoke
             || windowSessionCase.StartsWith("--verify-page-navigation-", StringComparison.Ordinal));
         visibleNative |= windowSession && windowSessionCase is "--verify-sdr-monitor" or "--verify-native-fallback" or "--verify-native-fallback-refinement" or "--verify-two-page-fallback-refinement";
         visibleNative |= windowSession && windowSessionCase is "--verify-native-conversion" or "--verify-native-conversion-djvu" or "--verify-native-conversion-custom" or "--verify-native-conversion-unicode";
-        visibleNative |= windowSession && windowSessionCase is "--verify-native-search-epub" or "--verify-proof-refinement" or "--verify-proof-presenter-refinement" or "--verify-proof-two-page" or "--verify-proof-continuous" or "--verify-proof-paired-continuous" or "--verify-proof-continuous-compositor" or "--verify-proof-epub-continuous" or "--verify-proof-epub-two-page" or "--verify-proof-epub-grid" or "--verify-proof-epub-continuous-unavailable";
+        visibleNative |= windowSession && windowSessionCase is "--verify-native-search-epub" or "--verify-proof-refinement" or "--verify-proof-presenter-refinement" or "--verify-proof-two-page" or "--verify-proof-continuous" or "--verify-proof-paired-continuous" or "--verify-proof-continuous-compositor" or "--verify-proof-epub-continuous" or "--verify-proof-epub-two-page" or "--verify-proof-epub-grid" or "--verify-proof-epub-continuous-unavailable" or "--verify-monitor-epub-continuous-unavailable" or "--verify-monitor-epub-continuous-device";
         if (visibleNative && !new[] { "SN01", "SN02" }.Contains(Environment.MachineName, StringComparer.OrdinalIgnoreCase))
             throw new InvalidOperationException("Visible native hint acceptance may run only on SN01 or SN02.");
         if (!Environment.GetCommandLineArgs().Contains("--startup-smoke")
@@ -159,6 +159,8 @@ internal static class TableExportSmoke
             if (windowSessionCase == "--verify-proof-epub-two-page") return ProofTwoPageSmoke.Run(owner, appPath, folder, nativeEpub: true);
             if (windowSessionCase == "--verify-proof-epub-grid") return ProofTwoPageSmoke.Run(owner, appPath, folder, nativeEpub: true, grid: true);
             if (windowSessionCase == "--verify-proof-epub-continuous-unavailable") return ProofTwoPageSmoke.Run(owner, appPath, folder, continuous: true, nativeEpub: true, unavailableProof: true);
+            if (windowSessionCase == "--verify-monitor-epub-continuous-unavailable") return ProofTwoPageSmoke.Run(owner, appPath, folder, continuous: true, nativeEpub: true, unavailableMonitor: true);
+            if (windowSessionCase == "--verify-monitor-epub-continuous-device") return ProofTwoPageSmoke.Run(owner, appPath, folder, continuous: true, nativeEpub: true, deviceMonitor: true);
             if (windowSessionCase == "--verify-native-reading-epub-continuous") return NativeReadingSmoke.Run(owner, appPath, folder, continuous: true, epub: true);
             if (windowSessionCase == "--verify-native-reading-epub-grid-switch") return NativeReadingSmoke.Run(owner, appPath, folder, grid: true, gridSwitch: true, epub: true);
             if (windowSessionCase == "--verify-native-reading-continuous") return NativeReadingSmoke.Run(owner, appPath, folder, continuous: true);

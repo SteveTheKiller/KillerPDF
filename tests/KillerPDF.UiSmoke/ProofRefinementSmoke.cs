@@ -234,13 +234,15 @@ internal static class ProofRefinementSmoke
         if (colors.Paper <= colors.Pixels / 5 || colors.Ink <= colors.Pixels / 5)
             throw new InvalidOperationException("The page region does not retain the expected paper and ink colors.");
     }
-    internal static (int Paper, int Ink, int Pixels) StripeColors(BitmapSource source, bool proof)
+    internal static (int Paper, int Ink, int Pixels) StripeColors(BitmapSource source, bool proof, bool deviceMonitor = false)
     {
         var image = new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
         byte[] bytes = new byte[checked(image.PixelWidth * image.PixelHeight * 4)];
         image.CopyPixels(bytes, image.PixelWidth * 4, 0);
-        int[] paper = proof ? [236, 251, 219] : [255, 255, 255];
-        int[] ink = proof ? [91, 97, 84] : [0, 0, 0];
+        int[] paper = deviceMonitor ? proof ? [178, 229, 204] : [210, 255, 246]
+            : proof ? [236, 251, 219] : [255, 255, 255];
+        int[] ink = deviceMonitor ? proof ? [22, 29, 26] : [0, 0, 0]
+            : proof ? [91, 97, 84] : [0, 0, 0];
         int paperCount = 0, inkCount = 0;
         for (int offset = 0; offset < bytes.Length; offset += 4)
         {

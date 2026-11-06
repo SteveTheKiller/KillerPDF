@@ -367,7 +367,7 @@ internal static class SdrMonitorSmoke
         return Encoding.ASCII.GetBytes(text.ToString());
     }
 
-    private static byte[] MonitorBytes()
+    internal static byte[] MonitorBytes()
     {
         var bytes = new byte[300];
         BinaryPrimitives.WriteUInt32BigEndian(bytes, 300);

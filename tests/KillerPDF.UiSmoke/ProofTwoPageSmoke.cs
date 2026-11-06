@@ -20,7 +20,7 @@ internal static class ProofTwoPageSmoke
 {
     internal static int Run(Window owner, string appPath, string folder, bool continuous = false,
         bool pairedContinuous = false, bool compositorOwned = false, bool nativeEpub = false, bool grid = false,
-        bool unavailableProof = false)
+        bool unavailableProof = false, bool unavailableMonitor = false, bool deviceMonitor = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Two-page proof checks require an owned VM.");
@@ -56,19 +56,37 @@ internal static class ProofTwoPageSmoke
             {
                 ColorState = new(compositorOwned ? PdfDisplayColorMode.AdvancedColorSdr : PdfDisplayColorMode.ConventionalSdr,
                     15, 1, 0, 0, compositorOwned ? 16u : 8u, null, null),
-                StandardProfile = new(PdfDisplayProfileStatus.NoProfile, 0, null, null, null)
+                StandardProfile = new(unavailableMonitor || deviceMonitor ? PdfDisplayProfileStatus.Named : PdfDisplayProfileStatus.NoProfile,
+                    0, unavailableMonitor ? "unreadable-monitor.icc" : deviceMonitor ? "synthetic-monitor.icc" : null, null, null)
             };
             var display = new PdfDisplayDiscoverySnapshot(93, PdfDisplayDiscoveryStatus.Available,
                 "two-page-proof-desktop", new(0, 0, 1920, 1080), null, null)
                 { TargetAssociation = new(PdfDisplayTargetStatus.SingleTarget, [target]) };
             viewer.GetType().GetProperty("DisplayCapture")!.SetValue(viewer,
                 (Func<nint, PdfDisplayDiscoverySnapshot>)(_ => display));
+            if (unavailableMonitor)
+                viewer.GetType().GetProperty("DisplayProfileReader")!.SetValue(viewer,
+                    (Func<string, CancellationToken, PdfColorProfile>)((_, _) => throw new IOException("Synthetic monitor profile read failure.")));
+            if (deviceMonitor)
+                viewer.GetType().GetProperty("DisplayProfileReader")!.SetValue(viewer,
+                    (Func<string, CancellationToken, PdfColorProfile>)((_, _) => PdfColorProfile.Load(SdrMonitorSmoke.MonitorBytes())));
             events.Add(new { stage, observedPolicy = PdfDisplayPresentationPolicy.Resolve(display).TransformOwner.ToString(),
                 syntheticDisplayObservation = true });
             timer.Start();
             stage = "open";
             owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [path]);
             Wait(() => ((TextBlock)owner.FindName("FileNameLabel")).Text == Path.GetFileName(path));
+            if (unavailableMonitor)
+            {
+                stage = "monitor-single-control";
+                var single = (RadioButton)owner.FindName("ViewSingleRadio");
+                ((ISelectionItemProvider)new RadioButtonAutomationPeer(single).GetPattern(PatternInterface.SelectionItem)!).Select();
+                Wait(() => PrimaryReady() && Pages().Length == 1);
+                ProofRefinementSmoke.RequireStripeColors(ProofRefinementSmoke.StripeColors((BitmapSource)Pages()[0].Image.Source, false));
+                CheckMonitorWarnings();
+                CheckScreens(false);
+            }
+            stage = "open-mode";
             var radio = (RadioButton)owner.FindName(grid ? "ViewGridRadio" : pairedContinuous ? "ViewTwoPageContinuousRadio"
                 : continuous ? "ViewContinuousRadio" : "ViewTwoPageRadio");
             Wait(() => radio.IsVisible && radio.IsEnabled);
@@ -83,6 +101,11 @@ internal static class ProofTwoPageSmoke
             }
             stage = "normal-two-page-control";
             CheckPages(false);
+            if (unavailableMonitor)
+            {
+                CheckScreens(false);
+                CheckMonitorWarnings();
+            }
             var view = (PdfDocumentProofView)viewer.GetType().GetProperty("DocumentProofView")!.GetValue(viewer)!;
             view.Document.Proof = new PdfDocumentProofSettings(enabled: true,
                 printerProfile: unavailableProof ? null : PdfColorProfile.Load(NativeReadingSmoke.ProofPrinterFixture()),
@@ -92,6 +115,7 @@ internal static class ProofTwoPageSmoke
             Wait(() => PrimaryReady() && Pages().Length == 2);
             CheckPages(!unavailableProof);
             CheckScreens(!unavailableProof);
+            if (unavailableMonitor) CheckMonitorWarnings();
             if (unavailableProof)
             {
                 if (!view.Document.Proof.Enabled || view.Document.Proof.PrinterProfile is not null)
@@ -104,6 +128,7 @@ internal static class ProofTwoPageSmoke
             Wait(() => PrimaryReady() && Pages().Length == 2);
             CheckPages(false);
             CheckScreens(false);
+            if (unavailableMonitor) CheckMonitorWarnings();
             if (unavailableProof) CheckWarnings(false);
         }
         catch (Exception error) { failure = error; }
@@ -115,7 +140,7 @@ internal static class ProofTwoPageSmoke
             {
                 passed = failure is null && modals.Count == 0 && preserved, stage, preserved,
                 mode = grid ? "Grid" : pairedContinuous ? "TwoPageContinuous" : continuous ? "Continuous" : "TwoPage",
-                format = nativeEpub ? "EPUB" : "PDF",
+                format = nativeEpub ? "EPUB" : "PDF", deviceMonitor,
                 error = failure?.ToString(), modals, events,
                 appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)))
             }, new JsonSerializerOptions { WriteIndented = true, IncludeFields = true }));
@@ -133,8 +158,8 @@ internal static class ProofTwoPageSmoke
         {
             var pages = Pages();
             var colors = pages.Select(item => new { item.Page,
-                selected = ProofRefinementSmoke.StripeColors((BitmapSource)item.Image.Source, proof),
-                other = ProofRefinementSmoke.StripeColors((BitmapSource)item.Image.Source, !proof) }).ToArray();
+                selected = ProofRefinementSmoke.StripeColors((BitmapSource)item.Image.Source, proof, deviceMonitor),
+                other = ProofRefinementSmoke.StripeColors((BitmapSource)item.Image.Source, !proof, deviceMonitor) }).ToArray();
             events.Add(new { stage, colors });
             if (!pages.Select(item => item.Page).SequenceEqual(new[] { 0, 1 }))
                 throw new InvalidOperationException("The facing pages are not both present.");
@@ -152,6 +177,13 @@ internal static class ProofTwoPageSmoke
             if (warnings.Any(page => (page.warning?.Contains("proof", StringComparison.OrdinalIgnoreCase) == true) != expected))
                 throw new InvalidOperationException("A native page has an incorrect unavailable-proof diagnostic.");
         }
+        void CheckMonitorWarnings()
+        {
+            var warnings = Pages().Select(page => new { page.Page, warning = page.Image.ToolTip?.ToString() }).ToArray();
+            events.Add(new { stage, monitorWarnings = warnings });
+            if (warnings.Any(page => page.warning?.Contains("MonitorProfileConversionUnavailable", StringComparison.Ordinal) != true))
+                throw new InvalidOperationException("A native page lost its unavailable-monitor-profile diagnostic.");
+        }
         void CheckScreens(bool proof)
         {
             var viewport = (ScrollViewer)((FrameworkElement)viewer).FindName("PagePreviewPanel");
@@ -164,18 +196,38 @@ internal static class ProofTwoPageSmoke
                     owner.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
                 }
                 Rect bounds = Rect.Intersect(Bounds(page.Image), Bounds(clip));
-                Wait(() => ProofRefinementSmoke.StripeColors(NativeReadingSmoke.Capture(owner, bounds), proof) is var colors
+                Wait(() => ProofRefinementSmoke.StripeColors(NativeReadingSmoke.Capture(owner, bounds), proof, deviceMonitor) is var colors
                     && colors.Paper > colors.Pixels / 5 && colors.Ink > colors.Pixels / 5);
                 var capture = NativeReadingSmoke.Capture(owner, bounds);
-                var selected = ProofRefinementSmoke.StripeColors(capture, proof);
-                var other = ProofRefinementSmoke.StripeColors(capture, !proof);
-                if (other.Paper != 0 || other.Ink != 0)
-                    throw new InvalidOperationException("A visible facing page retains the other proof state's colors.");
+                var selected = ProofRefinementSmoke.StripeColors(capture, proof, deviceMonitor);
+                var other = ProofRefinementSmoke.StripeColors(capture, !proof, deviceMonitor);
                 events.Add(new { stage, page.Page, screen = true, selected, other });
                 var encoder = new PngBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(capture));
                 using var output = File.Create(Path.Combine(folder, stage + "-page-" + page.Page + ".png"));
                 encoder.Save(output);
+                if (other.Paper != 0 || (other.Ink != 0 && (!deviceMonitor || proof)))
+                    throw new InvalidOperationException("A visible facing page retains the other proof state's colors.");
+                if (deviceMonitor) CheckDevicePatches(page, capture, bounds, proof);
+            }
+        }
+        void CheckDevicePatches((int Page, Image Image) page, BitmapSource capture, Rect capturedBounds, bool proof)
+        {
+            Rect full = Bounds(page.Image);
+            foreach (var patch in new[] { (PageX: 262, Paper: false), (PageX: 274, Paper: true) })
+            {
+                // Centers of adjacent solid stripes in the unchanged 800x1000 native page fixture.
+                int x = (int)Math.Round(full.Left + full.Width * patch.PageX / 800.0)
+                    - (int)Math.Ceiling(capturedBounds.Left) - 1;
+                int y = (int)Math.Round(full.Top + full.Height * 456 / 1000.0)
+                    - (int)Math.Ceiling(capturedBounds.Top) - 1;
+                if (x < 0 || y < 0 || x + 3 > capture.PixelWidth || y + 3 > capture.PixelHeight)
+                    throw new InvalidOperationException("The independent device-color patch is outside the visible page.");
+                var colors = ProofRefinementSmoke.StripeColors(new CroppedBitmap(capture, new Int32Rect(x, y, 3, 3)),
+                    proof, deviceMonitor: true);
+                events.Add(new { stage, page.Page, flatDevicePatch = true, patch.Paper, x, y, colors });
+                if (patch.Paper ? colors.Paper != 9 || colors.Ink != 0 : colors.Ink != 9 || colors.Paper != 0)
+                    throw new InvalidOperationException("A solid device-color patch differs from its independent endpoint.");
             }
         }
         void Wait(Func<bool> ready)
