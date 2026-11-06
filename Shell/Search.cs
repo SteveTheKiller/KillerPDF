@@ -576,12 +576,9 @@ namespace KillerPDF.Shell
             // Match rects are unrotated page points; the canvas shows the page turned by its rotation.
             int rotation = _pageRotations.TryGetValue(page, out int stored) ? stored : intrinsicRotation;
 
-            var cur = Search.CurrentMatch;
-
             foreach (var (left, bottom, right, top) in rects)
             {
-                bool isCurrent = cur is { } c && c.page == page
-                    && c.left == left && c.bottom == bottom && c.right == right && c.top == top;
+                bool isCurrent = Search.IsCurrentArea(page, new(left, bottom, right, top));
                 AddSearchHighlight(canvas, RedactionGeometry.PageToCanvas(left, bottom, right, top,
                     pdfW, pdfH, renderW, renderH, rotation), isCurrent);
             }

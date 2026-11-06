@@ -241,6 +241,14 @@ internal static class NativeReadingSmoke
                     Wait(() => Descendants<System.Windows.Shapes.Rectangle>(owner)
                         .Any(rectangle => rectangle.Tag as string == "SearchHighlight" && rectangle.IsVisible));
                     events.Add(new { stage, query = queryBox.Text, counter = "1 / 1", visibleHighlight = true });
+                    stage = "native-search-emphasis";
+                    Wait(() =>
+                    {
+                        var highlights = Descendants<System.Windows.Shapes.Rectangle>(owner)
+                            .Where(rectangle => rectangle.Tag as string == "SearchHighlight" && rectangle.IsVisible).ToArray();
+                        return highlights.Length == 2 && highlights.All(rectangle => rectangle.StrokeThickness > 1);
+                    });
+                    events.Add(new { stage, emphasizedAreas = 2 });
                 }
                 if (gridSwitch && isNative && step.Grid)
                 {
@@ -326,7 +334,7 @@ internal static class NativeReadingSmoke
             {
                 passed, stage, control, native, preserved, continuous, grid, gridSwitch, switched, epub, machine = Environment.MachineName,
                 failureKind = failure is null ? null : stage == "fixture" ? "fixture"
-                    : stage == "native-search-capture" ? "native-search-capture"
+                    : stage.StartsWith("native-search-", StringComparison.Ordinal) ? stage
                     : grid && failure is TimeoutException && modals.Count == 0 ? "grid-readiness-review-required"
                     : continuous && stage == "native-render-readiness" && modals.Count == 0 ? "native-render-readiness-review-required"
                     : modals.Count > 0 ? "unexpected-modal" : stage.EndsWith("readiness", StringComparison.Ordinal)

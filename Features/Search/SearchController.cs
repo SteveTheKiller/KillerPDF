@@ -69,6 +69,14 @@ namespace KillerPDF.Features
         internal SearchHit? CurrentOccurrence =>
             _matchCursor >= 0 && _matchCursor < _matches.Count ? _matches[_matchCursor] : null;
 
+        internal bool IsCurrentArea(int page, KillerPdf.Engine.Documents.PdfContentBounds area)
+        {
+            if (CurrentOccurrence is not { HasGeometry: true } current || current.page != page) return false;
+            return current.Areas.Count > 0 ? current.Areas.Contains(area)
+                : current.left == area.Left && current.bottom == area.Bottom
+                    && current.right == area.Right && current.top == area.Top;
+        }
+
         internal bool TryGetPageRects(int page,
             out List<(double left, double bottom, double right, double top)> rects) =>
             AllSearchRects.TryGetValue(page, out rects!);

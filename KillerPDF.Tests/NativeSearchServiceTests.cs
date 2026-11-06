@@ -13,6 +13,29 @@ namespace KillerPDF.Tests;
 public sealed class NativeSearchServiceTests
 {
     [Fact]
+    public async Task SearchControllerEmphasizesEachAreaOfTheCurrentPhraseAndMovesEmphasis()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A A A A",
+            Zone(10, 20, 10, 10, 0, 1), Zone(30, 20, 10, 10, 2, 1),
+            Zone(10, 80, 10, 10, 4, 1), Zone(30, 80, 10, 10, 6, 1))));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("A A");
+        Assert.Equal("1 / 2", await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal(0, controller.CurrentOccurrence!.Start);
+        var firstAreas = controller.CurrentOccurrence.Areas.ToArray();
+        Assert.Equal(2, firstAreas.Length);
+        Assert.All(firstAreas, area => Assert.True(controller.IsCurrentArea(0, area)));
+        Assert.False(controller.IsCurrentArea(1, firstAreas[0]));
+        var union = controller.CurrentMatch!.Value;
+        Assert.False(controller.IsCurrentArea(0, new(union.left, union.bottom, union.right, union.top)));
+        controller.Next();
+        Assert.Equal(4, controller.CurrentOccurrence!.Start);
+        Assert.All(firstAreas, area => Assert.False(controller.IsCurrentArea(0, area)));
+        Assert.All(controller.CurrentOccurrence.Areas, area => Assert.True(controller.IsCurrentArea(0, area)));
+    }
+
+    [Fact]
     public async Task SearchControllerDoesNotRestoreNativeMatchesAfterRevisionChanges()
     {
         using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
