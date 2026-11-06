@@ -277,9 +277,11 @@ inside the package, with shared limits of 1,000,000 stylesheet bytes and 1024 re
 per layout, including repeated empty resources. Other CSS syntax remains diagnosed.
 Head metadata after the body is rejected as malformed before layout returns.
 
-`ReadText` and the supported plain native layout accept the canonical XHTML 1.1
-external declaration without loading or processing a DTD. Original resource bytes
-stay unchanged. Internal subsets and unknown declarations remain rejected.
+`ReadText` and the supported plain native layout accept the canonical HTML5
+`<!DOCTYPE html>` and XHTML 1.1 external declarations without loading or processing
+a DTD. Original resource bytes, Unicode and UTF-8/UTF-16 encodings stay unchanged.
+HTML5 external identifiers, internal subsets and unknown declarations remain
+rejected; scripts and unsafe references keep their existing restrictions.
 
 ```csharp
 using KillerPdf.Engine.Fonts;

@@ -5,6 +5,10 @@ namespace KillerPdf.Engine.Formats.Epub;
 
 public sealed partial class EpubDocument
 {
+    private static readonly Regex CanonicalHtml5Declaration = new(
+        "<!DOCTYPE[ \\t\\r\\n]+html[ \\t\\r\\n]*>",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
+
     private static readonly Regex CanonicalXhtml11Declaration = new(
         "<!DOCTYPE[ \\t\\r\\n]+html[ \\t\\r\\n]+PUBLIC[ \\t\\r\\n]+(?:\"-//W3C//DTD XHTML 1\\.1//EN\"|'-//W3C//DTD XHTML 1\\.1//EN')[ \\t\\r\\n]+(?:\"http://www\\.w3\\.org/TR/xhtml11/DTD/xhtml11\\.dtd\"|'http://www\\.w3\\.org/TR/xhtml11/DTD/xhtml11\\.dtd')[ \\t\\r\\n]*>",
         RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
@@ -31,6 +35,8 @@ public sealed partial class EpubDocument
         }
         if (!prolog.AsSpan(position).StartsWith("<!DOCTYPE", StringComparison.Ordinal)) return data;
         var declaration = CanonicalXhtml11Declaration.Match(prolog, position);
+        if (!declaration.Success || declaration.Index != position)
+            declaration = CanonicalHtml5Declaration.Match(prolog, position);
         if (!declaration.Success || declaration.Index != position) return data;
 
         // This grammar cannot include an internal subset. The XML reader still prohibits DTDs.
