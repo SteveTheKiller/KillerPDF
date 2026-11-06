@@ -7,9 +7,12 @@ namespace KillerPDF.Services
     /// <summary>One selectable character on a page, in reading order. Coordinates are PDF space
     /// (points, bottom-left origin), matching SearchService and ExtractTextFromRegion.</summary>
     internal readonly struct RunChar(string value, double left, double right, int word, int line,
-        int? markedContentId = null, double bottom = double.NaN, double top = double.NaN)
+        int? markedContentId = null, double bottom = double.NaN, double top = double.NaN,
+        int sourceStart = -1, int sourceLength = 0)
     {
         public readonly string Value = value;   // engine letters can be multi-char (ligatures)
+        public readonly int SourceStart = sourceStart;
+        public readonly int SourceLength = sourceLength;
         public readonly double Left = left;
         public readonly double Right = right;
         public readonly double Bottom = bottom;
@@ -42,6 +45,7 @@ namespace KillerPDF.Services
     {
         public double PdfWidth;
         public double PdfHeight;
+        public string? NativeSourceText;
         public List<RunChar> Chars = [];
         public List<RunLine> Lines = [];
     }
@@ -64,6 +68,33 @@ namespace KillerPDF.Services
         // A page read under a tab's key is kept apart from one read with none, so a caller without
         // the key never gets the text the key decrypted.
         private readonly Dictionary<(string Path, long Ticks, int Page, bool Keyed), PageTextRuns?> _cache = [];
+
+        public PageTextRuns? GetPage(PdfCapturedReadRevision revision, int pageIdx,
+            CancellationToken cancellationToken = default)
+        {
+            using var lease = revision.Rent(cancellationToken);
+            var page = lease.ReadNativeTextPage(pageIdx);
+            var geometry = revision.GetPageGeometry(pageIdx);
+            var runs = new PageTextRuns
+                { PdfWidth = geometry.Width, PdfHeight = geometry.Height, NativeSourceText = page.Text };
+            int offset = 0, word = 0;
+            foreach (var region in page.Regions.OrderBy(region => region.Start))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (region.Start > offset)
+                    runs.Chars.Add(new RunChar(page.Text[offset..region.Start], double.NaN, double.NaN, word - 1, 0,
+                        sourceStart: offset, sourceLength: region.Start - offset));
+                var bounds = region.Bounds;
+                runs.Chars.Add(new RunChar(page.Text.Substring(region.Start, region.Length),
+                    bounds.Left, bounds.Right, word++, 0, bottom: bounds.Bottom, top: bounds.Top,
+                    sourceStart: region.Start, sourceLength: region.Length));
+                offset = Math.Max(offset, region.Start + region.Length);
+            }
+            if (offset < page.Text.Length)
+                runs.Chars.Add(new RunChar(page.Text[offset..], double.NaN, double.NaN, word - 1, 0,
+                    sourceStart: offset, sourceLength: page.Text.Length - offset));
+            return runs;
+        }
 
         public PageTextRuns? GetPage(string path, OpenedProtection? protection, int pageIdx)
         {
@@ -441,6 +472,9 @@ namespace KillerPDF.Services
         /// classic marquee - empty page areas must keep the marquee.</summary>
         public static bool IsOverText(PageTextRuns runs, double x, double y)
         {
+            if (runs.NativeSourceText is not null)
+                return runs.Chars.Any(character => x >= character.Left && x <= character.Right
+                    && y >= character.Bottom && y <= character.Top);
             const double slop = 2.0;   // PDF points
             foreach (var line in runs.Lines)
                 if (y <= line.Top + slop && y >= line.Bottom - slop &&
@@ -454,6 +488,24 @@ namespace KillerPDF.Services
         /// between lines snaps to the closer line, beyond a line's ends clamps to its ends.</summary>
         public static int CaretFromPoint(PageTextRuns runs, double x, double y)
         {
+            if (runs.NativeSourceText is not null)
+            {
+                int nearest = -1;
+                double distance = double.PositiveInfinity;
+                for (int index = 0; index < runs.Chars.Count; index++)
+                {
+                    var region = runs.Chars[index];
+                    if (!double.IsFinite(region.Left) || !double.IsFinite(region.Right)
+                        || !double.IsFinite(region.Bottom) || !double.IsFinite(region.Top)) continue;
+                    double dx = Math.Max(0, Math.Max(region.Left - x, x - region.Right));
+                    double dy = Math.Max(0, Math.Max(region.Bottom - y, y - region.Top));
+                    double candidate = dx * dx + dy * dy;
+                    if (candidate < distance) { nearest = index; distance = candidate; }
+                }
+                if (nearest < 0) return 0;
+                var atomic = runs.Chars[nearest];
+                return x < (atomic.Left + atomic.Right) / 2 ? nearest : nearest + 1;
+            }
             if (runs.Lines.Count == 0) return 0;
 
             RunLine? target = null;
@@ -520,6 +572,16 @@ namespace KillerPDF.Services
         /// outside selectable text. Used for conventional double-click word selection.</summary>
         public static (int Start, int End)? WordRangeFromPoint(PageTextRuns runs, double x, double y)
         {
+            if (runs.NativeSourceText is not null)
+            {
+                for (int index = 0; index < runs.Chars.Count; index++)
+                {
+                    var region = runs.Chars[index];
+                    if (x >= region.Left && x <= region.Right && y >= region.Bottom && y <= region.Top)
+                        return (index, index + 1);
+                }
+                return null;
+            }
             if (!IsOverText(runs, x, y)) return null;
 
             int bestIndex = -1;
@@ -570,6 +632,17 @@ namespace KillerPDF.Services
             var result = new List<KillerPdf.Engine.Documents.PdfContentBounds>();
             int i = Math.Max(0, start);
             end = Math.Min(end, runs.Chars.Count);
+            if (runs.NativeSourceText is not null)
+            {
+                for (; i < end; i++)
+                {
+                    var region = runs.Chars[i];
+                    if (double.IsFinite(region.Left) && double.IsFinite(region.Right)
+                        && double.IsFinite(region.Bottom) && double.IsFinite(region.Top))
+                        result.Add(new(region.Left, region.Bottom, region.Right, region.Top));
+                }
+                return result;
+            }
             while (i < end)
             {
                 var line = runs.Lines[runs.Chars[i].Line];
@@ -600,15 +673,37 @@ namespace KillerPDF.Services
             wordCount = 0;
             var sb = new System.Text.StringBuilder();
             int lastWord = -1, lastLine = -1;
+            int sourceStart = int.MaxValue, sourceEnd = 0;
             for (int i = Math.Max(0, start); i < Math.Min(end, runs.Chars.Count); i++)
             {
                 var c = runs.Chars[i];
-                if (lastLine >= 0 && c.Line != lastLine) sb.Append('\n');
-                else if (lastWord >= 0 && c.Word != lastWord) sb.Append(' ');
+                if (runs.NativeSourceText is not null)
+                {
+                    sourceStart = Math.Min(sourceStart, c.SourceStart);
+                    sourceEnd = Math.Max(sourceEnd, c.SourceStart + c.SourceLength);
+                }
+                else
+                {
+                    if (lastLine >= 0 && c.Line != lastLine) sb.Append('\n');
+                    else if (lastWord >= 0 && c.Word != lastWord) sb.Append(' ');
+                    sb.Append(c.Value);
+                }
                 if (c.Word != lastWord) wordCount++;
-                sb.Append(c.Value);
                 lastWord = c.Word;
                 lastLine = c.Line;
+            }
+            if (runs.NativeSourceText is { } source && sourceStart != int.MaxValue)
+            {
+                string selected = source[sourceStart..sourceEnd];
+                wordCount = 0;
+                bool insideWord = false;
+                foreach (char character in selected)
+                {
+                    bool isWord = !char.IsWhiteSpace(character);
+                    if (isWord && !insideWord) wordCount++;
+                    insideWord = isWord;
+                }
+                return selected;
             }
             return sb.ToString();
         }

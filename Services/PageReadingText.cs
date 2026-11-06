@@ -12,11 +12,15 @@ namespace KillerPDF.Services
     /// </summary>
     internal sealed class PageReadingText
     {
-        private PageReadingText(string text, int[] carets, int caretCount)
+        private readonly (int Start, int Length)[]? _nativeRanges;
+
+        private PageReadingText(string text, int[] carets, int caretCount,
+            (int Start, int Length)[]? nativeRanges = null)
         {
             Text = text;
             Carets = carets;
             CaretCount = caretCount;
+            _nativeRanges = nativeRanges;
         }
 
         /// <summary>The number of on-page characters; carets at or past it have no page geometry.</summary>
@@ -28,6 +32,30 @@ namespace KillerPDF.Services
         internal int[] Carets { get; }
 
         internal static readonly PageReadingText Empty = new(string.Empty, [0], 0);
+
+        internal static PageReadingText Build(PageTextRuns runs)
+        {
+            if (runs.NativeSourceText is { } source)
+            {
+                var carets = new int[source.Length + 1];
+                int covered = 0;
+                for (int index = 0; index < runs.Chars.Count; index++)
+                {
+                    var character = runs.Chars[index];
+                    int start = Math.Max(covered, character.SourceStart);
+                    int end = character.SourceStart + character.SourceLength;
+                    if (end > start)
+                    {
+                        Array.Fill(carets, index, start, end - start);
+                        covered = end;
+                    }
+                }
+                carets[^1] = runs.Chars.Count;
+                return new PageReadingText(source, carets, runs.Chars.Count,
+                    [.. runs.Chars.Select(character => (character.SourceStart, character.SourceLength))]);
+            }
+            return Build(runs.Chars.Select(character => (character.Value, character.Word, character.Line)).ToArray());
+        }
 
         /// <summary>Reads the characters in the order given (the viewer's visual reading order).</summary>
         internal static PageReadingText Build(IReadOnlyList<(string Value, int Word, int Line)> chars) =>
@@ -84,7 +112,7 @@ namespace KillerPDF.Services
                 foreach (char c in line.Replace('\n', ' ')) { text.Append(c); carets.Add(CaretCount); }
             }
             carets.Add(CaretCount);
-            return new PageReadingText(text.ToString(), [.. carets], CaretCount);
+            return new PageReadingText(text.ToString(), [.. carets], CaretCount, _nativeRanges);
         }
 
         /// <summary>The caret at a text offset.</summary>
@@ -93,6 +121,13 @@ namespace KillerPDF.Services
         /// <summary>The first character belonging to a visual caret.</summary>
         internal int OffsetOf(int caret)
         {
+            if (_nativeRanges is { } native && caret >= 0 && caret < native.Length)
+            {
+                var range = native[caret];
+                for (int offset = range.Start; offset < range.Start + range.Length; offset++)
+                    if (!char.IsWhiteSpace(Text[offset])) return offset;
+                return Text.Length;
+            }
             for (int offset = 0; offset < Text.Length; offset++)
                 if (Carets[offset] == caret && !char.IsWhiteSpace(Text[offset])) return offset;
             return Text.Length;
@@ -101,6 +136,16 @@ namespace KillerPDF.Services
         /// <summary>The reading-order envelope of a visual selection, excluding inserted separators at its edges.</summary>
         internal (int Start, int End) SelectionOffsets(int startCaret, int endCaret)
         {
+            if (_nativeRanges is { } native)
+            {
+                int nativeStart = Text.Length, nativeEnd = -1;
+                for (int caret = Math.Max(0, startCaret); caret < Math.Min(endCaret, native.Length); caret++)
+                {
+                    nativeStart = Math.Min(nativeStart, native[caret].Start);
+                    nativeEnd = Math.Max(nativeEnd, native[caret].Start + native[caret].Length);
+                }
+                return nativeEnd < 0 ? (OffsetOf(startCaret), OffsetOf(startCaret)) : (nativeStart, nativeEnd);
+            }
             int start = Text.Length, end = -1;
             for (int offset = 0; offset < Text.Length; offset++)
                 if (Carets[offset] >= startCaret && Carets[offset] < endCaret
@@ -121,6 +166,21 @@ namespace KillerPDF.Services
             var result = new List<(int Start, int End)>();
             startOffset = Math.Clamp(startOffset, 0, Text.Length);
             endOffset = Math.Clamp(endOffset, startOffset, Text.Length);
+            if (_nativeRanges is { } native)
+            {
+                var letters = Enumerable.Range(startOffset, endOffset - startOffset)
+                    .Where(offset => !char.IsWhiteSpace(Text[offset])).ToArray();
+                for (int caret = 0; caret < native.Length; caret++)
+                {
+                    int first = Array.BinarySearch(letters, native[caret].Start);
+                    if (first < 0) first = ~first;
+                    if (first >= letters.Length || letters[first] >= native[caret].Start + native[caret].Length) continue;
+                    if (result.Count > 0 && result[^1].End == caret)
+                        result[^1] = (result[^1].Start, caret + 1);
+                    else result.Add((caret, caret + 1));
+                }
+                return result;
+            }
             foreach (int caret in Enumerable.Range(startOffset, endOffset - startOffset)
                          .Where(offset => !char.IsWhiteSpace(Text[offset]) && Carets[offset] < CaretCount)
                          .Select(offset => Carets[offset]).Distinct().Order())
