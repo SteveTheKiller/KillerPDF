@@ -28,7 +28,6 @@ public sealed class EpubCssNamespaceTests
     }
 
     [Theory]
-    [InlineData(".note")]
     [InlineData("p span")]
     [InlineData("p>span")]
     [InlineData("p[epub|type]")]

@@ -330,7 +330,11 @@ qualified type/class selectors against expanded XML names. Prefix spelling adds 
 specificity, and namespace names remain literal without fetching resources. Explicit
 any/empty namespace forms, rebinding and independent property cascade are covered.
 Declarations accept bounded ASCII identifier prefixes and quoted or url(...) names.
-Escapes, comments, general identifiers and relationship/attribute/pseudo/class-only
+Class-only selectors and combinations match whitespace-separated class tokens.
+Class count outranks type presence, and equal specificity follows source order;
+properties still cascade independently. The default namespace constrains the
+implied universal selector. Identifiers use the bounded letter-leading ASCII
+subset. Escapes, comments, general identifiers and relationship/attribute/pseudo
 selectors remain unsupported, with strict diagnostics. This is partial CSS support.
 
 Text alignment supports left, center, right and LTR justification, with inherited

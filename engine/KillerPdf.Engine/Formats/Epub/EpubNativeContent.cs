@@ -269,13 +269,14 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     type = type[(separator + 1)..];
                     parts[0] = type;
                 }
-                if (selector.Length is 0 or > 128 || parts.Any(part => part.Length == 0
+                bool classOnly = selector.StartsWith(".", StringComparison.Ordinal);
+                if (selector.Length is 0 or > 128 || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
                     || !char.IsAsciiLetter(part[0])
                     || part.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_'))))
                     throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
                 if (!_typeRules.TryGetValue(type, out var rules))
                     _typeRules.Add(type, rules = new());
-                rules.Add(new(namespaceName, parts[1..], properties));
+                rules.Add(new(namespaceName, parts[1..], properties, _selectorCount, classOnly ? 0 : 1));
             }
             position = close + 1;
         }
@@ -289,11 +290,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private static NotSupportedException NamespaceSyntax() =>
         new("Native EPUB CSS namespace syntax is not implemented.");
 
-    private sealed record CssRule(string? NamespaceName, string[] Classes, CssProperties Properties);
+    private sealed record CssRule(string? NamespaceName, string[] Classes, CssProperties Properties, int Order, int TypeSpecificity);
 
     private CssProperties ResolveRules(string name, string namespaceName, string? classNames)
     {
-        if (!_typeRules.TryGetValue(name, out var rules)) return default;
+        _typeRules.TryGetValue(name, out var typeRules);
+        _typeRules.TryGetValue("", out var classRules);
+        if (typeRules is null && classRules is null) return default;
         string[] classes = classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [];
         CssLength? size = null, height = null;
         PdfRgbColor? color = null;
@@ -311,8 +314,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         int[] paddingSpecificities = [-1, -1, -1, -1];
         var margins = new MarginLength?[4];
         int[] marginSpecificities = [-1, -1, -1, -1];
-        foreach (var rule in rules)
+        int typeIndex = 0, classIndex = 0;
+        while (typeIndex < (typeRules?.Count ?? 0) || classIndex < (classRules?.Count ?? 0))
         {
+            var rule = classIndex >= (classRules?.Count ?? 0)
+                || typeIndex < (typeRules?.Count ?? 0) && typeRules![typeIndex].Order < classRules![classIndex].Order
+                ? typeRules![typeIndex++] : classRules![classIndex++];
             CountSelectorWork(1);
             if (rule.NamespaceName is { } requiredNamespace)
             {
@@ -337,7 +344,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 }
             }
             if (!matches) continue;
-            int specificity = rule.Classes.Length;
+            int specificity = rule.Classes.Length * 2 + rule.TypeSpecificity;
             if (rule.Properties.PageBreakBefore is { } forcedBreak && specificity >= breakSpecificity)
             {
                 pageBreakBefore = forcedBreak;
