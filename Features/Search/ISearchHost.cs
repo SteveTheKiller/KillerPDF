@@ -10,6 +10,7 @@ namespace KillerPDF.Features
         /// <summary>Path of the working (temp) file the search reads. Null when no document.</summary>
         string? CurrentFile { get; }
         long SearchRevision { get; }
+        Guid? NativeSearchRevisionId => null;
         Services.CurrentSearchSnapshot CaptureSearchSnapshot();
 
         /// <summary>The page currently selected in the sidebar/page list.</summary>

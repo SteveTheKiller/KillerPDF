@@ -34,6 +34,7 @@ namespace KillerPDF.Shell
 
         string? ISearchHost.CurrentFile => _currentFile;
         long ISearchHost.SearchRevision => _documentEditRevision;
+        Guid? ISearchHost.NativeSearchRevisionId => ActiveViewer.NativeDocumentRef?.CaptureReadRevision().Id;
         CurrentSearchSnapshot ISearchHost.CaptureSearchSnapshot() => ActiveViewer.CaptureCurrentSearchSnapshot();
         int ISearchHost.CurrentPageIndex => PageList.SelectedIndex;
         void ISearchHost.GoToPage(int pageIdx) => PageList.SelectedIndex = pageIdx;
@@ -548,17 +549,32 @@ namespace KillerPDF.Shell
         private void ApplySearchHighlights(int page, Canvas canvas)
         {
             if (_searchBar is null || _searchBar.Visibility != Visibility.Visible) return;
-            if (_doc is null || page < 0 || page >= EnsureEngineDocumentSession().PageCount) return;
+            if (page < 0) return;
             if (!Search.TryGetPageRects(page, out var rects)) return;
             if (!_renderDims.TryGetValue(page, out var rd)) return;
 
             var (renderW, renderH) = rd;
-            var pageInfo = EnsureEngineDocumentSession().Pages[page];
-            double pdfW = pageInfo.Width;
-            double pdfH = pageInfo.Height;
+            double pdfW, pdfH;
+            int intrinsicRotation;
+            if (ActiveViewer.NativeDocumentRef is { } native)
+            {
+                if (page >= native.PageCount) return;
+                var geometry = native.GetNativePageGeometry(page);
+                pdfW = geometry.Width;
+                pdfH = geometry.Height;
+                intrinsicRotation = geometry.IntrinsicRotation;
+            }
+            else
+            {
+                if (_doc is null || page >= EnsureEngineDocumentSession().PageCount) return;
+                var pageInfo = EnsureEngineDocumentSession().Pages[page];
+                pdfW = pageInfo.Width;
+                pdfH = pageInfo.Height;
+                intrinsicRotation = pageInfo.Rotation;
+            }
             if (pdfW <= 0 || pdfH <= 0) return;
             // Match rects are unrotated page points; the canvas shows the page turned by its rotation.
-            int rotation = _pageRotations.TryGetValue(page, out int stored) ? stored : pageInfo.Rotation;
+            int rotation = _pageRotations.TryGetValue(page, out int stored) ? stored : intrinsicRotation;
 
             var cur = Search.CurrentMatch;
 

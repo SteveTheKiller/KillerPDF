@@ -13,6 +13,189 @@ namespace KillerPDF.Tests;
 public sealed class NativeSearchServiceTests
 {
     [Fact]
+    public async Task SearchControllerDoesNotRestoreNativeMatchesAfterRevisionChanges()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("A");
+        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var parked = controller.Capture();
+        host.SearchRevision++;
+        controller.Restore(parked);
+        Assert.Null(controller.CurrentOccurrence);
+        Assert.False(controller.HasResults);
+    }
+
+    [Fact]
+    public async Task SearchControllerRestoresEachNativeTabsResultIdentity()
+    {
+        using var first = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
+        using var second = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A A")));
+        var firstHost = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = first });
+        var secondHost = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = second });
+        var controller = new KillerPDF.Features.SearchController(firstHost);
+        var other = new KillerPDF.Features.SearchController(secondHost);
+        controller.Run("A");
+        other.Run("A");
+        await Task.WhenAll(firstHost.Completed.Task, secondHost.Completed.Task).WaitAsync(TimeSpan.FromSeconds(5));
+        var firstParked = controller.Capture();
+        firstHost.NativeSearchRevisionId = second.Id;
+        controller.Restore(other.Capture());
+        Assert.True(controller.ResultsCurrent);
+        Assert.Equal(second.Id, controller.Capture().NativeRevisionId);
+        firstHost.NativeSearchRevisionId = first.Id;
+        controller.Restore(firstParked);
+        Assert.True(controller.ResultsCurrent);
+        Assert.Equal(first.Id, controller.Capture().NativeRevisionId);
+    }
+
+    [Fact]
+    public async Task SearchControllerRestoresNativeSearchAtItsOriginalPathAndRevision()
+    {
+        using var first = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
+        using var second = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A A")));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = first });
+        var otherHost = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = second })
+            { CurrentFile = "another-book.djvu", SearchRevision = 4 };
+        var controller = new KillerPDF.Features.SearchController(host);
+        var other = new KillerPDF.Features.SearchController(otherHost);
+        controller.Run("A");
+        other.Run("A");
+        await Task.WhenAll(host.Completed.Task, otherHost.Completed.Task).WaitAsync(TimeSpan.FromSeconds(5));
+        host.NativeSearchRevisionId = second.Id;
+        host.CurrentFile = otherHost.CurrentFile;
+        host.SearchRevision = 4;
+        controller.Restore(other.Capture());
+        Assert.True(controller.ResultsCurrent);
+        host.SearchRevision = 5;
+        Assert.False(controller.ResultsCurrent);
+    }
+
+    [Fact]
+    public async Task SearchControllerDropsPendingResultsWhenNativeOwnerChangesDuringCapture()
+    {
+        using var first = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
+        using var second = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = first });
+        host.OnCapture = () => host.NativeSearchRevisionId = second.Id;
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("A");
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (controller.IsSearching) await Task.Delay(1, deadline.Token);
+        Assert.Null(controller.CurrentOccurrence);
+        Assert.False(host.Completed.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task SearchControllerDoesNotRestoreNativeMatchesIntoAnotherOwner()
+    {
+        using var first = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
+        using var second = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = first });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("A");
+        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var parked = controller.Capture();
+        controller.Restore(parked);
+        Assert.NotNull(controller.CurrentOccurrence);
+        host.NativeSearchRevisionId = second.Id;
+        controller.Restore(parked);
+        Assert.Null(controller.CurrentOccurrence);
+        Assert.False(controller.HasResults);
+    }
+
+    [Fact]
+    public async Task SearchControllerRejectsResultsAfterNativeOwnerChangesAtTheSamePath()
+    {
+        using var first = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
+        using var second = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = first });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("A");
+        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(controller.ResultsCurrent);
+        host.NativeSearchRevisionId = second.Id;
+        Assert.False(controller.ResultsCurrent);
+    }
+
+    [Fact]
+    public async Task SearchControllerNavigatesNativeMatchesInLogicalSourceOrder()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A A",
+            Zone(10, 20, 10, 10, 0, 1), Zone(10, 100, 10, 10, 2, 1))));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("A");
+        await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(0, controller.CurrentOccurrence!.Start);
+        controller.Next();
+        Assert.Equal(2, controller.CurrentOccurrence!.Start);
+    }
+
+    [Fact]
+    public async Task SearchControllerPreservesSeparateAreasOfOneNativePhrase()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A A",
+            Zone(10, 20, 30, 40, 0, 1), Zone(50, 80, 30, 40, 2, 1))));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("A A");
+        Assert.Equal("1 / 1", await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.Equal(2, controller.AllSearchRects[0].Count);
+        var first = controller.AllSearchRects[0][0];
+        var second = controller.AllSearchRects[0][1];
+        Assert.Equal(2.4, first.left, 12);
+        Assert.Equal(4.8, first.bottom, 12);
+        Assert.Equal(9.6, first.right, 12);
+        Assert.Equal(14.4, first.top, 12);
+        Assert.Equal(12.0, second.left, 12);
+        Assert.Equal(19.2, second.bottom, 12);
+        Assert.Equal(19.2, second.right, 12);
+        Assert.Equal(28.8, second.top, 12);
+    }
+
+    [Fact]
+    public async Task SearchControllerCountsUnlocatedNativeMatchesWithoutPaintingRectangles()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A A")));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
+        var controller = new KillerPDF.Features.SearchController(host);
+        controller.Run("A");
+        Assert.Equal("1 / 2", await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.True(controller.HasResults);
+        Assert.Empty(controller.AllSearchRects);
+        Assert.Null(controller.CurrentMatch);
+        Assert.Equal(new[] { 0 }, controller.ResultPages);
+        controller.Next();
+        Assert.Equal(2, controller.CurrentOccurrence!.Start);
+    }
+
+    private sealed class SearchHost(CurrentSearchSnapshot source) : KillerPDF.Features.ISearchHost
+    {
+        public Guid? NativeSearchRevisionId { get; set; } = source.NativeRevision?.Id;
+        public TaskCompletionSource<string> Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public System.Windows.Window Window => throw new NotSupportedException();
+        public string? CurrentFile { get; set; } = "native-search-controller.djvu";
+        public long SearchRevision { get; set; }
+        public int CurrentPageIndex => 0;
+        public Action? OnCapture { get; set; }
+        public CurrentSearchSnapshot CaptureSearchSnapshot()
+        {
+            OnCapture?.Invoke();
+            return source;
+        }
+        public string Loc(string key) => key;
+        public void SetStatus(string text) { }
+        public void GoToPage(int pageIdx) { }
+        public void SetResultText(string text) => Completed.TrySetResult(text);
+        public void SetResultCount(string text, string? tooltip) => Completed.TrySetResult(text);
+        public void ClearHighlights() { }
+        public void RepaintHighlights() { }
+        public bool IsCovered(int pageIdx, double left, double bottom, double right, double top) => false;
+    }
+
+    [Fact]
     public void NativeSearchFinishesDenseDisjointTextWithinItsCancellationDeadline()
     {
         byte[][] zones = Enumerable.Range(0, 20_000)

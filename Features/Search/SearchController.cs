@@ -20,7 +20,9 @@ namespace KillerPDF.Features
         private readonly LatestSearchRunner _runner = new();
         private string? _searchedFile;
         private long _resultRevision = -1;
-        internal bool ResultsCurrent => _searchedFile == _host.CurrentFile && _resultRevision == _host.SearchRevision;
+        private Guid? _resultNativeRevisionId;
+        internal bool ResultsCurrent => _searchedFile == _host.CurrentFile && _resultRevision == _host.SearchRevision
+            && _resultNativeRevisionId == _host.NativeSearchRevisionId;
 
         internal SearchController(ISearchHost host) => _host = host;
 
@@ -42,7 +44,7 @@ namespace KillerPDF.Features
         private int _totalHits;
 
         /// <summary>True while any page has result rects - the F3 and repaint-on-page-change gate.</summary>
-        internal bool HasResults => AllSearchRects.Count > 0;
+        internal bool HasResults => _matches.Count > 0;
 
         /// <summary>Match case and Whole word, the search bar toggles. Find and Replace uses the same
         /// options, so what it replaces is what the highlights showed.</summary>
@@ -62,7 +64,7 @@ namespace KillerPDF.Features
 
         /// <summary>The emphasized match, or null when the cursor is not on one.</summary>
         internal (int page, double left, double bottom, double right, double top)? CurrentMatch =>
-            CurrentOccurrence?.Rectangle;
+            CurrentOccurrence is { HasGeometry: true } occurrence ? occurrence.Rectangle : null;
 
         internal SearchHit? CurrentOccurrence =>
             _matchCursor >= 0 && _matchCursor < _matches.Count ? _matches[_matchCursor] : null;
@@ -76,15 +78,28 @@ namespace KillerPDF.Features
         /// <summary>The part of a search a tab parks through <see cref="Capture"/>. Its rects, pages
         /// and page cursor already park as fields of their own on the tab's session.</summary>
         internal sealed record ParkedSearch(string Query, bool MatchCase, bool WholeWord,
-            IReadOnlyList<SearchHit> Matches, int MatchCursor);
+            IReadOnlyList<SearchHit> Matches, int MatchCursor)
+        {
+            internal Guid? NativeRevisionId { get; init; }
+            internal string? File { get; init; }
+            internal long Revision { get; init; } = -1;
+        }
 
         internal ParkedSearch Capture() =>
-            new(LastQuery, LastMatchCase, LastWholeWord, [.. _matches], _matchCursor);
+            new(LastQuery, LastMatchCase, LastWholeWord, [.. _matches], _matchCursor)
+                { NativeRevisionId = _resultNativeRevisionId, File = _searchedFile, Revision = _resultRevision };
 
         /// <summary>Puts back what <see cref="Capture"/> parked for the tab coming in, or a blank
         /// state for a tab that has never searched.</summary>
         internal void Restore(ParkedSearch? parked)
         {
+            if (parked is not null && (parked.NativeRevisionId != _host.NativeSearchRevisionId
+                || parked.NativeRevisionId is not null && parked.Revision != _host.SearchRevision))
+            {
+                ClearMatches();
+                _host.ClearHighlights();
+                return;
+            }
             // Another document coming in ends a search for the one going out. A pane that only
             // re-applies its own session keeps its search running.
             if (_host.CurrentFile != _searchedFile) CancelPending();
@@ -94,6 +109,12 @@ namespace KillerPDF.Features
             _matches.Clear();
             if (parked is not null) _matches.AddRange(parked.Matches);
             _matchCursor = parked?.MatchCursor ?? -1;
+            _resultNativeRevisionId = parked?.NativeRevisionId;
+            if (parked?.NativeRevisionId is not null)
+            {
+                _searchedFile = parked.File;
+                _resultRevision = parked.Revision;
+            }
         }
 
         /// <summary>Stops a running search and leaves the results on show as they are.</summary>
@@ -148,9 +169,11 @@ namespace KillerPDF.Features
                 _searchedFile = file;
                 SearchResult? found = await _runner.RunAsync(
                     token => SearchService.Search(source, query, matchCase, wholeWord, token),
-                    () => _host.CurrentFile == file && Revision(file) == revision && _host.SearchRevision == editRevision);
+                    () => _host.CurrentFile == file && Revision(file) == revision && _host.SearchRevision == editRevision
+                        && _host.NativeSearchRevisionId == source.NativeRevision?.Id);
                 if (found is null) return;
                 _resultRevision = editRevision;
+                _resultNativeRevisionId = found.NativeRevisionId;
                 ShowResults(query, matchCase, wholeWord, found);
             }
             catch
@@ -190,17 +213,23 @@ namespace KillerPDF.Features
             // Text hidden under an edit, such as a replaced line, no longer counts as a match.
             foreach (var group in sr.Hits.GroupBy(hit => hit.page))
             {
-                var visible = group.Where(hit => hit.Source is not null || !_host.IsCovered(hit.page, hit.left, hit.bottom, hit.right, hit.top))
-                    .Select(hit => (hit.left, hit.bottom, hit.right, hit.top)).ToList();
+                var visible = group.Where(hit => hit.Source is not null || !_host.IsCovered(hit.page, hit.left, hit.bottom, hit.right, hit.top)).ToList();
                 if (visible.Count == 0) continue;
-                AllSearchRects[group.Key] = visible;
+                var rectangles = visible.Where(hit => hit.HasGeometry)
+                    .SelectMany(hit => hit.Areas.Count > 0
+                        ? hit.Areas.Select(area => (area.Left, area.Bottom, area.Right, area.Top))
+                        : new[] { (hit.left, hit.bottom, hit.right, hit.top) }).ToList();
+                if (rectangles.Count > 0) AllSearchRects[group.Key] = rectangles;
                 ResultPages.Add(group.Key);
             }
             ResultPages.Sort();
 
             // Flatten every match into one reading-ordered list (page asc, then top-to-bottom,
             // then left-to-right) so navigation steps word-by-word across the whole document.
-            foreach (SearchHit hit in sr.Hits.OrderBy(hit => hit.page).ThenByDescending(hit => hit.top).ThenBy(hit => hit.left))
+            var ordered = sr.NativeRevisionId is not null
+                ? sr.Hits.OrderBy(hit => hit.page).ThenBy(hit => hit.Start)
+                : sr.Hits.OrderBy(hit => hit.page).ThenByDescending(hit => hit.top).ThenBy(hit => hit.left);
+            foreach (SearchHit hit in ordered)
                 if (hit.Source is not null || !_host.IsCovered(hit.page, hit.left, hit.bottom, hit.right, hit.top)) _matches.Add(hit);
 
             if (_matches.Count == 0)

@@ -7,6 +7,8 @@ public partial class PdfViewer
 {
     internal CurrentSearchSnapshot CaptureCurrentSearchSnapshot()
     {
+        if (_nativeDoc is { } native)
+            return new CurrentSearchSnapshot([], []) { NativeRevision = native.CaptureReadRevision() };
         CommitActiveTextBox();
         var text = new List<SearchTextSource>();
         var covers = new List<SearchTextSource>();
