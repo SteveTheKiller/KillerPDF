@@ -606,3 +606,11 @@ destination. It closes that document and reopens the destination into a new owne
 checking the inherited proof request, valid output and unchanged source. The
 requested ICC profile can be unavailable; physical color is not tested. The
 Save a Copy scenario remains separate and checks independent live owners.
+
+`--verify-proof-comparison APP_DLL APP_XAML OUTPUT --session-isolation` configures
+a public proof-view override on a replacement document, then uses the actual panel
+to apply distinct comparison settings. Owner defaults and saved preferences must
+stay unchanged. Previous-file review must be absent for the comparison and present
+again after removing its override. The existing replacement review and document
+reopen workflow also runs. Public view setup does not verify every user workflow
+for creating comparison views.

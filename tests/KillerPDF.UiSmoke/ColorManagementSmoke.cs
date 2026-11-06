@@ -19,7 +19,7 @@ using KillerPdf.Engine.Documents;
 internal static class ColorManagementSmoke
 {
     internal static int Run(Window owner, string appPath, string folder, bool documentReopen = false, bool replacementReview = false,
-        bool storageFailure = false)
+        bool storageFailure = false, bool comparisonIsolation = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02")) throw new InvalidOperationException("Color controls require an owned VM.");
         string engineHash = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
@@ -50,6 +50,20 @@ internal static class ColorManagementSmoke
                 Product(dialog.Title.Contains("Color Management", StringComparison.Ordinal), "The panel title must be readable English.");
                 var controls = Descendants(dialog).OfType<FrameworkElement>().ToArray();
                 T Control<T>(string id) where T : FrameworkElement => controls.OfType<T>().Single(item => AutomationProperties.GetAutomationId(item) == id);
+                if (stage == "comparison-apply")
+                {
+                    Product(View()!.CaptureProof().Stamp.IsComparison,
+                        "The configured public view must have an explicit comparison override before its panel opens.");
+                    Product(Control<CheckBox>("ProofEnabled").IsChecked == false
+                        && Control<ComboBox>("ProofIntent").SelectedIndex == 2
+                        && Control<CheckBox>("ProofBpc").IsChecked == false,
+                        "The actual panel must show comparison draft defaults rather than the owner's distinct proof settings.");
+                    Product(!controls.Any(item => AutomationProperties.GetAutomationId(item) == "ProofReviewPrevious"),
+                        "Comparison controls must not offer document-owned previous-file preference review.");
+                    ((IToggleProvider)new CheckBoxAutomationPeer(Control<CheckBox>("ProofEnabled")).GetPattern(PatternInterface.Toggle)!).Toggle();
+                    owner.Dispatcher.BeginInvoke(new Action(() => Invoke(Control<Button>("ColorManagementApply"))));
+                    return;
+                }
                 if (stage is "storage-load" or "storage-apply" or "storage-save")
                 {
                     var notice = Control<TextBlock>("ProofPreferencesStatus");
@@ -481,6 +495,23 @@ internal static class ColorManagementSmoke
                         {
                             Product(View()!.CaptureProof().Settings == new PdfDocumentProofSettings(),
                                 "Different contents at the same path must open with default proof off.");
+                            if (comparisonIsolation)
+                            {
+                                var beforeOwner = View()!.Document.Proof;
+                                View()!.ComparisonOverride = new PdfDocumentProofSettings(options: new PdfProofOptions
+                                { RenderingIntent = PdfRenderingIntent.Saturation, BlackPointCompensation = false, SimulateBlack = true });
+                                OpenReviewPanel("comparison-apply");
+                                var comparison = View()!.CaptureProof();
+                                Product(comparison.Stamp.IsComparison && comparison.Settings.Enabled
+                                    && comparison.Settings.Options.RenderingIntent == PdfRenderingIntent.Saturation
+                                    && !comparison.Settings.Options.BlackPointCompensation && !comparison.Settings.Options.SimulatePaper
+                                    && comparison.Settings.Options.SimulateBlack && !comparison.Settings.GamutWarnings,
+                                    "Actual Apply must change only the comparison request to its distinct selected values.");
+                                Product(View()!.Document.Proof == beforeOwner, "Comparison Apply must preserve the logical owner's shared proof defaults.");
+                                View()!.ComparisonOverride = null;
+                                Product(View()!.CaptureProof().Settings == beforeOwner,
+                                    "Removing the public comparison override must reveal the unchanged owner request.");
+                            }
                             OpenReviewPanel("review-replacement-close");
                             Product(View()!.CaptureProof().Settings == new PdfDocumentProofSettings(),
                                 "Closing reviewed draft controls must leave replacement proof off.");
@@ -599,7 +630,7 @@ internal static class ColorManagementSmoke
             {
                 passed = failure is null, stage, assertions, handled, error = failure?.ToString(),
                 sourcePreserved = File.ReadAllBytes(source).SequenceEqual(original), closed = !owner.IsVisible,
-                replacementReview, storageFailure, restoredFixtureAfterFailure, replacementEvents,
+                replacementReview, storageFailure, comparisonIsolation, restoredFixtureAfterFailure, replacementEvents,
                 appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath))), engineHash, codecHash
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
