@@ -39,7 +39,8 @@ public sealed class EpubLayoutPage
 {
     internal EpubLayoutPage(string text, int textStart, int spineIndex, IEnumerable<EpubTextPlacement> placements,
         IEnumerable<NativePagePaint> glyphs, PdfRgbColor? canvasBackground = null,
-        IEnumerable<EpubGlyphCluster>? clusters = null)
+        IEnumerable<EpubGlyphCluster>? clusters = null, IEnumerable<(int Start, int Length)>? hiddenTextRanges = null,
+        IEnumerable<EpubTextPlacement>? navigationPlacements = null)
     {
         Text = text;
         TextStart = textStart;
@@ -48,6 +49,8 @@ public sealed class EpubLayoutPage
         Glyphs = Array.AsReadOnly(glyphs.ToArray());
         CanvasBackground = canvasBackground;
         Clusters = (clusters ?? []).ToDictionary(cluster => cluster.Start);
+        HiddenTextRanges = Array.AsReadOnly((hiddenTextRanges ?? []).ToArray());
+        NavigationPlacements = navigationPlacements is null ? TextPlacements : Array.AsReadOnly(navigationPlacements.ToArray());
     }
     /// <summary>Gets the page's normalized text with display-none subtrees omitted.</summary>
     public string Text { get; }
@@ -59,6 +62,8 @@ public sealed class EpubLayoutPage
     public IReadOnlyList<EpubTextPlacement> TextPlacements { get; }
     internal IReadOnlyList<NativePagePaint> Glyphs { get; }
     internal IReadOnlyDictionary<int, EpubGlyphCluster> Clusters { get; }
+    internal IReadOnlyList<(int Start, int Length)> HiddenTextRanges { get; }
+    internal IReadOnlyList<EpubTextPlacement> NavigationPlacements { get; }
     internal PdfRgbColor? CanvasBackground { get; }
 }
 
@@ -114,7 +119,7 @@ public sealed class EpubLayoutDocument
                     cancellationToken.ThrowIfCancellationRequested();
                     if (Pages[pageIndex].SpineIndex != spineIndex) continue;
                     cursor ??= new(pageIndex, spineIndex, offset, _options.Margin, _options.Margin);
-                    foreach (var placement in Pages[pageIndex].TextPlacements)
+                    foreach (var placement in Pages[pageIndex].NavigationPlacements)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         if (placement.Start >= offset)

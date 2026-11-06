@@ -14,6 +14,23 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubLigatureTests
 {
     [Fact]
+    public void VisibilityProjectionKeepsVisibleLigatureClustersAtomic()
+    {
+        byte[] source = Book("<p>f<span style='visibility:hidden'>fi</span>fi</p>"), original = source.ToArray();
+        var font = TrueTypeFont.Load(Font());
+        var snapshot = PdfReadSnapshot.OpenEpub(source, new EpubLayoutOptions(200, 200, font) { Margin = 8, FontSize = 20 });
+        var page = snapshot.ReadTextPage(0);
+        Assert.Equal("ffi", page.Text);
+        Assert.Collection(page.Regions,
+            region => { Assert.Equal(0, region.Start); Assert.Equal(1, region.Length); },
+            region => { Assert.Equal(1, region.Start); Assert.Equal(2, region.Length); Assert.Equal(28.5, region.Bounds.Left, 6); });
+        var pdf = PdfDocument.Open(EpubDocument.Open(source).ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 150, PageHeightPoints = 150, MarginPoints = 6, FontSizePoints = 15 }));
+        Assert.Equal("ffi", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(letter => letter.Value)));
+        Assert.Equal(original, source);
+    }
+
+    [Fact]
     public void SelectedLigatureOwnsOriginalRangeAndSurvivesNativeAndPdfRendering()
     {
         byte[] source = Book(), original = source.ToArray();

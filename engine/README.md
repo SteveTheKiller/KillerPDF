@@ -195,8 +195,13 @@ Native layout omits `display:none` subtrees before font resolution, box creation
 visible page text and PDF text emission. A descendant cannot restore display inside
 a suppressed ancestor. Hidden computed font sizes, geometry and body backgrounds
 are not applied; syntax and resource checks remain bounded. Structural `ReadText`
-continues to return source text without CSS evaluation. `visibility:hidden` remains
-unimplemented.
+continues to return source text without CSS evaluation. `visibility:hidden` retains
+layout dimensions while suppressing text, image and box painting. Visible descendants
+can override inherited visibility. Logical layout text and offsets remain available;
+reader snapshots omit explicit hidden ranges and remap selectable regions, so search,
+copy and reading text exclude hidden characters. Navigation retains hidden text positions
+without making them selectable. Visible supplementary characters and substituted glyph
+clusters retain their complete UTF16 ranges.
 
 `EpubDocument.Open` reads a bounded native package. `CreateLayout` currently supports
 paragraphs and nested spans in linear, reflowable XHTML spine items with an explicit

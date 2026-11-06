@@ -269,6 +269,7 @@ public sealed partial class EpubDocument
             return options.DefaultFont;
         }
         var placements = new List<EpubTextPlacement>(text.Length);
+        var navigationPlacements = new List<EpubTextPlacement>();
         var glyphs = new List<NativePagePaint>(text.Length);
         var backgrounds = new List<(int Depth, NativePagePaint Paint)>();
         int pageStart = 0;
@@ -341,7 +342,7 @@ public sealed partial class EpubDocument
                     pendingParagraphGap = 0;
                 }
                 int initialPaintStart = backgrounds.Count;
-                var borderColor = topBorder is { Color: { } specified }
+                PdfRgbColor? borderColor = block.Source.Style.Hidden ? null : topBorder is { Color: { } specified }
                     ? specified.Color : block.Source.Style.Color ?? new PdfRgbColor(0, 0, 0);
                 double emptyBorderRemaining = 0;
                 if (block.Children.Count == 0 && block.Replaced is null)
@@ -407,7 +408,7 @@ public sealed partial class EpubDocument
                     for (var box = block; box.Parent is not null; box = box.Parent)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        if (box.Source.Style.Background?.Color is not { } fill) continue;
+                        if (box.Source.Style.Hidden || box.Source.Style.Background?.Color is not { } fill) continue;
                         if (backgrounds.Count + glyphs.Count >= 100_000)
                             throw new InvalidDataException("The native page exceeds its paint limit.");
                         var bounds = activeBounds[box];
@@ -461,7 +462,8 @@ public sealed partial class EpubDocument
                     top = options.Margin;
                 }
                 AddBlockBackgrounds(image.Height);
-                glyphs.Add(new NativeImagePaint(image, contentLeft, top));
+                if (!replaced.Owner.Style.Hidden)
+                    glyphs.Add(new NativeImagePaint(image, contentLeft, top));
                 if (backgrounds.Count + glyphs.Count > 100_000)
                     throw new InvalidDataException("The native page exceeds its paint limit.");
                 top += image.Height;
@@ -649,7 +651,7 @@ public sealed partial class EpubDocument
             for (var box = lineBlock; box.Parent is not null; box = box.Parent)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (box.Source.Style.Background?.Color is { } fill)
+                if (!box.Source.Style.Hidden && box.Source.Style.Background?.Color is { } fill)
                 {
                     var bounds = activeBounds[box];
                     backgrounds.Add((SourceDepth(box.Source), new NativeRectanglePaint(bounds.Left, top, bounds.Width, height, fill)));
@@ -766,7 +768,7 @@ public sealed partial class EpubDocument
             foreach (var item in line)
             {
                 for (var owner = item.Owner; owner is not null && !ReferenceEquals(owner, lineBlock.Source); owner = owner.Parent)
-                    if (owner.Style.Background?.Color is not null) ancestors.Push(owner);
+                    if (!owner.Style.Hidden && owner.Style.Background?.Color is not null) ancestors.Push(owner);
                 while (ancestors.TryPop(out var owner))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -797,16 +799,20 @@ public sealed partial class EpubDocument
                 cancellationToken.ThrowIfCancellationRequested();
                 if (item.Image is { } image)
                 {
-                    glyphs.Add(new NativeImagePaint(image, item.Left, baseline - image.Height));
+                    if (!item.Style.Hidden)
+                        glyphs.Add(new NativeImagePaint(image, item.Left, baseline - image.Height));
                     continue;
                 }
                 if (item.Length == 0) continue;
                 double size = item.Style.FontSize;
                 double logicalTop = baseline - item.Font.Ascender * size / item.Font.UnitsPerEm;
-                placements.Add(new EpubTextPlacement(spineIndex, item.Index, item.Length, item.Left, logicalTop, item.Width, size)
+                var placement = new EpubTextPlacement(spineIndex, item.Index, item.Length, item.Left, logicalTop, item.Width, size)
                 {
                     Color = item.Style.Color
-                });
+                };
+                navigationPlacements.Add(placement);
+                if (item.Style.Hidden) continue;
+                placements.Add(placement);
                 var cluster = clusters[item.Index];
                 double advance = 0;
                 foreach (var selected in cluster.Glyphs)
@@ -853,11 +859,28 @@ public sealed partial class EpubDocument
                 throw new InvalidDataException("Native EPUB layout exceeds its 10000-page limit.");
             var paints = backgrounds.OrderBy(fill => fill.Depth).Select(fill => fill.Paint)
                 .Concat(glyphs);
+            var hidden = new List<(int Start, int Length)>();
+            int hiddenStart = -1;
+            for (int index = pageStart; index < end; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (content.Characters[index]?.Style.Hidden == true)
+                {
+                    if (hiddenStart < 0) hiddenStart = index;
+                }
+                else if (hiddenStart >= 0)
+                {
+                    hidden.Add((hiddenStart - pageStart, index - hiddenStart));
+                    hiddenStart = -1;
+                }
+            }
+            if (hiddenStart >= 0) hidden.Add((hiddenStart - pageStart, end - hiddenStart));
             pages.Add(new EpubLayoutPage(text[pageStart..end], pageStart, spineIndex, placements, paints,
-                content.CanvasBackground, placements.Select(placement => clusters[placement.Start])));
+                content.CanvasBackground, placements.Select(placement => clusters[placement.Start]), hidden, navigationPlacements));
             pageStart = end;
             pageHasContent = false;
             placements.Clear();
+            navigationPlacements.Clear();
             glyphs.Clear();
             backgrounds.Clear();
         }

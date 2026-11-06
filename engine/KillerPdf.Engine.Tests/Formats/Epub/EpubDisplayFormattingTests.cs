@@ -17,6 +17,25 @@ public sealed class EpubDisplayFormattingTests
     public EpubDisplayFormattingTests(ITestOutputHelper output) => output.WriteLine("Loaded engine SHA256: " +
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(EpubDocument).Assembly.Location))));
 
+    [Fact]
+    public void VisibilityHiddenBlockImageRetainsHeightWithoutPaintingOrPdfImageContent()
+    {
+        byte[] image = RedImage();
+        byte[] source = Book(false, "<p><img src='image.png' alt=''/>A</p>", "img{display:block;visibility:hidden}", image);
+        byte[] preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(40, 36, Font()) { FontSize = 10, Margin = 2 });
+        Assert.Equal(4, Assert.Single(Assert.Single(layout.Pages).TextPlacements).Top, 6);
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, layout.RenderPage(0).Pixels.Slice((2 * 40 + 2) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 30, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var content = new PdfPageContentReader(pdf).Read(0);
+        Assert.Empty(content.Images);
+        Assert.Equal("A", Assert.Single(content.Letters).Value);
+        Assert.Equal(image, book.ReadResource("image.png"));
+        Assert.Equal(preserved, source);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

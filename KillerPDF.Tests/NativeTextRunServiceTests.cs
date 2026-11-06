@@ -12,6 +12,29 @@ namespace KillerPDF.Tests;
 public sealed class NativeTextRunServiceTests
 {
     [Fact]
+    public void HiddenEpubTextCannotBeSearchedCopiedOrReadBetweenVisibleEndpoints()
+    {
+        using var resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        byte[] bytes = NativeSearchServiceTests.Book("<p>left<span style='visibility:hidden'>SECRET</span>right</p>");
+        byte[] preserved = bytes.ToArray();
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenEpub(bytes,
+            new EpubLayoutOptions(600, 100, TrueTypeFont.Load(fontBytes.ToArray())) { FontSize = 12, Margin = 4 }));
+        var source = new CurrentSearchSnapshot([], []) { NativeRevision = revision };
+        Assert.Equal(0, SearchService.Search(source, "SECRET", true, false, CancellationToken.None).TotalHits);
+        var visible = SearchService.Search(source, "right", true, false, CancellationToken.None);
+        Assert.Equal(1, visible.TotalHits);
+        Assert.Equal(4, Assert.Single(visible.Hits).Start);
+        Assert.True(visible.Hits[0].HasGeometry);
+        var runs = new TextRunService().GetPage(revision, 0)!;
+        Assert.Equal("leftright", TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
+        Assert.Equal("leftright", PageReadingText.Build(runs).Text);
+        Assert.Equal(preserved, bytes);
+    }
+
+    [Fact]
     public void NativeVisibleRangesUseAtomicSourceAreasAndExcludeUnlocatedSeparators()
     {
         using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("fi B",

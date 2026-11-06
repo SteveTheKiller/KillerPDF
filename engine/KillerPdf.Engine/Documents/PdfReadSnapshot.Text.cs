@@ -68,6 +68,34 @@ public sealed partial class PdfReadSnapshot
                     (geometry.Height - placement.Top) * scaleY)));
         }
         cancellationToken.ThrowIfCancellationRequested();
+        if (page.HiddenTextRanges.Count > 0)
+        {
+            var visible = new System.Text.StringBuilder(page.Text.Length);
+            var offsets = new int[page.Text.Length + 1];
+            int rangeIndex = 0;
+            for (int index = 0; index < page.Text.Length; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                while (rangeIndex < page.HiddenTextRanges.Count
+                    && index >= page.HiddenTextRanges[rangeIndex].Start + page.HiddenTextRanges[rangeIndex].Length)
+                    rangeIndex++;
+                offsets[index] = visible.Length;
+                if (rangeIndex >= page.HiddenTextRanges.Count || index < page.HiddenTextRanges[rangeIndex].Start)
+                    visible.Append(page.Text[index]);
+            }
+            offsets[page.Text.Length] = visible.Length;
+            for (int index = 0; index < regions.Count; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var region = regions[index];
+                regions[index] = region with
+                {
+                    Start = offsets[region.Start],
+                    Length = offsets[region.Start + region.Length] - offsets[region.Start]
+                };
+            }
+            return new PdfReadTextPage(visible.ToString(), regions);
+        }
         return new PdfReadTextPage(page.Text, regions);
     }
 }

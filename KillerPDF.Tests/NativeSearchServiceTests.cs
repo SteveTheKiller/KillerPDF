@@ -398,7 +398,7 @@ public sealed class NativeSearchServiceTests
         Assert.Single(result.PageRects[0]);
     }
 
-    internal static byte[] Book()
+    internal static byte[] Book(string? body = null)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -416,7 +416,7 @@ public sealed class NativeSearchServiceTests
                 """);
             Add("EPUB/text.xhtml", """
                 <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native search</title></head><body><p>A A</p></body></html>
-                """);
+                """.Replace("<p>A A</p>", body ?? "<p>A A</p>", StringComparison.Ordinal));
             Add("EPUB/nav.xhtml", """
                 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text.xhtml">Native search</a></li></ol></nav></body></html>
                 """);
