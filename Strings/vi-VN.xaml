@@ -2072,4 +2072,5 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_CM_Paper">Mô phỏng màu giấy</sys:String>
     <sys:String x:Key="Str_CM_Black">Mô phỏng mực đen</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Hiện cảnh báo màu ngoài dải màu</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">Không thể đọc thư viện hồ sơ. Thiết lập in thử hiện tại của bạn không thay đổi.</sys:String>
 </ResourceDictionary>

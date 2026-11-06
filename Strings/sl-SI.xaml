@@ -1961,4 +1961,5 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_CM_Paper">Simuliraj barvo papirja</sys:String>
     <sys:String x:Key="Str_CM_Black">Simuliraj črno črnilo</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Pokaži opozorila za barve zunaj barvnega obsega</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">Knjižnice profilov ni bilo mogoče prebrati. Trenutne nastavitve poskusnega odtisa so nespremenjene.</sys:String>
 </ResourceDictionary>

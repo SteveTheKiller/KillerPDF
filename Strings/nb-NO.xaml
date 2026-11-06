@@ -2072,4 +2072,5 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_CM_Paper">Simuler papirfarge</sys:String>
     <sys:String x:Key="Str_CM_Black">Simuler svart blekk</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Vis advarsler om farger utenfor fargeområdet</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">Profilbiblioteket kunne ikke leses. De gjeldende innstillingene for prøvetrykk er uendret.</sys:String>
 </ResourceDictionary>

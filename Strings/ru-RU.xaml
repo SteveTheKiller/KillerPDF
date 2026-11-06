@@ -2075,4 +2075,5 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_CM_Paper">Имитировать цвет бумаги</sys:String>
     <sys:String x:Key="Str_CM_Black">Имитировать чёрную краску</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Показывать предупреждения о цветах вне цветового охвата</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">Не удалось прочитать библиотеку профилей. Текущие настройки цветопробы не изменены.</sys:String>
 </ResourceDictionary>

@@ -43,6 +43,22 @@ internal static class ColorManagementSmoke
                 Product(dialog.Title.Contains("Color Management", StringComparison.Ordinal), "The panel title must be readable English.");
                 var controls = Descendants(dialog).OfType<FrameworkElement>().ToArray();
                 T Control<T>(string id) where T : FrameworkElement => controls.OfType<T>().Single(item => AutomationProperties.GetAutomationId(item) == id);
+                if (stage == "corrupt-library")
+                {
+                    Product(Control<TextBlock>("ProofProfileStatus").Text == "The profile library could not be read. Your current proof settings are unchanged.",
+                        "A damaged library must produce a readable panel diagnosis.");
+                    Product(!Control<ComboBox>("ProofProfile").IsEnabled && !Control<Button>("ColorManagementApply").IsEnabled,
+                        "A damaged library must not allow accidental replacement of the requested profile.");
+                    dialog.UpdateLayout();
+                    var damagedCapture = NativeReadingSmoke.Capture(dialog, new Rect(
+                        dialog.PointToScreen(new Point(4, 4)),
+                        dialog.PointToScreen(new Point(dialog.ActualWidth - 4, dialog.ActualHeight - 4))));
+                    var damagedEncoder = new PngBitmapEncoder();
+                    damagedEncoder.Frames.Add(BitmapFrame.Create(damagedCapture));
+                    using (var output = File.Create(Path.Combine(folder, "panel-library-error.png"))) damagedEncoder.Save(output);
+                    owner.Dispatcher.BeginInvoke(new Action(() => Invoke(Control<Button>("ColorManagementClose"))));
+                    return;
+                }
                 if (stage == "missing-profile")
                 {
                     var warning = controls.OfType<TextBlock>().SingleOrDefault(item => AutomationProperties.GetAutomationId(item) == "ProofProfileStatus");
@@ -158,7 +174,7 @@ internal static class ColorManagementSmoke
             if (failure is not null) throw failure;
             Product(handled, "The actual panel must have been observed and closed.");
             Product(View()!.CaptureProof().Settings == before, "Closing the initial panel must preserve document proof preferences.");
-            foreach (string next in new[] { "apply", "reopen", "select-profile", "reopen-profile", "missing-profile" })
+            foreach (string next in new[] { "apply", "reopen", "select-profile", "reopen-profile", "missing-profile", "corrupt-library" })
             {
                 if (next == "select-profile")
                 {
@@ -176,6 +192,13 @@ internal static class ColorManagementSmoke
                         || !stored.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Profile fixture escaped owned evidence.");
                     File.Move(stored, held);
                 }
+                if (next == "corrupt-library")
+                {
+                    string catalog = Path.GetFullPath(Path.Combine(folder, "data", "color-management", "profiles", "profiles.json"));
+                    string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder)) + Path.DirectorySeparatorChar;
+                    if (!catalog.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Library fixture escaped owned evidence.");
+                    File.WriteAllText(catalog, "{invalid-library");
+                }
                 stage = next;
                 handled = false;
                 ShortcutHintsSmoke.Key(owner, 0x44, 0x11, 0x10);
@@ -189,7 +212,7 @@ internal static class ColorManagementSmoke
                     && !changed.Options.BlackPointCompensation && changed.Options.SimulatePaper
                     && changed.Options.SimulateBlack && changed.GamutWarnings,
                     "Actual controls must apply and retain every requested preference on the public document session.");
-                if (next == "missing-profile")
+                if (next is "missing-profile" or "corrupt-library")
                     Product(changed.PrinterProfile is null
                         && changed.PrinterProfileSha256 == "7F7BE1EAABD868E6F6D9C72E24DF59BB195CCEAAEBA23644FD0C814A72D49FB1",
                         "Unavailable profile Apply must retain the requested content reference without substituting another profile.");
@@ -200,6 +223,9 @@ internal static class ColorManagementSmoke
                 else
                     Product(changed.PrinterProfile is null && changed.PrinterProfileSha256 is null,
                         "Applying without a profile must retain the explicit unavailable request without inventing a profile.");
+                if (next == "corrupt-library")
+                    Product(File.ReadAllText(Path.Combine(folder, "data", "color-management", "profiles", "profiles.json")) == "{invalid-library",
+                        "Opening and closing the diagnosis must preserve the damaged catalog for recovery.");
             }
             Product(File.ReadAllBytes(source).SequenceEqual(original), "Opening and closing viewing controls must preserve the PDF bytes.");
             stage = "complete";

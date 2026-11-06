@@ -2057,4 +2057,5 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_CM_Paper">Simulovat barvu papíru</sys:String>
     <sys:String x:Key="Str_CM_Black">Simulovat černou tiskovou barvu</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Zobrazit varování před barvami mimo gamut</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">Knihovnu profilů se nepodařilo přečíst. Vaše aktuální nastavení nátisku zůstává beze změny.</sys:String>
 </ResourceDictionary>

@@ -2052,4 +2052,5 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_CM_Paper">কাগজের রং অনুকরণ করুন</sys:String>
     <sys:String x:Key="Str_CM_Black">কালো কালির অনুকরণ করুন</sys:String>
     <sys:String x:Key="Str_CM_Gamut">রঙের পরিসরের বাইরের রঙের সতর্কতা দেখান</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">প্রোফাইল লাইব্রেরি পড়া যায়নি। আপনার বর্তমান প্রুফ সেটিংস অপরিবর্তিত আছে।</sys:String>
 </ResourceDictionary>

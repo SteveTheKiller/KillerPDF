@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Text.Json.Nodes;
+using System.IO;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.ColorManagement;
 using KillerPDF.Services;
@@ -39,14 +40,23 @@ internal sealed class ColorManagementDialog : Window
         fields.Children.Add(enabled);
         fields.Children.Add(Label("Str_CM_Profile", 4));
         var library = new ProofProfileLibrary();
-        var entries = library.GetProfiles().ToList();
+        List<ProofProfileEntry> entries;
+        bool libraryReadable = true;
+        try { entries = library.GetProfiles().ToList(); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or FormatException or NotSupportedException)
+        {
+            entries = [];
+            libraryReadable = false;
+        }
         if (settings.PrinterProfileSha256 is { } requested && !entries.Any(entry => entry.ContentSha256 == requested))
             entries.Insert(0, new ProofProfileEntry(L("Str_CM_UnavailableProfile"), requested));
         int selected = entries.FindIndex(entry => entry.ContentSha256 == settings.PrinterProfileSha256) + 1;
         var profile = Choice("Str_CM_Profile", "ProofProfile",
             [L("Str_CM_NoProfile"), .. entries.Select(entry => entry.Name)], selected);
+        profile.IsEnabled = libraryReadable;
+        apply.IsEnabled = libraryReadable;
         fields.Children.Add(profile);
-        var profileStatus = Label("Str_CM_ProfileUnavailable", 4);
+        var profileStatus = Label(libraryReadable ? "Str_CM_ProfileUnavailable" : "Str_CM_LibraryUnavailable", 4);
         AutomationProperties.SetAutomationId(profileStatus, "ProofProfileStatus");
         fields.Children.Add(profileStatus);
         profile.SelectionChanged += (_, _) => UpdateProfileAvailability();
@@ -56,6 +66,11 @@ internal sealed class ColorManagementDialog : Window
 
         void UpdateProfileAvailability()
         {
+            if (!libraryReadable)
+            {
+                profileStatus.Visibility = Visibility.Visible;
+                return;
+            }
             var preset = JsonNode.Parse(PdfProofPreset.Capture("Document", settings).ToJson())!;
             preset["proof"]!["printerProfileSha256"] = profile.SelectedIndex == 0 ? null : entries[profile.SelectedIndex - 1].ContentSha256;
             profileStatus.Visibility = enabled.IsChecked == true

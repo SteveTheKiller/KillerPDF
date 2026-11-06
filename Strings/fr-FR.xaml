@@ -2072,4 +2072,5 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_CM_Paper">Simuler la couleur du papier</sys:String>
     <sys:String x:Key="Str_CM_Black">Simuler l’encre noire</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Afficher les avertissements de couleurs non imprimables</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">La bibliothèque de profils n’a pas pu être lue. Vos paramètres d’épreuvage actuels restent inchangés.</sys:String>
 </ResourceDictionary>

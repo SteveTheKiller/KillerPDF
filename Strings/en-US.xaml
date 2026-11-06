@@ -2065,4 +2065,5 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_CM_Gamut">Show out-of-gamut warnings</sys:String>
     <sys:String x:Key="Str_CM_UnavailableProfile">Unavailable profile</sys:String>
     <sys:String x:Key="Str_CM_ProfileUnavailable">The selected profile is unavailable. Viewing uses normal color.</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">The profile library could not be read. Your current proof settings are unchanged.</sys:String>
 </ResourceDictionary>

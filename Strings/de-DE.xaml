@@ -2061,4 +2061,5 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_CM_Paper">Papierfarbe simulieren</sys:String>
     <sys:String x:Key="Str_CM_Black">Schwarze Druckfarbe simulieren</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Farbumfang-Warnungen anzeigen</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">Die Profilbibliothek konnte nicht gelesen werden. Ihre aktuellen Proof-Einstellungen bleiben unverändert.</sys:String>
 </ResourceDictionary>

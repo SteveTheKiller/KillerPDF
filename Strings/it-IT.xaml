@@ -2073,4 +2073,5 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_CM_Paper">Simula colore carta</sys:String>
     <sys:String x:Key="Str_CM_Black">Simula inchiostro nero</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Mostra avvisi per i colori fuori gamma</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">Impossibile leggere la libreria dei profili. Le impostazioni di prova attuali sono rimaste invariate.</sys:String>
 </ResourceDictionary>

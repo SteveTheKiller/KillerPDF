@@ -2072,4 +2072,5 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_CM_Paper">用紙の色をシミュレート</sys:String>
     <sys:String x:Key="Str_CM_Black">黒インキをシミュレート</sys:String>
     <sys:String x:Key="Str_CM_Gamut">色域外警告を表示</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">プロファイルライブラリを読み取れませんでした。現在の色校正設定は変更されていません。</sys:String>
 </ResourceDictionary>

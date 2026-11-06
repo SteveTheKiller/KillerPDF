@@ -2054,4 +2054,5 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_CM_Paper">模擬紙張色彩</sys:String>
     <sys:String x:Key="Str_CM_Black">模擬黑色油墨</sys:String>
     <sys:String x:Key="Str_CM_Gamut">顯示超出色域警告</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">無法讀取描述檔資料庫。您目前的校樣設定維持不變。</sys:String>
 </ResourceDictionary>

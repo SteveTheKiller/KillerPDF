@@ -2075,4 +2075,5 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_CM_Paper">Қағаз түсін имитациялау</sys:String>
     <sys:String x:Key="Str_CM_Black">Қара сияны имитациялау</sys:String>
     <sys:String x:Key="Str_CM_Gamut">Түс ауқымынан тыс түстер туралы ескертулерді көрсету</sys:String>
+    <sys:String x:Key="Str_CM_LibraryUnavailable">Профильдер кітапханасын оқу мүмкін болмады. Ағымдағы түсті сынау параметрлері өзгеріссіз қалды.</sys:String>
 </ResourceDictionary>
