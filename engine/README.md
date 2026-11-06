@@ -368,8 +368,10 @@ rasters, with proof-aware cache and publication checks. Generated-profile source
 and visible-screen checks cover proof on and off; other mode/profile coverage remains open.
 The PDF Continuous and Two-page continuous application-managed SDR paths also
 carry captured proof settings. Generated-profile source and owned-screen checks
-cover both pages and proof on/off. Non-monitor and native-format continuous paths
-still require proof integration and acceptance.
+cover both pages and proof on/off. Continuous compatibility viewing under
+compositor-owned policy also retains proof, verified with a synthetic display
+observation and actual source/screen on/off checks. Native-format continuous paths
+and remaining route/profile combinations still require integration and acceptance.
 Unsupported native proof requests retain their preferences and show normal viewing
 with a proof diagnostic.
 Proof controls, other rendering paths and persistence remain unfinished.

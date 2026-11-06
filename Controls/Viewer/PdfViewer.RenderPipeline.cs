@@ -148,17 +148,19 @@ public partial class PdfViewer
     }
 
     private static PdfRenderedPage RenderViewingPage(PdfBackgroundRenderCache.Lease lease, int page,
-        int maximumSize, CancellationToken token, KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof)
+        int maximumSize, CancellationToken token, KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof,
+        int? maximumHeight = null)
     {
-        if (proof?.Enabled != true) return lease.Render(page, maximumSize, maximumSize, token);
+        int height = maximumHeight ?? maximumSize;
+        if (proof?.Enabled != true) return lease.Render(page, maximumSize, height, token);
         try
         {
-            var frame = lease.RenderFrame(page, maximumSize, maximumSize, token, proof);
+            var frame = lease.RenderFrame(page, maximumSize, height, token, proof);
             return new(frame.Width, frame.Height, frame.ToSrgbBgra32(token), PdfRenderBackend.Engine, null);
         }
         catch (NotSupportedException error)
         {
-            var normal = lease.Render(page, maximumSize, maximumSize, token);
+            var normal = lease.Render(page, maximumSize, height, token);
             return normal with { RenderDiagnostics = [.. normal.RenderDiagnostics,
                 new(PdfRenderDiagnosticKind.Degraded, error.Message)] };
         }

@@ -17,7 +17,8 @@ using KillerPdf.Engine.Rendering;
 
 internal static class ProofTwoPageSmoke
 {
-    internal static int Run(Window owner, string appPath, string folder, bool continuous = false, bool pairedContinuous = false)
+    internal static int Run(Window owner, string appPath, string folder, bool continuous = false,
+        bool pairedContinuous = false, bool compositorOwned = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Two-page proof checks require an owned VM.");
@@ -50,7 +51,8 @@ internal static class ProofTwoPageSmoke
         {
             var target = new PdfDisplayTarget("two-page-proof-output", "Synthetic SDR display")
             {
-                ColorState = new(PdfDisplayColorMode.ConventionalSdr, 15, 1, 0, 0, 8, null, null),
+                ColorState = new(compositorOwned ? PdfDisplayColorMode.AdvancedColorSdr : PdfDisplayColorMode.ConventionalSdr,
+                    15, 1, 0, 0, compositorOwned ? 16u : 8u, null, null),
                 StandardProfile = new(PdfDisplayProfileStatus.NoProfile, 0, null, null, null)
             };
             var display = new PdfDisplayDiscoverySnapshot(93, PdfDisplayDiscoveryStatus.Available,
@@ -58,6 +60,8 @@ internal static class ProofTwoPageSmoke
                 { TargetAssociation = new(PdfDisplayTargetStatus.SingleTarget, [target]) };
             viewer.GetType().GetProperty("DisplayCapture")!.SetValue(viewer,
                 (Func<nint, PdfDisplayDiscoverySnapshot>)(_ => display));
+            events.Add(new { stage, observedPolicy = PdfDisplayPresentationPolicy.Resolve(display).TransformOwner.ToString(),
+                syntheticDisplayObservation = true });
             timer.Start();
             stage = "open";
             owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [path]);

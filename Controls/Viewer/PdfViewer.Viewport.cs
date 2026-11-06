@@ -758,10 +758,12 @@ namespace KillerPDF.Controls
                                 catch (NotSupportedException exception) { monitorWarning = exception.Message; }
                             }
                             var pdfRendered = await _viewportRenderQueue.Enqueue(
-                                (renderRequest, "continuous", i), 10 + Math.Abs(i - centerPage), 16L * renderW * renderW, token =>
+                                (renderRequest, "continuous", i), 10 + Math.Abs(i - centerPage),
+                                Math.Min((proof?.Settings.Enabled == true ? 128L : 16L) * renderW * renderW, 512L << 20), token =>
                             {
                                 using var lease = renderRequest.Rent(token);
-                                return lease.Render(i, renderW, renderW * 2, token);
+                                return RenderViewingPage(lease, i, renderW, token,
+                                    continuousMonitor is null ? proof?.Settings : null, maximumHeight: renderW * 2);
                             }, renderToken);
                             rendered = pdfRendered;
                             w = pdfRendered.Width;
