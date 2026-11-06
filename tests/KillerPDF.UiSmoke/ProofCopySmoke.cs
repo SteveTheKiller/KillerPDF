@@ -15,11 +15,12 @@ using KillerPdf.Engine.Documents;
 
 internal static class ProofCopySmoke
 {
-    internal static int Run(Window owner, string appPath, string folder)
+    internal static int Run(Window owner, string appPath, string folder, bool saveAs = false)
     {
         if (Environment.MachineName is not ("SN01" or "SN02"))
             throw new InvalidOperationException("Proof copy acceptance requires an owned VM.");
-        SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
+        string engineHash = SelectedAssemblyIdentity.HashLoaded(typeof(PdfDocument).Assembly, appPath);
+        string codecHash = SelectedAssemblyIdentity.HashLoaded(Assembly.Load("CoreJ2K"), appPath);
         Directory.CreateDirectory(folder);
         string originalPath = Path.Combine(folder, "proof-source.pdf");
         string copyPath = Path.Combine(folder, "proof-copy.pdf");
@@ -90,27 +91,48 @@ internal static class ProofCopySmoke
             Wait(() => File.Exists(copyPath) && ((TextBlock)owner.FindName("FileNameLabel")).Text == Path.GetFileName(copyPath)
                 && ViewOrNull() is not null);
             var copied = View();
-            var actual = copied.CaptureProof().Settings;
-            events.Add(new { stage, sourceDocument, sourceView, copyDocument = copied.Document.Id, copyView = copied.Id,
-                actual.Enabled, actual.GamutWarnings, profile = actual.PrinterProfile?.ContentSha256, actual.Options });
-            Product(actual.Enabled && actual.GamutWarnings
-                && actual.PrinterProfile?.ContentSha256 == requested.PrinterProfile!.ContentSha256
-                && !actual.Options.BlackPointCompensation && actual.Options.SimulatePaper && actual.Options.SimulateBlack,
-                "Save a Copy must inherit the source's requested proof profile and options.");
-            Product(copied.Document.Id != sourceDocument && copied.Id != sourceView && copied.ComparisonOverride is null,
-                "The copied file must have independent document and view identities.");
-            stage = "independent-copy-settings";
-            copied.Document.Proof = new PdfDocumentProofSettings();
-            Product(source.CaptureProof().Settings == requested,
-                "Changing the copied document must leave the source proof settings unchanged.");
-            Open(originalPath);
-            Product(View().Id == sourceView && View().Document.Id == sourceDocument && View().CaptureProof().Settings == requested,
-                "Returning to the original tab must restore its original proof identity and preferences.");
-            stage = "independent-output";
-            var output = PdfDocument.Open(File.ReadAllBytes(copyPath));
-            Product(PdfPageInformation.Read(output).Count == 1 && new PdfPageContentReader(output).Read(0).Letters.Count == 0,
-                "The saved copy must independently reopen as the same one-page text-free PDF.");
-            Product(File.ReadAllBytes(originalPath).SequenceEqual(original), "Save a Copy must preserve the original file.");
+            if (saveAs)
+            {
+                stage = "save-as-reopen";
+                Product(copied.CaptureProof().Settings == requested, "Save As must retain the current requested proof settings.");
+                Guid savedOwner = copied.Document.Id;
+                ShortcutHintsSmoke.Key(owner, 0x57, 0x11);
+                Wait(() => ViewOrNull() is null);
+                Open(copyPath);
+                var restored = View().CaptureProof().Settings;
+                Product(View().Document.Id != savedOwner, "Reopening the saved destination must create a new logical owner.");
+                Product(restored.Enabled && restored.GamutWarnings
+                    && restored.PrinterProfileSha256 == requested.PrinterProfileSha256
+                    && !restored.Options.BlackPointCompensation && restored.Options.SimulatePaper && restored.Options.SimulateBlack,
+                    "The Save As destination must restore its inherited proof request after actual close and reopen.");
+                Product(File.ReadAllBytes(originalPath).SequenceEqual(original), "Save As and proof restoration must preserve the original file.");
+                Product(PdfPageInformation.Read(PdfDocument.Open(File.ReadAllBytes(copyPath))).Count == 1,
+                    "The Save As destination must independently reopen as a valid one-page PDF.");
+            }
+            else
+            {
+                var actual = copied.CaptureProof().Settings;
+                events.Add(new { stage, sourceDocument, sourceView, copyDocument = copied.Document.Id, copyView = copied.Id,
+                    actual.Enabled, actual.GamutWarnings, profile = actual.PrinterProfile?.ContentSha256, actual.Options });
+                Product(actual.Enabled && actual.GamutWarnings
+                    && actual.PrinterProfile?.ContentSha256 == requested.PrinterProfile!.ContentSha256
+                    && !actual.Options.BlackPointCompensation && actual.Options.SimulatePaper && actual.Options.SimulateBlack,
+                    "Save a Copy must inherit the source's requested proof profile and options.");
+                Product(copied.Document.Id != sourceDocument && copied.Id != sourceView && copied.ComparisonOverride is null,
+                    "The copied file must have independent document and view identities.");
+                stage = "independent-copy-settings";
+                copied.Document.Proof = new PdfDocumentProofSettings();
+                Product(source.CaptureProof().Settings == requested,
+                    "Changing the copied document must leave the source proof settings unchanged.");
+                Open(originalPath);
+                Product(View().Id == sourceView && View().Document.Id == sourceDocument && View().CaptureProof().Settings == requested,
+                    "Returning to the original tab must restore its original proof identity and preferences.");
+                stage = "independent-output";
+                var output = PdfDocument.Open(File.ReadAllBytes(copyPath));
+                Product(PdfPageInformation.Read(output).Count == 1 && new PdfPageContentReader(output).Read(0).Letters.Count == 0,
+                    "The saved copy must independently reopen as the same one-page text-free PDF.");
+                Product(File.ReadAllBytes(originalPath).SequenceEqual(original), "Save a Copy must preserve the original file.");
+            }
             stage = "complete";
         }
         catch (Exception error) { failure ??= error; }
@@ -134,7 +156,7 @@ internal static class ProofCopySmoke
             File.WriteAllText(Path.Combine(folder, "result.json"), JsonSerializer.Serialize(new
             {
                 passed = failure is null && modals.Count == 0 && preserved, stage, assertions, preserved,
-                closed = !owner.IsVisible, error = failure?.ToString(), modals, events,
+                closed = !owner.IsVisible, error = failure?.ToString(), modals, events, saveAs, engineHash, codecHash,
                 appHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(appPath)))
             }, new JsonSerializerOptions { WriteIndented = true }));
         }
@@ -157,7 +179,13 @@ internal static class ProofCopySmoke
             cancel = cancelPicker;
             expectPicker = true;
             pickerHandled = false;
-            owner.GetType().Assembly.GetType("KillerPDF.Features.IViewerHost", true)!.GetMethod("SaveAsWithName")!
+            if (saveAs)
+            {
+                ShortcutHintsSmoke.Key(owner, 0x53, 0x11, 0x10);
+                Wait(() => pickerHandled && !expectPicker
+                    && !Application.Current.Windows.Cast<Window>().Any(item => item != owner && item.IsVisible));
+            }
+            else owner.GetType().Assembly.GetType("KillerPDF.Features.IViewerHost", true)!.GetMethod("SaveAsWithName")!
                 .Invoke(owner, ["proof-copy.pdf"]);
             if (failure is not null) throw failure;
             Product(pickerHandled && !expectPicker, "The real save picker must handle the requested copy action.");

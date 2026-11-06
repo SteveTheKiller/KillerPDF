@@ -599,3 +599,10 @@ Apply must retain the current in-memory request even when saving preferences fai
 and the next panel must explain that failure. Both the damaged catalog and the
 original PDF remain unchanged. Actual load/save notice captures support rendered
 review; this does not cover every filesystem or storage failure.
+
+`--verify-proof-save-as APP_DLL APP_XAML OUTPUT --session-isolation` uses the actual
+Ctrl+Shift+S shortcut and save picker, first cancels and then publishes a distinct
+destination. It closes that document and reopens the destination into a new owner,
+checking the inherited proof request, valid output and unchanged source. The
+requested ICC profile can be unavailable; physical color is not tested. The
+Save a Copy scenario remains separate and checks independent live owners.

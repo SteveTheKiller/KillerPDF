@@ -30,6 +30,7 @@ internal static class TableExportSmoke
         visibleNative |= windowSession && windowSessionCase == "--verify-native-font-weight";
         visibleNative |= windowSession && windowSessionCase is "--verify-monitor-pdf-two-page-device" or "--verify-monitor-pdf-grid-refresh";
         visibleNative |= windowSession && windowSessionCase == "--verify-proof-save-copy";
+        visibleNative |= windowSession && windowSessionCase == "--verify-proof-save-as";
         visibleNative |= windowSession && windowSessionCase == "--verify-color-management";
         visibleNative |= windowSession && windowSessionCase == "--verify-proof-reopen";
         visibleNative |= windowSession && windowSessionCase == "--verify-proof-replacement";
@@ -165,6 +166,7 @@ internal static class TableExportSmoke
             if (windowSessionCase == "--verify-proof-presenter-refinement") return ProofRefinementSmoke.Run(owner, appPath, folder, nativePresenter: true);
             if (windowSessionCase == "--verify-proof-two-page") return ProofTwoPageSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-proof-save-copy") return ProofCopySmoke.Run(owner, appPath, folder);
+            if (windowSessionCase == "--verify-proof-save-as") return ProofCopySmoke.Run(owner, appPath, folder, saveAs: true);
             if (windowSessionCase == "--verify-color-management") return ColorManagementSmoke.Run(owner, appPath, folder);
             if (windowSessionCase == "--verify-proof-reopen") return ColorManagementSmoke.Run(owner, appPath, folder, documentReopen: true);
             if (windowSessionCase == "--verify-proof-replacement") return ColorManagementSmoke.Run(owner, appPath, folder, documentReopen: true, replacementReview: true);

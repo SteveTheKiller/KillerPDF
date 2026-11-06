@@ -61,6 +61,21 @@ public partial class PdfViewer
         }
     }
 
+    internal void RecordPublishedProofPreferencesExt(string path, string sourceSha256)
+    {
+        if (_active is not { } session) return;
+        try
+        {
+            string fullPath = Path.GetFullPath(path);
+            session.ProofPreferenceSource = (fullPath, sourceSha256);
+            SaveProofPreferencesExt(new(session.ProofView, fullPath, sourceSha256));
+        }
+        catch (Exception error) when (IsProofPreferenceFailure(error))
+        {
+            session.ProofPreferenceNoticeKey = "Str_CM_PreferencesSaveFailed";
+        }
+    }
+
     private static bool IsProofPreferenceFailure(Exception error) => error is IOException
         or UnauthorizedAccessException or FormatException or ArgumentException or NotSupportedException
         or InvalidOperationException or System.Security.SecurityException;

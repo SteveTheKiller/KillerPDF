@@ -64,7 +64,7 @@ internal static class Program
             if (args.Length == 5 && args[0] is "--verify-color-management" or "--verify-proof-reopen" or "--verify-proof-replacement" or "--verify-proof-storage" && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);
-            if (args.Length == 5 && args[0] == "--verify-proof-save-copy" && args[4] == "--session-isolation")
+            if (args.Length == 5 && args[0] is "--verify-proof-save-copy" or "--verify-proof-save-as" && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);
             if (args.Length == 5 && (args[0] is "--verify-two-page-continuous" or "--verify-paired-thumbnails") && args[4] == "--session-isolation")

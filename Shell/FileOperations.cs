@@ -1716,6 +1716,9 @@ namespace KillerPDF.Shell
         // protected (#149), and a field that could not take a value is named with the save.
         private void ReportSaved(string path, bool keptProtection, string plainStatusKey)
         {
+            var viewer = ActiveViewer;
+            if (_publishedFile is { } published && string.Equals(published.Path, path, StringComparison.OrdinalIgnoreCase))
+                viewer.RecordPublishedProofPreferencesExt(published.Path, published.Sha256);
             string name = System.IO.Path.GetFileName(path);
             string status = string.Format(Loc(keptProtection ? "Str_St_SavedProtected"
                 : _openedFromProtected ? "Str_St_SavedNoPassword" : plainStatusKey), name);
@@ -1724,7 +1727,8 @@ namespace KillerPDF.Shell
                 _openedFromProtected = false;
                 _protection = OpenedProtection.None;
             }
-            SetStatus(WithFieldsThatKeptTheirValue(status, ActiveViewer.FieldsThatKeptTheirValueRef));
+            if (viewer.ProofPreferenceNoticeKeyExt is { } notice) status += " " + Loc(notice);
+            SetStatus(WithFieldsThatKeptTheirValue(status, viewer.FieldsThatKeptTheirValueRef));
         }
 
         // A save names each field that shares its name with one that took the value and kept its own.
