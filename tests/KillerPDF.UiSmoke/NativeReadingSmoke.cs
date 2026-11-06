@@ -290,6 +290,16 @@ internal static class NativeReadingSmoke
                     if (textProvider.DocumentRange.GetText(-1) != "AA AA")
                         throw new InvalidOperationException("Native document reading provider did not preserve the original text.");
                     events.Add(new { stage, exactDocumentText = true });
+                    stage = "native-reading-bounds";
+                    var phrase = textProvider.DocumentRange.FindText("AA", backward: false, ignoreCase: false)
+                        ?? throw new InvalidOperationException("Native reading provider did not find the first phrase.");
+                    double[] readingBounds = phrase.GetBoundingRectangles();
+                    if (readingBounds.Length != 8 || readingBounds.Any(value => !double.IsFinite(value)))
+                        throw new InvalidOperationException("Native reading phrase did not expose its two source areas.");
+                    for (int index = 0; index < readingBounds.Length; index += 4)
+                        if (readingBounds[index + 2] <= 0 || readingBounds[index + 3] <= 0)
+                            throw new InvalidOperationException("Native reading phrase exposed an empty source area.");
+                    events.Add(new { stage, sourceAreas = 2 });
                 }
                 if (gridSwitch && isNative && step.Grid)
                 {

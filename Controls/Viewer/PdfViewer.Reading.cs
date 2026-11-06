@@ -191,7 +191,7 @@ namespace KillerPDF.Controls
                 if (viewer._currentFile is not { } file || !viewer._renderDims.TryGetValue(page, out var rd)) return result;
                 if (viewer.VisibleCanvasForPage(page) is not { } canvas || !canvas.IsVisible
                     || PresentationSource.FromVisual(canvas) is null) return result;
-                PageTextRuns? runs = viewer._textRuns.GetPage(file, viewer._protection,page);
+                PageTextRuns? runs = viewer.SelectionPageRuns(page);
                 if (runs is null) return result;
                 foreach (Rect rect in viewer.CaretRangeRects(page, runs, startCaret, endCaret, rd))
                 {
