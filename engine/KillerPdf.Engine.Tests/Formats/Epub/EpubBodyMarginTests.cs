@@ -12,6 +12,36 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubBodyMarginTests
 {
     [Theory]
+    [InlineData("p{margin-left:10%;padding-left:5%}", 22, 16.5)]
+    [InlineData("p{font-size:8px;margin-left:1em;padding-left:.5em}", 22, 16.5)]
+    [InlineData("p{margin:0 20px 0 4px;margin-left:12px;padding-left:4px}", 26, 19.5)]
+    public void ParagraphInsetsResolveAgainstContainingWidthAndOwnFont(string css, double left, double pdfLeft)
+    {
+        var actual = Observe("", css);
+        Assert.Equal(left, Assert.Single(actual.Placements).Left, 6);
+        Assert.Equal(pdfLeft, Assert.Single(actual.Letters).Left, 6);
+    }
+
+    [Fact]
+    public void ParagraphHorizontalMarginsInsetTextAndBackgroundInNativeAndSavedPdf()
+    {
+        var actual = Observe("", "p{margin:0 20px 0 12px;background-color:rgb(255,0,0)}");
+        Assert.Equal(22, Assert.Single(actual.Placements).Left, 6);
+        Assert.Equal(10, actual.Placements[0].Top, 6);
+        Assert.Equal(16.5, Assert.Single(actual.Letters).Left, 6);
+        foreach (int x in new[] { 21, 70 })
+        {
+            Assert.Equal(new float[] { 1, 1, 1, 1 }, actual.NativePixels.AsSpan((10 * 100 + x) * 4, 4).ToArray());
+            Assert.Equal(new byte[] { 255, 255, 255, 255 }, actual.PdfPixels.AsSpan((10 * 100 + x) * 4, 4).ToArray());
+        }
+        foreach (int x in new[] { 22, 69 })
+        {
+            Assert.Equal(new float[] { 1, 0, 0, 1 }, actual.NativePixels.AsSpan((10 * 100 + x) * 4, 4).ToArray());
+            Assert.Equal(new byte[] { 0, 0, 255, 255 }, actual.PdfPixels.AsSpan((10 * 100 + x) * 4, 4).ToArray());
+        }
+    }
+
+    [Theory]
     [InlineData("margin:0")]
     [InlineData("margin:0px")]
     [InlineData("margin:0 0px 0em 0%")]

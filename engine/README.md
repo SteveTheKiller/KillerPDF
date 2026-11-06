@@ -367,14 +367,21 @@ Horizontal insets persist across pages and reduce wrapping width. The initial to
 margin is not repeated on continuation pages. An auto-height terminal body's bottom
 margin does not reserve space on every page or create an extra empty page.
 Native pixels and reopened PDF geometry cover these cases. Negative/auto margins,
-nonzero child margins, other units, exhausted content geometry and advanced fragment
+vertical child margins, other units, exhausted content geometry and advanced fragment
 semantics remain explicitly unsupported; complete CSS layout remains in progress.
+
+Block paragraphs support nonnegative horizontal margins and padding in px, em and
+percentages through the existing per-side cascade. Percentages use the parent's
+content width; em uses the paragraph's own font size. Text wraps, aligns and resumes
+after page breaks inside its content box. Backgrounds include padding and exclude
+margins, and sibling paragraphs recover their own bounds. Vertical paragraph box
+spacing, inline box insets and margin collapsing still require implementation.
 
 Body padding accepts the same nonnegative px/em/percentage shorthand and longhand
 forms, with per-side cascade and no inheritance. Percentages use the original
 configured content width before margins; padding reduces wrapping width. Top padding
 appears on the initial fragment, and fitting bottom padding only on the terminal
-fragment. Terminal padding overflow and positive child padding remain explicitly
+fragment. Terminal padding overflow and vertical child padding remain explicitly
 unsupported. Border shorthand accepts zero used widths, including `border:0`,
 `border:none` and a width with initial style none, with proper shorthand resets.
 Visible borders and border longhands remain unsupported. Public native and reopened

@@ -27,7 +27,24 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal Style Style { get; } = style;
         internal bool IsBlock { get; } = block;
         internal int Offset { get; } = offset;
+        internal MarginLength?[]? Margins { get; init; }
+        internal MarginLength?[]? Padding { get; init; }
         internal List<SourceNode> Children { get; } = new();
+
+        internal (double Left, double Right) HorizontalInsets(double width, bool padding = false)
+        {
+            var sides = padding ? Padding : Margins;
+            double Side(int index)
+            {
+                if (sides?[index] is not { } length) return 0;
+                double value = length.Percentage ? length.Value * width / 100
+                    : length.Em ? length.Value * Style.FontSize : length.Value;
+                if (!double.IsFinite(value) || value < 0 || value > 32768)
+                    throw new NotSupportedException("Native EPUB paragraph insets exceed the supported dimensions.");
+                return value;
+            }
+            return (Side(3), Side(1));
+        }
     }
     internal sealed class Text(string value, Element owner, int offset = 0) : SourceNode
     {
@@ -124,9 +141,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             _bodyPadding = properties.Padding;
             _bodyFontSize = style.FontSize;
         }
-        else if (properties.Margins?.Any(side => side is { Value: > 0 }) == true)
+        else if (properties.Margins?.Any(side => side is { Value: > 0 }) == true
+            && (name != "p" || properties.Block == false
+                || properties.Margins[0] is { Value: > 0 } || properties.Margins[2] is { Value: > 0 }))
             throw new NotSupportedException("Native EPUB nonzero margins are implemented only on the body.");
-        if (name != "body" && properties.Padding?.Any(side => side is { Value: > 0 }) == true)
+        if (name != "body" && properties.Padding?.Any(side => side is { Value: > 0 }) == true
+            && (name != "p" || properties.Block == false
+                || properties.Padding[0] is { Value: > 0 } || properties.Padding[2] is { Value: > 0 }))
             throw new NotSupportedException("Native EPUB nonzero padding is implemented only on the body.");
         if (style.Background is { } background)
         {
@@ -134,7 +155,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 throw new NotSupportedException("Native EPUB element background painting is not implemented.");
             if (name == "body") CanvasBackground = background.Color;
         }
-        var element = new Element(name, parent, style, properties.Block ?? name is "body" or "p", Characters.Count);
+        var element = new Element(name, parent, style, properties.Block ?? name is "body" or "p", Characters.Count)
+        { Margins = properties.Margins, Padding = properties.Padding };
         parent?.Children.Add(element);
         if (name == "body") Body = element;
         if (name == "p")
@@ -532,7 +554,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         }
     }
 
-    private readonly record struct MarginLength(double Value, bool Em, bool Percentage = false);
+    internal readonly record struct MarginLength(double Value, bool Em, bool Percentage = false);
     private readonly record struct IndentLength(double Value, bool Em = false, bool Percentage = false, bool Inherit = false);
     private readonly record struct Border(bool Nonzero, bool Visible);
 

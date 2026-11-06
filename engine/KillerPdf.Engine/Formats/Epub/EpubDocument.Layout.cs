@@ -280,6 +280,7 @@ public sealed partial class EpubDocument
         int lineStart = 0;
         EpubFormattingTree.Block lineBlock = formatting.Root;
         var startedBlocks = new HashSet<EpubFormattingTree.Block>();
+        var activeBounds = new Dictionary<EpubFormattingTree.Block, (double Left, double Width)>();
         bool pendingParagraphGap = false;
         long imageBytes = retainedImageBytes;
         LayoutBlock(formatting.Root);
@@ -290,6 +291,30 @@ public sealed partial class EpubDocument
         FinishPage(text.Length);
 
         void LayoutBlock(EpubFormattingTree.Block block)
+        {
+            double parentLeft = contentLeft, parentRight = contentRight, parentWidth = contentWidth;
+            var margins = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth);
+            var padding = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth, padding: true);
+            contentLeft += margins.Left;
+            contentRight -= margins.Right;
+            var backgroundBounds = (Left: contentLeft, Width: contentRight - contentLeft);
+            contentLeft += padding.Left;
+            contentRight -= padding.Right;
+            contentWidth = contentRight - contentLeft;
+            if (contentWidth <= 0)
+                throw new NotSupportedException("Native EPUB paragraph insets require a positive content box.");
+            activeBounds.Add(block, backgroundBounds);
+            try { LayoutBlockContent(block); }
+            finally
+            {
+                activeBounds.Remove(block);
+                contentLeft = parentLeft;
+                contentRight = parentRight;
+                contentWidth = parentWidth;
+            }
+        }
+
+        void LayoutBlockContent(EpubFormattingTree.Block block)
         {
             cancellationToken.ThrowIfCancellationRequested();
             double indent = block.Source.Style.TextIndentPercentage
@@ -506,7 +531,10 @@ public sealed partial class EpubDocument
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (box.Source.Style.Background?.Color is { } fill)
-                    backgrounds.Add((SourceDepth(box.Source), new NativeRectanglePaint(contentLeft, top, contentWidth, height, fill)));
+                {
+                    var bounds = activeBounds[box];
+                    backgrounds.Add((SourceDepth(box.Source), new NativeRectanglePaint(bounds.Left, top, bounds.Width, height, fill)));
+                }
             }
         }
 

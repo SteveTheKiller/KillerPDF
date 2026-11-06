@@ -11,6 +11,108 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubBodyBoxTests
 {
+    [Fact]
+    public void ParagraphInsetsDoNotLeakIntoAnUnstyledSibling()
+    {
+        byte[] source = Book("", "p.pick{margin:0 12px 0 8px;padding:0 24px 0 16px}", "A", "");
+        using var input = new MemoryStream(source);
+        using var output = new MemoryStream();
+        using (var original = new ZipArchive(input, ZipArchiveMode.Read))
+        using (var revised = new ZipArchive(output, ZipArchiveMode.Create, true))
+            foreach (var entry in original.Entries)
+            {
+                using var read = entry.Open();
+                using var bytes = new MemoryStream();
+                read.CopyTo(bytes);
+                byte[] data = bytes.ToArray();
+                if (entry.FullName == "EPUB/text.xhtml")
+                    data = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(data).Replace("<p><span>A</span></p>",
+                        "<p class='pick'><span>A</span></p><p><span>A</span></p>", StringComparison.Ordinal));
+                using var write = revised.CreateEntry(entry.FullName, CompressionLevel.NoCompression).Open();
+                write.Write(data);
+            }
+        byte[] bookBytes = output.ToArray(), preserved = bookBytes.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(bookBytes);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 100, font) { Margin = 10, FontSize = 16 });
+        var placements = Assert.Single(layout.Pages).TextPlacements;
+        Assert.Equal(2, placements.Count);
+        Assert.Equal(34, placements[0].Left, 6);
+        Assert.Equal(10, placements[1].Left, 6);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 7.5, FontSizePoints = 12 }));
+        var letters = new PdfPageContentReader(pdf).Read(0).Letters;
+        Assert.Equal("AA", string.Concat(letters.Select(p => p.Value)));
+        Assert.Equal(25.5, letters[0].BoundingBox.Left, 6);
+        Assert.Equal(7.5, letters[1].BoundingBox.Left, 6);
+        Assert.Equal(preserved, bookBytes);
+    }
+
+    [Fact]
+    public void ParagraphHorizontalInsetsRemainOnBothSidesOfAPageBreak()
+    {
+        byte[] source = Book("", "p{margin:0 12px 0 8px;padding:0 24px 0 16px;background-color:rgb(255,0,0)}", "A A", "");
+        byte[] original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 44, font) { Margin = 10, FontSize = 16 });
+        Assert.Equal(2, layout.Pages.Count);
+        Assert.Equal(new[] { 0, 2 }, layout.Pages.SelectMany(p => p.TextPlacements).Select(p => p.Start));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 33, MarginPoints = 7.5, FontSizePoints = 12 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(2, reader.PageCount);
+        for (int index = 0; index < 2; index++)
+        {
+            var placement = Assert.Single(layout.Pages[index].TextPlacements);
+            Assert.Equal(34, placement.Left, 6);
+            Assert.Equal(10, placement.Top, 6);
+            var letter = Assert.Single(reader.Read(index).Letters);
+            Assert.Equal("A", letter.Value);
+            Assert.Equal(25.5, letter.BoundingBox.Left, 6);
+            var native = layout.RenderPage(index);
+            var saved = new PdfPageRenderer(pdf).Render(index, new PdfRenderOptions(100, 44));
+            Assert.Empty(saved.Diagnostics);
+            foreach (int x in new[] { 17, 78 })
+            {
+                Assert.Equal(new float[] { 1, 1, 1, 1 }, native.Pixels.Slice((14 * 100 + x) * 4, 4).ToArray());
+                Assert.Equal(new byte[] { 255, 255, 255, 255 }, saved.Pixels.Slice((14 * 100 + x) * 4, 4).ToArray());
+            }
+            foreach (int x in new[] { 20, 76 })
+            {
+                Assert.Equal(new float[] { 1, 0, 0, 1 }, native.Pixels.Slice((14 * 100 + x) * 4, 4).ToArray());
+                Assert.Equal(new byte[] { 0, 0, 255, 255 }, saved.Pixels.Slice((14 * 100 + x) * 4, 4).ToArray());
+            }
+        }
+        Assert.Equal(original, source);
+    }
+
+    [Fact]
+    public void ParagraphHorizontalPaddingWrapsTextInsideItsPaintedPaddingBox()
+    {
+        var actual = Observe("", "p{margin:0 12px 0 8px;padding:0 24px 0 16px;background-color:rgb(255,0,0)}",
+            text: "A A", convertedText: "AA");
+        Assert.Equal(new[] { 0, 2 }, actual.Placements.Select(p => p.Start));
+        Assert.Equal(10, actual.Placements[0].Top, 6);
+        Assert.Equal(26, actual.Placements[1].Top, 6);
+        Assert.All(actual.Placements, p => Assert.Equal(34, p.Left, 6));
+        Assert.All(actual.Letters, p => Assert.Equal(25.5, p.Left, 6));
+        Assert.Equal(12, actual.Letters[0].Bottom - actual.Letters[1].Bottom, 6);
+        foreach (int y in new[] { 14, 30 })
+        {
+            foreach (int x in new[] { 17, 78 })
+            {
+                Assert.Equal(new float[] { 1, 1, 1, 1 }, actual.NativePixels.AsSpan((y * 100 + x) * 4, 4).ToArray());
+                Assert.Equal(new byte[] { 255, 255, 255, 255 }, actual.PdfPixels.AsSpan((y * 100 + x) * 4, 4).ToArray());
+            }
+            foreach (int x in new[] { 20, 76 })
+            {
+                Assert.Equal(new float[] { 1, 0, 0, 1 }, actual.NativePixels.AsSpan((y * 100 + x) * 4, 4).ToArray());
+                Assert.Equal(new byte[] { 0, 0, 255, 255 }, actual.PdfPixels.AsSpan((y * 100 + x) * 4, 4).ToArray());
+            }
+        }
+    }
+
     [Theory]
     [InlineData("border:0")]
     [InlineData("border:0px")]
