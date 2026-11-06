@@ -15,10 +15,106 @@ public sealed class EpubSmallCapsTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void FontProvidedSmallCapsPreserveOriginalTextAndUseSelectedMetricsAndInk(bool deltaMapping)
+    public void ExtensionSubtablesMustUseOneConsistentLookupType(bool mixedTypes)
+    {
+        var font = Font(variant: mixedTypes ? "mixed-extension" : "extension-pair");
+        var book = EpubDocument.Open(Book("<p style='font-variant:small-caps'>Aa</p>"));
+        var options = new EpubLayoutOptions(96, 96, font) { Margin = 8, FontSize = 20 };
+        if (mixedTypes)
+        {
+            Assert.Throws<InvalidDataException>(() => book.CreateLayout(options));
+            Assert.Throws<InvalidDataException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+            return;
+        }
+        var layout = book.CreateLayout(options);
+        Assert.Equal(new[] { 20d, 8d }, Assert.Single(layout.Pages).TextPlacements.Select(p => p.Width));
+        Assert.Contains(layout.RenderPage(0).Pixels.ToArray(), value => value == 0);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        Assert.Equal("Aa", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(p => p.Value)));
+    }
+
+    [Fact]
+    public void LaterLigatureCanConsumePartOfAnExpansionAndTheFollowingSourceCharacter()
+    {
+        var font = Font(variant: "multiple-follow-ligature");
+        var book = EpubDocument.Open(Book("<p style='font-variant:small-caps'>AaA</p>"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(96, 96, font) { Margin = 8, FontSize = 20 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("AaA", page.Text);
+        Assert.Equal(new[] { 0, 1 }, page.TextPlacements.Select(p => p.Start));
+        Assert.Equal(new[] { 1, 2 }, page.TextPlacements.Select(p => p.Length));
+        Assert.Equal(new[] { 20d, 16d }, page.TextPlacements.Select(p => p.Width));
+        var native = layout.RenderPage(0);
+        Assert.True(native.Pixels[(16 * 96 + 32) * 4] < .01);
+        Assert.True(native.Pixels[(16 * 96 + 40) * 4] < .01);
+        Assert.True(native.Pixels[(8 * 96 + 48) * 4] > .99);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 72, PageHeightPoints = 72, MarginPoints = 6, FontSizePoints = 15 }));
+        Assert.Equal("AaA", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(p => p.Value)));
+        var frame = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(96, 96));
+        Assert.Empty(frame.Diagnostics);
+        Assert.True(frame.Pixels.Span[(16 * 96 + 32) * 4 + 2] < 3);
+        Assert.True(frame.Pixels.Span[(16 * 96 + 40) * 4 + 2] < 3);
+        Assert.True(frame.Pixels.Span[(8 * 96 + 48) * 4 + 2] > 252);
+    }
+
+    [Theory]
+    [InlineData("multiple-empty")]
+    [InlineData("multiple-overflow")]
+    [InlineData("multiple-output-outside")]
+    [InlineData("multiple-zero-offset")]
+    [InlineData("multiple-coverage-count")]
+    [InlineData("multiple-truncated")]
+    public void InvalidMultipleSequencesAreRejectedWithoutChangingTheSource(string variant)
+    {
+        byte[] source = Book("<p style='font-variant:small-caps'>AaA</p>"), original = source.ToArray();
+        var font = Font(variant: variant);
+        var book = EpubDocument.Open(source);
+        Assert.Throws<InvalidDataException>(() => book.CreateLayout(new EpubLayoutOptions(96, 96, font)));
+        Assert.Throws<InvalidDataException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        Assert.Equal(original, source);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MultipleSubstitutionDrawsEveryGlyphAndPreservesOneOriginalSourceRange(bool extension)
+    {
+        byte[] source = Book("<p style='font-variant:small-caps'>AaA</p>"), original = source.ToArray();
+        var font = Font(variant: "multiple", extension: extension);
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(96, 96, font) { Margin = 8, FontSize = 20 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("AaA", page.Text);
+        Assert.Equal(new[] { 0, 1, 2 }, page.TextPlacements.Select(p => p.Start));
+        Assert.All(page.TextPlacements, p => Assert.Equal(1, p.Length));
+        Assert.Equal(new[] { 20d, 28d, 20d }, page.TextPlacements.Select(p => p.Width));
+        Assert.Equal(new[] { 8d, 28d, 56d }, page.TextPlacements.Select(p => p.Left));
+        Assert.All(page.TextPlacements, p => Assert.Equal(20, p.Height));
+        var native = layout.RenderPage(0);
+        Assert.True(native.Pixels[(16 * 96 + 32) * 4] < .01);
+        Assert.True(native.Pixels[(8 * 96 + 48) * 4] < .01);
+        Assert.True(native.Pixels[(8 * 96 + 68) * 4] < .01);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 72, PageHeightPoints = 72, MarginPoints = 6, FontSizePoints = 15 }));
+        Assert.Equal("AaA", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(p => p.Value)));
+        var frame = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(96, 96));
+        Assert.Empty(frame.Diagnostics);
+        Assert.True(frame.Pixels.Span[(16 * 96 + 32) * 4 + 2] < 3);
+        Assert.True(frame.Pixels.Span[(8 * 96 + 48) * 4 + 2] < 3);
+        Assert.True(frame.Pixels.Span[(8 * 96 + 68) * 4 + 2] < 3);
+        Assert.Equal(original, source);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void FontProvidedSmallCapsPreserveOriginalTextAndUseSelectedMetricsAndInk(bool deltaMapping, bool extension)
     {
         byte[] source = Book("<p style='font-variant:small-caps'>Aa</p>"), original = source.ToArray();
-        var font = Font(deltaMapping);
+        var font = Font(deltaMapping, extension: extension);
         Assert.Equal((ushort)1, font.GetGlyphId('A'));
         Assert.Equal((ushort)2, font.GetGlyphId('a'));
         Assert.Equal(400, font.GetPdfAdvanceWidth(3));
@@ -116,7 +212,7 @@ public sealed class EpubSmallCapsTests
         Assert.Throws<OperationCanceledException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font), canceled));
     }
 
-    private static TrueTypeFont Font(bool deltaMapping = false, string variant = "valid")
+    private static TrueTypeFont Font(bool deltaMapping = false, string variant = "valid", bool extension = false)
     {
         byte[] cmap = new byte[52];
         U16(cmap, 2, 1); U16(cmap, 4, 3); U16(cmap, 6, 10); U32(cmap, 8, 12);
@@ -164,6 +260,62 @@ public sealed class EpubSmallCapsTests
         if (variant.StartsWith("delta-", StringComparison.Ordinal))
         {
             U16(gsub, 56, 1); U16(gsub, 60, variant == "delta-zero" ? 65534 : 2);
+        }
+        if (variant.StartsWith("multiple", StringComparison.Ordinal))
+        {
+            byte[] multiple = new byte[76];
+            gsub.AsSpan(0, 56).CopyTo(multiple);
+            U16(multiple, 48, 2); U16(multiple, 56, 1); U16(multiple, 58, 14); U16(multiple, 60, 1);
+            U16(multiple, 62, 8); U16(multiple, 64, 2); U16(multiple, 66, 3); U16(multiple, 68, 1);
+            U16(multiple, 70, 1); U16(multiple, 72, 1); U16(multiple, 74, 2);
+            gsub = multiple; tables["GSUB"] = gsub;
+            if (variant == "multiple-empty") U16(gsub, 64, 0);
+            if (variant == "multiple-overflow") U16(gsub, 64, 257);
+            if (variant == "multiple-output-outside") U16(gsub, 68, 4);
+            if (variant == "multiple-zero-offset") U16(gsub, 62, 0);
+            if (variant == "multiple-coverage-count") U16(gsub, 60, 2);
+            if (variant == "multiple-truncated") tables["GSUB"] = gsub[..69];
+            if (variant == "multiple-follow-ligature")
+            {
+                byte[] combined = new byte[112];
+                gsub.AsSpan(0, 44).CopyTo(combined);
+                U16(combined, 8, 46); U16(combined, 40, 2); U16(combined, 44, 1);
+                U16(combined, 46, 2); U16(combined, 48, 6); U16(combined, 50, 34);
+                gsub.AsSpan(48, 28).CopyTo(combined.AsSpan(52));
+                U16(combined, 80, 4); U16(combined, 84, 1); U16(combined, 86, 8);
+                U16(combined, 88, 1); U16(combined, 90, 8); U16(combined, 92, 1); U16(combined, 94, 14);
+                U16(combined, 96, 1); U16(combined, 98, 1); U16(combined, 100, 1);
+                U16(combined, 102, 1); U16(combined, 104, 4); U16(combined, 106, 3);
+                U16(combined, 108, 2); U16(combined, 110, 1); tables["GSUB"] = combined;
+            }
+        }
+        if (variant is "mixed-extension" or "extension-pair")
+        {
+            byte[] pair = new byte[108];
+            gsub.AsSpan(0, 54).CopyTo(pair);
+            U16(pair, 48, 7); U16(pair, 52, 2); U16(pair, 54, 10); U16(pair, 56, 32);
+            U16(pair, 58, 1); U16(pair, 60, 1); U32(pair, 62, 8);
+            gsub.AsSpan(56, 14).CopyTo(pair.AsSpan(66));
+            U16(pair, 80, 1); U16(pair, 82, variant == "mixed-extension" ? 2 : 1); U32(pair, 84, 8);
+            if (variant == "mixed-extension")
+            {
+                U16(pair, 88, 1); U16(pair, 90, 14); U16(pair, 92, 1); U16(pair, 94, 8);
+                U16(pair, 96, 2); U16(pair, 98, 3); U16(pair, 100, 1);
+                U16(pair, 102, 1); U16(pair, 104, 1); U16(pair, 106, 1);
+            }
+            else
+            {
+                U16(pair, 88, 2); U16(pair, 90, 8); U16(pair, 92, 1); U16(pair, 94, 1);
+                U16(pair, 96, 1); U16(pair, 98, 1); U16(pair, 100, 1);
+            }
+            tables["GSUB"] = pair;
+        }
+        if (extension)
+        {
+            byte[] wrapped = new byte[gsub.Length + 8];
+            gsub.AsSpan(0, 56).CopyTo(wrapped);
+            U16(wrapped, 48, 7); U16(wrapped, 56, 1); U16(wrapped, 58, variant.StartsWith("multiple", StringComparison.Ordinal) ? 2 : 1); U32(wrapped, 60, 8);
+            gsub.AsSpan(56).CopyTo(wrapped.AsSpan(64)); tables["GSUB"] = wrapped;
         }
         int directory = 12 + tables.Count * 16;
         byte[] result = new byte[directory + tables.Values.Sum(value => (value.Length + 3) & ~3)];

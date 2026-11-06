@@ -34,7 +34,8 @@ public sealed partial class EpubDocument
                 content.SetFillRgb(background.Red, background.Green, background.Blue)
                     .Rectangle(0, 0, options.PageWidthPoints, options.PageHeightPoints)
                     .Fill();
-            int placementIndex = 0;
+            var placements = page.TextPlacements.ToDictionary(placement => placement.Start);
+            var emittedText = new HashSet<int>();
             foreach (var paint in page.Glyphs)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -50,8 +51,8 @@ public sealed partial class EpubDocument
                     case NativeImagePaint image:
                         DrawImage(image);
                         break;
-                    case NativeGlyphPaint:
-                        DrawText(page.TextPlacements[placementIndex++]);
+                    case NativeGlyphPaint glyph:
+                        if (emittedText.Add(glyph.SourceOffset)) DrawText(placements[glyph.SourceOffset]);
                         break;
                 }
             }

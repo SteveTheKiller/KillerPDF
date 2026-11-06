@@ -219,7 +219,7 @@ static byte[] Font(string variant = "space")
     if (variant == "truncated-extension") tables["GSUB"] = extension[..63];
     if (variant == "extension-format") U16(extension, 56, 2);
     if (variant == "nested") U16(extension, 58, 7);
-    if (variant == "other-type") U16(extension, 58, 1);
+    if (variant == "other-type") U16(extension, 58, 3);
     if (variant == "extension-flags") U16(extension, 50, 8);
     if (variant == "coverage-format") U16(extension, 72, 3);
     if (variant == "components-zero") U16(extension, 84, 0);

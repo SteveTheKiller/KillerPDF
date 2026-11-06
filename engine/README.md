@@ -302,9 +302,15 @@ Initial Latin GSUB 1.0 processing selects default-language `liga` and, when requ
 initial, inherit and unset handling. Font-provided small capitals preserve the original
 text, source ranges and CSS line metrics while using selected glyph advances and ink.
 Single substitution supports type 1 format 2 with coverage 1 or 2, and delta format 1
-with coverage 1. Ligature substitution supports type 4, flags 0, format 1 and coverage
-formats 1 or 2. Type 7 extension format 1 can wrap that type 4 lookup. Single-component
-identity and replacement records preserve their source character. Fonts without the
+with coverage 1. Multiple substitution supports type 2 format 1 with coverage 1 or 2,
+nonempty sequences of at most 256 glyphs and retained original source ownership.
+Every expanded glyph is painted; subsequent lookups operate on the glyph sequence,
+and overlapping source spans merge without duplicating original text. PDF conversion
+emits each logical cluster once, preserving its original text through ActualText.
+Ligature substitution supports type 4, flags 0, format 1 and coverage formats 1 or 2.
+Type 7 extension format 1 can wrap supported type 1, 2 or 4 tables; all extensions in
+one lookup must wrap the same type. Single-component identity and replacement
+records preserve their source character. Fonts without the
 selected small-caps feature, synthetic fallback, broader scripts/languages and the
 font-variant-caps longhand still require implementation and are diagnosed where used.
 Nested extensions, other selected lookup types and nonzero flags remain diagnosed.

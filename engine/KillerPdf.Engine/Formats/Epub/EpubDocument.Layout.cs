@@ -170,36 +170,60 @@ public sealed partial class EpubDocument
             if (!latin && smallCaps && run.Any(cluster => Rune.GetUnicodeCategory(ReadScalar(cluster.Start))
                     is UnicodeCategory.LowercaseLetter or UnicodeCategory.UppercaseLetter or UnicodeCategory.TitlecaseLetter))
                 throw new NotSupportedException("Native EPUB small capitals for this script are not implemented.");
+            var shaped = run.Select(cluster => (cluster.Start, cluster.Length,
+                Glyph: cluster.Glyphs[0].GlyphId, cluster.Substituted)).ToList();
             if (latin)
                 foreach (var lookup in Substitution(font, smallCaps).Lookups)
                 {
-                    var selected = new List<EpubGlyphCluster>(run.Count);
-                    for (int at = 0; at < run.Count; at++)
+                    var selected = new List<(int Start, int Length, ushort Glyph, bool Substituted)>(shaped.Count);
+                    for (int at = 0; at < shaped.Count; at++)
                     {
                         ChargeShapingWork();
-                        var chosen = run[at];
-                        foreach (var ligature in lookup)
+                        bool replaced = false;
+                        foreach (var rule in lookup)
                         {
                             ChargeShapingWork();
-                            if (ligature.Components.Length > run.Count - at) continue;
+                            if (rule.Components.Length > shaped.Count - at) continue;
                             bool match = true;
-                            for (int c = 0; c < ligature.Components.Length; c++)
+                            int start = shaped[at].Start, end = start + shaped[at].Length;
+                            for (int c = 0; c < rule.Components.Length; c++)
                             {
                                 ChargeShapingWork();
-                                if (run[at + c].Glyphs[0].GlyphId != ligature.Components[c]) { match = false; break; }
+                                var input = shaped[at + c];
+                                if (input.Glyph != rule.Components[c]) { match = false; break; }
+                                start = Math.Min(start, input.Start);
+                                end = Math.Max(end, input.Start + input.Length);
                             }
                             if (!match) continue;
-                            int length = run[at + ligature.Components.Length - 1].Start
-                                + run[at + ligature.Components.Length - 1].Length - run[at].Start;
-                            chosen = Cluster(run[at].Start, length, ligature.Output, true);
-                            at += ligature.Components.Length - 1;
+                            foreach (ushort output in rule.Outputs)
+                            {
+                                ChargeShapingWork();
+                                selected.Add((start, end - start, output, true));
+                            }
+                            at += rule.Components.Length - 1;
+                            replaced = true;
                             break;
                         }
-                        selected.Add(chosen);
+                        if (!replaced) selected.Add(shaped[at]);
                     }
-                    run = selected;
+                    shaped = selected;
                 }
-            foreach (var cluster in run) clusters.Add(cluster.Start, cluster);
+            for (int at = 0; at < shaped.Count;)
+            {
+                var first = shaped[at];
+                int end = first.Start + first.Length;
+                bool substituted = false;
+                var output = new List<EpubClusterGlyph>();
+                do
+                {
+                    ChargeShapingWork();
+                    var item = shaped[at++];
+                    end = Math.Max(end, item.Start + item.Length);
+                    substituted |= item.Substituted;
+                    output.Add(new(item.Glyph, font.GetPdfAdvanceWidth(item.Glyph) / 1000d, 0, 0));
+                } while (at < shaped.Count && shaped[at].Start < end);
+                clusters.Add(first.Start, new(first.Start, end - first.Start, font, output, substituted));
+            }
             runStart = runEnd;
         }
         void ChargeShapingWork()
@@ -586,8 +610,20 @@ public sealed partial class EpubDocument
                 {
                     Color = item.Style.Color
                 });
-                // Empty outlines retain text/image order for explicit PDF conversion.
-                glyphs.Add(new NativeGlyphPaint(item.Outline!, item.Left, baseline, size / 1000, item.Style.Color));
+                var cluster = clusters[item.Index];
+                double advance = 0;
+                foreach (var selected in cluster.Glyphs)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var outline = readers[item.Font].Outline(selected.GlyphId)
+                        ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
+                    // Empty outlines also retain source ownership for explicit PDF conversion.
+                    glyphs.Add(new NativeGlyphPaint(outline, item.Left + (advance + selected.OffsetX) * size,
+                        baseline - selected.OffsetY * size, size / 1000, item.Style.Color) { SourceOffset = item.Index });
+                    if (backgrounds.Count + glyphs.Count > 100_000)
+                        throw new InvalidDataException("The native page exceeds its paint limit.");
+                    advance += selected.Advance;
+                }
             }
             if (backgrounds.Count + glyphs.Count > 100_000)
                 throw new InvalidDataException("The native page exceeds its paint limit.");

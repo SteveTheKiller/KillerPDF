@@ -5,7 +5,10 @@ using KillerPdf.Engine.Filters;
 namespace KillerPdf.Engine.Rendering;
 
 internal abstract record NativePagePaint;
-internal sealed record NativeGlyphPaint(PdfGlyphOutline Outline, double Left, double Baseline, double Scale, PdfRgbColor? Color = null) : NativePagePaint;
+internal sealed record NativeGlyphPaint(PdfGlyphOutline Outline, double Left, double Baseline, double Scale, PdfRgbColor? Color = null) : NativePagePaint
+{
+    internal int SourceOffset { get; init; } = -1;
+}
 internal sealed record NativeImagePaint(PngDecodedImage Image, double Left, double Top) : NativePagePaint;
 internal sealed record NativeRectanglePaint(double Left, double Top, double Width, double Height, PdfRgbColor Color) : NativePagePaint;
 
