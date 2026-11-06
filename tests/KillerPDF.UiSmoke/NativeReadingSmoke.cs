@@ -358,6 +358,41 @@ internal static class NativeReadingSmoke
                     Wait(() => phrase.GetBoundingRectangles().Length == 8
                         && scrollViewer.VerticalOffset < offscreenOffset - 20);
                     events.Add(new { stage, sourceVisible = true, scrollViewer.VerticalOffset });
+                    stage = "native-reading-owner-switch";
+                    string otherBook = Path.Combine(folder, "native-other.epub");
+                    byte[] otherBytes = EpubFixture(search: true, alternate: true);
+                    sources.Add(otherBook, otherBytes);
+                    File.WriteAllBytes(otherBook, otherBytes);
+                    MethodInfo openBook = owner.GetType().GetMethod("OpenFromExternal", BindingFlags.Public | BindingFlags.Instance)!;
+                    openBook.Invoke(owner, [otherBook]);
+                    Wait(() => Named<TextBlock>(owner, "FileNameLabel")?.Text == Path.GetFileName(otherBook)
+                        && ActiveTextProvider()?.DocumentRange.GetText(-1) == "BB BB");
+                    var otherPhrase = ActiveTextProvider()!.DocumentRange.FindText("BB", backward: false, ignoreCase: false)
+                        ?? throw new InvalidOperationException("Second native book did not expose its own phrase.");
+                    otherPhrase.Select();
+                    object otherViewer = owner.GetType().GetProperty("ActiveViewer", instance)!.GetValue(owner)!;
+                    if ((string?)otherViewer.GetType().GetProperty("SelectedTextRef", instance)!.GetValue(otherViewer) != "BB")
+                        throw new InvalidOperationException("Second native book did not own its selection.");
+                    openBook.Invoke(owner, [source.Key]);
+                    Wait(() => Named<TextBlock>(owner, "FileNameLabel")?.Text == Path.GetFileName(source.Key)
+                        && ActiveTextProvider()?.DocumentRange.GetText(-1) == "AA AA");
+                    object restoredViewer = owner.GetType().GetProperty("ActiveViewer", instance)!.GetValue(owner)!;
+                    string? restoredSelection = (string?)restoredViewer.GetType().GetProperty("SelectedTextRef", instance)!.GetValue(restoredViewer);
+                    if (!string.IsNullOrEmpty(restoredSelection) && restoredSelection != "AA")
+                        throw new InvalidOperationException("Restored native book retained another document's selected text.");
+                    Clipboard.SetText("native-owner-control");
+                    restoredViewer.GetType().GetMethod("CopySelectedTextExt", instance)!.Invoke(restoredViewer, null);
+                    if (Clipboard.GetText() != (string.IsNullOrEmpty(restoredSelection) ? "native-owner-control" : "AA"))
+                        throw new InvalidOperationException("Restored native book copied text from another document.");
+                    events.Add(new { stage, exactRestoredText = true, isolatedSelection = true, isolatedCopy = true });
+
+                    ITextProvider? ActiveTextProvider()
+                    {
+                        var activeViewer = (FrameworkElement)owner.GetType().GetProperty("ActiveViewer", instance)!.GetValue(owner)!;
+                        var activeSurface = activeViewer.FindName("DocSurfacePad") as FrameworkElement;
+                        return activeSurface is null ? null : UIElementAutomationPeer.CreatePeerForElement(activeSurface)
+                            ?.GetPattern(PatternInterface.Text) as ITextProvider;
+                    }
                 }
                 if (gridSwitch && isNative && step.Grid)
                 {
@@ -512,7 +547,7 @@ internal static class NativeReadingSmoke
     private static byte[] DjvuFixture() => [.. "AT&T"u8, .. Chunk("FORM", [.. "DJVU"u8,
         .. Chunk("INFO", [0, 3, 0, 2, 26, 0, 0x2c, 1, 22, 1]),
         .. Chunk("Smmr", [.. "MMR"u8, 0, 0, 3, 0, 2, 0x23, 0xe1, 0x80, 0x08, 0, 0x80])])];
-    private static byte[] EpubFixture(bool search = false)
+    private static byte[] EpubFixture(bool search = false, bool alternate = false)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -524,8 +559,8 @@ internal static class NativeReadingSmoke
             Add("EPUB/book.opf", """
                 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:native-screen</dc:identifier><dc:title>Native letter</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2000-01-01T00:00:00Z</meta></metadata><manifest><item id="chapter" href="text.xhtml" media-type="application/xhtml+xml"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest><spine><itemref idref="chapter"/></spine></package>
                 """);
-            Add("EPUB/text.xhtml", search ? """
-                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native letter</title></head><body><p style="font-size:160px">AA AA</p></body></html>
+            Add("EPUB/text.xhtml", search ? $"""
+                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native letter</title></head><body><p style="font-size:160px">{(alternate ? "BB BB" : "AA AA")}</p></body></html>
                 """ : """
                 <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native letter</title></head><body><p style="font-size:160px">A</p></body></html>
                 """);
