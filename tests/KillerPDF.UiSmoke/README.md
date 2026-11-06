@@ -628,3 +628,9 @@ the native EPUB reopen workflow, then supplies a malformed document-preference
 catalog. Reopening must show a load notice with proof off. Apply must retain the
 requested settings in memory, show a save notice, and preserve the damaged catalog
 and original EPUB. This checks malformed JSON, not every storage failure.
+
+`--verify-proof-epub-replacement APP_DLL APP_XAML OUTPUT --session-isolation`
+replaces the native EPUB with different valid contents at the same path, byte
+length and timestamp. Proof must start off. Reviewing previous settings only
+changes the panel draft until Apply; Close discards that draft. Restoring the
+original contents must restore their own saved request and preserve the source.

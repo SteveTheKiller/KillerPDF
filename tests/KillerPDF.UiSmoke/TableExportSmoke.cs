@@ -39,6 +39,7 @@ internal static class TableExportSmoke
         visibleNative |= windowSession && windowSessionCase == "--verify-proof-epub-reopen";
         visibleNative |= windowSession && windowSessionCase == "--verify-proof-djvu-reopen";
         visibleNative |= windowSession && windowSessionCase == "--verify-proof-epub-storage";
+        visibleNative |= windowSession && windowSessionCase == "--verify-proof-epub-replacement";
         visibleNative |= windowSession && windowSessionCase is "--verify-native-search-epub" or "--verify-proof-refinement" or "--verify-proof-presenter-refinement" or "--verify-proof-two-page" or "--verify-proof-continuous" or "--verify-proof-paired-continuous" or "--verify-proof-continuous-compositor" or "--verify-proof-epub-continuous" or "--verify-proof-epub-two-page" or "--verify-proof-epub-grid" or "--verify-proof-epub-continuous-unavailable" or "--verify-monitor-epub-continuous-unavailable" or "--verify-monitor-epub-continuous-device" or "--verify-monitor-epub-two-page-unavailable" or "--verify-monitor-epub-two-page-device" or "--verify-monitor-epub-grid-device" or "--verify-monitor-epub-two-page-refresh" or "--verify-monitor-epub-continuous-refresh" or "--verify-monitor-epub-paired-refresh";
         if (visibleNative && !new[] { "SN01", "SN02" }.Contains(Environment.MachineName, StringComparer.OrdinalIgnoreCase))
             throw new InvalidOperationException("Visible native hint acceptance may run only on SN01 or SN02.");
@@ -179,6 +180,7 @@ internal static class TableExportSmoke
             if (windowSessionCase == "--verify-proof-epub-reopen") return ColorManagementSmoke.Run(owner, appPath, folder, documentReopen: true, nativeEpub: true);
             if (windowSessionCase == "--verify-proof-djvu-reopen") return ColorManagementSmoke.Run(owner, appPath, folder, documentReopen: true, nativeDjvu: true);
             if (windowSessionCase == "--verify-proof-epub-storage") return ColorManagementSmoke.Run(owner, appPath, folder, documentReopen: true, storageFailure: true, nativeEpub: true);
+            if (windowSessionCase == "--verify-proof-epub-replacement") return ColorManagementSmoke.Run(owner, appPath, folder, documentReopen: true, replacementReview: true, nativeEpub: true);
             if (windowSessionCase == "--verify-proof-continuous") return ProofTwoPageSmoke.Run(owner, appPath, folder, continuous: true);
             if (windowSessionCase == "--verify-proof-paired-continuous") return ProofTwoPageSmoke.Run(owner, appPath, folder, continuous: true, pairedContinuous: true);
             if (windowSessionCase == "--verify-proof-continuous-compositor") return ProofTwoPageSmoke.Run(owner, appPath, folder, continuous: true, compositorOwned: true);

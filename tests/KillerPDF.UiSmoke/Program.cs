@@ -61,7 +61,7 @@ internal static class Program
             if (args.Length == 5 && (args[0] is "--verify-monitor-pdf-two-page-device" or "--verify-monitor-pdf-grid-refresh") && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);
-            if (args.Length == 5 && args[0] is "--verify-color-management" or "--verify-proof-reopen" or "--verify-proof-replacement" or "--verify-proof-storage" or "--verify-proof-comparison" or "--verify-proof-epub-reopen" or "--verify-proof-djvu-reopen" or "--verify-proof-epub-storage" && args[4] == "--session-isolation")
+            if (args.Length == 5 && args[0] is "--verify-color-management" or "--verify-proof-reopen" or "--verify-proof-replacement" or "--verify-proof-storage" or "--verify-proof-comparison" or "--verify-proof-epub-reopen" or "--verify-proof-djvu-reopen" or "--verify-proof-epub-storage" or "--verify-proof-epub-replacement" && args[4] == "--session-isolation")
                 return TableExportSmoke.Run(Path.GetFullPath(args[1]), Path.GetFullPath(args[2]), Path.GetFullPath(args[3]),
                     windowSession: true, windowSessionCase: args[0]);
             if (args.Length == 5 && args[0] is "--verify-proof-save-copy" or "--verify-proof-save-as" && args[4] == "--session-isolation")

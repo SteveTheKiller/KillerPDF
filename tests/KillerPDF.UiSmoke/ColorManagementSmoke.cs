@@ -479,12 +479,21 @@ internal static class ColorManagementSmoke
                         byte[]? replacement = null;
                         if (replacementReview)
                         {
-                            replacement = original.ToArray();
-                            int width = replacement.AsSpan().IndexOf("600 750"u8);
-                            if (width < 0) throw new InvalidOperationException("Synthetic replacement fixture has no expected MediaBox.");
-                            replacement[width + 2] = (byte)'1';
-                            Product(new PdfPageContentReader(PdfDocument.Open(replacement)).PageCount == 1,
-                                "The independent replacement fixture must remain a valid one-page PDF.");
+                            if (nativeEpub)
+                            {
+                                replacement = EpubFixture('B');
+                                Product(KillerPdf.Engine.Formats.Epub.EpubDocument.Open(replacement).ReadText(0) == "B",
+                                    "The independent replacement fixture must remain a valid EPUB with changed text.");
+                            }
+                            else
+                            {
+                                replacement = original.ToArray();
+                                int width = replacement.AsSpan().IndexOf("600 750"u8);
+                                if (width < 0) throw new InvalidOperationException("Synthetic replacement fixture has no expected MediaBox.");
+                                replacement[width + 2] = (byte)'1';
+                                Product(new PdfPageContentReader(PdfDocument.Open(replacement)).PageCount == 1,
+                                    "The independent replacement fixture must remain a valid one-page PDF.");
+                            }
                             File.WriteAllBytes(source, replacement);
                             File.SetLastWriteTimeUtc(source, originalWriteTime);
                             Product(new FileInfo(source).Length == original.Length && File.GetLastWriteTimeUtc(source) == originalWriteTime,
@@ -730,7 +739,7 @@ internal static class ColorManagementSmoke
             foreach (var child in Descendants(VisualTreeHelper.GetChild(root, index))) yield return child;
     }
 
-    private static byte[] EpubFixture()
+    private static byte[] EpubFixture(char letter = 'A')
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -738,7 +747,7 @@ internal static class ColorManagementSmoke
             Add("mimetype", "application/epub+zip");
             Add("META-INF/container.xml", "<container xmlns='urn:oasis:names:tc:opendocument:xmlns:container' version='1.0'><rootfiles><rootfile full-path='book.opf' media-type='application/oebps-package+xml'/></rootfiles></container>");
             Add("book.opf", "<package xmlns='http://www.idpf.org/2007/opf' version='3.0' unique-identifier='id'><metadata xmlns:dc='http://purl.org/dc/elements/1.1/'><dc:identifier id='id'>urn:proof-reopen</dc:identifier><dc:title>Proof letter</dc:title><dc:language>en</dc:language></metadata><manifest><item id='chapter' href='text.xhtml' media-type='application/xhtml+xml'/></manifest><spine><itemref idref='chapter'/></spine></package>");
-            Add("text.xhtml", "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Proof letter</title></head><body><p>A</p></body></html>");
+            Add("text.xhtml", "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Proof letter</title></head><body><p>" + letter + "</p></body></html>");
             void Add(string path, string text)
             {
                 var entry = zip.CreateEntry(path, CompressionLevel.NoCompression);
