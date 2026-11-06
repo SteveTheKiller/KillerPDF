@@ -401,7 +401,13 @@ appears on the initial fragment, and fitting bottom padding only on the terminal
 fragment. Terminal body padding overflow remains explicitly unsupported.
 Border shorthand accepts zero used widths, including `border:0`,
 `border:none` and a width with initial style none, with proper shorthand resets.
-Visible borders and border longhands remain unsupported. Public native and reopened
+Solid paragraph top borders accept px/em lengths and thin/medium/thick widths,
+RGB, transparent or the paragraph text color. Their cascade includes border shorthand
+resets; margins stay outside the border, backgrounds extend beneath it and first-line
+page movement retains the border with top padding. Other visible borders and border
+longhands remain unsupported. Public native and reopened PDF checks cover
+empty and text-containing paragraphs with oversized top borders across three pages.
+Complete container border fragmentation remains unverified. Public native and reopened
 PDF tests cover placement, wrapping, complete pixel comparisons and two-page controls.
 
 Font-size keywords use the configured initial reader size as `medium`, independent

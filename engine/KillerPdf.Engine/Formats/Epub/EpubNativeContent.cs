@@ -29,6 +29,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal int Offset { get; } = offset;
         internal MarginLength?[]? Margins { get; init; }
         internal MarginLength?[]? Padding { get; init; }
+        internal BorderSide? TopBorder { get; init; }
         internal List<SourceNode> Children { get; } = new();
 
         internal double VerticalMargin(int side, double width, double fallback, bool padding = false)
@@ -146,6 +147,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         Style style = properties.Apply(inherited, contentHeight);
         if (properties.Border is { Visible: true, Nonzero: true })
             throw new NotSupportedException("Native EPUB visible borders are not implemented.");
+        if (properties.TopBorder is { Visible: true, Width.Value: > 0 }
+            && (name != "p" || properties.Block == false))
+            throw new NotSupportedException("Native EPUB visible top borders require block paragraphs.");
         if (name == "body")
         {
             _bodyMargins = properties.Margins;
@@ -165,7 +169,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (name == "body") CanvasBackground = background.Color;
         }
         var element = new Element(name, parent, style, properties.Block ?? name is "body" or "div" or "p", Characters.Count)
-        { Margins = properties.Margins, Padding = properties.Padding };
+        { Margins = properties.Margins, Padding = properties.Padding, TopBorder = properties.TopBorder };
         parent?.Children.Add(element);
         if (name == "body") Body = element;
         if (name == "p")
@@ -412,6 +416,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         int variantSpecificity = -1;
         Border? border = null;
         int borderSpecificity = -1;
+        BorderSide? topBorder = null;
+        int topBorderSpecificity = -1;
         string? textAlign = null;
         int alignmentSpecificity = -1;
         IndentLength? textIndent = null;
@@ -502,6 +508,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 border = selectedBorder;
                 borderSpecificity = specificity;
             }
+            if (rule.Properties.TopBorder is { } selectedTopBorder && specificity >= topBorderSpecificity)
+            {
+                topBorder = selectedTopBorder;
+                topBorderSpecificity = specificity;
+            }
             if (rule.Properties.FontSize is { } fontSize && specificity >= sizeSpecificity)
             {
                 size = fontSize;
@@ -542,7 +553,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         paddingSpecificities[side] = specificity;
                     }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder);
     }
 
     private void CountSelectorWork(int amount)
@@ -566,18 +577,21 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal readonly record struct MarginLength(double Value, bool Em, bool Percentage = false);
     private readonly record struct IndentLength(double Value, bool Em = false, bool Percentage = false, bool Inherit = false);
     private readonly record struct Border(bool Nonzero, bool Visible);
+    internal readonly record struct BorderSide(MarginLength Width, bool Visible, BackgroundColor? Color);
 
     private readonly record struct CssProperties(CssLength? FontSize, CssLength? LineHeight, PdfRgbColor? Color = null,
         BackgroundColor? Background = null, EpubFontFamily[]? FontFamilies = null, MarginLength?[]? Margins = null,
         Border? Border = null, MarginLength?[]? Padding = null, string? TextAlign = null, bool? PageBreakBefore = null,
-        bool? Block = null, double? FontWeight = null, IndentLength? TextIndent = null, string? FontVariant = null)
+        bool? Block = null, double? FontWeight = null, IndentLength? TextIndent = null, string? FontVariant = null,
+        BorderSide? TopBorder = null)
     {
         internal CssProperties Override(CssProperties inline) =>
             new(inline.FontSize ?? FontSize, inline.LineHeight ?? LineHeight,
                 inline.Color ?? Color, inline.Background ?? Background, inline.FontFamilies ?? FontFamilies,
                 MergeMargins(Margins, inline.Margins), inline.Border ?? Border, MergeMargins(Padding, inline.Padding),
                 inline.TextAlign ?? TextAlign, inline.PageBreakBefore ?? PageBreakBefore, inline.Block ?? Block,
-                inline.FontWeight ?? FontWeight, inline.TextIndent ?? TextIndent, inline.FontVariant ?? FontVariant);
+                inline.FontWeight ?? FontWeight, inline.TextIndent ?? TextIndent, inline.FontVariant ?? FontVariant,
+                inline.TopBorder ?? TopBorder);
 
         private static MarginLength?[]? MergeMargins(MarginLength?[]? earlier, MarginLength?[]? later) =>
             later is null ? earlier : Enumerable.Range(0, 4).Select(side => later[side] ?? earlier?[side]).ToArray();
@@ -617,6 +631,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         MarginLength?[]? margins = null;
         MarginLength?[]? padding = null;
         Border? border = null;
+        BorderSide? topBorder = null;
         string? textAlign = null;
         bool? pageBreakBefore = null;
         bool? block = null;
@@ -701,6 +716,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (property == "border")
             {
                 border = ParseBorder(value);
+                topBorder = new(new MarginLength(0, false), false, null);
+                continue;
+            }
+            if (property == "border-top")
+            {
+                topBorder = ParseTopBorder(value);
                 continue;
             }
             if (property is "padding" or "padding-top" or "padding-right" or "padding-bottom" or "padding-left")
@@ -814,7 +835,29 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder);
+    }
+
+    private static BorderSide ParseTopBorder(string value)
+    {
+        _ = ParseBorder(value);
+        MarginLength width = new(3, false);
+        bool visible = false;
+        BackgroundColor? color = null;
+        foreach (System.Text.RegularExpressions.Match token in System.Text.RegularExpressions.Regex.Matches(
+            value, @"rgb\([^)]*\)|[^\s]+", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+        {
+            string component = token.Value.ToLowerInvariant();
+            if (component is "solid" or "none" or "hidden") visible = component == "solid";
+            else if (component is "dotted" or "dashed" or "double" or "groove" or "ridge" or "inset" or "outset")
+                throw new NotSupportedException("Native EPUB top border style is not implemented: " + component + ".");
+            else if (component is "thin" or "medium" or "thick")
+                width = new(component == "thin" ? 1 : component == "thick" ? 5 : 3, false);
+            else if (char.IsAsciiDigit(component[0]) || component[0] is '+' or '-' or '.')
+                width = ParseMarginLength(component);
+            else color = new(component == "transparent" ? null : ParseColor(component));
+        }
+        return new(width, visible, color);
     }
 
     private static Border ParseBorder(string value)
