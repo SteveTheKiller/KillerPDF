@@ -19,7 +19,7 @@ using System.Windows.Threading;
 
 internal static class NativeReadingSmoke
 {
-    internal static int Run(Window owner, string appPath, string folder, bool continuous = false, bool grid = false, bool gridSwitch = false, bool epub = false)
+    internal static int Run(Window owner, string appPath, string folder, bool continuous = false, bool grid = false, bool gridSwitch = false, bool epub = false, bool search = false)
     {
         string stage = "fixture";
         var events = new List<object>();
@@ -36,6 +36,7 @@ internal static class NativeReadingSmoke
         int viewportStable = 0;
         Rect observedWindow = Rect.Empty, observedViewport = Rect.Empty;
         Assembly engine = Assembly.Load("KillerPdf.Engine");
+        if (search) SelectedAssemblyIdentity.HashLoaded(engine, appPath);
         var timer = new DispatcherTimer(DispatcherPriority.Send) { Interval = TimeSpan.FromMilliseconds(25) };
         var seen = new HashSet<Window>();
         var deadline = Stopwatch.StartNew();
@@ -65,7 +66,7 @@ internal static class NativeReadingSmoke
             ConstructorInfo constructor = builderType.GetConstructors().Single();
             dynamic builder = constructor.Invoke(constructor.GetParameters().Select(p => p.DefaultValue).ToArray());
             sources.Add(Path.Combine(folder, "blank-control.pdf"), (byte[])builder.AddBlankPage(epub ? 600d : 300d, epub ? 750d : 200d).Build());
-            byte[] nativeBytes = epub ? EpubFixture() : continuous || grid ? ContinuousFixture() : DjvuFixture();
+            byte[] nativeBytes = epub ? EpubFixture(search) : continuous || grid ? ContinuousFixture() : DjvuFixture();
             if (!epub && (continuous || grid) && (nativeBytes.Length != 100 || Hash(nativeBytes) != "A6112B847B6731E478086F5A14528540B155D8A871AF2F39BE362F7BF682C609"))
                 throw new InvalidOperationException("Frozen Continuous fixture hash mismatch.");
             sources.Add(Path.Combine(folder, epub ? "native-letter.epub" : continuous || grid ? "rectangle-300x200-300dpi.djvu" : "native-upright.djvu"), nativeBytes);
@@ -214,6 +215,33 @@ internal static class NativeReadingSmoke
                 if (isNative ? !detector : !whiteUpper || !whiteLower || !upperRight.All(value => value >= 224) || detector)
                     throw new InvalidOperationException(isNative ? "Native white/black screen detector failed." : "Blank PDF absence control failed.");
                 if (isNative) native = true; else control = true;
+                if (isNative && search)
+                {
+                    stage = "native-search-capture";
+                    const BindingFlags instance = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+                    object viewer = owner.GetType().GetProperty("ActiveViewer", instance)!.GetValue(owner)!;
+                    object snapshot = viewer.GetType().GetMethod("CaptureCurrentSearchSnapshot", instance)!.Invoke(viewer, null)!;
+                    object? revision = snapshot.GetType().GetProperty("NativeRevision", instance)!.GetValue(snapshot);
+                    if (revision is null) throw new InvalidOperationException("Viewer search did not capture its native revision.");
+                    Type service = owner.GetType().Assembly.GetType("KillerPDF.Services.SearchService", true)!;
+                    MethodInfo find = service.GetMethods(BindingFlags.Static | BindingFlags.NonPublic)
+                        .Single(method => method.Name == "Search" && method.GetParameters().Length == 5
+                            && method.GetParameters()[0].ParameterType == snapshot.GetType());
+                    object result = find.Invoke(null, [snapshot, "AA", true, false, CancellationToken.None])!;
+                    int hits = (int)result.GetType().GetProperty("TotalHits")!.GetValue(result)!;
+                    if (hits != 1) throw new InvalidOperationException("Native viewer search expected one original-text match.");
+                    events.Add(new { stage, hits, capturedNative = true });
+                    stage = "native-search-bar";
+                    owner.GetType().GetMethod("ToggleSearchBar", instance)!.Invoke(owner, null);
+                    var queryBox = (TextBox)owner.GetType().GetField("_searchBox", instance)!.GetValue(owner)!;
+                    Wait(() => queryBox.IsVisible && queryBox.IsEnabled);
+                    queryBox.Text = "AA";
+                    Wait(() => ((TextBlock?)owner.GetType().GetField("_searchStatus", instance)!.GetValue(owner))?.Text == "1 / 1");
+                    stage = "native-search-highlights";
+                    Wait(() => Descendants<System.Windows.Shapes.Rectangle>(owner)
+                        .Any(rectangle => rectangle.Tag as string == "SearchHighlight" && rectangle.IsVisible));
+                    events.Add(new { stage, query = queryBox.Text, counter = "1 / 1", visibleHighlight = true });
+                }
                 if (gridSwitch && isNative && step.Grid)
                 {
                     stage = "native-grid-geometry";
@@ -298,6 +326,7 @@ internal static class NativeReadingSmoke
             {
                 passed, stage, control, native, preserved, continuous, grid, gridSwitch, switched, epub, machine = Environment.MachineName,
                 failureKind = failure is null ? null : stage == "fixture" ? "fixture"
+                    : stage == "native-search-capture" ? "native-search-capture"
                     : grid && failure is TimeoutException && modals.Count == 0 ? "grid-readiness-review-required"
                     : continuous && stage == "native-render-readiness" && modals.Count == 0 ? "native-render-readiness-review-required"
                     : modals.Count > 0 ? "unexpected-modal" : stage.EndsWith("readiness", StringComparison.Ordinal)
@@ -356,7 +385,7 @@ internal static class NativeReadingSmoke
     private static byte[] DjvuFixture() => [.. "AT&T"u8, .. Chunk("FORM", [.. "DJVU"u8,
         .. Chunk("INFO", [0, 3, 0, 2, 26, 0, 0x2c, 1, 22, 1]),
         .. Chunk("Smmr", [.. "MMR"u8, 0, 0, 3, 0, 2, 0x23, 0xe1, 0x80, 0x08, 0, 0x80])])];
-    private static byte[] EpubFixture()
+    private static byte[] EpubFixture(bool search = false)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -368,7 +397,9 @@ internal static class NativeReadingSmoke
             Add("EPUB/book.opf", """
                 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:native-screen</dc:identifier><dc:title>Native letter</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2000-01-01T00:00:00Z</meta></metadata><manifest><item id="chapter" href="text.xhtml" media-type="application/xhtml+xml"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest><spine><itemref idref="chapter"/></spine></package>
                 """);
-            Add("EPUB/text.xhtml", """
+            Add("EPUB/text.xhtml", search ? """
+                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native letter</title></head><body><p style="font-size:160px">AA</p></body></html>
+                """ : """
                 <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native letter</title></head><body><p style="font-size:160px">A</p></body></html>
                 """);
             Add("EPUB/nav.xhtml", """
