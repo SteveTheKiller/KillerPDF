@@ -349,6 +349,14 @@ unsupported. Border shorthand accepts zero used widths, including `border:0`,
 Visible borders and border longhands remain unsupported. Public native and reopened
 PDF tests cover placement, wrapping, complete pixel comparisons and two-page controls.
 
+Font-size keywords use the configured initial reader size as `medium`, independent
+of author sizes on ancestors. Absolute `xx-small` through `xxx-large` follow the
+CSS Fonts guideline scale table. Relative `larger` and `smaller` scale the computed
+parent size by 1.2 and its reciprocal. These are the reader's documented user-agent
+policies; they do not clamp author sizes to a minimum pixel height. Inline and
+packaged declarations retain cascade, wrapping, pagination and computed-height
+guards. The keywords apply to font size, not line height.
+
 Initial CSS namespace support resolves per-sheet prefix/default declarations and
 qualified type/class selectors against expanded XML names. Prefix spelling adds no
 specificity, and namespace names remain literal without fetching resources. Explicit

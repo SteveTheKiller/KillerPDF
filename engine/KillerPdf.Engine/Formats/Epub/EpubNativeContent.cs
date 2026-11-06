@@ -670,6 +670,32 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     ? null : ParseColor(value));
                 continue;
             }
+            if (property == "font-size")
+            {
+                if (value.Equals("larger", StringComparison.OrdinalIgnoreCase)
+                    || value.Equals("smaller", StringComparison.OrdinalIgnoreCase))
+                {
+                    size = new CssLength(value.Equals("larger", StringComparison.OrdinalIgnoreCase) ? 1.2 : 1 / 1.2, true);
+                    continue;
+                }
+                double? keywordSize = value.ToLowerInvariant() switch
+                {
+                    "xx-small" => DefaultStyle.FontSize * 3 / 5,
+                    "x-small" => DefaultStyle.FontSize * 3 / 4,
+                    "small" => DefaultStyle.FontSize * 8 / 9,
+                    "medium" => DefaultStyle.FontSize,
+                    "large" => DefaultStyle.FontSize * 6 / 5,
+                    "x-large" => DefaultStyle.FontSize * 3 / 2,
+                    "xx-large" => DefaultStyle.FontSize * 2,
+                    "xxx-large" => DefaultStyle.FontSize * 3,
+                    _ => null
+                };
+                if (keywordSize is double absoluteSize)
+                {
+                    size = new CssLength(absoluteSize, false);
+                    continue;
+                }
+            }
             if (property is "font-size" or "line-height"
                 && (value.EndsWith('%') || value.EndsWith("em", StringComparison.OrdinalIgnoreCase)))
             {
