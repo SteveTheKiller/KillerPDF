@@ -36,6 +36,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Hiding shortcut hints removes the hints the app adds to tooltips in every language, including translated keys such as (Strg+D).
 - About places link confirmation in the left column and aligns Clear all Data on the same bottom row.
 
+### Changed
+
+- Saved TrueType text retains fractional font advances. (#472)
+
 ### Added
 
 - Color-managed viewing and printer proofing (in development): Float32 RGB/CMYK rendering, monitor-aware SDR, initial native FP16 presentation, HDR white policy and display/profile recovery. Document proof settings stay isolated across tabs, and new saved copies inherit independent settings. Unchanged plain PDFs, EPUBs and DjVu files restore their proof settings when reopened, and Save As retains the request for its published destination. Replacement files start with proof off and offer the old settings for review before Apply. Profile, preset and document-preference storage preserve unavailable selections, isolate portable data and check file paths and contents before restoring proof. Preset storage supports explicit replacement and recovery. Color Management now imports ICC profiles, saves and loads named proof presets, and offers initial proof controls for printer/paper profiles, intent, compensation, paper, black ink and gamut warnings, with visible fallback when a profile is unavailable and safe handling of an unreadable profile library. Initial coverage includes PDF facing/continuous views and zoomed details, native EPUB Continuous/Two-page/Grid views, and overlay/form/selection integration. PDF Two-page/Grid and native EPUB Continuous/Two-page/Grid follow monitor profiles; supported views stay readable with diagnostics when proof or conversion is unavailable. Full controls and remaining content, surface and output coverage are in progress. (#264)

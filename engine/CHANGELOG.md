@@ -22,6 +22,10 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Hidden caller-authored free-text and stamp annotations can retain editing data without adding tagged reading-order descriptions. (#467)
 - Document, annotation and attachment dates are written with the Gregorian calendar whatever the current culture, so Thai, Arabic and Persian regions no longer write years like 2569. Preflight messages write their numbers with a decimal point.
 
+### Changed
+
+- Embedded TrueType font widths retain fractional metrics. (#472)
+
 ### Added
 
 - Float32 page and region rendering retains supported source precision through RGB transparency groups, Normal/Multiply/Screen blending, paths, TrueType text, gradients, and scaled or masked images, including RGB/Gray ICC resource defaults. It accepts neutral graphics-state defaults and diagnoses unsupported features. Output supports sRGB bytes, RGB monitor-profile bytes and premultiplied linear FP16. (#264)

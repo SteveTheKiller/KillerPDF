@@ -193,7 +193,8 @@ selection and accessibility integration still require implementation and runtime
 
 `EpubDocument.Open` reads a bounded native package. `CreateLayout` currently supports
 paragraphs and nested spans in linear, reflowable XHTML spine items with an explicit
-fallback font. Text supports printable ASCII, precomposed Latin/Greek/Cyrillic blocks
+fallback font. Text supports printable ASCII, precomposed Latin/Greek/Cyrillic blocks,
+Latin presentation ligatures U+FB00 through U+FB06,
 and supplementary mathematical alphanumeric letters and digits when the font has
 their glyphs. Text retains UTF-16 source ranges when scalars share a supported ligature,
 including after wrapping, pagination, anchor resolution and explicit PDF conversion.
@@ -301,6 +302,11 @@ Initial Latin GSUB 1.0 processing selects default-language `liga` and, when requ
 `smcp` features in font lookup order. `font-variant:small-caps` inherits, with normal,
 initial, inherit and unset handling. Font-provided small capitals preserve the original
 text, source ranges and CSS line metrics while using selected glyph advances and ink.
+Native advances use the font's original design units through `GetAdvanceWidth` and
+`UnitsPerEm`. Embedded PDF widths retain fractional normalized values, avoiding
+premature rounding. The existing `GetPdfAdvanceWidth` API still returns rounded
+1000-unit widths. Presentation ligatures preserve their original Unicode text even
+when a selected font expands one character into several glyphs.
 Single substitution supports type 1 format 2 with coverage 1 or 2, and delta format 1
 with coverage 1. Multiple substitution supports type 2 format 1 with coverage 1 or 2,
 nonempty sequences of at most 256 glyphs and retained original source ownership.

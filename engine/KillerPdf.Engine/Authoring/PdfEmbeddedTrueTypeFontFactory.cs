@@ -63,7 +63,7 @@ internal static class PdfEmbeddedTrueTypeFontFactory
         foreach (ushort glyph in mappings.Values.Select(mapping => mapping.Glyph).Distinct().Order())
         {
             widths.Add(new PdfInteger(glyph));
-            widths.Add(new PdfArray([new PdfInteger(font.GetPdfAdvanceWidth(glyph))]));
+            widths.Add(new PdfArray([Number(font.GetAdvanceWidth(glyph) * 1000d / font.UnitsPerEm)]));
         }
         var cidEntries = new List<(string Name, PdfObject Value)>
         {

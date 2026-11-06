@@ -12,6 +12,35 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubSmallCapsTests
 {
+    [Fact]
+    public void OriginalFontUnitsRetainFractionalAdvancesInNativeAndSavedPdfText()
+    {
+        byte[] source = Book("<p style='font-variant:small-caps'>Aa</p>"), original = source.ToArray();
+        var font = Font(fractionalMetrics: true);
+        Assert.Equal(2048, font.UnitsPerEm);
+        Assert.Equal(579, font.GetPdfAdvanceWidth(1));
+        Assert.Equal(414, font.GetPdfAdvanceWidth(3));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(80, 96, font) { Margin = 8, FontSize = 20 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("Aa", page.Text);
+        Assert.Equal(11.572265625, page.TextPlacements[0].Width, 10);
+        Assert.Equal(8.271484375, page.TextPlacements[1].Width, 10);
+        Assert.Equal(19.572265625, page.TextPlacements[1].Left, 10);
+        Assert.Contains(layout.RenderPage(0).Pixels.ToArray(), value => value == 0);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 60, PageHeightPoints = 72, MarginPoints = 6, FontSizePoints = 15 }));
+        var letters = new PdfPageContentReader(pdf).Read(0).Letters;
+        Assert.Equal("Aa", string.Concat(letters.Select(p => p.Value)));
+        Assert.Equal(14.67919921875, letters[0].EndBaseLine.X, 10);
+        Assert.Equal(14.67919921875, letters[1].StartBaseLine.X, 10);
+        Assert.Equal(20.8828125, letters[1].EndBaseLine.X, 10);
+        var frame = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(80, 96));
+        Assert.Empty(frame.Diagnostics);
+        Assert.Contains(frame.Pixels.ToArray(), value => value == 0);
+        Assert.Equal(original, source);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -76,16 +105,19 @@ public sealed class EpubSmallCapsTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void MultipleSubstitutionDrawsEveryGlyphAndPreservesOneOriginalSourceRange(bool extension)
+    [InlineData(false, "a")]
+    [InlineData(true, "a")]
+    [InlineData(false, "\uFB01")]
+    [InlineData(true, "\uFB03")]
+    public void MultipleSubstitutionDrawsEveryGlyphAndPreservesOneOriginalSourceRange(bool extension, string middle)
     {
-        byte[] source = Book("<p style='font-variant:small-caps'>AaA</p>"), original = source.ToArray();
+        string text = "A" + middle + "A";
+        byte[] source = Book("<p style='font-variant:small-caps'>" + text + "</p>"), original = source.ToArray();
         var font = Font(variant: "multiple", extension: extension);
         var book = EpubDocument.Open(source);
         var layout = book.CreateLayout(new EpubLayoutOptions(96, 96, font) { Margin = 8, FontSize = 20 });
         var page = Assert.Single(layout.Pages);
-        Assert.Equal("AaA", page.Text);
+        Assert.Equal(text, page.Text);
         Assert.Equal(new[] { 0, 1, 2 }, page.TextPlacements.Select(p => p.Start));
         Assert.All(page.TextPlacements, p => Assert.Equal(1, p.Length));
         Assert.Equal(new[] { 20d, 28d, 20d }, page.TextPlacements.Select(p => p.Width));
@@ -97,7 +129,7 @@ public sealed class EpubSmallCapsTests
         Assert.True(native.Pixels[(8 * 96 + 68) * 4] < .01);
         var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
         { PageWidthPoints = 72, PageHeightPoints = 72, MarginPoints = 6, FontSizePoints = 15 }));
-        Assert.Equal("AaA", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(p => p.Value)));
+        Assert.Equal(text, string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(p => p.Value)));
         var frame = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(96, 96));
         Assert.Empty(frame.Diagnostics);
         Assert.True(frame.Pixels.Span[(16 * 96 + 32) * 4 + 2] < 3);
@@ -212,13 +244,16 @@ public sealed class EpubSmallCapsTests
         Assert.Throws<OperationCanceledException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font), canceled));
     }
 
-    private static TrueTypeFont Font(bool deltaMapping = false, string variant = "valid", bool extension = false)
+    private static TrueTypeFont Font(bool deltaMapping = false, string variant = "valid", bool extension = false,
+        bool fractionalMetrics = false)
     {
-        byte[] cmap = new byte[52];
+        byte[] cmap = new byte[76];
         U16(cmap, 2, 1); U16(cmap, 4, 3); U16(cmap, 6, 10); U32(cmap, 8, 12);
-        U16(cmap, 12, 12); U32(cmap, 16, 40); U32(cmap, 24, 2);
+        U16(cmap, 12, 12); U32(cmap, 16, 64); U32(cmap, 24, 4);
         U32(cmap, 28, 'A'); U32(cmap, 32, 'A'); U32(cmap, 36, 1);
         U32(cmap, 40, 'a'); U32(cmap, 44, 'a'); U32(cmap, 48, 2);
+        U32(cmap, 52, 0xFB01); U32(cmap, 56, 0xFB01); U32(cmap, 60, 2);
+        U32(cmap, 64, 0xFB03); U32(cmap, 68, 0xFB03); U32(cmap, 72, 2);
         byte[] basis = TrueTypeFontTests.BuildTestFont(format12: true, includeOutlines: true,
             includeCompound: true, cmap: cmap);
         var tables = new SortedDictionary<string, byte[]>(StringComparer.Ordinal);
@@ -233,6 +268,12 @@ public sealed class EpubSmallCapsTests
         U16(tables["maxp"], 4, 4); U16(tables["hhea"], 34, 4);
         byte[] metrics = new byte[16]; tables["hmtx"].CopyTo(metrics, 0);
         U16(metrics, 4, 1000); U16(metrics, 12, 400); tables["hmtx"] = metrics;
+        if (fractionalMetrics)
+        {
+            U16(tables["head"], 18, 2048); U16(tables["head"], 40, 1100); U16(tables["head"], 42, 1000);
+            U16(tables["hhea"], 4, 1600); BinaryPrimitives.WriteInt16BigEndian(tables["hhea"].AsSpan(6), -400);
+            U16(metrics, 4, 1185); U16(metrics, 12, 847);
+        }
         byte[] outlines = new byte[68]; tables["glyf"].CopyTo(outlines, 0);
         tables["glyf"].AsSpan(20, 24).CopyTo(outlines.AsSpan(44));
         U16(outlines, 50, 400); U16(outlines, 52, 600); U16(outlines, 61, 400);

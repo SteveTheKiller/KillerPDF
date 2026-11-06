@@ -220,7 +220,7 @@ public sealed partial class EpubDocument
                     var item = shaped[at++];
                     end = Math.Max(end, item.Start + item.Length);
                     substituted |= item.Substituted;
-                    output.Add(new(item.Glyph, font.GetPdfAdvanceWidth(item.Glyph) / 1000d, 0, 0));
+                    output.Add(new(item.Glyph, font.GetAdvanceWidth(item.Glyph) / (double)font.UnitsPerEm, 0, 0));
                 } while (at < shaped.Count && shaped[at].Start < end);
                 clusters.Add(first.Start, new(first.Start, end - first.Start, font, output, substituted));
             }
@@ -233,9 +233,10 @@ public sealed partial class EpubDocument
                 throw new InvalidDataException("The EPUB GSUB shaping work limit was exceeded.");
         }
         bool IsLatin(int at) => text[at] is >= 'A' and <= 'Z' or >= 'a' and <= 'z'
-            or >= '\u00C0' and <= '\u02FF' or >= '\u1E00' and <= '\u1EFF';
+            or >= '\u00C0' and <= '\u02FF' or >= '\u1E00' and <= '\u1EFF'
+            or >= '\uFB00' and <= '\uFB06';
         EpubGlyphCluster Cluster(int start, int length, ushort glyph, bool substituted = false) => new(start, length, font,
-            [new(glyph, font.GetPdfAdvanceWidth(glyph) / 1000d, 0, 0)], substituted);
+            [new(glyph, font.GetAdvanceWidth(glyph) / (double)font.UnitsPerEm, 0, 0)], substituted);
         OpenTypeGlyphSubstitution Substitution(TrueTypeFont selected, bool smallCaps)
         {
             if (!substitutions.TryGetValue((selected, smallCaps), out var value))
@@ -413,7 +414,7 @@ public sealed partial class EpubDocument
                     var spaceFont = FontFor(style);
                     ushort spaceGlyph = spaceFont.GetGlyphId(' ');
                     cluster = new(index, 0, spaceFont,
-                        [new(spaceGlyph, spaceFont.GetPdfAdvanceWidth(spaceGlyph) / 1000d, 0, 0)]);
+                        [new(spaceGlyph, spaceFont.GetAdvanceWidth(spaceGlyph) / (double)spaceFont.UnitsPerEm, 0, 0)]);
                 }
                 char character = atom.IsSpace ? ' ' : text[index];
                 if (atom.IsSpace && line.Count == 0) continue;
@@ -424,7 +425,6 @@ public sealed partial class EpubDocument
                     readers.Add(cluster.Font, selectedReader = new TrueTypeOutlineReader(cluster.Font));
                 PdfGlyphOutline outline = selectedReader.Outline(glyph)
                     ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
-                // The public advance API rounds to 1000 units; finer font-metric precision is a later slice.
                 double width = cluster.Advance * style.FontSize;
                 if (character == ' ')
                 {
@@ -483,7 +483,7 @@ public sealed partial class EpubDocument
                     or UnicodeCategory.OtherPunctuation) return scalar;
             // Unshaped LTR text is limited to precomposed Latin, Greek, Cyrillic, and mathematical alphanumerics.
             if ((value is >= 0x00A0 and <= 0x02FF or >= 0x0370 and <= 0x052F
-                    or >= 0x1E00 and <= 0x1FFF
+                    or >= 0x1E00 and <= 0x1FFF or >= 0xFB00 and <= 0xFB06
                     || value is >= 0x1D400 and <= 0x1D7FF
                         && category is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter
                             or UnicodeCategory.DecimalDigitNumber)

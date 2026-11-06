@@ -299,7 +299,15 @@ public sealed class TrueTypeFont
         return result;
     }
 
-    /// <summary>Gets a glyph advance width normalized to 1,000 PDF text units.</summary>
+    /// <summary>Gets a glyph's horizontal advance in the original font design units.</summary>
+    public int GetAdvanceWidth(ushort glyphId)
+    {
+        if (glyphId >= _advanceWidths.Length)
+            throw new ArgumentOutOfRangeException(nameof(glyphId));
+        return _advanceWidths[glyphId];
+    }
+
+    /// <summary>Gets a glyph advance width rounded to 1,000 PDF text units.</summary>
     public int GetPdfAdvanceWidth(ushort glyphId)
     {
         if (glyphId >= _advanceWidths.Length)
