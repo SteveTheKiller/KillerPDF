@@ -128,7 +128,7 @@ namespace KillerPDF.Controls
                 TextChanged?.Invoke();
             }
 
-            public int PageCount => viewer._doc?.PageCount ?? 0;
+            public int PageCount => viewer.ReadPageCount;
             public int CurrentPage => viewer._currentPage;
 
             private (string? File, long Ticks) FileStamp()
@@ -165,12 +165,17 @@ namespace KillerPDF.Controls
                 {
                     try
                     {
-                        PageTextRuns? runs = viewer._textRuns.GetPage(file, viewer._protection,page);
-                        if (runs is not null)
-                            text = StructureOrder(file) is { } order && order.TryGetValue(page, out List<int>? mcids)
-                                ? PageReadingText.BuildTagged([.. runs.Chars.Select(c => (c.Value, c.Word, c.Line, c.MarkedContentId))], mcids)
-                                : PageReadingText.Build([.. runs.Chars.Select(c => (c.Value, c.Word, c.Line))]);
-                        text = text.WithAppendix(PageComments(file, page));
+                        PageTextRuns? runs = viewer.SelectionPageRuns(page);
+                        if (viewer._nativeDoc is not null)
+                            text = runs is null ? PageReadingText.Empty : PageReadingText.Build(runs);
+                        else
+                        {
+                            if (runs is not null)
+                                text = StructureOrder(file) is { } order && order.TryGetValue(page, out List<int>? mcids)
+                                    ? PageReadingText.BuildTagged([.. runs.Chars.Select(c => (c.Value, c.Word, c.Line, c.MarkedContentId))], mcids)
+                                    : PageReadingText.Build([.. runs.Chars.Select(c => (c.Value, c.Word, c.Line))]);
+                            text = text.WithAppendix(PageComments(file, page));
+                        }
                     }
                     catch (Exception ex) when (ex is not OutOfMemoryException)
                     {

@@ -281,6 +281,15 @@ internal static class NativeReadingSmoke
                     if (!Clipboard.ContainsText() || Clipboard.GetText() != "AA AA")
                         throw new InvalidOperationException("Native viewer copy did not publish the selected original text.");
                     events.Add(new { stage, exactSelection = true, exactCopy = true });
+                    stage = "native-reading-text";
+                    var surface = (FrameworkElement?)((FrameworkElement)viewer).FindName("DocSurfacePad")
+                        ?? throw new InvalidOperationException("Native document reading surface is unavailable.");
+                    var textProvider = UIElementAutomationPeer.CreatePeerForElement(surface)
+                        ?.GetPattern(PatternInterface.Text) as ITextProvider
+                        ?? throw new InvalidOperationException("Native document text provider is unavailable.");
+                    if (textProvider.DocumentRange.GetText(-1) != "AA AA")
+                        throw new InvalidOperationException("Native document reading provider did not preserve the original text.");
+                    events.Add(new { stage, exactDocumentText = true });
                 }
                 if (gridSwitch && isNative && step.Grid)
                 {
