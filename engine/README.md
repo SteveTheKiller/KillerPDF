@@ -486,10 +486,12 @@ and independently reopened PDFs cover placement, backgrounds, anchors and inline
 images. Conversion retains text/image paint order, including glyph overhangs.
 Full bidi, shaping and CSS layout remain in progress.
 
-Paragraph `page-break-before:always` forces a new occupied-page boundary;
-`auto` retains natural pagination. Cascade and inline overrides apply without
-inheritance. Ordered paragraph events retain empty blocks, anchors and image
-order without adding text, line height or extra first/fresh-page blanks.
+Block `page-break-before:always` and `page-break-after:always` force page boundaries;
+`auto` retains natural pagination. Their independent cascade and inline overrides
+apply without inheritance. After-breaks wait for following content or box extent,
+preserving nested inline text, empty padding boxes and images without terminal
+blank pages. Zero-width images do not consume a pending boundary. Ordered block
+events retain empty boxes, anchors and image order without adding extraction text.
 Blank lines count as page content even when they paint no ink. Native layout
 and independently reopened PDFs cover geometry, source positions, backgrounds,
 images and paper dimensions. Other break values remain explicitly unsupported.

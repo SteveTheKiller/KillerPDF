@@ -277,6 +277,7 @@ public sealed partial class EpubDocument
         var backgrounds = new List<(int Depth, NativePagePaint Paint)>();
         int pageStart = 0;
         bool pageHasContent = false;
+        bool pendingBreakAfter = false;
         double left = contentLeft;
         double top = options.Margin + bodyMargins.Top + bodyPadding.Top;
         var line = new List<(int Index, int Length, double Left, double Width, TrueTypeFont Font, PdfGlyphOutline? Outline,
@@ -321,13 +322,15 @@ public sealed partial class EpubDocument
             activeBounds.Add(block, (backgroundBounds.Left, backgroundBounds.Width, parentWidth));
             try
             {
-                if (block.Parent is not null && block.Source.Style.PageBreakBefore && pageHasContent)
+                if (block.Parent is not null && pageHasContent
+                    && (block.Source.Style.PageBreakBefore || pendingBreakAfter && HasFlowContent(block)))
                 {
                     int boundary = Math.Min(block.Source.Offset, text.Length);
                     while (boundary < text.Length && content.Characters[boundary] is null) boundary++;
                     FinishPage(boundary);
                     top = options.Margin;
                     pendingParagraphGap = 0;
+                    pendingBreakAfter = false;
                 }
                 double paddingTop = block.Parent is null ? 0 : block.Source.VerticalMargin(0, parentWidth, 0, padding: true);
                 double paddingBottom = block.Parent is null ? 0 : block.Source.VerticalMargin(2, parentWidth, 0, padding: true);
@@ -428,6 +431,29 @@ public sealed partial class EpubDocument
                 contentRight = parentRight;
                 contentWidth = parentWidth;
             }
+            if (block.Parent is not null && block.Source.Style.PageBreakAfter)
+                pendingBreakAfter = true;
+        }
+
+        bool HasFlowContent(EpubFormattingTree.Block block)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (block.Replaced is { } replaced)
+                return replaced.Owner.MaximumWidth is not { Length.Value: 0 };
+            if (block.Source.Padding is { } padding && (padding[0] is { Value: > 0 } || padding[2] is { Value: > 0 })
+                || block.Source.TopBorder is { Visible: true, Width.Value: > 0 }) return true;
+            foreach (var child in block.Children)
+            {
+                if (child is EpubFormattingTree.InlineSequence sequence)
+                    foreach (var atom in sequence.Atoms)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (!atom.IsSpace && (atom.Reference is not { Source: not null } image
+                            || image.Owner.MaximumWidth is not { Length.Value: 0 })) return true;
+                    }
+                if (child is EpubFormattingTree.Block nested && HasFlowContent(nested)) return true;
+            }
+            return false;
         }
 
         void LayoutBlockContent(EpubFormattingTree.Block block)
@@ -668,6 +694,16 @@ public sealed partial class EpubDocument
 
         void FitLine(double height, int start)
         {
+            if (pendingBreakAfter)
+            {
+                if (pageHasContent)
+                {
+                    FinishPage(start);
+                    top = options.Margin;
+                    pendingParagraphGap = 0;
+                }
+                pendingBreakAfter = false;
+            }
             if (top + height > options.PageHeight - options.Margin)
             {
                 bool movePadding = initialPadding.TryGetValue(lineBlock, out var initial)

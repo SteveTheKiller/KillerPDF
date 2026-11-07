@@ -19,6 +19,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal double TextIndent { get; init; }
         internal bool TextIndentPercentage { get; init; }
         internal bool PageBreakBefore { get; init; }
+        internal bool PageBreakAfter { get; init; }
         internal bool Hidden { get; init; }
         internal bool Underline { get; init; }
     }
@@ -534,6 +535,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         int indentSpecificity = -1;
         bool? pageBreakBefore = null;
         int breakSpecificity = -1;
+        bool? pageBreakAfter = null;
+        int breakAfterSpecificity = -1;
         DisplayKind? block = null;
         int displaySpecificity = -1;
         string? visibility = null;
@@ -600,6 +603,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 pageBreakBefore = forcedBreak;
                 breakSpecificity = specificity;
             }
+            if (rule.Properties.PageBreakAfter is { } forcedBreakAfter && specificity >= breakAfterSpecificity)
+            {
+                pageBreakAfter = forcedBreakAfter;
+                breakAfterSpecificity = specificity;
+            }
             if (rule.Properties.TextAlign is { } alignment && specificity >= alignmentSpecificity)
             {
                 textAlign = alignment;
@@ -665,7 +673,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         paddingSpecificities[side] = specificity;
                     }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth, pageBreakAfter);
     }
 
     private void CountSelectorWork(int amount)
@@ -697,7 +705,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         Border? Border = null, MarginLength?[]? Padding = null, string? TextAlign = null, bool? PageBreakBefore = null,
         DisplayKind? Display = null, double? FontWeight = null, IndentLength? TextIndent = null, string? FontVariant = null,
         BorderSide? TopBorder = null, BoxWidth? Width = null, string? Visibility = null, string? TextDecoration = null,
-        BoxWidth? MaximumWidth = null)
+        BoxWidth? MaximumWidth = null, bool? PageBreakAfter = null)
     {
         internal CssProperties Override(CssProperties inline) =>
             new(inline.FontSize ?? FontSize, inline.LineHeight ?? LineHeight,
@@ -706,7 +714,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 inline.TextAlign ?? TextAlign, inline.PageBreakBefore ?? PageBreakBefore, inline.Display ?? Display,
                 inline.FontWeight ?? FontWeight, inline.TextIndent ?? TextIndent, inline.FontVariant ?? FontVariant,
                 inline.TopBorder ?? TopBorder, inline.Width ?? Width, inline.Visibility ?? Visibility,
-                inline.TextDecoration ?? TextDecoration, inline.MaximumWidth ?? MaximumWidth);
+                inline.TextDecoration ?? TextDecoration, inline.MaximumWidth ?? MaximumWidth,
+                inline.PageBreakAfter ?? PageBreakAfter);
 
         private static MarginLength?[]? MergeMargins(MarginLength?[]? earlier, MarginLength?[]? later) =>
             later is null ? earlier : Enumerable.Range(0, 4).Select(side => later[side] ?? earlier?[side]).ToArray();
@@ -732,7 +741,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 TextAlign = TextAlign is null or "inherit" ? inherited.TextAlign : TextAlign,
                 TextIndent = indent,
                 TextIndentPercentage = indentPercentage,
-                PageBreakBefore = PageBreakBefore ?? false
+                PageBreakBefore = PageBreakBefore ?? false,
+                PageBreakAfter = PageBreakAfter ?? false
             };
         }
     }
@@ -756,6 +766,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         string? textAlign = null;
         bool? pageBreakBefore = null;
         DisplayKind? block = null;
+        bool? pageBreakAfter = null;
         double? fontWeight = null;
         foreach (string declaration in declarations.Split(';'))
         {
@@ -822,6 +833,16 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     "always" => true,
                     "auto" => false,
                     _ => throw new NotSupportedException("Native EPUB page-break-before value is not implemented: " + value + ".")
+                };
+                continue;
+            }
+            if (property == "page-break-after")
+            {
+                pageBreakAfter = value.ToLowerInvariant() switch
+                {
+                    "always" => true,
+                    "auto" => false,
+                    _ => throw new NotSupportedException("Native EPUB page-break-after value is not implemented: " + value + ".")
                 };
                 continue;
             }
@@ -985,7 +1006,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth, pageBreakAfter);
     }
 
     private static BorderSide ParseTopBorder(string value)

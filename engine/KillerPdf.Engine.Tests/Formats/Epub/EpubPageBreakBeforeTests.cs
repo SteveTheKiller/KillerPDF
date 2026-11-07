@@ -18,6 +18,160 @@ public class EpubPageBreakBeforeTests
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(EpubDocument).Assembly.Location))));
 
     [Fact]
+    public void PendingBreakAfterDoesNotCreateAPageForAZeroWidthImage()
+    {
+        var book = EpubDocument.Open(Book("p{margin:0;page-break-after:always}",
+            "<p>A</p><img src='image.png' style='display:block;max-width:0'/>", true));
+        var layout = book.CreateLayout(Options());
+        Assert.Single(layout.Pages);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(1, reader.PageCount);
+        Assert.Equal("A", Assert.Single(reader.Read(0).Letters).Value);
+        Assert.Empty(reader.Read(0).Images);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void BreakAfterRetainsStandaloneImageOrderAndPlacement(bool imageFirst)
+    {
+        string image = "<img src='image.png'/>";
+        var book = EpubDocument.Open(Book("p{margin:0}p,img{page-break-after:always}img{display:block}",
+            imageFirst ? image + "<p>A</p>" : "<p>A</p>" + image, true));
+        var layout = book.CreateLayout(Options());
+        Assert.Equal(2, layout.Pages.Count);
+        int imagePage = imageFirst ? 0 : 1, textPage = 1 - imagePage;
+        Assert.Empty(layout.Pages[imagePage].TextPlacements);
+        Assert.Equal(2, Assert.Single(layout.Pages[textPage].TextPlacements).Top);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, layout.RenderPage(imagePage).Pixels.Slice((2 * 30 + 2) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(2, reader.PageCount);
+        Assert.Single(reader.Read(imagePage).Images);
+        Assert.Equal("A", Assert.Single(reader.Read(textPage).Letters).Value);
+    }
+
+    [Theory]
+    [InlineData("avoid")]
+    [InlineData("left")]
+    [InlineData("right")]
+    [InlineData("inherit")]
+    [InlineData("12px")]
+    public void UnsupportedBreakAfterValuesAreExplicit(string value)
+    {
+        var book = EpubDocument.Open(Book("p{page-break-after:" + value + "}"));
+        Assert.Contains("page-break-after", Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options())).Message);
+        Assert.Contains(value, Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(Font()))).Message);
+    }
+
+    [Theory]
+    [InlineData("body{page-break-after:always}", "<p>A</p><p>A</p>", 1)]
+    [InlineData("span{page-break-after:always}", "<p>A<span>A</span></p>", 1)]
+    [InlineData("p.first{page-break-after:auto}p{page-break-after:always}", "<p class='first'>A</p><p>A</p>", 1)]
+    [InlineData("p{page-break-after:always}", "<p style='page-break-after:auto'>A</p><p>A</p>", 1)]
+    [InlineData("p{page-break-after:auto}", "<p style='page-break-after:always'>A</p><p>A</p>", 2)]
+    [InlineData("p.first{page-break-after:auto;page-break-after:always}", "<p class='first'>A</p><p>A</p>", 2)]
+    [InlineData("p{page-break-after:always;page-break-before:always}", "<p>A</p><p>A</p>", 2)]
+    public void BreakAfterIsBlockOnlyAndUsesIndependentCascade(string css, string body, int pages)
+    {
+        var book = EpubDocument.Open(Book("p{margin:0}" + css, body));
+        var layout = book.CreateLayout(Options());
+        Assert.Equal(pages, layout.Pages.Count);
+        Assert.Equal("AA", string.Concat(layout.Pages.SelectMany(page => page.TextPlacements)
+            .Select(placement => book.ReadText(0).Substring(placement.Start, placement.Length))));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(pages, reader.PageCount);
+        Assert.Equal("AA", string.Concat(Enumerable.Range(0, pages).SelectMany(index => reader.Read(index).Letters).Select(letter => letter.Value)));
+    }
+
+    [Fact]
+    public void PendingBreakAfterMovesAnEmptyPaddingBoxBeforeFollowingText()
+    {
+        var book = EpubDocument.Open(Book("p{margin:0}p.after{page-break-after:always}",
+            "<p class='after'>A</p><p style='padding-top:4px;background-color:red'/><p>A</p>"));
+        var layout = book.CreateLayout(Options());
+        Assert.Equal(2, layout.Pages.Count);
+        Assert.Equal(6, Assert.Single(layout.Pages[1].TextPlacements).Top);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, layout.RenderPage(1).Pixels.Slice((2 * 30 + 20) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, layout.RenderPage(0).Pixels.Slice((12 * 30 + 20) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(2, reader.PageCount);
+        Assert.Equal(16.5, Assert.Single(reader.Read(1).Letters).StartBaseLine.Y, 6);
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, new PdfPageRenderer(pdf).Render(1,
+            new PdfRenderOptions(30, 36)).Pixels.Slice((2 * 30 + 20) * 4, 4).ToArray());
+    }
+
+    [Theory]
+    [InlineData("<p class='after'>A</p>", 1)]
+    [InlineData("<p class='after'>A</p><p/>", 1)]
+    [InlineData("<p class='after'>A</p><div><p/></div>", 1)]
+    [InlineData("<p class='after'>A</p><div> \n </div>", 1)]
+    [InlineData("<p class='after'>A</p><p> \t </p>", 1)]
+    [InlineData("<p class='after'>A</p><p/><p>A</p>", 2)]
+    [InlineData("<p class='after'/><p>A</p>", 1)]
+    [InlineData("<p class='after'>A</p><p class='after'>A</p>", 2)]
+    public void PendingBreakAfterDoesNotCreateTerminalOrRepeatedEmptyPages(string body, int pages)
+    {
+        var book = EpubDocument.Open(Book("p{margin:0}p.after{page-break-after:always}", body));
+        var layout = book.CreateLayout(Options());
+        Assert.Equal(pages, layout.Pages.Count);
+        Assert.All(layout.Pages, page => Assert.Equal(2, Assert.Single(page.TextPlacements).Top));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(pages, reader.PageCount);
+        Assert.All(Enumerable.Range(0, pages), index => Assert.Single(reader.Read(index).Letters));
+    }
+
+    [Fact]
+    public void ForcedBreakAfterANestedBlockMovesItsParentsFollowingInlineText()
+    {
+        byte[] source = Book("p{margin:0}p.first{page-break-after:always}",
+            "<div><p class='first'>A</p>A</div>");
+        byte[] preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(Options());
+        Assert.Equal(2, layout.Pages.Count);
+        Assert.All(layout.Pages, page => Assert.Equal(2, Assert.Single(page.TextPlacements).Top));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(2, reader.PageCount);
+        Assert.All(Enumerable.Range(0, 2), index => Assert.Equal("A", Assert.Single(reader.Read(index).Letters).Value));
+        Assert.Equal(preserved, source);
+    }
+
+    [Fact]
+    public void ForcedBreakAfterAParagraphMovesFollowingTextAndNavigation()
+    {
+        byte[] source = Book("p{margin:0}p.first{page-break-after:always}",
+            "<p class='first'>A</p><p id='target'>A</p>");
+        byte[] preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(Options());
+        Assert.Equal(2, layout.Pages.Count);
+        Assert.All(layout.Pages, page => Assert.Equal(2, Assert.Single(page.TextPlacements).Top));
+        Assert.Equal(new EpubNavigationDestination(1, 0, 3, 2, 2), layout.ResolveNavigationTarget("doc.xhtml#target"));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(2, reader.PageCount);
+        Assert.All(Enumerable.Range(0, 2), index =>
+        {
+            Assert.Equal("A", Assert.Single(reader.Read(index).Letters).Value);
+            Assert.Empty(new PdfPageRenderer(pdf).Render(index, new PdfRenderOptions(30, 36)).Diagnostics);
+        });
+        Assert.Equal(preserved, source);
+    }
+
+    [Fact]
     public void ForcedBreakAfterAnUnpaintedBlankLineStartsANewPage()
     {
         var book = EpubDocument.Open(Book("p.next{page-break-before:always}", "<p><br/></p><p class='next'>A</p>"));
