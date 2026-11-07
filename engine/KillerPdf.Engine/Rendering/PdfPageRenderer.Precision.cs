@@ -250,6 +250,7 @@ public sealed partial class PdfPageRenderer
 
     private static bool PreciseOperationSupported(string operation) => operation is
         "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "k" or "K" or "gs" or "w" or "d"
+        or "BMC" or "BDC" or "EMC"
         or "cs" or "CS" or "sc" or "SC" or "scn" or "SCN"
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"

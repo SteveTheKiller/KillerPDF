@@ -1067,6 +1067,7 @@ proof controls still require the full source-aware pipeline.
 `RenderFrameRegion` returns an owned float32 crop on the full page's pixel grid. Its
 combined pixel-storage limit counts only the requested region, and precision validation,
 diagnostics and cancellation match `RenderFrame`. Desktop refinement adoption remains in progress.
+Ordinary float viewing honors BMC/BDC/EMC marked content, including nested optional-content visibility.
 The supplied `PdfRenderOptions` still validate the full page's byte-raster dimensions and limit.
 Supported RGB/Gray matrix/TRC image profiles can also replace DeviceRGB/Gray through
 resource `DefaultRGB` and `DefaultGray`, preserving their source precision and extended RGB.
