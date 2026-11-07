@@ -378,8 +378,11 @@ ligatures keep their Unicode font mappings as well as logical replacement text. 
 and shaping have separate work limits and cancellation. Other GSUB routes, positioning,
 Arabic/Indic shaping, bidi processing and per-character carets remain incomplete.
 Foreground `color` accepts six-digit sRGB hex values and the 16 basic CSS color
-keywords, case-insensitively. It inherits and follows property-specific cascade
+keywords and the `grey` alias, case-insensitively. `color:initial` resets to the
+reader's black. Other values inherit and follow property-specific cascade
 precedence. Individual glyphs retain their foreground color through rendering.
+The neutral `font-style:normal` declaration keeps the selected face; italic and
+oblique face selection remain explicitly unsupported.
 Body `background-color` uses the same color syntax, also accepts `transparent`, and paints the whole reading
 canvas, including margins, at natural and requested pixel sizes. Paragraph backgrounds
 fill each content-width line, including reserved blank lines; span backgrounds follow

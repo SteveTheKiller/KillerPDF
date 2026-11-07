@@ -13,6 +13,56 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubCssRgbColorTests
 {
+    [Theory]
+    [InlineData(false, "normal")]
+    [InlineData(true, "NoRmAl")]
+    public void NormalFontStyleKeepsTheSelectedUprightFontAndLiteralInkAtBothSeams(bool inline, string value)
+        => Verify("red", new PdfRgbColor(1, 0, 0), [1, 0, 0, 1], [0, 0, 255, 255],
+            css: inline ? null : "p{font-style:" + value + "}", paragraphStyle: inline ? "font-style:" + value : null);
+
+    [Theory]
+    [InlineData("italic")]
+    [InlineData("oblique")]
+    [InlineData("inherit")]
+    public void UnsupportedFontStyleSelectionRetainsExplicitRefusal(string value)
+    {
+        var book = EpubDocument.Open(Book("<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Style</title></head>"
+            + "<body><p style='font-style:" + value + "'>A</p></body></html>"));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        Assert.Contains("font-style", Assert.Throws<NotSupportedException>(() => book.CreateLayout(
+            new EpubLayoutOptions(30, 16, font) { Margin = 2, FontSize = 10 })).Message);
+        Assert.Contains("font-style", Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(
+            new EpubPdfConversionOptions(font))).Message);
+    }
+
+    [Fact]
+    public void InitialTextColorResetsInheritedRedToTheReaderBlackAtBothSeams()
+        => Verify("initial", new PdfRgbColor(0, 0, 0), [0, 0, 0, 1], [0, 0, 0, 255], bodyStyle: "color:red");
+
+    [Theory]
+    [InlineData("p{color:red}p{color:initial}", true)]
+    [InlineData("p{color:initial}p{color:red}", false)]
+    [InlineData("body p{color:initial}p{color:red}", true)]
+    [InlineData("p{color:INITIAL}", true)]
+    public void InitialColorKeepsSourceOrderSpecificityAndInheritance(string css, bool black)
+        => Verify(null, black ? new PdfRgbColor(0, 0, 0) : new PdfRgbColor(1, 0, 0),
+            black ? [0, 0, 0, 1] : [1, 0, 0, 1], black ? [0, 0, 0, 255] : [0, 0, 255, 255],
+            css: css, bodyStyle: "color:red");
+
+    [Theory]
+    [InlineData("grey")]
+    [InlineData("GrEy")]
+    [InlineData("gray")]
+    public void GreyKeywordRetainsItsStandardLiteralRgbValueAtBothSeams(string color)
+        => Verify(color, new PdfRgbColor(0.5019607843137255, 0.5019607843137255, 0.5019607843137255),
+            [0.2158605f, 0.2158605f, 0.2158605f, 1], [128, 128, 128, 255]);
+
+    [Fact]
+    public void GreyBackgroundKeepsTextColorIndependentAtBothSeams()
+        => Verify("red", new PdfRgbColor(1, 0, 0), [1, 0, 0, 1], [0, 0, 255, 255],
+            bodyStyle: "background-color:grey", background: [0.2158605f, 0.2158605f, 0.2158605f, 1],
+            pdfBackground: [128, 128, 128, 255]);
+
     [Fact]
     public void IntegerRgbPreservesLiteralPlacementNativeInkAndConvertedPdf()
     {
@@ -143,7 +193,10 @@ public sealed class EpubCssRgbColorTests
         var rendered = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(30, 16));
         Assert.Empty(rendered.Diagnostics);
         Assert.Equal(encoded, rendered.Pixels.Slice((5 * 30 + 7) * 4, 4).ToArray());
-        Assert.Equal(background ?? [1, 1, 1, 1], frame.Pixels.Slice(15 * 30 * 4, 4).ToArray());
+        float[] expectedBackground = background ?? [1, 1, 1, 1];
+        for (int channel = 0; channel < 4; channel++)
+            Assert.InRange(frame.Pixels[15 * 30 * 4 + channel], expectedBackground[channel] - .0000003f,
+                expectedBackground[channel] + .0000003f);
         Assert.Equal(pdfBackground ?? [255, 255, 255, 255], rendered.Pixels.Slice(15 * 30 * 4, 4).ToArray());
         Assert.Equal(original, source);
         Assert.Equal(chapterBytes, book.ReadResource("EPUB/text.xhtml"));

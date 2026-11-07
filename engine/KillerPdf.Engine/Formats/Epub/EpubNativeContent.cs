@@ -968,9 +968,16 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 families = ParseFontFamilies(value);
                 continue;
             }
+            if (property == "font-style")
+            {
+                if (!value.Equals("normal", StringComparison.OrdinalIgnoreCase))
+                    throw new NotSupportedException("Native EPUB font-style currently requires an upright normal face.");
+                continue;
+            }
             if (property == "color")
             {
-                color = ParseColor(value);
+                color = value.Equals("initial", StringComparison.OrdinalIgnoreCase)
+                    ? new PdfRgbColor(0, 0, 0) : ParseColor(value);
                 continue;
             }
             if (property == "background-color")
@@ -1203,7 +1210,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
         }
         int rgb = value.ToLowerInvariant() switch {
-            "black" => 0x000000, "silver" => 0xc0c0c0, "gray" => 0x808080, "white" => 0xffffff,
+            "black" => 0x000000, "silver" => 0xc0c0c0, "gray" or "grey" => 0x808080, "white" => 0xffffff,
             "maroon" => 0x800000, "red" => 0xff0000, "purple" => 0x800080, "fuchsia" => 0xff00ff,
             "green" => 0x008000, "lime" => 0x00ff00, "olive" => 0x808000, "yellow" => 0xffff00,
             "navy" => 0x000080, "blue" => 0x0000ff, "teal" => 0x008080, "aqua" => 0x00ffff,
