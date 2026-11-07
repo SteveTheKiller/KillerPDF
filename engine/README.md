@@ -404,7 +404,7 @@ Latin presentation ligatures U+FB00 through U+FB06,
 and supplementary mathematical alphanumeric letters and digits when the font has
 their glyphs. Text retains UTF-16 source ranges when scalars share a supported ligature,
 including after wrapping, pagination, anchor resolution and explicit PDF conversion.
-Mapped punctuation characters in the General Punctuation block and mapped characters
+Mapped trademark signs, punctuation characters in the General Punctuation block and mapped characters
 in the Currency Symbols block are also supported. Combining marks, complex scripts,
 bidi controls, joiners, variation selectors and other unsupported characters still
 require implementation and are diagnosed explicitly.

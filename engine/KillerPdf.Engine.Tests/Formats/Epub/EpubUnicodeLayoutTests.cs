@@ -59,6 +59,7 @@ public sealed class EpubUnicodeLayoutTests
     [InlineData("<p>A&#8220;A</p>", "A\u201CA")]
     [InlineData("<p>A&#8226;A</p>", "A\u2022A")]
     [InlineData("<p>A&#8230;A</p>", "A\u2026A")]
+    [InlineData("<p>A&#8482;A</p>", "A\u2122A")]
     public void MappedTypographicQuotePreservesNativeInkAndSelectableConvertedText(string body, string expected)
     {
         byte[] source = Book(body);
@@ -173,7 +174,7 @@ public sealed class EpubUnicodeLayoutTests
 
     private static TrueTypeFont Font()
     {
-        int[] scalars = [0x41, 0xE9, 0x301, 0x3A9, 0x416, 0x5D0, 0x627, 0x915, 0x200D, 0x2019, 0x201C, 0x2022, 0x2026, 0x202E, 0x20AC, 0xFE0F, 0x1D400];
+        int[] scalars = [0x41, 0xE9, 0x301, 0x3A9, 0x416, 0x5D0, 0x627, 0x915, 0x200D, 0x2019, 0x201C, 0x2022, 0x2026, 0x202E, 0x20AC, 0x2122, 0xFE0F, 0x1D400];
         byte[] cmap = new byte[28 + scalars.Length * 12];
         BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(2), 1);
         BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(4), 3);

@@ -311,7 +311,7 @@ public sealed partial class EpubDocument
             if (!Rune.TryGetRuneAt(text, index, out Rune scalar))
                 throw new NotSupportedException("Native EPUB layout requires valid Unicode scalar text.");
             int value = scalar.Value;
-            if (value is >= ' ' and <= '~') return scalar;
+            if (value is >= ' ' and <= '~' or 0x2122) return scalar;
             UnicodeCategory category = Rune.GetUnicodeCategory(scalar);
             if (value is >= 0x20A0 and <= 0x20CF && category == UnicodeCategory.CurrencySymbol)
                 return scalar;
