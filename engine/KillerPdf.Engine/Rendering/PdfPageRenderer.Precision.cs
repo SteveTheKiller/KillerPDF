@@ -33,6 +33,8 @@ public sealed partial class PdfPageRenderer
     /// support text matrices, line positioning, spacing, scaling, rise,
     /// strings, positioned text arrays and quote text-showing operators.
     /// Ordinary Form XObjects retain supported paint precision through their matrix and bounding-box clip.
+    /// Non-widget annotation appearances use the same supported paint path, including region rendering,
+    /// visibility filtering and printer proof conversion. Included widgets remain unsupported.
     /// Explicit neutral graphics-state defaults, including a None soft-mask reset, retain precision.
     /// Eligible isolated and non-isolated non-knockout DeviceRGB Form groups support outer Normal
     /// or Multiply or Screen compositing, with independent source alpha when needed. Internal Normal, Multiply or Screen paints
@@ -117,8 +119,8 @@ public sealed partial class PdfPageRenderer
                         || options.IncludeSignedSignatureFields && IsSignedSignatureWidget(annotation)
                         || options.IncludePushButtonFields && IsPushButtonWidget(annotation)
                     : options.IncludeAnnotations;
-                if (included)
-                    throw new NotSupportedException("High-precision annotation and form rendering is not implemented.");
+                if (included && widget)
+                    throw new NotSupportedException("High-precision form rendering is not implemented.");
             }
         }
         var pixels = new float[checked((int)pixelCount * 4)];

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Writing;
 
 namespace KillerPdf.Engine.Rendering;
 
@@ -222,7 +223,8 @@ public sealed partial class PdfPageRenderer
     {
         double[]? components = Numbers(annotation, key);
         if (components is null) return null;
-        string values = string.Join(' ', components.Select(value => Format(Math.Clamp(value, 0, 1))));
+        string values = string.Join(' ', components.Select(value =>
+            Encoding.ASCII.GetString(PdfObjectWriter.Write(new PdfReal(Math.Clamp(value, 0, 1))))));
         return components.Length switch
         {
             1 => values + (stroking ? " G" : " g"),

@@ -716,8 +716,13 @@ supported path, text, gradient and image cases, including ordinary Form XObjects
 their matrices and bounding-box clips. It rejects unsupported precision features
 with a reason instead of returning colors quantized through the BGRA32 surface.
 Text widgets excluded by render options do not disable precise page rendering.
+Non-widget annotation appearances use the same supported paint operations as Form
+XObjects, including their placement, clipping, region rendering and proof conversion.
+Hidden, screen-only and print-only flags retain their existing filtering behavior.
+Included widgets still require the compatibility path; unsupported appearance paint
+is diagnosed rather than silently quantized.
 Explicit neutral graphics-state defaults retain precise painting.
-Included annotation and form-field appearances remain explicitly unsupported.
+Included form-field appearances remain explicitly unsupported.
 Eligible isolated and non-isolated, non-knockout DeviceRGB Form groups retain floating-point
 colors and alpha through outer Normal, Multiply or Screen compositing and apply invoking opacity once.
 Non-isolated groups track source alpha separately when their outer blend or parent requires it.
