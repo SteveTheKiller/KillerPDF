@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Xml;
+using System.Text;
 using KillerPdf.Engine.Authoring;
 
 namespace KillerPdf.Engine.Formats.Epub;
@@ -395,6 +396,25 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         attribute = new(attributeNamespace, attributeName, token);
                         selector = selector[..bracket];
                     }
+                    int firstId = selector.IndexOf('#');
+                    if (firstId >= 0 && selector.IndexOf('|') > firstId)
+                        throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                    var ids = new List<string>();
+                    var withoutIds = new StringBuilder();
+                    for (int at = 0; at < selector.Length;)
+                    {
+                        if (selector[at] != '#')
+                        {
+                            withoutIds.Append(selector[at++]);
+                            continue;
+                        }
+                        int start = ++at;
+                        while (at < selector.Length && (char.IsAsciiLetterOrDigit(selector[at]) || selector[at] is '-' or '_')) at++;
+                        string id = selector[start..at];
+                        if (!IsIdentifier(id)) throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                        ids.Add(id);
+                    }
+                    selector = withoutIds.ToString();
                     string[] parts = selector.Split('.');
                     string type = parts[0];
                     namespaces.TryGetValue("", out string? namespaceName);
@@ -413,12 +433,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         type = type[(separator + 1)..];
                         parts[0] = type;
                     }
-                    bool classOnly = selector.StartsWith(".", StringComparison.Ordinal);
-                    if (classOnly && attribute is not null || selector.Length is 0 or > 128 || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
+                    bool classOnly = selector.StartsWith(".", StringComparison.Ordinal) || selector.Length == 0 && ids.Count > 0;
+                    if (classOnly && attribute is not null || selector.Length > 128 || selector.Length == 0 && ids.Count == 0 || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
                         || !char.IsAsciiLetter(part[0])
                         || part.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_'))))
                         throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                    chain.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1, type, []));
+                    chain.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1, type, []) { Ids = ids.ToArray() });
                 }
                 var target = chain[^1] with { Ancestors = chain.Take(chain.Count - 1).Reverse().ToArray() };
                 if (!_typeRules.TryGetValue(target.Type, out var rules))
@@ -441,8 +461,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private sealed record CssRule(string? NamespaceName, string[] Classes, CssAttribute? Attribute,
         CssProperties Properties, int Order, int TypeSpecificity, string Type, CssRule[] Ancestors)
     {
-        internal int Specificity => (Classes.Length + (Attribute is null ? 0 : 1)) * 256 + TypeSpecificity
-            + Ancestors.Sum(rule => (rule.Classes.Length + (rule.Attribute is null ? 0 : 1)) * 256 + rule.TypeSpecificity);
+        internal string[] Ids { get; init; } = [];
+        internal int Specificity => Ids.Length * 65536 + (Classes.Length + (Attribute is null ? 0 : 1)) * 256 + TypeSpecificity
+            + Ancestors.Sum(rule => rule.Ids.Length * 65536 + (rule.Classes.Length + (rule.Attribute is null ? 0 : 1)) * 256 + rule.TypeSpecificity);
     }
 
     private static IEnumerable<string> DescendantParts(string selector)
@@ -469,6 +490,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private bool Matches(CssRule rule, string name, SelectorIdentity identity)
     {
         CountSelectorWork(1);
+        foreach (string required in rule.Ids)
+        {
+            if (!identity.Attributes.TryGetValue(("", "id"), out string? actual)) return false;
+            CountSelectorWork(1 + Math.Min(required.Length, actual.Length));
+            if (actual != required) return false;
+        }
         if (rule.Type.Length > 0)
         {
             CountSelectorWork(1 + Math.Min(rule.Type.Length, name.Length));

@@ -14,6 +14,47 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubCssClassSelectorTests
 {
     [Fact]
+    public void IdSelectorStylesItsMatchingElementInNativeAndPdfPages()
+        => Verify("#target{color:red}", "<p id='target'>A</p>", 2, 1.5, true, false);
+
+    [Theory]
+    [InlineData("p#target", "<p id='target'>A</p>", true)]
+    [InlineData(".note#target", "<p class='note' id='target'>A</p>", true)]
+    [InlineData("p#target.note", "<p class='note' id='target'>A</p>", true)]
+    [InlineData("#target#target", "<p id='target'>A</p>", true)]
+    [InlineData("#target#other", "<p id='target'>A</p>", false)]
+    [InlineData("#Target", "<p id='target'>A</p>", false)]
+    [InlineData("#target", "<p id='other target'>A</p>", false)]
+    [InlineData("#target", "<p>A</p>", false)]
+    [InlineData("#root #target", "<div id='root'><p id='target'>A</p></div>", true)]
+    [InlineData("#root #target", "<div id='root'/><p id='target'>A</p>", false)]
+    [InlineData("p[class~='#target']", "<p id='other' class='#target'>A</p>", true)]
+    public void IdPredicatesRetainExactCompoundAndAncestorMeaning(string selector, string body, bool red)
+        => Verify(selector + "{color:red}", body, 2, 1.5, red, false);
+
+    [Theory]
+    [InlineData("#target{color:red}p.note{color:lime}")]
+    [InlineData("p.note{color:lime}#target{color:red}")]
+    [InlineData("p#target{color:red}#target{color:lime}")]
+    [InlineData("#target{color:lime}#target{color:red}")]
+    [InlineData("#root p{color:red}p.note.note.note{color:lime}")]
+    [InlineData("#target#target{color:red}p#target{color:lime}")]
+    [InlineData("#root #target{color:red}p#target{color:lime}")]
+    public void IdSpecificityOutranksClassesAndTypesAndKeepsSourceOrder(string css)
+        => Verify(css, "<div id='root'><p class='note' id='target'>A</p></div>", 2, 1.5, true, false);
+
+    [Fact]
+    public void IdSpecificityCascadesEachPropertyIndependently()
+        => Verify("#target{color:red}p.note{background-color:blue}", "<p class='note' id='target'>A</p>", 2, 1.5, true, true);
+
+    [Theory]
+    [InlineData("@namespace h 'http://www.w3.org/1999/xhtml';h|p#target{color:red}", true)]
+    [InlineData("@namespace 'http://www.w3.org/1999/xhtml';#target{color:red}", true)]
+    [InlineData("@namespace 'urn:other';#target{color:red}", false)]
+    public void IdCompoundsKeepTheElementNamespaceConstraint(string css, bool red)
+        => Verify(css, "<p id='target'>A</p>", 2, 1.5, red, false);
+
+    [Fact]
     public void DescendantAncestorMissesRespectTheSelectorWorkBudget()
     {
         string body = "<p>" + string.Concat(Enumerable.Repeat("<span>", 120)) + "A"
@@ -145,7 +186,13 @@ public sealed class EpubCssClassSelectorTests
     [InlineData(".note~.other")]
     [InlineData(".note[title]")]
     [InlineData(".note:first-child")]
-    [InlineData(".note#id")]
+    [InlineData("#")]
+    [InlineData("##id")]
+    [InlineData("#id#")]
+    [InlineData("#1id")]
+    [InlineData("#id..note")]
+    [InlineData("h#id|p")]
+    [InlineData("#id|p")]
     [InlineData("h|.note")]
     public void UnsupportedGrammarKeepsExplicitRefusalAtBothPublicSeams(string selector)
     {

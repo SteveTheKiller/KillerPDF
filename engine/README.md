@@ -462,8 +462,10 @@ specificity, and namespace names remain literal without fetching resources. Expl
 any/empty namespace forms, rebinding and independent property cascade are covered.
 Declarations accept bounded ASCII identifier prefixes and quoted or url(...) names.
 Class-only selectors and combinations match whitespace-separated class tokens.
-Class count outranks type count, and equal specificity follows source order;
-properties still cascade independently. The default namespace constrains the
+ID predicates match the exact, case-sensitive unqualified `id` value and combine
+with types, classes and descendant ancestors. ID count outranks class count,
+which outranks type count; equal specificity follows source order, and properties
+still cascade independently. The default namespace constrains the
 implied universal selector. Identifiers use the bounded letter-leading ASCII
 subset. Type selectors with optional classes also support one terminal attribute
 presence or whitespace-token predicate, such as `span[epub|type~='bridgehead']`.
@@ -472,7 +474,7 @@ URI, and default element namespaces do not apply to unqualified attribute names.
 Inert `type` metadata is accepted on supported paragraphs and spans. Attribute
 predicates add class-level specificity and retain the selector work limits.
 Descendant combinators match distinct ancestors in order, allowing intervening
-elements. Each compound retains its namespace, type, classes and supported attribute
+elements. Each compound retains its namespace, type, IDs, classes and supported attribute
 predicate. Ancestor traversal shares the selector work budget, and selector trimming
 uses only CSS whitespace. Other attribute operators, class-only attribute selectors, multiple predicates,
 escapes, comments, general identifiers, child, sibling and pseudo selectors retain
