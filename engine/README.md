@@ -592,6 +592,9 @@ extra line. Nonnegative vertical paragraph margins accept px/em/percentages and
 collapse adjoining sibling and empty-block margins to their maximum. A body's top
 margin collapses with its initial paragraph chain when top padding does not separate
 them. Percentages use the containing content width before paragraph side insets.
+Basic block `div` containers also support nonnegative margins, including adjoining
+child and sibling collapse, empty containers and top margins after forced breaks.
+They add no default paragraph gap.
 Forced breaks discard the preceding margin and retain the next top margin; automatic
 continuations do not repeat the paragraph's top margin. These rules also apply to
 explicit PDF conversion. Paragraph vertical padding supports these same lengths,

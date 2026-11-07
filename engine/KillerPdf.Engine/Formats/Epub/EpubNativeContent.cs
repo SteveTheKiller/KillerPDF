@@ -302,7 +302,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 _bodyFontSize = style.FontSize;
             }
             else if (properties.Margins?.Any(side => side is { Value: > 0 }) == true
-                && (!paragraph || properties.Display == DisplayKind.Inline))
+                && (!(paragraph || name == "div") || properties.Display == DisplayKind.Inline))
                 throw new NotSupportedException("Native EPUB nonzero margins are implemented only on the body.");
             if (name != "body" && properties.Padding?.Any(side => side is { Value: > 0 }) == true
                 && (!paragraph || properties.Display == DisplayKind.Inline))
