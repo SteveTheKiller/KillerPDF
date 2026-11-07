@@ -12,6 +12,18 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubBodyMarginTests
 {
     [Theory]
+    [InlineData("margin:auto")]
+    [InlineData("margin:0 auto")]
+    [InlineData("margin-left:auto;margin-top:auto")]
+    public void AutomaticBodyMarginsUseZeroForTheAutomaticWidth(string style)
+    {
+        var actual = Observe(style, "");
+        Assert.Equal(10, Assert.Single(actual.Placements).Left, 6);
+        Assert.Equal(10, actual.Placements[0].Top, 6);
+        Assert.Equal(7.5, Assert.Single(actual.Letters).Left, 6);
+    }
+
+    [Theory]
     [InlineData("p{margin-left:10%;padding-left:5%}", 22, 16.5)]
     [InlineData("p{font-size:8px;margin-left:1em;padding-left:.5em}", 22, 16.5)]
     [InlineData("p{margin:0 20px 0 4px;margin-left:12px;padding-left:4px}", 26, 19.5)]
@@ -233,7 +245,6 @@ public sealed class EpubBodyMarginTests
     }
 
     [Theory]
-    [InlineData("margin:auto")]
     [InlineData("margin:-1px")]
     [InlineData("margin:-.5em")]
     [InlineData("margin:-1%")]

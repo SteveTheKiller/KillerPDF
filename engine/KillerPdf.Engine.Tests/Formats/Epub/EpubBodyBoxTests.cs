@@ -12,6 +12,41 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubBodyBoxTests
 {
     [Theory]
+    [InlineData("width:40px;margin-left:auto;margin-right:10px", 40)]
+    [InlineData("width:40px;margin-left:10px;margin-right:auto", 20)]
+    [InlineData("width:40px;padding:0 4px;margin:0 auto", 30)]
+    [InlineData("width:50%;margin:0 AUTO", 30)]
+    [InlineData("width:auto;margin:auto", 10)]
+    [InlineData("width:40px;margin:auto", 30)]
+    [InlineData("width:40px;margin:0 auto;margin-left:2px", 12)]
+    [InlineData("width:100px;margin:0 auto", 10)]
+    public void AutomaticMarginsResolveRemainingSpaceWithPaddingAndOverrides(string style, double left)
+    {
+        var book = EpubDocument.Open(Book("", "", "A", "", paragraphStyle: style));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 80, font) { Margin = 10, FontSize = 20 });
+        Assert.Equal(left, Assert.Single(layout.Pages[0].TextPlacements).Left, 6);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 60, MarginPoints = 7.5, FontSizePoints = 15 }));
+        Assert.Equal(left * .75, Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters).StartBaseLine.X, 6);
+    }
+
+    [Fact]
+    public void AutomaticHorizontalMarginsCenterAnExplicitWidthAtBothSeams()
+    {
+        byte[] source = Book("", "p{width:40px;margin:0 auto}", "A", ""), original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(100, 80, font) { Margin = 10, FontSize = 20 });
+        Assert.Equal(30, Assert.Single(layout.Pages[0].TextPlacements).Left, 6);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 75, PageHeightPoints = 60, MarginPoints = 7.5, FontSizePoints = 15 }));
+        Assert.Equal(22.5, Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters).StartBaseLine.X, 6);
+        Assert.Contains(layout.RenderPage(0).Pixels.ToArray(), value => value == 0);
+        Assert.Equal(original, source);
+    }
+
+    [Theory]
     [InlineData(100, 1)]
     [InlineData(60, 2)]
     public void DecoratingInlineAncestorContributesItsMetricsToEveryLine(int pageHeight, int pageCount)

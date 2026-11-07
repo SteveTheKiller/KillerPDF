@@ -13,6 +13,17 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubEmbeddedImageLayoutTests
 {
     [Fact]
+    public void AutomaticImageMarginsAreDiagnosedUntilReplacedBoxAlignmentIsSupported()
+    {
+        var book = EpubDocument.Open(Package(RgbPng(),
+            "<img style='display:block;margin:0 auto' src='../images/check.png' alt=''/>", null));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(24, 24, font)
+        { Margin = 2, FontSize = 10 }));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+    }
+
+    [Fact]
     public void InlineBackgroundUsesScaledImageHeightWithoutPaintingAboveTheLine()
     {
         byte[] png = RgbPng(scanlines: new byte[12 * (1 + 12 * 3)], size: 12);

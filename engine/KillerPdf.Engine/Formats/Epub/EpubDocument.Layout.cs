@@ -311,6 +311,14 @@ public sealed partial class EpubDocument
                     : specifiedWidth.Em ? block.Source.Style.FontSize * specifiedWidth.Value : specifiedWidth.Value;
                 if (!double.IsFinite(width) || width < 0 || width > 32768)
                     throw new NotSupportedException("Native EPUB block width exceeds the supported dimensions.");
+                bool autoLeft = block.Source.Margins?[3] is { Auto: true };
+                bool autoRight = block.Source.Margins?[1] is { Auto: true };
+                if (autoLeft)
+                {
+                    double remaining = Math.Max(0, parentWidth - margins.Left - margins.Right
+                        - padding.Left - padding.Right - width);
+                    contentLeft += autoRight ? remaining / 2 : remaining;
+                }
                 contentRight = contentLeft + padding.Left + width + padding.Right;
             }
             var backgroundBounds = (Left: contentLeft, Width: contentRight - contentLeft);

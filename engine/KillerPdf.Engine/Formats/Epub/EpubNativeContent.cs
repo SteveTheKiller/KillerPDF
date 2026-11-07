@@ -187,6 +187,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         Style style = suppressed ? inherited : properties.Apply(inherited, contentHeight);
         if (!suppressed)
         {
+            if (name is "img" or "svg" && properties.Margins?.Any(side => side is { Auto: true }) == true)
+                throw new NotSupportedException("Native EPUB automatic replaced-image margins are not implemented.");
             if (properties.Border is { Visible: true, Nonzero: true })
                 throw new NotSupportedException("Native EPUB visible borders are not implemented.");
             if (properties.TopBorder is { Visible: true, Width.Value: > 0 }
@@ -757,7 +759,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         }
     }
 
-    internal readonly record struct MarginLength(double Value, bool Em, bool Percentage = false);
+    internal readonly record struct MarginLength(double Value, bool Em, bool Percentage = false, bool Auto = false);
     private readonly record struct IndentLength(double Value, bool Em = false, bool Percentage = false, bool Inherit = false);
     private readonly record struct Border(bool Nonzero, bool Visible);
     internal readonly record struct BorderSide(MarginLength Width, bool Visible, BackgroundColor? Color);
@@ -995,7 +997,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 string[] sides = value.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries);
                 if (sides.Length == 0 || sides.Length > (property == "margin" ? 4 : 1))
                     throw new NotSupportedException("Native EPUB body margin syntax is not implemented.");
-                var lengths = sides.Select(ParseMarginLength).ToArray();
+                var lengths = sides.Select(side => side.Equals("auto", StringComparison.OrdinalIgnoreCase)
+                    ? new MarginLength(0, false, Auto: true) : ParseMarginLength(side)).ToArray();
                 margins ??= new MarginLength?[4];
                 if (property == "margin")
                 {

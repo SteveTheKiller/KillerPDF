@@ -191,6 +191,11 @@ selection and accessibility integration still require implementation and runtime
 
 ## Native EPUB layout (1.9.3 development)
 
+Block paragraph/container margins accept `auto`. An explicit content width shares
+remaining horizontal space between automatic margins, including padding and fixed
+opposite margins. Automatic widths use zero automatic margins; vertical automatic
+margins are zero. Replaced-image automatic margins remain explicitly diagnosed.
+
 PNG and supported JPEG images support `max-width` in packaged and inline styles, using px, em or
 containing-block percentages, with `none` resetting the constraint. Images shrink
 proportionally without enlarging or resampling stored pixels. Native rendering and
