@@ -112,7 +112,6 @@ public sealed class PdfCalGrayPrecisionImageTests
     }
 
     [Theory]
-    [InlineData("enlargement")]
     [InlineData("reduction")]
     [InlineData("one-axis")]
     [InlineData("quarter-turn")]
@@ -121,14 +120,7 @@ public sealed class PdfCalGrayPrecisionImageTests
     {
         PdfDocument document;
         int width = 1, height = 1;
-        if (geometry == "enlargement")
-        {
-            width = height = 2;
-            var image = PdfImage.FromCalibratedGray(1, 1, new byte[] { 127 }, Space(2.2));
-            document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 2,
-                new PdfContentStreamBuilder().DrawImage(image, 0, 0, 2, 2)).Build());
-        }
-        else if (geometry == "reduction")
+        if (geometry == "reduction")
         {
             var image = PdfImage.FromCalibratedGray(2, 2, new byte[] { 0, 127, 255, 30 }, Space(2.2));
             document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
@@ -156,6 +148,87 @@ public sealed class PdfCalGrayPrecisionImageTests
         }
         Assert.Empty(new PdfPageRenderer(document).Render(0, new PdfRenderOptions(width, height)).Diagnostics);
         Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0, Options(width, height)));
+    }
+
+    [Theory]
+    [InlineData(false, 8)]
+    [InlineData(true, 8)]
+    [InlineData(false, 16)]
+    [InlineData(true, 16)]
+    public void CalGrayEnlargementSamplesBeforeGammaWithoutByteQuantization(bool interpolate, int bits)
+    {
+        var image = PdfImage.FromCalibratedGray(2, 1, new byte[] { 0, 255 }, Space(2));
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(4, 2,
+            new PdfContentStreamBuilder().DrawImage(image, 0, 0, 4, 2)).Build());
+        if (bits == 16)
+            document = ModifyImage(document, stream => new PdfStream(
+                new PdfDictionary(stream.Dictionary.Where(entry => !entry.Key.Equals(Name("Filter"))
+                    && !entry.Key.Equals(Name("DecodeParms")) && !entry.Key.Equals(Name("BitsPerComponent")))
+                    .Append(Entry("BitsPerComponent", new PdfInteger(16)))), new byte[] { 0, 0, 255, 255 }));
+        document = ModifyImage(document, stream => With(stream, "Interpolate", new PdfBoolean(interpolate)));
+        var frame = new PdfPageRenderer(document).RenderFrame(0, Options(4, 2));
+        double[] expected = interpolate ? [0, .0625, .5625, 1] : [0, 0, 1, 1];
+        for (int row = 0; row < 2; row++)
+            for (int column = 0; column < 4; column++) Pixel(frame, row * 4 + column, expected[column]);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void CalGrayEnlargementRetainsRawMasksWithNearestSamplingAndDiagnosesMaskedBilinear(bool softMask, bool interpolate)
+    {
+        var sourceImage = PdfImage.FromCalibratedGray(2, 1, new byte[] { 0, 0 }, Space(2));
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(4, 2,
+            new PdfContentStreamBuilder().DrawImage(sourceImage, 0, 0, 4, 2)).Build());
+        document = ModifyImage(document, stream => new PdfStream(
+            new PdfDictionary(stream.Dictionary.Where(entry => !entry.Key.Equals(Name("Filter"))
+                && !entry.Key.Equals(Name("DecodeParms")) && !entry.Key.Equals(Name("BitsPerComponent")))
+                .Append(Entry("BitsPerComponent", new PdfInteger(16)))
+                .Append(Entry("Interpolate", new PdfBoolean(interpolate)))), new byte[] { 128, 0, 128, 1 }));
+        var (reference, imageStream) = Image(document);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        PdfStream masked;
+        if (softMask)
+        {
+            var mask = update.AddObject(new PdfStream(new PdfDictionary([
+                Entry("Type", Name("XObject")), Entry("Subtype", Name("Image")),
+                Entry("Width", new PdfInteger(2)), Entry("Height", new PdfInteger(1)),
+                Entry("BitsPerComponent", new PdfInteger(16)), Entry("ColorSpace", Name("DeviceGray"))]),
+                new byte[] { 0, 0, 0, 1 }));
+            masked = With(imageStream, "SMask", mask);
+        }
+        else masked = With(imageStream, "Mask", new PdfArray([new PdfInteger(32768), new PdfInteger(32768)]));
+        document = PdfDocument.Open(update.ReplaceObject(reference.ObjectNumber, masked).Build());
+        var options = Options(4, 2);
+        if (interpolate)
+        {
+            Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0, options));
+            return;
+        }
+        var frame = new PdfPageRenderer(document).RenderFrame(0, options);
+        for (int row = 0; row < 2; row++)
+            for (int column = 0; column < 4; column++)
+            {
+                int offset = (row * 4 + column) * 4;
+                double alpha = column < 2 ? 0 : softMask ? .000015259021896696422 : 1;
+                Assert.InRange((double)frame.Pixels[offset + 3], alpha - 1e-9, alpha + 1e-9);
+                if (column < 2) continue;
+                for (int component = 0; component < 3; component++)
+                    Assert.InRange((double)frame.Pixels[offset + component], .2500218, .2500239);
+            }
+    }
+
+    [Fact]
+    public void CalGrayNaturalSizeKeepsItsExistingFloatingPointAlignmentTolerance()
+    {
+        var image = PdfImage.FromCalibratedGray(2, 1, new byte[] { 0, 255 }, Space(2));
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+            new PdfContentStreamBuilder().DrawImage(image, 0, 0, 2 - 1e-10, 1)).Build());
+        var frame = new PdfPageRenderer(document).RenderFrame(0, Options(2, 1));
+        Pixel(frame, 0, 0);
+        Pixel(frame, 1, 1);
     }
 
     [Fact]

@@ -116,12 +116,14 @@ The authoring model covers pages, content streams, graphics state, paths, text, 
 with an immutable `PdfCalGrayColorSpace`, including its white point, black point
 and gamma. Flate/predictor encoding requires PDF 1.2 across pages and nested image
 resources. `FromGray` continues to create DeviceGray images.
-Float rendering initially accepts direct, aligned natural-size 8/16-bit CalGray images
-with zero black, default Decode, relative colorimetric intent, raw color-key masks
-or matching DeviceGray 8/16-bit soft masks, without resampling. Named aliases,
-integer translations, rectangular clips and diagonal
-reflections retain precision. Other image geometry, nonzero black, altered Decode,
-default color substitutions and soft-mask Matte remain diagnosed.
+Float rendering accepts direct 8/16-bit CalGray images at aligned natural size or
+axis-aligned enlargement, with zero black, default Decode and relative colorimetric
+intent. Unmasked bilinear enlargement interpolates source samples before calibration.
+Raw color-key masks and matching DeviceGray 8/16-bit soft masks retain alpha with
+natural or nearest sampling. Named aliases, integer translations, rectangular clips
+and diagonal reflections retain precision. Reductions, other image geometry,
+nonzero black, altered Decode, default color substitutions, masked bilinear
+sampling and soft-mask Matte remain diagnosed.
 
 `DrawGlyphCluster(font, fontSize, logicalText, glyphs)` paints explicitly selected
 embedded-font glyphs while recording logical text once through inline `ActualText`.
