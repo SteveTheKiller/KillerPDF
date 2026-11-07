@@ -91,13 +91,15 @@ Nested, inline, masked and optional-content images, recovery documents and compl
 page state remain explicitly unsupported.
 
 `PdfImagePlacementExtractor.Extract` creates an immutable `PdfImageAsset` from a
-complete simple occurrence. This initial subset retains unfiltered eight-bit
-DeviceRGB samples without converting them. `ToPdfBytes` returns a separate
+complete simple occurrence. This initial subset retains eight-bit DeviceRGB samples
+without converting them, including raw or single-filter Flate-encoded images.
+Flate samples are validated within the decoded-size budget and against their zlib
+checksum while retaining the original encoded bytes. `ToPdfBytes` returns a separate
 single-image PDF whose page size matches the original pixel dimensions, containing
 the original samples and no neighboring page content or resources. Copies own their
 bytes and enforce content-copy permission independently of modification permission.
 Encoded, decoded and serialized assets are bounded to 5 MiB. Other color spaces,
-default color substitutions, filters, masks and uncaptured context remain refused.
+default color substitutions, other filters, predictors, masks and uncaptured context remain refused.
 These backend APIs do not yet provide application image-selection or Copy/Cut tools.
 
 ### Author complete documents

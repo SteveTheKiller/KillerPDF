@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Globalization;
 using System.Text;
 using KillerPdf.Engine.Authoring;
@@ -39,9 +40,18 @@ public static class PdfImagePlacementExtractor
             && (Resolve(spacesValue) is not PdfDictionary spaces || spaces.ContainsKey(Name("DefaultRGB"))))
             throw new NotSupportedException("Image extraction does not yet preserve default color-space substitutions.");
         var dictionary = image.Dictionary;
-        foreach (string key in new[] { "Filter", "DecodeParms", "Decode", "Mask", "SMask", "ImageMask", "SMaskInData", "OC", "Alternates", "OPI", "Intent" })
+        foreach (string key in new[] { "DecodeParms", "Decode", "Mask", "SMask", "ImageMask", "SMaskInData", "OC", "Alternates", "OPI", "Intent" })
             if (dictionary.ContainsKey(Name(key)))
                 throw new NotSupportedException("Image extraction does not yet preserve image property: " + key + ".");
+        bool flate = false;
+        if (dictionary.TryGetValue(Name("Filter"), out var filterValue))
+        {
+            var filter = Resolve(filterValue);
+            if (filter is PdfArray { Count: 1 } filters) filter = Resolve(filters[0]);
+            if (filter is not PdfName filterName || filterName.ValueAsLatin1() != "FlateDecode")
+                throw new NotSupportedException("Image extraction currently supports only a single FlateDecode filter.");
+            flate = true;
+        }
         if (!dictionary.TryGetValue(Name("ColorSpace"), out var colorValue)
             || Resolve(colorValue) is not PdfName color || color.ValueAsLatin1() != "DeviceRGB")
             throw new NotSupportedException("Image extraction currently requires untagged DeviceRGB samples.");
@@ -51,14 +61,36 @@ public static class PdfImagePlacementExtractor
         long pixels = (long)width * height;
         if (pixels > MaximumAssetBytes / 3)
             throw new NotSupportedException("The image exceeds the detached asset size limit.");
-        if (image.EncodedData.Length != pixels * 3)
-            throw new FormatException("The unfiltered image payload does not match its dimensions.");
+        if (image.EncodedData.Length > MaximumAssetBytes)
+            throw new NotSupportedException("The encoded image exceeds the detached asset size limit.");
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[]? samples = flate
+            ? document.DecodeImageSamples(image, MaximumAssetBytes, (int)(pixels * 3)) : null;
+        int sampleCount = samples?.Length ?? image.EncodedData.Length;
+        cancellationToken.ThrowIfCancellationRequested();
+        if (sampleCount != pixels * 3)
+            throw new FormatException("The image payload does not match its dimensions.");
+        if (samples is not null)
+        {
+            if (image.EncodedData.Length < 6)
+                throw new FormatException("The Flate image payload has no complete zlib trailer.");
+            uint first = 1, second = 0;
+            for (int index = 0; index < samples.Length; index++)
+            {
+                if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                first = (first + samples[index]) % 65521;
+                second = (second + first) % 65521;
+            }
+            if (BinaryPrimitives.ReadUInt32BigEndian(image.EncodedData.Span[^4..]) != ((second << 16) | first))
+                throw new FormatException("The Flate image payload has an invalid or incomplete zlib checksum.");
+        }
         var entries = new Dictionary<PdfName, PdfObject>
         {
             [Name("Type")] = Name("XObject"), [Name("Subtype")] = Name("Image"),
             [Name("Width")] = new PdfInteger(width), [Name("Height")] = new PdfInteger(height),
             [Name("ColorSpace")] = Name("DeviceRGB"), [Name("BitsPerComponent")] = new PdfInteger(8)
         };
+        if (flate) entries.Add(Name("Filter"), Name("FlateDecode"));
         if (dictionary.TryGetValue(Name("Interpolate"), out var interpolate))
         {
             if (Resolve(interpolate) is not PdfBoolean flag)

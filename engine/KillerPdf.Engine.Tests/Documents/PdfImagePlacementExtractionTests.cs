@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.IO.Compression;
 using System.Text;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Rendering;
 using KillerPdf.Engine.Security;
@@ -11,6 +13,159 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfImagePlacementExtractionTests
 {
+    [Fact]
+    public void FlateImageDetachesItsExactEncodedPayloadAndOriginalPixels()
+    {
+        byte[] compressed = Compress([255, 0, 0, 0, 255, 0]);
+        byte[] source = FlateFixture(compressed), unchanged = source.ToArray();
+        var document = PdfDocument.Open(source);
+        var selection = new PdfPageContentReader(document).ReadImagePlacements(0)[1];
+        var asset = PdfImagePlacementExtractor.Extract(document, selection);
+        Assert.Equal(2, asset.Width);
+        Assert.Equal(1, asset.Height);
+        var detached = PdfDocument.Open(asset.ToPdfBytes());
+        var page = new PdfPageContentReader(detached).Read(0);
+        Assert.Equal(new PdfContentBounds(0, 0, 2, 1), Assert.Single(page.Images).BoundingBox);
+        Assert.Empty(page.Letters);
+        Assert.Empty(page.Paths);
+        var image = DetachedImage(detached);
+        Assert.Equal("FlateDecode", Assert.IsType<PdfName>(image.Dictionary[Name("Filter")]).ValueAsLatin1());
+        Assert.Equal(compressed, image.EncodedData.ToArray());
+        var frame = new PdfPageRenderer(detached).Render(0, new PdfRenderOptions(2, 1));
+        Assert.Empty(frame.Diagnostics);
+        Assert.Equal(new byte[] { 0, 0, 255, 255, 0, 255, 0, 255 }, frame.Pixels.ToArray());
+        Assert.Equal(unchanged, source);
+        Assert.Equal(compressed, Assert.IsType<PdfStream>(document.Resolve(7)).EncodedData.ToArray());
+        Assert.Equal(2, new PdfPageContentReader(document).Read(0).Images.Count);
+        Assert.Single(new PdfPageContentReader(document).Read(1).Images);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SingleFlateFilterArrayAndIndirectMetadataNormalizeWithoutReencoding(bool indirect)
+    {
+        byte[] payload = Compress([255, 0, 0, 0, 255, 0]);
+        var source = PdfDocument.Open(FlateFixture(payload, new PdfArray([Name("FlateDecode")]), indirect));
+        var asset = PdfImagePlacementExtractor.Extract(source, new PdfPageContentReader(source).ReadImagePlacements(0)[1]);
+        var detached = PdfDocument.Open(asset.ToPdfBytes());
+        var image = DetachedImage(detached);
+        Assert.Equal(payload, image.EncodedData.ToArray());
+        Assert.Equal("FlateDecode", Assert.IsType<PdfName>(image.Dictionary[Name("Filter")]).ValueAsLatin1());
+        Assert.Equal(new byte[] { 0, 0, 255, 255, 0, 255, 0, 255 },
+            new PdfPageRenderer(detached).Render(0, new PdfRenderOptions(2, 1)).Pixels.ToArray());
+    }
+
+    [Theory]
+    [InlineData("raw")]
+    [InlineData("checksum")]
+    [InlineData("missing-trailer")]
+    [InlineData("truncated-body")]
+    [InlineData("short-samples")]
+    [InlineData("extra-samples")]
+    [InlineData("expansion-budget")]
+    public void InvalidOrOverexpandingFlateCannotPublishAnAsset(string kind)
+    {
+        byte[] payload = Compress([255, 0, 0, 0, 255, 0]);
+        switch (kind)
+        {
+            case "raw": payload = [255, 0, 0, 0, 255, 0]; break;
+            case "checksum": payload[^1] ^= 1; break;
+            case "missing-trailer": payload = payload[..^4]; break;
+            case "truncated-body": payload = payload[..4]; break;
+            case "short-samples": payload = Compress([255, 0, 0, 0, 255]); break;
+            case "extra-samples": payload = Compress([255, 0, 0, 0, 255, 0, 0]); break;
+            case "expansion-budget": payload = Compress(new byte[5 * 1024 * 1024 + 1]); break;
+        }
+        byte[] bytes = FlateFixture(payload), unchanged = bytes.ToArray();
+        var document = PdfDocument.Open(bytes);
+        var selection = new PdfPageContentReader(document).ReadImagePlacements(0)[1];
+        Exception? error = Record.Exception(() => PdfImagePlacementExtractor.Extract(document, selection));
+        Assert.NotNull(error);
+        Assert.True(error is FormatException or PdfFilterException, error.ToString());
+        Assert.Equal(unchanged, bytes);
+        Assert.Equal(payload, Assert.IsType<PdfStream>(document.Resolve(7)).EncodedData.ToArray());
+    }
+
+    [Fact]
+    public void OversizedEncodedFlateIsRefusedBeforeDecoding()
+    {
+        var document = PdfDocument.Open(FlateFixture(new byte[5 * 1024 * 1024 + 1]));
+        var selection = new PdfPageContentReader(document).ReadImagePlacements(0)[1];
+        var error = Assert.Throws<NotSupportedException>(() => PdfImagePlacementExtractor.Extract(document, selection));
+        Assert.Contains("size limit", error.Message);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FilterChainsAndDecodeParametersRemainUnsupported(bool decodeParameters)
+    {
+        byte[] bytes = FlateFixture(Compress([255, 0, 0, 0, 255, 0]), decodeParameters
+            ? Name("FlateDecode") : new PdfArray([Name("FlateDecode"), Name("FlateDecode")]));
+        var source = PdfDocument.Open(bytes);
+        if (decodeParameters)
+        {
+            var image = Assert.IsType<PdfStream>(source.Resolve(7));
+            var entries = image.Dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
+            entries[Name("DecodeParms")] = new PdfDictionary([new(Name("Predictor"), new PdfInteger(1))]);
+            source = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+                .ReplaceObject(7, new PdfStream(new PdfDictionary(entries), image.EncodedData.Span)).Build());
+        }
+        var selection = new PdfPageContentReader(source).ReadImagePlacements(0)[1];
+        Assert.Throws<NotSupportedException>(() => PdfImagePlacementExtractor.Extract(source, selection));
+    }
+
+    [Fact]
+    public void CompressedAssetOwnsItsBytesAndHonorsCancellation()
+    {
+        byte[] payload = Compress([255, 0, 0, 0, 255, 0]);
+        byte[] bytes = FlateFixture(payload), unchanged = bytes.ToArray();
+        var document = PdfDocument.Open(bytes);
+        var selection = new PdfPageContentReader(document).ReadImagePlacements(0)[1];
+        Assert.Throws<OperationCanceledException>(() => PdfImagePlacementExtractor.Extract(document, selection, new CancellationToken(true)));
+        var asset = PdfImagePlacementExtractor.Extract(document, selection);
+        Assert.Equal(unchanged, bytes);
+        byte[] returned = asset.ToPdfBytes(), expected = returned.ToArray();
+        Array.Clear(payload);
+        Array.Clear(bytes);
+        Array.Clear(returned);
+        Assert.Equal(expected, asset.ToPdfBytes());
+        Assert.Equal(new byte[] { 0, 0, 255, 255, 0, 255, 0, 255 },
+            new PdfPageRenderer(PdfDocument.Open(asset.ToPdfBytes())).Render(0, new PdfRenderOptions(2, 1)).Pixels.ToArray());
+    }
+
+    private static byte[] Compress(byte[] samples)
+    {
+        using var output = new MemoryStream();
+        using (var compressor = new ZLibStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
+            compressor.Write(samples);
+        return output.ToArray();
+    }
+
+    private static byte[] FlateFixture(byte[] payload, PdfObject? filter = null, bool indirect = false)
+    {
+        var source = PdfDocument.Open(Fixture());
+        var image = Assert.IsType<PdfStream>(source.Resolve(7));
+        var entries = image.Dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfObject value = filter ?? Name("FlateDecode");
+        entries[Name("Filter")] = indirect ? update.AddObject(value) : value;
+        return update
+            .ReplaceObject(7, new PdfStream(new PdfDictionary(entries), payload)).Build();
+    }
+
+    private static PdfStream DetachedImage(PdfDocument detached)
+    {
+        var catalog = Assert.IsType<PdfDictionary>(Resolve(detached, detached.Trailer[Name("Root")]));
+        var pages = Assert.IsType<PdfDictionary>(Resolve(detached, catalog[Name("Pages")]));
+        var kids = Assert.IsType<PdfArray>(Resolve(detached, pages[Name("Kids")]));
+        var page = Assert.IsType<PdfDictionary>(Resolve(detached, Assert.Single(kids)));
+        var resources = Assert.IsType<PdfDictionary>(Resolve(detached, page[Name("Resources")]));
+        var images = Assert.IsType<PdfDictionary>(Resolve(detached, resources[Name("XObject")]));
+        return Assert.IsType<PdfStream>(Resolve(detached, Assert.Single(images).Value));
+    }
+
     [Fact]
     public void DefaultRgbSubstitutionIsNotSilentlyDroppedFromExtraction()
     {
@@ -71,7 +226,7 @@ public sealed class PdfImagePlacementExtractionTests
         var entries = image.Dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
         entries[Name(key)] = key switch
         {
-            "Filter" => Name("FlateDecode"), "ColorSpace" => Name("DeviceCMYK"),
+            "Filter" => Name("LZWDecode"), "ColorSpace" => Name("DeviceCMYK"),
             "BitsPerComponent" => new PdfInteger(16), "ImageMask" => new PdfBoolean(true),
             "Intent" => Name("RelativeColorimetric"),
             _ => new PdfArray([new PdfInteger(0), new PdfInteger(1)])
