@@ -259,7 +259,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             declarations = defaults.Override(declarations);
         }
         var properties = ResolveProperties(declarations, parent);
-        if (name is "table" or "tr" or "td" && properties.Display is not (null or DisplayKind.None))
+        DisplayKind? tableDisplay = name switch
+        {
+            "table" => DisplayKind.Table, "tr" => DisplayKind.TableRow, "td" => DisplayKind.TableCell,
+            _ => null
+        };
+        if (tableDisplay is { } required && properties.Display is { } specified
+            && specified != DisplayKind.None && specified != required)
             throw new NotSupportedException("Native EPUB table display overrides are not implemented.");
         bool suppressed = parent?.IsDisplayNone == true || properties.Display == DisplayKind.None;
         Style style = suppressed ? inherited : properties.Apply(inherited, contentHeight);
@@ -1238,6 +1244,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     "block" => DisplayKind.Block,
                     "inline" => DisplayKind.Inline,
                     "none" => DisplayKind.None,
+                    "table" => DisplayKind.Table,
                     _ => throw new NotSupportedException("Native EPUB display value is not implemented: " + value + ".")
                 };
                 continue;

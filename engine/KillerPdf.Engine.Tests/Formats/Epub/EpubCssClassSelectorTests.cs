@@ -13,6 +13,23 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubCssClassSelectorTests
 {
+    [Fact]
+    public void AncestorCenteredTableRuleKeepsLeftAlignedCellsAndAutomaticMargins()
+    {
+        byte[] source = Book(".xhtml_center{text-align:center;display:block}.xhtml_center table{display:table;text-align:left;margin-left:auto;margin-right:auto}table{width:24px;border-spacing:0}td{width:12px;padding:0}",
+            "<div class='xhtml_center'><table><tr><td>A</td><td>A</td></tr></table></div>"), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+        Assert.Equal(new[] { (3d, 2d), (15d, 2d) },
+            Assert.Single(layout.Pages).TextPlacements.Select(item => (item.Left, item.Top)));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Equal(new[] { (2.25, 19.5), (11.25, 19.5) },
+            new PdfPageContentReader(pdf).Read(0).Letters.Select(item => (item.StartBaseLine.X, item.StartBaseLine.Y)));
+        Assert.Equal(original, source);
+    }
+
     [Theory]
     [InlineData("<td/><td>A</td>", "A", 14)]
     [InlineData("<td>A</td><td/>", "A", 2)]
@@ -138,10 +155,12 @@ public sealed class EpubCssClassSelectorTests
         Assert.Equal(new byte[] { 255, 0, 0, 255 }, frame.Pixels.Slice((11 * 30 + 2) * 4, 4).ToArray());
     }
 
-    [Fact]
-    public void TwoExplicitTableCellsKeepIndependentColumnsAndSourceText()
+    [Theory]
+    [InlineData("")]
+    [InlineData("display:table;")]
+    public void TwoExplicitTableCellsKeepIndependentColumnsAndSourceText(string display)
     {
-        byte[] source = Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}",
+        byte[] source = Book("table{" + display + "width:24px;border-spacing:0}td{width:12px;padding:0}",
             "<table><tr><td>A</td><td>A</td></tr></table>"), original = source.ToArray();
         var book = EpubDocument.Open(source);
         Assert.Equal("A\nA", book.ReadText(0));

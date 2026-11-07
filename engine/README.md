@@ -386,7 +386,8 @@ Cells wrap independently; row height follows the tallest cell, and whole rows
 move to the next page while keeping contiguous chapter text ranges. Empty cells
 retain their columns without adding text. Native and converted PDF output retain
 the supported outer container background and preceding paragraph margins.
-Auto sizing, row groups, spans, nested tables, table display overrides, nonzero
+Explicit `display:table` on a table element retains the same typed grid.
+Auto sizing, row groups, spans, nested tables, anonymous table boxes, nonzero
 spacing and row/cell page-break requests remain diagnosed. Cells taller than a
 fresh page are refused before retaining additional cell pages.
 CSS `display:block` and `display:inline` follow specificity, declaration order and
