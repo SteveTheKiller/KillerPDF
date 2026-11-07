@@ -25,7 +25,7 @@ public sealed partial class EpubDocument
         foreach (var page in layout.Pages)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (page.Glyphs.Any(paint => paint is not (NativeGlyphPaint or NativeRectanglePaint)
+            if (page.Glyphs.Any(paint => paint is not (NativeGlyphPaint or NativeRectanglePaint or NativeMarkerPaint)
                     && paint is not NativeImagePaint { Image: { Components: 3, Bits: 8 } }))
                 throw new NotSupportedException(
                     "EPUB PDF conversion currently supports text, RGB PNG images, and solid backgrounds.");
@@ -41,6 +41,12 @@ public sealed partial class EpubDocument
                 cancellationToken.ThrowIfCancellationRequested();
                 switch (paint)
                 {
+                    case NativeMarkerPaint marker:
+                        content.SetFillRgb(marker.Color.Red, marker.Color.Green, marker.Color.Blue)
+                            .Circle(marker.CenterX * pointsPerCssPixel,
+                                options.PageHeightPoints - marker.CenterY * pointsPerCssPixel,
+                                marker.Radius * pointsPerCssPixel).Fill();
+                        break;
                     case NativeRectanglePaint rectangle:
                         content.SetFillRgb(rectangle.Color.Red, rectangle.Color.Green, rectangle.Color.Blue)
                             .Rectangle(rectangle.Left * pointsPerCssPixel,

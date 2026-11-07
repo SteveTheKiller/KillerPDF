@@ -362,6 +362,8 @@ public sealed partial class EpubDocument
             int lineStart = 0;
             EpubFormattingTree.Block lineBlock = flowRoot;
             var startedBlocks = new HashSet<EpubFormattingTree.Block>();
+            var markedItems = new HashSet<EpubFormattingTree.ListItem>();
+            var itemContentLeft = new Dictionary<EpubFormattingTree.ListItem, double>();
             var initialPadding = new Dictionary<EpubFormattingTree.Block,
                 (double Height, int PaintStart, double BorderHeight, PdfRgbColor? BorderColor)>();
             var activeBounds = new Dictionary<EpubFormattingTree.Block, (double Left, double Width, double ContainingWidth)>();
@@ -375,6 +377,8 @@ public sealed partial class EpubDocument
 
             void LayoutBlock(EpubFormattingTree.Block block)
             {
+                if (block is EpubFormattingTree.ListItem && !HasFlowContent(block))
+                    throw new NotSupportedException("Native EPUB empty list items are not implemented.");
                 double parentLeft = contentLeft, parentRight = contentRight, parentWidth = contentWidth;
                 var margins = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth);
                 var padding = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth, padding: true);
@@ -401,6 +405,7 @@ public sealed partial class EpubDocument
                 contentLeft += padding.Left;
                 contentRight -= padding.Right;
                 contentWidth = contentRight - contentLeft;
+                if (block is EpubFormattingTree.ListItem listItem) itemContentLeft.Add(listItem, contentLeft);
                 if (contentWidth <= 0)
                     throw new NotSupportedException("Native EPUB paragraph insets require a positive content box.");
                 activeBounds.Add(block, (backgroundBounds.Left, backgroundBounds.Width, parentWidth));
@@ -490,6 +495,9 @@ public sealed partial class EpubDocument
                         FinishPage(Math.Max(pageStart, paddingEnd.Value));
                         top = options.Margin;
                     }
+
+                    if (block is EpubFormattingTree.ListItem completedItem && !markedItems.Contains(completedItem))
+                        throw new NotSupportedException("Native EPUB list items require a supported first line.");
 
                     void PaintPadding(double height)
                     {
@@ -779,6 +787,7 @@ public sealed partial class EpubDocument
                             glyphs.Add(paint switch
                             {
                                 NativeGlyphPaint glyph => glyph with { Baseline = glyph.Baseline + shift },
+                                NativeMarkerPaint marker => marker with { CenterY = marker.CenterY + shift },
                                 NativeImagePaint image => image with { Top = image.Top + shift },
                                 NativeRectanglePaint rectangle => rectangle with { Top = rectangle.Top + shift },
                                 _ => throw new NotSupportedException("Native EPUB cell paint is not implemented.")
@@ -1152,6 +1161,17 @@ public sealed partial class EpubDocument
                         line[at] = item;
                     }
                 double baseline = top + ascent;
+                for (var owner = lineBlock; owner is not null; owner = owner.Parent)
+                    if (owner is EpubFormattingTree.ListItem item)
+                    {
+                        if (markedItems.Add(item) && !item.Source.Style.Hidden)
+                        {
+                            var style = item.Source.Style;
+                            glyphs.Add(new NativeMarkerPaint(itemContentLeft[item] - .8 * style.FontSize,
+                                baseline - .35 * style.FontSize, .2 * style.FontSize, style.Color ?? options.TextColor));
+                        }
+                        break;
+                    }
                 AddBlockBackgrounds(height);
                 var fragments = new List<(EpubNativeContent.Element Owner, double Left, double Right, double Top, double Bottom)>();
                 var fragmentIndices = new Dictionary<EpubNativeContent.Element, int>(ReferenceEqualityComparer.Instance);

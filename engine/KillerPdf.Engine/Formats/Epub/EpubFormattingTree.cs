@@ -15,6 +15,7 @@ internal sealed class EpubFormattingTree
     internal sealed class RowGroup(EpubNativeContent.Element source, Block parent) : Block(source, parent);
     internal sealed class Row(EpubNativeContent.Element source, Block parent) : Block(source, parent);
     internal sealed class Cell(EpubNativeContent.Element source, Block parent) : Block(source, parent);
+    internal sealed class ListItem(EpubNativeContent.Element source, Block parent) : Block(source, parent);
     internal sealed class InlineSequence(Block block) : Part
     {
         internal Block Block { get; } = block;
@@ -44,7 +45,7 @@ internal sealed class EpubFormattingTree
                     throw new InvalidDataException("Native EPUB formatting exceeds its box work limit.");
                 if (child is EpubNativeContent.Text text)
                 {
-                    if (element.Display is EpubNativeContent.DisplayKind.Table or EpubNativeContent.DisplayKind.TableRowGroup or EpubNativeContent.DisplayKind.TableRow
+                    if ((element.Name == "ul" || element.Display is EpubNativeContent.DisplayKind.Table or EpubNativeContent.DisplayKind.TableRowGroup or EpubNativeContent.DisplayKind.TableRow)
                         && EpubNativeContent.IsFormattingWhitespace(text.Value)) continue;
                     var positions = new Dictionary<int, int>();
                     foreach (int index in text.Positions)
@@ -85,6 +86,7 @@ internal sealed class EpubFormattingTree
                         EpubNativeContent.DisplayKind.TableRowGroup => new RowGroup(source, containing),
                         EpubNativeContent.DisplayKind.TableRow => new Row(source, containing),
                         EpubNativeContent.DisplayKind.TableCell => new Cell(source, containing),
+                        EpubNativeContent.DisplayKind.ListItem => new ListItem(source, containing),
                         _ => new Block(source, containing)
                     };
                     containing.Children.Add(target);

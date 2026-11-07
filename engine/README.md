@@ -241,6 +241,15 @@ selection and accessibility integration still require implementation and runtime
 
 ## Native EPUB layout (1.9.3 development)
 
+Initial unordered lists support text items with outside disc markers, 40px left
+padding and 1em vertical list margins. Markers follow the first line across page
+breaks without repeating on continuation pages. Generated discs add no source text
+or offsets; literal bullets, selection and item destinations keep their identity.
+Native rendering and reopened PDF output preserve the separate marker paint.
+Empty items, nested or ordered lists, unsupported list styles and items without a
+supported first line remain diagnosed. Explicit block or inline item display
+suppresses generated markers.
+
 Structural `ReadText` preserves spaces, tabs and line breaks inside `pre`, including
 trailing whitespace and inline style boundaries. Normal paragraphs still collapse
 whitespace. Nested preformatted blocks remain diagnosed. Native preformatted layout

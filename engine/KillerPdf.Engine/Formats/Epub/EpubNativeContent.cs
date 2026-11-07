@@ -8,7 +8,7 @@ namespace KillerPdf.Engine.Formats.Epub;
 // Source nodes survive normalization so collapsed whitespace keeps its original inline style.
 internal sealed class EpubNativeContent(double fallbackSize, double contentHeight, PdfRgbColor? fallbackTextColor = null)
 {
-    internal enum DisplayKind { Block, Inline, None, Table, TableRowGroup, TableRow, TableCell }
+    internal enum DisplayKind { Block, Inline, None, Table, TableRowGroup, TableRow, TableCell, ListItem }
     internal readonly record struct BackgroundColor(PdfRgbColor? Color);
     internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null)
     {
@@ -44,7 +44,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal Element? TableCellOwner { get; } = parent?.Name == "td" ? parent : parent?.TableCellOwner;
         internal Style Style { get; } = style;
         internal DisplayKind Display { get; init; } = block ? DisplayKind.Block : DisplayKind.Inline;
-        internal bool IsBlock => Display is DisplayKind.Block or DisplayKind.Table or DisplayKind.TableRowGroup or DisplayKind.TableRow or DisplayKind.TableCell;
+        internal bool IsBlock => Display is DisplayKind.Block or DisplayKind.Table or DisplayKind.TableRowGroup or DisplayKind.TableRow or DisplayKind.TableCell or DisplayKind.ListItem;
         internal bool IsDisplayNone { get; init; }
         internal int Offset { get; } = offset;
         internal int EndOffset { get; set; } = offset;
@@ -102,6 +102,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         TopBorder: new BorderSide(new MarginLength(1, false), true, null)));
     private static readonly CssProperties BlockquoteDefaults = CssProperties.FromConcrete(new ResolvedProperties(null, null,
         Margins: [new(1, true), new(40, false), new(1, true), new(40, false)]));
+    private static readonly CssProperties UnorderedListDefaults = CssProperties.FromConcrete(new ResolvedProperties(null, null,
+        Margins: [new(1, true), new(0, false), new(1, true), new(0, false)],
+        Padding: [new(0, false), new(0, false), new(0, false), new(40, false)]));
 
     private static CssProperties? HeadingDefaults(string name)
     {
@@ -141,8 +144,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal bool InsideDisplayNone => _ancestors.TryPeek(out var element) && element.IsDisplayNone;
 
     private static bool IsGroupingContainer(string? name) => name is
-        "div" or "header" or "footer" or "main" or "nav" or "section" or "article" or "aside" or "blockquote";
-    private static bool IsFlowContainer(string? name) => name == "body" || IsGroupingContainer(name);
+        "div" or "header" or "footer" or "main" or "nav" or "section" or "article" or "aside" or "blockquote" or "ul" or "li";
+    private static bool IsFlowContainer(string? name) => name == "body" || name != "ul" && IsGroupingContainer(name);
 
     internal void AddSvgImage(string reference, double width, double height, int offset)
     {
@@ -168,6 +171,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         string name = xml.LocalName;
         bool paragraph = Element.IsParagraphName(name);
         Element? parent = _ancestors.TryPeek(out var ancestor) ? ancestor : null;
+        if (parent?.Name == "ul" && name != "li")
+            throw new NotSupportedException("Native EPUB unordered lists require direct list-item children.");
+        if (name == "ul" && _ancestors.Any(element => element.Name == "ul"))
+            throw new NotSupportedException("Native EPUB nested unordered lists are not implemented.");
         if (parent?.Name == "hr")
             throw new NotSupportedException("Native EPUB horizontal rules cannot contain elements.");
         if (name == "a" && _ancestors.Any(element => element.Name == "a"))
@@ -183,6 +190,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     && string.Equals(xml.GetAttribute("content"), "text/css", StringComparison.OrdinalIgnoreCase)),
             "link" => parent?.Name == "head" && xml.GetAttribute("rel") is "icon" or "stylesheet"
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
+            "li" => parent?.Name == "ul",
             _ when IsGroupingContainer(name) => IsFlowContainer(parent?.Name),
             "table" => IsFlowContainer(parent?.Name),
             "tbody" => parent?.Name == "table",
@@ -206,11 +214,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             Count(xml.Value.Length);
             attributes[(xml.NamespaceURI, xml.LocalName)] = xml.Value;
-            if (xml.NamespaceURI == "" && xml.LocalName == "style" && (paragraph || IsFlowContainer(name) || name is "span" or "img" or "a" or "strong" or "b" or "i" or "em" or "table" or "tbody" or "tr" or "td"))
+            if (xml.NamespaceURI == "" && xml.LocalName == "style" && (paragraph || IsGroupingContainer(name) || IsFlowContainer(name) || name is "span" or "img" or "a" or "strong" or "b" or "i" or "em" or "table" or "tbody" or "tr" or "td"))
                 inlineStyle = xml.Value;
             else if (xml.NamespaceURI == "" && xml.LocalName == "class")
                 classNames = xml.Value;
-            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && (paragraph || IsFlowContainer(name) || name is "span" or "br" or "a" or "strong" or "b" or "i" or "em"))
+            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && (paragraph || IsGroupingContainer(name) || IsFlowContainer(name) || name is "span" or "br" or "a" or "strong" or "b" or "i" or "em"))
             {
                 // Navigation identity is captured by the structural text reader.
             }
@@ -279,6 +287,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 ? headingDefaults with { Margins = null } : headingDefaults;
             declarations = defaults.Override(declarations);
         }
+        if (name == "ul") declarations = UnorderedListDefaults.Override(declarations);
         var properties = ResolveProperties(declarations, parent);
         DisplayKind? tableDisplay = name switch
         {
@@ -290,6 +299,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             && specified != DisplayKind.None && specified != required)
             throw new NotSupportedException("Native EPUB table display overrides are not implemented.");
         bool suppressed = parent?.IsDisplayNone == true || properties.Display == DisplayKind.None;
+        if (!suppressed && (name == "ul" && properties.Display is not (null or DisplayKind.Block)
+            || name == "li" && properties.Display is not (null or DisplayKind.Block or DisplayKind.Inline)))
+            throw new NotSupportedException("Native EPUB list display mode is not implemented.");
         Style style = suppressed ? inherited : properties.Apply(inherited, contentHeight);
         if (!suppressed)
         {
@@ -322,11 +334,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 && (!(paragraph || IsGroupingContainer(name)) || properties.Display == DisplayKind.Inline))
                 throw new NotSupportedException("Native EPUB nonzero margins are implemented only on the body.");
             if (name != "body" && properties.Padding?.Any(side => side is { Value: > 0 }) == true
-                && (!paragraph || properties.Display == DisplayKind.Inline))
+                && (!paragraph || properties.Display == DisplayKind.Inline)
+                && !(name == "ul" && properties.Display != DisplayKind.Inline
+                    && properties.Padding[0] is not { Value: > 0 } && properties.Padding[2] is not { Value: > 0 }))
                 throw new NotSupportedException("Native EPUB nonzero padding is implemented only on the body.");
             if (style.Background is { } background)
             {
-                if (!paragraph && !IsFlowContainer(name) && name is not ("span" or "strong" or "b"))
+                if (!paragraph && !IsGroupingContainer(name) && !IsFlowContainer(name) && name is not ("span" or "strong" or "b"))
                     throw new NotSupportedException("Native EPUB element background painting is not implemented.");
                 if (name == "body") CanvasBackground = background.Color;
             }
@@ -335,7 +349,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             DisplayKind.Block => true,
             DisplayKind.Inline or DisplayKind.None => false,
-            _ => paragraph || IsFlowContainer(name) || name is "table" or "tbody" or "tr" or "td"
+            _ => paragraph || IsGroupingContainer(name) || IsFlowContainer(name) || name is "table" or "tbody" or "tr" or "td"
         };
         var element = new Element(name, parent, style, block, Characters.Count, identity)
         {
@@ -343,6 +357,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             {
                 "table" => DisplayKind.Table, "tbody" => DisplayKind.TableRowGroup,
                 "tr" => DisplayKind.TableRow, "td" => DisplayKind.TableCell,
+                "li" => DisplayKind.ListItem,
                 _ => block ? DisplayKind.Block : DisplayKind.Inline
             },
             Margins = suppressed ? null : properties.Margins, Padding = suppressed ? null : properties.Padding,
@@ -389,6 +404,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal Text TextNode(string value)
     {
         var owner = _ancestors.Peek();
+        if (owner.Name == "ul" && !IsFormattingWhitespace(value))
+            throw new NotSupportedException("Native EPUB unordered-list text requires a list item.");
         if (owner.Name == "hr")
             throw new NotSupportedException("Native EPUB horizontal rules cannot contain text.");
         if (owner.Display is DisplayKind.Table or DisplayKind.TableRowGroup or DisplayKind.TableRow && !IsFormattingWhitespace(value))

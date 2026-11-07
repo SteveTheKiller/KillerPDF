@@ -15,6 +15,7 @@ internal sealed record NativeImagePaint(PngDecodedImage Image, double Left, doub
     internal double Height { get; init; } = Image.Height;
 }
 internal sealed record NativeRectanglePaint(double Left, double Top, double Width, double Height, PdfRgbColor Color) : NativePagePaint;
+internal sealed record NativeMarkerPaint(double CenterX, double CenterY, double Radius, PdfRgbColor Color) : NativePagePaint;
 
 internal static class NativeGlyphPainter
 {
@@ -47,6 +48,7 @@ internal static class NativeGlyphPainter
         }
         else Array.Fill(pixels, 1f);
         long imageWork = 0;
+        long markerWork = 0;
         foreach (var paint in paints)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -104,6 +106,42 @@ internal static class NativeGlyphPainter
                             image.Image.Samples[sample] / 255d, image.Image.Samples[sample + 1] / 255d,
                             image.Image.Samples[sample + 2] / 255d,
                             image.Image.Alpha is { } alpha ? alpha[sy * image.Image.Width + sx] / 255d : 1);
+                    }
+                }
+                continue;
+            }
+            if (paint is NativeMarkerPaint marker)
+            {
+                double centerX = marker.CenterX * scaleX, centerY = marker.CenterY * scaleY;
+                double radiusX = marker.Radius * scaleX, radiusY = marker.Radius * scaleY;
+                if (!double.IsFinite(centerX) || !double.IsFinite(centerY)
+                    || !double.IsFinite(radiusX) || radiusX <= 0 || !double.IsFinite(radiusY) || radiusY <= 0
+                    || !double.IsFinite(centerX - radiusX) || !double.IsFinite(centerX + radiusX)
+                    || !double.IsFinite(centerY - radiusY) || !double.IsFinite(centerY + radiusY))
+                    throw new InvalidDataException("The native marker placement is invalid.");
+                int x0 = (int)Math.Clamp(Math.Floor(centerX - radiusX), 0, width);
+                int y0 = (int)Math.Clamp(Math.Floor(centerY - radiusY), 0, height);
+                int x1 = (int)Math.Clamp(Math.Ceiling(centerX + radiusX), 0, width);
+                int y1 = (int)Math.Clamp(Math.Ceiling(centerY + radiusY), 0, height);
+                markerWork += (long)(x1 - x0) * (y1 - y0) * 16;
+                if (markerWork > 16 * 1024 * 1024)
+                    throw new InvalidDataException("The native page exceeds its marker paint work limit.");
+                for (int y = y0; y < y1; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    for (int x = x0; x < x1; x++)
+                    {
+                        int coverage = 0;
+                        for (int sy = 0; sy < 4; sy++)
+                            for (int sx = 0; sx < 4; sx++)
+                            {
+                                double dx = (x + (sx + .5) / 4 - centerX) / radiusX;
+                                double dy = (y + (sy + .5) / 4 - centerY) / radiusY;
+                                if (dx * dx + dy * dy <= 1) coverage++;
+                            }
+                        if (coverage != 0)
+                            FloatRgbCompositor.SourceOver(pixels, (y * width + x) * 4,
+                                marker.Color.Red, marker.Color.Green, marker.Color.Blue, coverage / 16d);
                     }
                 }
                 continue;
