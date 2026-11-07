@@ -13,6 +13,113 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubTextIndentTests
 {
     [Theory]
+    [InlineData("<p style='letter-spacing:.25em'>AA</p>", null, 23.3, 17.475, 10.8)]
+    [InlineData("<p style='font-size:12px'>AA</p>", "body{letter-spacing:.25em}", 19.7, 14.775, 7.2)]
+    [InlineData("<p class='note'>AA</p>", "p.note{letter-spacing:2px}p{letter-spacing:4px}", 20.8, 15.6, 10.8)]
+    [InlineData("<p style='letter-spacing:2px'>AA</p>", "p{letter-spacing:4px}", 20.8, 15.6, 10.8)]
+    [InlineData("<p>AA</p>", "p{letter-spacing:2px}p{letter-spacing:4px}", 22.8, 17.1, 10.8)]
+    public void LetterSpacingUsesComputedInheritedLengthsAndIndependentCascade(string body, string? css,
+        double second, double pdfSecond, double width)
+    {
+        var book = EpubDocument.Open(Book(body, css));
+        var font = FontWithSpace();
+        var layout = book.CreateLayout(new EpubLayoutOptions(96, 96, font) { Margin = 8, FontSize = 18 });
+        var placements = Assert.Single(layout.Pages).TextPlacements;
+        Assert.Equal(new double[] { 8, second }, placements.Select(p => Math.Round(p.Left, 6)));
+        Assert.All(placements, p => Assert.Equal(width, p.Width, 6));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 72, PageHeightPoints = 72, MarginPoints = 6, FontSizePoints = 13.5 }));
+        Assert.Equal(new double[] { 6, pdfSecond }, new PdfPageContentReader(pdf).Read(0).Letters
+            .Select(letter => Math.Round(letter.StartBaseLine.X, 6)));
+    }
+
+    [Fact]
+    public void LetterSpacingAveragesAdjacentInlineValuesAndOmitsLineEdgeSpacing()
+    {
+        var book = EpubDocument.Open(Book("<p style='letter-spacing:2px'>A<span style='letter-spacing:6px'>A</span>A</p>"));
+        var font = FontWithSpace();
+        var layout = book.CreateLayout(new EpubLayoutOptions(96, 96, font) { Margin = 8, FontSize = 18 });
+        Assert.Equal(new double[] { 8, 22.8, 37.6 }, layout.Pages[0].TextPlacements.Select(p => Math.Round(p.Left, 6)));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 72, PageHeightPoints = 72, MarginPoints = 6, FontSizePoints = 13.5 }));
+        Assert.Equal(new double[] { 6, 17.1, 28.2 }, new PdfPageContentReader(pdf).Read(0).Letters
+            .Select(letter => Math.Round(letter.StartBaseLine.X, 6)));
+
+        var centered = EpubDocument.Open(Book("<p style='letter-spacing:2px;text-align:center'>AA</p>"));
+        var centeredLayout = centered.CreateLayout(new EpubLayoutOptions(40, 96, font) { Margin = 8, FontSize = 18 });
+        Assert.Equal(new double[] { 8.2, 21 }, centeredLayout.Pages[0].TextPlacements.Select(p => Math.Round(p.Left, 6)));
+        var centeredPdf = PdfDocument.Open(centered.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 30, PageHeightPoints = 72, MarginPoints = 6, FontSizePoints = 13.5 }));
+        Assert.Equal(new double[] { 6.15, 15.75 }, new PdfPageContentReader(centeredPdf).Read(0).Letters
+            .Select(letter => Math.Round(letter.StartBaseLine.X, 6)));
+    }
+
+    [Theory]
+    [InlineData("-1px")]
+    [InlineData("1%")]
+    [InlineData("auto")]
+    [InlineData("NaNpx")]
+    [InlineData("1e5px")]
+    [InlineData("32769px")]
+    public void UnsupportedLetterSpacingLengthsRetainBoundedRefusal(string value)
+    {
+        var book = EpubDocument.Open(Book("<p style='letter-spacing:" + value + "'>AA</p>"));
+        var font = FontWithSpace();
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(96, 96, font) { Margin = 8, FontSize = 18 }));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+    }
+
+    [Fact]
+    public void NormalLetterSpacingResetsAnInheritedDistanceAtBothSeams()
+    {
+        var book = EpubDocument.Open(Book("<p style='letter-spacing:normal'>AA</p>", "body{letter-spacing:2px}"));
+        var font = FontWithSpace();
+        var layout = book.CreateLayout(new EpubLayoutOptions(96, 96, font) { Margin = 8, FontSize = 18 });
+        Assert.Equal(new double[] { 8, 18.8 }, layout.Pages[0].TextPlacements.Select(p => Math.Round(p.Left, 6)));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 72, PageHeightPoints = 72, MarginPoints = 6, FontSizePoints = 13.5 }));
+        Assert.Equal(new double[] { 6, 14.1 }, new PdfPageContentReader(pdf).Read(0).Letters
+            .Select(letter => Math.Round(letter.StartBaseLine.X, 6)));
+    }
+
+    [Fact]
+    public void LetterSpacingWordLookaheadWrapsBeforeTheWholeFollowingWord()
+    {
+        var book = EpubDocument.Open(Book("<p>AA AA</p>", "p{letter-spacing:2px}"));
+        var font = FontWithSpace();
+        var layout = book.CreateLayout(new EpubLayoutOptions(76, 96, font) { FontSize = 18, Margin = 8 });
+        var lines = Assert.Single(layout.Pages).TextPlacements.Where(p => p.Length > 0)
+            .GroupBy(p => p.Top).ToArray();
+        Assert.Equal(2, lines.Length);
+        Assert.All(lines, line => Assert.Equal(new double[] { 8, 20.8 }, line.Select(p => Math.Round(p.Left, 6))));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 57, PageHeightPoints = 72, MarginPoints = 6, FontSizePoints = 13.5 }));
+        var pdfLines = new PdfPageContentReader(pdf).Read(0).Letters.GroupBy(letter => letter.StartBaseLine.Y).ToArray();
+        Assert.Equal(2, pdfLines.Length);
+        Assert.All(pdfLines, line => Assert.Equal(new double[] { 6, 15.6 }, line.Select(letter => Math.Round(letter.StartBaseLine.X, 6))));
+    }
+
+    [Fact]
+    public void LetterSpacingSeparatesCharactersWithoutChangingGlyphWidthsAtBothSeams()
+    {
+        byte[] source = Book("<p>AA</p>", "p{letter-spacing:2px}"), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = FontWithSpace();
+        var layout = book.CreateLayout(new EpubLayoutOptions(96, 96, font) { FontSize = 18, Margin = 8 });
+        var placements = Assert.Single(layout.Pages).TextPlacements;
+        Assert.Equal(new double[] { 8, 20.8 }, placements.Select(p => Math.Round(p.Left, 6)));
+        Assert.All(placements, p => Assert.Equal(10.8, p.Width, 6));
+        Assert.Contains(layout.RenderPage(0).Pixels.ToArray(), value => value == 0);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 72, PageHeightPoints = 72, MarginPoints = 6, FontSizePoints = 13.5 }));
+        var letters = new PdfPageContentReader(pdf).Read(0).Letters;
+        Assert.Equal("AA", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.Equal(new double[] { 6, 15.6 }, letters.Select(letter => Math.Round(letter.StartBaseLine.X, 6)));
+        Assert.Contains(new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(96, 96)).Pixels.ToArray(), value => value == 0);
+        Assert.Equal(original, source);
+    }
+
+    [Theory]
     [InlineData("72px", 80d, 60d)]
     [InlineData("96px", 104d, 78d)]
     public void IndentedFirstWordMayOverflowWhileTheNextWordWraps(string indent, double nativeLeft, double pdfLeft)

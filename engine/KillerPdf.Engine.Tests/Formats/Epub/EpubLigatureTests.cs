@@ -14,6 +14,27 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubLigatureTests
 {
     [Fact]
+    public void NonzeroLetterSpacingKeepsOptionalLigatureCharactersSeparate()
+    {
+        byte[] source = Book("<p style='letter-spacing:2px'>fi</p>"), original = source.ToArray();
+        var font = TrueTypeFont.Load(Font());
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(200, 200, font) { Margin = 8, FontSize = 20 });
+        var placements = Assert.Single(layout.Pages).TextPlacements;
+        Assert.Equal(2, placements.Count);
+        Assert.Equal(new int[] { 0, 1 }, placements.Select(p => p.Start));
+        Assert.All(placements, p => { Assert.Equal(1, p.Length); Assert.Equal(12, p.Width, 6); });
+        Assert.Equal(new double[] { 8, 22 }, placements.Select(p => p.Left));
+        Assert.Contains(layout.RenderPage(0).Pixels.ToArray(), value => value == 0);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 150, PageHeightPoints = 150, MarginPoints = 6, FontSizePoints = 15 }));
+        var letters = new PdfPageContentReader(pdf).Read(0).Letters;
+        Assert.Equal("fi", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.Equal(new double[] { 6, 16.5 }, letters.Select(letter => letter.StartBaseLine.X));
+        Assert.Equal(original, source);
+    }
+
+    [Fact]
     public void VisibilityProjectionKeepsVisibleLigatureClustersAtomic()
     {
         byte[] source = Book("<p>f<span style='visibility:hidden'>fi</span>fi</p>"), original = source.ToArray();

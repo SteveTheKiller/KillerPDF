@@ -138,7 +138,7 @@ public sealed partial class EpubDocument
             anchors.Add((spineIndex, anchor.Id, Math.Min(anchor.Offset, text.Length)));
         }
         var font = options.DefaultFont;
-        var substitutions = new Dictionary<(TrueTypeFont Font, bool SmallCaps), OpenTypeGlyphSubstitution>();
+        var substitutions = new Dictionary<(TrueTypeFont Font, bool SmallCaps, bool Ligatures), OpenTypeGlyphSubstitution>();
         var readers = new Dictionary<TrueTypeFont, TrueTypeOutlineReader> { [font] = reader };
         int fontWork = 0;
         int decorationWork = 0;
@@ -177,7 +177,7 @@ public sealed partial class EpubDocument
             var shaped = run.Select(cluster => (cluster.Start, cluster.Length,
                 Glyph: cluster.Glyphs[0].GlyphId, cluster.Substituted)).ToList();
             if (latin)
-                foreach (var lookup in Substitution(font, smallCaps).Lookups)
+                foreach (var lookup in Substitution(font, smallCaps, (owner?.Style ?? content.DefaultStyle).LetterSpacing == 0).Lookups)
                 {
                     var selected = new List<(int Start, int Length, ushort Glyph, bool Substituted)>(shaped.Count);
                     for (int at = 0; at < shaped.Count; at++)
@@ -241,10 +241,10 @@ public sealed partial class EpubDocument
             or >= '\uFB00' and <= '\uFB06';
         EpubGlyphCluster Cluster(int start, int length, ushort glyph, bool substituted = false) => new(start, length, font,
             [new(glyph, font.GetAdvanceWidth(glyph) / (double)font.UnitsPerEm, 0, 0)], substituted);
-        OpenTypeGlyphSubstitution Substitution(TrueTypeFont selected, bool smallCaps)
+        OpenTypeGlyphSubstitution Substitution(TrueTypeFont selected, bool smallCaps, bool ligatures)
         {
-            if (!substitutions.TryGetValue((selected, smallCaps), out var value))
-                substitutions.Add((selected, smallCaps), value = new OpenTypeGlyphSubstitution(selected, cancellationToken, smallCaps));
+            if (!substitutions.TryGetValue((selected, smallCaps, ligatures), out var value))
+                substitutions.Add((selected, smallCaps, ligatures), value = new OpenTypeGlyphSubstitution(selected, cancellationToken, smallCaps, ligatures));
             if (smallCaps && !value.HasSmallCaps)
                 throw new NotSupportedException("Native EPUB synthetic small capitals are not implemented for fonts without the selected feature.");
             return value;
@@ -586,8 +586,11 @@ public sealed partial class EpubDocument
                     var image = ReadNativeImage(resource.Href, reference.Source, imageCache, ref imageBytes, cancellationToken);
                     var imageSize = ImageSize(image, reference.Owner);
                     if (imageSize.Width == 0) continue;
-                    if (imageSize.Width > contentRight - left)
+                    double imageTracking = line.Count == 0 || line[^1].Image is not null ? 0
+                        : (line[^1].Style.LetterSpacing + reference.Owner.Style.LetterSpacing) / 2;
+                    if (imageTracking + imageSize.Width > contentRight - left)
                         throw new NotSupportedException("The native EPUB image exceeds the available line width.");
+                    left += imageTracking;
                     line.Add((index, 0, left, imageSize.Width, FontFor(reference.Owner.Style), null, image,
                         reference.Owner.Style, lineBlock.Source.Style, reference.Owner));
                     left += imageSize.Width;
@@ -618,22 +621,33 @@ public sealed partial class EpubDocument
                 PdfGlyphOutline outline = selectedReader.Outline(glyph)
                     ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
                 double width = cluster.Advance * style.FontSize;
+                double tracking = line.Count == 0 ? 0 : (line[^1].Style.LetterSpacing + style.LetterSpacing) / 2;
                 if (character == ' ')
                 {
                     firstIndentedWord = false;
                     // Each collapsed separator scans only the following word, keeping lookahead linear.
                     double wordWidth = 0;
+                    double leadingTracking = 0, previousTracking = style.LetterSpacing;
+                    bool firstCharacter = true;
                     for (int next = at + 1; next <= last; next++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         var nextAtom = sequence.Atoms[next];
                         if (nextAtom.Reference is not null || nextAtom.IsSpace) break;
                         if (clusters.TryGetValue(nextAtom.Offset, out var nextCluster))
-                            wordWidth += nextCluster.Advance * StyleAt(nextAtom.Offset).FontSize;
+                        {
+                            var nextStyle = StyleAt(nextAtom.Offset);
+                            double between = (previousTracking + nextStyle.LetterSpacing) / 2;
+                            if (firstCharacter) leadingTracking = between;
+                            else wordWidth += between;
+                            wordWidth += nextCluster.Advance * nextStyle.FontSize;
+                            previousTracking = nextStyle.LetterSpacing;
+                            firstCharacter = false;
+                        }
                     }
                     if (wordWidth > contentWidth)
                         throw new NotSupportedException("The native EPUB word exceeds the available line width.");
-                    if (left + width + wordWidth > contentRight)
+                    if (tracking + width + leadingTracking + wordWidth > contentRight - left)
                     {
                         FlushLine(finalLine: false);
                         if (top + options.FontSize > options.PageHeight - options.Margin)
@@ -646,8 +660,9 @@ public sealed partial class EpubDocument
                         continue;
                     }
                 }
-                if (left + width > contentRight && !firstIndentedWord)
+                if (tracking + width > contentRight - left && !firstIndentedWord)
                     throw new NotSupportedException("The native EPUB word exceeds the available line width.");
+                left += tracking;
                 line.Add((index, cluster.Length, left, width, cluster.Font, atom.HasSource ? outline : null, null, style,
                     lineBlock.Source.Style, atom.Owner));
                 left += width;
@@ -841,7 +856,8 @@ public sealed partial class EpubDocument
                     var selected = FontFor(owner.Style);
                     double fragmentTop = baseline - selected.Ascender * owner.Style.FontSize / selected.UnitsPerEm;
                     double fragmentBottom = baseline - selected.Descender * owner.Style.FontSize / selected.UnitsPerEm;
-                    if (item.Image is { } image) fragmentTop = Math.Min(fragmentTop, baseline - image.Height);
+                    if (item.Image is { } image)
+                        fragmentTop = Math.Min(fragmentTop, baseline - image.Height * item.Width / image.Width);
                     if (fragmentIndices.TryGetValue(owner, out int at))
                     {
                         var fragment = fragments[at];

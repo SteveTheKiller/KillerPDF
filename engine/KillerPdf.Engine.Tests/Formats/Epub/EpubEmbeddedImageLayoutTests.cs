@@ -13,6 +13,48 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubEmbeddedImageLayoutTests
 {
     [Fact]
+    public void InlineBackgroundUsesScaledImageHeightWithoutPaintingAboveTheLine()
+    {
+        byte[] png = RgbPng(scanlines: new byte[12 * (1 + 12 * 3)], size: 12);
+        var book = EpubDocument.Open(Package(png,
+            "<p><span style='background-color:red'><img style='max-width:6px' src='../images/check.png' alt=''/></span></p>"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 16, font) { Margin = 2, FontSize = 10 });
+        var native = layout.RenderPage(0);
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, native.Pixels.Slice(3 * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, native.Pixels.Slice((2 * 16 + 3) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, native.Pixels.Slice((4 * 16 + 3) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 12, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var image = Assert.Single(new PdfPageContentReader(pdf).Read(0).Images);
+        Assert.Equal(12, image.PixelHeight);
+        Assert.Equal(4.5, image.BoundingBox.Height, 6);
+        var saved = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(16, 16));
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, saved.Pixels.Slice(3 * 4, 4).ToArray());
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, saved.Pixels.Slice((2 * 16 + 3) * 4, 4).ToArray());
+        Assert.Equal(png, book.ReadResource("EPUB/images/check.png"));
+    }
+
+    [Fact]
+    public void LetterSpacingTreatsConsecutiveInlineImagesAsOneAtomicRun()
+    {
+        var book = EpubDocument.Open(Package(RgbPng(),
+            "<p style='letter-spacing:2px'>A<img src='../images/check.png' alt=''/><img src='../images/check.png' alt=''/>A</p>"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(24, 16, font) { Margin = 2, FontSize = 10 });
+        Assert.Equal(new double[] { 2, 16 }, layout.Pages[0].TextPlacements.Select(p => p.Left));
+        var native = layout.RenderPage(0);
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, native.Pixels.Slice((8 * 24 + 8) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, native.Pixels.Slice((8 * 24 + 10) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, native.Pixels.Slice((8 * 24 + 12) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 18, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var content = new PdfPageContentReader(pdf).Read(0);
+        Assert.Equal(new double[] { 1.5, 12 }, content.Letters.Select(letter => letter.StartBaseLine.X));
+        Assert.Equal(new double[] { 7.5, 9 }, content.Images.Select(image => image.BoundingBox.Left));
+    }
+
+    [Fact]
     public void PercentageImageFitsTheFractionalContainingWidthAtBothSeams()
     {
         byte[] png = RgbPng(scanlines: new byte[800 * (1 + 800 * 3)], size: 800);

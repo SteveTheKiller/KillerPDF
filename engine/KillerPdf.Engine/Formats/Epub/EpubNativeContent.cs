@@ -18,6 +18,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal bool SmallCaps { get; init; }
         internal string TextAlign { get; init; } = "left";
         internal double TextIndent { get; init; }
+        internal double LetterSpacing { get; init; }
         internal bool TextIndentPercentage { get; init; }
         internal bool PageBreakBefore { get; init; }
         internal bool PageBreakAfter { get; init; }
@@ -590,6 +591,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         int visibilitySpecificity = -1;
         string? decoration = null;
         int decorationSpecificity = -1;
+        MarginLength? letterSpacing = null;
+        int letterSpacingSpecificity = -1;
         var padding = new MarginLength?[4];
         int[] paddingSpecificities = [-1, -1, -1, -1];
         var margins = new MarginLength?[4];
@@ -615,6 +618,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
             if (!matches) continue;
             int specificity = rule.Specificity;
+            if (rule.Properties.LetterSpacing is { } tracking && specificity >= letterSpacingSpecificity)
+            {
+                letterSpacing = tracking;
+                letterSpacingSpecificity = specificity;
+            }
             if (rule.Properties.TextDecoration is { } selectedDecoration && specificity >= decorationSpecificity)
             {
                 decoration = selectedDecoration;
@@ -720,7 +728,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         paddingSpecificities[side] = specificity;
                     }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth, pageBreakAfter);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth, pageBreakAfter) { LetterSpacing = letterSpacing };
     }
 
     private void CountSelectorWork(int amount)
@@ -754,6 +762,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         BorderSide? TopBorder = null, BoxWidth? Width = null, string? Visibility = null, string? TextDecoration = null,
         BoxWidth? MaximumWidth = null, bool? PageBreakAfter = null)
     {
+        internal MarginLength? LetterSpacing { get; init; }
         internal CssProperties Override(CssProperties inline) =>
             new(inline.FontSize ?? FontSize, inline.LineHeight ?? LineHeight,
                 inline.Color ?? Color, inline.Background ?? Background, inline.FontFamilies ?? FontFamilies,
@@ -762,7 +771,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 inline.FontWeight ?? FontWeight, inline.TextIndent ?? TextIndent, inline.FontVariant ?? FontVariant,
                 inline.TopBorder ?? TopBorder, inline.Width ?? Width, inline.Visibility ?? Visibility,
                 inline.TextDecoration ?? TextDecoration, inline.MaximumWidth ?? MaximumWidth,
-                inline.PageBreakAfter ?? PageBreakAfter);
+                inline.PageBreakAfter ?? PageBreakAfter) { LetterSpacing = inline.LetterSpacing ?? LetterSpacing };
 
         private static MarginLength?[]? MergeMargins(MarginLength?[]? earlier, MarginLength?[]? later) =>
             later is null ? earlier : Enumerable.Range(0, 4).Select(side => later[side] ?? earlier?[side]).ToArray();
@@ -770,6 +779,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal Style Apply(Style inherited, double maximum)
         {
             double size = FontSize?.Compute(inherited.FontSize, maximum) ?? inherited.FontSize;
+            double tracking = LetterSpacing is { } spacing ? spacing.Value * (spacing.Em ? size : 1) : inherited.LetterSpacing;
+            if (!double.IsFinite(tracking) || tracking < 0 || tracking > 32768)
+                throw new NotSupportedException("Native EPUB letter spacing exceeds the supported dimensions.");
             double indent = TextIndent is { Inherit: false } length ? (length.Em ? length.Value * size : length.Value) : inherited.TextIndent;
             bool indentPercentage = TextIndent is { Inherit: false } specified ? specified.Percentage : inherited.TextIndentPercentage;
             if (!double.IsFinite(indent) || Math.Abs(indent) > 32768)
@@ -782,6 +794,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             {
                 LineHeightFactor = factor, FontFamilies = FontFamilies ?? inherited.FontFamilies,
                 FontWeight = FontWeight ?? inherited.FontWeight,
+                LetterSpacing = tracking,
                 Hidden = Visibility is null or "inherit" or "unset" ? inherited.Hidden : Visibility == "hidden",
                 Underline = TextDecoration == "inherit" ? inherited.Underline : TextDecoration == "underline",
                 SmallCaps = FontVariant is null or "inherit" or "unset" ? inherited.SmallCaps : FontVariant == "small-caps",
@@ -815,6 +828,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         DisplayKind? block = null;
         bool? pageBreakAfter = null;
         double? fontWeight = null;
+        MarginLength? letterSpacing = null;
         foreach (string declaration in declarations.Split(';'))
         {
             string part = declaration.Trim();
@@ -823,6 +837,14 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (colon < 0) throw new NotSupportedException("Native EPUB CSS declaration is unsupported.");
             string property = part[..colon].Trim().ToLowerInvariant();
             string value = part[(colon + 1)..].Trim();
+            if (property == "letter-spacing")
+            {
+                letterSpacing = value.Equals("normal", StringComparison.OrdinalIgnoreCase)
+                    ? new MarginLength(0, false) : ParseMarginLength(value);
+                if (letterSpacing.Value.Percentage)
+                    throw new NotSupportedException("Native EPUB letter spacing requires px or em lengths.");
+                continue;
+            }
             if (property == "font-variant")
             {
                 fontVariant = value.ToLowerInvariant();
@@ -1060,7 +1082,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth, pageBreakAfter);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth, pageBreakAfter) { LetterSpacing = letterSpacing };
     }
 
     private static BorderSide ParseTopBorder(string value)

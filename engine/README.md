@@ -217,6 +217,14 @@ same placement. Active content, external references, other drawing elements,
 transforms, custom SVG styles and additional image attributes are diagnosed.
 This is a bounded cover subset, not general SVG rendering.
 
+Initial `letter-spacing` accepts nonnegative px/em lengths and `normal`. Lengths
+compute on the declaring font before inheritance. Adjacent inline values contribute
+half their distance, with no spacing at line edges. Whole-word lookahead includes
+tracking; consecutive inline images form one atomic run. Nonzero tracking suppresses
+optional Latin ligatures while retaining selected font-provided small caps.
+Negative lengths and percentages remain diagnosed. Inline image backgrounds use
+the displayed image height, preserving the original raster dimensions for PDF.
+
 Initial `text-decoration` supports underline, none and CSS-wide reset keywords.
 Ancestor decorations retain their own font metrics and color across descendants;
 a child reset does not erase an ancestor's underline. Visibility applies to the

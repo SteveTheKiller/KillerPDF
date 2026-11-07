@@ -12,7 +12,8 @@ internal sealed class OpenTypeGlyphSubstitution
     private int _work;
     private readonly CancellationToken _cancellation;
 
-    internal OpenTypeGlyphSubstitution(TrueTypeFont font, CancellationToken cancellation, bool smallCaps = false)
+    internal OpenTypeGlyphSubstitution(TrueTypeFont font, CancellationToken cancellation, bool smallCaps = false,
+        bool ligatures = true)
     {
         _cancellation = cancellation;
         var selected = new List<IReadOnlyList<SubstitutionRule>>();
@@ -43,7 +44,7 @@ internal sealed class OpenTypeGlyphSubstitution
             if (index >= featureCount) throw Invalid();
             int record = features + 2 + index * 6;
             uint featureTag = Tag(record);
-            if (featureTag != 0x6C696761 && !(smallCaps && featureTag == 0x736D6370))
+            if (!(ligatures && featureTag == 0x6C696761) && !(smallCaps && featureTag == 0x736D6370))
             {
                 if (index == required)
                     throw new NotSupportedException("The EPUB GSUB required feature is not implemented.");
