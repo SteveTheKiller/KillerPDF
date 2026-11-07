@@ -226,12 +226,23 @@ public sealed class PdfPageContentReader
     public PdfPageContent Read(int pageIndex, CancellationToken cancellationToken = default) =>
         Read(pageIndex, null, cancellationToken);
 
+    /// <summary>Reads document-bound handles for the image occurrences on a page.</summary>
+    public IReadOnlyList<PdfImagePlacementSelection> ReadImagePlacements(
+        int pageIndex, CancellationToken cancellationToken = default)
+    {
+        var selections = new List<PdfImagePlacementSelection>();
+        Read(pageIndex, null, cancellationToken, selections);
+        return selections.AsReadOnly();
+    }
+
     /// <summary>Extracts what one annotation appearance stream draws, with the page's resources behind its own.</summary>
     internal PdfPageContent ReadAppearance(int pageIndex, PdfStream appearance, CancellationToken cancellationToken = default) =>
         Read(pageIndex, appearance, cancellationToken);
 
-    private PdfPageContent Read(int pageIndex, PdfStream? appearance, CancellationToken cancellationToken)
+    private PdfPageContent Read(int pageIndex, PdfStream? appearance, CancellationToken cancellationToken,
+        List<PdfImagePlacementSelection>? selections = null)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (pageIndex < 0 || pageIndex >= PageCount) throw new ArgumentOutOfRangeException(nameof(pageIndex));
         var page = _tree.Pages[pageIndex];
         PdfContentBounds box = PdfPageInformation.EffectiveBox(_document, page);
@@ -242,6 +253,11 @@ public sealed class PdfPageContentReader
         var fonts = new Dictionary<string, PdfExtractionFont>();
         var fontNames = new Dictionary<PdfDictionary, string>();
         var images = new List<PdfExtractedImage>();
+        var rootInstructions = new List<PdfContentInstruction>();
+        var pendingSelections = new List<(PdfExtractedImage Image, int Ordinal, PdfStream? Resource, string? Reason)>();
+        string? removalRefusal = _document.UsesCompatibilityRecovery ? "CompatibilityRecovery"
+            : page.Dictionary.ContainsKey(Name("Group")) ? "PageTransparencyGroup"
+            : _tree.Catalog.ContainsKey(Name("OCProperties")) ? "OptionalContent" : null;
         var paths = new List<PdfExtractedPath>();
         var shadings = new List<PdfExtractedShading>();
         var diagnostics = new HashSet<string>();
@@ -262,6 +278,15 @@ public sealed class PdfPageContentReader
         else if (page.Dictionary.TryGetValue(Name("Contents"), out var content))
             Walk(ContentBytes(content), resources, initial, new(0, 0, box.Width, box.Height), 0);
         var text = PdfTextContentReader.ReadInstructions(instructions, fonts, cancellationToken: cancellationToken);
+        if (selections is not null && appearance is null)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (diagnostics.Count != 0) removalRefusal ??= "IncompletePageState";
+            var snapshot = Array.AsReadOnly(rootInstructions.ToArray());
+            foreach (var pending in pendingSelections)
+                selections.Add(new(_document, pageIndex, pending.Image, snapshot,
+                    pending.Ordinal, pending.Resource, removalRefusal ?? pending.Reason));
+        }
         return new PdfPageContent(box.Width, box.Height,
             text.Select(t => new PdfExtractedLetter(t.Text, t.Bounds, t.FontName, t.FontSize,
                 t.PointSize, t.Origin, t.AdvanceEnd) { MarkedContentId = t.MarkedContentId }),
@@ -370,6 +395,23 @@ public sealed class PdfPageContentReader
                 _document.UsesCompatibilityRecovery, cancellationToken, diagnostics))
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                int rootOrdinal = -1;
+                if (selections is not null && appearance is null)
+                {
+                    if (depth == 0)
+                    {
+                        rootOrdinal = rootInstructions.Count;
+                        rootInstructions.Add(instruction);
+                    }
+                    // This first slice refuses the entire page for complex state, even inside q/Q.
+                    if (instruction.Operator is "W" or "W*" or "gs" or "BMC" or "BDC" or "EMC" or "MP" or "DP")
+                        removalRefusal ??= "ComplexPageState";
+                    else if (instruction.Operator == "Tr" && (instruction.Operands.Count != 1
+                        || Number(instruction.Operands[0]) is >= 4 or < 0 or > 7))
+                        removalRefusal ??= "TextClipping";
+                    else if (!RemovalKnownOperators.Contains(instruction.Operator))
+                        removalRefusal ??= "UnknownPageState";
+                }
                 if (++visitedInstructions > 1_000_000)
                     throw new FormatException("Expanded page instruction limit exceeded.");
                 if (instruction.Operator is "BMC" or "BDC") markedContentDepth++;
@@ -418,7 +460,7 @@ public sealed class PdfPageContentReader
                         var subtype = xobject.Dictionary.TryGetValue(Name("Subtype"), out var type) ? Resolve(type) as PdfName : null;
                         if (subtype?.ValueAsLatin1() == "Image")
                         {
-                            Image(ctm, clip, xName.ValueAsLatin1(), false, xobject.Dictionary, current, xobject);
+                            Image(ctm, clip, xName.ValueAsLatin1(), false, xobject.Dictionary, current, xobject, rootOrdinal);
                             continue;
                         }
                         if (subtype?.ValueAsLatin1() != "Form") continue;
@@ -458,7 +500,7 @@ public sealed class PdfPageContentReader
                     case "BI":
                         if (args.Count != 1 || args[0] is not PdfDictionary inlineImage)
                             throw new FormatException("Invalid inline image dictionary.");
-                        Image(ctm, clip, null, true, inlineImage, current);
+                        Image(ctm, clip, null, true, inlineImage, current, ordinal: rootOrdinal);
                         continue;
                     case "sh":
                         if (args.Count != 1 || args[0] is not PdfName shadingName
@@ -543,7 +585,7 @@ public sealed class PdfPageContentReader
             };
         }
         void Image(Matrix matrix, PdfContentBounds clip, string? resourceName, bool isInline, PdfDictionary dictionary,
-            PdfDictionary imageResources, PdfStream? source = null)
+            PdfDictionary imageResources, PdfStream? source = null, int ordinal = -1)
         {
             var bounds = Intersect(Transform(new(0, 0, 1, 1), matrix), clip);
             double renderedWidth = Math.Sqrt(matrix.A * matrix.A + matrix.B * matrix.B);
@@ -551,12 +593,23 @@ public sealed class PdfPageContentReader
             int pixelWidth = ImageDimension(dictionary, "Width");
             int pixelHeight = ImageDimension(dictionary, "Height");
             if (bounds.Width > 0 && bounds.Height > 0)
-                images.Add(new(bounds, resourceName, isInline, pixelWidth, pixelHeight, renderedWidth, renderedHeight)
+            {
+                var image = new PdfExtractedImage(bounds, resourceName, isInline, pixelWidth, pixelHeight, renderedWidth, renderedHeight)
                 {
                     Source = source,
                     Placement = matrix,
                     Resources = imageResources
-                });
+                };
+                images.Add(image);
+                if (selections is not null && appearance is null)
+                {
+                    string? reason = isInline ? "InlineImage" : ordinal < 0 ? "NestedImage"
+                        : dictionary.ContainsKey(Name("Mask")) || dictionary.ContainsKey(Name("SMask"))
+                            || dictionary.ContainsKey(Name("ImageMask")) ? "ImageMask"
+                        : dictionary.ContainsKey(Name("OC")) ? "OptionalContent" : null;
+                    pendingSelections.Add((image, ordinal, source, reason));
+                }
+            }
         }
         int ImageDimension(PdfDictionary dictionary, string key)
         {
@@ -570,6 +623,15 @@ public sealed class PdfPageContentReader
             return number > 0 && number <= int.MaxValue && number == Math.Truncate(number) ? (int)number : 0;
         }
     }
+
+    private static readonly HashSet<string> RemovalKnownOperators = new(StringComparer.Ordinal)
+    {
+        "b", "b*", "B", "B*", "BI", "BT", "c", "cm", "CS", "cs", "d", "Do", "ET",
+        "f", "F", "f*", "G", "g", "h", "i", "j", "J", "K", "k", "l", "m", "M",
+        "n", "q", "Q", "re", "RG", "rg", "ri", "s", "S", "SC", "SCN", "sc", "scn",
+        "sh", "T*", "Tc", "Td", "TD", "Tf", "Tj", "TJ", "TL", "Tm", "Tr", "Ts", "Tw",
+        "Tz", "v", "w", "y", "'", "\""
+    };
 
     private PdfObject Resolve(PdfObject value)
     {

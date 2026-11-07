@@ -78,6 +78,15 @@ Existing files can be changed through byte-preserving incremental updates or rew
 
 Application save pipelines can also repair harmless serialization artifacts without rebuilding a document. The save sanitizer removes empty outline roots and invalid direct crop boxes through one bounded incremental revision while preserving valid files byte for byte.
 
+`PdfPageContentReader.ReadImagePlacements` returns immutable occurrence selections
+bound to that exact document instance. `PdfImagePlacementEditor.Remove` removes one
+supported top-level image invocation in a detached revision, preserving repeated
+uses of the same image resource and unrelated page content. `CanRemove` describes
+content eligibility; editing separately checks permissions, certification and
+tagged structure. Nested, inline, masked and optional-content images, recovery
+documents and complex page state remain explicitly unsupported. These APIs do not
+provide image extraction or application selection tools.
+
 ### Author complete documents
 
 The authoring model covers pages, content streams, graphics state, paths, text, fonts, images, color spaces, shadings, tiling patterns, transparency, resources, metadata, navigation, optional content, attachments, and viewer behavior. The API uses typed PDF concepts instead of exposing raw application state.
