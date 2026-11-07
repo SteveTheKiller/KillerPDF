@@ -386,6 +386,7 @@ public sealed class PdfPageContentReader
         void Walk(byte[] bytes, PdfDictionary current, Matrix ctm, PdfContentBounds clip, int depth)
         {
             if (depth >= 32) throw new FormatException("Form nesting limit exceeded.");
+            int entryMarkedContentDepth = markedContentDepth;
             var stack = new Stack<(Matrix Matrix, PdfContentBounds Clip)>();
             var path = new List<PdfContentBounds>();
             var pathSegments = new List<PdfExtractedPathSegment>();
@@ -403,8 +404,18 @@ public sealed class PdfPageContentReader
                         rootOrdinal = rootInstructions.Count;
                         rootInstructions.Add(instruction);
                     }
-                    // This first slice refuses the entire page for complex state, even inside q/Q.
-                    if (instruction.Operator is "W" or "W*" or "gs" or "BMC" or "BDC" or "EMC" or "MP" or "DP")
+                    // Ordinary marked-content tags preserve paint state and instruction ownership.
+                    if (instruction.Operator == "BMC")
+                    {
+                        if (instruction.Operands.Count != 1 || instruction.Operands[0] is not PdfName tag
+                            || tag.ValueAsLatin1() == "OC") removalRefusal ??= "ComplexPageState";
+                    }
+                    else if (instruction.Operator == "EMC")
+                    {
+                        if (instruction.Operands.Count != 0 || markedContentDepth <= entryMarkedContentDepth)
+                            removalRefusal ??= "ComplexPageState";
+                    }
+                    else if (instruction.Operator is "W" or "W*" or "gs" or "BDC" or "MP" or "DP")
                         removalRefusal ??= "ComplexPageState";
                     else if (instruction.Operator == "Tr" && (instruction.Operands.Count != 1
                         || Number(instruction.Operands[0]) is >= 4 or < 0 or > 7))
@@ -555,6 +566,8 @@ public sealed class PdfPageContentReader
                 }
                 Add(instruction);
             }
+            if (selections is not null && appearance is null && markedContentDepth != entryMarkedContentDepth)
+                removalRefusal ??= "ComplexPageState";
             if (stack.Count != 0)
             {
                 diagnostics.Add("Unclosed graphics states were restored at the end of the content stream.");

@@ -150,7 +150,6 @@ public sealed class PdfImagePlacementRemovalTests
     [Theory]
     [InlineData("q 0 0 100 100 re W n Q ", "", "", "ComplexPageState")]
     [InlineData("/Missing gs ", "", "", "ComplexPageState")]
-    [InlineData("/Span BMC EMC ", "", "", "ComplexPageState")]
     [InlineData("BT 4 Tr ET ", "", "", "TextClipping")]
     [InlineData("BT 5 Tr ET ", "", "", "TextClipping")]
     [InlineData("BT 6 Tr ET ", "", "", "TextClipping")]
