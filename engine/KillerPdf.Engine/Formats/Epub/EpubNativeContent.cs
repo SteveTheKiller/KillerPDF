@@ -140,6 +140,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "html" => parent is null && xml.Depth == 0,
             "head" or "body" => parent?.Name == "html",
             "title" => parent?.Name == "head",
+            "meta" => parent?.Name == "head" && (xml.GetAttribute("http-equiv") is null
+                || string.Equals(xml.GetAttribute("http-equiv"), "Content-Style-Type", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(xml.GetAttribute("content"), "text/css", StringComparison.OrdinalIgnoreCase)),
             "link" => parent?.Name == "head" && xml.GetAttribute("rel") is "icon" or "stylesheet"
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
             "div" or "p" => parent?.Name is "body" or "div",
@@ -170,6 +173,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             else if (name == "link" && xml.NamespaceURI == "" && xml.LocalName is "href" or "rel" or "type" or "id")
             {
                 // Packaged references are validated separately from body painting.
+            }
+            else if (name == "meta" && xml.NamespaceURI == "" && xml.LocalName is "name" or "content" or "http-equiv")
+            {
+                // Named metadata and the CSS content-style declaration do not paint page content.
             }
             else if (name == "a" && xml.NamespaceURI == "" && xml.LocalName == "href")
             {

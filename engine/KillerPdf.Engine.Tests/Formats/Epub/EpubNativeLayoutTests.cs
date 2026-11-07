@@ -12,6 +12,68 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubNativeLayoutTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HeadMetadataStaysOutsideNativeAndConvertedPageContent(bool convert)
+    {
+        const string metadata = "<meta content='text/css' http-equiv='Content-Style-Type'/><meta name='generator' content='Book fixture'/>";
+        byte[] source = Book("<p>A</p>", headMetadata: metadata), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        Assert.Equal("A", book.ReadText(0));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        if (convert)
+        {
+            var pdf = KillerPdf.Engine.Documents.PdfDocument.Open(book.ConvertToPdf(
+                new EpubPdfConversionOptions(font) { PageWidthPoints = 22.5, PageHeightPoints = 12,
+                    MarginPoints = 1.5, FontSizePoints = 7.5 }));
+            var reader = new KillerPdf.Engine.Documents.PdfPageContentReader(pdf);
+            Assert.Equal(1, reader.PageCount);
+            var letter = Assert.Single(reader.Read(0).Letters);
+            Assert.Equal("A", letter.Value);
+            Assert.Equal(1.5, letter.StartBaseLine.X);
+            Assert.Equal(4.5, letter.StartBaseLine.Y);
+        }
+        else
+        {
+            var page = Assert.Single(book.CreateLayout(new EpubLayoutOptions(30, 16, font)
+                { FontSize = 10, Margin = 2 }).Pages);
+            Assert.Equal("A", page.Text);
+            Assert.Equal(new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10), Assert.Single(page.TextPlacements));
+        }
+        Assert.Equal(original, source);
+        Assert.Contains(metadata, Encoding.UTF8.GetString(book.ReadResource("EPUB/text.xhtml")), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("<meta http-equiv='refresh' content='0;url=https://example.invalid/'/>", false)]
+    [InlineData("<meta http-equiv='Content-Style-Type' content='text/less'/>", false)]
+    [InlineData("<meta name='generator' content='fixture' onclick='alert(1)'/>", false)]
+    [InlineData("<meta name='generator' content='fixture'/>", true)]
+    public void UnsupportedMetadataPragmasAttributesAndBodyPlacementRemainDiagnosed(string metadata, bool inBody)
+    {
+        byte[] source = Book(inBody ? metadata + "<p>A</p>" : "<p>A</p>",
+            headMetadata: inBody ? null : metadata), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(30, 16, font)
+            { FontSize = 10, Margin = 2 }));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        Assert.Equal(original, source);
+    }
+
+    [Fact]
+    public void HeadMetadataStylePragmaIsCaseInsensitive()
+    {
+        var book = EpubDocument.Open(Book("<p>A</p>", headMetadata:
+            "<meta http-equiv='cOnTeNt-StYlE-tYpE' content='TeXt/CsS'/>"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var page = Assert.Single(book.CreateLayout(new EpubLayoutOptions(30, 16, font)
+            { FontSize = 10, Margin = 2 }).Pages);
+        Assert.Equal("A", page.Text);
+        Assert.Equal(new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10), Assert.Single(page.TextPlacements));
+    }
+
+    [Theory]
     [InlineData("background-color:transparent", "body{background-color:#800000}")]
     [InlineData("background-color:TrAnSpArEnT", "body{background-color:#800000}")]
     [InlineData(null, "body{background-color:#800000}body{background-color:transparent}")]
@@ -480,7 +542,7 @@ public sealed class EpubNativeLayoutTests
         Assert.Equal(1f, frame.Pixels[offset + 3]);
     }
 
-    private static byte[] Book(string body = "<p>A A</p>", string? stylesheet = null, int stylesheetReferences = 1, string? bodyStyle = null)
+    private static byte[] Book(string body = "<p>A A</p>", string? stylesheet = null, int stylesheetReferences = 1, string? bodyStyle = null, string? headMetadata = null)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -500,7 +562,7 @@ public sealed class EpubNativeLayoutTests
                 </package>
                 """);
             Add("EPUB/text.xhtml", $"""
-                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native layout</title>{stylesheetLink}</head><body{(bodyStyle is null ? "" : " style=\"" + bodyStyle + "\"")}>{body}</body></html>
+                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native layout</title>{stylesheetLink}{headMetadata}</head><body{(bodyStyle is null ? "" : " style=\"" + bodyStyle + "\"")}>{body}</body></html>
                 """);
             Add("EPUB/nav.xhtml", """
                 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text.xhtml">Native layout</a></li></ol></nav></body></html>

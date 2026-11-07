@@ -200,6 +200,11 @@ selection and accessibility integration still require implementation and runtime
 
 ## Native EPUB layout (1.9.3 development)
 
+Named head metadata and the legacy `Content-Style-Type=text/css` declaration
+remain outside page text and do not execute directives. Other pragmas, unknown
+metadata attributes and metadata in body content remain diagnosed. Original
+XHTML resources remain unchanged.
+
 Inline text anchors preserve canonical package-relative `LinkTarget` values on
 native text placements. Initial `:link` matching uses XHTML anchors with an
 unqualified href and class-level specificity. PDF conversion writes local page
