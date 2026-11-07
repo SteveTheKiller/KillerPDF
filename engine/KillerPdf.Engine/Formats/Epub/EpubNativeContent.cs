@@ -39,6 +39,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal static bool IsParagraphName(string value) => value is "p" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "hr";
         internal bool IsParagraph => IsParagraphName(Name);
         internal Element? Parent { get; } = parent;
+        internal Element? TableCellOwner { get; } = parent?.Name == "td" ? parent : parent?.TableCellOwner;
         internal Style Style { get; } = style;
         internal DisplayKind Display { get; init; } = block ? DisplayKind.Block : DisplayKind.Inline;
         internal bool IsBlock => Display is DisplayKind.Block or DisplayKind.Table or DisplayKind.TableRowGroup or DisplayKind.TableRow or DisplayKind.TableCell;
@@ -124,7 +125,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private MarginLength?[]? _bodyPadding;
     private double _bodyFontSize = fallbackSize;
     internal List<SourceCharacter?> Characters { get; } = new();
-    internal List<(string Id, int Offset)> Anchors { get; } = new();
+    internal List<(string Id, int Offset, Element Owner)> Anchors { get; } = new();
+    internal Element? CurrentElement { get; private set; }
     internal List<InlineReference> Inlines { get; } = new();
     internal Element? ImageElement { get; private set; }
     internal SourceCharacter? LineBreakSource { get; private set; }
@@ -332,6 +334,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             Border = suppressed ? null : properties.Border, HeightPercentage = suppressed ? null : properties.Height?.Percentage,
             IsDisplayNone = suppressed
         };
+        CurrentElement = element;
         CurrentElementDisplayNone = element.IsDisplayNone;
         parent?.Children.Add(element);
         if (name == "body") Body = element;

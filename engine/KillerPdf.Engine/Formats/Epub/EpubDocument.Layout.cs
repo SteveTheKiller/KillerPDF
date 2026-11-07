@@ -35,6 +35,7 @@ public sealed partial class EpubDocument
             throw new NotSupportedException("Native EPUB layout requires linear, reflowable, left-to-right spine items.");
         var pages = new List<EpubLayoutPage>();
         var anchors = new List<(int SpineIndex, string Id, int Offset)>();
+        var cellAnchors = new Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination>();
         var reader = new TrueTypeOutlineReader(options.DefaultFont);
         var familyFonts = new Dictionary<EpubFontFamily, TrueTypeFont?>();
         var faceFonts = new Dictionary<EpubFontFaceRequest, EpubFontFaceResult?>();
@@ -48,12 +49,12 @@ public sealed partial class EpubDocument
         for (int spineIndex = 0; spineIndex < Spine.Count; spineIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors,
+            AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors, cellAnchors,
                 ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences,
                 imageCache, ref retainedImageBytes, ResolveFamily, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors);
+        return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors, cellAnchors);
 
         TrueTypeFont? ResolveFamily(EpubFontFamily? family, double weight)
         {
@@ -102,7 +103,9 @@ public sealed partial class EpubDocument
 
     private void AppendNativeSpinePages(int spineIndex, EpubLayoutOptions options, double availableWidth,
         TrueTypeOutlineReader reader, List<EpubLayoutPage> destinationPages,
-        List<(int SpineIndex, string Id, int Offset)> anchors, ref int remainingTextLength,
+        List<(int SpineIndex, string Id, int Offset)> anchors,
+        Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> cellAnchors,
+        ref int remainingTextLength,
         ref int remainingStylesheetBytes, ref int remainingStylesheetReferences,
         Dictionary<string, PngDecodedImage> imageCache, ref long retainedImageBytes,
         Func<EpubFontFamily?, double, TrueTypeFont?> resolveFamily, CancellationToken cancellationToken)
@@ -130,12 +133,20 @@ public sealed partial class EpubDocument
         if (text.Length > remainingTextLength)
             throw new InvalidDataException("Native EPUB text exceeds its 100,000 placement limit.");
         remainingTextLength -= text.Length;
+        var anchorsByCell = new Dictionary<EpubNativeContent.Element, List<(string Id, int Offset)>>();
         foreach (var anchor in content.Anchors)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (anchors.Count >= 100_000)
                 throw new InvalidDataException("Native EPUB anchors exceed their 100,000 destination limit.");
-            anchors.Add((spineIndex, anchor.Id, Math.Min(anchor.Offset, text.Length)));
+            int offset = Math.Min(anchor.Offset, text.Length);
+            anchors.Add((spineIndex, anchor.Id, offset));
+            var cell = anchor.Owner.Name == "td" ? anchor.Owner : anchor.Owner.TableCellOwner;
+            if (cell is not null)
+            {
+                if (!anchorsByCell.TryGetValue(cell, out var owned)) anchorsByCell.Add(cell, owned = []);
+                owned.Add((anchor.Id, offset));
+            }
         }
         var font = options.DefaultFont;
         var substitutions = new Dictionary<(TrueTypeFont Font, bool SmallCaps, bool Ligatures), OpenTypeGlyphSubstitution>();
@@ -618,7 +629,7 @@ public sealed partial class EpubDocument
                         throw new NotSupportedException("Native EPUB rows require direct cells.");
                     if (columns is not null && row.Children.Count != columns.Length)
                         throw new NotSupportedException(columnsUnsupported);
-                    var cells = new List<EpubLayoutPage>();
+                    var cells = new List<(EpubNativeContent.Element Source, EpubLayoutPage Page, double Left)>();
                     var widths = new List<double>();
                     int rowPaintCount = 0;
                     double rowLeft = contentLeft, rowHeight = 0;
@@ -641,7 +652,7 @@ public sealed partial class EpubDocument
                         rowPaintCount += measured.Pages[0].Glyphs.Count;
                         if (rowPaintCount > 100_000)
                             throw new InvalidDataException("The native page exceeds its paint limit.");
-                        cells.Add(measured.Pages[0]);
+                        cells.Add((cell.Source, measured.Pages[0], rowLeft));
                         rowHeight = Math.Max(rowHeight, measured.Bottom - options.Margin);
                         rowLeft += cellWidth;
                     }
@@ -660,8 +671,37 @@ public sealed partial class EpubDocument
                     if (backgrounds.Count + glyphs.Count + rowPaintCount > 100_000)
                         throw new InvalidDataException("The native page exceeds its paint limit.");
                     double shift = top - options.Margin;
-                    foreach (var cell in cells)
+                    foreach (var (source, cell, cellLeft) in cells)
                     {
+                        if (anchorsByCell.TryGetValue(source, out var ownedAnchors))
+                        {
+                            int navigationIndex = 0;
+                            foreach (var anchor in ownedAnchors)
+                            {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                while (navigationIndex < cell.NavigationPlacements.Count
+                                    && cell.NavigationPlacements[navigationIndex].Start < anchor.Offset)
+                                {
+                                    cancellationToken.ThrowIfCancellationRequested();
+                                    navigationIndex++;
+                                }
+                                double anchorLeft = cellLeft, anchorTop = options.Margin;
+                                if (navigationIndex < cell.NavigationPlacements.Count)
+                                {
+                                    var next = cell.NavigationPlacements[navigationIndex];
+                                    anchorLeft = next.Left;
+                                    anchorTop = next.Top;
+                                }
+                                else if (navigationIndex > 0)
+                                {
+                                    var previous = cell.NavigationPlacements[navigationIndex - 1];
+                                    anchorLeft = previous.Left + previous.Width;
+                                    anchorTop = previous.Top;
+                                }
+                                cellAnchors[(spineIndex, anchor.Id, anchor.Offset)] = new(
+                                    existingPageCount + pages.Count, spineIndex, anchor.Offset, anchorLeft, anchorTop + shift);
+                            }
+                        }
                         foreach (var placement in cell.TextPlacements)
                             placements.Add(placement with { Top = placement.Top + shift });
                         foreach (var placement in cell.NavigationPlacements)

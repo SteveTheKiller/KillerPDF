@@ -87,7 +87,7 @@ public sealed partial class EpubDocument
                         foundBody = true;
                         bodyDepth = reader.IsEmptyElement ? -1 : reader.Depth;
                         if (native is not null && reader.GetAttribute("id") is { } bodyId)
-                            native.Anchors.Add((bodyId, 0));
+                            native.Anchors.Add((bodyId, 0, native.Body!));
                         continue;
                     }
                     if (bodyDepth < 0 || reader.Depth <= bodyDepth) continue;
@@ -107,7 +107,7 @@ public sealed partial class EpubDocument
                             native.Inlines.Add(new(result.Length, reference, native.ImageElement!));
                     }
                     if (native is not null && reader.GetAttribute("id") is { } id)
-                        native.Anchors.Add((id, result.Length + (pendingSpace && result.Length > 0 && result[^1] != '\n' ? 1 : 0)));
+                        native.Anchors.Add((id, result.Length + (pendingSpace && result.Length > 0 && result[^1] != '\n' ? 1 : 0), native.CurrentElement!));
                     if (reader.LocalName == "br")
                     {
                         pendingSpace = false;

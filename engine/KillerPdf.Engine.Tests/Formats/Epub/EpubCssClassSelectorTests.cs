@@ -6,6 +6,7 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Formats.Epub;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Rendering;
 using KillerPdf.Engine.Tests.Fonts;
 using Xunit;
@@ -14,6 +15,68 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubCssClassSelectorTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ConvertedEmptyCellAnchorKeepsItsColumnInTheSavedDestination(bool grouped)
+    {
+        byte[] source = Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}p{margin:0}",
+            "<table>" + (grouped ? "<tbody>" : "")
+            + "<tr><td><a id='first'></a></td><td><a id='second'></a></td></tr>"
+            + (grouped ? "</tbody>" : "") + "</table><p><a href='#second'>A</a></p>");
+        byte[] original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var pdf = PdfDocument.Open(EpubDocument.Open(source).ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var link = Assert.Single(new PdfLinkReader(pdf).ReadPage(0));
+        Assert.Equal(0, link.DestinationPageIndex);
+        var annotation = Assert.IsType<PdfDictionary>(pdf.Resolve(Assert.IsType<int>(link.ObjectNumber)));
+        var destination = Assert.IsType<PdfArray>(annotation[new PdfName("Dest"u8)]);
+        Assert.Equal("XYZ", Assert.IsType<PdfName>(destination[1]).ValueAsLatin1());
+        Assert.Equal(10.5, Number(destination[2]));
+        Assert.Equal(25.5, Number(destination[3]));
+        Assert.Equal(original, source);
+
+        static double Number(PdfObject value) => value switch
+        {
+            PdfInteger integer => integer.Value,
+            PdfReal real => real.Value,
+            _ => throw new Xunit.Sdk.XunitException("Expected destination coordinate")
+        };
+    }
+
+    [Fact]
+    public void EmptyCellAnchorFollowsItsRowAcrossAnAutomaticPageBreak()
+    {
+        byte[] source = Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}",
+            "<table><tr><td>A</td><td>A</td></tr><tr><td>A</td><td><a id='last'/></td></tr></table>");
+        byte[] original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = EpubDocument.Open(source).CreateLayout(
+            new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 });
+        Assert.Equal(2, layout.Pages.Count);
+        var destination = layout.ResolveNavigationTarget("text.xhtml#last");
+        Assert.Equal(1, destination.PageIndex);
+        Assert.Equal(14, destination.Left);
+        Assert.Equal(2, destination.Top);
+        Assert.Equal(original, source);
+    }
+
+    [Fact]
+    public void EmptyCellAnchorsRetainTheirOwnColumnDespiteEqualTextOffsets()
+    {
+        byte[] source = Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}p{margin:0}",
+            "<table><tr><td><a id='first'/></td><td><a id='second'/></td></tr></table><p>A</p>");
+        byte[] original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = EpubDocument.Open(source).CreateLayout(
+            new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+        Assert.Equal("A", Assert.Single(layout.Pages).Text);
+        Assert.Equal(new EpubNavigationDestination(0, 0, 0, 2, 2), layout.ResolveNavigationTarget("text.xhtml#first"));
+        Assert.Equal(new EpubNavigationDestination(0, 0, 0, 14, 2), layout.ResolveNavigationTarget("text.xhtml#second"));
+        Assert.Equal(original, source);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

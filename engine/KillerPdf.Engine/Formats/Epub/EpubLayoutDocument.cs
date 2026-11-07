@@ -101,14 +101,17 @@ public sealed class EpubLayoutDocument
     private readonly EpubLayoutOptions _options;
     private readonly string[] _spineHrefs;
     private readonly (int SpineIndex, string Id, int Offset)[] _anchors;
+    private readonly Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> _cellAnchors;
 
     internal EpubLayoutDocument(EpubLayoutOptions options, IEnumerable<EpubLayoutPage> pages,
-        IEnumerable<string> spineHrefs, IEnumerable<(int SpineIndex, string Id, int Offset)> anchors)
+        IEnumerable<string> spineHrefs, IEnumerable<(int SpineIndex, string Id, int Offset)> anchors,
+        Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> cellAnchors)
     {
         _options = options with { };
         Pages = Array.AsReadOnly(pages.ToArray());
         _spineHrefs = spineHrefs.ToArray();
         _anchors = anchors.ToArray();
+        _cellAnchors = new(cellAnchors);
     }
     /// <summary>Gets the immutable native pages.</summary>
     public IReadOnlyList<EpubLayoutPage> Pages { get; }
@@ -141,6 +144,8 @@ public sealed class EpubLayoutDocument
             }
             if (anchorOffset is { } offset)
             {
+                if (_cellAnchors.TryGetValue((spineIndex, fragment, offset), out var cellDestination))
+                    return cellDestination;
                 EpubNavigationDestination? cursor = null;
                 for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++)
                 {
