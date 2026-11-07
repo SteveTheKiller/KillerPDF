@@ -22,8 +22,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal bool Hidden { get; init; }
     }
     internal abstract class SourceNode;
-    internal sealed class Element(string name, Element? parent, Style style, bool block, int offset) : SourceNode
+    internal sealed record SelectorIdentity(string NamespaceName, string[] Classes,
+        Dictionary<(string Namespace, string Name), string> Attributes);
+    internal sealed class Element(string name, Element? parent, Style style, bool block, int offset, SelectorIdentity identity) : SourceNode
     {
+        internal SelectorIdentity Identity { get; } = identity;
         internal string Name { get; } = name;
         internal Element? Parent { get; } = parent;
         internal Style Style { get; } = style;
@@ -149,7 +152,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         xml.MoveToElement();
         Style inherited = parent?.Style ?? DefaultStyle;
         if (inherited.Background is not null) inherited = inherited with { Background = null };
-        CssProperties properties = ResolveRules(name, xml.NamespaceURI, classNames, attributes);
+        var identity = new SelectorIdentity(xml.NamespaceURI,
+            classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [], attributes);
+        CssProperties properties = ResolveRules(name, identity);
         if (inlineStyle is not null) properties = properties.Override(ParseProperties(inlineStyle));
         bool suppressed = parent?.IsDisplayNone == true || properties.Display == DisplayKind.None;
         Style style = suppressed ? inherited : properties.Apply(inherited, contentHeight);
@@ -187,7 +192,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             DisplayKind.Inline or DisplayKind.None => false,
             _ => name is "body" or "div" or "p"
         };
-        var element = new Element(name, parent, style, block, Characters.Count)
+        var element = new Element(name, parent, style, block, Characters.Count, identity)
         {
             Margins = suppressed ? null : properties.Margins, Padding = suppressed ? null : properties.Padding,
             TopBorder = suppressed ? null : properties.TopBorder, Width = suppressed ? null : properties.Width,
@@ -282,7 +287,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         while (position < css.Length)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            while (position < css.Length && char.IsWhiteSpace(css[position])) position++;
+            while (position < css.Length && IsCssSpace(css[position])) position++;
             if (position == css.Length) break;
             if (css.AsSpan(position).StartsWith("@namespace", StringComparison.OrdinalIgnoreCase))
             {
@@ -340,71 +345,78 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             {
                 if (++_selectorCount > 4096)
                     throw new InvalidDataException("Native EPUB CSS selectors exceed their 4,096-selector limit.");
-                string selector = group.Trim();
-                if (selector.Length is 0 or > 128)
+                string fullSelector = group.Trim(' ', '\t', '\r', '\n', '\f');
+                if (fullSelector.Length is 0 or > 128)
                     throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                CssAttribute? attribute = null;
-                int bracket = selector.IndexOf('[');
-                if (bracket >= 0)
+                var chain = new List<CssRule>();
+                foreach (string selectorPart in DescendantParts(fullSelector))
                 {
-                    if (!selector.EndsWith(']') || selector.IndexOf('[', bracket + 1) >= 0)
+                    string selector = selectorPart;
+                    CssAttribute? attribute = null;
+                    int bracket = selector.IndexOf('[');
+                    if (bracket >= 0)
+                    {
+                        if (!selector.EndsWith(']') || selector.IndexOf('[', bracket + 1) >= 0)
+                            throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                        string condition = selector[(bracket + 1)..^1].Trim(' ', '\t', '\r', '\n', '\f');
+                        int operation = condition.IndexOf("~=", StringComparison.Ordinal);
+                        string attributeName = operation < 0 ? condition : condition[..operation].Trim(' ', '\t', '\r', '\n', '\f');
+                        string? token = null;
+                        if (operation >= 0)
+                        {
+                            token = condition[(operation + 2)..].Trim(' ', '\t', '\r', '\n', '\f');
+                            if (token.Length >= 2 && token[0] is '\'' or '"' && token[^1] == token[0])
+                                token = token[1..^1];
+                            else if (!IsIdentifier(token))
+                                throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                            if (token.Any(character => character is '\\' or '\'' or '"' or '[' or ']'))
+                                throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                        }
+                        string attributeNamespace = "";
+                        int attributeSeparator = attributeName.IndexOf('|');
+                        if (attributeSeparator >= 0)
+                        {
+                            string prefix = attributeName[..attributeSeparator];
+                            if (!IsIdentifier(prefix))
+                                throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                            if (!namespaces.TryGetValue(prefix, out attributeNamespace!))
+                                throw new NotSupportedException("Native EPUB CSS selector namespace prefix is not declared: " + prefix + ".");
+                            attributeName = attributeName[(attributeSeparator + 1)..];
+                        }
+                        if (!IsIdentifier(attributeName))
+                            throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                        attribute = new(attributeNamespace, attributeName, token);
+                        selector = selector[..bracket];
+                    }
+                    string[] parts = selector.Split('.');
+                    string type = parts[0];
+                    namespaces.TryGetValue("", out string? namespaceName);
+                    int separator = type.IndexOf('|');
+                    if (separator >= 0)
+                    {
+                        string prefix = type[..separator];
+                        if (prefix == "*") namespaceName = null;
+                        else if (prefix.Length == 0) namespaceName = "";
+                        else
+                        {
+                            if (!IsIdentifier(prefix)) throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
+                            if (!namespaces.TryGetValue(prefix, out namespaceName))
+                                throw new NotSupportedException("Native EPUB CSS selector namespace prefix is not declared: " + prefix + ".");
+                        }
+                        type = type[(separator + 1)..];
+                        parts[0] = type;
+                    }
+                    bool classOnly = selector.StartsWith(".", StringComparison.Ordinal);
+                    if (classOnly && attribute is not null || selector.Length is 0 or > 128 || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
+                        || !char.IsAsciiLetter(part[0])
+                        || part.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_'))))
                         throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                    string condition = selector[(bracket + 1)..^1].Trim();
-                    int operation = condition.IndexOf("~=", StringComparison.Ordinal);
-                    string attributeName = operation < 0 ? condition : condition[..operation].Trim();
-                    string? token = null;
-                    if (operation >= 0)
-                    {
-                        token = condition[(operation + 2)..].Trim();
-                        if (token.Length >= 2 && token[0] is '\'' or '"' && token[^1] == token[0])
-                            token = token[1..^1];
-                        else if (!IsIdentifier(token))
-                            throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                        if (token.Any(character => character is '\\' or '\'' or '"' or '[' or ']'))
-                            throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                    }
-                    string attributeNamespace = "";
-                    int attributeSeparator = attributeName.IndexOf('|');
-                    if (attributeSeparator >= 0)
-                    {
-                        string prefix = attributeName[..attributeSeparator];
-                        if (!IsIdentifier(prefix))
-                            throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                        if (!namespaces.TryGetValue(prefix, out attributeNamespace!))
-                            throw new NotSupportedException("Native EPUB CSS selector namespace prefix is not declared: " + prefix + ".");
-                        attributeName = attributeName[(attributeSeparator + 1)..];
-                    }
-                    if (!IsIdentifier(attributeName))
-                        throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                    attribute = new(attributeNamespace, attributeName, token);
-                    selector = selector[..bracket];
+                    chain.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1, type, []));
                 }
-                string[] parts = selector.Split('.');
-                string type = parts[0];
-                namespaces.TryGetValue("", out string? namespaceName);
-                int separator = type.IndexOf('|');
-                if (separator >= 0)
-                {
-                    string prefix = type[..separator];
-                    if (prefix == "*") namespaceName = null;
-                    else if (prefix.Length == 0) namespaceName = "";
-                    else
-                    {
-                        if (!IsIdentifier(prefix)) throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                        if (!namespaces.TryGetValue(prefix, out namespaceName))
-                            throw new NotSupportedException("Native EPUB CSS selector namespace prefix is not declared: " + prefix + ".");
-                    }
-                    type = type[(separator + 1)..];
-                    parts[0] = type;
-                }
-                bool classOnly = selector.StartsWith(".", StringComparison.Ordinal);
-                if (classOnly && attribute is not null || selector.Length is 0 or > 128 || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
-                    || !char.IsAsciiLetter(part[0])
-                    || part.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_'))))
-                    throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                if (!_typeRules.TryGetValue(type, out var rules))
-                    _typeRules.Add(type, rules = new());
-                rules.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1));
+                var target = chain[^1] with { Ancestors = chain.Take(chain.Count - 1).Reverse().ToArray() };
+                if (!_typeRules.TryGetValue(target.Type, out var rules))
+                    _typeRules.Add(target.Type, rules = new());
+                rules.Add(target);
             }
             position = close + 1;
         }
@@ -419,15 +431,79 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         new("Native EPUB CSS namespace syntax is not implemented.");
 
     private sealed record CssAttribute(string NamespaceName, string Name, string? Token);
-    private sealed record CssRule(string? NamespaceName, string[] Classes, CssAttribute? Attribute, CssProperties Properties, int Order, int TypeSpecificity);
+    private sealed record CssRule(string? NamespaceName, string[] Classes, CssAttribute? Attribute,
+        CssProperties Properties, int Order, int TypeSpecificity, string Type, CssRule[] Ancestors)
+    {
+        internal int Specificity => (Classes.Length + (Attribute is null ? 0 : 1)) * 256 + TypeSpecificity
+            + Ancestors.Sum(rule => (rule.Classes.Length + (rule.Attribute is null ? 0 : 1)) * 256 + rule.TypeSpecificity);
+    }
 
-    private CssProperties ResolveRules(string name, string namespaceName, string? classNames,
-        Dictionary<(string Namespace, string Name), string> attributes)
+    private static IEnumerable<string> DescendantParts(string selector)
+    {
+        int start = 0;
+        bool bracket = false;
+        char quote = '\0';
+        for (int index = 0; index < selector.Length; index++)
+        {
+            char value = selector[index];
+            if (quote != '\0') { if (value == quote) quote = '\0'; }
+            else if (bracket && value is '\'' or '"') quote = value;
+            else if (value == '[') bracket = true;
+            else if (value == ']') bracket = false;
+            else if (!bracket && IsCssSpace(value))
+            {
+                if (index > start) yield return selector[start..index];
+                start = index + 1;
+            }
+        }
+        if (start < selector.Length) yield return selector[start..];
+    }
+
+    private bool Matches(CssRule rule, string name, SelectorIdentity identity)
+    {
+        CountSelectorWork(1);
+        if (rule.Type.Length > 0)
+        {
+            CountSelectorWork(1 + Math.Min(rule.Type.Length, name.Length));
+            if (!string.Equals(rule.Type, name, StringComparison.Ordinal)) return false;
+        }
+        if (rule.NamespaceName is { } requiredNamespace)
+        {
+            CountSelectorWork(1 + Math.Min(requiredNamespace.Length, identity.NamespaceName.Length));
+            if (!string.Equals(requiredNamespace, identity.NamespaceName, StringComparison.Ordinal)) return false;
+        }
+        foreach (string required in rule.Classes)
+        {
+            bool found = false;
+            foreach (string candidate in identity.Classes)
+            {
+                CountSelectorWork(1 + Math.Min(candidate.Length, required.Length));
+                if (!string.Equals(candidate, required, StringComparison.Ordinal)) continue;
+                found = true;
+                break;
+            }
+            if (!found) return false;
+        }
+        if (rule.Attribute is { } attribute)
+        {
+            CountSelectorWork(1 + attribute.NamespaceName.Length + attribute.Name.Length);
+            if (!identity.Attributes.TryGetValue((attribute.NamespaceName, attribute.Name), out string? value)) return false;
+            if (attribute.Token is { } token)
+            {
+                CountSelectorWork(value.Length + token.Length);
+                if (token.Length == 0 || token.Any(IsCssSpace)
+                    || !value.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries)
+                        .Contains(token, StringComparer.Ordinal)) return false;
+            }
+        }
+        return true;
+    }
+
+    private CssProperties ResolveRules(string name, SelectorIdentity identity)
     {
         _typeRules.TryGetValue(name, out var typeRules);
         _typeRules.TryGetValue("", out var classRules);
         if (typeRules is null && classRules is null) return default;
-        string[] classes = classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [];
         CssLength? size = null, height = null;
         PdfRgbColor? color = null;
         BackgroundColor? background = null;
@@ -464,43 +540,21 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             var rule = classIndex >= (classRules?.Count ?? 0)
                 || typeIndex < (typeRules?.Count ?? 0) && typeRules![typeIndex].Order < classRules![classIndex].Order
                 ? typeRules![typeIndex++] : classRules![classIndex++];
-            CountSelectorWork(1);
-            if (rule.NamespaceName is { } requiredNamespace)
-            {
-                CountSelectorWork(1 + Math.Min(requiredNamespace.Length, namespaceName.Length));
-                if (!string.Equals(requiredNamespace, namespaceName, StringComparison.Ordinal)) continue;
-            }
+            if (!Matches(rule, name, identity)) continue;
             bool matches = true;
-            foreach (string required in rule.Classes)
+            Element? ancestor = _ancestors.TryPeek(out var parent) ? parent : null;
+            foreach (var required in rule.Ancestors)
             {
-                bool found = false;
-                foreach (string candidate in classes)
-                {
-                    CountSelectorWork(1 + Math.Min(candidate.Length, required.Length));
-                    if (!string.Equals(candidate, required, StringComparison.Ordinal)) continue;
-                    found = true;
-                    break;
-                }
-                if (!found)
+                while (ancestor is not null && !Matches(required, ancestor.Name, ancestor.Identity)) ancestor = ancestor.Parent;
+                if (ancestor is null)
                 {
                     matches = false;
                     break;
                 }
+                ancestor = ancestor.Parent;
             }
             if (!matches) continue;
-            if (rule.Attribute is { } attribute)
-            {
-                CountSelectorWork(1 + attribute.NamespaceName.Length + attribute.Name.Length);
-                if (!attributes.TryGetValue((attribute.NamespaceName, attribute.Name), out string? value)) continue;
-                if (attribute.Token is { } token)
-                {
-                    CountSelectorWork(value.Length + token.Length);
-                    if (token.Length == 0 || token.Any(IsCssSpace)
-                    || !value.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries)
-                        .Contains(token, StringComparer.Ordinal)) continue;
-                }
-            }
-            int specificity = (rule.Classes.Length + (rule.Attribute is null ? 0 : 1)) * 2 + rule.TypeSpecificity;
+            int specificity = rule.Specificity;
             if (rule.Properties.Visibility is { } selectedVisibility && specificity >= visibilitySpecificity)
             {
                 visibility = selectedVisibility;

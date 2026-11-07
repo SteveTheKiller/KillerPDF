@@ -446,7 +446,7 @@ specificity, and namespace names remain literal without fetching resources. Expl
 any/empty namespace forms, rebinding and independent property cascade are covered.
 Declarations accept bounded ASCII identifier prefixes and quoted or url(...) names.
 Class-only selectors and combinations match whitespace-separated class tokens.
-Class count outranks type presence, and equal specificity follows source order;
+Class count outranks type count, and equal specificity follows source order;
 properties still cascade independently. The default namespace constrains the
 implied universal selector. Identifiers use the bounded letter-leading ASCII
 subset. Type selectors with optional classes also support one terminal attribute
@@ -455,8 +455,11 @@ Attribute matching uses case-sensitive expanded names; namespace aliases bind by
 URI, and default element namespaces do not apply to unqualified attribute names.
 Inert `type` metadata is accepted on supported paragraphs and spans. Attribute
 predicates add class-level specificity and retain the selector work limits.
-Other attribute operators, class-only attribute selectors, multiple predicates,
-escapes, comments, general identifiers, relationship and pseudo selectors retain
+Descendant combinators match distinct ancestors in order, allowing intervening
+elements. Each compound retains its namespace, type, classes and supported attribute
+predicate. Ancestor traversal shares the selector work budget, and selector trimming
+uses only CSS whitespace. Other attribute operators, class-only attribute selectors, multiple predicates,
+escapes, comments, general identifiers, child, sibling and pseudo selectors retain
 strict diagnostics. This is partial CSS support.
 
 Text alignment supports left, center, right and LTR justification, with inherited

@@ -13,6 +13,73 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubCssClassSelectorTests
 {
+    [Fact]
+    public void DescendantAncestorMissesRespectTheSelectorWorkBudget()
+    {
+        string body = "<p>" + string.Concat(Enumerable.Repeat("<span>", 120)) + "A"
+            + string.Concat(Enumerable.Repeat("</span>", 120)) + "</p>";
+        Verify("div.missing span{}", body, 2, 1.5, false, false);
+        byte[] source = Book(string.Concat(Enumerable.Repeat("div.missing span{}", 4096)), body), preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        const string diagnostic = "Native EPUB CSS selector matching exceeds its work limit.";
+        Assert.Equal(diagnostic, Assert.Throws<InvalidDataException>(() => book.CreateLayout(
+            new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 }, deadline.Token)).Message);
+        Assert.Equal(diagnostic, Assert.Throws<InvalidDataException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font), deadline.Token)).Message);
+        Assert.Equal(preserved, source);
+    }
+
+    [Theory]
+    [InlineData("<div class='outer'><div class='middle'><p><span class='caption'>A</span></p></div></div>", true)]
+    [InlineData("<div class='middle'><div class='outer'><p><span class='caption'>A</span></p></div></div>", false)]
+    [InlineData("<div class='outer middle'><p><span class='caption'>A</span></p></div>", false)]
+    [InlineData("<div class='outer'><div class='middle'><div class='middle'><p><span class='caption'>A</span></p></div></div></div>", true)]
+    public void DescendantChainsConsumeDistinctAncestorsInOrder(string body, bool styled)
+        => Verify(".outer .middle span.caption{color:red}", body, 2, 1.5, styled, false);
+
+    [Theory]
+    [InlineData("div span.caption\u00A0")]
+    [InlineData("\u00A0div span.caption")]
+    [InlineData("div[class\u00A0] span")]
+    public void NonCssWhitespaceDoesNotSilentlyChangeADescendantSelector(string selector)
+        => UnsupportedGrammarKeepsExplicitRefusalAtBothPublicSeams(selector);
+
+    [Theory]
+    [InlineData("@namespace h 'http://www.w3.org/1999/xhtml';h|div.figcenter h|span.caption{color:red}", true)]
+    [InlineData("@namespace h 'urn:other';h|div.figcenter span.caption{color:red}", false)]
+    [InlineData("@namespace h 'urn:other';div.figcenter h|span.caption{color:red}", false)]
+    [InlineData("div[class~='figcenter'] span.caption{color:red}", true)]
+    [InlineData("div[class~='figcenter other'] span.caption{color:red}", false)]
+    public void DescendantCompoundsRetainNamespacesAndQuotedAttributeBoundaries(string css, bool styled)
+        => Verify(css, "<div class='figcenter other'><p><span class='caption'>A</span></p></div>", 2, 1.5, styled, false);
+
+    [Theory]
+    [InlineData("body div p span{color:lime}.caption{color:red}")]
+    [InlineData(".caption{color:red}body div p span{color:lime}")]
+    [InlineData(".figcenter span{color:lime}div .caption{color:red}")]
+    [InlineData("div.figcenter span.caption{color:red}span.caption{color:lime}")]
+    public void DescendantSpecificityCountsClassesBeforeTypesAndBreaksTiesBySourceOrder(string css)
+        => Verify(css, "<div class='figcenter'><p><span class='caption'>A</span></p></div>", 2, 1.5, true, false);
+
+    [Theory]
+    [InlineData("<div class='figcenter'><p><span class='caption'>A</span></p></div>", true)]
+    [InlineData("<div><p><span class='caption'>A</span></p></div>", false)]
+    [InlineData("<div class='figcenter'/><p><span class='caption'>A</span></p>", false)]
+    [InlineData("<div class='figcenter'><p><span class='other'>A</span></p></div>", false)]
+    [InlineData("<div class='caption'><p><span class='figcenter'>A</span></p></div>", false)]
+    public void DescendantRulesRequireTheActualAncestorAndTarget(string body, bool styled)
+        => Verify("div.figcenter span.caption{color:red}", body, 2, 1.5, styled, false);
+
+    [Theory]
+    [InlineData("div.figcenter span.caption")]
+    [InlineData(".figcenter .caption")]
+    [InlineData("div span")]
+    [InlineData("p span")]
+    public void DescendantRuleMatchesAcrossAnInterveningElement(string selector)
+        => Verify(selector + "{color:red}",
+            "<div class='figcenter'><p><span class='caption'>A</span></p></div>", 2, 1.5, true, false);
+
     [Theory]
     [InlineData("", false)]
     [InlineData("p.note{color:red;text-align:center;background-color:blue}", true)]
@@ -73,7 +140,6 @@ public sealed class EpubCssClassSelectorTests
     [InlineData(".1note")]
     [InlineData(".n\\6fte")]
     [InlineData(".n\u00f6te")]
-    [InlineData(".note .other")]
     [InlineData(".note>.other")]
     [InlineData(".note+.other")]
     [InlineData(".note~.other")]
