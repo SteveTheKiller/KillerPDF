@@ -209,6 +209,7 @@ namespace KillerPDF
             B("%ctrl%+Y",         "Str_Ctx_Redo",       "Edit", Cap("Ctrl:Y")),
             B("%ctrl%+%shift%+Z", "Str_Ctx_Redo",       "Edit", Cap("CtrlShift:Z")),
             B("%ctrl%+C",         "Str_KS_CopyText",    "Edit", Cap("Ctrl:C")),
+            B("%ctrl%+X",         "Str_Ctx_Cut",        "Edit", Cap("Ctrl:X")),
             B("%ctrl%+V",         "Str_KS_Paste",       "Edit", Cap("Ctrl:V")),
             // Real bindings as of 1.7.5. These were documented for years and never implemented;
             // Ctrl+B collapsed the sidebar instead, which is why the sidebar moved to F9.

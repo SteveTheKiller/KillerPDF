@@ -175,6 +175,12 @@ namespace KillerPDF.Shell
                 else CopySelectedText();
                 e.Handled = true;
             }
+            else if (key == Key.X && mods == ModifierKeys.Control
+                && ActiveViewer.SelectedSourceImageExt is not null)
+            {
+                if (!e.IsRepeat) CutSelectedSourceImage();
+                e.Handled = true;
+            }
             else if (key == Key.V && mods == ModifierKeys.Control)
             {
                 PasteInView(PageList.SelectedIndex);

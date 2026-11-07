@@ -105,6 +105,9 @@ namespace KillerPDF.Shell
             else if (ActiveViewer.TrySelectSourceImageExt(pageIdx, pt))
             {
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Copy"), (_, _) => CopySelectedAnnotations(), GestureFor("Ctrl:C"), "\uE8C8"));
+                var cut = MakeMenuItem(Loc("Str_Ctx_Cut"), (_, _) => CutSelectedSourceImage(), GestureFor("Ctrl:X"), "\uE8C6");
+                cut.IsEnabled = ActiveViewer.CanDeleteSelectedSourceImageExt;
+                _ctxMenu.Items.Add(cut);
                 var delete = MakeMenuItem(Loc("Str_Ctx_DeleteSel"), (_, _) => DeleteSelected(), GestureFor("Del"), "\uE74D");
                 delete.IsEnabled = ActiveViewer.CanDeleteSelectedSourceImageExt;
                 _ctxMenu.Items.Add(delete);
@@ -570,6 +573,16 @@ namespace KillerPDF.Shell
             },
             _ => null
         };
+
+        private void CutSelectedSourceImage()
+        {
+            if (!ActiveViewer.CanDeleteSelectedSourceImageExt
+                || ActiveViewer.SelectedSourceImageExt is not { } source) return;
+            if (CloneAnnotation(source) is not ImageAnnotation copy) return;
+            _annotationClipboard.Clear();
+            _annotationClipboard.Add(copy);
+            DeleteSelected();
+        }
 
         // Copy the current selection (primary or multi-select) into the annotation clipboard.
         private void CopySelectedAnnotations()
