@@ -191,6 +191,15 @@ selection and accessibility integration still require implementation and runtime
 
 ## Native EPUB layout (1.9.3 development)
 
+Initial `text-decoration` supports underline, none and CSS-wide reset keywords.
+Ancestor decorations retain their own font metrics and color across descendants;
+a child reset does not erase an ancestor's underline. Visibility applies to the
+decorated text, including a visible child beneath a hidden decorating ancestor.
+Contiguous glyph fragments share one underline strip to avoid fractional seams.
+Inline ancestors contribute their font ascent, descent and leading to line sizing,
+including ancestors containing only smaller descendant text. Native and reopened
+PDF controls cover these rules; other decoration styles remain unsupported.
+
 Native layout omits `display:none` subtrees before font resolution, box creation,
 visible page text and PDF text emission. A descendant cannot restore display inside
 a suppressed ancestor. Hidden computed font sizes, geometry and body backgrounds

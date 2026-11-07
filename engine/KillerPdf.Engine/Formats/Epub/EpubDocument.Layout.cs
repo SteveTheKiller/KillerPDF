@@ -4,6 +4,7 @@ using KillerPdf.Engine.Rendering;
 using KillerPdf.Engine.Filters;
 using System.Globalization;
 using System.Text;
+using System.Buffers.Binary;
 
 namespace KillerPdf.Engine.Formats.Epub;
 
@@ -140,6 +141,8 @@ public sealed partial class EpubDocument
         var substitutions = new Dictionary<(TrueTypeFont Font, bool SmallCaps), OpenTypeGlyphSubstitution>();
         var readers = new Dictionary<TrueTypeFont, TrueTypeOutlineReader> { [font] = reader };
         int fontWork = 0;
+        int decorationWork = 0;
+        int inlineMetricWork = 0;
         var clusters = new Dictionary<int, EpubGlyphCluster>();
         var inlineOffsets = content.Inlines.Select(item => item.Offset).ToHashSet();
         int shapingWork = 0;
@@ -721,11 +724,20 @@ public sealed partial class EpubDocument
             if (line.Count == 0) return;
             var block = line[0].BlockStyle;
             double ascent = AboveBaseline(block), descent = BelowBaseline(block);
+            var measuredInlineOwners = new HashSet<EpubNativeContent.Element>(ReferenceEqualityComparer.Instance);
             foreach (var item in line)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 ascent = Math.Max(ascent, item.Image?.Height ?? AboveBaseline(item.Style, item.Font));
                 descent = Math.Max(descent, item.Image is null ? BelowBaseline(item.Style, item.Font) : 0);
+                for (var owner = item.Owner; owner is { IsBlock: false } && measuredInlineOwners.Add(owner); owner = owner.Parent)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (++inlineMetricWork > 1_000_000)
+                        throw new InvalidDataException("Native EPUB inline metrics exceed their work limit.");
+                    ascent = Math.Max(ascent, AboveBaseline(owner.Style));
+                    descent = Math.Max(descent, BelowBaseline(owner.Style));
+                }
             }
             double height = ascent + descent;
             if (height > options.PageHeight - 2 * options.Margin)
@@ -794,6 +806,7 @@ public sealed partial class EpubDocument
                 backgrounds.Add((SourceDepth(fragment.Owner), new NativeRectanglePaint(fragment.Left, fragment.Top, fragment.Right - fragment.Left,
                     fragment.Bottom - fragment.Top, fragment.Owner.Style.Background!.Value.Color!.Value)));
             }
+            var underlineFragments = new Dictionary<EpubNativeContent.Element, int>(ReferenceEqualityComparer.Instance);
             foreach (var item in line)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -813,6 +826,39 @@ public sealed partial class EpubDocument
                 navigationPlacements.Add(placement);
                 if (item.Style.Hidden) continue;
                 placements.Add(placement);
+                if (item.Owner is { HasUnderline: true } decoratedOwner)
+                {
+                    for (var owner = decoratedOwner; owner is not null; owner = owner.Parent)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (++decorationWork > 1_000_000)
+                            throw new InvalidDataException("Native EPUB text decorations exceed their work limit.");
+                        if (owner.Style.Underline) ancestors.Push(owner);
+                    }
+                    while (ancestors.TryPop(out var owner))
+                    {
+                        var underlineFont = FontFor(owner.Style);
+                        double underlineSize = owner.Style.FontSize;
+                        double offset = underlineSize / 10, thickness = underlineSize / 20;
+                        if (underlineFont.TryGetTableRange("post", out int postOffset, out int postLength) && postLength >= 12)
+                        {
+                            var post = underlineFont.FontData.Span.Slice(postOffset, postLength);
+                            offset = -BinaryPrimitives.ReadInt16BigEndian(post[8..]) * underlineSize / underlineFont.UnitsPerEm;
+                            int specifiedThickness = BinaryPrimitives.ReadInt16BigEndian(post[10..]);
+                            if (specifiedThickness > 0) thickness = specifiedThickness * underlineSize / underlineFont.UnitsPerEm;
+                        }
+                        if (underlineFragments.TryGetValue(owner, out int paintIndex)
+                            && glyphs[paintIndex] is NativeRectanglePaint previous
+                            && Math.Abs(previous.Left + previous.Width - item.Left) < 0.0000001)
+                            glyphs[paintIndex] = previous with { Width = item.Left + item.Width - previous.Left };
+                        else
+                        {
+                            underlineFragments[owner] = glyphs.Count;
+                            glyphs.Add(new NativeRectanglePaint(item.Left, baseline + offset, item.Width, thickness,
+                                owner.Style.Color ?? options.TextColor));
+                        }
+                    }
+                }
                 var cluster = clusters[item.Index];
                 double advance = 0;
                 foreach (var selected in cluster.Glyphs)

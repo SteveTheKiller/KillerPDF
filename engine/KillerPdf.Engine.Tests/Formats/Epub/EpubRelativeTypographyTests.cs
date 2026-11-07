@@ -72,15 +72,16 @@ public sealed class EpubRelativeTypographyTests
             FontSize = 10, Margin = 8 }).Pages);
 
         Assert.Equal("A\nA", page.Text);
+        // The 20px ancestor contributes ascent 21; its 10px child contributes descent 12.
         Assert.Equal(new[] {
-            new EpubTextPlacement(0, 0, 1, 8, 18, 6, 10),
-            new EpubTextPlacement(0, 2, 1, 8, 48, 6, 10) }, page.TextPlacements);
+            new EpubTextPlacement(0, 0, 1, 8, 21, 6, 10),
+            new EpubTextPlacement(0, 2, 1, 8, 54, 6, 10) }, page.TextPlacements);
         var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font) {
             PageWidthPoints = 48, PageHeightPoints = 72, MarginPoints = 6, FontSizePoints = 7.5 }));
         var letters = new PdfPageContentReader(pdf).Read(0).Letters;
         Assert.Equal("AA", string.Concat(letters.Select(letter => letter.Value)));
         Assert.Equal(new double[] { 7.5, 7.5 }, letters.Select(letter => letter.FontSize));
-        Assert.Equal(new double[] { 52.5, 30 }, letters.Select(letter => letter.StartBaseLine.Y));
+        Assert.Equal(new double[] { 50.25, 25.5 }, letters.Select(letter => letter.StartBaseLine.Y));
     }
 
     [Fact]
@@ -110,9 +111,10 @@ public sealed class EpubRelativeTypographyTests
         var page = Assert.Single(book.CreateLayout(new EpubLayoutOptions(64, 96, font) {
             FontSize = 5, Margin = 8 }).Pages);
 
+        // Negative leading still leaves the ancestor ascent 11 and child descent 2.
         Assert.Equal(new[] {
-            new EpubTextPlacement(0, 0, 1, 8, 8, 6, 10),
-            new EpubTextPlacement(0, 2, 1, 8, 18, 6, 10) }, page.TextPlacements);
+            new EpubTextPlacement(0, 0, 1, 8, 11, 6, 10),
+            new EpubTextPlacement(0, 2, 1, 8, 24, 6, 10) }, page.TextPlacements);
     }
 
     [Theory]

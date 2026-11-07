@@ -20,6 +20,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal bool TextIndentPercentage { get; init; }
         internal bool PageBreakBefore { get; init; }
         internal bool Hidden { get; init; }
+        internal bool Underline { get; init; }
     }
     internal abstract class SourceNode;
     internal sealed record SelectorIdentity(string NamespaceName, string[] Classes,
@@ -27,6 +28,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal sealed class Element(string name, Element? parent, Style style, bool block, int offset, SelectorIdentity identity) : SourceNode
     {
         internal SelectorIdentity Identity { get; } = identity;
+        internal bool HasUnderline { get; } = style.Underline || parent?.HasUnderline == true;
         internal string Name { get; } = name;
         internal Element? Parent { get; } = parent;
         internal Style Style { get; } = style;
@@ -530,6 +532,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         int displaySpecificity = -1;
         string? visibility = null;
         int visibilitySpecificity = -1;
+        string? decoration = null;
+        int decorationSpecificity = -1;
         var padding = new MarginLength?[4];
         int[] paddingSpecificities = [-1, -1, -1, -1];
         var margins = new MarginLength?[4];
@@ -555,6 +559,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
             if (!matches) continue;
             int specificity = rule.Specificity;
+            if (rule.Properties.TextDecoration is { } selectedDecoration && specificity >= decorationSpecificity)
+            {
+                decoration = selectedDecoration;
+                decorationSpecificity = specificity;
+            }
             if (rule.Properties.Visibility is { } selectedVisibility && specificity >= visibilitySpecificity)
             {
                 visibility = selectedVisibility;
@@ -645,7 +654,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         paddingSpecificities[side] = specificity;
                     }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration);
     }
 
     private void CountSelectorWork(int amount)
@@ -676,7 +685,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         BackgroundColor? Background = null, EpubFontFamily[]? FontFamilies = null, MarginLength?[]? Margins = null,
         Border? Border = null, MarginLength?[]? Padding = null, string? TextAlign = null, bool? PageBreakBefore = null,
         DisplayKind? Display = null, double? FontWeight = null, IndentLength? TextIndent = null, string? FontVariant = null,
-        BorderSide? TopBorder = null, BoxWidth? Width = null, string? Visibility = null)
+        BorderSide? TopBorder = null, BoxWidth? Width = null, string? Visibility = null, string? TextDecoration = null)
     {
         internal CssProperties Override(CssProperties inline) =>
             new(inline.FontSize ?? FontSize, inline.LineHeight ?? LineHeight,
@@ -684,7 +693,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 MergeMargins(Margins, inline.Margins), inline.Border ?? Border, MergeMargins(Padding, inline.Padding),
                 inline.TextAlign ?? TextAlign, inline.PageBreakBefore ?? PageBreakBefore, inline.Display ?? Display,
                 inline.FontWeight ?? FontWeight, inline.TextIndent ?? TextIndent, inline.FontVariant ?? FontVariant,
-                inline.TopBorder ?? TopBorder, inline.Width ?? Width, inline.Visibility ?? Visibility);
+                inline.TopBorder ?? TopBorder, inline.Width ?? Width, inline.Visibility ?? Visibility,
+                inline.TextDecoration ?? TextDecoration);
 
         private static MarginLength?[]? MergeMargins(MarginLength?[]? earlier, MarginLength?[]? later) =>
             later is null ? earlier : Enumerable.Range(0, 4).Select(side => later[side] ?? earlier?[side]).ToArray();
@@ -705,6 +715,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 LineHeightFactor = factor, FontFamilies = FontFamilies ?? inherited.FontFamilies,
                 FontWeight = FontWeight ?? inherited.FontWeight,
                 Hidden = Visibility is null or "inherit" or "unset" ? inherited.Hidden : Visibility == "hidden",
+                Underline = TextDecoration == "inherit" ? inherited.Underline : TextDecoration == "underline",
                 SmallCaps = FontVariant is null or "inherit" or "unset" ? inherited.SmallCaps : FontVariant == "small-caps",
                 TextAlign = TextAlign is null or "inherit" ? inherited.TextAlign : TextAlign,
                 TextIndent = indent,
@@ -716,6 +727,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
 
     private CssProperties ParseProperties(string declarations)
     {
+        string? decoration = null;
         string? visibility = null;
         string? fontVariant = null;
         IndentLength? textIndent = null;
@@ -926,6 +938,15 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 height = new CssLength(factor, true, Unitless: true);
                 continue;
             }
+            if (property == "text-decoration")
+            {
+                decoration = value.ToLowerInvariant() switch
+                {
+                    "underline" or "none" or "inherit" or "initial" or "unset" => value.ToLowerInvariant(),
+                    _ => throw new NotSupportedException("Native EPUB text decoration is not implemented: " + value + ".")
+                };
+                continue;
+            }
             if (property == "visibility")
             {
                 visibility = value.ToLowerInvariant() switch
@@ -946,7 +967,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration);
     }
 
     private static BorderSide ParseTopBorder(string value)
