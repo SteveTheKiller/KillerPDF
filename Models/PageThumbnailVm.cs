@@ -6,6 +6,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using KillerPDF.Services;
+using KillerPdf.Engine.ColorManagement;
 
 namespace KillerPDF
 {
@@ -14,7 +15,8 @@ namespace KillerPDF
     /// Thumbnail is loaded lazily on a background thread; the UI binds to
     /// the <see cref="Thumbnail"/> property and updates via PropertyChanged.
     /// </summary>
-    internal sealed class PageThumbnailVm(int pageIndex, string filePath, Services.OpenedProtection? protection, int rotation = 0) : INotifyPropertyChanged
+    internal sealed class PageThumbnailVm(int pageIndex, string filePath, Services.OpenedProtection? protection,
+        int rotation = 0, PdfDocumentProofViewSnapshot? proof = null) : INotifyPropertyChanged
     {
         // Concurrency cap for sidebar thumbnail loads. The prior limit of two came from
         // pdfium doc-reader contention, which no longer applies now that the engine is
@@ -38,9 +40,12 @@ namespace KillerPDF
         private readonly Services.OpenedProtection? _protection = protection;   // the tab's, so its own file reads under its key
         private readonly int    _rotation = ((rotation % 360) + 360) % 360; // degrees: 0, 90, 180, 270
         private readonly PdfCapturedReadRevision? _nativeRevision;
+        private readonly PdfDocumentProofViewSnapshot? _proof = proof;
+        internal PdfDocumentProofViewStamp? ProofStamp => _proof?.Stamp;
 
-        internal PageThumbnailVm(int pageIndex, PdfCapturedReadRevision revision, int rotation = 0)
-            : this(pageIndex, string.Empty, null, rotation) => _nativeRevision = revision;
+        internal PageThumbnailVm(int pageIndex, PdfCapturedReadRevision revision, int rotation = 0,
+            PdfDocumentProofViewSnapshot? proof = null)
+            : this(pageIndex, string.Empty, null, rotation, proof) => _nativeRevision = revision;
 
         public BitmapSource? Thumbnail => _thumb;
 
@@ -82,8 +87,8 @@ namespace KillerPDF
             try
             {
                 var src = _nativeRevision is not null
-                    ? BuildNativeThumb(_nativeRevision, PageIndex, _rotation, 288, 576, CancellationToken.None)
-                    : BuildThumb(_filePath, _protection, PageIndex, _rotation);
+                    ? BuildNativeThumb(_nativeRevision, PageIndex, _rotation, 288, 576, CancellationToken.None, _proof?.Settings)
+                    : BuildThumb(_filePath, _protection, PageIndex, _rotation, _proof?.Settings);
                 if (src != null) SetThumbnail(src);
             }
             catch { /* thumbnail not critical */ }
@@ -91,9 +96,10 @@ namespace KillerPDF
         }
 
         internal static BitmapSource? BuildNativeThumb(PdfCapturedReadRevision revision, int pageIndex,
-            int rotation, int maximumWidth, int maximumHeight, CancellationToken cancellationToken)
+            int rotation, int maximumWidth, int maximumHeight, CancellationToken cancellationToken,
+            PdfDocumentProofSettings? proof = null)
         {
-            var frame = Controls.PdfViewer.RenderNativeFrame(revision, pageIndex, maximumWidth, maximumHeight, cancellationToken);
+            var frame = Controls.PdfViewer.RenderNativeFrame(revision, pageIndex, maximumWidth, maximumHeight, cancellationToken, proof);
             int width = frame.Width, height = frame.Height;
             byte[] pixels = frame.ToSrgbBgra32(cancellationToken);
             if (rotation != 0)
@@ -102,7 +108,8 @@ namespace KillerPDF
             return EncodeToBitmapSource(pixels, width, height);
         }
 
-        internal static BitmapSource? BuildThumb(string filePath, Services.OpenedProtection? protection, int pageIndex, int rotation = 0)
+        internal static BitmapSource? BuildThumb(string filePath, Services.OpenedProtection? protection, int pageIndex,
+            int rotation = 0, PdfDocumentProofSettings? proof = null)
         {
             try
             {
@@ -112,7 +119,7 @@ namespace KillerPDF
                 // lower to save memory (each loaded thumbnail is kept in RAM).
                 using var renderSession =
                     PdfPageRenderSession.OpenEngineFirst(filePath, 288, 576, protection);
-                PdfRenderedPage page = renderSession.RenderPreview(pageIndex);
+                PdfRenderedPage page = renderSession.RenderPreview(pageIndex, proof: proof);
                 int tw = page.Width;
                 int th = page.Height;
                 byte[] raw = page.Pixels;

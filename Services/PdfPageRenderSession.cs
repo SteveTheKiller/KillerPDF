@@ -274,9 +274,18 @@ internal sealed class PdfPageRenderSession : IDisposable
     /// <summary>A page for display only, at the session's fitted size with annotations and form
     /// fields. Like the viewer it keeps the pixels and their diagnostics, so a page that cannot be
     /// published still gets its thumbnail instead of a label-only tile.</summary>
-    internal PdfRenderedPage RenderPreview(int pageIndex, CancellationToken cancellationToken = default)
+    internal PdfRenderedPage RenderPreview(int pageIndex, CancellationToken cancellationToken = default,
+        KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (proof?.Enabled == true)
+        {
+            var options = CreateRenderOptions(pageIndex, transparentBackground: false,
+                includeAnnotations: true, includeFormFields: true) with { Proof = proof };
+            var frame = Renderer.RenderFrame(pageIndex, options, cancellationToken);
+            return new PdfRenderedPage(frame.Width, frame.Height, frame.ToSrgbBgra32(cancellationToken),
+                PdfRenderBackend.Engine, null);
+        }
         return RenderEnginePage(pageIndex, transparentBackground: false,
             includeAnnotations: true, includeFormFields: true, cancellationToken);
     }

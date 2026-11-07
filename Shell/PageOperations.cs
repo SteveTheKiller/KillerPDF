@@ -347,15 +347,18 @@ namespace KillerPDF.Shell
         /// Falls back to a full refresh whenever the cache cannot be proven to match.</summary>
         internal void RestorePageListForActivePane()
         {
-            var cached = ActiveViewer.ThumbCache;
-            int preservedPage = ActiveViewer.CurrentPageIndex;
+            var thumbnailOwner = ActiveViewer;
+            var proof = thumbnailOwner.DocumentProofView?.CaptureProof();
+            var cached = thumbnailOwner.ThumbCache;
+            int preservedPage = thumbnailOwner.CurrentPageIndex;
 
             bool usable = cached != null
                        && _doc != null
                        && _currentFile != null
-                       && ActiveViewer.ThumbCacheComplete
+                       && thumbnailOwner.ThumbCacheComplete
                        && cached.Length == _doc.PageCount
-                       && string.Equals(ActiveViewer.ThumbCacheFile, _currentFile,
+                       && cached.All(item => item.ProofStamp == proof?.Stamp)
+                       && string.Equals(thumbnailOwner.ThumbCacheFile, _currentFile,
                                         System.StringComparison.OrdinalIgnoreCase);
 
             if (!usable) { RefreshPageList(); return; }
@@ -372,6 +375,7 @@ namespace KillerPDF.Shell
         internal void RefreshPageList()
         {
             var thumbnailOwner = ActiveViewer;
+            var thumbnailProof = thumbnailOwner.DocumentProofView?.CaptureProof();
             // Cancel any in-flight thumbnail load for the previous file.
             _thumbCts?.Cancel();
             // Hold the token locally rather than reading it back off _thumbCts. That property
@@ -407,10 +411,11 @@ namespace KillerPDF.Shell
             for (int i = 0; i < pageCount; i++)
             {
                 rotSnap.TryGetValue(i, out int rot);
-                items[i] = nativeRevision is not null ? new PageThumbnailVm(i, nativeRevision, rot)
-                    : new PageThumbnailVm(i, filePath, protection, rot);
+                items[i] = nativeRevision is not null ? new PageThumbnailVm(i, nativeRevision, rot, thumbnailProof)
+                    : new PageThumbnailVm(i, filePath, protection, rot, thumbnailProof);
                 // Seed with stale thumbnail - better than blank while reloading
-                if (nativeRevision is null && oldItems != null && i < oldItems.Length)
+                if (nativeRevision is null && oldItems != null && i < oldItems.Length
+                    && oldItems[i].ProofStamp == thumbnailProof?.Stamp)
                 {
                     var prev = oldItems[i].Thumbnail;
                     if (prev != null) items[i].SetThumbnailDirect(prev);
@@ -442,14 +447,14 @@ namespace KillerPDF.Shell
                             {
                                 rotSnap.TryGetValue(i, out int nativeRotation);
                                 var nativeThumb = PageThumbnailVm.BuildNativeThumb(nativeRevision, i,
-                                    nativeRotation, 128, 256, ct);
+                                    nativeRotation, 128, 256, ct, thumbnailProof?.Settings);
                                 if (nativeThumb is not null && !ct.IsCancellationRequested)
                                     items[i].SetThumbnail(nativeThumb);
                                 continue;
                             }
                             if (renderSession is null)
                                 throw new InvalidOperationException("A PDF thumbnail renderer is required.");
-                            PdfRenderedPage page = renderSession.RenderPreview(i);
+                            PdfRenderedPage page = renderSession.RenderPreview(i, ct, thumbnailProof?.Settings);
                             int tw = page.Width;
                             int th = page.Height;
                             byte[] raw = page.Pixels;
