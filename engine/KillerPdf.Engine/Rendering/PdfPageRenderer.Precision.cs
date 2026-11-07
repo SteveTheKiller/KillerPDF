@@ -97,7 +97,7 @@ public sealed partial class PdfPageRenderer
                 && !proofRequest.PrinterProfile.HasExplicitValidMediaWhite)
                 throw new NotSupportedException("Absolute printer proof conversion requires explicit valid media-white data.");
         }
-        if (options.SeparationPlate is not null || OutputProfile(null) is not null)
+        if (options.SeparationPlate is not null)
             throw new NotSupportedException("High-precision profile and group rendering is not implemented.");
         if (page.TryGetValue(Name("Group"), out PdfObject? groupValue)
             && (Resolve(groupValue) is not PdfDictionary group
@@ -280,7 +280,8 @@ public sealed partial class PdfPageRenderer
     {
         if (blendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible or RendererBlendMode.Multiply or RendererBlendMode.Screen)
             || softMask is not null || knockout is not null || surface.HasProfile
-            || surface.GroupAlpha is not null || surface.GroupShape is not null)
+            || surface.GroupAlpha is not null || surface.GroupShape is not null
+            || color.SpotName is not null || color.AdditionalSpot is not null)
             throw new NotSupportedException("This high-precision compositing operation is not implemented.");
         var source = color.PreciseRgb ?? (color.Connection is { } connection
             ? PreciseConnectionToRgb(connection.X, connection.Y, connection.Z)

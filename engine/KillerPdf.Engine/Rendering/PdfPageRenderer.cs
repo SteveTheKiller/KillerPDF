@@ -374,7 +374,10 @@ public sealed partial class PdfPageRenderer
             pixels.TrackSpotUnits = true;
         }
         else if (outputProfile is not null)
-            pixels.EnableInk(Color.White, profile: outputProfile);
+        {
+            if (preciseRgb is null)
+                pixels.EnableInk(Color.White, profile: outputProfile);
+        }
         else if (CmykGroup(_tree.Pages[pageIndex].Dictionary, pageResources, false))
             pixels.EnableInk(Color.White, profile: pageProfile);
         else if (pageProfile is { Components: 1 or 3 }) pixels.EnableRgb(Color.White, pageProfile);
@@ -619,6 +622,9 @@ public sealed partial class PdfPageRenderer
                             fillSpace = new ImageColorSpace(1, null)
                                 .ForDestination(pixels, state.BlackPointCompensation, diagnostics);
                         }
+                        if (pixels.PreciseRgb is not null && !fillSpace.DoesNotPaint
+                            && (fillSpace.HasProcessColorants || fillSpace.ContainsSpotColorants || fillSpace.MultiConverter is not null))
+                            throw new NotSupportedException("High-precision named-color rendering is not implemented.");
                         state = state with
                         {
                             FillColorSpace = fillSpace,
@@ -687,6 +693,9 @@ public sealed partial class PdfPageRenderer
                             strokeSpace = new ImageColorSpace(1, null)
                                 .ForDestination(pixels, state.BlackPointCompensation, diagnostics);
                         }
+                        if (pixels.PreciseRgb is not null && !strokeSpace.DoesNotPaint
+                            && (strokeSpace.HasProcessColorants || strokeSpace.ContainsSpotColorants || strokeSpace.MultiConverter is not null))
+                            throw new NotSupportedException("High-precision named-color rendering is not implemented.");
                         state = state with
                         {
                             StrokeColorSpace = strokeSpace,
@@ -5869,7 +5878,8 @@ public sealed partial class PdfPageRenderer
             bool assumedCmyk = colorSpace is { Components: 4, IsDeviceCmyk: true, Profile: null,
                 IsIccBased: false, HasIccSource: false, IsDefault: false, BlackPointCompensationEnabled: false }
                 && colorSpace.Converter == PreciseCmykViewingColor;
-            bool preciseCmyk = colorSpace is { IsIccBased: true, ComponentRange: null,
+            bool preciseCmyk = (colorSpace.IsIccBased || colorSpace.IsDeviceCmyk)
+                && colorSpace is { ComponentRange: null,
                 Profile: PdfIccProfileTransform { IsLutBased: true, IsLabInput: false,
                     Components: 4, RenderingIntent: 1, ForwardTableSignature: "A2B1" } }
                 && colorSpace.Intent == 1 && !colorSpace.BlackPointCompensationEnabled;

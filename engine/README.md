@@ -717,7 +717,16 @@ Their finite device-range Matte colors are removed before the CMYK profile trans
 Raw color-key masks also support natural or eligible nearest sampling.
 CMYK indexed images, other reductions,
 gradients, other group semantics and compatibility byte rendering still need broader adoption.
-Pages with OutputIntents remain outside the current float path.
+Supported catalog CMYK output intents bind DeviceCMYK source colors in float RGB
+viewing; resource DefaultCMYK remains authoritative. This source-managed path
+retains ordinary RGB/Gray viewing values rather than implicitly simulating the
+catalog printer destination. Explicit printer proofing remains separate, and
+compatibility byte rendering retains its existing destination-profile behavior.
+Catalog CMYK images use the existing precise ICC image conditions, including
+relative-colorimetric A2B1 LUT conversion without black-point compensation at
+natural size. Supported DeviceRGB page/Form groups remain available. Named process
+and spot spaces, DeviceN, separation frames and unsupported groups remain diagnosed;
+nonpainting None colorants stay omitted.
 Callers can also apply the source assumption explicitly.
 Printer proofing uses its selected printer/paper profile. The package includes the unmodified profile and its complete
 CC0 license in `color_profiles/Resources/ColorProfiles`.
