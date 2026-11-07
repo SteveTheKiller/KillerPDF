@@ -17,7 +17,9 @@ internal sealed class PdfImageAssetGraphWriter
     {
         var graph = ReadImage(asset, cancellationToken);
         return graph.SoftMask is not null ? new PdfVersion(1, 4) : graph.Profile is not null ? new PdfVersion(1, 3)
-            : graph.Image.Dictionary.ContainsKey(Name("Filter")) ? new PdfVersion(1, 2) : new PdfVersion(1, 0);
+            : graph.Image.Dictionary.TryGetValue(Name("Filter"), out var filter)
+                && filter is PdfName name && name.ValueAsLatin1() == "FlateDecode"
+                ? new PdfVersion(1, 2) : new PdfVersion(1, 0);
     }
 
     internal PdfIndirectReference Write(PdfImageAsset asset,
@@ -152,8 +154,15 @@ internal sealed class PdfImageAssetGraphWriter
             || (long)asset.Width * asset.Height > MaximumBytes / 3
             || image.EncodedData.Length > MaximumBytes)
             throw new NotSupportedException("Detached image authoring requires a bounded eight-bit RGB image.");
-        if (dictionary.ContainsKey(Name("Filter")) && !IsName("Filter", "FlateDecode"))
-            throw new NotSupportedException("Detached image authoring supports only raw or single FlateDecode image data.");
+        bool jpeg = IsName("Filter", "DCTDecode");
+        if (dictionary.ContainsKey(Name("Filter")) && !IsName("Filter", "FlateDecode") && !jpeg)
+            throw new NotSupportedException("Detached image authoring supports only raw, FlateDecode or supported DCTDecode data.");
+        if (jpeg)
+        {
+            if (profile is not null || softMask is not null || !IsName("ColorSpace", "DeviceRGB"))
+                throw new NotSupportedException("Detached JPEG assets require unmasked direct DeviceRGB.");
+            PdfImageAssetJpegValidator.Validate(image.EncodedData, asset.Width, asset.Height, cancellationToken);
+        }
         if (dictionary.TryGetValue(Name("Interpolate"), out var interpolate) && interpolate is not PdfBoolean)
             throw new NotSupportedException("Detached image interpolation must be a boolean.");
         if (!dictionary.ContainsKey(Name("Filter"))

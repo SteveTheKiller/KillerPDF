@@ -57,21 +57,25 @@ public static class PdfImagePlacementExtractor
         foreach (string key in new[] { "DecodeParms", "Decode", "Mask", "ImageMask", "SMaskInData", "OC", "Alternates", "OPI" })
             if (dictionary.ContainsKey(Name(key)))
                 throw new NotSupportedException("Image extraction does not yet preserve image property: " + key + ".");
-        bool flate = false;
+        bool flate = false, jpeg = false;
         if (dictionary.TryGetValue(Name("Filter"), out var filterValue))
         {
             var filter = Resolve(filterValue);
             if (filter is PdfArray { Count: 1 } filters) filter = Resolve(filters[0]);
-            if (filter is not PdfName filterName || filterName.ValueAsLatin1() != "FlateDecode")
-                throw new NotSupportedException("Image extraction currently supports only a single FlateDecode filter.");
-            flate = true;
+            if (filter is not PdfName filterName || filterName.ValueAsLatin1() is not ("FlateDecode" or "DCTDecode"))
+                throw new NotSupportedException("Image extraction supports only single FlateDecode or supported DCTDecode data.");
+            jpeg = filterName.ValueAsLatin1() == "DCTDecode";
+            flate = !jpeg;
         }
+        if (jpeg && dictionary.ContainsKey(Name("SMask")))
+            throw new NotSupportedException("Detached JPEG soft masks are not implemented.");
         if (!dictionary.TryGetValue(Name("ColorSpace"), out var colorValue))
             throw new NotSupportedException("Image extraction requires an explicit source color space.");
         PdfStream? profile = null;
         PdfName renderingIntent = Name("RelativeColorimetric");
         if (Resolve(colorValue) is not PdfName color || color.ValueAsLatin1() != "DeviceRGB")
         {
+            if (jpeg) throw new NotSupportedException("Detached JPEG assets require direct DeviceRGB.");
             if (dictionary.TryGetValue(Name("Intent"), out var intent))
                 renderingIntent = Resolve(intent) as PdfName
                     ?? throw new NotSupportedException("Image rendering intent requires one standard name.");
@@ -162,12 +166,13 @@ public static class PdfImagePlacementExtractor
             throw new NotSupportedException("The image exceeds the detached asset size limit.");
         if (image.EncodedData.Length > MaximumAssetBytes)
             throw new NotSupportedException("The encoded image exceeds the detached asset size limit.");
+        if (jpeg) PdfImageAssetJpegValidator.Validate(image.EncodedData, width, height, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         byte[]? samples = flate
             ? document.DecodeImageSamples(image, MaximumAssetBytes, (int)(pixels * 3)) : null;
         int sampleCount = samples?.Length ?? image.EncodedData.Length;
         cancellationToken.ThrowIfCancellationRequested();
-        if (sampleCount != pixels * 3)
+        if (!jpeg && sampleCount != pixels * 3)
             throw new FormatException("The image payload does not match its dimensions.");
         if (samples is not null)
         {
@@ -190,6 +195,7 @@ public static class PdfImagePlacementExtractor
             [Name("ColorSpace")] = Name("DeviceRGB"), [Name("BitsPerComponent")] = new PdfInteger(8)
         };
         if (flate) entries.Add(Name("Filter"), Name("FlateDecode"));
+        if (jpeg) entries.Add(Name("Filter"), Name("DCTDecode"));
         if (dictionary.TryGetValue(Name("Interpolate"), out var interpolate))
         {
             if (Resolve(interpolate) is not PdfBoolean flag)
