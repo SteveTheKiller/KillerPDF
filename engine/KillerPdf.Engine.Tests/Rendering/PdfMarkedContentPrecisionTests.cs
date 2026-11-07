@@ -46,7 +46,6 @@ public sealed class PdfMarkedContentPrecisionTests
     }
 
     [Theory]
-    [InlineData("/RelativeColorimetric ri")]
     [InlineData("1 i")]
     public void MarkersDoNotMakeOtherUnsupportedOperatorsImplicitlySupported(string operation)
     {

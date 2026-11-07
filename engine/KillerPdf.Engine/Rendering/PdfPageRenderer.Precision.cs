@@ -52,6 +52,7 @@ public sealed partial class PdfPageRenderer
     /// including region rendering, visibility filtering and printer proof conversion.
     /// Requested form-field regeneration remains unsupported.
     /// Explicit neutral graphics-state defaults, including a None soft-mask reset, retain precision.
+    /// Rendering-intent operators update graphics state while each paint retains its profile intent limits.
     /// Eligible isolated and non-isolated non-knockout DeviceRGB Form groups support outer Normal
     /// or Multiply or Screen compositing, with independent source alpha when needed. Internal Normal, Multiply or Screen paints
     /// retain precision with rectangular clips and no effective group profile. Active nested group pixel arrays
@@ -252,7 +253,7 @@ public sealed partial class PdfPageRenderer
 
     private static bool PreciseOperationSupported(string operation) => operation is
         "q" or "Q" or "cm" or "rg" or "RG" or "g" or "G" or "k" or "K" or "gs" or "w" or "d"
-        or "BMC" or "BDC" or "EMC"
+        or "BMC" or "BDC" or "EMC" or "ri"
         or "cs" or "CS" or "sc" or "SC" or "scn" or "SCN"
         or "m" or "l" or "c" or "v" or "y" or "h" or "re"
         or "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*"

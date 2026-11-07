@@ -1069,6 +1069,8 @@ proof controls still require the full source-aware pipeline.
 combined pixel-storage limit counts only the requested region, and precision validation,
 diagnostics and cancellation match `RenderFrame`. Desktop refinement adoption remains in progress.
 Ordinary float viewing honors BMC/BDC/EMC marked content, including nested optional-content visibility.
+Standard `ri` commands update ordinary float viewing state and respect `q`/`Q` restoration.
+Unknown names and malformed operands are refused. Each paint retains its existing profile-intent limits.
 The supplied `PdfRenderOptions` still validate the full page's byte-raster dimensions and limit.
 Supported RGB/Gray matrix/TRC image profiles can also replace DeviceRGB/Gray through
 resource `DefaultRGB` and `DefaultGray`, preserving their source precision and extended RGB.

@@ -1117,6 +1117,11 @@ public sealed partial class PdfPageRenderer
                         diagnostics.Add(shadingDiagnostic
                             ?? "Shading rendering is not implemented.");
                     break;
+                case "ri" when pixels.PreciseRgb is not null
+                    && (values.Count != 1 || values[0] is not PdfName preciseIntent
+                        || preciseIntent.ValueAsLatin1() is not ("Perceptual" or "RelativeColorimetric"
+                            or "Saturation" or "AbsoluteColorimetric")):
+                    throw new NotSupportedException("High-precision rendering intent must be a standard intent name.");
                 case "ri" when values.Count == 1 && values[0] is PdfName intentName:
                     state = ApplyRenderingIntent(state, ReadRenderingIntent(intentName), pixels, diagnostics);
                     break;
