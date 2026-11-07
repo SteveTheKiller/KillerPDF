@@ -13,6 +13,110 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubCssClassSelectorTests
 {
+    [Theory]
+    [InlineData("", 13, 7, 11.25, true)]
+    [InlineData("hr{margin:0}", 3, 2, 18.75, true)]
+    [InlineData("hr{margin:0;border:0}", 2, 2, 19.5, false)]
+    [InlineData("hr{margin:0;display:none}", 2, 2, 19.5, false)]
+    [InlineData("hr{margin:0;visibility:hidden}", 3, 2, 18.75, false)]
+    [InlineData("hr{all:initial}", 2, 2, 19.5, false)]
+    [InlineData("hr{all:inherit}", 2, 2, 19.5, false)]
+    public void HorizontalRuleDefaultsAndAuthorResetsKeepLiteralFlowAndPaint(string css,
+        double textTop, int lineY, double baseline, bool painted)
+    {
+        byte[] source = Book("p{margin:0}" + css, "<hr/><p>A</p>"), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A", page.Text);
+        Assert.Equal(textTop, Assert.Single(page.TextPlacements).Top);
+        Assert.Equal(painted ? new float[] { 0, 0, 0, 1 } : [1, 1, 1, 1],
+            layout.RenderPage(0).Pixels.Slice((lineY * 30 + 15) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var converted = new PdfPageContentReader(pdf).Read(0);
+        Assert.Equal(painted ? 1 : 0, converted.Paths.Count);
+        Assert.Equal(baseline, Assert.Single(converted.Letters).StartBaseLine.Y);
+        Assert.Equal(original, source);
+    }
+
+    [Fact]
+    public void HorizontalRuleWidthUsesItsAutomaticHorizontalMargins()
+    {
+        var book = EpubDocument.Open(Book("hr{width:50%;margin-top:0;margin-bottom:0}", "<hr/>"));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+        var frame = layout.RenderPage(0);
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((2 * 30 + 15) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((2 * 30 + 3) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, frame.Pixels.Slice((2 * 30 + 25) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Equal(new PdfContentBounds(6.375, 24.75, 16.125, 25.5),
+            Assert.Single(new PdfPageContentReader(pdf).Read(0).Paths).BoundingBox);
+    }
+
+    [Theory]
+    [InlineData("<hr>A</hr>")]
+    [InlineData("<hr><span>A</span></hr>")]
+    [InlineData("<p><hr/></p>")]
+    [InlineData("<hr onclick='execute()'/>")]
+    [InlineData("<hr xmlns='urn:other'/>")]
+    public void HorizontalRuleAdmissionRetainsContentParentAndAttributeGuards(string body)
+    {
+        var book = EpubDocument.Open(Book("", body));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(
+            new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 }));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+    }
+
+    [Fact]
+    public void HorizontalRuleUsesReaderFallbackColorWithoutChangingPdfSourceColors()
+    {
+        byte[] source = Book("hr{margin:0}", "<hr/>"), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 16, font)
+        { FontSize = 10, Margin = 2, TextColor = new PdfRgbColor(0, 0, 1) });
+        var native = layout.RenderPage(0);
+        Assert.Equal(new float[] { 0, 0, 1, 1 }, native.Pixels.Slice((2 * 30 + 15) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var frame = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(30, 16));
+        Assert.Empty(frame.Diagnostics);
+        Assert.Equal(new byte[] { 0, 0, 0, 255 }, frame.Pixels.Slice((2 * 30 + 15) * 4, 4).ToArray());
+        Assert.Equal(original, source);
+    }
+
+    [Fact]
+    public void HorizontalRulePaintsOneLineAndKeepsFollowingTextAtBothSeams()
+    {
+        byte[] source = Book("hr{margin:0}p{margin:0}", "<hr/><p>A</p>"), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A", page.Text);
+        var placement = Assert.Single(page.TextPlacements);
+        Assert.Equal(3, placement.Top);
+        Assert.Equal(0, placement.Start);
+        var native = layout.RenderPage(0);
+        Assert.Equal(new float[] { 0, 0, 0, 1 }, native.Pixels.Slice((2 * 30 + 15) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, native.Pixels.Slice((1 * 30 + 15) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, native.Pixels.Slice((2 * 30 + 29) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var content = new PdfPageContentReader(pdf).Read(0);
+        Assert.Equal(new PdfContentBounds(1.5, 24.75, 21, 25.5), Assert.Single(content.Paths).BoundingBox);
+        Assert.Equal(18.75, Assert.Single(content.Letters).StartBaseLine.Y);
+        var frame = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(30, 36));
+        Assert.Empty(frame.Diagnostics);
+        Assert.Equal(new byte[] { 0, 0, 0, 255 }, frame.Pixels.Slice((2 * 30 + 15) * 4, 4).ToArray());
+        Assert.Equal(original, source);
+    }
+
     [Fact]
     public void DirectContainerSpanKeepsItsStyledTextAtBothSeams()
         => Verify("span{color:red}", "<div><span>A</span></div>", 2, 1.5, true, false);

@@ -36,7 +36,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             ? href : parent?.LinkReference;
         internal bool HasUnderline { get; } = style.Underline || parent?.HasUnderline == true;
         internal string Name { get; } = name;
-        internal static bool IsParagraphName(string value) => value is "p" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6";
+        internal static bool IsParagraphName(string value) => value is "p" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "hr";
         internal bool IsParagraph => IsParagraphName(Name);
         internal Element? Parent { get; } = parent;
         internal Style Style { get; } = style;
@@ -91,6 +91,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     {
         internal Style Style => Node.Owner.Style;
     }
+
+    private static readonly CssProperties HorizontalRuleDefaults = CssProperties.FromConcrete(new ResolvedProperties(null, null,
+        Margins: [new(.5, true), new(0, false, Auto: true), new(.5, true), new(0, false, Auto: true)],
+        TopBorder: new BorderSide(new MarginLength(1, false), true, null)));
 
     private static CssProperties? HeadingDefaults(string name)
     {
@@ -152,6 +156,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         string name = xml.LocalName;
         bool paragraph = Element.IsParagraphName(name);
         Element? parent = _ancestors.TryPeek(out var ancestor) ? ancestor : null;
+        if (parent?.Name == "hr")
+            throw new NotSupportedException("Native EPUB horizontal rules cannot contain elements.");
         if (name == "a" && _ancestors.Any(element => element.Name == "a"))
             throw new NotSupportedException("Native EPUB nested anchors are invalid.");
         if (name == "img" && parent?.LinkReference is not null)
@@ -227,6 +233,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [], attributes);
         CssProperties declarations = ResolveRules(name, identity);
         if (inlineStyle is not null) declarations = declarations.Override(ParseProperties(inlineStyle));
+        if (name == "hr") declarations = HorizontalRuleDefaults.Override(declarations);
         if (name is "strong" or "b")
         {
             double parentWeight = parent?.Style.FontWeight ?? DefaultStyle.FontWeight;
@@ -336,6 +343,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal Text TextNode(string value)
     {
         var owner = _ancestors.Peek();
+        if (owner.Name == "hr")
+            throw new NotSupportedException("Native EPUB horizontal rules cannot contain text.");
         var node = new Text(value, owner, Characters.Count);
         owner.Children.Add(node);
         return node;

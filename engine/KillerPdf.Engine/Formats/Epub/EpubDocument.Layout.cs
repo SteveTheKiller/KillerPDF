@@ -358,7 +358,7 @@ public sealed partial class EpubDocument
                 }
                 int initialPaintStart = backgrounds.Count;
                 PdfRgbColor? borderColor = block.Source.Style.Hidden ? null : topBorder is { Color: { } specified }
-                    ? specified.Color : block.Source.Style.Color ?? new PdfRgbColor(0, 0, 0);
+                    ? specified.Color : block.Source.Style.Color ?? options.TextColor;
                 double emptyBorderRemaining = 0;
                 if (block.Children.Count == 0 && block.Replaced is null)
                 {

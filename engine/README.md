@@ -358,6 +358,12 @@ their vertical margins are .67, .83, 1, 1.33, 1.67 and 2.33em respectively.
 Author declarations override each default using the actual parent size; bare inline
 headings omit default box margins. Default bold requires the typed font resolver,
 with no synthetic weight. Other heading names remain diagnosed.
+Empty `hr` elements reuse paragraph top-border layout. The native reader defaults
+to a one-pixel current-color rule with .5em vertical margins and automatic
+horizontal margins. Author declarations can override or reset these defaults.
+This bounded rule style does not implement browser inset-border painting.
+Rules reject text and child elements. Unspecified border color follows the
+layout caller's text color; PDF conversion keeps its own default text color.
 Explicit `br` elements within supported paragraphs and spans advance lines without
 paragraph gaps. Consecutive breaks retain blank line heights through pagination,
 and styled text keeps its source offsets. Structural normalization still omits
