@@ -41,7 +41,7 @@ public sealed partial class EpubDocumentTests
     }
 
     [Theory]
-    [InlineData("<table><tr><td>One</td><td>Two</td></tr></table>")]
+    [InlineData("<table><caption>Caption</caption><tr><td>One</td></tr></table>")]
     [InlineData("<pre>  Code\n  Indent</pre>")]
     [InlineData("<iframe>Fallback</iframe>")]
     [InlineData("<img alt='Alternative'/>")]

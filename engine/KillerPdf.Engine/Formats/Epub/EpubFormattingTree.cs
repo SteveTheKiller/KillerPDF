@@ -4,13 +4,16 @@ namespace KillerPdf.Engine.Formats.Epub;
 internal sealed class EpubFormattingTree
 {
     internal abstract class Part;
-    internal sealed class Block(EpubNativeContent.Element source, Block? parent) : Part
+    internal class Block(EpubNativeContent.Element source, Block? parent) : Part
     {
         internal EpubNativeContent.Element Source { get; } = source;
         internal Block? Parent { get; } = parent;
         internal List<Part> Children { get; } = new();
         internal EpubNativeContent.InlineReference? Replaced { get; set; }
     }
+    internal sealed class Table(EpubNativeContent.Element source, Block parent) : Block(source, parent);
+    internal sealed class Row(EpubNativeContent.Element source, Block parent) : Block(source, parent);
+    internal sealed class Cell(EpubNativeContent.Element source, Block parent) : Block(source, parent);
     internal sealed class InlineSequence(Block block) : Part
     {
         internal Block Block { get; } = block;
@@ -40,6 +43,8 @@ internal sealed class EpubFormattingTree
                     throw new InvalidDataException("Native EPUB formatting exceeds its box work limit.");
                 if (child is EpubNativeContent.Text text)
                 {
+                    if (element.Display is EpubNativeContent.DisplayKind.Table or EpubNativeContent.DisplayKind.TableRow
+                        && string.IsNullOrWhiteSpace(text.Value)) continue;
                     var positions = new Dictionary<int, int>();
                     foreach (int index in text.Positions)
                     {
@@ -73,7 +78,13 @@ internal sealed class EpubFormattingTree
                 Block target = containing;
                 if (source.IsBlock)
                 {
-                    target = new(source, containing);
+                    target = source.Display switch
+                    {
+                        EpubNativeContent.DisplayKind.Table => new Table(source, containing),
+                        EpubNativeContent.DisplayKind.TableRow => new Row(source, containing),
+                        EpubNativeContent.DisplayKind.TableCell => new Cell(source, containing),
+                        _ => new Block(source, containing)
+                    };
                     containing.Children.Add(target);
                 }
                 if (references.TryGetValue(source, out var reference))

@@ -308,13 +308,16 @@ public sealed partial class EpubDocument
             EpubFormattingTree.Block flowRoot, double contentLeft, double contentRight, double top)
         {
             int existingPageCount = destinationPages.Count;
+            bool chapterRoot = ReferenceEquals(flowRoot, formatting.Root);
+            int flowStart = chapterRoot ? 0 : Math.Min(flowRoot.Source.Offset, text.Length);
+            int flowEnd = chapterRoot ? text.Length : Math.Min(flowRoot.Source.EndOffset, text.Length);
             var pages = new List<EpubLayoutPage>();
             double contentWidth = contentRight - contentLeft;
-            var placements = new List<EpubTextPlacement>(text.Length);
+            var placements = new List<EpubTextPlacement>(flowEnd - flowStart);
             var navigationPlacements = new List<EpubTextPlacement>();
-            var glyphs = new List<NativePagePaint>(text.Length);
+            var glyphs = new List<NativePagePaint>(flowEnd - flowStart);
             var backgrounds = new List<(int Depth, NativePagePaint Paint)>();
-            int pageStart = 0;
+            int pageStart = flowStart;
             bool pageHasContent = false;
             bool pendingBreakAfter = false;
             double left = contentLeft;
@@ -330,9 +333,9 @@ public sealed partial class EpubDocument
             double pendingParagraphGap = 0;
             LayoutBlock(flowRoot);
             cancellationToken.ThrowIfCancellationRequested();
-            if (bodyPadding.Bottom > 0 && top + bodyPadding.Bottom > options.PageHeight - options.Margin)
+            if (chapterRoot && bodyPadding.Bottom > 0 && top + bodyPadding.Bottom > options.PageHeight - options.Margin)
                 throw new NotSupportedException("Native EPUB terminal body padding overflow is not implemented.");
-            FinishPage(text.Length);
+            FinishPage(flowEnd);
             return (pages, top);
 
             void LayoutBlock(EpubFormattingTree.Block block)
@@ -342,7 +345,8 @@ public sealed partial class EpubDocument
                 var padding = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth, padding: true);
                 contentLeft += margins.Left;
                 contentRight -= margins.Right;
-                if (block.Source.Width is { Length: { } specifiedWidth })
+                if (block.Source.Width is { Length: { } specifiedWidth }
+                    && !(ReferenceEquals(block, flowRoot) && block is EpubFormattingTree.Cell))
                 {
                     double width = specifiedWidth.Percentage ? parentWidth * specifiedWidth.Value / 100
                         : specifiedWidth.Em ? block.Source.Style.FontSize * specifiedWidth.Value : specifiedWidth.Value;
@@ -504,6 +508,13 @@ public sealed partial class EpubDocument
             void LayoutBlockContent(EpubFormattingTree.Block block)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (block is EpubFormattingTree.Table table)
+                {
+                    LayoutTable(table);
+                    return;
+                }
+                if (block is EpubFormattingTree.Row || block is EpubFormattingTree.Cell && !ReferenceEquals(block, flowRoot))
+                    throw new NotSupportedException("Native EPUB table parts require their table flow.");
                 double indent = block.Source.Style.TextIndentPercentage
                     ? block.Source.Style.TextIndent * contentWidth / 100 : block.Source.Style.TextIndent;
                 if (!double.IsFinite(indent) || Math.Abs(indent) > 32768)
@@ -582,6 +593,94 @@ public sealed partial class EpubDocument
                         || block.Source.VerticalMargin(2, activeBounds[block].ContainingWidth, 0, padding: true) > 0;
                     pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(2,
                         activeBounds[block].ContainingWidth, hasExtent ? options.FontSize : 0));
+                }
+            }
+
+            void LayoutTable(EpubFormattingTree.Table table)
+            {
+                const string columnsUnsupported = "Native EPUB explicit table columns must fill the width and match across rows.";
+                double[]? columns = null;
+                if (table.Source.Width is not { Length: { Value: > 0 } }
+                    || table.Children.Count == 0 || table.Children.Any(part => part is not EpubFormattingTree.Row))
+                    throw new NotSupportedException("Native EPUB tables require explicit width and direct rows.");
+                if (pendingParagraphGap > 0)
+                {
+                    top += !pageHasContent && existingPageCount + pages.Count == 0 && bodyPadding.Top == 0
+                        ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
+                    pendingParagraphGap = 0;
+                }
+                foreach (var part in table.Children)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var row = (EpubFormattingTree.Row)part;
+                    if (row.Children.Count == 0 || row.Children.Any(child => child is not EpubFormattingTree.Cell))
+                        throw new NotSupportedException("Native EPUB rows require direct cells.");
+                    if (columns is not null && row.Children.Count != columns.Length)
+                        throw new NotSupportedException(columnsUnsupported);
+                    var cells = new List<EpubLayoutPage>();
+                    var widths = new List<double>();
+                    int rowPaintCount = 0;
+                    double rowLeft = contentLeft, rowHeight = 0;
+                    foreach (var child in row.Children)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var cell = (EpubFormattingTree.Cell)child;
+                        if (cell.Source.Width is not { Length: { Value: > 0 } width })
+                            throw new NotSupportedException("Native EPUB cells require explicit positive widths.");
+                        double cellWidth = width.Percentage ? contentWidth * width.Value / 100
+                            : width.Em ? cell.Source.Style.FontSize * width.Value : width.Value;
+                        if (!double.IsFinite(cellWidth) || rowLeft + cellWidth - contentRight > 0.0000001)
+                            throw new NotSupportedException("Native EPUB cell widths exceed the table content box.");
+                        if (columns is not null && Math.Abs(columns[widths.Count] - cellWidth) > 0.0000001)
+                            throw new NotSupportedException(columnsUnsupported);
+                        widths.Add(cellWidth);
+                        var measured = LayoutFlow(cell, rowLeft, rowLeft + cellWidth, options.Margin);
+                        if (measured.Pages.Count != 1)
+                            throw new NotSupportedException("Native EPUB rows taller than one page are not implemented.");
+                        rowPaintCount += measured.Pages[0].Glyphs.Count;
+                        if (rowPaintCount > 100_000)
+                            throw new InvalidDataException("The native page exceeds its paint limit.");
+                        cells.Add(measured.Pages[0]);
+                        rowHeight = Math.Max(rowHeight, measured.Bottom - options.Margin);
+                        rowLeft += cellWidth;
+                    }
+                    if (Math.Abs(rowLeft - contentRight) > 0.0000001)
+                        throw new NotSupportedException(columnsUnsupported);
+                    columns ??= widths.ToArray();
+                    if (top + rowHeight > options.PageHeight - options.Margin)
+                    {
+                        FinishPage(Math.Min(row.Source.Offset, text.Length));
+                        top = options.Margin;
+                        pendingParagraphGap = 0;
+                        pendingBreakAfter = false;
+                    }
+                    lineBlock = table;
+                    AddBlockBackgrounds(rowHeight);
+                    if (backgrounds.Count + glyphs.Count + rowPaintCount > 100_000)
+                        throw new InvalidDataException("The native page exceeds its paint limit.");
+                    double shift = top - options.Margin;
+                    foreach (var cell in cells)
+                    {
+                        foreach (var placement in cell.TextPlacements)
+                            placements.Add(placement with { Top = placement.Top + shift });
+                        foreach (var placement in cell.NavigationPlacements)
+                            navigationPlacements.Add(placement with { Top = placement.Top + shift });
+                        foreach (var paint in cell.Glyphs)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            glyphs.Add(paint switch
+                            {
+                                NativeGlyphPaint glyph => glyph with { Baseline = glyph.Baseline + shift },
+                                NativeImagePaint image => image with { Top = image.Top + shift },
+                                NativeRectanglePaint rectangle => rectangle with { Top = rectangle.Top + shift },
+                                _ => throw new NotSupportedException("Native EPUB cell paint is not implemented.")
+                            });
+                        }
+                    }
+                    if (backgrounds.Count + glyphs.Count > 100_000)
+                        throw new InvalidDataException("The native page exceeds its paint limit.");
+                    top += rowHeight;
+                    pageHasContent |= rowHeight > 0;
                 }
             }
 
@@ -745,7 +844,7 @@ public sealed partial class EpubDocument
 
             void AddBlockBackgrounds(double height)
             {
-                for (var box = lineBlock; box.Parent is not null; box = box.Parent)
+                for (var box = lineBlock; box.Parent is not null && !ReferenceEquals(box, flowRoot.Parent); box = box.Parent)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!box.Source.Style.Hidden && box.Source.Style.Background?.Color is { } fill)
@@ -1025,6 +1124,8 @@ public sealed partial class EpubDocument
             void FinishPage(int end)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (!chapterRoot && end < flowEnd)
+                    throw new NotSupportedException("Native EPUB rows taller than one page are not implemented.");
                 if (existingPageCount + pages.Count >= 10_000)
                     throw new InvalidDataException("Native EPUB layout exceeds its 10000-page limit.");
                 var paints = backgrounds.OrderBy(fill => fill.Depth).Select(fill => fill.Paint)

@@ -378,6 +378,17 @@ paragraph gaps. Consecutive breaks retain blank line heights through pagination,
 and styled text keeps its source offsets. Structural normalization still omits
 leading breaks before any text and trims trailing breaks.
 Words wider than the content box are diagnosed explicitly.
+Initial tables require direct `table` / `tr` / `td` structure, plain cell text,
+positive explicit table and cell widths, zero spacing and no cell padding.
+Cell percentages resolve against the table once. Every row must use the same
+column count and resolved widths, filling the table within 0.0000001 CSS pixels.
+Cells wrap independently; row height follows the tallest cell, and whole rows
+move to the next page while keeping contiguous chapter text ranges. Empty cells
+retain their columns without adding text. Native and converted PDF output retain
+the supported outer container background and preceding paragraph margins.
+Auto sizing, row groups, spans, nested tables, table display overrides, nonzero
+spacing and row/cell page-break requests remain diagnosed. Cells taller than a
+fresh page are refused before retaining additional cell pages.
 CSS `display:block` and `display:inline` follow specificity, declaration order and
 inline overrides without inheriting the parent's display value. A bounded formatting
 tree separates source elements from generated block containers and inline sequences.

@@ -8,7 +8,7 @@ namespace KillerPdf.Engine.Formats.Epub;
 // Source nodes survive normalization so collapsed whitespace keeps its original inline style.
 internal sealed class EpubNativeContent(double fallbackSize, double contentHeight, PdfRgbColor? fallbackTextColor = null)
 {
-    private enum DisplayKind { Block, Inline, None }
+    internal enum DisplayKind { Block, Inline, None, Table, TableRow, TableCell }
     internal readonly record struct BackgroundColor(PdfRgbColor? Color);
     internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null)
     {
@@ -40,9 +40,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal bool IsParagraph => IsParagraphName(Name);
         internal Element? Parent { get; } = parent;
         internal Style Style { get; } = style;
-        internal bool IsBlock { get; } = block;
+        internal DisplayKind Display { get; init; } = block ? DisplayKind.Block : DisplayKind.Inline;
+        internal bool IsBlock => Display is DisplayKind.Block or DisplayKind.Table or DisplayKind.TableRow or DisplayKind.TableCell;
         internal bool IsDisplayNone { get; init; }
         internal int Offset { get; } = offset;
+        internal int EndOffset { get; set; } = offset;
         internal MarginLength?[]? Margins { get; init; }
         internal MarginLength?[]? Padding { get; init; }
         internal BorderSide? TopBorder { get; init; }
@@ -172,6 +174,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "link" => parent?.Name == "head" && xml.GetAttribute("rel") is "icon" or "stylesheet"
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
             "div" => parent?.Name is "body" or "div",
+            "table" => parent?.Name is "body" or "div",
+            "tr" => parent?.Name == "table",
+            "td" => parent?.Name == "tr",
             _ when paragraph => parent?.Name is "body" or "div",
             "strong" or "b" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b",
             "span" or "br" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b",
@@ -190,7 +195,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             Count(xml.Value.Length);
             attributes[(xml.NamespaceURI, xml.LocalName)] = xml.Value;
-            if (xml.NamespaceURI == "" && xml.LocalName == "style" && (paragraph || name is "body" or "div" or "span" or "img" or "a" or "strong" or "b"))
+            if (xml.NamespaceURI == "" && xml.LocalName == "style" && (paragraph || name is "body" or "div" or "span" or "img" or "a" or "strong" or "b" or "table" or "tr" or "td"))
                 inlineStyle = xml.Value;
             else if (xml.NamespaceURI == "" && xml.LocalName == "class")
                 classNames = xml.Value;
@@ -254,10 +259,14 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             declarations = defaults.Override(declarations);
         }
         var properties = ResolveProperties(declarations, parent);
+        if (name is "table" or "tr" or "td" && properties.Display is not (null or DisplayKind.None))
+            throw new NotSupportedException("Native EPUB table display overrides are not implemented.");
         bool suppressed = parent?.IsDisplayNone == true || properties.Display == DisplayKind.None;
         Style style = suppressed ? inherited : properties.Apply(inherited, contentHeight);
         if (!suppressed)
         {
+            if (name is "tr" or "td" && (style.PageBreakBefore || style.PageBreakAfter))
+                throw new NotSupportedException("Native EPUB row and cell page breaks are not implemented.");
             if (name == "html" && properties.Height is { Percentage: not null })
                 throw new NotSupportedException("Native EPUB root percentage heights are not implemented.");
             // Supported normal-flow containing blocks all have content-dependent height.
@@ -269,7 +278,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (properties.TopBorder is { Visible: true, Width.Value: > 0 }
                 && (!paragraph || properties.Display == DisplayKind.Inline))
                 throw new NotSupportedException("Native EPUB visible top borders require block paragraphs.");
-            if (properties.Width is { Length: not null } && (!(paragraph || name == "div") || properties.Display == DisplayKind.Inline))
+            if (properties.Width is { Length: not null } && (!(paragraph || name is "div" or "table" or "td") || properties.Display == DisplayKind.Inline))
                 throw new NotSupportedException("Native EPUB explicit widths require block paragraphs or containers.");
             if (properties.MaximumWidth is { Length: not null } && name != "img")
                 throw new NotSupportedException("Native EPUB maximum widths currently require images.");
@@ -296,10 +305,15 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             DisplayKind.Block => true,
             DisplayKind.Inline or DisplayKind.None => false,
-            _ => paragraph || name is "body" or "div"
+            _ => paragraph || name is "body" or "div" or "table" or "tr" or "td"
         };
         var element = new Element(name, parent, style, block, Characters.Count, identity)
         {
+            Display = properties.Display ?? name switch
+            {
+                "table" => DisplayKind.Table, "tr" => DisplayKind.TableRow, "td" => DisplayKind.TableCell,
+                _ => block ? DisplayKind.Block : DisplayKind.Inline
+            },
             Margins = suppressed ? null : properties.Margins, Padding = suppressed ? null : properties.Padding,
             TopBorder = suppressed ? null : properties.TopBorder, Width = suppressed ? null : properties.Width,
             MaximumWidth = suppressed ? null : properties.MaximumWidth,
@@ -321,7 +335,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         if (!empty) _ancestors.Push(element);
     }
 
-    internal void Exit() => _ancestors.Pop();
+    internal void Exit() => _ancestors.Pop().EndOffset = Characters.Count;
 
     internal (double Top, double Right, double Bottom, double Left) ResolveBodyMargins(double width)
     {
@@ -345,6 +359,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         var owner = _ancestors.Peek();
         if (owner.Name == "hr")
             throw new NotSupportedException("Native EPUB horizontal rules cannot contain text.");
+        if (owner.Display is DisplayKind.Table or DisplayKind.TableRow && !string.IsNullOrWhiteSpace(value))
+            throw new NotSupportedException("Native EPUB table text requires a cell.");
         var node = new Text(value, owner, Characters.Count);
         owner.Children.Add(node);
         return node;
@@ -1005,7 +1021,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             ResolveSides(declarations.Padding, parent?.Padding, parent),
             declarations.TextAlign?.Resolve("left", parent is null ? "left" : parent.Style.TextAlign),
             declarations.PageBreakBefore?.Resolve(false, parent is null ? false : parent.Style.PageBreakBefore),
-            declarations.Display?.Resolve(DisplayKind.Inline, parent is null ? DisplayKind.Inline : parent.IsDisplayNone ? DisplayKind.None : parent.Name == "html" || parent.IsBlock ? DisplayKind.Block : DisplayKind.Inline),
+            declarations.Display?.Resolve(DisplayKind.Inline, parent is null ? DisplayKind.Inline : parent.IsDisplayNone ? DisplayKind.None : parent.Name == "html" ? DisplayKind.Block : parent.Display),
             declarations.FontWeight?.Resolve(400, parent is null ? 400 : parent.Style.FontWeight),
             declarations.TextIndent?.Resolve(new IndentLength(0), parent is null ? new IndentLength(0) : new IndentLength(parent.Style.TextIndent, Percentage: parent.Style.TextIndentPercentage)),
             declarations.FontVariant?.Resolve("normal", parent is null ? "normal" : parent.Style.SmallCaps ? "small-caps" : "normal"),
@@ -1422,6 +1438,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     "visible" or "hidden" or "inherit" or "initial" or "unset" => value.ToLowerInvariant(),
                     _ => throw new NotSupportedException("Native EPUB visibility value is not implemented: " + value + ".")
                 };
+                continue;
+            }
+            if (property == "border-spacing")
+            {
+                if (value is not ("0" or "0px"))
+                    throw new NotSupportedException("Native EPUB nonzero table border spacing is not implemented.");
                 continue;
             }
             if (!value.EndsWith("px", StringComparison.OrdinalIgnoreCase)
