@@ -1207,6 +1207,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 };
                 result = result.Override(CssProperties.ForKeyword(keyword));
             }
+            else if (part[..colon].Trim().Equals("background", StringComparison.OrdinalIgnoreCase)
+                && part[(colon + 1)..].Trim().Equals("initial", StringComparison.OrdinalIgnoreCase))
+                result = result.Override(new(null, null,
+                    Background: CssDeclaration<BackgroundColor>.Marker(CssWideKeyword.Initial)));
             else result = result.Override(CssProperties.FromConcrete(ParseConcreteProperties(part)));
         }
         return result;

@@ -274,6 +274,10 @@ for em margins. Initial values reset paragraph gaps, font family, weight, normal
 height and color while retaining the separate reader page inset. Other shorthand values
 and unsupported longhand values remain diagnosed.
 
+`background:initial` resets the supported background state to transparent without
+resetting text color, typography or box geometry. It participates in the ordinary
+background cascade, including declaration order, specificity and inactive selectors.
+
 Initial `@media screen` blocks preserve nested rule scope and stylesheet order.
 Both native layout and explicit PDF conversion use these reading styles. Media
 blocks are limited to 16 nested levels and bounded scanning; malformed blocks and
