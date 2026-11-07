@@ -15,6 +15,25 @@ namespace KillerPDF.Tests;
 public sealed class NativeWorkingDocumentTests
 {
     [Fact]
+    public void NativeEpubOwnerRetainsLinkRegionsAndHonorsItsLifetime()
+    {
+        using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        using var owner = NativeWorkingDocument.OpenEpub(Book("<p><a href='#target'>A</a></p><div id='target'/>"),
+            new EpubLayoutOptions(80, 48, TrueTypeFont.Load(fontBytes.ToArray())) { FontSize = 12, Margin = 4 });
+        var link = Assert.Single(owner.ReadLinkRegions(0));
+        Assert.Equal("EPUB/text.xhtml#target", link.Target);
+        Assert.Equal(3, link.Bounds.Left, 6);
+        Assert.Equal(33, link.Bounds.Top, 6);
+        Assert.Equal(0, owner.ResolveNavigationTarget(link.Target).PageIndex);
+        Assert.Throws<OperationCanceledException>(() => owner.ReadLinkRegions(0, new CancellationToken(true)));
+        owner.Close();
+        Assert.Throws<ObjectDisposedException>(() => owner.ReadLinkRegions(0));
+    }
+
+    [Fact]
     public void DjvuConversionHonorsCancellationCloseAndFormatBeforeStartingWork()
     {
         using var owner = NativeWorkingDocument.OpenDjvu(DjvuPage());
@@ -668,7 +687,7 @@ public sealed class NativeWorkingDocumentTests
         }
     }
 
-    private static byte[] Book()
+    private static byte[] Book(string body = "<p>A</p>")
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -684,8 +703,8 @@ public sealed class NativeWorkingDocumentTests
                   <spine><itemref idref="chapter"/></spine>
                 </package>
                 """);
-            Add("EPUB/text.xhtml", """
-                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native owner</title></head><body><p>A</p></body></html>
+            Add("EPUB/text.xhtml", $"""
+                <html xmlns="http://www.w3.org/1999/xhtml"><head><title>Native owner</title></head><body>{body}</body></html>
                 """);
             Add("EPUB/nav.xhtml", """
                 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text.xhtml">Native owner</a></li></ol></nav></body></html>

@@ -13,6 +13,52 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubCssClassSelectorTests
 {
+    [Theory]
+    [InlineData("<p><a href='#target'>AA</a></p>", 1)]
+    [InlineData("<p><a href='#target'>A</a>A<a href='#target'>A</a></p>", 2)]
+    [InlineData("<p><a href='#target'>A<br/>A</a></p>", 2)]
+    [InlineData("<p><a href='#target' style='visibility:hidden'>A</a>A</p>", 0)]
+    [InlineData("<p><a href='#target' style='display:none'>A</a>A</p>", 0)]
+    [InlineData("<p><a href='#target' style='visibility:hidden'><span style='visibility:visible'>A</span></a></p>", 1)]
+    public void NativeLinkRegionsRespectVisibleRunsAndLineBoundaries(string body, int count)
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var snapshot = PdfReadSnapshot.OpenEpub(Book("", body + "<div id='target'/>"),
+            new EpubLayoutOptions(30, 48, font) { FontSize = 10, Margin = 2 });
+        var links = snapshot.ReadLinkRegions(0);
+        Assert.Equal(count, links.Count);
+        Assert.All(links, link => Assert.Equal("text.xhtml#target", link.Target));
+    }
+
+    [Fact]
+    public void NativeLinkReadsHonorCancellationIndexesAndCollectionOwnership()
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var snapshot = PdfReadSnapshot.OpenEpub(Book("", "<p><a href='#target'>A</a></p><div id='target'/>"),
+            new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => snapshot.ReadLinkRegions(-1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => snapshot.ReadLinkRegions(1));
+        Assert.Throws<OperationCanceledException>(() => snapshot.ReadLinkRegions(-1, new CancellationToken(true)));
+        var links = snapshot.ReadLinkRegions(0);
+        var mutable = Assert.IsAssignableFrom<IList<PdfReadLinkRegion>>(links);
+        Assert.Throws<NotSupportedException>(() => mutable.Clear());
+        Assert.Equal("text.xhtml#target", Assert.Single(snapshot.ReadLinkRegions(0)).Target);
+    }
+
+    [Fact]
+    public void NativeSnapshotExposesLocalLinkRegionsFromItsCapturedLayout()
+    {
+        byte[] source = Book("", "<p><a href='#target'>A</a></p><div id='target'/>");
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var snapshot = PdfReadSnapshot.OpenEpub(source,
+            new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 });
+        Array.Clear(source);
+        var link = Assert.Single(snapshot.ReadLinkRegions(0));
+        Assert.Equal("text.xhtml#target", link.Target);
+        Assert.Equal(new PdfContentBounds(1.5, 3, 6, 10.5), link.Bounds);
+        Assert.Equal(0, snapshot.ResolveNavigationTarget(link.Target).PageIndex);
+    }
+
     [Fact]
     public void NativeLinkTargetsRetainTheNavigationLengthBound()
     {

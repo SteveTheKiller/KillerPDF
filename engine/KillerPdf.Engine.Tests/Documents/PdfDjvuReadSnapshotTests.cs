@@ -10,6 +10,15 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfDjvuReadSnapshotTests
 {
     [Fact]
+    public void UnimplementedDjvuLinkRegionsRemainExplicitlyDiagnosed()
+    {
+        var snapshot = PdfReadSnapshot.OpenDjvu(Page(300, 1));
+        Assert.Throws<NotSupportedException>(() => snapshot.ReadLinkRegions(0));
+        Assert.Throws<OperationCanceledException>(() => snapshot.ReadLinkRegions(0, new CancellationToken(true)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => snapshot.ReadLinkRegions(-1));
+    }
+
+    [Fact]
     public void DjvuSnapshotRejectsEnabledProofUntilNativeProofRenderingIsSupported()
     {
         var snapshot = PdfReadSnapshot.OpenDjvu(Page(300, 1));

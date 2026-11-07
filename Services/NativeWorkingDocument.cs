@@ -88,6 +88,16 @@ internal sealed class NativeWorkingDocument : IDisposable
         }
     }
 
+    internal IReadOnlyList<PdfReadLinkRegion> ReadLinkRegions(int pageIndex, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_closed, this);
+            return _snapshot.ReadLinkRegions(pageIndex, cancellationToken);
+        }
+    }
+
     internal IReadOnlyList<PdfReadNavigationEntry> ReadNavigation(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();

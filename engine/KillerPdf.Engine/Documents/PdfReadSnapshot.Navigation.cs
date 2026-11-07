@@ -23,8 +23,33 @@ public sealed class PdfReadNavigationEntry
 /// <summary>Identifies a native page and top-left position in intrinsically oriented native page units.</summary>
 public sealed record PdfReadNavigationDestination(int PageIndex, double Left, double Top);
 
+/// <summary>A local native hyperlink with bounds in unrotated bottom-left PDF points.</summary>
+public sealed record PdfReadLinkRegion(PdfContentBounds Bounds, string Target);
+
 public sealed partial class PdfReadSnapshot
 {
+    /// <summary>Reads supported native hyperlink regions without executing or fetching their targets.</summary>
+    public IReadOnlyList<PdfReadLinkRegion> ReadLinkRegions(int pageIndex,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var geometry = GetPageGeometry(pageIndex);
+        if (_layout is null)
+            throw new NotSupportedException("Native hyperlink regions are not implemented for this format.");
+        double scaleX = 72 / geometry.DpiX, scaleY = 72 / geometry.DpiY;
+        var regions = new List<PdfReadLinkRegion>();
+        foreach (var placement in _layout.Pages[pageIndex].LinkRuns(cancellationToken))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            regions.Add(new(new PdfContentBounds(placement.Left * scaleX,
+                (geometry.Height - placement.Top - placement.Height) * scaleY,
+                (placement.Left + placement.Width) * scaleX,
+                (geometry.Height - placement.Top) * scaleY), placement.LinkTarget!));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return Array.AsReadOnly(regions.ToArray());
+    }
+
     private readonly IReadOnlyList<PdfReadNavigationEntry> _navigation = Array.AsReadOnly(Array.Empty<PdfReadNavigationEntry>());
     private readonly NavigationFailure? _navigationFailure;
     private sealed record NavigationFailure(string Message, bool Unsupported);

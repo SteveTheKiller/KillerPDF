@@ -197,7 +197,9 @@ unqualified href and class-level specificity. PDF conversion writes local page
 destinations and groups contiguous visible text into line rectangles. Hidden
 anchors do not create links. Nested anchors, linked images, external references
 and other pseudo-classes remain diagnosed; targets retain the 4,096-character
-navigation limit. Native snapshot and interactive link integration remain pending.
+navigation limit. `PdfReadSnapshot.ReadLinkRegions` retains grouped target geometry
+in unrotated bottom-left PDF points and honors capture ownership and cancellation.
+Interactive Windows link integration remains pending.
 
 Block paragraph/container margins accept `auto`. An explicit content width shares
 remaining horizontal space between automatic margins, including padding and fixed
