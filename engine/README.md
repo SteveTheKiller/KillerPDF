@@ -306,6 +306,12 @@ when the next line box does not fit. Each page exposes its normalized, display-f
 slice, `SpineIndex` and `TextStart` offset; placement offsets remain relative to
 that chapter's display-filtered text. These offsets can differ from structural `ReadText`
 when hidden content is present. The text-work limit applies across all chapters.
+Second-level headings (`h2`) reuse paragraph box layout and retain their source
+identity. Defaults are 1.5em, real weight 700, vertical margins of .83em and zero
+horizontal margins. Author declarations override each default using the actual
+parent size; bare inline headings omit default box margins. Default bold requires
+the typed font resolver, with no synthetic weight. Other heading levels remain
+diagnosed rather than rendered as ordinary paragraphs.
 Explicit `br` elements within supported paragraphs and spans advance lines without
 paragraph gaps. Consecutive breaks retain blank line heights through pagination,
 and styled text keeps its source offsets. Structural normalization still omits
