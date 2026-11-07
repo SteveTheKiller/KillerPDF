@@ -19,6 +19,8 @@ public sealed class PdfImagePlacementSelection
         Ordinal = ordinal;
         Resource = resource;
         UnsupportedReason = reason;
+        Placement = image.Placement;
+        BoundsUnsupportedReason = GetBoundsUnsupportedReason();
     }
 
     /// <summary>Gets the zero-based page index.</summary>
@@ -36,6 +38,31 @@ public sealed class PdfImagePlacementSelection
     /// <summary>Gets a stable content refusal reason, or null when the content supports removal.</summary>
     public string? UnsupportedReason { get; }
 
+    /// <summary>Gets whether the occurrence supports moving and resizing; editing also checks document restrictions.</summary>
+    public bool CanSetBounds => BoundsUnsupportedReason is null;
+    /// <summary>Gets a stable bounds-editing refusal reason, or null for a supported occurrence.</summary>
+    public string? BoundsUnsupportedReason { get; }
+
+    private string? GetBoundsUnsupportedReason()
+    {
+        if (UnsupportedReason is not null) return UnsupportedReason;
+        if (Placement is not { } matrix) return "MissingPlacement";
+        if (!double.IsFinite(matrix.A) || !double.IsFinite(matrix.B)
+            || !double.IsFinite(matrix.C) || !double.IsFinite(matrix.D)
+            || !double.IsFinite(matrix.E) || !double.IsFinite(matrix.F)
+            || matrix.A == 0 || matrix.D == 0) return "InvalidPlacement";
+        if (matrix.B != 0 || matrix.C != 0) return "NonAxisAlignedPlacement";
+        double right = matrix.E + matrix.A, top = matrix.F + matrix.D;
+        if (!double.IsFinite(right) || !double.IsFinite(top)) return "InvalidPlacement";
+        var fullBounds = new PdfContentBounds(Math.Min(matrix.E, right), Math.Min(matrix.F, top),
+            Math.Max(matrix.E, right), Math.Max(matrix.F, top));
+        if (fullBounds != BoundingBox) return "ClippedImage";
+        if (!double.IsFinite(fullBounds.Width) || !double.IsFinite(fullBounds.Height)
+            || fullBounds.Width <= 0 || fullBounds.Height <= 0) return "InvalidPlacement";
+        return null;
+    }
+
+    internal PdfTextContentReader.Matrix? Placement { get; }
     internal PdfDocument Owner { get; }
     internal IReadOnlyList<PdfContentInstruction> Instructions { get; }
     internal int Ordinal { get; }

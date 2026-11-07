@@ -83,9 +83,22 @@ bound to that exact document instance. `PdfImagePlacementEditor.Remove` removes 
 supported top-level image invocation in a detached revision, preserving repeated
 uses of the same image resource and unrelated page content. `CanRemove` describes
 content eligibility; editing separately checks permissions, certification and
-tagged structure. Nested, inline, masked and optional-content images, recovery
-documents and complex page state remain explicitly unsupported. These APIs do not
-provide image extraction or application selection tools.
+tagged structure. `SetBounds` moves or resizes a complete axis-aligned occurrence
+while retaining its orientation, source pixels and shared resource. `CanSetBounds`
+and `BoundsUnsupportedReason` describe that narrower geometry capability. Partly
+cropped, skewed and quarter-turned occurrences remain refused for bounds editing.
+Nested, inline, masked and optional-content images, recovery documents and complex
+page state remain explicitly unsupported.
+
+`PdfImagePlacementExtractor.Extract` creates an immutable `PdfImageAsset` from a
+complete simple occurrence. This initial subset retains unfiltered eight-bit
+DeviceRGB samples without converting them. `ToPdfBytes` returns a separate
+single-image PDF whose page size matches the original pixel dimensions, containing
+the original samples and no neighboring page content or resources. Copies own their
+bytes and enforce content-copy permission independently of modification permission.
+Encoded, decoded and serialized assets are bounded to 5 MiB. Other color spaces,
+default color substitutions, filters, masks and uncaptured context remain refused.
+These backend APIs do not yet provide application image-selection or Copy/Cut tools.
 
 ### Author complete documents
 
