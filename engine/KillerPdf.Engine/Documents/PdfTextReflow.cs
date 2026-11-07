@@ -160,7 +160,7 @@ public static class PdfTextReflow
 
     private static double Width(string text, TrueTypeFont font, double fontSize) =>
         font.MapText(text).Sum(mapping =>
-            font.GetPdfAdvanceWidth(mapping.Glyph) * fontSize / 1000d);
+            font.GetAdvanceWidth(mapping.Glyph) * fontSize / font.UnitsPerEm);
 
     private static string[] Words(string paragraph)
     {
