@@ -116,7 +116,7 @@ The authoring model covers pages, content streams, graphics state, paths, text, 
 with an immutable `PdfCalGrayColorSpace`, including its white point, black point
 and gamma. Flate/predictor encoding requires PDF 1.2 across pages and nested image
 resources. `FromGray` continues to create DeviceGray images.
-Float rendering initially accepts direct, aligned natural-size CalGray images
+Float rendering initially accepts direct, aligned natural-size 8/16-bit CalGray images
 with zero black, default Decode, relative colorimetric intent and no masks or
 resampling. Named aliases, integer translations, rectangular clips and diagonal
 reflections retain precision. Other image geometry, nonzero black, altered Decode,

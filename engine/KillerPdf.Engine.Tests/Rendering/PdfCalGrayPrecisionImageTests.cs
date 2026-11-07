@@ -187,14 +187,38 @@ public sealed class PdfCalGrayPrecisionImageTests
     }
 
     [Fact]
-    public void SixteenBitCalGrayRemainsDiagnosedAsAValidUnsupportedImage()
+    public void AdjacentSixteenBitCalGraySamplesRetainDistinctLinearLevels()
     {
-        var document = ModifyImage(Build(1, 1, [127], Space(2.2)), stream => new PdfStream(
+        var document = ModifyImage(Build(2, 1, [127, 127], Space(2)), stream => new PdfStream(
             new PdfDictionary(stream.Dictionary.Where(entry => !entry.Key.Equals(Name("Filter"))
                 && !entry.Key.Equals(Name("DecodeParms")) && !entry.Key.Equals(Name("BitsPerComponent")))
-                .Append(Entry("BitsPerComponent", new PdfInteger(16)))), new byte[] { 128, 0 }));
-        Assert.Empty(new PdfPageRenderer(document).Render(0, new PdfRenderOptions(1, 1)).Diagnostics);
-        Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0, Options(1, 1)));
+                .Append(Entry("BitsPerComponent", new PdfInteger(16)))), new byte[] { 128, 0, 128, 1 }));
+        var frame = new PdfPageRenderer(document).RenderFrame(0, Options(2, 1));
+        Pixel(frame, 0, .2500076295691578);
+        Pixel(frame, 1, .25002288905673);
+        Assert.True(frame.Pixels[4] > frame.Pixels[0]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SixteenBitD50RowsKeepEndpointsTinyLevelsAndHorizontalReflection(bool reflected)
+    {
+        var document = Build(2, 2, [0, 0, 0, 0], new PdfCalGrayColorSpace(gamma: 2),
+            (content, image) => content.DrawImage(image, reflected ? 2 : 0, 0, reflected ? -2 : 2, 2));
+        document = ModifyImage(document, stream => new PdfStream(
+            new PdfDictionary(stream.Dictionary.Where(entry => !entry.Key.Equals(Name("Filter"))
+                && !entry.Key.Equals(Name("DecodeParms")) && !entry.Key.Equals(Name("BitsPerComponent")))
+                .Append(Entry("BitsPerComponent", new PdfInteger(16)))),
+            new byte[] { 0, 0, 255, 255, 0, 1, 128, 0 }));
+        var frame = new PdfPageRenderer(document).RenderFrame(0, Options(2, 2));
+        Pixel(frame, reflected ? 1 : 0, 0);
+        Pixel(frame, reflected ? 0 : 1, 1);
+        Pixel(frame, reflected ? 2 : 3, .2500076295691578);
+        int tiny = (reflected ? 3 : 2) * 4;
+        for (int component = 0; component < 3; component++)
+            Assert.InRange((double)frame.Pixels[tiny + component], 2.3283e-10, 2.3285e-10);
+        Assert.Equal(1f, frame.Pixels[tiny + 3]);
     }
 
     private static PdfDocument Build(int width, int height, byte[] samples, PdfCalGrayColorSpace space,

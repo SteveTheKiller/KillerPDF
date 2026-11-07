@@ -5914,7 +5914,7 @@ public sealed partial class PdfPageRenderer
                 || preciseIcc && (!naturalSamples && !areaSamples && (sampleStepX > 1 || sampleStepY > 1)
                     || inverse.B != 0 || inverse.C != 0
                     || softMask is not null || colorKeyMask is not null || preblendMatte is not null)
-                || preciseCalGray && (bits != 8 || !naturalSamples || inverse.B != 0 || inverse.C != 0
+                || preciseCalGray && (!naturalSamples || inverse.B != 0 || inverse.C != 0
                     || smoothImage || softMask is not null || colorKeyMask is not null || preblendMatte is not null
                     || decode.Length != 2 || decode[0] != 0 || decode[1] != 1)
                 || !naturalSamples && (inverse.B != 0 || inverse.C != 0
