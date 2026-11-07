@@ -191,6 +191,13 @@ selection and accessibility integration still require implementation and runtime
 
 ## Native EPUB layout (1.9.3 development)
 
+PNG images support `max-width` in packaged and inline styles, using px, em or
+containing-block percentages, with `none` resetting the constraint. Images shrink
+proportionally without enlarging or resampling stored pixels. Native rendering and
+PDF conversion use the same placement dimensions; zero maximum width omits paint.
+The normal specificity cascade applies independently of display mode. Maximum
+widths on non-image elements remain explicitly unsupported.
+
 Initial `text-decoration` supports underline, none and CSS-wide reset keywords.
 Ancestor decorations retain their own font metrics and color across descendants;
 a child reset does not erase an ancestor's underline. Visibility applies to the

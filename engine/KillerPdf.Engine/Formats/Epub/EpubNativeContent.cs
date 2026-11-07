@@ -39,6 +39,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal MarginLength?[]? Padding { get; init; }
         internal BorderSide? TopBorder { get; init; }
         internal BoxWidth? Width { get; init; }
+        internal BoxWidth? MaximumWidth { get; init; }
         internal List<SourceNode> Children { get; } = new();
 
         internal double VerticalMargin(int side, double width, double fallback, bool padding = false)
@@ -127,7 +128,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             Count(xml.Value.Length);
             attributes[(xml.NamespaceURI, xml.LocalName)] = xml.Value;
-            if (xml.NamespaceURI == "" && xml.LocalName == "style" && name is "body" or "div" or "p" or "span")
+            if (xml.NamespaceURI == "" && xml.LocalName == "style" && name is "body" or "div" or "p" or "span" or "img")
                 inlineStyle = xml.Value;
             else if (xml.NamespaceURI == "" && xml.LocalName == "class")
                 classNames = xml.Value;
@@ -169,6 +170,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 throw new NotSupportedException("Native EPUB visible top borders require block paragraphs.");
             if (properties.Width is { Length: not null } && (name is not ("p" or "div") || properties.Display == DisplayKind.Inline))
                 throw new NotSupportedException("Native EPUB explicit widths require block paragraphs or containers.");
+            if (properties.MaximumWidth is { Length: not null } && name != "img")
+                throw new NotSupportedException("Native EPUB maximum widths currently require images.");
             if (name == "body")
             {
                 _bodyMargins = properties.Margins;
@@ -198,6 +201,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             Margins = suppressed ? null : properties.Margins, Padding = suppressed ? null : properties.Padding,
             TopBorder = suppressed ? null : properties.TopBorder, Width = suppressed ? null : properties.Width,
+            MaximumWidth = suppressed ? null : properties.MaximumWidth,
             IsDisplayNone = suppressed
         };
         CurrentElementDisplayNone = element.IsDisplayNone;
@@ -522,6 +526,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         int topBorderSpecificity = -1;
         BoxWidth? width = null;
         int widthSpecificity = -1;
+        BoxWidth? maximumWidth = null;
+        int maximumWidthSpecificity = -1;
         string? textAlign = null;
         int alignmentSpecificity = -1;
         IndentLength? textIndent = null;
@@ -614,6 +620,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 width = selectedWidth;
                 widthSpecificity = specificity;
             }
+            if (rule.Properties.MaximumWidth is { } selectedMaximumWidth && specificity >= maximumWidthSpecificity)
+            {
+                maximumWidth = selectedMaximumWidth;
+                maximumWidthSpecificity = specificity;
+            }
             if (rule.Properties.FontSize is { } fontSize && specificity >= sizeSpecificity)
             {
                 size = fontSize;
@@ -654,7 +665,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         paddingSpecificities[side] = specificity;
                     }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth);
     }
 
     private void CountSelectorWork(int amount)
@@ -685,7 +696,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         BackgroundColor? Background = null, EpubFontFamily[]? FontFamilies = null, MarginLength?[]? Margins = null,
         Border? Border = null, MarginLength?[]? Padding = null, string? TextAlign = null, bool? PageBreakBefore = null,
         DisplayKind? Display = null, double? FontWeight = null, IndentLength? TextIndent = null, string? FontVariant = null,
-        BorderSide? TopBorder = null, BoxWidth? Width = null, string? Visibility = null, string? TextDecoration = null)
+        BorderSide? TopBorder = null, BoxWidth? Width = null, string? Visibility = null, string? TextDecoration = null,
+        BoxWidth? MaximumWidth = null)
     {
         internal CssProperties Override(CssProperties inline) =>
             new(inline.FontSize ?? FontSize, inline.LineHeight ?? LineHeight,
@@ -694,7 +706,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 inline.TextAlign ?? TextAlign, inline.PageBreakBefore ?? PageBreakBefore, inline.Display ?? Display,
                 inline.FontWeight ?? FontWeight, inline.TextIndent ?? TextIndent, inline.FontVariant ?? FontVariant,
                 inline.TopBorder ?? TopBorder, inline.Width ?? Width, inline.Visibility ?? Visibility,
-                inline.TextDecoration ?? TextDecoration);
+                inline.TextDecoration ?? TextDecoration, inline.MaximumWidth ?? MaximumWidth);
 
         private static MarginLength?[]? MergeMargins(MarginLength?[]? earlier, MarginLength?[]? later) =>
             later is null ? earlier : Enumerable.Range(0, 4).Select(side => later[side] ?? earlier?[side]).ToArray();
@@ -740,6 +752,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         Border? border = null;
         BorderSide? topBorder = null;
         BoxWidth? width = null;
+        BoxWidth? maximumWidth = null;
         string? textAlign = null;
         bool? pageBreakBefore = null;
         DisplayKind? block = null;
@@ -836,6 +849,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (property == "width")
             {
                 width = new(value.Equals("auto", StringComparison.OrdinalIgnoreCase) ? null : ParseMarginLength(value));
+                continue;
+            }
+            if (property == "max-width")
+            {
+                maximumWidth = new(value.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : ParseMarginLength(value));
                 continue;
             }
             if (property is "padding" or "padding-top" or "padding-right" or "padding-bottom" or "padding-left")
@@ -967,7 +985,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration);
+        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth);
     }
 
     private static BorderSide ParseTopBorder(string value)

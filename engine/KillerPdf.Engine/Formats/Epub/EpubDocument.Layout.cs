@@ -451,7 +451,9 @@ public sealed partial class EpubDocument
             {
                 lineBlock = block;
                 var image = ReadNativeImage(resource.Href, source, imageCache, ref imageBytes, cancellationToken);
-                if (image.Width > contentWidth || image.Height > options.PageHeight - 2 * options.Margin)
+                var imageSize = ImageSize(image, replaced.Owner);
+                if (imageSize.Width == 0) return;
+                if (imageSize.Width > contentWidth || imageSize.Height > options.PageHeight - 2 * options.Margin)
                     throw new NotSupportedException("The native EPUB block image exceeds the available page dimensions.");
                 if (pendingParagraphGap > 0)
                 {
@@ -459,17 +461,17 @@ public sealed partial class EpubDocument
                         ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
                     pendingParagraphGap = 0;
                 }
-                if (top + image.Height > options.PageHeight - options.Margin)
+                if (top + imageSize.Height > options.PageHeight - options.Margin)
                 {
                     FinishPage(replaced.Offset);
                     top = options.Margin;
                 }
-                AddBlockBackgrounds(image.Height);
+                AddBlockBackgrounds(imageSize.Height);
                 if (!replaced.Owner.Style.Hidden)
-                    glyphs.Add(new NativeImagePaint(image, contentLeft, top));
+                    glyphs.Add(new NativeImagePaint(image, contentLeft, top) { Width = imageSize.Width, Height = imageSize.Height });
                 if (backgrounds.Count + glyphs.Count > 100_000)
                     throw new InvalidDataException("The native page exceeds its paint limit.");
-                top += image.Height;
+                top += imageSize.Height;
                 pageHasContent = true;
                 return;
             }
@@ -543,11 +545,13 @@ public sealed partial class EpubDocument
                         continue;
                     }
                     var image = ReadNativeImage(resource.Href, reference.Source, imageCache, ref imageBytes, cancellationToken);
-                    if (left + image.Width > contentRight)
+                    var imageSize = ImageSize(image, reference.Owner);
+                    if (imageSize.Width == 0) continue;
+                    if (left + imageSize.Width > contentRight)
                         throw new NotSupportedException("The native EPUB image exceeds the available line width.");
-                    line.Add((index, 0, left, image.Width, FontFor(reference.Owner.Style), null, image,
+                    line.Add((index, 0, left, imageSize.Width, FontFor(reference.Owner.Style), null, image,
                         reference.Owner.Style, lineBlock.Source.Style, reference.Owner));
-                    left += image.Width;
+                    left += imageSize.Width;
                     firstIndentedWord = false;
                     continue;
                 }
@@ -728,7 +732,8 @@ public sealed partial class EpubDocument
             foreach (var item in line)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                ascent = Math.Max(ascent, item.Image?.Height ?? AboveBaseline(item.Style, item.Font));
+                ascent = Math.Max(ascent, item.Image is { } sizedImage
+                    ? sizedImage.Height * item.Width / sizedImage.Width : AboveBaseline(item.Style, item.Font));
                 descent = Math.Max(descent, item.Image is null ? BelowBaseline(item.Style, item.Font) : 0);
                 for (var owner = item.Owner; owner is { IsBlock: false } && measuredInlineOwners.Add(owner); owner = owner.Parent)
                 {
@@ -813,7 +818,10 @@ public sealed partial class EpubDocument
                 if (item.Image is { } image)
                 {
                     if (!item.Style.Hidden)
-                        glyphs.Add(new NativeImagePaint(image, item.Left, baseline - image.Height));
+                    {
+                        double imageHeight = image.Height * item.Width / image.Width;
+                        glyphs.Add(new NativeImagePaint(image, item.Left, baseline - imageHeight) { Width = item.Width, Height = imageHeight });
+                    }
                     continue;
                 }
                 if (item.Length == 0) continue;
@@ -879,6 +887,20 @@ public sealed partial class EpubDocument
             top += height;
             pageHasContent = true;
             line.Clear();
+        }
+
+        (double Width, double Height) ImageSize(PngDecodedImage image, EpubNativeContent.Element owner)
+        {
+            double width = image.Width;
+            if (owner.MaximumWidth is { Length: { } maximum })
+            {
+                double limit = maximum.Percentage ? contentWidth * maximum.Value / 100
+                    : maximum.Em ? owner.Style.FontSize * maximum.Value : maximum.Value;
+                if (!double.IsFinite(limit) || limit < 0 || limit > 32768)
+                    throw new NotSupportedException("Native EPUB maximum image width exceeds the supported dimensions.");
+                width = Math.Min(width, limit);
+            }
+            return (width, image.Height * width / image.Width);
         }
 
         double AboveBaseline(EpubNativeContent.Style style, TrueTypeFont? selected = null)

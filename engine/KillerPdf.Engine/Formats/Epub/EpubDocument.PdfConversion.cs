@@ -78,8 +78,8 @@ public sealed partial class EpubDocument
                     pdfImage = PdfImage.FromRgb(image.Width, image.Height, image.Samples);
                 content.DrawImage(pdfImage,
                     paint.Left * pointsPerCssPixel,
-                    options.PageHeightPoints - (paint.Top + image.Height) * pointsPerCssPixel,
-                    image.Width * pointsPerCssPixel, image.Height * pointsPerCssPixel);
+                    options.PageHeightPoints - (paint.Top + paint.Height) * pointsPerCssPixel,
+                    paint.Width * pointsPerCssPixel, paint.Height * pointsPerCssPixel);
             }
             void DrawText(EpubTextPlacement placement)
             {

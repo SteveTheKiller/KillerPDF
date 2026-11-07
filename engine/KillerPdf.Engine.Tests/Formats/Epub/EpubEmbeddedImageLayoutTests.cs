@@ -12,6 +12,98 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubEmbeddedImageLayoutTests
 {
+    [Theory]
+    [InlineData("img{max-width:1px}img{max-width:none}", 2)]
+    [InlineData("img{max-width:none}img{max-width:1px}", 1)]
+    [InlineData("img.sized{max-width:1px}img{max-width:none}", 1)]
+    [InlineData("img.sized{max-width:none}img{max-width:1px}", 2)]
+    public void MaximumImageWidthCascadesIndependentlyOfDisplay(string css, int width)
+    {
+        var book = EpubDocument.Open(Package(RgbPng(),
+            "<img class='sized' src='../images/check.png' alt=''/>", "img{display:block}" + css));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 12, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var image = Assert.Single(new PdfPageContentReader(pdf).Read(0).Images);
+        Assert.Equal(width * .75, image.BoundingBox.Width, 6);
+        Assert.Equal(width * .75, image.BoundingBox.Height, 6);
+        Assert.Equal(10.5, image.BoundingBox.Top, 6);
+    }
+
+    [Fact]
+    public void ZeroMaximumWidthOmitsImagePaintWithoutChangingThePackage()
+    {
+        byte[] source = Package(RgbPng(), "<img src='../images/check.png' alt=''/>", "img{display:block;max-width:0}");
+        byte[] preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 16, font) { Margin = 2, FontSize = 10 });
+        Assert.All(layout.RenderPage(0).Pixels.ToArray(), value => Assert.Equal(1f, value));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 12, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Empty(new PdfPageContentReader(pdf).Read(0).Images);
+        Assert.Equal(preserved, source);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MaximumImageWidthShrinksBothAxesWithoutChangingSourcePixels(bool inline)
+    {
+        byte[] png = RgbPng(scanlines: [0, 255, 0, 0, 255, 0, 0, 0, 255, 0, 0, 255, 0, 0]);
+        byte[] source = Package(png, "<img " + (inline ? "style='display:block;max-width:1px' " : "")
+            + "src='../images/check.png' alt=''/>", inline ? null : "img{display:block;max-width:1px}");
+        byte[] preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 16, font) { Margin = 2, FontSize = 10 });
+        Assert.Single(layout.Pages);
+        var native = layout.RenderPage(0);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, native.Pixels.Slice((2 * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, native.Pixels.Slice((2 * 16 + 3) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, native.Pixels.Slice((3 * 16 + 2) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 12, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var embedded = Assert.Single(new PdfPageContentReader(pdf).Read(0).Images);
+        Assert.Equal(2, embedded.PixelWidth);
+        Assert.Equal(2, embedded.PixelHeight);
+        Assert.Equal(.75, embedded.BoundingBox.Width, 6);
+        Assert.Equal(.75, embedded.BoundingBox.Height, 6);
+        var saved = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(16, 16));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, saved.Pixels.Slice((2 * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, saved.Pixels.Slice((2 * 16 + 3) * 4, 4).ToArray());
+        Assert.Equal(png, book.ReadResource("EPUB/images/check.png"));
+        Assert.Equal(preserved, source);
+    }
+
+    [Theory]
+    [InlineData("8.333333333333333%", true, 1)]
+    [InlineData(".1em", true, 1)]
+    [InlineData("100%", true, 2)]
+    [InlineData("none", true, 2)]
+    [InlineData("1px", false, 1)]
+    public void MaximumImageWidthUsesContainingWidthAndOwnFontWithoutEnlargement(string maximum, bool block, int expectedWidth)
+    {
+        byte[] png = RgbPng(scanlines: [0, 255, 0, 0, 255, 0, 0, 0, 255, 0, 0, 255, 0, 0]);
+        byte[] source = Package(png, "<img src='../images/check.png' alt=''/>",
+            "img{display:" + (block ? "block" : "inline") + ";max-width:" + maximum + "}");
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 16, font) { Margin = 2, FontSize = 10 });
+        int top = block ? 2 : 10 - expectedWidth;
+        var native = layout.RenderPage(0);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, native.Pixels.Slice((top * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 1, 1, 1, 1 }, native.Pixels.Slice((top * 16 + 2 + expectedWidth) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 12, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var embedded = Assert.Single(new PdfPageContentReader(pdf).Read(0).Images);
+        Assert.Equal(expectedWidth * .75, embedded.BoundingBox.Width, 6);
+        Assert.Equal(expectedWidth * .75, embedded.BoundingBox.Height, 6);
+        var saved = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(16, 16));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, saved.Pixels.Slice((top * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, saved.Pixels.Slice((top * 16 + 2 + expectedWidth) * 4, 4).ToArray());
+    }
+
     [Fact]
     public void PaddingPageBreaksPreserveFollowingImageEventsAndSourceRanges()
     {
@@ -356,7 +448,7 @@ public sealed class EpubEmbeddedImageLayoutTests
         Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((29 * 16 + 3) * 4, 4).ToArray());
     }
 
-    private static byte[] Package(byte[] png, string? body = null)
+    private static byte[] Package(byte[] png, string? body = null, string? css = null)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -371,8 +463,11 @@ public sealed class EpubEmbeddedImageLayoutTests
                   <manifest><item id="chapter" href="text/chapter.xhtml" media-type="application/xhtml+xml"/><item id="image" href="images/check.png" media-type="image/png"/><item id="font" href="fonts/test.ttf" media-type="font/ttf"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest>
                   <spine><itemref idref="chapter"/></spine>
                 </package>
-                """);
-            Add("EPUB/text/chapter.xhtml", "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Image</title></head><body>"
+                """.Replace("</manifest>", css is null ? "</manifest>"
+                    : "<item id='css' href='style.css' media-type='text/css'/></manifest>"));
+            if (css is not null) Add("EPUB/style.css", css);
+            Add("EPUB/text/chapter.xhtml", "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Image</title>"
+                + (css is null ? "" : "<link rel='stylesheet' href='../style.css'/>") + "</head><body>"
                 + (body ?? "<p><img src='../images/check.png' alt=''/></p>") + "</body></html>");
             Add("EPUB/nav.xhtml", """
                 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text/chapter.xhtml">Image</a></li></ol></nav></body></html>

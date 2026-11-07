@@ -9,7 +9,11 @@ internal sealed record NativeGlyphPaint(PdfGlyphOutline Outline, double Left, do
 {
     internal int SourceOffset { get; init; } = -1;
 }
-internal sealed record NativeImagePaint(PngDecodedImage Image, double Left, double Top) : NativePagePaint;
+internal sealed record NativeImagePaint(PngDecodedImage Image, double Left, double Top) : NativePagePaint
+{
+    internal double Width { get; init; } = Image.Width;
+    internal double Height { get; init; } = Image.Height;
+}
 internal sealed record NativeRectanglePaint(double Left, double Top, double Width, double Height, PdfRgbColor Color) : NativePagePaint;
 
 internal static class NativeGlyphPainter
@@ -76,10 +80,11 @@ internal static class NativeGlyphPainter
             if (paint is NativeImagePaint image)
             {
                 double imageLeft = image.Left * scaleX, imageTop = image.Top * scaleY;
-                double imageWidth = image.Image.Width * scaleX, imageHeight = image.Image.Height * scaleY;
+                double imageWidth = image.Width * scaleX, imageHeight = image.Height * scaleY;
                 if (!double.IsFinite(imageLeft) || !double.IsFinite(imageTop)
-                    || !double.IsFinite(imageWidth) || !double.IsFinite(imageHeight))
+                    || !double.IsFinite(imageWidth) || !double.IsFinite(imageHeight) || imageWidth < 0 || imageHeight < 0)
                     throw new InvalidDataException("The native image placement is invalid.");
+                if (imageWidth == 0 || imageHeight == 0) continue;
                 int x0 = (int)Math.Clamp(Math.Ceiling(imageLeft - .5), 0, width);
                 int y0 = (int)Math.Clamp(Math.Ceiling(imageTop - .5), 0, height);
                 int x1 = (int)Math.Clamp(Math.Ceiling(imageLeft + imageWidth - .5), 0, width);
@@ -90,10 +95,10 @@ internal static class NativeGlyphPainter
                 for (int y = y0; y < y1; y++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    int sy = Math.Clamp((int)((y + .5 - imageTop) / scaleY), 0, image.Image.Height - 1);
+                    int sy = Math.Clamp((int)((y + .5 - imageTop) * image.Image.Height / imageHeight), 0, image.Image.Height - 1);
                     for (int x = x0; x < x1; x++)
                     {
-                        int sx = Math.Clamp((int)((x + .5 - imageLeft) / scaleX), 0, image.Image.Width - 1);
+                        int sx = Math.Clamp((int)((x + .5 - imageLeft) * image.Image.Width / imageWidth), 0, image.Image.Width - 1);
                         int sample = (sy * image.Image.Width + sx) * 3;
                         FloatRgbCompositor.SourceOver(pixels, (y * width + x) * 4,
                             image.Image.Samples[sample] / 255d, image.Image.Samples[sample + 1] / 255d,
