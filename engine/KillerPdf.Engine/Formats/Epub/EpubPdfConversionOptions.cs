@@ -13,8 +13,8 @@ public sealed record EpubPdfConversionOptions(TrueTypeFont DefaultFont)
     public double MarginPoints { get; init; } = 42.51968503937008;
     /// <summary>Gets the fallback font size in points.</summary>
     public double FontSizePoints { get; init; } = 12;
-    /// <summary>Gets an optional host font-family resolver used for layout and embedded PDF text.</summary>
+    /// <summary>Gets an optional host font-family resolver for upright weight 400, used for layout and embedded PDF text.</summary>
     public Func<EpubFontFamily, TrueTypeFont?>? FontFamilyResolver { get; init; }
-    /// <summary>Gets an optional weight-aware resolver shared by native layout and embedded PDF text.</summary>
+    /// <summary>Gets an optional resolver for real font weights and styles shared by native layout and embedded PDF text.</summary>
     public Func<EpubFontFaceRequest, EpubFontFaceResult?>? FontFaceResolver { get; init; }
 }

@@ -21,9 +21,9 @@ public sealed class EpubCssRgbColorTests
             css: inline ? null : "p{font-style:" + value + "}", paragraphStyle: inline ? "font-style:" + value : null);
 
     [Theory]
-    [InlineData("italic")]
+    [InlineData("oblique 10deg")]
     [InlineData("oblique")]
-    [InlineData("inherit")]
+    [InlineData("sideways")]
     public void UnsupportedFontStyleSelectionRetainsExplicitRefusal(string value)
     {
         var book = EpubDocument.Open(Book("<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Style</title></head>"

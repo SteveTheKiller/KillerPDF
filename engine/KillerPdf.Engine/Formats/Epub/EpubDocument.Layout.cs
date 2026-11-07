@@ -56,12 +56,12 @@ public sealed partial class EpubDocument
         cancellationToken.ThrowIfCancellationRequested();
         return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors, cellAnchors);
 
-        TrueTypeFont? ResolveFamily(EpubFontFamily? family, double weight)
+        TrueTypeFont? ResolveFamily(EpubFontFamily? family, double weight, EpubFontStyle style)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (options.FontFaceResolver is { } resolveFace)
             {
-                var request = new EpubFontFaceRequest(family, weight, options.DefaultFont);
+                var request = new EpubFontFaceRequest(family, weight, options.DefaultFont) { Style = style };
                 var faceKey = request with { Family = family is null ? null : family with { Name = family.Name.ToUpperInvariant() } };
                 if (faceFonts.TryGetValue(faceKey, out var cachedFace)) return cachedFace?.Font;
                 if (faceFonts.Count >= 256)
@@ -71,14 +71,15 @@ public sealed partial class EpubDocument
                 if (result is not null)
                 {
                     if (result.Font is null || !double.IsFinite(result.ActualWeight) || result.ActualWeight is < 1 or > 1000
-                        || !Enum.IsDefined(result.Match) || (result.Match == EpubFontMatch.Exact) != (result.ActualWeight == weight))
+                        || !Enum.IsDefined(result.Match) || (result.Match == EpubFontMatch.Exact) != (result.ActualWeight == weight)
+                        || !Enum.IsDefined(result.ActualStyle) || result.ActualStyle != style)
                         throw new InvalidDataException("The native EPUB font resolver returned an inconsistent face match.");
                     RetainFace(result.Font);
                 }
                 faceFonts.Add(faceKey, result);
                 return result?.Font;
             }
-            if (weight != 400 || family is null || options.FontFamilyResolver is null) return null;
+            if (weight != 400 || style != EpubFontStyle.Normal || family is null || options.FontFamilyResolver is null) return null;
             var key = family with { Name = family.Name.ToUpperInvariant() };
             if (familyFonts.TryGetValue(key, out var cached)) return cached;
             if (familyFonts.Count >= 256)
@@ -108,7 +109,7 @@ public sealed partial class EpubDocument
         ref int remainingTextLength,
         ref int remainingStylesheetBytes, ref int remainingStylesheetReferences,
         Dictionary<string, PngDecodedImage> imageCache, ref long retainedImageBytes,
-        Func<EpubFontFamily?, double, TrueTypeFont?> resolveFamily, CancellationToken cancellationToken)
+        Func<EpubFontFamily?, double, EpubFontStyle, TrueTypeFont?> resolveFamily, CancellationToken cancellationToken)
     {
         var entry = Spine[spineIndex];
         if (!entry.IsLinear || !string.IsNullOrWhiteSpace(entry.Properties))
@@ -267,7 +268,7 @@ public sealed partial class EpubDocument
                 cancellationToken.ThrowIfCancellationRequested();
                 if (++fontWork > 1_000_000)
                     throw new InvalidDataException("Native EPUB font matching exceeds its work limit.");
-                if (resolveFamily(family, style.FontWeight) is { } selected
+                if (resolveFamily(family, style.FontWeight, style.FontStyle) is { } selected
                     && (scalar is null || selected.GetGlyphId(scalar.Value) != 0)) return selected;
             }
             if (options.FontFaceResolver is not null)
@@ -275,9 +276,11 @@ public sealed partial class EpubDocument
                 cancellationToken.ThrowIfCancellationRequested();
                 if (++fontWork > 1_000_000)
                     throw new InvalidDataException("Native EPUB font matching exceeds its work limit.");
-                if (resolveFamily(null, style.FontWeight) is { } selected
+                if (resolveFamily(null, style.FontWeight, style.FontStyle) is { } selected
                     && (scalar is null || selected.GetGlyphId(scalar.Value) != 0)) return selected;
             }
+            if (style.FontStyle != EpubFontStyle.Normal)
+                throw new NotSupportedException("Native EPUB has no resolved font face for the requested style.");
             if (style.FontWeight != 400)
                 throw new NotSupportedException("Native EPUB has no resolved font face for the requested weight.");
             return options.DefaultFont;

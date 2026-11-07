@@ -1,23 +1,26 @@
 using System.Buffers.Binary;
 using System.IO;
+using KillerPdf.Engine.Formats.Epub;
 
 namespace KillerPDF.Services;
 
 internal static partial class InstalledFontCatalog
 {
-    /// <summary>Chooses a real installed face by CSS weight without changing the editor's Boolean-style lookup.</summary>
-    internal static (byte[] Bytes, int Weight)? EpubFaceBytes(string family, double requestedWeight)
+    /// <summary>Chooses a real installed face by CSS style and weight without changing the editor's Boolean-style lookup.</summary>
+    internal static (byte[] Bytes, int Weight)? EpubFaceBytes(string family, double requestedWeight, EpubFontStyle requestedStyle)
     {
         if (string.IsNullOrWhiteSpace(family) || !double.IsFinite(requestedWeight)
-            || requestedWeight is < 1 or > 1000) return null;
+            || requestedWeight is < 1 or > 1000 || !Enum.IsDefined(requestedStyle)) return null;
         EnsureIndexed();
         FaceFile? best = null;
         int bestWeight = 0, candidates = 0;
-        (int Style, int Group, double Distance) bestRank = (int.MaxValue, int.MaxValue, double.MaxValue);
+        (int Group, double Distance) bestRank = (int.MaxValue, double.MaxValue);
         foreach (var entry in Order)
         {
             if (!entry.Family.Equals(family, StringComparison.OrdinalIgnoreCase)) continue;
             if (++candidates > 256) throw new InvalidDataException("The EPUB font family exceeds its 256 installed-face limit.");
+            bool italic = entry.Style is FaceStyle.Italic or FaceStyle.BoldItalic;
+            if (italic != (requestedStyle == EpubFontStyle.Italic)) continue;
             var face = new FaceFile(entry.Path, entry.FaceIndex);
             int? weight;
             try
@@ -30,9 +33,7 @@ internal static partial class InstalledFontCatalog
                 continue;
             }
             if (weight is null) continue;
-            var weightRank = WeightRank(weight.Value, requestedWeight);
-            var rank = (entry.Style is FaceStyle.Italic or FaceStyle.BoldItalic ? 1 : 0,
-                weightRank.Group, weightRank.Distance);
+            var rank = WeightRank(weight.Value, requestedWeight);
             if (rank.CompareTo(bestRank) >= 0) continue;
             best = face;
             bestWeight = weight.Value;

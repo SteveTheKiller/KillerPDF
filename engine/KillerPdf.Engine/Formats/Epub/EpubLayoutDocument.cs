@@ -16,9 +16,9 @@ public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, True
     public double Margin { get; init; } = 16;
     /// <summary>Gets the fallback text color.</summary>
     public PdfRgbColor TextColor { get; init; } = new(0, 0, 0);
-    /// <summary>Gets an optional host font-family resolver for weight 400. Missing faces fall back to DefaultFont.</summary>
+    /// <summary>Gets an optional host font-family resolver for upright weight 400. Missing upright faces fall back to DefaultFont.</summary>
     public Func<EpubFontFamily, TrueTypeFont?>? FontFamilyResolver { get; init; }
-    /// <summary>Gets an optional weight-aware resolver, used instead of the legacy family resolver when supplied.</summary>
+    /// <summary>Gets an optional resolver for real font weights and styles, used instead of the legacy family resolver when supplied.</summary>
     public Func<EpubFontFaceRequest, EpubFontFaceResult?>? FontFaceResolver { get; init; }
 }
 

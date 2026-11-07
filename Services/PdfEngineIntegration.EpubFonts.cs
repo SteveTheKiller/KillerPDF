@@ -9,13 +9,21 @@ internal static partial class PdfEngineIntegration
     internal static Func<EpubFontFaceRequest, EpubFontFaceResult?> EpubFontFaceResolver(string defaultFamily) => request =>
     {
         string name = request.Family is { } family ? EpubFamilyName(family) : defaultFamily;
-        var selected = InstalledFontCatalog.EpubFaceBytes(name, request.Weight);
+        var selected = InstalledFontCatalog.EpubFaceBytes(name, request.Weight, request.Style);
         if (selected is null) return null;
         try
         {
             var font = TrueTypeFont.Load(selected.Value.Bytes);
+            EpubFontStyle? actualStyle = font.DeclaredStyle switch
+            {
+                TrueTypeFontStyle.Normal => EpubFontStyle.Normal,
+                TrueTypeFontStyle.Italic => EpubFontStyle.Italic,
+                _ => null
+            };
+            if (actualStyle is null || actualStyle != request.Style) return null;
             return new(font, selected.Value.Weight,
-                selected.Value.Weight == request.Weight ? EpubFontMatch.Exact : EpubFontMatch.Nearest);
+                selected.Value.Weight == request.Weight ? EpubFontMatch.Exact : EpubFontMatch.Nearest)
+                { ActualStyle = actualStyle.Value };
         }
         catch (Exception error) when (error is FormatException or NotSupportedException
             or ArgumentException or InvalidDataException or InvalidOperationException)

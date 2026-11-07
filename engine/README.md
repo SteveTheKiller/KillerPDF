@@ -290,6 +290,13 @@ Author weight declarations and shorthand resets override these defaults. Nested
 emphasis retains computed weights and existing font matching; no synthetic bold
 painting is added. The CSS `bolder` and `lighter` longhand values remain diagnosed.
 
+Inline `i` and `em` defaults and `font-style:italic` select real italic faces.
+Upright resets and inherited styles compose with weight, including bold italic.
+The selected style must match even when the host supplies a nearest weight; missing
+italic faces cannot fall back to an upright default. The Windows resolver checks
+the captured font's declared style before reporting a match. Oblique styles remain
+diagnosed. Native rendering and PDF conversion retain the chosen outlines.
+
 Inline `span` elements and explicit `br` line breaks also work directly inside the
 body or supported grouping containers. Leading breaks reserve a line without adding
 source text, and native and converted text retain their original offsets and styles.
@@ -499,15 +506,15 @@ work. Backslash escapes and CSS-wide family keywords remain diagnosed.
 `font-weight` accept `inherit` and `unset` using the immediate computed parent,
 and `initial` using the reader's initial size and normal weight. The optional
 `FontFaceResolver` replaces the legacy resolver and receives the requested family,
-computed weight and explicit default font. A null family requests a variant of that
-default. Return the actual font and weight with `Exact` or `Nearest`; inconsistent
+computed weight, style and explicit default font. A null family requests a variant of that
+default. Return the actual font, weight and style with `Exact` or `Nearest`; inconsistent
 results are rejected. Real selected metrics and outlines flow into native rendering
 and PDF embedding. Without this resolver, the legacy callback and direct default
-remain available only for weight 400; unresolved other weights are diagnosed.
+remain available only for upright weight 400; unresolved other weights or styles are diagnosed.
 KillerPDF connects native opening and conversion to installed faces using their actual
 OS/2 numeric weights and CSS nearest-weight ordering. The font cache retains all
 registered candidates while preserving existing PDF editor style choices. Relative weights,
-packaged `@font-face`, italic matching, complex-script clusters and full bidi still
+packaged `@font-face`, oblique matching, complex-script clusters and full bidi still
 require implementation; this is not complete typography.
 Initial Latin GSUB 1.0 processing selects default-language `liga` and, when requested,
 `smcp` features in font lookup order. `font-variant:small-caps` inherits, with normal,
