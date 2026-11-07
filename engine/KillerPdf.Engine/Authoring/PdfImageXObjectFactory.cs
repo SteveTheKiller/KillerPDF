@@ -18,7 +18,8 @@ internal static class PdfImageXObjectFactory
         {
             ("Type", Name("XObject")), ("Subtype", Name("Image")),
             ("Width", new PdfInteger(image.Width)), ("Height", new PdfInteger(image.Height)),
-            ("ColorSpace", Name(colorSpace)),
+            ("ColorSpace", image.CalibratedGray is { } calibratedGray
+                ? PdfCalibratedColorSpaceWriter.Create(calibratedGray) : Name(colorSpace)),
             ("BitsPerComponent", new PdfInteger(image.BitsPerComponent)),
             ("Filter", Name(image.Filter))
         };

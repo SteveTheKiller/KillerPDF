@@ -8,7 +8,8 @@ public sealed class PdfImage
     private PdfImage(
         int width, int height, int bitsPerComponent, PdfImageColorSpace colorSpace,
         string filter, byte[] data, bool invertComponents,
-        int pngPredictorColors = 0, PdfImage? softMask = null)
+        int pngPredictorColors = 0, PdfImage? softMask = null,
+        PdfCalGrayColorSpace? calibratedGray = null)
     {
         Width = width;
         Height = height;
@@ -19,6 +20,7 @@ public sealed class PdfImage
         InvertComponents = invertComponents;
         PngPredictorColors = pngPredictorColors;
         SoftMask = softMask;
+        CalibratedGray = calibratedGray;
     }
 
     /// <summary>Gets the image width in pixels.</summary>
@@ -27,8 +29,26 @@ public sealed class PdfImage
     public int Height { get; }
     /// <summary>Gets the number of bits used for each color component.</summary>
     public int BitsPerComponent { get; }
-    /// <summary>Gets the device color space used by the image samples.</summary>
+    /// <summary>Gets the component layout used by the image samples.</summary>
     public PdfImageColorSpace ColorSpace { get; }
+    /// <summary>Gets the optional calibrated grayscale definition.</summary>
+    public PdfCalGrayColorSpace? CalibratedGray { get; }
+
+    /// <summary>Compresses 8-bit calibrated grayscale samples with the PDF Flate filter.</summary>
+    public static PdfImage FromCalibratedGray(
+        int width, int height, ReadOnlySpan<byte> pixels, PdfCalGrayColorSpace colorSpace,
+        CompressionLevel compressionLevel = CompressionLevel.Optimal)
+    {
+        ArgumentNullException.ThrowIfNull(colorSpace);
+        ValidateDimensions(width, height);
+        int required = RequiredBytes(width, height, 1);
+        if (pixels.Length != required)
+            throw new ArgumentException(
+                $"A {width} by {height} grayscale image requires {required} bytes.",
+                nameof(pixels));
+        return FromInterleaved(width, height, pixels, PdfImageColorSpace.Gray,
+            compressionLevel, colorSpace);
+    }
     /// <summary>Gets the encoded image payload.</summary>
     public ReadOnlyMemory<byte> Data { get; }
     internal string Filter { get; }
@@ -171,7 +191,7 @@ public sealed class PdfImage
         int required = RequiredBytes(width, height, 3);
         if (pixels.Length != required)
             throw new ArgumentException($"An {width} by {height} RGB image requires {required} bytes.", nameof(pixels));
-        return FromInterleaved(width, height, pixels, PdfImageColorSpace.Rgb,
+        return FromInterleaved(width, height, pixels.Span, PdfImageColorSpace.Rgb,
             compressionLevel);
     }
 
@@ -186,7 +206,7 @@ public sealed class PdfImage
             throw new ArgumentException(
                 $"A {width} by {height} grayscale image requires {required} bytes.",
                 nameof(pixels));
-        return FromInterleaved(width, height, pixels, PdfImageColorSpace.Gray,
+        return FromInterleaved(width, height, pixels.Span, PdfImageColorSpace.Gray,
             compressionLevel);
     }
 
@@ -248,7 +268,7 @@ public sealed class PdfImage
             throw new ArgumentException(
                 $"A {width} by {height} CMYK image requires {required} bytes.",
                 nameof(pixels));
-        return FromInterleaved(width, height, pixels, PdfImageColorSpace.Cmyk,
+        return FromInterleaved(width, height, pixels.Span, PdfImageColorSpace.Cmyk,
             compressionLevel);
     }
 
@@ -334,8 +354,9 @@ public sealed class PdfImage
     }
 
     private static PdfImage FromInterleaved(
-        int width, int height, ReadOnlyMemory<byte> pixels,
-        PdfImageColorSpace colorSpace, CompressionLevel compressionLevel)
+        int width, int height, ReadOnlySpan<byte> pixels,
+        PdfImageColorSpace colorSpace, CompressionLevel compressionLevel,
+        PdfCalGrayColorSpace? calibratedGray = null)
     {
         int colors = colorSpace switch
         {
@@ -344,14 +365,15 @@ public sealed class PdfImage
             PdfImageColorSpace.Cmyk => 4,
             _ => throw new ArgumentOutOfRangeException(nameof(colorSpace))
         };
-        byte[] plain = Compress(pixels.Span, compressionLevel);
+        byte[] plain = Compress(pixels, compressionLevel);
         byte[] predicted = Compress(PdfPngPredictorEncoder.Encode(
-            width, height, colors, pixels.Span), compressionLevel);
+            width, height, colors, pixels), compressionLevel);
         if (predicted.Length < plain.Length)
             return new PdfImage(width, height, 8, colorSpace,
-                "FlateDecode", predicted, invertComponents: false, colors);
+                "FlateDecode", predicted, invertComponents: false, colors,
+                calibratedGray: calibratedGray);
         return new PdfImage(width, height, 8, colorSpace,
-            "FlateDecode", plain, invertComponents: false);
+            "FlateDecode", plain, invertComponents: false, calibratedGray: calibratedGray);
     }
 
     private static byte[] Compress(ReadOnlySpan<byte> source, CompressionLevel compressionLevel)
@@ -385,7 +407,7 @@ public sealed class PdfImage
     }
 }
 
-/// <summary>The device color space used by a PDF image.</summary>
+/// <summary>The component layout used by a PDF image.</summary>
 public enum PdfImageColorSpace
 {
     /// <summary>One-component grayscale samples.</summary>

@@ -3926,7 +3926,7 @@ public sealed partial class PdfPageRenderer
             double[] whitePoint = ReadCieArray(parameters, "WhitePoint", required: true,
                 defaultValues: []);
             ValidateWhitePoint(whitePoint, "CalGray");
-            ReadAndValidateBlackPoint(parameters, "CalGray");
+            double[] blackPoint = ReadAndValidateBlackPoint(parameters, "CalGray");
             double gamma = parameters.TryGetValue(Name("Gamma"), out PdfObject? gammaValue)
                 ? Number(Resolve(gammaValue)) : 1;
             if (!double.IsFinite(gamma) || gamma <= 0)
@@ -3938,7 +3938,8 @@ public sealed partial class PdfPageRenderer
                 double adjusted = gammaTable.Apply(gray);
                 return convertXyz(whitePoint[0] * adjusted,
                     whitePoint[1] * adjusted, whitePoint[2] * adjusted);
-            }, Profile: ReadCalibratedProfile(array, whitePoint, [gamma]));
+            }, Profile: ReadCalibratedProfile(array, whitePoint, [gamma]),
+                IsZeroBlackCalGray: blackPoint.All(value => value == 0));
         }
         if (kind.ValueAsLatin1() == "CalRGB")
         {
@@ -4160,12 +4161,13 @@ public sealed partial class PdfPageRenderer
         return [.. array.Select(item => Number(Resolve(item)))];
     }
 
-    private void ReadAndValidateBlackPoint(PdfDictionary dictionary, string colorSpace)
+    private double[] ReadAndValidateBlackPoint(PdfDictionary dictionary, string colorSpace)
     {
         double[] blackPoint = ReadCieArray(dictionary, "BlackPoint", required: false,
             defaultValues: [0, 0, 0]);
         if (blackPoint.Any(value => !double.IsFinite(value) || value < 0))
             throw new FormatException($"A {colorSpace} image black point is invalid.");
+        return blackPoint;
     }
 
     private static void ValidateWhitePoint(double[] whitePoint, string colorSpace)
@@ -5887,6 +5889,10 @@ public sealed partial class PdfPageRenderer
                 Profile: PdfIccProfileTransform { IsLutBased: false, IsLabInput: false,
                     Components: 1 or 3, RenderingIntent: 1 } }
                 && colorSpace.Intent == 1 && !colorSpace.BlackPointCompensationEnabled;
+            bool preciseCalGray = colorSpace is { IsZeroBlackCalGray: true, Components: 1,
+                Profile: PdfCalibratedColorTransform { Components: 1 }, Converter: not null,
+                ComponentRange: null, IsIccBased: false, HasIccSource: false, IsDefault: false,
+                HasSpotColorants: false, Intent: 1, BlackPointCompensationEnabled: false };
             bool areaSamples = inverse.B == 0 && inverse.C == 0
                 && sampleStepX > 1 && sampleStepY > 1
                 && Math.Abs(sampleStepX - Math.Round(sampleStepX)) <= 1e-9
@@ -5898,7 +5904,8 @@ public sealed partial class PdfPageRenderer
                     || softMask.Width != sourceWidth || softMask.Height != sourceHeight)
                 || colorKeyMask is not null && (smoothImage || areaSamples)
                 || graphicsSoftMask is not null || knockout is not null || overprint || jpeg2000
-                || colorSpace.Profile is not null && !preciseIcc || colorSpace.Converter is not null && !assumedCmyk
+                || colorSpace.Profile is not null && !preciseIcc && !preciseCalGray
+                || colorSpace.Converter is not null && !assumedCmyk && !preciseCalGray
                 || colorSpace.MultiConverter is not null || colorSpace.Palette is not null
                 || colorSpace.HasIccSource && !preciseIcc || components is not (1 or 3) && !preciseCmyk && !assumedCmyk
                 || assumedCmyk && (inverse.B != 0 || inverse.C != 0)
@@ -5907,6 +5914,9 @@ public sealed partial class PdfPageRenderer
                 || preciseIcc && (!naturalSamples && !areaSamples && (sampleStepX > 1 || sampleStepY > 1)
                     || inverse.B != 0 || inverse.C != 0
                     || softMask is not null || colorKeyMask is not null || preblendMatte is not null)
+                || preciseCalGray && (bits != 8 || !naturalSamples || inverse.B != 0 || inverse.C != 0
+                    || smoothImage || softMask is not null || colorKeyMask is not null || preblendMatte is not null
+                    || decode.Length != 2 || decode[0] != 0 || decode[1] != 1)
                 || !naturalSamples && (inverse.B != 0 || inverse.C != 0
                     || (sampleStepX > 1 || sampleStepY > 1) && !areaSamples)
                 || (smoothImage || areaSamples) && decode.Any(value => !double.IsFinite(value) || value < 0 || value > 1)
@@ -9369,7 +9379,7 @@ public sealed partial class PdfPageRenderer
         bool IsLab = false, bool IsDefault = false, bool HasIccSource = false, bool HasSpotColorants = false,
         PdfObject? Definition = null, PdfDictionary? SourceResources = null, int Intent = 1,
         bool IsDeviceCmyk = false, BlackPointBinding? BlackPointControl = null,
-        ImageColorSpace? BlackPointAlternate = null)
+        ImageColorSpace? BlackPointAlternate = null, bool IsZeroBlackCalGray = false)
     {
         internal bool BlackPointCompensationEnabled => BlackPointControl is not null;
         internal ImageColorSpace? BlackPointSource => BlackPointControl?.Source;

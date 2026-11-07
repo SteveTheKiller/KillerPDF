@@ -1663,6 +1663,8 @@ public sealed partial class PdfDocumentBuilder
             }).Where(image => image is not null).Cast<PdfImage>());
         if (authoredImages.Any(HasImageSoftMask))
             RequireVersion(new PdfVersion(1, 4), "image soft masks");
+        if (authoredImages.Any(image => image.CalibratedGray is not null))
+            RequireVersion(new PdfVersion(1, 2), "calibrated grayscale Flate images");
         if (_pdfUa2Conformance && (Metadata is null
             || string.IsNullOrWhiteSpace(Metadata.Title)
             || string.IsNullOrWhiteSpace(Metadata.Language)))
@@ -6038,7 +6040,7 @@ public sealed partial class PdfDocumentBuilder
                     IndexedColorSpace(entry.Key))));
             colorSpaces.AddRange(calibratedColorSpaces.Select(entry =>
                 new KeyValuePair<PdfName, PdfObject>(entry.Value,
-                    CalibratedColorSpace(entry.Key))));
+                    PdfCalibratedColorSpaceWriter.Create(entry.Key))));
             entries.Add(("ColorSpace", new PdfDictionary(colorSpaces)));
         }
         return Dictionary([.. entries]);
@@ -6119,34 +6121,6 @@ public sealed partial class PdfDocumentBuilder
         }),
         new PdfInteger(colorSpace.EntryCount - 1),
         new PdfString(colorSpace.Palette.Span, PdfStringForm.Hexadecimal) ]);
-
-    private static PdfArray CalibratedColorSpace(PdfCalibratedColorSpace colorSpace)
-    {
-        var entries = new List<(string Name, PdfObject Value)>
-        {
-            ("WhitePoint", new PdfArray([
-                Number(colorSpace.WhiteX), Number(colorSpace.WhiteY), Number(colorSpace.WhiteZ)])),
-            ("BlackPoint", new PdfArray([
-                Number(colorSpace.BlackX), Number(colorSpace.BlackY), Number(colorSpace.BlackZ)]))
-        };
-        string name;
-        switch (colorSpace)
-        {
-            case PdfCalGrayColorSpace gray:
-                name = "CalGray";
-                entries.Add(("Gamma", Number(gray.Gamma)));
-                break;
-            case PdfCalRgbColorSpace rgb:
-                name = "CalRGB";
-                entries.Add(("Gamma", new PdfArray(rgb.Gamma.Select(Number))));
-                entries.Add(("Matrix", new PdfArray(rgb.Matrix.Select(Number))));
-                break;
-            default:
-                throw new NotSupportedException(
-                    $"Calibrated color space {colorSpace.GetType().FullName} cannot be authored.");
-        }
-        return new PdfArray([Name(name), Dictionary([.. entries])]);
-    }
 
     private static PdfDictionary GradientFunction(IReadOnlyList<PdfGradientStop> stops)
     {

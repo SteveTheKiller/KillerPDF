@@ -106,6 +106,16 @@ These backend APIs do not yet provide application image-selection or Copy/Cut to
 
 The authoring model covers pages, content streams, graphics state, paths, text, fonts, images, color spaces, shadings, tiling patterns, transparency, resources, metadata, navigation, optional content, attachments, and viewer behavior. The API uses typed PDF concepts instead of exposing raw application state.
 
+`PdfImage.FromCalibratedGray` retains original eight-bit one-component samples
+with an immutable `PdfCalGrayColorSpace`, including its white point, black point
+and gamma. Flate/predictor encoding requires PDF 1.2 across pages and nested image
+resources. `FromGray` continues to create DeviceGray images.
+Float rendering initially accepts direct, aligned natural-size CalGray images
+with zero black, default Decode, relative colorimetric intent and no masks or
+resampling. Named aliases, integer translations, rectangular clips and diagonal
+reflections retain precision. Other image geometry, nonzero black, altered Decode,
+default color substitutions and masked cases remain diagnosed.
+
 `DrawGlyphCluster(font, fontSize, logicalText, glyphs)` paints explicitly selected
 embedded-font glyphs while recording logical text once through inline `ActualText`.
 Each `PdfPositionedGlyph` supplies a font-owned glyph ID and baseline origin in current
