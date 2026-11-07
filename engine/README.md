@@ -240,6 +240,9 @@ without inventing extraction characters or selection placements. Block-edge spac
 do not paint empty advances. Other display values remain explicitly diagnosed.
 Packaged eight-bit RGB/RGBA PNG images, untagged or explicitly sRGB, can
 paint inline at intrinsic CSS-pixel dimensions, aligned to the shared baseline.
+Images can appear directly in the body or a div, including standalone covers,
+as well as supported paragraphs and spans. Image title metadata and the manifest
+`cover-image` property are inert; other image manifest properties remain diagnosed.
 With `display:block`, images consume their intrinsic height without an inline font
 strut and remain in source order through pagination and explicit PDF conversion.
 Supported sRGB, gAMA and square-pixel pHYs metadata is validated for length,

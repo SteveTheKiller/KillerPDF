@@ -107,7 +107,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "link" => parent?.Name == "head" && xml.GetAttribute("rel") is "icon" or "stylesheet"
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
             "div" or "p" => parent?.Name is "body" or "div",
-            "span" or "br" or "img" => parent?.Name is "p" or "span",
+            "span" or "br" => parent?.Name is "p" or "span",
+            "img" => parent?.Name is "body" or "div" or "p" or "span",
             _ => false };
         if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
             throw new NotSupportedException("Native EPUB XHTML element is not implemented: " + name + ".");
@@ -133,7 +134,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             {
                 // Packaged references are validated separately from body painting.
             }
-            else if (name == "img" && xml.NamespaceURI == "" && xml.LocalName is "src" or "alt")
+            else if (name == "img" && xml.NamespaceURI == "" && xml.LocalName is "src" or "alt" or "title")
             {
                 // Image resources are resolved within the captured package.
             }

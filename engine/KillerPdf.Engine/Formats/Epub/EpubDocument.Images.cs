@@ -16,7 +16,7 @@ public sealed partial class EpubDocument
             throw new NotSupportedException("Native EPUB images require a packaged source.", exception);
         }
         if (target.Contains('#') || !Manifest.Any(item => item.Href == target
-            && item.MediaType == "image/png" && string.IsNullOrWhiteSpace(item.Properties)))
+            && item.MediaType == "image/png" && Tokens(item.Properties).All(property => property == "cover-image")))
             throw new NotSupportedException("Native EPUB images require a packaged PNG manifest resource.");
         if (cache.TryGetValue(target, out var cached)) return cached;
         ReadOnlyMemory<byte> bytes = _resources[target];

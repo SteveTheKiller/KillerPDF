@@ -14,6 +14,106 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubDisplayFormattingTests
 {
+    [Theory]
+    [InlineData("scripted")]
+    [InlineData("cover-image scripted")]
+    public void CoverImageMetadataDoesNotAdmitOtherManifestProperties(string properties)
+    {
+        byte[] source = Book(false, "<img src='image.png' alt='Cover'/>", "img{display:block}", RedImage(), properties), preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(40, 36, Font()) { FontSize = 10, Margin = 2 }));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 30, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Equal(preserved, source);
+    }
+
+    [Fact]
+    public void CoverImageManifestPropertyDoesNotPreventNativePaintingOrConversion()
+    {
+        byte[] source = Book(false, "<img src='image.png' alt='Cover' title='Cover'/>", "img{display:block}", RedImage(), "cover-image");
+        byte[] preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(40, 36, Font()) { FontSize = 10, Margin = 2 });
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, layout.RenderPage(0).Pixels.Slice((2 * 40 + 2) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 30, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Single(new PdfPageContentReader(pdf).Read(0).Images);
+        Assert.Equal(preserved, source);
+    }
+
+    [Fact]
+    public void DisplayNoneCoverImageIsNotDecodedOrPainted()
+    {
+        byte[] image = [1, 2, 3];
+        byte[] source = Book(false, "<img src='image.png' alt='Cover' title='Cover'/>", "img{display:none}", image), preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(40, 36, Font()) { FontSize = 10, Margin = 2 });
+        Assert.Empty(Assert.Single(layout.Pages).TextPlacements);
+        Assert.All(layout.RenderPage(0).Pixels.ToArray(), channel => Assert.Equal(1f, channel));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 30, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var content = new PdfPageContentReader(pdf).Read(0);
+        Assert.Empty(content.Images);
+        Assert.Empty(content.Letters);
+        Assert.Equal(image, book.ReadResource("image.png"));
+        Assert.Equal(preserved, source);
+    }
+
+    [Theory]
+    [InlineData("https://example.com/cover.png")]
+    [InlineData("missing.png")]
+    public void DirectBodyImageStillRejectsExternalOrMissingResources(string reference)
+    {
+        byte[] source = Book(false, "<img src='" + reference + "' alt='Cover' title='Cover'/>", ""), preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(
+            new EpubLayoutOptions(40, 36, Font()) { FontSize = 10, Margin = 2 }));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 30, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Equal(preserved, source);
+    }
+
+    [Theory]
+    [InlineData("<img src='image.png' alt='Cover' title='Cover image'/>")]
+    [InlineData("<div><img src='image.png' alt='Cover' title='Cover image'/></div>")]
+    public void UnstyledCoverImageUsesInlineBaselineInBodyOrContainer(string body)
+    {
+        byte[] source = Book(false, body, "", RedImage()), preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(40, 36, Font()) { FontSize = 10, Margin = 2 });
+        Assert.Empty(Assert.Single(layout.Pages).TextPlacements);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, layout.RenderPage(0).Pixels.Slice((8 * 40 + 2) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 30, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var content = new PdfPageContentReader(pdf).Read(0);
+        Assert.Empty(content.Letters);
+        var image = Assert.Single(content.Images);
+        Assert.Equal(1.5, image.BoundingBox.Left, 6);
+        Assert.Equal(21, image.BoundingBox.Top, 6);
+        Assert.Equal(preserved, source);
+    }
+
+    [Theory]
+    [InlineData("<img src='image.png' alt='Cover'/>")]
+    [InlineData("<div><img src='image.png' alt='Cover'/></div>")]
+    [InlineData("<img src='image.png' alt='Cover' title='Cover image'/>")]
+    public void CoverImageCanBePlacedDirectlyInBodyOrContainer(string body)
+    {
+        byte[] source = Book(false, body, "img{display:block}", RedImage()), preserved = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(40, 36, Font()) { FontSize = 10, Margin = 2 });
+        Assert.Empty(Assert.Single(layout.Pages).TextPlacements);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, layout.RenderPage(0).Pixels.Slice((2 * 40 + 2) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        { PageWidthPoints = 30, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var content = new PdfPageContentReader(pdf).Read(0);
+        Assert.Empty(content.Letters);
+        var image = Assert.Single(content.Images);
+        Assert.Equal(1.5, image.BoundingBox.Left, 6);
+        Assert.Equal(25.5, image.BoundingBox.Top, 6);
+        Assert.Equal(preserved, source);
+    }
+
     public EpubDisplayFormattingTests(ITestOutputHelper output) => output.WriteLine("Loaded engine SHA256: " +
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(EpubDocument).Assembly.Location))));
 
@@ -273,7 +373,7 @@ public sealed class EpubDisplayFormattingTests
 
     private static TrueTypeFont Font() => TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
 
-    private static byte[] Book(bool block, string? body = null, string? css = null, byte[]? image = null)
+    private static byte[] Book(bool block, string? body = null, string? css = null, byte[]? image = null, string imageProperties = "")
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -292,7 +392,7 @@ public sealed class EpubDisplayFormattingTests
             void Add(string name, string text)
             {
                 if (image is not null && name == "package.opf")
-                    text = text.Replace("</manifest>", "<item id='image' href='image.png' media-type='image/png'/></manifest>");
+                    text = text.Replace("</manifest>", "<item id='image' href='image.png' media-type='image/png' properties='" + imageProperties + "'/></manifest>");
                 using var stream = zip.CreateEntry(name, CompressionLevel.NoCompression).Open();
                 stream.Write(Encoding.UTF8.GetBytes(text));
             }
