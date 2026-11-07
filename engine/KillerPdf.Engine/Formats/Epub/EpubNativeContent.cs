@@ -137,9 +137,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal bool CurrentElementDisplayNone { get; private set; }
     internal bool InsideDisplayNone => _ancestors.TryPeek(out var element) && element.IsDisplayNone;
 
+    private static bool IsGroupingContainer(string? name) => name == "div";
+    private static bool IsFlowContainer(string? name) => name == "body" || IsGroupingContainer(name);
+
     internal void AddSvgImage(string reference, double width, double height, int offset)
     {
-        if (!_ancestors.TryPeek(out var parent) || parent.Name is not ("body" or "div")
+        if (!_ancestors.TryPeek(out var parent) || !IsFlowContainer(parent.Name)
             || !parent.IsBlock && !parent.IsDisplayNone)
             throw new NotSupportedException("Native EPUB SVG covers require a block body or container parent.");
         var identity = new SelectorIdentity("http://www.w3.org/2000/svg", [], new());
@@ -176,16 +179,16 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     && string.Equals(xml.GetAttribute("content"), "text/css", StringComparison.OrdinalIgnoreCase)),
             "link" => parent?.Name == "head" && xml.GetAttribute("rel") is "icon" or "stylesheet"
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
-            "div" => parent?.Name is "body" or "div",
-            "table" => parent?.Name is "body" or "div",
+            _ when IsGroupingContainer(name) => IsFlowContainer(parent?.Name),
+            "table" => IsFlowContainer(parent?.Name),
             "tbody" => parent?.Name == "table",
             "tr" => parent?.Name is "table" or "tbody",
             "td" => parent?.Name == "tr",
-            _ when paragraph => parent?.Name is "body" or "div",
-            "strong" or "b" or "i" or "em" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b" or "i" or "em",
-            "span" or "br" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b" or "i" or "em",
-            "a" => parent?.IsParagraph == true || parent?.Name is "span" or "body" or "div" or "strong" or "b" or "i" or "em" or "td",
-            "img" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b" or "i" or "em",
+            _ when paragraph => IsFlowContainer(parent?.Name),
+            "strong" or "b" or "i" or "em" => parent?.IsParagraph == true || IsFlowContainer(parent?.Name) || parent?.Name is "span" or "a" or "strong" or "b" or "i" or "em",
+            "span" or "br" => parent?.IsParagraph == true || IsFlowContainer(parent?.Name) || parent?.Name is "span" or "a" or "strong" or "b" or "i" or "em",
+            "a" => parent?.IsParagraph == true || IsFlowContainer(parent?.Name) || parent?.Name is "span" or "strong" or "b" or "i" or "em" or "td",
+            "img" => parent?.IsParagraph == true || IsFlowContainer(parent?.Name) || parent?.Name is "span" or "a" or "strong" or "b" or "i" or "em",
             _ => false };
         if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
             throw new NotSupportedException("Native EPUB XHTML element is not implemented: " + name + ".");
@@ -199,11 +202,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             Count(xml.Value.Length);
             attributes[(xml.NamespaceURI, xml.LocalName)] = xml.Value;
-            if (xml.NamespaceURI == "" && xml.LocalName == "style" && (paragraph || name is "body" or "div" or "span" or "img" or "a" or "strong" or "b" or "i" or "em" or "table" or "tbody" or "tr" or "td"))
+            if (xml.NamespaceURI == "" && xml.LocalName == "style" && (paragraph || IsFlowContainer(name) || name is "span" or "img" or "a" or "strong" or "b" or "i" or "em" or "table" or "tbody" or "tr" or "td"))
                 inlineStyle = xml.Value;
             else if (xml.NamespaceURI == "" && xml.LocalName == "class")
                 classNames = xml.Value;
-            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && (paragraph || name is "body" or "div" or "span" or "br" or "a" or "strong" or "b" or "i" or "em"))
+            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && (paragraph || IsFlowContainer(name) || name is "span" or "br" or "a" or "strong" or "b" or "i" or "em"))
             {
                 // Navigation identity is captured by the structural text reader.
             }
@@ -300,7 +303,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (properties.TopBorder is { Visible: true, Width.Value: > 0 }
                 && (!paragraph || properties.Display == DisplayKind.Inline))
                 throw new NotSupportedException("Native EPUB visible top borders require block paragraphs.");
-            if (properties.Width is { Length: not null } && (!(paragraph || name is "div" or "table" or "td") || properties.Display == DisplayKind.Inline))
+            if (properties.Width is { Length: not null } && (!(paragraph || IsGroupingContainer(name) || name is "table" or "td") || properties.Display == DisplayKind.Inline))
                 throw new NotSupportedException("Native EPUB explicit widths require block paragraphs or containers.");
             if (properties.MaximumWidth is { Length: not null } && name != "img")
                 throw new NotSupportedException("Native EPUB maximum widths currently require images.");
@@ -311,14 +314,14 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 _bodyFontSize = style.FontSize;
             }
             else if (properties.Margins?.Any(side => side is { Value: > 0 }) == true
-                && (!(paragraph || name == "div") || properties.Display == DisplayKind.Inline))
+                && (!(paragraph || IsGroupingContainer(name)) || properties.Display == DisplayKind.Inline))
                 throw new NotSupportedException("Native EPUB nonzero margins are implemented only on the body.");
             if (name != "body" && properties.Padding?.Any(side => side is { Value: > 0 }) == true
                 && (!paragraph || properties.Display == DisplayKind.Inline))
                 throw new NotSupportedException("Native EPUB nonzero padding is implemented only on the body.");
             if (style.Background is { } background)
             {
-                if (!paragraph && name is not ("body" or "div" or "span" or "strong" or "b"))
+                if (!paragraph && !IsFlowContainer(name) && name is not ("span" or "strong" or "b"))
                     throw new NotSupportedException("Native EPUB element background painting is not implemented.");
                 if (name == "body") CanvasBackground = background.Color;
             }
@@ -327,7 +330,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             DisplayKind.Block => true,
             DisplayKind.Inline or DisplayKind.None => false,
-            _ => paragraph || name is "body" or "div" or "table" or "tbody" or "tr" or "td"
+            _ => paragraph || IsFlowContainer(name) || name is "table" or "tbody" or "tr" or "td"
         };
         var element = new Element(name, parent, style, block, Characters.Count, identity)
         {
