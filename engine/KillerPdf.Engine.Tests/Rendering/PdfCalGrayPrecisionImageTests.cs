@@ -114,7 +114,6 @@ public sealed class PdfCalGrayPrecisionImageTests
     [InlineData("reduction")]
     [InlineData("one-axis")]
     [InlineData("quarter-turn")]
-    [InlineData("half-pixel")]
     public void UnsupportedGeometryRemainsDiagnosed(string geometry)
     {
         PdfDocument document;

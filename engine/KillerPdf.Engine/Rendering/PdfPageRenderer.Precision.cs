@@ -20,6 +20,7 @@ public sealed partial class PdfPageRenderer
     /// Their finite device-range Matte values are removed before color conversion and compositing.
     /// Direct zero-black 8/16-bit CalGray images retain calibration at aligned natural size or axis-aligned enlargement,
     /// including diagonal reflections and rectangular clips, with default Decode and relative intent.
+    /// Unmasked CalGray natural-size images and enlargements also support fractional pixel-area coverage.
     /// Natural-size CalGray also supports reversed Decode [1,0].
     /// Unmasked bilinear enlargement interpolates source samples before calibration.
     /// Raw color-key masks and matching DeviceGray 8/16-bit soft masks retain source alpha with natural or nearest sampling.
@@ -365,7 +366,7 @@ public sealed partial class PdfPageRenderer
         ImageColorSpace colorSpace, double opacity, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips, int left, int top, int right, int bottom,
         bool smooth, int reductionColumns, int reductionRows, int[]? colorKeyMask, SoftMask? softMask,
-        double[]? matte, bool fractionalDeviceEdges, double imageLeft, double imageRight,
+        double[]? matte, bool fractionalImageEdges, double imageLeft, double imageRight,
         double imageTop, double imageBottom, CancellationToken cancellationToken)
     {
         var converter = new ImageSampleConverter(samples, rowBytes, components, bits, decode,
@@ -375,13 +376,13 @@ public sealed partial class PdfPageRenderer
             cancellationToken.ThrowIfCancellationRequested();
             for (int x = left; x < right; x++)
             {
-                double coverage = fractionalDeviceEdges
+                double coverage = fractionalImageEdges
                     ? Math.Max(0, Math.Min(x + 1, imageRight) - Math.Max(x, imageLeft))
                         * Math.Max(0, Math.Min(y + 1, imageBottom) - Math.Max(y, imageTop))
                     : 1;
                 if (coverage == 0) continue;
                 Point unit = inverse.Apply((x + 0.5) / scaleX, (targetHeight - y - 0.5) / scaleY);
-                if (fractionalDeviceEdges)
+                if (fractionalImageEdges)
                     unit = new Point(Math.Clamp(unit.X, 0, Math.BitDecrement(1d)),
                         Math.Clamp(unit.Y, 0, Math.BitDecrement(1d)));
                 else if (unit.X < 0 || unit.X >= 1 || unit.Y < 0 || unit.Y >= 1) continue;

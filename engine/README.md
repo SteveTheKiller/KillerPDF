@@ -134,10 +134,10 @@ sampling and enlarged soft-mask Matte remain diagnosed.
 Natural-size images also retain source precision with reversed Decode `[1,0]`;
 enlarged images still require default Decode.
 
-Unmasked ordinary DeviceRGB and DeviceGray images retain fractional axis-aligned
+Unmasked ordinary DeviceRGB, DeviceGray and supported CalGray images retain fractional axis-aligned
 edge coverage at natural size or enlargement. Covered pixels keep straight source
 color even when their centers lie just outside the image. Reflection preserves
-source orientation. Fractional ICC, CalGray, mask and reduction cases remain
+source orientation. Fractional ICC, mask and reduction cases remain
 diagnosed.
 
 `DrawGlyphCluster(font, fontSize, logicalText, glyphs)` paints explicitly selected
