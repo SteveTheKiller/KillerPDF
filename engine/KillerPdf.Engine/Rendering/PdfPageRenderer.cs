@@ -5897,6 +5897,13 @@ public sealed partial class PdfPageRenderer
                 && sampleStepX > 1 && sampleStepY > 1
                 && Math.Abs(sampleStepX - Math.Round(sampleStepX)) <= 1e-9
                 && Math.Abs(sampleStepY - Math.Round(sampleStepY)) <= 1e-9;
+            bool fractionalDeviceEdges = inverse.B == 0 && inverse.C == 0
+                && sampleStepX <= 1 && sampleStepY <= 1
+                && softMask is null && colorKeyMask is null && preblendMatte is null
+                && colorSpace is { Components: 1 or 3, Profile: null, Converter: null,
+                    MultiConverter: null, Palette: null, IsIccBased: false, HasIccSource: false,
+                    IsDefault: false, ComponentRange: null, HasSpotColorants: false,
+                    BlackPointCompensationEnabled: false };
             if (imageMask || explicitMask
                 || preblendMatte is not null && (softMask is null || preblendMatte.Length != components
                     || preblendMatte.Any(value => !double.IsFinite(value) || value < 0 || value > 1))
@@ -5922,14 +5929,18 @@ public sealed partial class PdfPageRenderer
                 || !naturalSamples && (inverse.B != 0 || inverse.C != 0
                     || (sampleStepX > 1 || sampleStepY > 1) && !areaSamples)
                 || (smoothImage || areaSamples) && decode.Any(value => !double.IsFinite(value) || value < 0 || value > 1)
-                || corners.Any(point => Math.Abs(point.X * scaleX - Math.Round(point.X * scaleX)) > 1e-9
+                || !fractionalDeviceEdges && corners.Any(point => Math.Abs(point.X * scaleX - Math.Round(point.X * scaleX)) > 1e-9
                     || Math.Abs(point.Y * scaleY - Math.Round(point.Y * scaleY)) > 1e-9))
                 throw new NotSupportedException("This high-precision image paint is not implemented.");
             PaintPreciseImage(target, targetWidth, targetHeight, scaleX, scaleY, inverse,
                 samples, rowBytes, sourceWidth, sourceHeight, components, bits, decode, colorSpace,
                 stencilAlpha, blendMode, clips, paintLeft, paintTop, paintRight, paintBottom,
                 smoothImage, areaSamples ? (int)Math.Round(sampleStepX) : 1,
-                areaSamples ? (int)Math.Round(sampleStepY) : 1, colorKeyMask, softMask, preblendMatte, cancellationToken);
+                areaSamples ? (int)Math.Round(sampleStepY) : 1, colorKeyMask, softMask, preblendMatte,
+                fractionalDeviceEdges, corners.Min(point => point.X) * scaleX,
+                corners.Max(point => point.X) * scaleX,
+                targetHeight - corners.Max(point => point.Y) * scaleY,
+                targetHeight - corners.Min(point => point.Y) * scaleY, cancellationToken);
             return;
         }
         if (smoothImage && colorKeyMask is null && preblendMatte is null

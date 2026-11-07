@@ -12,6 +12,8 @@ public sealed partial class PdfPageRenderer
     /// dashed and closed strokes, combined fill/stroke operations with either fill rule, opacity
     /// and aligned natural-size unmasked 8/16-bit images or axis-aligned enlargements
     /// with nearest or bilinear sampling. Bilinear device samples require Decode values in [0,1].
+    /// Unmasked ordinary DeviceRGB/Gray natural-size images and axis-aligned enlargements
+    /// support fractional edges with pixel-area coverage, including reflected images.
     /// Integer-factor reductions in both axes average encoded device samples with Decode in [0,1].
     /// Raw color-key masks are supported with natural-size or eligible nearest-sampled images.
     /// Matching DeviceGray 8/16-bit image soft masks retain source alpha precision on those images.
@@ -363,7 +365,8 @@ public sealed partial class PdfPageRenderer
         ImageColorSpace colorSpace, double opacity, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips, int left, int top, int right, int bottom,
         bool smooth, int reductionColumns, int reductionRows, int[]? colorKeyMask, SoftMask? softMask,
-        double[]? matte, CancellationToken cancellationToken)
+        double[]? matte, bool fractionalDeviceEdges, double imageLeft, double imageRight,
+        double imageTop, double imageBottom, CancellationToken cancellationToken)
     {
         var converter = new ImageSampleConverter(samples, rowBytes, components, bits, decode,
             colorSpace, targetInk: false, targetProfile: null);
@@ -372,8 +375,16 @@ public sealed partial class PdfPageRenderer
             cancellationToken.ThrowIfCancellationRequested();
             for (int x = left; x < right; x++)
             {
+                double coverage = fractionalDeviceEdges
+                    ? Math.Max(0, Math.Min(x + 1, imageRight) - Math.Max(x, imageLeft))
+                        * Math.Max(0, Math.Min(y + 1, imageBottom) - Math.Max(y, imageTop))
+                    : 1;
+                if (coverage == 0) continue;
                 Point unit = inverse.Apply((x + 0.5) / scaleX, (targetHeight - y - 0.5) / scaleY);
-                if (unit.X < 0 || unit.X >= 1 || unit.Y < 0 || unit.Y >= 1) continue;
+                if (fractionalDeviceEdges)
+                    unit = new Point(Math.Clamp(unit.X, 0, Math.BitDecrement(1d)),
+                        Math.Clamp(unit.Y, 0, Math.BitDecrement(1d)));
+                else if (unit.X < 0 || unit.X >= 1 || unit.Y < 0 || unit.Y >= 1) continue;
                 int sampleX = Math.Min((int)(unit.X * sourceWidth), sourceWidth - 1);
                 int sampleY = Math.Min((int)((1 - unit.Y) * sourceHeight), sourceHeight - 1);
                 if (colorKeyMask is not null && converter.MatchesColorKey(sampleX, sampleY, colorKeyMask))
@@ -389,7 +400,7 @@ public sealed partial class PdfPageRenderer
                     ? converter.ConvertPreciseBilinear(unit.X * sourceWidth - 0.5,
                         (1 - unit.Y) * sourceHeight - 0.5, sourceWidth, sourceHeight)
                     : converter.ConvertPrecise(sampleX, sampleY);
-                SetPixel(target, targetWidth, x, y, color, opacity * maskAlpha * ClipAlpha(clips, x, y), blendMode);
+                SetPixel(target, targetWidth, x, y, color, opacity * maskAlpha * coverage * ClipAlpha(clips, x, y), blendMode);
             }
         }
     }

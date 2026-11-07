@@ -63,9 +63,8 @@ public sealed class PdfPrecisionImageSamplingTests
     }
 
     [Theory]
-    [InlineData("4 0 0 1 0.5 0 cm /Image Do")]
     [InlineData("4 0 1 1 0 0 cm /Image Do")]
-    public void UnportedScaledImageEdgesAndShearAreRejected(string content)
+    public void ShearedScaledImageIsRejected(string content)
     {
         var renderer = Renderer(content: content);
 
