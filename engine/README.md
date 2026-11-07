@@ -247,6 +247,10 @@ Author weight declarations and shorthand resets override these defaults. Nested
 emphasis retains computed weights and existing font matching; no synthetic bold
 painting is added. The CSS `bolder` and `lighter` longhand values remain diagnosed.
 
+Inline `span` elements and explicit `br` line breaks also work directly inside the
+body or supported grouping containers. Leading breaks reserve a line without adding
+source text, and native and converted text retain their original offsets and styles.
+
 Block paragraph/container margins accept `auto`. An explicit content width shares
 remaining horizontal space between automatic margins, including padding and fixed
 opposite margins. Automatic widths use zero automatic margins; vertical automatic

@@ -155,7 +155,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "div" => parent?.Name is "body" or "div",
             _ when paragraph => parent?.Name is "body" or "div",
             "strong" or "b" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b",
-            "span" or "br" => parent?.IsParagraph == true || parent?.Name is "span" or "a" or "strong" or "b",
+            "span" or "br" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b",
             "a" => parent?.IsParagraph == true || parent?.Name is "span" or "body" or "div" or "strong" or "b",
             "img" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b",
             _ => false };

@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Formats.Epub;
 using KillerPdf.Engine.Tests.Fonts;
@@ -10,6 +11,52 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubExplicitLineBreakTests
 {
+    [Theory]
+    [InlineData("", 2, 19.5)]
+    [InlineData("<br/>", 12, 12)]
+    public void LeadingBodyBreakReservesOneLineWithoutInventingSourceText(string prefix, double top, double baseline)
+    {
+        byte[] source = Book(prefix + "A"), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var page = Assert.Single(book.CreateLayout(new EpubLayoutOptions(30, 36, font)
+        { FontSize = 10, Margin = 2 }).Pages);
+        Assert.Equal("A", page.Text);
+        var placement = Assert.Single(page.TextPlacements);
+        Assert.Equal(0, placement.Start);
+        Assert.Equal(top, placement.Top);
+        Assert.Equal(2, placement.Left);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var letter = Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters);
+        Assert.Equal("A", letter.Value);
+        Assert.Equal(baseline, letter.StartBaseLine.Y);
+        Assert.Equal(original, source);
+    }
+
+    [Theory]
+    [InlineData("<div>A<br/>A</div>")]
+    [InlineData("A<br/>A")]
+    [InlineData("<div>A<br></br>A</div>")]
+    public void DirectContainerBreakKeepsNativeAndConvertedLinePositions(string body)
+    {
+        byte[] source = Book(body), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var page = Assert.Single(book.CreateLayout(new EpubLayoutOptions(30, 36, font)
+        { FontSize = 10, Margin = 2 }).Pages);
+        Assert.Equal("A\nA", page.Text);
+        Assert.Equal(new double[] { 2, 12 }, page.TextPlacements.Select(item => item.Top));
+        Assert.All(page.TextPlacements, item => { Assert.Equal(2, item.Left); Assert.Equal(6, item.Width); });
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var letters = new PdfPageContentReader(pdf).Read(0).Letters;
+        Assert.Equal(new[] { "A", "A" }, letters.Select(item => item.Value));
+        Assert.Equal(new double[] { 19.5, 12 }, letters.Select(item => item.StartBaseLine.Y));
+        Assert.All(letters, item => Assert.Equal(1.5, item.StartBaseLine.X));
+        Assert.Equal(original, source);
+    }
+
     [Fact]
     public void BreakStartsNextLineAtMarginAndPreservesFollowingStyleAndSourceOffset()
     {
@@ -106,7 +153,7 @@ public sealed class EpubExplicitLineBreakTests
     [InlineData("<p>A<br/>&#937;</p>", "The native EPUB font has no glyph for U+03A9.")]
     [InlineData("<p>A<br/>AAA</p>", "The native EPUB word exceeds the available line width.")]
     [InlineData("<p>A<br onclick=\"go()\"/>A</p>", "Native EPUB XHTML attributes and styling are not implemented.")]
-    [InlineData("<br/>", "Native EPUB XHTML element is not implemented: br.")]
+    [InlineData("<br xmlns='urn:other'/>", "Native EPUB XHTML element is not implemented: br.")]
     public void BreakSupportPreservesTextWidthAttributeAndStructureGuards(string body, string message)
     {
         var book = EpubDocument.Open(Book(body));

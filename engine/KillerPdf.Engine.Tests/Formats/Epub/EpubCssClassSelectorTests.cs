@@ -13,6 +13,10 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubCssClassSelectorTests
 {
+    [Fact]
+    public void DirectContainerSpanKeepsItsStyledTextAtBothSeams()
+        => Verify("span{color:red}", "<div><span>A</span></div>", 2, 1.5, true, false);
+
     [Theory]
     [InlineData("https://www.gutenberg.org/", "https://www.gutenberg.org/")]
     [InlineData("http://example.invalid/page#detail", "http://example.invalid/page#detail")]
