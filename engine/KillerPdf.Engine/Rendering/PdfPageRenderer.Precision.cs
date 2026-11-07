@@ -33,8 +33,9 @@ public sealed partial class PdfPageRenderer
     /// support text matrices, line positioning, spacing, scaling, rise,
     /// strings, positioned text arrays and quote text-showing operators.
     /// Ordinary Form XObjects retain supported paint precision through their matrix and bounding-box clip.
-    /// Non-widget annotation appearances use the same supported paint path, including region rendering,
-    /// visibility filtering and printer proof conversion. Included widgets remain unsupported.
+    /// Annotation appearances, including saved widget appearances, use the same supported paint path,
+    /// including region rendering, visibility filtering and printer proof conversion.
+    /// Requested form-field regeneration remains unsupported.
     /// Explicit neutral graphics-state defaults, including a None soft-mask reset, retain precision.
     /// Eligible isolated and non-isolated non-knockout DeviceRGB Form groups support outer Normal
     /// or Multiply or Screen compositing, with independent source alpha when needed. Internal Normal, Multiply or Screen paints
@@ -105,24 +106,6 @@ public sealed partial class PdfPageRenderer
                 || group.TryGetValue(Name("K"), out PdfObject? knockoutValue)
                     && Resolve(knockoutValue) is PdfBoolean { Value: true }))
             throw new NotSupportedException("This high-precision page group is not implemented.");
-        if ((options.IncludeAnnotations || options.IncludeFormFields)
-            && page.TryGetValue(Name("Annots"), out PdfObject? annotationValue)
-            && Resolve(annotationValue) is PdfArray annotations)
-        {
-            foreach (PdfObject value in annotations)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (Resolve(value) is not PdfDictionary annotation) continue;
-                bool widget = IsName(annotation, "Subtype", "Widget");
-                bool included = widget
-                    ? options.IncludeFormFields
-                        || options.IncludeSignedSignatureFields && IsSignedSignatureWidget(annotation)
-                        || options.IncludePushButtonFields && IsPushButtonWidget(annotation)
-                    : options.IncludeAnnotations;
-                if (included && widget)
-                    throw new NotSupportedException("High-precision form rendering is not implemented.");
-            }
-        }
         var pixels = new float[checked((int)pixelCount * 4)];
         PdfRenderedPage compatibility = RenderUncached(pageIndex, options, cancellationToken,
             region: region, preciseRgb: pixels);
