@@ -106,8 +106,9 @@ provide the captured transform, RGB input, unit ranges and no extra dependencies
 unsupported revisions, alternates and metadata remain diagnosed.
 DeviceRGB images can also retain a raw or single-Flate-encoded, same-size eight-bit
 DeviceGray soft mask. Its original encoded alpha bytes survive extraction and reuse;
-Flate masks validate decoded length and their zlib checksum. Mask Decode, Matte,
-predictors, other filters, nested masks and ICC images with masks remain refused. Encoded and decoded image
+Flate masks validate decoded length and their zlib checksum. Supported RGB ICC
+profiles and captured source intent remain intact with these masks. Mask Decode,
+Matte, predictors, other filters and nested masks remain refused. Encoded and decoded image
 plus mask data share the 5 MiB limit; serialized assets have the same limit.
 Other color spaces, default color substitutions, other filters, predictors,
 other masks and uncaptured context remain refused.

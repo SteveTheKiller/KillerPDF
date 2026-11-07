@@ -99,9 +99,9 @@ internal sealed class PdfImageAssetGraphWriter
         PdfStream? softMask = null;
         if (dictionary.TryGetValue(Name("SMask"), out var maskValue))
         {
-            if (!IsName("ColorSpace", "DeviceRGB") || maskValue is not PdfIndirectReference
+            if (maskValue is not PdfIndirectReference
                 || Resolve(maskValue) is not PdfStream mask)
-                throw new NotSupportedException("Detached soft masks require an owned DeviceRGB image graph.");
+                throw new NotSupportedException("Detached soft masks require an owned image graph.");
             foreach (var entry in mask.Dictionary)
             {
                 cancellationToken.ThrowIfCancellationRequested();

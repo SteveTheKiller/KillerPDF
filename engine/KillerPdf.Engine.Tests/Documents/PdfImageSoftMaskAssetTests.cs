@@ -205,7 +205,7 @@ public sealed class PdfImageSoftMaskAssetTests
     }
 
     [Fact]
-    public void AnIccColorSpaceWithASoftMaskIsExplicitlyRefused()
+    public void MalformedIccProfileWithASoftMaskIsRefusedByProfileValidation()
     {
         var source = PdfDocument.Open(Fixture());
         var image = Image(source);
@@ -222,9 +222,9 @@ public sealed class PdfImageSoftMaskAssetTests
         byte[] revised = update.ReplaceObject(reference.ObjectNumber,
             new PdfStream(new PdfDictionary(entries), image.EncodedData.Span)).Build(), original = revised.ToArray();
         source = PdfDocument.Open(revised);
-        var error = Assert.Throws<NotSupportedException>(() => PdfImagePlacementExtractor.Extract(source,
+        var error = Assert.Throws<FormatException>(() => PdfImagePlacementExtractor.Extract(source,
             Assert.Single(new PdfPageContentReader(source).ReadImagePlacements(0))));
-        Assert.Contains("ICC images with soft masks", error.Message);
+        Assert.Equal("An ICC profile must contain its 128-byte header and tag-table count.", error.Message);
         Assert.Equal(original, revised);
     }
 

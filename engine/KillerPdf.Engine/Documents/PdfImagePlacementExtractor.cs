@@ -72,8 +72,6 @@ public static class PdfImagePlacementExtractor
         PdfName renderingIntent = Name("RelativeColorimetric");
         if (Resolve(colorValue) is not PdfName color || color.ValueAsLatin1() != "DeviceRGB")
         {
-            if (dictionary.ContainsKey(Name("SMask")))
-                throw new NotSupportedException("Image extraction does not yet preserve ICC images with soft masks.");
             if (dictionary.TryGetValue(Name("Intent"), out var intent))
                 renderingIntent = Resolve(intent) as PdfName
                     ?? throw new NotSupportedException("Image rendering intent requires one standard name.");
