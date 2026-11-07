@@ -100,8 +100,8 @@ public sealed partial class EpubDocument
         }
     }
 
-    private void AppendNativeSpinePages(int spineIndex, EpubLayoutOptions options, double contentWidth,
-        TrueTypeOutlineReader reader, List<EpubLayoutPage> pages,
+    private void AppendNativeSpinePages(int spineIndex, EpubLayoutOptions options, double availableWidth,
+        TrueTypeOutlineReader reader, List<EpubLayoutPage> destinationPages,
         List<(int SpineIndex, string Id, int Offset)> anchors, ref int remainingTextLength,
         ref int remainingStylesheetBytes, ref int remainingStylesheetReferences,
         Dictionary<string, PngDecodedImage> imageCache, ref long retainedImageBytes,
@@ -121,12 +121,11 @@ public sealed partial class EpubDocument
         string text = ReadStructuralText(spineIndex, cancellationToken, content);
         var linkTargets = new Dictionary<string, string>(StringComparer.Ordinal);
         var formatting = new EpubFormattingTree(content, cancellationToken);
-        var bodyMargins = content.ResolveBodyMargins(contentWidth);
-        var bodyPadding = content.ResolveBodyPadding(contentWidth);
-        double contentLeft = options.Margin + bodyMargins.Left + bodyPadding.Left;
-        double contentRight = options.PageWidth - options.Margin - bodyMargins.Right - bodyPadding.Right;
-        contentWidth = contentRight - contentLeft;
-        if (contentWidth <= 0 || bodyMargins.Top + bodyPadding.Top >= options.PageHeight - 2 * options.Margin)
+        var bodyMargins = content.ResolveBodyMargins(availableWidth);
+        var bodyPadding = content.ResolveBodyPadding(availableWidth);
+        double initialContentLeft = options.Margin + bodyMargins.Left + bodyPadding.Left;
+        double initialContentRight = options.PageWidth - options.Margin - bodyMargins.Right - bodyPadding.Right;
+        if (initialContentRight <= initialContentLeft || bodyMargins.Top + bodyPadding.Top >= options.PageHeight - 2 * options.Margin)
             throw new NotSupportedException("Native EPUB body padding requires a positive content box within the page.");
         if (text.Length > remainingTextLength)
             throw new InvalidDataException("Native EPUB text exceeds its 100,000 placement limit.");
@@ -272,434 +271,6 @@ public sealed partial class EpubDocument
                 throw new NotSupportedException("Native EPUB has no resolved font face for the requested weight.");
             return options.DefaultFont;
         }
-        var placements = new List<EpubTextPlacement>(text.Length);
-        var navigationPlacements = new List<EpubTextPlacement>();
-        var glyphs = new List<NativePagePaint>(text.Length);
-        var backgrounds = new List<(int Depth, NativePagePaint Paint)>();
-        int pageStart = 0;
-        bool pageHasContent = false;
-        bool pendingBreakAfter = false;
-        double left = contentLeft;
-        double top = options.Margin + bodyMargins.Top + bodyPadding.Top;
-        var line = new List<(int Index, int Length, double Left, double Width, TrueTypeFont Font, PdfGlyphOutline? Outline,
-            PngDecodedImage? Image, EpubNativeContent.Style Style, EpubNativeContent.Style BlockStyle,
-            EpubNativeContent.Element? Owner)>();
-        int lineStart = 0;
-        EpubFormattingTree.Block lineBlock = formatting.Root;
-        var startedBlocks = new HashSet<EpubFormattingTree.Block>();
-        var initialPadding = new Dictionary<EpubFormattingTree.Block,
-            (double Height, int PaintStart, double BorderHeight, PdfRgbColor? BorderColor)>();
-        var activeBounds = new Dictionary<EpubFormattingTree.Block, (double Left, double Width, double ContainingWidth)>();
-        double pendingParagraphGap = 0;
-        long imageBytes = retainedImageBytes;
-        LayoutBlock(formatting.Root);
-        retainedImageBytes = imageBytes;
-        cancellationToken.ThrowIfCancellationRequested();
-        if (bodyPadding.Bottom > 0 && top + bodyPadding.Bottom > options.PageHeight - options.Margin)
-            throw new NotSupportedException("Native EPUB terminal body padding overflow is not implemented.");
-        FinishPage(text.Length);
-
-        void LayoutBlock(EpubFormattingTree.Block block)
-        {
-            double parentLeft = contentLeft, parentRight = contentRight, parentWidth = contentWidth;
-            var margins = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth);
-            var padding = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth, padding: true);
-            contentLeft += margins.Left;
-            contentRight -= margins.Right;
-            if (block.Source.Width is { Length: { } specifiedWidth })
-            {
-                double width = specifiedWidth.Percentage ? parentWidth * specifiedWidth.Value / 100
-                    : specifiedWidth.Em ? block.Source.Style.FontSize * specifiedWidth.Value : specifiedWidth.Value;
-                if (!double.IsFinite(width) || width < 0 || width > 32768)
-                    throw new NotSupportedException("Native EPUB block width exceeds the supported dimensions.");
-                bool autoLeft = block.Source.Margins?[3] is { Auto: true };
-                bool autoRight = block.Source.Margins?[1] is { Auto: true };
-                if (autoLeft)
-                {
-                    double remaining = Math.Max(0, parentWidth - margins.Left - margins.Right
-                        - padding.Left - padding.Right - width);
-                    contentLeft += autoRight ? remaining / 2 : remaining;
-                }
-                contentRight = contentLeft + padding.Left + width + padding.Right;
-            }
-            var backgroundBounds = (Left: contentLeft, Width: contentRight - contentLeft);
-            contentLeft += padding.Left;
-            contentRight -= padding.Right;
-            contentWidth = contentRight - contentLeft;
-            if (contentWidth <= 0)
-                throw new NotSupportedException("Native EPUB paragraph insets require a positive content box.");
-            activeBounds.Add(block, (backgroundBounds.Left, backgroundBounds.Width, parentWidth));
-            try
-            {
-                if (block.Parent is not null && pageHasContent
-                    && (block.Source.Style.PageBreakBefore || pendingBreakAfter && HasFlowContent(block)))
-                {
-                    int boundary = Math.Min(block.Source.Offset, text.Length);
-                    while (boundary < text.Length && content.Characters[boundary] is null) boundary++;
-                    FinishPage(boundary);
-                    top = options.Margin;
-                    pendingParagraphGap = 0;
-                    pendingBreakAfter = false;
-                }
-                double paddingTop = block.Parent is null ? 0 : block.Source.VerticalMargin(0, parentWidth, 0, padding: true);
-                double paddingBottom = block.Parent is null ? 0 : block.Source.VerticalMargin(2, parentWidth, 0, padding: true);
-                var topBorder = block.Source.TopBorder;
-                double borderTop = topBorder is { Visible: true } side
-                    ? side.Width.Value * (side.Width.Em ? block.Source.Style.FontSize : 1) : 0;
-                if (!double.IsFinite(borderTop) || borderTop > 32768)
-                    throw new NotSupportedException("Native EPUB top border exceeds the supported dimensions.");
-                if ((paddingTop > 0 || paddingBottom > 0 || borderTop > 0) && block.Source.IsParagraph)
-                {
-                    pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(0,
-                        activeBounds[block].ContainingWidth, pageHasContent ? options.FontSize : 0));
-                    top += !pageHasContent && pages.Count == 0 && bodyPadding.Top == 0
-                        ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
-                    pendingParagraphGap = 0;
-                }
-                int initialPaintStart = backgrounds.Count;
-                PdfRgbColor? borderColor = block.Source.Style.Hidden ? null : topBorder is { Color: { } specified }
-                    ? specified.Color : block.Source.Style.Color ?? options.TextColor;
-                double emptyBorderRemaining = 0;
-                if (block.Children.Count == 0 && block.Replaced is null)
-                {
-                    emptyBorderRemaining = borderTop;
-                    paddingBottom += paddingTop + borderTop;
-                    paddingTop = 0;
-                    borderTop = 0;
-                }
-                if (borderTop > 0)
-                {
-                    PaintPadding(borderTop);
-                    if (borderColor is { } fill)
-                        backgrounds.Add((SourceDepth(block.Source), new NativeRectanglePaint(
-                            backgroundBounds.Left, top, backgroundBounds.Width, borderTop, fill)));
-                    top += borderTop;
-                }
-                if (paddingTop + borderTop > 0)
-                    initialPadding[block] = (paddingTop + borderTop, initialPaintStart, borderTop, borderColor);
-                PaintPadding(paddingTop);
-                top += paddingTop;
-                LayoutBlockContent(block);
-                double remainingPadding = paddingBottom;
-                int? paddingEnd = null;
-                while (remainingPadding > 0)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    double available = Math.Max(0, options.PageHeight - options.Margin - top);
-                    double fragment = Math.Min(remainingPadding, available);
-                    PaintPadding(fragment);
-                    double borderFragment = Math.Min(fragment, emptyBorderRemaining);
-                    if (borderFragment > 0 && borderColor is { } emptyFill)
-                        backgrounds.Add((SourceDepth(block.Source), new NativeRectanglePaint(
-                            backgroundBounds.Left, top, backgroundBounds.Width, borderFragment, emptyFill)));
-                    emptyBorderRemaining -= borderFragment;
-                    top += fragment;
-                    remainingPadding -= fragment;
-                    if (remainingPadding <= 0) break;
-                    if (paddingEnd is null)
-                    {
-                        int end = Math.Min(block.Source.Offset, text.Length);
-                        while (end < text.Length)
-                        {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            if (content.Characters[end] is { } character)
-                            {
-                                var owner = character.Node.Owner;
-                                while (owner is not null && owner != block.Source) owner = owner.Parent;
-                                if (owner is null) break;
-                            }
-                            end++;
-                        }
-                        paddingEnd = end;
-                    }
-                    FinishPage(Math.Max(pageStart, paddingEnd.Value));
-                    top = options.Margin;
-                }
-
-                void PaintPadding(double height)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (height <= 0) return;
-                    for (var box = block; box.Parent is not null; box = box.Parent)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        if (box.Source.Style.Hidden || box.Source.Style.Background?.Color is not { } fill) continue;
-                        if (backgrounds.Count + glyphs.Count >= 100_000)
-                            throw new InvalidDataException("The native page exceeds its paint limit.");
-                        var bounds = activeBounds[box];
-                        backgrounds.Add((SourceDepth(box.Source), new NativeRectanglePaint(
-                            bounds.Left, top, bounds.Width, height, fill)));
-                    }
-                }
-            }
-            finally
-            {
-                initialPadding.Remove(block);
-                activeBounds.Remove(block);
-                contentLeft = parentLeft;
-                contentRight = parentRight;
-                contentWidth = parentWidth;
-            }
-            if (block.Parent is not null && block.Source.Style.PageBreakAfter)
-                pendingBreakAfter = true;
-        }
-
-        bool HasFlowContent(EpubFormattingTree.Block block)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (block.Replaced is { } replaced)
-                return replaced.Owner.MaximumWidth is not { Length.Value: 0 };
-            if (block.Source.Padding is { } padding && (padding[0] is { Value: > 0 } || padding[2] is { Value: > 0 })
-                || block.Source.TopBorder is { Visible: true, Width.Value: > 0 }) return true;
-            foreach (var child in block.Children)
-            {
-                if (child is EpubFormattingTree.InlineSequence sequence)
-                    foreach (var atom in sequence.Atoms)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        if (!atom.IsSpace && (atom.Reference is not { Source: not null } image
-                            || image.Owner.MaximumWidth is not { Length.Value: 0 })) return true;
-                    }
-                if (child is EpubFormattingTree.Block nested && HasFlowContent(nested)) return true;
-            }
-            return false;
-        }
-
-        void LayoutBlockContent(EpubFormattingTree.Block block)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            double indent = block.Source.Style.TextIndentPercentage
-                ? block.Source.Style.TextIndent * contentWidth / 100 : block.Source.Style.TextIndent;
-            if (!double.IsFinite(indent) || Math.Abs(indent) > 32768)
-                throw new NotSupportedException("Native EPUB text indentation exceeds the supported page dimensions.");
-            int boundary = Math.Min(block.Source.Offset, text.Length);
-            while (boundary < text.Length && content.Characters[boundary] is null) boundary++;
-            if (block.Source.IsParagraph && block.Source.VerticalMargin(0,
-                activeBounds[block].ContainingWidth, 0, padding: true) == 0
-                && block.Source.VerticalMargin(2, activeBounds[block].ContainingWidth, 0, padding: true) == 0
-                && block.Source.TopBorder is not { Visible: true, Width.Value: > 0 })
-            {
-                pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(0,
-                    activeBounds[block].ContainingWidth, pageHasContent ? options.FontSize : 0));
-            }
-            if (block.Replaced is { Source: { } source } replaced)
-            {
-                lineBlock = block;
-                var image = ReadNativeImage(resource.Href, source, imageCache, ref imageBytes, cancellationToken);
-                var imageSize = ImageSize(image, replaced.Owner);
-                double paintLeft = contentLeft, paintTop = 0, flowHeight = imageSize.Height;
-                if (replaced.Owner.SvgViewBox is { } viewBox)
-                {
-                    flowHeight = options.PageHeight - 2 * options.Margin - bodyMargins.Top
-                        - bodyMargins.Bottom - bodyPadding.Top - bodyPadding.Bottom;
-                    if (!double.IsFinite(flowHeight) || flowHeight <= 0)
-                        throw new NotSupportedException("Native EPUB SVG covers require a positive body viewport.");
-                    double viewportScale = Math.Min(contentWidth / viewBox.Width, flowHeight / viewBox.Height);
-                    double imageScale = Math.Min(viewBox.Width / image.Width, viewBox.Height / image.Height) * viewportScale;
-                    imageSize = (image.Width * imageScale, image.Height * imageScale);
-                    paintLeft += (contentWidth - imageSize.Width) / 2;
-                    paintTop = (flowHeight - imageSize.Height) / 2;
-                }
-                if (imageSize.Width == 0) return;
-                if (imageSize.Width > contentWidth || imageSize.Height > options.PageHeight - 2 * options.Margin)
-                    throw new NotSupportedException("The native EPUB block image exceeds the available page dimensions.");
-                if (pendingParagraphGap > 0)
-                {
-                    top += !pageHasContent && pages.Count == 0 && bodyPadding.Top == 0
-                        ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
-                    pendingParagraphGap = 0;
-                }
-                if (top + flowHeight > options.PageHeight - options.Margin)
-                {
-                    FinishPage(replaced.Offset);
-                    top = options.Margin;
-                }
-                AddBlockBackgrounds(flowHeight);
-                if (!replaced.Owner.Style.Hidden)
-                    glyphs.Add(new NativeImagePaint(image, paintLeft, top + paintTop) { Width = imageSize.Width, Height = imageSize.Height });
-                if (backgrounds.Count + glyphs.Count > 100_000)
-                    throw new InvalidDataException("The native page exceeds its paint limit.");
-                top += flowHeight;
-                pageHasContent = true;
-                return;
-            }
-            foreach (var part in block.Children)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (part is EpubFormattingTree.Block child)
-                {
-                    LayoutBlock(child);
-                    continue;
-                }
-                lineBlock = block;
-                var sequence = (EpubFormattingTree.InlineSequence)part;
-                lineStart = sequence.Atoms[0].Offset;
-                left = contentLeft + (startedBlocks.Contains(block) ? 0 : indent);
-                LayoutInline(sequence);
-                FlushLine();
-            }
-            if (block.Source.IsParagraph)
-            {
-                bool hasExtent = pageHasContent
-                    || block.Source.TopBorder is { Visible: true, Width.Value: > 0 }
-                    || block.Source.VerticalMargin(0, activeBounds[block].ContainingWidth, 0, padding: true) > 0
-                    || block.Source.VerticalMargin(2, activeBounds[block].ContainingWidth, 0, padding: true) > 0;
-                pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(2,
-                    activeBounds[block].ContainingWidth, hasExtent ? options.FontSize : 0));
-            }
-        }
-
-        void LayoutInline(EpubFormattingTree.InlineSequence sequence)
-        {
-            bool firstIndentedWord = !startedBlocks.Contains(lineBlock) && left > contentLeft;
-            int first = 0, last = sequence.Atoms.Count - 1;
-            while (first <= last && IsSpace(sequence.Atoms[first])) first++;
-            while (last >= first && IsSpace(sequence.Atoms[last])) last--;
-            if (first <= last) lineStart = sequence.Atoms[first].Offset;
-            for (int at = first; at <= last; at++)
-            {
-                var atom = sequence.Atoms[at];
-                int index = atom.Offset;
-                cancellationToken.ThrowIfCancellationRequested();
-                if (pendingParagraphGap > 0)
-                {
-                    top += !pageHasContent && pages.Count == 0 && bodyPadding.Top == 0
-                        ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
-                    pendingParagraphGap = 0;
-                }
-                if (atom.Reference is { } reference)
-                {
-                    if (reference.Source is null)
-                    {
-                        firstIndentedWord = false;
-                        if (line.Count == 0)
-                        {
-                            var blockStyle = lineBlock.Source.Style;
-                            double height = Math.Max(AboveBaseline(blockStyle), AboveBaseline(reference.Owner.Style))
-                                + Math.Max(BelowBaseline(blockStyle), BelowBaseline(reference.Owner.Style));
-                            if (height > options.PageHeight - 2 * options.Margin)
-                                throw new NotSupportedException("The native EPUB line exceeds the available page height.");
-                            FitLine(height, index);
-                            AddBlockBackgrounds(height);
-                            if (backgrounds.Count + glyphs.Count > 100_000)
-                                throw new InvalidDataException("The native page exceeds its paint limit.");
-                            pageHasContent = true;
-                            startedBlocks.Add(lineBlock);
-                            top += height;
-                        }
-                        else FlushLine();
-                        left = contentLeft;
-                        lineStart = index < text.Length && text[index] == '\n' ? index + 1 : index;
-                        continue;
-                    }
-                    var image = ReadNativeImage(resource.Href, reference.Source, imageCache, ref imageBytes, cancellationToken);
-                    var imageSize = ImageSize(image, reference.Owner);
-                    if (imageSize.Width == 0) continue;
-                    double imageTracking = line.Count == 0 || line[^1].Image is not null ? 0
-                        : (line[^1].Style.LetterSpacing + reference.Owner.Style.LetterSpacing) / 2;
-                    if (imageTracking + imageSize.Width > contentRight - left)
-                        throw new NotSupportedException("The native EPUB image exceeds the available line width.");
-                    left += imageTracking;
-                    line.Add((index, 0, left, imageSize.Width, FontFor(reference.Owner.Style), null, image,
-                        reference.Owner.Style, lineBlock.Source.Style, reference.Owner));
-                    left += imageSize.Width;
-                    firstIndentedWord = false;
-                    continue;
-                }
-                // Ligature and surrogate continuations keep their source indices but have no separate placement.
-                EpubGlyphCluster? cluster;
-                var style = atom.Owner.Style;
-                if (atom.HasSource)
-                {
-                    if (!clusters.TryGetValue(index, out cluster)) continue;
-                }
-                else
-                {
-                    var spaceFont = FontFor(style);
-                    ushort spaceGlyph = spaceFont.GetGlyphId(' ');
-                    cluster = new(index, 0, spaceFont,
-                        [new(spaceGlyph, spaceFont.GetAdvanceWidth(spaceGlyph) / (double)spaceFont.UnitsPerEm, 0, 0)]);
-                }
-                char character = atom.IsSpace ? ' ' : text[index];
-                if (atom.IsSpace && line.Count == 0) continue;
-                ushort glyph = cluster.Glyphs[0].GlyphId;
-                if (glyph == 0 && character != ' ')
-                    throw new NotSupportedException("The native EPUB font has no glyph for this cluster.");
-                if (!readers.TryGetValue(cluster.Font, out var selectedReader))
-                    readers.Add(cluster.Font, selectedReader = new TrueTypeOutlineReader(cluster.Font));
-                PdfGlyphOutline outline = selectedReader.Outline(glyph)
-                    ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
-                double width = cluster.Advance * style.FontSize;
-                if (character == ' ') width += style.WordSpacing;
-                double tracking = line.Count == 0 ? 0 : (line[^1].Style.LetterSpacing + style.LetterSpacing) / 2;
-                if (character == ' ')
-                {
-                    firstIndentedWord = false;
-                    // Each collapsed separator scans only the following word, keeping lookahead linear.
-                    double wordWidth = 0;
-                    double leadingTracking = 0, previousTracking = style.LetterSpacing;
-                    bool firstCharacter = true;
-                    for (int next = at + 1; next <= last; next++)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        var nextAtom = sequence.Atoms[next];
-                        if (nextAtom.Reference is not null || nextAtom.IsSpace) break;
-                        if (clusters.TryGetValue(nextAtom.Offset, out var nextCluster))
-                        {
-                            var nextStyle = StyleAt(nextAtom.Offset);
-                            double between = (previousTracking + nextStyle.LetterSpacing) / 2;
-                            if (firstCharacter) leadingTracking = between;
-                            else wordWidth += between;
-                            wordWidth += nextCluster.Advance * nextStyle.FontSize;
-                            previousTracking = nextStyle.LetterSpacing;
-                            firstCharacter = false;
-                        }
-                    }
-                    if (wordWidth > contentWidth)
-                        throw new NotSupportedException("The native EPUB word exceeds the available line width.");
-                    if (tracking + width + leadingTracking + wordWidth > contentRight - left)
-                    {
-                        FlushLine(finalLine: false);
-                        if (top + options.FontSize > options.PageHeight - options.Margin)
-                        {
-                            FinishPage(at < last ? sequence.Atoms[at + 1].Offset : text.Length);
-                            top = options.Margin;
-                        }
-                        left = contentLeft;
-                        lineStart = at < last ? sequence.Atoms[at + 1].Offset : text.Length;
-                        continue;
-                    }
-                }
-                if (tracking + width > contentRight - left && !firstIndentedWord)
-                    throw new NotSupportedException("The native EPUB word exceeds the available line width.");
-                left += tracking;
-                line.Add((index, cluster.Length, left, width, cluster.Font, atom.HasSource ? outline : null, null, style,
-                    lineBlock.Source.Style, atom.Owner));
-                left += width;
-            }
-
-            bool IsSpace(EpubFormattingTree.Atom atom) => atom.IsSpace;
-        }
-
-        string? ResolveLink(EpubNativeContent.Element? owner)
-        {
-            if (owner?.LinkReference is not { } reference) return null;
-            if (reference.Length > 4096)
-                throw new InvalidDataException("Native EPUB hyperlink targets exceed their 4,096-character limit.");
-            if (!linkTargets.TryGetValue(reference, out string? target))
-            {
-                string trimmed = reference.Trim(' ', '\t', '\r', '\n');
-                target = TryExternalHyperlink(trimmed, out string external)
-                    ? external : NavigationTarget(resource.Href, trimmed);
-                if (target.Length > 4096)
-                    throw new InvalidDataException("Native EPUB hyperlink targets exceed their 4,096-character limit.");
-                linkTargets.Add(reference, target);
-            }
-            return target;
-        }
-
-        EpubNativeContent.Style StyleAt(int index) => content.Characters[index]?.Style ?? content.DefaultStyle;
-
         Rune ReadScalar(int index)
         {
             if (!Rune.TryGetRuneAt(text, index, out Rune scalar))
@@ -727,323 +298,762 @@ public sealed partial class EpubDocument
             throw new NotSupportedException($"Native EPUB layout requires unsupported shaping or bidirectional processing for U+{value:X4}.");
         }
 
-        static int SourceDepth(EpubNativeContent.Element source)
-        {
-            int depth = 0;
-            while (source.Parent is { } parent) { depth++; source = parent; }
-            return depth;
-        }
+        long imageBytes = retainedImageBytes;
+        var flow = LayoutFlow(formatting.Root, initialContentLeft, initialContentRight,
+            options.Margin + bodyMargins.Top + bodyPadding.Top);
+        destinationPages.AddRange(flow.Pages);
+        retainedImageBytes = imageBytes;
 
-        void AddBlockBackgrounds(double height)
+        (IReadOnlyList<EpubLayoutPage> Pages, double Bottom) LayoutFlow(
+            EpubFormattingTree.Block flowRoot, double contentLeft, double contentRight, double top)
         {
-            for (var box = lineBlock; box.Parent is not null; box = box.Parent)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!box.Source.Style.Hidden && box.Source.Style.Background?.Color is { } fill)
-                {
-                    var bounds = activeBounds[box];
-                    backgrounds.Add((SourceDepth(box.Source), new NativeRectanglePaint(bounds.Left, top, bounds.Width, height, fill)));
-                }
-            }
-        }
+            int existingPageCount = destinationPages.Count;
+            var pages = new List<EpubLayoutPage>();
+            double contentWidth = contentRight - contentLeft;
+            var placements = new List<EpubTextPlacement>(text.Length);
+            var navigationPlacements = new List<EpubTextPlacement>();
+            var glyphs = new List<NativePagePaint>(text.Length);
+            var backgrounds = new List<(int Depth, NativePagePaint Paint)>();
+            int pageStart = 0;
+            bool pageHasContent = false;
+            bool pendingBreakAfter = false;
+            double left = contentLeft;
+            var line = new List<(int Index, int Length, double Left, double Width, TrueTypeFont Font, PdfGlyphOutline? Outline,
+                PngDecodedImage? Image, EpubNativeContent.Style Style, EpubNativeContent.Style BlockStyle,
+                EpubNativeContent.Element? Owner)>();
+            int lineStart = 0;
+            EpubFormattingTree.Block lineBlock = flowRoot;
+            var startedBlocks = new HashSet<EpubFormattingTree.Block>();
+            var initialPadding = new Dictionary<EpubFormattingTree.Block,
+                (double Height, int PaintStart, double BorderHeight, PdfRgbColor? BorderColor)>();
+            var activeBounds = new Dictionary<EpubFormattingTree.Block, (double Left, double Width, double ContainingWidth)>();
+            double pendingParagraphGap = 0;
+            LayoutBlock(flowRoot);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (bodyPadding.Bottom > 0 && top + bodyPadding.Bottom > options.PageHeight - options.Margin)
+                throw new NotSupportedException("Native EPUB terminal body padding overflow is not implemented.");
+            FinishPage(text.Length);
+            return (pages, top);
 
-        void FitLine(double height, int start)
-        {
-            if (pendingBreakAfter)
+            void LayoutBlock(EpubFormattingTree.Block block)
             {
-                if (pageHasContent)
+                double parentLeft = contentLeft, parentRight = contentRight, parentWidth = contentWidth;
+                var margins = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth);
+                var padding = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth, padding: true);
+                contentLeft += margins.Left;
+                contentRight -= margins.Right;
+                if (block.Source.Width is { Length: { } specifiedWidth })
                 {
-                    FinishPage(start);
-                    top = options.Margin;
-                    pendingParagraphGap = 0;
-                }
-                pendingBreakAfter = false;
-            }
-            if (top + height > options.PageHeight - options.Margin)
-            {
-                bool movePadding = initialPadding.TryGetValue(lineBlock, out var initial)
-                    && !startedBlocks.Contains(lineBlock);
-                if (movePadding && backgrounds.Count > initial.PaintStart)
-                    backgrounds.RemoveRange(initial.PaintStart, backgrounds.Count - initial.PaintStart);
-                void PaintInitial(double fragment, double offset)
-                {
-                    AddBlockBackgrounds(fragment);
-                    double borderFragment = Math.Min(fragment, Math.Max(0, initial.BorderHeight - offset));
-                    if (borderFragment > 0 && initial.BorderColor is { } color)
+                    double width = specifiedWidth.Percentage ? parentWidth * specifiedWidth.Value / 100
+                        : specifiedWidth.Em ? block.Source.Style.FontSize * specifiedWidth.Value : specifiedWidth.Value;
+                    if (!double.IsFinite(width) || width < 0 || width > 32768)
+                        throw new NotSupportedException("Native EPUB block width exceeds the supported dimensions.");
+                    bool autoLeft = block.Source.Margins?[3] is { Auto: true };
+                    bool autoRight = block.Source.Margins?[1] is { Auto: true };
+                    if (autoLeft)
                     {
-                        var bounds = activeBounds[lineBlock];
-                        backgrounds.Add((SourceDepth(lineBlock.Source), new NativeRectanglePaint(
-                            bounds.Left, top, bounds.Width, borderFragment, color)));
+                        double remaining = Math.Max(0, parentWidth - margins.Left - margins.Right
+                            - padding.Left - padding.Right - width);
+                        contentLeft += autoRight ? remaining / 2 : remaining;
                     }
+                    contentRight = contentLeft + padding.Left + width + padding.Right;
                 }
-                if (movePadding && initial.Height + height > options.PageHeight - 2 * options.Margin)
+                var backgroundBounds = (Left: contentLeft, Width: contentRight - contentLeft);
+                contentLeft += padding.Left;
+                contentRight -= padding.Right;
+                contentWidth = contentRight - contentLeft;
+                if (contentWidth <= 0)
+                    throw new NotSupportedException("Native EPUB paragraph insets require a positive content box.");
+                activeBounds.Add(block, (backgroundBounds.Left, backgroundBounds.Width, parentWidth));
+                try
                 {
-                    top -= initial.Height;
-                    double remaining = initial.Height;
-                    while (remaining > 0)
+                    if (block.Parent is not null && pageHasContent
+                        && (block.Source.Style.PageBreakBefore || pendingBreakAfter && HasFlowContent(block)))
+                    {
+                        int boundary = Math.Min(block.Source.Offset, text.Length);
+                        while (boundary < text.Length && content.Characters[boundary] is null) boundary++;
+                        FinishPage(boundary);
+                        top = options.Margin;
+                        pendingParagraphGap = 0;
+                        pendingBreakAfter = false;
+                    }
+                    double paddingTop = block.Parent is null ? 0 : block.Source.VerticalMargin(0, parentWidth, 0, padding: true);
+                    double paddingBottom = block.Parent is null ? 0 : block.Source.VerticalMargin(2, parentWidth, 0, padding: true);
+                    var topBorder = block.Source.TopBorder;
+                    double borderTop = topBorder is { Visible: true } side
+                        ? side.Width.Value * (side.Width.Em ? block.Source.Style.FontSize : 1) : 0;
+                    if (!double.IsFinite(borderTop) || borderTop > 32768)
+                        throw new NotSupportedException("Native EPUB top border exceeds the supported dimensions.");
+                    if ((paddingTop > 0 || paddingBottom > 0 || borderTop > 0) && block.Source.IsParagraph)
+                    {
+                        pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(0,
+                            activeBounds[block].ContainingWidth, pageHasContent ? options.FontSize : 0));
+                        top += !pageHasContent && existingPageCount + pages.Count == 0 && bodyPadding.Top == 0
+                            ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
+                        pendingParagraphGap = 0;
+                    }
+                    int initialPaintStart = backgrounds.Count;
+                    PdfRgbColor? borderColor = block.Source.Style.Hidden ? null : topBorder is { Color: { } specified }
+                        ? specified.Color : block.Source.Style.Color ?? options.TextColor;
+                    double emptyBorderRemaining = 0;
+                    if (block.Children.Count == 0 && block.Replaced is null)
+                    {
+                        emptyBorderRemaining = borderTop;
+                        paddingBottom += paddingTop + borderTop;
+                        paddingTop = 0;
+                        borderTop = 0;
+                    }
+                    if (borderTop > 0)
+                    {
+                        PaintPadding(borderTop);
+                        if (borderColor is { } fill)
+                            backgrounds.Add((SourceDepth(block.Source), new NativeRectanglePaint(
+                                backgroundBounds.Left, top, backgroundBounds.Width, borderTop, fill)));
+                        top += borderTop;
+                    }
+                    if (paddingTop + borderTop > 0)
+                        initialPadding[block] = (paddingTop + borderTop, initialPaintStart, borderTop, borderColor);
+                    PaintPadding(paddingTop);
+                    top += paddingTop;
+                    LayoutBlockContent(block);
+                    double remainingPadding = paddingBottom;
+                    int? paddingEnd = null;
+                    while (remainingPadding > 0)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        double fragment = Math.Min(remaining, Math.Max(0, options.PageHeight - options.Margin - top));
-                        PaintInitial(fragment, initial.Height - remaining);
+                        double available = Math.Max(0, options.PageHeight - options.Margin - top);
+                        double fragment = Math.Min(remainingPadding, available);
+                        PaintPadding(fragment);
+                        double borderFragment = Math.Min(fragment, emptyBorderRemaining);
+                        if (borderFragment > 0 && borderColor is { } emptyFill)
+                            backgrounds.Add((SourceDepth(block.Source), new NativeRectanglePaint(
+                                backgroundBounds.Left, top, backgroundBounds.Width, borderFragment, emptyFill)));
+                        emptyBorderRemaining -= borderFragment;
                         top += fragment;
-                        remaining -= fragment;
-                        if (remaining <= 0) break;
-                        FinishPage(start);
+                        remainingPadding -= fragment;
+                        if (remainingPadding <= 0) break;
+                        if (paddingEnd is null)
+                        {
+                            int end = Math.Min(block.Source.Offset, text.Length);
+                            while (end < text.Length)
+                            {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                if (content.Characters[end] is { } character)
+                                {
+                                    var owner = character.Node.Owner;
+                                    while (owner is not null && owner != block.Source) owner = owner.Parent;
+                                    if (owner is null) break;
+                                }
+                                end++;
+                            }
+                            paddingEnd = end;
+                        }
+                        FinishPage(Math.Max(pageStart, paddingEnd.Value));
                         top = options.Margin;
                     }
-                    if (top + height > options.PageHeight - options.Margin)
+
+                    void PaintPadding(double height)
                     {
-                        FinishPage(start);
-                        top = options.Margin;
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (height <= 0) return;
+                        for (var box = block; box.Parent is not null; box = box.Parent)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            if (box.Source.Style.Hidden || box.Source.Style.Background?.Color is not { } fill) continue;
+                            if (backgrounds.Count + glyphs.Count >= 100_000)
+                                throw new InvalidDataException("The native page exceeds its paint limit.");
+                            var bounds = activeBounds[box];
+                            backgrounds.Add((SourceDepth(box.Source), new NativeRectanglePaint(
+                                bounds.Left, top, bounds.Width, height, fill)));
+                        }
                     }
                 }
-                else
+                finally
                 {
-                    FinishPage(start);
-                    top = options.Margin;
-                    if (movePadding)
-                    {
-                        PaintInitial(initial.Height, 0);
-                        top += initial.Height;
-                    }
+                    initialPadding.Remove(block);
+                    activeBounds.Remove(block);
+                    contentLeft = parentLeft;
+                    contentRight = parentRight;
+                    contentWidth = parentWidth;
                 }
+                if (block.Parent is not null && block.Source.Style.PageBreakAfter)
+                    pendingBreakAfter = true;
             }
-        }
 
-
-        void FlushLine(bool finalLine = true)
-        {
-            while (line.Count > 0 && line[^1].Image is null
-                && (line[^1].Length == 0 || line[^1].Length == 1 && text[line[^1].Index] == ' '))
-                line.RemoveAt(line.Count - 1);
-            if (line.Count == 0) return;
-            var block = line[0].BlockStyle;
-            double ascent = AboveBaseline(block), descent = BelowBaseline(block);
-            var measuredInlineOwners = new HashSet<EpubNativeContent.Element>(ReferenceEqualityComparer.Instance);
-            foreach (var item in line)
+            bool HasFlowContent(EpubFormattingTree.Block block)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                ascent = Math.Max(ascent, item.Image is { } sizedImage
-                    ? sizedImage.Height * item.Width / sizedImage.Width : AboveBaseline(item.Style, item.Font));
-                descent = Math.Max(descent, item.Image is null ? BelowBaseline(item.Style, item.Font) : 0);
-                for (var owner = item.Owner; owner is { IsBlock: false } && measuredInlineOwners.Add(owner); owner = owner.Parent)
+                if (block.Replaced is { } replaced)
+                    return replaced.Owner.MaximumWidth is not { Length.Value: 0 };
+                if (block.Source.Padding is { } padding && (padding[0] is { Value: > 0 } || padding[2] is { Value: > 0 })
+                    || block.Source.TopBorder is { Visible: true, Width.Value: > 0 }) return true;
+                foreach (var child in block.Children)
+                {
+                    if (child is EpubFormattingTree.InlineSequence sequence)
+                        foreach (var atom in sequence.Atoms)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            if (!atom.IsSpace && (atom.Reference is not { Source: not null } image
+                                || image.Owner.MaximumWidth is not { Length.Value: 0 })) return true;
+                        }
+                    if (child is EpubFormattingTree.Block nested && HasFlowContent(nested)) return true;
+                }
+                return false;
+            }
+
+            void LayoutBlockContent(EpubFormattingTree.Block block)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                double indent = block.Source.Style.TextIndentPercentage
+                    ? block.Source.Style.TextIndent * contentWidth / 100 : block.Source.Style.TextIndent;
+                if (!double.IsFinite(indent) || Math.Abs(indent) > 32768)
+                    throw new NotSupportedException("Native EPUB text indentation exceeds the supported page dimensions.");
+                int boundary = Math.Min(block.Source.Offset, text.Length);
+                while (boundary < text.Length && content.Characters[boundary] is null) boundary++;
+                if (block.Source.IsParagraph && block.Source.VerticalMargin(0,
+                    activeBounds[block].ContainingWidth, 0, padding: true) == 0
+                    && block.Source.VerticalMargin(2, activeBounds[block].ContainingWidth, 0, padding: true) == 0
+                    && block.Source.TopBorder is not { Visible: true, Width.Value: > 0 })
+                {
+                    pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(0,
+                        activeBounds[block].ContainingWidth, pageHasContent ? options.FontSize : 0));
+                }
+                if (block.Replaced is { Source: { } source } replaced)
+                {
+                    lineBlock = block;
+                    var image = ReadNativeImage(resource.Href, source, imageCache, ref imageBytes, cancellationToken);
+                    var imageSize = ImageSize(image, replaced.Owner);
+                    double paintLeft = contentLeft, paintTop = 0, flowHeight = imageSize.Height;
+                    if (replaced.Owner.SvgViewBox is { } viewBox)
+                    {
+                        flowHeight = options.PageHeight - 2 * options.Margin - bodyMargins.Top
+                            - bodyMargins.Bottom - bodyPadding.Top - bodyPadding.Bottom;
+                        if (!double.IsFinite(flowHeight) || flowHeight <= 0)
+                            throw new NotSupportedException("Native EPUB SVG covers require a positive body viewport.");
+                        double viewportScale = Math.Min(contentWidth / viewBox.Width, flowHeight / viewBox.Height);
+                        double imageScale = Math.Min(viewBox.Width / image.Width, viewBox.Height / image.Height) * viewportScale;
+                        imageSize = (image.Width * imageScale, image.Height * imageScale);
+                        paintLeft += (contentWidth - imageSize.Width) / 2;
+                        paintTop = (flowHeight - imageSize.Height) / 2;
+                    }
+                    if (imageSize.Width == 0) return;
+                    if (imageSize.Width > contentWidth || imageSize.Height > options.PageHeight - 2 * options.Margin)
+                        throw new NotSupportedException("The native EPUB block image exceeds the available page dimensions.");
+                    if (pendingParagraphGap > 0)
+                    {
+                        top += !pageHasContent && existingPageCount + pages.Count == 0 && bodyPadding.Top == 0
+                            ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
+                        pendingParagraphGap = 0;
+                    }
+                    if (top + flowHeight > options.PageHeight - options.Margin)
+                    {
+                        FinishPage(replaced.Offset);
+                        top = options.Margin;
+                    }
+                    AddBlockBackgrounds(flowHeight);
+                    if (!replaced.Owner.Style.Hidden)
+                        glyphs.Add(new NativeImagePaint(image, paintLeft, top + paintTop) { Width = imageSize.Width, Height = imageSize.Height });
+                    if (backgrounds.Count + glyphs.Count > 100_000)
+                        throw new InvalidDataException("The native page exceeds its paint limit.");
+                    top += flowHeight;
+                    pageHasContent = true;
+                    return;
+                }
+                foreach (var part in block.Children)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (++inlineMetricWork > 1_000_000)
-                        throw new InvalidDataException("Native EPUB inline metrics exceed their work limit.");
-                    ascent = Math.Max(ascent, AboveBaseline(owner.Style));
-                    descent = Math.Max(descent, BelowBaseline(owner.Style));
+                    if (part is EpubFormattingTree.Block child)
+                    {
+                        LayoutBlock(child);
+                        continue;
+                    }
+                    lineBlock = block;
+                    var sequence = (EpubFormattingTree.InlineSequence)part;
+                    lineStart = sequence.Atoms[0].Offset;
+                    left = contentLeft + (startedBlocks.Contains(block) ? 0 : indent);
+                    LayoutInline(sequence);
+                    FlushLine();
+                }
+                if (block.Source.IsParagraph)
+                {
+                    bool hasExtent = pageHasContent
+                        || block.Source.TopBorder is { Visible: true, Width.Value: > 0 }
+                        || block.Source.VerticalMargin(0, activeBounds[block].ContainingWidth, 0, padding: true) > 0
+                        || block.Source.VerticalMargin(2, activeBounds[block].ContainingWidth, 0, padding: true) > 0;
+                    pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(2,
+                        activeBounds[block].ContainingWidth, hasExtent ? options.FontSize : 0));
                 }
             }
-            double height = ascent + descent;
-            if (height > options.PageHeight - 2 * options.Margin)
-                throw new NotSupportedException("The native EPUB line exceeds the available page height.");
-            FitLine(height, lineStart);
-            startedBlocks.Add(lineBlock);
-            double remainingWidth = contentRight - (line[^1].Left + line[^1].Width);
-            double alignmentOffset = block.TextAlign switch
+
+            void LayoutInline(EpubFormattingTree.InlineSequence sequence)
             {
-                "center" => remainingWidth / 2,
-                "right" => remainingWidth,
-                _ => 0
-            };
-            int spaces = 0;
-            if (block.TextAlign == "justify" && !finalLine)
-                foreach (var item in line)
+                bool firstIndentedWord = !startedBlocks.Contains(lineBlock) && left > contentLeft;
+                int first = 0, last = sequence.Atoms.Count - 1;
+                while (first <= last && IsSpace(sequence.Atoms[first])) first++;
+                while (last >= first && IsSpace(sequence.Atoms[last])) last--;
+                if (first <= last) lineStart = sequence.Atoms[first].Offset;
+                for (int at = first; at <= last; at++)
                 {
+                    var atom = sequence.Atoms[at];
+                    int index = atom.Offset;
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (item.Image is null && (item.Length == 0 || item.Length == 1 && text[item.Index] == ' ')) spaces++;
-                }
-            double extraSpace = spaces == 0 ? 0 : remainingWidth / spaces;
-            if (alignmentOffset != 0 || extraSpace != 0)
-                for (int at = 0; at < line.Count; at++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var item = line[at];
-                    item.Left += alignmentOffset;
-                    if (extraSpace != 0 && item.Image is null && (item.Length == 0 || item.Length == 1 && text[item.Index] == ' '))
+                    if (pendingParagraphGap > 0)
                     {
-                        item.Width += extraSpace;
-                        alignmentOffset += extraSpace;
+                        top += !pageHasContent && existingPageCount + pages.Count == 0 && bodyPadding.Top == 0
+                            ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
+                        pendingParagraphGap = 0;
                     }
-                    line[at] = item;
-                }
-            double baseline = top + ascent;
-            AddBlockBackgrounds(height);
-            var fragments = new List<(EpubNativeContent.Element Owner, double Left, double Right, double Top, double Bottom)>();
-            var fragmentIndices = new Dictionary<EpubNativeContent.Element, int>(ReferenceEqualityComparer.Instance);
-            var ancestors = new Stack<EpubNativeContent.Element>();
-            foreach (var item in line)
-            {
-                for (var owner = item.Owner; owner is not null && !ReferenceEquals(owner, lineBlock.Source); owner = owner.Parent)
-                    if (!owner.Style.Hidden && owner.Style.Background?.Color is not null) ancestors.Push(owner);
-                while (ancestors.TryPop(out var owner))
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var selected = FontFor(owner.Style);
-                    double fragmentTop = baseline - selected.Ascender * owner.Style.FontSize / selected.UnitsPerEm;
-                    double fragmentBottom = baseline - selected.Descender * owner.Style.FontSize / selected.UnitsPerEm;
-                    if (item.Image is { } image)
-                        fragmentTop = Math.Min(fragmentTop, baseline - image.Height * item.Width / image.Width);
-                    if (fragmentIndices.TryGetValue(owner, out int at))
+                    if (atom.Reference is { } reference)
                     {
-                        var fragment = fragments[at];
-                        fragments[at] = (owner, fragment.Left, item.Left + item.Width,
-                            Math.Min(fragment.Top, fragmentTop), Math.Max(fragment.Bottom, fragmentBottom));
+                        if (reference.Source is null)
+                        {
+                            firstIndentedWord = false;
+                            if (line.Count == 0)
+                            {
+                                var blockStyle = lineBlock.Source.Style;
+                                double height = Math.Max(AboveBaseline(blockStyle), AboveBaseline(reference.Owner.Style))
+                                    + Math.Max(BelowBaseline(blockStyle), BelowBaseline(reference.Owner.Style));
+                                if (height > options.PageHeight - 2 * options.Margin)
+                                    throw new NotSupportedException("The native EPUB line exceeds the available page height.");
+                                FitLine(height, index);
+                                AddBlockBackgrounds(height);
+                                if (backgrounds.Count + glyphs.Count > 100_000)
+                                    throw new InvalidDataException("The native page exceeds its paint limit.");
+                                pageHasContent = true;
+                                startedBlocks.Add(lineBlock);
+                                top += height;
+                            }
+                            else FlushLine();
+                            left = contentLeft;
+                            lineStart = index < text.Length && text[index] == '\n' ? index + 1 : index;
+                            continue;
+                        }
+                        var image = ReadNativeImage(resource.Href, reference.Source, imageCache, ref imageBytes, cancellationToken);
+                        var imageSize = ImageSize(image, reference.Owner);
+                        if (imageSize.Width == 0) continue;
+                        double imageTracking = line.Count == 0 || line[^1].Image is not null ? 0
+                            : (line[^1].Style.LetterSpacing + reference.Owner.Style.LetterSpacing) / 2;
+                        if (imageTracking + imageSize.Width > contentRight - left)
+                            throw new NotSupportedException("The native EPUB image exceeds the available line width.");
+                        left += imageTracking;
+                        line.Add((index, 0, left, imageSize.Width, FontFor(reference.Owner.Style), null, image,
+                            reference.Owner.Style, lineBlock.Source.Style, reference.Owner));
+                        left += imageSize.Width;
+                        firstIndentedWord = false;
+                        continue;
+                    }
+                    // Ligature and surrogate continuations keep their source indices but have no separate placement.
+                    EpubGlyphCluster? cluster;
+                    var style = atom.Owner.Style;
+                    if (atom.HasSource)
+                    {
+                        if (!clusters.TryGetValue(index, out cluster)) continue;
                     }
                     else
                     {
-                        fragmentIndices.Add(owner, fragments.Count);
-                        fragments.Add((owner, item.Left, item.Left + item.Width, fragmentTop, fragmentBottom));
+                        var spaceFont = FontFor(style);
+                        ushort spaceGlyph = spaceFont.GetGlyphId(' ');
+                        cluster = new(index, 0, spaceFont,
+                            [new(spaceGlyph, spaceFont.GetAdvanceWidth(spaceGlyph) / (double)spaceFont.UnitsPerEm, 0, 0)]);
                     }
-                }
-            }
-            foreach (var fragment in fragments)
-            {
-                backgrounds.Add((SourceDepth(fragment.Owner), new NativeRectanglePaint(fragment.Left, fragment.Top, fragment.Right - fragment.Left,
-                    fragment.Bottom - fragment.Top, fragment.Owner.Style.Background!.Value.Color!.Value)));
-            }
-            var underlineFragments = new Dictionary<EpubNativeContent.Element, int>(ReferenceEqualityComparer.Instance);
-            foreach (var item in line)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (item.Image is { } image)
-                {
-                    if (!item.Style.Hidden)
+                    char character = atom.IsSpace ? ' ' : text[index];
+                    if (atom.IsSpace && line.Count == 0) continue;
+                    ushort glyph = cluster.Glyphs[0].GlyphId;
+                    if (glyph == 0 && character != ' ')
+                        throw new NotSupportedException("The native EPUB font has no glyph for this cluster.");
+                    if (!readers.TryGetValue(cluster.Font, out var selectedReader))
+                        readers.Add(cluster.Font, selectedReader = new TrueTypeOutlineReader(cluster.Font));
+                    PdfGlyphOutline outline = selectedReader.Outline(glyph)
+                        ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
+                    double width = cluster.Advance * style.FontSize;
+                    if (character == ' ') width += style.WordSpacing;
+                    double tracking = line.Count == 0 ? 0 : (line[^1].Style.LetterSpacing + style.LetterSpacing) / 2;
+                    if (character == ' ')
                     {
-                        double imageHeight = image.Height * item.Width / image.Width;
-                        glyphs.Add(new NativeImagePaint(image, item.Left, baseline - imageHeight) { Width = item.Width, Height = imageHeight });
-                    }
-                    continue;
-                }
-                if (item.Length == 0) continue;
-                double size = item.Style.FontSize;
-                double logicalTop = baseline - item.Font.Ascender * size / item.Font.UnitsPerEm;
-                var placement = new EpubTextPlacement(spineIndex, item.Index, item.Length, item.Left, logicalTop, item.Width, size)
-                {
-                    Color = item.Style.Color,
-                    LinkTarget = ResolveLink(item.Owner)
-                };
-                navigationPlacements.Add(placement);
-                if (item.Style.Hidden) continue;
-                placements.Add(placement);
-                if (item.Owner is { HasUnderline: true } decoratedOwner)
-                {
-                    for (var owner = decoratedOwner; owner is not null; owner = owner.Parent)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        if (++decorationWork > 1_000_000)
-                            throw new InvalidDataException("Native EPUB text decorations exceed their work limit.");
-                        if (owner.Style.Underline) ancestors.Push(owner);
-                    }
-                    while (ancestors.TryPop(out var owner))
-                    {
-                        var underlineFont = FontFor(owner.Style);
-                        double underlineSize = owner.Style.FontSize;
-                        double offset = underlineSize / 10, thickness = underlineSize / 20;
-                        if (underlineFont.TryGetTableRange("post", out int postOffset, out int postLength) && postLength >= 12)
+                        firstIndentedWord = false;
+                        // Each collapsed separator scans only the following word, keeping lookahead linear.
+                        double wordWidth = 0;
+                        double leadingTracking = 0, previousTracking = style.LetterSpacing;
+                        bool firstCharacter = true;
+                        for (int next = at + 1; next <= last; next++)
                         {
-                            var post = underlineFont.FontData.Span.Slice(postOffset, postLength);
-                            offset = -BinaryPrimitives.ReadInt16BigEndian(post[8..]) * underlineSize / underlineFont.UnitsPerEm;
-                            int specifiedThickness = BinaryPrimitives.ReadInt16BigEndian(post[10..]);
-                            if (specifiedThickness > 0) thickness = specifiedThickness * underlineSize / underlineFont.UnitsPerEm;
+                            cancellationToken.ThrowIfCancellationRequested();
+                            var nextAtom = sequence.Atoms[next];
+                            if (nextAtom.Reference is not null || nextAtom.IsSpace) break;
+                            if (clusters.TryGetValue(nextAtom.Offset, out var nextCluster))
+                            {
+                                var nextStyle = StyleAt(nextAtom.Offset);
+                                double between = (previousTracking + nextStyle.LetterSpacing) / 2;
+                                if (firstCharacter) leadingTracking = between;
+                                else wordWidth += between;
+                                wordWidth += nextCluster.Advance * nextStyle.FontSize;
+                                previousTracking = nextStyle.LetterSpacing;
+                                firstCharacter = false;
+                            }
                         }
-                        if (underlineFragments.TryGetValue(owner, out int paintIndex)
-                            && glyphs[paintIndex] is NativeRectanglePaint previous
-                            && Math.Abs(previous.Left + previous.Width - item.Left) < 0.0000001)
-                            glyphs[paintIndex] = previous with { Width = item.Left + item.Width - previous.Left };
-                        else
+                        if (wordWidth > contentWidth)
+                            throw new NotSupportedException("The native EPUB word exceeds the available line width.");
+                        if (tracking + width + leadingTracking + wordWidth > contentRight - left)
                         {
-                            underlineFragments[owner] = glyphs.Count;
-                            glyphs.Add(new NativeRectanglePaint(item.Left, baseline + offset, item.Width, thickness,
-                                owner.Style.Color ?? options.TextColor));
+                            FlushLine(finalLine: false);
+                            if (top + options.FontSize > options.PageHeight - options.Margin)
+                            {
+                                FinishPage(at < last ? sequence.Atoms[at + 1].Offset : text.Length);
+                                top = options.Margin;
+                            }
+                            left = contentLeft;
+                            lineStart = at < last ? sequence.Atoms[at + 1].Offset : text.Length;
+                            continue;
                         }
                     }
+                    if (tracking + width > contentRight - left && !firstIndentedWord)
+                        throw new NotSupportedException("The native EPUB word exceeds the available line width.");
+                    left += tracking;
+                    line.Add((index, cluster.Length, left, width, cluster.Font, atom.HasSource ? outline : null, null, style,
+                        lineBlock.Source.Style, atom.Owner));
+                    left += width;
                 }
-                var cluster = clusters[item.Index];
-                double advance = 0;
-                foreach (var selected in cluster.Glyphs)
+
+                bool IsSpace(EpubFormattingTree.Atom atom) => atom.IsSpace;
+            }
+
+            string? ResolveLink(EpubNativeContent.Element? owner)
+            {
+                if (owner?.LinkReference is not { } reference) return null;
+                if (reference.Length > 4096)
+                    throw new InvalidDataException("Native EPUB hyperlink targets exceed their 4,096-character limit.");
+                if (!linkTargets.TryGetValue(reference, out string? target))
+                {
+                    string trimmed = reference.Trim(' ', '\t', '\r', '\n');
+                    target = TryExternalHyperlink(trimmed, out string external)
+                        ? external : NavigationTarget(resource.Href, trimmed);
+                    if (target.Length > 4096)
+                        throw new InvalidDataException("Native EPUB hyperlink targets exceed their 4,096-character limit.");
+                    linkTargets.Add(reference, target);
+                }
+                return target;
+            }
+
+            EpubNativeContent.Style StyleAt(int index) => content.Characters[index]?.Style ?? content.DefaultStyle;
+
+            static int SourceDepth(EpubNativeContent.Element source)
+            {
+                int depth = 0;
+                while (source.Parent is { } parent) { depth++; source = parent; }
+                return depth;
+            }
+
+            void AddBlockBackgrounds(double height)
+            {
+                for (var box = lineBlock; box.Parent is not null; box = box.Parent)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var outline = readers[item.Font].Outline(selected.GlyphId)
-                        ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
-                    // Empty outlines also retain source ownership for explicit PDF conversion.
-                    glyphs.Add(new NativeGlyphPaint(outline, item.Left + (advance + selected.OffsetX) * size,
-                        baseline - selected.OffsetY * size, size / 1000, item.Style.Color) { SourceOffset = item.Index });
-                    if (backgrounds.Count + glyphs.Count > 100_000)
-                        throw new InvalidDataException("The native page exceeds its paint limit.");
-                    advance += selected.Advance;
+                    if (!box.Source.Style.Hidden && box.Source.Style.Background?.Color is { } fill)
+                    {
+                        var bounds = activeBounds[box];
+                        backgrounds.Add((SourceDepth(box.Source), new NativeRectanglePaint(bounds.Left, top, bounds.Width, height, fill)));
+                    }
                 }
             }
-            if (backgrounds.Count + glyphs.Count > 100_000)
-                throw new InvalidDataException("The native page exceeds its paint limit.");
-            top += height;
-            pageHasContent = true;
-            line.Clear();
-        }
 
-        (double Width, double Height) ImageSize(PngDecodedImage image, EpubNativeContent.Element owner)
-        {
-            double width = image.Width;
-            if (owner.MaximumWidth is { Length: { } maximum })
+            void FitLine(double height, int start)
             {
-                double limit = maximum.Percentage ? contentWidth * maximum.Value / 100
-                    : maximum.Em ? owner.Style.FontSize * maximum.Value : maximum.Value;
-                if (!double.IsFinite(limit) || limit < 0 || limit > 32768)
-                    throw new NotSupportedException("Native EPUB maximum image width exceeds the supported dimensions.");
-                width = Math.Min(width, limit);
+                if (pendingBreakAfter)
+                {
+                    if (pageHasContent)
+                    {
+                        FinishPage(start);
+                        top = options.Margin;
+                        pendingParagraphGap = 0;
+                    }
+                    pendingBreakAfter = false;
+                }
+                if (top + height > options.PageHeight - options.Margin)
+                {
+                    bool movePadding = initialPadding.TryGetValue(lineBlock, out var initial)
+                        && !startedBlocks.Contains(lineBlock);
+                    if (movePadding && backgrounds.Count > initial.PaintStart)
+                        backgrounds.RemoveRange(initial.PaintStart, backgrounds.Count - initial.PaintStart);
+                    void PaintInitial(double fragment, double offset)
+                    {
+                        AddBlockBackgrounds(fragment);
+                        double borderFragment = Math.Min(fragment, Math.Max(0, initial.BorderHeight - offset));
+                        if (borderFragment > 0 && initial.BorderColor is { } color)
+                        {
+                            var bounds = activeBounds[lineBlock];
+                            backgrounds.Add((SourceDepth(lineBlock.Source), new NativeRectanglePaint(
+                                bounds.Left, top, bounds.Width, borderFragment, color)));
+                        }
+                    }
+                    if (movePadding && initial.Height + height > options.PageHeight - 2 * options.Margin)
+                    {
+                        top -= initial.Height;
+                        double remaining = initial.Height;
+                        while (remaining > 0)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            double fragment = Math.Min(remaining, Math.Max(0, options.PageHeight - options.Margin - top));
+                            PaintInitial(fragment, initial.Height - remaining);
+                            top += fragment;
+                            remaining -= fragment;
+                            if (remaining <= 0) break;
+                            FinishPage(start);
+                            top = options.Margin;
+                        }
+                        if (top + height > options.PageHeight - options.Margin)
+                        {
+                            FinishPage(start);
+                            top = options.Margin;
+                        }
+                    }
+                    else
+                    {
+                        FinishPage(start);
+                        top = options.Margin;
+                        if (movePadding)
+                        {
+                            PaintInitial(initial.Height, 0);
+                            top += initial.Height;
+                        }
+                    }
+                }
             }
-            return (width, image.Height * width / image.Width);
-        }
 
-        double AboveBaseline(EpubNativeContent.Style style, TrueTypeFont? selected = null)
-        {
-            selected ??= FontFor(style);
-            return selected.Ascender * style.FontSize / selected.UnitsPerEm + HalfLeading(style, selected);
-        }
 
-        double BelowBaseline(EpubNativeContent.Style style, TrueTypeFont? selected = null)
-        {
-            selected ??= FontFor(style);
-            return -selected.Descender * style.FontSize / selected.UnitsPerEm + HalfLeading(style, selected);
-        }
+            void FlushLine(bool finalLine = true)
+            {
+                while (line.Count > 0 && line[^1].Image is null
+                    && (line[^1].Length == 0 || line[^1].Length == 1 && text[line[^1].Index] == ' '))
+                    line.RemoveAt(line.Count - 1);
+                if (line.Count == 0) return;
+                var block = line[0].BlockStyle;
+                double ascent = AboveBaseline(block), descent = BelowBaseline(block);
+                var measuredInlineOwners = new HashSet<EpubNativeContent.Element>(ReferenceEqualityComparer.Instance);
+                foreach (var item in line)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ascent = Math.Max(ascent, item.Image is { } sizedImage
+                        ? sizedImage.Height * item.Width / sizedImage.Width : AboveBaseline(item.Style, item.Font));
+                    descent = Math.Max(descent, item.Image is null ? BelowBaseline(item.Style, item.Font) : 0);
+                    for (var owner = item.Owner; owner is { IsBlock: false } && measuredInlineOwners.Add(owner); owner = owner.Parent)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (++inlineMetricWork > 1_000_000)
+                            throw new InvalidDataException("Native EPUB inline metrics exceed their work limit.");
+                        ascent = Math.Max(ascent, AboveBaseline(owner.Style));
+                        descent = Math.Max(descent, BelowBaseline(owner.Style));
+                    }
+                }
+                double height = ascent + descent;
+                if (height > options.PageHeight - 2 * options.Margin)
+                    throw new NotSupportedException("The native EPUB line exceeds the available page height.");
+                FitLine(height, lineStart);
+                startedBlocks.Add(lineBlock);
+                double remainingWidth = contentRight - (line[^1].Left + line[^1].Width);
+                double alignmentOffset = block.TextAlign switch
+                {
+                    "center" => remainingWidth / 2,
+                    "right" => remainingWidth,
+                    _ => 0
+                };
+                int spaces = 0;
+                if (block.TextAlign == "justify" && !finalLine)
+                    foreach (var item in line)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (item.Image is null && (item.Length == 0 || item.Length == 1 && text[item.Index] == ' ')) spaces++;
+                    }
+                double extraSpace = spaces == 0 ? 0 : remainingWidth / spaces;
+                if (alignmentOffset != 0 || extraSpace != 0)
+                    for (int at = 0; at < line.Count; at++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var item = line[at];
+                        item.Left += alignmentOffset;
+                        if (extraSpace != 0 && item.Image is null && (item.Length == 0 || item.Length == 1 && text[item.Index] == ' '))
+                        {
+                            item.Width += extraSpace;
+                            alignmentOffset += extraSpace;
+                        }
+                        line[at] = item;
+                    }
+                double baseline = top + ascent;
+                AddBlockBackgrounds(height);
+                var fragments = new List<(EpubNativeContent.Element Owner, double Left, double Right, double Top, double Bottom)>();
+                var fragmentIndices = new Dictionary<EpubNativeContent.Element, int>(ReferenceEqualityComparer.Instance);
+                var ancestors = new Stack<EpubNativeContent.Element>();
+                foreach (var item in line)
+                {
+                    for (var owner = item.Owner; owner is not null && !ReferenceEquals(owner, lineBlock.Source); owner = owner.Parent)
+                        if (!owner.Style.Hidden && owner.Style.Background?.Color is not null) ancestors.Push(owner);
+                    while (ancestors.TryPop(out var owner))
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var selected = FontFor(owner.Style);
+                        double fragmentTop = baseline - selected.Ascender * owner.Style.FontSize / selected.UnitsPerEm;
+                        double fragmentBottom = baseline - selected.Descender * owner.Style.FontSize / selected.UnitsPerEm;
+                        if (item.Image is { } image)
+                            fragmentTop = Math.Min(fragmentTop, baseline - image.Height * item.Width / image.Width);
+                        if (fragmentIndices.TryGetValue(owner, out int at))
+                        {
+                            var fragment = fragments[at];
+                            fragments[at] = (owner, fragment.Left, item.Left + item.Width,
+                                Math.Min(fragment.Top, fragmentTop), Math.Max(fragment.Bottom, fragmentBottom));
+                        }
+                        else
+                        {
+                            fragmentIndices.Add(owner, fragments.Count);
+                            fragments.Add((owner, item.Left, item.Left + item.Width, fragmentTop, fragmentBottom));
+                        }
+                    }
+                }
+                foreach (var fragment in fragments)
+                {
+                    backgrounds.Add((SourceDepth(fragment.Owner), new NativeRectanglePaint(fragment.Left, fragment.Top, fragment.Right - fragment.Left,
+                        fragment.Bottom - fragment.Top, fragment.Owner.Style.Background!.Value.Color!.Value)));
+                }
+                var underlineFragments = new Dictionary<EpubNativeContent.Element, int>(ReferenceEqualityComparer.Instance);
+                foreach (var item in line)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (item.Image is { } image)
+                    {
+                        if (!item.Style.Hidden)
+                        {
+                            double imageHeight = image.Height * item.Width / image.Width;
+                            glyphs.Add(new NativeImagePaint(image, item.Left, baseline - imageHeight) { Width = item.Width, Height = imageHeight });
+                        }
+                        continue;
+                    }
+                    if (item.Length == 0) continue;
+                    double size = item.Style.FontSize;
+                    double logicalTop = baseline - item.Font.Ascender * size / item.Font.UnitsPerEm;
+                    var placement = new EpubTextPlacement(spineIndex, item.Index, item.Length, item.Left, logicalTop, item.Width, size)
+                    {
+                        Color = item.Style.Color,
+                        LinkTarget = ResolveLink(item.Owner)
+                    };
+                    navigationPlacements.Add(placement);
+                    if (item.Style.Hidden) continue;
+                    placements.Add(placement);
+                    if (item.Owner is { HasUnderline: true } decoratedOwner)
+                    {
+                        for (var owner = decoratedOwner; owner is not null; owner = owner.Parent)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            if (++decorationWork > 1_000_000)
+                                throw new InvalidDataException("Native EPUB text decorations exceed their work limit.");
+                            if (owner.Style.Underline) ancestors.Push(owner);
+                        }
+                        while (ancestors.TryPop(out var owner))
+                        {
+                            var underlineFont = FontFor(owner.Style);
+                            double underlineSize = owner.Style.FontSize;
+                            double offset = underlineSize / 10, thickness = underlineSize / 20;
+                            if (underlineFont.TryGetTableRange("post", out int postOffset, out int postLength) && postLength >= 12)
+                            {
+                                var post = underlineFont.FontData.Span.Slice(postOffset, postLength);
+                                offset = -BinaryPrimitives.ReadInt16BigEndian(post[8..]) * underlineSize / underlineFont.UnitsPerEm;
+                                int specifiedThickness = BinaryPrimitives.ReadInt16BigEndian(post[10..]);
+                                if (specifiedThickness > 0) thickness = specifiedThickness * underlineSize / underlineFont.UnitsPerEm;
+                            }
+                            if (underlineFragments.TryGetValue(owner, out int paintIndex)
+                                && glyphs[paintIndex] is NativeRectanglePaint previous
+                                && Math.Abs(previous.Left + previous.Width - item.Left) < 0.0000001)
+                                glyphs[paintIndex] = previous with { Width = item.Left + item.Width - previous.Left };
+                            else
+                            {
+                                underlineFragments[owner] = glyphs.Count;
+                                glyphs.Add(new NativeRectanglePaint(item.Left, baseline + offset, item.Width, thickness,
+                                    owner.Style.Color ?? options.TextColor));
+                            }
+                        }
+                    }
+                    var cluster = clusters[item.Index];
+                    double advance = 0;
+                    foreach (var selected in cluster.Glyphs)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var outline = readers[item.Font].Outline(selected.GlyphId)
+                            ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
+                        // Empty outlines also retain source ownership for explicit PDF conversion.
+                        glyphs.Add(new NativeGlyphPaint(outline, item.Left + (advance + selected.OffsetX) * size,
+                            baseline - selected.OffsetY * size, size / 1000, item.Style.Color) { SourceOffset = item.Index });
+                        if (backgrounds.Count + glyphs.Count > 100_000)
+                            throw new InvalidDataException("The native page exceeds its paint limit.");
+                        advance += selected.Advance;
+                    }
+                }
+                if (backgrounds.Count + glyphs.Count > 100_000)
+                    throw new InvalidDataException("The native page exceeds its paint limit.");
+                top += height;
+                pageHasContent = true;
+                line.Clear();
+            }
 
-        double HalfLeading(EpubNativeContent.Style style, TrueTypeFont selected) =>
-            style.LineHeight is double height
-                ? (height - (selected.Ascender - selected.Descender) * style.FontSize / selected.UnitsPerEm) / 2
-                : 0;
+            (double Width, double Height) ImageSize(PngDecodedImage image, EpubNativeContent.Element owner)
+            {
+                double width = image.Width;
+                if (owner.MaximumWidth is { Length: { } maximum })
+                {
+                    double limit = maximum.Percentage ? contentWidth * maximum.Value / 100
+                        : maximum.Em ? owner.Style.FontSize * maximum.Value : maximum.Value;
+                    if (!double.IsFinite(limit) || limit < 0 || limit > 32768)
+                        throw new NotSupportedException("Native EPUB maximum image width exceeds the supported dimensions.");
+                    width = Math.Min(width, limit);
+                }
+                return (width, image.Height * width / image.Width);
+            }
 
-        void FinishPage(int end)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (pages.Count >= 10_000)
-                throw new InvalidDataException("Native EPUB layout exceeds its 10000-page limit.");
-            var paints = backgrounds.OrderBy(fill => fill.Depth).Select(fill => fill.Paint)
-                .Concat(glyphs);
-            var hidden = new List<(int Start, int Length)>();
-            int hiddenStart = -1;
-            for (int index = pageStart; index < end; index++)
+            double AboveBaseline(EpubNativeContent.Style style, TrueTypeFont? selected = null)
+            {
+                selected ??= FontFor(style);
+                return selected.Ascender * style.FontSize / selected.UnitsPerEm + HalfLeading(style, selected);
+            }
+
+            double BelowBaseline(EpubNativeContent.Style style, TrueTypeFont? selected = null)
+            {
+                selected ??= FontFor(style);
+                return -selected.Descender * style.FontSize / selected.UnitsPerEm + HalfLeading(style, selected);
+            }
+
+            double HalfLeading(EpubNativeContent.Style style, TrueTypeFont selected) =>
+                style.LineHeight is double height
+                    ? (height - (selected.Ascender - selected.Descender) * style.FontSize / selected.UnitsPerEm) / 2
+                    : 0;
+
+            void FinishPage(int end)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (content.Characters[index]?.Style.Hidden == true)
+                if (existingPageCount + pages.Count >= 10_000)
+                    throw new InvalidDataException("Native EPUB layout exceeds its 10000-page limit.");
+                var paints = backgrounds.OrderBy(fill => fill.Depth).Select(fill => fill.Paint)
+                    .Concat(glyphs);
+                var hidden = new List<(int Start, int Length)>();
+                int hiddenStart = -1;
+                for (int index = pageStart; index < end; index++)
                 {
-                    if (hiddenStart < 0) hiddenStart = index;
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (content.Characters[index]?.Style.Hidden == true)
+                    {
+                        if (hiddenStart < 0) hiddenStart = index;
+                    }
+                    else if (hiddenStart >= 0)
+                    {
+                        hidden.Add((hiddenStart - pageStart, index - hiddenStart));
+                        hiddenStart = -1;
+                    }
                 }
-                else if (hiddenStart >= 0)
-                {
-                    hidden.Add((hiddenStart - pageStart, index - hiddenStart));
-                    hiddenStart = -1;
-                }
+                if (hiddenStart >= 0) hidden.Add((hiddenStart - pageStart, end - hiddenStart));
+                pages.Add(new EpubLayoutPage(text[pageStart..end], pageStart, spineIndex, placements, paints,
+                    content.CanvasBackground, placements.Select(placement => clusters[placement.Start]), hidden, navigationPlacements));
+                pageStart = end;
+                pageHasContent = false;
+                placements.Clear();
+                navigationPlacements.Clear();
+                glyphs.Clear();
+                backgrounds.Clear();
             }
-            if (hiddenStart >= 0) hidden.Add((hiddenStart - pageStart, end - hiddenStart));
-            pages.Add(new EpubLayoutPage(text[pageStart..end], pageStart, spineIndex, placements, paints,
-                content.CanvasBackground, placements.Select(placement => clusters[placement.Start]), hidden, navigationPlacements));
-            pageStart = end;
-            pageHasContent = false;
-            placements.Clear();
-            navigationPlacements.Clear();
-            glyphs.Clear();
-            backgrounds.Clear();
         }
     }
 
