@@ -41,7 +41,7 @@ public sealed partial class EpubDocument
         var faceFonts = new Dictionary<EpubFontFaceRequest, EpubFontFaceResult?>();
         var retainedFonts = new HashSet<TrueTypeFont> { options.DefaultFont };
         long retainedFontBytes = 0;
-        int remainingTextLength = 100_000;
+        int remainingTextLength = 1_000_000;
         int remainingStylesheetBytes = 1_000_000;
         int remainingStylesheetReferences = 1024;
         var imageCache = new Dictionary<string, PngDecodedImage>(StringComparer.Ordinal);
@@ -132,7 +132,7 @@ public sealed partial class EpubDocument
         if (initialContentRight <= initialContentLeft || bodyMargins.Top + bodyPadding.Top >= options.PageHeight - 2 * options.Margin)
             throw new NotSupportedException("Native EPUB body padding requires a positive content box within the page.");
         if (text.Length > remainingTextLength)
-            throw new InvalidDataException("Native EPUB text exceeds its 100,000 placement limit.");
+            throw new InvalidDataException("Native EPUB text exceeds its 1,000,000-character layout limit.");
         remainingTextLength -= text.Length;
         var anchorsByCell = new Dictionary<EpubNativeContent.Element, List<(string Id, int Offset)>>();
         foreach (var anchor in content.Anchors)

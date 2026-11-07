@@ -400,7 +400,9 @@ gap between their line boxes. Wrapped lines and paragraphs continue onto new pag
 when the next line box does not fit. Each page exposes its normalized, display-filtered text
 slice, `SpineIndex` and `TextStart` offset; placement offsets remain relative to
 that chapter's display-filtered text. These offsets can differ from structural `ReadText`
-when hidden content is present. The text-work limit applies across all chapters.
+when hidden content is present. The layout accepts up to 1,000,000 UTF-16 text
+characters across all chapters, with explicit refusal above that limit. Existing
+per-spine processing, page, font and image limits still apply.
 Headings `h1` through `h6` reuse paragraph box layout and retain their source
 identity. All levels default to real weight 700 and zero horizontal margins.
 Default font sizes for `h1` through `h6` are 2, 1.5, 1.17, 1, .83 and .67em;

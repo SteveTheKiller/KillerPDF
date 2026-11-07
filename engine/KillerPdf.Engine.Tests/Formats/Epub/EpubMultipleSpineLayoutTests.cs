@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
 using KillerPdf.Engine.Authoring;
@@ -12,6 +13,26 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubMultipleSpineLayoutTests
 {
+    [Fact]
+    public void OrdinaryChaptersRemainCompleteBeyondThePrototypeAggregateTextBudget()
+    {
+        string body = "<p>" + string.Join(" ", Enumerable.Repeat("A", 30000)) + "</p>";
+        byte[] source = Book([body, body]), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = FontWithMappedSpace();
+        var layout = book.CreateLayout(Options() with { PageWidth = 32768, PageHeight = 14, DefaultFont = font });
+        Assert.Equal(59999, layout.Pages.Where(page => page.SpineIndex == 0).Sum(page => page.Text.Length));
+        Assert.Equal(59999, layout.Pages.Where(page => page.SpineIndex == 1).Sum(page => page.Text.Length));
+        Assert.Equal(59998, layout.Pages.Last().TextPlacements.Last().Start);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 24576, PageHeightPoints = 10.5, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var reader = new PdfPageContentReader(pdf);
+        Assert.Equal(layout.Pages.Count, reader.PageCount);
+        Assert.Equal(60000, Enumerable.Range(0, reader.PageCount)
+            .Sum(index => reader.Read(index).Letters.Count(letter => letter.Value == "A")));
+        Assert.Equal(original, source);
+    }
+
     [Fact]
     public void PaddingPageLimitIsSharedAcrossChaptersAndAcceptsTheExactBoundary()
     {
@@ -105,23 +126,30 @@ public sealed class EpubMultipleSpineLayoutTests
         var individual = EpubDocument.Open(Book([body]));
         Assert.Equal(59999, individual.ReadText(0).Length);
         Assert.NotEmpty(individual.CreateLayout(options).Pages);
-        var combined = EpubDocument.Open(Book([body, body]));
+        var combined = EpubDocument.Open(Book(Enumerable.Repeat(body, 17).ToArray()));
         Assert.Equal(59999, combined.ReadText(0).Length);
         Assert.Equal(59999, combined.ReadText(1).Length);
         var error = Assert.Throws<InvalidDataException>(() => combined.CreateLayout(options));
-        Assert.Equal("Native EPUB text exceeds its 100,000 placement limit.", error.Message);
+        Assert.Equal("Native EPUB text exceeds its 1,000,000-character layout limit.", error.Message);
     }
 
     [Fact]
     public void AggregateTextAtTheExactWorkLimitIsAccepted()
     {
         string body = "<p>" + string.Join(" ", Enumerable.Repeat("A", 25000)) + "A</p>";
-        var book = EpubDocument.Open(Book([body, body]));
+        string[] chapters = Enumerable.Repeat(body, 20).ToArray();
+        var book = EpubDocument.Open(Book(chapters));
         Assert.Equal(50000, book.ReadText(0).Length);
         Assert.Equal(50000, book.ReadText(1).Length);
         var layout = book.CreateLayout(Options() with { PageWidth = 32768, PageHeight = 14 });
         Assert.Equal(50000, layout.Pages.Where(page => page.SpineIndex == 0).Sum(page => page.Text.Length));
         Assert.Equal(50000, layout.Pages.Where(page => page.SpineIndex == 1).Sum(page => page.Text.Length));
+        Assert.Equal(1_000_000, layout.Pages.Sum(page => page.Text.Length));
+        Assert.Equal(19, layout.Pages.Last().SpineIndex);
+        var overBudget = EpubDocument.Open(Book([.. chapters, "<p>A</p>"]));
+        var error = Assert.Throws<InvalidDataException>(() => overBudget.CreateLayout(
+            Options() with { PageWidth = 32768, PageHeight = 14 }));
+        Assert.Equal("Native EPUB text exceeds its 1,000,000-character layout limit.", error.Message);
     }
 
     [Theory]
@@ -184,6 +212,30 @@ public sealed class EpubMultipleSpineLayoutTests
         Assert.Equal(source, snapshot.SourceSha256);
         Assert.Throws<ArgumentOutOfRangeException>(() => snapshot.GetPageGeometry(3));
         Assert.Throws<ArgumentOutOfRangeException>(() => snapshot.RenderPage(3));
+    }
+
+    private static TrueTypeFont FontWithMappedSpace()
+    {
+        byte[] cmap = new byte[52];
+        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(offset), value);
+        void U32(int offset, uint value) => BinaryPrimitives.WriteUInt32BigEndian(cmap.AsSpan(offset), value);
+        U16(2, 1); U16(4, 3); U16(6, 10); U32(8, 12);
+        U16(12, 12); U32(16, 40); U32(24, 2);
+        U32(28, 32); U32(32, 32); U32(36, 2);
+        U32(40, 65); U32(44, 65); U32(48, 1);
+        byte[] bytes = TrueTypeFontTests.BuildTestFont(true, includeOutlines: true, includeCompound: true, cmap: cmap);
+        int count = BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(4));
+        for (int record = 12; record < 12 + count * 16; record += 16)
+        {
+            if (!bytes.AsSpan(record, 4).SequenceEqual("loca"u8)) continue;
+            int offset = (int)BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(record + 8));
+            BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(offset + 4), 20);
+            BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(offset + 8), 44);
+            BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(offset + 12), 44);
+        }
+        var font = TrueTypeFont.Load(bytes);
+        Assert.Equal((ushort)2, font.GetGlyphId(' '));
+        return font;
     }
 
     private static EpubLayoutOptions Options() => new(16, 23,
