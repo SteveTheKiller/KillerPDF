@@ -557,7 +557,7 @@ public sealed partial class EpubDocument
                     throw new NotSupportedException("Native EPUB text indentation exceeds the supported page dimensions.");
                 int boundary = Math.Min(block.Source.Offset, text.Length);
                 while (boundary < text.Length && content.Characters[boundary] is null) boundary++;
-                if ((block.Source.IsParagraph || block.Source.Name == "div") && block.Source.VerticalMargin(0,
+                if (block.Source.HasBlockMargins && block.Source.VerticalMargin(0,
                     activeBounds[block].ContainingWidth, 0, padding: true) == 0
                     && block.Source.VerticalMargin(2, activeBounds[block].ContainingWidth, 0, padding: true) == 0
                     && block.Source.TopBorder is not { Visible: true, Width.Value: > 0 })
@@ -621,7 +621,7 @@ public sealed partial class EpubDocument
                     LayoutInline(sequence);
                     FlushLine();
                 }
-                if (block.Source.IsParagraph || block.Source.Name == "div")
+                if (block.Source.HasBlockMargins)
                 {
                     bool hasExtent = pageHasContent
                         || block.Source.TopBorder is { Visible: true, Width.Value: > 0 }

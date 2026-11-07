@@ -453,7 +453,7 @@ public sealed class EpubFontWeightTests
     [InlineData("<h5 onclick='bad'>A</h5>")]
     [InlineData("<h1 align='center'>A</h1>")]
     [InlineData("<h1 headingoffset='1'>A</h1>")]
-    [InlineData("<section><h1>A</h1></section>")]
+    [InlineData("<section><span><h1>A</h1></span></section>")]
     public void HeadingAdmissionKeepsInlineMarginParentNamespaceAndAttributeGuards(string body)
     {
         var book = EpubDocument.Open(Book(false, body));

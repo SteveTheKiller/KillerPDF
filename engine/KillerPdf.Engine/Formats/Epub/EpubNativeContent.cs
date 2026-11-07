@@ -39,6 +39,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal string Name { get; } = name;
         internal static bool IsParagraphName(string value) => value is "p" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "hr";
         internal bool IsParagraph => IsParagraphName(Name);
+        internal bool HasBlockMargins => IsParagraph || IsGroupingContainer(Name);
         internal Element? Parent { get; } = parent;
         internal Element? TableCellOwner { get; } = parent?.Name == "td" ? parent : parent?.TableCellOwner;
         internal Style Style { get; } = style;
@@ -99,6 +100,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private static readonly CssProperties HorizontalRuleDefaults = CssProperties.FromConcrete(new ResolvedProperties(null, null,
         Margins: [new(.5, true), new(0, false, Auto: true), new(.5, true), new(0, false, Auto: true)],
         TopBorder: new BorderSide(new MarginLength(1, false), true, null)));
+    private static readonly CssProperties BlockquoteDefaults = CssProperties.FromConcrete(new ResolvedProperties(null, null,
+        Margins: [new(1, true), new(40, false), new(1, true), new(40, false)]));
 
     private static CssProperties? HeadingDefaults(string name)
     {
@@ -137,7 +140,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal bool CurrentElementDisplayNone { get; private set; }
     internal bool InsideDisplayNone => _ancestors.TryPeek(out var element) && element.IsDisplayNone;
 
-    private static bool IsGroupingContainer(string? name) => name == "div";
+    private static bool IsGroupingContainer(string? name) => name is
+        "div" or "header" or "footer" or "main" or "nav" or "section" or "article" or "aside" or "blockquote";
     private static bool IsFlowContainer(string? name) => name == "body" || IsGroupingContainer(name);
 
     internal void AddSvgImage(string reference, double width, double height, int offset)
@@ -252,6 +256,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         CssProperties declarations = ResolveRules(name, identity);
         if (inlineStyle is not null) declarations = declarations.Override(ParseProperties(inlineStyle));
         if (name == "hr") declarations = HorizontalRuleDefaults.Override(declarations);
+        if (name == "blockquote") declarations = BlockquoteDefaults.Override(declarations);
         if (name is "strong" or "b")
         {
             double parentWeight = parent?.Style.FontWeight ?? DefaultStyle.FontWeight;
@@ -1261,6 +1266,16 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     ? CssWideKeyword.Initial : CssWideKeyword.Inherit;
                 result = result.Override(new(null, null)
                     { FontStyle = CssDeclaration<EpubFontStyle>.Marker(keyword) });
+            }
+            else if (part[..colon].Trim().ToLowerInvariant() is "margin" or "margin-top" or "margin-right" or "margin-bottom" or "margin-left"
+                && part[(colon + 1)..].Trim().ToLowerInvariant() is "initial" or "unset")
+            {
+                string property = part[..colon].Trim().ToLowerInvariant();
+                var margins = new CssDeclaration<MarginLength>?[4];
+                var reset = CssDeclaration<MarginLength>.Marker(CssWideKeyword.Initial);
+                if (property == "margin") Array.Fill(margins, reset);
+                else margins[property switch { "margin-top" => 0, "margin-right" => 1, "margin-bottom" => 2, _ => 3 }] = reset;
+                result = result.Override(new(null, null, Margins: margins));
             }
             else if (part[..colon].Trim().Equals("background", StringComparison.OrdinalIgnoreCase)
                 && part[(colon + 1)..].Trim().Equals("initial", StringComparison.OrdinalIgnoreCase))

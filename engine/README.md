@@ -241,6 +241,14 @@ selection and accessibility integration still require implementation and runtime
 
 ## Native EPUB layout (1.9.3 development)
 
+Semantic `header`, `footer`, `main`, `nav`, `section`, `article` and `aside`
+containers retain normal block flow, their CSS identity and supported box styles.
+`blockquote` defaults to 1em vertical margins and 40px horizontal margins; nested
+quotes collapse adjoining vertical margins and retain cumulative horizontal insets.
+Author margins override these defaults. Margin shorthands and individual sides
+accept `initial` and `unset` resets. Native layout and PDF conversion share these
+rules; unsupported nesting and foreign namespaces remain diagnosed.
+
 Named head metadata, a case-insensitive `charset=utf-8` head declaration and the
 legacy `Content-Style-Type=text/css` declaration
 remain outside page text and do not execute directives. Other pragmas, unknown
