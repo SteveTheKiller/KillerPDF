@@ -54,6 +54,24 @@ public sealed class TrueTypeFont
             EmbeddingFlags = U16(os2, 8);
         if (TryTable("post", out Table post) && post.Length >= 8)
             ItalicAngle = S32(post, 4) / 65536d;
+        DeclaredStyle = ReadDeclaredStyle(head);
+    }
+
+    private TrueTypeFontStyle ReadDeclaredStyle(Table head)
+    {
+        if (!TryTable("OS/2", out Table os2) || os2.Length < 64 || head.Length < 46)
+            return TrueTypeFontStyle.Unknown;
+        ushort version = U16(os2, 0);
+        if (version > 5) return TrueTypeFontStyle.Unknown;
+        ushort selection = U16(os2, 62);
+        ushort macStyle = U16(head, 44);
+        bool italic = (selection & 0x0001) != 0;
+        bool bold = (selection & 0x0020) != 0;
+        if (italic != ((macStyle & 0x0002) != 0) || bold != ((macStyle & 0x0001) != 0)
+            || ((selection & 0x0040) != 0 && (italic || bold)))
+            return TrueTypeFontStyle.Unknown;
+        if (version >= 4 && (selection & 0x0200) != 0) return TrueTypeFontStyle.Oblique;
+        return italic ? TrueTypeFontStyle.Italic : TrueTypeFontStyle.Normal;
     }
 
     /// <summary>Gets the font's PostScript name.</summary>
@@ -72,6 +90,8 @@ public sealed class TrueTypeFont
     public ushort EmbeddingFlags { get; }
     /// <summary>Gets the italic angle in counterclockwise degrees from vertical.</summary>
     public double ItalicAngle { get; }
+    /// <summary>Gets the style declared by the font's OS/2 and head flags.</summary>
+    public TrueTypeFontStyle DeclaredStyle { get; }
     /// <summary>Gets whether the font permits embedding.</summary>
     public bool EmbeddingAllowed => (EmbeddingFlags & 0x0202) == 0;
     /// <summary>Gets whether the font permits subset embedding.</summary>
