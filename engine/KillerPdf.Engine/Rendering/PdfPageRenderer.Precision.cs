@@ -17,6 +17,8 @@ public sealed partial class PdfPageRenderer
     /// Integer-factor reductions in both axes average encoded device samples with Decode in [0,1].
     /// Raw color-key masks are supported with natural-size or eligible nearest-sampled images.
     /// Matching DeviceGray 8/16-bit image soft masks retain source alpha precision on those images.
+    /// Ordinary DeviceRGB/Gray natural-size or eligible nearest-enlarged soft-masked images
+    /// also multiply source alpha by fractional rectangular pixel-area coverage.
     /// Their finite device-range Matte values are removed before color conversion and compositing.
     /// Direct zero-black 8/16-bit CalGray images retain calibration at aligned natural size or axis-aligned enlargement,
     /// including diagonal reflections and rectangular clips, with default Decode and relative intent.

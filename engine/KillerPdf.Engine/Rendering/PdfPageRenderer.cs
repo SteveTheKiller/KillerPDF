@@ -5899,8 +5899,8 @@ public sealed partial class PdfPageRenderer
                 && Math.Abs(sampleStepY - Math.Round(sampleStepY)) <= 1e-9;
             bool fractionalImageEdges = inverse.B == 0 && inverse.C == 0
                 && sampleStepX <= 1 && sampleStepY <= 1
-                && softMask is null && colorKeyMask is null && preblendMatte is null
-                && (preciseCalGray || colorSpace is { Components: 1 or 3, Profile: null, Converter: null,
+                && colorKeyMask is null && preblendMatte is null
+                && (preciseCalGray && softMask is null || colorSpace is { Components: 1 or 3, Profile: null, Converter: null,
                     MultiConverter: null, Palette: null, IsIccBased: false, HasIccSource: false,
                     IsDefault: false, ComponentRange: null, HasSpotColorants: false,
                     BlackPointCompensationEnabled: false });
