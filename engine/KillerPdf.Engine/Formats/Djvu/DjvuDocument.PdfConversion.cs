@@ -5,7 +5,7 @@ namespace KillerPdf.Engine.Formats.Djvu;
 
 public sealed partial class DjvuDocument
 {
-    /// <summary>Converts supported bitonal pages, completely located text, and local bookmarks to a separate PDF.</summary>
+    /// <summary>Converts supported bitonal and grayscale pages, completely located text, and local bookmarks to a separate PDF.</summary>
     public byte[] ConvertToPdf(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -16,11 +16,39 @@ public sealed partial class DjvuDocument
         for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++)
         {
             var text = ReadTextPage(pageIndex, cancellationToken);
-            var frame = RenderPage(pageIndex, cancellationToken);
-            var form = _pageForms[pageIndex];
-            int budget = 65_535;
-            var chunks = ReadChunks(_data, form.Offset + 4, form.Offset + form.Length,
-                cancellationToken, ref budget);
+            var (page, chunks) = ReadSupportedPage(pageIndex, cancellationToken);
+            if (chunks.Any(chunk => chunk.Id == 0x42473434))
+            {
+                var (gray, gamma) = DecodeIw44Page(page, chunks, cancellationToken);
+                bool quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
+                int pixelWidth = quarterTurn ? page.Height : page.Width;
+                int pixelHeight = quarterTurn ? page.Width : page.Height;
+                var oriented = new byte[gray.Length];
+                for (int y = 0; y < page.Height; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    for (int x = 0; x < page.Width; x++)
+                    {
+                        var (targetX, targetY) = page.Orientation switch
+                        {
+                            DjvuOrientation.Clockwise90 => (page.Height - 1 - y, x),
+                            DjvuOrientation.CounterClockwise90 => (y, page.Width - 1 - x),
+                            DjvuOrientation.UpsideDown => (page.Width - 1 - x, page.Height - 1 - y),
+                            _ => (x, y)
+                        };
+                        oriented[targetY * pixelWidth + targetX] = gray[y * page.Width + x];
+                    }
+                }
+                double grayWidth = pixelWidth * 72d / page.Dpi;
+                double grayHeight = pixelHeight * 72d / page.Dpi;
+                var grayImage = PdfImage.FromCalibratedGray(pixelWidth, pixelHeight, oriented,
+                    new PdfCalGrayColorSpace(whiteX: 0.95047, whiteZ: 1.08883, gamma: gamma / 10d));
+                var grayContent = new PdfContentStreamBuilder().DrawImage(grayImage, 0, 0, grayWidth, grayHeight);
+                AddLocatedPdfText(grayContent, text, page, cancellationToken);
+                builder.AddPage(grayWidth, grayHeight, grayContent);
+                continue;
+            }
+            var frame = RenderSupportedPage(page, chunks, cancellationToken);
             if (!chunks.Any(chunk => chunk.Id == 0x536d6d72))
                 throw new NotSupportedException("DjVu PDF conversion currently supports only bitonal Smmr pages.");
             var samples = new byte[frame.Width * frame.Height];

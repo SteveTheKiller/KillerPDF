@@ -704,9 +704,11 @@ initially A4 with 15 mm margins. Existing destinations are not overwritten, and
 unsupported content is diagnosed before any PDF is published. Full format and
 workflow acceptance remains in progress.
 
-`DjvuDocument.ConvertToPdf()` initially supports bitonal Smmr pages and supported
+`DjvuDocument.ConvertToPdf()` initially supports bitonal Smmr and grayscale IW44 pages and supported
 text with complete leaf-zone coverage.
-It embeds lossless one-bit images at the page's recorded DPI and preserves intrinsic
+It embeds lossless one-bit images or original eight-bit grayscale samples at the
+page's recorded DPI. Grayscale uses D65 CalGray with the recorded INFO gamma,
+without quantizing a rendered preview. Conversion preserves intrinsic
 orientation, bundled page order and local bookmark labels, hierarchy and page
 destinations. The source, native rendering and navigation stay unchanged. Relative,
 external, invalid or unrepresentable bookmark entries reject the conversion rather
@@ -716,7 +718,7 @@ transports each logical zone, without inventing individual character positions.
 The bundled font must support every non-whitespace source character. Unlocated,
 incompletely covered, overlapping or out-of-page text is diagnosed. Conversion is
 limited to 4096 nonempty leaf zones per page and 65536 UTF16 units per logical
-replacement. Grayscale/color conversion and full format preservation remain unfinished.
+replacement. Color conversion and full format preservation remain unfinished.
 
 The EPUB `RenderPage(pageIndex, renderOptions)` overload rasterizes the original
 glyph outlines at the requested pixel dimensions without changing pagination or
