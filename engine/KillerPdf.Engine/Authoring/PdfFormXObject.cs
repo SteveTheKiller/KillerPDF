@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Authoring;
@@ -29,6 +30,7 @@ public sealed class PdfFormXObject
         Fonts = content.FontResources.ToDictionary(entry => entry.Key, entry => entry.Value);
         EmbeddedFonts = [.. content.EmbeddedFontResources];
         Images = content.ImageResources.ToDictionary(entry => entry.Key, entry => entry.Value);
+        Assets = content.AssetResources.ToDictionary(entry => entry.Key, entry => entry.Value);
         OptionalContentGroups = content.OptionalContentResources
             .ToDictionary(entry => entry.Key, entry => entry.Value);
         GraphicsStates = content.GraphicsStateResources
@@ -61,6 +63,7 @@ public sealed class PdfFormXObject
     internal IReadOnlyDictionary<PdfStandardFont, PdfName> Fonts { get; }
     internal IReadOnlyCollection<EmbeddedFontUsage> EmbeddedFonts { get; }
     internal IReadOnlyDictionary<PdfImage, PdfName> Images { get; }
+    internal IReadOnlyDictionary<PdfImageAsset, PdfName> Assets { get; }
     internal IReadOnlyDictionary<PdfOptionalContentGroup, PdfName> OptionalContentGroups { get; }
     internal IReadOnlyDictionary<PdfGraphicsState, PdfName> GraphicsStates { get; }
     internal IReadOnlyDictionary<PdfShading, PdfName> Shadings { get; }

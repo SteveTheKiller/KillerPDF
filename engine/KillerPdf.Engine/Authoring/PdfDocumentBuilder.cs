@@ -185,6 +185,7 @@ public sealed partial class PdfDocumentBuilder
         _pages.Add(new PageDefinition(width, height, content.ToArray(),
             new Dictionary<PdfStandardFont, PdfName>(), [],
             new Dictionary<PdfImage, PdfName>(),
+            new Dictionary<PdfImageAsset, PdfName>(),
             new Dictionary<PdfOptionalContentGroup, PdfName>(),
             new Dictionary<PdfGraphicsState, PdfName>(),
             new Dictionary<PdfShading, PdfName>(),
@@ -213,6 +214,7 @@ public sealed partial class PdfDocumentBuilder
             content.FontResources.ToDictionary(entry => entry.Key, entry => entry.Value),
             [.. content.EmbeddedFontResources],
             content.ImageResources.ToDictionary(entry => entry.Key, entry => entry.Value),
+            content.AssetResources.ToDictionary(entry => entry.Key, entry => entry.Value),
             content.OptionalContentResources.ToDictionary(entry => entry.Key, entry => entry.Value),
             content.GraphicsStateResources.ToDictionary(entry => entry.Key, entry => entry.Value),
             content.ShadingResources.ToDictionary(entry => entry.Key, entry => entry.Value),
@@ -1551,6 +1553,12 @@ public sealed partial class PdfDocumentBuilder
         foreach (PdfGraphicsState state in _pages.SelectMany(page => page.GraphicsStates.Keys))
             AddGraphicsState(state);
         if (Metadata is not null) RequireVersion(new PdfVersion(1, 4), "XMP metadata");
+        PdfImageAsset[] assets = [.. _pages.SelectMany(page => page.Assets.Keys)
+            .Concat(forms.SelectMany(form => form.Assets.Keys))
+            .Concat(patterns.SelectMany(pattern => pattern.Assets.Keys)).Distinct()];
+        var assetWriter = new PdfImageAssetGraphWriter();
+        foreach (var asset in assets)
+            RequireVersion(assetWriter.MinimumVersion(asset), "detached image resources");
         if (_outputIntent is not null) RequireVersion(new PdfVersion(1, 4), "output intents");
         if (_structureElements.Count > 0) RequireVersion(new PdfVersion(1, 3), "structure trees");
         if (_pages.Any(page => page.UserUnit != 1))
@@ -2036,6 +2044,13 @@ public sealed partial class PdfDocumentBuilder
                 nextObjectNumber++, nextObjectNumber++, nextObjectNumber++));
         }
         var imageNumbers = new Dictionary<PdfImage, int>();
+        var assetReferences = new Dictionary<PdfImageAsset, PdfIndirectReference>();
+        var assetObjects = new List<PdfIndirectObject>();
+        foreach (var asset in assets)
+            assetReferences.Add(asset, assetWriter.Write(asset,
+                () => new PdfIndirectReference(nextObjectNumber++, 0),
+                (reference, value) => assetObjects.Add(new PdfIndirectObject(
+                    reference.ObjectNumber, reference.Generation, value, 0))));
         foreach (PdfImage image in _pages.SelectMany(page => page.Images.Keys)
             .Concat(forms.SelectMany(form => form.Images.Keys))
             .Concat(patterns.SelectMany(pattern => pattern.Images.Keys))
@@ -2813,6 +2828,7 @@ public sealed partial class PdfDocumentBuilder
             objects.Add(new PdfIndirectObject(number, 0,
                 PdfImageXObjectFactory.Create(image, image.SoftMask is null ? null
                     : new PdfIndirectReference(imageNumbers[image.SoftMask], 0)), 0));
+        objects.AddRange(assetObjects);
         foreach (PdfFormXObject form in forms)
         {
             var entries = new List<(string Name, PdfObject Value)>
@@ -2824,12 +2840,12 @@ public sealed partial class PdfDocumentBuilder
                     new PdfInteger(0), new PdfInteger(0),
                     Number(form.Width), Number(form.Height)])),
                 ("Resources", ResourceDictionary(
-                    form.Fonts, form.EmbeddedFonts, form.Images,
+                    form.Fonts, form.EmbeddedFonts, form.Images, form.Assets,
                     form.OptionalContentGroups, form.GraphicsStates,
                     form.Shadings, form.Forms, form.Patterns, form.IccColorSpaces,
                     form.SpotColors, form.LabColorSpaces, form.IndexedColorSpaces,
                     form.CalibratedColorSpaces,
-                    fontNumbers, embeddedFonts, imageNumbers,
+                    fontNumbers, embeddedFonts, imageNumbers, assetReferences,
                     optionalContentNumbers, graphicsStateNumbers,
                     shadingNumbers, formNumbers, patternNumbers, iccProfileNumbers))
             };
@@ -2866,12 +2882,12 @@ public sealed partial class PdfDocumentBuilder
                         Number(pattern.Matrix.C), Number(pattern.Matrix.D),
                         Number(pattern.Matrix.E), Number(pattern.Matrix.F)])),
                     ("Resources", ResourceDictionary(
-                        pattern.Fonts, pattern.EmbeddedFonts, pattern.Images,
+                        pattern.Fonts, pattern.EmbeddedFonts, pattern.Images, pattern.Assets,
                         pattern.OptionalContentGroups, pattern.GraphicsStates,
                         pattern.Shadings, pattern.Forms, pattern.Patterns,
                         pattern.IccColorSpaces, pattern.SpotColors, pattern.LabColorSpaces,
                         pattern.IndexedColorSpaces, pattern.CalibratedColorSpaces,
-                        fontNumbers, embeddedFonts, imageNumbers,
+                        fontNumbers, embeddedFonts, imageNumbers, assetReferences,
                         optionalContentNumbers, graphicsStateNumbers,
                         shadingNumbers, formNumbers, patternNumbers, iccProfileNumbers))), pattern.Content), 0));
         }
@@ -2879,13 +2895,14 @@ public sealed partial class PdfDocumentBuilder
         {
             PdfDictionary resources = ResourceDictionary(
                 allocatedPage.Definition.Fonts, allocatedPage.Definition.EmbeddedFonts,
-                allocatedPage.Definition.Images, allocatedPage.Definition.OptionalContentGroups,
+                allocatedPage.Definition.Images, allocatedPage.Definition.Assets,
+                allocatedPage.Definition.OptionalContentGroups,
                 allocatedPage.Definition.GraphicsStates, allocatedPage.Definition.Shadings,
                 allocatedPage.Definition.Forms, allocatedPage.Definition.Patterns,
                 allocatedPage.Definition.IccColorSpaces, allocatedPage.Definition.SpotColors,
                 allocatedPage.Definition.LabColorSpaces, allocatedPage.Definition.IndexedColorSpaces,
                 allocatedPage.Definition.CalibratedColorSpaces,
-                fontNumbers, embeddedFonts, imageNumbers, optionalContentNumbers,
+                fontNumbers, embeddedFonts, imageNumbers, assetReferences, optionalContentNumbers,
                 graphicsStateNumbers, shadingNumbers, formNumbers, patternNumbers,
                 iccProfileNumbers);
             var entries = new List<(string Name, PdfObject Value)>
@@ -5942,6 +5959,7 @@ public sealed partial class PdfDocumentBuilder
         IReadOnlyDictionary<PdfStandardFont, PdfName> fonts,
         IReadOnlyCollection<EmbeddedFontUsage> embeddedFontUsages,
         IReadOnlyDictionary<PdfImage, PdfName> images,
+        IReadOnlyDictionary<PdfImageAsset, PdfName> assets,
         IReadOnlyDictionary<PdfOptionalContentGroup, PdfName> optionalContentGroups,
         IReadOnlyDictionary<PdfGraphicsState, PdfName> graphicsStates,
         IReadOnlyDictionary<PdfShading, PdfName> shadings,
@@ -5955,6 +5973,7 @@ public sealed partial class PdfDocumentBuilder
         Dictionary<PdfStandardFont, int> fontNumbers,
         IReadOnlyCollection<AllocatedEmbeddedFont> embeddedFonts,
         Dictionary<PdfImage, int> imageNumbers,
+        Dictionary<PdfImageAsset, PdfIndirectReference> assetReferences,
         Dictionary<PdfOptionalContentGroup, int> optionalContentNumbers,
         Dictionary<PdfGraphicsState, int> graphicsStateNumbers,
         Dictionary<PdfShading, int> shadingNumbers,
@@ -5973,10 +5992,12 @@ public sealed partial class PdfDocumentBuilder
                         font.Usages.Contains(usage)).Type0Number, 0))));
             entries.Add(("Font", new PdfDictionary(values)));
         }
-        if (images.Count > 0 || forms.Count > 0)
+        if (images.Count > 0 || forms.Count > 0 || assets.Count > 0)
         {
             var values = images.Select(entry => new KeyValuePair<PdfName, PdfObject>(
                 entry.Value, new PdfIndirectReference(imageNumbers[entry.Key], 0))).ToList();
+            values.AddRange(assets.Select(entry => new KeyValuePair<PdfName, PdfObject>(
+                entry.Value, assetReferences[entry.Key])));
             values.AddRange(forms.Select(entry => new KeyValuePair<PdfName, PdfObject>(
                 entry.Value, new PdfIndirectReference(formNumbers[entry.Key], 0))));
             entries.Add(("XObject", new PdfDictionary(values)));
@@ -6241,6 +6262,7 @@ public sealed partial class PdfDocumentBuilder
         IReadOnlyDictionary<PdfStandardFont, PdfName> Fonts,
         IReadOnlyList<EmbeddedFontUsage> EmbeddedFonts,
         IReadOnlyDictionary<PdfImage, PdfName> Images,
+        IReadOnlyDictionary<PdfImageAsset, PdfName> Assets,
         IReadOnlyDictionary<PdfOptionalContentGroup, PdfName> OptionalContentGroups,
         IReadOnlyDictionary<PdfGraphicsState, PdfName> GraphicsStates,
         IReadOnlyDictionary<PdfShading, PdfName> Shadings,

@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Authoring;
@@ -25,6 +26,9 @@ public sealed class PdfTilingPattern
             throw new ArgumentException(
                 "An uncolored tiling pattern cannot contain color-selection or shading operators.",
                 nameof(content));
+        if (paintType == PdfTilingPatternPaintType.Uncolored && ContainsImageAsset(content))
+            throw new ArgumentException(
+                "An uncolored tiling pattern cannot contain colored image assets.", nameof(content));
         if (content.MarkedContentIds.Count > 0)
             throw new ArgumentException(
                 "Tagged marked content belongs to a page structure tree and cannot be captured inside a reusable pattern.",
@@ -48,6 +52,7 @@ public sealed class PdfTilingPattern
         Fonts = content.FontResources.ToDictionary(entry => entry.Key, entry => entry.Value);
         EmbeddedFonts = [.. content.EmbeddedFontResources];
         Images = content.ImageResources.ToDictionary(entry => entry.Key, entry => entry.Value);
+        Assets = content.AssetResources.ToDictionary(entry => entry.Key, entry => entry.Value);
         OptionalContentGroups = content.OptionalContentResources.ToDictionary(entry => entry.Key, entry => entry.Value);
         GraphicsStates = content.GraphicsStateResources.ToDictionary(entry => entry.Key, entry => entry.Value);
         Shadings = content.ShadingResources.ToDictionary(entry => entry.Key, entry => entry.Value);
@@ -79,6 +84,7 @@ public sealed class PdfTilingPattern
     internal IReadOnlyDictionary<PdfStandardFont, PdfName> Fonts { get; }
     internal IReadOnlyCollection<EmbeddedFontUsage> EmbeddedFonts { get; }
     internal IReadOnlyDictionary<PdfImage, PdfName> Images { get; }
+    internal IReadOnlyDictionary<PdfImageAsset, PdfName> Assets { get; }
     internal IReadOnlyDictionary<PdfOptionalContentGroup, PdfName> OptionalContentGroups { get; }
     internal IReadOnlyDictionary<PdfGraphicsState, PdfName> GraphicsStates { get; }
     internal IReadOnlyDictionary<PdfShading, PdfName> Shadings { get; }
@@ -89,6 +95,34 @@ public sealed class PdfTilingPattern
     internal IReadOnlyDictionary<PdfLabColorSpace, PdfName> LabColorSpaces { get; }
     internal IReadOnlyDictionary<PdfIndexedColorSpace, PdfName> IndexedColorSpaces { get; }
     internal IReadOnlyDictionary<PdfCalibratedColorSpace, PdfName> CalibratedColorSpaces { get; }
+
+    private static bool ContainsImageAsset(PdfContentStreamBuilder content)
+    {
+        if (content.AssetResources.Count > 0) return true;
+        var pending = new Stack<PdfFormXObject>(content.FormResources.Keys);
+        var visited = new HashSet<PdfFormXObject>();
+        var patterns = new Stack<PdfTilingPattern>(content.PatternResources.Keys);
+        var visitedPatterns = new HashSet<PdfTilingPattern>();
+        while (pending.Count > 0 || patterns.Count > 0)
+        {
+            if (pending.TryPop(out var form))
+            {
+                if (!visited.Add(form)) continue;
+                if (form.Assets.Count > 0) return true;
+                foreach (var nested in form.Forms.Keys) pending.Push(nested);
+                foreach (var pattern in form.Patterns.Keys) patterns.Push(pattern);
+            }
+            else
+            {
+                var pattern = patterns.Pop();
+                if (!visitedPatterns.Add(pattern)) continue;
+                if (pattern.Assets.Count > 0) return true;
+                foreach (var nested in pattern.Forms.Keys) pending.Push(nested);
+                foreach (var nested in pattern.Patterns.Keys) patterns.Push(nested);
+            }
+        }
+        return false;
+    }
 
     private static double Positive(double value, string name)
     {

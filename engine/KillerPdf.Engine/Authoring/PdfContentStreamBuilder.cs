@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Writing;
 using KillerPdf.Engine.Fonts;
 using System.Text;
@@ -12,6 +13,7 @@ public sealed class PdfContentStreamBuilder
     private readonly Dictionary<PdfStandardFont, PdfName> _fonts = [];
     private readonly Dictionary<TrueTypeFont, EmbeddedFontUsage> _embeddedFonts = [];
     private readonly Dictionary<PdfImage, PdfName> _images = [];
+    private readonly Dictionary<PdfImageAsset, PdfName> _assets = [];
     private readonly Dictionary<PdfOptionalContentGroup, PdfName> _optionalContentGroups = [];
     private readonly Dictionary<PdfGraphicsState, PdfName> _graphicsStates = [];
     private readonly Dictionary<PdfShading, PdfName> _shadings = [];
@@ -36,6 +38,7 @@ public sealed class PdfContentStreamBuilder
     internal IReadOnlyDictionary<PdfStandardFont, PdfName> FontResources => _fonts;
     internal IReadOnlyCollection<EmbeddedFontUsage> EmbeddedFontResources => _embeddedFonts.Values;
     internal IReadOnlyDictionary<PdfImage, PdfName> ImageResources => _images;
+    internal IReadOnlyDictionary<PdfImageAsset, PdfName> AssetResources => _assets;
     internal IReadOnlyDictionary<PdfOptionalContentGroup, PdfName> OptionalContentResources =>
         _optionalContentGroups;
     internal IReadOnlyDictionary<PdfGraphicsState, PdfName> GraphicsStateResources =>
@@ -688,6 +691,31 @@ public sealed class PdfContentStreamBuilder
     {
         WriteOperator("W*"u8);
         WriteOperator("n"u8);
+        return this;
+    }
+
+    /// <summary>Places an immutable detached image in the page coordinate system.</summary>
+    public PdfContentStreamBuilder DrawImage(
+        PdfImageAsset asset, double x, double y, double width, double height)
+    {
+        ArgumentNullException.ThrowIfNull(asset);
+        if (!double.IsFinite(width) || width == 0)
+            throw new ArgumentOutOfRangeException(nameof(width));
+        if (!double.IsFinite(height) || height == 0)
+            throw new ArgumentOutOfRangeException(nameof(height));
+        if (!double.IsFinite(x)) throw new ArgumentOutOfRangeException(nameof(x));
+        if (!double.IsFinite(y)) throw new ArgumentOutOfRangeException(nameof(y));
+        if (!_assets.TryGetValue(asset, out PdfName? resource))
+        {
+            resource = new PdfName(Encoding.ASCII.GetBytes($"Ia{_assets.Count + 1}"));
+            _assets.Add(asset, resource);
+        }
+        RecordPaintedContent();
+        WriteOperator("q"u8);
+        Operator("cm"u8, width, 0, 0, height, x, y);
+        _output.Write(PdfObjectWriter.Write(resource));
+        _output.Write(" Do\n"u8);
+        WriteOperator("Q"u8);
         return this;
     }
 

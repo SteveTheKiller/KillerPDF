@@ -123,6 +123,15 @@ KillerPDF uses these typed content APIs for annotations, stamps and print/export
 
 `PdfEditablePageOverlayEditor.Append` keeps opaque editing data with a dedicated page-content overlay, preserving its ordinary rendering and searchable text. `Read` returns intact tail batches in content order; `Remove` revalidates them and removes only their drawing, isolation wrappers and owned tagged descriptions. Current foreign form values, markup and other page data remain intact. Changed resources, malformed ownership data, a foreign content tail or a changed page frame prevent extraction. Editing payloads are limited to 8 MiB per batch and resource fingerprints to 32 MiB, 16,384 visits and depth 64. The optional `expectedRotation` supports saves that apply final page rotation later. Authentication, copying/modification permissions and certification restrictions still apply.
 
+`PdfContentStreamBuilder.DrawImage(PdfImageAsset, x, y, width, height)` reuses a
+detached raw or Flate-encoded eight-bit DeviceRGB image on pages, inside forms,
+colored patterns and caller-authored stamp appearances. Resources are shared by
+asset identity, retain encoded bytes and interpolation, and exclude the source
+page's unrelated content. Negative dimensions flip the image. Raw assets require
+PDF 1.0; Flate assets require PDF 1.2. Uncolored patterns reject these colored
+assets, including through nested forms and patterns. This bounded authoring slice
+does not implement application Copy/Cut or additional source color spaces.
+
 ### Edit document structure
 
 Pages can be inserted, imported, removed, reordered, rotated, cropped, resized, trimmed, and assigned page boxes, labels, transitions, thumbnails, annotations, form widgets, and structure relationships. Object graphs and dependent resources are imported with collision handling rather than copied as isolated dictionaries.

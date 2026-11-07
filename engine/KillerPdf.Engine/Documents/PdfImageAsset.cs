@@ -17,6 +17,16 @@ public sealed class PdfImageAsset
     /// <summary>Gets the original image height in pixels.</summary>
     public int Height { get; }
 
+    internal PdfDocument OpenClosedDocument(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_pdf.Length > 5 * 1024 * 1024)
+            throw new NotSupportedException("The detached image asset exceeds its size limit.");
+        var document = PdfDocument.Open(_pdf.ToArray());
+        cancellationToken.ThrowIfCancellationRequested();
+        return document;
+    }
+
     /// <summary>Returns a detached single-image PDF with a pixel-sized canonical page.</summary>
     public byte[] ToPdfBytes(CancellationToken cancellationToken = default)
     {
