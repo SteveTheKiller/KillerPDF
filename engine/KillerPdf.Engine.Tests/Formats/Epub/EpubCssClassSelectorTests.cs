@@ -16,6 +16,55 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubCssClassSelectorTests
 {
     [Theory]
+    [InlineData("@media screen{p{color:red}}", true)]
+    [InlineData("p{color:red}@media screen{p{color:blue}}", false)]
+    [InlineData("@media screen{p{color:red}}p{color:blue}", false)]
+    [InlineData("@media screen{@media screen{p{color:red}}}p{margin:0}", true)]
+    [InlineData("@media screen{}p{color:red}", true)]
+    [InlineData("@MeDiA \tScReEn \r\n{p{color:red}}", true)]
+    public void ScreenMediaRulesPreserveNestedScopeAndStylesheetOrder(string css, bool red)
+    {
+        byte[] source = Book("p{margin:0}" + css, "<p>A</p>"), original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = EpubDocument.Open(source).CreateLayout(
+            new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+        Assert.Equal(red ? new PdfRgbColor(1, 0, 0) : new PdfRgbColor(0, 0, 1),
+            Assert.Single(Assert.Single(layout.Pages).TextPlacements).Color);
+        Assert.Equal(original, source);
+    }
+
+    [Theory]
+    [InlineData("@media screen{p{color:red}")]
+    [InlineData("@media screen{p{color:red}}}")]
+    [InlineData("@media screen{p{color:red}p{color:blue}")]
+    [InlineData("@mediascreen{p{color:red}}")]
+    [InlineData("@media screen and (min-width:10px){p{color:red}}")]
+    [InlineData("@media screen\u00a0{p{color:red}}")]
+    public void ScreenMediaRulesDiagnoseMalformedBlocksAndUnsupportedQueries(string css)
+    {
+        byte[] source = Book(css, "<p>A</p>"), original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        Assert.Throws<NotSupportedException>(() => EpubDocument.Open(source).CreateLayout(
+            new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 }));
+        Assert.Equal(original, source);
+    }
+
+    [Fact]
+    public void ScreenMediaRulesApplyTheirNestedDeclarationsToTheReadingLayout()
+    {
+        byte[] source = Book("@media screen{body{margin-left:10%}}", "<p style='margin:0'>A</p>");
+        byte[] original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+        Assert.Equal(4.6, Assert.Single(Assert.Single(layout.Pages).TextPlacements).Left, 6);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Equal(3.45, Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters).StartBaseLine.X, 6);
+        Assert.Equal(original, source);
+    }
+
+    [Theory]
     [InlineData("<div style='margin-top:4px'><p style='margin-top:8px'>A</p></div>", 0, 2, 10, 13.5)]
     [InlineData("<p style='margin-bottom:6px'>A</p><div style='margin-top:4px'><p>A</p></div>", 0, 2, 18, 7.5)]
     [InlineData("<div style='margin-bottom:6px'><p>A</p></div><p style='margin-top:4px'>A</p>", 0, 2, 18, 7.5)]

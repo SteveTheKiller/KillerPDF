@@ -274,6 +274,11 @@ for em margins. Initial values reset paragraph gaps, font family, weight, normal
 height and color while retaining the separate reader page inset. Other shorthand values
 and unsupported longhand values remain diagnosed.
 
+Initial `@media screen` blocks preserve nested rule scope and stylesheet order.
+Both native layout and explicit PDF conversion use these reading styles. Media
+blocks are limited to 16 nested levels and bounded scanning; malformed blocks and
+other media types or queries remain diagnosed.
+
 Inline `strong` and `b` text select real font faces using the parent's relative
 weight, following the [HTML rendering defaults](https://html.spec.whatwg.org/multipage/rendering.html)
 and [CSS weight thresholds](https://www.w3.org/TR/css-fonts-4/#font-weight-prop).

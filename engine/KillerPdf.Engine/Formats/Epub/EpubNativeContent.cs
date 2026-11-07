@@ -428,11 +428,37 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         var namespaces = new Dictionary<string, string>(StringComparer.Ordinal);
         int namespaceCount = 0;
         bool styleSeen = false;
+        var mediaEnds = new Stack<int>();
+        int mediaWork = 0;
         while (position < css.Length)
         {
             cancellationToken.ThrowIfCancellationRequested();
             while (position < css.Length && IsCssSpace(css[position])) position++;
             if (position == css.Length) break;
+            if (css[position] == '}')
+            {
+                if (!mediaEnds.TryPeek(out int end) || position != end)
+                    throw new NotSupportedException("Native EPUB CSS media blocks require balanced rules.");
+                mediaEnds.Pop();
+                position++;
+                continue;
+            }
+            if (css.AsSpan(position).StartsWith("@media", StringComparison.OrdinalIgnoreCase))
+            {
+                int mediaOpen = css.IndexOf('{', position + 6);
+                if (position + 6 >= css.Length || !IsCssSpace(css[position + 6]) || mediaOpen < 0
+                    || !css[(position + 6)..mediaOpen].Trim(' ', '\t', '\r', '\n', '\f').Equals("screen", StringComparison.OrdinalIgnoreCase))
+                    throw new NotSupportedException("Native EPUB media queries currently require screen.");
+                if (mediaEnds.Count >= 16)
+                    throw new InvalidDataException("Native EPUB CSS media nesting exceeds its 16-level limit.");
+                int mediaEnd = MediaEnd(mediaOpen);
+                if (mediaEnds.TryPeek(out int parentEnd) && mediaEnd >= parentEnd)
+                    throw new NotSupportedException("Native EPUB CSS media blocks require balanced rules.");
+                mediaEnds.Push(mediaEnd);
+                styleSeen = true;
+                position = mediaOpen + 1;
+                continue;
+            }
             if (css.AsSpan(position).StartsWith("@namespace", StringComparison.OrdinalIgnoreCase))
             {
                 if (styleSeen) throw NamespaceSyntax();
@@ -483,7 +509,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             styleSeen = true;
             int open = css.IndexOf('{', position);
             int close = open < 0 ? -1 : css.IndexOf('}', open + 1);
-            if (close < 0) throw new NotSupportedException("Native EPUB CSS rule syntax is not implemented.");
+            if (close < 0 || mediaEnds.TryPeek(out int ruleEnd) && close >= ruleEnd)
+                throw new NotSupportedException("Native EPUB CSS rule syntax is not implemented.");
             CssProperties properties = ParseProperties(css[(open + 1)..close]);
             foreach (string group in css[position..open].Split(','))
             {
@@ -591,6 +618,32 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
             position = close + 1;
         }
+        if (mediaEnds.Count != 0)
+            throw new NotSupportedException("Native EPUB CSS media blocks require balanced rules.");
+
+        int MediaEnd(int open)
+        {
+            int depth = 1;
+            char quote = '\0';
+            for (int at = open + 1; at < css.Length; at++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (++mediaWork > 1_000_000)
+                    throw new InvalidDataException("Native EPUB CSS media scanning exceeds its work limit.");
+                char current = css[at];
+                if (current == '\\') { at++; continue; }
+                if (quote != '\0')
+                {
+                    if (current == quote) quote = '\0';
+                    continue;
+                }
+                if (current is '\'' or '"') { quote = current; continue; }
+                if (current == '{') depth++;
+                else if (current == '}' && --depth == 0) return at;
+            }
+            throw new NotSupportedException("Native EPUB CSS media blocks require balanced rules.");
+        }
+
         void SkipSpace() { while (position < css.Length && IsCssSpace(css[position])) position++; }
     }
 
