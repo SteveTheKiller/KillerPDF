@@ -215,6 +215,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             {
                 // Named metadata and the CSS content-style declaration do not paint page content.
             }
+            else if (name == "meta" && xml.NamespaceURI == "" && xml.LocalName == "charset"
+                && string.Equals(xml.Value, "utf-8", StringComparison.OrdinalIgnoreCase))
+            {
+                // XML byte decoding is authoritative; this head declaration does not change it.
+            }
             else if (name == "a" && xml.NamespaceURI == "" && xml.LocalName == "href")
             {
                 // Structural reading validates packaged destinations and supported external hyperlinks.

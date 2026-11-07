@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Formats.Epub;
 using KillerPdf.Engine.Rendering;
@@ -11,6 +12,25 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubNativeLayoutTests
 {
+    [Theory]
+    [InlineData("utf-8")]
+    [InlineData("UTF-8")]
+    public void Utf8HeadCharsetMetadataPreservesNativeAndConvertedText(string charset)
+    {
+        string metadata = "<meta charset='" + charset + "'/>";
+        byte[] source = Book("<p>A</p>", headMetadata: metadata), original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var page = Assert.Single(book.CreateLayout(new EpubLayoutOptions(30, 16, font)
+        { FontSize = 10, Margin = 2 }).Pages);
+        Assert.Equal("A", page.Text);
+        Assert.Equal(new EpubTextPlacement(0, 0, 1, 2, 2, 6, 10), Assert.Single(page.TextPlacements));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        Assert.Equal("A", Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters).Value);
+        Assert.Equal(original, source);
+        Assert.Contains(metadata, Encoding.UTF8.GetString(book.ReadResource("EPUB/text.xhtml")), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -49,6 +69,11 @@ public sealed class EpubNativeLayoutTests
     [InlineData("<meta http-equiv='Content-Style-Type' content='text/less'/>", false)]
     [InlineData("<meta name='generator' content='fixture' onclick='alert(1)'/>", false)]
     [InlineData("<meta name='generator' content='fixture'/>", true)]
+    [InlineData("<meta charset='utf-16'/>", false)]
+    [InlineData("<meta charset=' utf-8 '/>", false)]
+    [InlineData("<meta charset=''/>", false)]
+    [InlineData("<meta xmlns:x='urn:other' x:charset='utf-8'/>", false)]
+    [InlineData("<meta charset='utf-8'/>", true)]
     public void UnsupportedMetadataPragmasAttributesAndBodyPlacementRemainDiagnosed(string metadata, bool inBody)
     {
         byte[] source = Book(inBody ? metadata + "<p>A</p>" : "<p>A</p>",

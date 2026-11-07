@@ -234,7 +234,8 @@ selection and accessibility integration still require implementation and runtime
 
 ## Native EPUB layout (1.9.3 development)
 
-Named head metadata and the legacy `Content-Style-Type=text/css` declaration
+Named head metadata, a case-insensitive `charset=utf-8` head declaration and the
+legacy `Content-Style-Type=text/css` declaration
 remain outside page text and do not execute directives. Other pragmas, unknown
 metadata attributes and metadata in body content remain diagnosed. Original
 XHTML resources remain unchanged.
