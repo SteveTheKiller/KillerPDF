@@ -177,7 +177,7 @@ public sealed partial class EpubDocument
     {
         "p" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "section" or "article" or
             "blockquote" or "header" or "footer" or "aside" or "nav" or "address" or "figure" or "figcaption" or "main" => 2,
-        "ul" or "ol" or "li" or "dl" or "dt" or "dd" or "hr" or "table" or "tr" or "td" => 1,
+        "ul" or "ol" or "li" or "dl" or "dt" or "dd" or "hr" or "table" or "tbody" or "tr" or "td" => 1,
         _ => 0
     };
 

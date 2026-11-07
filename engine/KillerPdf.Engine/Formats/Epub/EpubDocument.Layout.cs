@@ -513,7 +513,8 @@ public sealed partial class EpubDocument
                     LayoutTable(table);
                     return;
                 }
-                if (block is EpubFormattingTree.Row || block is EpubFormattingTree.Cell && !ReferenceEquals(block, flowRoot))
+                if (block is EpubFormattingTree.RowGroup or EpubFormattingTree.Row
+                    || block is EpubFormattingTree.Cell && !ReferenceEquals(block, flowRoot))
                     throw new NotSupportedException("Native EPUB table parts require their table flow.");
                 double indent = block.Source.Style.TextIndentPercentage
                     ? block.Source.Style.TextIndent * contentWidth / 100 : block.Source.Style.TextIndent;
@@ -600,19 +601,19 @@ public sealed partial class EpubDocument
             {
                 const string columnsUnsupported = "Native EPUB explicit table columns must fill the width and match across rows.";
                 double[]? columns = null;
-                if (table.Source.Width is not { Length: { Value: > 0 } }
-                    || table.Children.Count == 0 || table.Children.Any(part => part is not EpubFormattingTree.Row))
-                    throw new NotSupportedException("Native EPUB tables require explicit width and direct rows.");
+                if (table.Source.Width is not { Length: { Value: > 0 } } || table.Children.Count == 0)
+                    throw new NotSupportedException("Native EPUB tables require explicit width and row content.");
                 if (pendingParagraphGap > 0)
                 {
                     top += !pageHasContent && existingPageCount + pages.Count == 0 && bodyPadding.Top == 0
                         ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
                     pendingParagraphGap = 0;
                 }
-                foreach (var part in table.Children)
+                bool hadRow = false;
+                foreach (var row in Rows())
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    var row = (EpubFormattingTree.Row)part;
+                    hadRow = true;
                     if (row.Children.Count == 0 || row.Children.Any(child => child is not EpubFormattingTree.Cell))
                         throw new NotSupportedException("Native EPUB rows require direct cells.");
                     if (columns is not null && row.Children.Count != columns.Length)
@@ -681,6 +682,26 @@ public sealed partial class EpubDocument
                         throw new InvalidDataException("The native page exceeds its paint limit.");
                     top += rowHeight;
                     pageHasContent |= rowHeight > 0;
+                }
+                if (!hadRow)
+                    throw new NotSupportedException("Native EPUB tables require explicit width and row content.");
+
+                IEnumerable<EpubFormattingTree.Row> Rows()
+                {
+                    foreach (var part in table.Children)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (part is EpubFormattingTree.Row row) yield return row;
+                        else if (part is EpubFormattingTree.RowGroup group)
+                            foreach (var child in group.Children)
+                            {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                if (child is not EpubFormattingTree.Row groupedRow)
+                                    throw new NotSupportedException("Native EPUB row groups require direct rows.");
+                                yield return groupedRow;
+                            }
+                        else throw new NotSupportedException("Native EPUB tables require row content.");
+                    }
                 }
             }
 

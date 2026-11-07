@@ -378,8 +378,10 @@ paragraph gaps. Consecutive breaks retain blank line heights through pagination,
 and styled text keeps its source offsets. Structural normalization still omits
 leading breaks before any text and trims trailing breaks.
 Words wider than the content box are diagnosed explicitly.
-Initial tables require direct `table` / `tr` / `td` structure, plain cell text,
-positive explicit table and cell widths, zero spacing and no cell padding.
+Initial tables require rows and cells, optionally grouped in `tbody`, plain cell
+text, positive explicit table and cell widths, zero spacing and no cell padding.
+Body groups retain source order and ancestry for inherited styles and selectors;
+columns and whole-row pagination remain shared across groups. Empty groups add no text.
 Empty table `summary` attributes remain inert and available to CSS selectors.
 Only ASCII formatting whitespace is ignored between table parts. Other text,
 including nonbreaking spaces, requires a cell and is diagnosed outside one.
@@ -390,8 +392,9 @@ move to the next page while keeping contiguous chapter text ranges. Empty cells
 retain their columns without adding text. Native and converted PDF output retain
 the supported outer container background and preceding paragraph margins.
 Explicit `display:table` on a table element retains the same typed grid.
-Auto sizing, row groups, spans, nested tables, anonymous table boxes, nonzero
-spacing and row/cell page-break requests remain diagnosed. Cells taller than a
+Auto sizing, header/footer groups, spans, nested tables, anonymous table boxes,
+row-group backgrounds, nonzero spacing and row/cell/group page-break requests
+remain diagnosed. Cells taller than a
 fresh page are refused before retaining additional cell pages.
 CSS `display:block` and `display:inline` follow specificity, declaration order and
 inline overrides without inheriting the parent's display value. A bounded formatting

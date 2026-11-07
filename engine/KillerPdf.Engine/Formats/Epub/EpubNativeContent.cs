@@ -8,7 +8,7 @@ namespace KillerPdf.Engine.Formats.Epub;
 // Source nodes survive normalization so collapsed whitespace keeps its original inline style.
 internal sealed class EpubNativeContent(double fallbackSize, double contentHeight, PdfRgbColor? fallbackTextColor = null)
 {
-    internal enum DisplayKind { Block, Inline, None, Table, TableRow, TableCell }
+    internal enum DisplayKind { Block, Inline, None, Table, TableRowGroup, TableRow, TableCell }
     internal readonly record struct BackgroundColor(PdfRgbColor? Color);
     internal sealed record Style(double FontSize, double? LineHeight, PdfRgbColor? Color = null, BackgroundColor? Background = null)
     {
@@ -41,7 +41,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal Element? Parent { get; } = parent;
         internal Style Style { get; } = style;
         internal DisplayKind Display { get; init; } = block ? DisplayKind.Block : DisplayKind.Inline;
-        internal bool IsBlock => Display is DisplayKind.Block or DisplayKind.Table or DisplayKind.TableRow or DisplayKind.TableCell;
+        internal bool IsBlock => Display is DisplayKind.Block or DisplayKind.Table or DisplayKind.TableRowGroup or DisplayKind.TableRow or DisplayKind.TableCell;
         internal bool IsDisplayNone { get; init; }
         internal int Offset { get; } = offset;
         internal int EndOffset { get; set; } = offset;
@@ -175,7 +175,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
             "div" => parent?.Name is "body" or "div",
             "table" => parent?.Name is "body" or "div",
-            "tr" => parent?.Name == "table",
+            "tbody" => parent?.Name == "table",
+            "tr" => parent?.Name is "table" or "tbody",
             "td" => parent?.Name == "tr",
             _ when paragraph => parent?.Name is "body" or "div",
             "strong" or "b" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b",
@@ -195,7 +196,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             Count(xml.Value.Length);
             attributes[(xml.NamespaceURI, xml.LocalName)] = xml.Value;
-            if (xml.NamespaceURI == "" && xml.LocalName == "style" && (paragraph || name is "body" or "div" or "span" or "img" or "a" or "strong" or "b" or "table" or "tr" or "td"))
+            if (xml.NamespaceURI == "" && xml.LocalName == "style" && (paragraph || name is "body" or "div" or "span" or "img" or "a" or "strong" or "b" or "table" or "tbody" or "tr" or "td"))
                 inlineStyle = xml.Value;
             else if (xml.NamespaceURI == "" && xml.LocalName == "class")
                 classNames = xml.Value;
@@ -262,7 +263,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         var properties = ResolveProperties(declarations, parent);
         DisplayKind? tableDisplay = name switch
         {
-            "table" => DisplayKind.Table, "tr" => DisplayKind.TableRow, "td" => DisplayKind.TableCell,
+            "table" => DisplayKind.Table, "tbody" => DisplayKind.TableRowGroup,
+            "tr" => DisplayKind.TableRow, "td" => DisplayKind.TableCell,
             _ => null
         };
         if (tableDisplay is { } required && properties.Display is { } specified
@@ -272,6 +274,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         Style style = suppressed ? inherited : properties.Apply(inherited, contentHeight);
         if (!suppressed)
         {
+            if (name == "tbody" && (style.PageBreakBefore || style.PageBreakAfter))
+                throw new NotSupportedException("Native EPUB row-group page breaks are not implemented.");
             if (name is "tr" or "td" && (style.PageBreakBefore || style.PageBreakAfter))
                 throw new NotSupportedException("Native EPUB row and cell page breaks are not implemented.");
             if (name == "html" && properties.Height is { Percentage: not null })
@@ -312,13 +316,14 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             DisplayKind.Block => true,
             DisplayKind.Inline or DisplayKind.None => false,
-            _ => paragraph || name is "body" or "div" or "table" or "tr" or "td"
+            _ => paragraph || name is "body" or "div" or "table" or "tbody" or "tr" or "td"
         };
         var element = new Element(name, parent, style, block, Characters.Count, identity)
         {
             Display = properties.Display ?? name switch
             {
-                "table" => DisplayKind.Table, "tr" => DisplayKind.TableRow, "td" => DisplayKind.TableCell,
+                "table" => DisplayKind.Table, "tbody" => DisplayKind.TableRowGroup,
+                "tr" => DisplayKind.TableRow, "td" => DisplayKind.TableCell,
                 _ => block ? DisplayKind.Block : DisplayKind.Inline
             },
             Margins = suppressed ? null : properties.Margins, Padding = suppressed ? null : properties.Padding,
@@ -366,7 +371,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         var owner = _ancestors.Peek();
         if (owner.Name == "hr")
             throw new NotSupportedException("Native EPUB horizontal rules cannot contain text.");
-        if (owner.Display is DisplayKind.Table or DisplayKind.TableRow && !IsFormattingWhitespace(value))
+        if (owner.Display is DisplayKind.Table or DisplayKind.TableRowGroup or DisplayKind.TableRow && !IsFormattingWhitespace(value))
             throw new NotSupportedException("Native EPUB table text requires a cell.");
         var node = new Text(value, owner, Characters.Count);
         owner.Children.Add(node);
