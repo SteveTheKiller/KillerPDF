@@ -46,7 +46,7 @@ public static class PdfOverlayAnnotations
             return new BatchItem(kind, annotation.HistoryId,
                 JsonSerializer.SerializeToElement(annotation, ModelType(kind), Json));
         }).ToArray();
-        var envelope = new BatchEnvelope(1, renderWidth, renderHeight, rotation,
+        var envelope = new BatchEnvelope(annotations.Any(IsSourcePdfImage) ? 2 : 1, renderWidth, renderHeight, rotation,
             frame.Left, frame.Bottom, frame.Width, frame.Height, frame.UserUnit, items);
         byte[] payload = JsonSerializer.SerializeToUtf8Bytes(envelope, Json);
         if (payload.Length > MaximumPayload) throw new ArgumentException("Overlay batch exceeds the payload limit.");
@@ -68,7 +68,7 @@ public static class PdfOverlayAnnotations
                     new() { MaxDepth = 32 })) ValidateJson(check.RootElement);
                 BatchEnvelope envelope = JsonSerializer.Deserialize<BatchEnvelope>(overlay.EditingData.Span, Json)
                     ?? throw new InvalidOperationException("Missing overlay batch.");
-                if (envelope.Version != 1 || envelope.Items is not { Length: > 0 and <= 10000 }) continue;
+                if (envelope.Version is not (1 or 2) || envelope.Items is not { Length: > 0 and <= 10000 }) continue;
                 ValidateCanvas(envelope.RenderWidth, envelope.RenderHeight, envelope.Rotation);
                 PdfPageInformation frame = pages[overlay.PageIndex];
                 if (envelope.Rotation != frame.Rotation || envelope.Left != frame.Left
@@ -89,6 +89,7 @@ public static class PdfOverlayAnnotations
                     records.Add(new(model, envelope.RenderWidth, envelope.RenderHeight, envelope.Rotation,
                         -1, overlay.FormObjectNumber));
                 }
+                if (envelope.Version == 2 && !records.Any(record => IsSourcePdfImage(record.Annotation))) continue;
                 result.Add(new(overlay, records.AsReadOnly()));
             }
             catch (Exception error) when (Unsupported(error)) { }
@@ -131,7 +132,7 @@ public static class PdfOverlayAnnotations
             using (JsonDocument check = JsonDocument.Parse(payload, new() { MaxDepth = 32 })) ValidateJson(check.RootElement);
             var metadata = new PdfDictionary(new Dictionary<PdfName, PdfObject>
             {
-                [Name("V")] = new PdfInteger(1),
+                [Name("V")] = new PdfInteger(IsSourcePdfImage(record.Annotation) ? 2 : 1),
                 [Name("Data")] = new PdfString(payload, PdfStringForm.Hexadecimal)
             });
             update.ReplaceObject(record.ObjectNumber, new PdfDictionary(annotation.Append(new(MetadataName, metadata))));
@@ -208,7 +209,7 @@ public static class PdfOverlayAnnotations
             if (comment.ObjectNumber is not int number || document.Resolve(number) is not PdfDictionary annotation
                 || !annotation.TryGetValue(MetadataName, out PdfObject? metadataValue)
                 || metadataValue is not PdfDictionary metadata || metadata.Count != 2
-                || !metadata.TryGetValue(Name("V"), out PdfObject? version) || version is not PdfInteger { Value: 1 }
+                || !metadata.TryGetValue(Name("V"), out PdfObject? version) || version is not PdfInteger { Value: 1 or 2 } schema
                 || !metadata.TryGetValue(Name("Data"), out PdfObject? value) || value is not PdfString data
                 || data.Bytes.Length > MaximumPayload) return null;
             using (JsonDocument check = JsonDocument.Parse(data.Bytes, new() { MaxDepth = 32 })) ValidateJson(check.RootElement);
@@ -226,6 +227,7 @@ public static class PdfOverlayAnnotations
             if (model.PageIndex != comment.PageIndex) return null;
             model.HistoryId = envelope.HistoryId;
             ValidateModel(model);
+            if (schema.Value == 2 && !IsSourcePdfImage(model)) return null;
             ValidateNative(document, annotation, comment, model);
             return new(model, envelope.RenderWidth, envelope.RenderHeight, envelope.Rotation,
                 comment.AnnotationIndex, number);
@@ -331,6 +333,9 @@ public static class PdfOverlayAnnotations
         if (string.IsNullOrEmpty(value) || value.Length > 7 * 1024 * 1024) throw new ArgumentException("Invalid overlay image.");
         _ = Convert.FromBase64String(value);
     }
+
+    private static bool IsSourcePdfImage(PageAnnotation model) => model is ImageAnnotation image
+        && Convert.FromBase64String(image.ImageData).AsSpan().StartsWith("%PDF-"u8);
 
     private static void ValidateJson(JsonElement root)
     {
