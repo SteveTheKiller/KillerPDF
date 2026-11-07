@@ -524,8 +524,16 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 if (fullSelector.Length is 0 or > 128)
                     throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
                 var chain = new List<CssRule>();
+                bool directParent = false;
                 foreach (string selectorPart in DescendantParts(fullSelector))
                 {
+                    if (selectorPart == ">")
+                    {
+                        if (chain.Count == 0 || directParent)
+                            throw new NotSupportedException("Native EPUB CSS child selectors require selectors on both sides.");
+                        directParent = true;
+                        continue;
+                    }
                     string selector = selectorPart;
                     bool link = selector.EndsWith(":link", StringComparison.OrdinalIgnoreCase);
                     bool visited = selector.EndsWith(":visited", StringComparison.OrdinalIgnoreCase);
@@ -613,8 +621,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         || !char.IsAsciiLetter(part[0])
                         || part.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_'))))
                         throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                    chain.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1, type, []) { Ids = ids.ToArray(), Link = link, Visited = visited, Hover = hover });
+                    chain.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1, type, []) { Ids = ids.ToArray(), Link = link, Visited = visited, Hover = hover, DirectParent = directParent });
+                    directParent = false;
                 }
+                if (directParent || chain.Count == 0)
+                    throw new NotSupportedException("Native EPUB CSS child selectors require selectors on both sides.");
                 var target = chain[^1] with { Ancestors = chain.Take(chain.Count - 1).Reverse().ToArray() };
                 if (!_typeRules.TryGetValue(target.Type, out var rules))
                     _typeRules.Add(target.Type, rules = new());
@@ -665,6 +676,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal bool Link { get; init; }
         internal bool Visited { get; init; }
         internal bool Hover { get; init; }
+        internal bool DirectParent { get; init; }
         internal string[] Ids { get; init; } = [];
         internal int Specificity => Ids.Length * 65536 + (Classes.Length + (Attribute is null ? 0 : 1) + (Link || Visited || Hover ? 1 : 0)) * 256 + TypeSpecificity
             + Ancestors.Sum(rule => rule.Ids.Length * 65536 + (rule.Classes.Length + (rule.Attribute is null ? 0 : 1) + (rule.Link || rule.Visited || rule.Hover ? 1 : 0)) * 256 + rule.TypeSpecificity);
@@ -682,9 +694,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             else if (bracket && value is '\'' or '"') quote = value;
             else if (value == '[') bracket = true;
             else if (value == ']') bracket = false;
-            else if (!bracket && IsCssSpace(value))
+            else if (!bracket && (IsCssSpace(value) || value == '>'))
             {
                 if (index > start) yield return selector[start..index];
+                if (value == '>') yield return ">";
                 start = index + 1;
             }
         }
@@ -759,6 +772,28 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         return true;
     }
 
+    private bool MatchesAncestors(CssRule rule, Element? ancestor)
+    {
+        if (rule.Ancestors.Length == 0) return true;
+        var memo = new Dictionary<(int Index, Element Ancestor), bool>();
+        return Match(0, ancestor);
+
+        bool Match(int index, Element? current)
+        {
+            if (index == rule.Ancestors.Length) return true;
+            if (current is null) return false;
+            var key = (index, current);
+            if (memo.TryGetValue(key, out bool cached)) return cached;
+            CountSelectorWork(1);
+            var required = rule.Ancestors[index];
+            bool direct = index == 0 ? rule.DirectParent : rule.Ancestors[index - 1].DirectParent;
+            bool matched = Matches(required, current.Name, current.Identity) && Match(index + 1, current.Parent);
+            if (!matched && !direct) matched = Match(index, current.Parent);
+            memo.Add(key, matched);
+            return matched;
+        }
+    }
+
     private CssProperties ResolveRules(string name, SelectorIdentity identity)
     {
         _typeRules.TryGetValue(name, out var typeRules);
@@ -815,19 +850,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 || typeIndex < (typeRules?.Count ?? 0) && typeRules![typeIndex].Order < classRules![classIndex].Order
                 ? typeRules![typeIndex++] : classRules![classIndex++];
             if (!Matches(rule, name, identity)) continue;
-            bool matches = true;
             Element? ancestor = _ancestors.TryPeek(out var parent) ? parent : null;
-            foreach (var required in rule.Ancestors)
-            {
-                while (ancestor is not null && !Matches(required, ancestor.Name, ancestor.Identity)) ancestor = ancestor.Parent;
-                if (ancestor is null)
-                {
-                    matches = false;
-                    break;
-                }
-                ancestor = ancestor.Parent;
-            }
-            if (!matches) continue;
+            if (!MatchesAncestors(rule, ancestor)) continue;
             int specificity = rule.Specificity;
             if (rule.Properties.WordSpacing is { } selectedWordSpacing && specificity >= wordSpacingSpecificity)
             {

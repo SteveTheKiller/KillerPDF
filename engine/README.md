@@ -668,10 +668,12 @@ URI, and default element namespaces do not apply to unqualified attribute names.
 Inert `type` metadata is accepted on supported paragraphs and spans. Attribute
 predicates add class-level specificity and retain the selector work limits.
 Descendant combinators match distinct ancestors in order, allowing intervening
-elements. Each compound retains its namespace, type, IDs, classes and supported attribute
+elements. Child combinators (`>`) require the immediate parent, with optional CSS
+whitespace. Mixed chains search for a valid ancestry within the selector work budget.
+Each compound retains its namespace, type, IDs, classes and supported attribute
 predicate. Ancestor traversal shares the selector work budget, and selector trimming
 uses only CSS whitespace. Other attribute operators, class-only attribute selectors, multiple predicates,
-escapes, comments, general identifiers, child, sibling and pseudo selectors retain
+escapes, comments, general identifiers, sibling and other pseudo selectors retain
 strict diagnostics. This is partial CSS support.
 
 Text alignment supports left, center, right and LTR justification, with inherited

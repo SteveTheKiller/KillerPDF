@@ -28,7 +28,7 @@ public sealed class EpubCssNamespaceTests
     }
 
     [Theory]
-    [InlineData("p>span")]
+    [InlineData("p+span")]
     [InlineData("p[epub|type^='bridgehead']")]
     [InlineData("p:first-child")]
     public void UnsupportedSelectorFamiliesRetainExplicitDiagnostic(string selector)

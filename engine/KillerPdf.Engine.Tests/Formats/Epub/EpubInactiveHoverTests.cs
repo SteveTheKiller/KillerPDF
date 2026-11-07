@@ -29,6 +29,8 @@ public sealed class EpubInactiveHoverTests
     [InlineData("a#link:hover")]
     [InlineData("a[id]:hover")]
     [InlineData("p a.note:hover")]
+    [InlineData("p>a.note:hover")]
+    [InlineData("p:hover>a#link")]
     [InlineData("p:hover a")]
     [InlineData("p.note:hover a#link")]
     public void SupportedBaseCompoundsAndDescendantsStayInactive(string selector)
@@ -55,7 +57,7 @@ public sealed class EpubInactiveHoverTests
     [InlineData("a:hover()")]
     [InlineData("a:hover:hover")]
     [InlineData("a:hover.note")]
-    [InlineData("a>.note:hover")]
+    [InlineData("a+.note:hover")]
     [InlineData("a..note:hover")]
     [InlineData("a:hover,")]
     public void UnknownAndMalformedSelectorsKeepExplicitDiagnostic(string selector)
