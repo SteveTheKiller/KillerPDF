@@ -1016,7 +1016,11 @@ namespace KillerPDF.Controls
 
         internal void Canvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (_doc is null) return;
+            if (_doc is null)
+            {
+                FollowNativeLinkAtPointer(sender, e);
+                return;
+            }
             if (sender is Canvas srcCanvas) _activeCanvas = srcCanvas;
             if (Keyboard.FocusedElement is TextBox focusedField
                 && (e.OriginalSource is not DependencyObject clickSource

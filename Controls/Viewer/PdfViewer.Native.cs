@@ -13,6 +13,7 @@ public partial class PdfViewer
     internal NativeWorkingDocument? NativeDocumentRef { get => _nativeDoc; set => _nativeDoc = value; }
     private bool HasReadDocument => _doc is not null || _nativeDoc is not null;
     internal bool HasReadDocumentExt => HasReadDocument;
+    internal int ReadPageCountExt => ReadPageCount;
     private int ReadPageCount => _nativeDoc?.PageCount ?? _doc?.PageCount ?? 0;
 
     internal async Task RevealNativeNavigationExt(NativeWorkingDocument owner, PdfReadNavigationDestination destination)

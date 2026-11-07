@@ -903,6 +903,7 @@ namespace KillerPDF.Controls
             }
 
             RenderAllAnnotations(fi);
+            if (_nativeDoc is not null) AddSecondaryPageLinks(fi, rdW, rdH);
         }
 
         // Scroll-settle window maintenance for virtualized Continuous view (#122): releases the
@@ -2459,7 +2460,7 @@ namespace KillerPDF.Controls
 
         private int PageStepTarget(int direction)
         {
-            if (_doc is null) return -1;
+            if (!HasReadDocument) return -1;
             int cur = _currentPage;
             if (_viewMode == ViewMode.TwoPage)
             {
@@ -2471,10 +2472,10 @@ namespace KillerPDF.Controls
                         : (baseIdx <= 1 ? 0 : baseIdx - 2);
                 else
                     target = baseIdx + direction * 2;
-                return target == baseIdx || target < 0 || target >= _doc.PageCount ? -1 : target;
+                return target == baseIdx || target < 0 || target >= ReadPageCount ? -1 : target;
             }
             int t = cur + direction;
-            return t < 0 || t >= _doc.PageCount ? -1 : t;
+            return t < 0 || t >= ReadPageCount ? -1 : t;
         }
 
         private System.Windows.Threading.DispatcherTimer? _resizeRefitTimer;

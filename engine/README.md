@@ -217,7 +217,9 @@ anchors, linked images, external references and other pseudo-classes remain
 diagnosed; targets retain the 4,096-character
 navigation limit. `PdfReadSnapshot.ReadLinkRegions` retains grouped target geometry
 in unrotated bottom-left PDF points and honors capture ownership and cancellation.
-Interactive Windows link integration remains pending.
+The Windows reader has initial mouse and Enter-key link activation across its
+five view modes. Full reading, accessibility and color-status acceptance remain
+in progress.
 
 Block paragraph/container margins accept `auto`. An explicit content width shares
 remaining horizontal space between automatic margins, including padding and fixed

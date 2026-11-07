@@ -101,7 +101,7 @@ namespace KillerPDF.Controls
                     Host?.PageJumpText = (_currentPage + 1).ToString();
                     // Keep the statusbar counter honest even when the clicked tile is already in
                     // view (BringIntoView then scrolls nothing, so the scroll-sync never fires).
-                    SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, _doc!.PageCount) + $" - {DisplayZoomPct():F0}%");
+                    SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, ReadPageCount) + $" - {DisplayZoomPct():F0}%");
                     if (_pageContentPanel.Children.Count <= 1)
                     {
                         PagePreviewPanel.ScrollToTop();

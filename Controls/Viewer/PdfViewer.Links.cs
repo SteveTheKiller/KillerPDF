@@ -120,14 +120,49 @@ namespace KillerPDF.Controls
             return (x, y, w, h);
         }
 
-        /// <summary>
-        /// Follows a resolved link target: an int page index navigates within the document; a string URI
-        /// is scheme-checked, confirmed, then opened via the shell. Single choke point for both the
-        /// single-page (_linkOverlays) and tiled (_continuousLinks) click paths, so the safety checks
-        /// can't be bypassed by one route and a failed open is always reported instead of silent.
-        /// </summary>
+        /// <summary>Retains a package destination with its captured document owner.</summary>
+        private sealed record NativeLinkTarget(NativeWorkingDocument Owner, string Target)
+        {
+            public override string ToString() => Target;
+        }
+
+        private void FollowNativeLinkAtPointer(object sender, MouseButtonEventArgs e)
+        {
+            if (_nativeDoc is null || _currentTool != EditTool.Select || sender is not Canvas canvas) return;
+            int page = canvas.Tag is int index ? index : _currentPage;
+            if (!_renderDims.TryGetValue(page, out var dimensions)) return;
+            var position = e.GetPosition(canvas);
+            foreach (var link in GetPageLinks(page, dimensions.w, dimensions.h))
+            {
+                if (position.X < link.Cx - LinkHitPad || position.X > link.Cx + link.Cw + LinkHitPad
+                    || position.Y < link.Cy - LinkHitPad || position.Y > link.Cy + link.Ch + LinkHitPad) continue;
+                e.Handled = true;
+                FollowLinkTarget(link.Tag);
+                return;
+            }
+        }
+
+        /// <summary>Follows an owner-bound native target, PDF page, or scheme-checked external URI.</summary>
         private void FollowLinkTarget(object? target)
         {
+            if (target is NativeLinkTarget native)
+            {
+                if (!ReferenceEquals(native.Owner, _nativeDoc)) return;
+                try
+                {
+                    var destination = native.Owner.ResolveNavigationTarget(native.Target, _currentPage);
+                    RecordNavJump();
+                    _currentPage = destination.PageIndex;
+                    _ = RevealNativeNavigationExt(native.Owner, destination);
+                }
+                catch (Exception error) when (error is InvalidDataException or NotSupportedException
+                    or ArgumentException or ObjectDisposedException)
+                {
+                    SetStatus(string.Format(Loc("Str_Pages_Failed"), error.Message));
+                }
+                return;
+            }
+
             if (target is int pageIndex)
             {
                 if (_doc != null && pageIndex >= 0 && pageIndex < _doc.PageCount)
@@ -224,6 +259,33 @@ namespace KillerPDF.Controls
             if (_currentFile is null) return links;
             try
             {
+                if (_nativeDoc is { } owner)
+                {
+                    if (owner.Format != KillerPdf.Engine.Documents.PdfDocumentFormat.Epub) return links;
+                    var geometry = owner.GetNativePageGeometry(pageIndex);
+                    foreach (var link in owner.ReadLinkRegions(pageIndex))
+                    {
+                        var bounds = link.Bounds;
+                        var (x, y, w, h) = PdfRectToCanvas(
+                            bounds.Left, bounds.Bottom, bounds.Right, bounds.Top,
+                            geometry.Width * 72 / geometry.DpiX,
+                            geometry.Height * 72 / geometry.DpiY, bitmapW, bitmapH);
+                        if (w < 1 || h < 1) continue;
+                        string tip = Loc("Str_Ctx_OpenLink");
+                        try
+                        {
+                            var destination = owner.ResolveNavigationTarget(link.Target, pageIndex);
+                            tip = string.Format(Loc("Str_Link_GoToPage"), destination.PageIndex + 1);
+                        }
+                        catch (Exception error) when (error is InvalidDataException or NotSupportedException or ArgumentException)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Native link label: {error.Message}");
+                        }
+                        links.Add(new LinkInfo(x, y, w, h,
+                            new NativeLinkTarget(owner, link.Target), tip, -1));
+                    }
+                    return links;
+                }
                 PdfEngineDocumentSession session = EnsureEngineDocumentSession();
                 if (pageIndex < 0 || pageIndex >= session.Pages.Count) return links;
                 var page = session.Pages[pageIndex];
@@ -278,7 +340,7 @@ namespace KillerPDF.Controls
         /// </summary>
         internal void RenderPageLinks(int pageIndex, int bitmapW, int bitmapH)
         {
-            if (_doc is null || _currentFile is null) return;
+            if (!HasReadDocument || _currentFile is null) return;
 
             var links = GetPageLinks(pageIndex, bitmapW, bitmapH);
             foreach (var lnk in links)
@@ -314,7 +376,7 @@ namespace KillerPDF.Controls
             }
 
             if (links.Count > 0)
-                SetStatus(string.Format(Loc("Str_PageOfLinks"), pageIndex + 1, _doc.PageCount, links.Count));
+                SetStatus(string.Format(Loc("Str_PageOfLinks"), pageIndex + 1, ReadPageCount, links.Count));
         }
 
         /// <summary>

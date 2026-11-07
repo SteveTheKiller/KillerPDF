@@ -23,7 +23,7 @@ public partial class MainWindow
     private void SyncPageNavigationButtons()
     {
         if (PreviousPageBtn is null || NextPageBtn is null || PageNavigationHost is null) return;
-        bool visible = PageNavigationButtonsEnabled && ActiveViewer is not null && _doc?.PageCount > 1;
+        bool visible = PageNavigationButtonsEnabled && ActiveViewer is not null && ActiveViewer.ReadPageCountExt > 1;
         var visibility = visible ? Visibility.Visible : Visibility.Collapsed;
         PageNavigationHost.Visibility = visibility;
         PreviousPageBtn.Visibility = NextPageBtn.Visibility = visibility;
