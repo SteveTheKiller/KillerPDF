@@ -13,6 +13,17 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubEmbeddedImageLayoutTests
 {
     [Fact]
+    public void ImageLinksRemainDiagnosedUntilTheirHitRegionsCanBePreserved()
+    {
+        var book = EpubDocument.Open(Package(RgbPng(),
+            "<p><a href='#target'><img src='../images/check.png' alt=''/></a></p><div id='target'/>"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(24, 24, font)
+        { Margin = 2, FontSize = 10 }));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+    }
+
+    [Fact]
     public void AutomaticImageMarginsAreDiagnosedUntilReplacedBoxAlignmentIsSupported()
     {
         var book = EpubDocument.Open(Package(RgbPng(),

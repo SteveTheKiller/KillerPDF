@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using KillerPdf.Engine.ColorManagement;
+using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Formats.Epub;
 using KillerPdf.Engine.Rendering;
@@ -11,6 +12,21 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubNativeLayoutBoundaryTests
 {
+    [Fact]
+    public void LocalTextAnchorsPreserveTheirNativeAndConvertedTargets()
+    {
+        var book = Book(body: "<p><a href='text.xhtml'>A</a></p>");
+        byte[] original = book.ReadResource("EPUB/text.xhtml");
+        var options = Options(book);
+        var layout = book.CreateLayout(options);
+        var placement = Assert.Single(Assert.Single(layout.Pages).TextPlacements);
+        Assert.Equal("EPUB/text.xhtml", placement.LinkTarget);
+        Assert.Equal(0, layout.ResolveNavigationTarget(placement.LinkTarget!).PageIndex);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(options.DefaultFont)));
+        Assert.Equal(0, Assert.Single(new PdfLinkReader(pdf).ReadPage(0)).DestinationPageIndex);
+        Assert.Equal(original, book.ReadResource("EPUB/text.xhtml"));
+    }
+
     [Fact]
     public void NativeLayoutRejectsEnabledProofInsteadOfReturningNormalPixels()
     {
@@ -89,7 +105,6 @@ public sealed class EpubNativeLayoutBoundaryTests
 
     [Theory]
     [InlineData("<p>A</p>", "<style>p { color:red }</style>", false, false)]
-    [InlineData("<p><a href='text.xhtml'>A</a></p>", "", false, false)]
     [InlineData("<p>A</p>", "<script type='text/javascript'>void 0;</script>", false, true)]
     [InlineData("<p>\u00e9</p>", "", false, false)]
     [InlineData("<p>B</p>", "", false, false)]

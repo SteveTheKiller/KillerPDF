@@ -14,6 +14,111 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubCssClassSelectorTests
 {
     [Fact]
+    public void NativeLinkTargetsRetainTheNavigationLengthBound()
+    {
+        var book = EpubDocument.Open(Book("", "<p><a href='#" + new string('a', 4096) + "'>A</a></p>"));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        Assert.Throws<InvalidDataException>(() => book.CreateLayout(new EpubLayoutOptions(80, 80, font)));
+    }
+
+    [Fact]
+    public void LinksAcrossExplicitLineBreaksHaveSeparateRectangles()
+    {
+        var book = EpubDocument.Open(Book("", "<p><a href='#target'>AA<br/>AA</a></p><div id='target'/>"));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 60, MarginPoints = 1.5, FontSizePoints = 15 }));
+        var links = new PdfLinkReader(pdf).ReadPage(0);
+        Assert.Equal(2, links.Count);
+        Assert.Equal(2, links.Select(link => link.Top).Distinct().Count());
+        Assert.All(links, link => { Assert.Equal(1.5, link.Left, 6); Assert.Equal(19.5, link.Right, 6); });
+    }
+
+    [Theory]
+    [InlineData("visibility:hidden", false)]
+    [InlineData("display:none", false)]
+    [InlineData("", true)]
+    public void HiddenAnchorsDoNotCreatePdfLinkRegions(string style, bool linked)
+    {
+        var book = EpubDocument.Open(Book("", "<p><a style='" + style + "' href='#target'>A</a><span>A</span></p><div id='target'/>"));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = book.CreateLayout(new EpubLayoutOptions(80, 80, font) { Margin = 2, FontSize = 20 });
+        Assert.Equal(linked ? 1 : 0, layout.Pages[0].TextPlacements.Count(placement => placement.LinkTarget is not null));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 60, PageHeightPoints = 60, MarginPoints = 1.5, FontSizePoints = 15 }));
+        Assert.Equal(linked ? 1 : 0, new PdfLinkReader(pdf).ReadPage(0).Count);
+    }
+
+    [Fact]
+    public void MissingAnchorFragmentIsDiagnosedDuringConversion()
+    {
+        var book = EpubDocument.Open(Book("", "<p><a href='#missing'>A</a></p>"));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        Assert.Equal("target", Assert.Throws<ArgumentException>(() =>
+            book.ConvertToPdf(new EpubPdfConversionOptions(font))).ParamName);
+    }
+
+    [Fact]
+    public void ConvertedLinkUsesOneRectangleForAnUnbrokenTextRun()
+    {
+        var book = EpubDocument.Open(Book("", "<p><a href='#target'>AA</a></p><p id='target' style='page-break-before:always'>A</p>"));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 60, PageHeightPoints = 60, MarginPoints = 1.5, FontSizePoints = 15 }));
+        var link = Assert.Single(new PdfLinkReader(pdf).ReadPage(0));
+        Assert.Equal(1.5, link.Left, 6);
+        Assert.Equal(19.5, link.Right, 6);
+        Assert.Equal(1, link.DestinationPageIndex);
+    }
+
+    [Fact]
+    public void NestedAnchorsAreDiagnosedInsteadOfChangingTheOuterTarget()
+    {
+        var book = EpubDocument.Open(Book("", "<p><a href='#outer'><span><a href='#inner'>A</a></span></a></p><div id='outer'/><div id='inner'/>"));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(80, 80, font)));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+    }
+
+    [Theory]
+    [InlineData(":link", "<p><a href='#target'>A</a></p>", true, "text.xhtml#target")]
+    [InlineData("a:LINK", "<p><a href='#target'>A</a></p>", true, "text.xhtml#target")]
+    [InlineData("a.note:link", "<p><a class='note' href='#target'>A</a></p>", true, "text.xhtml#target")]
+    [InlineData("a[href]:link", "<p><a href='#target'><span>A</span></a></p>", true, "text.xhtml#target")]
+    [InlineData("a:link", "<p><a>A</a></p>", false, null)]
+    [InlineData("p:link", "<p><a href='#target'>A</a></p>", false, "text.xhtml#target")]
+    [InlineData("a.note:link", "<p><a href='#target'>A</a></p>", false, "text.xhtml#target")]
+    public void LinkPredicatesRetainHrefTypeClassAndInlineAncestry(string selector, string body, bool red, string? target)
+        => Verify(selector + "{color:red}", body + "<div id='target'/>", 2, 1.5, red, false, target);
+
+    [Theory]
+    [InlineData("a:link{color:red}a{color:lime}")]
+    [InlineData("a{color:lime}a:link{color:red}")]
+    [InlineData("a.note{color:lime}a:link{color:red}")]
+    [InlineData("a:link{color:lime}a:link{color:red}")]
+    public void LinkPseudoClassUsesClassSpecificityAndSourceOrder(string css)
+        => Verify(css, "<p><a class='note' href='#target'>A</a></p><div id='target'/>", 2, 1.5, true, false, "text.xhtml#target");
+
+    [Fact]
+    public void ConvertedAnchorPreservesItsLocalPageDestination()
+    {
+        var book = EpubDocument.Open(Book("a:link{color:red}",
+            "<p><a href='#target'>A</a></p><p id='target' style='page-break-before:always'>A</p>"));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 60, PageHeightPoints = 60, MarginPoints = 1.5, FontSizePoints = 15 }));
+        Assert.Equal(2, new PdfPageContentReader(pdf).PageCount);
+        var link = Assert.Single(new PdfLinkReader(pdf).ReadPage(0));
+        Assert.Equal(1, link.DestinationPageIndex);
+        Assert.Null(link.Uri);
+        Assert.InRange(link.Left, 1.49, 1.51);
+    }
+
+    [Fact]
+    public void LinkPseudoClassStylesAHyperlinkAtBothSeams()
+        => Verify("a:link{color:red}", "<p><a href='#target'>A</a></p><div id='target'/>", 2, 1.5, true, false, "text.xhtml#target");
+
+    [Fact]
     public void IdSelectorStylesItsMatchingElementInNativeAndPdfPages()
         => Verify("#target{color:red}", "<p id='target'>A</p>", 2, 1.5, true, false);
 
@@ -277,7 +382,7 @@ public sealed class EpubCssClassSelectorTests
         if (pinned is not null) Assert.Equal(pinned, loaded);
     }
 
-    private static void Verify(string css, string body, double x, double pdfX, bool red, bool blue)
+    private static void Verify(string css, string body, double x, double pdfX, bool red, bool blue, string? linkTarget = null)
     {
         VerifyEngine();
         byte[] source = Book(css, body), original = source.ToArray();
@@ -287,7 +392,8 @@ public sealed class EpubCssClassSelectorTests
         var layout = book.CreateLayout(new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 }, deadline.Token);
         var page = Assert.Single(layout.Pages);
         Assert.Equal("A", page.Text);
-        Assert.Equal(new EpubTextPlacement(0, 0, 1, x, 2, 6, 10) { Color = red ? new PdfRgbColor(1, 0, 0) : null }, Assert.Single(page.TextPlacements));
+        Assert.Equal(new EpubTextPlacement(0, 0, 1, x, 2, 6, 10)
+        { Color = red ? new PdfRgbColor(1, 0, 0) : null, LinkTarget = linkTarget }, Assert.Single(page.TextPlacements));
         var native = layout.RenderPage(0, cancellationToken: deadline.Token);
         Assert.Equal(red ? new float[] { 1, 0, 0, 1 } : [0, 0, 0, 1], native.Pixels.Slice((5 * 30 + (int)x + 5) * 4, 4).ToArray());
         Assert.Equal(blue ? new float[] { 0, 0, 1, 1 } : [1, 1, 1, 1], native.Pixels.Slice((11 * 30 + 2) * 4, 4).ToArray());

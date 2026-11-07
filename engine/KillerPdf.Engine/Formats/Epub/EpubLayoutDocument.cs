@@ -28,6 +28,8 @@ public sealed record EpubTextPlacement(int SpineIndex, int Start, int Length,
 {
     /// <summary>Gets the resolved CSS text color, or null for the fallback color.</summary>
     public PdfRgbColor? Color { get; init; }
+    /// <summary>Gets the package-relative local hyperlink target, without fetching or executing it.</summary>
+    public string? LinkTarget { get; init; }
 }
 
 /// <summary>Locates a native EPUB navigation destination in logical CSS pixels.</summary>
@@ -65,6 +67,32 @@ public sealed class EpubLayoutPage
     internal IReadOnlyList<(int Start, int Length)> HiddenTextRanges { get; }
     internal IReadOnlyList<EpubTextPlacement> NavigationPlacements { get; }
     internal PdfRgbColor? CanvasBackground { get; }
+
+    internal IEnumerable<EpubTextPlacement> LinkRuns(CancellationToken cancellationToken)
+    {
+        EpubTextPlacement? run = null;
+        foreach (var placement in TextPlacements)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (placement.LinkTarget is null || placement.Width <= 0 || placement.Height <= 0)
+            {
+                if (run is not null) yield return run;
+                run = null;
+                continue;
+            }
+            if (run is not null && run.LinkTarget == placement.LinkTarget && run.Top == placement.Top
+                && run.Height == placement.Height && run.Start + run.Length == placement.Start
+                && placement.Left >= run.Left)
+                run = run with { Length = run.Length + placement.Length,
+                    Width = Math.Max(run.Width, placement.Left + placement.Width - run.Left) };
+            else
+            {
+                if (run is not null) yield return run;
+                run = placement;
+            }
+        }
+        if (run is not null) yield return run;
+    }
 }
 
 /// <summary>Owns native EPUB pages, typography and rendering state.</summary>

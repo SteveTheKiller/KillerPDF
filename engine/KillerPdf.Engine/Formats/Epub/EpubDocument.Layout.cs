@@ -119,6 +119,7 @@ public sealed partial class EpubDocument
         LoadNativeStylesheets(resource.Href, content, ref remainingStylesheetBytes,
             ref remainingStylesheetReferences, cancellationToken);
         string text = ReadStructuralText(spineIndex, cancellationToken, content);
+        var linkTargets = new Dictionary<string, string>(StringComparer.Ordinal);
         var formatting = new EpubFormattingTree(content, cancellationToken);
         var bodyMargins = content.ResolveBodyMargins(contentWidth);
         var bodyPadding = content.ResolveBodyPadding(contentWidth);
@@ -680,6 +681,21 @@ public sealed partial class EpubDocument
             bool IsSpace(EpubFormattingTree.Atom atom) => atom.IsSpace;
         }
 
+        string? ResolveLink(EpubNativeContent.Element? owner)
+        {
+            if (owner?.LinkReference is not { } reference) return null;
+            if (reference.Length > 4096)
+                throw new InvalidDataException("Native EPUB hyperlink targets exceed their 4,096-character limit.");
+            if (!linkTargets.TryGetValue(reference, out string? target))
+            {
+                target = NavigationTarget(resource.Href, reference.Trim(' ', '\t', '\r', '\n'));
+                if (target.Length > 4096)
+                    throw new InvalidDataException("Native EPUB hyperlink targets exceed their 4,096-character limit.");
+                linkTargets.Add(reference, target);
+            }
+            return target;
+        }
+
         EpubNativeContent.Style StyleAt(int index) => content.Characters[index]?.Style ?? content.DefaultStyle;
 
         Rune ReadScalar(int index)
@@ -903,7 +919,8 @@ public sealed partial class EpubDocument
                 double logicalTop = baseline - item.Font.Ascender * size / item.Font.UnitsPerEm;
                 var placement = new EpubTextPlacement(spineIndex, item.Index, item.Length, item.Left, logicalTop, item.Width, size)
                 {
-                    Color = item.Style.Color
+                    Color = item.Style.Color,
+                    LinkTarget = ResolveLink(item.Owner)
                 };
                 navigationPlacements.Add(placement);
                 if (item.Style.Hidden) continue;

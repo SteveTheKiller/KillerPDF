@@ -191,6 +191,14 @@ selection and accessibility integration still require implementation and runtime
 
 ## Native EPUB layout (1.9.3 development)
 
+Inline text anchors preserve canonical package-relative `LinkTarget` values on
+native text placements. Initial `:link` matching uses XHTML anchors with an
+unqualified href and class-level specificity. PDF conversion writes local page
+destinations and groups contiguous visible text into line rectangles. Hidden
+anchors do not create links. Nested anchors, linked images, external references
+and other pseudo-classes remain diagnosed; targets retain the 4,096-character
+navigation limit. Native snapshot and interactive link integration remain pending.
+
 Block paragraph/container margins accept `auto`. An explicit content width shares
 remaining horizontal space between automatic margins, including padding and fixed
 opposite margins. Automatic widths use zero automatic margins; vertical automatic

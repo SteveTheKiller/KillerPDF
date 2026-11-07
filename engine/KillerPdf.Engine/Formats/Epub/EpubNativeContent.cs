@@ -32,6 +32,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal sealed class Element(string name, Element? parent, Style style, bool block, int offset, SelectorIdentity identity) : SourceNode
     {
         internal SelectorIdentity Identity { get; } = identity;
+        internal string? LinkReference { get; } = name == "a" && identity.Attributes.TryGetValue(("", "href"), out string? href)
+            ? href : parent?.LinkReference;
         internal bool HasUnderline { get; } = style.Underline || parent?.HasUnderline == true;
         internal string Name { get; } = name;
         internal Element? Parent { get; } = parent;
@@ -130,6 +132,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     {
         string name = xml.LocalName;
         Element? parent = _ancestors.TryPeek(out var ancestor) ? ancestor : null;
+        if (name == "a" && _ancestors.Any(element => element.Name == "a"))
+            throw new NotSupportedException("Native EPUB nested anchors are invalid.");
+        if (name == "img" && parent?.LinkReference is not null)
+            throw new NotSupportedException("Native EPUB linked image regions are not implemented.");
         bool allowed = name switch {
             "html" => parent is null && xml.Depth == 0,
             "head" or "body" => parent?.Name == "html",
@@ -137,8 +143,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "link" => parent?.Name == "head" && xml.GetAttribute("rel") is "icon" or "stylesheet"
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
             "div" or "p" => parent?.Name is "body" or "div",
-            "span" or "br" => parent?.Name is "p" or "span",
-            "img" => parent?.Name is "body" or "div" or "p" or "span",
+            "span" or "br" => parent?.Name is "p" or "span" or "a",
+            "a" => parent?.Name is "p" or "span",
+            "img" => parent?.Name is "body" or "div" or "p" or "span" or "a",
             _ => false };
         if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
             throw new NotSupportedException("Native EPUB XHTML element is not implemented: " + name + ".");
@@ -152,17 +159,21 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             Count(xml.Value.Length);
             attributes[(xml.NamespaceURI, xml.LocalName)] = xml.Value;
-            if (xml.NamespaceURI == "" && xml.LocalName == "style" && name is "body" or "div" or "p" or "span" or "img")
+            if (xml.NamespaceURI == "" && xml.LocalName == "style" && name is "body" or "div" or "p" or "span" or "img" or "a")
                 inlineStyle = xml.Value;
             else if (xml.NamespaceURI == "" && xml.LocalName == "class")
                 classNames = xml.Value;
-            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && name is "body" or "div" or "p" or "span" or "br")
+            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && name is "body" or "div" or "p" or "span" or "br" or "a")
             {
                 // Navigation identity is captured by the structural text reader.
             }
             else if (name == "link" && xml.NamespaceURI == "" && xml.LocalName is "href" or "rel" or "type" or "id")
             {
                 // Packaged references are validated separately from body painting.
+            }
+            else if (name == "a" && xml.NamespaceURI == "" && xml.LocalName == "href")
+            {
+                // Structural reading validates references inside the captured package.
             }
             else if (name == "img" && xml.NamespaceURI == "" && xml.LocalName is "src" or "alt" or "title")
             {
@@ -384,6 +395,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 foreach (string selectorPart in DescendantParts(fullSelector))
                 {
                     string selector = selectorPart;
+                    bool link = selector.EndsWith(":link", StringComparison.OrdinalIgnoreCase);
+                    if (link) selector = selector[..^5];
                     CssAttribute? attribute = null;
                     int bracket = selector.IndexOf('[');
                     if (bracket >= 0)
@@ -457,12 +470,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         type = type[(separator + 1)..];
                         parts[0] = type;
                     }
-                    bool classOnly = selector.StartsWith(".", StringComparison.Ordinal) || selector.Length == 0 && ids.Count > 0;
-                    if (classOnly && attribute is not null || selector.Length > 128 || selector.Length == 0 && ids.Count == 0 || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
+                    bool classOnly = selector.StartsWith(".", StringComparison.Ordinal) || selector.Length == 0 && (ids.Count > 0 || link);
+                    if (classOnly && attribute is not null || selector.Length > 128 || selector.Length == 0 && ids.Count == 0 && !link || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
                         || !char.IsAsciiLetter(part[0])
                         || part.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_'))))
                         throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                    chain.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1, type, []) { Ids = ids.ToArray() });
+                    chain.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1, type, []) { Ids = ids.ToArray(), Link = link });
                 }
                 var target = chain[^1] with { Ancestors = chain.Take(chain.Count - 1).Reverse().ToArray() };
                 if (!_typeRules.TryGetValue(target.Type, out var rules))
@@ -485,9 +498,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private sealed record CssRule(string? NamespaceName, string[] Classes, CssAttribute? Attribute,
         CssProperties Properties, int Order, int TypeSpecificity, string Type, CssRule[] Ancestors)
     {
+        internal bool Link { get; init; }
         internal string[] Ids { get; init; } = [];
-        internal int Specificity => Ids.Length * 65536 + (Classes.Length + (Attribute is null ? 0 : 1)) * 256 + TypeSpecificity
-            + Ancestors.Sum(rule => rule.Ids.Length * 65536 + (rule.Classes.Length + (rule.Attribute is null ? 0 : 1)) * 256 + rule.TypeSpecificity);
+        internal int Specificity => Ids.Length * 65536 + (Classes.Length + (Attribute is null ? 0 : 1) + (Link ? 1 : 0)) * 256 + TypeSpecificity
+            + Ancestors.Sum(rule => rule.Ids.Length * 65536 + (rule.Classes.Length + (rule.Attribute is null ? 0 : 1) + (rule.Link ? 1 : 0)) * 256 + rule.TypeSpecificity);
     }
 
     private static IEnumerable<string> DescendantParts(string selector)
@@ -513,6 +527,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
 
     private bool Matches(CssRule rule, string name, SelectorIdentity identity)
     {
+        if (rule.Link)
+        {
+            CountSelectorWork(2);
+            if (name != "a" || identity.NamespaceName != "http://www.w3.org/1999/xhtml"
+                || !identity.Attributes.ContainsKey(("", "href"))) return false;
+        }
         CountSelectorWork(1);
         foreach (string required in rule.Ids)
         {

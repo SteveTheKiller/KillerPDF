@@ -114,6 +114,18 @@ public sealed partial class EpubDocument
                     .EndText();
             }
         }
+        for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++)
+            foreach (var placement in layout.Pages[pageIndex].LinkRuns(cancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (placement.LinkTarget is not { } target || placement.Width <= 0 || placement.Height <= 0) continue;
+                var destination = layout.ResolveNavigationTarget(target, cancellationToken);
+                builder.AddPageLink(pageIndex, placement.Left * pointsPerCssPixel,
+                    options.PageHeightPoints - (placement.Top + placement.Height) * pointsPerCssPixel,
+                    placement.Width * pointsPerCssPixel, placement.Height * pointsPerCssPixel,
+                    destination.PageIndex, destination: PdfDestination.At(destination.Left * pointsPerCssPixel,
+                        options.PageHeightPoints - destination.Top * pointsPerCssPixel));
+            }
         AddBookmarks(ReadNavigation(cancellationToken), 0);
         cancellationToken.ThrowIfCancellationRequested();
         byte[] result = builder.Build();
