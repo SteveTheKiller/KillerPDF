@@ -225,6 +225,12 @@ optional Latin ligatures while retaining selected font-provided small caps.
 Negative lengths and percentages remain diagnosed. Inline image backgrounds use
 the displayed image height, preserving the original raster dimensions for PDF.
 
+Initial `word-spacing` accepts nonnegative px/em lengths and `normal`, computed
+before inheritance. It expands collapsed word separators without changing glyph
+widths; whole-word wrapping discards the separator at the line edge. It combines
+with letter spacing in native layout and PDF conversion. Negative lengths,
+percentages and other spacing keywords remain diagnosed.
+
 Initial `text-decoration` supports underline, none and CSS-wide reset keywords.
 Ancestor decorations retain their own font metrics and color across descendants;
 a child reset does not erase an ancestor's underline. Visibility applies to the

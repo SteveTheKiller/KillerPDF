@@ -621,6 +621,7 @@ public sealed partial class EpubDocument
                 PdfGlyphOutline outline = selectedReader.Outline(glyph)
                     ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
                 double width = cluster.Advance * style.FontSize;
+                if (character == ' ') width += style.WordSpacing;
                 double tracking = line.Count == 0 ? 0 : (line[^1].Style.LetterSpacing + style.LetterSpacing) / 2;
                 if (character == ' ')
                 {
