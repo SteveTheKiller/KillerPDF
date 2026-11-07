@@ -2069,4 +2069,5 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_CM_PreviousFileHint">Bu dosyanın içeriği farklı. Önceki prova ayarları gözden geçirilebilir.</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">Önceki dosyanın ayarları</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Ayarları gözden geçir</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">Monitör renk düzeltmesi kullanılamıyor. sRGB gösteriliyor.</sys:String>
 </ResourceDictionary>

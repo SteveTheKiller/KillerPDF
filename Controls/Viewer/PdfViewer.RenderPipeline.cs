@@ -9,22 +9,37 @@ namespace KillerPDF.Controls;
 
 public partial class PdfViewer
 {
-    private sealed record RenderWarning(string Message);
+    private sealed record RenderWarning(string Message, string? DisplayFallbackOperation = null);
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<BitmapSource, RenderWarning> RenderWarnings = new();
 
     private static void RememberRenderWarning(BitmapSource bitmap, PdfRenderedPage rendered)
     {
         string message = string.Join(" ", rendered.RenderDiagnostics
-            .Where(item => item.BlocksPublication).Select(item => item.Message));
-        if (message.Length > 0) RenderWarnings.GetValue(bitmap, _ => new RenderWarning(message));
+            .Where(item => item.BlocksPublication && item.Message != rendered.DisplayFallbackOperation)
+            .Select(item => item.Message));
+        if (message.Length > 0 || rendered.DisplayFallbackOperation is not null)
+            RenderWarnings.GetValue(bitmap, _ => new RenderWarning(message, rendered.DisplayFallbackOperation));
     }
 
-    private void PresentRenderWarning(FrameworkElement image, BitmapSource bitmap, int page)
+    private void PresentRenderWarning(FrameworkElement image, BitmapSource bitmap, int page, string? positionStatus = null)
     {
-        string? warning = RenderWarnings.TryGetValue(bitmap, out var result)
-            ? string.Format(Loc("Str_PageRenderError"), page + 1) + ": " + result.Message : null;
+        string? warning = null;
+        if (RenderWarnings.TryGetValue(bitmap, out var result))
+        {
+            if (result.Message.Length > 0)
+                warning = string.Format(Loc("Str_RenderError"),
+                    string.Format(Loc("Str_PageRenderError"), page + 1) + ": " + result.Message);
+            if (result.DisplayFallbackOperation is not null)
+            {
+                string fallback = Loc("Str_CM_DisplayFallback");
+                warning = warning is null
+                    ? (positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageCount)) + ". " + fallback
+                    : warning + " " + fallback;
+            }
+        }
         image.ToolTip = warning;
-        if (warning is not null) SetStatus(string.Format(Loc("Str_RenderError"), warning));
+        if (warning is not null && page == _currentPage
+            && (Host is null || Host.IsViewerFocused(this))) SetStatus(warning);
     }
 
     internal RenderMeasurement? LastPrimaryRenderMeasurement { get; private set; }
@@ -64,7 +79,7 @@ public partial class PdfViewer
             bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
             bitmap.Freeze();
             if (conversion?.FailureOperation is { } failure)
-                RenderWarnings.GetValue(bitmap, _ => new RenderWarning(failure));
+                RenderWarnings.GetValue(bitmap, _ => new RenderWarning("", failure));
             return (bitmap, new RenderMeasurement(page, parse, raster, timer.Elapsed.TotalMilliseconds, 0),
                 monitor is null ? frame : null);
         }
@@ -100,8 +115,6 @@ public partial class PdfViewer
             throw new OperationCanceledException(token);
         byte[] pixels = conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
             ? conversion.BgraPixels.ToArray() : frame.ToSrgbBgra32(token);
-        if (conversion?.FailureOperation is { } failure)
-            proofWarning = proofWarning is null ? failure : proofWarning + " " + failure;
         if (invert && BitmapHelpers.DocInvertImages)
             BitmapHelpers.InvertBgraInPlaceExcept(pixels, width, height, []);
         if (rotation != 0)
@@ -114,7 +127,8 @@ public partial class PdfViewer
             96.0 * width / dipWidth, 96.0 * height / dipHeight, PixelFormats.Bgra32, null);
         bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
         bitmap.Freeze();
-        if (proofWarning is not null) RenderWarnings.GetValue(bitmap, _ => new RenderWarning(proofWarning));
+        if (proofWarning is not null || conversion?.FailureOperation is not null)
+            RenderWarnings.GetValue(bitmap, _ => new RenderWarning(proofWarning ?? "", conversion?.FailureOperation));
         return (bitmap, new RenderMeasurement(page, 0, raster, timer.Elapsed.TotalMilliseconds, 0));
     }
 
@@ -172,7 +186,8 @@ public partial class PdfViewer
             return new PdfRenderedPage(frame.Width, frame.Height, pixels, PdfRenderBackend.Engine, null)
             {
                 RenderDiagnostics = conversion?.FailureOperation is { } failure
-                    ? [new(PdfRenderDiagnosticKind.Degraded, failure)] : []
+                    ? [new(PdfRenderDiagnosticKind.Degraded, failure)] : [],
+                DisplayFallbackOperation = conversion?.FailureOperation
             };
         }
         catch (NotSupportedException error)

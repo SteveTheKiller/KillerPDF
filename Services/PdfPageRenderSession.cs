@@ -864,5 +864,6 @@ internal readonly record struct PdfRenderedPage(
     int Width, int Height, byte[] Pixels, PdfRenderBackend Backend, string? EngineFailure)
 {
     internal IReadOnlyList<PdfRenderDiagnostic> RenderDiagnostics { get; init; } = [];
+    internal string? DisplayFallbackOperation { get; init; }
     internal void RequireComplete(int pageIndex) => PdfRenderCompleteness.RequireComplete(pageIndex, RenderDiagnostics);
 }

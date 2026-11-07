@@ -852,7 +852,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             return new(size, pixels, Color ?? inherited.Color, Background ?? inherited.Background)
             {
                 LineHeightFactor = factor, FontFamilies = FontFamilies ?? inherited.FontFamilies,
-                FontWeight = FontWeight ?? inherited.FontWeight,
+                FontWeight = FontWeight is 0 ? inherited.FontWeight : FontWeight ?? inherited.FontWeight,
                 LetterSpacing = tracking,
                 WordSpacing = wordSpacing,
                 Hidden = Visibility is null or "inherit" or "unset" ? inherited.Hidden : Visibility == "hidden",
@@ -946,7 +946,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
             if (property == "font-weight")
             {
-                if (value.Equals("normal", StringComparison.OrdinalIgnoreCase)) fontWeight = 400;
+                if (value.Equals("inherit", StringComparison.OrdinalIgnoreCase)
+                    || value.Equals("unset", StringComparison.OrdinalIgnoreCase)) fontWeight = 0;
+                else if (value.Equals("normal", StringComparison.OrdinalIgnoreCase)
+                    || value.Equals("initial", StringComparison.OrdinalIgnoreCase)) fontWeight = 400;
                 else if (value.Equals("bold", StringComparison.OrdinalIgnoreCase)) fontWeight = 700;
                 else if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double weight)
                     && double.IsFinite(weight) && weight is >= 1 and <= 1000) fontWeight = weight;
@@ -1080,6 +1083,17 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
             if (property == "font-size")
             {
+                if (value.Equals("inherit", StringComparison.OrdinalIgnoreCase)
+                    || value.Equals("unset", StringComparison.OrdinalIgnoreCase))
+                {
+                    size = new CssLength(1, true);
+                    continue;
+                }
+                if (value.Equals("initial", StringComparison.OrdinalIgnoreCase))
+                {
+                    size = new CssLength(DefaultStyle.FontSize, false);
+                    continue;
+                }
                 if (value.Equals("larger", StringComparison.OrdinalIgnoreCase)
                     || value.Equals("smaller", StringComparison.OrdinalIgnoreCase))
                 {

@@ -386,7 +386,9 @@ GSUB runs and saved PDF resources retain the selected face. Each list is limited
 faces (including the default), 64 MiB of additional font bytes and bounded matching
 work. Backslash escapes and CSS-wide family keywords remain diagnosed.
 `font-weight` accepts normal (400), bold (700), and numeric weights from 1 through
-1000, with inheritance, property-specific cascade and inline overrides. The optional
+1000, with property-specific cascade and inline overrides. Both `font-size` and
+`font-weight` accept `inherit` and `unset` using the immediate computed parent,
+and `initial` using the reader's initial size and normal weight. The optional
 `FontFaceResolver` replaces the legacy resolver and receives the requested family,
 computed weight and explicit default font. A null family requests a variant of that
 default. Return the actual font and weight with `Exact` or `Nearest`; inconsistent

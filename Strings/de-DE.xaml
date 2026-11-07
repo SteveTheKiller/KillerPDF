@@ -2078,4 +2078,5 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_CM_PreviousFileHint">Diese Datei hat einen anderen Inhalt. Frühere Proof-Einstellungen stehen zur Überprüfung bereit.</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">Einstellungen der vorherigen Datei</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Einstellungen überprüfen</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">Die Farbkorrektur für den Monitor ist nicht verfügbar. Anzeige in sRGB.</sys:String>
 </ResourceDictionary>

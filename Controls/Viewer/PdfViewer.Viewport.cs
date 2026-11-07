@@ -363,8 +363,7 @@ namespace KillerPDF.Controls
                 Host?.EnsureSidebarPageVisible(this, nearest);
                 // Explicit navigation already assigned the page before the scroll settles.
                 // Its status still needs refreshing even when the page index now agrees.
-                if (_doc is not null)
-                    SetStatus(string.Format(Loc("Str_PageOf"), nearest + 1, _doc.PageCount) + $" - {DisplayZoomPct():F0}%");
+                PresentCurrentPageStatus();
                 return;
             }
             Host?.PageJumpText = (nearest + 1).ToString();
@@ -385,8 +384,7 @@ namespace KillerPDF.Controls
             // from a scroll sync), so it is also the one that would slip past the mirror in
             // PageList_SelectionChanged. Set it by hand.
             State.CurrentPage = nearest;
-            if (_doc is not null)
-                SetStatus(string.Format(Loc("Str_PageOf"), nearest + 1, _doc.PageCount) + $" - {DisplayZoomPct():F0}%");
+            PresentCurrentPageStatus();
         }
 
         // Shows an edit's result now and again once a reload's scroll has settled. The settle
@@ -716,6 +714,7 @@ namespace KillerPDF.Controls
 
                         PdfRenderedPage? rendered = null;
                         string? monitorWarning = null;
+                        string? displayFallback = null;
                         int w, h;
                         byte[] raw;
                         if (nativeRevision is not null)
@@ -744,9 +743,7 @@ namespace KillerPDF.Controls
                             {
                                 var converted = continuousMonitor.Convert(frame, renderToken);
                                 if (converted.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale) return;
-                                if (converted.FailureOperation is not null)
-                                    monitorWarning = monitorWarning is null ? converted.FailureOperation
-                                        : monitorWarning + " " + converted.FailureOperation;
+                                displayFallback = converted.FailureOperation;
                                 raw = converted.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
                                     ? converted.BgraPixels.ToArray() : frame.ToSrgbBgra32(renderToken);
                             }
@@ -770,14 +767,14 @@ namespace KillerPDF.Controls
                                         }, renderToken);
                                     var converted = continuousMonitor.Convert(frame, renderToken);
                                     if (converted.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale) return;
-                                    monitorWarning = converted.FailureOperation;
+                                    displayFallback = converted.FailureOperation;
                                     w = frame.Width;
                                     h = frame.Height;
                                     raw = converted.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
                                         ? converted.BgraPixels.ToArray() : frame.ToSrgbBgra32(renderToken);
                                     if (rot != 0)
                                         (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
-                                    PublishContinuousBitmap(i, w, h, rot, raw, null, monitorWarning);
+                                    PublishContinuousBitmap(i, w, h, rot, raw, null, monitorWarning, displayFallback);
                                     continue;
                                 }
                                 catch (NotSupportedException exception) { monitorWarning = exception.Message; }
@@ -803,11 +800,11 @@ namespace KillerPDF.Controls
                         if (rot != 0)
                             (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
 
-                        PublishContinuousBitmap(i, w, h, rot, raw, rendered, monitorWarning);
+                        PublishContinuousBitmap(i, w, h, rot, raw, rendered, monitorWarning, displayFallback);
                     }
 
                     void PublishContinuousBitmap(int fi, int fw, int fh, int prot, byte[] bytes,
-                        PdfRenderedPage? rendered, string? monitorWarning)
+                        PdfRenderedPage? rendered, string? monitorWarning, string? displayFallback)
                     {
                         if (cts.IsCancellationRequested) return;
                         // Use the window's own dispatcher, not Application.Current.Dispatcher: during app
@@ -822,8 +819,8 @@ namespace KillerPDF.Controls
                             int ddh = Math.Max(1, (int)Math.Round(targetW * fh / fw));
                             var bmp = BitmapHelpers.BuildScaledBitmap(fw, fh, bytes, ddw, ddh);
                             if (rendered is { } pdfPage) RememberRenderWarning(bmp, pdfPage);
-                            if (monitorWarning is not null)
-                                RenderWarnings.GetValue(bmp, _ => new RenderWarning(monitorWarning));
+                            if (monitorWarning is not null || displayFallback is not null)
+                                RenderWarnings.GetValue(bmp, _ => new RenderWarning(monitorWarning ?? "", displayFallback));
                             if (continuousMonitor is null) CacheRender(session, fi, renderW, prot, bmp,
                                 continuous: true, proofStamp: proof?.Stamp);
                             SetContinuousSlot(fi, bmp);
@@ -1143,7 +1140,7 @@ namespace KillerPDF.Controls
                 if (!keepTiles) ClearSecondaryPages();
                 _pages[pageIndex] = _annotationCanvas;   // the primary is a normal entry in the unified map
                 RenderAllAnnotations(pageIndex);
-                SetStatus(string.Format(Loc("Str_PageOf"), pageIndex + 1, ReadPageCount));
+                PresentCurrentPageStatus();
                 // Defer additional pages until layout has settled so ActualWidth is valid.
                 // RenderPageLinks runs AFTER RenderAdditionalPages so ClearSecondaryPages
                 // inside RenderAdditionalPages doesn't wipe the overlays we just added.
@@ -2328,7 +2325,7 @@ namespace KillerPDF.Controls
                     if (ci >= 0) NavigateContinuousToPage(ci);
                 }
                 if (ci >= 0 && HasReadDocument)
-                    SetStatus(string.Format(Loc("Str_FitWidth"), ci + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
+                    PresentCurrentPageStatus(string.Format(Loc("Str_FitWidth"), ci + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
                 return;
             }
 
@@ -2343,7 +2340,7 @@ namespace KillerPDF.Controls
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, slotW / dipW));
             ApplyZoom(lite);
             if (idx >= 0 && HasReadDocument)
-                SetStatus(string.Format(Loc("Str_FitWidth"), idx + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
+                PresentCurrentPageStatus(string.Format(Loc("Str_FitWidth"), idx + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
         }
 
         internal void FitToPage(bool lite = false, FitScroll scroll = FitScroll.PageTop)
@@ -2386,7 +2383,7 @@ namespace KillerPDF.Controls
                     ResetContinuousFitHorizontalOffset();
                     NavigateContinuousToPage(ci);
                 }
-                SetStatus(string.Format(Loc("Str_FitPage"), ci + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
+                PresentCurrentPageStatus(string.Format(Loc("Str_FitPage"), ci + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
                 return;
             }
 
@@ -2399,7 +2396,7 @@ namespace KillerPDF.Controls
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax,
                 Math.Min(slotW2 / dipW, viewH / dipH2)));
             ApplyZoom(lite);
-            SetStatus(string.Format(Loc("Str_FitPage"), idx + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
+            PresentCurrentPageStatus(string.Format(Loc("Str_FitPage"), idx + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
         }
 
         // Re-fit the main view after a reload. Grid keeps its column-fit (FitToWidth alone would

@@ -2092,4 +2092,5 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_CM_PreviousFileHint">Содержимое этого файла отличается. Предыдущие настройки цветопробы доступны для просмотра.</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">Настройки предыдущего файла</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Просмотреть настройки</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">Цветокоррекция монитора недоступна. Отображение в sRGB.</sys:String>
 </ResourceDictionary>

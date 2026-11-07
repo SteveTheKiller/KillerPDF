@@ -2082,4 +2082,5 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_CM_PreviousFileHint">This file has different contents. Previous proof settings are available for review.</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">Previous file settings</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Review settings</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">Monitor color correction is unavailable. Showing sRGB.</sys:String>
 </ResourceDictionary>

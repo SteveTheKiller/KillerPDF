@@ -2089,4 +2089,5 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_CM_PreviousFileHint">Ce fichier a un contenu différent. Les paramètres d’épreuvage précédents peuvent être examinés.</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">Paramètres du fichier précédent</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Examiner les paramètres</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">La correction des couleurs du moniteur est indisponible. Affichage en sRGB.</sys:String>
 </ResourceDictionary>

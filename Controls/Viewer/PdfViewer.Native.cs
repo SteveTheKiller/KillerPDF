@@ -16,6 +16,17 @@ public partial class PdfViewer
     internal int ReadPageCountExt => ReadPageCount;
     private int ReadPageCount => _nativeDoc?.PageCount ?? _doc?.PageCount ?? 0;
 
+    private void PresentCurrentPageStatus(string? positionStatus = null)
+    {
+        int page = _currentPage;
+        if (!HasReadDocument || page < 0 || page >= ReadPageCount
+            || Host?.IsViewerFocused(this) == false) return;
+        SetStatus(positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageCount) + $" - {DisplayZoomPct():F0}%");
+        if (VisibleCanvasForPage(page)?.Parent is Grid grid && grid.Children.Count > 0
+            && grid.Children[0] is Image image && image.Source is System.Windows.Media.Imaging.BitmapSource bitmap)
+            PresentRenderWarning(image, bitmap, page, positionStatus);
+    }
+
     internal async Task RevealNativeNavigationExt(NativeWorkingDocument owner, PdfReadNavigationDestination destination)
     {
         long request = ++_nativeNavigationRequest;
@@ -59,7 +70,11 @@ public partial class PdfViewer
             PagePreviewPanel.ScrollToHorizontalOffset(horizontal);
             PagePreviewPanel.ScrollToVerticalOffset(PagePreviewPanel.VerticalOffset + visible.Y);
             await Dispatcher.InvokeAsync(UpdateLayout, System.Windows.Threading.DispatcherPriority.Loaded);
-            if (Current()) CaptureActiveIfAny();
+            if (Current())
+            {
+                CaptureActiveIfAny();
+                PresentCurrentPageStatus();
+            }
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {

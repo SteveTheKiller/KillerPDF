@@ -2089,4 +2089,5 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_CM_PreviousFileHint">このファイルの内容は以前と異なります。以前の色校正設定を確認できます。</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">以前のファイルの設定</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">設定を確認</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">モニターの色補正は利用できません。sRGBで表示しています。</sys:String>
 </ResourceDictionary>

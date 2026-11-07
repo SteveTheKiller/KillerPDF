@@ -2073,4 +2073,5 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileHint">此文件的内容与之前不同。可以查看之前的校样设置。</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">先前文件的设置</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">查看设置</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">显示器色彩校正不可用。正在以 sRGB 显示。</sys:String>
 </ResourceDictionary>

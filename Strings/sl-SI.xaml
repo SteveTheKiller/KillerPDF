@@ -1978,4 +1978,5 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_CM_PreviousFileHint">Ta datoteka ima drugačno vsebino. Prejšnje nastavitve poskusnega odtisa so na voljo za pregled.</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">Nastavitve prejšnje datoteke</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Preglej nastavitve</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">Barvna korekcija monitorja ni na voljo. Prikaz v sRGB.</sys:String>
 </ResourceDictionary>

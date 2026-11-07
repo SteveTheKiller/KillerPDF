@@ -115,6 +115,7 @@ public partial class PdfViewer
                             ?? throw new OperationCanceledException();
                         byte[]? managedPixels = null;
                         string? warning = null;
+                        string? displayFallback = null;
                         if (regionMonitor is not null || proof?.Settings.Enabled == true)
                         {
                             try
@@ -125,7 +126,7 @@ public partial class PdfViewer
                                     throw new OperationCanceledException(workToken);
                                 managedPixels = conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
                                     ? conversion.BgraPixels.ToArray() : frame.ToSrgbBgra32(workToken);
-                                warning = conversion?.FailureOperation;
+                                displayFallback = conversion?.FailureOperation;
                             }
                             catch (NotSupportedException exception) { warning = exception.Message; }
                         }
@@ -151,8 +152,8 @@ public partial class PdfViewer
                         var bitmap = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);
                         bitmap.Freeze();
                         if (rendered is { } compatibility) RememberRenderWarning(bitmap, compatibility);
-                        if (warning is not null)
-                            RenderWarnings.GetValue(bitmap, _ => new RenderWarning(warning));
+                        if (warning is not null || displayFallback is not null)
+                            RenderWarnings.GetValue(bitmap, _ => new RenderWarning(warning ?? "", displayFallback));
                         return (bitmap, region);
                     }, token);
                 if (!Current() || !ReferenceEquals(image.Source, source)) return;

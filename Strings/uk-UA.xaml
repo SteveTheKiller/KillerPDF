@@ -2089,4 +2089,5 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_CM_PreviousFileHint">Вміст цього файлу відрізняється. Попередні параметри кольоропроби доступні для перегляду.</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">Параметри попереднього файлу</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Переглянути параметри</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">Корекція кольорів монітора недоступна. Відображення в sRGB.</sys:String>
 </ResourceDictionary>

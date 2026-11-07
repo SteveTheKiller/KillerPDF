@@ -2077,4 +2077,5 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_CM_PreviousFileHint">Ten plik ma inną zawartość. Poprzednie ustawienia próby są dostępne do przeglądu.</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">Ustawienia poprzedniego pliku</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Przejrzyj ustawienia</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">Korekcja kolorów monitora jest niedostępna. Wyświetlanie w sRGB.</sys:String>
 </ResourceDictionary>

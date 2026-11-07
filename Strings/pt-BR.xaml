@@ -2089,4 +2089,5 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_CM_PreviousFileHint">Este arquivo tem um conteúdo diferente. As configurações de prova anteriores estão disponíveis para revisão.</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">Configurações do arquivo anterior</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Revisar configurações</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">A correção de cores do monitor está indisponível. Exibindo em sRGB.</sys:String>
 </ResourceDictionary>

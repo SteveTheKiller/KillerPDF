@@ -2069,4 +2069,5 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_CM_PreviousFileHint">Este archivo tiene un contenido diferente. Los ajustes de prueba anteriores están disponibles para su revisión.</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">Ajustes del archivo anterior</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Revisar ajustes</sys:String>
+    <sys:String x:Key="Str_CM_DisplayFallback">La corrección de color del monitor no está disponible. Se muestra sRGB.</sys:String>
 </ResourceDictionary>
