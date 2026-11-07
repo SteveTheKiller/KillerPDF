@@ -252,8 +252,12 @@ suppresses generated markers.
 
 Structural `ReadText` preserves spaces, tabs and line breaks inside `pre`, including
 trailing whitespace and inline style boundaries. Normal paragraphs still collapse
-whitespace. Nested preformatted blocks remain diagnosed. Native preformatted layout
-and PDF conversion are still unsupported.
+whitespace. Native block `pre` layout and PDF conversion preserve mapped spaces,
+line breaks and source offsets with cascading monospace defaults and 1em vertical
+margins. Blank lines, terminal spaces and supported inline styles survive page
+continuations and independently reopened output. Nested blocks, preserved tabs,
+literal carriage returns, incompatible display/reset modes and oversized unwrapped
+lines remain diagnosed.
 
 Semantic `header`, `footer`, `main`, `nav`, `section`, `article` and `aside`
 containers retain normal block flow, their CSS identity and supported box styles.

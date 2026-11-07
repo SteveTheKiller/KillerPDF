@@ -540,7 +540,7 @@ public sealed partial class EpubDocument
                         foreach (var atom in sequence.Atoms)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            if (!atom.IsSpace && (atom.Reference is not { Source: not null } image
+                            if ((!atom.IsSpace || atom.Owner.Style.PreserveWhitespace) && (atom.Reference is not { Source: not null } image
                                 || image.Owner.MaximumWidth is not { Length.Value: 0 })) return true;
                         }
                     if (child is EpubFormattingTree.Block nested && HasFlowContent(nested)) return true;
@@ -882,7 +882,8 @@ public sealed partial class EpubDocument
                             ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
                         pendingParagraphGap = 0;
                     }
-                    if (atom.Reference is { } reference)
+                    var inlineReference = atom.Reference ?? (atom.HardBreak ? new EpubNativeContent.InlineReference(index, null, atom.Owner) : null);
+                    if (inlineReference is { } reference)
                     {
                         if (reference.Source is null)
                         {
@@ -925,7 +926,7 @@ public sealed partial class EpubDocument
                     var style = atom.Owner.Style;
                     if (InlineCluster(atom) is not { } cluster) continue;
                     char character = atom.IsSpace ? ' ' : text[index];
-                    if (atom.IsSpace && line.Count == 0) continue;
+                    if (atom.IsSpace && line.Count == 0 && !style.PreserveWhitespace) continue;
                     ushort glyph = cluster.Glyphs[0].GlyphId;
                     if (glyph == 0 && character != ' ')
                         throw new NotSupportedException("The native EPUB font has no glyph for this cluster.");
@@ -935,7 +936,7 @@ public sealed partial class EpubDocument
                         ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
                     double width = InlineAdvance(cluster, style, character == ' ');
                     double tracking = Tracking(line.Count == 0 ? null : line[^1].Style, style);
-                    if (character == ' ')
+                    if (character == ' ' && !style.PreserveWhitespace)
                     {
                         firstIndentedWord = false;
                         // Each collapsed separator scans only the following word, keeping lookahead linear.
@@ -973,7 +974,7 @@ public sealed partial class EpubDocument
                             continue;
                         }
                     }
-                    if (tracking + width > contentRight - left && !firstIndentedWord)
+                    if (tracking + width > contentRight - left && (!firstIndentedWord || style.PreserveWhitespace))
                         throw new NotSupportedException("The native EPUB word exceeds the available line width.");
                     left += tracking;
                     line.Add((index, cluster.Length, left, width, cluster.Font, atom.HasSource ? outline : null, null, style,
@@ -981,7 +982,7 @@ public sealed partial class EpubDocument
                     left += width;
                 }
 
-                bool IsSpace(EpubFormattingTree.Atom atom) => atom.IsSpace;
+                bool IsSpace(EpubFormattingTree.Atom atom) => atom.IsSpace && !atom.Owner.Style.PreserveWhitespace;
             }
 
             string? ResolveLink(EpubNativeContent.Element? owner)
@@ -1106,6 +1107,7 @@ public sealed partial class EpubDocument
             void FlushLine(bool finalLine = true)
             {
                 while (line.Count > 0 && line[^1].Image is null
+                    && !line[^1].Style.PreserveWhitespace
                     && (line[^1].Length == 0 || line[^1].Length == 1 && text[line[^1].Index] == ' '))
                     line.RemoveAt(line.Count - 1);
                 if (line.Count == 0) return;
@@ -1140,7 +1142,7 @@ public sealed partial class EpubDocument
                     _ => 0
                 };
                 int spaces = 0;
-                if (block.TextAlign == "justify" && !finalLine)
+                if (block.TextAlign == "justify" && !finalLine && !block.PreserveWhitespace)
                     foreach (var item in line)
                     {
                         cancellationToken.ThrowIfCancellationRequested();

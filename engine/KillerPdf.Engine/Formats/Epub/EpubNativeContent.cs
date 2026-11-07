@@ -17,6 +17,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal double FontWeight { get; init; } = 400;
         internal EpubFontStyle FontStyle { get; init; } = EpubFontStyle.Normal;
         internal bool SmallCaps { get; init; }
+        internal bool PreserveWhitespace { get; init; }
         internal string TextAlign { get; init; } = "left";
         internal double TextIndent { get; init; }
         internal double LetterSpacing { get; init; }
@@ -37,7 +38,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             ? href : parent?.LinkReference;
         internal bool HasUnderline { get; } = style.Underline || parent?.HasUnderline == true;
         internal string Name { get; } = name;
-        internal static bool IsParagraphName(string value) => value is "p" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "hr";
+        internal static bool IsParagraphName(string value) => value is "p" or "pre" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "hr";
         internal bool IsParagraph => IsParagraphName(Name);
         internal bool HasBlockMargins => IsParagraph || IsGroupingContainer(Name);
         internal Element? Parent { get; } = parent;
@@ -105,6 +106,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private static readonly CssProperties UnorderedListDefaults = CssProperties.FromConcrete(new ResolvedProperties(null, null,
         Margins: [new(1, true), new(0, false), new(1, true), new(0, false)],
         Padding: [new(0, false), new(0, false), new(0, false), new(40, false)]));
+    private static readonly CssProperties PreformattedDefaults = CssProperties.FromConcrete(new ResolvedProperties(null, null,
+        FontFamilies: [new EpubFontFamily("monospace", true)],
+        Margins: [new(1, true), new(0, false), new(1, true), new(0, false)]) { PreserveWhitespace = true });
 
     private static CssProperties? HeadingDefaults(string name)
     {
@@ -265,6 +269,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         if (inlineStyle is not null) declarations = declarations.Override(ParseProperties(inlineStyle));
         if (name == "hr") declarations = HorizontalRuleDefaults.Override(declarations);
         if (name == "blockquote") declarations = BlockquoteDefaults.Override(declarations);
+        if (name == "pre") declarations = PreformattedDefaults.Override(declarations);
         if (name is "strong" or "b")
         {
             double parentWeight = parent?.Style.FontWeight ?? DefaultStyle.FontWeight;
@@ -305,6 +310,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         Style style = suppressed ? inherited : properties.Apply(inherited, contentHeight);
         if (!suppressed)
         {
+            if (name == "pre" && properties.Display is not (null or DisplayKind.Block))
+                throw new NotSupportedException("Native EPUB preformatted content requires block display.");
+            if ((name == "pre" || inherited.PreserveWhitespace) && !style.PreserveWhitespace)
+                throw new NotSupportedException("Native EPUB preformatted whitespace resets are not implemented.");
+            if (inherited.PreserveWhitespace && properties.Display is not (null or DisplayKind.Inline))
+                throw new NotSupportedException("Native EPUB preformatted descendants require inline display.");
             if (name == "tbody" && (style.PageBreakBefore || style.PageBreakAfter))
                 throw new NotSupportedException("Native EPUB row-group page breaks are not implemented.");
             if (name is "tr" or "td" && (style.PageBreakBefore || style.PageBreakAfter))
@@ -404,6 +415,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal Text TextNode(string value)
     {
         var owner = _ancestors.Peek();
+        if (owner.Style.PreserveWhitespace && value.Contains('\t'))
+            throw new NotSupportedException("Native EPUB preformatted tabs are not implemented.");
+        if (owner.Style.PreserveWhitespace && value.Contains('\r'))
+            throw new NotSupportedException("Native EPUB preformatted literal carriage returns are not implemented.");
         if (owner.Name == "ul" && !IsFormattingWhitespace(value))
             throw new NotSupportedException("Native EPUB unordered-list text requires a list item.");
         if (owner.Name == "hr")
@@ -1073,6 +1088,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     {
         internal CssDeclaration<MarginLength>? LetterSpacing { get; init; }
         internal CssDeclaration<EpubFontStyle>? FontStyle { get; init; }
+        internal CssDeclaration<bool>? PreserveWhitespace { get; init; }
         internal CssDeclaration<MarginLength>? WordSpacing { get; init; }
         internal CssDeclaration<BoxHeight>? Height { get; init; }
         internal CssProperties Override(CssProperties later) => new(
@@ -1096,7 +1112,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             later.TextDecoration ?? TextDecoration,
             later.MaximumWidth ?? MaximumWidth,
             later.PageBreakAfter ?? PageBreakAfter)
-        { LetterSpacing = later.LetterSpacing ?? LetterSpacing, WordSpacing = later.WordSpacing ?? WordSpacing, Height = later.Height ?? Height, FontStyle = later.FontStyle ?? FontStyle };
+        { LetterSpacing = later.LetterSpacing ?? LetterSpacing, WordSpacing = later.WordSpacing ?? WordSpacing, Height = later.Height ?? Height, FontStyle = later.FontStyle ?? FontStyle, PreserveWhitespace = later.PreserveWhitespace ?? PreserveWhitespace };
         private static CssDeclaration<MarginLength>?[]? Merge(CssDeclaration<MarginLength>?[]? earlier, CssDeclaration<MarginLength>?[]? later) =>
             later is null ? earlier : Enumerable.Range(0, 4).Select(side => later[side] ?? earlier?[side]).ToArray();
         internal static CssProperties FromConcrete(ResolvedProperties value) => new(
@@ -1120,7 +1136,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             value.TextDecoration is { } vTextDecoration ? new CssDeclaration<string>(vTextDecoration) : null,
             value.MaximumWidth is { } vMaximumWidth ? new CssDeclaration<BoxWidth>(vMaximumWidth) : null,
             value.PageBreakAfter is { } vPageBreakAfter ? new CssDeclaration<bool>(vPageBreakAfter) : null)
-        { LetterSpacing = value.LetterSpacing is { } vLetterSpacing ? new CssDeclaration<MarginLength>(vLetterSpacing) : null, WordSpacing = value.WordSpacing is { } vWordSpacing ? new CssDeclaration<MarginLength>(vWordSpacing) : null, Height = value.Height is { } vHeight ? new CssDeclaration<BoxHeight>(vHeight) : null, FontStyle = value.FontStyle is { } vStyle ? new CssDeclaration<EpubFontStyle>(vStyle) : null };
+        { LetterSpacing = value.LetterSpacing is { } vLetterSpacing ? new CssDeclaration<MarginLength>(vLetterSpacing) : null, WordSpacing = value.WordSpacing is { } vWordSpacing ? new CssDeclaration<MarginLength>(vWordSpacing) : null, Height = value.Height is { } vHeight ? new CssDeclaration<BoxHeight>(vHeight) : null, FontStyle = value.FontStyle is { } vStyle ? new CssDeclaration<EpubFontStyle>(vStyle) : null, PreserveWhitespace = value.PreserveWhitespace is { } preserve ? new CssDeclaration<bool>(preserve) : null };
         internal static CssProperties ForKeyword(CssWideKeyword keyword) => new(
             CssDeclaration<CssLength>.Marker(keyword),
             CssDeclaration<CssLength>.Marker(keyword),
@@ -1142,7 +1158,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             CssDeclaration<string>.Marker(keyword),
             CssDeclaration<BoxWidth>.Marker(keyword),
             CssDeclaration<bool>.Marker(keyword))
-        { LetterSpacing = CssDeclaration<MarginLength>.Marker(keyword), WordSpacing = CssDeclaration<MarginLength>.Marker(keyword), Height = CssDeclaration<BoxHeight>.Marker(keyword), FontStyle = CssDeclaration<EpubFontStyle>.Marker(keyword) };
+        { LetterSpacing = CssDeclaration<MarginLength>.Marker(keyword), WordSpacing = CssDeclaration<MarginLength>.Marker(keyword), Height = CssDeclaration<BoxHeight>.Marker(keyword), FontStyle = CssDeclaration<EpubFontStyle>.Marker(keyword), PreserveWhitespace = CssDeclaration<bool>.Marker(keyword) };
     }
 
     private ResolvedProperties ResolveProperties(CssProperties declarations, Element? parent)
@@ -1171,6 +1187,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             LetterSpacing = declarations.LetterSpacing?.Resolve(new MarginLength(0, false), parent is null ? new MarginLength(0, false) : new MarginLength(parent.Style.LetterSpacing, false)),
             FontStyle = declarations.FontStyle?.Resolve(EpubFontStyle.Normal, parent?.Style.FontStyle ?? EpubFontStyle.Normal),
+            PreserveWhitespace = declarations.PreserveWhitespace?.Resolve(false, parent?.Style.PreserveWhitespace ?? false),
             WordSpacing = declarations.WordSpacing?.Resolve(new MarginLength(0, false), parent is null ? new MarginLength(0, false) : new MarginLength(parent.Style.WordSpacing, false)),
             Height = declarations.Height?.Resolve(new BoxHeight(null), parent is null ? new BoxHeight(null) : new BoxHeight(parent.HeightPercentage))
         };
@@ -1206,6 +1223,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     {
         internal MarginLength? LetterSpacing { get; init; }
         internal EpubFontStyle? FontStyle { get; init; }
+        internal bool? PreserveWhitespace { get; init; }
         internal MarginLength? WordSpacing { get; init; }
         internal BoxHeight? Height { get; init; }
         internal ResolvedProperties Override(ResolvedProperties inline) =>
@@ -1216,7 +1234,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 inline.FontWeight ?? FontWeight, inline.TextIndent ?? TextIndent, inline.FontVariant ?? FontVariant,
                 inline.TopBorder ?? TopBorder, inline.Width ?? Width, inline.Visibility ?? Visibility,
                 inline.TextDecoration ?? TextDecoration, inline.MaximumWidth ?? MaximumWidth,
-                inline.PageBreakAfter ?? PageBreakAfter) { LetterSpacing = inline.LetterSpacing ?? LetterSpacing, WordSpacing = inline.WordSpacing ?? WordSpacing, Height = inline.Height ?? Height, FontStyle = inline.FontStyle ?? FontStyle };
+                inline.PageBreakAfter ?? PageBreakAfter) { LetterSpacing = inline.LetterSpacing ?? LetterSpacing, WordSpacing = inline.WordSpacing ?? WordSpacing, Height = inline.Height ?? Height, FontStyle = inline.FontStyle ?? FontStyle, PreserveWhitespace = inline.PreserveWhitespace ?? PreserveWhitespace };
 
         private static MarginLength?[]? MergeMargins(MarginLength?[]? earlier, MarginLength?[]? later) =>
             later is null ? earlier : Enumerable.Range(0, 4).Select(side => later[side] ?? earlier?[side]).ToArray();
@@ -1243,6 +1261,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 LineHeightFactor = factor, FontFamilies = FontFamilies ?? inherited.FontFamilies,
                 FontWeight = FontWeight is 0 ? inherited.FontWeight : FontWeight ?? inherited.FontWeight,
                 FontStyle = FontStyle ?? inherited.FontStyle,
+                PreserveWhitespace = PreserveWhitespace ?? inherited.PreserveWhitespace,
                 LetterSpacing = tracking,
                 WordSpacing = wordSpacing,
                 Hidden = Visibility is null or "inherit" or "unset" ? inherited.Hidden : Visibility == "hidden",

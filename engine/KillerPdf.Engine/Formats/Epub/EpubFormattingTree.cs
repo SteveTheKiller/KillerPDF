@@ -22,7 +22,7 @@ internal sealed class EpubFormattingTree
         internal List<Atom> Atoms { get; } = new();
     }
     internal readonly record struct Atom(int Offset, EpubNativeContent.Element Owner,
-        EpubNativeContent.InlineReference? Reference = null, bool IsSpace = false, bool HasSource = true);
+        EpubNativeContent.InlineReference? Reference = null, bool IsSpace = false, bool HasSource = true, bool HardBreak = false);
 
     internal Block Root { get; }
     internal Dictionary<int, InlineSequence> TextSequences { get; } = new();
@@ -70,8 +70,12 @@ internal sealed class EpubFormattingTree
                         }
                         else if (!space)
                             throw new InvalidDataException("Native EPUB source text has no normalized position.");
-                        if (space && sequence.Atoms.LastOrDefault() is { IsSpace: true }) continue;
-                        sequence.Atoms.Add(new(mapped ? index : cursor, text.Owner, IsSpace: space, HasSource: mapped));
+                        bool preserved = text.Owner.Style.PreserveWhitespace;
+                        if (preserved && !mapped)
+                            throw new InvalidDataException("Native EPUB preserved text has no source position.");
+                        if (!preserved && space && sequence.Atoms.LastOrDefault() is { IsSpace: true }) continue;
+                        sequence.Atoms.Add(new(mapped ? index : cursor, text.Owner, IsSpace: space, HasSource: mapped,
+                            HardBreak: preserved && text.Value[raw] == '\n'));
                     }
                     continue;
                 }
