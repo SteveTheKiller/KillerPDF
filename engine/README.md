@@ -204,6 +204,15 @@ Named head metadata and the legacy `Content-Style-Type=text/css` declaration
 remain outside page text and do not execute directives. Other pragmas, unknown
 metadata attributes and metadata in body content remain diagnosed. Original
 XHTML resources remain unchanged.
+Empty `title=""` attributes add no advisory text and remain available to CSS
+matching. Advisory titles with text remain diagnosed except for image metadata.
+
+CSS `height:auto` and bounded nonnegative percentages retain content-driven height
+on supported nonroot elements. All admitted normal-flow containing heights are
+automatic; [CSS percentage height rules](https://www.w3.org/TR/CSS22/visudet.html#the-height-property)
+therefore use automatic height. Visible root percentage heights, definite sizes,
+floats and positioned boxes remain diagnosed. Adding definite containing heights
+requires extending this bounded policy rather than discarding their declarations.
 
 Inline text anchors preserve canonical package-relative `LinkTarget` values on
 native text placements. Initial `:link` matching uses XHTML anchors with an
@@ -547,7 +556,9 @@ which outranks type count; equal specificity follows source order, and propertie
 still cascade independently. The default namespace constrains the
 implied universal selector. Identifiers use the bounded letter-leading ASCII
 subset. Type selectors with optional classes also support one terminal attribute
-presence or whitespace-token predicate, such as `span[epub|type~='bridgehead']`.
+presence, exact-value or whitespace-token predicate, such as
+`span[epub|type~='bridgehead']` or `h2[title='']`. Exact matching compares the full
+case-sensitive value, including empty strings; empty whitespace tokens never match.
 Attribute matching uses case-sensitive expanded names; namespace aliases bind by
 URI, and default element namespaces do not apply to unqualified attribute names.
 Inert `type` metadata is accepted on supported paragraphs and spans. Attribute

@@ -84,7 +84,20 @@ public sealed class EpubCssAttributeTests
     }
 
     [Theory]
-    [InlineData("p[epub|type='bridgehead']")]
+    [InlineData("p[epub|type='bridgehead']", "bridgehead", true)]
+    [InlineData("p[epub|type='bridgehead']", "bridgehead other", false)]
+    [InlineData("p[epub|type~='bridgehead']", "bridgehead other", true)]
+    [InlineData("p[epub|type='bridgehead other']", "bridgehead other", true)]
+    [InlineData("p[epub|type='Bridgehead']", "bridgehead", false)]
+    [InlineData("p[epub|type='']", "", true)]
+    [InlineData("p[epub|type~='']", "", false)]
+    [InlineData("p[epub|type=bridgehead]", "bridgehead", true)]
+    [InlineData("p[epub|type='a~=b']", "a~=b", true)]
+    [InlineData("p[type='bridgehead']", "bridgehead", false)]
+    public void ExactAttributesCompareEntireValuesAndPreserveTokenMatching(string selector, string value, bool matches)
+        => Verify(Declaration + selector + "{color:red}", "<p epub:type=\"" + value + "\">A</p>", matches);
+
+    [Theory]
     [InlineData("p[epub|type^='bridgehead']")]
     [InlineData("p[epub|type$='bridgehead']")]
     [InlineData("p[epub|type*='bridgehead']")]
@@ -94,6 +107,8 @@ public sealed class EpubCssAttributeTests
     [InlineData("p[epub|type][class]")]
     [InlineData("p[epub|type].note")]
     [InlineData("p[epub|type~='bridgehead' i]")]
+    [InlineData("p[epub|type=]")]
+    [InlineData("p[epub|type=='bridgehead']")]
     [InlineData("p[epub|type")]
     public void UnsupportedAttributeSyntaxRetainsExplicitDiagnostic(string selector)
         => Reject(Declaration + selector + "{color:red}", "Native EPUB CSS selector is not implemented.");
@@ -115,6 +130,8 @@ public sealed class EpubCssAttributeTests
         Reject<InvalidDataException>(string.Concat(Enumerable.Repeat("p[type]{}", 4097)),
             "Native EPUB CSS selectors exceed their 4,096-selector limit.");
         Reject<InvalidDataException>("@namespace e 'http://www.idpf.org/2007/ops';" + string.Concat(Enumerable.Repeat("p[e|type~='a']{}", 4096)),
+            "Native EPUB CSS selector matching exceeds its work limit.", string.Concat(Enumerable.Repeat("<p epub:type=\"a\">A</p>", 16)));
+        Reject<InvalidDataException>("@namespace e 'http://www.idpf.org/2007/ops';" + string.Concat(Enumerable.Repeat("p[e|type='a']{}", 4096)),
             "Native EPUB CSS selector matching exceeds its work limit.", string.Concat(Enumerable.Repeat("<p epub:type=\"a\">A</p>", 16)));
     }
 
