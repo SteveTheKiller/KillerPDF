@@ -388,8 +388,9 @@ paragraph gaps. Consecutive breaks retain blank line heights through pagination,
 and styled text keeps its source offsets. Structural normalization still omits
 leading breaks before any text and trims trailing breaks.
 Words wider than the content box are diagnosed explicitly.
-Initial tables require rows and cells, optionally grouped in `tbody`, plain cell
-text, positive explicit table and cell widths, zero spacing and no cell padding.
+Initial tables require rows and cells, optionally grouped in `tbody`, plain or
+linked cell text, positive explicit table and cell widths, zero spacing and no cell padding.
+Text links retain separate hit regions across column gutters.
 Body groups retain source order and ancestry for inherited styles and selectors;
 columns and whole-row pagination remain shared across groups. Empty groups add no text.
 Empty table `summary` attributes remain inert and available to CSS selectors.

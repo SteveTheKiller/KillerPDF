@@ -17,6 +17,32 @@ public sealed class EpubCssClassSelectorTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void TableCellLinksKeepSeparateHitRegionsAcrossTheColumnGutter(bool grouped)
+    {
+        const string target = "https://example.invalid/cell";
+        byte[] source = Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}",
+            "<table>" + (grouped ? "<tbody>" : "")
+            + "<tr><td><a href='" + target + "'>A</a></td><td><a href='" + target + "'>A</a></td></tr>"
+            + (grouped ? "</tbody>" : "") + "</table>"), original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var snapshot = PdfReadSnapshot.OpenEpub(source,
+            new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+        var nativeLinks = snapshot.ReadLinkRegions(0);
+        Assert.Equal(new[] { new PdfContentBounds(1.5, 18, 6, 25.5), new PdfContentBounds(10.5, 18, 15, 25.5) },
+            nativeLinks.Select(link => link.Bounds));
+        Assert.All(nativeLinks, link => Assert.Equal(target, link.Target));
+        var pdf = PdfDocument.Open(EpubDocument.Open(source).ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var links = new PdfLinkReader(pdf).ReadPage(0);
+        Assert.Equal(new[] { (1.5, 18d, 6d, 25.5), (10.5, 18d, 15d, 25.5) },
+            links.Select(link => (link.Left, link.Bottom, link.Right, link.Top)));
+        Assert.All(links, link => Assert.Equal(target, link.Uri));
+        Assert.Equal(original, source);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void MultipleTableBodiesRetainRowOrderColorsAndAtomicPagination(bool emptyGroups)
     {
         string empty = emptyGroups ? "<tbody/>" : "";

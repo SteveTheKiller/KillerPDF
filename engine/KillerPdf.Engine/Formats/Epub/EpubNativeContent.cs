@@ -181,7 +181,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             _ when paragraph => parent?.Name is "body" or "div",
             "strong" or "b" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b",
             "span" or "br" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b",
-            "a" => parent?.IsParagraph == true || parent?.Name is "span" or "body" or "div" or "strong" or "b",
+            "a" => parent?.IsParagraph == true || parent?.Name is "span" or "body" or "div" or "strong" or "b" or "td",
             "img" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b",
             _ => false };
         if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
