@@ -241,6 +241,11 @@ selection and accessibility integration still require implementation and runtime
 
 ## Native EPUB layout (1.9.3 development)
 
+Structural `ReadText` preserves spaces, tabs and line breaks inside `pre`, including
+trailing whitespace and inline style boundaries. Normal paragraphs still collapse
+whitespace. Nested preformatted blocks remain diagnosed. Native preformatted layout
+and PDF conversion are still unsupported.
+
 Semantic `header`, `footer`, `main`, `nav`, `section`, `article` and `aside`
 containers retain normal block flow, their CSS identity and supported box styles.
 `blockquote` defaults to 1em vertical margins and 40px horizontal margins; nested

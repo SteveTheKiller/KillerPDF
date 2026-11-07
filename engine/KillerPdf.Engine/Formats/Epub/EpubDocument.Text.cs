@@ -22,6 +22,8 @@ public sealed partial class EpubDocument
         bool foundBody = false;
         int bodyDepth = -1;
         int styleDepth = -1;
+        int preDepth = -1;
+        int preservedTextEnd = 0;
         int nodeCount = 0;
         try
         {
@@ -94,6 +96,11 @@ public sealed partial class EpubDocument
                     if (reader.LocalName == "style") styleDepth = reader.IsEmptyElement ? -1 : reader.Depth;
                     if (styleDepth >= 0) continue;
                     if (native?.CurrentElementDisplayNone == true) continue;
+                    if (reader.LocalName == "pre")
+                    {
+                        if (preDepth >= 0) throw new NotSupportedException("Nested EPUB preformatted text blocks are unsupported.");
+                        if (!reader.IsEmptyElement) preDepth = reader.Depth;
+                    }
                     Separate(TextBlockLines(reader.LocalName));
                     if (reader.LocalName == "img")
                     {
@@ -118,6 +125,7 @@ public sealed partial class EpubDocument
                 }
                 else if (reader.NodeType == XmlNodeType.EndElement)
                 {
+                    if (reader.Depth == preDepth) preDepth = -1;
                     if (reader.Depth == styleDepth) styleDepth = -1;
                     if (reader.Depth == bodyDepth) bodyDepth = -1;
                     else if (bodyDepth >= 0 && styleDepth < 0 && native?.InsideDisplayNone != true) Separate(TextBlockLines(reader.LocalName));
@@ -131,7 +139,13 @@ public sealed partial class EpubDocument
                     {
                         char character = reader.Value[offset];
                         cancellationToken.ThrowIfCancellationRequested();
-                        if (character is ' ' or '\t' or '\r' or '\n')
+                        if (preDepth >= 0)
+                        {
+                            pendingSpace = false;
+                            Append(character, source is null ? null : new(source, offset));
+                            preservedTextEnd = result.Length;
+                        }
+                        else if (character is ' ' or '\t' or '\r' or '\n')
                         {
                             if (!pendingSpace && result.Length > 0)
                                 pendingSource = source is null ? null : new(source, offset);
@@ -152,7 +166,9 @@ public sealed partial class EpubDocument
             throw new InvalidDataException("Invalid EPUB XHTML text document.", exception);
         }
         if (!foundBody) throw new InvalidDataException("Missing EPUB XHTML body.");
-        string text = result.ToString().TrimEnd(' ', '\n');
+        int textLength = result.Length;
+        while (textLength > preservedTextEnd && result[textLength - 1] is ' ' or '\n') textLength--;
+        string text = result.ToString(0, textLength);
         native?.Trim(text.Length);
         return text;
 
@@ -175,7 +191,7 @@ public sealed partial class EpubDocument
 
     private static int TextBlockLines(string name) => name switch
     {
-        "p" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "section" or "article" or
+        "p" or "pre" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "section" or "article" or
             "blockquote" or "header" or "footer" or "aside" or "nav" or "address" or "figure" or "figcaption" or "main" => 2,
         "ul" or "ol" or "li" or "dl" or "dt" or "dd" or "hr" or "table" or "tbody" or "tr" or "td" => 1,
         _ => 0

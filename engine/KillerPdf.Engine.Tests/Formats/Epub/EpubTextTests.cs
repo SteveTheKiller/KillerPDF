@@ -42,7 +42,7 @@ public sealed partial class EpubDocumentTests
 
     [Theory]
     [InlineData("<table><caption>Caption</caption><tr><td>One</td></tr></table>")]
-    [InlineData("<pre>  Code\n  Indent</pre>")]
+    [InlineData("<pre>  Code<pre>  Indent</pre></pre>")]
     [InlineData("<iframe>Fallback</iframe>")]
     [InlineData("<img alt='Alternative'/>")]
     [InlineData("<svg xmlns='http://www.w3.org/2000/svg'><text>Diagram</text></svg>")]
