@@ -19,9 +19,11 @@ public static class WindowsPdfColorProfileReader
         try
         {
             var profile = new Profile { Type = 1, Data = name, Bytes = checked((uint)((profileName.Length + 1) * 2)) };
-            handle = OpenColorProfileW(ref profile, 1, 1, 3);
+            // Keep the ICC container instead of extracting an embedded WCS device model.
+            const uint DontUseEmbeddedWcsProfiles = 1;
+            handle = WcsOpenColorProfileW(ref profile, 0, 0, 1, 1, 3, DontUseEmbeddedWcsProfiles);
             if (handle == 0)
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "OpenColorProfileW failed.");
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "WcsOpenColorProfileW failed.");
         }
         finally { Marshal.FreeHGlobal(name); }
         try
@@ -54,7 +56,8 @@ public static class WindowsPdfColorProfileReader
 
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [DllImport("mscms.dll", ExactSpelling = true, SetLastError = true)]
-    static extern nint OpenColorProfileW(ref Profile profile, uint access, uint share, uint creation);
+    static extern nint WcsOpenColorProfileW(ref Profile profile, nint camp, nint gmmp,
+        uint access, uint share, uint creation, uint flags);
 
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [DllImport("mscms.dll", ExactSpelling = true, SetLastError = true)]
