@@ -104,8 +104,12 @@ and `ri`, with an image's explicit intent taking precedence. The detached image
 keeps that intent when reused under a different destination state. Profiles must
 provide the captured transform, RGB input, unit ranges and no extra dependencies;
 unsupported revisions, alternates and metadata remain diagnosed.
-Encoded, decoded and serialized assets are bounded to 5 MiB. Other color spaces,
-default color substitutions, other filters, predictors, masks and uncaptured context remain refused.
+DeviceRGB images can also retain a raw, same-size eight-bit DeviceGray soft mask.
+Its original alpha bytes survive extraction and reuse. Mask Decode, Matte, filters,
+nested masks and ICC images with masks remain refused. Encoded and decoded image
+plus mask data share the 5 MiB limit; serialized assets have the same limit.
+Other color spaces, default color substitutions, other filters, predictors,
+other masks and uncaptured context remain refused.
 These backend APIs do not yet provide application image-selection or Copy/Cut tools.
 
 ### Author complete documents
@@ -150,7 +154,8 @@ detached raw or Flate-encoded eight-bit DeviceRGB or supported RGB ICC image on 
 colored patterns and caller-authored stamp appearances. Resources are shared by
 asset identity, retain encoded bytes and interpolation, and exclude the source
 page's unrelated content. Negative dimensions flip the image. Raw assets require
-PDF 1.0; Flate assets require PDF 1.2, and supported ICC assets require PDF 1.3.
+PDF 1.0; Flate assets require PDF 1.2, supported ICC assets require PDF 1.3,
+and soft-mask assets require PDF 1.4, including inside forms.
 Uncolored patterns reject these colored
 assets, including through nested forms and patterns. This bounded authoring slice
 does not implement application Copy/Cut or additional source color spaces.

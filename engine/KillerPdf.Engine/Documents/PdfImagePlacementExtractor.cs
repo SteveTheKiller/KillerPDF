@@ -25,7 +25,21 @@ public static class PdfImagePlacementExtractor
         if (document.PasswordAuthenticationRole == PdfPasswordAuthenticationRole.User
             && (document.DeclaredPermissions is not PdfDocumentPermissions permissions || !permissions.AllowContentCopying))
             throw new InvalidOperationException("The PDF user password does not permit copying image content.");
-        if (!selection.CanSetBounds || selection.Resource is not { } image)
+        bool maskedOccurrence = selection.UnsupportedReason == "ImageMask"
+            && selection.Resource is { } maskedImage && maskedImage.Dictionary.ContainsKey(Name("SMask"))
+            && !maskedImage.Dictionary.ContainsKey(Name("Mask")) && !maskedImage.Dictionary.ContainsKey(Name("ImageMask"))
+            && !maskedImage.Dictionary.ContainsKey(Name("OC"))
+            && selection.Placement is { } placement
+            && double.IsFinite(placement.A) && double.IsFinite(placement.D)
+            && double.IsFinite(placement.E) && double.IsFinite(placement.F)
+            && placement.B == 0 && placement.C == 0 && placement.A != 0 && placement.D != 0
+            && double.IsFinite(placement.E + placement.A) && double.IsFinite(placement.F + placement.D)
+            && double.IsFinite(selection.BoundingBox.Width) && double.IsFinite(selection.BoundingBox.Height)
+            && selection.BoundingBox.Width > 0 && selection.BoundingBox.Height > 0
+            && selection.BoundingBox == new PdfContentBounds(Math.Min(placement.E, placement.E + placement.A),
+                Math.Min(placement.F, placement.F + placement.D), Math.Max(placement.E, placement.E + placement.A),
+                Math.Max(placement.F, placement.F + placement.D));
+        if ((!selection.CanSetBounds && !maskedOccurrence) || selection.Resource is not { } image)
             throw new NotSupportedException("Image resource extraction requires a complete simple image occurrence.");
         var page = PdfPageTree.Read(document).Pages[selection.PageIndex];
         if (!page.InheritedValues.TryGetValue(Name("Resources"), out var resourceValue)
@@ -40,7 +54,7 @@ public static class PdfImagePlacementExtractor
             && (Resolve(spacesValue) is not PdfDictionary spaces || spaces.ContainsKey(Name("DefaultRGB"))))
             throw new NotSupportedException("Image extraction does not yet preserve default color-space substitutions.");
         var dictionary = image.Dictionary;
-        foreach (string key in new[] { "DecodeParms", "Decode", "Mask", "SMask", "ImageMask", "SMaskInData", "OC", "Alternates", "OPI" })
+        foreach (string key in new[] { "DecodeParms", "Decode", "Mask", "ImageMask", "SMaskInData", "OC", "Alternates", "OPI" })
             if (dictionary.ContainsKey(Name(key)))
                 throw new NotSupportedException("Image extraction does not yet preserve image property: " + key + ".");
         bool flate = false;
@@ -58,6 +72,8 @@ public static class PdfImagePlacementExtractor
         PdfName renderingIntent = Name("RelativeColorimetric");
         if (Resolve(colorValue) is not PdfName color || color.ValueAsLatin1() != "DeviceRGB")
         {
+            if (dictionary.ContainsKey(Name("SMask")))
+                throw new NotSupportedException("Image extraction does not yet preserve ICC images with soft masks.");
             if (dictionary.TryGetValue(Name("Intent"), out var intent))
                 renderingIntent = Resolve(intent) as PdfName
                     ?? throw new NotSupportedException("Image rendering intent requires one standard name.");
@@ -70,7 +86,55 @@ public static class PdfImagePlacementExtractor
         if (Integer("BitsPerComponent") != 8)
             throw new NotSupportedException("Image extraction currently requires eight-bit samples.");
         long pixels = (long)width * height;
-        if (pixels > MaximumAssetBytes / 3)
+        PdfStream? softMask = null;
+        if (dictionary.TryGetValue(Name("SMask"), out var maskValue))
+        {
+            int nodes = 0;
+            PdfObject ResolveMask(PdfObject value)
+            {
+                for (int depth = 0; ; depth++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (depth >= 32 || ++nodes > 128)
+                        throw new NotSupportedException("The soft-mask graph exceeds its nesting or node limit.");
+                    if (value is not PdfIndirectReference reference) return value;
+                    value = document.Resolve(reference);
+                }
+            }
+            if (ResolveMask(maskValue) is not PdfStream mask)
+                throw new NotSupportedException("Image extraction requires a raw DeviceGray soft-mask stream.");
+            var maskEntries = new Dictionary<PdfName, PdfObject>();
+            foreach (var entry in mask.Dictionary)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (++nodes > 128)
+                    throw new NotSupportedException("The soft-mask graph exceeds its node limit.");
+                string key = entry.Key.ValueAsLatin1();
+                if (key is not ("Type" or "Subtype" or "Width" or "Height" or "BitsPerComponent"
+                    or "ColorSpace" or "Length" or "Interpolate"))
+                    throw new NotSupportedException("Image extraction does not yet preserve soft-mask property: " + key + ".");
+                var value = ResolveMask(entry.Value);
+                if (value is not (PdfName or PdfInteger or PdfBoolean))
+                    throw new NotSupportedException("Soft-mask metadata requires scalar values.");
+                maskEntries.Add(entry.Key, value);
+            }
+            bool MaskName(string key, string expected) => maskEntries.TryGetValue(Name(key), out var value)
+                && value is PdfName name && name.ValueAsLatin1() == expected;
+            bool MaskInteger(string key, long expected) => maskEntries.TryGetValue(Name(key), out var value)
+                && value is PdfInteger integer && integer.Value == expected;
+            if (!MaskName("Subtype", "Image") || !MaskName("ColorSpace", "DeviceGray")
+                || maskEntries.ContainsKey(Name("Type")) && !MaskName("Type", "XObject")
+                || !MaskInteger("Width", width) || !MaskInteger("Height", height) || !MaskInteger("BitsPerComponent", 8)
+                || maskEntries.TryGetValue(Name("Interpolate"), out var interpolation) && interpolation is not PdfBoolean)
+                throw new NotSupportedException("Image extraction requires a matching eight-bit DeviceGray soft mask.");
+            if (mask.EncodedData.Length != pixels)
+                throw new FormatException("The soft-mask payload does not match its dimensions.");
+            if (pixels > MaximumAssetBytes / 4
+                || (long)image.EncodedData.Length + mask.EncodedData.Length > MaximumAssetBytes)
+                throw new NotSupportedException("The image and soft mask exceed the detached asset size limit.");
+            softMask = new PdfStream(new PdfDictionary(maskEntries), mask.EncodedData.Span);
+        }
+        if (pixels > MaximumAssetBytes / (softMask is null ? 3 : 4))
             throw new NotSupportedException("The image exceeds the detached asset size limit.");
         if (image.EncodedData.Length > MaximumAssetBytes)
             throw new NotSupportedException("The encoded image exceeds the detached asset size limit.");
@@ -112,6 +176,7 @@ public static class PdfImagePlacementExtractor
         var seed = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(width, height).Build());
         var seedPage = PdfPageTree.Read(seed).Pages[0];
         var update = new PdfIncrementalUpdateBuilder(seed);
+        if (softMask is not null) entries[Name("SMask")] = update.AddObject(softMask);
         if (profile is not null)
         {
             entries[Name("ColorSpace")] = new PdfArray([Name("ICCBased"), update.AddObject(profile)]);

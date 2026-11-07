@@ -9,14 +9,14 @@ namespace KillerPdf.Engine.Authoring;
 internal sealed class PdfImageAssetGraphWriter
 {
     private const int MaximumBytes = 5 * 1024 * 1024;
-    private sealed record ImageGraph(PdfStream Image, PdfStream? Profile);
+    private sealed record ImageGraph(PdfStream Image, PdfStream? Profile, PdfStream? SoftMask);
     private readonly Dictionary<PdfImageAsset, ImageGraph> _images = [];
     private readonly Dictionary<PdfImageAsset, PdfIndirectReference> _references = [];
 
     internal PdfVersion MinimumVersion(PdfImageAsset asset, CancellationToken cancellationToken = default)
     {
         var graph = ReadImage(asset, cancellationToken);
-        return graph.Profile is not null ? new PdfVersion(1, 3)
+        return graph.SoftMask is not null ? new PdfVersion(1, 4) : graph.Profile is not null ? new PdfVersion(1, 3)
             : graph.Image.Dictionary.ContainsKey(Name("Filter")) ? new PdfVersion(1, 2) : new PdfVersion(1, 0);
     }
 
@@ -28,6 +28,14 @@ internal sealed class PdfImageAssetGraphWriter
         if (_references.TryGetValue(asset, out var known)) return known;
         var graph = ReadImage(asset, cancellationToken);
         var image = graph.Image;
+        if (graph.SoftMask is not null)
+        {
+            var maskReference = reserve();
+            define(maskReference, graph.SoftMask);
+            var entries = image.Dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
+            entries[Name("SMask")] = maskReference;
+            image = new PdfStream(new PdfDictionary(entries), image.EncodedData.Span);
+        }
         if (graph.Profile is not null)
         {
             var profileReference = reserve();
@@ -77,10 +85,10 @@ internal sealed class PdfImageAssetGraphWriter
                 throw new NotSupportedException("The detached image graph exceeds its node limit.");
             string key = entry.Key.ValueAsLatin1();
             if (key is not ("Type" or "Subtype" or "Width" or "Height" or "ColorSpace"
-                or "BitsPerComponent" or "Length" or "Filter" or "Interpolate" or "Intent"))
+                or "BitsPerComponent" or "Length" or "Filter" or "Interpolate" or "Intent" or "SMask"))
                 throw new NotSupportedException("Detached image authoring does not support image property: " + key + ".");
-            // ICCBased is the only accepted dependency; other metadata is direct.
-            if (key != "ColorSpace" && entry.Value is not (PdfName or PdfInteger or PdfBoolean))
+            // Only the captured color profile and raw soft mask may be dependencies.
+            if (key is not ("ColorSpace" or "SMask") && entry.Value is not (PdfName or PdfInteger or PdfBoolean))
                 throw new NotSupportedException("Detached image authoring requires direct scalar image metadata.");
         }
         bool IsName(string key, string expected) => dictionary.TryGetValue(Name(key), out var value)
@@ -88,6 +96,39 @@ internal sealed class PdfImageAssetGraphWriter
         bool IsInteger(string key, long expected) => dictionary.TryGetValue(Name(key), out var value)
             && value is PdfInteger integer && integer.Value == expected;
         PdfStream? profile = null;
+        PdfStream? softMask = null;
+        if (dictionary.TryGetValue(Name("SMask"), out var maskValue))
+        {
+            if (!IsName("ColorSpace", "DeviceRGB") || maskValue is not PdfIndirectReference
+                || Resolve(maskValue) is not PdfStream mask)
+                throw new NotSupportedException("Detached soft masks require an owned DeviceRGB image graph.");
+            foreach (var entry in mask.Dictionary)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (++nodes > 128)
+                    throw new NotSupportedException("The detached image graph exceeds its node limit.");
+                if (entry.Key.ValueAsLatin1() is not ("Type" or "Subtype" or "Width" or "Height"
+                    or "ColorSpace" or "BitsPerComponent" or "Length" or "Interpolate")
+                    || entry.Value is not (PdfName or PdfInteger or PdfBoolean))
+                    throw new NotSupportedException("Detached soft-mask metadata must be raw scalar image metadata.");
+            }
+            bool MaskName(string key, string expected) => mask.Dictionary.TryGetValue(Name(key), out var value)
+                && value is PdfName name && name.ValueAsLatin1() == expected;
+            bool MaskInteger(string key, long expected) => mask.Dictionary.TryGetValue(Name(key), out var value)
+                && value is PdfInteger integer && integer.Value == expected;
+            if (!MaskName("Subtype", "Image") || !MaskName("ColorSpace", "DeviceGray")
+                || mask.Dictionary.ContainsKey(Name("Type")) && !MaskName("Type", "XObject")
+                || !MaskInteger("Width", asset.Width) || !MaskInteger("Height", asset.Height)
+                || !MaskInteger("BitsPerComponent", 8)
+                || mask.Dictionary.TryGetValue(Name("Interpolate"), out var interpolation) && interpolation is not PdfBoolean)
+                throw new NotSupportedException("Detached soft masks require matching eight-bit DeviceGray samples.");
+            long pixels = (long)asset.Width * asset.Height;
+            if (mask.EncodedData.Length != pixels)
+                throw new FormatException("The detached soft-mask payload does not match its dimensions.");
+            if (pixels > MaximumBytes / 4 || (long)image.EncodedData.Length + mask.EncodedData.Length > MaximumBytes)
+                throw new NotSupportedException("The detached image and soft mask exceed their combined size limit.");
+            softMask = new PdfStream(new PdfDictionary(mask.Dictionary), mask.EncodedData.Span);
+        }
         if (!IsName("ColorSpace", "DeviceRGB"))
         {
             if (!dictionary.TryGetValue(Name("ColorSpace"), out var color)
@@ -116,7 +157,7 @@ internal sealed class PdfImageAssetGraphWriter
             && image.EncodedData.Length != (long)asset.Width * asset.Height * 3)
             throw new FormatException("The detached image payload does not match its dimensions.");
         cancellationToken.ThrowIfCancellationRequested();
-        var copy = new ImageGraph(new PdfStream(new PdfDictionary(dictionary), image.EncodedData.Span), profile);
+        var copy = new ImageGraph(new PdfStream(new PdfDictionary(dictionary), image.EncodedData.Span), profile, softMask);
         _images.Add(asset, copy);
         return copy;
     }
