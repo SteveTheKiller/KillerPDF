@@ -178,9 +178,11 @@ public sealed partial class EpubDocument
                 Rune scalar = ReadScalar(runEnd);
                 if (!ReferenceEquals(font, FontFor(owner?.Style ?? content.DefaultStyle, scalar.Value))) break;
                 ushort glyph = font.GetGlyphId(scalar.Value);
+                bool substituted = glyph == 0 && scalar.Value == 0xA0;
+                if (substituted) glyph = BlankSpace(font);
                 if (glyph == 0 && scalar.Value != ' ')
                     throw new NotSupportedException($"The native EPUB font has no glyph for U+{scalar.Value:X4}.");
-                run.Add(Cluster(runEnd, scalar.Utf16SequenceLength, glyph));
+                run.Add(Cluster(runEnd, scalar.Utf16SequenceLength, glyph, substituted));
                 runEnd += scalar.Utf16SequenceLength;
             }
             if (!latin && smallCaps && run.Any(cluster => Rune.GetUnicodeCategory(ReadScalar(cluster.Start))
@@ -263,13 +265,21 @@ public sealed partial class EpubDocument
         }
         TrueTypeFont FontFor(EpubNativeContent.Style style, int? scalar = null)
         {
+            TrueTypeFont? spaceFallback = null;
+            bool Accept(TrueTypeFont selected)
+            {
+                if (scalar is null || selected.GetGlyphId(scalar.Value) != 0) return true;
+                if (scalar == 0xA0 && spaceFallback is null && BlankSpace(selected) != 0)
+                    spaceFallback = selected;
+                return false;
+            }
             foreach (var family in style.FontFamilies ?? [])
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (++fontWork > 1_000_000)
                     throw new InvalidDataException("Native EPUB font matching exceeds its work limit.");
                 if (resolveFamily(family, style.FontWeight, style.FontStyle) is { } selected
-                    && (scalar is null || selected.GetGlyphId(scalar.Value) != 0)) return selected;
+                    && Accept(selected)) return selected;
             }
             if (options.FontFaceResolver is not null)
             {
@@ -277,13 +287,24 @@ public sealed partial class EpubDocument
                 if (++fontWork > 1_000_000)
                     throw new InvalidDataException("Native EPUB font matching exceeds its work limit.");
                 if (resolveFamily(null, style.FontWeight, style.FontStyle) is { } selected
-                    && (scalar is null || selected.GetGlyphId(scalar.Value) != 0)) return selected;
+                    && Accept(selected)) return selected;
             }
+            if (style.FontStyle == EpubFontStyle.Normal && style.FontWeight == 400 && Accept(options.DefaultFont))
+                return options.DefaultFont;
+            if (spaceFallback is not null) return spaceFallback;
             if (style.FontStyle != EpubFontStyle.Normal)
                 throw new NotSupportedException("Native EPUB has no resolved font face for the requested style.");
             if (style.FontWeight != 400)
                 throw new NotSupportedException("Native EPUB has no resolved font face for the requested weight.");
             return options.DefaultFont;
+        }
+        ushort BlankSpace(TrueTypeFont selected)
+        {
+            ushort glyph = selected.GetGlyphId(' ');
+            if (glyph == 0) return 0;
+            if (!readers.TryGetValue(selected, out var selectedReader))
+                readers.Add(selected, selectedReader = new TrueTypeOutlineReader(selected));
+            return selectedReader.Outline(glyph) is { Contours.Count: 0 } ? glyph : (ushort)0;
         }
         Rune ReadScalar(int index)
         {
@@ -923,7 +944,7 @@ public sealed partial class EpubDocument
                                 double between = (previousTracking + nextStyle.LetterSpacing) / 2;
                                 if (firstCharacter) leadingTracking = between;
                                 else wordWidth += between;
-                                wordWidth += nextCluster.Advance * nextStyle.FontSize;
+                                wordWidth += InlineAdvance(nextCluster, nextStyle, false);
                                 previousTracking = nextStyle.LetterSpacing;
                                 firstCharacter = false;
                             }
@@ -982,8 +1003,9 @@ public sealed partial class EpubDocument
                     [new(spaceGlyph, spaceFont.GetAdvanceWidth(spaceGlyph) / (double)spaceFont.UnitsPerEm, 0, 0)]);
             }
 
-            static double InlineAdvance(EpubGlyphCluster cluster, EpubNativeContent.Style style, bool space)
-                => cluster.Advance * style.FontSize + (space ? style.WordSpacing : 0);
+            double InlineAdvance(EpubGlyphCluster cluster, EpubNativeContent.Style style, bool space)
+                => cluster.Advance * style.FontSize
+                    + (space || cluster.Length == 1 && text[cluster.Start] == '\u00A0' ? style.WordSpacing : 0);
 
             static double Tracking(EpubNativeContent.Style? previous, EpubNativeContent.Style current)
                 => previous is null ? 0 : (previous.LetterSpacing + current.LetterSpacing) / 2;

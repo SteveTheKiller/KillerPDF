@@ -378,7 +378,14 @@ Mapped punctuation characters in the General Punctuation block and mapped charac
 in the Currency Symbols block are also supported. Combining marks, complex scripts,
 bidi controls, joiners, variation selectors and other unsupported characters still
 require implementation and are diagnosed explicitly.
-Missing supported glyphs report their full code point. Chapters follow declared spine order and
+When no selected family maps U+00A0, a mapped blank space glyph in the same style
+and weight can supply its advance without adding a line-break opportunity. Real
+U+00A0 mappings in later families take precedence over this fallback. Source text,
+UTF-16 offsets and converted PDF Unicode retain U+00A0, including repeated and
+leading/trailing occurrences. Word spacing contributes to its placement, word
+lookahead and intrinsic table widths. Missing or visibly painted space glyphs do
+not qualify. Other missing supported glyphs report their full code point.
+Chapters follow declared spine order and
 begin on fresh pages. It returns immutable pages and logical UTF-16 text
 placements in CSS pixels. Whole words wrap at spaces, and default block paragraphs have one font-size
 gap between their line boxes. Wrapped lines and paragraphs continue onto new pages
