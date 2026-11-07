@@ -223,7 +223,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             {
                 // Semantic type metadata is inert; selectors compare its expanded name.
             }
-            else if (xml.NamespaceURI == "" && xml.LocalName == "title" && xml.Value.Length == 0)
+            else if (xml.NamespaceURI == "" && xml.Value.Length == 0
+                && (xml.LocalName == "title" || name == "table" && xml.LocalName == "summary"))
             {
                 // Empty advisory metadata has no displayed content.
             }

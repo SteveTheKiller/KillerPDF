@@ -380,6 +380,7 @@ leading breaks before any text and trims trailing breaks.
 Words wider than the content box are diagnosed explicitly.
 Initial tables require direct `table` / `tr` / `td` structure, plain cell text,
 positive explicit table and cell widths, zero spacing and no cell padding.
+Empty table `summary` attributes remain inert and available to CSS selectors.
 Only ASCII formatting whitespace is ignored between table parts. Other text,
 including nonbreaking spaces, requires a cell and is diagnosed outside one.
 Cell percentages resolve against the table once. Every row must use the same

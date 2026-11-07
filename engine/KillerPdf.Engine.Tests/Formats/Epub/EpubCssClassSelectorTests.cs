@@ -15,6 +15,27 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubCssClassSelectorTests
 {
     [Fact]
+    public void EmptyTableSummaryRemainsInertAndAvailableToAttributeSelectors()
+    {
+        byte[] source = Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}table[summary='']{color:red}",
+            "<table summary=''><tr><td>A</td><td>A</td></tr></table>"), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A\nA", page.Text);
+        Assert.Equal(2, page.TextPlacements.Count);
+        Assert.All(page.TextPlacements, item => Assert.Equal(new PdfRgbColor(1, 0, 0), item.Color));
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, layout.RenderPage(0).Pixels.Slice((5 * 30 + 7) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var frame = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(30, 36));
+        Assert.Empty(frame.Diagnostics);
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, frame.Pixels.Slice((5 * 30 + 7) * 4, 4).ToArray());
+        Assert.Equal(original, source);
+    }
+
+    [Fact]
     public void AsciiFormattingWhitespaceBetweenTablePartsKeepsTextAndColumns()
     {
         var book = EpubDocument.Open(Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}",
@@ -116,6 +137,7 @@ public sealed class EpubCssClassSelectorTests
     [Theory]
     [InlineData("<table><tbody><tr><td>A</td><td>A</td></tr></tbody></table>")]
     [InlineData("<table><caption>A</caption><tr><td>A</td><td>A</td></tr></table>")]
+    [InlineData("<table summary='Description'><tr><td>A</td><td>A</td></tr></table>")]
     [InlineData("<table><tr><td colspan='2'>A</td></tr></table>")]
     [InlineData("<table><tr><td rowspan='2'>A</td><td>A</td></tr></table>")]
     [InlineData("<table><tr><td><table><tr><td>A</td></tr></table></td><td>A</td></tr></table>")]
