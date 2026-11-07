@@ -42,6 +42,15 @@ public sealed partial class EpubDocument
                     native?.Count(reader.Value.Length);
                 if (reader.NodeType == XmlNodeType.Element)
                 {
+                    if (reader.NamespaceURI == "http://www.w3.org/2000/svg" && reader.LocalName == "svg")
+                    {
+                        if (bodyDepth < 0 || reader.Depth <= bodyDepth)
+                            throw new NotSupportedException("Native EPUB SVG covers require body content.");
+                        var cover = ReadSvgCover(reader, resource.Href, native, ref nodeCount, cancellationToken);
+                        pendingSpace = false;
+                        native?.AddSvgImage(cover.Reference, cover.Width, cover.Height, result.Length);
+                        continue;
+                    }
                     native?.Enter(reader);
                     if (reader.LocalName == "script")
                         throw new NotSupportedException("Scripted EPUB XHTML text is unsupported.");

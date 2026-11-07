@@ -478,6 +478,19 @@ public sealed partial class EpubDocument
                 lineBlock = block;
                 var image = ReadNativeImage(resource.Href, source, imageCache, ref imageBytes, cancellationToken);
                 var imageSize = ImageSize(image, replaced.Owner);
+                double paintLeft = contentLeft, paintTop = 0, flowHeight = imageSize.Height;
+                if (replaced.Owner.SvgViewBox is { } viewBox)
+                {
+                    flowHeight = options.PageHeight - 2 * options.Margin - bodyMargins.Top
+                        - bodyMargins.Bottom - bodyPadding.Top - bodyPadding.Bottom;
+                    if (!double.IsFinite(flowHeight) || flowHeight <= 0)
+                        throw new NotSupportedException("Native EPUB SVG covers require a positive body viewport.");
+                    double viewportScale = Math.Min(contentWidth / viewBox.Width, flowHeight / viewBox.Height);
+                    double imageScale = Math.Min(viewBox.Width / image.Width, viewBox.Height / image.Height) * viewportScale;
+                    imageSize = (image.Width * imageScale, image.Height * imageScale);
+                    paintLeft += (contentWidth - imageSize.Width) / 2;
+                    paintTop = (flowHeight - imageSize.Height) / 2;
+                }
                 if (imageSize.Width == 0) return;
                 if (imageSize.Width > contentWidth || imageSize.Height > options.PageHeight - 2 * options.Margin)
                     throw new NotSupportedException("The native EPUB block image exceeds the available page dimensions.");
@@ -487,17 +500,17 @@ public sealed partial class EpubDocument
                         ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
                     pendingParagraphGap = 0;
                 }
-                if (top + imageSize.Height > options.PageHeight - options.Margin)
+                if (top + flowHeight > options.PageHeight - options.Margin)
                 {
                     FinishPage(replaced.Offset);
                     top = options.Margin;
                 }
-                AddBlockBackgrounds(imageSize.Height);
+                AddBlockBackgrounds(flowHeight);
                 if (!replaced.Owner.Style.Hidden)
-                    glyphs.Add(new NativeImagePaint(image, contentLeft, top) { Width = imageSize.Width, Height = imageSize.Height });
+                    glyphs.Add(new NativeImagePaint(image, paintLeft, top + paintTop) { Width = imageSize.Width, Height = imageSize.Height });
                 if (backgrounds.Count + glyphs.Count > 100_000)
                     throw new InvalidDataException("The native page exceeds its paint limit.");
-                top += imageSize.Height;
+                top += flowHeight;
                 pageHasContent = true;
                 return;
             }

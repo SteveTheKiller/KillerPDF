@@ -16,10 +16,18 @@ public sealed partial class EpubDocument
             throw new NotSupportedException("Native EPUB images require a packaged source.", exception);
         }
         if (target.Contains('#') || !Manifest.Any(item => item.Href == target
-            && item.MediaType == "image/png" && Tokens(item.Properties).All(property => property == "cover-image")))
-            throw new NotSupportedException("Native EPUB images require a packaged PNG manifest resource.");
+            && item.MediaType is "image/png" or "image/jpeg"
+            && Tokens(item.Properties).All(property => property == "cover-image")))
+            throw new NotSupportedException("Native EPUB images require a packaged PNG or JPEG manifest resource.");
         if (cache.TryGetValue(target, out var cached)) return cached;
         ReadOnlyMemory<byte> bytes = _resources[target];
+        if (Manifest.Any(item => item.Href == target && item.MediaType == "image/jpeg"))
+        {
+            var jpeg = ReadNativeJpeg(bytes, retainedBytes, cancellationToken);
+            retainedBytes += jpeg.Samples.LongLength;
+            cache.Add(target, jpeg);
+            return jpeg;
+        }
         var data = bytes.Span;
         if (data.Length < 33 || !PdfPngDecoder.HasSignature(data)
             || BinaryPrimitives.ReadUInt32BigEndian(data[8..]) != 13

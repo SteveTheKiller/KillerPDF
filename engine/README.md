@@ -191,12 +191,26 @@ selection and accessibility integration still require implementation and runtime
 
 ## Native EPUB layout (1.9.3 development)
 
-PNG images support `max-width` in packaged and inline styles, using px, em or
+PNG and supported JPEG images support `max-width` in packaged and inline styles, using px, em or
 containing-block percentages, with `none` resetting the constraint. Images shrink
 proportionally without enlarging or resampling stored pixels. Native rendering and
 PDF conversion use the same placement dimensions; zero maximum width omits paint.
 The normal specificity cascade applies independently of display mode. Maximum
 widths on non-image elements remain explicitly unsupported.
+
+Initial JPEG layout accepts eight-bit Gray/RGB sequential and progressive sources,
+with supported JFIF square-pixel and Adobe color metadata. ICC, EXIF/orientation,
+thumbnails and additional metadata remain explicitly unsupported. Preflight bounds
+source pixels, padded component storage, progressive coefficients and retained
+image buffers before decoding. Original resources remain unchanged.
+
+Static SVG cover wrappers support one packaged raster image, a zero-origin viewBox,
+100% page-body viewport dimensions and centered `xMidYMid meet` scaling on both the
+wrapper and image. Body margins and padding constrain the viewport. Block container
+parents, inherited hiding, source dimensions and explicit PDF conversion share the
+same placement. Active content, external references, other drawing elements,
+transforms, custom SVG styles and additional image attributes are diagnosed.
+This is a bounded cover subset, not general SVG rendering.
 
 Initial `text-decoration` supports underline, none and CSS-wide reset keywords.
 Ancestor decorations retain their own font metrics and color across descendants;

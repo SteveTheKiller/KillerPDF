@@ -42,6 +42,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal BorderSide? TopBorder { get; init; }
         internal BoxWidth? Width { get; init; }
         internal BoxWidth? MaximumWidth { get; init; }
+        internal (double Width, double Height)? SvgViewBox { get; init; }
         internal List<SourceNode> Children { get; } = new();
 
         internal double VerticalMargin(int side, double width, double fallback, bool padding = false)
@@ -103,6 +104,25 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal Element? Body { get; private set; }
     internal bool CurrentElementDisplayNone { get; private set; }
     internal bool InsideDisplayNone => _ancestors.TryPeek(out var element) && element.IsDisplayNone;
+
+    internal void AddSvgImage(string reference, double width, double height, int offset)
+    {
+        if (!_ancestors.TryPeek(out var parent) || parent.Name is not ("body" or "div")
+            || !parent.IsBlock && !parent.IsDisplayNone)
+            throw new NotSupportedException("Native EPUB SVG covers require a block body or container parent.");
+        var identity = new SelectorIdentity("http://www.w3.org/2000/svg", [], new());
+        var properties = ResolveRules("svg", identity);
+        if ((properties with { Margins = null, Padding = null }) != default
+            || properties.Margins?.Any(value => value is not null) == true
+            || properties.Padding?.Any(value => value is not null) == true)
+            throw new NotSupportedException("Native EPUB SVG cover CSS is not implemented.");
+        var element = new Element("svg", parent, parent.Style with { Background = null }, true, offset, identity)
+        {
+            SvgViewBox = (width, height), IsDisplayNone = parent.IsDisplayNone
+        };
+        parent.Children.Add(element);
+        if (!element.IsDisplayNone) Inlines.Add(new(offset, reference, element));
+    }
 
     internal void Enter(XmlReader xml)
     {
