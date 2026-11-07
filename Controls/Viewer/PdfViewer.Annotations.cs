@@ -20,6 +20,26 @@ namespace KillerPDF.Controls
     // changes. Window members spelled bare here resolve through PdfViewer.Bridge.cs.
     public partial class PdfViewer
     {
+        private UndoEntry? _annotationDragUndo;
+
+        private void CaptureAnnotationDragUndo(int page)
+        {
+            _annotationDragUndo ??= new UndoEntry(UndoKind.PageSnapshot, WasDirty: _isDirty,
+                AnnotSnapshot: new Dictionary<int, List<PageAnnotation>>());
+            var snapshot = _annotationDragUndo.Value.AnnotSnapshot!;
+            if (!snapshot.ContainsKey(page))
+                snapshot[page] = _annotations.TryGetValue(page, out var annotations)
+                    ? [.. annotations.Select(CloneHistoryAnnotation).Where(item => item is not null).Cast<PageAnnotation>()]
+                    : [];
+        }
+
+        private void CommitAnnotationDragUndo()
+        {
+            var entry = _annotationDragUndo;
+            _annotationDragUndo = null;
+            if (entry is { } captured) PushUndo(captured);
+        }
+
         private double CanvasLetterSpacing(int pageIndex)
         {
             double spacing = _textLetterSpacing;
@@ -335,6 +355,7 @@ namespace KillerPDF.Controls
 
         internal void ClearSelection()
         {
+            CancelSourceImageDrag();
             _sourceImageSelection = null;
             if (_selectionBorder is not null)
             {
@@ -479,6 +500,7 @@ namespace KillerPDF.Controls
 
         private void DeleteSelected()
         {
+            if (DeleteSelectedSourceImage()) return;
             // Gather the primary selection plus any shift-selected annotations, de-duplicated.
             var toDelete = new List<PageAnnotation>();
             if (_selectedAnnotation is not null) toDelete.Add(_selectedAnnotation);
@@ -1337,6 +1359,7 @@ namespace KillerPDF.Controls
                                     if (ReplacementLayers.CanMoveTogether(new[] { pa }.Concat(
                                         _dragGroupOrig.Select(member => member.a))))
                                     {
+                                        _annotationDragUndo = null;
                                         _isDraggingAnnot = true;
                                         _dragAnnotStart = pos;
                                         _dragAnnotOrigPos = AnnotGetPos(pa);
@@ -1353,6 +1376,7 @@ namespace KillerPDF.Controls
                         {
                             if (!shiftSel && !_ocrRegionMode && TrySelectSourceImageExt(pageIdx, pos))
                             {
+                                BeginSourceImageDrag(_gestureCanvas ?? _activeCanvas, pos);
                                 if (_viewMode == ViewMode.Grid) _currentPage = pageIdx;
                                 e.Handled = true;
                                 break;
@@ -1610,6 +1634,7 @@ namespace KillerPDF.Controls
 
         internal void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
+            if (MoveSourceImageDrag(e)) { e.Handled = true; return; }
             // Don't interfere with mouse interaction inside form field overlays.
             if (e.OriginalSource is DependencyObject moveSrc && IsFormFieldElement(moveSrc))
                 return;
@@ -1821,6 +1846,7 @@ namespace KillerPDF.Controls
             {
                 double dx = pos.X - _dragAnnotStart.X;
                 double dy = pos.Y - _dragAnnotStart.Y;
+                if (dx != 0 || dy != 0) CaptureAnnotationDragUndo(_dragAnnot.PageIndex);
                 if (_dragGroupOrig.Count > 0)
                 {
                     // Rigid group move: clamp ONE shared delta against the group's combined bounds so the
@@ -1986,6 +2012,7 @@ namespace KillerPDF.Controls
 
         internal void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            if (FinishSourceImageDrag()) { e.Handled = true; return; }
             // Don't process release events that originate inside the crop confirm bar.
             if (_cropConfirmBar is not null && e.OriginalSource is DependencyObject cropSrc &&
                 IsDescendantOf(cropSrc, _cropConfirmBar))
@@ -2052,6 +2079,8 @@ namespace KillerPDF.Controls
                     if (_dragGroupOrig.Count == 0 && drop is { } d && d.page != oldPage && _doc is not null
                         && d.page >= 0 && d.page < _doc.PageCount)
                     {
+                        CaptureAnnotationDragUndo(oldPage);
+                        CaptureAnnotationDragUndo(d.page);
                         var pt = e.GetPosition(d.canvas);
                         AnnotSetPos(da, new Point(pt.X - (_dragAnnotStart.X - _dragAnnotOrigPos.X),
                                                   pt.Y - (_dragAnnotStart.Y - _dragAnnotOrigPos.Y)));
@@ -2063,6 +2092,7 @@ namespace KillerPDF.Controls
                         RenderAllAnnotations(oldPage);
                         RenderAllAnnotations(d.page);
                         SelectAnnotation(da, AnnotBounds(da));
+                        CommitAnnotationDragUndo();
                         MarkDirty();
                         return;
                     }
@@ -2075,6 +2105,7 @@ namespace KillerPDF.Controls
                     }
                     else if (da.GroupId.Length > 0 || da.PairLinked && da.PairId.Length > 0) SelectGroup(da);
                     else SelectAnnotation(da, AnnotBounds(da));
+                    CommitAnnotationDragUndo();
                     MarkDirty();
                 }
                 _dragGroupOrig.Clear();
@@ -2713,6 +2744,7 @@ namespace KillerPDF.Controls
         // the window deactivated. Leaves the annotation selected at its last position so it stays usable.
         private void FinishStuckGesture()
         {
+            CommitAnnotationDragUndo();
             PageAnnotation? keep = _dragAnnot;
             keep ??= _resizeTextAnnot;
             keep ??= _resizeHlAnnot;

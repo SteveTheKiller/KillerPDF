@@ -389,7 +389,8 @@ namespace KillerPDF.Shell
                 Viewer.DeleteSelectedFormFieldExt();
                 e.Handled = true;
             }
-            else if (key == Key.Delete && (_selectedAnnotation is not null || _selectedSet.Count > 0))
+            else if (key == Key.Delete && (_selectedAnnotation is not null || _selectedSet.Count > 0
+                || ActiveViewer.SelectedSourceImageExt is not null))
             {
                 DeleteSelected();
                 e.Handled = true;

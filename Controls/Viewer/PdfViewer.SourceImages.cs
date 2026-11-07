@@ -1,16 +1,128 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using KillerPDF.Services;
 
 namespace KillerPDF.Controls;
 
 public partial class PdfViewer
 {
-    private (PdfWorkingDocument Owner, ImageAnnotation Image)? _sourceImageSelection;
+    private (PdfWorkingDocument Owner, PdfImagePlacementSelection Occurrence, ImageAnnotation Image)? _sourceImageSelection;
+    private (Canvas Canvas, Point Start, Point Original, Point Current)? _sourceImageDrag;
+
+    private void BeginSourceImageDrag(Canvas canvas, Point point)
+    {
+        if (_sourceImageSelection is not { } selection || !ReferenceEquals(selection.Owner, _doc)
+            || _doc is not { IsReadOnly: false } || !selection.Occurrence.CanSetBounds) return;
+        _sourceImageDrag = (canvas, point, selection.Image.Position, selection.Image.Position);
+        canvas.CaptureMouse();
+    }
+
+    private void CancelSourceImageDrag()
+    {
+        if (_sourceImageDrag is not { } drag) return;
+        _sourceImageDrag = null;
+        if (ReferenceEquals(Mouse.Captured, drag.Canvas)) drag.Canvas.ReleaseMouseCapture();
+        if (_selectionBorder is not null)
+        {
+            Canvas.SetLeft(_selectionBorder, drag.Original.X);
+            Canvas.SetTop(_selectionBorder, drag.Original.Y);
+        }
+    }
+
+    private bool MoveSourceImageDrag(MouseEventArgs e)
+    {
+        if (_sourceImageDrag is not { } drag) return false;
+        if (e.LeftButton != MouseButtonState.Pressed || _sourceImageSelection is not { } selection
+            || !ReferenceEquals(selection.Owner, _doc))
+        {
+            CancelSourceImageDrag();
+            return true;
+        }
+        Vector delta = e.GetPosition(drag.Canvas) - drag.Start;
+        if (Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance
+            && Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance) return true;
+        Point position = new(
+            Math.Clamp(drag.Original.X + delta.X, 0, Math.Max(0, drag.Canvas.ActualWidth - selection.Image.SourceWidth)),
+            Math.Clamp(drag.Original.Y + delta.Y, 0, Math.Max(0, drag.Canvas.ActualHeight - selection.Image.SourceHeight)));
+        _sourceImageDrag = (drag.Canvas, drag.Start, drag.Original, position);
+        if (_selectionBorder is not null)
+        {
+            Canvas.SetLeft(_selectionBorder, position.X);
+            Canvas.SetTop(_selectionBorder, position.Y);
+        }
+        return true;
+    }
+
+    private bool FinishSourceImageDrag()
+    {
+        if (_sourceImageDrag is not { } drag) return false;
+        _sourceImageDrag = null;
+        if (ReferenceEquals(Mouse.Captured, drag.Canvas)) drag.Canvas.ReleaseMouseCapture();
+        if (_sourceImageSelection is not { } selection || !ReferenceEquals(selection.Owner, _doc)
+            || _doc is not { IsReadOnly: false } || drag.Current == drag.Original) return true;
+        int page = selection.Occurrence.PageIndex;
+        if (!TryPageGeometry(page, out double pw, out double ph, out double cw, out double ch, out int rotation)) return true;
+        var bounds = RedactionGeometry.CanvasToPage(new Rect(drag.Current,
+            new Size(selection.Image.SourceWidth, selection.Image.SourceHeight)), pw, ph, cw, ch, rotation);
+        try
+        {
+            SaveTempAndReload(keepAnnotations: true, preserveZoom: true,
+                selectedPageAfterReload: page, finalizeSavedFile: path =>
+                {
+                    var document = PdfDocument.Open(File.ReadAllBytes(path));
+                    var expected = selection.Occurrence;
+                    var current = new PdfPageContentReader(document).ReadImagePlacements(page)
+                        .SingleOrDefault(image => image.ResourceName == expected.ResourceName
+                            && image.BoundingBox == expected.BoundingBox
+                            && image.PixelWidth == expected.PixelWidth && image.PixelHeight == expected.PixelHeight)
+                        ?? throw new InvalidOperationException("The selected image occurrence is no longer available.");
+                    byte[] asset = PdfImagePlacementExtractor.Extract(document, current).ToPdfBytes();
+                    if (!asset.AsSpan().SequenceEqual(Convert.FromBase64String(selection.Image.ImageData)))
+                        throw new InvalidOperationException("The selected image resource has changed.");
+                    AtomicFileOutput.Write(path, PdfImagePlacementEditor.SetBounds(document, current,
+                        new PdfContentBounds(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top)));
+                });
+        }
+        catch (Exception error) when (error is not OutOfMemoryException) { ReportEditFailure(error); }
+        return true;
+    }
 
     internal ImageAnnotation? SelectedSourceImageExt => _sourceImageSelection is { } selection
         && ReferenceEquals(selection.Owner, _doc) ? selection.Image : null;
+
+    internal bool CanDeleteSelectedSourceImageExt => _sourceImageSelection is { } selection
+        && ReferenceEquals(selection.Owner, _doc) && _doc is { IsReadOnly: false }
+        && selection.Occurrence.CanRemove;
+
+    private bool DeleteSelectedSourceImage()
+    {
+        if (_sourceImageSelection is not { } selection || !ReferenceEquals(selection.Owner, _doc)) return false;
+        if (!CanDeleteSelectedSourceImageExt) return true;
+        try
+        {
+            SaveTempAndReload(keepAnnotations: true, preserveZoom: true,
+                selectedPageAfterReload: selection.Occurrence.PageIndex, finalizeSavedFile: path =>
+                {
+                    var document = PdfDocument.Open(File.ReadAllBytes(path));
+                    var expected = selection.Occurrence;
+                    var current = new PdfPageContentReader(document).ReadImagePlacements(expected.PageIndex)
+                        .SingleOrDefault(image => image.ResourceName == expected.ResourceName
+                            && image.BoundingBox == expected.BoundingBox
+                            && image.PixelWidth == expected.PixelWidth && image.PixelHeight == expected.PixelHeight)
+                        ?? throw new InvalidOperationException("The selected image occurrence is no longer available.");
+                    byte[] asset = PdfImagePlacementExtractor.Extract(document, current).ToPdfBytes();
+                    if (!asset.AsSpan().SequenceEqual(Convert.FromBase64String(selection.Image.ImageData)))
+                        throw new InvalidOperationException("The selected image resource has changed.");
+                    AtomicFileOutput.Write(path, PdfImagePlacementEditor.Remove(document, current));
+                });
+        }
+        catch (Exception error) when (error is not OutOfMemoryException) { ReportEditFailure(error); }
+        return true;
+    }
 
     internal bool TrySelectSourceImageExt(int page, Point point)
     {
@@ -42,7 +154,7 @@ public partial class PdfViewer
                 };
                 ClearSelection();
                 ClearTextSelection();
-                _sourceImageSelection = (_doc, copy);
+                _sourceImageSelection = (_doc, image, copy);
                 var canvas = CanvasForPage(page);
                 double inverseScale = canvas.LayoutTransform is System.Windows.Media.ScaleTransform scale
                     && scale.ScaleX > .0001 ? 1 / scale.ScaleX : 1;

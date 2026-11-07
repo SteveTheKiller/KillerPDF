@@ -103,7 +103,12 @@ namespace KillerPDF.Shell
             else if (LinkAt(pt, pageIdx) is { } lk)
                 AddLinkMenuItems(_ctxMenu, lk.target, lk.annotIndex, pageIdx);
             else if (ActiveViewer.TrySelectSourceImageExt(pageIdx, pt))
+            {
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Copy"), (_, _) => CopySelectedAnnotations(), GestureFor("Ctrl:C"), "\uE8C8"));
+                var delete = MakeMenuItem(Loc("Str_Ctx_DeleteSel"), (_, _) => DeleteSelected(), GestureFor("Del"), "\uE74D");
+                delete.IsEnabled = ActiveViewer.CanDeleteSelectedSourceImageExt;
+                _ctxMenu.Items.Add(delete);
+            }
             else AddPageMenuItems(pt, pageIdx);
         }
 
