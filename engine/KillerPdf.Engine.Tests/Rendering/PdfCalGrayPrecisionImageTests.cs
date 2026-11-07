@@ -158,30 +158,21 @@ public sealed class PdfCalGrayPrecisionImageTests
         Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0, Options(width, height)));
     }
 
-    [Theory]
-    [InlineData("color-key")]
-    [InlineData("soft-mask")]
-    [InlineData("matte")]
-    public void NaturalSizeMasksRemainDiagnosed(string kind)
+    [Fact]
+    public void CalGraySoftMaskMatteRemainsDiagnosed()
     {
         var document = Build(1, 1, [127], Space(2.2));
         var (reference, stream) = Image(document);
         var update = new PdfIncrementalUpdateBuilder(document);
-        PdfStream modified;
-        if (kind == "color-key") modified = With(stream, "Mask", new PdfArray([new PdfInteger(0), new PdfInteger(0)]));
-        else
+        var entries = new List<KeyValuePair<PdfName, PdfObject>>
         {
-            var entries = new List<KeyValuePair<PdfName, PdfObject>>
-            {
-                Entry("Type", Name("XObject")), Entry("Subtype", Name("Image")),
-                Entry("Width", new PdfInteger(1)), Entry("Height", new PdfInteger(1)),
-                Entry("BitsPerComponent", new PdfInteger(8)), Entry("ColorSpace", Name("DeviceGray"))
-            };
-            if (kind == "matte") entries.Add(Entry("Matte", new PdfArray([new PdfReal(.5)])));
-            var mask = update.AddObject(new PdfStream(new PdfDictionary(entries), new byte[] { 128 }));
-            modified = With(stream, "SMask", mask);
-        }
-        document = PdfDocument.Open(update.ReplaceObject(reference.ObjectNumber, modified).Build());
+            Entry("Type", Name("XObject")), Entry("Subtype", Name("Image")),
+            Entry("Width", new PdfInteger(1)), Entry("Height", new PdfInteger(1)),
+            Entry("BitsPerComponent", new PdfInteger(8)), Entry("ColorSpace", Name("DeviceGray")),
+            Entry("Matte", new PdfArray([new PdfReal(.5)]))
+        };
+        var mask = update.AddObject(new PdfStream(new PdfDictionary(entries), new byte[] { 128 }));
+        document = PdfDocument.Open(update.ReplaceObject(reference.ObjectNumber, With(stream, "SMask", mask)).Build());
         Assert.Empty(new PdfPageRenderer(document).Render(0, new PdfRenderOptions(1, 1)).Diagnostics);
         Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0, Options(1, 1)));
     }
@@ -197,6 +188,47 @@ public sealed class PdfCalGrayPrecisionImageTests
         Pixel(frame, 0, .2500076295691578);
         Pixel(frame, 1, .25002288905673);
         Assert.True(frame.Pixels[4] > frame.Pixels[0]);
+    }
+
+    [Theory]
+    [InlineData(8)]
+    [InlineData(16)]
+    public void CalGrayColorKeyUsesRawSamplesBeforeCalibration(int bits)
+    {
+        var document = Build(3, 1, [0, 127, 255], Space(2));
+        document = ModifyImage(document, stream => new PdfStream(
+            new PdfDictionary(stream.Dictionary.Where(entry => !entry.Key.Equals(Name("Filter"))
+                && !entry.Key.Equals(Name("DecodeParms")) && !entry.Key.Equals(Name("BitsPerComponent")))
+                .Append(Entry("BitsPerComponent", new PdfInteger(bits)))
+                .Append(Entry("Mask", new PdfArray([new PdfInteger(127), new PdfInteger(127)])))),
+            bits == 8 ? new byte[] { 0, 127, 255 } : new byte[] { 0, 0, 0, 127, 255, 255 }));
+        var frame = new PdfPageRenderer(document).RenderFrame(0, Options(3, 1));
+        Pixel(frame, 0, 0);
+        Pixel(frame, 2, 1);
+        Assert.Equal(0f, frame.Pixels[7]);
+    }
+
+    [Theory]
+    [InlineData(8, .00392156862745098)]
+    [InlineData(16, .000015259021896696422)]
+    public void CalGraySoftMaskRetainsFractionalAlphaWithoutQuantizingColor(int maskBits, double alpha)
+    {
+        var document = ModifyImage(Build(1, 1, [127], Space(2)), stream => new PdfStream(
+            new PdfDictionary(stream.Dictionary.Where(entry => !entry.Key.Equals(Name("Filter"))
+                && !entry.Key.Equals(Name("DecodeParms")) && !entry.Key.Equals(Name("BitsPerComponent")))
+                .Append(Entry("BitsPerComponent", new PdfInteger(16)))), new byte[] { 128, 0 }));
+        var (reference, image) = Image(document);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        var mask = update.AddObject(new PdfStream(new PdfDictionary([
+            Entry("Type", Name("XObject")), Entry("Subtype", Name("Image")),
+            Entry("Width", new PdfInteger(1)), Entry("Height", new PdfInteger(1)),
+            Entry("BitsPerComponent", new PdfInteger(maskBits)), Entry("ColorSpace", Name("DeviceGray"))]),
+            maskBits == 8 ? new byte[] { 1 } : new byte[] { 0, 1 }));
+        document = PdfDocument.Open(update.ReplaceObject(reference.ObjectNumber, With(image, "SMask", mask)).Build());
+        var frame = new PdfPageRenderer(document).RenderFrame(0, Options(1, 1));
+        for (int component = 0; component < 3; component++)
+            Assert.InRange((double)frame.Pixels[component], .2500066, .2500087);
+        Assert.InRange((double)frame.Pixels[3], alpha - 1e-9, alpha + 1e-9);
     }
 
     [Theory]
