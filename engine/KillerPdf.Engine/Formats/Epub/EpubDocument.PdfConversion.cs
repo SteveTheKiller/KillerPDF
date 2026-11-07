@@ -119,6 +119,13 @@ public sealed partial class EpubDocument
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (placement.LinkTarget is not { } target || placement.Width <= 0 || placement.Height <= 0) continue;
+                if (TryExternalHyperlink(target, out string external))
+                {
+                    builder.AddUriLink(pageIndex, placement.Left * pointsPerCssPixel,
+                        options.PageHeightPoints - (placement.Top + placement.Height) * pointsPerCssPixel,
+                        placement.Width * pointsPerCssPixel, placement.Height * pointsPerCssPixel, external);
+                    continue;
+                }
                 var destination = layout.ResolveNavigationTarget(target, cancellationToken);
                 builder.AddPageLink(pageIndex, placement.Left * pointsPerCssPixel,
                     options.PageHeightPoints - (placement.Top + placement.Height) * pointsPerCssPixel,

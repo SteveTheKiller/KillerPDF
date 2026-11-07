@@ -14,6 +14,43 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubCssClassSelectorTests
 {
     [Theory]
+    [InlineData("https://www.gutenberg.org/", "https://www.gutenberg.org/")]
+    [InlineData("http://example.invalid/page#detail", "http://example.invalid/page#detail")]
+    [InlineData("mailto:reader@example.invalid", "mailto:reader@example.invalid")]
+    [InlineData("HTTPS://example.invalid/résumé", "https://example.invalid/r%C3%A9sum%C3%A9")]
+    public void ExternalTextHyperlinkRemainsClickableInNativeLayoutAndConvertedPdf(string reference, string target)
+    {
+        byte[] source = Book("", "<div><a href='" + reference + "'>A</a></div>");
+        byte[] original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        Assert.Equal("A", book.ReadText(0));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var page = Assert.Single(book.CreateLayout(new EpubLayoutOptions(30, 16, font)
+        { FontSize = 10, Margin = 2 }).Pages);
+        Assert.Equal("A", page.Text);
+        var placement = Assert.Single(page.TextPlacements);
+        Assert.Equal(target, placement.LinkTarget);
+        Assert.Equal(2, placement.Left);
+        Assert.Equal(6, placement.Width);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var link = Assert.Single(new PdfLinkReader(pdf).ReadPage(0));
+        Assert.Equal(target, link.Uri);
+        Assert.Null(link.DestinationPageIndex);
+        Assert.Equal("A", Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters).Value);
+        Assert.Equal(original, source);
+    }
+
+    [Theory]
+    [InlineData("<div><a href='#target'>A</a></div><div id='target'/>")]
+    [InlineData("<a href='#target'>A</a><div id='target'/>")]
+    [InlineData("<div><a href='#target'><span>A</span></a></div><div id='target'/>")]
+    public void GroupingContainerRetainsItsDirectTextHyperlinkAtBothSeams(string body)
+        => Verify("a:link{color:red}",
+            body,
+            2, 1.5, true, false, "text.xhtml#target");
+
+    [Theory]
     [InlineData(":visited")]
     [InlineData("a.note:visited")]
     [InlineData("a[href]:VISITED")]

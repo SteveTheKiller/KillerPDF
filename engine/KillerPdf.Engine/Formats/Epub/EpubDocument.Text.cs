@@ -54,13 +54,20 @@ public sealed partial class EpubDocument
                     native?.Enter(reader);
                     if (reader.LocalName == "script")
                         throw new NotSupportedException("Scripted EPUB XHTML text is unsupported.");
+                    bool hyperlink = reader.NamespaceURI == html && reader.LocalName == "a";
                     while (reader.MoveToNextAttribute())
                     {
                         if (reader.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase))
                             throw new NotSupportedException("Scripted EPUB XHTML text is unsupported.");
                         if (reader.LocalName is "href" or "src" or "data" or "poster" or "action" or "formaction")
                         {
-                            try { NavigationTarget(resource.Href, reader.Value.Trim(' ', '\t', '\r', '\n')); }
+                            string reference = reader.Value.Trim(' ', '\t', '\r', '\n');
+                            try
+                            {
+                                if (!(hyperlink && reader.NamespaceURI.Length == 0 && reader.LocalName == "href"
+                                    && TryExternalHyperlink(reference, out _)))
+                                    NavigationTarget(resource.Href, reference);
+                            }
                             catch (InvalidDataException exception)
                             {
                                 throw new NotSupportedException("External or unresolved EPUB XHTML references are unsupported.", exception);

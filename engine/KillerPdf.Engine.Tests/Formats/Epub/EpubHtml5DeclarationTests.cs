@@ -94,7 +94,7 @@ public sealed partial class EpubDocumentTests
     [Theory]
     [InlineData("<script>execute()</script><p>A</p>")]
     [InlineData("<p onclick='execute()'>A</p>")]
-    [InlineData("<p><a href='https://example.invalid/page'>A</a></p>")]
+    [InlineData("<p><img src='https://example.invalid/image.png' alt='Image'/></p>")]
     [InlineData("<p><a href='javascript:execute()'>A</a></p>")]
     public void Html5DeclarationDoesNotAdmitScriptsOrExternalReferences(string body)
     {

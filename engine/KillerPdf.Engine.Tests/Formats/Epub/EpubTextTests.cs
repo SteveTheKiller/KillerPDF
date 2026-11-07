@@ -30,7 +30,7 @@ public sealed partial class EpubDocumentTests
     }
 
     [Theory]
-    [InlineData("<p><a href='https://example.invalid/page'>Text</a></p>", "")]
+    [InlineData("<p><img src='https://example.invalid/image.png' alt='Image'/></p>", "")]
     [InlineData("<p><a href='javascript:execute()'>Text</a></p>", "")]
     [InlineData("<p><a href='file:///C:/private.txt'>Text</a></p>", "")]
     [InlineData("<p><a href='../../outside.xhtml'>Text</a></p>", "")]

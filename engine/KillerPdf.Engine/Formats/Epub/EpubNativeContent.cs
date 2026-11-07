@@ -6,7 +6,7 @@ using KillerPdf.Engine.Authoring;
 namespace KillerPdf.Engine.Formats.Epub;
 
 // Source nodes survive normalization so collapsed whitespace keeps its original inline style.
-internal sealed class EpubNativeContent(double fallbackSize, double contentHeight)
+internal sealed class EpubNativeContent(double fallbackSize, double contentHeight, PdfRgbColor? fallbackTextColor = null)
 {
     private enum DisplayKind { Block, Inline, None }
     internal readonly record struct BackgroundColor(PdfRgbColor? Color);
@@ -48,6 +48,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal BorderSide? TopBorder { get; init; }
         internal BoxWidth? Width { get; init; }
         internal BoxWidth? MaximumWidth { get; init; }
+        internal Border? Border { get; init; }
+        internal double? HeightPercentage { get; init; }
         internal (double Width, double Height)? SvgViewBox { get; init; }
         internal List<SourceNode> Children { get; } = new();
 
@@ -90,8 +92,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal Style Style => Node.Owner.Style;
     }
 
-    private static readonly CssProperties Heading2Defaults = new(new CssLength(1.5, true), null,
-        FontWeight: 700, Margins: [new(.83, true), new(0, false), new(.83, true), new(0, false)]);
+    private static readonly CssProperties Heading2Defaults = CssProperties.FromConcrete(new ResolvedProperties(new CssLength(1.5, true), null,
+        FontWeight: 700, Margins: [new(.83, true), new(0, false), new(.83, true), new(0, false)]));
     private readonly Stack<Element> _ancestors = new();
     private readonly Dictionary<string, List<CssRule>> _typeRules = new(StringComparer.Ordinal);
     private int _characters;
@@ -153,7 +155,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "div" => parent?.Name is "body" or "div",
             _ when paragraph => parent?.Name is "body" or "div",
             "span" or "br" => parent?.IsParagraph == true || parent?.Name is "span" or "a",
-            "a" => parent?.IsParagraph == true || parent?.Name == "span",
+            "a" => parent?.IsParagraph == true || parent?.Name is "span" or "body" or "div",
             "img" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a",
             _ => false };
         if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
@@ -186,7 +188,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
             else if (name == "a" && xml.NamespaceURI == "" && xml.LocalName == "href")
             {
-                // Structural reading validates references inside the captured package.
+                // Structural reading validates packaged destinations and supported external hyperlinks.
             }
             else if (name == "img" && xml.NamespaceURI == "" && xml.LocalName is "src" or "alt" or "title")
             {
@@ -209,14 +211,15 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         if (inherited.Background is not null) inherited = inherited with { Background = null };
         var identity = new SelectorIdentity(xml.NamespaceURI,
             classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [], attributes);
-        CssProperties properties = ResolveRules(name, identity);
-        if (inlineStyle is not null) properties = properties.Override(ParseProperties(inlineStyle));
+        CssProperties declarations = ResolveRules(name, identity);
+        if (inlineStyle is not null) declarations = declarations.Override(ParseProperties(inlineStyle));
         if (name == "h2")
         {
-            var defaults = properties.Display == DisplayKind.Inline
+            var defaults = ResolveProperties(declarations, parent).Display == DisplayKind.Inline
                 ? Heading2Defaults with { Margins = null } : Heading2Defaults;
-            properties = defaults.Override(properties);
+            declarations = defaults.Override(declarations);
         }
+        var properties = ResolveProperties(declarations, parent);
         bool suppressed = parent?.IsDisplayNone == true || properties.Display == DisplayKind.None;
         Style style = suppressed ? inherited : properties.Apply(inherited, contentHeight);
         if (!suppressed)
@@ -266,6 +269,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             Margins = suppressed ? null : properties.Margins, Padding = suppressed ? null : properties.Padding,
             TopBorder = suppressed ? null : properties.TopBorder, Width = suppressed ? null : properties.Width,
             MaximumWidth = suppressed ? null : properties.MaximumWidth,
+            Border = suppressed ? null : properties.Border, HeightPercentage = suppressed ? null : properties.Height?.Percentage,
             IsDisplayNone = suppressed
         };
         CurrentElementDisplayNone = element.IsDisplayNone;
@@ -633,47 +637,47 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         _typeRules.TryGetValue(name, out var typeRules);
         _typeRules.TryGetValue("", out var classRules);
         if (typeRules is null && classRules is null) return default;
-        CssLength? size = null, height = null;
-        PdfRgbColor? color = null;
-        BackgroundColor? background = null;
+        CssDeclaration<CssLength>? size = null, height = null;
+        CssDeclaration<PdfRgbColor>? color = null;
+        CssDeclaration<BackgroundColor>? background = null;
         int sizeSpecificity = -1, heightSpecificity = -1, colorSpecificity = -1, backgroundSpecificity = -1;
-        EpubFontFamily[]? families = null;
+        CssDeclaration<EpubFontFamily[]>? families = null;
         int familySpecificity = -1;
-        double? fontWeight = null;
+        CssDeclaration<double>? fontWeight = null;
         int weightSpecificity = -1;
-        string? fontVariant = null;
+        CssDeclaration<string>? fontVariant = null;
         int variantSpecificity = -1;
-        Border? border = null;
+        CssDeclaration<Border>? border = null;
         int borderSpecificity = -1;
-        BorderSide? topBorder = null;
+        CssDeclaration<BorderSide>? topBorder = null;
         int topBorderSpecificity = -1;
-        BoxWidth? width = null;
+        CssDeclaration<BoxWidth>? width = null;
         int widthSpecificity = -1;
-        BoxHeight? boxHeight = null;
+        CssDeclaration<BoxHeight>? boxHeight = null;
         int boxHeightSpecificity = -1;
-        BoxWidth? maximumWidth = null;
+        CssDeclaration<BoxWidth>? maximumWidth = null;
         int maximumWidthSpecificity = -1;
-        string? textAlign = null;
+        CssDeclaration<string>? textAlign = null;
         int alignmentSpecificity = -1;
-        IndentLength? textIndent = null;
+        CssDeclaration<IndentLength>? textIndent = null;
         int indentSpecificity = -1;
-        bool? pageBreakBefore = null;
+        CssDeclaration<bool>? pageBreakBefore = null;
         int breakSpecificity = -1;
-        bool? pageBreakAfter = null;
+        CssDeclaration<bool>? pageBreakAfter = null;
         int breakAfterSpecificity = -1;
-        DisplayKind? block = null;
+        CssDeclaration<DisplayKind>? block = null;
         int displaySpecificity = -1;
-        string? visibility = null;
+        CssDeclaration<string>? visibility = null;
         int visibilitySpecificity = -1;
-        string? decoration = null;
+        CssDeclaration<string>? decoration = null;
         int decorationSpecificity = -1;
-        MarginLength? letterSpacing = null;
+        CssDeclaration<MarginLength>? letterSpacing = null;
         int letterSpacingSpecificity = -1;
-        MarginLength? wordSpacing = null;
+        CssDeclaration<MarginLength>? wordSpacing = null;
         int wordSpacingSpecificity = -1;
-        var padding = new MarginLength?[4];
+        var padding = new CssDeclaration<MarginLength>?[4];
         int[] paddingSpecificities = [-1, -1, -1, -1];
-        var margins = new MarginLength?[4];
+        var margins = new CssDeclaration<MarginLength>?[4];
         int[] marginSpecificities = [-1, -1, -1, -1];
         int typeIndex = 0, classIndex = 0;
         while (typeIndex < (typeRules?.Count ?? 0) || classIndex < (classRules?.Count ?? 0))
@@ -826,10 +830,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         _selectorWork += amount;
     }
 
-    private readonly record struct CssLength(double Value, bool Relative, bool Unitless = false)
+    private readonly record struct CssLength(double Value, bool Relative, bool Unitless = false, bool Normal = false)
     {
         internal double Compute(double reference, double maximum)
         {
+            if (Normal) throw new InvalidOperationException("Normal line height is not a numeric CSS length.");
             double pixels = Relative ? Value * reference : Value;
             if (!double.IsFinite(pixels) || pixels <= 0 || pixels > maximum)
                 throw new NotSupportedException("Native EPUB typography requires positive CSS lengths that fit the page.");
@@ -839,12 +844,170 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
 
     internal readonly record struct MarginLength(double Value, bool Em, bool Percentage = false, bool Auto = false);
     private readonly record struct IndentLength(double Value, bool Em = false, bool Percentage = false, bool Inherit = false);
-    private readonly record struct Border(bool Nonzero, bool Visible);
+    internal readonly record struct Border(bool Nonzero, bool Visible);
     internal readonly record struct BorderSide(MarginLength Width, bool Visible, BackgroundColor? Color);
     internal readonly record struct BoxWidth(MarginLength? Length);
     private readonly record struct BoxHeight(double? Percentage);
 
-    private readonly record struct CssProperties(CssLength? FontSize, CssLength? LineHeight, PdfRgbColor? Color = null,
+    private enum CssWideKeyword { Concrete, Inherit, Initial }
+    private readonly record struct CssDeclaration<T>(T Value, CssWideKeyword Keyword = CssWideKeyword.Concrete)
+    {
+        internal T Resolve(T initial, T inherited) => Keyword switch
+        {
+            CssWideKeyword.Inherit => inherited,
+            CssWideKeyword.Initial => initial,
+            _ => Value
+        };
+        internal static CssDeclaration<T> Marker(CssWideKeyword keyword) => new(default!, keyword);
+    }
+
+    private readonly record struct CssProperties(
+        CssDeclaration<CssLength>? FontSize,
+        CssDeclaration<CssLength>? LineHeight,
+        CssDeclaration<PdfRgbColor>? Color = null,
+        CssDeclaration<BackgroundColor>? Background = null,
+        CssDeclaration<EpubFontFamily[]>? FontFamilies = null,
+        CssDeclaration<MarginLength>?[]? Margins = null,
+        CssDeclaration<Border>? Border = null,
+        CssDeclaration<MarginLength>?[]? Padding = null,
+        CssDeclaration<string>? TextAlign = null,
+        CssDeclaration<bool>? PageBreakBefore = null,
+        CssDeclaration<DisplayKind>? Display = null,
+        CssDeclaration<double>? FontWeight = null,
+        CssDeclaration<IndentLength>? TextIndent = null,
+        CssDeclaration<string>? FontVariant = null,
+        CssDeclaration<BorderSide>? TopBorder = null,
+        CssDeclaration<BoxWidth>? Width = null,
+        CssDeclaration<string>? Visibility = null,
+        CssDeclaration<string>? TextDecoration = null,
+        CssDeclaration<BoxWidth>? MaximumWidth = null,
+        CssDeclaration<bool>? PageBreakAfter = null)
+    {
+        internal CssDeclaration<MarginLength>? LetterSpacing { get; init; }
+        internal CssDeclaration<MarginLength>? WordSpacing { get; init; }
+        internal CssDeclaration<BoxHeight>? Height { get; init; }
+        internal CssProperties Override(CssProperties later) => new(
+            later.FontSize ?? FontSize,
+            later.LineHeight ?? LineHeight,
+            later.Color ?? Color,
+            later.Background ?? Background,
+            later.FontFamilies ?? FontFamilies,
+            Merge(Margins, later.Margins),
+            later.Border ?? Border,
+            Merge(Padding, later.Padding),
+            later.TextAlign ?? TextAlign,
+            later.PageBreakBefore ?? PageBreakBefore,
+            later.Display ?? Display,
+            later.FontWeight ?? FontWeight,
+            later.TextIndent ?? TextIndent,
+            later.FontVariant ?? FontVariant,
+            later.TopBorder ?? TopBorder,
+            later.Width ?? Width,
+            later.Visibility ?? Visibility,
+            later.TextDecoration ?? TextDecoration,
+            later.MaximumWidth ?? MaximumWidth,
+            later.PageBreakAfter ?? PageBreakAfter)
+        { LetterSpacing = later.LetterSpacing ?? LetterSpacing, WordSpacing = later.WordSpacing ?? WordSpacing, Height = later.Height ?? Height };
+        private static CssDeclaration<MarginLength>?[]? Merge(CssDeclaration<MarginLength>?[]? earlier, CssDeclaration<MarginLength>?[]? later) =>
+            later is null ? earlier : Enumerable.Range(0, 4).Select(side => later[side] ?? earlier?[side]).ToArray();
+        internal static CssProperties FromConcrete(ResolvedProperties value) => new(
+            value.FontSize is { } vFontSize ? new CssDeclaration<CssLength>(vFontSize) : null,
+            value.LineHeight is { } vLineHeight ? new CssDeclaration<CssLength>(vLineHeight) : null,
+            value.Color is { } vColor ? new CssDeclaration<PdfRgbColor>(vColor) : null,
+            value.Background is { } vBackground ? new CssDeclaration<BackgroundColor>(vBackground) : null,
+            value.FontFamilies is { } vFontFamilies ? new CssDeclaration<EpubFontFamily[]>(vFontFamilies) : null,
+            value.Margins?.Select(side => side is { } length ? (CssDeclaration<MarginLength>?)new CssDeclaration<MarginLength>(length) : null).ToArray(),
+            value.Border is { } vBorder ? new CssDeclaration<Border>(vBorder) : null,
+            value.Padding?.Select(side => side is { } length ? (CssDeclaration<MarginLength>?)new CssDeclaration<MarginLength>(length) : null).ToArray(),
+            value.TextAlign is { } vTextAlign ? new CssDeclaration<string>(vTextAlign) : null,
+            value.PageBreakBefore is { } vPageBreakBefore ? new CssDeclaration<bool>(vPageBreakBefore) : null,
+            value.Display is { } vDisplay ? new CssDeclaration<DisplayKind>(vDisplay) : null,
+            value.FontWeight is { } vFontWeight ? new CssDeclaration<double>(vFontWeight) : null,
+            value.TextIndent is { } vTextIndent ? new CssDeclaration<IndentLength>(vTextIndent) : null,
+            value.FontVariant is { } vFontVariant ? new CssDeclaration<string>(vFontVariant) : null,
+            value.TopBorder is { } vTopBorder ? new CssDeclaration<BorderSide>(vTopBorder) : null,
+            value.Width is { } vWidth ? new CssDeclaration<BoxWidth>(vWidth) : null,
+            value.Visibility is { } vVisibility ? new CssDeclaration<string>(vVisibility) : null,
+            value.TextDecoration is { } vTextDecoration ? new CssDeclaration<string>(vTextDecoration) : null,
+            value.MaximumWidth is { } vMaximumWidth ? new CssDeclaration<BoxWidth>(vMaximumWidth) : null,
+            value.PageBreakAfter is { } vPageBreakAfter ? new CssDeclaration<bool>(vPageBreakAfter) : null)
+        { LetterSpacing = value.LetterSpacing is { } vLetterSpacing ? new CssDeclaration<MarginLength>(vLetterSpacing) : null, WordSpacing = value.WordSpacing is { } vWordSpacing ? new CssDeclaration<MarginLength>(vWordSpacing) : null, Height = value.Height is { } vHeight ? new CssDeclaration<BoxHeight>(vHeight) : null };
+        internal static CssProperties ForKeyword(CssWideKeyword keyword) => new(
+            CssDeclaration<CssLength>.Marker(keyword),
+            CssDeclaration<CssLength>.Marker(keyword),
+            CssDeclaration<PdfRgbColor>.Marker(keyword),
+            CssDeclaration<BackgroundColor>.Marker(keyword),
+            CssDeclaration<EpubFontFamily[]>.Marker(keyword),
+            Enumerable.Repeat((CssDeclaration<MarginLength>?)CssDeclaration<MarginLength>.Marker(keyword), 4).ToArray(),
+            CssDeclaration<Border>.Marker(keyword),
+            Enumerable.Repeat((CssDeclaration<MarginLength>?)CssDeclaration<MarginLength>.Marker(keyword), 4).ToArray(),
+            CssDeclaration<string>.Marker(keyword),
+            CssDeclaration<bool>.Marker(keyword),
+            CssDeclaration<DisplayKind>.Marker(keyword),
+            CssDeclaration<double>.Marker(keyword),
+            CssDeclaration<IndentLength>.Marker(keyword),
+            CssDeclaration<string>.Marker(keyword),
+            CssDeclaration<BorderSide>.Marker(keyword),
+            CssDeclaration<BoxWidth>.Marker(keyword),
+            CssDeclaration<string>.Marker(keyword),
+            CssDeclaration<string>.Marker(keyword),
+            CssDeclaration<BoxWidth>.Marker(keyword),
+            CssDeclaration<bool>.Marker(keyword))
+        { LetterSpacing = CssDeclaration<MarginLength>.Marker(keyword), WordSpacing = CssDeclaration<MarginLength>.Marker(keyword), Height = CssDeclaration<BoxHeight>.Marker(keyword) };
+    }
+
+    private ResolvedProperties ResolveProperties(CssProperties declarations, Element? parent)
+    {
+        var result = new ResolvedProperties(
+            declarations.FontSize?.Resolve(new CssLength(DefaultStyle.FontSize, false), parent is null ? new CssLength(DefaultStyle.FontSize, false) : new CssLength(parent.Style.FontSize, false)),
+            declarations.LineHeight?.Resolve(new CssLength(0, false, Normal: true), parent is null ? new CssLength(0, false, Normal: true) : ParentLineHeight(parent)),
+            declarations.Color?.Resolve(new PdfRgbColor(0, 0, 0), parent is null ? new PdfRgbColor(0, 0, 0) : parent.Style.Color ?? fallbackTextColor ?? new PdfRgbColor(0, 0, 0)),
+            declarations.Background?.Resolve(new BackgroundColor(null), parent is null ? new BackgroundColor(null) : parent.Style.Background ?? new BackgroundColor(null)),
+            declarations.FontFamilies?.Resolve(Array.Empty<EpubFontFamily>(), parent is null ? Array.Empty<EpubFontFamily>() : parent.Style.FontFamilies ?? Array.Empty<EpubFontFamily>()),
+            ResolveSides(declarations.Margins, parent?.Margins, parent),
+            declarations.Border?.Resolve(new Border(false, false), parent is null ? new Border(false, false) : parent.Border ?? new Border(false, false)),
+            ResolveSides(declarations.Padding, parent?.Padding, parent),
+            declarations.TextAlign?.Resolve("left", parent is null ? "left" : parent.Style.TextAlign),
+            declarations.PageBreakBefore?.Resolve(false, parent is null ? false : parent.Style.PageBreakBefore),
+            declarations.Display?.Resolve(DisplayKind.Inline, parent is null ? DisplayKind.Inline : parent.IsDisplayNone ? DisplayKind.None : parent.Name == "html" || parent.IsBlock ? DisplayKind.Block : DisplayKind.Inline),
+            declarations.FontWeight?.Resolve(400, parent is null ? 400 : parent.Style.FontWeight),
+            declarations.TextIndent?.Resolve(new IndentLength(0), parent is null ? new IndentLength(0) : new IndentLength(parent.Style.TextIndent, Percentage: parent.Style.TextIndentPercentage)),
+            declarations.FontVariant?.Resolve("normal", parent is null ? "normal" : parent.Style.SmallCaps ? "small-caps" : "normal"),
+            declarations.TopBorder?.Resolve(new BorderSide(new MarginLength(0, false), false, null), parent is null ? new BorderSide(new MarginLength(0, false), false, null) : ParentTopBorder(parent)),
+            declarations.Width?.Resolve(new BoxWidth(null), parent is null ? new BoxWidth(null) : new BoxWidth(ParentLength(parent.Width?.Length, parent))),
+            declarations.Visibility?.Resolve("visible", parent is null ? "visible" : parent.Style.Hidden ? "hidden" : "visible"),
+            declarations.TextDecoration?.Resolve("none", parent is null ? "none" : parent.Style.Underline ? "underline" : "none"),
+            declarations.MaximumWidth?.Resolve(new BoxWidth(null), parent is null ? new BoxWidth(null) : new BoxWidth(ParentLength(parent.MaximumWidth?.Length, parent))),
+            declarations.PageBreakAfter?.Resolve(false, parent is null ? false : parent.Style.PageBreakAfter))
+        {
+            LetterSpacing = declarations.LetterSpacing?.Resolve(new MarginLength(0, false), parent is null ? new MarginLength(0, false) : new MarginLength(parent.Style.LetterSpacing, false)),
+            WordSpacing = declarations.WordSpacing?.Resolve(new MarginLength(0, false), parent is null ? new MarginLength(0, false) : new MarginLength(parent.Style.WordSpacing, false)),
+            Height = declarations.Height?.Resolve(new BoxHeight(null), parent is null ? new BoxHeight(null) : new BoxHeight(parent.HeightPercentage))
+        };
+        // A winning shorthand transparent background has no paint requirement of its own.
+        if (declarations.Background is { Keyword: not CssWideKeyword.Concrete } && result.Background is { Color: null })
+            result = result with { Background = null };
+        return result;
+    }
+
+    private static MarginLength?[]? ResolveSides(CssDeclaration<MarginLength>?[]? declarations,
+        MarginLength?[]? inherited, Element? parent) => declarations?.Select((side, index) =>
+            side?.Resolve(new MarginLength(0, false), ParentLength(inherited?[index], parent) ?? new MarginLength(0, false))).ToArray();
+
+    private static MarginLength? ParentLength(MarginLength? length, Element? parent) =>
+        length is { Em: true } em && parent is not null
+            ? em with { Value = em.Value * parent.Style.FontSize, Em = false } : length;
+
+    private static CssLength ParentLineHeight(Element parent) => parent.Style.LineHeightFactor is { } factor
+        ? new CssLength(factor, true, Unitless: true)
+        : parent.Style.LineHeight is { } pixels ? new CssLength(pixels, false) : new CssLength(0, false, Normal: true);
+
+    private BorderSide ParentTopBorder(Element parent) => parent.TopBorder is { } border
+        ? border with { Width = ParentLength(border.Width, parent)!.Value,
+            Color = border.Color ?? new BackgroundColor(parent.Style.Color ?? fallbackTextColor ?? new PdfRgbColor(0, 0, 0)) }
+        : new BorderSide(new MarginLength(0, false), false, null);
+
+    private readonly record struct ResolvedProperties(CssLength? FontSize, CssLength? LineHeight, PdfRgbColor? Color = null,
         BackgroundColor? Background = null, EpubFontFamily[]? FontFamilies = null, MarginLength?[]? Margins = null,
         Border? Border = null, MarginLength?[]? Padding = null, string? TextAlign = null, bool? PageBreakBefore = null,
         DisplayKind? Display = null, double? FontWeight = null, IndentLength? TextIndent = null, string? FontVariant = null,
@@ -854,7 +1017,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal MarginLength? LetterSpacing { get; init; }
         internal MarginLength? WordSpacing { get; init; }
         internal BoxHeight? Height { get; init; }
-        internal CssProperties Override(CssProperties inline) =>
+        internal ResolvedProperties Override(ResolvedProperties inline) =>
             new(inline.FontSize ?? FontSize, inline.LineHeight ?? LineHeight,
                 inline.Color ?? Color, inline.Background ?? Background, inline.FontFamilies ?? FontFamilies,
                 MergeMargins(Margins, inline.Margins), inline.Border ?? Border, MergeMargins(Padding, inline.Padding),
@@ -880,9 +1043,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             bool indentPercentage = TextIndent is { Inherit: false } specified ? specified.Percentage : inherited.TextIndentPercentage;
             if (!double.IsFinite(indent) || Math.Abs(indent) > 32768)
                 throw new NotSupportedException("Native EPUB text indentation exceeds the supported page dimensions.");
-            double? factor = LineHeight is { Unitless: true } height ? height.Value
+            double? factor = LineHeight is { Normal: true } ? null : LineHeight is { Unitless: true } height ? height.Value
                 : LineHeight is null ? inherited.LineHeightFactor : null;
-            double? pixels = LineHeight?.Compute(size, maximum)
+            double? pixels = LineHeight is { Normal: true } ? null : LineHeight?.Compute(size, maximum)
                 ?? (factor is double multiplier ? new CssLength(multiplier, true).Compute(size, maximum) : inherited.LineHeight);
             return new(size, pixels, Color ?? inherited.Color, Background ?? inherited.Background)
             {
@@ -903,6 +1066,30 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     }
 
     private CssProperties ParseProperties(string declarations)
+    {
+        CssProperties result = default;
+        foreach (string declaration in declarations.Split(';'))
+        {
+            string part = declaration.Trim();
+            if (part.Length == 0) continue;
+            int colon = part.IndexOf(':');
+            if (colon < 0) throw new NotSupportedException("Native EPUB CSS declaration is unsupported.");
+            if (part[..colon].Trim().Equals("all", StringComparison.OrdinalIgnoreCase))
+            {
+                var keyword = part[(colon + 1)..].Trim().ToLowerInvariant() switch
+                {
+                    "inherit" => CssWideKeyword.Inherit,
+                    "initial" => CssWideKeyword.Initial,
+                    _ => throw new NotSupportedException("Native EPUB all value is not implemented.")
+                };
+                result = result.Override(CssProperties.ForKeyword(keyword));
+            }
+            else result = result.Override(CssProperties.FromConcrete(ParseConcreteProperties(part)));
+        }
+        return result;
+    }
+
+    private ResolvedProperties ParseConcreteProperties(string declarations)
     {
         string? decoration = null;
         string? visibility = null;
@@ -1212,7 +1399,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
             }
         }
-        return new CssProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth, pageBreakAfter) { LetterSpacing = letterSpacing, WordSpacing = wordSpacing, Height = boxHeight };
+        return new ResolvedProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth, pageBreakAfter) { LetterSpacing = letterSpacing, WordSpacing = wordSpacing, Height = boxHeight };
     }
 
     private static BorderSide ParseTopBorder(string value)

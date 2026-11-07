@@ -107,6 +107,16 @@ public sealed partial class EpubDocument
         return string.Join(' ', Tokens(text.ToString()));
     }
 
+    private static bool TryExternalHyperlink(string reference, out string target)
+    {
+        target = "";
+        if (reference.Length > 4096 || reference.Any(char.IsControl) || reference.Contains('\\')
+            || !Uri.TryCreate(reference, UriKind.Absolute, out var uri)
+            || uri.Scheme is not ("http" or "https" or "mailto")) return false;
+        target = uri.AbsoluteUri;
+        return target.Length <= 4096;
+    }
+
     private string NavigationTarget(string navigationPath, string reference)
     {
         var fragmentStart = reference.IndexOf('#');

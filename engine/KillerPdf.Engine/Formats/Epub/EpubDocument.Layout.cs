@@ -115,7 +115,7 @@ public sealed partial class EpubDocument
             throw new NotSupportedException("Native EPUB layout requires unscripted XHTML with supported resource properties.");
         if (_resources[resource.Href].Length > MaxEntryBytes)
             throw new InvalidDataException("Native EPUB XHTML exceeds its 8 MiB resource limit.");
-        var content = new EpubNativeContent(options.FontSize, options.PageHeight - 2 * options.Margin);
+        var content = new EpubNativeContent(options.FontSize, options.PageHeight - 2 * options.Margin, options.TextColor);
         LoadNativeStylesheets(resource.Href, content, ref remainingStylesheetBytes,
             ref remainingStylesheetReferences, cancellationToken);
         string text = ReadStructuralText(spineIndex, cancellationToken, content);
@@ -688,7 +688,9 @@ public sealed partial class EpubDocument
                 throw new InvalidDataException("Native EPUB hyperlink targets exceed their 4,096-character limit.");
             if (!linkTargets.TryGetValue(reference, out string? target))
             {
-                target = NavigationTarget(resource.Href, reference.Trim(' ', '\t', '\r', '\n'));
+                string trimmed = reference.Trim(' ', '\t', '\r', '\n');
+                target = TryExternalHyperlink(trimmed, out string external)
+                    ? external : NavigationTarget(resource.Href, trimmed);
                 if (target.Length > 4096)
                     throw new InvalidDataException("Native EPUB hyperlink targets exceed their 4,096-character limit.");
                 linkTargets.Add(reference, target);

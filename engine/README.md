@@ -214,21 +214,30 @@ therefore use automatic height. Visible root percentage heights, definite sizes,
 floats and positioned boxes remain diagnosed. Adding definite containing heights
 requires extending this bounded policy rather than discarding their declarations.
 
-Inline text anchors preserve canonical package-relative `LinkTarget` values on
-native text placements. Initial `:link` matching uses XHTML anchors with an
-unqualified href and class-level specificity. PDF conversion writes local page
-destinations and groups contiguous visible text into line rectangles. Hidden
+Text anchors in paragraphs and grouping containers preserve canonical package-relative
+or absolute HTTP, HTTPS and mailto `LinkTarget` values on native text placements.
+External targets are captured without fetching them. Initial `:link` matching uses
+XHTML anchors with an unqualified href and class-level specificity. PDF conversion
+writes local page destinations or URI annotations and groups contiguous visible text
+into line rectangles. Hidden
 anchors do not create links. `:visited` is admitted without consulting browsing
 history: native reading and conversion treat all links as unvisited. Captured
 layouts admit trailing `:hover` on supported simple selectors without applying
 hover declarations. Dynamic pointer-driven restyling is not implemented. Nested
-anchors, linked images, external references and other pseudo-classes remain
+anchors, linked images, external resources and other pseudo-classes remain
 diagnosed; targets retain the 4,096-character
 navigation limit. `PdfReadSnapshot.ReadLinkRegions` retains grouped target geometry
 in unrotated bottom-left PDF points and honors capture ownership and cancellation.
-The Windows reader has initial mouse and Enter-key link activation across its
-five view modes. Full reading, accessibility and color-status acceptance remain
+The Windows reader has initial mouse and Enter-key local-link activation across its
+five view modes. Native external-link activation remains in progress.
+Full reading, accessibility and color-status acceptance remain
 in progress.
+
+CSS `all:inherit` and `all:initial` participate in each supported property's cascade.
+Inheritance uses the actual parent's computed values, including computed pixel lengths
+for em margins. Initial values reset paragraph gaps, font family, weight, normal line
+height and color while retaining the separate reader page inset. Other shorthand values
+and unsupported longhand values remain diagnosed.
 
 Block paragraph/container margins accept `auto`. An explicit content width shares
 remaining horizontal space between automatic margins, including padding and fixed
