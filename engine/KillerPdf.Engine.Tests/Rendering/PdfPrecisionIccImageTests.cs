@@ -103,7 +103,6 @@ public sealed class PdfPrecisionIccImageTests
 
     [Theory]
     [InlineData("key")]
-    [InlineData("soft")]
     [InlineData("matte")]
     public void IccImageMasksAndMatteRemainRejected(string mask)
     {

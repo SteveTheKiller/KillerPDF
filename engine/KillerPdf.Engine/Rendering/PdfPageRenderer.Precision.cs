@@ -30,6 +30,8 @@ public sealed partial class PdfPageRenderer
     /// Unmasked RGB/Gray ICC matrix/TRC images support relative colorimetric PCS conversion at natural size,
     /// aligned enlargement or integer-factor reduction in both axes, averaging encoded source samples before ICC conversion.
     /// Supported resource DefaultRGB and DefaultGray profiles use the same image conversion.
+    /// Direct matrix RGB/Gray ICC images at aligned natural size support matching DeviceGray 8/16-bit
+    /// soft masks with precise alpha, default Decode, and relative intent, without Matte.
     /// Unmasked CMYK ICC LUT images with an actual colorimetric forward table support
     /// relative colorimetric conversion at aligned natural size or eligible nearest enlargement,
     /// including DeviceCMYK images mapped through a supported resource DefaultCMYK profile.

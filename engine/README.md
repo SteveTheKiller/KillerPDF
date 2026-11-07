@@ -1070,6 +1070,9 @@ diagnostics and cancellation match `RenderFrame`. Desktop refinement adoption re
 The supplied `PdfRenderOptions` still validate the full page's byte-raster dimensions and limit.
 Supported RGB/Gray matrix/TRC image profiles can also replace DeviceRGB/Gray through
 resource `DefaultRGB` and `DefaultGray`, preserving their source precision and extended RGB.
+Direct matrix RGB/Gray ICC images at aligned natural size also retain matching
+DeviceGray 8/16-bit soft-mask alpha with default Decode and relative intent.
+Masked default substitutions, enlargement, reduction, Matte and other intents remain diagnosed.
 Natural aligned CMYK images and eligible nearest enlargements retain 8/16-bit precision through supported colorimetric
 ICC source profiles, including a resource `DefaultCMYK` replacement for DeviceCMYK.
 Interpolated or reduced CMYK images, masks and unsupported profile directions remain diagnosed separately.

@@ -29,8 +29,26 @@ public sealed class PdfImageIccSoftMaskAssetTests
         {
             AssertGraph(document, profile, [128, 0, 255]);
             AssertBlueAlpha(document);
-            Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0,
-                new PdfRenderOptions(3, 1, transparentBackground: true)));
+            if (ReferenceEquals(document, source))
+                Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0,
+                    new PdfRenderOptions(3, 1, transparentBackground: true)));
+            else
+            {
+                var frame = new PdfPageRenderer(document).RenderFrame(0,
+                    new PdfRenderOptions(3, 1, transparentBackground: true));
+                // Independent Decimal60 Bradford inversion from the fixed16 PCS column
+                // (.14306640625, .06060791015625, .71417236328125), using ICC D50
+                // (.9642, 1, .8249), gives these straight linear sRGB literals.
+                float[] expected = [-.000046330892f, -.000012172480f, 1.000391902f];
+                foreach (int pixel in new[] { 0, 2 })
+                    for (int channel = 0; channel < 3; channel++)
+                        Assert.InRange(frame.Pixels[pixel * 4 + channel], expected[channel] - .000002f,
+                            expected[channel] + .000002f);
+                Assert.InRange(frame.Pixels[3], .50196075f, .50196082f);
+                Assert.Equal(0, frame.Pixels[7]);
+                Assert.Equal(1, frame.Pixels[11]);
+                Assert.All(frame.Pixels.ToArray(), value => Assert.True(float.IsFinite(value)));
+            }
         }
         Assert.Equal(original, bytes);
     }

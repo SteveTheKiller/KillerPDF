@@ -5920,7 +5920,9 @@ public sealed partial class PdfPageRenderer
                     || !naturalSamples && (sampleStepX > 1 || sampleStepY > 1))
                 || preciseIcc && (!naturalSamples && !areaSamples && (sampleStepX > 1 || sampleStepY > 1)
                     || inverse.B != 0 || inverse.C != 0
-                    || softMask is not null || colorKeyMask is not null || preblendMatte is not null)
+                    || softMask is not null && (preciseCmyk || !naturalSamples || colorSpace.IsDefault
+                        || decode.Length != components * 2 || decode.Where((value, index) => value != index % 2).Any())
+                    || colorKeyMask is not null || preblendMatte is not null)
                 || preciseCalGray && (!naturalSamples && (sampleStepX > 1 || sampleStepY > 1)
                     || inverse.B != 0 || inverse.C != 0
                     || preblendMatte is not null && !naturalSamples
