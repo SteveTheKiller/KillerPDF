@@ -154,9 +154,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
             "div" => parent?.Name is "body" or "div",
             _ when paragraph => parent?.Name is "body" or "div",
-            "span" or "br" => parent?.IsParagraph == true || parent?.Name is "span" or "a",
-            "a" => parent?.IsParagraph == true || parent?.Name is "span" or "body" or "div",
-            "img" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a",
+            "strong" or "b" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b",
+            "span" or "br" => parent?.IsParagraph == true || parent?.Name is "span" or "a" or "strong" or "b",
+            "a" => parent?.IsParagraph == true || parent?.Name is "span" or "body" or "div" or "strong" or "b",
+            "img" => parent?.IsParagraph == true || parent?.Name is "body" or "div" or "span" or "a" or "strong" or "b",
             _ => false };
         if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
             throw new NotSupportedException("Native EPUB XHTML element is not implemented: " + name + ".");
@@ -170,11 +171,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             Count(xml.Value.Length);
             attributes[(xml.NamespaceURI, xml.LocalName)] = xml.Value;
-            if (xml.NamespaceURI == "" && xml.LocalName == "style" && (paragraph || name is "body" or "div" or "span" or "img" or "a"))
+            if (xml.NamespaceURI == "" && xml.LocalName == "style" && (paragraph || name is "body" or "div" or "span" or "img" or "a" or "strong" or "b"))
                 inlineStyle = xml.Value;
             else if (xml.NamespaceURI == "" && xml.LocalName == "class")
                 classNames = xml.Value;
-            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && (paragraph || name is "body" or "div" or "span" or "br" or "a"))
+            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && (paragraph || name is "body" or "div" or "span" or "br" or "a" or "strong" or "b"))
             {
                 // Navigation identity is captured by the structural text reader.
             }
@@ -194,7 +195,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             {
                 // Image resources are resolved within the captured package.
             }
-            else if ((paragraph || name == "span") && xml.LocalName == "type")
+            else if ((paragraph || name is "span" or "strong" or "b") && xml.LocalName == "type")
             {
                 // Semantic type metadata is inert; selectors compare its expanded name.
             }
@@ -213,6 +214,19 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [], attributes);
         CssProperties declarations = ResolveRules(name, identity);
         if (inlineStyle is not null) declarations = declarations.Override(ParseProperties(inlineStyle));
+        if (name is "strong" or "b")
+        {
+            double parentWeight = parent?.Style.FontWeight ?? DefaultStyle.FontWeight;
+            double bolderWeight = parentWeight switch
+            {
+                < 350 => 400,
+                < 550 => 700,
+                < 900 => 900,
+                _ => parentWeight
+            };
+            declarations = CssProperties.FromConcrete(new ResolvedProperties(null, null, FontWeight: bolderWeight))
+                .Override(declarations);
+        }
         if (name == "h2")
         {
             var defaults = ResolveProperties(declarations, parent).Display == DisplayKind.Inline
@@ -253,7 +267,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 throw new NotSupportedException("Native EPUB nonzero padding is implemented only on the body.");
             if (style.Background is { } background)
             {
-                if (!paragraph && name is not ("body" or "div" or "span"))
+                if (!paragraph && name is not ("body" or "div" or "span" or "strong" or "b"))
                     throw new NotSupportedException("Native EPUB element background painting is not implemented.");
                 if (name == "body") CanvasBackground = background.Color;
             }

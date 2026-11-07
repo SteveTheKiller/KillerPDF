@@ -160,6 +160,152 @@ public sealed class EpubFontWeightTests
         Assert.ThrowsAny<OperationCanceledException>(() => EpubDocument.Open(Book(true)).CreateLayout(options, cancellation.Token));
     }
 
+    [Theory]
+    [InlineData("strong", false)]
+    [InlineData("strong", true)]
+    [InlineData("b", false)]
+    [InlineData("b", true)]
+    public void StrongSelectsRealBoldFaceAtBothPublicSeams(string tag, bool convert)
+    {
+        byte[] source = Book(false, "<p><" + tag + ">A</" + tag + "></p>"), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        byte[] chapter = book.ReadResource("doc.xhtml");
+        var regular = Face(false); var bold = Face(true);
+        var requests = new List<double>();
+        EpubFontFaceResult? Resolve(EpubFontFaceRequest request)
+        {
+            requests.Add(request.Weight);
+            return new(request.Weight == 700 ? bold : regular, request.Weight, EpubFontMatch.Exact);
+        }
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        if (convert)
+        {
+            var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(regular)
+            { PageWidthPoints = 30, PageHeightPoints = 19.5, MarginPoints = 1.5, FontSizePoints = 7.5, FontFaceResolver = Resolve }, deadline.Token));
+            var letter = Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters);
+            Assert.Equal("A", letter.Value);
+            Assert.EndsWith("KillerBold", letter.FontName);
+            Assert.Equal(1.5, letter.StartBaseLine.X);
+            Assert.Equal(12, letter.StartBaseLine.Y);
+            Assert.Equal(9, letter.EndBaseLine.X - letter.StartBaseLine.X);
+            var frame = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(40, 26), deadline.Token);
+            Assert.Empty(frame.Diagnostics);
+            Assert.Equal(new byte[] { 0, 0, 0, 255 }, frame.Pixels.Slice((9 * 40 + 14) * 4, 4).ToArray());
+        }
+        else
+        {
+            var layout = book.CreateLayout(new EpubLayoutOptions(40, 26, regular)
+            { FontSize = 10, Margin = 2, FontFaceResolver = Resolve }, deadline.Token);
+            var placement = Assert.Single(Assert.Single(layout.Pages).TextPlacements);
+            Assert.Equal(2, placement.Left);
+            Assert.Equal(2, placement.Top);
+            Assert.Equal(10, placement.Height);
+            Assert.Equal(12, placement.Width);
+            var frame = layout.RenderPage(0, cancellationToken: deadline.Token);
+            Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((9 * 40 + 14) * 4, 4).ToArray());
+        }
+        Assert.Contains(700, requests);
+        Assert.Equal(original, source);
+        Assert.Equal(chapter, book.ReadResource("doc.xhtml"));
+    }
+
+    [Theory]
+    [InlineData("<p><strong style='font-weight:normal'>A</strong></p>", null, 400)]
+    [InlineData("<p><b style='font-weight:400'>A</b></p>", null, 400)]
+    [InlineData("<p><strong class='pick'>A</strong></p>", ".pick{font-weight:400}strong{font-weight:700}", 400)]
+    [InlineData("<p><strong class='pick' style='font-weight:700'>A</strong></p>", ".pick{font-weight:400}", 700)]
+    [InlineData("<p><span style='font-weight:650'><strong style='all:initial'>A</strong></span></p>", null, 400)]
+    [InlineData("<p><span style='font-weight:650'><strong style='all:inherit'>A</strong></span></p>", null, 650)]
+    [InlineData("<p><strong><b>A</b></strong></p>", null, 900)]
+    [InlineData("<p><b><strong>A</strong></b></p>", null, 900)]
+    [InlineData("<p><strong><span>A</span></strong></p>", null, 700)]
+    [InlineData("<strong>A</strong>", null, 700)]
+    [InlineData("<div><b>A</b></div>", null, 700)]
+    [InlineData("<p><a href='#target'><strong id='target'>A</strong></a></p>", null, 700)]
+    public void StrongAndBoldAuthorOverridesAndInlineContextsUseRealRequestedFaces(string body, string? css, double expectedWeight)
+        => CheckInlineFace(body, css, expectedWeight);
+
+    [Theory]
+    [InlineData("349.5", 400)]
+    [InlineData("350", 700)]
+    [InlineData("549.5", 700)]
+    [InlineData("550", 900)]
+    [InlineData("899", 900)]
+    [InlineData("900", 900)]
+    [InlineData("950", 950)]
+    public void StrongRelativeWeightUsesLiteralParentThresholds(string parentWeight, double expectedWeight)
+        => CheckInlineFace("<p style='font-weight:" + parentWeight + "'><strong>A</strong></p>", null, expectedWeight);
+
+    [Fact]
+    public void StrongSemanticAttributesNavigationAndBreakChildrenPreservePublicText()
+    {
+        var regular = Face(false); var bold = Face(true);
+        byte[] source = Book(false, "<p><strong id='target' class='pick' xmlns:epub='http://www.idpf.org/2007/ops' epub:type='label' style='font-weight:normal'><span>A</span><br/><a href='#target'>A</a></strong></p>");
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(40, 26, regular)
+        { FontSize = 10, Margin = 2, FontFaceResolver = request => new(request.Weight == 700 ? bold : regular, request.Weight, EpubFontMatch.Exact) });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A\nA", page.Text);
+        Assert.Equal(new double[] { 2, 12 }, page.TextPlacements.Select(p => p.Top));
+        Assert.Equal(new double[] { 6, 6 }, page.TextPlacements.Select(p => p.Width));
+        Assert.Equal("doc.xhtml#target", page.TextPlacements[1].LinkTarget);
+        Assert.Equal(0, layout.ResolveNavigationTarget("doc.xhtml#target").TextOffset);
+    }
+
+    [Theory]
+    [InlineData("<head><strong>A</strong></head><p>A</p>")]
+    [InlineData("<p><strong onclick='bad'>A</strong></p>")]
+    [InlineData("<p><strong xmlns='urn:other'>A</strong></p>")]
+    [InlineData("<p><a href='#x'><strong><a href='#x'>A</a></strong></a></p>")]
+    [InlineData("<p><a href='#x'><strong><img src='missing.png'/></strong></a></p>")]
+    [InlineData("<p><strong style='font-weight:bolder'>A</strong></p>")]
+    [InlineData("<p><b style='font-weight:lighter'>A</b></p>")]
+    public void StrongAdmissionPreservesUnsupportedContextsAttributesAndWeightKeywords(string body)
+    {
+        var book = EpubDocument.Open(Book(false, body));
+        var regular = Face(false); var bold = Face(true);
+        EpubFontFaceResult? Resolve(EpubFontFaceRequest request) => new(request.Weight == 700 ? bold : regular, request.Weight, EpubFontMatch.Exact);
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(40, 26, regular)
+        { FontSize = 10, Margin = 2, FontFaceResolver = Resolve }));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(regular) { FontFaceResolver = Resolve }));
+    }
+
+    private static void CheckInlineFace(string body, string? css, double expectedWeight)
+    {
+        byte[] source = Book(false, body, css), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        byte[] chapter = book.ReadResource("doc.xhtml");
+        var regular = Face(false); var bold = Face(true);
+        var requests = new List<double>();
+        bool useBold = expectedWeight > 400;
+        EpubFontFaceResult? Resolve(EpubFontFaceRequest request)
+        {
+            requests.Add(request.Weight);
+            double actual = request.Weight > 400 ? 700 : 400;
+            return new(request.Weight > 400 ? bold : regular, actual,
+                request.Weight == actual ? EpubFontMatch.Exact : EpubFontMatch.Nearest);
+        }
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var layout = book.CreateLayout(new EpubLayoutOptions(40, 26, regular)
+        { FontSize = 10, Margin = 2, FontFaceResolver = Resolve }, deadline.Token);
+        var placement = Assert.Single(Assert.Single(layout.Pages).TextPlacements);
+        Assert.Equal(useBold ? 12 : 6, placement.Width);
+        Assert.Equal(2, placement.Left);
+        Assert.Equal(2, placement.Top);
+        Assert.Equal(10, placement.Height);
+        Assert.Contains(expectedWeight, requests);
+        requests.Clear();
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(regular)
+        { PageWidthPoints = 30, PageHeightPoints = 19.5, MarginPoints = 1.5, FontSizePoints = 7.5, FontFaceResolver = Resolve }, deadline.Token));
+        var letter = Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters);
+        Assert.Equal("A", letter.Value);
+        Assert.Equal(useBold ? 9 : 4.5, letter.EndBaseLine.X - letter.StartBaseLine.X);
+        Assert.EndsWith(useBold ? "KillerBold" : "KillerTest", letter.FontName);
+        Assert.Contains(expectedWeight, requests);
+        Assert.Equal(original, source);
+        Assert.Equal(chapter, book.ReadResource("doc.xhtml"));
+    }
+
     private static TrueTypeFont Face(bool bold)
     {
         byte[] bytes = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true);

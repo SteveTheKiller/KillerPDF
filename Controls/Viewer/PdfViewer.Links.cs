@@ -120,7 +120,7 @@ namespace KillerPDF.Controls
             return (x, y, w, h);
         }
 
-        /// <summary>Retains a package destination with its captured document owner.</summary>
+        /// <summary>Retains a native hyperlink with its captured document owner.</summary>
         private sealed record NativeLinkTarget(NativeWorkingDocument Owner, string Target)
         {
             public override string ToString() => Target;
@@ -148,6 +148,11 @@ namespace KillerPDF.Controls
             if (target is NativeLinkTarget native)
             {
                 if (!ReferenceEquals(native.Owner, _nativeDoc)) return;
+                if (IsAllowedLinkUri(native.Target))
+                {
+                    FollowLinkTarget(native.Target);
+                    return;
+                }
                 try
                 {
                     var destination = native.Owner.ResolveNavigationTarget(native.Target, _currentPage);

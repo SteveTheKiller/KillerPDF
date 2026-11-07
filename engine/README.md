@@ -228,8 +228,9 @@ anchors, linked images, external resources and other pseudo-classes remain
 diagnosed; targets retain the 4,096-character
 navigation limit. `PdfReadSnapshot.ReadLinkRegions` retains grouped target geometry
 in unrotated bottom-left PDF points and honors capture ownership and cancellation.
-The Windows reader has initial mouse and Enter-key local-link activation across its
-five view modes. Native external-link activation remains in progress.
+The Windows reader has initial mouse and Enter-key link activation across its five
+view modes. Supported external targets use the existing link-opening policy after
+checking the captured document owner, including the optional confirmation setting.
 Full reading, accessibility and color-status acceptance remain
 in progress.
 
@@ -238,6 +239,13 @@ Inheritance uses the actual parent's computed values, including computed pixel l
 for em margins. Initial values reset paragraph gaps, font family, weight, normal line
 height and color while retaining the separate reader page inset. Other shorthand values
 and unsupported longhand values remain diagnosed.
+
+Inline `strong` and `b` text select real font faces using the parent's relative
+weight, following the [HTML rendering defaults](https://html.spec.whatwg.org/multipage/rendering.html)
+and [CSS weight thresholds](https://www.w3.org/TR/css-fonts-4/#font-weight-prop).
+Author weight declarations and shorthand resets override these defaults. Nested
+emphasis retains computed weights and existing font matching; no synthetic bold
+painting is added. The CSS `bolder` and `lighter` longhand values remain diagnosed.
 
 Block paragraph/container margins accept `auto`. An explicit content width shares
 remaining horizontal space between automatic margins, including padding and fixed
