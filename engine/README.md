@@ -121,9 +121,10 @@ axis-aligned enlargement, with zero black, default Decode and relative colorimet
 intent. Unmasked bilinear enlargement interpolates source samples before calibration.
 Raw color-key masks and matching DeviceGray 8/16-bit soft masks retain alpha with
 natural or nearest sampling. Named aliases, integer translations, rectangular clips
-and diagonal reflections retain precision. Reductions, other image geometry,
+and diagonal reflections retain precision. Natural-size soft-mask Matte is removed
+before calibration without quantizing the source or mask. Reductions, other image geometry,
 nonzero black, altered Decode, default color substitutions, masked bilinear
-sampling and soft-mask Matte remain diagnosed.
+sampling and enlarged soft-mask Matte remain diagnosed.
 
 `DrawGlyphCluster(font, fontSize, logicalText, glyphs)` paints explicitly selected
 embedded-font glyphs while recording logical text once through inline `ActualText`.

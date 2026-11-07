@@ -232,9 +232,11 @@ public sealed class PdfCalGrayPrecisionImageTests
     }
 
     [Fact]
-    public void CalGraySoftMaskMatteRemainsDiagnosed()
+    public void CalGrayEnlargedSoftMaskMatteRemainsDiagnosed()
     {
-        var document = Build(1, 1, [127], Space(2.2));
+        var image = PdfImage.FromCalibratedGray(1, 1, new byte[] { 127 }, Space(2.2));
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 2,
+            new PdfContentStreamBuilder().DrawImage(image, 0, 0, 2, 2)).Build());
         var (reference, stream) = Image(document);
         var update = new PdfIncrementalUpdateBuilder(document);
         var entries = new List<KeyValuePair<PdfName, PdfObject>>
@@ -246,8 +248,8 @@ public sealed class PdfCalGrayPrecisionImageTests
         };
         var mask = update.AddObject(new PdfStream(new PdfDictionary(entries), new byte[] { 128 }));
         document = PdfDocument.Open(update.ReplaceObject(reference.ObjectNumber, With(stream, "SMask", mask)).Build());
-        Assert.Empty(new PdfPageRenderer(document).Render(0, new PdfRenderOptions(1, 1)).Diagnostics);
-        Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0, Options(1, 1)));
+        Assert.Empty(new PdfPageRenderer(document).Render(0, new PdfRenderOptions(2, 2)).Diagnostics);
+        Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document).RenderFrame(0, Options(2, 2)));
     }
 
     [Fact]
