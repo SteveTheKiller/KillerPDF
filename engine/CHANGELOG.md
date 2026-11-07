@@ -17,6 +17,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Compatibility text extraction recovers missing non-visibility properties and stray marked-content closing tags while preserving ActualText replacements.
 - Searchable text fits supported TrueType glyph heights to OCR word boxes, keeping short words on their visual lines. (#465)
 - JPX rendering uses codestream precision in strict and compatibility modes while retaining dimension checks.
+- EPUB conversion accepts images that exactly fit the default A4 paper without a false overflow error. (#472)
 - Repeated partial rasterization preserves form-local image resources, and affected-content counts exclude unpainted paths. (#369)
 - Comment reading includes empty free-text markup without losing annotation-array positions. (#466)
 - Hidden caller-authored free-text and stamp annotations can retain editing data without adding tagged reading-order descriptions. (#467)

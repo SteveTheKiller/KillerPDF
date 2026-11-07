@@ -111,8 +111,8 @@ public sealed partial class EpubDocument
         if (!entry.IsLinear || !string.IsNullOrWhiteSpace(entry.Properties))
             throw new NotSupportedException("Native EPUB layout requires linear, reflowable, left-to-right spine items.");
         var resource = entry.Item;
-        if (resource.MediaType != "application/xhtml+xml" || !string.IsNullOrWhiteSpace(resource.Properties))
-            throw new NotSupportedException("Native EPUB layout requires plain unscripted XHTML.");
+        if (resource.MediaType != "application/xhtml+xml" || Tokens(resource.Properties).Any(property => property != "svg"))
+            throw new NotSupportedException("Native EPUB layout requires unscripted XHTML with supported resource properties.");
         if (_resources[resource.Href].Length > MaxEntryBytes)
             throw new InvalidDataException("Native EPUB XHTML exceeds its 8 MiB resource limit.");
         var content = new EpubNativeContent(options.FontSize, options.PageHeight - 2 * options.Margin);
@@ -586,7 +586,7 @@ public sealed partial class EpubDocument
                     var image = ReadNativeImage(resource.Href, reference.Source, imageCache, ref imageBytes, cancellationToken);
                     var imageSize = ImageSize(image, reference.Owner);
                     if (imageSize.Width == 0) continue;
-                    if (left + imageSize.Width > contentRight)
+                    if (imageSize.Width > contentRight - left)
                         throw new NotSupportedException("The native EPUB image exceeds the available line width.");
                     line.Add((index, 0, left, imageSize.Width, FontFor(reference.Owner.Style), null, image,
                         reference.Owner.Style, lineBlock.Source.Style, reference.Owner));

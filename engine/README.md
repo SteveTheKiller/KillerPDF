@@ -204,7 +204,12 @@ thumbnails and additional metadata remain explicitly unsupported. Preflight boun
 source pixels, padded component storage, progressive coefficients and retained
 image buffers before decoding. Original resources remain unchanged.
 
+Percentage image widths use the remaining line extent directly, avoiding a rounded
+coordinate sum that could refuse an exactly fitting image on the default A4 paper.
+
 Static SVG cover wrappers support one packaged raster image, a zero-origin viewBox,
+and the manifest's `svg` resource declaration. Other resource properties retain
+strict diagnostics. Supported wrappers use
 100% page-body viewport dimensions and centered `xMidYMid meet` scaling on both the
 wrapper and image. Body margins and padding constrain the viewport. Block container
 parents, inherited hiding, source dimensions and explicit PDF conversion share the

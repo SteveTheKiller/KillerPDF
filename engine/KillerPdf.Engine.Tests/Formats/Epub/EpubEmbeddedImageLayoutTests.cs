@@ -13,6 +13,56 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubEmbeddedImageLayoutTests
 {
     [Fact]
+    public void PercentageImageFitsTheFractionalContainingWidthAtBothSeams()
+    {
+        byte[] png = RgbPng(scanlines: new byte[800 * (1 + 800 * 3)], size: 800);
+        var book = EpubDocument.Open(Package(png,
+            "<div style='text-align:center'><img src='../images/check.png' alt=''/></div>",
+            "body{margin:.5em}img{max-width:100%}"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(793.7066666666666, 1200, font) { Margin = 48, FontSize = 16 });
+        Assert.Single(layout.Pages);
+        Assert.Contains(layout.RenderPage(0, new PdfRenderOptions(240, 340)).Pixels.ToArray(), value => value == 0);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 595.28, PageHeightPoints = 900, MarginPoints = 36, FontSizePoints = 12 }));
+        var image = Assert.Single(new PdfPageContentReader(pdf).Read(0).Images);
+        Assert.Equal(511.28, image.BoundingBox.Width, 6);
+        Assert.Equal(800, image.PixelWidth);
+        var defaultPaper = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        var defaultImage = Assert.Single(new PdfPageContentReader(defaultPaper).Read(0).Images);
+        Assert.Equal(498.236220472441, defaultImage.BoundingBox.Width, 6);
+    }
+
+    [Fact]
+    public void SvgManifestDeclarationDoesNotAdmitScriptedOrRemoteResourceProperties()
+    {
+        foreach (string properties in new[] { "svg scripted", "svg remote-resources", "svg mathml", "svg unknown" })
+        {
+            var book = EpubDocument.Open(Package(RgbPng(), "<p>A</p>", properties: properties));
+            var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+            Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(16, 16, font)
+            { Margin = 2, FontSize = 10 }));
+            Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
+            { PageWidthPoints = 12, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        }
+    }
+
+    [Fact]
+    public void SvgManifestDeclarationAdmitsTheSupportedStaticCoverAtBothSeams()
+    {
+        var book = EpubDocument.Open(Package(RgbPng(),
+            "<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 2 2'>"
+            + "<image width='2' height='2' href='../images/check.png'/></svg>", properties: "svg"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 16, font) { Margin = 2, FontSize = 10 });
+        Assert.Single(layout.Pages);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, layout.RenderPage(0).Pixels.Slice((2 * 16 + 2) * 4, 4).ToArray());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 12, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Single(new PdfPageContentReader(pdf).Read(0).Images);
+    }
+
+    [Fact]
     public void RetainedPngImagesCountAgainstPaddedProgressiveJpegStorageBeforeDecoding()
     {
         byte[] png = RgbPng(scanlines: new byte[1024 * (1 + 1024 * 3)], size: 1024);
@@ -624,7 +674,7 @@ public sealed class EpubEmbeddedImageLayoutTests
         Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((29 * 16 + 3) * 4, 4).ToArray());
     }
 
-    private static byte[] Package(byte[] png, string? body = null, string? css = null)
+    private static byte[] Package(byte[] png, string? body = null, string? css = null, string? properties = null)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -639,7 +689,9 @@ public sealed class EpubEmbeddedImageLayoutTests
                   <manifest><item id="chapter" href="text/chapter.xhtml" media-type="application/xhtml+xml"/><item id="image" href="images/check.png" media-type="image/png"/><item id="font" href="fonts/test.ttf" media-type="font/ttf"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest>
                   <spine><itemref idref="chapter"/></spine>
                 </package>
-                """.Replace("</manifest>", css is null ? "</manifest>"
+                """.Replace("id=\"chapter\" href=", properties is null ? "id=\"chapter\" href="
+                    : "id=\"chapter\" properties='" + properties + "' href=")
+                    .Replace("</manifest>", css is null ? "</manifest>"
                     : "<item id='css' href='style.css' media-type='text/css'/></manifest>"));
             if (css is not null) Add("EPUB/style.css", css);
             Add("EPUB/text/chapter.xhtml", "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Image</title>"
