@@ -98,6 +98,12 @@ checksum while retaining the original encoded bytes. `ToPdfBytes` returns a sepa
 single-image PDF whose page size matches the original pixel dimensions, containing
 the original samples and no neighboring page content or resources. Copies own their
 bytes and enforce content-copy permission independently of modification permission.
+RGB ICC v2.1 images retain the original profile and image stream bytes, including
+single Flate encoding. Extraction captures page rendering intent through `q`/`Q`
+and `ri`, with an image's explicit intent taking precedence. The detached image
+keeps that intent when reused under a different destination state. Profiles must
+provide the captured transform, RGB input, unit ranges and no extra dependencies;
+unsupported revisions, alternates and metadata remain diagnosed.
 Encoded, decoded and serialized assets are bounded to 5 MiB. Other color spaces,
 default color substitutions, other filters, predictors, masks and uncaptured context remain refused.
 These backend APIs do not yet provide application image-selection or Copy/Cut tools.
@@ -134,11 +140,12 @@ KillerPDF uses these typed content APIs for annotations, stamps and print/export
 `PdfEditablePageOverlayEditor.Append` keeps opaque editing data with a dedicated page-content overlay, preserving its ordinary rendering and searchable text. `Read` returns intact tail batches in content order; `Remove` revalidates them and removes only their drawing, isolation wrappers and owned tagged descriptions. Current foreign form values, markup and other page data remain intact. Changed resources, malformed ownership data, a foreign content tail or a changed page frame prevent extraction. Editing payloads are limited to 8 MiB per batch and resource fingerprints to 32 MiB, 16,384 visits and depth 64. The optional `expectedRotation` supports saves that apply final page rotation later. Authentication, copying/modification permissions and certification restrictions still apply.
 
 `PdfContentStreamBuilder.DrawImage(PdfImageAsset, x, y, width, height)` reuses a
-detached raw or Flate-encoded eight-bit DeviceRGB image on pages, inside forms,
+detached raw or Flate-encoded eight-bit DeviceRGB or supported RGB ICC image on pages, inside forms,
 colored patterns and caller-authored stamp appearances. Resources are shared by
 asset identity, retain encoded bytes and interpolation, and exclude the source
 page's unrelated content. Negative dimensions flip the image. Raw assets require
-PDF 1.0; Flate assets require PDF 1.2. Uncolored patterns reject these colored
+PDF 1.0; Flate assets require PDF 1.2, and supported ICC assets require PDF 1.3.
+Uncolored patterns reject these colored
 assets, including through nested forms and patterns. This bounded authoring slice
 does not implement application Copy/Cut or additional source color spaces.
 

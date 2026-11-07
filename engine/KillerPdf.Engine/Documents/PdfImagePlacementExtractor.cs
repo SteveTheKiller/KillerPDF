@@ -40,7 +40,7 @@ public static class PdfImagePlacementExtractor
             && (Resolve(spacesValue) is not PdfDictionary spaces || spaces.ContainsKey(Name("DefaultRGB"))))
             throw new NotSupportedException("Image extraction does not yet preserve default color-space substitutions.");
         var dictionary = image.Dictionary;
-        foreach (string key in new[] { "DecodeParms", "Decode", "Mask", "SMask", "ImageMask", "SMaskInData", "OC", "Alternates", "OPI", "Intent" })
+        foreach (string key in new[] { "DecodeParms", "Decode", "Mask", "SMask", "ImageMask", "SMaskInData", "OC", "Alternates", "OPI" })
             if (dictionary.ContainsKey(Name(key)))
                 throw new NotSupportedException("Image extraction does not yet preserve image property: " + key + ".");
         bool flate = false;
@@ -52,9 +52,20 @@ public static class PdfImagePlacementExtractor
                 throw new NotSupportedException("Image extraction currently supports only a single FlateDecode filter.");
             flate = true;
         }
-        if (!dictionary.TryGetValue(Name("ColorSpace"), out var colorValue)
-            || Resolve(colorValue) is not PdfName color || color.ValueAsLatin1() != "DeviceRGB")
-            throw new NotSupportedException("Image extraction currently requires untagged DeviceRGB samples.");
+        if (!dictionary.TryGetValue(Name("ColorSpace"), out var colorValue))
+            throw new NotSupportedException("Image extraction requires an explicit source color space.");
+        PdfStream? profile = null;
+        PdfName renderingIntent = Name("RelativeColorimetric");
+        if (Resolve(colorValue) is not PdfName color || color.ValueAsLatin1() != "DeviceRGB")
+        {
+            if (dictionary.TryGetValue(Name("Intent"), out var intent))
+                renderingIntent = Resolve(intent) as PdfName
+                    ?? throw new NotSupportedException("Image rendering intent requires one standard name.");
+            else renderingIntent = EffectiveIntent();
+            profile = PdfImageAssetIccProfile.Copy(document, colorValue, Resolve, renderingIntent, cancellationToken);
+        }
+        else if (dictionary.ContainsKey(Name("Intent")))
+            throw new NotSupportedException("Image extraction does not yet preserve DeviceRGB image rendering intent.");
         int width = Integer("Width"), height = Integer("Height");
         if (Integer("BitsPerComponent") != 8)
             throw new NotSupportedException("Image extraction currently requires eight-bit samples.");
@@ -101,6 +112,11 @@ public static class PdfImagePlacementExtractor
         var seed = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(width, height).Build());
         var seedPage = PdfPageTree.Read(seed).Pages[0];
         var update = new PdfIncrementalUpdateBuilder(seed);
+        if (profile is not null)
+        {
+            entries[Name("ColorSpace")] = new PdfArray([Name("ICCBased"), update.AddObject(profile)]);
+            entries[Name("Intent")] = Name(renderingIntent.ValueAsLatin1());
+        }
         var imageReference = update.AddObject(new PdfStream(new PdfDictionary(entries), image.EncodedData.Span));
         var content = string.Create(CultureInfo.InvariantCulture, $"q {width} 0 0 {height} 0 0 cm /Image Do Q\n");
         var contentReference = update.AddObject(new PdfStream(new PdfDictionary([]), Encoding.ASCII.GetBytes(content)));
@@ -115,6 +131,37 @@ public static class PdfImagePlacementExtractor
         if (result.Length > MaximumAssetBytes)
             throw new NotSupportedException("The detached image asset exceeds its size limit.");
         return new PdfImageAsset(width, height, result);
+
+        PdfName EffectiveIntent()
+        {
+            PdfName intent = Name("RelativeColorimetric");
+            var stack = new Stack<PdfName>();
+            for (int index = 0; index < selection.Ordinal; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var instruction = selection.Instructions[index];
+                switch (instruction.Operator)
+                {
+                    case "q":
+                        if (instruction.Operands.Count != 0 || stack.Count >= 256)
+                            throw new FormatException("Invalid image rendering-intent graphics state.");
+                        stack.Push(intent);
+                        break;
+                    case "Q":
+                        if (instruction.Operands.Count != 0 || !stack.TryPop(out var saved))
+                            throw new FormatException("Invalid image rendering-intent graphics state.");
+                        intent = saved;
+                        break;
+                    case "ri":
+                        if (instruction.Operands.Count != 1 || instruction.Operands[0] is not PdfName selectedIntent)
+                            throw new NotSupportedException("Image rendering intent requires one standard name.");
+                        _ = PdfImageAssetIccProfile.IntentIndex(selectedIntent);
+                        intent = selectedIntent;
+                        break;
+                }
+            }
+            return intent;
+        }
 
         int Integer(string key)
         {

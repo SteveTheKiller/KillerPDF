@@ -9,12 +9,16 @@ namespace KillerPdf.Engine.Authoring;
 internal sealed class PdfImageAssetGraphWriter
 {
     private const int MaximumBytes = 5 * 1024 * 1024;
-    private readonly Dictionary<PdfImageAsset, PdfStream> _images = [];
+    private sealed record ImageGraph(PdfStream Image, PdfStream? Profile);
+    private readonly Dictionary<PdfImageAsset, ImageGraph> _images = [];
     private readonly Dictionary<PdfImageAsset, PdfIndirectReference> _references = [];
 
-    internal PdfVersion MinimumVersion(PdfImageAsset asset, CancellationToken cancellationToken = default) =>
-        ReadImage(asset, cancellationToken).Dictionary.ContainsKey(Name("Filter"))
-            ? new PdfVersion(1, 2) : new PdfVersion(1, 0);
+    internal PdfVersion MinimumVersion(PdfImageAsset asset, CancellationToken cancellationToken = default)
+    {
+        var graph = ReadImage(asset, cancellationToken);
+        return graph.Profile is not null ? new PdfVersion(1, 3)
+            : graph.Image.Dictionary.ContainsKey(Name("Filter")) ? new PdfVersion(1, 2) : new PdfVersion(1, 0);
+    }
 
     internal PdfIndirectReference Write(PdfImageAsset asset,
         Func<PdfIndirectReference> reserve, Action<PdfIndirectReference, PdfObject> define,
@@ -22,7 +26,16 @@ internal sealed class PdfImageAssetGraphWriter
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (_references.TryGetValue(asset, out var known)) return known;
-        var image = ReadImage(asset, cancellationToken);
+        var graph = ReadImage(asset, cancellationToken);
+        var image = graph.Image;
+        if (graph.Profile is not null)
+        {
+            var profileReference = reserve();
+            define(profileReference, graph.Profile);
+            var entries = image.Dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
+            entries[Name("ColorSpace")] = new PdfArray([Name("ICCBased"), profileReference]);
+            image = new PdfStream(new PdfDictionary(entries), image.EncodedData.Span);
+        }
         var reference = reserve();
         cancellationToken.ThrowIfCancellationRequested();
         define(reference, image);
@@ -30,7 +43,7 @@ internal sealed class PdfImageAssetGraphWriter
         return reference;
     }
 
-    private PdfStream ReadImage(PdfImageAsset asset, CancellationToken cancellationToken)
+    private ImageGraph ReadImage(PdfImageAsset asset, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (_images.TryGetValue(asset, out var known)) return known;
@@ -64,23 +77,37 @@ internal sealed class PdfImageAssetGraphWriter
                 throw new NotSupportedException("The detached image graph exceeds its node limit.");
             string key = entry.Key.ValueAsLatin1();
             if (key is not ("Type" or "Subtype" or "Width" or "Height" or "ColorSpace"
-                or "BitsPerComponent" or "Length" or "Filter" or "Interpolate"))
+                or "BitsPerComponent" or "Length" or "Filter" or "Interpolate" or "Intent"))
                 throw new NotSupportedException("Detached image authoring does not support image property: " + key + ".");
-            // The extractor normalizes all accepted metadata to direct immutable scalars.
-            if (entry.Value is not (PdfName or PdfInteger or PdfBoolean))
+            // ICCBased is the only accepted dependency; other metadata is direct.
+            if (key != "ColorSpace" && entry.Value is not (PdfName or PdfInteger or PdfBoolean))
                 throw new NotSupportedException("Detached image authoring requires direct scalar image metadata.");
         }
         bool IsName(string key, string expected) => dictionary.TryGetValue(Name(key), out var value)
             && value is PdfName name && name.ValueAsLatin1() == expected;
         bool IsInteger(string key, long expected) => dictionary.TryGetValue(Name(key), out var value)
             && value is PdfInteger integer && integer.Value == expected;
+        PdfStream? profile = null;
+        if (!IsName("ColorSpace", "DeviceRGB"))
+        {
+            if (!dictionary.TryGetValue(Name("ColorSpace"), out var color)
+                || color is not PdfArray { Count: 2 } space
+                || space[0] is not PdfName spaceName || spaceName.ValueAsLatin1() != "ICCBased"
+                || space[1] is not PdfIndirectReference)
+                throw new NotSupportedException("Detached image authoring requires an owned RGB ICC graph.");
+            if (!dictionary.TryGetValue(Name("Intent"), out var intent) || intent is not PdfName renderingIntent)
+                throw new NotSupportedException("Detached ICC images require their captured rendering intent.");
+            profile = PdfImageAssetIccProfile.Copy(document, color, Resolve, renderingIntent, cancellationToken);
+        }
+        else if (dictionary.ContainsKey(Name("Intent")))
+            throw new NotSupportedException("Detached DeviceRGB image rendering intent is not implemented.");
         if (!IsName("Type", "XObject") || !IsName("Subtype", "Image")
-            || !IsName("ColorSpace", "DeviceRGB") || !IsInteger("BitsPerComponent", 8)
+            || !IsInteger("BitsPerComponent", 8)
             || !IsInteger("Width", asset.Width) || !IsInteger("Height", asset.Height)
             || asset.Width <= 0 || asset.Height <= 0
             || (long)asset.Width * asset.Height > MaximumBytes / 3
             || image.EncodedData.Length > MaximumBytes)
-            throw new NotSupportedException("Detached image authoring requires a bounded eight-bit DeviceRGB image.");
+            throw new NotSupportedException("Detached image authoring requires a bounded eight-bit RGB image.");
         if (dictionary.ContainsKey(Name("Filter")) && !IsName("Filter", "FlateDecode"))
             throw new NotSupportedException("Detached image authoring supports only raw or single FlateDecode image data.");
         if (dictionary.TryGetValue(Name("Interpolate"), out var interpolate) && interpolate is not PdfBoolean)
@@ -89,7 +116,7 @@ internal sealed class PdfImageAssetGraphWriter
             && image.EncodedData.Length != (long)asset.Width * asset.Height * 3)
             throw new FormatException("The detached image payload does not match its dimensions.");
         cancellationToken.ThrowIfCancellationRequested();
-        var copy = new PdfStream(new PdfDictionary(dictionary), image.EncodedData.Span);
+        var copy = new ImageGraph(new PdfStream(new PdfDictionary(dictionary), image.EncodedData.Span), profile);
         _images.Add(asset, copy);
         return copy;
     }
