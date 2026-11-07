@@ -205,7 +205,9 @@ native text placements. Initial `:link` matching uses XHTML anchors with an
 unqualified href and class-level specificity. PDF conversion writes local page
 destinations and groups contiguous visible text into line rectangles. Hidden
 anchors do not create links. `:visited` is admitted without consulting browsing
-history: native reading and conversion treat all links as unvisited. Nested
+history: native reading and conversion treat all links as unvisited. Captured
+layouts admit trailing `:hover` on supported simple selectors without applying
+hover declarations. Dynamic pointer-driven restyling is not implemented. Nested
 anchors, linked images, external references and other pseudo-classes remain
 diagnosed; targets retain the 4,096-character
 navigation limit. `PdfReadSnapshot.ReadLinkRegions` retains grouped target geometry

@@ -397,8 +397,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     string selector = selectorPart;
                     bool link = selector.EndsWith(":link", StringComparison.OrdinalIgnoreCase);
                     bool visited = selector.EndsWith(":visited", StringComparison.OrdinalIgnoreCase);
+                    bool hover = selector.EndsWith(":hover", StringComparison.OrdinalIgnoreCase);
                     if (link) selector = selector[..^5];
                     else if (visited) selector = selector[..^8];
+                    else if (hover) selector = selector[..^6];
                     CssAttribute? attribute = null;
                     int bracket = selector.IndexOf('[');
                     if (bracket >= 0)
@@ -472,12 +474,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         type = type[(separator + 1)..];
                         parts[0] = type;
                     }
-                    bool classOnly = selector.StartsWith(".", StringComparison.Ordinal) || selector.Length == 0 && (ids.Count > 0 || link || visited);
-                    if (classOnly && attribute is not null || selector.Length > 128 || selector.Length == 0 && ids.Count == 0 && !link && !visited || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
+                    bool classOnly = selector.StartsWith(".", StringComparison.Ordinal) || selector.Length == 0 && (ids.Count > 0 || link || visited || hover);
+                    if (classOnly && attribute is not null || selector.Length > 128 || selector.Length == 0 && ids.Count == 0 && !link && !visited && !hover || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
                         || !char.IsAsciiLetter(part[0])
                         || part.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_'))))
                         throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                    chain.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1, type, []) { Ids = ids.ToArray(), Link = link, Visited = visited });
+                    chain.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1, type, []) { Ids = ids.ToArray(), Link = link, Visited = visited, Hover = hover });
                 }
                 var target = chain[^1] with { Ancestors = chain.Take(chain.Count - 1).Reverse().ToArray() };
                 if (!_typeRules.TryGetValue(target.Type, out var rules))
@@ -502,9 +504,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     {
         internal bool Link { get; init; }
         internal bool Visited { get; init; }
+        internal bool Hover { get; init; }
         internal string[] Ids { get; init; } = [];
-        internal int Specificity => Ids.Length * 65536 + (Classes.Length + (Attribute is null ? 0 : 1) + (Link || Visited ? 1 : 0)) * 256 + TypeSpecificity
-            + Ancestors.Sum(rule => rule.Ids.Length * 65536 + (rule.Classes.Length + (rule.Attribute is null ? 0 : 1) + (rule.Link || rule.Visited ? 1 : 0)) * 256 + rule.TypeSpecificity);
+        internal int Specificity => Ids.Length * 65536 + (Classes.Length + (Attribute is null ? 0 : 1) + (Link || Visited || Hover ? 1 : 0)) * 256 + TypeSpecificity
+            + Ancestors.Sum(rule => rule.Ids.Length * 65536 + (rule.Classes.Length + (rule.Attribute is null ? 0 : 1) + (rule.Link || rule.Visited || rule.Hover ? 1 : 0)) * 256 + rule.TypeSpecificity);
     }
 
     private static IEnumerable<string> DescendantParts(string selector)
@@ -530,6 +533,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
 
     private bool Matches(CssRule rule, string name, SelectorIdentity identity)
     {
+        if (rule.Hover)
+        {
+            CountSelectorWork(1);
+            // Captured native layout has no active pointing-device designation.
+            return false;
+        }
         if (rule.Visited)
         {
             CountSelectorWork(1);
