@@ -350,8 +350,13 @@ public sealed class RenderBoundaryTests
         Assert.Equal(2, Count(ocr, "RenderBasePage(i, ct)"));
         Assert.Contains("session.RenderBasePage(pageIndex, ct)", ocr, StringComparison.Ordinal);
         Assert.Contains("session.RenderBasePage(pageIndex, size.Width, size.Height, ct)", ocr, StringComparison.Ordinal);
-        Assert.Contains("lease.Render(i, renderW, renderW * 2, token)", viewer);
-        Assert.Contains("lease.Render(i, secondaryMax, secondaryMax, token)", viewer);
+        Assert.Contains("RenderViewingPage(lease, i, renderW, token,", viewer);
+        Assert.Contains("RenderViewingPage(lease, i, secondaryMax, token,", viewer);
+        string pipeline = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.RenderPipeline.cs"));
+        Assert.Equal(2, Count(pipeline, "lease.Render(page, maximumSize, height, token)"));
+        Assert.Contains("lease.RenderFrame(page, maximumSize, height, token, proof)", pipeline);
+        Assert.Contains("monitor?.Convert(frame, token)", pipeline);
+        Assert.Contains("frame.ToSrgbBgra32(token)", pipeline);
         Assert.Contains("lease.Render(target, scaledMax, scaledMax, token)", viewer);
         string refinement = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Refinement.cs"));
         Assert.Contains("region.Left, region.Top, region.Width, region.Height, workToken)", refinement);
