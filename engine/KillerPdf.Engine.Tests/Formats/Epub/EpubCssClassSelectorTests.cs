@@ -15,6 +15,61 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubCssClassSelectorTests
 {
+    [Fact]
+    public void AutomaticColumnsShareAllRowConstraintsAndCenterTheMeasuredTable()
+    {
+        byte[] source = Book("table{border-spacing:0;margin-left:auto;margin-right:auto}td{padding:0;letter-spacing:2px}",
+            "<table><tbody><tr><td>A</td><td>AA</td></tr></tbody><tbody><tr><td>AA</td><td>A</td></tr></tbody></table>");
+        byte[] original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = EpubDocument.Open(source).CreateLayout(
+            new EpubLayoutOptions(36, 36, font) { FontSize = 10, Margin = 2 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A\nAA\nAA\nA", page.Text);
+        Assert.Equal(new[] { (0, 4d, 2d), (2, 18d, 2d), (3, 26d, 2d),
+            (5, 4d, 12d), (6, 12d, 12d), (8, 18d, 12d) },
+            page.TextPlacements.Select(item => (item.Start, item.Left, item.Top)));
+        Assert.Equal(original, source);
+    }
+
+    [Fact]
+    public void AutomaticTableShrinksColumnsBetweenTheirWordAndLineWidths()
+    {
+        byte[] source = Book("table{border-spacing:0}td{padding:0}",
+            "<table><tr><td>A A</td><td>A</td></tr></table>");
+        byte[] original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = EpubDocument.Open(source).CreateLayout(
+            new EpubLayoutOptions(22, 36, font) { FontSize = 10, Margin = 2 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A A\nA", page.Text);
+        Assert.Equal(new[] { (0, 2d, 2d), (2, 2d, 12d), (4, 14d, 2d) },
+            page.TextPlacements.Select(item => (item.Start, item.Left, item.Top)));
+        Assert.Equal(original, source);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("width:auto;")]
+    public void AutomaticTableColumnsUseIntrinsicTextWidthsWithoutChangingSourceText(string declaration)
+    {
+        byte[] source = Book("table{" + declaration + "border-spacing:0}td{" + declaration + "padding:0}",
+            "<table><tr><td>AAA</td><td>A</td></tr></table>");
+        byte[] original = source.ToArray();
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var book = EpubDocument.Open(source);
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("AAA\nA", page.Text);
+        Assert.Equal(new[] { (0, 2d), (1, 8d), (2, 14d), (4, 20d) },
+            page.TextPlacements.Select(item => (item.Start, item.Left)));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        var letters = new PdfPageContentReader(pdf).Read(0).Letters;
+        Assert.Equal(new[] { 1.5, 6, 10.5, 15 }, letters.Select(item => item.BoundingBox.Left));
+        Assert.Equal(original, source);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

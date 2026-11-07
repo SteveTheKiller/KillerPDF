@@ -612,8 +612,49 @@ public sealed partial class EpubDocument
             {
                 const string columnsUnsupported = "Native EPUB explicit table columns must fill the width and match across rows.";
                 double[]? columns = null;
-                if (table.Source.Width is not { Length: { Value: > 0 } } || table.Children.Count == 0)
+                bool automatic = table.Source.Width?.Length is null;
+                if ((!automatic && table.Source.Width is not { Length: { Value: > 0 } }) || table.Children.Count == 0)
                     throw new NotSupportedException("Native EPUB tables require explicit width and row content.");
+                if (automatic)
+                {
+                    double[]? minimums = null;
+                    foreach (var row in Rows())
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        if (row.Children.Count == 0 || row.Children.Any(child => child is not EpubFormattingTree.Cell))
+                            throw new NotSupportedException("Native EPUB rows require direct cells.");
+                        columns ??= new double[row.Children.Count];
+                        minimums ??= new double[row.Children.Count];
+                        if (columns.Length != row.Children.Count) throw new NotSupportedException(columnsUnsupported);
+                        for (int column = 0; column < columns.Length; column++)
+                        {
+                            var cell = (EpubFormattingTree.Cell)row.Children[column];
+                            if (cell.Source.Width?.Length is not null)
+                                throw new NotSupportedException("Native EPUB automatic tables currently require automatic cells.");
+                            var intrinsic = IntrinsicWidths(cell);
+                            columns[column] = Math.Max(columns[column], intrinsic.Maximum);
+                            minimums[column] = Math.Max(minimums[column], intrinsic.Minimum);
+                        }
+                    }
+                    double width = columns?.Sum() ?? 0;
+                    double minimum = minimums?.Sum() ?? 0;
+                    if (columns is null || columns.Any(value => value <= 0) || !double.IsFinite(width) || minimum > contentWidth)
+                        throw new NotSupportedException("Native EPUB intrinsic table columns require positive widths that fit the page.");
+                    if (width > contentWidth)
+                    {
+                        double fraction = (contentWidth - minimum) / (width - minimum);
+                        for (int column = 0; column < columns.Length; column++)
+                            columns[column] = minimums![column] + (columns[column] - minimums[column]) * fraction;
+                        width = contentWidth;
+                    }
+                    double remaining = contentWidth - width;
+                    if (table.Source.Margins?[3] is { Auto: true })
+                        contentLeft += table.Source.Margins?[1] is { Auto: true } ? remaining / 2 : remaining;
+                    contentWidth = width;
+                    contentRight = contentLeft + width;
+                    var bounds = activeBounds[table];
+                    activeBounds[table] = (contentLeft, width, bounds.ContainingWidth);
+                }
                 if (pendingParagraphGap > 0)
                 {
                     top += !pageHasContent && existingPageCount + pages.Count == 0 && bodyPadding.Top == 0
@@ -637,9 +678,11 @@ public sealed partial class EpubDocument
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         var cell = (EpubFormattingTree.Cell)child;
-                        if (cell.Source.Width is not { Length: { Value: > 0 } width })
+                        if (!automatic && cell.Source.Width is not { Length: { Value: > 0 } })
                             throw new NotSupportedException("Native EPUB cells require explicit positive widths.");
-                        double cellWidth = width.Percentage ? contentWidth * width.Value / 100
+                        var width = cell.Source.Width?.Length ?? default;
+                        double cellWidth = automatic ? columns![widths.Count]
+                            : width.Percentage ? contentWidth * width.Value / 100
                             : width.Em ? cell.Source.Style.FontSize * width.Value : width.Value;
                         if (!double.IsFinite(cellWidth) || rowLeft + cellWidth - contentRight > 0.0000001)
                             throw new NotSupportedException("Native EPUB cell widths exceed the table content box.");
@@ -726,6 +769,49 @@ public sealed partial class EpubDocument
                 if (!hadRow)
                     throw new NotSupportedException("Native EPUB tables require explicit width and row content.");
 
+                (double Minimum, double Maximum) IntrinsicWidths(EpubFormattingTree.Cell cell)
+                {
+                    double minimum = 0, maximum = 0;
+                    foreach (var part in cell.Children)
+                    {
+                        if (part is not EpubFormattingTree.InlineSequence sequence)
+                            throw new NotSupportedException("Native EPUB intrinsic table sizing requires inline cell content.");
+                        int first = 0, last = sequence.Atoms.Count - 1;
+                        while (first <= last && sequence.Atoms[first].IsSpace) first++;
+                        while (last >= first && sequence.Atoms[last].IsSpace) last--;
+                        double lineWidth = 0, wordWidth = 0;
+                        EpubNativeContent.Style? previous = null;
+                        EpubNativeContent.Style? wordPrevious = null;
+                        for (int at = first; at <= last; at++)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            if (++inlineMetricWork > 1_000_000)
+                                throw new InvalidDataException("Native EPUB inline metrics exceed their work limit.");
+                            var atom = sequence.Atoms[at];
+                            if (atom.Reference is not null)
+                                throw new NotSupportedException("Native EPUB intrinsic table sizing requires text-only cells.");
+                            if (InlineCluster(atom) is not { } cluster) continue;
+                            var style = atom.Owner.Style;
+                            lineWidth += Tracking(previous, style) + InlineAdvance(cluster, style, atom.IsSpace);
+                            if (atom.IsSpace)
+                            {
+                                minimum = Math.Max(minimum, wordWidth);
+                                wordWidth = 0;
+                                wordPrevious = null;
+                            }
+                            else
+                            {
+                                wordWidth += Tracking(wordPrevious, style) + InlineAdvance(cluster, style, false);
+                                wordPrevious = style;
+                            }
+                            previous = style;
+                        }
+                        minimum = Math.Max(minimum, wordWidth);
+                        maximum = Math.Max(maximum, lineWidth);
+                    }
+                    return (minimum, maximum);
+                }
+
                 IEnumerable<EpubFormattingTree.Row> Rows()
                 {
                     foreach (var part in table.Children)
@@ -803,19 +889,8 @@ public sealed partial class EpubDocument
                         continue;
                     }
                     // Ligature and surrogate continuations keep their source indices but have no separate placement.
-                    EpubGlyphCluster? cluster;
                     var style = atom.Owner.Style;
-                    if (atom.HasSource)
-                    {
-                        if (!clusters.TryGetValue(index, out cluster)) continue;
-                    }
-                    else
-                    {
-                        var spaceFont = FontFor(style);
-                        ushort spaceGlyph = spaceFont.GetGlyphId(' ');
-                        cluster = new(index, 0, spaceFont,
-                            [new(spaceGlyph, spaceFont.GetAdvanceWidth(spaceGlyph) / (double)spaceFont.UnitsPerEm, 0, 0)]);
-                    }
+                    if (InlineCluster(atom) is not { } cluster) continue;
                     char character = atom.IsSpace ? ' ' : text[index];
                     if (atom.IsSpace && line.Count == 0) continue;
                     ushort glyph = cluster.Glyphs[0].GlyphId;
@@ -825,9 +900,8 @@ public sealed partial class EpubDocument
                         readers.Add(cluster.Font, selectedReader = new TrueTypeOutlineReader(cluster.Font));
                     PdfGlyphOutline outline = selectedReader.Outline(glyph)
                         ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
-                    double width = cluster.Advance * style.FontSize;
-                    if (character == ' ') width += style.WordSpacing;
-                    double tracking = line.Count == 0 ? 0 : (line[^1].Style.LetterSpacing + style.LetterSpacing) / 2;
+                    double width = InlineAdvance(cluster, style, character == ' ');
+                    double tracking = Tracking(line.Count == 0 ? null : line[^1].Style, style);
                     if (character == ' ')
                     {
                         firstIndentedWord = false;
@@ -895,6 +969,21 @@ public sealed partial class EpubDocument
             }
 
             EpubNativeContent.Style StyleAt(int index) => content.Characters[index]?.Style ?? content.DefaultStyle;
+
+            EpubGlyphCluster? InlineCluster(EpubFormattingTree.Atom atom)
+            {
+                if (atom.HasSource) return clusters.GetValueOrDefault(atom.Offset);
+                var spaceFont = FontFor(atom.Owner.Style);
+                ushort spaceGlyph = spaceFont.GetGlyphId(' ');
+                return new(atom.Offset, 0, spaceFont,
+                    [new(spaceGlyph, spaceFont.GetAdvanceWidth(spaceGlyph) / (double)spaceFont.UnitsPerEm, 0, 0)]);
+            }
+
+            static double InlineAdvance(EpubGlyphCluster cluster, EpubNativeContent.Style style, bool space)
+                => cluster.Advance * style.FontSize + (space ? style.WordSpacing : 0);
+
+            static double Tracking(EpubNativeContent.Style? previous, EpubNativeContent.Style current)
+                => previous is null ? 0 : (previous.LetterSpacing + current.LetterSpacing) / 2;
 
             static int SourceDepth(EpubNativeContent.Element source)
             {

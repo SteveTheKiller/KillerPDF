@@ -389,7 +389,10 @@ and styled text keeps its source offsets. Structural normalization still omits
 leading breaks before any text and trims trailing breaks.
 Words wider than the content box are diagnosed explicitly.
 Initial tables require rows and cells, optionally grouped in `tbody`, plain or
-linked cell text, positive explicit table and cell widths, zero spacing and no cell padding.
+linked cell text, zero spacing and no cell padding. Explicit table and cell widths
+must be positive. Automatic text-only tables share intrinsic word and line widths
+across all rows, shrink columns between those limits to fit, and honor automatic
+horizontal margins. Omitted widths and explicit `width:auto` behave alike.
 Text links retain separate hit regions across column gutters.
 Body groups retain source order and ancestry for inherited styles and selectors;
 columns and whole-row pagination remain shared across groups. Empty groups add no text.
@@ -403,7 +406,8 @@ move to the next page while keeping contiguous chapter text ranges. Empty cells
 retain their columns without adding text. Native and converted PDF output retain
 the supported outer container background and preceding paragraph margins.
 Explicit `display:table` on a table element retains the same typed grid.
-Auto sizing, header/footer groups, spans, nested tables, anonymous table boxes,
+Mixed explicit/automatic columns, automatic empty columns or replaced content,
+header/footer groups, spans, nested tables, anonymous table boxes,
 row-group backgrounds, nonzero spacing and row/cell/group page-break requests
 remain diagnosed. Cells taller than a
 fresh page are refused before retaining additional cell pages.
