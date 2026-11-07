@@ -92,7 +92,7 @@ public sealed class PdfImageSoftMaskAssetTests
         byte[] bytes = Fixture(entries => entries[N(key)] = key switch
         {
             "Width" or "Height" => new PdfInteger(2), "BitsPerComponent" => new PdfInteger(16),
-            "ColorSpace" => N("DeviceRGB"), "Filter" => N("FlateDecode"),
+            "ColorSpace" => N("DeviceRGB"), "Filter" => N("LZWDecode"),
             "Decode" => new PdfArray([new PdfInteger(1), new PdfInteger(0)]),
             "Matte" => new PdfArray([new PdfInteger(0), new PdfInteger(0), new PdfInteger(0)]),
             "ImageMask" => new PdfBoolean(true), _ => new PdfDictionary([])

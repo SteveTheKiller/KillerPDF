@@ -102,8 +102,9 @@ public static class PdfImagePlacementExtractor
                 }
             }
             if (ResolveMask(maskValue) is not PdfStream mask)
-                throw new NotSupportedException("Image extraction requires a raw DeviceGray soft-mask stream.");
+                throw new NotSupportedException("Image extraction requires a DeviceGray soft-mask stream.");
             var maskEntries = new Dictionary<PdfName, PdfObject>();
+            bool maskFlate = false;
             foreach (var entry in mask.Dictionary)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -111,9 +112,17 @@ public static class PdfImagePlacementExtractor
                     throw new NotSupportedException("The soft-mask graph exceeds its node limit.");
                 string key = entry.Key.ValueAsLatin1();
                 if (key is not ("Type" or "Subtype" or "Width" or "Height" or "BitsPerComponent"
-                    or "ColorSpace" or "Length" or "Interpolate"))
+                    or "ColorSpace" or "Length" or "Interpolate" or "Filter"))
                     throw new NotSupportedException("Image extraction does not yet preserve soft-mask property: " + key + ".");
                 var value = ResolveMask(entry.Value);
+                if (key == "Filter")
+                {
+                    if (value is PdfArray { Count: 1 } filters) value = ResolveMask(filters[0]);
+                    if (value is not PdfName filter || filter.ValueAsLatin1() != "FlateDecode")
+                        throw new NotSupportedException("Soft-mask extraction supports only a single FlateDecode filter.");
+                    value = Name("FlateDecode");
+                    maskFlate = true;
+                }
                 if (value is not (PdfName or PdfInteger or PdfBoolean))
                     throw new NotSupportedException("Soft-mask metadata requires scalar values.");
                 maskEntries.Add(entry.Key, value);
@@ -127,11 +136,28 @@ public static class PdfImagePlacementExtractor
                 || !MaskInteger("Width", width) || !MaskInteger("Height", height) || !MaskInteger("BitsPerComponent", 8)
                 || maskEntries.TryGetValue(Name("Interpolate"), out var interpolation) && interpolation is not PdfBoolean)
                 throw new NotSupportedException("Image extraction requires a matching eight-bit DeviceGray soft mask.");
-            if (mask.EncodedData.Length != pixels)
-                throw new FormatException("The soft-mask payload does not match its dimensions.");
             if (pixels > MaximumAssetBytes / 4
                 || (long)image.EncodedData.Length + mask.EncodedData.Length > MaximumAssetBytes)
                 throw new NotSupportedException("The image and soft mask exceed the detached asset size limit.");
+            byte[]? maskSamples = maskFlate
+                ? document.DecodeImageSamples(mask, MaximumAssetBytes, (int)pixels) : null;
+            cancellationToken.ThrowIfCancellationRequested();
+            if ((maskSamples?.Length ?? mask.EncodedData.Length) != pixels)
+                throw new FormatException("The soft-mask payload does not match its dimensions.");
+            if (maskSamples is not null)
+            {
+                if (mask.EncodedData.Length < 6)
+                    throw new FormatException("The Flate soft-mask payload has no complete zlib trailer.");
+                uint first = 1, second = 0;
+                for (int index = 0; index < maskSamples.Length; index++)
+                {
+                    if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    first = (first + maskSamples[index]) % 65521;
+                    second = (second + first) % 65521;
+                }
+                if (BinaryPrimitives.ReadUInt32BigEndian(mask.EncodedData.Span[^4..]) != ((second << 16) | first))
+                    throw new FormatException("The Flate soft-mask payload has an invalid or incomplete zlib checksum.");
+            }
             softMask = new PdfStream(new PdfDictionary(maskEntries), mask.EncodedData.Span);
         }
         if (pixels > MaximumAssetBytes / (softMask is null ? 3 : 4))

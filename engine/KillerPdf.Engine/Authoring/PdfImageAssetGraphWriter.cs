@@ -87,7 +87,7 @@ internal sealed class PdfImageAssetGraphWriter
             if (key is not ("Type" or "Subtype" or "Width" or "Height" or "ColorSpace"
                 or "BitsPerComponent" or "Length" or "Filter" or "Interpolate" or "Intent" or "SMask"))
                 throw new NotSupportedException("Detached image authoring does not support image property: " + key + ".");
-            // Only the captured color profile and raw soft mask may be dependencies.
+            // Only the captured color profile and soft mask may be dependencies.
             if (key is not ("ColorSpace" or "SMask") && entry.Value is not (PdfName or PdfInteger or PdfBoolean))
                 throw new NotSupportedException("Detached image authoring requires direct scalar image metadata.");
         }
@@ -108,9 +108,9 @@ internal sealed class PdfImageAssetGraphWriter
                 if (++nodes > 128)
                     throw new NotSupportedException("The detached image graph exceeds its node limit.");
                 if (entry.Key.ValueAsLatin1() is not ("Type" or "Subtype" or "Width" or "Height"
-                    or "ColorSpace" or "BitsPerComponent" or "Length" or "Interpolate")
+                    or "ColorSpace" or "BitsPerComponent" or "Length" or "Interpolate" or "Filter")
                     || entry.Value is not (PdfName or PdfInteger or PdfBoolean))
-                    throw new NotSupportedException("Detached soft-mask metadata must be raw scalar image metadata.");
+                    throw new NotSupportedException("Detached soft-mask metadata must be scalar image metadata.");
             }
             bool MaskName(string key, string expected) => mask.Dictionary.TryGetValue(Name(key), out var value)
                 && value is PdfName name && name.ValueAsLatin1() == expected;
@@ -123,7 +123,10 @@ internal sealed class PdfImageAssetGraphWriter
                 || mask.Dictionary.TryGetValue(Name("Interpolate"), out var interpolation) && interpolation is not PdfBoolean)
                 throw new NotSupportedException("Detached soft masks require matching eight-bit DeviceGray samples.");
             long pixels = (long)asset.Width * asset.Height;
-            if (mask.EncodedData.Length != pixels)
+            bool maskFlate = mask.Dictionary.ContainsKey(Name("Filter"));
+            if (maskFlate && !MaskName("Filter", "FlateDecode"))
+                throw new NotSupportedException("Detached soft masks support only raw or single FlateDecode data.");
+            if (!maskFlate && mask.EncodedData.Length != pixels)
                 throw new FormatException("The detached soft-mask payload does not match its dimensions.");
             if (pixels > MaximumBytes / 4 || (long)image.EncodedData.Length + mask.EncodedData.Length > MaximumBytes)
                 throw new NotSupportedException("The detached image and soft mask exceed their combined size limit.");
