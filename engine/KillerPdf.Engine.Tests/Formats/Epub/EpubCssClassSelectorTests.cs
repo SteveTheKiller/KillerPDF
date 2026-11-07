@@ -14,6 +14,21 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubCssClassSelectorTests
 {
     [Theory]
+    [InlineData(":visited")]
+    [InlineData("a.note:visited")]
+    [InlineData("a[href]:VISITED")]
+    [InlineData("a:visited span")]
+    public void VisitedPredicatesNeverChangeTheCapturedUnvisitedPresentation(string selector)
+        => Verify(selector + "{color:red}",
+            "<p><a class='note' href='#target'><span>A</span></a></p><div id='target'/>",
+            2, 1.5, false, false, "text.xhtml#target");
+
+    [Fact]
+    public void VisitedSelectorKeepsLocalLinksInTheUnvisitedState()
+        => Verify("a:link{color:red}a:visited{color:lime}",
+            "<p><a href='#target'>A</a></p><div id='target'/>", 2, 1.5, true, false, "text.xhtml#target");
+
+    [Theory]
     [InlineData("<p><a href='#target'>AA</a></p>", 1)]
     [InlineData("<p><a href='#target'>A</a>A<a href='#target'>A</a></p>", 2)]
     [InlineData("<p><a href='#target'>A<br/>A</a></p>", 2)]

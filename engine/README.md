@@ -195,8 +195,10 @@ Inline text anchors preserve canonical package-relative `LinkTarget` values on
 native text placements. Initial `:link` matching uses XHTML anchors with an
 unqualified href and class-level specificity. PDF conversion writes local page
 destinations and groups contiguous visible text into line rectangles. Hidden
-anchors do not create links. Nested anchors, linked images, external references
-and other pseudo-classes remain diagnosed; targets retain the 4,096-character
+anchors do not create links. `:visited` is admitted without consulting browsing
+history: native reading and conversion treat all links as unvisited. Nested
+anchors, linked images, external references and other pseudo-classes remain
+diagnosed; targets retain the 4,096-character
 navigation limit. `PdfReadSnapshot.ReadLinkRegions` retains grouped target geometry
 in unrotated bottom-left PDF points and honors capture ownership and cancellation.
 Interactive Windows link integration remains pending.
