@@ -170,7 +170,8 @@ namespace KillerPDF.Shell
             if (key == Key.C && mods == ModifierKeys.Control)
             {
                 // An annotation selection copies the annotation(s); otherwise copy page text.
-                if (_selectedAnnotation is not null || _selectedSet.Count > 0) CopySelectedAnnotations();
+                if (_selectedAnnotation is not null || _selectedSet.Count > 0
+                    || ActiveViewer.SelectedSourceImageExt is not null) CopySelectedAnnotations();
                 else CopySelectedText();
                 e.Handled = true;
             }

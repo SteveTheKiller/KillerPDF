@@ -102,6 +102,8 @@ namespace KillerPDF.Shell
             // under the cursor by bounds-check and offer the same menu the single-page overlay carries.
             else if (LinkAt(pt, pageIdx) is { } lk)
                 AddLinkMenuItems(_ctxMenu, lk.target, lk.annotIndex, pageIdx);
+            else if (ActiveViewer.TrySelectSourceImageExt(pageIdx, pt))
+                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Copy"), (_, _) => CopySelectedAnnotations(), GestureFor("Ctrl:C"), "\uE8C8"));
             else AddPageMenuItems(pt, pageIdx);
         }
 
@@ -568,6 +570,7 @@ namespace KillerPDF.Shell
         private void CopySelectedAnnotations()
         {
             var sel = new List<PageAnnotation>();
+            if (ActiveViewer.SelectedSourceImageExt is { } sourceImage) sel.Add(sourceImage);
             if (_selectedAnnotation is not null) sel.Add(_selectedAnnotation);
             foreach (var a in _selectedSet) if (!sel.Contains(a)) sel.Add(a);
             if (sel.Count == 0) return;

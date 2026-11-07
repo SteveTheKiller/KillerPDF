@@ -37,6 +37,12 @@ internal sealed class PdfWorkingDocument : IDisposable
     internal bool IsReadOnly { get; }
     internal PdfDocument? ParsedDocument => _parsedDocument;
 
+    internal PdfDocument? OpenStrictForContentCopy()
+    {
+        var document = PdfDocument.Open(_source);
+        return document.IsEncrypted ? null : document;
+    }
+
     internal PdfCapturedReadRevision CaptureReadRevision()
     {
         lock (_readSync)

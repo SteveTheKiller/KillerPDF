@@ -274,6 +274,43 @@ public sealed class PdfOverlayAnnotationTests
         Assert.Single(PdfOverlayAnnotations.TakeEditableTail(final).Records);
     }
 
+    [Fact]
+    public void SourcePdfImageDataRetainsItsAssetThroughEditableMetadata()
+    {
+        var originalImage = PdfImage.FromRgb(2, 1, new byte[] { 255, 0, 0, 0, 255, 0 });
+        byte[] original = new PdfDocumentBuilder().AddPage(4, 1,
+            new PdfContentStreamBuilder().DrawImage(originalImage, 0, 0, 2, 1)
+                .SetFillRgb(0, 0, 1).Rectangle(3, 0, 1, 1).Fill()).Build();
+        byte[] unchanged = original.ToArray();
+        var source = PdfDocument.Open(original);
+        var selection = Assert.Single(new PdfPageContentReader(source).ReadImagePlacements(0));
+        var asset = PdfImagePlacementExtractor.Extract(source, selection);
+        byte[] imagePdf = asset.ToPdfBytes();
+        var model = new ImageAnnotation
+        {
+            Position = new Point(1, 1), SourceWidth = 2, SourceHeight = 1,
+            Scale = 1, ImageData = Convert.ToBase64String(imagePdf)
+        };
+        var blank = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(4, 3).Build());
+        var appearance = new PdfFormXObject(2, 1, new PdfContentStreamBuilder().DrawImage(asset, 0, 0, 2, 1));
+        var native = PdfDocument.Open(new PdfIncrementalAnnotationEditor(blank).AddStamp(0, 1, 1, 2, 1, appearance).Build());
+        var comment = Assert.Single(PdfCommentReader.Read(native, true));
+        byte[] saved = PdfOverlayAnnotations.Attach(native, [new(model, 4, 3, 0, 0, comment.ObjectNumber!.Value)]);
+        var record = Assert.Single(PdfOverlayAnnotations.TakeEditableTail(saved).Records);
+        var restored = Assert.IsType<ImageAnnotation>(record.Annotation);
+        Assert.Equal(imagePdf, Convert.FromBase64String(restored.ImageData));
+        Assert.Equal(new Point(1, 1), restored.Position);
+        Assert.Equal(2, restored.SourceWidth);
+        Assert.Equal(1, restored.SourceHeight);
+        var restoredSource = PdfDocument.Open(Convert.FromBase64String(restored.ImageData));
+        var content = new PdfPageContentReader(restoredSource).Read(0);
+        Assert.Single(content.Images);
+        Assert.Empty(content.Paths);
+        Assert.Equal(new byte[] { 0, 0, 255, 255, 0, 255, 0, 255 },
+            new PdfPageRenderer(restoredSource).Render(0, new PdfRenderOptions(2, 1)).Pixels.ToArray());
+        Assert.Equal(unchanged, original);
+    }
+
     [Theory]
     [InlineData("Cover")]
     [InlineData("Highlight")]

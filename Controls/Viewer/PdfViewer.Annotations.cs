@@ -271,7 +271,7 @@ namespace KillerPDF.Controls
                                 Source = iaBmp,
                                 Width = imageWidth,
                                 Height = imageHeight,
-                                Stretch = System.Windows.Media.Stretch.Uniform,
+                                Stretch = System.Windows.Media.Stretch.Fill,
                                 IsHitTestVisible = false
                             };
                             Canvas.SetLeft(iaCtrl, ia.Position.X);
@@ -317,9 +317,13 @@ namespace KillerPDF.Controls
             if (string.IsNullOrEmpty(data)) return null;
             try
             {
+                byte[] bytes = Convert.FromBase64String(data);
+                if (a is ImageAnnotation && bytes.AsSpan().StartsWith("%PDF-"u8))
+                    return a.CachedBitmap = PdfAnnotationImageSource.RenderPdf(bytes,
+                        a.SourceWidth * a.Scale, a.SourceHeight * a.Scale);
                 var bmp = new System.Windows.Media.Imaging.BitmapImage();
                 bmp.BeginInit();
-                bmp.StreamSource = new System.IO.MemoryStream(Convert.FromBase64String(data));
+                bmp.StreamSource = new System.IO.MemoryStream(bytes);
                 bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
                 bmp.EndInit();
                 bmp.Freeze();
@@ -331,6 +335,7 @@ namespace KillerPDF.Controls
 
         internal void ClearSelection()
         {
+            _sourceImageSelection = null;
             if (_selectionBorder is not null)
             {
                 (_selectionBorder.Parent as Canvas)?.Children.Remove(_selectionBorder);
@@ -1346,6 +1351,12 @@ namespace KillerPDF.Controls
                         }
                         if (!hitPlaced)
                         {
+                            if (!shiftSel && !_ocrRegionMode && TrySelectSourceImageExt(pageIdx, pos))
+                            {
+                                if (_viewMode == ViewMode.Grid) _currentPage = pageIdx;
+                                e.Handled = true;
+                                break;
+                            }
                             // Keep the existing multi-selection when shift is held (a click on a
                             // non-draggable annotation is added on mouse-up); only a plain click clears.
                             if (!shiftSel) ClearSelection();

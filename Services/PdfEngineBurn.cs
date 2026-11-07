@@ -285,7 +285,7 @@ internal static class PdfEngineBurn
     {
         if (!hasNativeAnnotations && annotations.Any(annotation => annotation is TextAnnotation { PairId.Length: > 0 }))
             return [];
-        int first = annotations.FindIndex(annotation => annotation is TextAnnotation { PairId.Length: 0 });
+        int first = annotations.FindIndex(annotation => annotation is TextAnnotation { PairId.Length: 0 } or ImageAnnotation);
         return first < 0 ? [] : annotations.Skip(first).Where(annotation => annotation is not MeasurementAnnotation);
     }
 
@@ -360,7 +360,7 @@ internal static class PdfEngineBurn
             case InkAnnotation ink: DrawInk(content, ink, sx, sy); break;
             case SignatureAnnotation signature: DrawSignature(content, signature, sx, sy); break;
             case ImageAnnotation image: DrawImage(content, image.ImageData, image.Position,
-                image.SourceWidth * image.Scale, image.SourceHeight * image.Scale, sx, sy); break;
+                image.SourceWidth * image.Scale, image.SourceHeight * image.Scale, sx, sy, allowPdfAsset: true); break;
             case MeasurementAnnotation measurement: DrawMeasurement(content, measurement, sx, sy, fonts); break;
         }
     }
@@ -714,8 +714,21 @@ internal static class PdfEngineBurn
     private static double Channel(uint argb, int shift) => ((argb >> shift) & 0xFF) / 255d;
 
     private static void DrawImage(PdfContentStreamBuilder content, string data, WpfPoint position,
-        double width, double height, double sx, double sy)
+        double width, double height, double sx, double sy, bool allowPdfAsset = false)
     {
+        if (allowPdfAsset)
+        {
+            byte[] bytes;
+            try { bytes = Convert.FromBase64String(data); }
+            catch (FormatException) { return; }
+            if (bytes.AsSpan().StartsWith("%PDF-"u8))
+            {
+                var asset = PdfAnnotationImageSource.ReadPdfAsset(bytes);
+                content.DrawImage(asset, position.X * sx, position.Y * sy + height * sy,
+                    width * sx, -height * sy);
+                return;
+            }
+        }
         try
         {
             EngineImage? image = LoadImage(Convert.FromBase64String(data));
