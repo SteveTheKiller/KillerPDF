@@ -18,9 +18,12 @@ public sealed partial class PdfPageRenderer
     /// Their finite device-range Matte values are removed before color conversion and compositing.
     /// Direct zero-black 8/16-bit CalGray images retain calibration at aligned natural size or axis-aligned enlargement,
     /// including diagonal reflections and rectangular clips, with default Decode and relative intent.
+    /// Natural-size CalGray also supports reversed Decode [1,0].
     /// Unmasked bilinear enlargement interpolates source samples before calibration.
     /// Raw color-key masks and matching DeviceGray 8/16-bit soft masks retain source alpha with natural or nearest sampling.
-    /// CalGray Matte, reductions, masked bilinear sampling, default substitutions and other decode or black-point requests remain unsupported.
+    /// Natural-size CalGray soft-mask Matte retains source precision before calibration. Enlarged Matte,
+    /// reductions, masked bilinear sampling, default substitutions, enlarged reversed Decode,
+    /// and other decode or black-point requests remain unsupported.
     /// Unmasked RGB/Gray ICC matrix/TRC images support relative colorimetric PCS conversion at natural size,
     /// aligned enlargement or integer-factor reduction in both axes, averaging encoded source samples before ICC conversion.
     /// Supported resource DefaultRGB and DefaultGray profiles use the same image conversion.

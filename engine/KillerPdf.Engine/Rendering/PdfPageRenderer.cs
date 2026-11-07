@@ -5917,7 +5917,8 @@ public sealed partial class PdfPageRenderer
                 || preciseCalGray && (!naturalSamples && (sampleStepX > 1 || sampleStepY > 1)
                     || inverse.B != 0 || inverse.C != 0
                     || preblendMatte is not null && !naturalSamples
-                    || decode.Length != 2 || decode[0] != 0 || decode[1] != 1)
+                    || decode.Length != 2 || !(decode[0] == 0 && decode[1] == 1
+                        || naturalSamples && decode[0] == 1 && decode[1] == 0))
                 || !naturalSamples && (inverse.B != 0 || inverse.C != 0
                     || (sampleStepX > 1 || sampleStepY > 1) && !areaSamples)
                 || (smoothImage || areaSamples) && decode.Any(value => !double.IsFinite(value) || value < 0 || value > 1)

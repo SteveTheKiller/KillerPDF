@@ -123,8 +123,10 @@ Raw color-key masks and matching DeviceGray 8/16-bit soft masks retain alpha wit
 natural or nearest sampling. Named aliases, integer translations, rectangular clips
 and diagonal reflections retain precision. Natural-size soft-mask Matte is removed
 before calibration without quantizing the source or mask. Reductions, other image geometry,
-nonzero black, altered Decode, default color substitutions, masked bilinear
+nonzero black, other Decode arrays, default color substitutions, masked bilinear
 sampling and enlarged soft-mask Matte remain diagnosed.
+Natural-size images also retain source precision with reversed Decode `[1,0]`;
+enlarged images still require default Decode.
 
 `DrawGlyphCluster(font, fontSize, logicalText, glyphs)` paints explicitly selected
 embedded-font glyphs while recording logical text once through inline `ActualText`.

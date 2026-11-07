@@ -80,7 +80,6 @@ public sealed class PdfCalGrayPrecisionImageTests
     }
 
     [Theory]
-    [InlineData(1, 0)]
     [InlineData(-1, 1)]
     public void NondefaultDecodeIsDiagnosedWithoutReturningANonfiniteFrame(int first, int second)
     {
