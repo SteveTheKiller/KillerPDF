@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using KillerPdf.Engine.Authoring;
@@ -13,6 +14,51 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 
 public sealed class EpubCssClassSelectorTests
 {
+    [Fact]
+    public void AsciiFormattingWhitespaceBetweenTablePartsKeepsTextAndColumns()
+    {
+        var book = EpubDocument.Open(Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}",
+            "<table> \n\t<tr>\n<td>A</td> \t<td>A</td>\n</tr>\n</table>"));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A\nA", page.Text);
+        Assert.Equal(new[] { (0, 2d), (2, 14d) }, page.TextPlacements.Select(item => (item.Start, item.Left)));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Equal(new[] { ("A", 1.5), ("A", 10.5) },
+            new PdfPageContentReader(pdf).Read(0).Letters.Select(item => (item.Value, item.StartBaseLine.X)));
+    }
+
+    [Fact]
+    public void NonbreakingTableTextCannotDisappearAsFormattingWhitespace()
+    {
+        byte[] cmap = new byte[52];
+        BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(2), 1);
+        BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(4), 3);
+        BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(6), 10);
+        BinaryPrimitives.WriteUInt32BigEndian(cmap.AsSpan(8), 12);
+        BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(12), 12);
+        BinaryPrimitives.WriteUInt32BigEndian(cmap.AsSpan(16), 40);
+        BinaryPrimitives.WriteUInt32BigEndian(cmap.AsSpan(24), 2);
+        BinaryPrimitives.WriteUInt32BigEndian(cmap.AsSpan(28), 0x41);
+        BinaryPrimitives.WriteUInt32BigEndian(cmap.AsSpan(32), 0x41);
+        BinaryPrimitives.WriteUInt32BigEndian(cmap.AsSpan(36), 1);
+        BinaryPrimitives.WriteUInt32BigEndian(cmap.AsSpan(40), 0xA0);
+        BinaryPrimitives.WriteUInt32BigEndian(cmap.AsSpan(44), 0xA0);
+        BinaryPrimitives.WriteUInt32BigEndian(cmap.AsSpan(48), 1);
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true, cmap: cmap));
+        Assert.NotEqual((ushort)0, font.GetGlyphId(0xA0));
+        var book = EpubDocument.Open(Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}",
+            "<table>\u00A0<tr><td>A</td><td>A</td></tr></table>"));
+        Assert.Equal("Native EPUB table text requires a cell.",
+            Assert.Throws<NotSupportedException>(() => book.CreateLayout(
+                new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 })).Message);
+        Assert.Equal("Native EPUB table text requires a cell.",
+            Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
+                { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 })).Message);
+    }
+
     [Fact]
     public void AncestorCenteredTableRuleKeepsLeftAlignedCellsAndAutomaticMargins()
     {

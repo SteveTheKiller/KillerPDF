@@ -44,7 +44,7 @@ internal sealed class EpubFormattingTree
                 if (child is EpubNativeContent.Text text)
                 {
                     if (element.Display is EpubNativeContent.DisplayKind.Table or EpubNativeContent.DisplayKind.TableRow
-                        && string.IsNullOrWhiteSpace(text.Value)) continue;
+                        && EpubNativeContent.IsFormattingWhitespace(text.Value)) continue;
                     var positions = new Dictionary<int, int>();
                     foreach (int index in text.Positions)
                     {

@@ -365,12 +365,15 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         var owner = _ancestors.Peek();
         if (owner.Name == "hr")
             throw new NotSupportedException("Native EPUB horizontal rules cannot contain text.");
-        if (owner.Display is DisplayKind.Table or DisplayKind.TableRow && !string.IsNullOrWhiteSpace(value))
+        if (owner.Display is DisplayKind.Table or DisplayKind.TableRow && !IsFormattingWhitespace(value))
             throw new NotSupportedException("Native EPUB table text requires a cell.");
         var node = new Text(value, owner, Characters.Count);
         owner.Children.Add(node);
         return node;
     }
+
+    internal static bool IsFormattingWhitespace(string value) =>
+        value.All(character => character is ' ' or '\t' or '\r' or '\n');
 
     internal (double Top, double Right, double Bottom, double Left) ResolveBodyPadding(double width)
     {
