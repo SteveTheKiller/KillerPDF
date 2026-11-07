@@ -36,7 +36,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             ? href : parent?.LinkReference;
         internal bool HasUnderline { get; } = style.Underline || parent?.HasUnderline == true;
         internal string Name { get; } = name;
-        internal static bool IsParagraphName(string value) => value is "p" or "h2";
+        internal static bool IsParagraphName(string value) => value is "p" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6";
         internal bool IsParagraph => IsParagraphName(Name);
         internal Element? Parent { get; } = parent;
         internal Style Style { get; } = style;
@@ -92,8 +92,21 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal Style Style => Node.Owner.Style;
     }
 
-    private static readonly CssProperties Heading2Defaults = CssProperties.FromConcrete(new ResolvedProperties(new CssLength(1.5, true), null,
-        FontWeight: 700, Margins: [new(.83, true), new(0, false), new(.83, true), new(0, false)]));
+    private static CssProperties? HeadingDefaults(string name)
+    {
+        (double Size, double Margin) values = name switch
+        {
+            "h1" => (2, .67),
+            "h2" => (1.5, .83),
+            "h3" => (1.17, 1),
+            "h4" => (1, 1.33),
+            "h5" => (.83, 1.67),
+            "h6" => (.67, 2.33),
+            _ => (0, 0)
+        };
+        return values.Size == 0 ? null : CssProperties.FromConcrete(new ResolvedProperties(new CssLength(values.Size, true), null,
+            FontWeight: 700, Margins: [new(values.Margin, true), new(0, false), new(values.Margin, true), new(0, false)]));
+    }
     private readonly Stack<Element> _ancestors = new();
     private readonly Dictionary<string, List<CssRule>> _typeRules = new(StringComparer.Ordinal);
     private int _characters;
@@ -227,10 +240,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             declarations = CssProperties.FromConcrete(new ResolvedProperties(null, null, FontWeight: bolderWeight))
                 .Override(declarations);
         }
-        if (name == "h2")
+        if (HeadingDefaults(name) is { } headingDefaults)
         {
             var defaults = ResolveProperties(declarations, parent).Display == DisplayKind.Inline
-                ? Heading2Defaults with { Margins = null } : Heading2Defaults;
+                ? headingDefaults with { Margins = null } : headingDefaults;
             declarations = defaults.Override(declarations);
         }
         var properties = ResolveProperties(declarations, parent);

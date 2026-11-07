@@ -306,6 +306,200 @@ public sealed class EpubFontWeightTests
         Assert.Equal(chapter, book.ReadResource("doc.xhtml"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void H1DefaultSizeAndRealBoldFaceReachBothPublicSeams(bool convert)
+    {
+        byte[] source = Book(false, "<h1 style='margin:0'>A</h1>"), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        byte[] chapter = book.ReadResource("doc.xhtml");
+        var regular = Face(false); var bold = Face(true);
+        EpubFontFaceResult? Resolve(EpubFontFaceRequest request) => new(request.Weight == 700 ? bold : regular, request.Weight, EpubFontMatch.Exact);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        if (convert)
+        {
+            var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(regular)
+            { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 1.5, FontSizePoints = 7.5, FontFaceResolver = Resolve }, deadline.Token));
+            var letter = Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters);
+            Assert.Equal("A", letter.Value);
+            Assert.EndsWith("KillerBold", letter.FontName);
+            Assert.Equal(1.5, letter.StartBaseLine.X);
+            Assert.Equal(61.5, letter.StartBaseLine.Y);
+            Assert.Equal(18, letter.EndBaseLine.X - letter.StartBaseLine.X);
+            var frame = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(100, 100), deadline.Token);
+            Assert.Empty(frame.Diagnostics);
+            Assert.Equal(new byte[] { 0, 0, 0, 255 }, frame.Pixels.Slice((16 * 100 + 26) * 4, 4).ToArray());
+        }
+        else
+        {
+            var layout = book.CreateLayout(new EpubLayoutOptions(100, 100, regular)
+            { FontSize = 10, Margin = 2, FontFaceResolver = Resolve }, deadline.Token);
+            var placement = Assert.Single(Assert.Single(layout.Pages).TextPlacements);
+            Assert.Equal(2, placement.Left);
+            Assert.Equal(2, placement.Top);
+            Assert.Equal(20, placement.Height);
+            Assert.Equal(24, placement.Width);
+            var frame = layout.RenderPage(0, cancellationToken: deadline.Token);
+            Assert.Equal(new float[] { 0, 0, 0, 1 }, frame.Pixels.Slice((16 * 100 + 26) * 4, 4).ToArray());
+        }
+        Assert.Equal(original, source);
+        Assert.Equal(chapter, book.ReadResource("doc.xhtml"));
+    }
+
+    [Theory]
+    [InlineData("h1", 20, 24, 15.4, 48.8, 18, 51.45, 32.4)]
+    [InlineData("h2", 15, 18, 14.45, 41.9, 13.5, 55.1625, 37.575)]
+    [InlineData("h3", 11.7, 14.04, 13.7, 37.1, 10.53, 57.705, 41.175)]
+    [InlineData("h4", 10, 12, 15.3, 38.6, 9, 57.525, 40.05)]
+    [InlineData("h5", 8.3, 9.96, 15.861, 38.022, 7.47, 58.12425, 40.4835)]
+    [InlineData("h6", 6.7, 8.04, 17.611, 39.922, 6.03, 57.77175, 39.0585)]
+    public void AllHeadingLevelsKeepLiteralDefaultMetricsAndFollowingParagraphPositions(string tag,
+        double size, double width, double top, double nextTop, double pdfWidth, double baseline, double nextBaseline)
+    {
+        byte[] source = Book(false, "<" + tag + ">A</" + tag + "><p style='font-size:10px;font-weight:normal;margin:0'>A</p>"), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        byte[] chapter = book.ReadResource("doc.xhtml");
+        var regular = Face(false); var bold = Face(true);
+        var page = Assert.Single(book.CreateLayout(HeadingNativeOptions(regular, bold)).Pages);
+        Assert.Equal("A\n\nA", page.Text);
+        Assert.Equal(new[] { 0, 3 }, page.TextPlacements.Select(p => p.Start));
+        Assert.Equal(top, page.TextPlacements[0].Top, 8);
+        Assert.Equal(nextTop, page.TextPlacements[1].Top, 8);
+        Assert.Equal(size, page.TextPlacements[0].Height, 8);
+        Assert.Equal(width, page.TextPlacements[0].Width, 8);
+        Assert.Equal(10, page.TextPlacements[1].Height, 8);
+        Assert.Equal(6, page.TextPlacements[1].Width, 8);
+        Assert.All(page.TextPlacements, p => Assert.Equal(2, p.Left, 8));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(HeadingPdfOptions(regular, bold)));
+        var letters = new PdfPageContentReader(pdf).Read(0).Letters;
+        Assert.Equal(new[] { "A", "A" }, letters.Select(p => p.Value));
+        Assert.Equal(baseline, letters[0].StartBaseLine.Y, 8);
+        Assert.Equal(nextBaseline, letters[1].StartBaseLine.Y, 8);
+        Assert.Equal(pdfWidth, letters[0].EndBaseLine.X - letters[0].StartBaseLine.X, 8);
+        Assert.EndsWith("KillerBold", letters[0].FontName);
+        Assert.EndsWith("KillerTest", letters[1].FontName);
+        Assert.Equal(original, source);
+        Assert.Equal(chapter, book.ReadResource("doc.xhtml"));
+    }
+
+    [Theory]
+    [InlineData("h1", 40, 48, 36, 49.5)]
+    [InlineData("h3", 23.4, 28.08, 21.06, 59.46)]
+    [InlineData("h5", 16.6, 19.92, 14.94, 63.54)]
+    public void HeadingEmSizeUsesActualParentAndFixedBoldDefault(string tag, double size, double width, double pdfWidth, double baseline)
+        => CheckHeading("<div style='font-size:20px;font-weight:950'><" + tag + " style='margin:0'>A</" + tag + "></div>", null,
+            size, width, pdfWidth, baseline, "KillerBold");
+
+    [Theory]
+    [InlineData("h1")]
+    [InlineData("h2")]
+    [InlineData("h3")]
+    [InlineData("h4")]
+    [InlineData("h5")]
+    [InlineData("h6")]
+    public void HeadingTypeClassAndInlineOverridesWinOverEveryUaDefault(string tag)
+        => CheckHeading("<" + tag + " class='pick' style='font-size:10px'>A</" + tag + ">",
+            tag + "{font-size:30px;font-weight:700;margin:9px}.pick{font-size:12px;font-weight:normal;margin:0}",
+            10, 6, 4.5, 67.5, "KillerTest");
+
+    [Theory]
+    [InlineData("initial", 10, 6, 4.5, 61.5, 10)]
+    [InlineData("inherit", 20, 12, 9, 61.5, 2)]
+    public void HeadingAllMarkersRetainActualParentAndResetSemantics(string keyword,
+        double size, double width, double pdfWidth, double baseline, double top)
+        => CheckHeading("<div style='font-size:20px;font-weight:normal;margin:0'><h1 style='all:" + keyword + "'>A</h1></div>", null,
+            size, width, pdfWidth, baseline, "KillerTest", top);
+
+    [Theory]
+    [InlineData("h1", 20, 24, 18, 61.5, 2)]
+    [InlineData("h2", 15, 18, 13.5, 64.5, 2)]
+    [InlineData("h3", 11.7, 14.04, 10.53, 66.48, 2)]
+    [InlineData("h4", 10, 12, 9, 67.5, 2)]
+    [InlineData("h5", 8.3, 9.96, 7.47, 67.5, 3.36)]
+    [InlineData("h6", 6.7, 8.04, 6.03, 67.5, 4.64)]
+    public void BareInlineHeadingOmitsOnlyUaMargins(string tag, double size, double width, double pdfWidth, double baseline, double top)
+        => CheckHeading("<" + tag + " style='display:inline'>A</" + tag + ">", null,
+            size, width, pdfWidth, baseline, "KillerBold", top);
+
+    [Fact]
+    public void HeadingLocalAnchorAndSourceOffsetsSurviveConversion()
+    {
+        byte[] source = Book(false, "<h3 id='target' class='heading' style='font-size:10px;font-weight:normal;margin:0'><span>A</span></h3><p style='font-size:10px;margin:0'><a href='#target'>A</a></p>"), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        byte[] chapter = book.ReadResource("doc.xhtml");
+        var regular = Face(false); var bold = Face(true);
+        var layout = book.CreateLayout(HeadingNativeOptions(regular, bold));
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal(new[] { 0, 3 }, page.TextPlacements.Select(p => p.Start));
+        Assert.Equal(new double[] { 2, 12 }, page.TextPlacements.Select(p => p.Top));
+        Assert.Equal("doc.xhtml#target", page.TextPlacements[1].LinkTarget);
+        Assert.Equal(0, layout.ResolveNavigationTarget("doc.xhtml#target").TextOffset);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(HeadingPdfOptions(regular, bold)));
+        Assert.Equal(new[] { "A", "A" }, new PdfPageContentReader(pdf).Read(0).Letters.Select(p => p.Value));
+        Assert.Equal(original, source);
+        Assert.Equal(chapter, book.ReadResource("doc.xhtml"));
+    }
+
+    [Theory]
+    [InlineData("<h1 style='display:inline;margin-left:1px'>A</h1>")]
+    [InlineData("<h3 style='display:inline;margin-top:1px'>A</h3>")]
+    [InlineData("<h6 style='display:inline;margin-bottom:1px'>A</h6>")]
+    [InlineData("<p><h1>A</h1></p>")]
+    [InlineData("<h1><h3>A</h3></h1>")]
+    [InlineData("<p><span><h4>A</h4></span></p>")]
+    [InlineData("<h7>A</h7>")]
+    [InlineData("<h1 xmlns='urn:other'>A</h1>")]
+    [InlineData("<h5 onclick='bad'>A</h5>")]
+    [InlineData("<h1 align='center'>A</h1>")]
+    [InlineData("<h1 headingoffset='1'>A</h1>")]
+    [InlineData("<section><h1>A</h1></section>")]
+    public void HeadingAdmissionKeepsInlineMarginParentNamespaceAndAttributeGuards(string body)
+    {
+        var book = EpubDocument.Open(Book(false, body));
+        var regular = Face(false); var bold = Face(true);
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(HeadingNativeOptions(regular, bold)));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(HeadingPdfOptions(regular, bold)));
+    }
+
+    [Theory]
+    [InlineData("<h2 style='display:inline;font-size:8.3px'>A</h2>", 8.3, 9.96, 7.47, 67.5, "KillerBold", 3.36)]
+    [InlineData("<p><span style='font-size:6.7px;font-weight:700'>A</span></p>", 6.7, 8.04, 6.03, 67.5, "KillerBold", 4.64)]
+    [InlineData("<div style='font-size:20px'><h2 style='all:initial'>A</h2></div>", 10, 6, 4.5, 61.5, "KillerTest", 10)]
+    public void ExistingInlineStrutControlsKeepParentBaselineAndChildMetrics(string body, double size,
+        double width, double pdfWidth, double baseline, string face, double top)
+        => CheckHeading(body, null, size, width, pdfWidth, baseline, face, top);
+
+    private static EpubFontFaceResult? HeadingFace(EpubFontFaceRequest request, TrueTypeFont regular, TrueTypeFont bold) => request.Weight switch
+    {
+        400 => new(regular, 400, EpubFontMatch.Exact),
+        700 => new(bold, 700, EpubFontMatch.Exact),
+        _ => throw new InvalidOperationException("Unexpected heading weight.")
+    };
+    private static EpubLayoutOptions HeadingNativeOptions(TrueTypeFont regular, TrueTypeFont bold) => new(100, 100, regular)
+    { FontSize = 10, Margin = 2, FontFaceResolver = request => HeadingFace(request, regular, bold) };
+    private static EpubPdfConversionOptions HeadingPdfOptions(TrueTypeFont regular, TrueTypeFont bold) => new(regular)
+    { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 1.5, FontSizePoints = 7.5, FontFaceResolver = request => HeadingFace(request, regular, bold) };
+    private static void CheckHeading(string body, string? css, double size, double width, double pdfWidth, double baseline, string face, double top = 2)
+    {
+        byte[] source = Book(false, body, css), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        byte[] chapter = book.ReadResource("doc.xhtml");
+        var regular = Face(false); var bold = Face(true);
+        var placement = Assert.Single(Assert.Single(book.CreateLayout(HeadingNativeOptions(regular, bold)).Pages).TextPlacements);
+        Assert.Equal(2, placement.Left, 8);
+        Assert.Equal(top, placement.Top, 8);
+        Assert.Equal(size, placement.Height, 8);
+        Assert.Equal(width, placement.Width, 8);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(HeadingPdfOptions(regular, bold)));
+        var letter = Assert.Single(new PdfPageContentReader(pdf).Read(0).Letters);
+        Assert.Equal(baseline, letter.StartBaseLine.Y, 8);
+        Assert.Equal(pdfWidth, letter.EndBaseLine.X - letter.StartBaseLine.X, 8);
+        Assert.EndsWith(face, letter.FontName);
+        Assert.Equal(original, source);
+        Assert.Equal(chapter, book.ReadResource("doc.xhtml"));
+    }
+
     private static TrueTypeFont Face(bool bold)
     {
         byte[] bytes = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true);

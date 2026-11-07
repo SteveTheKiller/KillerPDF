@@ -169,22 +169,18 @@ public sealed class EpubH2BoxTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("<p><h2>A</h2></p>")]
-    [InlineData("<h2><h2>A</h2></h2>")]
-    [InlineData("<h2><p>A</p></h2>")]
-    [InlineData("<h1>A</h1>")]
-    [InlineData("<h3>A</h3>")]
-    [InlineData("<h4>A</h4>")]
-    [InlineData("<h5>A</h5>")]
-    [InlineData("<h6>A</h6>")]
-    [InlineData("<h2><a href='#x'><img src='image.png'/></a></h2>")]
-    [InlineData("<h2><a href='https://example.com/'>A</a></h2>")]
-    public void InvalidNestingOtherHeadingsAndUnsafeReferencesRetainRefusal(string body)
+    [InlineData("<p><h2>A</h2></p>", "Native EPUB XHTML element is not implemented: h2.")]
+    [InlineData("<h2><h2>A</h2></h2>", "Native EPUB XHTML element is not implemented: h2.")]
+    [InlineData("<h2><p>A</p></h2>", "Native EPUB XHTML element is not implemented: p.")]
+    [InlineData("<h7>A</h7>", "Native EPUB XHTML element is not implemented: h7.")]
+    [InlineData("<h2><a href='#x'><img src='image.png'/></a></h2>", "Native EPUB linked image regions are not implemented.")]
+    [InlineData("<h2><a href='javascript:execute()'>A</a></h2>", "External or unresolved EPUB XHTML references are unsupported.")]
+    public void InvalidNestingAndUnsafeReferencesRetainExplicitRefusal(string body, string message)
     {
-        var book = EpubDocument.Open(Book(body));
+        var book = EpubDocument.Open(Book(body, "h2{font-weight:normal}"));
         var font = Font();
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(NativeOptions(font)));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(PdfOptions(font)));
+        Assert.Equal(message, Assert.Throws<NotSupportedException>(() => book.CreateLayout(NativeOptions(font))).Message);
+        Assert.Equal(message, Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(PdfOptions(font))).Message);
     }
 
     private static TrueTypeFont Font() => TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
