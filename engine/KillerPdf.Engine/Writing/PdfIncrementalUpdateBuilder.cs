@@ -216,9 +216,13 @@ public sealed class PdfIncrementalUpdateBuilder
     /// <summary>Serializes the registered changes as one incremental revision.</summary>
     public byte[] Build(PdfIncrementalUpdateWriteOptions? options = null)
     {
+        // Continue the source's own format: a classic table appended after a cross-reference
+        // stream is a mixed chain that Acrobat can refuse.
         options ??= new PdfIncrementalUpdateWriteOptions
         {
             CrossReferenceFormat = RequiresCrossReferenceStream
+                || _document.CrossReferences.Sections[0].IsStream
+                    && EffectiveVersion().CompareTo(new PdfVersion(1, 5)) >= 0
                 ? PdfCrossReferenceFormat.Stream : PdfCrossReferenceFormat.Table
         };
         if (!Enum.IsDefined(options.CrossReferenceFormat))

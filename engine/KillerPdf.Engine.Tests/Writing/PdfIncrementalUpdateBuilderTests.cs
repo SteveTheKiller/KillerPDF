@@ -26,6 +26,29 @@ public sealed class PdfIncrementalUpdateBuilderTests
     }
 
     [Fact]
+    public void Build_DefaultsToTheCrossReferenceFormatTheSourceAlreadyUses()
+    {
+        // A classic table appended after a cross-reference stream is the shape Acrobat refused in a
+        // KillerPDF OCR save; an update must continue the source's own format.
+        byte[] streamBytes = PdfDocumentWriter.Write(PdfDocument.Open(new PdfDocumentBuilder().Build()),
+            new PdfDocumentWriteOptions { CrossReferenceFormat = PdfCrossReferenceFormat.Stream });
+        PdfDocument streamSource = PdfDocument.Open(streamBytes);
+        Assert.True(streamSource.CrossReferences.Sections[0].IsStream);
+        PdfDocument tableSource = PdfDocument.Open(new PdfDocumentBuilder().Build());
+        Assert.False(tableSource.CrossReferences.Sections[0].IsStream);
+
+        var streamUpdate = new PdfIncrementalUpdateBuilder(streamSource);
+        streamUpdate.AddObject(new PdfInteger(1));
+        var tableUpdate = new PdfIncrementalUpdateBuilder(tableSource);
+        tableUpdate.AddObject(new PdfInteger(1));
+        PdfDocument streamUpdated = PdfDocument.Open(streamUpdate.Build());
+        PdfDocument tableUpdated = PdfDocument.Open(tableUpdate.Build());
+
+        Assert.True(streamUpdated.CrossReferences.Sections[0].IsStream);
+        Assert.False(tableUpdated.CrossReferences.Sections[0].IsStream);
+    }
+
+    [Fact]
     public void Build_PreservesSourceBytesAndAppendsResolvableRevision()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
@@ -643,10 +666,11 @@ public sealed class PdfIncrementalUpdateBuilderTests
     public void Build_AppendsClassicRevisionToXrefStreamAndReplacesCompressedObject()
     {
         PdfDocument original = PdfDocument.Open(ObjectStreamPdf());
+        // A classic revision after a stream is now only written when a caller asks for it explicitly.
         byte[] result = new PdfIncrementalUpdateBuilder(original)
             .ReplaceObject(2, new PdfDictionary([
                 new KeyValuePair<PdfName, PdfObject>(Name("Updated"), new PdfBoolean(true))]))
-            .Build();
+            .Build(new PdfIncrementalUpdateWriteOptions { CrossReferenceFormat = PdfCrossReferenceFormat.Table });
         PdfDocument reopened = PdfDocument.Open(result);
         var updated = Assert.IsType<PdfDictionary>(reopened.Resolve(2));
 

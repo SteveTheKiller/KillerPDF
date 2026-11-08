@@ -35,6 +35,27 @@ public sealed class PdfEmbeddedTrueTypeFontFactoryTests
             objects.Type0[Name("Encoding")]).ObjectNumber);
     }
 
+    [Fact]
+    public void CustomEncodingStreamCarriesTheRequiredCMapDictionaryEntries()
+    {
+        // An embedded CMap stream must declare /Type /CMap, /CMapName and /CIDSystemInfo in its
+        // stream dictionary (ISO 32000 embedded CMap files). Acrobat rejects the font otherwise.
+        EmbeddedTrueTypeFontObjects objects = Create(
+            new Dictionary<ushort, EmbeddedCharacterMapping>
+            {
+                [1] = new(1, "A"),
+                [2] = new(1, "B")
+            });
+        PdfDictionary dictionary = objects.Encoding.Dictionary;
+
+        Assert.Equal("CMap", Assert.IsType<PdfName>(dictionary[Name("Type")]).ValueAsLatin1());
+        Assert.Equal("KillerPDF-Identity", Assert.IsType<PdfName>(dictionary[Name("CMapName")]).ValueAsLatin1());
+        var system = Assert.IsType<PdfDictionary>(dictionary[Name("CIDSystemInfo")]);
+        Assert.Equal("Adobe", Encoding.ASCII.GetString(Assert.IsType<PdfString>(system[Name("Registry")]).Bytes.Span));
+        Assert.Equal("Identity", Encoding.ASCII.GetString(Assert.IsType<PdfString>(system[Name("Ordering")]).Bytes.Span));
+        Assert.Equal(0L, Assert.IsType<PdfInteger>(system[Name("Supplement")]).Value);
+    }
+
     private static EmbeddedTrueTypeFontObjects Create(
         IReadOnlyDictionary<ushort, EmbeddedCharacterMapping> mappings)
     {

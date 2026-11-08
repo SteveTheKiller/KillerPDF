@@ -80,7 +80,14 @@ internal static class PdfEmbeddedTrueTypeFontFactory
             cidEntries.Add(("CIDToGIDMap", Name("Identity")));
         PdfDictionary cidFont = Dictionary([.. cidEntries]);
         var toUnicode = CompressedStream(BuildToUnicodeMap(mappings));
-        var encoding = CompressedStream(BuildEncodingMap(mappings));
+        // An embedded CMap stream must name itself and its character collection in the stream
+        // dictionary, matching the CMap body; Acrobat rejects the font when these are absent.
+        var encoding = new PdfStream(Dictionary(
+            ("Type", Name("CMap")), ("CMapName", Name("KillerPDF-Identity")),
+            ("CIDSystemInfo", Dictionary(
+                ("Registry", Latin1String("Adobe")), ("Ordering", Latin1String("Identity")),
+                ("Supplement", new PdfInteger(0)))),
+            ("Filter", Name("FlateDecode"))), Compress(BuildEncodingMap(mappings)));
         PdfObject type0Encoding = mappings.All(mapping => mapping.Key == mapping.Value.Glyph)
             ? Name("Identity-H") : encodingReference;
         PdfDictionary type0 = Dictionary(

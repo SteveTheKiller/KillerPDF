@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - A per-user or portable update that fails now reopens KillerPDF instead of leaving it closed, including when antivirus or a locked-down PowerShell stops the update helper from loading, and a published copy that fails its final check is swapped back for the previous version and never started.
+- Searchable PDFs made with OCR, and other saves that add text, open in Adobe Reader again. Added fonts carry their complete encoding details, and saves keep the original file's cross-reference format.
 - An update started from an administrator's copy reopens KillerPDF at normal rights. An update that is applied but cannot record its version in the registry now finishes and reopens instead of reporting failure, and putting the previous copy back after a failed update retries a busy file and survives a leftover from an earlier attempt.
 - Updating KillerPDF no longer removes a relaunch another Killer app scheduled for its own update.
 - Text fields with automatic font sizing save correctly and keep their original border and background styling. Untagged fields can be deleted from tagged PDFs without changing the page's existing tags. (#477)
