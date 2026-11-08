@@ -181,9 +181,9 @@ internal static class DjvuIw44Decoder
         for (var scale = 16; scale != 0; scale /= 2)
         {
             for (var x = 0; x < width; x += scale)
-                TransformLine(samples, x, width * scale, (height - 1) / scale + 1, token);
+                TransformLine(samples, x, width * scale, (height - 1) / scale + 1, row: false, token);
             for (var y = 0; y < height; y += scale)
-                TransformLine(samples, y * width, scale, (width - 1) / scale + 1, token);
+                TransformLine(samples, y * width, scale, (width - 1) / scale + 1, row: true, token);
         }
         var output = new byte[width * height];
         for (var y = 0; y < height; y++)
@@ -198,13 +198,26 @@ internal static class DjvuIw44Decoder
         return output;
     }
 
-    private static void TransformLine(int[] samples, int origin, int stride, int count, CancellationToken token)
+    private static void TransformLine(int[] samples, int origin, int stride, int count, bool row, CancellationToken token)
     {
         long At(int index) => index < 0 || index >= count ? 0 : samples[origin + index * stride];
+        // Lifting reads the odd neighbors k-3, k-1, k+1 and k+3 through a sliding window.
+        // Printed section 10.6.4 step 3 substitutes zero for every missing neighbor, and
+        // columns follow it. DjVuLibre 3.5.29 output differs for rows: when the far neighbor
+        // of lifted sample 2 or 4 is missing, the window keeps its previous value. Rows follow
+        // that black-box compatibility finding, measured against the reference decoder.
+        long previous3 = 0, previous1 = 0, next1 = At(1), next3 = At(3);
         for (var k = 0; k < count; k += 2)
         {
             token.ThrowIfCancellationRequested();
-            var correction = (9 * (At(k - 1) + At(k + 1)) - At(k - 3) - At(k + 3) + 16) >> 5;
+            if (k > 0)
+            {
+                previous3 = previous1;
+                previous1 = next1;
+                next1 = next3;
+                if (!row || k >= 6 || k + 3 < count) next3 = At(k + 3);
+            }
+            var correction = (9 * (previous1 + next1) - previous3 - next3 + 16) >> 5;
             Store(k, At(k) - correction);
         }
         for (var k = 1; k < count; k += 2)

@@ -37,11 +37,12 @@ public sealed class DjvuGrayscalePdfConversionTests
         Assert.Equal(original, source);
     }
 
+    // DjVuLibre 3.5.29 ddjvu -format=pgm output for the ramp with each orientation flag.
     [Theory]
-    [InlineData((byte)1, new byte[] { 0,30,65,96,127,162,197,228,255,226,194,153,127,96,65,32 })]
-    [InlineData((byte)2, new byte[] { 32,65,96,127,153,194,226,255,228,197,162,127,96,65,30,0 })]
-    [InlineData((byte)5, new byte[] { 127,255,127,0,96,226,162,30,65,194,197,65,32,153,228,96 })]
-    [InlineData((byte)6, new byte[] { 96,228,153,32,65,197,194,65,30,162,226,96,0,127,255,127 })]
+    [InlineData((byte)1, new byte[] { 0,31,66,97,127,163,198,229,255,225,193,152,127,95,64,31 })]
+    [InlineData((byte)2, new byte[] { 31,64,95,127,152,193,225,255,229,198,163,127,97,66,31,0 })]
+    [InlineData((byte)5, new byte[] { 127,255,127,0,95,225,163,31,64,193,198,66,31,152,229,97 })]
+    [InlineData((byte)6, new byte[] { 97,229,152,31,66,198,193,64,31,163,225,95,0,127,255,127 })]
     public void ConversionOrientsTheOriginalRampSamplesExactly(byte orientation, byte[] expected)
     {
         var source = Ramp();
@@ -56,9 +57,10 @@ public sealed class DjvuGrayscalePdfConversionTests
     public void ConvertedRampRendersIndependentLiteralLinearLevels()
     {
         var pdf = PdfDocument.Open(DjvuDocument.Open(Ramp()).ConvertToPdf());
-        AssertLinear(pdf, 4, 4, [0f, .0090214919f, .0494334576f, .116575776f,
-            .2157644f, .368590922f, .566809735f, .781750678f, 1f, .766743617f,
-            .547993502f, .325036963f, .2157644f, .116575776f, .0494334576f, .0103978023f]);
+        // DjVuLibre 3.5.29 ddjvu samples with the declared gamma 2.2 applied.
+        AssertLinear(pdf, 4, 4, [0f, .009696329f, .05112205f, .119264014f,
+            .2157644f, .37361503f, .57315886f, .78931373f, 1f, .7592996f,
+            .54179835f, .32038155f, .2157644f, .113920934f, .047775753f, .009696329f]);
     }
 
     [Theory]
