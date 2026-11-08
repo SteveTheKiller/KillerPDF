@@ -90,8 +90,22 @@ public sealed class DjvuGrayscalePdfConversionTests
         Assert.Equal(original, source);
     }
 
+    // DjVuInfo::decode clamps the stored gamma to 0.3 through 5.0, and DjVuLibre
+    // 3.5.29 ddjvu renders a zero gamma byte like 3 and a 255 byte like 50.
     [Theory]
-    [InlineData("gamma")]
+    [InlineData(0, 0.3)]
+    [InlineData(3, 0.3)]
+    [InlineData(51, 5.0)]
+    [InlineData(255, 5.0)]
+    public void ConversionClampsDeclaredGammaLikeTheReferenceDecoder(byte gamma, double expected)
+    {
+        var source = Constant();
+        source[32] = gamma;
+        var pdf = PdfDocument.Open(DjvuDocument.Open(source).ConvertToPdf());
+        AssertImage(pdf, Enumerable.Repeat((byte)127, 16).ToArray(), expected);
+    }
+
+    [Theory]
     [InlineData("version")]
     [InlineData("color")]
     [InlineData("layer")]
@@ -105,7 +119,6 @@ public sealed class DjvuGrayscalePdfConversionTests
         var source = Constant();
         switch (scenario)
         {
-            case "gamma": source[32] = 0; break;
             case "version": source[28] = 27; break;
             case "color": source[44] = 1; break;
             case "layer": source = Append(source, Chunk("ANTa", [0])); break;

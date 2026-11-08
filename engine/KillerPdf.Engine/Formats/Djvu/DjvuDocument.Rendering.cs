@@ -8,8 +8,8 @@ public sealed partial class DjvuDocument
 {
     /// <summary>Renders supported bitonal, grayscale and initial color content at natural dimensions, limited to a 128 MiB RGBA32F frame.</summary>
     /// <remarks>
-    /// Grayscale IW44 requires full-resolution version 1.2 background chunks and a positive INFO gamma.
-    /// Its stored device gamma maps neutral samples to linear RGB. Image working buffers are limited to 256 MiB.
+    /// Grayscale IW44 requires full-resolution version 1.2 background chunks. The stored INFO device gamma,
+    /// clamped to 0.3 through 5.0 like DjVuLibre, maps samples to linear RGB. Image working buffers are limited to 256 MiB.
     /// Initial color IW44 support requires one version 1.2 full-resolution background chunk, upright block-aligned
     /// dimensions, and full chroma with zero delay. Its eight-bit RGB matches DjVuLibre 3.5.29 output.
     /// </remarks>
@@ -91,7 +91,7 @@ public sealed partial class DjvuDocument
         var firstBackground = chunks.First(c => c.Id == 0x42473434);
         if (firstBackground.Length >= 3 && (_data[firstBackground.Offset + 2] & 0x80) == 0)
             return RenderColorIw44Page(page, chunks, token);
-        var (gray, gammaByte) = DecodeIw44Page(page, chunks, token);
+        var (gray, gamma) = DecodeIw44Page(page, chunks, token);
         var pixels = new float[page.Width * page.Height * 4];
         var quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
         var width = quarterTurn ? page.Height : page.Width;
@@ -109,7 +109,7 @@ public sealed partial class DjvuDocument
                     _ => (x, y)
                 };
                 var offset = (targetY * width + targetX) * 4;
-                var value = (float)Math.Pow(gray[y * page.Width + x] / 255d, gammaByte / 10d);
+                var value = (float)Math.Pow(gray[y * page.Width + x] / 255d, gamma);
                 pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = value;
                 pixels[offset + 3] = 1;
             }
@@ -125,8 +125,7 @@ public sealed partial class DjvuDocument
             throw new NotSupportedException("Color IW44 rendering requires a background without other visual layers.");
         if (page.Orientation != DjvuOrientation.Upright)
             throw new NotSupportedException("Color IW44 currently requires upright orientation.");
-        var gammaByte = _data[chunks[0].Offset + 8];
-        if (gammaByte == 0) throw new NotSupportedException("IW44 rendering requires a positive INFO gamma.");
+        var gamma = InfoGamma(chunks);
         var backgrounds = chunks.Where(c => c.Id == 0x42473434).Take(2)
             .Select(c => (ReadOnlyMemory<byte>)_data.AsMemory(c.Offset, c.Length)).ToArray();
         var rgb = DjvuIw44Decoder.DecodeColor(backgrounds, page.Width, page.Height, token);
@@ -135,7 +134,7 @@ public sealed partial class DjvuDocument
         {
             token.ThrowIfCancellationRequested();
             for (int channel = 0; channel < 3; channel++)
-                pixels[pixel * 4 + channel] = (float)Math.Pow(rgb[pixel * 3 + channel] / 255d, gammaByte / 10d);
+                pixels[pixel * 4 + channel] = (float)Math.Pow(rgb[pixel * 3 + channel] / 255d, gamma);
             pixels[pixel * 4 + 3] = 1;
         }
         token.ThrowIfCancellationRequested();
@@ -144,16 +143,19 @@ public sealed partial class DjvuDocument
         return frame;
     }
 
-    private (byte[] Gray, byte Gamma) DecodeIw44Page(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)
+    // Like DjVuInfo::decode, a missing gamma byte means 2.2 and stored values clamp to 0.3 through 5.0.
+    private double InfoGamma(List<Chunk> chunks)
+        => chunks[0].Length < 9 ? 2.2 : Math.Clamp(_data[chunks[0].Offset + 8] / 10d, 0.3, 5.0);
+
+    private (byte[] Gray, double Gamma) DecodeIw44Page(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)
     {
         if (chunks.Any(c => c.Id is not (0x494e464f or 0x42473434 or 0x54585461 or 0x5458547a)))
             throw new NotSupportedException("IW44 rendering requires a grayscale background without other visual layers.");
-        var gammaByte = _data[chunks[0].Offset + 8];
-        if (gammaByte == 0) throw new NotSupportedException("IW44 rendering requires a positive INFO gamma.");
+        var gamma = InfoGamma(chunks);
         var backgrounds = chunks.Where(c => c.Id == 0x42473434).Take(257)
             .Select(c => (ReadOnlyMemory<byte>)_data.AsMemory(c.Offset, c.Length)).ToArray();
         var gray = DjvuIw44Decoder.DecodeGrayscale(backgrounds, page.Width, page.Height, token);
         token.ThrowIfCancellationRequested();
-        return (gray, gammaByte);
+        return (gray, gamma);
     }
 }

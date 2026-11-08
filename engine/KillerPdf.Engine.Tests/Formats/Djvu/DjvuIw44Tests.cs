@@ -122,14 +122,21 @@ public sealed class DjvuIw44Tests
         AssertPixels(frame, expected);
     }
 
-    [Fact]
-    public void RejectsZeroGammaExplicitly()
+    // DjVuInfo::decode clamps the stored gamma to 0.3 through 5.0. DjVuLibre 3.5.29
+    // ddjvu renders gamma bytes 0 to 3 identically, and 50 through 255 identically.
+    [Theory]
+    [InlineData(0, 0.8112955f)]
+    [InlineData(3, 0.8112955f)]
+    [InlineData(4, 0.7566681f)]
+    [InlineData(50, 0.030642042f)]
+    [InlineData(51, 0.030642042f)]
+    [InlineData(255, 0.030642042f)]
+    public void ClampsDeclaredGammaToTheReferenceRange(byte gamma, float expected)
     {
         var input = OneSliceImage();
-        input[32] = 0;
-        var document = DjvuDocument.Open(input);
-        var error = Assert.Throws<NotSupportedException>(() => document.RenderPage(0));
-        Assert.Contains("positive INFO gamma", error.Message);
+        input[32] = gamma;
+        var frame = DjvuDocument.Open(input).RenderPage(0);
+        AssertPixels(frame, Enumerable.Repeat(expected, 16).ToArray());
     }
 
     [Theory]

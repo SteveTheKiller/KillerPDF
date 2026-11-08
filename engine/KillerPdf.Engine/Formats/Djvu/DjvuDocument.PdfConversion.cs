@@ -42,7 +42,7 @@ public sealed partial class DjvuDocument
                 double grayWidth = pixelWidth * 72d / page.Dpi;
                 double grayHeight = pixelHeight * 72d / page.Dpi;
                 var grayImage = PdfImage.FromCalibratedGray(pixelWidth, pixelHeight, oriented,
-                    new PdfCalGrayColorSpace(whiteX: 0.95047, whiteZ: 1.08883, gamma: gamma / 10d));
+                    new PdfCalGrayColorSpace(whiteX: 0.95047, whiteZ: 1.08883, gamma: gamma));
                 var grayContent = new PdfContentStreamBuilder().DrawImage(grayImage, 0, 0, grayWidth, grayHeight);
                 AddLocatedPdfText(grayContent, text, page, cancellationToken);
                 builder.AddPage(grayWidth, grayHeight, grayContent);
