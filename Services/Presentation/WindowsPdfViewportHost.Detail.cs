@@ -13,10 +13,26 @@ internal partial class WindowsPdfViewportHost
     internal IPdfFramePresenter PrepareDetail(Rect normalizedBounds)
     {
         VerifyAccess();
-        ClearDetail();
         if (Viewport == 0 || normalizedBounds.IsEmpty || normalizedBounds.Width <= 0 || normalizedBounds.Height <= 0)
+        {
+            ClearDetail();
             throw new InvalidOperationException("The detail viewport is unavailable.");
+        }
         detailBounds = normalizedBounds;
+        // Reuse the detail window and its presenter across refinements, so settling after a
+        // scroll or zoom does not create a new device and swap chain. It stays hidden until the
+        // new region's frame is submitted.
+        if (detailWindow != 0 && detailPresenter is not null)
+        {
+            ShowWindow(detailWindow, 0);
+            try
+            {
+                PositionDetail();
+                return detailPresenter;
+            }
+            catch { ClearDetail(); throw; }
+        }
+        ClearDetail();
         // A disabled child leaves page input with its parent while retaining its own frame surface.
         detailWindow = CreateWindowEx(0, className, "PDF detail", 0x48000000, 0, 0, 1, 1, Viewport, 0, 0, 0);
         if (detailWindow == 0) throw new System.ComponentModel.Win32Exception();
@@ -26,6 +42,12 @@ internal partial class WindowsPdfViewportHost
             return detailPresenter = presenterFactory(detailWindow);
         }
         catch { ClearDetail(); throw; }
+    }
+
+    internal void HideDetail()
+    {
+        VerifyAccess();
+        if (detailWindow != 0) ShowWindow(detailWindow, 0);
     }
 
     internal void ShowDetail()

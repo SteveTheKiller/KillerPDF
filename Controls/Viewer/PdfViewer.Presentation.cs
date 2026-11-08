@@ -31,12 +31,18 @@ public partial class PdfViewer
     private long _primaryProofGeneration;
     private PdfPresentationState? _primaryPresentationState;
 
+    // One immutable observation stands for "no window yet", so renders started before the
+    // window exists all see the same display and do not invalidate each other.
+    private static readonly PdfDisplayDiscoverySnapshot NotAttachedDisplay = new(0, PdfDisplayDiscoveryStatus.Unavailable,
+        null, null, "ViewportWindowNotAttached", null);
+    private bool _presentationRerenderPending, _presentationVisibilityObserved;
+
     private PdfDisplayDiscoverySnapshot CapturePrimaryDisplay()
     {
         nint window = Window.GetWindow(this) is { } owner ? new WindowInteropHelper(owner).Handle : 0;
         if (window == 0)
-            return ObservePresentationDisplay(new(0, PdfDisplayDiscoveryStatus.Unavailable, null, null,
-                "ViewportWindowNotAttached", null));
+            return ReferenceEquals(_presentationDisplay, NotAttachedDisplay)
+                ? NotAttachedDisplay : ObservePresentationDisplay(NotAttachedDisplay);
         if (_presentationDisplayObserver is null)
         {
             _presentationDisplayObserver = new WindowsPdfDisplayDiscovery(window);
@@ -46,28 +52,48 @@ public partial class PdfViewer
                 var observed = DisplayCapture is { } capture ? capture(window) : observer.Capture();
                 if (ReferenceEquals(observed, _presentationDisplay)) return;
                 ObservePresentationDisplay(observed);
-                if (!IsLoaded || !IsVisible || !HasReadDocument) return;
-                CancelVisibleRefinement();
-                if (_viewMode.IsContinuous())
+                if (!IsLoaded || !IsVisible || !HasReadDocument)
                 {
-                    CancelAndRelease(_continuousRenderCts);
-                    _continuousRenderCts = null;
-                    foreach (var slot in _continuousPanel.Children.OfType<Border>())
-                        if (slot.Child is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Image image)
-                        {
-                            image.Source = null;
-                            image.ToolTip = null;
-                        }
-                    _continuousSharpPages.Clear();
-                    _ = RenderContinuousPages(State.CurrentPage);
-                    StartRerenderTimer();
+                    // Pages converted for the old display are redrawn when the viewer is shown again.
+                    _presentationRerenderPending = true;
+                    return;
                 }
-                else RenderPage(_currentPage);
+                RerenderForDisplayChange();
             };
             _presentationDisplayObserver.ObserveChanges();
+            if (!_presentationVisibilityObserved)
+            {
+                _presentationVisibilityObserved = true;
+                IsVisibleChanged += (_, _) =>
+                {
+                    if (!_presentationRerenderPending || !IsLoaded || !IsVisible || !HasReadDocument) return;
+                    RerenderForDisplayChange();
+                };
+            }
         }
         return ObservePresentationDisplay(DisplayCapture is { } captureDisplay
             ? captureDisplay(window) : _presentationDisplayObserver.Capture());
+    }
+
+    private void RerenderForDisplayChange()
+    {
+        _presentationRerenderPending = false;
+        CancelVisibleRefinement();
+        if (_viewMode.IsContinuous())
+        {
+            CancelAndRelease(_continuousRenderCts);
+            _continuousRenderCts = null;
+            foreach (var slot in _continuousPanel.Children.OfType<Border>())
+                if (slot.Child is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Image image)
+                {
+                    image.Source = null;
+                    image.ToolTip = null;
+                }
+            _continuousSharpPages.Clear();
+            _ = RenderContinuousPages(State.CurrentPage);
+            StartRerenderTimer();
+        }
+        else RenderPage(_currentPage);
     }
 
     private PdfDisplayDiscoverySnapshot ObservePresentationDisplay(PdfDisplayDiscoverySnapshot display)
@@ -235,10 +261,18 @@ public partial class PdfViewer
             RequestSequence = checked(++_presentationRequestSequence), RegionId = 2 };
         presenter.UpdateState(new(stamp, result.Frame.Width, result.Frame.Height,
             baseline.ReferenceWhiteScale, baseline.TransformOwner));
-        var submitted = await presenter.SubmitAsync(new(result.Frame, stamp), token);
+        PdfFrameSubmissionResult submitted;
+        try { submitted = await presenter.SubmitAsync(new(result.Frame, stamp), token); }
+        catch (Exception error) when (error is not OperationCanceledException && ReferenceEquals(host, _primaryViewport))
+        {
+            // A failed submission releases the reused detail window and presenter at once.
+            host.ClearDetail();
+            throw;
+        }
         if (!Current()) return;
         if (submitted.Outcome == PdfFrameSubmissionOutcome.Submitted) host.ShowDetail();
-        else host.ClearDetail();
+        else if (submitted.Outcome == PdfFrameSubmissionOutcome.Unavailable) host.ClearDetail();
+        else host.HideDetail();
     }
 
     private void ReleasePresentationResources()
@@ -249,6 +283,7 @@ public partial class PdfViewer
         _primaryViewport?.Dispose();
         _primaryViewport = null;
         _nativeViewportUnavailable = false;
+        _presentationRerenderPending = false;
         _presentationDisplay = null;
         _sdrDisplayConverter = null;
         _primaryPresentationState = null;
