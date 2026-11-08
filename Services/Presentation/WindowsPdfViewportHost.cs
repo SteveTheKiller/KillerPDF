@@ -76,6 +76,9 @@ internal partial class WindowsPdfViewportHost : HwndHost
             });
             Overlay.CompositionTarget.BackgroundColor = Colors.Transparent;
             Overlay.RootVisual = OverlayRoot;
+            // Join the owning window's keyboard chain so Tab and mnemonics reach overlay editors.
+            ((System.Windows.Interop.IKeyboardInputSink)Overlay).KeyboardInputSite =
+                ((System.Windows.Interop.IKeyboardInputSink)this).RegisterKeyboardInputSink(Overlay);
             return new HandleRef(this, Container);
         }
         catch { ReleaseWindows(); throw; }
@@ -87,7 +90,11 @@ internal partial class WindowsPdfViewportHost : HwndHost
         if (Overlay is null || !GetClientRect(Container, out var client)) return;
         if (!SetWindowPos(Viewport, 0, 0, 0, Math.Max(1, client.Right), Math.Max(1, client.Bottom), 0x14)
             || !SetWindowPos(Overlay.Handle, 0, 0, 0, Math.Max(1, client.Right), Math.Max(1, client.Bottom), 0x10))
-            throw new System.ComponentModel.Win32Exception();
+        {
+            // Window placement runs from layout; a failed move is retried on the next pass.
+            WindowsPdfLayoutFailure.Record("viewport placement", new System.ComponentModel.Win32Exception());
+            return;
+        }
         FitOverlay(client);
         PositionDetail();
         if (presenter is WindowsPdfFramePresenter native) native.RefreshViewport();
@@ -144,6 +151,15 @@ internal partial class WindowsPdfViewportHost : HwndHost
             installedClip = description;
             installedClipDpi = dpi;
             installedClipSize = size;
+        }
+        catch (Exception error) when (error is InvalidOperationException or NotSupportedException
+            or ArgumentException or System.ComponentModel.Win32Exception)
+        {
+            // Layout passes during animations or teardown can be momentarily unclippable, for
+            // example under a zero scale. Keep the clip already installed, retry on the next
+            // pass, and never raise from a layout event.
+            installedClip = null;
+            WindowsPdfLayoutFailure.Record("viewport clip", error);
         }
         finally { refreshingClip = false; }
     }

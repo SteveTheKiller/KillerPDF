@@ -50,6 +50,31 @@ internal partial class WindowsPdfViewportHost
         finally { translatingAccelerator = false; }
     }
 
+    // Tab moves into the overlay's first or last focusable editor, and mnemonics reach it.
+    protected override bool TabIntoCore(TraversalRequest request) =>
+        Overlay is IKeyboardInputSink sink && sink.TabInto(request);
+
+    protected override bool OnMnemonicCore(ref MSG message, ModifierKeys modifiers) =>
+        Overlay is IKeyboardInputSink sink && sink.OnMnemonic(ref message, modifiers);
+
+    protected override IKeyboardInputSite RegisterKeyboardInputSinkCore(IKeyboardInputSink sink) =>
+        new OverlayKeyboardSite(this, sink);
+
+    /// <summary>Returns Tab out of the overlay to the window that owns this host.</summary>
+    internal sealed class OverlayKeyboardSite(HwndHost host, IKeyboardInputSink sink) : IKeyboardInputSite
+    {
+        public IKeyboardInputSink Sink => sink;
+
+        public void Unregister() { }
+
+        public bool OnNoMoreTabStops(TraversalRequest request)
+        {
+            if (((IKeyboardInputSink)host).KeyboardInputSite is { } site && site.OnNoMoreTabStops(request)) return true;
+            // Without a hosting site, continue WPF traversal from the host element itself.
+            return host.MoveFocus(request);
+        }
+    }
+
     bool BridgeWheel(nint wParam, nint lParam)
     {
         if (Overlay is not { } overlay || !OverlayRoot.IsVisible) return false;

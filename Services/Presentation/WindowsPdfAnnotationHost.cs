@@ -38,6 +38,8 @@ internal sealed class WindowsPdfAnnotationHost : HwndHost
             });
             source.CompositionTarget.BackgroundColor = Colors.Transparent;
             source.RootVisual = root;
+            // Join the owning window's keyboard chain so Tab and mnemonics reach annotation editors.
+            ((IKeyboardInputSink)source).KeyboardInputSite = ((IKeyboardInputSink)this).RegisterKeyboardInputSink(source);
             return new HandleRef(this, source.Handle);
         }
         catch
@@ -69,6 +71,15 @@ internal sealed class WindowsPdfAnnotationHost : HwndHost
         try { return sink.TranslateAccelerator(ref message, modifiers); }
         finally { translatingAccelerator = false; }
     }
+
+    protected override bool TabIntoCore(System.Windows.Input.TraversalRequest request) =>
+        source is IKeyboardInputSink sink && sink.TabInto(request);
+
+    protected override bool OnMnemonicCore(ref MSG message, System.Windows.Input.ModifierKeys modifiers) =>
+        source is IKeyboardInputSink sink && sink.OnMnemonic(ref message, modifiers);
+
+    protected override IKeyboardInputSite RegisterKeyboardInputSinkCore(IKeyboardInputSink sink) =>
+        new WindowsPdfViewportHost.OverlayKeyboardSite(this, sink);
 
     void RefreshLayout()
     {
@@ -105,6 +116,14 @@ internal sealed class WindowsPdfAnnotationHost : HwndHost
             if (!SetWindowPos(source.Handle, 0, 0, 0, 0, 0, 0x13))
                 throw new System.ComponentModel.Win32Exception();
         }
+        catch (Exception error) when (error is InvalidOperationException or NotSupportedException
+            or ArgumentException or System.ComponentModel.Win32Exception)
+        {
+            // A momentarily unclippable or unplaceable layout keeps the previous region and is
+            // retried on the next pass; layout events never raise.
+            installedClip = null;
+            WindowsPdfLayoutFailure.Record("annotation layout", error);
+        }
         finally { updating = false; }
     }
 
@@ -113,4 +132,16 @@ internal sealed class WindowsPdfAnnotationHost : HwndHost
     [DllImport("user32.dll")] static extern uint GetDpiForWindow(nint window);
     [DllImport("user32.dll", SetLastError = true)] static extern bool SetWindowPos(nint window, nint after,
         int x, int y, int width, int height, uint flags);
+}
+
+/// <summary>Records recoverable native layout failures once per kind instead of raising them.</summary>
+internal static class WindowsPdfLayoutFailure
+{
+    static readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> Recorded = new();
+
+    internal static void Record(string kind, Exception error)
+    {
+        if (Recorded.TryAdd(kind + ": " + error.GetType().Name, true))
+            System.Diagnostics.Debug.WriteLine($"Native {kind} failed and will retry: {error.Message}");
+    }
 }
