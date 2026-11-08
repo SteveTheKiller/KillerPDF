@@ -14,6 +14,13 @@ public partial class MainWindow
         var previous = proof.Stamp.IsComparison ? null : viewer.PreviousProofPreferencesExt;
         var dialog = new ColorManagementDialog(this, proof.Settings, viewer.ProofPreferenceNoticeKeyExt, previous);
         if (dialog.ShowDialog() != true || dialog.AppliedSettings is not { } settings) return;
+        if (dialog.WorkingCmykChanged)
+        {
+            // Managed renders read the new choice once; pages drawn with the old one are dropped
+            // and in-flight renders are cancelled by the re-render below.
+            KillerPDF.Services.PdfPageRenderSession.InvalidateWorkingCmyk();
+            viewer.FlushAllRenderCachesExt();
+        }
         if (proof.Stamp.IsComparison) view.ComparisonOverride = settings;
         else
         {

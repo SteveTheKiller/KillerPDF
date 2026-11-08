@@ -12,6 +12,8 @@ namespace KillerPDF.Controls;
 internal sealed class ColorManagementDialog : Window
 {
     internal PdfDocumentProofSettings? AppliedSettings { get; private set; }
+    /// <summary>Gets whether Apply saved a different working CMYK profile choice.</summary>
+    internal bool WorkingCmykChanged { get; private set; }
 
     internal ColorManagementDialog(Window owner, PdfDocumentProofSettings settings, string? preferenceNoticeKey = null,
         IReadOnlyList<DocumentProofReview>? previousProof = null)
@@ -352,7 +354,11 @@ internal sealed class ColorManagementDialog : Window
             string? working = workingCmyk.SelectedIndex > 0 ? workingEntries[workingCmyk.SelectedIndex - 1].ContentSha256 : null;
             if (libraryReadable && working != savedWorking)
             {
-                try { library.SetWorkingCmykProfile(working); }
+                try
+                {
+                    library.SetWorkingCmykProfile(working);
+                    WorkingCmykChanged = true;
+                }
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException
                     or FormatException or NotSupportedException or ArgumentException)
                 {
