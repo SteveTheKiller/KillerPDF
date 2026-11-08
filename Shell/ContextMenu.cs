@@ -273,6 +273,7 @@ namespace KillerPDF.Shell
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Pages_FixOrientation"), (s, e) => FixPageOrientation(),
                 GestureFor("AltShift:O"), ""));
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Pages_RasterizeRegion"), (s, e) => RasterizeRegion(pageIdx)));
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_ExtractImage_Menu"), (s, e) => ExtractImage(pageIdx)));
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_TableExport_Title"), (_, _) => ExportTable(pageIdx)));
             _ctxMenu.Items.Add(new Separator());
 
@@ -735,6 +736,7 @@ namespace KillerPDF.Shell
                 menu.Items.Add(MakeMenuItem(Loc("Str_Pages_Straighten"), (s, ev) => StraightenScannedPages()));
                 menu.Items.Add(MakeMenuItem(Loc("Str_Pages_DivideSpreads"), (s, ev) => DivideSpreads()));
                 menu.Items.Add(MakeMenuItem(Loc("Str_Pages_RasterizeRegion"), (s, ev) => RasterizeRegion(clickedPage)));
+                menu.Items.Add(MakeMenuItem(Loc("Str_ExtractImage_Menu"), (s, ev) => ExtractImage(clickedPage)));
                 menu.Items.Add(MakeMenuItem(Loc("Str_TableExport_Title"), (_, _) => ExportTable(clickedPage)));
                 menu.Items.Add(MakeMenuItem(Loc("Str_Paragraph_Title"), (_, _) => EditParagraph(clickedPage),
                     GestureFor("AltShift:P")));
