@@ -1922,80 +1922,15 @@ namespace KillerPDF
                 ? $"\"{iconPath}\",0"
                 : $"{exePath},0";
 
-            // ProgID definition
-            using (var k = root.CreateSubKey(@"Software\Classes\KillerPDF.pdf"))
-                k.SetValue("", "PDF Document");
-
-            using (var k = root.CreateSubKey(
-                @"Software\Classes\KillerPDF.pdf\DefaultIcon"))
-                k.SetValue("", iconRef);
-
-            using (var k = root.CreateSubKey(
-                @"Software\Classes\KillerPDF.pdf\shell\open\command"))
-                k.SetValue("", $"\"{exePath}\" \"%1\"");
-
-            // Existing Open with choices can retain the launcher name after an upgrade.
-            // Both application identities must launch the installed payload, not setup.
-            foreach (string application in new[] { "KillerPDF.App.exe", "KillerPDF.exe" })
-            {
-                string applicationKey = @"Software\Classes\Applications\" + application;
-                using (var k = root.CreateSubKey(applicationKey))
-                    k.SetValue("FriendlyAppName", AppName);
-                using (var k = root.CreateSubKey(applicationKey + @"\shell\open\command"))
-                    k.SetValue("", $"\"{exePath}\" \"%1\"");
-                using (var k = root.CreateSubKey(applicationKey + @"\SupportedTypes"))
-                    k.SetValue(".pdf", "");
-            }
-
-            // Associate .pdf extension - adds KillerPDF to the "Open with" list
-            using (var k = root.CreateSubKey(
-                @"Software\Classes\.pdf\OpenWithProgids"))
-                k.SetValue("KillerPDF.pdf", Array.Empty<byte>(), RegistryValueKind.None);
-
-            // RegisteredApplications capability (used by Default Programs UI)
-            using (var k = root.CreateSubKey(
-                @"Software\KillerPDF\Capabilities"))
-            {
-                k.SetValue("ApplicationName",        AppName);
-                k.SetValue("ApplicationDescription", "Lightweight PDF viewer and editor");
-            }
-            using (var k = root.CreateSubKey(
-                @"Software\KillerPDF\Capabilities\FileAssociations"))
-                k.SetValue(".pdf", "KillerPDF.pdf");
-
-            // #183: without this the killerpdf:// handler never appears in Windows Settings >
-            // Default apps > Choose defaults by link type. Maps the scheme to its ProgID
-            // (Software\Classes\killerpdf, written by ProtocolRegistrar).
-            using (var k = root.CreateSubKey(
-                @"Software\KillerPDF\Capabilities\UrlAssociations"))
-                k.SetValue(Services.ProtocolRegistrar.Scheme, Services.ProtocolRegistrar.Scheme);
-
-            using (var k = root.CreateSubKey(@"Software\RegisteredApplications"))
-                k.SetValue(AppName, @"Software\KillerPDF\Capabilities");
+            Services.FileAssociationRegistry.Register(root, exePath, iconRef, AppName,
+                Services.ProtocolRegistrar.Scheme);
 
             // Tell the shell file associations have changed
             SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
         }
 
-        private static void UnregisterFileHandler(RegistryKey root)
-        {
-            try { root.DeleteSubKeyTree(@"Software\Classes\KillerPDF.pdf", false); } catch { }
-            try { root.DeleteSubKeyTree(@"Software\Classes\Applications\KillerPDF.App.exe", false); } catch { }
-            try { root.DeleteSubKeyTree(@"Software\Classes\Applications\KillerPDF.exe", false); } catch { }
-            try { root.DeleteSubKeyTree(@"Software\KillerPDF\Capabilities", false); } catch { }
-            try
-            {
-                using var k = root.OpenSubKey(@"Software\Classes\.pdf\OpenWithProgids", writable: true);
-                k?.DeleteValue("KillerPDF.pdf", throwOnMissingValue: false);
-            }
-            catch { }
-            try
-            {
-                using var k = root.OpenSubKey(@"Software\RegisteredApplications", writable: true);
-                k?.DeleteValue(AppName, throwOnMissingValue: false);
-            }
-            catch { }
-        }
+        private static void UnregisterFileHandler(RegistryKey root) =>
+            Services.FileAssociationRegistry.Unregister(root, AppName);
 
         private static void CreateShortcut(string lnkPath, string targetPath)
         {
