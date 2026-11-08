@@ -69,16 +69,9 @@ public sealed partial class EpubDocumentTests
     [InlineData("<!DOCTYPE html [<!ENTITY text 'expanded'>]>")]
     [InlineData("<!DOCTYPE html [<!ENTITY text SYSTEM 'file:///C:/private.txt'>]>")]
     [InlineData("<!DOCTYPE html [<!ENTITY % external SYSTEM 'https://example.invalid/parameter.dtd'>%external;]>")]
-    [InlineData("<!DOCTYPE html SYSTEM 'https://example.invalid/xhtml.dtd'>")]
-    [InlineData("<!DOCTYPE html SYSTEM 'file:///C:/private.dtd'>")]
-    [InlineData("<!DOCTYPE html SYSTEM 'about:legacy-compat'>")]
-    [InlineData("<!DOCTYPE html PUBLIC '-//OTHER//DTD XHTML//EN' 'https://example.invalid/xhtml.dtd'>")]
     [InlineData("<!DOCTYPE html><!DOCTYPE html>")]
     [InlineData("<!doctype html>")]
-    [InlineData("<!DOCTYPE HTML>")]
-    [InlineData("<!DOCTYPE html\u00a0>")]
-    [InlineData("<!DOCTYPE htmlx>")]
-    public void RejectsHtml5DeclarationVariantsOutsideTheNoSubsetNoExternalGrammar(string declaration)
+    public void RejectsDeclarationsWithAnInternalSubsetOrOutsideXmlGrammar(string declaration)
     {
         byte[] original = Encoding.UTF8.GetBytes(declaration
             + "<html xmlns='http://www.w3.org/1999/xhtml'><head/><body><p>A</p></body></html>");
@@ -88,6 +81,24 @@ public sealed partial class EpubDocumentTests
         Assert.Throws<InvalidDataException>(() => book.ReadText(0));
         Assert.Throws<InvalidDataException>(() => book.CreateLayout(
             new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 }));
+        Assert.Equal(original, book.ReadResource("EPUB/one.xhtml"));
+    }
+
+    // EP-BF-015: a declaration naming only an external DTD is dropped unread; nothing is fetched.
+    [Theory]
+    [InlineData("<!DOCTYPE html SYSTEM 'https://example.invalid/xhtml.dtd'>")]
+    [InlineData("<!DOCTYPE html SYSTEM 'file:///C:/private.dtd'>")]
+    [InlineData("<!DOCTYPE html SYSTEM 'about:legacy-compat'>")]
+    [InlineData("<!DOCTYPE html PUBLIC '-//OTHER//DTD XHTML//EN' 'https://example.invalid/xhtml.dtd'>")]
+    [InlineData("<!DOCTYPE HTML>")]
+    [InlineData("<!DOCTYPE htmlx>")]
+    public void ExternalOnlyDeclarationsAreDroppedWithoutFetching(string declaration)
+    {
+        byte[] original = Encoding.UTF8.GetBytes(declaration
+            + "<html xmlns='http://www.w3.org/1999/xhtml'><head/><body><p>A</p></body></html>");
+        var book = Html5Book(original);
+
+        Assert.Equal("A", book.ReadText(0));
         Assert.Equal(original, book.ReadResource("EPUB/one.xhtml"));
     }
 

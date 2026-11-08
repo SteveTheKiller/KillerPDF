@@ -210,12 +210,14 @@ public sealed partial class EpubDocumentTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void RejectsDtdInNavigationDocuments(bool ncx)
+    public void ExternalDtdsAreNeverReadInNavigationDocuments(bool ncx)
     {
+        // The NCX keeps its own strict doctype rule; an XHTML navigation document drops an external-only one unread.
         const string dtd = "<!DOCTYPE html SYSTEM 'https://example.invalid/external.dtd'>";
         var book = ncx ? NcxBook(dtd + Ncx("<navPoint><navLabel><text>Chapter</text></navLabel><content src='one.xhtml'/></navPoint>"))
             : NavigationBook(dtd + Navigation);
-        Assert.Throws<InvalidDataException>(() => book.ReadNavigation());
+        if (ncx) Assert.Throws<InvalidDataException>(() => book.ReadNavigation());
+        else Assert.NotEmpty(book.ReadNavigation());
     }
 
     [Fact]

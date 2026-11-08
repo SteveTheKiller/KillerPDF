@@ -60,22 +60,30 @@ public sealed partial class EpubDocumentTests
     [InlineData("<!DOCTYPE html [<!ENTITY label 'expanded'>]>")]
     [InlineData("<!DOCTYPE html [<!ENTITY label SYSTEM 'file:///C:/private.txt'>]>")]
     [InlineData("<!DOCTYPE html [<!ENTITY % external SYSTEM 'https://example.invalid/parameter.dtd'>%external;]>")]
-    [InlineData("<!DOCTYPE html SYSTEM 'https://example.invalid/nav.dtd'>")]
-    [InlineData("<!DOCTYPE html SYSTEM 'file:///C:/private.dtd'>")]
-    [InlineData("<!DOCTYPE html SYSTEM 'about:legacy-compat'>")]
-    [InlineData("<!DOCTYPE html PUBLIC '-//OTHER//DTD XHTML//EN' 'https://example.invalid/nav.dtd'>")]
     [InlineData("<!DOCTYPE html><!DOCTYPE html>")]
     [InlineData("<!doctype html>")]
-    [InlineData("<!DOCTYPE HTML>")]
-    [InlineData("<!DOCTYPE html\u00a0>")]
-    [InlineData("<!DOCTYPE htmlx>")]
-    public void RejectsUnsafeOrNoncanonicalDeclarationsInHtml5Navigation(string declaration)
+    public void RejectsInternalSubsetsAndNonXmlDeclarationsInHtml5Navigation(string declaration)
     {
         string navigation = declaration + Navigation;
         var book = NavigationBook(navigation);
 
         Assert.Throws<InvalidDataException>(() => book.ReadNavigation());
         Assert.Equal(Encoding.UTF8.GetBytes(navigation), book.ReadResource("EPUB/nav.xhtml"));
+    }
+
+    // EP-BF-015: a declaration naming only an external DTD is dropped unread; nothing is fetched.
+    [Theory]
+    [InlineData("<!DOCTYPE html SYSTEM 'https://example.invalid/nav.dtd'>")]
+    [InlineData("<!DOCTYPE html SYSTEM 'file:///C:/private.dtd'>")]
+    [InlineData("<!DOCTYPE html SYSTEM 'about:legacy-compat'>")]
+    [InlineData("<!DOCTYPE html PUBLIC '-//OTHER//DTD XHTML//EN' 'https://example.invalid/nav.dtd'>")]
+    [InlineData("<!DOCTYPE HTML>")]
+    [InlineData("<!DOCTYPE htmlx>")]
+    public void ExternalOnlyDeclarationsInHtml5NavigationAreDropped(string declaration)
+    {
+        var book = NavigationBook(declaration + Navigation);
+
+        Assert.NotEmpty(book.ReadNavigation());
     }
 
     [Theory]

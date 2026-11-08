@@ -94,9 +94,10 @@ public sealed partial class EpubDocumentTests
     }
 
     [Fact]
-    public void DoesNotAcceptNcxDoctypeInPackageOrXhtmlDocuments()
+    public void TheNcxDoctypeIsRefusedInThePackageAndDroppedUnreadInXhtml()
     {
         Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Book(CanonicalNcxDoctype + Package)));
-        Assert.Throws<InvalidDataException>(() => NavigationBook(CanonicalNcxDoctype + Navigation).ReadNavigation());
+        // An XHTML document drops any external-only declaration without reading it (EP-BF-015).
+        Assert.NotEmpty(NavigationBook(CanonicalNcxDoctype + Navigation).ReadNavigation());
     }
 }

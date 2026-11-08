@@ -129,7 +129,6 @@ public sealed partial class EpubDocumentTests
     [InlineData("<html><body>Text</body></html>")]
     [InlineData("<html xmlns='http://www.w3.org/1999/xhtml'><body><p>Broken</body></html>")]
     [InlineData("<!DOCTYPE html [<!ENTITY entity 'expanded'>]><html xmlns='http://www.w3.org/1999/xhtml'><body>&entity;</body></html>")]
-    [InlineData("<!DOCTYPE html SYSTEM 'https://example.invalid/xhtml.dtd'><html xmlns='http://www.w3.org/1999/xhtml'><body>Text</body></html>")]
     public void RejectsMalformedOrUnsafeXhtmlTextDocuments(string content)
     {
         var package = Package.Replace("href=\"one.xhtml\"", "href=\"text.xhtml\"");
