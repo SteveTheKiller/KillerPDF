@@ -11,6 +11,7 @@ internal sealed class PdfWorkingDocument : IDisposable
     private PdfDocument? _parsedDocument;
     private readonly Lock _readSync = new();
     private PdfCapturedReadRevision? _readRevision;
+    private (PdfDocument? Document, System.Runtime.ExceptionServices.ExceptionDispatchInfo? Failure)? _contentCopy;
     private bool _closed;
 
     private PdfWorkingDocument(byte[] source, bool isReadOnly, OpenedProtection? protection)
@@ -37,10 +38,28 @@ internal sealed class PdfWorkingDocument : IDisposable
     internal bool IsReadOnly { get; }
     internal PdfDocument? ParsedDocument => _parsedDocument;
 
+    /// <summary>The strict parse that picture selection copies from. The source never changes, so one
+    /// parse (or its refusal) serves every click on this document instead of parsing it again each time.</summary>
     internal PdfDocument? OpenStrictForContentCopy()
     {
-        var document = PdfDocument.Open(_source);
-        return document.IsEncrypted ? null : document;
+        lock (_readSync)
+        {
+            ObjectDisposedException.ThrowIf(_closed, this);
+            if (_contentCopy is null)
+            {
+                try
+                {
+                    var document = PdfDocument.Open(_source);
+                    _contentCopy = (document.IsEncrypted ? null : document, null);
+                }
+                catch (Exception error) when (error is not OutOfMemoryException)
+                {
+                    _contentCopy = (null, System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error));
+                }
+            }
+            _contentCopy.Value.Failure?.Throw();
+            return _contentCopy.Value.Document;
+        }
     }
 
     internal PdfCapturedReadRevision CaptureReadRevision()
@@ -149,6 +168,7 @@ internal sealed class PdfWorkingDocument : IDisposable
             _closed = true;
             revision = _readRevision;
             _readRevision = null;
+            _contentCopy = null;
             Interlocked.Exchange(ref _parsedDocument, null);
         }
         revision?.Dispose();

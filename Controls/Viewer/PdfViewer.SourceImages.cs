@@ -134,7 +134,10 @@ public partial class PdfViewer
         try { source = _doc.OpenStrictForContentCopy(); }
         catch (Exception error) when (error is not OutOfMemoryException) { return false; }
         if (source is null) return false;
-        var images = new PdfPageContentReader(source).ReadImagePlacements(page);
+        IReadOnlyList<PdfImagePlacementSelection> images;
+        // A page the viewer can display may still hold content this reader refuses; that is not a click error.
+        try { images = new PdfPageContentReader(source).ReadImagePlacements(page); }
+        catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException)) { return false; }
         foreach (var image in images.Reverse())
         {
             var box = image.BoundingBox;
@@ -168,7 +171,8 @@ public partial class PdfViewer
                 canvas.Children.Add(_selectionBorder);
                 return true;
             }
-            catch (Exception error) when (error is NotSupportedException or InvalidOperationException or FormatException)
+            catch (Exception error) when (error is NotSupportedException or InvalidOperationException or FormatException
+                or KillerPdf.Engine.Filters.PdfFilterException)
             {
                 // Unsupported occurrences remain page content; no raster substitute is copied.
                 return false;
