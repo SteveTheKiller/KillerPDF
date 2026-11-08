@@ -446,7 +446,7 @@ public sealed partial class EpubDocument
         {
             return scalar switch
             {
-                0x00AD or 0x200B or 0xFEFF => 0,
+                0x00AD or 0x200B or 0x2060 or 0xFEFF => 0,
                 0x2000 or 0x2002 => .5,
                 0x2001 or 0x2003 => 1,
                 0x2004 => 1d / 3,

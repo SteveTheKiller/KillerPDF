@@ -24,4 +24,11 @@ public sealed record EpubPdfConversionOptions(TrueTypeFont DefaultFont)
     public bool IsolateChapterFailures { get; init; }
     /// <summary>Gets the caller's localized heading for an isolated chapter's diagnosis page.</summary>
     public string UnavailableChapterLabel { get; init; } = "This chapter could not be displayed.";
+
+    /// <summary>Reports whether a PDF reader accepts this page size in points.</summary>
+    /// <remarks>ISO 32000-1 annex C.2: without UserUnit each side is 3 to 14,400 default user units (200 in, 5,080 mm).</remarks>
+    public static bool FitsPdfPageLimit(double widthPoints, double heightPoints)
+        => widthPoints is >= MinimumPagePoints and <= MaximumPagePoints && heightPoints is >= MinimumPagePoints and <= MaximumPagePoints;
+
+    internal const double MinimumPagePoints = 3, MaximumPagePoints = 14_400;
 }

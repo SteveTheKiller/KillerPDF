@@ -11,6 +11,9 @@ public sealed partial class EpubDocument
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(options.DefaultFont);
+        if (!EpubPdfConversionOptions.FitsPdfPageLimit(options.PageWidthPoints, options.PageHeightPoints))
+            throw new ArgumentOutOfRangeException(nameof(options),
+                "PDF pages must be 3 to 14,400 points (200 inches) on each side.");
         const double pointsPerCssPixel = 72d / 96d;
         var layout = CreateLayout(new EpubLayoutOptions(
             options.PageWidthPoints / pointsPerCssPixel,

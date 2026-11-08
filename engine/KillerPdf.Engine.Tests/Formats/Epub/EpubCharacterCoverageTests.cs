@@ -21,10 +21,13 @@ public sealed class EpubCharacterCoverageTests
         Assert.DoesNotContain(page.TextPlacements, placement => page.Text[placement.Start - page.TextStart] != 'A' && placement.Width != 0);
     }
 
-    [Fact]
-    public void ZeroWidthNoBreakSpaceIsInvisibleAndKeepsTheWordTogether()
+    // U+2060 word joiner (Gatsby) and U+FEFF zero-width no-break space are both UAX #14 class WJ.
+    [Theory]
+    [InlineData("&#xFEFF;")]
+    [InlineData("&#x2060;")]
+    public void ZeroWidthNoBreakSpaceIsInvisibleAndKeepsTheWordTogether(string joiner)
     {
-        var page = Assert.Single(Layout(new Book { Chapters = { Chapter("<p>A&#xFEFF;AAA</p>") } }, 22, 40).Pages);
+        var page = Assert.Single(Layout(new Book { Chapters = { Chapter("<p>A" + joiner + "AAA</p>") } }, 22, 40).Pages);
 
         // With no opportunity the four letters fill the 18px line by width: three fit, the fourth breaks.
         Assert.Equal(new[] { (2d, 2d), (8d, 2d), (14d, 2d), (2d, 12d) }, Letters(page));

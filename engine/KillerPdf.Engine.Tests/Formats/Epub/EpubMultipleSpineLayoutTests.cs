@@ -25,9 +25,11 @@ public sealed class EpubMultipleSpineLayoutTests
         Assert.Equal(59999, layout.Pages.Where(page => page.SpineIndex == 1).Sum(page => page.Text.Length));
         Assert.Equal(59998, layout.Pages.Last().TextPlacements.Last().Start);
         var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
-        { PageWidthPoints = 24576, PageHeightPoints = 10.5, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        // 14,400 points is the widest page ISO 32000 allows without UserUnit (19,200 CSS pixels).
+        { PageWidthPoints = 14400, PageHeightPoints = 10.5, MarginPoints = 1.5, FontSizePoints = 7.5 }));
         var reader = new PdfPageContentReader(pdf);
-        Assert.Equal(layout.Pages.Count, reader.PageCount);
+        Assert.Equal(book.CreateLayout(Options() with { PageWidth = 19200, PageHeight = 14, DefaultFont = font }).Pages.Count,
+            reader.PageCount);
         Assert.Equal(60000, Enumerable.Range(0, reader.PageCount)
             .Sum(index => reader.Read(index).Letters.Count(letter => letter.Value == "A")));
         Assert.Equal(original, source);
