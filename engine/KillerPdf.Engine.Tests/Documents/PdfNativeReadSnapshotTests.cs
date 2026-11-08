@@ -136,6 +136,21 @@ public sealed class PdfNativeReadSnapshotTests
         Assert.Equal(compact.RenderPage(0).Pixels.ToArray(), spaced.RenderPage(0).Pixels.ToArray());
     }
 
+    [Fact]
+    public void IsolatedEpubSnapshotOpensAndReportsItsRefusedChapters()
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var options = new EpubLayoutOptions(16, 23, font) { FontSize = 10, Margin = 2 };
+        Assert.Throws<NotSupportedException>(() => PdfReadSnapshot.OpenEpub(Book("A<sup>A</sup>"), options));
+
+        var snapshot = PdfReadSnapshot.OpenEpub(Book("A<sup>A</sup>"), options with { IsolateChapterFailures = true });
+
+        Assert.Equal(1, snapshot.PageCount);
+        var diagnostic = Assert.Single(snapshot.ChapterDiagnostics);
+        Assert.EndsWith("text.xhtml", diagnostic.Href);
+        Assert.Empty(PdfReadSnapshot.OpenEpub(Book(), options with { IsolateChapterFailures = true }).ChapterDiagnostics);
+    }
+
     private static byte[] Book(string text = "A")
     {
         using var output = new MemoryStream();

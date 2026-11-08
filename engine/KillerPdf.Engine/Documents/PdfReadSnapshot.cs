@@ -84,6 +84,9 @@ public sealed partial class PdfReadSnapshot
 
     private readonly EpubLayoutDocument? _layout;
     private readonly DjvuDocument? _djvu;
+
+    /// <summary>Gets EPUB chapters replaced by diagnosis pages during isolated layout; empty for other formats.</summary>
+    public IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics => _layout?.ChapterDiagnostics ?? [];
     private readonly PdfReadPageGeometry[] _geometries;
 
     private PdfReadSnapshot(EpubLayoutDocument layout, PdfReadPageGeometry geometry, string sourceSha256,
