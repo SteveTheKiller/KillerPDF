@@ -22,7 +22,7 @@ public sealed partial class DjvuDocument
         _pageForms = pageForms.ToArray();
     }
 
-    /// <summary>Opens metadata with limits of 64 MiB, 65536 chunks, 4096 pages, 100 million pixels per page, and 25 to 6000 DPI.</summary>
+    /// <summary>Opens metadata with limits of 64 MiB, 65536 chunks, 4096 pages and 100 million pixels per page. Resolutions outside 25 to 6000 DPI read as 300.</summary>
     public static DjvuDocument Open(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -152,17 +152,20 @@ public sealed partial class DjvuDocument
     private static DjvuPageInfo ReadPage(ReadOnlySpan<byte> span, List<Chunk> chunks)
     {
         if (chunks.Any(c => c.Id == 0x464f524d)) throw new InvalidDataException("Nested FORM is not allowed inside a page.");
-        if (chunks.Count == 0 || chunks[0].Id != 0x494e464f || chunks[0].Length < 10)
-            throw new InvalidDataException("A page must begin with a complete INFO chunk.");
+        // DjVuInfo::decode, which the format reference names for INFO, needs five bytes and
+        // gives absent fields the defaults 300 DPI and upright, and out-of-range DPI 300.
+        if (chunks.Count == 0 || chunks[0].Id != 0x494e464f || chunks[0].Length < 5)
+            throw new InvalidDataException("A page must begin with an INFO chunk of at least five bytes.");
         if (chunks.Skip(1).Any(c => c.Id == 0x494e464f)) throw new InvalidDataException("Duplicate INFO chunk.");
         var info = span.Slice(chunks[0].Offset, chunks[0].Length);
         var width = BinaryPrimitives.ReadUInt16BigEndian(info);
         var height = BinaryPrimitives.ReadUInt16BigEndian(info[2..]);
-        var dpi = BinaryPrimitives.ReadUInt16LittleEndian(info[6..]);
-        if (width == 0 || height == 0 || (long)width * height > 100_000_000 || dpi is < 25 or > 6000)
-            throw new InvalidDataException("Page dimensions or resolution exceed supported limits.");
+        if (width == 0 || height == 0 || (long)width * height > 100_000_000)
+            throw new InvalidDataException("Page dimensions exceed supported limits.");
+        int dpi = info.Length >= 8 ? BinaryPrimitives.ReadUInt16LittleEndian(info[6..]) : 300;
+        if (dpi is < 25 or > 6000) dpi = 300;
         return new DjvuPageInfo(
-            width, height, dpi, info[4], info[5], (info[9] & 7) switch
+            width, height, dpi, info[4], info.Length >= 6 ? info[5] : (byte)0, (info.Length >= 10 ? info[9] & 7 : 1) switch
             {
                 1 => DjvuOrientation.Upright,
                 2 => DjvuOrientation.UpsideDown,

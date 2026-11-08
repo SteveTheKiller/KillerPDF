@@ -26,16 +26,33 @@ public sealed class DjvuDocumentTests
         Assert.Throws<InvalidDataException>(() => DjvuDocument.Open(file));
     }
 
+    // DjVuLibre's DjVuInfo::decode, which the format reference names for INFO, refuses
+    // fewer than five bytes. DjVuLibre 3.5.29 ddjvu reports a four-byte INFO as corrupt.
     [Theory]
     [InlineData("JUNK", 10, false)]
-    [InlineData("INFO", 9, false)]
+    [InlineData("INFO", 4, false)]
     [InlineData("INFO", 10, true)]
-    public void RequiresExactlyOneCompleteInfoChunkAtTheStart(string firstId, int length, bool duplicate)
+    public void RequiresExactlyOneInfoChunkOfAtLeastFiveBytesAtTheStart(string firstId, int length, bool duplicate)
     {
         byte[] info = [0x08, 0x9a, 0x03, 0xc7, 26, 0, 0x2c, 1, 22, 1];
         var chunks = new List<byte[]> { Chunk(firstId, info[..length]) };
         if (duplicate) chunks.Add(Chunk("INFO", info));
         Assert.Throws<InvalidDataException>(() => DjvuDocument.Open(File(Form("DJVU", chunks.ToArray()))));
+    }
+
+    // Like DjVuInfo::decode, absent fields take the defaults 300 DPI, gamma 2.2 and
+    // upright. DjVuLibre 3.5.29 ddjvu renders 5 to 9 byte INFO chunks this way.
+    [Theory]
+    [InlineData(5, 300)]
+    [InlineData(6, 300)]
+    [InlineData(7, 300)]
+    [InlineData(8, 100)]
+    [InlineData(9, 100)]
+    public void FillsMissingTrailingInfoFieldsWithReferenceDefaults(int length, int dpi)
+    {
+        byte[] info = [0x08, 0x9a, 0x03, 0xc7, 26, 0, 100, 0, 22, 5];
+        var page = Assert.Single(DjvuDocument.Open(File(Form("DJVU", Chunk("INFO", info[..length])))).Pages);
+        Assert.Equal(new DjvuPageInfo(2202, 967, dpi, 26, 0, DjvuOrientation.Upright), page);
     }
 
     [Theory]
@@ -50,15 +67,28 @@ public sealed class DjvuDocumentTests
     }
 
     [Theory]
-    [InlineData(0, 100, 300)]
-    [InlineData(100, 0, 300)]
-    [InlineData(65535, 65535, 300)]
-    [InlineData(100, 100, 0)]
-    [InlineData(100, 100, 65535)]
-    public void RejectsUnsafeDimensionsAndResolution(int width, int height, int dpi)
+    [InlineData(0, 100)]
+    [InlineData(100, 0)]
+    [InlineData(65535, 65535)]
+    public void RejectsUnsafeDimensions(int width, int height)
     {
         Assert.Throws<InvalidDataException>(() => DjvuDocument.Open(File(Form("DJVU", Chunk("INFO",
-            [(byte)(width >> 8), (byte)width, (byte)(height >> 8), (byte)height, 26, 0, (byte)dpi, (byte)(dpi >> 8), 22, 1])))));
+            [(byte)(width >> 8), (byte)width, (byte)(height >> 8), (byte)height, 26, 0, 0x2c, 1, 22, 1])))));
+    }
+
+    // DjVuInfo::decode replaces a resolution outside 25 to 6000 DPI with 300. DjVuLibre
+    // 3.5.29 ddjvu -scale=150 renders 0, 24, 6001 and 65535 DPI pages at half size.
+    [Theory]
+    [InlineData(0, 300)]
+    [InlineData(24, 300)]
+    [InlineData(25, 25)]
+    [InlineData(6000, 6000)]
+    [InlineData(6001, 300)]
+    [InlineData(65535, 300)]
+    public void ReplacesOutOfRangeResolutionWithTheReferenceDefault(int dpi, int expected)
+    {
+        var document = DjvuDocument.Open(File(Form("DJVU", Chunk("INFO", [0, 100, 0, 200, 26, 0, (byte)dpi, (byte)(dpi >> 8), 22, 1]))));
+        Assert.Equal(expected, Assert.Single(document.Pages).Dpi);
     }
 
     [Fact]
