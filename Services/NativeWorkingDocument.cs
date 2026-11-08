@@ -51,6 +51,11 @@ internal sealed class NativeWorkingDocument : IDisposable
     internal string ContentIdentity => _snapshot.SourceSha256;
     internal int PageCount => _snapshot.PageCount;
     internal int UnavailableChapterCount => _snapshot.ChapterDiagnostics.Count;
+    internal IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics => _snapshot.ChapterDiagnostics;
+    internal IReadOnlyList<EpubChapterDiagnostic> ContentDiagnostics => _snapshot.ContentDiagnostics;
+    internal IReadOnlyList<EpubIgnoredDeclarations> IgnoredDeclarations => _snapshot.IgnoredDeclarations;
+    /// <summary>True when a chapter or an item was left out; ignored style rules alone are not omissions.</summary>
+    internal bool HasOmissions => ChapterDiagnostics.Count > 0 || ContentDiagnostics.Count > 0;
 
     internal byte[] ConvertDjvuToPdf(CancellationToken cancellationToken = default)
     {

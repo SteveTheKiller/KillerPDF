@@ -2081,6 +2081,7 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_NativePdf_Convert">Konvertálás PDF-be</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">A PDF új lapon nyílik meg. Az eredeti fájl változatlan marad.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Adjon meg érvényes papírméretet és olyan margókat, amelyek mellett marad hely a tartalomnak.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">Ez a PDF meg van nyitva egy lapon. Először zárja be, vagy válasszon másik nevet.</sys:String>
     <sys:String x:Key="Str_CM_Title">Színkezelés</sys:String>
     <sys:String x:Key="Str_CM_Hint">A próbanyomat beállításai erre a dokumentumra érvényesek. A megjelenítés nem módosítja a fájlt.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Nyomtatási próbanyomat engedélyezése</sys:String>
@@ -2126,4 +2127,16 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_CM_WorkingCmykHint">A saját profil nélküli CMYK színekhez használatos. Ez a beállítás minden dokumentumra vonatkozik.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Ez a fejezet nem jeleníthető meg.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Nem megjeleníthető fejezetek: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">{0} megnyitása...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">{0} megnyitása, fejezet: {1} / {2}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">A könyv egyes részei nem jeleníthetők meg.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">Részletek</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">Könyvdiagnosztika</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">A könyv ezen részei kimaradtak vagy leegyszerűsödtek. Az eredeti fájl változatlan.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">Ebből a könyvből semmi sem maradt ki.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">{0}. fejezet</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Nem jelenik meg: {0}. Helyette egy tájékoztató oldal látható.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">A(z) {0} egyik eleme kimaradt.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Figyelmen kívül hagyott stílusszabályok: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">Ok: {0}</sys:String>
 </ResourceDictionary>

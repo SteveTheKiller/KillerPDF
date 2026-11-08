@@ -2094,6 +2094,7 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_NativePdf_Convert">Convertir en PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">Le PDF s’ouvre dans un nouvel onglet. Votre fichier d’origine reste inchangé.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Saisissez un format de papier valide et des marges qui laissent de la place au contenu.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">Ce PDF est ouvert dans un onglet. Fermez-le d'abord, ou choisissez un autre nom.</sys:String>
     <sys:String x:Key="Str_CM_Title">Gestion des couleurs</sys:String>
     <sys:String x:Key="Str_CM_Hint">Les paramètres d’épreuvage s’appliquent à ce document. L’affichage ne modifie pas le fichier.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Activer l’épreuvage de l’imprimante</sys:String>
@@ -2139,4 +2140,16 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_CM_WorkingCmykHint">Utilisé pour les couleurs CMJN qui n’ont pas de profil propre. Ce réglage s’applique à tous les documents.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Impossible d'afficher ce chapitre.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Chapitres impossibles à afficher : {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">Ouverture de {0}...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">Ouverture de {0}, chapitre {1} sur {2}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">Certaines parties de ce livre n'ont pas pu être affichées.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">Détails</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">Diagnostic du livre</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">Ces parties du livre ont été omises ou simplifiées. Le fichier d'origine n'est pas modifié.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">Rien n'a été omis de ce livre.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Chapitre {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Non affiché : {0}. Une page d'avis le remplace.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Un élément a été omis de {0}.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Règles de style ignorées : {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">Motif : {0}</sys:String>
 </ResourceDictionary>

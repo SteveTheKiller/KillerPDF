@@ -2094,6 +2094,7 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_NativePdf_Convert">PDF に変換</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF は新しいタブで開きます。元のファイルは変更されません。</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">有効な用紙サイズと、コンテンツを配置するスペースを確保できる余白を入力してください。</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">その PDF はタブで開かれています。先に閉じるか、別の名前を選択してください。</sys:String>
     <sys:String x:Key="Str_CM_Title">カラーマネジメント</sys:String>
     <sys:String x:Key="Str_CM_Hint">校正設定はこの文書に適用されます。表示してもファイルは変更されません。</sys:String>
     <sys:String x:Key="Str_CM_Enable">プリンターの色校正を有効にする</sys:String>
@@ -2139,4 +2140,16 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_CM_WorkingCmykHint">独自のプロファイルを持たない CMYK の色に使用します。この設定はすべての文書に適用されます。</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">この章は表示できません。</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">表示できない章: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">{0} を開いています...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">{0} を開いています ({2} 章中 {1} 章目)...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">この本の一部を表示できませんでした。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">詳細</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">書籍の診断</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">この本の以下の部分は省略または簡略化されました。元のファイルは変更されていません。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">この本から省略された部分はありません。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">第 {0} 章</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">表示されません: {0}。代わりにお知らせページが表示されます。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} から項目が 1 つ省略されました。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">無視されたスタイル規則: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">理由: {0}</sys:String>
 </ResourceDictionary>

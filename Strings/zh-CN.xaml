@@ -2078,6 +2078,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_NativePdf_Convert">转换为 PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF 会在新标签页中打开。原始文件保持不变。</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">请输入有效的纸张大小和页边距，确保有足够的空间容纳内容。</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">该 PDF 已在标签页中打开。请先将其关闭，或选择其他名称。</sys:String>
     <sys:String x:Key="Str_CM_Title">色彩管理</sys:String>
     <sys:String x:Key="Str_CM_Hint">校样设置适用于此文档。查看不会更改文件。</sys:String>
     <sys:String x:Key="Str_CM_Enable">启用打印机校样</sys:String>
@@ -2123,4 +2124,16 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykHint">用于没有自身配置文件的 CMYK 颜色。此设置适用于所有文档。</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">无法显示此章节。</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">无法显示的章节：{0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">正在打开 {0}...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">正在打开 {0}，第 {1} 章，共 {2} 章...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">无法显示这本书的部分内容。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">详细信息</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">图书诊断</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">书中的这些部分已被省略或简化。原始文件未更改。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">这本书没有任何内容被省略。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">第 {0} 章</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">未显示：{0}。将以通知页代替。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} 中有一个项目已被省略。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">已忽略的样式规则：{0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">原因：{0}</sys:String>
 </ResourceDictionary>

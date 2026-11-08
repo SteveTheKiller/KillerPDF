@@ -2074,6 +2074,7 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_NativePdf_Convert">PDF-এ রূপান্তর করুন</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF একটি নতুন ট্যাবে খুলবে। আপনার মূল ফাইল অপরিবর্তিত থাকবে।</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">কাগজের একটি বৈধ আকার ও এমন মার্জিন দিন যাতে বিষয়বস্তুর জন্য জায়গা থাকে।</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">সেই PDF-টি একটি ট্যাবে খোলা আছে। আগে সেটি বন্ধ করুন, অথবা অন্য একটি নাম বেছে নিন।</sys:String>
     <sys:String x:Key="Str_CM_Title">রং ব্যবস্থাপনা</sys:String>
     <sys:String x:Key="Str_CM_Hint">প্রুফ সেটিংস এই নথিতে প্রযোজ্য। শুধু দেখলে ফাইলটি বদলায় না।</sys:String>
     <sys:String x:Key="Str_CM_Enable">প্রিন্টার প্রুফ চালু করুন</sys:String>
@@ -2119,4 +2120,16 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_CM_WorkingCmykHint">নিজস্ব প্রোফাইল নেই এমন CMYK রঙের জন্য ব্যবহার করা হয়। এই সেটিং সব নথিতে প্রযোজ্য।</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">এই অধ্যায়টি দেখানো যায়নি।</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">যে অধ্যায়গুলো দেখানো যায়নি: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">{0} খোলা হচ্ছে...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">{0} খোলা হচ্ছে, {2}টির মধ্যে অধ্যায় {1}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">এই বইয়ের কিছু অংশ দেখানো যায়নি।</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">বিস্তারিত</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">বইয়ের ডায়াগনস্টিক</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">বইয়ের এই অংশগুলো বাদ দেওয়া বা সরল করা হয়েছে। মূল ফাইলটি অপরিবর্তিত আছে।</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">এই বই থেকে কিছুই বাদ দেওয়া হয়নি।</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">অধ্যায় {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">দেখানো হয়নি: {0}। এর জায়গায় একটি বিজ্ঞপ্তি পৃষ্ঠা দেখানো হবে।</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} থেকে একটি আইটেম বাদ দেওয়া হয়েছে।</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">উপেক্ষিত স্টাইল নিয়ম: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">কারণ: {0}</sys:String>
 </ResourceDictionary>

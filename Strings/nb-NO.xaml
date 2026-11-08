@@ -2094,6 +2094,7 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_NativePdf_Convert">Konverter til PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF-en åpnes i en ny fane. Originalfilen din forblir uendret.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Angi en gyldig papirstørrelse og marger som gir plass til innholdet.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">Denne PDF-en er åpen i en fane. Lukk den først, eller velg et annet navn.</sys:String>
     <sys:String x:Key="Str_CM_Title">Fargestyring</sys:String>
     <sys:String x:Key="Str_CM_Hint">Innstillingene for prøvetrykk gjelder dette dokumentet. Visningen endrer ikke filen.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Aktiver prøvetrykk for skriver</sys:String>
@@ -2139,4 +2140,16 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_CM_WorkingCmykHint">Brukes for CMYK farger som ikke har en egen profil. Denne innstillingen gjelder alle dokumenter.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Dette kapittelet kan ikke vises.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Kapitler som ikke kan vises: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">Åpner {0}...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">Åpner {0}, kapittel {1} av {2}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">Deler av denne boken kunne ikke vises.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">Detaljer</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">Bokdiagnostikk</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">Disse delene av boken ble utelatt eller forenklet. Originalfilen er uendret.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">Ingenting ble utelatt fra denne boken.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Kapittel {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Vises ikke: {0}. En varselside tar dens plass.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Et element ble utelatt fra {0}.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Ignorerte stilregler: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">Årsak: {0}</sys:String>
 </ResourceDictionary>

@@ -2074,6 +2074,7 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_NativePdf_Convert">PDF&apos;ye dönüştür</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF yeni bir sekmede açılır. Özgün dosyanız değişmeden kalır.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Geçerli bir kağıt boyutu ve içeriğe yer bırakan kenar boşlukları girin.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">Bu PDF bir sekmede açık. Önce onu kapatın veya başka bir ad seçin.</sys:String>
     <sys:String x:Key="Str_CM_Title">Renk Yönetimi</sys:String>
     <sys:String x:Key="Str_CM_Hint">Prova ayarları bu belgeye uygulanır. Görüntüleme dosyayı değiştirmez.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Yazıcı provasını etkinleştir</sys:String>
@@ -2119,4 +2120,16 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_CM_WorkingCmykHint">Kendi profili olmayan CMYK renkleri için kullanılır. Bu ayar tüm belgeler için geçerlidir.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Bu bölüm görüntülenemiyor.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Görüntülenemeyen bölümler: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">{0} açılıyor...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">{0} açılıyor, bölüm {1} / {2}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">Bu kitabın bazı bölümleri görüntülenemedi.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">Ayrıntılar</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">Kitap tanılama</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">Kitabın bu kısımları atlandı veya basitleştirildi. Özgün dosya değişmedi.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">Bu kitaptan hiçbir şey atlanmadı.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Bölüm {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Gösterilmedi: {0}. Yerine bir bildirim sayfası gösterilir.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} dosyasından bir öğe atlandı.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Yok sayılan stil kuralları: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">Neden: {0}</sys:String>
 </ResourceDictionary>

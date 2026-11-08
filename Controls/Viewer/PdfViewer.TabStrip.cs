@@ -45,6 +45,7 @@ namespace KillerPDF.Controls
 
             foreach (var t in _sessions) t.RefreshTabLabel();
             UpdateRestrictionNotice();   // follows the active tab like the strip does
+            UpdateNativeNotice();
 
             int docTabs = _sessions.Count(t => t.HasReadDocument || t.DeferredPath != null);
             // Only show the strip once THIS pane has more than one document - a single open PDF

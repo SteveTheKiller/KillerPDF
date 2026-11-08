@@ -2079,6 +2079,7 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_NativePdf_Convert">Převést do PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF se otevře na nové kartě. Původní soubor zůstane beze změny.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Zadejte platný formát papíru a okraje, které ponechají místo pro obsah.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">Tento soubor PDF je otevřený na kartě. Nejprve ji zavřete, nebo zvolte jiný název.</sys:String>
     <sys:String x:Key="Str_CM_Title">Správa barev</sys:String>
     <sys:String x:Key="Str_CM_Hint">Nastavení nátisku platí pro tento dokument. Zobrazení soubor nemění.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Zapnout nátisk tiskárny</sys:String>
@@ -2124,4 +2125,16 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_CM_WorkingCmykHint">Používá se pro barvy CMYK bez vlastního profilu. Toto nastavení platí pro všechny dokumenty.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Tuto kapitolu nelze zobrazit.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Kapitoly, které nelze zobrazit: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">Otevírání {0}...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">Otevírání {0}, kapitola {1} z {2}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">Části této knihy se nepodařilo zobrazit.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">Podrobnosti</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">Diagnostika knihy</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">Tyto části knihy byly vynechány nebo zjednodušeny. Původní soubor zůstává beze změny.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">Z této knihy nebylo nic vynecháno.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Kapitola {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Nezobrazeno: {0}. Místo toho se zobrazí stránka s upozorněním.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Z {0} byla vynechána jedna položka.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Ignorovaná pravidla stylu: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">Důvod: {0}</sys:String>
 </ResourceDictionary>

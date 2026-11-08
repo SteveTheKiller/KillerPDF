@@ -2097,6 +2097,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_NativePdf_Convert">PDF пішіміне түрлендіру</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF жаңа қойындыда ашылады. Бастапқы файлыңыз өзгеріссіз қалады.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Жарамды қағаз өлшемін және мазмұнға орын қалдыратын жиектерді енгізіңіз.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">Бұл PDF қойындыда ашық тұр. Алдымен оны жабыңыз немесе басқа атау таңдаңыз.</sys:String>
     <sys:String x:Key="Str_CM_Title">Түстерді басқару</sys:String>
     <sys:String x:Key="Str_CM_Hint">Түсті сынау параметрлері осы құжатқа қолданылады. Қарау файлды өзгертпейді.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Принтердің түсті сынауын қосу</sys:String>
@@ -2142,4 +2143,16 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_CM_WorkingCmykHint">Өз профилі жоқ CMYK түстері үшін қолданылады. Бұл параметр барлық құжаттарға қолданылады.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Бұл тарауды көрсету мүмкін емес.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Көрсетілмейтін тараулар: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">{0} ашылуда...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">{0} ашылуда, {1}-тарау, барлығы {2}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">Кітаптың кейбір бөліктерін көрсету мүмкін болмады.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">Толығырақ</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">Кітап диагностикасы</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">Кітаптың бұл бөліктері алынып тасталды немесе жеңілдетілді. Бастапқы файл өзгермеген.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">Бұл кітаптан ешнәрсе алынып тасталмады.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">{0}-тарау</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Көрсетілмеді: {0}. Оның орнына хабарландыру беті шығады.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} ішінен бір элемент алынып тасталды.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Еленбеген стиль ережелері: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">Себебі: {0}</sys:String>
 </ResourceDictionary>

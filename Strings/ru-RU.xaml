@@ -2097,6 +2097,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_NativePdf_Convert">Преобразовать в PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF откроется в новой вкладке. Исходный файл останется без изменений.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Укажите допустимый размер бумаги и поля, оставляющие место для содержимого.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">Этот PDF открыт во вкладке. Сначала закройте его или выберите другое имя.</sys:String>
     <sys:String x:Key="Str_CM_Title">Управление цветом</sys:String>
     <sys:String x:Key="Str_CM_Hint">Настройки цветопробы применяются к этому документу. Просмотр не изменяет файл.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Включить цветопробу принтера</sys:String>
@@ -2142,4 +2143,16 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_CM_WorkingCmykHint">Используется для цветов CMYK без собственного профиля. Этот параметр действует для всех документов.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Не удаётся показать эту главу.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Главы, которые не удаётся показать: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">Открытие {0}...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">Открытие {0}, глава {1} из {2}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">Некоторые части этой книги не удалось показать.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">Подробности</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">Диагностика книги</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">Эти части книги были пропущены или упрощены. Исходный файл не изменён.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">Из этой книги ничего не пропущено.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Глава {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Не показано: {0}. Вместо неё отображается страница с уведомлением.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Из {0} пропущен один элемент.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Проигнорированные правила стиля: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">Причина: {0}</sys:String>
 </ResourceDictionary>

@@ -2082,6 +2082,7 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_NativePdf_Convert">Konwertuj do PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF otworzy się w nowej karcie. Oryginalny plik pozostanie bez zmian.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Podaj prawidłowy rozmiar papieru i marginesy, które pozostawią miejsce na treść.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">Ten plik PDF jest otwarty na karcie. Najpierw go zamknij lub wybierz inną nazwę.</sys:String>
     <sys:String x:Key="Str_CM_Title">Zarządzanie kolorami</sys:String>
     <sys:String x:Key="Str_CM_Hint">Ustawienia próby dotyczą tego dokumentu. Wyświetlanie nie zmienia pliku.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Włącz próbę drukarki</sys:String>
@@ -2127,4 +2128,16 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_CM_WorkingCmykHint">Używany dla kolorów CMYK bez własnego profilu. To ustawienie dotyczy wszystkich dokumentów.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Nie można wyświetlić tego rozdziału.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Rozdziały, których nie można wyświetlić: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">Otwieranie {0}...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">Otwieranie {0}, rozdział {1} z {2}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">Nie można było wyświetlić części tej książki.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">Szczegóły</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">Diagnostyka książki</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">Te części książki zostały pominięte lub uproszczone. Oryginalny plik pozostaje bez zmian.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">Z tej książki nic nie pominięto.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Rozdział {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Niewyświetlone: {0}. W jego miejscu pojawia się strona z informacją.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Z {0} pominięto jeden element.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Zignorowane reguły stylu: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">Przyczyna: {0}</sys:String>
 </ResourceDictionary>

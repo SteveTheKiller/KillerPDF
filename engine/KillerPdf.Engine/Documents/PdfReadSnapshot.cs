@@ -87,6 +87,12 @@ public sealed partial class PdfReadSnapshot
 
     /// <summary>Gets EPUB chapters replaced by diagnosis pages during isolated layout; empty for other formats.</summary>
     public IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics => _layout?.ChapterDiagnostics ?? [];
+
+    /// <summary>Gets single EPUB items, such as images, omitted from chapters that still laid out; empty for other formats.</summary>
+    public IReadOnlyList<EpubChapterDiagnostic> ContentDiagnostics => _layout?.ContentDiagnostics ?? [];
+
+    /// <summary>Gets, per laid-out EPUB chapter, how many style declarations and rules were ignored; empty for other formats.</summary>
+    public IReadOnlyList<EpubIgnoredDeclarations> IgnoredDeclarations => _layout?.IgnoredDeclarations ?? [];
     private readonly PdfReadPageGeometry[] _geometries;
 
     private PdfReadSnapshot(EpubLayoutDocument layout, PdfReadPageGeometry geometry, string sourceSha256,

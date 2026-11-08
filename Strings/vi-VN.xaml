@@ -2094,6 +2094,7 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_NativePdf_Convert">Chuyển đổi sang PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">PDF sẽ mở trong một tab mới. Tệp gốc của bạn không thay đổi.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Nhập kích thước giấy hợp lệ và lề sao cho còn chỗ cho nội dung.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">Tệp PDF đó đang mở trong một tab. Hãy đóng nó trước, hoặc chọn tên khác.</sys:String>
     <sys:String x:Key="Str_CM_Title">Quản lý màu</sys:String>
     <sys:String x:Key="Str_CM_Hint">Thiết lập in thử áp dụng cho tài liệu này. Việc xem không thay đổi tệp.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Bật xem thử màu máy in</sys:String>
@@ -2139,4 +2140,16 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_CM_WorkingCmykHint">Dùng cho màu CMYK không có hồ sơ riêng. Thiết lập này áp dụng cho mọi tài liệu.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Không thể hiển thị chương này.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Các chương không thể hiển thị: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">Đang mở {0}...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">Đang mở {0}, chương {1} trên {2}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">Không thể hiển thị một số phần của sách này.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">Chi tiết</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">Chẩn đoán sách</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">Những phần này của sách đã bị bỏ qua hoặc được đơn giản hóa. Tệp gốc không bị thay đổi.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">Không có nội dung nào của sách này bị bỏ qua.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Chương {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Không hiển thị: {0}. Một trang thông báo sẽ thay thế.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Một mục đã bị bỏ qua khỏi {0}.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Quy tắc kiểu bị bỏ qua: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">Lý do: {0}</sys:String>
 </ResourceDictionary>

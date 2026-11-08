@@ -2087,6 +2087,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_NativePdf_Convert">Convert to PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">The PDF opens in a new tab. Your original file stays unchanged.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Enter a valid paper size and margins that leave room for the content.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">That PDF is open in a tab. Close it first, or choose another name.</sys:String>
     <sys:String x:Key="Str_CM_Title">Color Management</sys:String>
     <sys:String x:Key="Str_CM_Hint">Proof settings apply to this document. Viewing does not change the file.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Enable printer proof</sys:String>
@@ -2132,4 +2133,16 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_CM_WorkingCmykHint">Used for CMYK colors that have no profile of their own. This setting applies to every document.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">This chapter could not be displayed.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Chapters that could not be displayed: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">Opening {0}...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">Opening {0}, chapter {1} of {2}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">Parts of this book could not be shown.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">Details</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">Book diagnostics</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">These parts of the book were left out or simplified. The original file is unchanged.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">Nothing was left out of this book.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Chapter {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Not shown: {0}. A notice page takes its place.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">An item was left out of {0}.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Style rules ignored: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">Reason: {0}</sys:String>
 </ResourceDictionary>

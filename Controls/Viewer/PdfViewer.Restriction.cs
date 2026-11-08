@@ -47,6 +47,7 @@ namespace KillerPDF.Controls
         /// that scale itself, as the toolbar and the sidebar do.</summary>
         internal void RescaleRestrictionNotice()
         {
+            RescaleNativeNotice();
             if (_restrictionNotice is null) return;
             double scale = ScaledDialogFit.OwnerScale<Window>(Window.GetWindow(this),
                 window => window is Shell.MainWindow main ? main.AppScale : null, window => window.Owner);

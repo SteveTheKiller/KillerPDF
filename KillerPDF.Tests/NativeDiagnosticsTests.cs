@@ -1,0 +1,102 @@
+using System.IO;
+using System.IO.Compression;
+using System.Text;
+using KillerPDF.Services;
+using Xunit;
+
+namespace KillerPDF.Tests;
+
+public sealed class NativeDiagnosticsTests
+{
+    // Stand-in wording, so the rows show which localized key and arguments each line uses.
+    private static readonly Dictionary<string, string> Wording = new()
+    {
+        ["Str_Epub_Diagnostics_Chapter"] = "Chapter {0}",
+        ["Str_Epub_Diagnostics_ChapterRefused"] = "Not shown: {0}",
+        ["Str_Epub_Diagnostics_ItemOmitted"] = "Left out: {0}",
+        ["Str_Epub_Diagnostics_Ignored"] = "Ignored style rules: {0}",
+        ["Str_Epub_Diagnostics_Reason"] = "Why: {0}"
+    };
+
+    [Fact]
+    public void DiagnosticsListWhatEachChapterLostInReadingOrder()
+    {
+        // Chapter 1 keeps its text but loses a GIF, a format the reader cannot show; chapter 2 uses
+        // scripting, which stays a chapter refusal; chapter 3 lays out with one invalid color
+        // declaration ignored, as CSS requires; chapter 4 lays out whole.
+        using var owner = NativeWorkingDocument.OpenEpub(Book(
+            "<p>A<img src='pic.gif' alt=''/></p>", "<p onclick='go()'>A</p>",
+            "<p style='color: nonsense'>A</p>", "<p>A</p>"),
+            NativeOpenTests.Options() with { IsolateChapterFailures = true });
+
+        Assert.True(owner.HasOmissions);
+        var rows = NativeDocumentDiagnostics.Build(owner, key => Wording[key]);
+
+        Assert.Equal(new[] { "Chapter 1", "Chapter 2", "Chapter 3" }, rows.Select(row => row.Heading));
+        Assert.Equal(new[] { "Ignored style rules: 1" }, rows[2].Lines);
+        Assert.Equal(2, rows[0].Lines.Count);
+        // The engine names the chapter in Href and the omitted image in its message.
+        Assert.Equal("Left out: EPUB/c1.xhtml", rows[0].Lines[0]);
+        Assert.StartsWith("Why: ", rows[0].Lines[1]);
+        Assert.Contains("format is not supported: EPUB/pic.gif", rows[0].Lines[1]);
+        Assert.Equal(2, rows[1].Lines.Count);
+        Assert.Equal("Not shown: EPUB/c2.xhtml", rows[1].Lines[0]);
+        Assert.StartsWith("Why: ", rows[1].Lines[1]);
+    }
+
+    [Fact]
+    public void AWholeBookHasNoOmissionsAndNoRows()
+    {
+        using var owner = NativeWorkingDocument.OpenEpub(Book("<p>A</p>"),
+            NativeOpenTests.Options() with { IsolateChapterFailures = true });
+        Assert.False(owner.HasOmissions);
+        Assert.Empty(NativeDocumentDiagnostics.Build(owner, key => Wording[key]));
+    }
+
+    [Fact]
+    public void IgnoredStyleRulesAloneAreListedWithoutCountingAsOmissions()
+    {
+        using var owner = NativeWorkingDocument.OpenEpub(Book("<p style='color: nonsense'>A</p>"),
+            NativeOpenTests.Options() with { IsolateChapterFailures = true });
+        Assert.False(owner.HasOmissions);
+        var row = Assert.Single(NativeDocumentDiagnostics.Build(owner, key => Wording[key]));
+        Assert.Equal("Chapter 1", row.Heading);
+        Assert.Equal(new[] { "Ignored style rules: 1" }, row.Lines);
+    }
+
+    internal static byte[] Book(params string[] chapters)
+    {
+        using var output = new MemoryStream();
+        using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
+        {
+            Add("mimetype", "application/epub+zip", CompressionLevel.NoCompression);
+            Add("META-INF/container.xml", """
+                <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0"><rootfiles><rootfile full-path="EPUB/book.opf" media-type="application/oebps-package+xml"/></rootfiles></container>
+                """);
+            string items = string.Concat(chapters.Select((_, index) =>
+                $"<item id=\"c{index + 1}\" href=\"c{index + 1}.xhtml\" media-type=\"application/xhtml+xml\"/>"));
+            string spine = string.Concat(chapters.Select((_, index) => $"<itemref idref=\"c{index + 1}\"/>"));
+            Add("EPUB/book.opf", $"""
+                <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
+                  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:diagnostics</dc:identifier><dc:title>Diagnostics</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2026-11-08T00:00:00Z</meta></metadata>
+                  <manifest>{items}<item id="pic" href="pic.gif" media-type="image/gif"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest>
+                  <spine>{spine}</spine>
+                </package>
+                """);
+            for (int index = 0; index < chapters.Length; index++)
+                Add($"EPUB/c{index + 1}.xhtml", $"""
+                    <html xmlns="http://www.w3.org/1999/xhtml"><head><title>C</title></head><body>{chapters[index]}</body></html>
+                    """);
+            Add("EPUB/pic.gif", "GIF89a");
+            Add("EPUB/nav.xhtml", """
+                <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="c1.xhtml">C</a></li></ol></nav></body></html>
+                """);
+            void Add(string path, string content, CompressionLevel compression = CompressionLevel.Optimal)
+            {
+                using var stream = zip.CreateEntry(path, compression).Open();
+                stream.Write(Encoding.UTF8.GetBytes(content));
+            }
+        }
+        return output.ToArray();
+    }
+}

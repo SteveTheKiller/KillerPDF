@@ -153,6 +153,23 @@ public sealed class PdfNativeReadSnapshotTests
         Assert.Empty(PdfReadSnapshot.OpenEpub(Book(), options with { IsolateChapterFailures = true }).ChapterDiagnostics);
     }
 
+    [Fact]
+    public void EpubSnapshotReportsItemsLeftOutOfALaidOutChapter()
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var options = new EpubLayoutOptions(16, 23, font) { FontSize = 10, Margin = 2, IsolateChapterFailures = true };
+        // A packaged GIF is a format the reader cannot show, so only it is omitted and the chapter keeps its text.
+        var snapshot = PdfReadSnapshot.OpenEpub(Book("A<img src='pic.gif' alt=''/>", gif: true), options);
+
+        Assert.Empty(snapshot.ChapterDiagnostics);
+        var omitted = Assert.Single(snapshot.ContentDiagnostics);
+        Assert.Equal(0, omitted.SpineIndex);
+        // EpubChapterDiagnostic.Href names the chapter; the message names the omitted item.
+        Assert.Equal("EPUB/text.xhtml", omitted.Href);
+        Assert.Contains("format is not supported: EPUB/pic.gif", omitted.Message);
+        Assert.Empty(PdfReadSnapshot.OpenEpub(Book(), options).ContentDiagnostics);
+    }
+
     // The snapshot shares the engine's single package limit (EpubDocument.MaxPackageBytes, 128 MiB):
     // a 72 MiB illustrated package opens and anything larger than the limit keeps the size message.
     [Fact]
@@ -169,8 +186,9 @@ public sealed class PdfNativeReadSnapshotTests
             Assert.Throws<InvalidDataException>(() => PdfReadSnapshot.OpenEpub(oversized, options)).Message);
     }
 
-    private static byte[] Book(string text = "A", int padding = 0)
+    private static byte[] Book(string text = "A", int padding = 0, bool gif = false)
     {
+        string gifItem = gif ? "<item id=\"pic\" href=\"pic.gif\" media-type=\"image/gif\"/>" : "";
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
         {
@@ -178,10 +196,11 @@ public sealed class PdfNativeReadSnapshotTests
             Add("META-INF/container.xml", """
                 <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0"><rootfiles><rootfile full-path="EPUB/book.opf" media-type="application/oebps-package+xml"/></rootfiles></container>
                 """);
-            Add("EPUB/book.opf", """
+            if (gif) Add("EPUB/pic.gif", "GIF89a");
+            Add("EPUB/book.opf", $"""
                 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
                   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:native-read</dc:identifier><dc:title>Native read</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2026-11-03T00:00:00Z</meta></metadata>
-                  <manifest><item id="chapter" href="text.xhtml" media-type="application/xhtml+xml"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest>
+                  <manifest><item id="chapter" href="text.xhtml" media-type="application/xhtml+xml"/>{gifItem}<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest>
                   <spine><itemref idref="chapter"/></spine>
                 </package>
                 """);

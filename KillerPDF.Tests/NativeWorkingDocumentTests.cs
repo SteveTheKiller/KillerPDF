@@ -687,7 +687,7 @@ public sealed class NativeWorkingDocumentTests
         }
     }
 
-    private static byte[] Book(string body = "<p>A</p>")
+    internal static byte[] Book(string body = "<p>A</p>")
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -751,7 +751,7 @@ public sealed class NativeWorkingDocumentTests
         .. Chunk("FORM", [.. DjvuPage()[12..],
             .. Chunk("TXTa", [2, 0, 0, .. Enumerable.Repeat((byte)'A', 131072), 1])])];
 
-    private static byte[] DjvuPage() => [.. "AT&T"u8,
+    internal static byte[] DjvuPage() => [.. "AT&T"u8,
         .. Chunk("FORM", [.. "DJVU"u8,
             .. Chunk("INFO", [0, 3, 0, 2, 26, 0, 0x2c, 1, 22, 5]),
             .. Chunk("Smmr", [.. "MMR"u8, 0, 0, 3, 0, 2, 0x23, 0xe1, 0x80, 0x08, 0, 0x80])])];

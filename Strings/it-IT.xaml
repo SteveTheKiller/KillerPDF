@@ -2095,6 +2095,7 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_NativePdf_Convert">Converti in PDF</sys:String>
     <sys:String x:Key="Str_NativePdf_KeepOriginal">Il PDF si apre in una nuova scheda. Il file originale rimane invariato.</sys:String>
     <sys:String x:Key="Str_NativePdf_InvalidLayout">Inserisci un formato carta valido e margini che lascino spazio per il contenuto.</sys:String>
+    <sys:String x:Key="Str_NativePdf_DestinationOpen">Questo PDF è aperto in una scheda. Chiudilo prima, oppure scegli un altro nome.</sys:String>
     <sys:String x:Key="Str_CM_Title">Gestione colore</sys:String>
     <sys:String x:Key="Str_CM_Hint">Le impostazioni di prova si applicano a questo documento. La visualizzazione non modifica il file.</sys:String>
     <sys:String x:Key="Str_CM_Enable">Attiva prova stampante</sys:String>
@@ -2140,4 +2141,16 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_CM_WorkingCmykHint">Usato per i colori CMYK senza un proprio profilo. Questa impostazione vale per tutti i documenti.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Impossibile visualizzare questo capitolo.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Capitoli che non è possibile visualizzare: {0}</sys:String>
+    <sys:String x:Key="Str_Native_Opening">Apertura di {0}...</sys:String>
+    <sys:String x:Key="Str_Native_OpeningChapter">Apertura di {0}, capitolo {1} di {2}...</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Notice">Non è stato possibile visualizzare alcune parti di questo libro.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Details">Dettagli</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Title">Diagnostica del libro</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Intro">Queste parti del libro sono state omesse o semplificate. Il file originale non è stato modificato.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_None">Nessuna parte di questo libro è stata omessa.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Capitolo {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Non visualizzato: {0}. Al suo posto compare una pagina di avviso.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Un elemento è stato omesso da {0}.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Regole di stile ignorate: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Reason">Motivo: {0}</sys:String>
 </ResourceDictionary>

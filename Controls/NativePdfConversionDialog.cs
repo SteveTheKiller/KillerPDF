@@ -108,17 +108,17 @@ internal sealed class NativePdfConversionDialog : Window
 
     private void Commit()
     {
+        // The page rule is the EPUB layout's own, so a size accepted here never fails after the work.
         if (!Read(_width, out double width) || !Read(_height, out double height)
-            || !Read(_margin, out double margin) || width is < 25 or > 2000
-            || height is < 25 or > 2000 || margin < 0 || margin * 2 >= Math.Min(width, height))
+            || !Read(_margin, out double margin) || !Services.NativePdfConversion.FitsLayout(width, height, margin))
         {
             KillerDialog.Show(this, L("Str_NativePdf_InvalidLayout"), "KillerPDF",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
-        WidthPoints = width * 72 / 25.4;
-        HeightPoints = height * 72 / 25.4;
-        MarginPoints = margin * 72 / 25.4;
+        WidthPoints = Services.NativePdfConversion.MillimetersToPoints(width);
+        HeightPoints = Services.NativePdfConversion.MillimetersToPoints(height);
+        MarginPoints = Services.NativePdfConversion.MillimetersToPoints(margin);
         DialogResult = true;
         Close();
     }
