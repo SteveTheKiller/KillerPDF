@@ -11,8 +11,17 @@ public sealed partial class PdfPageRenderer
 
     private readonly Lazy<(PdfColorTransform? Transform, bool Unavailable)>[] _outputProfiles;
     private readonly BoundedCache<PdfObject, (PdfColorTransform? Transform, int Bytes)> _colorProfiles;
+    // Entries weigh their parsed footprint: lookup tables expand up to eight times their encoded
+    // bytes (8-bit samples held as doubles), plus the retained encoded copy.
+    private const int ParsedProfileExpansion = 9;
+    private const long ColorProfileCacheWeight = 4L * 1024 * 1024 * ParsedProfileExpansion;
     private static BoundedCache<PdfObject, (PdfColorTransform? Transform, int Bytes)> CreateColorProfileCache() =>
-        new(8, ReferenceEqualityComparer.Instance, 4 * 1024 * 1024, entry => entry.Bytes);
+        new(8, ReferenceEqualityComparer.Instance, ColorProfileCacheWeight,
+            entry => (long)entry.Bytes * ParsedProfileExpansion);
+    // Profiles too heavy for the shared cache, up to the 16 MiB read limit, are kept here so one
+    // page that names such a profile many times decodes and parses it once.
+    private readonly BoundedCache<PdfObject, PdfColorTransform> _oversizeColorProfiles =
+        new(2, ReferenceEqualityComparer.Instance);
     // Decoded profiles keyed by length and SHA-256 of the encoded stream, so the same profile
     // embedded as separate streams is decoded once. Held with the document's shared cache so it
     // is released with the document.
@@ -120,7 +129,14 @@ public sealed partial class PdfPageRenderer
 
     private PdfColorTransform? ReadIccProfile(PdfStream stream, int intent = 1)
     {
-        PdfColorTransform? profile = _colorProfiles.GetOrAdd(stream, value =>
+        PdfColorTransform? profile = _oversizeColorProfiles.TryGet(stream, out PdfColorTransform? oversize)
+            ? oversize : ReadSharedIccProfile(stream);
+        return profile is PdfIccProfileTransform icc ? icc.ForIntent(intent) : profile;
+    }
+
+    private PdfColorTransform? ReadSharedIccProfile(PdfStream stream)
+    {
+        var entry = _colorProfiles.GetOrAdd(stream, value =>
         {
             try
             {
@@ -152,8 +168,10 @@ public sealed partial class PdfPageRenderer
             {
                 return (null, 0);
             }
-        }).Transform;
-        return profile is PdfIccProfileTransform icc ? icc.ForIntent(intent) : profile;
+        });
+        if (entry.Transform is { } transform && (long)entry.Bytes * ParsedProfileExpansion > ColorProfileCacheWeight)
+            _oversizeColorProfiles.GetOrAdd(stream, _ => transform);
+        return entry.Transform;
     }
 
     // The ICC classes that never describe a source color space. An unset class stays

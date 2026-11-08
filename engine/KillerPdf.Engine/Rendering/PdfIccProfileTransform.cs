@@ -23,7 +23,9 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
     private readonly bool _hasPerceptualReverse;
     private readonly ReadOnlyMemory<byte> _tableData;
     private readonly Dictionary<ReadOnlyMemory<byte>, PdfIccTable>? _tables;
-    private static readonly Lock IntentGate = new();
+    // One gate per root profile: variants of one profile share its table cache, while unrelated
+    // profiles in other documents parse their intent variants in parallel.
+    private readonly Lock _intentGate = new();
     private PdfIccProfileTransform? _intentRoot;
     private PdfIccProfileTransform?[]? _intents;
     private byte _attemptedIntents;
@@ -254,7 +256,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
         if (intent is < 0 or > 3) throw new ArgumentOutOfRangeException(nameof(intent));
         PdfIccProfileTransform root = _intentRoot ?? this;
         if (intent == root._intent || root._tableData.IsEmpty && intent != 3 && root._intent != 3) return root;
-        lock (IntentGate)
+        lock (root._intentGate)
         {
             root._intents ??= new PdfIccProfileTransform?[4];
             byte bit = (byte)(1 << intent);
@@ -287,7 +289,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
     private PdfIccTable ReadTable(ReadOnlyMemory<byte> data)
     {
         // Intent tags can reference the same byte slice. Share only those immutable
-        // tables within this profile; variant construction holds IntentGate.
+        // tables within this profile; variant construction holds the root's intent gate.
         if (_tables!.TryGetValue(data, out PdfIccTable? table)) return table;
         table = PdfIccTable.Read(data);
         _tables.Add(data, table);
