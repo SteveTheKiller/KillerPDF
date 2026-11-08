@@ -41,15 +41,22 @@ public sealed partial class EpubDocumentTests
     }
 
     [Theory]
-    [InlineData("<table><caption>Caption</caption><tr><td>One</td></tr></table>")]
     [InlineData("<pre>  Code<pre>  Indent</pre></pre>")]
-    [InlineData("<iframe>Fallback</iframe>")]
     [InlineData("<img alt='Alternative'/>")]
     [InlineData("<svg xmlns='http://www.w3.org/2000/svg'><text>Diagram</text></svg>")]
-    [InlineData("<ruby>字<rt>Pronunciation</rt></ruby>")]
     public void DiagnosesUnsupportedXhtmlInsteadOfInventingTextLayout(string body)
     {
         Assert.Throws<NotSupportedException>(() => TextBook(body).ReadText(0));
+    }
+
+    // HTML renders unknown and unsupported elements' text as inline content, so their text is read in order.
+    [Theory]
+    [InlineData("<table><caption>Caption</caption><tr><td>One</td></tr></table>", "Caption\nOne")]
+    [InlineData("<iframe>Fallback</iframe>", "Fallback")]
+    [InlineData("<ruby>字<rt>Pronunciation</rt></ruby>", "字Pronunciation")]
+    public void UnsupportedElementsContributeTheirTextInOrder(string body, string text)
+    {
+        Assert.Equal(text, TextBook(body).ReadText(0));
     }
 
     [Theory]
@@ -73,7 +80,8 @@ public sealed partial class EpubDocumentTests
     public void BoundsXhtmlTextProcessingDepthAndNodeCount(bool depth)
     {
         var body = depth ? string.Concat(Enumerable.Repeat("<span>", 129)) + "Text" + string.Concat(Enumerable.Repeat("</span>", 129))
-            : string.Concat(Enumerable.Repeat("<span/>", 100001));
+            // The node limit was raised to 2,000,000 for real books (KP-B slice 10); four-byte elements still fit the 8 MiB chapter limit.
+            : string.Concat(Enumerable.Repeat("<b/>", 2_000_001));
         Assert.Throws<InvalidDataException>(() => TextBook(body).ReadText(0));
     }
 

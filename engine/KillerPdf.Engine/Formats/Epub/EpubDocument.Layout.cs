@@ -41,9 +41,13 @@ public sealed partial class EpubDocument
         var faceFonts = new Dictionary<EpubFontFaceRequest, EpubFontFaceResult?>();
         var retainedFonts = new HashSet<TrueTypeFont> { options.DefaultFont };
         long retainedFontBytes = 0;
-        int remainingTextLength = 1_000_000;
-        int remainingStylesheetBytes = 1_000_000;
-        int remainingStylesheetReferences = 1024;
+        // Book-wide limits sized from the 36-book Gutenberg corpus: the largest book (Complete Shakespeare)
+        // has 7.2 MB of XHTML, so 16,000,000 laid-out characters leave over twice that headroom while still
+        // bounding work below the 64 MiB package limit; stylesheets are charged once each (largest 43 KB).
+        int remainingTextLength = 16_000_000;
+        int remainingStylesheetBytes = 8 * 1024 * 1024;
+        int remainingStylesheetReferences = 65_536;
+        var chargedStylesheets = new HashSet<string>(StringComparer.Ordinal);
         var imageCache = new Dictionary<string, PngDecodedImage>(StringComparer.Ordinal);
         long retainedImageBytes = 0;
         var chapterDiagnostics = new List<EpubChapterDiagnostic>();
@@ -56,7 +60,7 @@ public sealed partial class EpubDocument
             {
                 AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors, cellAnchors,
                     ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences,
-                    imageCache, ref retainedImageBytes, ResolveFamily, contentDiagnostics, cancellationToken);
+                    imageCache, ref retainedImageBytes, ResolveFamily, contentDiagnostics, chargedStylesheets, cancellationToken);
             }
             catch (Exception error) when (options.IsolateChapterFailures
                 && error is NotSupportedException or InvalidDataException)
@@ -194,7 +198,7 @@ public sealed partial class EpubDocument
         ref int remainingStylesheetBytes, ref int remainingStylesheetReferences,
         Dictionary<string, PngDecodedImage> imageCache, ref long retainedImageBytes,
         Func<EpubFontFamily?, double, EpubFontStyle, TrueTypeFont?> resolveFamily,
-        List<EpubChapterDiagnostic> contentDiagnostics, CancellationToken cancellationToken)
+        List<EpubChapterDiagnostic> contentDiagnostics, HashSet<string> chargedStylesheets, CancellationToken cancellationToken)
     {
         var entry = Spine[spineIndex];
         if (!entry.IsLinear || !string.IsNullOrWhiteSpace(entry.Properties))
@@ -206,7 +210,7 @@ public sealed partial class EpubDocument
             throw new InvalidDataException("Native EPUB XHTML exceeds its 8 MiB resource limit.");
         var content = new EpubNativeContent(options.FontSize, options.PageHeight - 2 * options.Margin, options.TextColor);
         LoadNativeStylesheets(resource.Href, content, ref remainingStylesheetBytes,
-            ref remainingStylesheetReferences, cancellationToken);
+            ref remainingStylesheetReferences, chargedStylesheets, cancellationToken);
         string text = ReadStructuralText(spineIndex, cancellationToken, content);
         var linkTargets = new Dictionary<string, string>(StringComparer.Ordinal);
         var formatting = new EpubFormattingTree(content, cancellationToken);
@@ -217,7 +221,7 @@ public sealed partial class EpubDocument
         if (initialContentRight <= initialContentLeft || bodyMargins.Top + bodyPadding.Top >= options.PageHeight - 2 * options.Margin)
             throw new NotSupportedException("Native EPUB body padding requires a positive content box within the page.");
         if (text.Length > remainingTextLength)
-            throw new InvalidDataException("Native EPUB text exceeds its 1,000,000-character layout limit.");
+            throw new InvalidDataException("Native EPUB text exceeds its 16,000,000-character layout limit.");
         remainingTextLength -= text.Length;
         var anchorsByCell = new Dictionary<EpubNativeContent.Element, List<(string Id, int Offset)>>();
         foreach (var anchor in content.Anchors)
@@ -243,6 +247,10 @@ public sealed partial class EpubDocument
         var clusters = new Dictionary<int, EpubGlyphCluster>();
         var inlineOffsets = content.Inlines.Select(item => item.Offset).ToHashSet();
         int shapingWork = 0;
+        var coverage = new Dictionary<IReadOnlyList<OpenTypeGlyphSubstitution.SubstitutionRule>,
+            ILookup<ushort, OpenTypeGlyphSubstitution.SubstitutionRule>>(ReferenceEqualityComparer.Instance);
+        // Per-chapter work caps scale with the chapter's own character bound so long chapters fit.
+        const int chapterWork = 8 * EpubNativeContent.MaximumChapterCharacters;
         for (int runStart = 0; runStart < text.Length;)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -279,11 +287,14 @@ public sealed partial class EpubDocument
                 foreach (var lookup in Substitution(font, smallCaps, (owner?.Style ?? content.DefaultStyle).LetterSpacing == 0).Lookups)
                 {
                     var selected = new List<(int Start, int Length, ushort Glyph, bool Substituted)>(shaped.Count);
+                    // Coverage index: only rules whose first component is this glyph are tried, in lookup order.
+                    if (!coverage.TryGetValue(lookup, out var byFirst))
+                        coverage.Add(lookup, byFirst = lookup.Where(rule => rule.Components.Length > 0).ToLookup(rule => rule.Components[0]));
                     for (int at = 0; at < shaped.Count; at++)
                     {
                         ChargeShapingWork();
                         bool replaced = false;
-                        foreach (var rule in lookup)
+                        foreach (var rule in byFirst[shaped[at].Glyph])
                         {
                             ChargeShapingWork();
                             if (rule.Components.Length > shaped.Count - at) continue;
@@ -332,7 +343,7 @@ public sealed partial class EpubDocument
         void ChargeShapingWork()
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (++shapingWork > 1_000_000)
+            if (++shapingWork > chapterWork)
                 throw new InvalidDataException("The EPUB GSUB shaping work limit was exceeded.");
         }
         bool IsLatin(int at) => text[at] is >= 'A' and <= 'Z' or >= 'a' and <= 'z'
@@ -361,7 +372,7 @@ public sealed partial class EpubDocument
             foreach (var family in style.FontFamilies ?? [])
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++fontWork > 1_000_000)
+                if (++fontWork > chapterWork)
                     throw new InvalidDataException("Native EPUB font matching exceeds its work limit.");
                 if (resolveFamily(family, style.FontWeight, style.FontStyle) is { } selected
                     && Accept(selected)) return selected;
@@ -369,7 +380,7 @@ public sealed partial class EpubDocument
             if (options.FontFaceResolver is not null)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++fontWork > 1_000_000)
+                if (++fontWork > chapterWork)
                     throw new InvalidDataException("Native EPUB font matching exceeds its work limit.");
                 if (resolveFamily(null, style.FontWeight, style.FontStyle) is { } selected
                     && Accept(selected)) return selected;
@@ -397,6 +408,11 @@ public sealed partial class EpubDocument
             if (value is >= ' ' and <= '~' or 0x2122) return scalar;
             UnicodeCategory category = Rune.GetUnicodeCategory(scalar);
             if (value is >= 0x20A0 and <= 0x20CF && category == UnicodeCategory.CurrencySymbol)
+                return scalar;
+            // Symbols, arrows, dingbats and number forms in the BMP need no shaping or direction handling.
+            if (value is >= 0x2070 and <= 0x2BFF
+                && category is UnicodeCategory.OtherSymbol or UnicodeCategory.MathSymbol or UnicodeCategory.OtherNumber
+                    or UnicodeCategory.LetterNumber or UnicodeCategory.ModifierSymbol or UnicodeCategory.CurrencySymbol)
                 return scalar;
             // General punctuation does not enable embedded direction or formatting controls.
             if (value is >= 0x2000 and <= 0x206F
@@ -749,6 +765,10 @@ public sealed partial class EpubDocument
                             minimums[column] = Math.Max(minimums[column], intrinsic.Minimum);
                         }
                     }
+                    // A column of only images or empty cells keeps a share of the width so its content can shrink into it.
+                    if (columns is not null)
+                        for (int column = 0; column < columns.Length; column++)
+                            if (columns[column] <= 0) columns[column] = Math.Max(1, contentWidth / (4 * columns.Length));
                     double width = columns?.Sum() ?? 0;
                     double minimum = minimums?.Sum() ?? 0;
                     if (columns is null || columns.Any(value => value <= 0) || !double.IsFinite(width) || minimum > contentWidth)
@@ -883,13 +903,22 @@ public sealed partial class EpubDocument
                 if (!hadRow)
                     throw new NotSupportedException("Native EPUB tables require explicit width and row content.");
 
-                (double Minimum, double Maximum) IntrinsicWidths(EpubFormattingTree.Cell cell)
+                // CSS Tables: a cell's minimum is its widest unbreakable word and its maximum its widest line.
+                // Block content in a cell contributes its own lines; line breaks end a line and images add nothing
+                // here because they shrink to fit the column that results.
+                (double Minimum, double Maximum) IntrinsicWidths(EpubFormattingTree.Block cell)
                 {
                     double minimum = 0, maximum = 0;
                     foreach (var part in cell.Children)
                     {
-                        if (part is not EpubFormattingTree.InlineSequence sequence)
-                            throw new NotSupportedException("Native EPUB intrinsic table sizing requires inline cell content.");
+                        if (part is EpubFormattingTree.Block nested)
+                        {
+                            var inner = IntrinsicWidths(nested);
+                            minimum = Math.Max(minimum, inner.Minimum);
+                            maximum = Math.Max(maximum, inner.Maximum);
+                            continue;
+                        }
+                        if (part is not EpubFormattingTree.InlineSequence sequence) continue;
                         int first = 0, last = sequence.Atoms.Count - 1;
                         while (first <= last && sequence.Atoms[first].IsSpace) first++;
                         while (last >= first && sequence.Atoms[last].IsSpace) last--;
@@ -899,11 +928,21 @@ public sealed partial class EpubDocument
                         for (int at = first; at <= last; at++)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            if (++inlineMetricWork > 1_000_000)
+                            if (++inlineMetricWork > chapterWork)
                                 throw new InvalidDataException("Native EPUB inline metrics exceed their work limit.");
                             var atom = sequence.Atoms[at];
-                            if (atom.Reference is not null)
-                                throw new NotSupportedException("Native EPUB intrinsic table sizing requires text-only cells.");
+                            if (atom.Reference is not null || atom.HardBreak)
+                            {
+                                minimum = Math.Max(minimum, wordWidth);
+                                if (atom.Reference is { Source: null } || atom.HardBreak)
+                                {
+                                    maximum = Math.Max(maximum, lineWidth);
+                                    lineWidth = 0;
+                                }
+                                wordWidth = 0;
+                                previous = wordPrevious = null;
+                                continue;
+                            }
                             if (InlineCluster(atom) is not { } cluster) continue;
                             var style = atom.Owner.Style;
                             lineWidth += Tracking(previous, style) + InlineAdvance(cluster, style, atom.IsSpace);
@@ -1212,7 +1251,7 @@ public sealed partial class EpubDocument
                     for (var owner = item.Owner; owner is { IsBlock: false } && measuredInlineOwners.Add(owner); owner = owner.Parent)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        if (++inlineMetricWork > 1_000_000)
+                        if (++inlineMetricWork > chapterWork)
                             throw new InvalidDataException("Native EPUB inline metrics exceed their work limit.");
                         ascent = Math.Max(ascent, AboveBaseline(owner.Style));
                         descent = Math.Max(descent, BelowBaseline(owner.Style));
@@ -1326,7 +1365,7 @@ public sealed partial class EpubDocument
                         for (var owner = decoratedOwner; owner is not null; owner = owner.Parent)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            if (++decorationWork > 1_000_000)
+                            if (++decorationWork > chapterWork)
                                 throw new InvalidDataException("Native EPUB text decorations exceed their work limit.");
                             if (owner.Style.Underline) ancestors.Push(owner);
                         }

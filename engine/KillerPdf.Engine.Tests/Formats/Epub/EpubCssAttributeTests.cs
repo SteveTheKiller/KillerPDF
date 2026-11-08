@@ -110,29 +110,40 @@ public sealed class EpubCssAttributeTests
     [InlineData("p[epub|type=]")]
     [InlineData("p[epub|type=='bridgehead']")]
     [InlineData("p[epub|type")]
+    // CSS Selectors 4: an unsupported or invalid selector drops its rule (KP-B slice 4; this used to refuse).
     public void UnsupportedAttributeSyntaxRetainsExplicitDiagnostic(string selector)
-        => Reject(Declaration + selector + "{color:red}", "Native EPUB CSS selector is not implemented.");
+        => Dropped(Declaration + selector + "{color:red}");
 
     [Theory]
     [InlineData("missing")]
     [InlineData("EPUB")]
+    // An undeclared prefix makes the selector invalid, so the rule is dropped (CSS Namespaces 3).
     public void AttributePrefixesMustBeDeclaredWithExactSpelling(string prefix)
-        => Reject(Declaration + "p[" + prefix + "|type]{color:red}",
-            "Native EPUB CSS selector namespace prefix is not declared: " + prefix + ".");
+        => Dropped(Declaration + "p[" + prefix + "|type]{color:red}");
+
+    private static void Dropped(string css, string body = "<p>A</p>")
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var options = new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 };
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("", body)).CreateLayout(options),
+            EpubDocument.Open(Book(css, body)).CreateLayout(options));
+    }
 
     [Fact]
     public void UnrelatedXhtmlAttributesKeepTheirDiagnostic()
-        => Reject("p{color:red}", "Native EPUB XHTML attributes and styling are not implemented.", "<p onclick=\"alert(1)\">A</p>");
+        // Unrelated attributes are inert now; an event handler is scripting and still refuses the chapter.
+        => Reject("p{color:red}", "Scripted EPUB XHTML text is unsupported.", "<p onclick=\"alert(1)\">A</p>");
 
+    // The limits were raised for real books (KP-B slice 10): 65,536 selectors and 5,000,000 indexed matching steps per chapter.
     [Fact]
     public void AttributeSelectorsRetainCountAndMatchingWorkLimits()
     {
-        Reject<InvalidDataException>(string.Concat(Enumerable.Repeat("p[type]{}", 4097)),
-            "Native EPUB CSS selectors exceed their 4,096-selector limit.");
+        Reject<InvalidDataException>(string.Concat(Enumerable.Repeat("p[type]{}", 65537)),
+            "Native EPUB CSS selectors exceed their 65,536-selector limit.");
         Reject<InvalidDataException>("@namespace e 'http://www.idpf.org/2007/ops';" + string.Concat(Enumerable.Repeat("p[e|type~='a']{}", 4096)),
-            "Native EPUB CSS selector matching exceeds its work limit.", string.Concat(Enumerable.Repeat("<p epub:type=\"a\">A</p>", 16)));
+            "Native EPUB CSS selector matching exceeds its work limit.", string.Concat(Enumerable.Repeat("<p epub:type=\"a\">A</p>", 1000)));
         Reject<InvalidDataException>("@namespace e 'http://www.idpf.org/2007/ops';" + string.Concat(Enumerable.Repeat("p[e|type='a']{}", 4096)),
-            "Native EPUB CSS selector matching exceeds its work limit.", string.Concat(Enumerable.Repeat("<p epub:type=\"a\">A</p>", 16)));
+            "Native EPUB CSS selector matching exceeds its work limit.", string.Concat(Enumerable.Repeat("<p epub:type=\"a\">A</p>", 1000)));
     }
 
     [Fact]

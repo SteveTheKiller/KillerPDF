@@ -33,15 +33,17 @@ internal sealed class NativeWorkingDocument : IDisposable
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(options);
-        byte[] captured = CaptureSource(source, cancellationToken);
+        // EPUB uses the engine's single package limit (128 MiB) for large illustrated editions.
+        byte[] captured = CaptureSource(source, cancellationToken, EpubDocument.MaxPackageBytes);
         return new NativeWorkingDocument(captured, PdfReadSnapshot.OpenEpub(captured, options, cancellationToken));
     }
 
-    private static byte[] CaptureSource(ReadOnlyMemory<byte> source, CancellationToken cancellationToken)
+    private static byte[] CaptureSource(ReadOnlyMemory<byte> source, CancellationToken cancellationToken,
+        int maximum = MaximumSourceBytes)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source.Length > MaximumSourceBytes)
-            throw new InvalidDataException("Native document input exceeds the 64 MiB limit.");
+        if (source.Length > maximum)
+            throw new InvalidDataException("Native document input exceeds the " + (maximum >> 20) + " MiB limit.");
         return source.ToArray();
     }
 

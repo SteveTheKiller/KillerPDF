@@ -341,8 +341,8 @@ public sealed class EpubBodyBoxTests
     }
 
     [Theory]
-    [InlineData("<span class='hide' onclick='alert(1)'>A</span>", "Native EPUB XHTML attributes and styling")]
-    [InlineData("<script class='hide'>alert(1)</script>", "Native EPUB XHTML element")]
+    [InlineData("<span class='hide' onclick='alert(1)'>A</span>", "Scripted EPUB XHTML text is unsupported.")]
+    [InlineData("<script class='hide'>alert(1)</script>", "Scripted EPUB XHTML text is unsupported.")]
     [InlineData("<img class='hide' src='https://example.com/image.png'/>", "External or unresolved")]
     [InlineData("<img class='hide' src='missing.png'/>", "External or unresolved")]
     public void DisplayNoneDoesNotBypassScriptOrResourceDiagnostics(string hidden, string diagnosis)

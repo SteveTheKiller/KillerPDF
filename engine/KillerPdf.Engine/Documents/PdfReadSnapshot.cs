@@ -120,7 +120,8 @@ public sealed partial class PdfReadSnapshot
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(options);
-        if (bytes.Length > 64 * 1024 * 1024)
+        // One package limit for EPUB, owned by the engine reader.
+        if (bytes.Length > EpubDocument.MaxPackageBytes)
             throw new InvalidDataException("EPUB exceeds the input size limit.");
         byte[] source = bytes.ToArray();
         string sourceSha256 = Convert.ToHexString(SHA256.HashData(source));

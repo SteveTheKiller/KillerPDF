@@ -70,7 +70,8 @@ public sealed partial class EpubDocumentTests
     public void RejectsExcessiveTotalExpandedSize()
     {
         var content = new string('x', 8 * 1024 * 1024);
-        var entries = Enumerable.Range(0, 9).Select(i => ($"EPUB/large{i}.bin", content)).ToArray();
+        // The expanded limit is 256 MiB (KP-B slice 10, for illustrated editions), so 33 full 8 MiB entries exceed it.
+        var entries = Enumerable.Range(0, 33).Select(i => ($"EPUB/large{i}.bin", content)).ToArray();
         Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Book(Package, entries)));
     }
 
@@ -85,7 +86,7 @@ public sealed partial class EpubDocumentTests
     public void RejectsOversizedInputBeforeOpeningArchive()
     {
         var book = Book();
-        var oversized = new byte[64 * 1024 * 1024 + 1];
+        var oversized = new byte[EpubDocument.MaxPackageBytes + 1];
         book.CopyTo(oversized, 0);
         var exception = Assert.Throws<InvalidDataException>(() => EpubDocument.Open(oversized));
         Assert.Equal("EPUB exceeds the input size limit.", exception.Message);

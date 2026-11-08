@@ -96,9 +96,7 @@ public sealed class EpubListLayoutTests
     [InlineData("<ul><li/></ul>")]
     [InlineData("<ul><li>  </li></ul>")]
     [InlineData("<ul>A<li>A</li></ul>")]
-    [InlineData("<ul><p>A</p></ul>")]
     [InlineData("<ul><li><ul><li>A</li></ul></li></ul>")]
-    [InlineData("<ol><li>A</li></ol>")]
     public void UnsupportedListShapesKeepExplicitResults(string body)
     {
         byte[] source = Book(body, "ul{margin:0}"), original = source.ToArray();
@@ -108,6 +106,17 @@ public sealed class EpubListLayoutTests
         { FontSize = 10, Margin = 2 }));
         Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
         Assert.Equal(original, source);
+    }
+
+    // A paragraph directly in a list flows as a block, and ordered-list items lay out as indented blocks
+    // (numbers are not drawn yet) instead of refusing the chapter.
+    [Theory]
+    [InlineData("<ul><p>A</p></ul>")]
+    [InlineData("<ol><li>A</li></ol>")]
+    public void ParagraphsInListsAndOrderedListsLayOut(string body)
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        EpubCompatibilityTests.AssertLaysOut(EpubDocument.Open(Book(body, "ul{margin:0}")), new EpubLayoutOptions(120, 60, font) { FontSize = 10, Margin = 2 });
     }
 
     [Fact]

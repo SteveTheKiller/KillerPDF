@@ -62,13 +62,11 @@ public sealed class EpubInactiveHoverTests
     [InlineData("a:hover,")]
     public void UnknownAndMalformedSelectorsKeepExplicitDiagnostic(string selector)
     {
-        var book = EpubDocument.Open(Book("a{color:red}" + selector + "{color:blue}", "<p><a>A</a></p>"));
+        // The unsupported rule is dropped and the sheet's other rule still applies (KP-B slice 4).
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        const string diagnostic = "Native EPUB CSS selector is not implemented.";
-        Assert.Equal(diagnostic, Assert.Throws<NotSupportedException>(() => book.CreateLayout(
-            new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 })).Message);
-        Assert.Equal(diagnostic, Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(
-            new EpubPdfConversionOptions(font))).Message);
+        var options = new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 };
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("a{color:red}", "<p><a>A</a></p>")).CreateLayout(options),
+            EpubDocument.Open(Book("a{color:red}" + selector + "{color:blue}", "<p><a>A</a></p>")).CreateLayout(options));
     }
 
     private static void Verify(string css, string body, bool convert)

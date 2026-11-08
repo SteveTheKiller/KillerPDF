@@ -42,11 +42,13 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal bool IsParagraph => IsParagraphName(Name);
         internal bool HasBlockMargins => IsParagraph || IsGroupingContainer(Name);
         internal Element? Parent { get; } = parent;
-        internal Element? TableCellOwner { get; } = parent?.Name == "td" ? parent : parent?.TableCellOwner;
+        internal Element? TableCellOwner { get; } = parent?.Display == DisplayKind.TableCell ? parent : parent?.TableCellOwner;
         internal Style Style { get; } = style;
         internal DisplayKind Display { get; init; } = block ? DisplayKind.Block : DisplayKind.Inline;
         internal bool IsBlock => Display is DisplayKind.Block or DisplayKind.Table or DisplayKind.TableRowGroup or DisplayKind.TableRow or DisplayKind.TableCell or DisplayKind.ListItem;
         internal bool IsDisplayNone { get; init; }
+        internal bool IsFirstElementChild { get; init; }
+        internal int ElementChildren { get; set; }
         internal int Offset { get; } = offset;
         internal int EndOffset { get; set; } = offset;
         internal MarginLength?[]? Margins { get; init; }
@@ -147,8 +149,31 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal bool CurrentElementDisplayNone { get; private set; }
     internal bool InsideDisplayNone => _ancestors.TryPeek(out var element) && element.IsDisplayNone;
 
+    private const string XhtmlNamespace = "http://www.w3.org/1999/xhtml";
+
+    // HTML elements whose user-agent display is block.
     private static bool IsGroupingContainer(string? name) => name is
-        "div" or "header" or "footer" or "main" or "nav" or "section" or "article" or "aside" or "blockquote" or "ul" or "li";
+        "div" or "header" or "footer" or "main" or "nav" or "section" or "article" or "aside" or "blockquote" or "ul" or "li"
+        or "ol" or "dl" or "dt" or "dd" or "figure" or "figcaption" or "address" or "center" or "hgroup" or "details"
+        or "summary" or "caption" or "fieldset" or "legend" or "menu" or "dir" or "noscript" or "search";
+
+    // HTML user-agent presentation for phrasing and grouping elements without dedicated layout.
+    private static CssProperties? UserAgentDefaults(string name) => name switch
+    {
+        "sup" or "sub" or "small" => CssProperties.FromConcrete(new ResolvedProperties(new CssLength(1 / 1.2, true), null)),
+        "big" => CssProperties.FromConcrete(new ResolvedProperties(new CssLength(1.2, true), null)),
+        "u" or "ins" => CssProperties.FromConcrete(new ResolvedProperties(null, null, TextDecoration: "underline")),
+        "code" or "kbd" or "samp" or "tt" => CssProperties.FromConcrete(new ResolvedProperties(null, null,
+            FontFamilies: [new EpubFontFamily("monospace", true)])),
+        "cite" or "dfn" or "var" or "address" => CssProperties.FromConcrete(new ResolvedProperties(null, null) { FontStyle = EpubFontStyle.Italic }),
+        "th" => CssProperties.FromConcrete(new ResolvedProperties(null, null, TextAlign: "center", FontWeight: 700)),
+        "center" => CssProperties.FromConcrete(new ResolvedProperties(null, null, TextAlign: "center")),
+        "dd" => CssProperties.FromConcrete(new ResolvedProperties(null, null, Margins: [null, null, null, new(40, false)])),
+        "dl" => CssProperties.FromConcrete(new ResolvedProperties(null, null, Margins: [new(1, true), null, new(1, true), null])),
+        "figure" => CssProperties.FromConcrete(new ResolvedProperties(null, null,
+            Margins: [new(1, true), new(40, false), new(1, true), new(40, false)])),
+        _ => null
+    };
     private static bool IsFlowContainer(string? name) => name == "body" || name != "ul" && IsGroupingContainer(name);
 
     internal void AddSvgImage(string reference, double width, double height, int offset)
@@ -175,97 +200,36 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         string name = xml.LocalName;
         bool paragraph = Element.IsParagraphName(name);
         Element? parent = _ancestors.TryPeek(out var ancestor) ? ancestor : null;
-        if (parent?.Name == "ul" && name != "li")
-            throw new NotSupportedException("Native EPUB unordered lists require direct list-item children.");
-        if (name == "ul" && _ancestors.Any(element => element.Name == "ul"))
-            throw new NotSupportedException("Native EPUB nested unordered lists are not implemented.");
-        if (parent?.Name == "hr")
-            throw new NotSupportedException("Native EPUB horizontal rules cannot contain elements.");
-        if (name == "a" && _ancestors.Any(element => element.Name == "a"))
-            throw new NotSupportedException("Native EPUB nested anchors are invalid.");
-        if (name == "img" && parent?.LinkReference is not null)
-            throw new NotSupportedException("Native EPUB linked image regions are not implemented.");
-        bool allowed = name switch {
-            "html" => parent is null && xml.Depth == 0,
-            "head" or "body" => parent?.Name == "html",
-            "title" => parent?.Name == "head",
-            "meta" => parent?.Name == "head" && (xml.GetAttribute("http-equiv") is null
-                || string.Equals(xml.GetAttribute("http-equiv"), "Content-Style-Type", StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(xml.GetAttribute("content"), "text/css", StringComparison.OrdinalIgnoreCase)),
-            "link" => parent?.Name == "head" && xml.GetAttribute("rel") is "icon" or "stylesheet"
-                && !string.IsNullOrWhiteSpace(xml.GetAttribute("href")),
-            "li" => parent?.Name == "ul",
-            _ when IsGroupingContainer(name) => IsFlowContainer(parent?.Name),
-            "table" => IsFlowContainer(parent?.Name),
-            "tbody" => parent?.Name == "table",
-            "tr" => parent?.Name is "table" or "tbody",
-            "td" => parent?.Name == "tr",
-            _ when paragraph => IsFlowContainer(parent?.Name),
-            "strong" or "b" or "i" or "em" => parent?.IsParagraph == true || IsFlowContainer(parent?.Name) || parent?.Name is "span" or "a" or "strong" or "b" or "i" or "em",
-            "span" or "br" => parent?.IsParagraph == true || IsFlowContainer(parent?.Name) || parent?.Name is "span" or "a" or "strong" or "b" or "i" or "em",
-            "a" => parent?.IsParagraph == true || IsFlowContainer(parent?.Name) || parent?.Name is "span" or "strong" or "b" or "i" or "em" or "td",
-            "img" => parent?.IsParagraph == true || IsFlowContainer(parent?.Name) || parent?.Name is "span" or "a" or "strong" or "b" or "i" or "em",
-            _ => false };
-        if (xml.NamespaceURI != "http://www.w3.org/1999/xhtml" || !allowed)
-            throw new NotSupportedException("Native EPUB XHTML element is not implemented: " + name + ".");
-        if (name == "head" && _bodySeen)
+        // Every element is admitted. Elements the reader has no rendering for flow as inline content,
+        // as HTML treats unknown elements, and keep their text; foreign-namespace content does the same.
+        if (name == "html" && (parent is not null || xml.Depth != 0))
+            throw new InvalidDataException("Native EPUB XHTML document structure is invalid.");
+        bool root = xml.Depth == 1 && xml.NamespaceURI == XhtmlNamespace;
+        // A nested html, head or body has no document role and flows as an unknown inline element.
+        if (name is "html" or "head" or "body" && !(root || name == "html")) name = "span";
+        if (name == "head" && _bodySeen && xml.Depth == 1)
             throw new InvalidDataException("Native EPUB head metadata must precede the body.");
-        if (name == "body") _bodySeen = true;
+        if (name == "body" && xml.Depth == 1) _bodySeen = true;
         bool empty = xml.IsEmptyElement;
-        string? classNames = null, inlineStyle = null;
+        string? classNames = null, inlineStyle = null, widthHint = null;
         var attributes = new Dictionary<(string Namespace, string Name), string>();
         while (xml.MoveToNextAttribute())
         {
             Count(xml.Value.Length);
             attributes[(xml.NamespaceURI, xml.LocalName)] = xml.Value;
-            if (xml.NamespaceURI == "" && xml.LocalName == "style" && (paragraph || IsGroupingContainer(name) || IsFlowContainer(name) || name is "span" or "img" or "a" or "strong" or "b" or "i" or "em" or "table" or "tbody" or "tr" or "td"))
-                inlineStyle = xml.Value;
-            else if (xml.NamespaceURI == "" && xml.LocalName == "class")
-                classNames = xml.Value;
-            else if (xml.NamespaceURI == "" && xml.LocalName == "id" && (paragraph || IsGroupingContainer(name) || IsFlowContainer(name) || name is "span" or "br" or "a" or "strong" or "b" or "i" or "em"))
-            {
-                // Navigation identity is captured by the structural text reader.
-            }
-            else if (name == "link" && xml.NamespaceURI == "" && xml.LocalName is "href" or "rel" or "type" or "id")
-            {
-                // Packaged references are validated separately from body painting.
-            }
-            else if (name == "meta" && xml.NamespaceURI == "" && xml.LocalName is "name" or "content" or "http-equiv")
-            {
-                // Named metadata and the CSS content-style declaration do not paint page content.
-            }
-            else if (name == "meta" && xml.NamespaceURI == "" && xml.LocalName == "charset"
-                && string.Equals(xml.Value, "utf-8", StringComparison.OrdinalIgnoreCase))
-            {
-                // XML byte decoding is authoritative; this head declaration does not change it.
-            }
-            else if (name == "a" && xml.NamespaceURI == "" && xml.LocalName == "href")
-            {
-                // Structural reading validates packaged destinations and supported external hyperlinks.
-            }
-            else if (name == "img" && xml.NamespaceURI == "" && xml.LocalName is "src" or "alt" or "title")
-            {
-                // Image resources are resolved within the captured package.
-            }
-            else if ((paragraph || name is "span" or "strong" or "b" or "i" or "em") && xml.LocalName == "type")
-            {
-                // Semantic type metadata is inert; selectors compare its expanded name.
-            }
-            else if (xml.NamespaceURI == "" && xml.Value.Length == 0
-                && (xml.LocalName == "title" || name == "table" && xml.LocalName == "summary"))
-            {
-                // Empty advisory metadata has no displayed content.
-            }
-            else if (xml.NamespaceURI != "http://www.w3.org/2000/xmlns/"
-                && !(xml.LocalName == "lang" && xml.NamespaceURI is "" or "http://www.w3.org/XML/1998/namespace"))
-                throw new NotSupportedException("Native EPUB XHTML attributes and styling are not implemented.");
+            // Only style and class change presentation here; id is captured by the structural reader and
+            // every other attribute (epub:type, role, aria-*, dir, lang, title, name, data-*) is inert.
+            if (xml.NamespaceURI == "" && xml.LocalName == "style") inlineStyle = xml.Value;
+            else if (xml.NamespaceURI == "" && xml.LocalName == "class") classNames = xml.Value;
+            else if (xml.NamespaceURI == "" && xml.LocalName == "width" && name == "img") widthHint = xml.Value;
         }
         xml.MoveToElement();
         Style inherited = parent?.Style ?? DefaultStyle;
         if (inherited.Background is not null) inherited = inherited with { Background = null };
         var identity = new SelectorIdentity(xml.NamespaceURI,
             classNames?.Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries) ?? [], attributes);
-        CssProperties declarations = ResolveRules(name, identity);
+        bool firstElementChild = parent is null || parent.ElementChildren == 0;
+        CssProperties declarations = ResolveRules(name, identity, firstElementChild);
         if (inlineStyle is not null) declarations = declarations.Override(ParseProperties(inlineStyle));
         if (name == "hr") declarations = HorizontalRuleDefaults.Override(declarations);
         if (name == "blockquote") declarations = BlockquoteDefaults.Override(declarations);
@@ -292,12 +256,18 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 ? headingDefaults with { Margins = null } : headingDefaults;
             declarations = defaults.Override(declarations);
         }
-        if (name == "ul") declarations = UnorderedListDefaults.Override(declarations);
+        if (name is "ul" or "ol") declarations = UnorderedListDefaults.Override(declarations);
+        if (UserAgentDefaults(name) is { } userAgent) declarations = userAgent.Override(declarations);
+        // HTML width on img is a presentational hint: it applies only when no author rule sets width.
+        if (widthHint is not null && declarations.Width is null && double.TryParse(widthHint.Trim().TrimEnd('x', 'p'),
+                NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double hintPixels) && hintPixels > 0)
+            declarations = declarations with { Width = new CssDeclaration<BoxWidth>(new BoxWidth(
+                widthHint.Trim().EndsWith('%') ? null : new MarginLength(hintPixels, false))) };
         var properties = ResolveProperties(declarations, parent);
         DisplayKind? tableDisplay = name switch
         {
-            "table" => DisplayKind.Table, "tbody" => DisplayKind.TableRowGroup,
-            "tr" => DisplayKind.TableRow, "td" => DisplayKind.TableCell,
+            "table" => DisplayKind.Table, "tbody" or "thead" or "tfoot" => DisplayKind.TableRowGroup,
+            "tr" => DisplayKind.TableRow, "td" or "th" => DisplayKind.TableCell,
             _ => null
         };
         // Capabilities the layout does not implement for this element degrade by dropping the
@@ -306,7 +276,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             && specified != DisplayKind.None && specified != required)
             properties = properties with { Display = null };
         bool suppressed = parent?.IsDisplayNone == true || properties.Display == DisplayKind.None;
-        if (!suppressed && (name == "ul" && properties.Display is not (null or DisplayKind.Block)
+        // Metadata and template elements in the body are never rendered (HTML display:none defaults).
+        if (properties.Display is null && name is "style" or "template" or "title" or "meta" or "link" or "base" or "noembed")
+            properties = properties with { Display = DisplayKind.None };
+        suppressed = parent?.IsDisplayNone == true || properties.Display == DisplayKind.None;
+        if (!suppressed && (name is "ul" or "ol" && properties.Display is not (null or DisplayKind.Block)
             || name == "li" && properties.Display is not (null or DisplayKind.Block or DisplayKind.Inline)))
             properties = properties with { Display = null };
         if (!suppressed)
@@ -315,7 +289,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 || inherited.PreserveWhitespace && properties.Display is not (null or DisplayKind.Inline))
                 properties = properties with { Display = null };
             if (name == "pre" || inherited.PreserveWhitespace) properties = properties with { PreserveWhitespace = true };
-            if (name is "tbody" or "tr" or "td") properties = properties with { PageBreakBefore = null, PageBreakAfter = null };
+            if (tableDisplay is not null and not DisplayKind.Table) properties = properties with { PageBreakBefore = null, PageBreakAfter = null };
             // Supported normal-flow containing blocks all have content-dependent height, so percentages use auto.
             if (name == "html") properties = properties with { Height = null };
             if (name is "img" or "svg" && properties.Margins?.Any(side => side is { Auto: true }) == true)
@@ -325,7 +299,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (properties.TopBorder is { Visible: true, Width.Value: > 0 }
                 && (!paragraph || properties.Display == DisplayKind.Inline))
                 properties = properties with { TopBorder = null };
-            if (properties.Width is { Length: not null } && (!(paragraph || IsGroupingContainer(name) || name is "table" or "td") || properties.Display == DisplayKind.Inline))
+            if (properties.Width is { Length: not null } && name != "img"
+                && (!(paragraph || IsGroupingContainer(name) || tableDisplay is DisplayKind.Table or DisplayKind.TableCell) || properties.Display == DisplayKind.Inline))
                 properties = properties with { Width = null };
             if (properties.MaximumWidth is { Length: not null } && name != "img")
                 properties = properties with { MaximumWidth = null };
@@ -356,31 +331,32 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         {
             DisplayKind.Block => true,
             DisplayKind.Inline or DisplayKind.None => false,
-            _ => paragraph || IsGroupingContainer(name) || IsFlowContainer(name) || name is "table" or "tbody" or "tr" or "td"
+            _ => paragraph || IsGroupingContainer(name) || IsFlowContainer(name) || tableDisplay is not null
         };
         var element = new Element(name, parent, style, block, Characters.Count, identity)
         {
-            Display = properties.Display ?? name switch
+            Display = properties.Display ?? tableDisplay ?? name switch
             {
-                "table" => DisplayKind.Table, "tbody" => DisplayKind.TableRowGroup,
-                "tr" => DisplayKind.TableRow, "td" => DisplayKind.TableCell,
-                "li" => DisplayKind.ListItem,
+                // Only unordered lists draw markers; ordered-list items flow as indented blocks without numbers.
+                "li" => parent?.Name == "ul" ? DisplayKind.ListItem : DisplayKind.Block,
                 _ => block ? DisplayKind.Block : DisplayKind.Inline
             },
             Margins = suppressed ? null : properties.Margins, Padding = suppressed ? null : properties.Padding,
             TopBorder = suppressed ? null : properties.TopBorder, Width = suppressed ? null : properties.Width,
             MaximumWidth = suppressed ? null : properties.MaximumWidth,
             Border = suppressed ? null : properties.Border, HeightPercentage = suppressed ? null : properties.Height?.Percentage,
-            IsDisplayNone = suppressed
+            IsDisplayNone = suppressed,
+            IsFirstElementChild = firstElementChild
         };
+        if (parent is not null) parent.ElementChildren++;
         CurrentElement = element;
         CurrentElementDisplayNone = element.IsDisplayNone;
         parent?.Children.Add(element);
         if (name == "body") Body = element;
         if (paragraph)
         {
-            if (++_paragraphCount > 100_000)
-                throw new InvalidDataException("Native EPUB paragraphs exceed their 100,000-event limit.");
+            if (++_paragraphCount > 1_000_000)
+                throw new InvalidDataException("Native EPUB paragraphs exceed their 1,000,000-event limit.");
             // Share the inline event stream so empty blocks and image-only blocks keep document order.
             Inlines.Add(new(Characters.Count, null, element, Paragraph: true));
         }
@@ -445,11 +421,15 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
 
     internal void Append(SourceCharacter? source)
     {
-        if (Characters.Count >= 100_000)
-            throw new InvalidDataException("Native EPUB text exceeds its 100,000 placement limit.");
+        if (Characters.Count >= MaximumChapterCharacters)
+            throw new InvalidDataException("Native EPUB text exceeds its 8,388,608 placement limit.");
         source?.Node.Positions.Add(Characters.Count);
         Characters.Add(source);
     }
+
+    // One chapter can hold no more characters than its 8 MiB resource limit allows, so the per-chapter
+    // caps match that bound; the longest corpus chapter (Ulysses, 249 KB of XHTML) is far below it.
+    internal const int MaximumChapterCharacters = 8 * 1024 * 1024;
 
     internal void Trim(int length)
     {
@@ -461,15 +441,18 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal void Count(int length)
     {
         _characters += length;
-        if (_characters > 100_000)
+        if (_characters > MaximumChapterCharacters)
             throw new InvalidDataException("Native EPUB XHTML exceeds its character work limit.");
     }
 
+    // Stylesheets are charged once per book against the layout's stylesheet budget, not per chapter text.
     internal void AddStylesheet(string css, CancellationToken cancellationToken)
     {
-        Count(css.Length);
-        const string utf8Declaration = "@charset \"utf-8\";";
-        int position = css.StartsWith(utf8Declaration, StringComparison.Ordinal) ? utf8Declaration.Length : 0;
+        css = WithoutComments(css);
+        int position = 0;
+        // @charset only labels the bytes, which were already decoded; it is skipped in any case or spelling.
+        if (css.StartsWith("@charset", StringComparison.OrdinalIgnoreCase) && css.IndexOf(';') is int charsetEnd and >= 0)
+            position = charsetEnd + 1;
         var namespaces = new Dictionary<string, string>(StringComparer.Ordinal);
         int namespaceCount = 0;
         bool styleSeen = false;
@@ -482,23 +465,25 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             if (position == css.Length) break;
             if (css[position] == '}')
             {
-                if (!mediaEnds.TryPeek(out int end) || position != end)
-                    throw new NotSupportedException("Native EPUB CSS media blocks require balanced rules.");
-                mediaEnds.Pop();
+                // A stray closing brace outside any block is ignored (CSS Syntax error recovery).
+                if (mediaEnds.TryPeek(out int end) && position == end) mediaEnds.Pop();
                 position++;
                 continue;
             }
             if (css.AsSpan(position).StartsWith("@media", StringComparison.OrdinalIgnoreCase))
             {
                 int mediaOpen = css.IndexOf('{', position + 6);
-                if (position + 6 >= css.Length || !IsCssSpace(css[position + 6]) || mediaOpen < 0
-                    || !css[(position + 6)..mediaOpen].Trim(' ', '\t', '\r', '\n', '\f').Equals("screen", StringComparison.OrdinalIgnoreCase))
-                    throw new NotSupportedException("Native EPUB media queries currently require screen.");
+                if (mediaOpen < 0) break;
+                if (!MediaMatches(css[(position + 6)..mediaOpen]))
+                {
+                    // Print, speech and reader-specific (amzn-kf8, amzn-mobi) media do not apply to this screen reader.
+                    position = MediaEnd(mediaOpen) + 1;
+                    continue;
+                }
                 if (mediaEnds.Count >= 16)
                     throw new InvalidDataException("Native EPUB CSS media nesting exceeds its 16-level limit.");
                 int mediaEnd = MediaEnd(mediaOpen);
-                if (mediaEnds.TryPeek(out int parentEnd) && mediaEnd >= parentEnd)
-                    throw new NotSupportedException("Native EPUB CSS media blocks require balanced rules.");
+                if (mediaEnds.TryPeek(out int parentEnd) && mediaEnd >= parentEnd) mediaEnd = parentEnd;
                 mediaEnds.Push(mediaEnd);
                 styleSeen = true;
                 position = mediaOpen + 1;
@@ -551,18 +536,31 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 namespaces[prefix] = uri;
                 continue;
             }
+            if (css[position] == '@')
+            {
+                // Unknown, print-only and font at-rules (@page, @font-face, @import, @supports, ...) are skipped
+                // with their block or statement, as CSS Syntax requires.
+                position = SkipAtRule(position);
+                continue;
+            }
             styleSeen = true;
             int open = css.IndexOf('{', position);
-            int close = open < 0 ? -1 : css.IndexOf('}', open + 1);
-            if (close < 0 || mediaEnds.TryPeek(out int ruleEnd) && close >= ruleEnd)
-                throw new NotSupportedException("Native EPUB CSS rule syntax is not implemented.");
+            int limit = mediaEnds.TryPeek(out int enclosing) ? enclosing : css.Length;
+            if (open < 0 || open >= limit) break;
+            int close = css.IndexOf('}', open + 1);
+            // An unclosed block ends at the end of its stylesheet or enclosing block.
+            if (close < 0 || close > limit) close = limit;
             CssProperties properties = ParseProperties(css[(open + 1)..close]);
+            var parsedRules = new List<CssRule>();
+            try
+            {
             foreach (string group in css[position..open].Split(','))
             {
-                if (++_selectorCount > 4096)
-                    throw new InvalidDataException("Native EPUB CSS selectors exceed their 4,096-selector limit.");
+                if (++_selectorCount > 65_536)
+                    throw new InvalidDataException("Native EPUB CSS selectors exceed their 65,536-selector limit.");
                 string fullSelector = group.Trim(' ', '\t', '\r', '\n', '\f');
-                if (fullSelector.Length is 0 or > 128)
+                if (fullSelector.Length is 0 or > 128 || fullSelector.Contains("::") || fullSelector.Contains(":first-letter")
+                    || fullSelector.Contains(":first-line") || fullSelector.Contains(":before") || fullSelector.Contains(":after"))
                     throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
                 var chain = new List<CssRule>();
                 bool directParent = false;
@@ -576,6 +574,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         continue;
                     }
                     string selector = selectorPart;
+                    bool firstChild = selector.EndsWith(":first-child", StringComparison.OrdinalIgnoreCase);
+                    if (firstChild) selector = selector[..^12];
+                    // The universal selector matches any element; *.class equals .class.
+                    // *|type keeps its namespace meaning and is handled with the type below.
+                    bool universal = selector.StartsWith('*') && !selector.StartsWith("*|", StringComparison.Ordinal);
+                    if (universal) selector = selector[1..];
                     bool link = selector.EndsWith(":link", StringComparison.OrdinalIgnoreCase);
                     bool visited = selector.EndsWith(":visited", StringComparison.OrdinalIgnoreCase);
                     bool hover = selector.EndsWith(":hover", StringComparison.OrdinalIgnoreCase);
@@ -657,25 +661,51 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                         type = type[(separator + 1)..];
                         parts[0] = type;
                     }
-                    bool classOnly = selector.StartsWith(".", StringComparison.Ordinal) || selector.Length == 0 && (ids.Count > 0 || link || visited || hover);
-                    if (classOnly && attribute is not null || selector.Length > 128 || selector.Length == 0 && ids.Count == 0 && !link && !visited && !hover || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
+                    bool classOnly = selector.StartsWith(".", StringComparison.Ordinal) || selector.Length == 0 && (ids.Count > 0 || link || visited || hover || universal || firstChild);
+                    if (classOnly && attribute is not null && !universal || selector.Length > 128 || selector.Length == 0 && ids.Count == 0 && !link && !visited && !hover && !universal && !firstChild || (classOnly ? parts.Skip(1) : parts).Any(part => part.Length == 0
                         || !char.IsAsciiLetter(part[0])
                         || part.Any(character => !char.IsAsciiLetterOrDigit(character) && character is not ('-' or '_'))))
                         throw new NotSupportedException("Native EPUB CSS selector is not implemented.");
-                    chain.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1, type, []) { Ids = ids.ToArray(), Link = link, Visited = visited, Hover = hover, DirectParent = directParent });
+                    chain.Add(new(namespaceName, parts[1..], attribute, properties, _selectorCount, classOnly ? 0 : 1, type, []) { Ids = ids.ToArray(), Link = link, Visited = visited, Hover = hover, DirectParent = directParent, FirstChild = firstChild });
                     directParent = false;
                 }
                 if (directParent || chain.Count == 0)
                     throw new NotSupportedException("Native EPUB CSS child selectors require selectors on both sides.");
                 var target = chain[^1] with { Ancestors = chain.Take(chain.Count - 1).Reverse().ToArray() };
-                if (!_typeRules.TryGetValue(target.Type, out var rules))
-                    _typeRules.Add(target.Type, rules = new());
+                // Index by the rightmost compound's most selective key so each element visits only its candidates.
+                parsedRules.Add(target);
+            }
+            }
+            catch (NotSupportedException)
+            {
+                // CSS Selectors: a rule whose selector list has an unsupported or invalid selector is dropped whole.
+                parsedRules.Clear();
+                IgnoredDeclarations++;
+            }
+            foreach (var target in parsedRules)
+            {
+                string key = target.Ids.Length > 0 ? "#" + target.Ids[0] : target.Classes.Length > 0 ? "." + target.Classes[0] : target.Type;
+                if (!_typeRules.TryGetValue(key, out var rules))
+                    _typeRules.Add(key, rules = new());
                 rules.Add(target);
             }
             position = close + 1;
         }
-        if (mediaEnds.Count != 0)
-            throw new NotSupportedException("Native EPUB CSS media blocks require balanced rules.");
+        // Blocks still open at the end of the sheet are closed there (CSS Syntax).
+
+        int SkipAtRule(int start)
+        {
+            for (int at = start; at < css.Length; at++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (++mediaWork > 16_000_000)
+                    throw new InvalidDataException("Native EPUB CSS media scanning exceeds its work limit.");
+                if (css[at] == ';') return at + 1;
+                if (css[at] == '{') return MediaEnd(at) + 1;
+                if (css[at] == '}') return at;
+            }
+            return css.Length;
+        }
 
         int MediaEnd(int open)
         {
@@ -684,7 +714,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             for (int at = open + 1; at < css.Length; at++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++mediaWork > 1_000_000)
+                if (++mediaWork > 16_000_000)
                     throw new InvalidDataException("Native EPUB CSS media scanning exceeds its work limit.");
                 char current = css[at];
                 if (current == '\\') { at++; continue; }
@@ -697,13 +727,58 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 if (current == '{') depth++;
                 else if (current == '}' && --depth == 0) return at;
             }
-            throw new NotSupportedException("Native EPUB CSS media blocks require balanced rules.");
+            return css.Length;
         }
 
         void SkipSpace() { while (position < css.Length && IsCssSpace(css[position])) position++; }
     }
 
     private static bool IsCssSpace(char value) => value is ' ' or '\t' or '\r' or '\n' or '\f';
+
+    // Media Queries 4: a list matches when any query does; "only" is ignored, "not" negates the type,
+    // and features are assumed to match a reflowable screen page.
+    private static bool MediaMatches(string queries)
+    {
+        foreach (string query in queries.Split(','))
+        {
+            string[] words = query.Trim().ToLowerInvariant().Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries);
+            int at = 0;
+            bool negated = false;
+            if (at < words.Length && words[at] is "only") at++;
+            if (at < words.Length && words[at] is "not") { negated = true; at++; }
+            string type = at < words.Length && !words[at].StartsWith('(') ? words[at] : "all";
+            bool matches = type is "all" or "screen";
+            if (matches != negated) return true;
+        }
+        return false;
+    }
+
+    // Comments are removed outside strings before tokenizing; each becomes one space.
+    private static string WithoutComments(string css)
+    {
+        if (!css.Contains("/*")) return css;
+        var result = new StringBuilder(css.Length);
+        char quote = '\0';
+        for (int at = 0; at < css.Length; at++)
+        {
+            char value = css[at];
+            if (quote != '\0')
+            {
+                result.Append(value);
+                if (value == '\\' && at + 1 < css.Length) result.Append(css[++at]);
+                else if (value == quote) quote = '\0';
+            }
+            else if (value is '"' or '\'') { quote = value; result.Append(value); }
+            else if (value == '/' && at + 1 < css.Length && css[at + 1] == '*')
+            {
+                int end = css.IndexOf("*/", at + 2, StringComparison.Ordinal);
+                at = end < 0 ? css.Length : end + 1;
+                result.Append(' ');
+            }
+            else result.Append(value);
+        }
+        return result.ToString();
+    }
     private static bool IsIdentifier(string value) => value.Length is > 0 and <= 128
         && (char.IsAsciiLetter(value[0]) || value[0] == '_')
         && value.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_');
@@ -718,9 +793,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal bool Visited { get; init; }
         internal bool Hover { get; init; }
         internal bool DirectParent { get; init; }
+        internal bool FirstChild { get; init; }
         internal string[] Ids { get; init; } = [];
-        internal int Specificity => Ids.Length * 65536 + (Classes.Length + (Attribute is null ? 0 : 1) + (Link || Visited || Hover ? 1 : 0)) * 256 + TypeSpecificity
-            + Ancestors.Sum(rule => rule.Ids.Length * 65536 + (rule.Classes.Length + (rule.Attribute is null ? 0 : 1) + (rule.Link || rule.Visited || rule.Hover ? 1 : 0)) * 256 + rule.TypeSpecificity);
+        private int Own => Ids.Length * 65536 + (Classes.Length + (Attribute is null ? 0 : 1) + (Link || Visited || Hover ? 1 : 0)
+            + (FirstChild ? 1 : 0)) * 256 + TypeSpecificity;
+        internal int Specificity => Own + Ancestors.Sum(rule => rule.Own);
     }
 
     private static IEnumerable<string> DescendantParts(string selector)
@@ -745,8 +822,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         if (start < selector.Length) yield return selector[start..];
     }
 
-    private bool Matches(CssRule rule, string name, SelectorIdentity identity)
+    private bool Matches(CssRule rule, string name, SelectorIdentity identity, bool firstElementChild = false)
     {
+        if (rule.FirstChild && !firstElementChild) return false;
         if (rule.Hover)
         {
             CountSelectorWork(1);
@@ -828,18 +906,24 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             CountSelectorWork(1);
             var required = rule.Ancestors[index];
             bool direct = index == 0 ? rule.DirectParent : rule.Ancestors[index - 1].DirectParent;
-            bool matched = Matches(required, current.Name, current.Identity) && Match(index + 1, current.Parent);
+            bool matched = Matches(required, current.Name, current.Identity, current.IsFirstElementChild) && Match(index + 1, current.Parent);
             if (!matched && !direct) matched = Match(index, current.Parent);
             memo.Add(key, matched);
             return matched;
         }
     }
 
-    private CssProperties ResolveRules(string name, SelectorIdentity identity)
+    private CssProperties ResolveRules(string name, SelectorIdentity identity, bool firstElementChild = false)
     {
-        _typeRules.TryGetValue(name, out var typeRules);
-        _typeRules.TryGetValue("", out var classRules);
-        if (typeRules is null && classRules is null) return default;
+        var candidates = new List<CssRule>();
+        if (_typeRules.TryGetValue(name, out var typed)) candidates.AddRange(typed);
+        if (_typeRules.TryGetValue("", out var universal)) candidates.AddRange(universal);
+        foreach (string className in identity.Classes.Distinct(StringComparer.Ordinal))
+            if (_typeRules.TryGetValue("." + className, out var classed)) candidates.AddRange(classed);
+        if (identity.Attributes.TryGetValue(("", "id"), out string? elementId) && _typeRules.TryGetValue("#" + elementId, out var identified))
+            candidates.AddRange(identified);
+        if (candidates.Count == 0) return default;
+        candidates.Sort((left, right) => left.Order.CompareTo(right.Order));
         CssDeclaration<CssLength>? size = null, height = null;
         CssDeclaration<PdfRgbColor>? color = null;
         CssDeclaration<BackgroundColor>? background = null;
@@ -884,13 +968,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         int[] paddingSpecificities = [-1, -1, -1, -1];
         var margins = new CssDeclaration<MarginLength>?[4];
         int[] marginSpecificities = [-1, -1, -1, -1];
-        int typeIndex = 0, classIndex = 0;
-        while (typeIndex < (typeRules?.Count ?? 0) || classIndex < (classRules?.Count ?? 0))
+        foreach (var rule in candidates)
         {
-            var rule = classIndex >= (classRules?.Count ?? 0)
-                || typeIndex < (typeRules?.Count ?? 0) && typeRules![typeIndex].Order < classRules![classIndex].Order
-                ? typeRules![typeIndex++] : classRules![classIndex++];
-            if (!Matches(rule, name, identity)) continue;
+            if (!Matches(rule, name, identity, firstElementChild)) continue;
             Element? ancestor = _ancestors.TryPeek(out var parent) ? parent : null;
             if (!MatchesAncestors(rule, ancestor)) continue;
             int specificity = rule.Specificity;
@@ -1024,7 +1104,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
 
     private void CountSelectorWork(int amount)
     {
-        if (amount > 1_000_000 - _selectorWork)
+        // Rules are indexed by their rightmost id, class or type, so this bounds candidate checks, not rules times elements.
+        if (amount > 5_000_000 - _selectorWork)
             throw new InvalidDataException("Native EPUB CSS selector matching exceeds its work limit.");
         _selectorWork += amount;
     }

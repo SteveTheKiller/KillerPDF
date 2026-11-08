@@ -47,16 +47,9 @@ public sealed class EpubCssClassSelectorTests
     [InlineData(".pick + span")]
     [InlineData(".pick ~ span")]
     [InlineData(".pick || span")]
+    // Malformed child selectors and the not yet supported sibling combinators drop their rule (KP-B slice 4).
     public void ChildSelectorGrammarKeepsMalformedAndOtherCombinatorsDiagnosed(string selector)
-    {
-        byte[] source = Book(selector + "{color:red}", "<div class='pick'><span>A</span></div>"), original = source.ToArray();
-        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        var book = EpubDocument.Open(source);
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(30, 36, font)
-        { FontSize = 10, Margin = 2 }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
-        Assert.Equal(original, source);
-    }
+        => AssertRuleDropped(selector + "{color:red}", "<div class='pick'><span>A</span></div>", 30, 36);
 
     [Theory]
     [InlineData(".pick > span")]
@@ -155,13 +148,13 @@ public sealed class EpubCssClassSelectorTests
     [InlineData("@mediascreen{p{color:red}}")]
     [InlineData("@media screen and (min-width:10px){p{color:red}}")]
     [InlineData("@media screen\u00a0{p{color:red}}")]
+    // Non-screen media are skipped and malformed blocks recover as CSS Syntax requires, so the paragraph
+    // lays out without refusing the chapter (KP-B slice 2).
     public void ScreenMediaRulesDiagnoseMalformedBlocksAndUnsupportedQueries(string css)
     {
-        byte[] source = Book(css, "<p>A</p>"), original = source.ToArray();
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        Assert.Throws<NotSupportedException>(() => EpubDocument.Open(source).CreateLayout(
-            new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 }));
-        Assert.Equal(original, source);
+        EpubCompatibilityTests.AssertLaysOut(EpubDocument.Open(Book(css, "<p>A</p>")),
+            new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
     }
 
     [Fact]
@@ -403,6 +396,18 @@ public sealed class EpubCssClassSelectorTests
         Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
     }
 
+    // HTML admits any element in flow content; a rule holding a span, a rule inside a paragraph and a
+    // foreign-namespace hr all lay out instead of refusing the chapter.
+    [Theory]
+    [InlineData("<hr><span>A</span></hr>")]
+    [InlineData("<p><hr/></p>")]
+    [InlineData("<hr xmlns='urn:other'/>")]
+    public void HorizontalRulesInOtherContextsLayOut(string body)
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        EpubCompatibilityTests.AssertLaysOut(EpubDocument.Open(Book("", body)), new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 });
+    }
+
     // Row-group paint and forced breaks are not implemented; they are dropped instead of refusing the chapter.
     [Theory]
     [InlineData("<tbody style='background-color:blue'><tr><td>A</td><td>A</td></tr></tbody>")]
@@ -561,11 +566,8 @@ public sealed class EpubCssClassSelectorTests
     }
 
     [Theory]
-    [InlineData("<table><thead><tr><td>A</td><td>A</td></tr></thead></table>")]
     [InlineData("<table><caption>A</caption><tr><td>A</td><td>A</td></tr></table>")]
-    [InlineData("<table summary='Description'><tr><td>A</td><td>A</td></tr></table>")]
     [InlineData("<table><tr><td colspan='2'>A</td></tr></table>")]
-    [InlineData("<table><tr><td rowspan='2'>A</td><td>A</td></tr></table>")]
     [InlineData("<table><tr><td><table><tr><td>A</td></tr></table></td><td>A</td></tr></table>")]
     [InlineData("<table>A<tr><td>A</td><td>A</td></tr></table>")]
     public void InitialTableSliceDiagnosesUnimplementedStructure(string body)
@@ -575,6 +577,18 @@ public sealed class EpubCssClassSelectorTests
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(
             new EpubLayoutOptions(30, 46, font) { FontSize = 10, Margin = 2 }));
         Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+    }
+
+    // A header row group, advisory attributes and a row span hint lay out as ordinary rows.
+    [Theory]
+    [InlineData("<table><thead><tr><td>A</td><td>A</td></tr></thead></table>")]
+    [InlineData("<table summary='Description'><tr><td>A</td><td>A</td></tr></table>")]
+    [InlineData("<table><tr><td rowspan='2'>A</td><td>A</td></tr></table>")]
+    public void HeaderGroupsAndAdvisoryTableAttributesLayOut(string body)
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        EpubCompatibilityTests.AssertLaysOut(EpubDocument.Open(Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}", body)),
+            new EpubLayoutOptions(30, 46, font) { FontSize = 10, Margin = 2 });
     }
 
     [Theory]
@@ -783,10 +797,7 @@ public sealed class EpubCssClassSelectorTests
 
     [Theory]
     [InlineData("<hr>A</hr>")]
-    [InlineData("<hr><span>A</span></hr>")]
-    [InlineData("<p><hr/></p>")]
     [InlineData("<hr onclick='execute()'/>")]
-    [InlineData("<hr xmlns='urn:other'/>")]
     public void HorizontalRuleAdmissionRetainsContentParentAndAttributeGuards(string body)
     {
         var book = EpubDocument.Open(Book("", body));
@@ -1002,12 +1013,13 @@ public sealed class EpubCssClassSelectorTests
     }
 
     [Fact]
-    public void NestedAnchorsAreDiagnosedInsteadOfChangingTheOuterTarget()
+    // XHTML keeps nested anchors as written; the innermost link applies to its text, as browsers do.
+    public void NestedAnchorsUseTheInnermostTarget()
     {
         var book = EpubDocument.Open(Book("", "<p><a href='#outer'><span><a href='#inner'>A</a></span></a></p><div id='outer'/><div id='inner'/>"));
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(80, 80, font)));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        var layout = EpubCompatibilityTests.AssertLaysOut(book, new EpubLayoutOptions(80, 80, font));
+        Assert.EndsWith("#inner", Assert.Single(layout.Pages.SelectMany(page => page.TextPlacements)).LinkTarget);
     }
 
     [Theory]
@@ -1220,7 +1232,6 @@ public sealed class EpubCssClassSelectorTests
     [InlineData(".note+.other")]
     [InlineData(".note~.other")]
     [InlineData(".note[title]")]
-    [InlineData(".note:first-child")]
     [InlineData("#")]
     [InlineData("##id")]
     [InlineData("#id#")]
@@ -1229,15 +1240,34 @@ public sealed class EpubCssClassSelectorTests
     [InlineData("h#id|p")]
     [InlineData("#id|p")]
     [InlineData("h|.note")]
+    // CSS Selectors 4: a rule with an invalid or unsupported selector is dropped whole and the sheet's
+    // other rules still apply, so the paragraph keeps its default color (KP-B slice 4; these used to refuse).
     public void UnsupportedGrammarKeepsExplicitRefusalAtBothPublicSeams(string selector)
     {
         VerifyEngine();
-        string css = "@namespace h 'http://www.w3.org/1999/xhtml';" + selector + "{color:red}";
-        var book = EpubDocument.Open(Book(css, "<p class=\"note\">A</p>"));
+        AssertRuleDropped("@namespace h 'http://www.w3.org/1999/xhtml';" + selector + "{color:red}", "<p class=\"note\">A</p>", 30, 16);
+    }
+
+    // :first-child is implemented (KP-B slice 4): it matches the body's first element child only.
+    [Theory]
+    [InlineData(".note:first-child")]
+    [InlineData("@namespace 'http://www.w3.org/1999/xhtml';p:first-child")]
+    public void FirstChildMatchesOnlyTheFirstElementChild(string selector)
+    {
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        Assert.Equal("Native EPUB CSS selector is not implemented.", Assert.Throws<NotSupportedException>(() => book.CreateLayout(
-            new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 })).Message);
-        Assert.Equal("Native EPUB CSS selector is not implemented.", Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font))).Message);
+        var layout = EpubDocument.Open(Book(selector + "{color:red}", "<p class=\"note\">A</p><p class=\"note\">A</p>"))
+            .CreateLayout(new EpubLayoutOptions(30, 40, font) { FontSize = 10, Margin = 2 });
+        var colors = layout.Pages.SelectMany(page => page.TextPlacements).Select(placement => placement.Color).ToArray();
+        Assert.Equal(new PdfRgbColor?[] { new PdfRgbColor(1, 0, 0), null }, colors);
+    }
+
+    private static void AssertRuleDropped(string css, string body, double width, double height)
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var options = new EpubLayoutOptions(width, height, font) { FontSize = 10, Margin = 2 };
+        var book = EpubDocument.Open(Book(css, body));
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("", body)).CreateLayout(options), book.CreateLayout(options));
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
     }
 
     [Fact]
@@ -1260,13 +1290,15 @@ public sealed class EpubCssClassSelectorTests
         void Reject(string css, string body, string diagnostic)
         {
             var book = EpubDocument.Open(Book(css, body));
-            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            // The deadline only guards against a hang; 65,537 rules (KP-B slice 10 limit) take longer to parse than 4,097 did.
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             Assert.Equal(diagnostic, Assert.Throws<InvalidDataException>(() => book.CreateLayout(new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 }, deadline.Token)).Message);
             Assert.Equal(diagnostic, Assert.Throws<InvalidDataException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font), deadline.Token)).Message);
         }
-        Reject(string.Concat(Enumerable.Repeat(".note{}", 4097)), "<p>A</p>", "Native EPUB CSS selectors exceed their 4,096-selector limit.");
+        // Limits raised for real books (KP-B slice 10): 65,536 selectors and 5,000,000 indexed matching steps per chapter.
+        Reject(string.Concat(Enumerable.Repeat(".note{}", 65537)), "<p>A</p>", "Native EPUB CSS selectors exceed their 65,536-selector limit.");
         Reject("@namespace 'http://www.w3.org/1999/xhtml';" + string.Concat(Enumerable.Repeat(".note{}", 4096)),
-            string.Concat(Enumerable.Repeat("<p class=\"note\">A</p>", 16)), "Native EPUB CSS selector matching exceeds its work limit.");
+            string.Concat(Enumerable.Repeat("<p class=\"note\">A</p>", 1000)), "Native EPUB CSS selector matching exceeds its work limit.");
         UnsupportedGrammarKeepsExplicitRefusalAtBothPublicSeams("." + new string('a', 128));
         Verify("." + new string('a', 127) + "{color:red}", "<p class=\"" + new string('a', 127) + "\">A</p>", 2, 1.5, true, false);
         byte[] source = Book(".note{color:red}", "<p class=\"note\">A</p>");

@@ -169,13 +169,24 @@ public sealed class EpubH2BoxTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("<p><h2>A</h2></p>", "Native EPUB XHTML element is not implemented: h2.")]
-    [InlineData("<h2><h2>A</h2></h2>", "Native EPUB XHTML element is not implemented: h2.")]
-    [InlineData("<h2><p>A</p></h2>", "Native EPUB XHTML element is not implemented: p.")]
-    [InlineData("<h7>A</h7>", "Native EPUB XHTML element is not implemented: h7.")]
-    [InlineData("<h2><a href='#x'><img src='image.png'/></a></h2>", "Native EPUB linked image regions are not implemented.")]
     [InlineData("<h2><a href='javascript:execute()'>A</a></h2>", "External or unresolved EPUB XHTML references are unsupported.")]
+    // The linked image itself is admitted now; its unpackaged source is what still refuses the chapter.
+    [InlineData("<h2><a href='#x'><img src='image.png'/></a></h2>", "External or unresolved EPUB XHTML references are unsupported.")]
     public void InvalidNestingAndUnsafeReferencesRetainExplicitRefusal(string body, string message)
+        => AssertRefused(body, message);
+
+    // Nesting HTML admits, unknown elements and an image inside a link lay out; the link has no image hit region yet.
+    [Theory]
+    [InlineData("<p><h2>A</h2></p>")]
+    [InlineData("<h2><h2>A</h2></h2>")]
+    [InlineData("<h2><p>A</p></h2>")]
+    [InlineData("<h7>A</h7>")]
+    public void NestedHeadingsUnknownElementsAndLinkedImagesLayOut(string body)
+    {
+        EpubCompatibilityTests.AssertLaysOut(EpubDocument.Open(Book(body, "h2{font-weight:normal}")), NativeOptions(Font()));
+    }
+
+    private static void AssertRefused(string body, string message)
     {
         var book = EpubDocument.Open(Book(body, "h2{font-weight:normal}"));
         var font = Font();

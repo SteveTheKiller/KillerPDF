@@ -24,6 +24,9 @@ internal sealed class EpubFormattingTree
     internal readonly record struct Atom(int Offset, EpubNativeContent.Element Owner,
         EpubNativeContent.InlineReference? Reference = null, bool IsSpace = false, bool HasSource = true, bool HardBreak = false);
 
+    // Formatting visits each node and each source character a bounded number of times.
+    private const int WorkLimit = 4 * EpubNativeContent.MaximumChapterCharacters;
+
     internal Block Root { get; }
     internal Dictionary<int, InlineSequence> TextSequences { get; } = new();
 
@@ -41,11 +44,11 @@ internal sealed class EpubFormattingTree
             foreach (var child in element.Children)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++work > 400_000)
+                if (++work > WorkLimit)
                     throw new InvalidDataException("Native EPUB formatting exceeds its box work limit.");
                 if (child is EpubNativeContent.Text text)
                 {
-                    if ((element.Name == "ul" || element.Display is EpubNativeContent.DisplayKind.Table or EpubNativeContent.DisplayKind.TableRowGroup or EpubNativeContent.DisplayKind.TableRow)
+                    if ((element.Name is "ul" or "ol" || element.Display is EpubNativeContent.DisplayKind.Table or EpubNativeContent.DisplayKind.TableRowGroup or EpubNativeContent.DisplayKind.TableRow)
                         && EpubNativeContent.IsFormattingWhitespace(text.Value)) continue;
                     var positions = new Dictionary<int, int>();
                     foreach (int index in text.Positions)
@@ -58,7 +61,7 @@ internal sealed class EpubFormattingTree
                     for (int raw = 0; raw < text.Value.Length; raw++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        if (++work > 400_000)
+                        if (++work > WorkLimit)
                             throw new InvalidDataException("Native EPUB formatting exceeds its box work limit.");
                         bool space = text.Value[raw] is ' ' or '\t' or '\r' or '\n';
                         var sequence = Sequence(containing);

@@ -37,7 +37,8 @@ public sealed partial class EpubDocument
             while (reader.Read())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++nodeCount > 100000 || reader.Depth > 128)
+                // Two million nodes is what an 8 MiB chapter of four-byte empty elements could hold.
+                if (++nodeCount > 2_000_000 || reader.Depth > 128)
                     throw new InvalidDataException("EPUB XHTML text exceeds processing limits.");
                 if (reader.NodeType == XmlNodeType.ProcessingInstruction)
                     throw new NotSupportedException("EPUB XHTML processing instructions are unsupported.");
@@ -76,14 +77,15 @@ public sealed partial class EpubDocument
                                 throw new NotSupportedException("External or unresolved EPUB XHTML references are unsupported.", exception);
                             }
                         }
-                        if (reader.LocalName == "srcset" || (reader.LocalName == "base" && reader.NamespaceURI == "http://www.w3.org/XML/1998/namespace"))
-                            throw new NotSupportedException("EPUB XHTML source sets and base overrides are unsupported.");
+                        // A source set is an optional alternative to src, which is used instead; xml:base would
+                        // change how every reference resolves, so it stays refused for this chapter.
+                        if (reader.LocalName == "base" && reader.NamespaceURI == "http://www.w3.org/XML/1998/namespace")
+                            throw new NotSupportedException("EPUB XHTML base overrides are unsupported.");
                     }
                     reader.MoveToElement();
                     if (reader.Depth == 0 && (reader.LocalName != "html" || reader.NamespaceURI != html))
                         throw new InvalidDataException("EPUB text requires an XHTML document.");
-                    if (reader.NamespaceURI != html || !SupportsTextElement(reader.LocalName))
-                        throw new NotSupportedException("Unsupported EPUB XHTML text element: " + reader.LocalName + ".");
+                    // Unknown and foreign-namespace elements contribute their text as inline content, as HTML requires.
                     if (reader.NamespaceURI == html && reader.LocalName == "body" && reader.Depth == 1)
                     {
                         if (foundBody) throw new InvalidDataException("Duplicate EPUB XHTML body.");
@@ -193,13 +195,10 @@ public sealed partial class EpubDocument
     private static int TextBlockLines(string name) => name switch
     {
         "p" or "pre" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6" or "section" or "article" or
-            "blockquote" or "header" or "footer" or "aside" or "nav" or "address" or "figure" or "figcaption" or "main" => 2,
-        "ul" or "ol" or "li" or "dl" or "dt" or "dd" or "hr" or "table" or "tbody" or "tr" or "td" => 1,
+            "blockquote" or "header" or "footer" or "aside" or "nav" or "address" or "figure" or "figcaption" or "main"
+            or "center" or "hgroup" or "details" or "summary" or "fieldset" or "legend" or "menu" or "dir" or "noscript" or "search" => 2,
+        "ul" or "ol" or "li" or "dl" or "dt" or "dd" or "hr" or "table" or "tbody" or "thead" or "tfoot" or "tr" or "td" or "th"
+            or "caption" => 1,
         _ => 0
     };
-
-    private static bool SupportsTextElement(string name) => TextBlockLines(name) > 0 || name is
-        "html" or "head" or "body" or "title" or "meta" or "link" or "style" or "br" or "wbr" or "img" or
-        "span" or "a" or "em" or "strong" or "b" or "i" or "u" or "s" or "small" or "sub" or "sup" or
-        "q" or "abbr" or "cite" or "code" or "kbd" or "samp" or "var" or "mark" or "time" or "bdi" or "bdo" or "dfn";
 }

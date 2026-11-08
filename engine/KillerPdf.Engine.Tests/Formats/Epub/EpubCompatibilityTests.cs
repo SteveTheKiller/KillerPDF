@@ -60,6 +60,67 @@ public sealed class EpubCompatibilityTests
         Assert.Equal("A", document.ReadText(0));
     }
 
+    [Fact]
+    public void CalibreStylesheetsSkipAtRulesAndCommentsAndDropOnlyUnsupportedRules()
+    {
+        const string css = """
+            @CHARSET "UTF-8";
+            /* page_styles.css from Calibre */
+            @page { margin-bottom: 5pt; margin-top: 5pt }
+            @font-face { font-family: "Minion"; src: url(../fonts/Minion.otf) }
+            @media print { p { font-size: 40px } }
+            @media amzn-kf8 { p { font-size: 41px } }
+            @supports (display: grid) { p { font-size: 42px } }
+            p.x { font-size: 20px /* inline comment */ }
+            p:first-child { font-size: 30px }
+            p + p { font-size: 50px }
+            p::first-letter { font-size: 60px }
+            * { color: #f00 }
+            @media only screen and (min-width: 300px) { p.x.y { font-size: 25px } }
+            """;
+        var layout = Layout(new Book { Css = css, Chapters = { Chapter("<div><p class='x'>A</p><p class='x'>A</p><p class='x y'>A</p></div>") } });
+        Assert.Empty(layout.ChapterDiagnostics);
+        var placements = layout.Pages.SelectMany(page => page.TextPlacements).ToArray();
+        // Specificity ties go to the later rule: :first-child (0,1,1) beats p.x for the first paragraph only;
+        // the sibling and pseudo-element rules are dropped; the screen media rule (0,2,1) wins for the third.
+        Assert.Equal(new double[] { 30, 20, 25 }, placements.Select(placement => placement.Height));
+        Assert.All(placements, placement => Assert.Equal(new PdfRgbColor(1, 0, 0), placement.Color));
+    }
+
+    [Fact]
+    public void CalibreAndSigilMarkupLaysOutWithPhrasingElementsInertAttributesAndHeadStyles()
+    {
+        const string head = "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"/>"
+            + "<style type=\"text/css\">p.big { font-size: 20px } .calibre1 { display: block }</style>";
+        const string body = """
+            <section epub:type="chapter" role="doc-chapter" aria-labelledby="h" dir="ltr" id="ch1">
+              <p class="big" lang="en" title="Tip" data-x="1">A</p>
+              <p>A<sup>A</sup><sub>A</sub><small>A</small><u>A</u><s>A</s><code>A</code><cite>A</cite><abbr title="x">A</abbr><q>A</q><ins>A</ins><del>A</del><time>A</time><bdi>A</bdi><mark>A</mark><unknown-tag>A</unknown-tag></p>
+              <ol><li>A</li><li>A</li></ol>
+              <dl><dt>A</dt><dd>A</dd></dl>
+              <figure><figcaption>A</figcaption></figure>
+              <a name="old-anchor"></a>
+            </section>
+            """;
+        var layout = Layout(new Book { Chapters = { Chapter(body, head) } });
+        Assert.Empty(layout.ChapterDiagnostics);
+        var placements = layout.Pages.SelectMany(page => page.TextPlacements).ToArray();
+        // The head style sets the first paragraph to 20px; sup is font-size smaller, 10px / 1.2 (HTML user-agent sheet).
+        Assert.Equal(20, placements[0].Height, 6);
+        Assert.Equal(10 / 1.2, placements[2].Height, 6);
+        // Every letter is placed: 1 + 16 in the paragraphs, 2 list items, a term and definition, and a caption.
+        Assert.Equal(22, placements.Length);
+    }
+
+    /// <summary>A construct that used to refuse its chapter now lays out the chapter without a diagnosis page.</summary>
+    internal static EpubLayoutDocument AssertLaysOut(EpubDocument book, EpubLayoutOptions options)
+    {
+        var layout = book.CreateLayout(options);
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.NotEmpty(layout.Pages);
+        return layout;
+    }
+
     /// <summary>An ignored declaration, attribute or element lays out exactly like the document without it.</summary>
     internal static void AssertSameLayout(EpubLayoutDocument expected, EpubLayoutDocument actual)
     {

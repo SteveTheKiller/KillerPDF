@@ -256,10 +256,7 @@ public sealed class EpubFontWeightTests
     }
 
     [Theory]
-    [InlineData("<head><strong>A</strong></head><p>A</p>")]
     [InlineData("<p><strong onclick='bad'>A</strong></p>")]
-    [InlineData("<p><strong xmlns='urn:other'>A</strong></p>")]
-    [InlineData("<p><a href='#x'><strong><a href='#x'>A</a></strong></a></p>")]
     [InlineData("<p><a href='#x'><strong><img src='missing.png'/></strong></a></p>")]
     public void StrongAdmissionPreservesUnsupportedContextsAttributesAndWeightKeywords(string body)
     {
@@ -269,6 +266,26 @@ public sealed class EpubFontWeightTests
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(40, 26, regular)
         { FontSize = 10, Margin = 2, FontFaceResolver = Resolve }));
         Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(regular) { FontFaceResolver = Resolve }));
+    }
+
+    // Headings nested in other content, unknown h7, foreign-namespace and advisory attributes all lay out:
+    // HTML admits the nesting, an unknown element flows inline and inert attributes do not change rendering.
+    [Theory]
+    [InlineData("<p><h1>A</h1></p>")]
+    [InlineData("<h1><h3>A</h3></h1>")]
+    [InlineData("<p><span><h4>A</h4></span></p>")]
+    [InlineData("<h7>A</h7>")]
+    [InlineData("<h1 xmlns='urn:other'>A</h1>")]
+    [InlineData("<h1 align='center'>A</h1>")]
+    [InlineData("<h1 headingoffset='1'>A</h1>")]
+    [InlineData("<section><span><h1>A</h1></span></section>")]
+    [InlineData("<head><strong>A</strong></head><p>A</p>")]
+    [InlineData("<p><a href='#x'><strong><a href='#x'>A</a></strong></a></p>")]
+    [InlineData("<p><strong xmlns='urn:other'>A</strong></p>")]
+    public void HeadingAndStrongInOtherContextsLayOut(string body)
+    {
+        var regular = Face(false); var bold = Face(true);
+        EpubCompatibilityTests.AssertLaysOut(EpubDocument.Open(Book(false, body)), HeadingNativeOptions(regular, bold));
     }
 
     // CSS Fonts 4: bolder of 400 is 700 and lighter of 700 is 400, resolved against the inherited weight.
@@ -469,15 +486,7 @@ public sealed class EpubFontWeightTests
     }
 
     [Theory]
-    [InlineData("<p><h1>A</h1></p>")]
-    [InlineData("<h1><h3>A</h3></h1>")]
-    [InlineData("<p><span><h4>A</h4></span></p>")]
-    [InlineData("<h7>A</h7>")]
-    [InlineData("<h1 xmlns='urn:other'>A</h1>")]
     [InlineData("<h5 onclick='bad'>A</h5>")]
-    [InlineData("<h1 align='center'>A</h1>")]
-    [InlineData("<h1 headingoffset='1'>A</h1>")]
-    [InlineData("<section><span><h1>A</h1></span></section>")]
     public void HeadingAdmissionKeepsInlineMarginParentNamespaceAndAttributeGuards(string body)
     {
         var book = EpubDocument.Open(Book(false, body));

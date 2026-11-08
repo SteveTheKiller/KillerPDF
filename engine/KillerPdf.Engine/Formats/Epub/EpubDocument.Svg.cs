@@ -25,7 +25,7 @@ public sealed partial class EpubDocument
             while (reader.Read())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++nodeCount > 100_000 || reader.Depth > 2)
+                if (++nodeCount > 2_000_000 || reader.Depth > 2)
                     throw new InvalidDataException("EPUB SVG cover exceeds processing limits.");
                 if (reader.Depth == 0) continue;
                 if (reader.NodeType == XmlNodeType.EndElement) continue;

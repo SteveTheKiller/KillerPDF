@@ -44,7 +44,8 @@ public sealed partial class EpubDocument
             foreach (var item in list?.Elements(html + "li") ?? [])
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++nodeCount > 1024) throw new InvalidDataException("EPUB navigation exceeds the node limit.");
+                // The Complete Works of Shakespeare lists every act and scene (over 1,024 entries); 16,384 bounds work.
+                if (++nodeCount > 16_384) throw new InvalidDataException("EPUB navigation exceeds the node limit.");
                 if (depth > 32) throw new InvalidDataException("EPUB navigation exceeds the depth limit.");
                 var link = item.Element(html + "a");
                 if (item.Elements().Count(x => x.Name == html + "a" || x.Name == html + "span") != 1 ||
@@ -81,7 +82,8 @@ public sealed partial class EpubDocument
             foreach (var point in parent?.Elements(ncx + "navPoint") ?? [])
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++nodeCount > 1024) throw new InvalidDataException("EPUB navigation exceeds the node limit.");
+                // The Complete Works of Shakespeare lists every act and scene (over 1,024 entries); 16,384 bounds work.
+                if (++nodeCount > 16_384) throw new InvalidDataException("EPUB navigation exceeds the node limit.");
                 if (depth > 32) throw new InvalidDataException("EPUB navigation exceeds the depth limit.");
                 var label = string.Join(' ', Tokens(point.Element(ncx + "navLabel")?.Element(ncx + "text")?.Value ?? ""));
                 if (label.Length == 0) throw new InvalidDataException("Empty EPUB navigation label.");

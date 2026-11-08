@@ -104,7 +104,6 @@ public sealed class EpubNativeLayoutBoundaryTests
     }
 
     [Theory]
-    [InlineData("<p>A</p>", "<style>p { color:red }</style>", false, false)]
     [InlineData("<p>A</p>", "<script type='text/javascript'>void 0;</script>", false, true)]
     [InlineData("<p>\u00e9</p>", "", false, false)]
     [InlineData("<p>B</p>", "", false, false)]
@@ -113,6 +112,15 @@ public sealed class EpubNativeLayoutBoundaryTests
         var book = Book(body: body, head: head, css: css, scripted: scripted);
 
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options(book)));
+    }
+
+    // A head style element is an embedded stylesheet (HTML), applied like a linked one.
+    [Fact]
+    public void HeadStyleElementsApplyAsEmbeddedStylesheets()
+    {
+        var book = Book(body: "<p>A</p>", head: "<style>p { color:red }</style>", css: false, scripted: false);
+        var layout = EpubCompatibilityTests.AssertLaysOut(book, Options(book));
+        Assert.Equal(new KillerPdf.Engine.Authoring.PdfRgbColor(1, 0, 0), Assert.Single(layout.Pages[0].TextPlacements).Color);
     }
 
     [Theory]

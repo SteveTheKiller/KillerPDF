@@ -240,8 +240,9 @@ public class EpubPageBreakBeforeTests
     [Fact]
     public void EmptyParagraphWorkIsBounded()
     {
-        var source = Book("p{page-break-before:always}", string.Concat(Enumerable.Repeat("<p/>", 100_001)));
-        Assert.Contains("processing limits", Assert.Throws<InvalidDataException>(() => EpubDocument.Open(source).CreateLayout(Options())).Message);
+        // The paragraph limit was raised to 1,000,000 for real books (KP-B slice 10).
+        var source = Book("p{page-break-before:always}", string.Concat(Enumerable.Repeat("<p/>", 1_000_001)));
+        Assert.Contains("1,000,000-event limit", Assert.Throws<InvalidDataException>(() => EpubDocument.Open(source).CreateLayout(Options())).Message);
     }
 
     [Theory]

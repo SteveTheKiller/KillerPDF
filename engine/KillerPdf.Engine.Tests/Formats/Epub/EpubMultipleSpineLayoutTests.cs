@@ -53,7 +53,8 @@ public sealed class EpubMultipleSpineLayoutTests
     [Fact]
     public void IsolatedLayoutReplacesOnlyTheRefusedChapterWithADiagnosisPage()
     {
-        byte[] source = Book(["<p>A A</p>", "<p>A<sup>A</sup></p>"]), original = source.ToArray();
+        // Scripting is a lasting chapter refusal; sup used to refuse but now lays out (KP-B slice 5).
+        byte[] source = Book(["<p>A A</p>", "<p onclick='go()'>AA</p>"]), original = source.ToArray();
         var book = EpubDocument.Open(source);
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options()));
 
@@ -69,7 +70,7 @@ public sealed class EpubMultipleSpineLayoutTests
         var diagnostic = Assert.Single(layout.ChapterDiagnostics);
         Assert.Equal(1, diagnostic.SpineIndex);
         Assert.EndsWith("chapter1.xhtml", diagnostic.Href);
-        Assert.Equal("Native EPUB XHTML element is not implemented: sup.", diagnostic.Message);
+        Assert.Equal("Scripted EPUB XHTML text is unsupported.", diagnostic.Message);
         Assert.Equal(16, layout.RenderPage(layout.Pages.ToList().IndexOf(placeholder)).Width);
         Assert.Equal(original, source);
     }
@@ -77,7 +78,7 @@ public sealed class EpubMultipleSpineLayoutTests
     [Fact]
     public void LinksIntoAnIsolatedChapterResolveToItsDiagnosisPage()
     {
-        var book = EpubDocument.Open(Book(["<p>A A</p>", "<p id='note'>A<sup>A</sup></p>"]));
+        var book = EpubDocument.Open(Book(["<p>A A</p>", "<p id='note' onclick='go()'>AA</p>"]));
         var layout = book.CreateLayout(Options() with { IsolateChapterFailures = true });
         string href = Assert.Single(layout.ChapterDiagnostics).Href;
         int placeholder = layout.Pages.ToList().FindIndex(page => page.SpineIndex == 1);
@@ -166,8 +167,8 @@ public sealed class EpubMultipleSpineLayoutTests
         var combined = EpubDocument.Open(Book(Enumerable.Repeat(body, 17).ToArray()));
         Assert.Equal(59999, combined.ReadText(0).Length);
         Assert.Equal(59999, combined.ReadText(1).Length);
-        var error = Assert.Throws<InvalidDataException>(() => combined.CreateLayout(options));
-        Assert.Equal("Native EPUB text exceeds its 1,000,000-character layout limit.", error.Message);
+        // 17 chapters of 59,999 characters exceeded the prototype 1,000,000 limit; under the 16,000,000 limit they lay out.
+        Assert.Equal(17 * 59999, combined.CreateLayout(options).Pages.Sum(page => page.Text.Length));
     }
 
     [Fact]
@@ -183,10 +184,11 @@ public sealed class EpubMultipleSpineLayoutTests
         Assert.Equal(50000, layout.Pages.Where(page => page.SpineIndex == 1).Sum(page => page.Text.Length));
         Assert.Equal(1_000_000, layout.Pages.Sum(page => page.Text.Length));
         Assert.Equal(19, layout.Pages.Last().SpineIndex);
-        var overBudget = EpubDocument.Open(Book([.. chapters, "<p>A</p>"]));
-        var error = Assert.Throws<InvalidDataException>(() => overBudget.CreateLayout(
-            Options() with { PageWidth = 32768, PageHeight = 14 }));
-        Assert.Equal("Native EPUB text exceeds its 1,000,000-character layout limit.", error.Message);
+        // The book-wide limit was raised from 1,000,000 to 16,000,000 characters (KP-B slice 10), so the
+        // prototype boundary plus one more chapter now lays out; the new boundary is too large to lay out in a unit test.
+        var overPrototype = EpubDocument.Open(Book([.. chapters, "<p>A</p>"]));
+        Assert.Equal(1_000_001, overPrototype.CreateLayout(Options() with { PageWidth = 32768, PageHeight = 14 })
+            .Pages.Sum(page => page.Text.Length));
     }
 
     [Theory]

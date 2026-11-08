@@ -138,14 +138,14 @@ public sealed class EpubSemanticContainerTests
     [InlineData("<span><header>A</header></span>")]
     [InlineData("<p><header>A</header></p>")]
     [InlineData("<header xmlns='urn:other'><p>A</p></header>")]
-    public void UnsupportedHeaderContextsKeepExplicitRefusal(string body)
+    // A header inside phrasing content or in another namespace lays out instead of refusing the chapter.
+    public void HeaderInOtherContextsLaysOut(string body)
     {
         byte[] source = Book(body, "p{margin:0}"), original = source.ToArray();
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
         var book = EpubDocument.Open(source);
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(30, 26, font)
-        { FontSize = 10, Margin = 2 }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        EpubCompatibilityTests.AssertLaysOut(book, new EpubLayoutOptions(30, 26, font) { FontSize = 10, Margin = 2 });
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
         Assert.Equal(original, source);
     }
 

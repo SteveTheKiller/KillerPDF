@@ -30,10 +30,10 @@ public sealed class EpubCssNamespaceTests
     [Theory]
     [InlineData("p+span")]
     [InlineData("p[epub|type^='bridgehead']")]
-    [InlineData("p:first-child")]
     public void UnsupportedSelectorFamiliesRetainExplicitDiagnostic(string selector)
     {
-        Reject(["@namespace epub 'http://www.idpf.org/2007/ops';" + selector + "{color:red}"], "Native EPUB CSS selector is not implemented.");
+        // Unsupported selector families drop their rule instead of refusing (KP-B slice 4).
+        Dropped(["@namespace epub 'http://www.idpf.org/2007/ops';" + selector + "{color:red}"]);
     }
 
     [Theory]
@@ -54,8 +54,8 @@ public sealed class EpubCssNamespaceTests
         RejectBudget(string.Concat(Enumerable.Repeat("@namespace h 'urn:test';", 257)), "Native EPUB CSS namespace declarations exceed their 256-declaration limit.");
         RejectBudget("@namespace h '" + new string('x', 2049) + "';", "Native EPUB CSS namespace name exceeds its 2,048-character limit.");
         RejectBudget("@namespace h 'http://www.w3.org/1999/xhtml';" + string.Concat(Enumerable.Repeat("h|p{}", 4096)),
-            "Native EPUB CSS selector matching exceeds its work limit.", string.Concat(Enumerable.Repeat("<p>A</p>", 16)));
-        Reject([new string('p', 129) + "{}"], "Native EPUB CSS selector is not implemented.");
+            "Native EPUB CSS selector matching exceeds its work limit.", string.Concat(Enumerable.Repeat("<p>A</p>", 1000)));
+        Dropped([new string('p', 129) + "{color:red}"]);
     }
 
     [Fact]
@@ -78,7 +78,8 @@ public sealed class EpubCssNamespaceTests
     [Fact]
     public void SelectorCountHasAnExplicitBoundAtBothPublicSeams()
     {
-        RejectBudget(string.Concat(Enumerable.Repeat("p{}", 4097)), "Native EPUB CSS selectors exceed their 4,096-selector limit.");
+        // Raised from 4,096 for real books (KP-B slice 10).
+        RejectBudget(string.Concat(Enumerable.Repeat("p{}", 65537)), "Native EPUB CSS selectors exceed their 65,536-selector limit.");
     }
 
     private static void RejectBudget(string css, string message, string body = "<p>A</p>")
@@ -100,7 +101,8 @@ public sealed class EpubCssNamespaceTests
         Verify(["@namespace h 'http://www.w3.org/1999/xhtml';h|p{color:red}", "@namespace h 'urn:other';h|p{color:lime}"], new(1, 0, 0), [1, 0, 0, 1], [0, 0, 255, 255]);
         Verify(["@namespace h 'urn:other';@namespace h 'http://www.w3.org/1999/xhtml';h|p{color:red}"], new(1, 0, 0), [1, 0, 0, 1], [0, 0, 255, 255]);
         Verify(["@namespace 'http://www.w3.org/1999/xhtml';@namespace 'urn:other';p{color:red}"], null, [0, 0, 0, 1], [0, 0, 0, 255]);
-        Reject(["@namespace h 'http://www.w3.org/1999/xhtml';", "h|p{color:red}"], "Native EPUB CSS selector namespace prefix is not declared: h.");
+        // A prefix declared only in another sheet is undeclared here, so that rule is dropped.
+        Dropped(["@namespace h 'http://www.w3.org/1999/xhtml';", "h|p{color:red}"]);
     }
 
     [Fact]
@@ -170,6 +172,14 @@ public sealed class EpubCssNamespaceTests
         Assert.Equal(original, source);
         for (int i = 0; i < sheets.Length; i++) Assert.Equal(Encoding.UTF8.GetBytes(sheets[i]), book.ReadResource($"EPUB/{i}.css"));
         return (native.Pixels.ToArray(), rendered.Pixels.ToArray());
+    }
+
+    private static void Dropped(string[] sheets)
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var options = new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 };
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book(sheets.Select(_ => "").ToArray())).CreateLayout(options),
+            EpubDocument.Open(Book(sheets)).CreateLayout(options));
     }
 
     private static void Reject(string[] sheets, string message)

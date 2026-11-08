@@ -75,14 +75,14 @@ public sealed class EpubEmptyTitleTests(ITestOutputHelper output)
     [InlineData("title=' '")]
     [InlineData("xmlns:t='urn:test' t:title=''")]
     [InlineData("data-unknown=''")]
-    public void OtherHeadingMetadataRemainsDiagnosed(string attributes)
+    // Advisory and unknown attributes are inert: the heading lays out exactly as without them.
+    public void OtherHeadingMetadataIsInert(string attributes)
     {
-        var book = EpubDocument.Open(Book(attributes));
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        Assert.Contains("attributes", Assert.Throws<NotSupportedException>(() => book.CreateLayout(
-            new EpubLayoutOptions(40, 50, font) { FontSize = 10, Margin = 2 })).Message);
-        Assert.Contains("attributes", Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(
-            new EpubPdfConversionOptions(font))).Message);
+        var options = new EpubLayoutOptions(40, 50, font) { FontSize = 10, Margin = 2 };
+        var book = EpubDocument.Open(Book(attributes));
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("")).CreateLayout(options), book.CreateLayout(options));
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
     }
 
     private static byte[] Book(string attributes, string? css = null)

@@ -117,7 +117,8 @@ public sealed class PdfNativeReadSnapshotTests
     {
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
         var options = new EpubLayoutOptions(16, 14, font) { FontSize = 10, Margin = 2 };
-        byte[] oversized = new byte[65 * 1024 * 1024];
+        // The single EPUB package limit is EpubDocument.MaxPackageBytes (128 MiB, KP-B slice 10).
+        byte[] oversized = new byte[EpubDocument.MaxPackageBytes + 1];
         long before = GC.GetAllocatedBytesForCurrentThread();
         var error = Assert.Throws<InvalidDataException>(() => PdfReadSnapshot.OpenEpub(oversized, options));
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
@@ -141,9 +142,10 @@ public sealed class PdfNativeReadSnapshotTests
     {
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
         var options = new EpubLayoutOptions(16, 23, font) { FontSize = 10, Margin = 2 };
-        Assert.Throws<NotSupportedException>(() => PdfReadSnapshot.OpenEpub(Book("A<sup>A</sup>"), options));
+        // Scripting stays a chapter refusal; sup used to be the trigger but now lays out (KP-B slice 5).
+        Assert.Throws<NotSupportedException>(() => PdfReadSnapshot.OpenEpub(Book("A<span onclick='go()'>A</span>"), options));
 
-        var snapshot = PdfReadSnapshot.OpenEpub(Book("A<sup>A</sup>"), options with { IsolateChapterFailures = true });
+        var snapshot = PdfReadSnapshot.OpenEpub(Book("A<span onclick='go()'>A</span>"), options with { IsolateChapterFailures = true });
 
         Assert.Equal(1, snapshot.PageCount);
         var diagnostic = Assert.Single(snapshot.ChapterDiagnostics);
@@ -151,7 +153,23 @@ public sealed class PdfNativeReadSnapshotTests
         Assert.Empty(PdfReadSnapshot.OpenEpub(Book(), options with { IsolateChapterFailures = true }).ChapterDiagnostics);
     }
 
-    private static byte[] Book(string text = "A")
+    // The snapshot shares the engine's single package limit (EpubDocument.MaxPackageBytes, 128 MiB):
+    // a 72 MiB illustrated package opens and anything larger than the limit keeps the size message.
+    [Fact]
+    public void EpubSnapshotsUseTheEnginePackageLimit()
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var options = new EpubLayoutOptions(16, 23, font) { FontSize = 10, Margin = 2 };
+        byte[] large = Book(padding: 9);
+        Assert.InRange(large.Length, 64 * 1024 * 1024 + 1, EpubDocument.MaxPackageBytes);
+        Assert.Equal(1, PdfReadSnapshot.OpenEpub(large, options).PageCount);
+        var oversized = new byte[EpubDocument.MaxPackageBytes + 1];
+        Book().CopyTo(oversized, 0);
+        Assert.Equal("EPUB exceeds the input size limit.",
+            Assert.Throws<InvalidDataException>(() => PdfReadSnapshot.OpenEpub(oversized, options)).Message);
+    }
+
+    private static byte[] Book(string text = "A", int padding = 0)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -173,6 +191,14 @@ public sealed class PdfNativeReadSnapshotTests
             Add("EPUB/nav.xhtml", """
                 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="text.xhtml">Native read</a></li></ol></nav></body></html>
                 """);
+            // Stored random filler makes a large package; the mimetype entry above stays first.
+            var filler = new byte[8 * 1024 * 1024];
+            new Random(472).NextBytes(filler);
+            for (int index = 0; index < padding; index++)
+            {
+                using var stream = zip.CreateEntry($"EPUB/extra{index}.bin", CompressionLevel.NoCompression).Open();
+                stream.Write(filler);
+            }
             void Add(string path, string content, CompressionLevel compression = CompressionLevel.Optimal)
             {
                 using var stream = zip.CreateEntry(path, compression).Open();

@@ -13,14 +13,14 @@ namespace KillerPdf.Engine.Tests.Formats.Epub;
 public sealed class EpubEmbeddedImageLayoutTests
 {
     [Fact]
-    public void ImageLinksRemainDiagnosedUntilTheirHitRegionsCanBePreserved()
+    // A linked image paints; it has no hit region yet, so only the link's text (none here) is clickable.
+    public void LinkedImagesPaintWithoutAHitRegion()
     {
         var book = EpubDocument.Open(Package(RgbPng(),
             "<p><a href='#target'><img src='../images/check.png' alt=''/></a></p><div id='target'/>"));
         var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(24, 24, font)
-        { Margin = 2, FontSize = 10 }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        var layout = EpubCompatibilityTests.AssertLaysOut(book, new EpubLayoutOptions(24, 24, font) { Margin = 2, FontSize = 10 });
+        Assert.Single(layout.Pages.SelectMany(page => page.Glyphs.OfType<NativeImagePaint>()));
     }
 
     [Fact]

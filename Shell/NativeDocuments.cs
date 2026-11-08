@@ -14,8 +14,10 @@ public partial class MainWindow
         {
             using (var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                if (source.Length > 64L << 20)
-                    throw new InvalidDataException("Native document input exceeds the 64 MiB limit.");
+                bool epub = Path.GetExtension(path).Equals(".epub", StringComparison.OrdinalIgnoreCase);
+                long maximum = epub ? EpubDocument.MaxPackageBytes : 64L << 20;
+                if (source.Length > maximum)
+                    throw new InvalidDataException("Native document input exceeds the " + (maximum >> 20) + " MiB limit.");
                 byte[] bytes = new byte[checked((int)source.Length)];
                 source.ReadExactly(bytes);
                 if (Path.GetExtension(path).Equals(".epub", StringComparison.OrdinalIgnoreCase))

@@ -65,16 +65,31 @@ public sealed class EpubNativeLayoutTests
     }
 
     [Theory]
+    [InlineData("<meta name='generator' content='fixture' onclick='alert(1)'/>", false)]
+    public void UnsupportedMetadataPragmasAttributesAndBodyPlacementRemainDiagnosed(string metadata, bool inBody)
+        => AssertMetadataRefused(metadata, inBody);
+
+    // Metadata never paints, so pragmas, charset declarations (XML decoding is authoritative) and meta in
+    // the body are inert; nothing is fetched or refreshed.
+    [Theory]
     [InlineData("<meta http-equiv='refresh' content='0;url=https://example.invalid/'/>", false)]
     [InlineData("<meta http-equiv='Content-Style-Type' content='text/less'/>", false)]
-    [InlineData("<meta name='generator' content='fixture' onclick='alert(1)'/>", false)]
     [InlineData("<meta name='generator' content='fixture'/>", true)]
     [InlineData("<meta charset='utf-16'/>", false)]
     [InlineData("<meta charset=' utf-8 '/>", false)]
     [InlineData("<meta charset=''/>", false)]
     [InlineData("<meta xmlns:x='urn:other' x:charset='utf-8'/>", false)]
     [InlineData("<meta charset='utf-8'/>", true)]
-    public void UnsupportedMetadataPragmasAttributesAndBodyPlacementRemainDiagnosed(string metadata, bool inBody)
+    public void MetadataPragmasAndBodyMetadataAreInert(string metadata, bool inBody)
+    {
+        var plain = EpubDocument.Open(Book("<p>A</p>"));
+        var font = TrueTypeFont.Load(plain.ReadResource("EPUB/fonts/test.ttf"));
+        var options = new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 };
+        var book = EpubDocument.Open(Book(inBody ? metadata + "<p>A</p>" : "<p>A</p>", headMetadata: inBody ? null : metadata));
+        EpubCompatibilityTests.AssertSameLayout(plain.CreateLayout(options), book.CreateLayout(options));
+    }
+
+    private static void AssertMetadataRefused(string metadata, bool inBody)
     {
         byte[] source = Book(inBody ? metadata + "<p>A</p>" : "<p>A</p>",
             headMetadata: inBody ? null : metadata), original = source.ToArray();
@@ -459,11 +474,12 @@ public sealed class EpubNativeLayoutTests
     [Fact]
     public void StylesheetReferenceWorkIsBoundedEvenForEmptySharedResources()
     {
-        var allowed = EpubDocument.Open(Book(stylesheet: "", stylesheetReferences: 1024));
+        // The reference limit is 65,536 per layout (KP-B slice 10).
+        var allowed = EpubDocument.Open(Book(stylesheet: "", stylesheetReferences: 65_536));
         var font = TrueTypeFont.Load(allowed.ReadResource("EPUB/fonts/test.ttf"));
         var options = new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 };
         Assert.Equal("A A", Assert.Single(allowed.CreateLayout(options).Pages).Text);
-        var excessive = EpubDocument.Open(Book(stylesheet: "", stylesheetReferences: 1025));
+        var excessive = EpubDocument.Open(Book(stylesheet: "", stylesheetReferences: 65_537));
         Assert.Empty(excessive.ReadResource("EPUB/styles/book.css"));
         Assert.Equal("A A", excessive.ReadText(0));
 
@@ -546,10 +562,11 @@ public sealed class EpubNativeLayoutTests
     public void NativeLayoutBoundsSelectorMatchingWorkBeforeReturningPages()
     {
         string stylesheet = string.Concat(Enumerable.Repeat("span.a{font-size:10px}", 2000));
-        string body = "<p>" + string.Concat(Enumerable.Repeat("<span class=\"a\">A</span>", 1000)) + "</p>";
+        // Rules are indexed and the per-chapter budget is 5,000,000 steps (KP-B slice 10), so 2,000 spans exceed it.
+        string body = "<p>" + string.Concat(Enumerable.Repeat("<span class=\"a\">A</span>", 2000)) + "</p>";
         var book = EpubDocument.Open(Book(body, stylesheet));
         Assert.Equal(Encoding.UTF8.GetBytes(stylesheet), book.ReadResource("EPUB/styles/book.css"));
-        Assert.Equal(new string('A', 1000), book.ReadText(0));
+        Assert.Equal(new string('A', 2000), book.ReadText(0));
         var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
         var options = new EpubLayoutOptions(8192, 40, font) { FontSize = 10, Margin = 8 };
 

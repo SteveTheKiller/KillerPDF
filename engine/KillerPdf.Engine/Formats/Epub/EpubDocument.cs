@@ -10,6 +10,9 @@ public sealed partial class EpubDocument
 {
     private readonly Dictionary<string, byte[]> _resources;
     private const int MaxEntryBytes = 8 * 1024 * 1024;
+    /// <summary>The largest EPUB package the engine opens.</summary>
+    public const int MaxPackageBytes = 128 * 1024 * 1024;
+    private const long MaxExpandedBytes = 256L * 1024 * 1024;
     private static readonly XNamespace Opf = "http://www.idpf.org/2007/opf";
     private static readonly XNamespace Dc = "http://purl.org/dc/elements/1.1/";
     private EpubDocument(Dictionary<string, byte[]> resources, XDocument package, string packagePath)
@@ -61,7 +64,9 @@ public sealed partial class EpubDocument
     public static EpubDocument Open(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (data.Length > 64 * 1024 * 1024)
+        // Illustrated editions run large (The Count of Monte Cristo with 450 images is 84 MB), so the
+        // package may be up to 128 MiB and expand to 256 MiB; each entry keeps its 8 MiB bound.
+        if (data.Length > MaxPackageBytes)
             throw new InvalidDataException("EPUB exceeds the input size limit.");
         var bytes = data.ToArray();
         if (bytes.Length < 57 || BinaryPrimitives.ReadUInt32LittleEndian(bytes) != 0x04034b50 ||
@@ -90,7 +95,7 @@ public sealed partial class EpubDocument
                 throw new InvalidDataException("Encrypted EPUB publications are unsupported.");
             if (entry.Length > MaxEntryBytes)
                 throw new InvalidDataException("EPUB resource exceeds the expanded size limit.");
-            if (entry.Length > 64 * 1024 * 1024 - expandedBytes)
+            if (entry.Length > MaxExpandedBytes - expandedBytes)
                 throw new InvalidDataException("EPUB exceeds the total expanded size limit.");
             using var stream = entry.Open();
             using var output = new MemoryStream();
@@ -102,7 +107,7 @@ public sealed partial class EpubDocument
                 if (output.Length + count > MaxEntryBytes)
                     throw new InvalidDataException("EPUB resource exceeds the expanded size limit.");
                 expandedBytes += count;
-                if (expandedBytes > 64 * 1024 * 1024)
+                if (expandedBytes > MaxExpandedBytes)
                     throw new InvalidDataException("EPUB exceeds the total expanded size limit.");
                 output.Write(buffer, 0, count);
             }
