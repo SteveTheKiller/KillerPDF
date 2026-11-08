@@ -353,10 +353,12 @@ public sealed class RenderBoundaryTests
         Assert.Contains("RenderViewingPage(lease, i, renderW, token,", viewer);
         Assert.Contains("RenderViewingPage(lease, i, secondaryMax, token,", viewer);
         string pipeline = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.RenderPipeline.cs"));
-        Assert.Equal(2, Count(pipeline, "lease.Render(page, maximumSize, height, token)"));
-        Assert.Contains("lease.RenderFrame(page, maximumSize, height, token, proof)", pipeline);
-        Assert.Contains("monitor?.Convert(frame, token)", pipeline);
-        Assert.Contains("frame.ToSrgbBgra32(token)", pipeline);
+        Assert.Equal(1, Count(pipeline, "lease.Render(page, maximumSize, height, token)"));
+        Assert.Contains("lease.RenderFrame(page, maximumSize, height, token, requested)", pipeline);
+        // Viewing renders share one proof and monitor conversion path, which keeps the token.
+        string viewing = File.ReadAllText(Path.Combine(root, "Services", "Presentation", "PdfViewingFrameConversion.cs"));
+        Assert.Contains("monitor?.Convert(frame, token)", viewing);
+        Assert.Contains("frame.ToSrgbBgra32(token)", viewing);
         Assert.Contains("lease.Render(target, scaledMax, scaledMax, token)", viewer);
         string refinement = File.ReadAllText(Path.Combine(root, "Controls", "Viewer", "PdfViewer.Refinement.cs"));
         Assert.Contains("region.Left, region.Top, region.Width, region.Height, workToken)", refinement);

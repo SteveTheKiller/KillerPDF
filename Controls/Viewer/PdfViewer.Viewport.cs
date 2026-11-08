@@ -729,10 +729,10 @@ namespace KillerPDF.Controls
                                         return (Frame: RenderNativeFrame(nativeRevision, i, renderW, renderW * 2, token,
                                             proof?.Settings), Warning: (string?)null);
                                     }
-                                    catch (NotSupportedException exception) when (proof?.Settings.Enabled == true)
+                                    catch (NotSupportedException) when (proof?.Settings.Enabled == true)
                                     {
                                         return (Frame: RenderNativeFrame(nativeRevision, i, renderW, renderW * 2, token),
-                                            Warning: exception.Message);
+                                            Warning: "Str_CM_ProofUnavailablePage");
                                     }
                                 }, renderToken);
                             var frame = nativeRender.Frame;
@@ -754,43 +754,24 @@ namespace KillerPDF.Controls
                         else
                         {
                             if (renderRequest is null) return;
-                            if (continuousMonitor is not null)
-                            {
-                                try
-                                {
-                                    var frame = await _viewportRenderQueue.Enqueue(
-                                        (renderRequest, "continuous-float", i), 10 + Math.Abs(i - centerPage),
-                                        Math.Min((proof?.Settings.Enabled == true ? 128L : 80L) * renderW * renderW, 512L << 20), token =>
-                                        {
-                                            using var lease = renderRequest.Rent(token);
-                                            return lease.RenderFrame(i, renderW, renderW * 2, token, proof?.Settings);
-                                        }, renderToken);
-                                    var converted = continuousMonitor.Convert(frame, renderToken);
-                                    if (converted.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale) return;
-                                    displayFallback = converted.FailureOperation;
-                                    w = frame.Width;
-                                    h = frame.Height;
-                                    raw = converted.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
-                                        ? converted.BgraPixels.ToArray() : frame.ToSrgbBgra32(renderToken);
-                                    if (rot != 0)
-                                        (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
-                                    PublishContinuousBitmap(i, w, h, rot, raw, null, monitorWarning, displayFallback);
-                                    continue;
-                                }
-                                catch (NotSupportedException exception) { monitorWarning = exception.Message; }
-                            }
-                            var pdfRendered = await _viewportRenderQueue.Enqueue(
-                                (renderRequest, "continuous", i), 10 + Math.Abs(i - centerPage),
-                                Math.Min((proof?.Settings.Enabled == true ? 128L : 16L) * renderW * renderW, 512L << 20), token =>
+                            // A refused proof keeps monitor conversion, and an undrawable float page keeps
+                            // a visible fallback; neither request is dropped.
+                            var viewing = await _viewportRenderQueue.Enqueue(
+                                (renderRequest, continuousMonitor is null ? "continuous" : "continuous-float", i),
+                                10 + Math.Abs(i - centerPage),
+                                Math.Min((proof?.Settings.Enabled == true ? 128L : continuousMonitor is null ? 16L : 80L)
+                                    * renderW * renderW, 512L << 20), token =>
                             {
                                 using var lease = renderRequest.Rent(token);
-                                return RenderViewingPage(lease, i, renderW, token,
-                                    continuousMonitor is null ? proof?.Settings : null, maximumHeight: renderW * 2);
+                                return RenderViewingPage(lease, i, renderW, token, proof?.Settings,
+                                    maximumHeight: renderW * 2, monitor: continuousMonitor);
                             }, renderToken);
-                            rendered = pdfRendered;
-                            w = pdfRendered.Width;
-                            h = pdfRendered.Height;
-                            raw = pdfRendered.Pixels;
+                            rendered = viewing.Compatibility;
+                            if (viewing.ProofUnavailable) monitorWarning = "Str_CM_ProofUnavailablePage";
+                            displayFallback = viewing.DisplayFallbackOperation;
+                            w = viewing.Width;
+                            h = viewing.Height;
+                            raw = viewing.Pixels;
                             if (w <= 0 || h <= 0 || raw is null) continue;
                             if (invert)
                                 BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h,
@@ -819,8 +800,16 @@ namespace KillerPDF.Controls
                             int ddh = Math.Max(1, (int)Math.Round(targetW * fh / fw));
                             var bmp = BitmapHelpers.BuildScaledBitmap(fw, fh, bytes, ddw, ddh);
                             if (rendered is { } pdfPage) RememberRenderWarning(bmp, pdfPage);
+                            // monitorWarning carries the proof notice key; the text is localized when shown.
                             if (monitorWarning is not null || displayFallback is not null)
-                                RenderWarnings.GetValue(bmp, _ => new RenderWarning(monitorWarning ?? "", displayFallback));
+                            {
+                                var existing = RenderWarnings.TryGetValue(bmp, out var recorded) ? recorded : new RenderWarning("");
+                                RenderWarnings.AddOrUpdate(bmp, existing with
+                                {
+                                    DisplayFallbackOperation = displayFallback ?? existing.DisplayFallbackOperation,
+                                    ProofUnavailable = existing.ProofUnavailable || monitorWarning is not null
+                                });
+                            }
                             if (continuousMonitor is null) CacheRender(session, fi, renderW, prot, bmp,
                                 continuous: true, proofStamp: proof?.Stamp);
                             SetContinuousSlot(fi, bmp);
@@ -1476,7 +1465,7 @@ namespace KillerPDF.Controls
                                     });
                                     continue;
                                 }
-                                PdfRenderedPage rendered = await _viewportRenderQueue.Enqueue(
+                                var rendered = await _viewportRenderQueue.Enqueue(
                                     (renderRequest, "secondary", i), 10 + i - primaryPageIdx,
                                     Math.Min((proof?.Settings.Enabled == true ? 64L : secondaryMonitor is not null ? 40L : 8L)
                                         * secondaryMax * secondaryMax, 512L << 20), token =>

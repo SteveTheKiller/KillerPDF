@@ -50,7 +50,8 @@ public partial class PdfViewer
         var mode = _viewMode;
         double zoom = _zoomLevel;
         var display = _presentationDisplay;
-        var monitor = (mode == ViewMode.Single || mode.IsContinuous()) && !invert && display is not null
+        // Every refined tile gets the same monitor conversion as its base page, in every mode.
+        var monitor = !invert && display is not null
             && KillerPdf.Engine.Rendering.PdfDisplayPresentationPolicy.Resolve(display).TransformOwner
                 == KillerPdf.Engine.Rendering.PdfMonitorTransformOwner.Application ? _sdrDisplayConverter : null;
         var request = _backgroundRenderCache.Capture(file, revision, _protection);
@@ -93,7 +94,8 @@ public partial class PdfViewer
                 visible.Intersect(new Rect(0, 0, image.ActualWidth, image.ActualHeight));
                 if (visible.IsEmpty || visible.Width <= 0 || visible.Height <= 0) continue;
                 int rotation = _pageRotations.TryGetValue(page, out int rot) ? rot : 0;
-                var regionMonitor = rotation == 0 ? monitor : null;
+                // Conversion happens before rotation, so rotated pages are converted like upright ones.
+                var regionMonitor = monitor;
                 Point imageStart = image.PointToScreen(default);
                 Point imageEnd = image.PointToScreen(new Point(image.ActualWidth, image.ActualHeight));
                 double deviceWidth = Math.Abs(imageEnd.X - imageStart.X);
@@ -113,26 +115,12 @@ public partial class PdfViewer
                         var dimensions = lease.Dimensions(page, maximum, maximum);
                         var region = VisibleRenderRegion.Create(dimensions.Width, dimensions.Height, rotation, l, t, r, b)
                             ?? throw new OperationCanceledException();
-                        byte[]? managedPixels = null;
-                        string? warning = null;
-                        string? displayFallback = null;
-                        if (regionMonitor is not null || proof?.Settings.Enabled == true)
-                        {
-                            try
-                            {
-                                var frame = lease.RenderFrameRegion(page, maximum, maximum, region, workToken, proof?.Settings);
-                                var conversion = regionMonitor?.Convert(frame, workToken);
-                                if (conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale)
-                                    throw new OperationCanceledException(workToken);
-                                managedPixels = conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
-                                    ? conversion.BgraPixels.ToArray() : frame.ToSrgbBgra32(workToken);
-                                displayFallback = conversion?.FailureOperation;
-                            }
-                            catch (NotSupportedException exception) { warning = exception.Message; }
-                        }
-                        PdfRenderedPage? rendered = managedPixels is null ? lease.RenderRegion(page, maximum, maximum,
-                            region.Left, region.Top, region.Width, region.Height, workToken) : null;
-                        byte[] pixels = managedPixels ?? rendered!.Value.Pixels;
+                        var viewing = KillerPDF.Presentation.PdfViewingFrameConversion.Render(
+                            requested => lease.RenderFrameRegion(page, maximum, maximum, region, workToken, requested),
+                            () => lease.RenderRegion(page, maximum, maximum,
+                                region.Left, region.Top, region.Width, region.Height, workToken),
+                            proof?.Settings, regionMonitor, workToken);
+                        byte[] pixels = viewing.Pixels;
                         int w = region.Width, h = region.Height;
                         if (invert)
                         {
@@ -151,9 +139,7 @@ public partial class PdfViewer
                         if (rotation != 0) (pixels, w, h) = BitmapHelpers.RotateBitmap(pixels, w, h, rotation);
                         var bitmap = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);
                         bitmap.Freeze();
-                        if (rendered is { } compatibility) RememberRenderWarning(bitmap, compatibility);
-                        if (warning is not null || displayFallback is not null)
-                            RenderWarnings.GetValue(bitmap, _ => new RenderWarning(warning ?? "", displayFallback));
+                        RememberRenderWarning(bitmap, viewing);
                         return (bitmap, region);
                     }, token);
                 if (!Current() || !ReferenceEquals(image.Source, source)) return;

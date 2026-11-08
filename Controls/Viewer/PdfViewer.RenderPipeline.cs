@@ -9,17 +9,28 @@ namespace KillerPDF.Controls;
 
 public partial class PdfViewer
 {
-    private sealed record RenderWarning(string Message, string? DisplayFallbackOperation = null);
+    // ProofUnavailable shows the localized proof notice; English engine messages never reach it.
+    private sealed record RenderWarning(string Message, string? DisplayFallbackOperation = null, bool ProofUnavailable = false);
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<BitmapSource, RenderWarning> RenderWarnings = new();
 
     private static void RememberRenderWarning(BitmapSource bitmap, PdfRenderedPage rendered)
     {
-        string message = string.Join(" ", rendered.RenderDiagnostics
-            .Where(item => item.BlocksPublication && item.Message != rendered.DisplayFallbackOperation)
-            .Select(item => item.Message));
+        string message = CompatibilityWarning(rendered);
         if (message.Length > 0 || rendered.DisplayFallbackOperation is not null)
             RenderWarnings.GetValue(bitmap, _ => new RenderWarning(message, rendered.DisplayFallbackOperation));
     }
+
+    private static void RememberRenderWarning(BitmapSource bitmap, KillerPDF.Presentation.PdfViewingPixels viewing)
+    {
+        string message = viewing.Compatibility is { } page ? CompatibilityWarning(page) : "";
+        string? fallback = viewing.DisplayFallbackOperation ?? viewing.Compatibility?.DisplayFallbackOperation;
+        if (message.Length > 0 || fallback is not null || viewing.ProofUnavailable)
+            RenderWarnings.AddOrUpdate(bitmap, new RenderWarning(message, fallback, viewing.ProofUnavailable));
+    }
+
+    private static string CompatibilityWarning(PdfRenderedPage rendered) => string.Join(" ", rendered.RenderDiagnostics
+        .Where(item => item.BlocksPublication && item.Message != rendered.DisplayFallbackOperation)
+        .Select(item => item.Message));
 
     private void PresentRenderWarning(FrameworkElement image, BitmapSource bitmap, int page, string? positionStatus = null)
     {
@@ -32,6 +43,13 @@ public partial class PdfViewer
             if (result.Message.Length > 0)
                 warning = string.Format(Loc("Str_RenderError"),
                     string.Format(Loc("Str_PageRenderError"), page + 1) + ": " + result.Message);
+            if (result.ProofUnavailable)
+            {
+                string proofNotice = Loc("Str_CM_ProofUnavailablePage");
+                warning = warning is null
+                    ? (positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageCount)) + ". " + proofNotice
+                    : warning + " " + proofNotice;
+            }
             displayFallback |= result.DisplayFallbackOperation is not null;
         }
         if (displayFallback)
@@ -93,12 +111,16 @@ public partial class PdfViewer
             return (bitmap, new RenderMeasurement(page, parse, raster, timer.Elapsed.TotalMilliseconds, 0),
                 monitor is null ? frame : null);
         }
-        catch (NotSupportedException exception)
+        catch (NotSupportedException)
         {
+            // The fallback keeps the requested proof and monitor conversion where they still
+            // apply, and records what it could not keep instead of showing engine text.
             var fallback = native is not null
                 ? PrepareNativePrimaryBitmap(native, page, maximumSize, 0, false, token, proof, monitor)
-                : PreparePrimaryBitmap(request!, page, maximumSize, 0, false, token);
-            RenderWarnings.GetValue(fallback.Bitmap, _ => new RenderWarning(exception.Message));
+                : PreparePrimaryBitmap(request!, page, maximumSize, 0, false, token, proof, monitor);
+            if (!RenderWarnings.TryGetValue(fallback.Bitmap, out var recorded) || recorded.DisplayFallbackOperation is null)
+                RenderWarnings.AddOrUpdate(fallback.Bitmap, (recorded ?? new RenderWarning(""))
+                    with { DisplayFallbackOperation = KillerPDF.Presentation.PdfViewingFrameConversion.PreciseRenderUnavailable });
             return (fallback.Bitmap, fallback.Measurement, null);
         }
     }
@@ -110,11 +132,11 @@ public partial class PdfViewer
     {
         var timer = Stopwatch.StartNew();
         PdfRenderedFrame frame;
-        string? proofWarning = null;
+        bool proofUnavailable = false;
         try { frame = RenderNativeFrame(revision, page, maximumSize, maximumSize, token, proof); }
-        catch (NotSupportedException exception) when (proof?.Enabled == true)
+        catch (NotSupportedException) when (proof?.Enabled == true)
         {
-            proofWarning = exception.Message;
+            proofUnavailable = true;
             frame = RenderNativeFrame(revision, page, maximumSize, maximumSize, token);
         }
         double raster = timer.Elapsed.TotalMilliseconds;
@@ -137,8 +159,8 @@ public partial class PdfViewer
             96.0 * width / dipWidth, 96.0 * height / dipHeight, PixelFormats.Bgra32, null);
         bitmap.WritePixels(new Int32Rect(0, 0, width, height), pixels, width * 4, 0);
         bitmap.Freeze();
-        if (proofWarning is not null || conversion?.FailureOperation is not null)
-            RenderWarnings.GetValue(bitmap, _ => new RenderWarning(proofWarning ?? "", conversion?.FailureOperation));
+        if (proofUnavailable || conversion?.FailureOperation is not null)
+            RenderWarnings.GetValue(bitmap, _ => new RenderWarning("", conversion?.FailureOperation, proofUnavailable));
         return (bitmap, new RenderMeasurement(page, 0, raster, timer.Elapsed.TotalMilliseconds, 0));
     }
 
@@ -152,7 +174,7 @@ public partial class PdfViewer
         using var lease = request.Rent(token);
         double parse = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
-        PdfRenderedPage rendered = RenderViewingPage(lease, page, maximumSize, token, proof, monitor: monitor);
+        var rendered = RenderViewingPage(lease, page, maximumSize, token, proof, monitor: monitor);
         double raster = timer.Elapsed.TotalMilliseconds;
         timer.Restart();
         int width = rendered.Width, height = rendered.Height;
@@ -179,32 +201,13 @@ public partial class PdfViewer
         return (bitmap, new RenderMeasurement(page, parse, raster, timer.Elapsed.TotalMilliseconds, 0));
     }
 
-    private static PdfRenderedPage RenderViewingPage(PdfBackgroundRenderCache.Lease lease, int page,
+    private static KillerPDF.Presentation.PdfViewingPixels RenderViewingPage(PdfBackgroundRenderCache.Lease lease, int page,
         int maximumSize, CancellationToken token, KillerPdf.Engine.ColorManagement.PdfDocumentProofSettings? proof,
         int? maximumHeight = null, KillerPDF.Presentation.PdfSdrDisplayConverter? monitor = null)
     {
         int height = maximumHeight ?? maximumSize;
-        if (proof?.Enabled != true && monitor is null) return lease.Render(page, maximumSize, height, token);
-        try
-        {
-            var frame = lease.RenderFrame(page, maximumSize, height, token, proof);
-            var conversion = monitor?.Convert(frame, token);
-            if (conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Stale)
-                throw new OperationCanceledException(token);
-            byte[] pixels = conversion?.Outcome == KillerPDF.Presentation.PdfSdrConversionOutcome.Converted
-                ? conversion.BgraPixels.ToArray() : frame.ToSrgbBgra32(token);
-            return new PdfRenderedPage(frame.Width, frame.Height, pixels, PdfRenderBackend.Engine, null)
-            {
-                RenderDiagnostics = conversion?.FailureOperation is { } failure
-                    ? [new(PdfRenderDiagnosticKind.Degraded, failure)] : [],
-                DisplayFallbackOperation = conversion?.FailureOperation
-            };
-        }
-        catch (NotSupportedException error)
-        {
-            var normal = lease.Render(page, maximumSize, height, token);
-            return normal with { RenderDiagnostics = [.. normal.RenderDiagnostics,
-                new(PdfRenderDiagnosticKind.Degraded, error.Message)] };
-        }
+        return KillerPDF.Presentation.PdfViewingFrameConversion.Render(
+            requested => lease.RenderFrame(page, maximumSize, height, token, requested),
+            () => lease.Render(page, maximumSize, height, token), proof, monitor, token);
     }
 }
