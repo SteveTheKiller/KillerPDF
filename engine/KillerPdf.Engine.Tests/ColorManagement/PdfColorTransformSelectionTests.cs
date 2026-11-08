@@ -185,6 +185,22 @@ public sealed class PdfColorTransformSelectionTests
         Assert.False(selection.AppliesMediaWhiteScaling);
     }
 
+    [Fact]
+    public void ProofRefusesAPrinterTableSubstitutedForTheRequestedIntent()
+    {
+        var complete = PdfColorProfile.Load(Profile("RGB ", ("A2B0", IdentityLut()), ("A2B1", IdentityLut()),
+            ("B2A0", IdentityLut()), ("B2A1", IdentityLut())));
+        // The printer has no B2A1, so a relative-colorimetric proof would silently use the perceptual B2A0.
+        var printer = PdfColorProfile.Load(Profile("RGB ", ("A2B0", IdentityLut()), ("A2B1", IdentityLut()),
+            ("B2A0", IdentityLut())));
+
+        Assert.Throws<NotSupportedException>(() => new PdfProofTransform(complete, printer, complete));
+        Assert.Throws<NotSupportedException>(() => new PdfProofTransform(complete, printer, complete, new PdfProofOptions()));
+        Assert.Throws<NotSupportedException>(() => new PdfProofTransform(complete, printer, complete,
+            PdfRenderingIntent.RelativeColorimetric, blackPointCompensation: false));
+        _ = new PdfProofTransform(complete, printer, complete, PdfRenderingIntent.Perceptual, blackPointCompensation: false);
+    }
+
     private static void AssertUnavailable(PdfColorTransformSelection selection)
     {
         Assert.False(selection.IsAvailable);
