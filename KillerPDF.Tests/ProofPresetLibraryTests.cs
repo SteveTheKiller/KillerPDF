@@ -145,11 +145,13 @@ public sealed class ProofPresetLibraryTests : IDisposable
         library.Save(PdfProofPreset.FromJson(Requested));
         var gate = new FileStream(Path.Combine(_directory, "presets.lock"), FileMode.OpenOrCreate,
             FileAccess.ReadWrite, FileShare.None);
-        var release = Task.Run(async () => { await Task.Delay(150); gate.Dispose(); });
+        // A dedicated thread releases the gate, so a busy thread pool cannot delay it.
+        var release = new Thread(() => { Thread.Sleep(150); gate.Dispose(); });
+        release.Start();
 
         library.Save(PdfProofPreset.Capture("Second", new PdfDocumentProofSettings()));
 
-        release.Wait();
+        release.Join();
         Assert.Equal(2, new ProofPresetLibrary(_directory).GetPresets().Count);
     }
 

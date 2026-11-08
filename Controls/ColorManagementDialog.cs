@@ -61,13 +61,15 @@ internal sealed class ColorManagementDialog : Window
         var profile = Choice("Str_CM_Profile", "ProofProfile",
             [L("Str_CM_NoProfile"), .. entries.Select(entry => entry.Name)], selected);
         profile.IsEnabled = libraryReadable;
-        apply.IsEnabled = libraryReadable;
+        // Apply stays available with an unreadable library, so proofing can still be turned off.
+        apply.IsEnabled = true;
         fields.Children.Add(profile);
         var profileStatus = Label(libraryReadable ? "Str_CM_ProfileUnavailable" : "Str_CM_LibraryUnavailable", 4);
         AutomationProperties.SetAutomationId(profileStatus, "ProofProfileStatus");
         fields.Children.Add(profileStatus);
         bool importBusy = false;
         bool closed = false;
+        var resolvedKinds = new Dictionary<string, ProofProfileResolutionKind>(StringComparer.Ordinal);
         Closed += (_, _) => closed = true;
         var import = UiKit.Make(L("Str_CM_ImportProfile"), accent: false);
         import.IsEnabled = libraryReadable;
@@ -80,6 +82,36 @@ internal sealed class ColorManagementDialog : Window
         importStatus.Visibility = Visibility.Collapsed;
         AutomationProperties.SetAutomationId(importStatus, "ProofImportStatus");
         fields.Children.Add(importStatus);
+        // The working CMYK profile is an application setting kept with the profile library.
+        fields.Children.Add(Label("Str_CM_WorkingCmyk", 4));
+        List<ProofProfileEntry> workingEntries = [];
+        string? savedWorking = null;
+        var workingCmyk = Choice("Str_CM_WorkingCmyk", "ProofWorkingCmyk", [L("Str_CM_WorkingCmykBuiltIn")], 0);
+        fields.Children.Add(workingCmyk);
+        fields.Children.Add(Label("Str_CM_WorkingCmykHint", 4));
+        RefreshWorkingCmyk();
+
+        void RefreshWorkingCmyk()
+        {
+            string? chosen = workingCmyk.SelectedIndex > 0 && workingCmyk.SelectedIndex <= workingEntries.Count
+                ? workingEntries[workingCmyk.SelectedIndex - 1].ContentSha256 : null;
+            try
+            {
+                workingEntries = libraryReadable ? library.GetCmykProfiles().ToList() : [];
+                savedWorking = libraryReadable ? library.GetWorkingCmykProfileSha256() : null;
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException
+                or FormatException or NotSupportedException)
+            {
+                workingEntries = [];
+                savedWorking = null;
+            }
+            chosen ??= savedWorking;
+            workingCmyk.ItemsSource = new[] { L("Str_CM_WorkingCmykBuiltIn") }
+                .Concat(workingEntries.Select(entry => entry.Name)).ToArray();
+            workingCmyk.SelectedIndex = workingEntries.FindIndex(entry => entry.ContentSha256 == chosen) + 1;
+            workingCmyk.IsEnabled = libraryReadable && !importBusy;
+        }
         var presetLibrary = new ProofPresetLibrary();
         List<PdfProofPreset> presets;
         bool presetsReadable = true;
@@ -136,6 +168,8 @@ internal sealed class ColorManagementDialog : Window
                 });
                 if (closed) return;
                 entries = result.Entries;
+                resolvedKinds.Clear();
+                RefreshWorkingCmyk();
                 if (priorReference is { } current && !entries.Any(entry => entry.ContentSha256 == current))
                     entries.Insert(0, new ProofProfileEntry(L("Str_CM_UnavailableProfile"), current));
                 profile.ItemsSource = new[] { L("Str_CM_NoProfile") }.Concat(entries.Select(entry => entry.Name)).ToArray();
@@ -170,11 +204,30 @@ internal sealed class ColorManagementDialog : Window
                 profileStatus.Visibility = Visibility.Visible;
                 return;
             }
-            var preset = JsonNode.Parse(PdfProofPreset.Capture("Document", settings).ToJson())!;
-            preset["proof"]!["printerProfileSha256"] = profile.SelectedIndex == 0 ? null : entries[profile.SelectedIndex - 1].ContentSha256;
-            profileStatus.Visibility = enabled.IsChecked == true
-                && library.Resolve(PdfProofPreset.FromJson(preset.ToJsonString())).Kind != ProofProfileResolutionKind.Matched
-                ? Visibility.Visible : Visibility.Collapsed;
+            if (enabled.IsChecked != true)
+            {
+                profileStatus.Visibility = Visibility.Collapsed;
+                return;
+            }
+            // Resolve reads and parses the owned ICC copy, so each selection is resolved once.
+            string? reference = profile.SelectedIndex == 0 ? null : entries[profile.SelectedIndex - 1].ContentSha256;
+            ProofProfileResolutionKind kind = ProofProfileResolutionKind.NotSelected;
+            if (reference is not null && !resolvedKinds.TryGetValue(reference, out kind))
+            {
+                try
+                {
+                    var preset = JsonNode.Parse(PdfProofPreset.Capture("Document", settings).ToJson())!;
+                    preset["proof"]!["printerProfileSha256"] = reference;
+                    kind = library.Resolve(PdfProofPreset.FromJson(preset.ToJsonString())).Kind;
+                }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException
+                    or FormatException or NotSupportedException or ArgumentException)
+                {
+                    kind = ProofProfileResolutionKind.Invalid;
+                }
+                resolvedKinds[reference] = kind;
+            }
+            profileStatus.Visibility = kind != ProofProfileResolutionKind.Matched ? Visibility.Visible : Visibility.Collapsed;
         }
         fields.Children.Add(Label("Str_CM_Intent", 4));
         var intent = Choice("Str_CM_Intent", "ProofIntent",
@@ -200,8 +253,8 @@ internal sealed class ColorManagementDialog : Window
             previousFields.Children.Add(Label("Str_CM_PreviousFileHint", 4));
             previousFields.Children.Add(Label("Str_CM_PreviousFileSettings", 4));
             previousChoice = Choice("Str_CM_PreviousFileSettings", "ProofPreviousSettings",
-                Enumerable.Range(1, previousProof.Count).Select(index => L("Str_CM_PreviousFileSettings") + " "
-                    + index.ToString(System.Globalization.CultureInfo.CurrentCulture)).ToArray(), 0);
+                Enumerable.Range(1, previousProof.Count).Select(index => string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture, L("Str_CM_PreviousFileSettingsItem"), index)).ToArray(), 0);
             previousFields.Children.Add(previousChoice);
             reviewPrevious = UiKit.Make(L("Str_CM_ReviewPrevious"), accent: false);
             reviewPrevious.HorizontalAlignment = HorizontalAlignment.Left;
@@ -295,7 +348,19 @@ internal sealed class ColorManagementDialog : Window
         };
         apply.Click += (_, _) =>
         {
-            if (importBusy || !libraryReadable || profile.SelectedIndex < 0) return;
+            if (importBusy || profile.SelectedIndex < 0) return;
+            string? working = workingCmyk.SelectedIndex > 0 ? workingEntries[workingCmyk.SelectedIndex - 1].ContentSha256 : null;
+            if (libraryReadable && working != savedWorking)
+            {
+                try { library.SetWorkingCmykProfile(working); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException
+                    or FormatException or NotSupportedException or ArgumentException)
+                {
+                    profileStatus.Text = L("Str_CM_LibraryUnavailable");
+                    profileStatus.Visibility = Visibility.Visible;
+                    return;
+                }
+            }
             AppliedSettings = library.Resolve(CapturePreset("Document")).Settings;
             DialogResult = true;
         };
@@ -318,7 +383,8 @@ internal sealed class ColorManagementDialog : Window
         void SetOperationBusy(bool busy)
         {
             importBusy = busy;
-            import.IsEnabled = profile.IsEnabled = apply.IsEnabled = libraryReadable && !busy;
+            import.IsEnabled = profile.IsEnabled = workingCmyk.IsEnabled = libraryReadable && !busy;
+            apply.IsEnabled = !busy;
             presetChoice.IsEnabled = presetName.IsEnabled = savePreset.IsEnabled = presetsReadable && !busy;
             loadPreset.IsEnabled = presetsReadable && !busy && presetChoice.SelectedIndex > 0;
             if (previousChoice is not null) previousChoice.IsEnabled = !busy;

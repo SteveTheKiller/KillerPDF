@@ -196,12 +196,53 @@ public sealed class ProofProfileLibraryTests : IDisposable
             printerProfile: PdfColorProfile.Load(GrayProfile())));
         var gate = new FileStream(Path.Combine(_directory, "library.lock"), FileMode.Open,
             FileAccess.ReadWrite, FileShare.None);
-        var release = Task.Run(async () => { await Task.Delay(150); gate.Dispose(); });
+        // A dedicated thread releases the gate, so a busy thread pool cannot delay it.
+        var release = new Thread(() => { Thread.Sleep(150); gate.Dispose(); });
+        release.Start();
 
         var resolved = library.Resolve(preset);
 
-        release.Wait();
+        release.Join();
         Assert.Equal(ProofProfileResolutionKind.Matched, resolved.Kind);
+    }
+
+    // A synthetic affine CMYK output profile with a colorimetric forward table.
+    private const string AffineCmyk =
+        "AAABQAAAAAAEAAAAcHJ0ckNNWUtYWVogAAAAAAAAAAAAAAAAYWNzcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQTJCMQAAAJAAAACwbWZ0MgAAAAAEAwIAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAIAAgAA//8AAP//AAD//wAA//9AAEAAQAAgACAAIABAAEAAIAAgACAAAABAACAAQAAgAAAAIABAACAAIAAgAAAAAAAgAEAAQAAAACAAIAAgAEAAIAAAACAAAAAgACAAQAAAAAAAIAAgACAAIAAAAAAAAAAAAP//AAD//wAA//8=";
+
+    [Fact]
+    public void TheChosenWorkingCmykProfileIsRememberedAndResolvedFromTheLibrary()
+    {
+        var library = new ProofProfileLibrary(_directory);
+        var cmyk = library.Import("Press", Convert.FromBase64String(AffineCmyk));
+        library.Import("Gray", GrayProfile());
+        Assert.Equal([cmyk], library.GetCmykProfiles());
+        Assert.Null(library.GetWorkingCmykProfileSha256());
+        Assert.Null(library.ResolveWorkingCmykProfile());
+
+        library.SetWorkingCmykProfile(cmyk.ContentSha256);
+
+        var reopened = new ProofProfileLibrary(_directory);
+        Assert.Equal(cmyk.ContentSha256, reopened.GetWorkingCmykProfileSha256());
+        var resolved = Assert.IsType<PdfColorProfile>(reopened.ResolveWorkingCmykProfile());
+        Assert.Equal(cmyk.ContentSha256, resolved.ContentSha256);
+        // The resolved profile is accepted by the engine as a render's working CMYK profile.
+        Assert.Same(resolved, new KillerPdf.Engine.Rendering.PdfRenderOptions(1, 1) { WorkingCmykProfile = resolved }.WorkingCmykProfile);
+        reopened.SetWorkingCmykProfile(null);
+        Assert.Null(new ProofProfileLibrary(_directory).ResolveWorkingCmykProfile());
+    }
+
+    [Fact]
+    public void ANonCmykOrDamagedWorkingChoiceKeepsTheBuiltInProfile()
+    {
+        var library = new ProofProfileLibrary(_directory);
+        var gray = library.Import("Gray", GrayProfile());
+
+        Assert.Throws<ArgumentException>(() => library.SetWorkingCmykProfile(gray.ContentSha256));
+        File.WriteAllText(Path.Combine(_directory, "working-cmyk.json"), "{");
+
+        Assert.Null(library.GetWorkingCmykProfileSha256());
+        Assert.Null(library.ResolveWorkingCmykProfile());
     }
 
     [Fact]

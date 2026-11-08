@@ -210,6 +210,102 @@ public sealed class ProofProfileLibrary(string directory)
         return new(preset.ResolveProfile(profile), ProofProfileResolutionKind.Matched);
     }
 
+    private string WorkingCmykPath => Path.Combine(_directory, "working-cmyk.json");
+
+    /// <summary>Lists library profiles whose device color space is CMYK.</summary>
+    /// <remarks>Only the 20-byte ICC header of each owned copy is read.</remarks>
+    public IReadOnlyList<ProofProfileEntry> GetCmykProfiles() =>
+        GetProfiles().Where(entry => DeviceSpace(entry.ContentSha256) == "CMYK").ToList().AsReadOnly();
+
+    /// <summary>Gets the chosen working CMYK profile identity, or null for the built-in profile.</summary>
+    /// <remarks>A missing, unreadable or damaged choice reads as the built-in profile.</remarks>
+    public string? GetWorkingCmykProfileSha256()
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(ReadBoundedFile(WorkingCmykPath, 4096),
+                new JsonDocumentOptions { MaxDepth = 4 });
+            ValidateProperties(document.RootElement, "schemaVersion", "contentSha256");
+            if (document.RootElement.GetProperty("schemaVersion").GetInt32() != 1) return null;
+            string? hash = document.RootElement.GetProperty("contentSha256").GetString();
+            return hash is { Length: 64 } && hash.All(char.IsAsciiHexDigit) ? hash.ToUpperInvariant() : null;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException
+            or InvalidOperationException or KeyNotFoundException or FormatException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Chooses a library CMYK profile as the working profile, or the built-in one with null.</summary>
+    public void SetWorkingCmykProfile(string? contentSha256)
+    {
+        if (contentSha256 is not null && !GetCmykProfiles().Any(entry =>
+                string.Equals(entry.ContentSha256, contentSha256, StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("The working CMYK profile must be a CMYK profile in this library.", nameof(contentSha256));
+        try
+        {
+            Directory.CreateDirectory(_directory);
+            using var gate = ProofLibraryGate.Open(GatePath, FileMode.OpenOrCreate);
+            if (contentSha256 is null)
+            {
+                File.Delete(WorkingCmykPath);
+                return;
+            }
+            using var buffer = new MemoryStream();
+            using (var writer = new Utf8JsonWriter(buffer))
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber("schemaVersion", 1);
+                writer.WriteString("contentSha256", contentSha256.ToUpperInvariant());
+                writer.WriteEndObject();
+            }
+            WriteAtomic(WorkingCmykPath, buffer.ToArray());
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            throw new IOException("The working CMYK profile could not be saved.");
+        }
+    }
+
+    /// <summary>Loads the chosen working CMYK profile, or null for the built-in one.</summary>
+    /// <remarks>A choice whose owned copy is missing, changed or not a usable CMYK profile resolves to null.</remarks>
+    public PdfColorProfile? ResolveWorkingCmykProfile()
+    {
+        if (GetWorkingCmykProfileSha256() is not { } reference) return null;
+        try
+        {
+            byte[] bytes;
+            using (ProofLibraryGate.Open(GatePath, FileMode.Open))
+                bytes = ReadBoundedFile(Path.Combine(_directory, reference + ".icc"), 32 * 1024 * 1024);
+            var profile = PdfColorProfile.Load(bytes);
+            if (profile.ContentSha256 != reference || profile.DeviceColorSpaceSignature != "CMYK") return null;
+            // The engine decides whether the profile has a usable forward table.
+            _ = new KillerPdf.Engine.Rendering.PdfRenderOptions(1, 1) { WorkingCmykProfile = profile };
+            return profile;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+            or FormatException or NotSupportedException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    private string? DeviceSpace(string contentSha256)
+    {
+        try
+        {
+            using var file = File.OpenRead(Path.Combine(_directory, contentSha256 + ".icc"));
+            Span<byte> header = stackalloc byte[20];
+            file.ReadExactly(header);
+            return System.Text.Encoding.ASCII.GetString(header[16..20]);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
     private static void ValidateProperties(JsonElement element, params string[] names)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
