@@ -60,6 +60,11 @@ public sealed class DjvuDocumentTests
     [InlineData(2, DjvuOrientation.UpsideDown)]
     [InlineData(5, DjvuOrientation.Clockwise90)]
     [InlineData(6, DjvuOrientation.CounterClockwise90)]
+    // DjVuInfo::decode and DjVuLibre 3.5.29 ddjvu render the unassigned patterns upright.
+    [InlineData(0, DjvuOrientation.Upright)]
+    [InlineData(3, DjvuOrientation.Upright)]
+    [InlineData(4, DjvuOrientation.Upright)]
+    [InlineData(7, DjvuOrientation.Upright)]
     public void PreservesTheStoredOrientation(byte flags, DjvuOrientation expected)
     {
         var document = DjvuDocument.Open(File(Form("DJVU", Chunk("INFO", [0, 100, 0, 200, 26, 0, 0x2c, 1, 22, flags]))));

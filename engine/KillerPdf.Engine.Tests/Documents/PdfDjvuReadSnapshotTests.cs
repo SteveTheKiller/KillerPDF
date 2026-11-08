@@ -121,7 +121,9 @@ public sealed class PdfDjvuReadSnapshotTests
     public void NativeDjvuPropagatesMalformedAndUnsupportedContentDiagnoses()
     {
         Assert.Throws<InvalidDataException>(() => PdfReadSnapshot.OpenDjvu(Array.Empty<byte>()));
-        Assert.Throws<InvalidDataException>(() => PdfReadSnapshot.OpenDjvu(Page(300, 0)));
+        // An unassigned rotation pattern renders upright, as in DjVuLibre 3.5.29 ddjvu.
+        var unassignedRotation = PdfReadSnapshot.OpenDjvu(Page(300, 0)).RenderPage(0);
+        Assert.Equal((3, 2), (unassignedRotation.Width, unassignedRotation.Height));
         byte[] newerVersion = Page(300, 1);
         newerVersion[28] = 99;
         var unsupported = PdfReadSnapshot.OpenDjvu(newerVersion);

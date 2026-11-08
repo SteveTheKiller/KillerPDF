@@ -161,7 +161,8 @@ public sealed partial class DjvuDocument
     {
         if (chunks.Any(c => c.Id == 0x464f524d)) throw new InvalidDataException("Nested FORM is not allowed inside a page.");
         // DjVuInfo::decode, which the format reference names for INFO, needs five bytes and
-        // gives absent fields the defaults 300 DPI and upright, and out-of-range DPI 300.
+        // gives absent fields the defaults 300 DPI and upright, out-of-range DPI 300, and
+        // unassigned rotation patterns upright.
         if (chunks.Count == 0 || chunks[0].Id != 0x494e464f || chunks[0].Length < 5)
             throw new InvalidDataException("A page must begin with an INFO chunk of at least five bytes.");
         if (chunks.Skip(1).Any(c => c.Id == 0x494e464f)) throw new InvalidDataException("Duplicate INFO chunk.");
@@ -175,11 +176,10 @@ public sealed partial class DjvuDocument
         return new DjvuPageInfo(
             width, height, dpi, info[4], info.Length >= 6 ? info[5] : (byte)0, (info.Length >= 10 ? info[9] & 7 : 1) switch
             {
-                1 => DjvuOrientation.Upright,
                 2 => DjvuOrientation.UpsideDown,
                 5 => DjvuOrientation.Clockwise90,
                 6 => DjvuOrientation.CounterClockwise90,
-                _ => throw new InvalidDataException("Unrecognized page orientation.")
+                _ => DjvuOrientation.Upright
             });
     }
 
