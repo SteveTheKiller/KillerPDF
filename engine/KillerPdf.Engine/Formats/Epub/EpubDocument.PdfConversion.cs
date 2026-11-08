@@ -19,7 +19,9 @@ public sealed partial class EpubDocument
             Margin = options.MarginPoints / pointsPerCssPixel,
             FontSize = options.FontSizePoints / pointsPerCssPixel,
             FontFamilyResolver = options.FontFamilyResolver,
-            FontFaceResolver = options.FontFaceResolver
+            FontFaceResolver = options.FontFaceResolver,
+            IsolateChapterFailures = options.IsolateChapterFailures,
+            UnavailableChapterLabel = options.UnavailableChapterLabel
         }, cancellationToken);
         var builder = new PdfDocumentBuilder();
         foreach (var page in layout.Pages)

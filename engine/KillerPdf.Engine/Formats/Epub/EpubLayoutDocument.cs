@@ -27,6 +27,35 @@ public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, True
     public bool IsolateChapterFailures { get; init; }
     /// <summary>Gets the caller's localized heading for an isolated chapter's diagnosis page.</summary>
     public string UnavailableChapterLabel { get; init; } = "This chapter could not be displayed.";
+    /// <summary>
+    /// Gets an optional callback that layout invokes on its own thread after each spine item, laid out or
+    /// isolated, with the number of completed spine items and the spine's length.
+    /// </summary>
+    public Action<int, int>? ChapterProgress { get; init; }
+
+    /// <summary>Reports whether native layout accepts this page geometry and fallback font size.</summary>
+    public static bool FitsPageLimits(double pageWidth, double pageHeight, double margin, double fontSize)
+        => PageLimitError(pageWidth, pageHeight, margin, fontSize) is null;
+
+    // The one copy of the page rule: CreateLayout throws what this returns, and FitsPageLimits reports it.
+    internal static Exception? PageLimitError(double pageWidth, double pageHeight, double margin, double fontSize)
+    {
+        if (!double.IsFinite(pageWidth) || pageWidth is <= 0 or > 32768)
+            return new ArgumentOutOfRangeException("options", "Native page width must be in (0,32768].");
+        if (!double.IsFinite(pageHeight) || pageHeight is <= 0 or > 32768)
+            return new ArgumentOutOfRangeException("options", "Native page height must be in (0,32768].");
+        if (!double.IsFinite(margin) || margin < 0)
+            return new ArgumentOutOfRangeException("options", "Native page margin must be finite and nonnegative.");
+        double contentWidth = pageWidth - 2 * margin;
+        double contentHeight = pageHeight - 2 * margin;
+        if (contentWidth <= 0 || contentHeight <= 0 || !double.IsFinite(fontSize)
+            || fontSize <= 0 || fontSize > contentHeight)
+            return new ArgumentOutOfRangeException("options", "Native typography must fit a positive content box.");
+        if ((long)Math.Ceiling(pageWidth) * (long)Math.Ceiling(pageHeight)
+            > 128L * 1024 * 1024 / (2 * 4 * sizeof(float)))
+            return new InvalidDataException("The native page exceeds its combined 128 MiB pixel storage limit.");
+        return null;
+    }
 }
 
 /// <summary>Records a chapter replaced by a diagnosis page during isolated layout.</summary>
@@ -34,6 +63,12 @@ public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, True
 /// <param name="Href">The refused chapter's package-relative path.</param>
 /// <param name="Message">The refusal's diagnosis.</param>
 public sealed record EpubChapterDiagnostic(int SpineIndex, string Href, string Message);
+
+/// <summary>Counts the CSS declarations and rules a laid-out chapter ignored as invalid or not implemented.</summary>
+/// <param name="SpineIndex">The chapter's spine index.</param>
+/// <param name="Href">The chapter's package-relative path.</param>
+/// <param name="Count">The number of ignored declarations and dropped rules, always above zero.</param>
+public sealed record EpubIgnoredDeclarations(int SpineIndex, string Href, int Count);
 
 /// <summary>Locates a UTF-16 range within display-filtered spine text and its logical CSS-pixel bounds.</summary>
 public sealed record EpubTextPlacement(int SpineIndex, int Start, int Length,
@@ -134,6 +169,9 @@ public sealed class EpubLayoutDocument
 
     /// <summary>Gets single items, such as images, that were omitted while their chapter still laid out.</summary>
     public IReadOnlyList<EpubChapterDiagnostic> ContentDiagnostics { get; init; } = [];
+
+    /// <summary>Gets, for each laid-out chapter that ignored any, how many CSS declarations and rules it ignored.</summary>
+    public IReadOnlyList<EpubIgnoredDeclarations> IgnoredDeclarations { get; init; } = [];
 
     /// <summary>Resolves an exact, case-sensitive package-relative chapter target returned by EPUB navigation.</summary>
     /// <remarks>Targets are limited to 4,096 characters. Fragment IDs are case-sensitive.</remarks>

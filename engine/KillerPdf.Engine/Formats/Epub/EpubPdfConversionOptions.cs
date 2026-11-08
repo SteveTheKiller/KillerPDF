@@ -17,4 +17,11 @@ public sealed record EpubPdfConversionOptions(TrueTypeFont DefaultFont)
     public Func<EpubFontFamily, TrueTypeFont?>? FontFamilyResolver { get; init; }
     /// <summary>Gets an optional resolver for real font weights and styles shared by native layout and embedded PDF text.</summary>
     public Func<EpubFontFaceRequest, EpubFontFaceResult?>? FontFaceResolver { get; init; }
+    /// <summary>
+    /// Gets whether a chapter whose content is refused converts as a labeled diagnosis page instead of
+    /// refusing the whole conversion. Package, safety and cancellation failures still end conversion.
+    /// </summary>
+    public bool IsolateChapterFailures { get; init; }
+    /// <summary>Gets the caller's localized heading for an isolated chapter's diagnosis page.</summary>
+    public string UnavailableChapterLabel { get; init; } = "This chapter could not be displayed.";
 }
