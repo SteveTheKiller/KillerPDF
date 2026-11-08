@@ -48,7 +48,23 @@ public static partial class PdfColorConversionMacro
 
     /// <summary>Converts supported page colors while retaining PDF content.</summary>
     public static PdfMacroOperationResult Execute(PdfMacroStep step, ReadOnlyMemory<byte> source,
-        IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken = default)
+        IReadOnlyDictionary<string, string> values, CancellationToken cancellationToken = default) =>
+        Execute(step, source, values, null, cancellationToken);
+
+    /// <summary>
+    /// Converts supported page colors while retaining PDF content, reading untagged CMYK through the
+    /// chosen working CMYK profile, or the built-in one when it is null.
+    /// </summary>
+    public static PdfMacroOperationResult Execute(PdfMacroStep step, ReadOnlyMemory<byte> source,
+        IReadOnlyDictionary<string, string> values, KillerPdf.Engine.ColorManagement.PdfColorProfile? workingCmykProfile,
+        CancellationToken cancellationToken = default)
+    {
+        if (workingCmykProfile is null) return Convert(step, source, cancellationToken);
+        using var working = KillerPdf.Engine.Rendering.PdfCmykDisplayTable.Use(workingCmykProfile);
+        return Convert(step, source, cancellationToken);
+    }
+
+    private static PdfMacroOperationResult Convert(PdfMacroStep step, ReadOnlyMemory<byte> source, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         PdfMacroColorOptions options = ReadOptions(step);
@@ -145,7 +161,8 @@ public static partial class PdfColorConversionMacro
         return output.AsReadOnly();
     }
 
-    private static byte Gray(byte red, byte green, byte blue) => (byte)((red * 77 + green * 150 + blue * 29 + 128) >> 8);
+    // ISO 32000 DeviceRGB to DeviceGray weights 0.3, 0.59 and 0.11, rounded half up.
+    private static byte Gray(byte red, byte green, byte blue) => (byte)((red * 30 + green * 59 + blue * 11 + 50) / 100);
     private static IReadOnlyDictionary<string, int> ReadDeviceColorSpaces(PdfDocument document, PdfObject? resources)
     {
         var result = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -171,6 +188,7 @@ public static partial class PdfColorConversionMacro
     }
     private static byte CmykGray(byte cyan, byte magenta, byte yellow, byte black)
     {
+        // The working CMYK profile's display color, the one every view shows for this ink.
         uint rgb = KillerPdf.Engine.Rendering.PdfDeviceCmyk.ToRgb(cyan | (uint)magenta << 8 | (uint)yellow << 16 | (uint)black << 24);
         return Gray((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
     }

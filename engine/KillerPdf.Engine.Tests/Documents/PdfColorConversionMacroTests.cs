@@ -10,6 +10,10 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfColorConversionMacroTests
 {
+    // Synthetic affine CMYK profile (A2B1 only), as in PdfWorkingCmykByteRenderTests.
+    private const string AffineCmyk =
+        "AAABQAAAAAAEAAAAcHJ0ckNNWUtYWVogAAAAAAAAAAAAAAAAYWNzcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQTJCMQAAAJAAAACwbWZ0MgAAAAAEAwIAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAIAAgAA//8AAP//AAD//wAA//9AAEAAQAAgACAAIABAAEAAIAAgACAAAABAACAAQAAgAAAAIABAACAAIAAgAAAAAAAgAEAAQAAAACAAIAAgAEAAIAAAACAAAAAgACAAQAAAAAAAIAAgACAAIAAAAAAAAAAAAP//AAD//wAA//8=";
+
     [Fact]
     public void ProfiledImagesFailSafelyInsteadOfTreatingProfileSamplesAsDeviceColors()
     {
@@ -33,6 +37,60 @@ public sealed class PdfColorConversionMacroTests
 
         Assert.Throws<NotSupportedException>(() => PdfColorConversionMacro.Execute(
             PdfColorConversionMacro.ConvertStep(PdfMacroColorMode.Grayscale), source, new Dictionary<string, string>()));
+    }
+
+    // ISO 32000 DeviceRGB to DeviceGray: 0.3 R + 0.59 G + 0.11 B. Pure blue is 0.11 * 255 = 28.05,
+    // so it becomes 28; Rec. 601 integer weights (29/256) would give 29.
+    [Theory]
+    [InlineData(0, 0, 1, 28)]
+    [InlineData(0, 1, 0, 150)]
+    [InlineData(1, 0, 0, 77)]
+    public void RgbPaintBecomesGrayWithTheSpecificationWeights(double red, double green, double blue, int expected)
+    {
+        byte[] source = new PdfDocumentBuilder().AddPage(1, 1,
+            new PdfContentStreamBuilder().SetFillRgb(red, green, blue).Rectangle(0, 0, 1, 1).Fill()).Build();
+
+        var result = PdfColorConversionMacro.Execute(PdfColorConversionMacro.ConvertStep(PdfMacroColorMode.Grayscale),
+            source, new Dictionary<string, string>());
+
+        var rendered = new PdfPageRenderer(PdfDocument.Open(result.Data)).Render(0, new PdfRenderOptions(1, 1));
+        Assert.Equal(new byte[] { (byte)expected, (byte)expected, (byte)expected, 255 }, rendered.Pixels.ToArray());
+    }
+
+    // Untagged CMYK paint becomes the gray of its working-profile display color, the same color
+    // managed and byte views show for it.
+    [Fact]
+    public void UntaggedCmykPaintBecomesTheGrayOfItsWorkingProfileColor()
+    {
+        byte[] source = new PdfDocumentBuilder().AddPage(1, 1,
+            new PdfContentStreamBuilder().SetFillCmyk(1, 0, 0, 0).Rectangle(0, 0, 1, 1).Fill()).Build();
+        byte[] shown = new PdfPageRenderer(PdfDocument.Open(source)).RenderFrame(0, new PdfRenderOptions(1, 1)).ToSrgbBgra32();
+        int expected = (int)Math.Round(0.3 * shown[2] + 0.59 * shown[1] + 0.11 * shown[0], MidpointRounding.AwayFromZero);
+
+        var result = PdfColorConversionMacro.Execute(PdfColorConversionMacro.ConvertStep(PdfMacroColorMode.Grayscale),
+            source, new Dictionary<string, string>());
+
+        byte gray = new PdfPageRenderer(PdfDocument.Open(result.Data)).Render(0, new PdfRenderOptions(1, 1)).Pixels.Span[0];
+        Assert.InRange(gray, expected - 1, expected + 1);
+    }
+
+    // With a chosen working CMYK profile, untagged CMYK paint becomes the gray of the color that
+    // profile shows, the same color every view shows with that choice.
+    [Fact]
+    public void UntaggedCmykPaintBecomesTheGrayOfTheChosenWorkingProfileColor()
+    {
+        var chosen = KillerPdf.Engine.ColorManagement.PdfColorProfile.Load(Convert.FromBase64String(AffineCmyk));
+        byte[] source = new PdfDocumentBuilder().AddPage(1, 1,
+            new PdfContentStreamBuilder().SetFillCmyk(1, 0, 0, 0).Rectangle(0, 0, 1, 1).Fill()).Build();
+        byte[] shown = new PdfPageRenderer(PdfDocument.Open(source))
+            .RenderFrame(0, new PdfRenderOptions(1, 1) { WorkingCmykProfile = chosen }).ToSrgbBgra32();
+        int expected = (int)Math.Round(0.3 * shown[2] + 0.59 * shown[1] + 0.11 * shown[0], MidpointRounding.AwayFromZero);
+
+        var result = PdfColorConversionMacro.Execute(PdfColorConversionMacro.ConvertStep(PdfMacroColorMode.Grayscale),
+            source, new Dictionary<string, string>(), chosen);
+
+        byte gray = new PdfPageRenderer(PdfDocument.Open(result.Data)).Render(0, new PdfRenderOptions(1, 1)).Pixels.Span[0];
+        Assert.InRange(gray, expected - 1, expected + 1);
     }
 
     [Theory]
@@ -200,7 +258,9 @@ public sealed class PdfColorConversionMacroTests
             source, new Dictionary<string, string>());
         var rendered = new PdfPageRenderer(PdfDocument.Open(result.Data)).Render(0, new PdfRenderOptions(3, 1));
 
-        Assert.Equal(new byte[] { 77, 77, 77, 255, 129, 129, 129, 255, 149, 149, 149, 255 }, rendered.Pixels.ToArray());
+        // Red 0.3 * 255 = 77; working-profile cyan RGB (0, 174, 239) gives 0.59 * 174 + 0.11 * 239 = 129;
+        // green 0.59 * 255 = 150.45, so 150 (ISO 32000 weights).
+        Assert.Equal(new byte[] { 77, 77, 77, 255, 129, 129, 129, 255, 150, 150, 150, 255 }, rendered.Pixels.ToArray());
     }
 
     [Fact]
@@ -272,11 +332,12 @@ public sealed class PdfColorConversionMacroTests
             source, new Dictionary<string, string>());
         PdfDocument converted = PdfDocument.Open(result.Data);
         var originalAppearance = new PdfPageRenderer(converted).Render(0, new PdfRenderOptions(100, 100));
-        Assert.Equal(new byte[] { 149, 149, 149, 255 }, originalAppearance.Pixels.Slice((80 * 100 + 80) * 4, 4).ToArray());
+        // The green background: 0.59 * 255 = 150.45, so 150 (ISO 32000 weights).
+        Assert.Equal(new byte[] { 150, 150, 150, 255 }, originalAppearance.Pixels.Slice((80 * 100 + 80) * 4, 4).ToArray());
 
         PdfDocument edited = PdfDocument.Open(new PdfIncrementalPageEditor(converted).SetTextFieldValue("Name", "Grace").Build());
         var editedAppearance = new PdfPageRenderer(edited).Render(0, new PdfRenderOptions(100, 100));
-        Assert.Equal(new byte[] { 149, 149, 149, 255 }, editedAppearance.Pixels.Slice((80 * 100 + 80) * 4, 4).ToArray());
+        Assert.Equal(new byte[] { 150, 150, 150, 255 }, editedAppearance.Pixels.Slice((80 * 100 + 80) * 4, 4).ToArray());
         byte minimum = 255;
         for (int y = 73; y < 87; y++)
             for (int x = 13; x < 85; x++)
