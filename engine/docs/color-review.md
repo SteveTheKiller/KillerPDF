@@ -1,5 +1,39 @@
 # Color rendering development review
 
+## November 8 DeviceCMYK luminosity masks keep the ink formula
+
+Decision: a luminosity soft mask whose group is DeviceCMYK keeps computing its
+luminosity from the ink amounts, (1 - C)(1 - K) per channel, and does not
+follow the working CMYK profile. A luminosity mask is an alpha computed from
+ink amounts, not a displayed color, so the one-profile rule for 1.9.3 covers
+what is shown, not mask arithmetic. The formula gives 0 0 0 0 a luminosity of
+exactly 1 and K 100 percent exactly 0.
+
+Measured alternative: luminosity from the working profile's display color,
+weighted 0.3, 0.59 and 0.11. CGATS TR 001 shows 0 0 0 0 as 255, 255, 255,
+so media white still opened the mask fully. It shows K 100 percent as
+35, 31, 32, so 0.3 * 35 + 0.59 * 31 + 0.11 * 32 = 32.31, and the mask let 32/255
+through. Illustrator masks fill their background with `0 0 0 1 k`. In GWG16.10
+(Text Softmasks part 1, objects 31 and 47) that drew a visible gray rectangle
+around the drop shadow, and the test object no longer matched its reference
+image. HEAD matched it. CIE Y through the relative colorimetric transform
+would still let about 4/255 through (Y 0.0145).
+
+Ghent delta E 2000 at 600 pixels, HEAD against the profile-based alternative,
+for GWG166, GWG168, GWG169, GWG1610 and GWG1611:
+
+- As shipped: 4 of 5 pages changed, mean 3.68, p99 8.92, max 9.72.
+- With `/OutputIntents` disabled: 4 of 5 pages changed, mean 3.71, p99 10.88,
+  max 14.00, and 1,183 pixels above 10.
+
+The as-shipped pages moved as well, because DeviceCMYK mask luminosity does
+not use the output intent in either version.
+
+`PdfWorkingCmykSoftMaskTests` pins K 100 percent closed, half black at the
+ink-formula value, 0 0 0 0 fully open, and a gray group's luminosity as its
+gray. Each case runs on the direct byte path and the general path, with the
+built-in profile and with a chosen working profile.
+
 ## September 24 remaining-difference disposition
 
 The current 2048-pixel engine and PDFium comparison was reviewed for the

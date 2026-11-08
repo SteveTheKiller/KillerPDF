@@ -63,6 +63,11 @@ public sealed partial class PdfPageRenderer
     }
 
     // Device-space luminosity uses the ink components, independently of display conversion.
+    // This deliberately ignores the working CMYK profile: a luminosity mask is an alpha computed
+    // from ink amounts, not a displayed color. Masks fill their background with 0 0 0 1 k and
+    // expect it to close the mask (Ghent GWG16.10, Text Softmasks part 1). Through CGATS TR 001,
+    // K 100 percent shows as 35, 31, 32, which would let 32/255 through and draw a gray box
+    // around the drop shadow. The ink formula gives K 100 percent exactly 0 and 0 0 0 0 exactly 1.
     private static readonly byte[] InkDisplayTable = CreateInkDisplayTable();
 
     private static byte[] CreateInkDisplayTable()
