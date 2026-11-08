@@ -172,6 +172,39 @@ public sealed class ProofProfileLibraryTests : IDisposable
     }
 
     [Fact]
+    public void ADamagedManifestReadsThePreviousManifestAndKeepsTheDamagedCopyForReview()
+    {
+        var library = new ProofProfileLibrary(_directory);
+        var first = library.Import("First", DistinctProfile(1));
+        library.Import("Second", DistinctProfile(2));
+        string manifest = Path.Combine(_directory, "profiles.json");
+        File.WriteAllText(manifest, "{");
+
+        Assert.Equal(first, Assert.Single(library.GetProfiles()));
+        var third = library.Import("Third", DistinctProfile(3));
+
+        Assert.Equal([first, third], new ProofProfileLibrary(_directory).GetProfiles());
+        Assert.Equal("{", File.ReadAllText(manifest + ".recovery"));
+    }
+
+    [Fact]
+    public void ResolvingDuringABriefImportWaitsInsteadOfReportingTheProfileUnreadable()
+    {
+        var library = new ProofProfileLibrary(_directory);
+        library.Import("Original", GrayProfile());
+        var preset = PdfProofPreset.Capture("Stock", new PdfDocumentProofSettings(enabled: true,
+            printerProfile: PdfColorProfile.Load(GrayProfile())));
+        var gate = new FileStream(Path.Combine(_directory, "library.lock"), FileMode.Open,
+            FileAccess.ReadWrite, FileShare.None);
+        var release = Task.Run(async () => { await Task.Delay(150); gate.Dispose(); });
+
+        var resolved = library.Resolve(preset);
+
+        release.Wait();
+        Assert.Equal(ProofProfileResolutionKind.Matched, resolved.Kind);
+    }
+
+    [Fact]
     public void OversizedImportIsRejectedWithoutAllocatingAnotherProfileBuffer()
     {
         var library = new ProofProfileLibrary(_directory);

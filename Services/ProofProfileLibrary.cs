@@ -51,8 +51,16 @@ public sealed class ProofProfileLibrary(string directory)
         try
         {
             Directory.CreateDirectory(_directory);
-            using var gate = new FileStream(GatePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-            var profiles = GetProfiles().ToList();
+            using var gate = ProofLibraryGate.Open(GatePath, FileMode.OpenOrCreate);
+            List<ProofProfileEntry> profiles;
+            bool damaged = false;
+            try { profiles = ReadManifest(ManifestPath).ToList(); }
+            catch (FormatException) when (File.Exists(ManifestPath + ".bak"))
+            {
+                // Continue from the previous manifest; the damaged one is kept for review.
+                profiles = ReadManifest(ManifestPath + ".bak").ToList();
+                damaged = true;
+            }
             var entry = profiles.FirstOrDefault(item => item.ContentSha256 == profile.ContentSha256)
                 ?? new ProofProfileEntry(name, profile.ContentSha256);
             if (!profiles.Any(item => item.ContentSha256 == entry.ContentSha256))
@@ -96,7 +104,7 @@ public sealed class ProofProfileLibrary(string directory)
                     writer.WriteEndArray();
                     writer.WriteEndObject();
                 }
-                WriteAtomic(ManifestPath, buffer.ToArray());
+                WriteAtomic(ManifestPath, buffer.ToArray(), backup: ManifestPath + (damaged ? ".recovery" : ".bak"));
                 return entry;
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException)
@@ -112,11 +120,21 @@ public sealed class ProofProfileLibrary(string directory)
     }
 
     /// <summary>Lists named profile content references retained in this library.</summary>
+    /// <remarks>A damaged manifest reads as the previous manifest when one was kept.</remarks>
     public IReadOnlyList<ProofProfileEntry> GetProfiles()
+    {
+        try { return ReadManifest(ManifestPath); }
+        catch (FormatException) when (File.Exists(ManifestPath + ".bak"))
+        {
+            return ReadManifest(ManifestPath + ".bak");
+        }
+    }
+
+    private static IReadOnlyList<ProofProfileEntry> ReadManifest(string path)
     {
         try
         {
-            using var document = JsonDocument.Parse(ReadBoundedFile(ManifestPath, 1024 * 1024),
+            using var document = JsonDocument.Parse(ReadBoundedFile(path, 1024 * 1024),
                 new JsonDocumentOptions { MaxDepth = 8 });
             var root = document.RootElement;
             ValidateProperties(root, "schemaVersion", "profiles");
@@ -162,7 +180,8 @@ public sealed class ProofProfileLibrary(string directory)
         byte[] bytes;
         try
         {
-            using var gate = new FileStream(GatePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            // The same exclusive gate as Import, so a resolve waits for a running import.
+            using var gate = ProofLibraryGate.Open(GatePath, FileMode.Open);
             bytes = ReadBoundedFile(Path.Combine(_directory, preset.PrinterProfileSha256 + ".icc"), 32 * 1024 * 1024);
         }
         catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
@@ -212,13 +231,19 @@ public sealed class ProofProfileLibrary(string directory)
         return bytes;
     }
 
-    private static void WriteAtomic(string destination, byte[] bytes, bool overwrite = true)
+    private static void WriteAtomic(string destination, byte[] bytes, bool overwrite = true, string? backup = null)
     {
         string temporary = destination + ".tmp-" + Guid.NewGuid().ToString("N");
         try
         {
-            File.WriteAllBytes(temporary, bytes);
-            File.Move(temporary, destination, overwrite);
+            // Reach the disk before the rename publishes the file.
+            using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                file.Write(bytes);
+                file.Flush(flushToDisk: true);
+            }
+            if (backup is not null && File.Exists(destination)) File.Replace(temporary, destination, backup);
+            else File.Move(temporary, destination, overwrite);
         }
         finally
         {
