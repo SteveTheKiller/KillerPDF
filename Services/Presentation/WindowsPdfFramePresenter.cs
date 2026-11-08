@@ -51,18 +51,18 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
     }
 
     /// <inheritdoc />
-    public ValueTask<PdfFrameSubmissionResult> SubmitAsync(PdfFrameSubmission submission,
+    public async ValueTask<PdfFrameSubmissionResult> SubmitAsync(PdfFrameSubmission submission,
         CancellationToken cancellationToken = default)
     {
         _dispatcher.VerifyAccess();
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(submission);
         if (cancellationToken.IsCancellationRequested)
-            return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Canceled, Status));
+            return (new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Canceled, Status));
         if (_state is null)
             throw new InvalidOperationException("Presentation state must be set before submitting a frame.");
         if (submission.Stamp != _state.Stamp)
-            return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Stale, Status));
+            return (new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Stale, Status));
 
         var state = _state;
         ArgumentNullException.ThrowIfNull(submission.Frame);
@@ -82,11 +82,21 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
         if ((long)submission.Frame.Width * submission.Frame.Height > _maximumCombinedPixelBytes / 40)
             throw new ArgumentException("The frame exceeds the combined input, upload and native pixel budget.", nameof(submission));
         Half[] pixels;
-        try { pixels = submission.Frame.ToPremultipliedLinearHalfRgba(state.ReferenceWhiteScale, cancellationToken: cancellationToken); }
+        // The FP16 conversion of a whole frame runs off the dispatcher so input stays responsive;
+        // the native upload and present continue on the owning thread.
+        var frame = submission.Frame;
+        double referenceWhite = state.ReferenceWhiteScale;
+        try
+        {
+            pixels = await Task.Run(() => frame.ToPremultipliedLinearHalfRgba(referenceWhite,
+                cancellationToken: cancellationToken), cancellationToken);
+        }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        { return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Canceled, Status)); }
+        { return (new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Canceled, Status)); }
+        _dispatcher.VerifyAccess();
+        if (_disposed) return new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Canceled, Status);
         var rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
-        if (rejected != null) return ValueTask.FromResult(rejected);
+        if (rejected != null) return (rejected);
 
         var transport = _transport ?? new WindowsPdfNativeTransport(state.SurfacePixelWidth, state.SurfacePixelHeight);
         try
@@ -95,41 +105,41 @@ public sealed class WindowsPdfFramePresenter : IPdfFramePresenter
             {
                 transport.Initialize(_ownedViewport);
                 rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
-                if (rejected != null) { transport.Dispose(); return ValueTask.FromResult(rejected); }
+                if (rejected != null) { transport.Dispose(); return (rejected); }
                 _transport = transport;
             }
             if (transport.Width != state.SurfacePixelWidth || transport.Height != state.SurfacePixelHeight)
             {
                 transport.Resize(state.SurfacePixelWidth, state.SurfacePixelHeight);
                 rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
-                if (rejected != null) return ValueTask.FromResult(rejected);
+                if (rejected != null) return (rejected);
             }
             transport.Upload(pixels);
             rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
-            if (rejected != null) return ValueTask.FromResult(rejected);
+            if (rejected != null) return (rejected);
             transport.AttachRoot();
             rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
-            if (rejected != null) return ValueTask.FromResult(rejected);
+            if (rejected != null) return (rejected);
             transport.Present();
             rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
-            if (rejected != null) return ValueTask.FromResult(rejected);
+            if (rejected != null) return (rejected);
             transport.Commit();
             rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
-            if (rejected != null) return ValueTask.FromResult(rejected);
+            if (rejected != null) return (rejected);
             var status = new PdfPresentationStatus(PdfPresentationMode.LinearFloat,
                 PdfMonitorTransformOwner.Compositor, submission.Stamp, null, null);
             Volatile.Write(ref _status, status);
-            return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Submitted, status));
+            return (new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Submitted, status));
         }
         catch (WindowsPdfNativeTransport.NativeFailure failure)
         {
             ReleaseTransport(transport);
             rejected = RejectChangedSubmission(submission.Stamp, cancellationToken);
-            if (rejected != null) return ValueTask.FromResult(rejected);
+            if (rejected != null) return (rejected);
             var status = new PdfPresentationStatus(PdfPresentationMode.Unavailable,
                 PdfMonitorTransformOwner.Unknown, null, failure.Operation, failure.HResult);
             Volatile.Write(ref _status, status);
-            return ValueTask.FromResult(new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Unavailable, status));
+            return (new PdfFrameSubmissionResult(PdfFrameSubmissionOutcome.Unavailable, status));
         }
         catch { ReleaseTransport(transport); throw; }
     }
