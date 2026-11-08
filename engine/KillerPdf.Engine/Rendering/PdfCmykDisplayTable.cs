@@ -24,6 +24,7 @@ internal sealed class PdfCmykDisplayTable
     private readonly PdfColorProfile _profile;
     private readonly KillerPdf.Engine.Authoring.PdfRenderingIntent _intent;
     // Packed (ink << 32) | valid flag | 0xRRGGBB, replaced whole so readers never see a torn entry.
+    // Used only for profiles without the lookup-table fast path.
     private readonly long[] _cache = new long[1 << CacheBits];
     private readonly Lazy<int[]> _grid;
     private readonly Lazy<byte[]> _inverse;
@@ -36,7 +37,100 @@ internal sealed class PdfCmykDisplayTable
             ?? throw new NotSupportedException("The working CMYK profile has no usable forward transform.");
         _grid = new(BuildGrid);
         _inverse = new(BuildInverse);
+        _forward = profile.ForwardTransform(_intent);
+        _byteInput = _forward?.PrepareByteInput();
     }
+
+    // CMYK lookup-table profiles (the bundled default among them) evaluate 8-bit inks through input
+    // curves resolved once per value and an exact byte quantizer, with no cache; other shapes use
+    // the profile's general evaluation and the cache.
+    private readonly PdfIccProfileTransform? _forward;
+    private readonly PdfIccLut.ByteInput? _byteInput;
+
+    // Smallest positive linear value whose clipped, encoded and rounded byte is at least k + 1.
+    private static readonly double[] EncodeThresholds = BuildEncodeThresholds();
+
+    private static double[] BuildEncodeThresholds()
+    {
+        var thresholds = new double[255];
+        long high = BitConverter.DoubleToInt64Bits(2d);
+        for (int level = 1; level <= 255; level++)
+        {
+            long low = 0, upper = high;
+            while (upper - low > 1)
+            {
+                long middle = low + (upper - low) / 2;
+                if (Channel(PdfPageRenderer.EncodeSrgb(BitConverter.Int64BitsToDouble(middle))) >= level) upper = middle;
+                else low = middle;
+            }
+            thresholds[level - 1] = BitConverter.Int64BitsToDouble(upper);
+        }
+        return thresholds;
+    }
+
+    // For each of 16,384 equal steps of linear light in 0..1, the byte at the step's start, so
+    // Quantize only checks the thresholds inside one step.
+    private const int QuantizeSteps = 16384;
+    private static readonly byte[] StepStart = BuildStepStart();
+
+    private static byte[] BuildStepStart()
+    {
+        var start = new byte[QuantizeSteps + 1];
+        for (int step = 0; step <= QuantizeSteps; step++)
+        {
+            double linear = step / (double)QuantizeSteps;
+            int level = 0;
+            while (level < 255 && linear >= EncodeThresholds[level]) level++;
+            start[step] = (byte)level;
+        }
+        return start;
+    }
+
+    private static readonly double[] PcsToLinear = BuildPcsToLinear();
+
+    private static double[] BuildPcsToLinear()
+    {
+        var matrix = new double[9];
+        for (int column = 0; column < 3; column++)
+        {
+            var (red, green, blue) = PdfPageRenderer.PreciseConnectionToLinearRgb(column == 0 ? 1 : 0, column == 1 ? 1 : 0, column == 2 ? 1 : 0);
+            matrix[column] = red; matrix[3 + column] = green; matrix[6 + column] = blue;
+        }
+        return matrix;
+    }
+
+    // The byte of an approximate linear value, and whether it is far enough from every byte
+    // boundary that the exact value is certain to give the same byte.
+    private const double BoundaryMargin = 1e-9;
+
+    // A step holds at most one threshold (the steepest encode slope is under 0.25 bytes per step),
+    // so one comparison finds the byte; the margin test also rejects any lookup that missed.
+    private static bool Quantize(double linear, out uint level)
+    {
+        double[] thresholds = EncodeThresholds;
+        if (!(linear > 0)) { level = 0; return thresholds[0] - linear > BoundaryMargin; }
+        if (linear >= 1) { level = 255; return linear - thresholds[254] >= BoundaryMargin; }
+        int found = StepStart[(int)(linear * QuantizeSteps)];
+        if (found < 255 && linear >= thresholds[found]) found++;
+        level = (uint)found;
+        return (found == 0 || linear - thresholds[found - 1] >= BoundaryMargin)
+            && (found == 255 || thresholds[found] - linear > BoundaryMargin);
+    }
+
+    // Exactly Channel(EncodeSrgb(linear)): the count of thresholds at or below the value.
+    private static uint Quantize(double linear)
+    {
+        if (!(linear > 0)) return 0;
+        if (linear >= 1) return 255;
+        double[] thresholds = EncodeThresholds;
+        // One step lower than the product suggests, in case it rounded up across a step boundary.
+        int level = StepStart[Math.Max(0, (int)(linear * QuantizeSteps) - 1)];
+        while (level < 255 && linear >= thresholds[level]) level++;
+        return (uint)level;
+    }
+
+    private static uint Channel(double encoded) =>
+        (uint)Math.Round(Math.Clamp(encoded, 0, 1) * 255, MidpointRounding.AwayFromZero);
 
     // Linear light at 17 points per ink, the smooth forward model the inverse fit inverts.
     private int[] BuildGrid()
@@ -113,6 +207,21 @@ internal sealed class PdfCmykDisplayTable
     /// <summary>Converts packed C, M, Y, K bytes (low to high) to packed 0x00RRGGBB display color.</summary>
     internal uint ToRgb(uint ink)
     {
+        if (_byteInput is { } input)
+        {
+            Span<double> xyz = stackalloc double[3];
+            _forward!.BytesToXyz(input, ink, xyz);
+            // One combined matrix lands within about 1e-15 of the step-by-step adaptation. Only a
+            // value that close to a byte boundary needs the exact steps to decide its byte.
+            double x = xyz[0], y = xyz[1], z = xyz[2];
+            double red = PcsToLinear[0] * x + PcsToLinear[1] * y + PcsToLinear[2] * z;
+            double green = PcsToLinear[3] * x + PcsToLinear[4] * y + PcsToLinear[5] * z;
+            double blue = PcsToLinear[6] * x + PcsToLinear[7] * y + PcsToLinear[8] * z;
+            if (Quantize(red, out uint r) & Quantize(green, out uint g) & Quantize(blue, out uint b))
+                return r << 16 | g << 8 | b;
+            (red, green, blue) = PdfPageRenderer.PreciseConnectionToLinearRgb(x, y, z);
+            return Quantize(red) << 16 | Quantize(green) << 8 | Quantize(blue);
+        }
         int slot = (int)((ink * 2654435761u) >> (32 - CacheBits));
         long entry = Volatile.Read(ref _cache[slot]);
         if ((entry & 0x1000000) != 0 && (uint)(entry >> 32) == ink) return (uint)entry & 0xFFFFFF;
@@ -122,16 +231,13 @@ internal sealed class PdfCmykDisplayTable
     }
 
     // The managed result for one ink: profile to D50 XYZ, D65 sRGB, clip, encode, round.
-    private uint Evaluate(uint ink)
+    internal uint Evaluate(uint ink)
     {
         Span<double> device = [(byte)ink / 255d, (byte)(ink >> 8) / 255d, (byte)(ink >> 16) / 255d, (byte)(ink >> 24) / 255d];
         Span<double> xyz = stackalloc double[3];
         _profile.ToXyz(device, xyz, _intent);
         var rgb = PdfPageRenderer.PreciseConnectionToRgb(xyz[0], xyz[1], xyz[2]);
         return Channel(rgb.Red) << 16 | Channel(rgb.Green) << 8 | Channel(rgb.Blue);
-
-        static uint Channel(double encoded) =>
-            (uint)Math.Round(Math.Clamp(encoded, 0, 1) * 255, MidpointRounding.AwayFromZero);
     }
 
     private const int LinearOne = 65536;

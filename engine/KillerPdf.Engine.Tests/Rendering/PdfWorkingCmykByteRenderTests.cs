@@ -75,6 +75,29 @@ public sealed class PdfWorkingCmykByteRenderTests
         Assert.InRange(Math.Abs((byte)shown - blue), 0, 6);
     }
 
+    // The byte path's lookup-table evaluation is exact: it returns the general profile evaluation's
+    // bytes for every ink on a dense grid and for a million random inks, for both profiles.
+    [Fact]
+    public void ByteEvaluationEqualsTheGeneralProfileEvaluationOnADenseGrid()
+    {
+        var chosen = PdfColorProfile.Load(Convert.FromBase64String(AffineCmyk));
+        var random = new Random(11);
+        foreach (var table in new[] { PdfCmykDisplayTable.Current, PdfCmykDisplayTable.For(chosen) })
+        {
+            int mismatches = 0;
+            string first = "";
+            void Check(uint ink)
+            {
+                uint fast = table.ToRgb(ink), general = table.Evaluate(ink);
+                if (fast != general && mismatches++ == 0) first = $"{ink:X8}: {fast:X6} against {general:X6}";
+            }
+            for (int c = 0; c < 256; c += 5) for (int m = 0; m < 256; m += 5) for (int y = 0; y < 256; y += 5) for (int k = 0; k < 256; k += 5)
+                Check((uint)(c | m << 8 | y << 16 | k << 24));
+            for (int sample = 0; sample < 1_000_000; sample++) Check((uint)random.NextInt64(0, 1L << 32));
+            Assert.True(mismatches == 0, $"{mismatches} mismatches, first {first}");
+        }
+    }
+
     // RGB paint entering ink under a chosen profile round-trips through that profile's own inverse.
     [Theory]
     [InlineData(128, 128, 128)]

@@ -327,6 +327,16 @@ public sealed partial class PdfPageRenderer
 
     internal static (double Red, double Green, double Blue) PreciseConnectionToRgb(double x, double y, double z)
     {
+        var (red, green, blue) = PreciseConnectionToLinearRgb(x, y, z);
+        return (EncodeSrgb(red), EncodeSrgb(green), EncodeSrgb(blue));
+    }
+
+    internal static double EncodeSrgb(double value) => value <= 0.0031308
+        ? 12.92 * value : 1.055 * Math.Pow(value, 1 / 2.4) - 0.055;
+
+    // Linear D65 sRGB, before encoding, for the ICC D50 PCS.
+    internal static (double Red, double Green, double Blue) PreciseConnectionToLinearRgb(double x, double y, double z)
+    {
         // Bradford adaptation from the ICC D50 PCS to the frame's D65 sRGB primaries.
         double l = (0.8951 * x + 0.2664 * y - 0.1614 * z)
             * (0.8951 * 0.95047 + 0.2664 - 0.1614 * 1.08883)
@@ -340,12 +350,9 @@ public sealed partial class PdfPageRenderer
         double adaptedX = 0.9869929 * l - 0.1470543 * m + 0.1599627 * s;
         double adaptedY = 0.4323053 * l + 0.5183603 * m + 0.0492912 * s;
         double adaptedZ = -0.0085287 * l + 0.0400428 * m + 0.9684867 * s;
-        return (Encode(3.2404542 * adaptedX - 1.5371385 * adaptedY - 0.4985314 * adaptedZ),
-            Encode(-0.969266 * adaptedX + 1.8760108 * adaptedY + 0.041556 * adaptedZ),
-            Encode(0.0556434 * adaptedX - 0.2040259 * adaptedY + 1.0572252 * adaptedZ));
-
-        static double Encode(double value) => value <= 0.0031308
-            ? 12.92 * value : 1.055 * Math.Pow(value, 1 / 2.4) - 0.055;
+        return (3.2404542 * adaptedX - 1.5371385 * adaptedY - 0.4985314 * adaptedZ,
+            -0.969266 * adaptedX + 1.8760108 * adaptedY + 0.041556 * adaptedZ,
+            0.0556434 * adaptedX - 0.2040259 * adaptedY + 1.0572252 * adaptedZ);
     }
 
     private static void PaintPreciseCoverage(RasterSurface pixels, int width, CoverageMask mask,

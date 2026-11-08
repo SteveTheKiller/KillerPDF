@@ -146,6 +146,9 @@ public sealed class PdfColorProfile
     }
 
     // Absolute colorimetric needs explicit valid media white; without it the variant would be relative in disguise.
+    /// <summary>The transform ToXyz uses for an intent, or null when that intent is unsupported.</summary>
+    internal PdfIccProfileTransform? ForwardTransform(PdfRenderingIntent intent) => PublicTransform(IntentIndex(intent));
+
     private PdfIccProfileTransform? PublicTransform(int index) =>
         index == 3 && !_transform.HasExplicitValidMediaWhite ? null : _transform.ForIntent(index);
 

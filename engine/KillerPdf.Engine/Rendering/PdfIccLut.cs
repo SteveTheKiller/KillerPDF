@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Runtime.Intrinsics;
 
 namespace KillerPdf.Engine.Rendering;
 
@@ -119,6 +120,113 @@ internal sealed class PdfIccLut : PdfIccTable
             baseCell = baseCell * _grid + lower;
             fraction[channel] = value - lower;
         }
+        Interpolate(baseCell, fraction, output, tetrahedral);
+    }
+
+    /// <summary>Per-channel grid positions for every 8-bit value of a four-channel table's inputs.</summary>
+    internal sealed class ByteInput(int[] cells, double[] fractions, double[] grid, int[] cornerOffsets, double[] outputCurves)
+    {
+        internal int[] Cells { get; } = cells;
+        internal double[] Fractions { get; } = fractions;
+        // Normalized grid samples, the same doubles Transform reads through the shared
+        // normalization table, four per grid point (the fourth is zero) for vector loads.
+        internal double[] Grid { get; } = grid;
+        internal int[] CornerOffsets { get; } = cornerOffsets;
+        internal double[] OutputCurves { get; } = outputCurves;
+    }
+
+    // The input curves of an 8-bit CMYK table resolved once per channel and value, with the same
+    // arithmetic as Transform, so TransformBytes returns exactly what Transform returns.
+    internal ByteInput? PrepareByteInput()
+    {
+        if (InputChannels != 4 || OutputChannels != 3 || _outputOffset - _gridOffset > 1 << 20) return null;
+        int points = (_outputOffset - _gridOffset) / 3;
+        var grid = new double[points * 4];
+        for (int point = 0; point < points; point++)
+            for (int channel = 0; channel < 3; channel++)
+                grid[point * 4 + channel] = _normalized[_samples[_gridOffset + point * 3 + channel]];
+        var cornerOffsets = new int[16];
+        for (int corner = 0; corner < 16; corner++) cornerOffsets[corner] = _cornerOffsets[corner] / 3 * 4;
+        var outputCurves = new double[_outputEntries * OutputChannels];
+        for (int index = 0; index < outputCurves.Length; index++) outputCurves[index] = _normalized[_samples[_outputOffset + index]];
+        var cells = new int[4 * 256];
+        var fractions = new double[4 * 256];
+        int stride = _grid * _grid * _grid;
+        for (int channel = 0; channel < 4; channel++)
+        {
+            for (int sample = 0; sample < 256; sample++)
+            {
+                double value = Curve(_inputOffset + channel * _inputEntries,
+                    _inputEntries, Math.Clamp(sample / 255d, 0, 1)) * (_grid - 1);
+                int lower = Math.Min((int)value, _grid - 2);
+                cells[channel * 256 + sample] = lower * stride;
+                fractions[channel * 256 + sample] = value - lower;
+            }
+            stride /= _grid;
+        }
+        return new ByteInput(cells, fractions, grid, cornerOffsets, outputCurves);
+    }
+
+    /// <summary>
+    /// Transforms packed C, M, Y, K bytes (low to high) through a prepared table, with the same
+    /// operations in the same order as Transform, so the result is identical.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal void TransformBytes(ByteInput input, uint ink, Span<double> output)
+    {
+        int[] cells = input.Cells;
+        double[] fractions = input.Fractions;
+        int i0 = (byte)ink, i1 = 256 + (byte)(ink >> 8), i2 = 512 + (byte)(ink >> 16), i3 = 768 + (byte)(ink >> 24);
+        int baseOffset = (cells[i0] + cells[i1] + cells[i2] + cells[i3]) * 3;
+        double high0 = fractions[i0], high1 = fractions[i1], high2 = fractions[i2], high3 = fractions[i3];
+        double low0 = 1 - high0, low1 = 1 - high1, low2 = 1 - high2, low3 = 1 - high3;
+        // Products associate left to right as in Transform, so shared partial products give the
+        // same weights. A zero weight adds exactly zero, so no corner needs skipping.
+        double c00 = low0 * low1, c10 = high0 * low1, c01 = low0 * high1, c11 = high0 * high1;
+        double d0 = c00 * low2, d1 = c10 * low2, d2 = c01 * low2, d3 = c11 * low2;
+        double d4 = c00 * high2, d5 = c10 * high2, d6 = c01 * high2, d7 = c11 * high2;
+        double[] grid = input.Grid;
+        ref double cell = ref grid[baseOffset / 3 * 4];
+        int[] corners = input.CornerOffsets;
+        Vector256<double> sum = Vector256<double>.Zero;
+        sum = Add(sum, d0 * low3, ref cell, corners[0]);
+        sum = Add(sum, d1 * low3, ref cell, corners[1]);
+        sum = Add(sum, d2 * low3, ref cell, corners[2]);
+        sum = Add(sum, d3 * low3, ref cell, corners[3]);
+        sum = Add(sum, d4 * low3, ref cell, corners[4]);
+        sum = Add(sum, d5 * low3, ref cell, corners[5]);
+        sum = Add(sum, d6 * low3, ref cell, corners[6]);
+        sum = Add(sum, d7 * low3, ref cell, corners[7]);
+        sum = Add(sum, d0 * high3, ref cell, corners[8]);
+        sum = Add(sum, d1 * high3, ref cell, corners[9]);
+        sum = Add(sum, d2 * high3, ref cell, corners[10]);
+        sum = Add(sum, d3 * high3, ref cell, corners[11]);
+        sum = Add(sum, d4 * high3, ref cell, corners[12]);
+        sum = Add(sum, d5 * high3, ref cell, corners[13]);
+        sum = Add(sum, d6 * high3, ref cell, corners[14]);
+        sum = Add(sum, d7 * high3, ref cell, corners[15]);
+        double x = sum.GetElement(0), y = sum.GetElement(1), z = sum.GetElement(2);
+
+        // Multiply, then add: never fused, so each lane rounds as the scalar Transform does.
+        static Vector256<double> Add(Vector256<double> sum, double weight, ref double cell, int offset) =>
+            sum + Vector256.Create(weight) * Vector256.LoadUnsafe(ref cell, (nuint)offset);
+        double[] curves = input.OutputCurves;
+        output[0] = Curve(curves, 0, _outputEntries, Math.Clamp(x, 0, 1));
+        output[1] = Curve(curves, _outputEntries, _outputEntries, Math.Clamp(y, 0, 1));
+        output[2] = Curve(curves, 2 * _outputEntries, _outputEntries, Math.Clamp(z, 0, 1));
+
+        static double Curve(double[] samples, int offset, int count, double value)
+        {
+            double position = value * (count - 1);
+            int lower = Math.Min((int)position, count - 2);
+            double fraction = position - lower;
+            double first = samples[offset + lower];
+            return first + fraction * (samples[offset + lower + 1] - first);
+        }
+    }
+
+    private void Interpolate(int baseCell, ReadOnlySpan<double> fraction, Span<double> output, bool tetrahedral)
+    {
         output.Clear();
         ushort[] samples = _samples;
         double[] normalized = _normalized;

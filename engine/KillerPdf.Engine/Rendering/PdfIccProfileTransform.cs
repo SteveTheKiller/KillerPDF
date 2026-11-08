@@ -318,20 +318,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
                 _forward.Transform(encoded, xyz);
             }
             else _forward.Transform(device, xyz);
-            if (_lab)
-            {
-                double encoding = _forward.UsesLegacyLabEncoding ? 65535d / 65280 : 1;
-                double lightness = Math.Clamp(xyz[0] * encoding, 0, 1) * 100;
-                double a = xyz[1] * encoding * 255 - 128;
-                double b = xyz[2] * encoding * 255 - 128;
-                double y = (lightness + 16) / 116;
-                xyz[0] = 0.9642 * LabInverse(y + a / 500);
-                xyz[1] = LabInverse(y);
-                xyz[2] = 0.8249 * LabInverse(y - b / 200);
-            }
-            else for (int channel = 0; channel < 3; channel++) xyz[channel] *= _forward.XyzEncodingScale;
-            if (_absoluteScale is not null)
-                for (int channel = 0; channel < 3; channel++) xyz[channel] *= _absoluteScale[channel];
+            FinishForward(xyz);
             return;
         }
         Span<double> values = stackalloc double[3];
@@ -340,6 +327,39 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
             xyz[row] = Components == 1 ? _matrix![row] * values[0]
                 : _matrix![row * 3] * values[0] + _matrix[row * 3 + 1] * values[1]
                     + _matrix[row * 3 + 2] * values[2];
+        if (_absoluteScale is not null)
+            for (int channel = 0; channel < 3; channel++) xyz[channel] *= _absoluteScale[channel];
+    }
+
+    /// <summary>
+    /// Prepares exact 8-bit CMYK evaluation when the forward table is a CMYK lookup table, or
+    /// returns null when this transform has another shape.
+    /// </summary>
+    internal PdfIccLut.ByteInput? PrepareByteInput() =>
+        _forward is PdfIccLut lut && !IsLabInput && Components == 4 ? lut.PrepareByteInput() : null;
+
+    /// <summary>The same D50 XYZ as ToXyz for packed C, M, Y, K bytes (low to high).</summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal void BytesToXyz(PdfIccLut.ByteInput input, uint ink, Span<double> xyz)
+    {
+        ((PdfIccLut)_forward!).TransformBytes(input, ink, xyz);
+        FinishForward(xyz);
+    }
+
+    private void FinishForward(Span<double> xyz)
+    {
+        if (_lab)
+        {
+            double encoding = _forward!.UsesLegacyLabEncoding ? 65535d / 65280 : 1;
+            double lightness = Math.Clamp(xyz[0] * encoding, 0, 1) * 100;
+            double a = xyz[1] * encoding * 255 - 128;
+            double b = xyz[2] * encoding * 255 - 128;
+            double y = (lightness + 16) / 116;
+            xyz[0] = 0.9642 * LabInverse(y + a / 500);
+            xyz[1] = LabInverse(y);
+            xyz[2] = 0.8249 * LabInverse(y - b / 200);
+        }
+        else for (int channel = 0; channel < 3; channel++) xyz[channel] *= _forward!.XyzEncodingScale;
         if (_absoluteScale is not null)
             for (int channel = 0; channel < 3; channel++) xyz[channel] *= _absoluteScale[channel];
     }
