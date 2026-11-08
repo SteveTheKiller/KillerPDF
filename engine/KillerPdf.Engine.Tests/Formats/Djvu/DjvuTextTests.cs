@@ -159,11 +159,24 @@ public sealed class DjvuTextTests
     [InlineData(new byte[] { })]
     [InlineData(new byte[] { 0, 0 })]
     [InlineData(new byte[] { 0, 0, 5, 65, 1 })]
-    [InlineData(new byte[] { 0, 0, 1, 65 })]
-    public void RejectsTruncatedTextHeadersBodiesAndMissingVersions(byte[] payload)
+    public void RejectsTruncatedTextHeadersAndBodies(byte[] payload)
     {
         var document = DjvuDocument.Open(Page(Chunk("TXTa", payload)));
         Assert.Throws<InvalidDataException>(() => document.ReadText(0));
+    }
+
+    // DjVuLibre's DjVuTXT::decode reads the version byte and zones only when a byte
+    // follows the text, so text without zones may end right after the string.
+    [Theory]
+    [InlineData("TXTa", "00000141", "A")]
+    [InlineData("TXTa", "000000", "")]
+    // Independently BZZ-encoded with the DjVu.js reference encoder from 00 00 01 41.
+    [InlineData("TXTz", "FFFFFAFF7DA23C657F", "A")]
+    public void AcceptsTextThatEndsWithoutTheOptionalZoneVersion(string chunkId, string payload, string expected)
+    {
+        var page = DjvuDocument.Open(Page(Chunk(chunkId, Convert.FromHexString(payload)))).ReadTextPage(0);
+        Assert.Equal(expected, page.Text);
+        Assert.Empty(page.Zones);
     }
 
     [Theory]

@@ -34,8 +34,7 @@ public sealed class DjvuBzzTerminationTests
 
     [Theory]
     [InlineData("FFFFFC849DBF", "header")]
-    [InlineData("FFFFF9DFFE69F862", "text or version")]
-    [InlineData("FFFFFAFF7DA23C657F", "text or version")]
+    [InlineData("FFFFF9DFFE69F862", "text is truncated")]
     [InlineData("FFFFF8DFFE6D44F2C7", "UTF8")]
     [InlineData("FFFFE9824DB69849B9A22D8F13C043FC6A3F", "zone record")]
     public void RejectsIndependentlyEncodedMalformedTextPayloads(string compressed, string error)

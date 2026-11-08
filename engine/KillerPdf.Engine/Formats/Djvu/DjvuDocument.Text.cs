@@ -25,17 +25,20 @@ public sealed partial class DjvuDocument
             ? DjvuBzzDecoder.Decode(_data.AsSpan(text.Offset, text.Length), 4 * 1024 * 1024 + 4 + 17 * 65_536,
                 4 * 1024 * 1024, 32, cancellationToken)
             : _data.AsSpan(text.Offset, text.Length);
-        if (payload.Length < 4) throw new InvalidDataException("Truncated TXTa header.");
+        if (payload.Length < 3) throw new InvalidDataException("Truncated TXTa header.");
         var length = (payload[0] << 16) | (payload[1] << 8) | payload[2];
         if (length > 4 * 1024 * 1024) throw new InvalidDataException("TXTa text exceeds the 4 MiB read limit.");
-        if (length > payload.Length - 4) throw new InvalidDataException("TXTa text or version is truncated.");
-        if (payload[length + 3] != 1) throw new NotSupportedException("Only TXTa text version 1 is supported.");
+        if (length > payload.Length - 3) throw new InvalidDataException("TXTa text is truncated.");
+        // Like DjVuLibre, the version byte and its zones are present only when bytes follow the text.
+        var hasZones = payload.Length > length + 3;
+        if (hasZones && payload[length + 3] != 1) throw new NotSupportedException("Only TXTa text version 1 is supported.");
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             var result = new UTF8Encoding(false, true).GetString(payload.Slice(3, length));
             cancellationToken.ThrowIfCancellationRequested();
-            return new DjvuTextPage(result, ReadTextZones(payload[(length + 4)..], payload.Slice(3, length), cancellationToken));
+            var zones = hasZones ? ReadTextZones(payload[(length + 4)..], payload.Slice(3, length), cancellationToken) : [];
+            return new DjvuTextPage(result, zones);
         }
         catch (DecoderFallbackException exception)
         {
