@@ -342,7 +342,11 @@ public sealed class PdfColorConversionMacroTests
         for (int y = 73; y < 87; y++)
             for (int x = 13; x < 85; x++)
                 minimum = Math.Min(minimum, editedAppearance.Pixels.Span[(y * 100 + x) * 4]);
-        Assert.Equal(77, minimum);
+        // The red text converts to 77. No pixel of these small glyphs is fully inside a stem:
+        // the fullest one covers 0.9908 of its area exactly, so its coverage byte is
+        // floor(256 * 0.9908) = 253, and over the 150 background it paints
+        // (77 * 253 + 150 * 2 + 127) / 255 = 78.
+        Assert.Equal(78, minimum);
     }
 
     [Fact]

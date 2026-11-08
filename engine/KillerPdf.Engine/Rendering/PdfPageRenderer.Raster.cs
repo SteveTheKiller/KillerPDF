@@ -911,18 +911,18 @@ public sealed partial class PdfPageRenderer
 
     /// <summary>Rasterizes pixel-space polygons into a trimmed coverage mask.</summary>
     [ThreadStatic]
-    private static CellRasterizer? _sharedRasterizer;
+    private static CoverageRasterizer? _sharedRasterizer;
 
     private static CoverageMask RasterizePolygons(IEnumerable<Point[]> pixelPolygons, bool evenOdd,
         int width, int height, bool rent = false,
         (int Left, int Top, int Right, int Bottom)? bounds = null)
     {
         if (pixelPolygons is IReadOnlyList<Point[]> { Count: 1 } polygons
-            && CellRasterizer.TryRectangle(polygons[0], width, height) is { } rectangle)
+            && CoverageRasterizer.TryRectangle(polygons[0], width, height) is { } rectangle)
             return rectangle;
-        CellRasterizer? rasterizer = _sharedRasterizer;
+        CoverageRasterizer? rasterizer = _sharedRasterizer;
         if (rasterizer is null || rasterizer.Width != width || rasterizer.Height != height)
-            _sharedRasterizer = rasterizer = new CellRasterizer(width, height);
+            _sharedRasterizer = rasterizer = new CoverageRasterizer(width, height);
         rasterizer.Reset();
         rasterizer.AddPolygons(pixelPolygons);
         return rasterizer.Sweep(evenOdd, rent, bounds);
@@ -995,7 +995,7 @@ public sealed partial class PdfPageRenderer
         geometry => geometry?.Bytes ?? 256);
 
     [ThreadStatic]
-    private static CellRasterizer? _glyphRasterizer;
+    private static CoverageRasterizer? _glyphRasterizer;
 
     // Row parallelism requested by the render in progress on this thread. Large paints whose
     // rows are independent split into row ranges; every row computes the same pixels as the
@@ -1141,14 +1141,14 @@ public sealed partial class PdfPageRenderer
         long width = (long)Math.Ceiling(maxX) + 2 - shiftX;
         long height = (long)Math.Ceiling(maxY) + 2 - shiftY;
         if (width <= 0 || height <= 0 || width * height > MaximumCachedGlyphPixels) return null;
-        CellRasterizer rasterizer = _glyphRasterizer ??= new CellRasterizer((int)width, (int)height);
+        CoverageRasterizer rasterizer = _glyphRasterizer ??= new CoverageRasterizer((int)width, (int)height);
         rasterizer.Reset((int)width, (int)height);
         if (UseTransformedGlyphPoints && geometry.Paths is { } paths)
             rasterizer.AddDeviceGlyphPolygons(paths,
-                key.SubX * (CellRasterizer.Scale / GlyphSubpixelSteps)
-                    + (geometry.ShiftX - shiftX) * CellRasterizer.Scale,
-                key.SubY * (CellRasterizer.Scale / GlyphSubpixelSteps)
-                    + (geometry.ShiftY - shiftY) * CellRasterizer.Scale);
+                key.SubX * (CoverageRasterizer.Scale / GlyphSubpixelSteps)
+                    + (geometry.ShiftX - shiftX) * CoverageRasterizer.Scale,
+                key.SubY * (CoverageRasterizer.Scale / GlyphSubpixelSteps)
+                    + (geometry.ShiftY - shiftY) * CoverageRasterizer.Scale);
         else
             rasterizer.AddGlyphPolygons(
                 _glyphPathCache.GetOrAdd(key.Outline, FlattenGlyphOutlineCore),
@@ -1202,15 +1202,15 @@ public sealed partial class PdfPageRenderer
             {
                 Point point = points[index];
                 double x = point.X * a + point.Y * c, y = point.X * b + point.Y * d;
-                double fixedX = (x - shiftX) * CellRasterizer.Scale;
-                double fixedY = (y - shiftY) * CellRasterizer.Scale;
+                double fixedX = (x - shiftX) * CoverageRasterizer.Scale;
+                double fixedY = (y - shiftY) * CoverageRasterizer.Scale;
                 // Adding a phase can round a floating-point value onto an exact half.
                 // Keep the scalar operation order for these outlines, including large
                 // coordinates whose representation has a wider spacing between values.
                 double toleranceX = Math.Max(1e-8,
-                    (Math.BitIncrement(x) - x) * CellRasterizer.Scale * 4);
+                    (Math.BitIncrement(x) - x) * CoverageRasterizer.Scale * 4);
                 double toleranceY = Math.Max(1e-8,
-                    (Math.BitIncrement(y) - y) * CellRasterizer.Scale * 4);
+                    (Math.BitIncrement(y) - y) * CoverageRasterizer.Scale * 4);
                 if (Math.Abs(fixedX - Math.Floor(fixedX) - 0.5) <= toleranceX
                     || Math.Abs(fixedY - Math.Floor(fixedY) - 0.5) <= toleranceY)
                     return new(null, minX, minY, maxX, maxY, 0, 0, 256);
@@ -1235,11 +1235,11 @@ public sealed partial class PdfPageRenderer
                 count++;
             }
         if (count == 1 && single!.Count is 4 or 5
-            && CellRasterizer.TryRectangle(frame.ToPixels(single), frame.Width, frame.Height) is { } rectangle)
+            && CoverageRasterizer.TryRectangle(frame.ToPixels(single), frame.Width, frame.Height) is { } rectangle)
             return rectangle;
-        CellRasterizer? rasterizer = _sharedRasterizer;
+        CoverageRasterizer? rasterizer = _sharedRasterizer;
         if (rasterizer is null || rasterizer.Width != frame.Width || rasterizer.Height != frame.Height)
-            _sharedRasterizer = rasterizer = new CellRasterizer(frame.Width, frame.Height);
+            _sharedRasterizer = rasterizer = new CoverageRasterizer(frame.Width, frame.Height);
         rasterizer.Reset();
         rasterizer.AddPagePolygons(paths, frame);
         return rasterizer.Sweep(evenOdd, rent, bounds);
