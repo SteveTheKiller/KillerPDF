@@ -37,8 +37,10 @@ public sealed partial class EpubDocument
         int remainingStylesheetBytes = 8 * 1024 * 1024;
         int remainingStylesheetReferences = 65_536;
         var chargedStylesheets = new HashSet<string>(StringComparer.Ordinal);
-        var imageCache = new Dictionary<string, PngDecodedImage>(StringComparer.Ordinal);
-        long retainedImageBytes = 0;
+        // The box an image first decodes at is kept per image, so every later use and every redraw decodes it identically.
+        var imageBoxes = new Dictionary<string, (double Width, double Height)>(StringComparer.Ordinal);
+        var images = new EpubImageStore(key => DecodeNativeImage(key, CancellationToken.None));
+        var bookReaders = new Dictionary<TrueTypeFont, TrueTypeOutlineReader>(ReferenceEqualityComparer.Instance) { [options.DefaultFont] = reader };
         var chapterDiagnostics = new List<EpubChapterDiagnostic>();
         var contentDiagnostics = new List<EpubChapterDiagnostic>();
         var ignoredDeclarations = new List<EpubIgnoredDeclarations>();
@@ -54,7 +56,7 @@ public sealed partial class EpubDocument
             {
                 int ignored = AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors, cellAnchors,
                     ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences,
-                    imageCache, ref retainedImageBytes, ResolveFamily, contentDiagnostics, chargedStylesheets, cancellationToken);
+                    imageBoxes, images, bookReaders, ResolveFamily, contentDiagnostics, chargedStylesheets, cancellationToken);
                 if (ignored > 0) ignoredDeclarations.Add(new(spineIndex, Spine[spineIndex].Item.Href, ignored));
             }
             catch (Exception error) when (options.IsolateChapterFailures
@@ -248,7 +250,8 @@ public sealed partial class EpubDocument
         Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> cellAnchors,
         ref int remainingTextLength,
         ref int remainingStylesheetBytes, ref int remainingStylesheetReferences,
-        Dictionary<string, PngDecodedImage> imageCache, ref long retainedImageBytes,
+        Dictionary<string, (double Width, double Height)> imageBoxes, EpubImageStore images,
+        Dictionary<TrueTypeFont, TrueTypeOutlineReader> bookReaders,
         Func<EpubFontFamily?, double, EpubFontStyle, TrueTypeFont?> resolveFamily,
         List<EpubChapterDiagnostic> contentDiagnostics, HashSet<string> chargedStylesheets, CancellationToken cancellationToken)
     {
@@ -294,7 +297,8 @@ public sealed partial class EpubDocument
         }
         var font = options.DefaultFont;
         var substitutions = new Dictionary<(TrueTypeFont Font, bool SmallCaps, bool Ligatures), OpenTypeGlyphSubstitution>();
-        var readers = new Dictionary<TrueTypeFont, TrueTypeOutlineReader> { [font] = reader };
+        // One outline reader per face for the whole book, so chapters share glyph outlines instead of rebuilding them.
+        var readers = bookReaders;
         int fontWork = 0;
         int decorationWork = 0;
         int inlineMetricWork = 0;
@@ -534,12 +538,19 @@ public sealed partial class EpubDocument
             throw new NotSupportedException($"Native EPUB layout requires unsupported shaping or bidirectional processing for U+{value:X4}.");
         }
 
-        long imageBytes = retainedImageBytes;
+        var imageKeys = new Dictionary<PngDecodedImage, EpubImageKey>(ReferenceEqualityComparer.Instance);
         var flow = LayoutFlow(formatting.Root, initialContentLeft, initialContentRight,
             options.Margin + bodyMargins.Top + bodyPadding.Top);
         destinationPages.AddRange(flow.Pages);
-        retainedImageBytes = imageBytes;
         return content.IgnoredDeclarations;
+
+        // Loads a raster through the book's store and remembers which key reproduces it when the page is drawn.
+        PngDecodedImage LoadImage(EpubImageKey key)
+        {
+            var image = images.Get(key);
+            imageKeys[image] = key;
+            return image;
+        }
 
         (IReadOnlyList<EpubLayoutPage> Pages, double Bottom) LayoutFlow(
             EpubFormattingTree.Block flowRoot, double contentLeft, double contentRight, double top)
@@ -813,7 +824,12 @@ public sealed partial class EpubDocument
                         paintLeft += rasterLeft + firstColumn * pixelWidth;
                         paintTop = rasterTop + firstRow * pixelHeight;
                         imageSize = ((lastColumn - firstColumn) * pixelWidth, (lastRow - firstRow) * pixelHeight);
-                        image = Crop(image, firstColumn, firstRow, lastColumn - firstColumn, lastRow - firstRow);
+                        if (firstColumn != 0 || firstRow != 0 || lastColumn != image.Width || lastRow != image.Height)
+                            image = LoadImage(imageKeys[image] with
+                            {
+                                CropLeft = firstColumn, CropTop = firstRow,
+                                CropWidth = lastColumn - firstColumn, CropHeight = lastRow - firstRow
+                            });
                     }
                     if (imageSize.Width == 0) return;
                     if (pendingParagraphGap > 0)
@@ -829,7 +845,7 @@ public sealed partial class EpubDocument
                     }
                     AddBlockBackgrounds(flowHeight);
                     if (!replaced.Owner.Style.Hidden)
-                        glyphs.Add(new NativeImagePaint(image, paintLeft, top + paintTop) { Width = imageSize.Width, Height = imageSize.Height });
+                        glyphs.Add(new EpubDeferredImagePaint(imageKeys[image], paintLeft, top + paintTop, imageSize.Width, imageSize.Height));
                     if (backgrounds.Count + glyphs.Count > 100_000)
                         throw new InvalidDataException("The native page exceeds its paint limit.");
                     top += flowHeight;
@@ -989,7 +1005,7 @@ public sealed partial class EpubDocument
                             tallRow = true;
                             break;
                         }
-                        rowPaintCount += measured.Pages[0].Glyphs.Count;
+                        rowPaintCount += measured.Pages[0].PaintCount;
                         if (rowPaintCount > 100_000)
                             throw new InvalidDataException("The native page exceeds its paint limit.");
                         cells.Add((cell.Source, measured.Pages[0], rowLeft));
@@ -1054,14 +1070,14 @@ public sealed partial class EpubDocument
                             navigationPlacements.Add(placement with { Top = placement.Top + shift });
                         foreach (var marker in cell.Markers)
                             listMarkers.Add(marker with { Baseline = marker.Baseline + shift });
-                        foreach (var paint in cell.Glyphs)
+                        foreach (var paint in cell.StoredPaints)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
                             glyphs.Add(paint switch
                             {
                                 NativeGlyphPaint glyph => glyph with { Baseline = glyph.Baseline + shift },
                                 NativeMarkerPaint marker => marker with { CenterY = marker.CenterY + shift },
-                                NativeImagePaint image => image with { Top = image.Top + shift },
+                                EpubDeferredImagePaint image => image with { Top = image.Top + shift },
                                 NativeRectanglePaint rectangle => rectangle with { Top = rectangle.Top + shift },
                                 _ => throw new NotSupportedException("Native EPUB cell paint is not implemented.")
                             });
@@ -1591,7 +1607,7 @@ public sealed partial class EpubDocument
                         if (!item.Style.Hidden)
                         {
                             double imageHeight = image.Height * item.Width / image.Width;
-                            glyphs.Add(new NativeImagePaint(image, item.Left, baseline - imageHeight) { Width = item.Width, Height = imageHeight });
+                            glyphs.Add(new EpubDeferredImagePaint(imageKeys[image], item.Left, baseline - imageHeight, item.Width, imageHeight));
                         }
                         continue;
                     }
@@ -1715,8 +1731,13 @@ public sealed partial class EpubDocument
             {
                 try
                 {
-                    return ReadNativeImage(resource.Href, source, imageCache, ref imageBytes,
-                        (contentWidth, options.PageHeight - 2 * options.Margin), cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    string target = ResolveNativeImage(resource.Href, source);
+                    (double Width, double Height) box = imageBoxes.TryGetValue(target, out var first) ? first
+                        : (contentWidth, options.PageHeight - 2 * options.Margin);
+                    var image = LoadImage(new EpubImageKey(target, box.Width, box.Height));
+                    imageBoxes.TryAdd(target, box);
+                    return image;
                 }
                 catch (EpubImageUnavailableException error)
                 {
@@ -1770,7 +1791,7 @@ public sealed partial class EpubDocument
                 if (hiddenStart >= 0) hidden.Add((hiddenStart - pageStart, end - hiddenStart));
                 pages.Add(new EpubLayoutPage(text[pageStart..end], pageStart, spineIndex, placements, paints,
                     content.CanvasBackground, placements.Select(placement => clusters[placement.Start]), hidden, navigationPlacements,
-                    listMarkers));
+                    listMarkers, images));
                 pageStart = end;
                 pageHasContent = false;
                 listMarkers.Clear();

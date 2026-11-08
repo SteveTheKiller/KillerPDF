@@ -135,7 +135,7 @@ public sealed class EpubJpegImageLayoutTests
     [InlineData(0, 16)]
     [InlineData(32769, 16)]
     [InlineData(1025, 1024)]
-    public void InvalidOrOverBudgetSourceDimensionsAreRejectedBeforeDecoding(int width, int height)
+    public void InvalidOrOverBudgetSourceDimensionsOmitOnlyThatImageBeforeDecoding(int width, int height)
     {
         byte[] jpeg = Convert.FromBase64String(GrayJpeg);
         int frame = FindFrame(jpeg);

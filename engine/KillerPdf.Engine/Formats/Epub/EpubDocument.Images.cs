@@ -13,18 +13,16 @@ internal sealed class EpubImageUnavailableException(string message,
 
 public sealed partial class EpubDocument
 {
-    // Decoded images stay resident in their pages, so the book shares one budget. Images are
-    // downsampled to twice the content box before they count, so a novel's illustrations fit.
-    private const long RetainedImageBudget = 256L << 20;
+    // Pages keep only image keys; decoded rasters live in a bounded store and are decoded again when drawn
+    // (item A: Monte Cristo lost 234 illustrations to the old book-wide budget). Images are still downsampled
+    // to twice the content box.
     // A single decode may briefly hold the full-size image; this bounds that transient allocation.
     private const int MaximumDecodeBytes = 96 * 1024 * 1024;
     private const long MaximumSourcePixels = 40_000_000;
 
-    private PngDecodedImage ReadNativeImage(string chapter, string reference,
-        Dictionary<string, PngDecodedImage> cache, ref long retainedBytes, (double Width, double Height) box,
-        CancellationToken cancellationToken)
+    /// <summary>Resolves an image reference to its packaged path, refusing references the reader cannot show.</summary>
+    private string ResolveNativeImage(string chapter, string reference)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         string target;
         try { target = NavigationTarget(chapter, reference.Trim(' ', '\t', '\r', '\n')); }
         catch (InvalidDataException exception)
@@ -32,13 +30,21 @@ public sealed partial class EpubDocument
             throw new EpubImageUnavailableException("Native EPUB image is not packaged: " + reference + ".",
                 EpubOmissionReason.MissingResource, exception);
         }
-        if (cache.TryGetValue(target, out var cached)) return cached;
         var item = Manifest.FirstOrDefault(entry => entry.Href == target);
         if (target.Contains('#') || item?.MediaType is not ("image/png" or "image/jpeg" or "image/jpg"))
             throw new EpubImageUnavailableException("Native EPUB image format is not supported: " + target
                 + (item is null ? "." : " (" + item.MediaType + ")."));
         if (_encryptedResources.Contains(target))
             throw new EpubImageUnavailableException("Native EPUB image is encrypted: " + target + ".", EpubOmissionReason.Encrypted);
+        return target;
+    }
+
+    /// <summary>Decodes a resolved image at most twice the given box, then applies the key's crop.</summary>
+    private PngDecodedImage DecodeNativeImage(EpubImageKey key, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        string target = key.Target;
+        var box = (Width: key.BoxWidth, Height: key.BoxHeight);
         int maximumWidth = (int)Math.Clamp(Math.Ceiling(2 * box.Width), 1, 32768);
         int maximumHeight = (int)Math.Clamp(Math.Ceiling(2 * box.Height), 1, 32768);
         PngDecodedImage image;
@@ -56,13 +62,7 @@ public sealed partial class EpubDocument
             throw new EpubImageUnavailableException("Native EPUB image could not be decoded: " + target + ". " + error.Message,
                 EpubOmissionReason.ImageUnreadable, error);
         }
-        long size = image.Samples.LongLength + (image.Alpha?.LongLength ?? 0);
-        if (retainedBytes + size > RetainedImageBudget)
-            throw new EpubImageUnavailableException("Native EPUB images exceed the book's decoded image budget at " + target + ".",
-                EpubOmissionReason.ImageTooLarge);
-        retainedBytes += size;
-        cache.Add(target, image);
-        return image;
+        return key.CropWidth < 0 ? image : Crop(image, key.CropLeft, key.CropTop, key.CropWidth, key.CropHeight);
     }
 
     private static PngDecodedImage ReadNativePng(ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)

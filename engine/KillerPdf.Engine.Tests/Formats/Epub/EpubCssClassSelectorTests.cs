@@ -1135,7 +1135,7 @@ public sealed class EpubCssClassSelectorTests
     [InlineData("\u00A0div span.caption")]
     [InlineData("div[class\u00A0] span")]
     public void NonCssWhitespaceDoesNotSilentlyChangeADescendantSelector(string selector)
-        => UnsupportedGrammarKeepsExplicitRefusalAtBothPublicSeams(selector);
+        => UnsupportedGrammarDropsOnlyItsRuleAtBothPublicSeams(selector);
 
     [Theory]
     [InlineData("@namespace h 'http://www.w3.org/1999/xhtml';h|div.figcenter h|span.caption{color:red}", true)]
@@ -1246,7 +1246,7 @@ public sealed class EpubCssClassSelectorTests
     [InlineData("h|.note")]
     // CSS Selectors 4: a rule with an invalid or unsupported selector is dropped whole and the sheet's
     // other rules still apply, so the paragraph keeps its default color (KP-B slice 4; these used to refuse).
-    public void UnsupportedGrammarKeepsExplicitRefusalAtBothPublicSeams(string selector)
+    public void UnsupportedGrammarDropsOnlyItsRuleAtBothPublicSeams(string selector)
     {
         VerifyEngine();
         AssertRuleDropped("@namespace h 'http://www.w3.org/1999/xhtml';" + selector + "{color:red}", "<p class=\"note\">A</p>", 30, 16);
@@ -1303,7 +1303,7 @@ public sealed class EpubCssClassSelectorTests
         Reject(string.Concat(Enumerable.Repeat(".note{}", 65537)), "<p>A</p>", "Native EPUB CSS selectors exceed their 65,536-selector limit.");
         Reject("@namespace 'http://www.w3.org/1999/xhtml';" + string.Concat(Enumerable.Repeat(".note{}", 4096)),
             string.Concat(Enumerable.Repeat("<p class=\"note\">A</p>", 1000)), "Native EPUB CSS selector matching exceeds its work limit.");
-        UnsupportedGrammarKeepsExplicitRefusalAtBothPublicSeams("." + new string('a', 128));
+        UnsupportedGrammarDropsOnlyItsRuleAtBothPublicSeams("." + new string('a', 128));
         Verify("." + new string('a', 127) + "{color:red}", "<p class=\"" + new string('a', 127) + "\">A</p>", 2, 1.5, true, false);
         byte[] source = Book(".note{color:red}", "<p class=\"note\">A</p>");
         var canceled = new CancellationToken(true);

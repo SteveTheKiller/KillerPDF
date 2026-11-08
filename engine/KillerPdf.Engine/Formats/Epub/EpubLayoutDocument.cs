@@ -130,19 +130,19 @@ public sealed class EpubLayoutPage
     internal EpubLayoutPage(string text, int textStart, int spineIndex, IEnumerable<EpubTextPlacement> placements,
         IEnumerable<NativePagePaint> glyphs, PdfRgbColor? canvasBackground = null,
         IEnumerable<EpubGlyphCluster>? clusters = null, IEnumerable<(int Start, int Length)>? hiddenTextRanges = null,
-        IEnumerable<EpubTextPlacement>? navigationPlacements = null, IEnumerable<EpubListMarker>? markers = null)
+        IEnumerable<EpubTextPlacement>? navigationPlacements = null, IEnumerable<EpubListMarker>? markers = null,
+        EpubImageStore? images = null)
     {
         Markers = Array.AsReadOnly((markers ?? []).ToArray());
         Text = text;
         TextStart = textStart;
         SpineIndex = spineIndex;
-        TextPlacements = Array.AsReadOnly(placements.ToArray());
-        Glyphs = Array.AsReadOnly(glyphs.ToArray());
+        _storage = new EpubPageStorage(placements, navigationPlacements, glyphs, clusters, images);
         CanvasBackground = canvasBackground;
-        Clusters = (clusters ?? []).ToDictionary(cluster => cluster.Start);
         HiddenTextRanges = Array.AsReadOnly((hiddenTextRanges ?? []).ToArray());
-        NavigationPlacements = navigationPlacements is null ? TextPlacements : Array.AsReadOnly(navigationPlacements.ToArray());
     }
+
+    private readonly EpubPageStorage _storage;
     /// <summary>Gets the page's normalized text with display-none subtrees omitted.</summary>
     public string Text { get; }
     /// <summary>Gets the UTF-16 offset in display-filtered spine text where this page starts.</summary>
@@ -150,11 +150,16 @@ public sealed class EpubLayoutPage
     /// <summary>Gets this page's original declared spine index.</summary>
     public int SpineIndex { get; }
     /// <summary>Gets logical text placements independently of glyph ink.</summary>
-    public IReadOnlyList<EpubTextPlacement> TextPlacements { get; }
-    internal IReadOnlyList<NativePagePaint> Glyphs { get; }
-    internal IReadOnlyDictionary<int, EpubGlyphCluster> Clusters { get; }
+    public IReadOnlyList<EpubTextPlacement> TextPlacements => _storage.TextPlacements;
+    /// <summary>Rebuilds this page's paints on each access; deferred images are decoded through the book's store.</summary>
+    internal IReadOnlyList<NativePagePaint> Glyphs => _storage.Paints();
+    /// <summary>The number of paints without rebuilding them.</summary>
+    internal int PaintCount => _storage.PaintCount;
+    /// <summary>The paints as laid out, with images still deferred, for moving a cell page into its row.</summary>
+    internal IReadOnlyList<NativePagePaint> StoredPaints => _storage.Paints(decodeImages: false);
+    internal IReadOnlyDictionary<int, EpubGlyphCluster> Clusters => _storage.Clusters;
     internal IReadOnlyList<(int Start, int Length)> HiddenTextRanges { get; }
-    internal IReadOnlyList<EpubTextPlacement> NavigationPlacements { get; }
+    internal IReadOnlyList<EpubTextPlacement> NavigationPlacements => _storage.NavigationPlacements;
     /// <summary>Ordered-list numbers drawn on this page; they are not part of the page text.</summary>
     internal IReadOnlyList<EpubListMarker> Markers { get; }
     internal PdfRgbColor? CanvasBackground { get; }
@@ -207,7 +212,7 @@ public sealed class EpubLayoutDocument
     /// <summary>Gets the immutable native pages.</summary>
     public IReadOnlyList<EpubLayoutPage> Pages { get; }
 
-    /// <summary>Gets the chapters replaced by diagnosis pages, in spine order.</summary>
+    /// <summary>Gets the chapters replaced by diagnosis pages, in reading order (linear items first, then non-linear ones).</summary>
     public IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics { get; init; } = [];
 
     /// <summary>Gets single items, such as images, that were omitted while their chapter still laid out.</summary>

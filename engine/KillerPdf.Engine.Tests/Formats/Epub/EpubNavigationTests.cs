@@ -74,11 +74,11 @@ public sealed partial class EpubDocumentTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void RejectsMoreThan1024NavigationNodes(bool ncx)
+    public void RejectsMoreThan16384NavigationNodes(bool ncx)
     {
         var node = ncx ? "<navPoint><navLabel><text>Chapter</text></navLabel><content src='one.xhtml'/></navPoint>"
             : "<li><a href='one.xhtml'>Chapter</a></li>";
-        // Raised to 16,384 entries for the Complete Works of Shakespeare (KP-B slice 10); the method name keeps its history.
+        // Raised from 1,024 to 16,384 entries for the Complete Works of Shakespeare (KP-B slice 10).
         var content = string.Concat(Enumerable.Repeat(node, 16_385));
         var book = ncx ? NcxBook(Ncx(content)) : NavigationBook(NavList(content));
         Assert.Throws<InvalidDataException>(() => book.ReadNavigation());
