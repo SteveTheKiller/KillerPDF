@@ -80,26 +80,14 @@ public partial class MainWindow
             {
                 HideBusyOverlay(busy);
                 overlayShown = false;
-                if (ReclaimAsyncOwner(owner))
-                {
-                    _asyncOpenPending = false;
-                    SetStatus(Loc("Str_St_Canceled"));
-                }
-                return;
+                return;   // the rollback below reports the cancellation
             }
             HideBusyOverlay(busy);
             overlayShown = false;
+            // Its tab was closed, or Cancel arrived after the last check inside the open.
             if (!ReclaimAsyncOwner(owner) || token.IsCancellationRequested
                 || _windowResourcesReleased || Dispatcher.HasShutdownStarted)
-            {
-                // Its tab was closed, or Cancel arrived after the last check inside the open.
-                if (token.IsCancellationRequested && ReclaimAsyncOwner(owner))
-                {
-                    _asyncOpenPending = false;
-                    SetStatus(Loc("Str_St_Canceled"));
-                }
                 return;
-            }
             AdoptNativeDocument(path, opened);
             FinalizeAsyncOpen();
             adopted = true;
@@ -119,10 +107,16 @@ public partial class MainWindow
         finally
         {
             if (!adopted) opened?.Dispose();
+            bool canceled = !adopted && token.IsCancellationRequested;
             if (ReferenceEquals(_busyCts, cancel)) _busyCts = null;
             cancel.Dispose();
             if (!adopted && ReclaimAsyncOwner(owner))
+            {
+                _asyncOpenPending = false;
                 owner.Viewer.AbortPendingTabLoadExt(owner.Session!);
+                // The rollback re-renders the previous tab and its status, so the cancellation is said last.
+                if (canceled) SetStatus(Loc("Str_St_Canceled"));
+            }
             completion?.TrySetResult(adopted);
         }
     }
