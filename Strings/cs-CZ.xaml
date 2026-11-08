@@ -2075,6 +2075,15 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_CM_PreviousFileSettings">Nastavení předchozího souboru</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Zkontrolovat nastavení</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Korekce barev monitoru není dostupná. Zobrazuje se sRGB.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">Uložený profil nátisku už v knihovně profilů není. Zobrazení používá běžné barvy.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">Uložený profil nátisku byl nahrazen jiným souborem. Zobrazení používá běžné barvy.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">Uložený profil nátisku nelze použít. Zobrazení používá běžné barvy.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">Uložený profil nátisku se nepodařilo načíst. Zobrazení používá běžné barvy.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">Nastavení předchozího souboru {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">Nátisk tiskárny není pro tuto stránku dostupný. Zobrazují se běžné barvy.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">Pracovní profil CMYK</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (vestavěný)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Používá se pro barvy CMYK bez vlastního profilu. Toto nastavení platí pro všechny dokumenty.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Tuto kapitolu nelze zobrazit.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Kapitoly, které nelze zobrazit: {0}</sys:String>
 </ResourceDictionary>

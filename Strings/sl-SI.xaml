@@ -1979,6 +1979,15 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_CM_PreviousFileSettings">Nastavitve prejšnje datoteke</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Preglej nastavitve</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Barvna korekcija monitorja ni na voljo. Prikaz v sRGB.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">Shranjenega profila poskusnega odtisa ni več v knjižnici profilov. Prikaz uporablja običajne barve.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">Shranjeni profil poskusnega odtisa je bil zamenjan z drugo datoteko. Prikaz uporablja običajne barve.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">Shranjenega profila poskusnega odtisa ni mogoče uporabiti. Prikaz uporablja običajne barve.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">Shranjenega profila poskusnega odtisa ni bilo mogoče prebrati. Prikaz uporablja običajne barve.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">Nastavitve prejšnje datoteke {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">Poskusni odtis tiskalnika za to stran ni na voljo. Prikazane so običajne barve.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">Delovni profil CMYK</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (vgrajen)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Uporablja se za barve CMYK brez lastnega profila. Ta nastavitev velja za vse dokumente.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Tega poglavja ni mogoče prikazati.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Poglavja, ki jih ni mogoče prikazati: {0}</sys:String>
 </ResourceDictionary>

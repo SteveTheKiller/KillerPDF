@@ -2077,6 +2077,15 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_CM_PreviousFileSettings">Az előző fájl beállításai</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Beállítások áttekintése</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">A monitor színkorrekciója nem érhető el. Megjelenítés sRGB színtérben.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">A mentett próbanyomat profil már nincs a profilkönyvtárban. A megjelenítés normál színeket használ.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">A mentett próbanyomat profilt egy másik fájl váltotta fel. A megjelenítés normál színeket használ.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">A mentett próbanyomat profil nem használható. A megjelenítés normál színeket használ.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">A mentett próbanyomat profilt nem sikerült beolvasni. A megjelenítés normál színeket használ.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">Az előző fájl beállításai {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">A nyomtatási próbanyomat ehhez az oldalhoz nem érhető el. Normál színek láthatók.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">Munka CMYK profil</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (beépített)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">A saját profil nélküli CMYK színekhez használatos. Ez a beállítás minden dokumentumra vonatkozik.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Ez a fejezet nem jeleníthető meg.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Nem megjeleníthető fejezetek: {0}</sys:String>
 </ResourceDictionary>

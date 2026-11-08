@@ -2090,6 +2090,15 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_CM_PreviousFileSettings">Innstillinger for forrige fil</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Se gjennom innstillinger</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Fargekorrigering for skjermen er utilgjengelig. Viser sRGB.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">Den lagrede prøvetrykkprofilen finnes ikke lenger i profilbiblioteket. Visningen bruker vanlige farger.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">Den lagrede prøvetrykkprofilen ble erstattet av en annen fil. Visningen bruker vanlige farger.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">Den lagrede prøvetrykkprofilen kan ikke brukes. Visningen bruker vanlige farger.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">Den lagrede prøvetrykkprofilen kunne ikke leses. Visningen bruker vanlige farger.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">Innstillinger for forrige fil {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">Prøvetrykk for skriver er utilgjengelig for denne siden. Viser vanlige farger.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">Arbeidsprofil for CMYK</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (innebygd)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Brukes for CMYK farger som ikke har en egen profil. Denne innstillingen gjelder alle dokumenter.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Dette kapittelet kan ikke vises.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Kapitler som ikke kan vises: {0}</sys:String>
 </ResourceDictionary>

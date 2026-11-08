@@ -2072,6 +2072,15 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">先前檔案的設定</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">檢視設定</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">無法使用顯示器色彩校正。目前以 sRGB 顯示。</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">儲存的校樣描述檔已不在描述檔資料庫中。檢視時使用一般色彩。</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">儲存的校樣描述檔已被其他檔案取代。檢視時使用一般色彩。</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">無法使用儲存的校樣描述檔。檢視時使用一般色彩。</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">無法讀取儲存的校樣描述檔。檢視時使用一般色彩。</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">先前檔案的設定 {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">此頁面無法使用印表機校樣。目前以一般色彩顯示。</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">工作 CMYK 描述檔</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001（內建）</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">用於沒有自身描述檔的 CMYK 色彩。此設定適用於所有文件。</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">無法顯示此章節。</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">無法顯示的章節：{0}</sys:String>
 </ResourceDictionary>

@@ -2090,6 +2090,15 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_CM_PreviousFileSettings">Thiết lập của tệp trước</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Xem lại thiết lập</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Không thể hiệu chỉnh màu màn hình. Đang hiển thị sRGB.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">Hồ sơ xem thử đã lưu không còn trong thư viện hồ sơ. Chế độ xem sử dụng màu thông thường.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">Hồ sơ xem thử đã lưu đã bị thay bằng một tệp khác. Chế độ xem sử dụng màu thông thường.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">Không thể dùng hồ sơ xem thử đã lưu. Chế độ xem sử dụng màu thông thường.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">Không thể đọc hồ sơ xem thử đã lưu. Chế độ xem sử dụng màu thông thường.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">Thiết lập của tệp trước {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">Không thể xem thử màu máy in cho trang này. Đang hiển thị màu thông thường.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">Hồ sơ CMYK làm việc</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (tích hợp)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Dùng cho màu CMYK không có hồ sơ riêng. Thiết lập này áp dụng cho mọi tài liệu.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Không thể hiển thị chương này.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Các chương không thể hiển thị: {0}</sys:String>
 </ResourceDictionary>

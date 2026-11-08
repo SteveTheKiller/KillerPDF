@@ -2090,6 +2090,15 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_CM_PreviousFileSettings">以前のファイルの設定</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">設定を確認</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">モニターの色補正は利用できません。sRGBで表示しています。</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">保存された色校正プロファイルはプロファイルライブラリにありません。通常の色で表示します。</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">保存された色校正プロファイルは別のファイルに置き換えられました。通常の色で表示します。</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">保存された色校正プロファイルは使用できません。通常の色で表示します。</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">保存された色校正プロファイルを読み込めませんでした。通常の色で表示します。</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">以前のファイルの設定 {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">このページではプリンターの色校正を利用できません。通常の色で表示しています。</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">作業用 CMYK プロファイル</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (内蔵)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">独自のプロファイルを持たない CMYK の色に使用します。この設定はすべての文書に適用されます。</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">この章は表示できません。</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">表示できない章: {0}</sys:String>
 </ResourceDictionary>

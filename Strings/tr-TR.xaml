@@ -2070,6 +2070,15 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_CM_PreviousFileSettings">Önceki dosyanın ayarları</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Ayarları gözden geçir</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Monitör renk düzeltmesi kullanılamıyor. sRGB gösteriliyor.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">Kaydedilen prova profili artık profil kitaplığında değil. Görüntülemede normal renkler kullanılır.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">Kaydedilen prova profili farklı bir dosyayla değiştirildi. Görüntülemede normal renkler kullanılır.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">Kaydedilen prova profili kullanılamıyor. Görüntülemede normal renkler kullanılır.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">Kaydedilen prova profili okunamadı. Görüntülemede normal renkler kullanılır.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">Önceki dosyanın ayarları {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">Bu sayfa için yazıcı provası kullanılamıyor. Normal renkler gösteriliyor.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">Çalışma CMYK profili</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (yerleşik)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Kendi profili olmayan CMYK renkleri için kullanılır. Bu ayar tüm belgeler için geçerlidir.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Bu bölüm görüntülenemiyor.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Görüntülenemeyen bölümler: {0}</sys:String>
 </ResourceDictionary>

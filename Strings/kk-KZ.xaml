@@ -2093,6 +2093,15 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_CM_PreviousFileSettings">Алдыңғы файлдың параметрлері</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Параметрлерді қарап шығу</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Монитордың түсін түзету қолжетімсіз. sRGB көрсетілуде.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">Сақталған сынау профилі профильдер кітапханасында енді жоқ. Көру кезінде қалыпты түстер қолданылады.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">Сақталған сынау профилі басқа файлмен ауыстырылды. Көру кезінде қалыпты түстер қолданылады.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">Сақталған сынау профилін пайдалану мүмкін емес. Көру кезінде қалыпты түстер қолданылады.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">Сақталған сынау профилін оқу мүмкін болмады. Көру кезінде қалыпты түстер қолданылады.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">Алдыңғы файлдың параметрлері {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">Бұл бет үшін принтердің түсті сынауы қолжетімсіз. Қалыпты түстер көрсетілуде.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">Жұмыс CMYK профилі</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (кірістірілген)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Өз профилі жоқ CMYK түстері үшін қолданылады. Бұл параметр барлық құжаттарға қолданылады.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Бұл тарауды көрсету мүмкін емес.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Көрсетілмейтін тараулар: {0}</sys:String>
 </ResourceDictionary>

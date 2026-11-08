@@ -2083,6 +2083,15 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_CM_PreviousFileSettings">Previous file settings</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Review settings</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Monitor color correction is unavailable. Showing sRGB.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">The saved proof profile is no longer in the profile library. Viewing uses normal color.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">The saved proof profile was replaced by a different file. Viewing uses normal color.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">The saved proof profile cannot be used. Viewing uses normal color.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">The saved proof profile could not be read. Viewing uses normal color.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">Previous file settings {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">Printer proof is unavailable for this page. Showing normal color.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">Working CMYK profile</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (built in)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Used for CMYK colors that have no profile of their own. This setting applies to every document.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">This chapter could not be displayed.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Chapters that could not be displayed: {0}</sys:String>
 </ResourceDictionary>

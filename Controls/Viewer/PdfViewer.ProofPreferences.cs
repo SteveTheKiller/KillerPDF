@@ -31,7 +31,7 @@ public partial class PdfViewer
             var restored = new DocumentProofStore().Restore(fullPath, sourceSha256, new ProofProfileLibrary());
             session.ProofView.Document.Proof = restored.Settings;
             session.PreviousProofPreferences = restored.PreviousForReview;
-            session.ProofPreferenceNoticeKey = null;
+            session.ProofPreferenceNoticeKey = restored.ProfileNoticeKey;
         }
         catch (Exception error) when (IsProofPreferenceFailure(error))
         {

@@ -2070,6 +2070,15 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_CM_PreviousFileSettings">আগের ফাইলের সেটিংস</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">সেটিংস পর্যালোচনা করুন</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">মনিটরের রঙ সংশোধন উপলব্ধ নেই। sRGB দেখানো হচ্ছে।</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">সংরক্ষিত প্রুফ প্রোফাইলটি আর প্রোফাইল লাইব্রেরিতে নেই। দেখানোর সময় স্বাভাবিক রং ব্যবহার করা হয়।</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">সংরক্ষিত প্রুফ প্রোফাইলটি অন্য একটি ফাইল দিয়ে প্রতিস্থাপিত হয়েছে। দেখানোর সময় স্বাভাবিক রং ব্যবহার করা হয়।</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">সংরক্ষিত প্রুফ প্রোফাইলটি ব্যবহার করা যাচ্ছে না। দেখানোর সময় স্বাভাবিক রং ব্যবহার করা হয়।</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">সংরক্ষিত প্রুফ প্রোফাইলটি পড়া যায়নি। দেখানোর সময় স্বাভাবিক রং ব্যবহার করা হয়।</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">আগের ফাইলের সেটিংস {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">এই পৃষ্ঠার জন্য প্রিন্টার প্রুফ উপলব্ধ নেই। স্বাভাবিক রং দেখানো হচ্ছে।</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">কার্যকরী CMYK প্রোফাইল</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (অন্তর্নির্মিত)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">নিজস্ব প্রোফাইল নেই এমন CMYK রঙের জন্য ব্যবহার করা হয়। এই সেটিং সব নথিতে প্রযোজ্য।</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">এই অধ্যায়টি দেখানো যায়নি।</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">যে অধ্যায়গুলো দেখানো যায়নি: {0}</sys:String>
 </ResourceDictionary>

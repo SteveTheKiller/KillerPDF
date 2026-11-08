@@ -178,6 +178,27 @@ public sealed class DocumentProofStoreTests : IDisposable
         Assert.Equal("def", File.ReadAllText(SourcePath));
     }
 
+    [Theory]
+    [InlineData("missing", "Str_CM_ProfileMissing")]
+    [InlineData("invalid", "Str_CM_ProfileInvalid")]
+    [InlineData("disabled", null)]
+    public void ReopeningExplainsWhyTheRequestedProofProfileIsUnavailable(string state, string? expected)
+    {
+        var requested = PdfProofPreset.FromJson(state == "disabled"
+            ? Requested.Replace("\"enabled\":true", "\"enabled\":false", StringComparison.Ordinal) : Requested);
+        if (state == "invalid")
+        {
+            Directory.CreateDirectory(Path.Combine(_directory, "profiles"));
+            File.WriteAllBytes(Path.Combine(_directory, "profiles", "library.lock"), []);
+            File.WriteAllBytes(Path.Combine(_directory, "profiles", requested.PrinterProfileSha256 + ".icc"), new byte[200]);
+        }
+        new DocumentProofStore(StorePath).Save(SourcePath, OriginalHash, requested.ResolveProfile(null));
+
+        var restored = new DocumentProofStore(StorePath).Restore(SourcePath, OriginalHash, Profiles);
+
+        Assert.Equal(expected, restored.ProfileNoticeKey);
+    }
+
     [Fact]
     public void MatchingOwnedProfileIsResolvedWhenTheDocumentReopens()
     {
@@ -202,21 +223,27 @@ public sealed class DocumentProofStoreTests : IDisposable
         Assert.NotNull(restored.Settings.PrinterProfile);
         Assert.Equal("7F7BE1EAABD868E6F6D9C72E24DF59BB195CCEAAEBA23644FD0C814A72D49FB1", restored.Settings.PrinterProfileSha256);
         Assert.True(restored.Settings.Enabled);
+        Assert.Null(restored.ProfileNoticeKey);
         void Write(int offset, int value) => BinaryPrimitives.WriteInt32BigEndian(bytes.AsSpan(offset), value);
     }
 
     [Theory]
     [InlineData("{")]
     [InlineData("{\"schemaVersion\":1,\"presets\":[] ,\"extra\":true}")]
-    public void DamagedStoreNeverFallsBackToUnrecordedOrOverwritesItsCatalog(string json)
+    public void ADamagedStoreStartsProofOffKeepsSavingAndRetainsTheDamagedCatalog(string json)
     {
         Directory.CreateDirectory(StorePath);
         string path = Path.Combine(StorePath, "proof-presets.json");
         File.WriteAllText(path, json);
         var store = new DocumentProofStore(StorePath);
-        Assert.Throws<FormatException>(() => store.Restore(SourcePath, OriginalHash, Profiles));
-        Assert.Throws<FormatException>(() => store.Save(SourcePath, OriginalHash, new PdfDocumentProofSettings()));
-        Assert.Equal(json, File.ReadAllText(path));
+
+        var restored = store.Restore(SourcePath, OriginalHash, Profiles);
+        Assert.Equal(DocumentProofMatch.NotFound, restored.Match);
+        Assert.False(restored.Settings.Enabled);
+        store.Save(SourcePath, OriginalHash, new PdfDocumentProofSettings(enabled: true));
+
+        Assert.True(store.Restore(SourcePath, OriginalHash, Profiles).Settings.Enabled);
+        Assert.Equal(json, File.ReadAllText(path + ".recovery"));
     }
 
     [Fact]

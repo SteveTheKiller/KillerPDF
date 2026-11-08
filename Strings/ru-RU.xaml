@@ -2093,6 +2093,15 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_CM_PreviousFileSettings">Настройки предыдущего файла</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Просмотреть настройки</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Цветокоррекция монитора недоступна. Отображение в sRGB.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">Сохранённого профиля цветопробы больше нет в библиотеке профилей. При просмотре используются обычные цвета.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">Сохранённый профиль цветопробы был заменён другим файлом. При просмотре используются обычные цвета.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">Сохранённый профиль цветопробы нельзя использовать. При просмотре используются обычные цвета.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">Не удалось прочитать сохранённый профиль цветопробы. При просмотре используются обычные цвета.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">Настройки предыдущего файла {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">Цветопроба принтера недоступна для этой страницы. Показаны обычные цвета.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">Рабочий профиль CMYK</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (встроенный)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Используется для цветов CMYK без собственного профиля. Этот параметр действует для всех документов.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Не удаётся показать эту главу.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Главы, которые не удаётся показать: {0}</sys:String>
 </ResourceDictionary>

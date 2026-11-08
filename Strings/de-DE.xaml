@@ -2079,6 +2079,15 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_CM_PreviousFileSettings">Einstellungen der vorherigen Datei</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Einstellungen überprüfen</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Die Farbkorrektur für den Monitor ist nicht verfügbar. Anzeige in sRGB.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">Das gespeicherte Proof-Profil ist nicht mehr in der Profilbibliothek. Die Anzeige verwendet normale Farben.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">Das gespeicherte Proof-Profil wurde durch eine andere Datei ersetzt. Die Anzeige verwendet normale Farben.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">Das gespeicherte Proof-Profil kann nicht verwendet werden. Die Anzeige verwendet normale Farben.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">Das gespeicherte Proof-Profil konnte nicht gelesen werden. Die Anzeige verwendet normale Farben.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">Einstellungen der vorherigen Datei {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">Der Drucker-Proof ist für diese Seite nicht verfügbar. Anzeige in normalen Farben.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">CMYK-Arbeitsfarbprofil</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (integriert)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Wird für CMYK-Farben ohne eigenes Profil verwendet. Diese Einstellung gilt für alle Dokumente.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Dieses Kapitel kann nicht angezeigt werden.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Kapitel, die nicht angezeigt werden können: {0}</sys:String>
 </ResourceDictionary>

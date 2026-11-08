@@ -2078,6 +2078,15 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_CM_PreviousFileSettings">Ustawienia poprzedniego pliku</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Przejrzyj ustawienia</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Korekcja kolorów monitora jest niedostępna. Wyświetlanie w sRGB.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileMissing">Zapisanego profilu próby nie ma już w bibliotece profili. Podgląd używa zwykłych kolorów.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileChanged">Zapisany profil próby został zastąpiony innym plikiem. Podgląd używa zwykłych kolorów.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileInvalid">Zapisanego profilu próby nie można użyć. Podgląd używa zwykłych kolorów.</sys:String>
+    <sys:String x:Key="Str_CM_ProfileUnreadable">Nie udało się odczytać zapisanego profilu próby. Podgląd używa zwykłych kolorów.</sys:String>
+    <sys:String x:Key="Str_CM_PreviousFileSettingsItem">Ustawienia poprzedniego pliku {0}</sys:String>
+    <sys:String x:Key="Str_CM_ProofUnavailablePage">Próba drukarki jest niedostępna dla tej strony. Wyświetlane są zwykłe kolory.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmyk">Roboczy profil CMYK</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (wbudowany)</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Używany dla kolorów CMYK bez własnego profilu. To ustawienie dotyczy wszystkich dokumentów.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Nie można wyświetlić tego rozdziału.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Rozdziały, których nie można wyświetlić: {0}</sys:String>
 </ResourceDictionary>

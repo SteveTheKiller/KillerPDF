@@ -18,7 +18,18 @@ public enum DocumentProofMatch
 
 /// <summary>Restored requested preferences and any previous-file settings offered for review.</summary>
 public sealed record DocumentProofRestore(DocumentProofMatch Match, PdfDocumentProofSettings Settings,
-    ProofProfileResolutionKind ProfileKind, IReadOnlyList<DocumentProofReview>? PreviousForReview = null);
+    ProofProfileResolutionKind ProfileKind, IReadOnlyList<DocumentProofReview>? PreviousForReview = null)
+{
+    /// <summary>Gets the string resource key that explains why restored proofing has no profile, or null.</summary>
+    public string? ProfileNoticeKey => Match != DocumentProofMatch.Matched || !Settings.Enabled ? null : ProfileKind switch
+    {
+        ProofProfileResolutionKind.Missing => "Str_CM_ProfileMissing",
+        ProofProfileResolutionKind.Changed => "Str_CM_ProfileChanged",
+        ProofProfileResolutionKind.Invalid => "Str_CM_ProfileInvalid",
+        ProofProfileResolutionKind.Unreadable => "Str_CM_ProfileUnreadable",
+        _ => null
+    };
+}
 
 /// <summary>Identifies the recorded contents to which a reviewable snapshot belongs.</summary>
 public sealed record DocumentProofReview(string SourceSha256, PdfProofPreset Preset);
