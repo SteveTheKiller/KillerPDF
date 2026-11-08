@@ -89,7 +89,23 @@ local benchmark root. No production behavior changed for this finding.
 
 ## September 9 CMYK display conversion
 
-Unprofiled CMYK now uses the retained renderer's process-ink display mapping.
+Superseded on November 8, 2026. Unprofiled CMYK now displays through the working
+CMYK profile (CGATS TR 001 by default, or the user's choice) on every surface:
+managed and byte renders, thumbnails, print, export, the preview handler, the CLI
+and the color conversion macro. The PDFium-derived forward table and its inverse
+were removed, along with `tools/GenerateDeviceCmykInverse.py`. The byte path
+evaluates each ink exactly through the profile, so it equals the managed result;
+LittleCMS 2 (NOOPTIMIZE, perceptual, built-in sRGB) agrees within one code on the
+checked swatches. RGB paint entering ink uses an inverse fitted at run time to the
+profile, limited to 300 percent total ink and fitted on unclipped light.
+Measured against the old table (delta E 2000): 671 swatches mean 0.44, max 2.49;
+a dense 17^4 grid mean 0.67, p99 3.47, max 6.07; 300 corpus pages painting
+untagged CMYK mean 0.60, p99 1.91, max 10.15 (one antialiased edge pixel where
+two RGB paints were separated differently). In-gamut round trips through the new
+inverse have mean 0.38 and max 2.59, against mean 0.53 and max 7.50 for the old
+inverse with the old table. The text below records the September 9 state.
+
+Unprofiled CMYK then used the retained renderer's process-ink display mapping.
 The managed forward conversion and its unchanged 6,561-entry table come from
 the pinned PDFium source identified in `THIRD-PARTY-NOTICES.txt`. This adds no
 PDFium runtime dependency. Explicit ICC transforms and device-space soft-mask

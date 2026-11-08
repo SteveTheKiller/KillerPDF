@@ -229,7 +229,8 @@ public sealed partial class PdfPageRenderer
             options.TransparentBackground, options.IncludeAnnotations,
             options.IncludeFormFields, options.IncludeRedactionMarks,
             options.IncludeMeasurementAnnotations, options.ForPrinting,
-            options.IncludePushButtonFields, options.IncludeSignedSignatureFields);
+            options.IncludePushButtonFields, options.IncludeSignedSignatureFields,
+            options.WorkingCmykProfile.ContentSha256);
         return _renderCache.GetOrAdd(key,
             _ => RenderUncached(pageIndex, options, cancellationToken));
     }
@@ -309,6 +310,9 @@ public sealed partial class PdfPageRenderer
         if (preciseRgb is null && options.Proof is { Enabled: true })
             throw new NotSupportedException("Printer proof output is not implemented for byte rendering.");
         using PageGlyphMaskScope pageGlyphMasks = EnterPageGlyphMasks();
+        // Untagged process inks display through this render's working CMYK profile, including
+        // on parallel row workers, which inherit the scope.
+        using PdfCmykDisplayTable.Scope workingCmyk = PdfCmykDisplayTable.Use(options.WorkingCmykProfile);
         bool pageHasGroup = _tree.Pages[pageIndex].Dictionary.TryGetValue(Name("Group"), out _);
         // Compositing an RGB or gray page group on a transparent backdrop and imposing it on
         // the paper afterward only changes the result when something blends against that
@@ -7260,6 +7264,8 @@ public sealed partial class PdfPageRenderer
     /// <summary>Reads packed image samples and converts them to device colors with a small cache.</summary>
     private sealed class ImageSampleConverter
     {
+        // Captured once per paint, inside the render's working CMYK scope.
+        private readonly PdfCmykDisplayTable _cmyk = PdfCmykDisplayTable.Current;
         private readonly int _cacheShift;
         private readonly byte[] _samples;
         private readonly int _rowBytes;
@@ -7480,7 +7486,7 @@ public sealed partial class PdfPageRenderer
                 uint ink = ReadInk(_samples, offset);
                 int slot = (int)((ink * 2654435761u) >> _cacheShift);
                 if (_cacheValid![slot] && _cacheKeys![slot] == ink) return _cacheValues![slot];
-                uint color = PdfDeviceCmyk.ToRgb(ink) | 0xFF000000;
+                uint color = _cmyk.ToRgb(ink) | 0xFF000000;
                 _cacheKeys![slot] = ink;
                 _cacheValues![slot] = color;
                 _cacheValid[slot] = true;
@@ -7636,7 +7642,7 @@ public sealed partial class PdfPageRenderer
                             color = _cacheValues![slot];
                         else
                         {
-                            color = PdfDeviceCmyk.ToRgb(ink) | 0xFF000000;
+                            color = _cmyk.ToRgb(ink) | 0xFF000000;
                             _cacheKeys![slot] = ink;
                             _cacheValues![slot] = color;
                             _cacheValid[slot] = true;
@@ -9663,7 +9669,9 @@ public sealed partial class PdfPageRenderer
         int PageIndex, int Width, int Height, bool TransparentBackground,
         bool IncludeAnnotations, bool IncludeFormFields, bool IncludeRedactionMarks,
         bool IncludeMeasurementAnnotations, bool ForPrinting,
-        bool IncludePushButtonFields, bool IncludeSignedSignatureFields);
+        bool IncludePushButtonFields, bool IncludeSignedSignatureFields,
+        // Untagged CMYK displays through this working profile, so its identity is part of the key.
+        string WorkingCmykSha256);
 
     // A dimension line, polyline, or polygon, or one of those carrying a /Measure dictionary:
     // what PdfMeasurementAnnotationReader reads back as a measurement.

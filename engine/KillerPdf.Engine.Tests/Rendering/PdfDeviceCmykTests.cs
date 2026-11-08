@@ -1,5 +1,5 @@
-using System.Buffers.Binary;
-using System.Security.Cryptography;
+using System.Globalization;
+using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Rendering;
@@ -9,16 +9,19 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfDeviceCmykTests
 {
-    // Interior swatches rendered by the retained PDFium application at native size.
+    // Untagged process inks display through the built-in CGATS TR 001 working profile. Expected
+    // colors are LittleCMS 2 (LibreOffice's lcms2.dll) evaluating the same bundled profile to its
+    // built-in sRGB, perceptual intent, no optimization; the engine agrees within one code.
     [Theory]
     [InlineData(0, 0, 0, 0, 255, 255, 255)]
     [InlineData(255, 0, 0, 0, 0, 174, 239)]
-    [InlineData(0, 255, 0, 0, 237, 2, 140)]
-    [InlineData(0, 0, 255, 0, 255, 241, 1)]
+    [InlineData(0, 255, 0, 0, 236, 0, 140)]
+    [InlineData(0, 0, 255, 0, 255, 242, 0)]
     [InlineData(0, 0, 0, 255, 35, 31, 32)]
     [InlineData(255, 255, 255, 255, 0, 0, 0)]
-    [InlineData(192, 128, 64, 128, 42, 69, 93)]
-    public void ProcessInksMatchLegacyDisplayForPathsAndImages(
+    [InlineData(192, 128, 64, 128, 41, 69, 93)]
+    [InlineData(255, 255, 0, 0, 46, 48, 146)]
+    public void ProcessInksShowTheWorkingProfileForPathsAndImages(
         byte c, byte m, byte y, byte k, byte red, byte green, byte blue)
     {
         var content = new PdfContentStreamBuilder()
@@ -28,27 +31,40 @@ public sealed class PdfDeviceCmykTests
         var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1, content).Build());
         var page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(2, 1));
         Assert.Empty(page.Diagnostics);
-        Assert.Equal(new byte[] { blue, green, red, 255, blue, green, red, 255 }, page.Pixels.ToArray());
+        byte[] expected = [blue, green, red, 255, blue, green, red, 255];
+        byte[] actual = page.Pixels.ToArray();
+        for (int channel = 0; channel < expected.Length; channel++)
+            Assert.InRange(actual[channel], expected[channel] - 1, expected[channel] + 1);
     }
 
+    // Every surface shows the managed (float) result: the byte path converts each of the 9^4
+    // grid inks exactly as a managed frame of the same page does.
     [Fact]
-    public void FourDimensionalGridMatchesRetainedLegacySwatches()
+    public void FourDimensionalGridMatchesTheManagedWorkingProfileResult()
     {
         byte[] values = [0, 32, 64, 96, 128, 160, 192, 224, 255];
-        byte[] colors = new byte[6561 * 3];
-        int offset = 0;
+        const int side = 81;
+        var content = new StringBuilder();
+        int index = 0;
         foreach (byte c in values)
             foreach (byte m in values)
                 foreach (byte y in values)
                     foreach (byte k in values)
                     {
-                        uint rgb = PdfDeviceCmyk.ToRgb(c | (uint)m << 8 | (uint)y << 16 | (uint)k << 24);
-                        colors[offset++] = (byte)(rgb >> 16);
-                        colors[offset++] = (byte)(rgb >> 8);
-                        colors[offset++] = (byte)rgb;
+                        content.Append(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3} k {4} {5} 1 1 re f\n",
+                            c / 255d, m / 255d, y / 255d, k / 255d, index % side, side - 1 - index / side));
+                        index++;
                     }
-        Assert.Equal("ECF0A9B57277A62BB4B58D98EB68FADEACEE2436C523CE8D693D8B3DA1EFDF2C",
-            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(colors)));
+        var renderer = new PdfPageRenderer(PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(side, side, Encoding.ASCII.GetBytes(content.ToString())).Build()));
+
+        byte[] managed = renderer.RenderFrame(0, new PdfRenderOptions(side, side)).ToSrgbBgra32();
+        byte[] bytes = renderer.Render(0, new PdfRenderOptions(side, side)).Pixels.ToArray();
+
+        int mismatches = 0;
+        for (int channel = 0; channel < bytes.Length; channel++)
+            if (Math.Abs(bytes[channel] - managed[channel]) > 1) mismatches++;
+        Assert.Equal(0, mismatches);
     }
 
     [Theory]
@@ -67,24 +83,6 @@ public sealed class PdfDeviceCmykTests
         Assert.InRange(Math.Abs((byte)(displayed >> 16) - red), 0, 4);
         Assert.InRange(Math.Abs((byte)(displayed >> 8) - green), 0, 4);
         Assert.InRange(Math.Abs((byte)displayed - blue), 0, 4);
-    }
-
-    [Fact]
-    public void InverseMatchesScalarReferenceForEveryRgbColor()
-    {
-        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        Span<byte> row = stackalloc byte[256 * 4];
-        for (int red = 0; red < 256; red++)
-            for (int green = 0; green < 256; green++)
-            {
-                for (int blue = 0; blue < 256; blue++)
-                    BinaryPrimitives.WriteUInt32LittleEndian(row.Slice(blue * 4, 4),
-                        PdfDeviceCmyk.FromRgb((byte)red, (byte)green, (byte)blue));
-                hash.AppendData(row);
-            }
-        // Retained scalar output for all 16,777,216 RGB inputs, packed as little-endian inks.
-        Assert.Equal("4ED2006AF8C38E589C435F156B3E6A79C7EE8482E063674943190C55CDEC2A17",
-            Convert.ToHexString(hash.GetHashAndReset()));
     }
 
     internal static byte[] RenderInk(byte c, byte m, byte y = 0, byte k = 0)

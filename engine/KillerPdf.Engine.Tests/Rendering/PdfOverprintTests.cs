@@ -459,7 +459,9 @@ public sealed class PdfOverprintTests
         Assert.Empty(rendered.Diagnostics);
         Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 255), pixels[center..(center + 4)]);
         Assert.Equal(PdfDeviceCmykTests.RenderInk(255, 0), pixels[outside..(outside + 4)]);
-        Assert.Equal(new byte[] { 250, 229, 186, 255 }, pixels[edge..(edge + 4)]);
+        // A quarter of the edge keeps SpotA's full cyan, so the ink is cyan 63; LittleCMS shows
+        // that through the working profile as RGB (186, 230, 251).
+        Assert.Equal(new byte[] { 251, 230, 186, 255 }, pixels[edge..(edge + 4)]);
     }
 
     [Theory]

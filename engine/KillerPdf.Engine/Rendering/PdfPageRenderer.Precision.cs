@@ -325,7 +325,7 @@ public sealed partial class PdfPageRenderer
         alpha[pixel] = (float)(source + alpha[pixel] * (1 - source));
     }
 
-    private static (double Red, double Green, double Blue) PreciseConnectionToRgb(double x, double y, double z)
+    internal static (double Red, double Green, double Blue) PreciseConnectionToRgb(double x, double y, double z)
     {
         // Bradford adaptation from the ICC D50 PCS to the frame's D65 sRGB primaries.
         double l = (0.8951 * x + 0.2664 * y - 0.1614 * z)

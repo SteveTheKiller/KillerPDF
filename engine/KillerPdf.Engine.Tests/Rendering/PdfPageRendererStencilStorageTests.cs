@@ -37,6 +37,9 @@ public sealed class PdfPageRendererStencilStorageTests
         var renderer = new PdfPageRenderer(document);
         var options = new PdfRenderOptions(size, size, transparentBackground: true);
         byte[] pixels = new byte[size * size * 4];
+        // Red paint enters the CMYK group through the working profile's inverse and is shown
+        // through the profile itself. Both are built once per process, outside this measurement.
+        uint shown = PdfDeviceCmyk.ToRgb(PdfDeviceCmyk.FromRgb(255, 0, 0));
         long before = GC.GetAllocatedBytesForCurrentThread();
         var diagnostics = renderer.RenderInto(0, options, pixels);
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
@@ -47,9 +50,9 @@ public sealed class PdfPageRendererStencilStorageTests
             {
                 bool paints = (x + y) % 2 == 0;
                 int offset = (y * size + x) * 4;
-                Assert.Equal(paints ? cmyk ? 35 : 0 : 255, pixels[offset]);
-                Assert.Equal(paints ? cmyk ? 29 : 0 : 255, pixels[offset + 1]);
-                Assert.Equal(paints && cmyk ? 238 : 255, pixels[offset + 2]);
+                Assert.Equal(paints ? cmyk ? (byte)shown : 0 : 255, pixels[offset]);
+                Assert.Equal(paints ? cmyk ? (byte)(shown >> 8) : 0 : 255, pixels[offset + 1]);
+                Assert.Equal(paints && cmyk ? (byte)(shown >> 16) : 255, pixels[offset + 2]);
                 Assert.Equal(paints ? 255 : 0, pixels[offset + 3]);
             }
     }

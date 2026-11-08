@@ -14,6 +14,8 @@ public sealed partial class PdfPageRenderer
         internal float[]? PreciseRgb { get; set; }
         // The working CMYK profile this float render assumes for untagged DeviceCMYK.
         internal PreciseCmykWorkingSpace? PreciseCmyk { get; set; }
+        // Display colors of untagged process inks, captured inside the render's working CMYK scope.
+        internal PdfCmykDisplayTable Cmyk { get; } = PdfCmykDisplayTable.Current;
         // Accumulated object alpha excludes a non-isolated group's copied backdrop.
         internal float[]? PreciseGroupAlpha { get; set; }
         internal byte[]? Ink { get; private set; }
@@ -387,9 +389,9 @@ public sealed partial class PdfPageRenderer
             }
         }
 
-        private static bool RgbMatchesInk(in Color color, uint ink)
+        private bool RgbMatchesInk(in Color color, uint ink)
         {
-            uint rgb = PdfDeviceCmyk.ToRgb(ink);
+            uint rgb = Cmyk.ToRgb(ink);
             return color.Red == (byte)(rgb >> 16) && color.Green == (byte)(rgb >> 8)
                 && color.Blue == (byte)rgb;
         }
@@ -826,7 +828,7 @@ public sealed partial class PdfPageRenderer
             uint combined = ComposedSpotInk(offset);
             if (_rgbSpotShadow)
             {
-                uint rgb = PdfDeviceCmyk.ToRgb(combined);
+                uint rgb = Cmyk.ToRgb(combined);
                 Data[offset] = (byte)rgb;
                 Data[offset + 1] = (byte)(rgb >> 8);
                 Data[offset + 2] = (byte)(rgb >> 16);
@@ -1064,7 +1066,7 @@ public sealed partial class PdfPageRenderer
                         }
                         else
                         {
-                            if (InkProfile is null) rgb = PdfDeviceCmyk.ToRgb(ink);
+                            if (InkProfile is null) rgb = Cmyk.ToRgb(ink);
                             else
                             {
                                 Color color = ProfileInkToDisplay(ink, InkProfile);

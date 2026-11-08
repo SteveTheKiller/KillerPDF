@@ -35,6 +35,9 @@ public sealed class PdfPageRendererUniformAlphaTests
             // Occupy every possible cached alpha plane within the 32 MiB idle budget.
             // Otherwise an existing rental could hide the allocation being tested.
             for (int index = 0; index < 32; index++) held.Add(PdfScratchBuffers.Bytes.Rent(size * size));
+            // Red paint enters the CMYK group through the working profile's inverse and is shown
+            // through the profile itself. Both are built once per process, outside this measurement.
+            uint shown = PdfDeviceCmyk.ToRgb(PdfDeviceCmyk.FromRgb(255, 0, 0));
             long before = GC.GetAllocatedBytesForCurrentThread();
             var diagnostics = renderer.RenderInto(0, options, pixels);
             long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
@@ -42,9 +45,9 @@ public sealed class PdfPageRendererUniformAlphaTests
             Assert.Empty(diagnostics);
             for (int offset = 0; offset < pixels.Length; offset += 4)
             {
-                Assert.Equal(paint ? 35 : 255, pixels[offset]);
-                Assert.Equal(paint ? 29 : 255, pixels[offset + 1]);
-                Assert.Equal(paint ? 238 : 255, pixels[offset + 2]);
+                Assert.Equal(paint ? (byte)shown : 255, pixels[offset]);
+                Assert.Equal(paint ? (byte)(shown >> 8) : 255, pixels[offset + 1]);
+                Assert.Equal(paint ? (byte)(shown >> 16) : 255, pixels[offset + 2]);
                 Assert.Equal(255, pixels[offset + 3]);
             }
         }
