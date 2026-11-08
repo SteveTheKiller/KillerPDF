@@ -137,8 +137,9 @@ internal sealed unsafe class WindowsPdfNativeTransport(int width, int height) : 
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         int hr = ((delegate* unmanaged[Stdcall]<nint, uint, uint, int>)Slot(_swap, 8))(_swap, 1, 0);
+        // Positive DXGI status codes, such as DXGI_STATUS_OCCLUDED for a minimized window or
+        // DXGI_STATUS_MODE_CHANGED, are successes; the frame stays queued for the next present.
         Check("Present", hr);
-        if (hr != 0) throw new NotSupportedException("The native swap chain did not complete a frame submission.");
     }
 
     internal void Commit()
