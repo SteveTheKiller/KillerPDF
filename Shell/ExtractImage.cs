@@ -10,11 +10,6 @@ namespace KillerPDF.Shell
     // page as it is; Cut also covers the area with a fill image beneath the copy. One Undo step.
     public partial class MainWindow
     {
-        // Pages render at 150 dpi for selection, held to about four million pixels so a large page
-        // stays inside the selection's working budget.
-        private const double ExtractImageDpi = 150;
-        private const double ExtractImageMaximumPixels = 4_000_000;
-
         internal void ExtractImage(int pageIndex)
         {
             if (_doc is null || _currentFile is null) { SetStatus(Loc("Str_Msg_OpenFirst")); return; }
@@ -61,33 +56,14 @@ namespace KillerPDF.Shell
             }
         }
 
-        // The base page from the engine's own sRGB render, without annotations, form fields, monitor
-        // correction or proofing, turned to the orientation the viewer shows.
-        internal static (PdfRenderedFrame Frame, System.Windows.Media.Imaging.BitmapSource Preview) ExtractImageSource(
+        private static (PdfRenderedFrame Frame, System.Windows.Media.Imaging.BitmapSource Preview) ExtractImageSource(
             string file, OpenedProtection protection, int pageIndex, PdfPageInformation page, int rotation)
         {
-            {
-                double scale = ExtractImageDpi / 72;
-                double area = page.Width * page.Height * scale * scale;
-                if (area > ExtractImageMaximumPixels) scale *= Math.Sqrt(ExtractImageMaximumPixels / area);
-                using var session = PdfPageRenderSession.OpenEngineFirst(file, scale, protection);
-                var rendered = session.RenderBasePage(pageIndex);
-                (byte[] pixels, int width, int height) = (rendered.Pixels.ToArray(), rendered.Width, rendered.Height);
-                (pixels, width, height) = BitmapHelpers.RotateBitmap(pixels, width, height, rotation - page.Rotation);
-                var floats = new float[width * height * 4];
-                for (int i = 0; i < width * height; i++)
-                {
-                    floats[i * 4] = pixels[i * 4 + 2] / 255f;
-                    floats[i * 4 + 1] = pixels[i * 4 + 1] / 255f;
-                    floats[i * 4 + 2] = pixels[i * 4] / 255f;
-                    floats[i * 4 + 3] = pixels[i * 4 + 3] / 255f;
-                }
-                var frame = new PdfRenderedFrame(width, height, floats, PdfFrameColorEncoding.SrgbD65);
-                var bitmap = System.Windows.Media.Imaging.BitmapSource.Create(width, height, 96, 96,
-                    System.Windows.Media.PixelFormats.Bgra32, null, pixels, width * 4);
-                bitmap.Freeze();
-                return (frame, bitmap);
-            }
+            var (frame, pixels) = PageExtractionSource.Render(file, protection, pageIndex, page, rotation);
+            var bitmap = System.Windows.Media.Imaging.BitmapSource.Create(frame.Width, frame.Height, 96, 96,
+                System.Windows.Media.PixelFormats.Bgra32, null, pixels, frame.Width * 4);
+            bitmap.Freeze();
+            return (frame, bitmap);
         }
     }
 }
