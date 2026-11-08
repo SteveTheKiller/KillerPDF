@@ -46,8 +46,10 @@ public static class WindowsPdfColorProfileReader
         }
         finally
         {
+            // A close failure is recorded, never thrown: throwing here would replace the real
+            // read result or failure, and the handle cannot be used again either way.
             if (!CloseColorProfile(handle))
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "CloseColorProfile failed.");
+                System.Diagnostics.Debug.WriteLine($"CloseColorProfile failed: {Marshal.GetLastWin32Error()}");
         }
     }
 
