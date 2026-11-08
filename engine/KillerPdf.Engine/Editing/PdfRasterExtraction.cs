@@ -169,35 +169,65 @@ public static class PdfRasterExtraction
         return alpha;
     }
 
-    /// <summary>Samples the color around a selection for a Cut fill: the rounded mean sRGB of the
-    /// opaque unselected pixels that touch it, or white when there are none.</summary>
+    /// <summary>Gets the default distance, in pixels, of the ring a Cut fill color is sampled from:
+    /// far enough out to pass the one or two blended pixels of an antialiased edge.</summary>
+    public const int DefaultFillRingDistance = 3;
+
+    /// <summary>Samples the color around a selection for a Cut fill: the rounded mean sRGB of the opaque
+    /// unselected pixels exactly <paramref name="ringDistance"/> four-connected steps from it, the nearest
+    /// closer ring that has any when that one has none, or white when no ring does.</summary>
     public static (byte Red, byte Green, byte Blue) SampleFillColor(PdfRenderedFrame source, PdfRasterSelection selection,
-        CancellationToken cancellationToken = default)
+        int ringDistance = DefaultFillRingDistance, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(selection);
         if (selection.Width != source.Width || selection.Height != source.Height)
             throw new ArgumentException("The selection dimensions must match the frame.", nameof(selection));
+        if (ringDistance is < 1 or > MaximumFeatherRadius) throw new ArgumentOutOfRangeException(nameof(ringDistance));
         byte[] bgra = source.ToSrgbBgra32(cancellationToken);
         ReadOnlySpan<byte> coverage = selection.Coverage;
-        int width = selection.Width, height = selection.Height;
-        long red = 0, green = 0, blue = 0, count = 0;
-        for (int y = 0; y < height; y++)
+        int width = selection.Width, height = selection.Height, count = width * height;
+        // Breadth-first distance from the selection, out to the ring.
+        var distance = new byte[count];
+        var frontier = new List<int>();
+        for (int pixel = 0; pixel < count; pixel++)
+        {
+            if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (coverage[pixel] != 0) { distance[pixel] = 255; frontier.Add(pixel); }
+        }
+        var sums = new (long Red, long Green, long Blue, long Count)[ringDistance + 1];
+        for (int step = 1; step <= ringDistance && frontier.Count > 0; step++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            for (int x = 0; x < width; x++)
+            var next = new List<int>();
+            foreach (int pixel in frontier)
             {
-                int pixel = y * width + x;
-                if (coverage[pixel] != 0 || bgra[pixel * 4 + 3] != 255) continue;
-                bool touches = x > 0 && coverage[pixel - 1] != 0 || x + 1 < width && coverage[pixel + 1] != 0
-                    || y > 0 && coverage[pixel - width] != 0 || y + 1 < height && coverage[pixel + width] != 0;
-                if (!touches) continue;
-                blue += bgra[pixel * 4]; green += bgra[pixel * 4 + 1]; red += bgra[pixel * 4 + 2]; count++;
+                int x = pixel % width;
+                if (x > 0) Visit(pixel - 1);
+                if (x + 1 < width) Visit(pixel + 1);
+                if (pixel >= width) Visit(pixel - width);
+                if (pixel + width < count) Visit(pixel + width);
+            }
+            frontier = next;
+
+            void Visit(int neighbor)
+            {
+                if (distance[neighbor] != 0) return;
+                distance[neighbor] = (byte)step;
+                next.Add(neighbor);
+                if (bgra[neighbor * 4 + 3] != 255) return;
+                ref var sum = ref sums[step];
+                sum = (sum.Red + bgra[neighbor * 4 + 2], sum.Green + bgra[neighbor * 4 + 1], sum.Blue + bgra[neighbor * 4], sum.Count + 1);
             }
         }
-        if (count == 0) return (255, 255, 255);
-        return (Mean(red), Mean(green), Mean(blue));
-        byte Mean(long sum) => (byte)((sum + count / 2) / count);
+        for (int step = ringDistance; step >= 1; step--)
+        {
+            var (red, green, blue, samples) = sums[step];
+            if (samples == 0) continue;
+            return (Mean(red), Mean(green), Mean(blue));
+            byte Mean(long value) => (byte)((value + samples / 2) / samples);
+        }
+        return (255, 255, 255);
     }
 
     /// <summary>A solid color image shaped like the extracted selection, for covering a cut area.</summary>

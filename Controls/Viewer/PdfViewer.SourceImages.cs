@@ -252,4 +252,35 @@ public partial class PdfViewer
         }
         return false;
     }
+
+    /// <summary>Places Extract Image results on a page as editable images in one Undo step. The
+    /// rectangles are pixels of a page preview drawn in the page's on-screen orientation; a Cut fill
+    /// goes first so it sits beneath the extracted copy.</summary>
+    internal ImageAnnotation? AddExtractedImageExt(int page, int previewWidth, int previewHeight,
+        Int32Rect pixels, byte[] image, byte[]? fill)
+    {
+        if (_doc is not { IsReadOnly: false } || previewWidth <= 0 || previewHeight <= 0
+            || !TryPageGeometry(page, out _, out _, out double cw, out double ch, out _)) return null;
+        double sx = cw / previewWidth, sy = ch / previewHeight;
+        ImageAnnotation Make(byte[] data) => new()
+        {
+            PageIndex = page, Position = new Point(pixels.X * sx, pixels.Y * sy), Scale = 1,
+            SourceWidth = pixels.Width * sx, SourceHeight = pixels.Height * sy,
+            ImageData = Convert.ToBase64String(data)
+        };
+        var added = new List<ImageAnnotation>();
+        if (fill is not null) added.Add(Make(fill));
+        var copy = Make(image);
+        added.Add(copy);
+        var before = _annotations.TryGetValue(page, out var list)
+            ? list.Select(CloneHistoryAnnotation).Where(c => c is not null).Cast<PageAnnotation>().ToList() : [];
+        PushUndo(new UndoEntry(UndoKind.PageSnapshot, WasDirty: _isDirty,
+            AnnotSnapshot: new Dictionary<int, List<PageAnnotation>> { [page] = before }));
+        if (!_annotations.ContainsKey(page)) _annotations[page] = [];
+        _annotations[page].AddRange(added);
+        MarkDirty();
+        ClearSelection();
+        RenderAllAnnotations(page);
+        return copy;
+    }
 }

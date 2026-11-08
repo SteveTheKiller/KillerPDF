@@ -121,7 +121,9 @@ public sealed class PdfRasterExtractionTests
         // The opaque unselected four-neighbors of the square: (1,0), (2,0), (0,1), (0,2), (3,2), (2,3)
         // are white and (3,1) is red; (1,3) is transparent and ignored. Red channel 7 * 255 / 7 = 255;
         // green and blue 6 * 255 / 7 = 218.57, which rounds to 219.
-        Assert.Equal((255, 219, 219), PdfRasterExtraction.SampleFillColor(frame, selection));
+        Assert.Equal((255, 219, 219), PdfRasterExtraction.SampleFillColor(frame, selection, ringDistance: 1));
+        // Three steps out are only (4,0) and (4,3), both white.
+        Assert.Equal((255, 255, 255), PdfRasterExtraction.SampleFillColor(frame, selection));
 
         var copy = PdfRasterExtraction.Extract(frame, selection);
         var fill = PdfRasterExtraction.CreateFill(selection, copy, 10, 20, 30);
@@ -131,6 +133,24 @@ public sealed class PdfRasterExtractionTests
         Assert.Equal(new byte[] { 255, 255, 255, 255 }, alpha);
         // A selection with no opaque neighbor falls back to white.
         Assert.Equal((255, 255, 255), PdfRasterExtraction.SampleFillColor(frame, PdfRasterSelection.SelectRectangle(5, 4, 0, 0, 5, 4)));
+    }
+
+    [Fact]
+    public void TheSampledFillLooksPastTheAntialiasedEdgeOfTheSelection()
+    {
+        // One row: white, white, white, edge gray .6, three selected blue, edge gray .6, white, white, white.
+        float[] row = new float[11 * 4];
+        for (int x = 0; x < 11; x++)
+        {
+            float v = x is 3 or 7 ? .6f : 1;
+            (row[x * 4], row[x * 4 + 1], row[x * 4 + 2], row[x * 4 + 3]) = x is >= 4 and <= 6 ? (0f, 0f, 1f, 1f) : (v, v, v, 1f);
+        }
+        var frame = new PdfRenderedFrame(11, 1, row, PdfFrameColorEncoding.SrgbD65);
+        var selection = PdfRasterSelection.SelectRectangle(11, 1, 4, 0, 3, 1);
+        // The default ring is three pixels out, past one-pixel edge blending: x = 1 and x = 9, both white.
+        Assert.Equal((255, 255, 255), PdfRasterExtraction.SampleFillColor(frame, selection));
+        // The adjacent ring alone sees only the edge gray: .6 * 255 = 153.
+        Assert.Equal((153, 153, 153), PdfRasterExtraction.SampleFillColor(frame, selection, ringDistance: 1));
     }
 
     [Theory]
