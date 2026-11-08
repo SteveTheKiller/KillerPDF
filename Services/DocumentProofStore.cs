@@ -36,7 +36,13 @@ public sealed class DocumentProofStore(string directory)
     {
         var preset = PdfProofPreset.Capture(Key(documentPath, sourceSha256), settings);
         _ = ReadRecords();
-        _library.Save(preset, replaceExisting: true);
+        _library.Update(records =>
+        {
+            records.RemoveAll(item => item.Name == preset.Name);
+            records.Add(preset);
+            if (records.Count > ProofPresetLibrary.MaximumPresets)
+                records.RemoveRange(0, records.Count - ProofPresetLibrary.MaximumPresets);
+        });
     }
 
     /// <summary>Restores only matching source contents, resolving profiles from owned copies.</summary>

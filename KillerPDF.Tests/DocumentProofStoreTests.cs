@@ -248,6 +248,23 @@ public sealed class DocumentProofStoreTests : IDisposable
     }
 
     [Fact]
+    public void ManyDocumentsKeepSavingAndTheLeastRecentlySavedAreForgotten()
+    {
+        var store = new DocumentProofStore(StorePath);
+        for (int index = 0; index < 200; index++)
+            store.Save(Path.Combine(_directory, "document-" + index + ".pdf"), DigestFor(index),
+                new PdfDocumentProofSettings(enabled: true));
+
+        var newest = store.Restore(Path.Combine(_directory, "document-199.pdf"), DigestFor(199), Profiles);
+        var oldest = store.Restore(Path.Combine(_directory, "document-0.pdf"), DigestFor(0), Profiles);
+        Assert.Equal(DocumentProofMatch.Matched, newest.Match);
+        Assert.True(newest.Settings.Enabled);
+        Assert.Equal(DocumentProofMatch.NotFound, oldest.Match);
+    }
+
+    private static string DigestFor(int index) => index.ToString("X64");
+
+    [Fact]
     public void PersistedPreferencesDoNotContainTheOriginalPath()
     {
         new DocumentProofStore(StorePath).Save(SourcePath, OriginalHash, new PdfDocumentProofSettings(enabled: true));

@@ -17,19 +17,32 @@ public sealed class ProofPresetLibrary(string directory)
     public void Save(PdfProofPreset preset, bool replaceExisting = false)
     {
         ArgumentNullException.ThrowIfNull(preset);
+        Update(presets =>
+        {
+            int index = presets.FindIndex(item => string.Equals(item.Name, preset.Name, StringComparison.OrdinalIgnoreCase));
+            if (index >= 0 && !replaceExisting)
+                throw new InvalidOperationException("A proof preset with this name already exists.");
+            if (index < 0 && presets.Count >= MaximumPresets)
+                throw new InvalidOperationException("The proof preset library is limited to 128 presets.");
+            if (index >= 0) presets[index] = preset;
+            else presets.Add(preset);
+        });
+    }
+
+    internal const int MaximumPresets = 128;
+
+    /// <summary>Applies one change to the stored list under the library lock and writes it atomically.</summary>
+    internal void Update(Action<List<PdfProofPreset>> change)
+    {
         try
         {
             Directory.CreateDirectory(_directory);
             using var gate = new FileStream(Path.Combine(_directory, "presets.lock"), FileMode.OpenOrCreate,
                 FileAccess.ReadWrite, FileShare.None);
             var presets = GetPresets().ToList();
-            int index = presets.FindIndex(item => string.Equals(item.Name, preset.Name, StringComparison.OrdinalIgnoreCase));
-            if (index >= 0 && !replaceExisting)
-                throw new InvalidOperationException("A proof preset with this name already exists.");
-            if (index < 0 && presets.Count >= 128)
+            change(presets);
+            if (presets.Count > MaximumPresets)
                 throw new InvalidOperationException("The proof preset library is limited to 128 presets.");
-            if (index >= 0) presets[index] = preset;
-            else presets.Add(preset);
             using var buffer = new MemoryStream();
             using (var writer = new Utf8JsonWriter(buffer))
             {
