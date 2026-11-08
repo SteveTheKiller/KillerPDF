@@ -43,6 +43,28 @@ namespace KillerPDF
         public StampSpec Clone() => (StampSpec)MemberwiseClone();
     }
 
+    // The one size rule for an image watermark, shared by the dialog preview, the on-page stamp and
+    // the saved output so all three agree (#478). At Scale 1 the image is its own size from its DPI
+    // (missing or implausible DPI counts as 96, as image import does), capped at the page width, and
+    // Scale multiplies that. Returns PDF points.
+    internal static class WatermarkImageSize
+    {
+        public static (double Width, double Height) Points(int pixelWidth, int pixelHeight,
+            double dpiX, double dpiY, double pageWidthPoints, double scale)
+        {
+            if (!double.IsFinite(dpiX) || dpiX is < 24 or > 4800) dpiX = 96;
+            if (!double.IsFinite(dpiY) || dpiY is < 24 or > 4800) dpiY = 96;
+            double width = Math.Max(1, pixelWidth) * 72.0 / dpiX;
+            double height = Math.Max(1, pixelHeight) * 72.0 / dpiY;
+            if (pageWidthPoints > 0 && width > pageWidthPoints)
+            {
+                height *= pageWidthPoints / width;
+                width = pageWidthPoints;
+            }
+            return (width * scale, height * scale);
+        }
+    }
+
     // A single placed stamp on one page. It points back at the spec that created it so a double-click
     // on the page can re-open the Stamp window with the original settings. The concrete text/position is
     // derived from Spec + page geometry at render/burn time, so nothing here needs the resolved layout.

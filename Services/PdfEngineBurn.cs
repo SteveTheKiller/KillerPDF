@@ -766,16 +766,18 @@ internal static class PdfEngineBurn
         DrawSingleLine(content, font, size, text, x, y + size, spec.NumColor.R, spec.NumColor.G, spec.NumColor.B, 255);
     }
 
-    private static void DrawWatermark(PdfContentStreamBuilder content, StampSpec spec, EngineImage? image,
+    private static void DrawWatermark(PdfContentStreamBuilder content, StampSpec spec,
+        (EngineImage Image, double DpiX, double DpiY)? watermark,
         double pageWidth, double pageHeight, Dictionary<string, TrueTypeFont> fonts)
     {
         double width, height;
         TrueTypeFont? font = null;
+        EngineImage? image = watermark?.Image;
         if (spec.WmIsImage)
         {
-            if (image is null) return;
-            width = pageWidth * .5 * spec.WmScale;
-            height = width * image.Height / Math.Max(1d, image.Width);
+            if (watermark is not { } loaded) return;
+            (width, height) = WatermarkImageSize.Points(loaded.Image.Width, loaded.Image.Height,
+                loaded.DpiX, loaded.DpiY, pageWidth, spec.WmScale);
         }
         else
         {
@@ -896,10 +898,18 @@ internal static class PdfEngineBurn
         return .8;
     }
 
-    private static EngineImage? LoadImageFile(string? path, double opacity)
+    private static (EngineImage Image, double DpiX, double DpiY)? LoadImageFile(string? path, double opacity)
     {
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
-        try { return LoadImage(File.ReadAllBytes(path), opacity); } catch { return null; }
+        try
+        {
+            byte[] bytes = File.ReadAllBytes(path);
+            using var stream = new MemoryStream(bytes);
+            using (var header = Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false))
+                return LoadImage(bytes, opacity) is { } image
+                    ? (image, header.HorizontalResolution, header.VerticalResolution) : null;
+        }
+        catch { return null; }
     }
 
     private static EngineImage? LoadImage(byte[] bytes, double opacity = 1)

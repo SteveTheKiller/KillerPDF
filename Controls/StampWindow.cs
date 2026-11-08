@@ -679,8 +679,9 @@ namespace KillerPDF
                 if (_wmImageRadio.IsChecked == true && _wmImageSrc != null)
                 {
                     double scale = _wmScale.Value / 100.0;
-                    double iw = Math.Min(pw, _wmImageSrc.PixelWidth * pxPerPt * 0.5) * scale;
-                    double ih = iw * _wmImageSrc.PixelHeight / Math.Max(1, _wmImageSrc.PixelWidth);
+                    var (wpt, hpt) = WatermarkImageSize.Points(_wmImageSrc.PixelWidth, _wmImageSrc.PixelHeight,
+                        _wmImageSrc.DpiX, _wmImageSrc.DpiY, pw / pxPerPt, scale);
+                    double iw = wpt * pxPerPt, ih = hpt * pxPerPt;
                     var img = new Image { Source = _wmImageSrc, Width = iw, Height = ih, Opacity = _wmOpacity.Value / 100.0, Stretch = Stretch.Fill };
                     PlaceRotated(img, iw, ih, _wmPos.SelectedIndex, pw, ph, mx, my, _wmAngle.Value);
                 }

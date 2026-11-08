@@ -150,8 +150,11 @@ namespace KillerPDF.Shell
             {
                 BitmapImage? bmp = LoadImageFile(spec.WmImagePath!);
                 if (bmp is null) return;
-                w = rdW * 0.5 * spec.WmScale;
-                h = w * bmp.PixelHeight / Math.Max(1, bmp.PixelWidth);
+                double perPoint = rdH / Math.Max(1, phpt);
+                (w, h) = WatermarkImageSize.Points(bmp.PixelWidth, bmp.PixelHeight, bmp.DpiX, bmp.DpiY,
+                    rdW / perPoint, spec.WmScale);
+                w *= perPoint;
+                h *= perPoint;
                 el = new Image { Source = bmp, Width = w, Height = h, Opacity = spec.WmOpacity, Stretch = Stretch.Fill, IsHitTestVisible = false };
             }
             else
