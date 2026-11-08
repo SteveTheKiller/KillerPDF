@@ -60,8 +60,18 @@ public sealed class EpubFontSizeKeywordTests
     [InlineData("font-size:tiny")]
     [InlineData("line-height:small")]
     [InlineData("line-height:larger")]
+    // Invalid keywords are ignored declarations.
+    public void InvalidSizeKeywordsAreIgnored(string declaration)
+    {
+        var font = FontWithSpace();
+        var options = new EpubLayoutOptions(96, 64, font) { FontSize = 18, Margin = 8 };
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("<p>A</p>")).CreateLayout(options),
+            EpubDocument.Open(Book("<p style='" + declaration + "'>A</p>")).CreateLayout(options));
+    }
+
+    [Theory]
     [InlineData("font-size:xxx-large")]
-    public void KeywordsRetainUnsupportedPropertyAndComputedHeightGuards(string declaration)
+    public void KeywordsRetainComputedHeightGuards(string declaration)
     {
         byte[] source = Book("<p style='" + declaration + "'>A</p>");
         byte[] original = source.ToArray();

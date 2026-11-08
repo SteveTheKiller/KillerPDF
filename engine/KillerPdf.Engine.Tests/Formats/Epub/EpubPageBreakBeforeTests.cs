@@ -54,17 +54,19 @@ public class EpubPageBreakBeforeTests
         Assert.Equal("A", Assert.Single(reader.Read(textPage).Letters).Value);
     }
 
+    // CSS 2.1: left and right force a break like always; avoid is a hint the paginator may ignore,
+    // and invalid values are ignored declarations.
     [Theory]
-    [InlineData("avoid")]
-    [InlineData("left")]
-    [InlineData("right")]
-    [InlineData("inherit")]
-    [InlineData("12px")]
-    public void UnsupportedBreakAfterValuesAreExplicit(string value)
+    [InlineData("avoid", "")]
+    [InlineData("left", "p{page-break-after:always}")]
+    [InlineData("right", "p{page-break-after:always}")]
+    [InlineData("inherit", "")]
+    [InlineData("12px", "")]
+    public void BreakAfterHintsAndSideBreaksDegradeToSupportedBreaks(string value, string equivalent)
     {
-        var book = EpubDocument.Open(Book("p{page-break-after:" + value + "}"));
-        Assert.Contains("page-break-after", Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options())).Message);
-        Assert.Contains(value, Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(Font()))).Message);
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book(equivalent)).CreateLayout(Options()),
+            EpubDocument.Open(Book("p{page-break-after:" + value + "}")).CreateLayout(Options()));
+        Assert.NotEmpty(EpubDocument.Open(Book("p{page-break-after:" + value + "}")).ConvertToPdf(new EpubPdfConversionOptions(Font())));
     }
 
     [Theory]
@@ -273,16 +275,16 @@ public class EpubPageBreakBeforeTests
     }
 
     [Theory]
-    [InlineData("avoid")]
-    [InlineData("left")]
-    [InlineData("right")]
-    [InlineData("inherit")]
-    [InlineData("12px")]
-    public void UnsupportedBreakValuesAreExplicitInNativeAndConversion(string value)
+    [InlineData("avoid", "")]
+    [InlineData("left", "p{page-break-before:always}")]
+    [InlineData("right", "p{page-break-before:always}")]
+    [InlineData("inherit", "")]
+    [InlineData("12px", "")]
+    public void BreakBeforeHintsAndSideBreaksDegradeToSupportedBreaks(string value, string equivalent)
     {
-        var book = EpubDocument.Open(Book("p{page-break-before:" + value + "}"));
-        Assert.Contains("page-break-before", Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options())).Message);
-        Assert.Contains(value, Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(Font()))).Message);
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book(equivalent)).CreateLayout(Options()),
+            EpubDocument.Open(Book("p{page-break-before:" + value + "}")).CreateLayout(Options()));
+        Assert.NotEmpty(EpubDocument.Open(Book("p{page-break-before:" + value + "}")).ConvertToPdf(new EpubPdfConversionOptions(Font())));
     }
 
     [Fact]

@@ -66,12 +66,13 @@ public sealed class EpubAutoHeightTests(ITestOutputHelper output)
     [InlineData("html{height:0%}")]
     [InlineData("html{height:100%}")]
     [InlineData("html.clear{height:100%}html{height:auto}")]
-    public void RootPercentageHeightIsExplicitlyRefused(string css)
+    public void RootPercentageHeightIsIgnoredAsAutoHeight(string css)
     {
-        var book = EpubDocument.Open(Book("<p>A</p>", css, "clear"));
         var font = Font();
-        Assert.Equal("Native EPUB root percentage heights are not implemented.", Assert.Throws<NotSupportedException>(() => book.CreateLayout(NativeOptions(font))).Message);
-        Assert.Equal("Native EPUB root percentage heights are not implemented.", Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(PdfOptions(font))).Message);
+        var book = EpubDocument.Open(Book("<p>A</p>", css, "clear"));
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("<p>A</p>", "", "clear")).CreateLayout(NativeOptions(font)),
+            book.CreateLayout(NativeOptions(font)));
+        Assert.NotEmpty(book.ConvertToPdf(PdfOptions(font)));
     }
 
     [Fact]
@@ -100,12 +101,13 @@ public sealed class EpubAutoHeightTests(ITestOutputHelper output)
     [InlineData("height:auto;position:absolute")]
     [InlineData("height:auto;position:fixed")]
     [InlineData("height:auto;float:left")]
-    public void UnsupportedHeightAndPositioningStillRefuse(string declaration)
+    public void UnsupportedHeightAndPositioningAreIgnored(string declaration)
     {
-        var book = EpubDocument.Open(Book("<div><p>A</p></div>", "div{" + declaration + "}"));
         var font = Font();
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(NativeOptions(font)));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(PdfOptions(font)));
+        var book = EpubDocument.Open(Book("<div><p>A</p></div>", "div{" + declaration + "}"));
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("<div><p>A</p></div>", "")).CreateLayout(NativeOptions(font)),
+            book.CreateLayout(NativeOptions(font)));
+        Assert.NotEmpty(book.ConvertToPdf(PdfOptions(font)));
     }
 
     private static void Check(string css, string? body = null, string rootClass = "")

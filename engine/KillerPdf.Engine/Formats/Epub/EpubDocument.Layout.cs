@@ -374,10 +374,8 @@ public sealed partial class EpubDocument
             if (style.FontStyle == EpubFontStyle.Normal && style.FontWeight == 400 && Accept(options.DefaultFont))
                 return options.DefaultFont;
             if (spaceFallback is not null) return spaceFallback;
-            if (style.FontStyle != EpubFontStyle.Normal)
-                throw new NotSupportedException("Native EPUB has no resolved font face for the requested style.");
-            if (style.FontWeight != 400)
-                throw new NotSupportedException("Native EPUB has no resolved font face for the requested weight.");
+            // With no face for the requested weight or style, text uses the default face, as a
+            // user agent falls back when a family lacks a face, instead of refusing the chapter.
             return options.DefaultFont;
         }
         ushort BlankSpace(TrueTypeFont selected)

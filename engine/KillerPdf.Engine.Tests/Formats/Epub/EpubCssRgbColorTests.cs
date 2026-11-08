@@ -24,15 +24,17 @@ public sealed class EpubCssRgbColorTests
     [InlineData("oblique 10deg")]
     [InlineData("oblique")]
     [InlineData("sideways")]
-    public void UnsupportedFontStyleSelectionRetainsExplicitRefusal(string value)
+    // Oblique selects the italic face and other values are ignored. With no italic face resolved,
+    // text falls back to the upright default face instead of refusing the chapter.
+    public void UnsupportedFontStylesFallBackToTheUprightFace(string value)
     {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var options = new EpubLayoutOptions(30, 16, font) { Margin = 2, FontSize = 10 };
         var book = EpubDocument.Open(Book("<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Style</title></head>"
             + "<body><p style='font-style:" + value + "'>A</p></body></html>"));
-        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        Assert.Contains("font-style", Assert.Throws<NotSupportedException>(() => book.CreateLayout(
-            new EpubLayoutOptions(30, 16, font) { Margin = 2, FontSize = 10 })).Message);
-        Assert.Contains("font-style", Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(
-            new EpubPdfConversionOptions(font))).Message);
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("<html xmlns='http://www.w3.org/1999/xhtml'><head><title>Style</title></head>"
+            + "<body><p>A</p></body></html>")).CreateLayout(options), book.CreateLayout(options));
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
     }
 
     [Fact]
@@ -124,18 +126,15 @@ public sealed class EpubCssRgbColorTests
     [Theory]
     [InlineData("rgb()")]
     [InlineData("rgb(1,2)")]
-    [InlineData("rgb(1,2,3,4)")]
     [InlineData("rgb(1,,3)")]
     [InlineData("rgb(1,2,3,)")]
     [InlineData("rgb(1%,2,3%)")]
     [InlineData("rgb(1,2%,3)")]
-    [InlineData("rgb(1.0,2,3)")]
     [InlineData("rgb(1.,2,3)")]
     [InlineData("rgb(1.%,2%,3%)")]
     [InlineData("rgb(.%,2%,3%)")]
     [InlineData("rgb(+,2,3)")]
     [InlineData("rgb(--1,2,3)")]
-    [InlineData("rgb(1e2,2,3)")]
     [InlineData("rgb(NaN,2,3)")]
     [InlineData("rgb(Infinity,2,3)")]
     [InlineData("rgb(-Infinity%,2%,3%)")]
@@ -146,23 +145,42 @@ public sealed class EpubCssRgbColorTests
     [InlineData("rgb(1,2,3))")]
     [InlineData("rgb(1,2,3")]
     [InlineData("rgb (1,2,3)")]
-    [InlineData("rgb(1 2 3)")]
-    [InlineData("rgb(1 2 3 / 0.5)")]
-    [InlineData("rgba(1,2,3,0.5)")]
-    [InlineData("hsl(120,100%,50%)")]
-    public void MalformedAndUnsupportedColorFormsAreExplicitlyRejected(string color)
+    // CSS Color 4 makes these invalid, so the declaration is ignored and the default color stays.
+    public void MalformedColorFormsAreIgnored(string color)
     {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var options = new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 };
+        var control = EpubDocument.Open(Book("<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>RGB</title></head><body><p>A</p></body></html>")).CreateLayout(options);
         foreach (string property in new[] { "color", "background-color" })
         {
             byte[] source = Book("<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>RGB</title></head><body style=\""
                 + property + ":" + color + "\"><p>A</p></body></html>");
             byte[] original = source.ToArray();
             var book = EpubDocument.Open(source);
-            var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-            Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 }));
-            Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+            EpubCompatibilityTests.AssertSameLayout(control, book.CreateLayout(options));
+            Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
             Assert.Equal(original, source);
         }
+    }
+
+    // CSS Color 4 valid forms. Text has no compositing here, so alpha paints opaque.
+    [Theory]
+    [InlineData("rgb(1,2,3,4)", 1, 2, 3)]
+    [InlineData("rgb(1.0,2,3)", 1, 2, 3)]
+    [InlineData("rgb(1e2,2,3)", 100, 2, 3)]
+    [InlineData("rgb(1 2 3)", 1, 2, 3)]
+    [InlineData("rgb(1 2 3 / 0.5)", 1, 2, 3)]
+    [InlineData("rgba(1,2,3,0.5)", 1, 2, 3)]
+    [InlineData("hsl(120,100%,50%)", 0, 255, 0)]
+    [InlineData("#0f0", 0, 255, 0)]
+    [InlineData("#00ff0080", 0, 255, 0)]
+    [InlineData("rebeccapurple", 0x66, 0x33, 0x99)]
+    public void ModernColorFormsResolve(string color, int red, int green, int blue)
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = EpubDocument.Open(Book("<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>RGB</title></head><body style=\"color:"
+            + color + "\"><p>A</p></body></html>")).CreateLayout(new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 });
+        Assert.Equal(new PdfRgbColor(red / 255d, green / 255d, blue / 255d), Assert.Single(layout.Pages[0].TextPlacements).Color);
     }
 
     private static void Verify(string? color, PdfRgbColor expected, float[] linear, byte[] encoded,

@@ -40,12 +40,6 @@ public sealed class EpubPreformattedLayoutTests
     [InlineData("<pre>AAAAAAAAAAAAA</pre>")]
     [InlineData("<pre>AAAAAA AAAAAA</pre>")]
     [InlineData("<pre style='margin:0;text-indent:60px'>AAA</pre>")]
-    [InlineData("<pre style='display:inline'>A</pre>")]
-    [InlineData("<pre style='all:initial;display:block'>A</pre>")]
-    [InlineData("<pre style='all:inherit'>A</pre>")]
-    [InlineData("<pre><span style='all:initial'>A</span></pre>")]
-    [InlineData("<pre><span style='display:block'>A</span></pre>")]
-    [InlineData("<pre style='white-space:normal'>A</pre>")]
     public void UnsupportedPreformattedModesNeverCollapseOrWrapSilently(string body)
     {
         byte[] source = Book(body), original = source.ToArray();
@@ -57,6 +51,26 @@ public sealed class EpubPreformattedLayoutTests
         { PageWidthPoints = 60, PageHeightPoints = 30, MarginPoints = 1.5, FontSizePoints = 7.5,
             FontFamilyResolver = _ => font }));
         Assert.Equal(original, source);
+    }
+
+    // Display and whitespace overrides that would collapse preformatted text are dropped, so the
+    // text keeps preserved whitespace in block flow instead of refusing the chapter.
+    [Theory]
+    [InlineData("<pre style='display:inline'>A</pre>")]
+    [InlineData("<pre style='all:initial;display:block'>A</pre>")]
+    [InlineData("<pre style='all:inherit'>A</pre>")]
+    [InlineData("<pre><span style='all:initial'>A</span></pre>")]
+    [InlineData("<pre><span style='display:block'>A</span></pre>")]
+    [InlineData("<pre style='white-space:normal'>A</pre>")]
+    public void PreformattedOverridesKeepWhitespacePreserved(string body)
+    {
+        var font = FontWithMappedSpace();
+        var book = EpubDocument.Open(Book(body));
+        var layout = book.CreateLayout(new EpubLayoutOptions(80, 40, font) { FontSize = 10, Margin = 2, FontFamilyResolver = _ => font });
+        Assert.Equal("A", string.Concat(layout.Pages.Select(page => page.Text)));
+        Assert.Single(layout.Pages.SelectMany(page => page.TextPlacements));
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 60, PageHeightPoints = 30, MarginPoints = 1.5, FontSizePoints = 7.5, FontFamilyResolver = _ => font }));
     }
 
     [Fact]

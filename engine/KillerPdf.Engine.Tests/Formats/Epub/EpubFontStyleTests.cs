@@ -73,10 +73,17 @@ public sealed class EpubFontStyleTests
         var converted = Record.Exception(() => book.ConvertToPdf(new EpubPdfConversionOptions(regular)
             { PageWidthPoints = 39, PageHeightPoints = 19.5, MarginPoints = 1.5, FontSizePoints = 7.5,
                 FontFaceResolver = resolver, FontFamilyResolver = legacy }));
+        // With no usable italic face the text falls back to the upright default face, as a user agent
+        // does for a family without that face; an inconsistent resolver answer is still a host fault.
         foreach (var error in new[] { native, converted })
-            if (mode is "missing" or "legacy" or "null" or "missing-glyph")
-                Assert.Contains("requested style", Assert.IsType<NotSupportedException>(error).Message);
+            if (mode is "missing" or "legacy" or "null" or "missing-glyph") Assert.Null(error);
             else Assert.Contains("inconsistent face match", Assert.IsType<InvalidDataException>(error).Message);
+        if (mode is "missing" or "legacy" or "null" or "missing-glyph")
+        {
+            var options = new EpubLayoutOptions(52, 26, regular) { FontSize = 10, Margin = 2, FontFaceResolver = resolver, FontFamilyResolver = legacy };
+            EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("<p><span>A</span></p>")).CreateLayout(options),
+                book.CreateLayout(options));
+        }
         Assert.Equal(original, source);
     }
 

@@ -244,26 +244,39 @@ public sealed class EpubBodyMarginTests
         }
     }
 
+    // Negative and malformed margins are ignored declarations, so the body keeps its default margins.
     [Theory]
-    [InlineData("margin:-1px")]
-    [InlineData("margin:-.5em")]
-    [InlineData("margin:-1%")]
-    [InlineData("margin:1")]
-    [InlineData("margin:1rem")]
+    [InlineData("margin:-1px", "")]
+    [InlineData("margin:-.5em", "")]
+    [InlineData("margin:-1%", "")]
+    [InlineData("margin:1", "")]
+    [InlineData("margin:calc(1px)", "")]
+    [InlineData("margin:inherit", "")]
+    [InlineData("margin:NaNpx", "")]
+    [InlineData("margin:Infinity%", "")]
+    [InlineData("margin:1.px", "")]
+    [InlineData("margin:1e2px", "")]
+    [InlineData("margin:0 0 0 0 0", "")]
+    [InlineData("margin-left:0 0", "")]
+    [InlineData("margin-left:9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999px", "")]
+    // CSS Values 4: rem resolves against the root size, here the 16px reading size.
+    [InlineData("margin:1rem", "margin:16px")]
+    public void InvalidMarginsAreIgnoredAndRootRelativeMarginsResolve(string style, string supported)
+    {
+        var actual = Observe(style);
+        var control = Observe(supported);
+        Assert.Equal(control.Placements, actual.Placements);
+        Assert.Equal(control.NativePixels, actual.NativePixels);
+        Assert.Equal(control.Letters, actual.Letters);
+        Assert.Equal(control.PdfPixels, actual.PdfPixels);
+    }
+
+    [Theory]
     [InlineData("margin:1in")]
-    [InlineData("margin:calc(1px)")]
-    [InlineData("margin:inherit")]
-    [InlineData("margin:NaNpx")]
-    [InlineData("margin:Infinity%")]
-    [InlineData("margin:1.px")]
-    [InlineData("margin:1e2px")]
-    [InlineData("margin:0 0 0 0 0")]
-    [InlineData("margin-left:0 0")]
     [InlineData("margin:40px")]
     [InlineData("margin-top:60px")]
     [InlineData("margin-bottom:61px")]
     [InlineData("margin-left:101%")]
-    [InlineData("margin-left:999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999px")]
     public void UnsupportedOrOversizedMarginsAreDiagnosedWithoutChangingSource(string style)
     {
         byte[] source = Book(style, "", "A", "");
@@ -278,20 +291,17 @@ public sealed class EpubBodyMarginTests
     }
 
     [Theory]
-    [InlineData("p{display:inline;margin:1px}")]
-    [InlineData("span{margin-left:1px}")]
-    public void NonzeroChildMarginsRemainExplicitlyUnsupported(string css)
+    [InlineData("p{display:inline;margin:1px}", "p{display:inline}")]
+    [InlineData("span{margin-left:1px}", "")]
+    // Inline margins are not laid out yet; they are dropped instead of refusing the chapter.
+    public void NonzeroInlineMarginsAreIgnored(string css, string supported)
     {
-        byte[] source = Book("margin:0", css, "A", "");
-        byte[] original = source.ToArray();
-        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        var book = EpubDocument.Open(source);
-        var native = Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(100, 80, font)
-        { Margin = 10, FontSize = 16 }));
-        Assert.Equal("Native EPUB nonzero margins are implemented only on the body.", native.Message);
-        var converted = Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
-        Assert.Equal(native.Message, converted.Message);
-        Assert.Equal(original, source);
+        var actual = Observe("margin:0", css);
+        var control = Observe("margin:0", supported);
+        Assert.Equal(control.Placements, actual.Placements);
+        Assert.Equal(control.NativePixels, actual.NativePixels);
+        Assert.Equal(control.Letters, actual.Letters);
+        Assert.Equal(control.PdfPixels, actual.PdfPixels);
     }
 
     private sealed record Result(EpubTextPlacement[] Placements, float[] NativePixels,

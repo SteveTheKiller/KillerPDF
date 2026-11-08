@@ -300,61 +300,57 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             "tr" => DisplayKind.TableRow, "td" => DisplayKind.TableCell,
             _ => null
         };
+        // Capabilities the layout does not implement for this element degrade by dropping the
+        // affected property, as a user agent ignores what it cannot apply, instead of refusing the chapter.
         if (tableDisplay is { } required && properties.Display is { } specified
             && specified != DisplayKind.None && specified != required)
-            throw new NotSupportedException("Native EPUB table display overrides are not implemented.");
+            properties = properties with { Display = null };
         bool suppressed = parent?.IsDisplayNone == true || properties.Display == DisplayKind.None;
         if (!suppressed && (name == "ul" && properties.Display is not (null or DisplayKind.Block)
             || name == "li" && properties.Display is not (null or DisplayKind.Block or DisplayKind.Inline)))
-            throw new NotSupportedException("Native EPUB list display mode is not implemented.");
+            properties = properties with { Display = null };
+        if (!suppressed)
+        {
+            if (name == "pre" && properties.Display is not (null or DisplayKind.Block)
+                || inherited.PreserveWhitespace && properties.Display is not (null or DisplayKind.Inline))
+                properties = properties with { Display = null };
+            if (name == "pre" || inherited.PreserveWhitespace) properties = properties with { PreserveWhitespace = true };
+            if (name is "tbody" or "tr" or "td") properties = properties with { PageBreakBefore = null, PageBreakAfter = null };
+            // Supported normal-flow containing blocks all have content-dependent height, so percentages use auto.
+            if (name == "html") properties = properties with { Height = null };
+            if (name is "img" or "svg" && properties.Margins?.Any(side => side is { Auto: true }) == true)
+                properties = properties with { Margins = properties.Margins.Select(side => side is { Auto: true } ? null : side).ToArray() };
+            // Visible borders are not painted yet; their space is ignored rather than refusing the chapter.
+            if (properties.Border is { Visible: true, Nonzero: true }) properties = properties with { Border = null };
+            if (properties.TopBorder is { Visible: true, Width.Value: > 0 }
+                && (!paragraph || properties.Display == DisplayKind.Inline))
+                properties = properties with { TopBorder = null };
+            if (properties.Width is { Length: not null } && (!(paragraph || IsGroupingContainer(name) || name is "table" or "td") || properties.Display == DisplayKind.Inline))
+                properties = properties with { Width = null };
+            if (properties.MaximumWidth is { Length: not null } && name != "img")
+                properties = properties with { MaximumWidth = null };
+            if (name != "body" && properties.Margins?.Any(side => side is { Value: > 0 }) == true
+                && (!(paragraph || IsGroupingContainer(name)) || properties.Display == DisplayKind.Inline))
+                properties = properties with { Margins = null };
+            if (name != "body" && properties.Padding?.Any(side => side is { Value: > 0 }) == true
+                && (!paragraph || properties.Display == DisplayKind.Inline)
+                && !(name == "ul" && properties.Display != DisplayKind.Inline
+                    && properties.Padding[0] is not { Value: > 0 } && properties.Padding[2] is not { Value: > 0 }))
+                properties = properties with { Padding = null };
+            if (properties.Background is not null && !paragraph && !IsGroupingContainer(name) && !IsFlowContainer(name)
+                && name is not ("span" or "strong" or "b"))
+                properties = properties with { Background = null };
+        }
         Style style = suppressed ? inherited : properties.Apply(inherited, contentHeight);
         if (!suppressed)
         {
-            if (name == "pre" && properties.Display is not (null or DisplayKind.Block))
-                throw new NotSupportedException("Native EPUB preformatted content requires block display.");
-            if ((name == "pre" || inherited.PreserveWhitespace) && !style.PreserveWhitespace)
-                throw new NotSupportedException("Native EPUB preformatted whitespace resets are not implemented.");
-            if (inherited.PreserveWhitespace && properties.Display is not (null or DisplayKind.Inline))
-                throw new NotSupportedException("Native EPUB preformatted descendants require inline display.");
-            if (name == "tbody" && (style.PageBreakBefore || style.PageBreakAfter))
-                throw new NotSupportedException("Native EPUB row-group page breaks are not implemented.");
-            if (name is "tr" or "td" && (style.PageBreakBefore || style.PageBreakAfter))
-                throw new NotSupportedException("Native EPUB row and cell page breaks are not implemented.");
-            if (name == "html" && properties.Height is { Percentage: not null })
-                throw new NotSupportedException("Native EPUB root percentage heights are not implemented.");
-            // Supported normal-flow containing blocks all have content-dependent height.
-            // Nonroot percentages therefore use auto; definite heights and positioning remain unsupported.
-            if (name is "img" or "svg" && properties.Margins?.Any(side => side is { Auto: true }) == true)
-                throw new NotSupportedException("Native EPUB automatic replaced-image margins are not implemented.");
-            if (properties.Border is { Visible: true, Nonzero: true })
-                throw new NotSupportedException("Native EPUB visible borders are not implemented.");
-            if (properties.TopBorder is { Visible: true, Width.Value: > 0 }
-                && (!paragraph || properties.Display == DisplayKind.Inline))
-                throw new NotSupportedException("Native EPUB visible top borders require block paragraphs.");
-            if (properties.Width is { Length: not null } && (!(paragraph || IsGroupingContainer(name) || name is "table" or "td") || properties.Display == DisplayKind.Inline))
-                throw new NotSupportedException("Native EPUB explicit widths require block paragraphs or containers.");
-            if (properties.MaximumWidth is { Length: not null } && name != "img")
-                throw new NotSupportedException("Native EPUB maximum widths currently require images.");
             if (name == "body")
             {
                 _bodyMargins = properties.Margins;
                 _bodyPadding = properties.Padding;
                 _bodyFontSize = style.FontSize;
             }
-            else if (properties.Margins?.Any(side => side is { Value: > 0 }) == true
-                && (!(paragraph || IsGroupingContainer(name)) || properties.Display == DisplayKind.Inline))
-                throw new NotSupportedException("Native EPUB nonzero margins are implemented only on the body.");
-            if (name != "body" && properties.Padding?.Any(side => side is { Value: > 0 }) == true
-                && (!paragraph || properties.Display == DisplayKind.Inline)
-                && !(name == "ul" && properties.Display != DisplayKind.Inline
-                    && properties.Padding[0] is not { Value: > 0 } && properties.Padding[2] is not { Value: > 0 }))
-                throw new NotSupportedException("Native EPUB nonzero padding is implemented only on the body.");
-            if (style.Background is { } background)
-            {
-                if (!paragraph && !IsGroupingContainer(name) && !IsFlowContainer(name) && name is not ("span" or "strong" or "b"))
-                    throw new NotSupportedException("Native EPUB element background painting is not implemented.");
-                if (name == "body") CanvasBackground = background.Color;
-            }
+            if (style.Background is { } background && name == "body") CanvasBackground = background.Color;
         }
         bool block = properties.Display switch
         {
@@ -1259,7 +1255,14 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             return new(size, pixels, Color ?? inherited.Color, Background ?? inherited.Background)
             {
                 LineHeightFactor = factor, FontFamilies = FontFamilies ?? inherited.FontFamilies,
-                FontWeight = FontWeight is 0 ? inherited.FontWeight : FontWeight ?? inherited.FontWeight,
+                // CSS Fonts 4 relative weight table.
+                FontWeight = FontWeight switch
+                {
+                    0 or null => inherited.FontWeight,
+                    BolderWeight => inherited.FontWeight switch { < 350 => 400, < 550 => 700, < 900 => 900, var same => same },
+                    LighterWeight => inherited.FontWeight switch { < 100 => inherited.FontWeight, < 550 => 100, < 750 => 400, _ => 700 },
+                    { } weight => weight
+                },
                 FontStyle = FontStyle ?? inherited.FontStyle,
                 PreserveWhitespace = PreserveWhitespace ?? inherited.PreserveWhitespace,
                 LetterSpacing = tracking,
@@ -1279,12 +1282,60 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private CssProperties ParseProperties(string declarations)
     {
         CssProperties result = default;
-        foreach (string declaration in declarations.Split(';'))
+        foreach (string declaration in SplitDeclarations(declarations))
         {
-            string part = declaration.Trim();
+            string part = WithoutImportant(declaration.Trim());
             if (part.Length == 0) continue;
             int colon = part.IndexOf(':');
-            if (colon < 0) throw new NotSupportedException("Native EPUB CSS declaration is unsupported.");
+            // CSS Syntax: a malformed, unknown or unsupported declaration is ignored and parsing continues.
+            if (colon < 0) continue;
+            try { result = ParseDeclaration(result, part, colon); }
+            catch (NotSupportedException) { IgnoredDeclarations++; }
+        }
+        return result;
+    }
+
+    private const double BolderWeight = -1, LighterWeight = -2;
+
+    /// <summary>Counts declarations dropped because they are invalid or not implemented.</summary>
+    internal int IgnoredDeclarations { get; private set; }
+
+    // Splits on semicolons outside strings, parentheses and brackets so url(data:...;base64,...) stays whole.
+    private static IEnumerable<string> SplitDeclarations(string declarations)
+    {
+        int start = 0, depth = 0;
+        char quote = '\0';
+        for (int index = 0; index < declarations.Length; index++)
+        {
+            char value = declarations[index];
+            if (quote != '\0')
+            {
+                if (value == '\\') index++;
+                else if (value == quote) quote = '\0';
+            }
+            else if (value is '"' or '\'') quote = value;
+            else if (value is '(' or '[') depth++;
+            else if (value is ')' or ']' && depth > 0) depth--;
+            else if (value == ';' && depth == 0)
+            {
+                yield return declarations[start..index];
+                start = index + 1;
+            }
+        }
+        if (start < declarations.Length) yield return declarations[start..];
+    }
+
+    // !important raises cascade priority; it is accepted and applied at normal priority.
+    private static string WithoutImportant(string declaration)
+    {
+        int bang = declaration.LastIndexOf('!');
+        return bang >= 0 && declaration[(bang + 1)..].Trim().Equals("important", StringComparison.OrdinalIgnoreCase)
+            ? declaration[..bang].TrimEnd() : declaration;
+    }
+
+    private CssProperties ParseDeclaration(CssProperties result, string part, int colon)
+    {
+        {
             if (part[..colon].Trim().Equals("all", StringComparison.OrdinalIgnoreCase))
             {
                 var keyword = part[(colon + 1)..].Trim().ToLowerInvariant() switch
@@ -1347,7 +1398,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         EpubFontStyle? fontStyle = null;
         MarginLength? letterSpacing = null;
         MarginLength? wordSpacing = null;
-        foreach (string declaration in declarations.Split(';'))
+        foreach (string declaration in new[] { declarations })
         {
             string part = declaration.Trim();
             if (part.Length == 0) continue;
@@ -1390,13 +1441,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     textIndent = new IndentLength(0);
                     continue;
                 }
-                bool em = value.EndsWith("em", StringComparison.OrdinalIgnoreCase);
-                bool px = value.EndsWith("px", StringComparison.OrdinalIgnoreCase);
-                bool percentage = value.EndsWith('%');
-                string number = em || px ? value[..^2] : percentage ? value[..^1] : value;
-                if (!double.TryParse(number, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
-                        CultureInfo.InvariantCulture, out double indent) || !double.IsFinite(indent)
-                    || Math.Abs(indent) > 32768 || number.EndsWith('.') || !(em || px || percentage) && indent != 0)
+                if (!TryLength(value, out double indent, out bool em, out bool percentage) || Math.Abs(indent) > 32768)
                     throw new NotSupportedException("Native EPUB text indentation requires supported CSS lengths.");
                 textIndent = new IndentLength(indent, em, percentage);
                 continue;
@@ -1408,6 +1453,9 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 else if (value.Equals("normal", StringComparison.OrdinalIgnoreCase)
                     || value.Equals("initial", StringComparison.OrdinalIgnoreCase)) fontWeight = 400;
                 else if (value.Equals("bold", StringComparison.OrdinalIgnoreCase)) fontWeight = 700;
+                // Relative weights resolve against the inherited weight when the style is applied.
+                else if (value.Equals("bolder", StringComparison.OrdinalIgnoreCase)) fontWeight = BolderWeight;
+                else if (value.Equals("lighter", StringComparison.OrdinalIgnoreCase)) fontWeight = LighterWeight;
                 else if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double weight)
                     && double.IsFinite(weight) && weight is >= 1 and <= 1000) fontWeight = weight;
                 else throw new NotSupportedException("Native EPUB font weight is not implemented: " + value + ".");
@@ -1421,25 +1469,29 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     "inline" => DisplayKind.Inline,
                     "none" => DisplayKind.None,
                     "table" => DisplayKind.Table,
+                    // Atomic inline boxes flow as inline content; list items without markers flow as blocks.
+                    "inline-block" => DisplayKind.Inline,
+                    "list-item" => DisplayKind.Block,
                     _ => throw new NotSupportedException("Native EPUB display value is not implemented: " + value + ".")
                 };
                 continue;
             }
-            if (property == "page-break-before")
+            if (property is "page-break-before" or "break-before")
             {
+                // avoid is a hint the paginator may ignore; it falls through as an ignored value.
                 pageBreakBefore = value.ToLowerInvariant() switch
                 {
-                    "always" => true,
+                    "always" or "page" or "left" or "right" or "recto" or "verso" => true,
                     "auto" => false,
                     _ => throw new NotSupportedException("Native EPUB page-break-before value is not implemented: " + value + ".")
                 };
                 continue;
             }
-            if (property == "page-break-after")
+            if (property is "page-break-after" or "break-after")
             {
                 pageBreakAfter = value.ToLowerInvariant() switch
                 {
-                    "always" => true,
+                    "always" or "page" or "left" or "right" or "recto" or "verso" => true,
                     "auto" => false,
                     _ => throw new NotSupportedException("Native EPUB page-break-after value is not implemented: " + value + ".")
                 };
@@ -1449,7 +1501,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             {
                 textAlign = value.ToLowerInvariant() switch
                 {
-                    "left" => "left", "center" => "center", "right" => "right", "justify" => "justify",
+                    // Left-to-right content maps start to left and end to right.
+                    "left" or "start" => "left", "center" => "center", "right" or "end" => "right", "justify" => "justify",
                     "inherit" => "inherit",
                     _ => throw new NotSupportedException("Native EPUB text alignment is not implemented: " + value + ".")
                 };
@@ -1536,7 +1589,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 fontStyle = value.ToLowerInvariant() switch
                 {
                     "normal" => EpubFontStyle.Normal,
-                    "italic" => EpubFontStyle.Italic,
+                    // Oblique uses the italic face, as user agents do when no oblique face exists.
+                    "italic" or "oblique" => EpubFontStyle.Italic,
                     _ => throw new NotSupportedException("Native EPUB font-style currently requires normal or italic.")
                 };
                 continue;
@@ -1549,8 +1603,11 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             }
             if (property == "background-color")
             {
-                background = new BackgroundColor(string.Equals(value, "transparent", StringComparison.OrdinalIgnoreCase)
-                    ? null : ParseColor(value));
+                if (string.Equals(value, "transparent", StringComparison.OrdinalIgnoreCase))
+                    background = new BackgroundColor(null);
+                else if (TryParseColor(value, out var fill, out double alpha))
+                    background = new BackgroundColor(alpha == 0 ? null : fill);
+                else throw new NotSupportedException("Native EPUB CSS color is not implemented.");
                 continue;
             }
             if (property == "font-size")
@@ -1590,23 +1647,36 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     continue;
                 }
             }
-            if (property is "font-size" or "line-height"
-                && (value.EndsWith('%') || value.EndsWith("em", StringComparison.OrdinalIgnoreCase)))
+            if (property == "line-height" && value.Equals("normal", StringComparison.OrdinalIgnoreCase))
             {
-                bool percentage = value.EndsWith('%');
-                if (!double.TryParse(value[..(value.Length - (percentage ? 1 : 2))], NumberStyles.AllowDecimalPoint,
-                        CultureInfo.InvariantCulture, out double relative)
-                    || !double.IsFinite(relative) || relative <= 0)
-                    throw new NotSupportedException("Native EPUB typography requires positive CSS lengths that fit the page.");
-                var length = new CssLength(percentage ? relative / 100 : relative, true);
-                if (property == "font-size") size = length;
-                else height = length;
+                height = new CssLength(0, false, Normal: true);
                 continue;
             }
             if (property == "line-height" && double.TryParse(value, NumberStyles.AllowDecimalPoint,
                     CultureInfo.InvariantCulture, out double factor) && double.IsFinite(factor) && factor > 0)
             {
                 height = new CssLength(factor, true, Unitless: true);
+                continue;
+            }
+            if (property is "font-size" or "line-height")
+            {
+                if (!TryLength(value, out double number, out bool relativeEm, out bool percentage) || number <= 0
+                    || !relativeEm && !percentage && number > 32768)
+                    throw new NotSupportedException("Native EPUB typography requires positive CSS lengths that fit the page.");
+                var length = relativeEm ? new CssLength(number, true)
+                    : percentage ? new CssLength(number / 100, true) : new CssLength(number, false);
+                if (property == "font-size") size = length;
+                else height = length;
+                continue;
+            }
+            if (property == "background")
+            {
+                // The shorthand resets the color to transparent unless a color component is present; images are not painted.
+                PdfRgbColor? fill = null;
+                foreach (System.Text.RegularExpressions.Match token in System.Text.RegularExpressions.Regex.Matches(
+                    value, @"(?:rgba?|hsla?|url)\([^)]*\)|[^\s]+", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                    if (TryParseColor(token.Value, out var candidate, out double alpha)) fill = alpha == 0 ? null : candidate;
+                background = new BackgroundColor(fill);
                 continue;
             }
             if (property == "text-decoration")
@@ -1633,21 +1703,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                     throw new NotSupportedException("Native EPUB nonzero table border spacing is not implemented.");
                 continue;
             }
-            if (!value.EndsWith("px", StringComparison.OrdinalIgnoreCase)
-                || !double.TryParse(value[..^2], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double pixels)
-                || !double.IsFinite(pixels) || pixels <= 0 || pixels > 32768)
-                throw new NotSupportedException("Native EPUB typography requires positive CSS pixel lengths that fit the page.");
-            switch (property)
-            {
-                case "font-size": size = new CssLength(pixels, false); break;
-                case "line-height": height = new CssLength(pixels, false); break;
-                default: throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
-            }
+            throw new NotSupportedException("Native EPUB CSS property is not implemented: " + property + ".");
         }
         return new ResolvedProperties(size, height, color, background, families, margins, border, padding, textAlign, pageBreakBefore, block, fontWeight, textIndent, fontVariant, topBorder, width, visibility, decoration, maximumWidth, pageBreakAfter) { LetterSpacing = letterSpacing, WordSpacing = wordSpacing, Height = boxHeight, FontStyle = fontStyle };
     }
 
-    private static BorderSide ParseTopBorder(string value)
+    private BorderSide ParseTopBorder(string value)
     {
         _ = ParseBorder(value);
         MarginLength width = new(3, false);
@@ -1669,7 +1730,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         return new(width, visible, color);
     }
 
-    private static Border ParseBorder(string value)
+    private Border ParseBorder(string value)
     {
         bool? nonzero = null, visible = null;
         bool colorSeen = false;
@@ -1705,17 +1766,49 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         return new(nonzero ?? true, visible ?? false);
     }
 
-    private static MarginLength ParseMarginLength(string value)
+    private MarginLength ParseMarginLength(string value)
     {
-        bool em = value.EndsWith("em", StringComparison.OrdinalIgnoreCase);
-        bool px = value.EndsWith("px", StringComparison.OrdinalIgnoreCase);
-        bool percentage = value.EndsWith('%');
-        string number = em || px ? value[..^2] : percentage ? value[..^1] : value;
-        if (!double.TryParse(number, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
-                CultureInfo.InvariantCulture, out double length) || !double.IsFinite(length) || length < 0
-            || number.EndsWith('.') || !(em || px || percentage) && length != 0)
+        if (!TryLength(value, out double length, out bool em, out bool percentage) || length < 0)
             throw new NotSupportedException("Native EPUB body margins require supported nonnegative CSS lengths; auto and negative margins are not implemented.");
         return new(length, em, percentage);
+    }
+
+    /// <summary>
+    /// Parses a CSS length. Absolute units resolve to CSS pixels at 96 per inch (CSS Values 4);
+    /// em stays relative, ex is 0.5em because x-height is not measured, and rem uses the fallback
+    /// root size because the root element's font size is the reading size here.
+    /// </summary>
+    private bool TryLength(string value, out double number, out bool em, out bool percentage)
+    {
+        em = percentage = false;
+        number = 0;
+        value = value.Trim();
+        int end = value.Length;
+        while (end > 0 && (char.IsAsciiLetter(value[end - 1]) || value[end - 1] == '%')) end--;
+        string unit = value[end..].ToLowerInvariant(), digits = value[..end];
+        if (digits.Length == 0 || digits.EndsWith('.') || !double.TryParse(digits,
+                NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out double parsed)
+            || !double.IsFinite(parsed)) return false;
+        double? pixels = unit switch
+        {
+            "px" => 1, "pt" => 96d / 72, "pc" => 16, "in" => 96, "cm" => 96 / 2.54, "mm" => 9.6 / 2.54, "q" => 2.4 / 2.54,
+            "rem" => DefaultStyle.FontSize, "" when parsed == 0 => 0, _ => null
+        };
+        if (unit is "em" or "ex")
+        {
+            em = true;
+            number = unit == "ex" ? parsed / 2 : parsed;
+            return true;
+        }
+        if (unit == "%")
+        {
+            percentage = true;
+            number = parsed;
+            return true;
+        }
+        if (pixels is not { } scale) return false;
+        number = parsed * scale;
+        return double.IsFinite(number);
     }
 
     private static EpubFontFamily[] ParseFontFamilies(string value)
@@ -1763,45 +1856,120 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         static NotSupportedException Syntax() => new("Native EPUB font-family syntax is not implemented.");
     }
 
-    private static PdfRgbColor ParseColor(string value)
+    // Text and borders have no compositing here, so a partly transparent color paints opaque;
+    // a background with zero alpha is transparent.
+    private static PdfRgbColor ParseColor(string value) => TryParseColor(value, out var color, out double alpha) && alpha > 0
+        ? color : throw new NotSupportedException("Native EPUB CSS color is not implemented.");
+
+    /// <summary>Parses CSS Color 4 hex, named, rgb(a) and hsl(a) colors, returning the opaque color and its alpha.</summary>
+    private static bool TryParseColor(string value, out PdfRgbColor color, out double alpha)
     {
-        if (value.StartsWith("rgb(", StringComparison.OrdinalIgnoreCase) && value.EndsWith(')'))
+        color = default;
+        alpha = 1;
+        value = value.Trim();
+        if (value.Length == 0) return false;
+        if (value[0] == '#')
         {
-            string[] components = value[4..^1].Split(',');
-            if (components.Length == 3)
-            {
-                bool percentage = components[0].Trim(' ', '\t', '\r', '\n', '\f').EndsWith('%');
-                double[] channels = new double[3];
-                for (int index = 0; index < channels.Length; index++)
-                {
-                    string number = components[index].Trim(' ', '\t', '\r', '\n', '\f');
-                    if (number.EndsWith('%') != percentage)
-                        throw new NotSupportedException("Native EPUB CSS color is not implemented.");
-                    if (percentage) number = number[..^1];
-                    int firstDigit = number.Length > 0 && number[0] is '+' or '-' ? 1 : 0;
-                    int decimalPoint = percentage ? number.IndexOf('.', firstDigit) : -1;
-                    bool validDigits = decimalPoint < 0
-                        ? number.Length > firstDigit && !number.AsSpan(firstDigit).ContainsAnyExceptInRange('0', '9')
-                        : decimalPoint < number.Length - 1
-                            && !number.AsSpan(firstDigit, decimalPoint - firstDigit).ContainsAnyExceptInRange('0', '9')
-                            && !number.AsSpan(decimalPoint + 1).ContainsAnyExceptInRange('0', '9');
-                    if (!validDigits || !double.TryParse(number, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
-                        CultureInfo.InvariantCulture, out double channel))
-                        throw new NotSupportedException("Native EPUB CSS color is not implemented.");
-                    channels[index] = Math.Clamp(channel / (percentage ? 100d : 255d), 0, 1);
-                }
-                return new(channels[0], channels[1], channels[2]);
-            }
+            string hex = value[1..];
+            if (hex.Length is not (3 or 4 or 6 or 8) || !uint.TryParse(hex, NumberStyles.AllowHexSpecifier,
+                    CultureInfo.InvariantCulture, out uint packed)) return false;
+            double Digit(int index, int width) => Convert.ToInt32(width == 1 ? new string(hex[index], 2) : hex.Substring(index, 2), 16) / 255d;
+            int step = hex.Length <= 4 ? 1 : 2;
+            color = new(Digit(0, step), Digit(step, step), Digit(2 * step, step));
+            if (hex.Length is 4 or 8) alpha = Digit(3 * step, step);
+            return true;
         }
-        int rgb = value.ToLowerInvariant() switch {
-            "black" => 0x000000, "silver" => 0xc0c0c0, "gray" or "grey" => 0x808080, "white" => 0xffffff,
-            "maroon" => 0x800000, "red" => 0xff0000, "purple" => 0x800080, "fuchsia" => 0xff00ff,
-            "green" => 0x008000, "lime" => 0x00ff00, "olive" => 0x808000, "yellow" => 0xffff00,
-            "navy" => 0x000080, "blue" => 0x0000ff, "teal" => 0x008080, "aqua" => 0x00ffff,
-            _ => -1 };
-        if (rgb < 0 && !(value.Length == 7 && value[0] == '#'
-            && int.TryParse(value.AsSpan(1), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out rgb)))
-            throw new NotSupportedException("Native EPUB CSS color is not implemented.");
-        return new((rgb >> 16) / 255d, ((rgb >> 8) & 255) / 255d, (rgb & 255) / 255d);
+        int open = value.IndexOf('(');
+        if (open > 0 && value.EndsWith(')') && value.IndexOf(')') == value.Length - 1)
+        {
+            string function = value[..open].ToLowerInvariant();
+            string inner = value[(open + 1)..^1].Trim();
+            string[] parts;
+            if (inner.Contains(','))
+            {
+                // Legacy syntax: comma-separated components, an optional comma alpha.
+                parts = inner.Split(',').Select(part => part.Trim()).ToArray();
+                if (parts.Any(part => part.Length == 0 || part.Any(IsCssSpace) || part.Contains('/'))) return false;
+            }
+            else
+            {
+                // Modern syntax: space-separated components, an optional slash alpha.
+                string[] halves = inner.Split('/');
+                if (halves.Length > 2) return false;
+                parts = halves[0].Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries);
+                if (halves.Length == 2)
+                {
+                    string[] alphaPart = halves[1].Split([' ', '\t', '\r', '\n', '\f'], StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length != 3 || alphaPart.Length != 1) return false;
+                    parts = [.. parts, alphaPart[0]];
+                }
+            }
+            if (parts.Length is not (3 or 4) || parts.Any(part => !CssNumber().IsMatch(part) && !(part == parts[0] && function.StartsWith("hsl")))) return false;
+            if (parts.Length == 4 && !TryComponent(parts[3], 1, out alpha)) return false;
+            alpha = Math.Clamp(alpha, 0, 1);
+            if (function is "rgb" or "rgba")
+            {
+                if (parts.Take(3).Select(part => part.EndsWith('%')).Distinct().Count() != 1) return false;
+                if (!TryComponent(parts[0], 255, out double r) || !TryComponent(parts[1], 255, out double g)
+                    || !TryComponent(parts[2], 255, out double b)) return false;
+                color = new(Math.Clamp(r, 0, 1), Math.Clamp(g, 0, 1), Math.Clamp(b, 0, 1));
+                return true;
+            }
+            if (function is "hsl" or "hsla")
+            {
+                string hueText = parts[0].ToLowerInvariant().EndsWith("deg") ? parts[0][..^3] : parts[0];
+                if (!double.TryParse(hueText, NumberStyles.Float, CultureInfo.InvariantCulture, out double hue)
+                    || !parts[1].EndsWith('%') || !parts[2].EndsWith('%')
+                    || !TryComponent(parts[1], 1, out double saturation) || !TryComponent(parts[2], 1, out double lightness)
+                    || !double.IsFinite(hue)) return false;
+                saturation = Math.Clamp(saturation, 0, 1);
+                lightness = Math.Clamp(lightness, 0, 1);
+                hue = ((hue % 360) + 360) % 360;
+                // CSS Color 4 hsl-to-rgb.
+                double Channel(double n)
+                {
+                    double k = (n + hue / 30) % 12;
+                    return lightness - saturation * Math.Min(lightness, 1 - lightness) * Math.Max(-1, Math.Min(Math.Min(k - 3, 9 - k), 1));
+                }
+                color = new(Channel(0), Channel(8), Channel(4));
+                return true;
+            }
+            return false;
+        }
+        if (value.Equals("transparent", StringComparison.OrdinalIgnoreCase))
+        {
+            alpha = 0;
+            return true;
+        }
+        if (!NamedColors.Value.TryGetValue(value, out int rgb)) return false;
+        color = new((rgb >> 16) / 255d, ((rgb >> 8) & 255) / 255d, (rgb & 255) / 255d);
+        return true;
+
+        static bool TryComponent(string text, double scale, out double result)
+        {
+            bool percent = text.EndsWith('%');
+            result = 0;
+            if (!CssNumber().IsMatch(text) || !double.TryParse(percent ? text[..^1] : text, NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double number) || !double.IsFinite(number)) return false;
+            result = percent ? number / 100 : number / scale;
+            return true;
+        }
     }
+
+    // CSS Syntax number token with an optional percent sign.
+    private static readonly System.Text.RegularExpressions.Regex CssNumberPattern = new(
+        @"^[+-]?(?:[0-9]+(?:\.[0-9]+)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?%?$",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    private static System.Text.RegularExpressions.Regex CssNumber() => CssNumberPattern;
+
+    // CSS Color 4 named colors.
+    private static readonly Lazy<Dictionary<string, int>> NamedColors = new(() =>
+    {
+        const string table = "aliceblue f0f8ff antiquewhite faebd7 aqua 00ffff aquamarine 7fffd4 azure f0ffff beige f5f5dc bisque ffe4c4 black 000000 blanchedalmond ffebcd blue 0000ff blueviolet 8a2be2 brown a52a2a burlywood deb887 cadetblue 5f9ea0 chartreuse 7fff00 chocolate d2691e coral ff7f50 cornflowerblue 6495ed cornsilk fff8dc crimson dc143c cyan 00ffff darkblue 00008b darkcyan 008b8b darkgoldenrod b8860b darkgray a9a9a9 darkgreen 006400 darkgrey a9a9a9 darkkhaki bdb76b darkmagenta 8b008b darkolivegreen 556b2f darkorange ff8c00 darkorchid 9932cc darkred 8b0000 darksalmon e9967a darkseagreen 8fbc8f darkslateblue 483d8b darkslategray 2f4f4f darkslategrey 2f4f4f darkturquoise 00ced1 darkviolet 9400d3 deeppink ff1493 deepskyblue 00bfff dimgray 696969 dimgrey 696969 dodgerblue 1e90ff firebrick b22222 floralwhite fffaf0 forestgreen 228b22 fuchsia ff00ff gainsboro dcdcdc ghostwhite f8f8ff gold ffd700 goldenrod daa520 gray 808080 green 008000 greenyellow adff2f grey 808080 honeydew f0fff0 hotpink ff69b4 indianred cd5c5c indigo 4b0082 ivory fffff0 khaki f0e68c lavender e6e6fa lavenderblush fff0f5 lawngreen 7cfc00 lemonchiffon fffacd lightblue add8e6 lightcoral f08080 lightcyan e0ffff lightgoldenrodyellow fafad2 lightgray d3d3d3 lightgreen 90ee90 lightgrey d3d3d3 lightpink ffb6c1 lightsalmon ffa07a lightseagreen 20b2aa lightskyblue 87cefa lightslategray 778899 lightslategrey 778899 lightsteelblue b0c4de lightyellow ffffe0 lime 00ff00 limegreen 32cd32 linen faf0e6 magenta ff00ff maroon 800000 mediumaquamarine 66cdaa mediumblue 0000cd mediumorchid ba55d3 mediumpurple 9370db mediumseagreen 3cb371 mediumslateblue 7b68ee mediumspringgreen 00fa9a mediumturquoise 48d1cc mediumvioletred c71585 midnightblue 191970 mintcream f5fffa mistyrose ffe4e1 moccasin ffe4b5 navajowhite ffdead navy 000080 oldlace fdf5e6 olive 808000 olivedrab 6b8e23 orange ffa500 orangered ff4500 orchid da70d6 palegoldenrod eee8aa palegreen 98fb98 paleturquoise afeeee palevioletred db7093 papayawhip ffefd5 peachpuff ffdab9 peru cd853f pink ffc0cb plum dda0dd powderblue b0e0e6 purple 800080 rebeccapurple 663399 red ff0000 rosybrown bc8f8f royalblue 4169e1 saddlebrown 8b4513 salmon fa8072 sandybrown f4a460 seagreen 2e8b57 seashell fff5ee sienna a0522d silver c0c0c0 skyblue 87ceeb slateblue 6a5acd slategray 708090 slategrey 708090 snow fffafa springgreen 00ff7f steelblue 4682b4 tan d2b48c teal 008080 thistle d8bfd8 tomato ff6347 turquoise 40e0d0 violet ee82ee wheat f5deb3 white ffffff whitesmoke f5f5f5 yellow ffff00 yellowgreen 9acd32";
+        string[] words = table.Split(' ');
+        var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        for (int index = 0; index < words.Length; index += 2)
+            result.Add(words[index], Convert.ToInt32(words[index + 1], 16));
+        return result;
+    });
 }

@@ -493,10 +493,6 @@ public sealed class EpubBodyBoxTests
     [Theory]
     [InlineData("32769px")]
     [InlineData("99999999999999999999999999999999999999999999999999999999999em")]
-    [InlineData("NaNpx")]
-    [InlineData("Infinitypx")]
-    [InlineData("-1px")]
-    [InlineData("calc(100% - 1px)")]
     [InlineData("0")]
     public void UnsupportedOrExcessiveWidthsDiagnoseWithoutChangingTheBook(string width)
     {
@@ -507,6 +503,20 @@ public sealed class EpubBodyBoxTests
         Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
         { PageWidthPoints = 75, PageHeightPoints = 75, MarginPoints = 7.5, FontSizePoints = 12 }));
         Assert.Equal(preserved, source);
+    }
+
+    // Invalid widths are ignored declarations, so the paragraph keeps its automatic width.
+    [Theory]
+    [InlineData("NaNpx")]
+    [InlineData("Infinitypx")]
+    [InlineData("-1px")]
+    [InlineData("calc(100% - 1px)")]
+    public void InvalidWidthsAreIgnored(string width)
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var options = new EpubLayoutOptions(100, 100, font) { Margin = 10, FontSize = 16 };
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("", "p{margin:0}", "A", "")).CreateLayout(options),
+            EpubDocument.Open(Book("", "p{margin:0;width:" + width + "}", "A", "")).CreateLayout(options));
     }
 
     [Fact]
@@ -1859,34 +1869,50 @@ public sealed class EpubBodyBoxTests
     }
 
     [Theory]
+    [InlineData("padding:40px")]
+    [InlineData("padding-left:101%")]
+    [InlineData("padding-top:60px")]
+    public void OversizedBoxValuesRemainExplicitlyUnsupported(string style)
+    {
+        AssertUnsupported(style);
+    }
+
+    // CSS Syntax ignores an invalid declaration, so the body lays out as if it were absent.
+    [Theory]
     [InlineData("padding:-1px")]
     [InlineData("padding:1")]
     [InlineData("padding:auto")]
     [InlineData("padding:inherit")]
-    [InlineData("padding:1rem")]
     [InlineData("padding:NaNpx")]
     [InlineData("padding:Infinity%")]
     [InlineData("padding:1.px")]
     [InlineData("padding:1e2px")]
     [InlineData("padding:0 0 0 0 0")]
     [InlineData("padding-left:0 0")]
-    [InlineData("padding:40px")]
-    [InlineData("padding-left:101%")]
-    [InlineData("padding-top:60px")]
     [InlineData("font-size:0")]
     [InlineData("line-height:0")]
-    public void InvalidOrOversizedBoxAndTypographyValuesRemainExplicitlyUnsupported(string style)
+    public void InvalidBoxAndTypographyValuesAreIgnored(string style)
     {
-        AssertUnsupported(style);
+        AssertIgnored(style);
     }
 
+    // CSS Values 4: rem uses the root size (the reading size here) and 12pt is 16px.
+    [Theory]
+    [InlineData("padding:1rem")]
+    [InlineData("padding:12pt")]
+    public void RootRelativeAndAbsolutePaddingResolveToPixels(string style)
+    {
+        AssertIgnored(style, supportedStyle: "padding:16px");
+    }
+
+    // Visible borders are not painted yet; they are ignored rather than refusing the chapter.
     [Theory]
     [InlineData("border:2px solid rgb(255,0,0)")]
     [InlineData("border:0;border:2px solid red")]
     [InlineData("border:solid")]
-    public void VisibleBordersAreExplicitlyUnsupported(string style)
+    public void VisibleBordersAreIgnoredUntilTheyArePainted(string style)
     {
-        AssertUnsupported(style, expected: "Native EPUB visible borders are not implemented.");
+        AssertIgnored(style);
     }
 
     [Fact]
@@ -1898,16 +1924,15 @@ public sealed class EpubBodyBoxTests
         Assert.Equal(control.NativePixels, actual.NativePixels);
         Assert.Equal(control.Letters, actual.Letters);
         Assert.Equal(control.PdfPixels, actual.PdfPixels);
-        AssertUnsupported("", "body.pick{border:2px solid red}body{border:0}", "pick",
-            "Native EPUB visible borders are not implemented.");
+        AssertIgnored("", "body.pick{border:2px solid red}body{border:0}", "pick");
     }
 
     [Theory]
-    [InlineData("p{display:inline;padding:1px}")]
-    [InlineData("span{padding-left:1px}")]
-    public void PositiveInlinePaddingIsExplicitlyUnsupported(string css)
+    [InlineData("p{display:inline;padding:1px}", "p{display:inline}")]
+    [InlineData("span{padding-left:1px}", "")]
+    public void PositiveInlinePaddingIsIgnored(string css, string supported)
     {
-        AssertUnsupported("", css, expected: "Native EPUB nonzero padding is implemented only on the body.");
+        AssertIgnored("", css, supportedCss: supported);
     }
 
     [Fact]
@@ -1992,6 +2017,16 @@ public sealed class EpubBodyBoxTests
         Assert.Equal(native.Message, converted.Message);
         if (expected is not null) Assert.Equal(expected, native.Message);
         Assert.Equal(original, source);
+    }
+
+    private static void AssertIgnored(string style, string css = "", string bodyClass = "", string supportedStyle = "", string supportedCss = "")
+    {
+        var actual = Observe(style, css, bodyClass: bodyClass);
+        var control = Observe(supportedStyle, supportedCss, bodyClass: bodyClass);
+        Assert.Equal(control.Placements, actual.Placements);
+        Assert.Equal(control.NativePixels, actual.NativePixels);
+        Assert.Equal(control.Letters, actual.Letters);
+        Assert.Equal(control.PdfPixels, actual.PdfPixels);
     }
 
     private sealed record Result(EpubTextPlacement[] Placements, float[] NativePixels,

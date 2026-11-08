@@ -175,14 +175,15 @@ public sealed class EpubH2DefaultTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void UnresolvedDefaultBoldRemainsDiagnosedAndExplicitNormalNeedsNoTypedProvider()
+    public void UnresolvedDefaultBoldFallsBackAndExplicitNormalNeedsNoTypedProvider()
     {
         var regular = Face(false); var bold = Face(true);
-        var unsupported = EpubDocument.Open(Book("<h2>A</h2>"));
+        var unresolved = EpubDocument.Open(Book("<h2>A</h2>"));
         var native = NativeOptions(regular, bold) with { FontFaceResolver = null };
         var options = PdfOptions(regular, bold) with { FontFaceResolver = null };
-        Assert.Contains("requested weight", Assert.Throws<NotSupportedException>(() => unsupported.CreateLayout(native)).Message);
-        Assert.Contains("requested weight", Assert.Throws<NotSupportedException>(() => unsupported.ConvertToPdf(options)).Message);
+        // The default face stands in for the missing bold face instead of refusing the chapter.
+        Assert.Empty(unresolved.CreateLayout(native).ChapterDiagnostics);
+        Assert.NotEmpty(unresolved.ConvertToPdf(options));
         var supported = EpubDocument.Open(Book("<h2 style='font-weight:normal;margin:0'>A</h2>"));
         Assert.Equal(9, Assert.Single(Assert.Single(supported.CreateLayout(native).Pages).TextPlacements).Width, 8);
         var pdf = PdfDocument.Open(supported.ConvertToPdf(options));
@@ -194,12 +195,14 @@ public sealed class EpubH2DefaultTests(ITestOutputHelper output)
     [Theory]
     [InlineData("margin-top:1px")]
     [InlineData("margin-left:1px")]
-    public void AuthoredNonzeroInlineHeadingMarginsRemainDiagnosed(string margin)
+    // Inline margins are not laid out yet, so they are dropped instead of refusing the chapter.
+    public void AuthoredNonzeroInlineHeadingMarginsAreIgnored(string margin)
     {
-        var book = EpubDocument.Open(Book($"<h2 style='display:inline;{margin}'>A</h2>"));
         var regular = Face(false); var bold = Face(true);
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(NativeOptions(regular, bold)));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(PdfOptions(regular, bold)));
+        var book = EpubDocument.Open(Book($"<h2 style='display:inline;{margin}'>A</h2>"));
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("<h2 style='display:inline'>A</h2>")).CreateLayout(NativeOptions(regular, bold)),
+            book.CreateLayout(NativeOptions(regular, bold)));
+        Assert.NotEmpty(book.ConvertToPdf(PdfOptions(regular, bold)));
     }
 
     private void CheckHeading(string body, string? css, double height, double width,

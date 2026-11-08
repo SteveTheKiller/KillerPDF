@@ -153,18 +153,17 @@ public sealed class EpubAllShorthandTests(ITestOutputHelper output)
         Assert.Equal(new double[] { 2, 12 }, page.TextPlacements.Select(p => p.Top));
     }
 
+    // CSS Syntax ignores an unsupported declaration; only the declarations that remain apply.
     [Theory]
-    [InlineData("all:unset")]
-    [InlineData("all:revert")]
-    [InlineData("all:initial;position:absolute")]
-    [InlineData("all:initial;height:10px")]
-    [InlineData("all:initial;font-family:inherit")]
-    public void UnsupportedShorthandValuesAndNewLonghandKeywordsStayRefused(string declaration)
+    [InlineData("all:unset", "")]
+    [InlineData("all:revert", "")]
+    [InlineData("all:initial;position:absolute", "all:initial")]
+    [InlineData("all:initial;height:10px", "all:initial")]
+    [InlineData("all:initial;font-family:inherit", "all:initial")]
+    public void UnsupportedShorthandValuesAndNewLonghandKeywordsAreIgnored(string declaration, string supported)
     {
-        var book = EpubDocument.Open(Book("p{" + declaration + "}", "<p>A</p>"));
-        var font = Font();
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(100, 100, font) { FontSize = 10, Margin = 2 }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        EpubCompatibilityTests.AssertSameLayout(Layout("p{" + supported + "}", "<p>A</p>"), Layout("p{" + declaration + "}", "<p>A</p>"));
+        Assert.NotEmpty(EpubDocument.Open(Book("p{" + declaration + "}", "<p>A</p>")).ConvertToPdf(new EpubPdfConversionOptions(Font())));
     }
 
     private static TrueTypeFont Font() => TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));

@@ -394,9 +394,6 @@ public sealed class EpubCssClassSelectorTests
     [InlineData("<tbody><td>A</td></tbody>")]
     [InlineData("<tbody><tbody><tr><td>A</td><td>A</td></tr></tbody></tbody>")]
     [InlineData("<tbody>A<tr><td>A</td><td>A</td></tr></tbody>")]
-    [InlineData("<tbody style='background-color:blue'><tr><td>A</td><td>A</td></tr></tbody>")]
-    [InlineData("<tbody style='page-break-before:always'><tr><td>A</td><td>A</td></tr></tbody>")]
-    [InlineData("<tbody style='page-break-after:always'><tr><td>A</td><td>A</td></tr></tbody>")]
     public void TableBodyGroupsDiagnoseUnsupportedStructurePaintAndBreaks(string body)
     {
         var book = EpubDocument.Open(Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}", "<table>" + body + "</table>"));
@@ -404,6 +401,21 @@ public sealed class EpubCssClassSelectorTests
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(
             new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 }));
         Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+    }
+
+    // Row-group paint and forced breaks are not implemented; they are dropped instead of refusing the chapter.
+    [Theory]
+    [InlineData("<tbody style='background-color:blue'><tr><td>A</td><td>A</td></tr></tbody>")]
+    [InlineData("<tbody style='page-break-before:always'><tr><td>A</td><td>A</td></tr></tbody>")]
+    [InlineData("<tbody style='page-break-after:always'><tr><td>A</td><td>A</td></tr></tbody>")]
+    public void TableBodyGroupPaintAndBreaksAreIgnored(string body)
+    {
+        const string css = "table{width:24px;border-spacing:0}td{width:12px;padding:0}";
+        var options = new EpubLayoutOptions(30, 36, TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true)))
+            { FontSize = 10, Margin = 2 };
+        EpubCompatibilityTests.AssertSameLayout(
+            EpubDocument.Open(Book(css, "<table><tbody><tr><td>A</td><td>A</td></tr></tbody></table>")).CreateLayout(options),
+            EpubDocument.Open(Book(css, "<table>" + body + "</table>")).CreateLayout(options));
     }
 
     [Fact]
@@ -570,16 +582,15 @@ public sealed class EpubCssClassSelectorTests
     [InlineData("<table><tr style='page-break-after:always'><td>A</td><td>A</td></tr><tr><td>A</td><td>A</td></tr></table>")]
     [InlineData("<table><tr><td style='page-break-before:always'>A</td><td>A</td></tr></table>")]
     [InlineData("<table><tr><td style='page-break-after:always'>A</td><td>A</td></tr></table>")]
-    public void UnsupportedResolvedRowAndCellBreaksAreDiagnosed(string body)
+    // Row and cell forced breaks are not implemented; the rows flow as if the break were absent.
+    public void RowAndCellBreaksAreIgnored(string body)
     {
-        var book = EpubDocument.Open(Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}", body));
+        const string css = "table{width:24px;border-spacing:0}td{width:12px;padding:0}";
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        Assert.Equal("Native EPUB row and cell page breaks are not implemented.",
-            Assert.Throws<NotSupportedException>(() => book.CreateLayout(
-                new EpubLayoutOptions(30, 46, font) { FontSize = 10, Margin = 2 })).Message);
-        Assert.Equal("Native EPUB row and cell page breaks are not implemented.",
-            Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
-                { PageWidthPoints = 22.5, PageHeightPoints = 34.5, MarginPoints = 1.5, FontSizePoints = 7.5 })).Message);
+        var options = new EpubLayoutOptions(30, 46, font) { FontSize = 10, Margin = 2 };
+        string plain = System.Text.RegularExpressions.Regex.Replace(body, " style='[^']*'", "");
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book(css, plain)).CreateLayout(options),
+            EpubDocument.Open(Book(css, body)).CreateLayout(options));
     }
 
     [Theory]
@@ -1230,14 +1241,15 @@ public sealed class EpubCssClassSelectorTests
     }
 
     [Fact]
-    public void MatchingClassOnlyMarginsRemainAnExplicitLayoutBoundary()
+    public void MatchingClassOnlyInlineMarginsAreIgnored()
     {
         VerifyEngine();
-        var book = EpubDocument.Open(Book(".subhd{margin-top:0.5em}", "<p><span class=\"subhd\">A</span></p>"));
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        const string diagnostic = "Native EPUB nonzero margins are implemented only on the body.";
-        Assert.Equal(diagnostic, Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 })).Message);
-        Assert.Equal(diagnostic, Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font))).Message);
+        var options = new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 };
+        var book = EpubDocument.Open(Book(".subhd{margin-top:0.5em}", "<p><span class=\"subhd\">A</span></p>"));
+        EpubCompatibilityTests.AssertSameLayout(
+            EpubDocument.Open(Book(".subhd{}", "<p><span class=\"subhd\">A</span></p>")).CreateLayout(options), book.CreateLayout(options));
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
     }
 
     [Fact]

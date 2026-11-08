@@ -123,20 +123,32 @@ public sealed class EpubRelativeTypographyTests
     [InlineData("line-height:400%")]
     [InlineData("line-height:4em")]
     [InlineData("line-height:4")]
-    [InlineData("font-size:0%")]
-    [InlineData("font-size:-.5em")]
-    [InlineData("font-size:NaN%")]
-    [InlineData("font-size:Infinityem")]
-    [InlineData("font-size:1e2%")]
-    [InlineData("font-size:1rem")]
-    [InlineData("font-size:20")]
-    [InlineData("line-height:normal")]
-    [InlineData("line-height:0")]
-    [InlineData("line-height:-1")]
-    [InlineData("width:50%")]
-    public void RelativeTypographyPreservesInvalidUnsupportedAndComputedDimensionGuards(string declaration)
+    public void RelativeTypographyPreservesComputedDimensionGuards(string declaration)
     {
         AssertRejected(declaration);
+    }
+
+    // Invalid values and inline widths are ignored declarations; rem resolves against the 10px root
+    // reading size and normal is the inherited line height.
+    [Theory]
+    [InlineData("font-size:0%", "")]
+    [InlineData("font-size:-.5em", "")]
+    [InlineData("font-size:NaN%", "")]
+    [InlineData("font-size:Infinityem", "")]
+    [InlineData("font-size:1e2%", "")]
+    [InlineData("font-size:20", "")]
+    [InlineData("line-height:0", "")]
+    [InlineData("line-height:-1", "")]
+    [InlineData("width:50%", "")]
+    [InlineData("line-height:normal", "")]
+    [InlineData("font-size:1rem", "font-size:10px")]
+    public void InvalidTypographyIsIgnoredAndRootRelativeSizesResolve(string declaration, string equivalent)
+    {
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));
+        var options = new EpubLayoutOptions(64, 64, font) { FontSize = 10, Margin = 8 };
+        EpubCompatibilityTests.AssertSameLayout(
+            EpubDocument.Open(Book("<p style='font-size:20px'><span style='" + equivalent + "'>A</span></p>")).CreateLayout(options),
+            EpubDocument.Open(Book("<p style='font-size:20px'><span style='" + declaration + "'>A</span></p>")).CreateLayout(options));
     }
 
     [Fact]

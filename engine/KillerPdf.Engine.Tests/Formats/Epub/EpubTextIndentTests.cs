@@ -32,11 +32,6 @@ public sealed class EpubTextIndentTests
     }
 
     [Theory]
-    [InlineData("-1px")]
-    [InlineData("1%")]
-    [InlineData("auto")]
-    [InlineData("NaNpx")]
-    [InlineData("1e5px")]
     [InlineData("32769px")]
     public void UnsupportedWordSpacingRetainsBoundedRefusal(string value)
     {
@@ -137,11 +132,6 @@ public sealed class EpubTextIndentTests
     }
 
     [Theory]
-    [InlineData("-1px")]
-    [InlineData("1%")]
-    [InlineData("auto")]
-    [InlineData("NaNpx")]
-    [InlineData("1e5px")]
     [InlineData("32769px")]
     public void UnsupportedLetterSpacingLengthsRetainBoundedRefusal(string value)
     {
@@ -371,14 +361,34 @@ public sealed class EpubTextIndentTests
         }
     }
 
+    // Unsupported keywords and out-of-range specified values are ignored declarations.
     [Theory]
-    [InlineData("1px hanging")]
-    [InlineData("1em each-line")]
-    [InlineData("calc(1px + 1em)")]
-    [InlineData("NaNpx")]
-    [InlineData("32769px")]
+    [InlineData("text-indent", "1px hanging", "<p style='{0}'>AA</p>")]
+    [InlineData("text-indent", "1em each-line", "<p style='{0}'>AA</p>")]
+    [InlineData("text-indent", "calc(1px + 1em)", "<p style='{0}'>AA</p>")]
+    [InlineData("text-indent", "NaNpx", "<p style='{0}'>AA</p>")]
+    [InlineData("text-indent", "32769px", "<p style='{0}'>AA</p>")]
+    [InlineData("text-indent", "32769%", "<p style='{0}'>AA</p>")]
+    [InlineData("letter-spacing", "-1px", "<p style='{0}'>AA</p>")]
+    [InlineData("letter-spacing", "1%", "<p style='{0}'>AA</p>")]
+    [InlineData("letter-spacing", "auto", "<p style='{0}'>AA</p>")]
+    [InlineData("letter-spacing", "NaNpx", "<p style='{0}'>AA</p>")]
+    [InlineData("letter-spacing", "1e5px", "<p style='{0}'>AA</p>")]
+    [InlineData("word-spacing", "-1px", "<p style='{0}'>A A</p>")]
+    [InlineData("word-spacing", "1%", "<p style='{0}'>A A</p>")]
+    [InlineData("word-spacing", "auto", "<p style='{0}'>A A</p>")]
+    [InlineData("word-spacing", "NaNpx", "<p style='{0}'>A A</p>")]
+    [InlineData("word-spacing", "1e5px", "<p style='{0}'>A A</p>")]
+    public void InvalidSpacingAndIndentValuesAreIgnored(string property, string value, string body)
+    {
+        var font = FontWithSpace();
+        var options = new EpubLayoutOptions(96, 96, font) { FontSize = 18, Margin = 8 };
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book(string.Format(body, ""))).CreateLayout(options),
+            EpubDocument.Open(Book(string.Format(body, property + ":" + value))).CreateLayout(options));
+    }
+
+    [Theory]
     [InlineData("2000em")]
-    [InlineData("32769%")]
     public void UnsupportedAndOutOfBoundsValuesRetainExplicitFailure(string value)
     {
         byte[] source = Book("<p style='text-indent:" + value + "'>AA</p>");

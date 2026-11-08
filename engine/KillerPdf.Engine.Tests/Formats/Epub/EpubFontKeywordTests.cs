@@ -82,13 +82,14 @@ public sealed class EpubFontKeywordTests(ITestOutputHelper output)
     [InlineData("font-weight:lighter")]
     [InlineData("font-size:revert")]
     [InlineData("line-height:inherit")]
-    public void KeywordAdditionDoesNotBroadenOtherUnsupportedValues(string declaration)
+    // Unsupported keyword values are ignored declarations, so the inherited values stay.
+    public void UnsupportedKeywordValuesAreIgnored(string declaration)
     {
         var font = Face(false);
+        var options = new EpubLayoutOptions(100, 80, font) { FontSize = 10, Margin = 2 };
         var book = EpubDocument.Open(Book($"<p style='{declaration}'>A</p>", null));
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(100, 80, font)
-        { FontSize = 10, Margin = 2 }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book("<p>A</p>", null)).CreateLayout(options), book.CreateLayout(options));
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
     }
 
     private void Check(string body, string? css, bool convert, double height, double width,

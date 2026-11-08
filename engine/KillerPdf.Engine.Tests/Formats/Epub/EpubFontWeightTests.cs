@@ -100,7 +100,9 @@ public sealed class EpubFontWeightTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void UnresolvedBoldCannotSilentlyUseALegacyRegularFace(bool typedResolver)
+    // An unresolved bold face falls back to the default face, as a user agent does for a family
+    // without that weight, instead of refusing the chapter.
+    public void UnresolvedBoldFallsBackToTheDefaultFace(bool typedResolver)
     {
         var regular = Face(false);
         var options = new EpubLayoutOptions(40, 26, regular)
@@ -108,8 +110,9 @@ public sealed class EpubFontWeightTests
             FontSize = 10, Margin = 2, FontFamilyResolver = _ => regular,
             FontFaceResolver = typedResolver ? _ => null : null
         };
-        var error = Assert.Throws<NotSupportedException>(() => EpubDocument.Open(Book(true)).CreateLayout(options));
-        Assert.Contains("requested weight", error.Message);
+        var layout = EpubDocument.Open(Book(true)).CreateLayout(options);
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.NotEmpty(layout.Pages.SelectMany(page => page.TextPlacements));
     }
 
     [Theory]
@@ -258,8 +261,6 @@ public sealed class EpubFontWeightTests
     [InlineData("<p><strong xmlns='urn:other'>A</strong></p>")]
     [InlineData("<p><a href='#x'><strong><a href='#x'>A</a></strong></a></p>")]
     [InlineData("<p><a href='#x'><strong><img src='missing.png'/></strong></a></p>")]
-    [InlineData("<p><strong style='font-weight:bolder'>A</strong></p>")]
-    [InlineData("<p><b style='font-weight:lighter'>A</b></p>")]
     public void StrongAdmissionPreservesUnsupportedContextsAttributesAndWeightKeywords(string body)
     {
         var book = EpubDocument.Open(Book(false, body));
@@ -268,6 +269,19 @@ public sealed class EpubFontWeightTests
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(40, 26, regular)
         { FontSize = 10, Margin = 2, FontFaceResolver = Resolve }));
         Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(regular) { FontFaceResolver = Resolve }));
+    }
+
+    // CSS Fonts 4: bolder of 400 is 700 and lighter of 700 is 400, resolved against the inherited weight.
+    [Theory]
+    [InlineData("<p><strong style='font-weight:bolder'>A</strong></p>", "<p><strong>A</strong></p>")]
+    [InlineData("<p style='font-weight:bold'><b style='font-weight:lighter'>A</b></p>", "<p style='font-weight:bold'><span style='font-weight:normal'>A</span></p>")]
+    public void RelativeWeightKeywordsResolveAgainstTheInheritedWeight(string body, string equivalent)
+    {
+        var regular = Face(false); var bold = Face(true);
+        EpubFontFaceResult? Resolve(EpubFontFaceRequest request) => new(request.Weight == 700 ? bold : regular, request.Weight, EpubFontMatch.Exact);
+        var options = new EpubLayoutOptions(40, 26, regular) { FontSize = 10, Margin = 2, FontFaceResolver = Resolve };
+        EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Book(false, equivalent)).CreateLayout(options),
+            EpubDocument.Open(Book(false, body)).CreateLayout(options));
     }
 
     private static void CheckInlineFace(string body, string? css, double expectedWeight)
@@ -441,10 +455,20 @@ public sealed class EpubFontWeightTests
         Assert.Equal(chapter, book.ReadResource("doc.xhtml"));
     }
 
+    // Inline margins are not laid out yet, so they are dropped instead of refusing the chapter.
     [Theory]
-    [InlineData("<h1 style='display:inline;margin-left:1px'>A</h1>")]
-    [InlineData("<h3 style='display:inline;margin-top:1px'>A</h3>")]
-    [InlineData("<h6 style='display:inline;margin-bottom:1px'>A</h6>")]
+    [InlineData("h1", "margin-left:1px")]
+    [InlineData("h3", "margin-top:1px")]
+    [InlineData("h6", "margin-bottom:1px")]
+    public void InlineHeadingMarginsAreIgnored(string heading, string margin)
+    {
+        var regular = Face(false); var bold = Face(true);
+        EpubCompatibilityTests.AssertSameLayout(
+            EpubDocument.Open(Book(false, $"<{heading} style='display:inline'>A</{heading}>")).CreateLayout(HeadingNativeOptions(regular, bold)),
+            EpubDocument.Open(Book(false, $"<{heading} style='display:inline;{margin}'>A</{heading}>")).CreateLayout(HeadingNativeOptions(regular, bold)));
+    }
+
+    [Theory]
     [InlineData("<p><h1>A</h1></p>")]
     [InlineData("<h1><h3>A</h3></h1>")]
     [InlineData("<p><span><h4>A</h4></span></p>")]

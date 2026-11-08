@@ -137,14 +137,15 @@ public sealed class EpubFontFamilyTests
     [InlineData("inherit")]
     [InlineData("initial")]
     [InlineData("unset")]
-    public void UnsupportedAndMalformedFamilyListsAreDiagnosed(string families)
+    // A malformed or unsupported family list is an ignored declaration; the inherited family stays.
+    public void UnsupportedAndMalformedFamilyListsAreIgnored(string families)
     {
         var book = EpubDocument.Open(EpubNavigationDestinationTests.Book(
             firstBody: "<p style='font-family:" + System.Security.SecurityElement.Escape(families) + "'>A</p>"));
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(30, 23, font)
-            { FontSize = 10, Margin = 2 }));
+        var options = new EpubLayoutOptions(30, 23, font) { FontSize = 10, Margin = 2 };
+        EpubCompatibilityTests.AssertSameLayout(
+            EpubDocument.Open(EpubNavigationDestinationTests.Book(firstBody: "<p>A</p>")).CreateLayout(options), book.CreateLayout(options));
     }
 
     [Theory]
