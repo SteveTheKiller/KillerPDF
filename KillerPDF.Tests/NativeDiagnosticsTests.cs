@@ -58,7 +58,8 @@ public sealed class NativeDiagnosticsTests
         // The engine names the chapter in Href and the omitted image in its message.
         Assert.Equal("Left out: EPUB/c1.xhtml", rows[0].Lines[0]);
         // The panel shows the localized reason; the engine's English message stays in the copied report.
-        Assert.Equal("Why: image format", rows[0].Lines[1]);
+        // The omitted item's path sits next to its localized reason.
+        Assert.Equal("Why: image format (EPUB/pic.gif)", rows[0].Lines[1]);
         Assert.Equal(2, rows[1].Lines.Count);
         Assert.Equal("Not shown: EPUB/c2.xhtml", rows[1].Lines[0]);
         Assert.Equal("Why: scripts", rows[1].Lines[1]);

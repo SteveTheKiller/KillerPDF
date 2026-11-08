@@ -61,6 +61,8 @@ internal static class NativeDocumentDiagnostics
             var chapter = Chapter(diagnostic.SpineIndex);
             string what = string.Format(loc(whatKey), diagnostic.Href);
             string reason = string.Format(loc("Str_Epub_Diagnostics_Reason"), loc(ReasonKey(diagnostic.Reason)));
+            // The one omitted image or link target, when the engine names it, follows its reason.
+            if (!string.IsNullOrEmpty(diagnostic.ItemHref)) reason += " (" + diagnostic.ItemHref + ")";
             chapter.Shown.Add(what);
             chapter.Shown.Add(reason);
             chapter.Report.Add(what);
