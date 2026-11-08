@@ -11,26 +11,68 @@ namespace KillerPDF.Controls;
 public partial class PdfViewer
 {
     private (PdfWorkingDocument Owner, PdfImagePlacementSelection Occurrence, ImageAnnotation Image)? _sourceImageSelection;
-    private (Canvas Canvas, Point Start, Point Original, Point Current)? _sourceImageDrag;
+    // Corner is null for a move; otherwise the dragged handle, with the opposite corner fixed.
+    private (Canvas Canvas, Point Start, Rect Original, Rect Current, string? Corner)? _sourceImageDrag;
+    private string? _pendingSourceImageCorner;
+    private const double MinimumSourceImageSide = 4;
+
+    private Rect SelectedSourceImageRect(ImageAnnotation image) =>
+        new(image.Position, new Size(image.SourceWidth, image.SourceHeight));
 
     private void BeginSourceImageDrag(Canvas canvas, Point point)
     {
+        string? corner = _pendingSourceImageCorner;
+        _pendingSourceImageCorner = null;
         if (_sourceImageSelection is not { } selection || !ReferenceEquals(selection.Owner, _doc)
             || _doc is not { IsReadOnly: false } || !selection.Occurrence.CanSetBounds) return;
-        _sourceImageDrag = (canvas, point, selection.Image.Position, selection.Image.Position);
+        Rect original = SelectedSourceImageRect(selection.Image);
+        _sourceImageDrag = (canvas, point, original, original, corner);
         canvas.CaptureMouse();
     }
 
     private void CancelSourceImageDrag()
     {
+        _pendingSourceImageCorner = null;
         if (_sourceImageDrag is not { } drag) return;
         _sourceImageDrag = null;
         if (ReferenceEquals(Mouse.Captured, drag.Canvas)) drag.Canvas.ReleaseMouseCapture();
+        ShowSourceImageFrame(drag.Original);
+    }
+
+    /// <summary>Places the selection border and the four corner handles around a canvas rectangle.</summary>
+    private void ShowSourceImageFrame(Rect frame)
+    {
         if (_selectionBorder is not null)
         {
-            Canvas.SetLeft(_selectionBorder, drag.Original.X);
-            Canvas.SetTop(_selectionBorder, drag.Original.Y);
+            _selectionBorder.Width = frame.Width;
+            _selectionBorder.Height = frame.Height;
+            Canvas.SetLeft(_selectionBorder, frame.Left);
+            Canvas.SetTop(_selectionBorder, frame.Top);
         }
+        foreach (var handle in _resizeHandles)
+        {
+            if (handle.Tag is not string tag) continue;
+            double x = tag is "NE" or "SE" ? frame.Right : frame.Left;
+            double y = tag is "SW" or "SE" ? frame.Bottom : frame.Top;
+            Canvas.SetLeft(handle, x - handle.Width / 2);
+            Canvas.SetTop(handle, y - handle.Height / 2);
+        }
+    }
+
+    /// <summary>The proportional rectangle for a corner drag: the opposite corner stays put and the
+    /// picture keeps its shape, limited to the page canvas.</summary>
+    private static Rect ResizedSourceImageRect(Rect original, string corner, Point pointer, double canvasWidth, double canvasHeight)
+    {
+        bool west = corner is "NW" or "SW", north = corner is "NW" or "NE";
+        Point anchor = new(west ? original.Right : original.Left, north ? original.Bottom : original.Top);
+        double roomX = west ? anchor.X : Math.Max(0, canvasWidth - anchor.X);
+        double roomY = north ? anchor.Y : Math.Max(0, canvasHeight - anchor.Y);
+        double scale = Math.Max(Math.Abs(pointer.X - anchor.X) / original.Width, Math.Abs(pointer.Y - anchor.Y) / original.Height);
+        double minimum = MinimumSourceImageSide / Math.Min(original.Width, original.Height);
+        double maximum = Math.Min(roomX / original.Width, roomY / original.Height);
+        scale = Math.Max(minimum, Math.Min(scale, Math.Max(minimum, maximum)));
+        double width = original.Width * scale, height = original.Height * scale;
+        return new Rect(west ? anchor.X - width : anchor.X, north ? anchor.Y - height : anchor.Y, width, height);
     }
 
     private bool MoveSourceImageDrag(MouseEventArgs e)
@@ -42,18 +84,18 @@ public partial class PdfViewer
             CancelSourceImageDrag();
             return true;
         }
-        Vector delta = e.GetPosition(drag.Canvas) - drag.Start;
-        if (Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance
+        Point pointer = e.GetPosition(drag.Canvas);
+        Vector delta = pointer - drag.Start;
+        if (drag.Current == drag.Original && Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance
             && Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance) return true;
-        Point position = new(
-            Math.Clamp(drag.Original.X + delta.X, 0, Math.Max(0, drag.Canvas.ActualWidth - selection.Image.SourceWidth)),
-            Math.Clamp(drag.Original.Y + delta.Y, 0, Math.Max(0, drag.Canvas.ActualHeight - selection.Image.SourceHeight)));
-        _sourceImageDrag = (drag.Canvas, drag.Start, drag.Original, position);
-        if (_selectionBorder is not null)
-        {
-            Canvas.SetLeft(_selectionBorder, position.X);
-            Canvas.SetTop(_selectionBorder, position.Y);
-        }
+        Rect next = drag.Corner is { } corner
+            ? ResizedSourceImageRect(drag.Original, corner, pointer, drag.Canvas.ActualWidth, drag.Canvas.ActualHeight)
+            : new Rect(new Point(
+                Math.Clamp(drag.Original.X + delta.X, 0, Math.Max(0, drag.Canvas.ActualWidth - drag.Original.Width)),
+                Math.Clamp(drag.Original.Y + delta.Y, 0, Math.Max(0, drag.Canvas.ActualHeight - drag.Original.Height))),
+                drag.Original.Size);
+        _sourceImageDrag = (drag.Canvas, drag.Start, drag.Original, next, drag.Corner);
+        ShowSourceImageFrame(next);
         return true;
     }
 
@@ -66,8 +108,7 @@ public partial class PdfViewer
             || _doc is not { IsReadOnly: false } || drag.Current == drag.Original) return true;
         int page = selection.Occurrence.PageIndex;
         if (!TryPageGeometry(page, out double pw, out double ph, out double cw, out double ch, out int rotation)) return true;
-        var bounds = RedactionGeometry.CanvasToPage(new Rect(drag.Current,
-            new Size(selection.Image.SourceWidth, selection.Image.SourceHeight)), pw, ph, cw, ch, rotation);
+        var bounds = RedactionGeometry.CanvasToPage(drag.Current, pw, ph, cw, ch, rotation);
         try
         {
             SaveTempAndReload(keepAnnotations: true, preserveZoom: true,
@@ -129,6 +170,21 @@ public partial class PdfViewer
         if (_nativeDoc is not null || _doc is null || _currentTool != EditTool.Select
             || !TryPageGeometry(page, out double pw, out double ph, out double cw, out double ch, out int rotation))
             return false;
+        // A left press on a corner handle of the selected picture resizes it instead of selecting again.
+        _pendingSourceImageCorner = null;
+        if (Mouse.LeftButton == MouseButtonState.Pressed && _sourceImageSelection is { } current
+            && ReferenceEquals(current.Owner, _doc) && current.Occurrence.PageIndex == page
+            && _doc is { IsReadOnly: false } && current.Occurrence.CanSetBounds)
+            foreach (var handle in _resizeHandles)
+            {
+                double left = Canvas.GetLeft(handle), top = Canvas.GetTop(handle);
+                if (handle.Tag is string corner && point.X >= left && point.X <= left + handle.Width
+                    && point.Y >= top && point.Y <= top + handle.Height)
+                {
+                    _pendingSourceImageCorner = corner;
+                    return true;
+                }
+            }
         var location = RedactionGeometry.CanvasPointToPage(point, pw, ph, cw, ch, rotation);
         PdfDocument? source;
         try { source = _doc.OpenStrictForContentCopy(); }
@@ -166,9 +222,25 @@ public partial class PdfViewer
                     BorderBrush = AccentBrush(), BorderThickness = new Thickness(2 * inverseScale),
                     Width = bounds.Width, Height = bounds.Height, IsHitTestVisible = false
                 };
-                Canvas.SetLeft(_selectionBorder, bounds.Left);
-                Canvas.SetTop(_selectionBorder, bounds.Top);
                 canvas.Children.Add(_selectionBorder);
+                // Pictures that can be moved can also be resized from their corners, like an added image.
+                if (_doc is { IsReadOnly: false })
+                {
+                    var brush = AccentBrush();
+                    foreach (string tag in new[] { "NW", "NE", "SE", "SW" })
+                    {
+                        var handle = new System.Windows.Shapes.Rectangle
+                        {
+                            Width = 14 * inverseScale, Height = 14 * inverseScale, Fill = brush,
+                            Stroke = System.Windows.Media.Brushes.White, StrokeThickness = inverseScale,
+                            Cursor = tag is "NW" or "SE" ? Cursors.SizeNWSE : Cursors.SizeNESW,
+                            IsHitTestVisible = true, Tag = tag
+                        };
+                        _resizeHandles.Add(handle);
+                        canvas.Children.Add(handle);
+                    }
+                }
+                ShowSourceImageFrame(bounds);
                 return true;
             }
             catch (Exception error) when (error is NotSupportedException or InvalidOperationException or FormatException
