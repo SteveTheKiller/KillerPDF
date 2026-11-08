@@ -66,14 +66,16 @@ public sealed partial class DjvuDocument
             var componentCount = BinaryPrimitives.ReadUInt16BigEndian(directory[1..]);
             if (directory.Length < 3 + componentCount * 4)
                 throw new InvalidDataException("Truncated bundled directory offset table.");
-            var componentOffsets = chunks.Where(c => c.Id == 0x464f524d).Select(c => (uint)(c.Offset - 8)).ToHashSet();
+            // One lookup per directory entry keeps large directories linear.
+            var componentOffsets = chunks.Where(c => c.Id == 0x464f524d).ToDictionary(c => (uint)(c.Offset - 8));
             List<Chunk> orderedComponents = [];
             for (var i = 0; i < componentCount; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var offset = BinaryPrimitives.ReadUInt32BigEndian(directory[(3 + i * 4)..]);
-                if (!componentOffsets.Remove(offset)) throw new InvalidDataException("Directory offset does not identify a unique component start.");
-                orderedComponents.Add(chunks.First(c => c.Id == 0x464f524d && c.Offset - 8 == offset));
+                if (!componentOffsets.Remove(offset, out var component))
+                    throw new InvalidDataException("Directory offset does not identify a unique component start.");
+                orderedComponents.Add(component);
             }
             if (componentOffsets.Count != 0) throw new InvalidDataException("Directory does not cover every bundled component.");
             var metadata = ReadDirectoryMetadata(directory[(3 + componentCount * 4)..], orderedComponents, cancellationToken);
