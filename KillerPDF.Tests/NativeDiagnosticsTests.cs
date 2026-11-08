@@ -89,7 +89,22 @@ public sealed class NativeDiagnosticsTests
         Assert.Equal(new[] { "Ignored style rules: 1" }, row.Lines);
     }
 
-    internal static byte[] Book(params string[] chapters)
+    [Fact]
+    public void RowsFollowReadingOrderSoANonLinearChapterComesLast()
+    {
+        // Chapter 1 is linear="no", so the reader appends it after chapters 2 and 3. It loses a GIF;
+        // chapter 2 uses scripting and is refused. The rows follow the pages, keeping spine numbers.
+        using var owner = NativeWorkingDocument.OpenEpub(Book([0],
+            "<p>A<img src='pic.gif' alt=''/></p>", "<p onclick='go()'>A</p>", "<p>A</p>"),
+            NativeOpenTests.Options() with { IsolateChapterFailures = true });
+        var rows = NativeDocumentDiagnostics.Build(owner, key => Wording[key]);
+        Assert.Equal(new[] { "Chapter 2", "Chapter 1" }, rows.Select(row => row.Heading));
+        Assert.Equal("Left out: EPUB/c1.xhtml", rows[1].Lines[0]);
+    }
+
+    internal static byte[] Book(params string[] chapters) => Book([], chapters);
+
+    internal static byte[] Book(int[] nonLinear, params string[] chapters)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -100,7 +115,8 @@ public sealed class NativeDiagnosticsTests
                 """);
             string items = string.Concat(chapters.Select((_, index) =>
                 $"<item id=\"c{index + 1}\" href=\"c{index + 1}.xhtml\" media-type=\"application/xhtml+xml\"/>"));
-            string spine = string.Concat(chapters.Select((_, index) => $"<itemref idref=\"c{index + 1}\"/>"));
+            string spine = string.Concat(chapters.Select((_, index) => nonLinear.Contains(index)
+                ? $"<itemref idref=\"c{index + 1}\" linear=\"no\"/>" : $"<itemref idref=\"c{index + 1}\"/>"));
             Add("EPUB/book.opf", $"""
                 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
                   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:diagnostics</dc:identifier><dc:title>Diagnostics</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2026-11-08T00:00:00Z</meta></metadata>

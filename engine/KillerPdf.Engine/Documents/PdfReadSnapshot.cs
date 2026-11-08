@@ -93,6 +93,9 @@ public sealed partial class PdfReadSnapshot
 
     /// <summary>Gets, per laid-out EPUB chapter, how many style declarations and rules were ignored; empty for other formats.</summary>
     public IReadOnlyList<EpubIgnoredDeclarations> IgnoredDeclarations => _layout?.IgnoredDeclarations ?? [];
+
+    /// <summary>Gets EPUB spine indexes in the order their pages appear, non-linear items last; empty for other formats.</summary>
+    public IReadOnlyList<int> ReadingOrder => _layout?.Pages.Select(page => page.SpineIndex).Distinct().ToArray() ?? [];
     private readonly PdfReadPageGeometry[] _geometries;
 
     private PdfReadSnapshot(EpubLayoutDocument layout, PdfReadPageGeometry geometry, string sourceSha256,

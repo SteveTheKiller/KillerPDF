@@ -52,7 +52,10 @@ internal static class NativeDocumentDiagnostics
                 chapter.Shown.Add(line);
                 chapter.Report.Add(line);
             }
-        return lines.Select(pair => new NativeDiagnosticRow(
+        // Rows follow the pages: a non-linear chapter's row comes where the reader appended it.
+        var order = document.ReadingOrder.Select((spine, position) => (spine, position)).ToDictionary(p => p.spine, p => p.position);
+        return lines.OrderBy(pair => order.TryGetValue(pair.Key, out int position) ? position : int.MaxValue)
+            .ThenBy(pair => pair.Key).Select(pair => new NativeDiagnosticRow(
             string.Format(loc("Str_Epub_Diagnostics_Chapter"), pair.Key + 1), pair.Value.Shown.AsReadOnly())
         { ReportLines = pair.Value.Report.AsReadOnly() }).ToArray();
 
