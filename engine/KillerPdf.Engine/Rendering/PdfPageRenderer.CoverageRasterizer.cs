@@ -64,12 +64,15 @@ public sealed partial class PdfPageRenderer
         private const int ByteShift = 9;
         private const double DirectLimit = 1 << 25;
         private const int SmallWorkingBytes = 64 * 1024;
+        private const int PreclearBytes = 256 * 1024;
         private const int MaximumRetainedEdges = 4 * 1024 * 1024 / 40;
 
         private struct Edge
         {
             internal int X0, Y0, Dx, Dy, Sign, FirstRow, LastRow;
             internal double DxPerDy, DyPerDx;
+            // Every cell the edge can touch lies inside the raster, so no clipping applies.
+            internal bool Interior;
         }
 
         private Edge[] _edges = new Edge[64];
@@ -221,35 +224,83 @@ public sealed partial class PdfPageRenderer
                 FirstRow = firstRow, LastRow = lastRow,
             };
             if (firstRow != lastRow) edge.DxPerDy = (double)edge.Dx / edge.Dy;
-            long[] grid = _grid;
-            int column0 = x0 >> ScaleShift, offset = x0 & (Scale - 1);
-            double dxPerDy = edge.DxPerDy;
+            int column0 = x0 >> ScaleShift;
             for (int row = firstRow; row <= lastRow; row++)
+                InteriorRow<LeaveCells>(ref edge, row, _grid, row * Width + column0);
+        }
+
+        private readonly struct MarkCells { }
+
+        private readonly struct LeaveCells { }
+
+        // One row of an edge whose cells all lie inside the raster, written at
+        // cells[origin + column] for local columns. The integers equal Accumulate's: rows inside
+        // one column use its single-column formula and the others its column walk, without
+        // the clipping an interior edge never needs. With TMark as MarkCells, touched cells are
+        // recorded for the row sweep; the type argument lets the JIT drop the other branch.
+        private void InteriorRow<TMark>(ref Edge edge, int row, long[] cells, int origin)
+            where TMark : struct
+        {
+            bool mark = typeof(TMark) == typeof(MarkCells);
+            int rowTop = (row << ScaleShift) - edge.Y0;
+            int ya = Math.Max(0, rowTop), yb = Math.Min(edge.Dy, rowTop + Scale);
+            if (yb <= ya) return;
+            int sign = edge.Sign, offset = edge.X0 & (Scale - 1);
+            double dxPerDy = edge.DxPerDy;
+            long height = yb - ya, total = height * (2 * Scale);
+            if (edge.FirstRow == edge.LastRow)
             {
-                int rowTop = (row << ScaleShift) - y0;
-                int ya = Math.Max(0, rowTop), yb = Math.Min(edge.Dy, rowTop + Scale);
-                long height = yb - ya, total = height * (2 * Scale);
-                double xa = ya * dxPerDy + offset;
-                double xb = (yb == edge.Dy ? edge.Dx : yb * dxPerDy) + offset;
-                double leftX = Math.Min(xa, xb), rightX = Math.Max(xa, xb);
-                int first = (int)Math.Floor(leftX * (1.0 / Scale));
-                int last = (int)Math.Ceiling(rightX * (1.0 / Scale)) - 1;
-                if (last <= first)
+                // A one-row edge has integer ends; inside one column its share is exact.
+                long low = Math.Min(0, edge.Dx) + offset, high = Math.Max(0, edge.Dx) + offset;
+                int column = (int)(low >> ScaleShift);
+                if (edge.Dx == 0 || column == (int)((high - 1) >> ScaleShift))
                 {
-                    double mean = leftX + rightX - 2.0 * first * Scale;
-                    long share = Math.Clamp((long)Math.Round(height * mean), 0, total);
-                    int cell = row * Width + column0 + first;
-                    grid[cell] += sign * (total - share);
-                    grid[cell + 1] += sign * share;
-                    continue;
+                    long share = Math.Clamp(height * (low + high - 2L * column * Scale), 0, total);
+                    int at = origin + column;
+                    cells[at] += sign * (total - share);
+                    cells[at + 1] += sign * share;
+                    if (mark)
+                    {
+                        int lowWord = at >> 6, highWord = (at + 1) >> 6;
+                        _touched[lowWord] |= 1UL << at;
+                        _touched[highWord] |= 1UL << (at + 1);
+                        if (lowWord < _wordMin) _wordMin = lowWord;
+                        if (highWord > _wordMax) _wordMax = highWord;
+                    }
+                    return;
                 }
-                // Several columns: Accumulate's walk, with no clipping needed inside the raster.
-                double dyPerDx = edge.DyPerDx;
-                if (dyPerDx == 0) edge.DyPerDx = dyPerDx = (double)edge.Dy / edge.Dx;
-                double leftY = xa <= xb ? ya : yb;
-                double previousX = leftX, previousProgress = 0;
-                long previousShare = 0;
-                int rowCell = row * Width + column0;
+            }
+            double xa = ya * dxPerDy + offset;
+            double xb = (yb == edge.Dy ? edge.Dx : yb * dxPerDy) + offset;
+            double leftX = Math.Min(xa, xb), rightX = Math.Max(xa, xb);
+            int first = (int)Math.Floor(leftX * (1.0 / Scale));
+            int last = (int)Math.Ceiling(rightX * (1.0 / Scale)) - 1;
+            if (last <= first)
+            {
+                double mean = leftX + rightX - 2.0 * first * Scale;
+                long share = Math.Clamp((long)Math.Round(height * mean), 0, total);
+                int cell = origin + first;
+                cells[cell] += sign * (total - share);
+                cells[cell + 1] += sign * share;
+                if (mark)
+                {
+                    int low = cell >> 6, high = (cell + 1) >> 6;
+                    _touched[low] |= 1UL << cell;
+                    _touched[high] |= 1UL << (cell + 1);
+                    if (low < _wordMin) _wordMin = low;
+                    if (high > _wordMax) _wordMax = high;
+                }
+                return;
+            }
+            // Several columns: Accumulate's walk, with no clipping needed inside the raster.
+            double dyPerDx = edge.DyPerDx;
+            if (dyPerDx == 0) edge.DyPerDx = dyPerDx = (double)edge.Dy / edge.Dx;
+            double leftY = xa <= xb ? ya : yb;
+            double previousX = leftX, previousProgress = 0;
+            long previousShare = 0;
+            int rowCell = origin;
+            if (mark) Mark(origin + first, origin + last + 1);
+            {
                 for (int column = first; column <= last; column++)
                 {
                     double nextX, nextProgress;
@@ -270,13 +321,29 @@ public sealed partial class PdfPageRenderer
                     long piece = nextShare - previousShare;
                     double sum = previousX + nextX - 2.0 * column * Scale;
                     long right = Math.Clamp((long)Math.Round((nextProgress - previousProgress) * sum), 0, Math.Max(piece, 0));
-                    grid[rowCell + column] += sign * (piece - right);
-                    grid[rowCell + column + 1] += sign * right;
+                    cells[rowCell + column] += sign * (piece - right);
+                    cells[rowCell + column + 1] += sign * right;
                     previousX = nextX;
                     previousProgress = nextProgress;
                     previousShare = nextShare;
                 }
             }
+        }
+
+        // Records cells [from, to] as touched in the current row.
+        private void Mark(int from, int to)
+        {
+            int firstWord = from >> 6, lastWord = to >> 6;
+            if (firstWord == lastWord)
+                _touched[firstWord] |= (ulong.MaxValue << from) & (ulong.MaxValue >> (63 - (to & 63)));
+            else
+            {
+                _touched[firstWord] |= ulong.MaxValue << from;
+                for (int word = firstWord + 1; word < lastWord; word++) _touched[word] = ulong.MaxValue;
+                _touched[lastWord] |= ulong.MaxValue >> (63 - (to & 63));
+            }
+            if (firstWord < _wordMin) _wordMin = firstWord;
+            if (lastWord > _wordMax) _wordMax = lastWord;
         }
 
         // Vertex sources yield quantized fixed-point coordinates as integral doubles.
@@ -545,6 +612,7 @@ public sealed partial class PdfPageRenderer
                 }
                 return;
             }
+            edge.Interior = Math.Min(x0, x1) >= 0 && Math.Max(x0, x1) < (Width - 1) * Scale;
             if (_edgeCount > _edges.Length) Array.Resize(ref _edges, _edges.Length * 2);
             _edges[_edgeCount - 1] = edge;
         }
@@ -624,6 +692,10 @@ public sealed partial class PdfPageRenderer
                     tightLeft, tightTop, tightRight, tightBottom);
             }
             PrepareScratch(rows, edgeCount);
+            // A small mask is cleared in one call, so rows write only their nonzero runs. Large
+            // masks write their zero runs row by row instead of writing most bytes twice.
+            bool cleared = size <= PreclearBytes;
+            if (cleared) buffer.AsSpan(0, size).Clear();
 
             // Order the edges by their first visible row with a counting sort.
             Span<int> starts = _rowStarts.AsSpan(0, rows + 1);
@@ -644,20 +716,24 @@ public sealed partial class PdfPageRenderer
             // starts[row] now holds the end of that row's run, which is the next row's start.
 
             int activeCount = 0, next = 0;
+            Edge[] edges = _edges;
+            int[] active = _active, order = _order;
+            long[] rowCells = _cells;
             for (int row = top; row < bottom; row++)
             {
                 int end = starts[row - top];
-                while (next < end) _active[activeCount++] = _order[next++];
+                while (next < end) active[activeCount++] = order[next++];
                 _wordMin = int.MaxValue;
                 _wordMax = -1;
                 for (int index = activeCount - 1; index >= 0; index--)
                 {
-                    ref Edge edge = ref _edges[_active[index]];
-                    Accumulate(ref edge, row);
-                    if (edge.LastRow <= row) _active[index] = _active[--activeCount];
+                    ref Edge edge = ref edges[active[index]];
+                    if (edge.Interior) InteriorRow<MarkCells>(ref edge, row, rowCells, edge.X0 >> ScaleShift);
+                    else Accumulate(ref edge, row);
+                    if (edge.LastRow <= row) active[index] = active[--activeCount];
                 }
                 Span<byte> line = buffer.AsSpan((row - top) * maskWidth, maskWidth);
-                (int first, int last) = ResolveRow(line, left, right, evenOdd);
+                (int first, int last) = ResolveRow(line, left, right, evenOdd, cleared);
                 if (first >= 0)
                 {
                     if (tightTop < 0) tightTop = row;
@@ -684,6 +760,9 @@ public sealed partial class PdfPageRenderer
             int tightWidth = tightRight - tightLeft, tightHeight = tightBottom - tightTop;
             if (rent)
             {
+                // Rows already sit at their final place when only bottom rows were trimmed.
+                if (tightLeft == left && tightWidth == maskWidth && tightTop == top)
+                    return new CoverageMask(tightLeft, tightTop, tightRight, tightBottom, buffer, rented: true);
                 for (int row = 0; row < tightHeight; row++)
                     buffer.AsSpan((tightTop - top + row) * maskWidth + tightLeft - left, tightWidth)
                         .CopyTo(buffer.AsSpan(row * tightWidth, tightWidth));
@@ -854,51 +933,76 @@ public sealed partial class PdfPageRenderer
             }
         }
 
-        // Turns the row's cells into coverage bytes for [left, right) and clears them.
-        // Returns the first and last nonzero pixel, or -1 when the row is empty.
-        private (int First, int Last) ResolveRow(Span<byte> line, int left, int right, bool evenOdd)
+        // Turns the row's cells into coverage bytes for [left, right) and clears the cells. On a
+        // line already cleared only nonzero runs are written. Returns the first and last
+        // nonzero pixel, or -1 when the row is empty.
+        private (int First, int Last) ResolveRow(Span<byte> line, int left, int right, bool evenOdd,
+            bool cleared)
         {
+            long[] cells = _cells;
+            ulong[] touched = _touched;
             long sum = 0;
+            byte current = 0;
+            // next is the first pixel not yet written; pixels before it hold their bytes.
             int next = left, first = -1, last = -1;
             for (int word = _wordMin; word <= _wordMax; word++)
             {
-                ulong bits = _touched[word];
+                ulong bits = touched[word];
                 if (bits == 0) continue;
-                _touched[word] = 0;
-                while (bits != 0)
+                touched[word] = 0;
+                do
                 {
                     int column = (word << 6) + BitOperations.TrailingZeroCount(bits);
                     bits &= bits - 1;
-                    if (column > next) Fill(line, left, next, Math.Min(column, right), sum, evenOdd, ref first, ref last);
-                    sum += _cells[column];
-                    _cells[column] = 0;
-                    if (column >= left && column < right)
+                    long value = cells[column];
+                    cells[column] = 0;
+                    // Cells right of the output only need clearing.
+                    if (column >= right) continue;
+                    if (column > next)
                     {
-                        byte value = ToByte(sum, evenOdd);
-                        line[column - left] = value;
-                        if (value != 0)
+                        // The pixels since the last touched cell share the running coverage.
+                        if (current != 0)
                         {
-                            if (first < 0) first = column;
-                            last = column;
+                            FillRun(line, next - left, column - next, current);
+                            if (first < 0) first = next;
+                            last = column - 1;
                         }
+                        else if (!cleared) FillRun(line, next - left, column - next, 0);
                     }
-                    if (column + 1 > next) next = column + 1;
+                    sum += value;
+                    current = evenOdd ? ToByte(sum, true) : NonzeroByte(sum);
+                    if (column < left) continue;
+                    line[column - left] = current;
+                    if (current != 0)
+                    {
+                        if (first < 0) first = column;
+                        last = column;
+                    }
+                    next = column + 1;
                 }
+                while (bits != 0);
             }
-            if (next < right) Fill(line, left, next, right, sum, evenOdd, ref first, ref last);
+            if (next < right && current != 0)
+            {
+                FillRun(line, next - left, right - next, current);
+                if (first < 0) first = next;
+                last = right - 1;
+            }
+            else if (next < right && !cleared) FillRun(line, next - left, right - next, 0);
             return (first, last);
         }
 
-        private static void Fill(Span<byte> line, int left, int from, int to, long sum, bool evenOdd,
-            ref int first, ref int last)
+        private static void FillRun(Span<byte> line, int start, int count, byte value)
         {
-            if (from < left) from = left;
-            if (to <= from) return;
-            byte value = ToByte(sum, evenOdd);
-            line[(from - left)..(to - left)].Fill(value);
-            if (value == 0) return;
-            if (first < 0) first = from;
-            last = to - 1;
+            if (count <= 8)
+                for (int index = start; index < start + count; index++) line[index] = value;
+            else line.Slice(start, count).Fill(value);
+        }
+
+        private static byte NonzeroByte(long sum)
+        {
+            long area = Math.Abs(sum);
+            return area >= FullArea ? (byte)255 : (byte)(area >> ByteShift);
         }
 
         private static byte ToByte(long sum, bool evenOdd)
