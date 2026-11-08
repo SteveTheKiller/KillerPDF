@@ -180,9 +180,10 @@ public sealed class EpubFontFamilyTests
     }
 
     [Theory]
-    [InlineData(256, false)]
-    [InlineData(257, true)]
-    public void UnavailableFontFamiliesAreBoundedAcrossOneLayout(int count, bool exceeds)
+    [InlineData(256)]
+    [InlineData(257)]
+    // Lookups stay bounded at 256 families; later families use the default face instead of refusing (EP-BF-031).
+    public void UnavailableFontFamiliesAreBoundedAndFallBackAcrossOneLayout(int count)
     {
         string body = string.Concat(Enumerable.Range(0, count).Select(index =>
             "<p style='font-family: Face" + index + "'>A</p>"));
@@ -191,8 +192,8 @@ public sealed class EpubFontFamilyTests
         var options = new EpubLayoutOptions(30, 23, font)
             { FontSize = 10, Margin = 2, FontFamilyResolver = _ => null };
 
-        if (exceeds) Assert.Throws<InvalidDataException>(() => book.CreateLayout(options));
-        else Assert.Contains(book.CreateLayout(options).Pages, page => page.Text.Contains('A'));
+        var layout = book.CreateLayout(options);
+        Assert.Equal(count, layout.Pages.Where(page => page.SpineIndex == 0).Sum(page => page.Text.Count(character => character == 'A')));
     }
 
     private static TrueTypeFont WideFont(bool bOnly = false, bool taller = false)

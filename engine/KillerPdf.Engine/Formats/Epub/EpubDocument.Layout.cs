@@ -89,10 +89,14 @@ public sealed partial class EpubDocument
                 var request = new EpubFontFaceRequest(family, weight, options.DefaultFont) { Style = style };
                 var faceKey = request with { Family = family is null ? null : family with { Name = family.Name.ToUpperInvariant() } };
                 if (faceFonts.TryGetValue(faceKey, out var cachedFace)) return cachedFace?.Font;
-                if (faceFonts.Count >= 256)
-                    throw new InvalidDataException("Native EPUB exceeds its 256 font-face lookup limit.");
+                // EP-BF-031: past 256 distinct lookups, further families fall back to the default face.
+                if (faceFonts.Count >= 256) return null;
                 var result = resolveFace(request);
                 cancellationToken.ThrowIfCancellationRequested();
+                // EP-BF-021: CFF-outline faces cannot be drawn yet, so they are passed over like a missing face.
+                if (result?.Font is { HasCffOutlines: true }) result = null;
+                // A face beyond the retained-font budget falls back the same way instead of refusing the chapter.
+                if (result?.Font is { } candidate && !CanRetain(candidate)) result = null;
                 if (result is not null)
                 {
                     if (result.Font is null || !double.IsFinite(result.ActualWeight) || result.ActualWeight is < 1 or > 1000
@@ -107,14 +111,17 @@ public sealed partial class EpubDocument
             if (weight != 400 || style != EpubFontStyle.Normal || family is null || options.FontFamilyResolver is null) return null;
             var key = family with { Name = family.Name.ToUpperInvariant() };
             if (familyFonts.TryGetValue(key, out var cached)) return cached;
-            if (familyFonts.Count >= 256)
-                throw new InvalidDataException("Native EPUB exceeds its 256 font-family lookup limit.");
+            if (familyFonts.Count >= 256) return null;
             var selected = options.FontFamilyResolver(family);
             cancellationToken.ThrowIfCancellationRequested();
+            if (selected is { HasCffOutlines: true } || selected is not null && !CanRetain(selected)) selected = null;
             if (selected is not null) RetainFace(selected);
             familyFonts.Add(key, selected);
             return selected;
         }
+
+        bool CanRetain(TrueTypeFont selected) => retainedFonts.Contains(selected)
+            || retainedFonts.Count < 64 && retainedFontBytes + selected.FontData.Length <= 64L << 20;
 
         void RetainFace(TrueTypeFont selected)
         {
