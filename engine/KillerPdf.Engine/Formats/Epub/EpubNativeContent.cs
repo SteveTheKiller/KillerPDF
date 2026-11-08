@@ -167,7 +167,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             FontFamilies: [new EpubFontFamily("monospace", true)])),
         "cite" or "dfn" or "var" or "address" => CssProperties.FromConcrete(new ResolvedProperties(null, null) { FontStyle = EpubFontStyle.Italic }),
         "th" => CssProperties.FromConcrete(new ResolvedProperties(null, null, TextAlign: "center", FontWeight: 700)),
-        "center" => CssProperties.FromConcrete(new ResolvedProperties(null, null, TextAlign: "center")),
+        "center" or "caption" => CssProperties.FromConcrete(new ResolvedProperties(null, null, TextAlign: "center")),
         "dd" => CssProperties.FromConcrete(new ResolvedProperties(null, null, Margins: [null, null, null, new(40, false)])),
         "dl" => CssProperties.FromConcrete(new ResolvedProperties(null, null, Margins: [new(1, true), null, new(1, true), null])),
         "figure" => CssProperties.FromConcrete(new ResolvedProperties(null, null,

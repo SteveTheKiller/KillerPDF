@@ -569,7 +569,7 @@ public sealed class EpubCssClassSelectorTests
     }
 
     [Theory]
-    [InlineData("<table><caption>A</caption><tr><td>A</td><td>A</td></tr></table>")]
+    // Explicit-width tables still need cells that fill the width; colspan is honored in automatic tables.
     [InlineData("<table><tr><td colspan='2'>A</td></tr></table>")]
     [InlineData("<table><tr><td><table><tr><td>A</td></tr></table></td><td>A</td></tr></table>")]
     [InlineData("<table>A<tr><td>A</td><td>A</td></tr></table>")]
@@ -582,8 +582,9 @@ public sealed class EpubCssClassSelectorTests
         Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
     }
 
-    // A header row group, advisory attributes and a row span hint lay out as ordinary rows.
+    // A header row group, advisory attributes and a row span hint lay out as ordinary rows; a caption lays out above them.
     [Theory]
+    [InlineData("<table><caption>A</caption><tr><td>A</td><td>A</td></tr></table>")]
     [InlineData("<table><thead><tr><td>A</td><td>A</td></tr></thead></table>")]
     [InlineData("<table summary='Description'><tr><td>A</td><td>A</td></tr></table>")]
     [InlineData("<table><tr><td rowspan='2'>A</td><td>A</td></tr></table>")]

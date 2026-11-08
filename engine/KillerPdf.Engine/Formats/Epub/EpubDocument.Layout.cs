@@ -798,23 +798,51 @@ public sealed partial class EpubDocument
                     throw new NotSupportedException("Native EPUB tables require explicit width and row content.");
                 if (automatic)
                 {
-                    double[]? minimums = null;
+                    // CSS Tables automatic layout: the widest row's spans set the column count; single-column cells
+                    // size their columns, and a spanning cell wider than its columns widens them evenly.
+                    int columnCount = 0;
                     foreach (var row in Rows())
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         if (row.Children.Count == 0 || row.Children.Any(child => child is not EpubFormattingTree.Cell))
                             throw new NotSupportedException("Native EPUB rows require direct cells.");
-                        columns ??= new double[row.Children.Count];
-                        minimums ??= new double[row.Children.Count];
-                        if (columns.Length != row.Children.Count) throw new NotSupportedException(columnsUnsupported);
-                        for (int column = 0; column < columns.Length; column++)
+                        columnCount = Math.Max(columnCount, row.Children.Sum(child => Span((EpubFormattingTree.Cell)child)));
+                    }
+                    double[]? minimums = null;
+                    var spanning = new List<(int First, int Span, (double Minimum, double Maximum) Intrinsic)>();
+                    if (columnCount > 0)
+                    {
+                        columns = new double[columnCount];
+                        minimums = new double[columnCount];
+                    }
+                    foreach (var row in Rows())
+                    {
+                        int column = 0;
+                        foreach (var child in row.Children)
                         {
-                            var cell = (EpubFormattingTree.Cell)row.Children[column];
+                            cancellationToken.ThrowIfCancellationRequested();
+                            var cell = (EpubFormattingTree.Cell)child;
                             if (cell.Source.Width?.Length is not null)
                                 throw new NotSupportedException("Native EPUB automatic tables currently require automatic cells.");
+                            int span = Span(cell);
                             var intrinsic = IntrinsicWidths(cell);
-                            columns[column] = Math.Max(columns[column], intrinsic.Maximum);
-                            minimums[column] = Math.Max(minimums[column], intrinsic.Minimum);
+                            if (span == 1)
+                            {
+                                columns![column] = Math.Max(columns[column], intrinsic.Maximum);
+                                minimums![column] = Math.Max(minimums[column], intrinsic.Minimum);
+                            }
+                            else spanning.Add((column, span, intrinsic));
+                            column += span;
+                        }
+                    }
+                    foreach (var (first, span, intrinsic) in spanning)
+                    {
+                        double maximumShare = Math.Max(0, intrinsic.Maximum - columns!.Skip(first).Take(span).Sum()) / span;
+                        double minimumShare = Math.Max(0, intrinsic.Minimum - minimums!.Skip(first).Take(span).Sum()) / span;
+                        for (int column = first; column < first + span; column++)
+                        {
+                            columns![column] += maximumShare;
+                            minimums![column] += minimumShare;
                         }
                     }
                     // A column of only images or empty cells keeps a share of the width so its content can shrink into it.
@@ -846,6 +874,10 @@ public sealed partial class EpubDocument
                         ? Math.Max(0, pendingParagraphGap - bodyMargins.Top) : pendingParagraphGap;
                     pendingParagraphGap = 0;
                 }
+                // A caption (HTML caption-side: top) lays out above the rows at the table's width.
+                foreach (var part in table.Children)
+                    if (part is EpubFormattingTree.Block caption and not (EpubFormattingTree.Row or EpubFormattingTree.RowGroup))
+                        LayoutBlock(caption);
                 bool hadRow = false;
                 foreach (var row in Rows())
                 {
@@ -853,8 +885,9 @@ public sealed partial class EpubDocument
                     hadRow = true;
                     if (row.Children.Count == 0 || row.Children.Any(child => child is not EpubFormattingTree.Cell))
                         throw new NotSupportedException("Native EPUB rows require direct cells.");
-                    if (columns is not null && row.Children.Count != columns.Length)
+                    if (!automatic && columns is not null && row.Children.Count != columns.Length)
                         throw new NotSupportedException(columnsUnsupported);
+                    int columnIndex = 0;
                     var cells = new List<(EpubNativeContent.Element Source, EpubLayoutPage Page, double Left)>();
                     var widths = new List<double>();
                     int rowPaintCount = 0;
@@ -867,12 +900,14 @@ public sealed partial class EpubDocument
                         if (!automatic && cell.Source.Width is not { Length: { Value: > 0 } })
                             throw new NotSupportedException("Native EPUB cells require explicit positive widths.");
                         var width = cell.Source.Width?.Length ?? default;
-                        double cellWidth = automatic ? columns![widths.Count]
+                        int span = automatic ? Span(cell) : 1;
+                        double cellWidth = automatic ? columns!.Skip(columnIndex).Take(span).Sum()
                             : width.Percentage ? contentWidth * width.Value / 100
                             : width.Em ? cell.Source.Style.FontSize * width.Value : width.Value;
+                        columnIndex += span;
                         if (!double.IsFinite(cellWidth) || rowLeft + cellWidth - contentRight > 0.0000001)
                             throw new NotSupportedException("Native EPUB cell widths exceed the table content box.");
-                        if (columns is not null && Math.Abs(columns[widths.Count] - cellWidth) > 0.0000001)
+                        if (!automatic && columns is not null && Math.Abs(columns[widths.Count] - cellWidth) > 0.0000001)
                             throw new NotSupportedException(columnsUnsupported);
                         widths.Add(cellWidth);
                         var measured = LayoutFlow(cell, rowLeft, rowLeft + cellWidth, options.Margin);
@@ -893,7 +928,8 @@ public sealed partial class EpubDocument
                         LayoutRowAsBlocks(row);
                         continue;
                     }
-                    if (Math.Abs(rowLeft - contentRight) > 0.0000001)
+                    // An automatic row with fewer cells leaves its last columns empty, as CSS Tables does.
+                    if (!automatic && Math.Abs(rowLeft - contentRight) > 0.0000001)
                         throw new NotSupportedException(columnsUnsupported);
                     columns ??= widths.ToArray();
                     if (top + rowHeight > options.PageHeight - options.Margin)
@@ -1065,9 +1101,16 @@ public sealed partial class EpubDocument
                                     throw new NotSupportedException("Native EPUB row groups require direct rows.");
                                 yield return groupedRow;
                             }
-                        else throw new NotSupportedException("Native EPUB tables require row content.");
+                        else if (part is not EpubFormattingTree.Block)
+                            throw new NotSupportedException("Native EPUB tables require row content.");
                     }
                 }
+
+                // HTML colspan: a valid nonnegative integer, zero and invalid values meaning 1, capped at 1000.
+                static int Span(EpubFormattingTree.Cell cell)
+                    => cell.Source.Identity.Attributes.TryGetValue(("", "colspan"), out string? value)
+                        && int.TryParse(value.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out int span) && span > 0
+                        ? Math.Min(span, 1000) : 1;
             }
 
             void LayoutInline(EpubFormattingTree.InlineSequence sequence)
