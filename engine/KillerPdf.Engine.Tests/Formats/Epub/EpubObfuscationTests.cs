@@ -74,62 +74,107 @@ public sealed class EpubObfuscationTests
     [InlineData("EPUB/fonts/%2562ook.ttf")]
     [InlineData("EPUB/fonts/missing.ttf")]
     [InlineData("fonts/book.ttf")]
-    [InlineData("EPUB/chapter.xhtml")]
     [InlineData("EPUB/book.opf")]
-    public void RejectsUnsafeMissingOrNonFontTargets(string uri)
+    // An entry that names no usable packaged resource protects nothing the reader opens, so the
+    // book opens; nothing is decoded through an unsafe or missing path and the font stays as stored.
+    public void UnsafeMissingOrPackageTargetsAreIgnored(string uri)
     {
-        Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Book([0], Encryption(uri))));
+        var book = EpubDocument.Open(Book([0], Encryption(uri)));
+        Assert.Equal(new byte[] { 0 }, book.ReadResource("EPUB/fonts/book.ttf"));
+        Assert.Equal("Reading", book.ReadText(0));
     }
 
+    [Fact]
+    public void AnEncryptedChapterIsRefusedOnlyWhereItIsRead()
+    {
+        var book = EpubDocument.Open(Book([0], Encryption("EPUB/chapter.xhtml")));
+        Assert.Contains("encrypted", Assert.Throws<NotSupportedException>(() => book.ReadText(0)).Message);
+    }
+
+    // Real ciphers and unknown algorithms leave the resource encrypted; it is refused where used, not at Open.
+    // Adobe obfuscation needs a UUID identifier, so this font stays scrambled and text uses installed fonts.
     [Theory]
     [InlineData("http://www.w3.org/2001/04/xmlenc#aes128-cbc")]
     [InlineData("http://ns.adobe.com/pdf/enc#RC")]
     [InlineData("")]
-    public void RejectsUnsupportedEncryptionAlgorithms(string algorithm)
+    public void UnsupportedEncryptionAlgorithmsLeaveTheResourceUntouchedAndTheBookOpen(string algorithm)
     {
-        var exception = Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Book([0], Encryption(algorithm: algorithm))));
-        Assert.Equal("Encrypted EPUB publications are unsupported.", exception.Message);
+        var book = EpubDocument.Open(Book([0], Encryption(algorithm: algorithm)));
+        Assert.Equal(new byte[] { 0 }, book.ReadResource("EPUB/fonts/book.ttf"));
+        Assert.Equal("Reading", book.ReadText(0));
+    }
+
+    [Fact]
+    public void AdobeObfuscationXorsTheFirst1024BytesWithTheUuidIdentifier()
+    {
+        // urn:uuid:00112233-4455-6677-8899-aabbccddeeff gives the key bytes 00 11 22 ... ff.
+        byte[] font = new byte[1026];
+        var book = EpubDocument.Open(Book(font, Encryption(algorithm: "http://ns.adobe.com/pdf/enc#RC"),
+            identifier: "urn:uuid:00112233-4455-6677-8899-aabbccddeeff"));
+        byte[] restored = book.ReadResource("EPUB/fonts/book.ttf");
+        Assert.Equal(new byte[] { 0x00, 0x11, 0x22, 0x33 }, restored[..4]);
+        Assert.Equal(0xff, restored[1023]);
+        Assert.Equal(new byte[] { 0, 0 }, restored[1024..]);
     }
 
     [Theory]
     [InlineData("application/xhtml+xml")]
     [InlineData("text/css")]
     [InlineData("application/octet-stream")]
-    [InlineData("application/x-font-ttf")]
-    public void RejectsTargetsWithoutCoreFontManifestType(string mediaType)
+    public void ObfuscatedNonFontTargetsStayEncrypted(string mediaType)
     {
-        Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Book([0], mediaType: mediaType)));
+        Assert.Equal(new byte[] { 0 }, EpubDocument.Open(Book([0], mediaType: mediaType)).ReadResource("EPUB/fonts/book.ttf"));
+    }
+
+    // Legacy font media types written by older InDesign and Calibre releases are restored like the core types.
+    [Theory]
+    [InlineData("application/x-font-ttf")]
+    [InlineData("application/x-font-otf")]
+    [InlineData("font/sfnt")]
+    public void LegacyFontMediaTypesAreRestored(string mediaType)
+    {
+        // SHA-1("abc") begins with A9, the key for the whitespace-stripped identifier "abc".
+        Assert.Equal(new byte[] { 0xA9 }, EpubDocument.Open(Book([0], mediaType: mediaType)).ReadResource("EPUB/fonts/book.ttf"));
     }
 
     [Theory]
-    [InlineData("<encryption xmlns='urn:oasis:names:tc:opendocument:xmlns:container'/>")]
     [InlineData("<encryption/>")]
     [InlineData("<encryption")]
     [InlineData("<!DOCTYPE encryption SYSTEM 'https://example.invalid/encryption.dtd'><encryption/>")]
-    [InlineData("<encryption xmlns='urn:oasis:names:tc:opendocument:xmlns:container'><EncryptedData/></encryption>")]
     public void RejectsMalformedEncryptionDocuments(string encryption)
     {
         Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Book([0], encryption)));
     }
 
     [Theory]
-    [InlineData("<enc:KeyInfo/>", "</enc:EncryptedData>")]
-    [InlineData("<enc:EncryptedKey/>", "</encryption>")]
-    [InlineData("<enc:Transforms/>", "</enc:CipherData>")]
-    public void RejectsAdditionalEncryptionOperations(string additional, string before)
+    [InlineData("<encryption xmlns='urn:oasis:names:tc:opendocument:xmlns:container'/>")]
+    [InlineData("<encryption xmlns='urn:oasis:names:tc:opendocument:xmlns:container'><EncryptedData/></encryption>")]
+    public void EncryptionDocumentsThatProtectNothingOpenTheBook(string encryption)
     {
-        Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Book([0],
-            Encryption().Replace(before, additional + before))));
+        Assert.Equal("Reading", EpubDocument.Open(Book([0], encryption)).ReadText(0));
+    }
+
+    // Key material or transforms mean a real cipher: the font is left encrypted. An unrelated
+    // EncryptedKey elsewhere does not change a plain obfuscation entry.
+    [Theory]
+    [InlineData("<enc:KeyInfo/>", "</enc:EncryptedData>", 0x00)]
+    [InlineData("<enc:EncryptedKey/>", "</encryption>", 0xA9)]
+    [InlineData("<enc:Transforms/>", "</enc:CipherReference>", 0x00)]
+    public void AdditionalEncryptionOperationsMarkARealCipher(string additional, string before, byte expected)
+    {
+        string encryption = Encryption().Replace("/></enc:CipherData>", "></enc:CipherReference></enc:CipherData>");
+        var book = EpubDocument.Open(Book([0], encryption.Replace(before, additional + before)));
+        Assert.Equal(new[] { expected }, book.ReadResource("EPUB/fonts/book.ttf"));
     }
 
     [Fact]
-    public void RejectsDuplicateObfuscationOfSameResource()
+    public void DuplicateObfuscationOfTheSameResourceIsAppliedOnce()
     {
         var entry = """
             <enc:EncryptedData><enc:EncryptionMethod Algorithm="http://www.idpf.org/2008/embedding"/><enc:CipherData><enc:CipherReference URI="EPUB/fonts/%62ook.ttf"/></enc:CipherData></enc:EncryptedData>
             """;
-        Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Book([0],
-            Encryption().Replace("</encryption>", entry + "</encryption>"))));
+        var book = EpubDocument.Open(Book([0], Encryption().Replace("</encryption>", entry + "</encryption>")));
+        Assert.Equal(new byte[] { 0xA9 }, book.ReadResource("EPUB/fonts/book.ttf"));
     }
 
     private static byte[] Book(byte[] font, string? encryption = null, string identifier = " a&#x9;b&#xD;c&#xA; ",

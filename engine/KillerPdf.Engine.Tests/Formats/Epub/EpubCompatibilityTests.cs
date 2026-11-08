@@ -31,6 +31,35 @@ public sealed class EpubCompatibilityTests
         Assert.Equal(960 / 25.4, heights[3], 6);
     }
 
+    [Fact]
+    public void InDesignFontObfuscationAndLegacyFontTypesOpenAndOnlyRealEncryptionRefusesItsChapter()
+    {
+        const string encryption = """
+            <encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:enc="http://www.w3.org/2001/04/xmlenc#">
+              <enc:EncryptedData><enc:EncryptionMethod Algorithm="http://ns.adobe.com/pdf/enc#RC"/><enc:CipherData><enc:CipherReference URI="OEBPS/fonts/Minion.otf"/></enc:CipherData></enc:EncryptedData>
+              <enc:EncryptedData><enc:EncryptionMethod Algorithm="http://www.idpf.org/2008/embedding"/><enc:CipherData><enc:CipherReference URI="OEBPS/fonts/Legacy.ttf"/></enc:CipherData></enc:EncryptedData>
+              <enc:EncryptedData><enc:EncryptionMethod Algorithm="http://www.w3.org/2001/04/xmlenc#aes128-cbc"/><enc:CipherData><enc:CipherReference URI="OEBPS/text/c1.xhtml"/></enc:CipherData></enc:EncryptedData>
+            </encryption>
+            """;
+        var book = new Book
+        {
+            Encryption = encryption,
+            Chapters = { Chapter("<p>A</p>"), Chapter("<p>A</p>") },
+            ExtraManifest = "<item id='f1' href='fonts/Minion.otf' media-type='application/vnd.ms-opentype'/>"
+                + "<item id='f2' href='fonts/Legacy.ttf' media-type='application/x-font-ttf'/>"
+        };
+        book.Resources.Add(("fonts/Minion.otf", new byte[2048]));
+        book.Resources.Add(("fonts/Legacy.ttf", new byte[2048]));
+        var document = EpubDocument.Open(book.Build());
+        var layout = document.CreateLayout(Options());
+        Assert.Equal(new[] { 0, 1 }, layout.Pages.Select(page => page.SpineIndex));
+        var diagnostic = Assert.Single(layout.ChapterDiagnostics);
+        Assert.Equal("OEBPS/text/c1.xhtml", diagnostic.Href);
+        Assert.Contains("encrypted", diagnostic.Message);
+        Assert.Throws<NotSupportedException>(() => document.ReadText(1));
+        Assert.Equal("A", document.ReadText(0));
+    }
+
     /// <summary>An ignored declaration, attribute or element lays out exactly like the document without it.</summary>
     internal static void AssertSameLayout(EpubLayoutDocument expected, EpubLayoutDocument actual)
     {

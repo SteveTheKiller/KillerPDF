@@ -44,9 +44,10 @@ public sealed partial class EpubDocumentTests
     }
 
     [Fact]
-    public void RejectsEncryptedPublication()
+    // An encryption document with no entries protects nothing; real encryption is refused per resource.
+    public void AnEmptyEncryptionDocumentOpensThePublication()
     {
-        Assert.Throws<InvalidDataException>(() => EpubDocument.Open(Book(Package,
+        Assert.NotNull(EpubDocument.Open(Book(Package,
             ("META-INF/encryption.xml", "<encryption xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"/>"))));
     }
 

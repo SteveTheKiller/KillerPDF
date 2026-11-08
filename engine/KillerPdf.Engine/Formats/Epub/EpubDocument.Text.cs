@@ -15,6 +15,7 @@ public sealed partial class EpubDocument
         var resource = Spine[spineIndex].Item;
         if (resource.MediaType != "application/xhtml+xml" || Tokens(resource.Properties).Contains("scripted", StringComparer.Ordinal))
             throw new NotSupportedException("EPUB text requires an unscripted XHTML spine resource.");
+        if (_encryptedResources.Contains(resource.Href)) throw EncryptedChapter(resource.Href);
         const string html = "http://www.w3.org/1999/xhtml";
         var result = new StringBuilder();
         bool pendingSpace = false;
