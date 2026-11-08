@@ -2072,4 +2072,6 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">先前檔案的設定</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">檢視設定</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">無法使用顯示器色彩校正。目前以 sRGB 顯示。</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">無法顯示此章節。</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">無法顯示的章節：{0}</sys:String>
 </ResourceDictionary>

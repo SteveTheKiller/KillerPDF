@@ -2090,4 +2090,6 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_CM_PreviousFileSettings">Configurações do arquivo anterior</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Revisar configurações</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">A correção de cores do monitor está indisponível. Exibindo em sRGB.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Não é possível exibir este capítulo.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Capítulos que não podem ser exibidos: {0}</sys:String>
 </ResourceDictionary>

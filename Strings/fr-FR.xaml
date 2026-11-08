@@ -2090,4 +2090,6 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_CM_PreviousFileSettings">Paramètres du fichier précédent</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Examiner les paramètres</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">La correction des couleurs du moniteur est indisponible. Affichage en sRGB.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Impossible d'afficher ce chapitre.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Chapitres impossibles à afficher : {0}</sys:String>
 </ResourceDictionary>

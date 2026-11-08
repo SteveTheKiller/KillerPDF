@@ -2078,4 +2078,6 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_CM_PreviousFileSettings">Ustawienia poprzedniego pliku</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Przejrzyj ustawienia</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Korekcja kolorów monitora jest niedostępna. Wyświetlanie w sRGB.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Nie można wyświetlić tego rozdziału.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Rozdziały, których nie można wyświetlić: {0}</sys:String>
 </ResourceDictionary>

@@ -24,7 +24,9 @@ public partial class MainWindow
                         ?? throw new NotSupportedException("Native EPUB fallback font is unavailable.");
                     opened = NativeWorkingDocument.OpenEpub(bytes, new EpubLayoutOptions(800, 1000, face.Font)
                     {
-                        FontFaceResolver = PdfEngineIntegration.EpubFontFaceResolver(face.Family)
+                        FontFaceResolver = PdfEngineIntegration.EpubFontFaceResolver(face.Family),
+                        IsolateChapterFailures = true,
+                        UnavailableChapterLabel = Loc("Str_Epub_ChapterUnavailable")
                     });
                 }
                 else opened = NativeWorkingDocument.OpenDjvu(bytes);
@@ -62,6 +64,8 @@ public partial class MainWindow
             BootstrapDocumentView(0, autoFit: true);
             string status = string.Format(Loc("Str_Opened"), Path.GetFileName(path), opened.PageCount);
             if (ActiveViewer.ProofPreferenceNoticeKeyExt is { } notice) status += " " + Loc(notice);
+            if (opened.UnavailableChapterCount > 0)
+                status += " " + string.Format(Loc("Str_Epub_ChaptersUnavailable"), opened.UnavailableChapterCount);
             SetStatus(status);
             SyncSidebarToDocState(hasDoc: true, startup: false);
             ActiveViewer.CompleteTabLoadExt();

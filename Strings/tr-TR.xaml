@@ -2070,4 +2070,6 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_CM_PreviousFileSettings">Önceki dosyanın ayarları</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Ayarları gözden geçir</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Monitör renk düzeltmesi kullanılamıyor. sRGB gösteriliyor.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Bu bölüm görüntülenemiyor.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Görüntülenemeyen bölümler: {0}</sys:String>
 </ResourceDictionary>

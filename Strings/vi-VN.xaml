@@ -2090,4 +2090,6 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_CM_PreviousFileSettings">Thiết lập của tệp trước</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Xem lại thiết lập</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Không thể hiệu chỉnh màu màn hình. Đang hiển thị sRGB.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Không thể hiển thị chương này.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Các chương không thể hiển thị: {0}</sys:String>
 </ResourceDictionary>

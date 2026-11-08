@@ -2075,4 +2075,6 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_CM_PreviousFileSettings">Nastavení předchozího souboru</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Zkontrolovat nastavení</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Korekce barev monitoru není dostupná. Zobrazuje se sRGB.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Tuto kapitolu nelze zobrazit.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Kapitoly, které nelze zobrazit: {0}</sys:String>
 </ResourceDictionary>

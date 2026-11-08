@@ -2077,4 +2077,6 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_CM_PreviousFileSettings">Az előző fájl beállításai</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Beállítások áttekintése</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">A monitor színkorrekciója nem érhető el. Megjelenítés sRGB színtérben.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Ez a fejezet nem jeleníthető meg.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Nem megjeleníthető fejezetek: {0}</sys:String>
 </ResourceDictionary>

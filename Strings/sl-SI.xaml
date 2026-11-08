@@ -1979,4 +1979,6 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_CM_PreviousFileSettings">Nastavitve prejšnje datoteke</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Preglej nastavitve</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Barvna korekcija monitorja ni na voljo. Prikaz v sRGB.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Tega poglavja ni mogoče prikazati.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Poglavja, ki jih ni mogoče prikazati: {0}</sys:String>
 </ResourceDictionary>

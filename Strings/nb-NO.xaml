@@ -2090,4 +2090,6 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_CM_PreviousFileSettings">Innstillinger for forrige fil</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Se gjennom innstillinger</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Fargekorrigering for skjermen er utilgjengelig. Viser sRGB.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Dette kapittelet kan ikke vises.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Kapitler som ikke kan vises: {0}</sys:String>
 </ResourceDictionary>

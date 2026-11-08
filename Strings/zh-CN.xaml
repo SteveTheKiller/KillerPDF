@@ -2074,4 +2074,6 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_CM_PreviousFileSettings">先前文件的设置</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">查看设置</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">显示器色彩校正不可用。正在以 sRGB 显示。</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">无法显示此章节。</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">无法显示的章节：{0}</sys:String>
 </ResourceDictionary>

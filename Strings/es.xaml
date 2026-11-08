@@ -2070,4 +2070,6 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_CM_PreviousFileSettings">Ajustes del archivo anterior</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Revisar ajustes</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">La corrección de color del monitor no está disponible. Se muestra sRGB.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">No se puede mostrar este capítulo.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Capítulos que no se pueden mostrar: {0}</sys:String>
 </ResourceDictionary>

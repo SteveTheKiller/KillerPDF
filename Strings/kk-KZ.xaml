@@ -2093,4 +2093,6 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_CM_PreviousFileSettings">Алдыңғы файлдың параметрлері</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Параметрлерді қарап шығу</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Монитордың түсін түзету қолжетімсіз. sRGB көрсетілуде.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Бұл тарауды көрсету мүмкін емес.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Көрсетілмейтін тараулар: {0}</sys:String>
 </ResourceDictionary>

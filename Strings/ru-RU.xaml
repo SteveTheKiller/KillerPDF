@@ -2093,4 +2093,6 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_CM_PreviousFileSettings">Настройки предыдущего файла</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Просмотреть настройки</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Цветокоррекция монитора недоступна. Отображение в sRGB.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Не удаётся показать эту главу.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Главы, которые не удаётся показать: {0}</sys:String>
 </ResourceDictionary>

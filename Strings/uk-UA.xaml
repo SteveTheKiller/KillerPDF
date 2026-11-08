@@ -2090,4 +2090,6 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_CM_PreviousFileSettings">Параметри попереднього файлу</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Переглянути параметри</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">Корекція кольорів монітора недоступна. Відображення в sRGB.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Не вдається показати цей розділ.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Розділи, які не вдається показати: {0}</sys:String>
 </ResourceDictionary>

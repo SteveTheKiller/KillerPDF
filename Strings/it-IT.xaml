@@ -2091,4 +2091,6 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_CM_PreviousFileSettings">Impostazioni del file precedente</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">Rivedi impostazioni</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">La correzione del colore del monitor non è disponibile. Visualizzazione in sRGB.</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">Impossibile visualizzare questo capitolo.</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">Capitoli che non è possibile visualizzare: {0}</sys:String>
 </ResourceDictionary>

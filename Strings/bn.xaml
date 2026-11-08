@@ -2070,4 +2070,6 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_CM_PreviousFileSettings">আগের ফাইলের সেটিংস</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">সেটিংস পর্যালোচনা করুন</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">মনিটরের রঙ সংশোধন উপলব্ধ নেই। sRGB দেখানো হচ্ছে।</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">এই অধ্যায়টি দেখানো যায়নি।</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">যে অধ্যায়গুলো দেখানো যায়নি: {0}</sys:String>
 </ResourceDictionary>

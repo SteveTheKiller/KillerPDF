@@ -48,6 +48,7 @@ internal sealed class NativeWorkingDocument : IDisposable
     internal PdfDocumentFormat Format => _snapshot.Format;
     internal string ContentIdentity => _snapshot.SourceSha256;
     internal int PageCount => _snapshot.PageCount;
+    internal int UnavailableChapterCount => _snapshot.ChapterDiagnostics.Count;
 
     internal byte[] ConvertDjvuToPdf(CancellationToken cancellationToken = default)
     {

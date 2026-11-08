@@ -2090,4 +2090,6 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_CM_PreviousFileSettings">以前のファイルの設定</sys:String>
     <sys:String x:Key="Str_CM_ReviewPrevious">設定を確認</sys:String>
     <sys:String x:Key="Str_CM_DisplayFallback">モニターの色補正は利用できません。sRGBで表示しています。</sys:String>
+    <sys:String x:Key="Str_Epub_ChapterUnavailable">この章は表示できません。</sys:String>
+    <sys:String x:Key="Str_Epub_ChaptersUnavailable">表示できない章: {0}</sys:String>
 </ResourceDictionary>
