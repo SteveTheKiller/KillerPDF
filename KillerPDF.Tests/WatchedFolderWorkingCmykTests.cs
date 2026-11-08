@@ -16,6 +16,7 @@ public sealed class WatchedFolderWorkingCmykTests : IDisposable
     private const string AffineCmyk =
         "AAABQAAAAAAEAAAAcHJ0ckNNWUtYWVogAAAAAAAAAAAAAAAAYWNzcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQTJCMQAAAJAAAACwbWZ0MgAAAAAEAwIAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAIAAgAA//8AAP//AAD//wAA//9AAEAAQAAgACAAIABAAEAAIAAgACAAAABAACAAQAAgAAAAIABAACAAIAAgAAAAAAAgAEAAQAAAACAAIAAgAEAAIAAAACAAAAAgACAAQAAAAAAAIAAgACAAIAAAAAAAAAAAAP//AAD//wAA//8=";
     private readonly Func<PdfColorProfile?> _source = WorkingCmykProfiles.Source;
+    private readonly Func<long> _stamp = WorkingCmykProfiles.Stamp;
     private readonly string _root = Path.Combine(Path.GetTempPath(), "killerpdf-watched-folders",
         "working-cmyk-" + Guid.NewGuid().ToString("N"));
 
@@ -52,6 +53,30 @@ public sealed class WatchedFolderWorkingCmykTests : IDisposable
         Assert.True(Math.Abs(gray - expected) <= 1, $"gray {gray}, expected {expected}, built-in {Gray(source, null)}");
     }
 
+    // The watched-folder host and the Explorer preview pane can be other processes than the one
+    // where the choice changes, so nothing invalidates their cache. A changed choice on disk must
+    // still reach them, and an unchanged one must not be read again.
+    [Fact]
+    public void AWorkingCmykChoiceSavedElsewhereIsPickedUpWithoutInvalidation()
+    {
+        var library = new ProofProfileLibrary(Path.Combine(_root, "profiles"));
+        ProofProfileEntry affine = library.Import("Affine", Convert.FromBase64String(AffineCmyk));
+        int reads = 0;
+        WorkingCmykProfiles.Source = () => { reads++; return library.ResolveWorkingCmykProfile(); };
+        WorkingCmykProfiles.Stamp = library.GetWorkingCmykChoiceStamp;
+        WorkingCmykProfiles.Invalidate();
+        Assert.Null(WorkingCmykProfiles.Current());
+
+        new ProofProfileLibrary(Path.Combine(_root, "profiles")).SetWorkingCmykProfile(affine.ContentSha256);
+        PdfColorProfile? changed = WorkingCmykProfiles.Current();
+        reads = 0;
+        PdfColorProfile? unchanged = WorkingCmykProfiles.Current();
+
+        Assert.Equal(affine.ContentSha256, changed?.ContentSha256);
+        Assert.Same(changed, unchanged);
+        Assert.Equal(0, reads);
+    }
+
     // The gray the conversion should produce: the weighted sum of the page's managed color.
     private static int Gray(byte[] source, PdfColorProfile? working)
     {
@@ -71,6 +96,7 @@ public sealed class WatchedFolderWorkingCmykTests : IDisposable
     public void Dispose()
     {
         WorkingCmykProfiles.Source = _source;
+        WorkingCmykProfiles.Stamp = _stamp;
         WorkingCmykProfiles.Invalidate();
         if (Directory.Exists(_root)) Directory.Delete(_root, recursive: true);
     }

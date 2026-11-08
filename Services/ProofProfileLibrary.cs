@@ -212,6 +212,21 @@ public sealed class ProofProfileLibrary(string directory)
 
     private string WorkingCmykPath => Path.Combine(_directory, "working-cmyk.json");
 
+    /// <summary>A value that changes whenever the working CMYK choice file is written or removed.</summary>
+    /// <remarks>0 when there is no choice file; -1 when its metadata cannot be read.</remarks>
+    internal long GetWorkingCmykChoiceStamp()
+    {
+        try
+        {
+            var file = new FileInfo(WorkingCmykPath);
+            return file.Exists ? file.LastWriteTimeUtc.Ticks ^ file.Length << 48 | 1 : 0;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            return -1;
+        }
+    }
+
     /// <summary>Lists library profiles whose device color space is CMYK.</summary>
     /// <remarks>Only the 20-byte ICC header of each owned copy is read.</remarks>
     public IReadOnlyList<ProofProfileEntry> GetCmykProfiles() =>
@@ -351,16 +366,20 @@ public sealed class ProofProfileLibrary(string directory)
 /// <summary>The chosen working CMYK profile, read once per choice for every render in this process.</summary>
 /// <remarks>
 /// Untagged CMYK displays, prints and exports through it everywhere. Null keeps the engine's
-/// built-in CGATS TR 001 profile. A changed choice is picked up after <see cref="Invalidate"/>.
+/// built-in CGATS TR 001 profile. A changed choice is picked up after <see cref="Invalidate"/>,
+/// or in any process once the saved choice file changes.
 /// </remarks>
 internal static class WorkingCmykProfiles
 {
-    private sealed record Choice(long Generation, PdfColorProfile? Profile);
+    private sealed record Choice(long Generation, long Stamp, PdfColorProfile? Profile);
     private static long _generation;
     private static Choice? _choice;
 
     /// <summary>Gets or sets where the choice is read; the application's profile library by default.</summary>
     internal static Func<PdfColorProfile?> Source { get; set; } = () => new ProofProfileLibrary().ResolveWorkingCmykProfile();
+
+    /// <summary>Gets or sets the stamp of the saved choice; the application's profile library by default.</summary>
+    internal static Func<long> Stamp { get; set; } = () => new ProofProfileLibrary().GetWorkingCmykChoiceStamp();
 
     internal static long Generation => Interlocked.Read(ref _generation);
 
@@ -369,7 +388,11 @@ internal static class WorkingCmykProfiles
     internal static PdfColorProfile? Current()
     {
         long generation = Generation;
-        if (Volatile.Read(ref _choice) is { } cached && cached.Generation == generation) return cached.Profile;
+        // The watched-folder host and the Explorer preview pane may be other processes than the
+        // one where the choice changes, so a rewritten or removed choice file also counts.
+        long stamp = Stamp();
+        if (Volatile.Read(ref _choice) is { } cached && cached.Generation == generation && cached.Stamp == stamp)
+            return cached.Profile;
         PdfColorProfile? profile;
         try { profile = Source(); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException
@@ -377,7 +400,7 @@ internal static class WorkingCmykProfiles
         {
             profile = null;
         }
-        Volatile.Write(ref _choice, new Choice(generation, profile));
+        Volatile.Write(ref _choice, new Choice(generation, stamp, profile));
         return profile;
     }
 
