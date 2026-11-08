@@ -360,6 +360,23 @@ namespace KillerPDF
             };
         }
 
+        // Space between N-up cells, in DIPs.
+        private const double NupGap = 6;
+
+        // The page's printed size on an aw x ah sheet: the scale mode inside the margins for 1-up,
+        // its grid cell for N-up. The print raster is sized from this (#481).
+        private PrintPagePlacement.Placement PlacementFor(int idx, double aw, double ah, PrintLayout layout)
+        {
+            double m = layout.MarginPx;
+            if (layout.NUp <= 1)
+                return PrintPagePlacement.Place(_pageDipW[idx], _pageDipH[idx], aw - 2 * m, ah - 2 * m,
+                    layout.ScaleMode, layout.CustomPct);
+            var (cols, rows) = NupGrid(layout);
+            return PrintPagePlacement.Place(_pageDipW[idx], _pageDipH[idx],
+                Math.Max(1, (aw - 2 * m) / cols - NupGap), Math.Max(1, (ah - 2 * m) / rows - NupGap),
+                PrintPagePlacement.FitToPage, 100);
+        }
+
         // Page offset within the printable area for the current alignment selection.
         private static double OffsetH(double areaW, double imgW, PrintLayout layout)
             => layout.AlignH == 0 ? 0 : layout.AlignH == 2 ? areaW - imgW : (areaW - imgW) / 2;
@@ -444,7 +461,7 @@ namespace KillerPDF
             else
             {
                 var (cols, rows) = NupGrid(layout);
-                const double gap = 6;
+                const double gap = NupGap;
                 double cellW = (aw - 2 * m) / cols, cellH = (ah - 2 * m) / rows;
                 for (int i = 0; i < idxs.Count && i < cols * rows; i++)
                 {
@@ -1532,8 +1549,11 @@ namespace KillerPDF
                         cancellationToken.ThrowIfCancellationRequested();
                         done++;
                         if (idx < 0 || idx >= _pages.Length) continue;
-                        PdfRenderedPage page = renderSession.RenderPage(idx, requireComplete: false,
-                            cancellationToken: cancellationToken);
+                        // Each page renders at the size it prints on the sheet (#481), so a page far
+                        // larger than the paper fits the render limit and prints as the preview shows.
+                        PdfRenderedPage page = PrintPagePlacement.Render(renderSession, idx,
+                            _pageDipW[idx], _pageDipH[idx], PlacementFor(idx, aw, ah, layout), _printDpi,
+                            requireComplete: false, cancellationToken);
                         int w = page.Width, h = page.Height;
                         byte[] pixels = page.Pixels;
                         var bs = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);   // #141

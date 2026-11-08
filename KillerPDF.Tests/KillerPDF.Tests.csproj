@@ -193,6 +193,7 @@
     <Compile Include="..\Services\AppInfo.cs" Link="Services\AppInfo.cs" />
     <Compile Include="..\Services\PrintColorConverter.cs" Link="Services\PrintColorConverter.cs" />
     <Compile Include="..\Services\PrintOrientationPolicy.cs" Link="Services\PrintOrientationPolicy.cs" />
+    <Compile Include="..\Services\PrintPagePlacement.cs" Link="Services\PrintPagePlacement.cs" />
     <Compile Include="..\Services\PdfTextEditPlacement.cs" Link="Services\PdfTextEditPlacement.cs" />
     <Compile Include="..\Services\PageQualityConverter.cs" Link="Services\PageQualityConverter.cs" />
     <Compile Include="..\Services\ColorCorrection.cs" Link="Services\ColorCorrection.cs" />

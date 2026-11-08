@@ -406,6 +406,10 @@ internal sealed class PdfPageRenderSession : IDisposable
         // Preserve the previous viewer's truncation of scaled page dimensions.
         int engineWidth = Math.Max(1, checked((int)(pageWidth * renderScale)));
         int engineHeight = Math.Max(1, checked((int)(pageHeight * renderScale)));
+        // A print job prints a page too large for the render limit at a lower resolution
+        // instead of failing the whole job (#481).
+        if (_forPrinting)
+            (engineWidth, engineHeight) = PrintPagePlacement.WithinRenderLimit(engineWidth, engineHeight);
         return new EngineRenderOptions(engineWidth, engineHeight, transparentBackground,
             includeAnnotations, includeFormFields)
         {
