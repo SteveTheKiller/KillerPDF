@@ -1549,6 +1549,16 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_ExtractImage_Done">Bearbeitbares Bild aus Seite {0} extrahiert</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">Der Eigentümer dieser PDF erlaubt das Kopieren des Inhalts nicht, daher kann kein Bild extrahiert werden.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">Das Bild konnte nicht extrahiert werden: {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">Dieses Bild steht direkt in den Zeichenbefehlen der Seite und lässt sich daher nicht als eigenes Bild auswählen. Mit „Bild extrahieren“ können Sie seine Pixel kopieren.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">Dieses Bild gehört zu einer gruppierten Zeichnung und kann daher nicht einzeln verschoben oder in der Größe geändert werden. Mit „Bild extrahieren“ können Sie seine Pixel kopieren.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">Dieses Bild verwendet eine Maske und kann hier daher nicht verschoben oder in der Größe geändert werden. Mit „Bild extrahieren“ können Sie seine Pixel kopieren.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">Diese Seite verwendet Ebenen, daher können ihre Bilder hier nicht verschoben oder in der Größe geändert werden. Mit „Bild extrahieren“ können Sie ihre Pixel kopieren.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">Diese Seite verwendet eine Transparenzgruppe, daher können ihre Bilder hier nicht verschoben oder in der Größe geändert werden. Mit „Bild extrahieren“ können Sie ihre Pixel kopieren.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">Diese Datei musste zum Öffnen repariert werden, daher können ihre Bilder nicht verschoben oder in der Größe geändert werden. Mit „Bild extrahieren“ können Sie ihre Pixel kopieren.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">Die Zeichnungseinstellungen dieser Seite sind zu komplex, um ihre Bilder sicher zu verschieben oder in der Größe zu ändern. Mit „Bild extrahieren“ können Sie ihre Pixel kopieren.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">Dieses Bild ist auf der Seite gedreht oder geneigt und kann hier daher nicht verschoben oder in der Größe geändert werden. Mit „Bild extrahieren“ können Sie seine Pixel kopieren.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">Dieses Bild wird teilweise von einer Beschnittform verdeckt und kann hier daher nicht verschoben oder in der Größe geändert werden. Mit „Bild extrahieren“ können Sie seine Pixel kopieren.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">Die Position dieses Bildes kann nicht gelesen werden, daher kann es nicht verschoben oder in der Größe geändert werden. Mit „Bild extrahieren“ können Sie seine Pixel kopieren.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Jeder Farbauszug zeigt, wie viel dieser Farbe die Seite aufträgt: Schwarz für volle Deckung, Weiß für keine. Auszüge ohne Farbe auf dieser Seite sind abgeblendet.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Alle Farben</sys:String>
     <sys:String x:Key="Str_Sep_Report">Bericht...</sys:String>

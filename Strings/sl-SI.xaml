@@ -1453,6 +1453,16 @@
     <sys:String x:Key="Str_ExtractImage_Done">Urejljiva slika izvlečena s strani {0}</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">Lastnik te datoteke PDF ne dovoli kopiranja vsebine, zato slike ni mogoče izvleči.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">Slike ni bilo mogoče izvleči: {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">Ta slika je zapisana neposredno v risalnih ukazih strani, zato je ni mogoče izbrati kot ločene slike. Ukaz Izvleci sliko lahko kopira njene slikovne pike.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">Ta slika je del združene risbe, zato je ni mogoče samostojno premikati ali ji spreminjati velikosti. Ukaz Izvleci sliko lahko kopira njene slikovne pike.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">Ta slika uporablja masko, zato je tu ni mogoče premikati ali ji spreminjati velikosti. Ukaz Izvleci sliko lahko kopira njene slikovne pike.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">Ta stran uporablja plasti, zato njenih slik tu ni mogoče premikati ali jim spreminjati velikosti. Ukaz Izvleci sliko lahko kopira njihove slikovne pike.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">Ta stran uporablja skupino prosojnosti, zato njenih slik tu ni mogoče premikati ali jim spreminjati velikosti. Ukaz Izvleci sliko lahko kopira njihove slikovne pike.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">To datoteko je bilo treba za odpiranje popraviti, zato njenih slik ni mogoče premikati ali jim spreminjati velikosti. Ukaz Izvleci sliko lahko kopira njihove slikovne pike.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">Risalne nastavitve te strani so preveč zapletene za varno premikanje ali spreminjanje velikosti njenih slik. Ukaz Izvleci sliko lahko kopira njihove slikovne pike.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">Ta slika je na strani zasukana ali nagnjena, zato je tu ni mogoče premikati ali ji spreminjati velikosti. Ukaz Izvleci sliko lahko kopira njene slikovne pike.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">Ta slika je delno skrita z obrezovalno obliko, zato je tu ni mogoče premikati ali ji spreminjati velikosti. Ukaz Izvleci sliko lahko kopira njene slikovne pike.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">Položaja te slike ni mogoče prebrati, zato je ni mogoče premikati ali ji spreminjati velikosti. Ukaz Izvleci sliko lahko kopira njene slikovne pike.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Vsaka tiskarska plošča kaže količino črnila na strani: črna pomeni polno pokritost, bela pa nič črnila. Plošče brez črnila na tej strani so zatemnjene.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Vsa črnila</sys:String>
     <sys:String x:Key="Str_Sep_Report">Poročilo...</sys:String>

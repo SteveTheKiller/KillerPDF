@@ -1560,6 +1560,16 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_ExtractImage_Done">Trakk ut et redigerbart bilde fra side {0}</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">Eieren av denne PDF-en tillater ikke kopiering av innholdet, så det kan ikke trekkes ut noe bilde.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">Kunne ikke trekke ut bildet: {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">Dette bildet er skrevet inn i tegnekommandoene på siden, så det kan ikke velges som et eget bilde. Trekk ut bilde kan kopiere pikslene.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">Dette bildet er en del av en gruppert tegning, så det kan ikke flyttes eller endres i størrelse alene. Trekk ut bilde kan kopiere pikslene.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">Dette bildet bruker en maske, så det kan ikke flyttes eller endres i størrelse her. Trekk ut bilde kan kopiere pikslene.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">Denne siden bruker lag, så bildene kan ikke flyttes eller endres i størrelse her. Trekk ut bilde kan kopiere pikslene.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">Denne siden bruker en gjennomsiktighetsgruppe, så bildene kan ikke flyttes eller endres i størrelse her. Trekk ut bilde kan kopiere pikslene.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">Denne filen måtte repareres for å åpnes, så bildene kan ikke flyttes eller endres i størrelse. Trekk ut bilde kan kopiere pikslene.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">Tegneinnstillingene på denne siden er for kompliserte til å flytte eller endre størrelsen på bildene på en trygg måte. Trekk ut bilde kan kopiere pikslene.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">Dette bildet er rotert eller skråstilt på siden, så det kan ikke flyttes eller endres i størrelse her. Trekk ut bilde kan kopiere pikslene.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">Dette bildet er delvis skjult av en klippeform, så det kan ikke flyttes eller endres i størrelse her. Trekk ut bilde kan kopiere pikslene.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">Plasseringen til dette bildet kan ikke leses, så det kan ikke flyttes eller endres i størrelse. Trekk ut bilde kan kopiere pikslene.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Hver trykkplate viser hvor mye av fargen siden legger på, svart for full dekning og hvitt for ingen. Plater uten farge på denne siden er nedtonet.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Alle farger</sys:String>
     <sys:String x:Key="Str_Sep_Report">Rapport...</sys:String>

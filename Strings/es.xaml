@@ -1540,6 +1540,16 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Done">Se extrajo una imagen editable de la página {0}</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">El propietario de este PDF no permite copiar su contenido, así que no se puede extraer ninguna imagen.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">No se pudo extraer la imagen: {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">Esta imagen está escrita en los comandos de dibujo de la página, por lo que no se puede seleccionar como imagen independiente. Extraer imagen puede copiar sus píxeles.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">Esta imagen forma parte de un dibujo agrupado, por lo que no se puede mover ni cambiar de tamaño por sí sola. Extraer imagen puede copiar sus píxeles.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">Esta imagen usa una máscara, por lo que no se puede mover ni cambiar de tamaño aquí. Extraer imagen puede copiar sus píxeles.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">Esta página usa capas, por lo que sus imágenes no se pueden mover ni cambiar de tamaño aquí. Extraer imagen puede copiar sus píxeles.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">Esta página usa un grupo de transparencia, por lo que sus imágenes no se pueden mover ni cambiar de tamaño aquí. Extraer imagen puede copiar sus píxeles.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">Este archivo necesitó una reparación para abrirse, por lo que sus imágenes no se pueden mover ni cambiar de tamaño. Extraer imagen puede copiar sus píxeles.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">La configuración de dibujo de esta página es demasiado compleja para mover o cambiar el tamaño de sus imágenes de forma segura. Extraer imagen puede copiar sus píxeles.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">Esta imagen está girada o inclinada en la página, por lo que no se puede mover ni cambiar de tamaño aquí. Extraer imagen puede copiar sus píxeles.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">Esta imagen está parcialmente oculta por una forma de recorte, por lo que no se puede mover ni cambiar de tamaño aquí. Extraer imagen puede copiar sus píxeles.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">No se puede leer la posición de esta imagen, por lo que no se puede mover ni cambiar de tamaño. Extraer imagen puede copiar sus píxeles.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Cada plancha muestra cuánta tinta de ese color deposita la página: negro para cobertura total y blanco para ninguna. Las planchas sin tinta en esta página aparecen atenuadas.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Todas las tintas</sys:String>
     <sys:String x:Key="Str_Sep_Report">Informe...</sys:String>

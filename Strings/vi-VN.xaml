@@ -1560,6 +1560,16 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_ExtractImage_Done">Đã trích xuất ảnh có thể chỉnh sửa từ trang {0}</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">Chủ sở hữu PDF này không cho phép sao chép nội dung, nên không thể trích xuất ảnh.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">Không thể trích xuất ảnh: {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">Ảnh này được ghi thẳng vào các lệnh vẽ của trang nên không thể chọn như một ảnh riêng. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của nó.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">Ảnh này là một phần của hình vẽ đã nhóm nên không thể tự di chuyển hoặc đổi kích thước. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của nó.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">Ảnh này dùng mặt nạ nên không thể di chuyển hoặc đổi kích thước tại đây. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của nó.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">Trang này dùng các lớp nên không thể di chuyển hoặc đổi kích thước ảnh của trang tại đây. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của chúng.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">Trang này dùng nhóm độ trong suốt nên không thể di chuyển hoặc đổi kích thước ảnh của trang tại đây. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của chúng.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">Tệp này cần được sửa chữa mới mở được nên không thể di chuyển hoặc đổi kích thước ảnh của tệp. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của chúng.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">Các thiết lập vẽ của trang này quá phức tạp để di chuyển hoặc đổi kích thước ảnh của trang một cách an toàn. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của chúng.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">Ảnh này bị xoay hoặc nghiêng trên trang nên không thể di chuyển hoặc đổi kích thước tại đây. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của nó.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">Ảnh này bị một hình cắt che khuất một phần nên không thể di chuyển hoặc đổi kích thước tại đây. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của nó.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">Không đọc được vị trí của ảnh này nên không thể di chuyển hoặc đổi kích thước. Lệnh Trích xuất ảnh có thể sao chép các điểm ảnh của nó.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Mỗi bản in cho thấy trang phủ bao nhiêu mực màu đó, đen là phủ kín và trắng là không có. Các bản không có mực trên trang này được làm mờ.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Tất cả các mực</sys:String>
     <sys:String x:Key="Str_Sep_Report">Báo cáo...</sys:String>

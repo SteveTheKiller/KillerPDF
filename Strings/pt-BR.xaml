@@ -1560,6 +1560,16 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_ExtractImage_Done">Imagem editável extraída da página {0}</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">O proprietário deste PDF não permite copiar o conteúdo, então não é possível extrair nenhuma imagem.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">Não foi possível extrair a imagem: {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">Esta imagem está escrita nos comandos de desenho da página, por isso não pode ser selecionada como uma imagem separada. Extrair imagem pode copiar seus pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">Esta imagem faz parte de um desenho agrupado, por isso não pode ser movida nem redimensionada sozinha. Extrair imagem pode copiar seus pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">Esta imagem usa uma máscara, por isso não pode ser movida nem redimensionada aqui. Extrair imagem pode copiar seus pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">Esta página usa camadas, por isso suas imagens não podem ser movidas nem redimensionadas aqui. Extrair imagem pode copiar os pixels delas.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">Esta página usa um grupo de transparência, por isso suas imagens não podem ser movidas nem redimensionadas aqui. Extrair imagem pode copiar os pixels delas.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">Este arquivo precisou de reparo para ser aberto, por isso suas imagens não podem ser movidas nem redimensionadas. Extrair imagem pode copiar os pixels delas.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">As configurações de desenho desta página são complexas demais para mover ou redimensionar suas imagens com segurança. Extrair imagem pode copiar os pixels delas.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">Esta imagem está girada ou inclinada na página, por isso não pode ser movida nem redimensionada aqui. Extrair imagem pode copiar seus pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">Esta imagem está parcialmente oculta por uma forma de recorte, por isso não pode ser movida nem redimensionada aqui. Extrair imagem pode copiar seus pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">A posição desta imagem não pode ser lida, por isso ela não pode ser movida nem redimensionada. Extrair imagem pode copiar seus pixels.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Cada chapa mostra quanto daquela tinta a página aplica, preto para cobertura total e branco para nenhuma. Chapas sem tinta nesta página aparecem esmaecidas.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Todas as tintas</sys:String>
     <sys:String x:Key="Str_Sep_Report">Relatório...</sys:String>

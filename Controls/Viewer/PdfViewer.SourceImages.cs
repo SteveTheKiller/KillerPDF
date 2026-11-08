@@ -194,11 +194,13 @@ public partial class PdfViewer
         // A page the viewer can display may still hold content this reader refuses; that is not a click error.
         try { images = new PdfPageContentReader(source).ReadImagePlacements(page); }
         catch (Exception error) when (error is not (OutOfMemoryException or OperationCanceledException)) { return false; }
+        string? uneditable = null;
         foreach (var image in images.Reverse())
         {
             var box = image.BoundingBox;
-            if (!image.CanSetBounds || location.X < box.Left || location.X > box.Right
-                || location.Y < box.Bottom || location.Y > box.Top) continue;
+            if (location.X < box.Left || location.X > box.Right || location.Y < box.Bottom || location.Y > box.Top) continue;
+            // A picture that cannot be moved or resized stays page content; say why once no editable one is hit.
+            if (!image.CanSetBounds) { uneditable ??= image.BoundsUnsupportedReason; continue; }
             try
             {
                 // Extraction enforces copying restrictions and retains the original resource graph.
@@ -250,6 +252,7 @@ public partial class PdfViewer
                 return false;
             }
         }
+        if (uneditable is not null) SetStatus(Loc(SourceImageDiagnosis.ReasonKey(uneditable)));
         return false;
     }
 

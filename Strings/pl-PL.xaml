@@ -1548,6 +1548,16 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_ExtractImage_Done">Wyodrębniono edytowalny obraz ze strony {0}</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">Właściciel tego pliku PDF nie zezwala na kopiowanie jego zawartości, więc nie można wyodrębnić obrazu.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">Nie udało się wyodrębnić obrazu: {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">Ten obraz jest zapisany bezpośrednio w poleceniach rysowania strony, więc nie można go zaznaczyć jako osobnego obrazu. Polecenie Wyodrębnij obraz może skopiować jego piksele.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">Ten obraz jest częścią zgrupowanego rysunku, więc nie można go przesuwać ani zmieniać jego rozmiaru osobno. Polecenie Wyodrębnij obraz może skopiować jego piksele.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">Ten obraz używa maski, więc nie można go tutaj przesuwać ani zmieniać jego rozmiaru. Polecenie Wyodrębnij obraz może skopiować jego piksele.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">Ta strona używa warstw, więc jej obrazów nie można tutaj przesuwać ani zmieniać ich rozmiaru. Polecenie Wyodrębnij obraz może skopiować ich piksele.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">Ta strona używa grupy przezroczystości, więc jej obrazów nie można tutaj przesuwać ani zmieniać ich rozmiaru. Polecenie Wyodrębnij obraz może skopiować ich piksele.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">Ten plik wymagał naprawy, aby go otworzyć, więc jego obrazów nie można przesuwać ani zmieniać ich rozmiaru. Polecenie Wyodrębnij obraz może skopiować ich piksele.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">Ustawienia rysowania tej strony są zbyt złożone, aby bezpiecznie przesuwać jej obrazy lub zmieniać ich rozmiar. Polecenie Wyodrębnij obraz może skopiować ich piksele.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">Ten obraz jest na stronie obrócony lub pochylony, więc nie można go tutaj przesuwać ani zmieniać jego rozmiaru. Polecenie Wyodrębnij obraz może skopiować jego piksele.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">Ten obraz jest częściowo ukryty przez kształt przycinający, więc nie można go tutaj przesuwać ani zmieniać jego rozmiaru. Polecenie Wyodrębnij obraz może skopiować jego piksele.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">Nie można odczytać położenia tego obrazu, więc nie można go przesuwać ani zmieniać jego rozmiaru. Polecenie Wyodrębnij obraz może skopiować jego piksele.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Każda płyta pokazuje, ile danej farby nakłada strona: czarny to pełne krycie, biały brak. Płyty bez farby na tej stronie są przygaszone.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Wszystkie farby</sys:String>
     <sys:String x:Key="Str_Sep_Report">Raport...</sys:String>

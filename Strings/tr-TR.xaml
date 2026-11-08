@@ -1540,6 +1540,16 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_ExtractImage_Done">Sayfa {0} üzerinden düzenlenebilir bir görüntü ayıklandı</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">Bu PDF'nin sahibi içeriğinin kopyalanmasına izin vermiyor, bu yüzden görüntü ayıklanamaz.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">Görüntü ayıklanamadı: {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">Bu görüntü sayfanın çizim komutlarının içine yazılmış olduğundan ayrı bir görüntü olarak seçilemez. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">Bu görüntü gruplanmış bir çizimin parçası olduğundan tek başına taşınamaz veya yeniden boyutlandırılamaz. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">Bu görüntü bir maske kullandığından burada taşınamaz veya yeniden boyutlandırılamaz. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">Bu sayfa katmanlar kullandığından görüntüleri burada taşınamaz veya yeniden boyutlandırılamaz. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">Bu sayfa bir saydamlık grubu kullandığından görüntüleri burada taşınamaz veya yeniden boyutlandırılamaz. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">Bu dosyanın açılabilmesi için onarılması gerektiğinden görüntüleri taşınamaz veya yeniden boyutlandırılamaz. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">Bu sayfanın çizim ayarları, görüntülerini güvenle taşımak veya yeniden boyutlandırmak için fazla karmaşıktır. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">Bu görüntü sayfada döndürülmüş veya eğik olduğundan burada taşınamaz veya yeniden boyutlandırılamaz. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">Bu görüntü bir kırpma şekliyle kısmen gizlendiğinden burada taşınamaz veya yeniden boyutlandırılamaz. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">Bu görüntünün konumu okunamadığından taşınamaz veya yeniden boyutlandırılamaz. Görüntü ayıkla komutu piksellerini kopyalayabilir.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Her kalıp, sayfanın o mürekkepten ne kadar bastığını gösterir: tam kaplama siyah, hiç yoksa beyaz. Bu sayfada mürekkebi olmayan kalıplar soluk görünür.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Tüm mürekkepler</sys:String>
     <sys:String x:Key="Str_Sep_Report">Rapor...</sys:String>

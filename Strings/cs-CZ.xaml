@@ -1545,6 +1545,16 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_ExtractImage_Done">Ze stránky {0} byl extrahován upravitelný obrázek</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">Vlastník tohoto PDF nepovoluje kopírování jeho obsahu, proto nelze obrázek extrahovat.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">Obrázek se nepodařilo extrahovat: {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">Tento obrázek je zapsán přímo v kreslicích příkazech stránky, proto ho nelze vybrat jako samostatný obrázek. Příkaz Extrahovat obrázek může zkopírovat jeho pixely.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">Tento obrázek je součástí seskupené kresby, proto ho nelze samostatně přesunout ani změnit jeho velikost. Příkaz Extrahovat obrázek může zkopírovat jeho pixely.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">Tento obrázek používá masku, proto ho zde nelze přesunout ani změnit jeho velikost. Příkaz Extrahovat obrázek může zkopírovat jeho pixely.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">Tato stránka používá vrstvy, proto její obrázky nelze zde přesouvat ani měnit jejich velikost. Příkaz Extrahovat obrázek může zkopírovat jejich pixely.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">Tato stránka používá skupinu průhlednosti, proto její obrázky nelze zde přesouvat ani měnit jejich velikost. Příkaz Extrahovat obrázek může zkopírovat jejich pixely.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">Tento soubor bylo nutné k otevření opravit, proto jeho obrázky nelze přesouvat ani měnit jejich velikost. Příkaz Extrahovat obrázek může zkopírovat jejich pixely.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">Nastavení kresby na této stránce je příliš složité na to, aby bylo možné její obrázky bezpečně přesouvat nebo měnit jejich velikost. Příkaz Extrahovat obrázek může zkopírovat jejich pixely.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">Tento obrázek je na stránce otočený nebo zkosený, proto ho zde nelze přesunout ani změnit jeho velikost. Příkaz Extrahovat obrázek může zkopírovat jeho pixely.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">Tento obrázek je částečně skrytý ořezovým tvarem, proto ho zde nelze přesunout ani změnit jeho velikost. Příkaz Extrahovat obrázek může zkopírovat jeho pixely.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">Umístění tohoto obrázku nelze přečíst, proto ho nelze přesunout ani změnit jeho velikost. Příkaz Extrahovat obrázek může zkopírovat jeho pixely.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Každá tisková deska ukazuje, kolik dané barvy stránka nanese: černá znamená plné krytí, bílá žádné. Desky bez barvy na této stránce jsou ztlumené.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Všechny barvy</sys:String>
     <sys:String x:Key="Str_Sep_Report">Zpráva...</sys:String>

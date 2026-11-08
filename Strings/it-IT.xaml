@@ -1560,6 +1560,16 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_ExtractImage_Done">Immagine modificabile estratta dalla pagina {0}</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">Il proprietario di questo PDF non consente di copiarne il contenuto, quindi non è possibile estrarre alcuna immagine.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">Impossibile estrarre l'immagine: {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">Questa immagine è scritta direttamente nei comandi di disegno della pagina, quindi non può essere selezionata come immagine separata. Estrai immagine può copiarne i pixel.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">Questa immagine fa parte di un disegno raggruppato, quindi non può essere spostata o ridimensionata da sola. Estrai immagine può copiarne i pixel.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">Questa immagine usa una maschera, quindi non può essere spostata o ridimensionata qui. Estrai immagine può copiarne i pixel.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">Questa pagina usa i livelli, quindi le sue immagini non possono essere spostate o ridimensionate qui. Estrai immagine può copiarne i pixel.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">Questa pagina usa un gruppo di trasparenza, quindi le sue immagini non possono essere spostate o ridimensionate qui. Estrai immagine può copiarne i pixel.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">Questo file ha richiesto una riparazione per essere aperto, quindi le sue immagini non possono essere spostate o ridimensionate. Estrai immagine può copiarne i pixel.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">Le impostazioni di disegno di questa pagina sono troppo complesse per spostare o ridimensionare le sue immagini in sicurezza. Estrai immagine può copiarne i pixel.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">Questa immagine è ruotata o inclinata sulla pagina, quindi non può essere spostata o ridimensionata qui. Estrai immagine può copiarne i pixel.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">Questa immagine è in parte nascosta da una forma di ritaglio, quindi non può essere spostata o ridimensionata qui. Estrai immagine può copiarne i pixel.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">La posizione di questa immagine non può essere letta, quindi non può essere spostata o ridimensionata. Estrai immagine può copiarne i pixel.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Ogni lastra mostra quanto di quell'inchiostro deposita la pagina: nero per copertura piena, bianco per nessuna. Le lastre senza inchiostro in questa pagina sono attenuate.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Tutti gli inchiostri</sys:String>
     <sys:String x:Key="Str_Sep_Report">Resoconto...</sys:String>

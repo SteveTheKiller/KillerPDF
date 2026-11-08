@@ -1544,6 +1544,16 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_ExtractImage_Done">已从第 {0} 页提取可编辑图像</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">此 PDF 的所有者不允许复制其内容，因此无法提取图像。</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">无法提取图像：{0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">此图片直接写在页面的绘图命令中，因此无法作为单独的图片选中。“提取图像”可以复制它的像素。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">此图片属于一个分组绘图，因此无法单独移动或调整大小。“提取图像”可以复制它的像素。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">此图片使用了蒙版，因此无法在此处移动或调整大小。“提取图像”可以复制它的像素。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">此页面使用了图层，因此无法在此处移动或调整其图片的大小。“提取图像”可以复制它们的像素。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">此页面使用了透明组，因此无法在此处移动或调整其图片的大小。“提取图像”可以复制它们的像素。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">此文件需要修复才能打开，因此无法移动或调整其图片的大小。“提取图像”可以复制它们的像素。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">此页面的绘图设置过于复杂，无法安全地移动或调整其图片的大小。“提取图像”可以复制它们的像素。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">此图片在页面上被旋转或倾斜，因此无法在此处移动或调整大小。“提取图像”可以复制它的像素。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">此图片被剪切形状遮住了一部分，因此无法在此处移动或调整大小。“提取图像”可以复制它的像素。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">无法读取此图片的位置，因此无法移动或调整大小。“提取图像”可以复制它的像素。</sys:String>
     <sys:String x:Key="Str_Sep_Hint">每个印版显示页面上该油墨的用量，黑色为满版，白色为无。此页上没有油墨的印版显示为灰色。</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">所有油墨</sys:String>
     <sys:String x:Key="Str_Sep_Report">报告...</sys:String>

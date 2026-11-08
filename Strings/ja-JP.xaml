@@ -1560,6 +1560,16 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_ExtractImage_Done">{0} ページから編集可能な画像を抽出しました</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">この PDF の所有者が内容のコピーを許可していないため、画像を抽出できません。</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">画像を抽出できませんでした: {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">この画像はページの描画コマンドに直接書き込まれているため、個別の画像として選択できません。「画像を抽出」を使うと、ピクセルをコピーできます。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">この画像はグループ化された描画の一部であるため、単独で移動やサイズ変更はできません。「画像を抽出」を使うと、ピクセルをコピーできます。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">この画像はマスクを使用しているため、ここでは移動やサイズ変更はできません。「画像を抽出」を使うと、ピクセルをコピーできます。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">このページはレイヤーを使用しているため、ここでは画像の移動やサイズ変更はできません。「画像を抽出」を使うと、ピクセルをコピーできます。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">このページは透明グループを使用しているため、ここでは画像の移動やサイズ変更はできません。「画像を抽出」を使うと、ピクセルをコピーできます。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">このファイルは開くために修復が必要だったため、画像の移動やサイズ変更はできません。「画像を抽出」を使うと、ピクセルをコピーできます。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">このページの描画設定は複雑すぎて、画像を安全に移動やサイズ変更することはできません。「画像を抽出」を使うと、ピクセルをコピーできます。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">この画像はページ上で回転または傾斜しているため、ここでは移動やサイズ変更はできません。「画像を抽出」を使うと、ピクセルをコピーできます。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">この画像はクリッピング図形で一部が隠れているため、ここでは移動やサイズ変更はできません。「画像を抽出」を使うと、ピクセルをコピーできます。</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">この画像の配置を読み取れないため、移動やサイズ変更はできません。「画像を抽出」を使うと、ピクセルをコピーできます。</sys:String>
     <sys:String x:Key="Str_Sep_Hint">各版は、そのインキがページにどれだけ載るかを示します。黒は全面、白はなしです。このページにインキのない版は淡色で表示されます。</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">すべてのインキ</sys:String>
     <sys:String x:Key="Str_Sep_Report">レポート...</sys:String>

@@ -1560,6 +1560,16 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_ExtractImage_Done">Image modifiable extraite de la page {0}</sys:String>
     <sys:String x:Key="Str_ExtractImage_NotAllowed">Le propriétaire de ce PDF n'autorise pas la copie de son contenu, aucune image ne peut donc être extraite.</sys:String>
     <sys:String x:Key="Str_ExtractImage_Failed">Impossible d'extraire l'image : {0}</sys:String>
+    <sys:String x:Key="Str_SourceImage_Inline">Cette image est écrite directement dans les commandes de dessin de la page, elle ne peut donc pas être sélectionnée comme image distincte. Extraire une image peut copier ses pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Nested">Cette image fait partie d'un dessin groupé, elle ne peut donc pas être déplacée ni redimensionnée seule. Extraire une image peut copier ses pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Masked">Cette image utilise un masque, elle ne peut donc pas être déplacée ni redimensionnée ici. Extraire une image peut copier ses pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Layers">Cette page utilise des calques, ses images ne peuvent donc pas être déplacées ni redimensionnées ici. Extraire une image peut copier leurs pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Transparency">Cette page utilise un groupe de transparence, ses images ne peuvent donc pas être déplacées ni redimensionnées ici. Extraire une image peut copier leurs pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Repaired">Ce fichier a dû être réparé pour s'ouvrir, ses images ne peuvent donc pas être déplacées ni redimensionnées. Extraire une image peut copier leurs pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Complex">Les paramètres de dessin de cette page sont trop complexes pour déplacer ou redimensionner ses images en toute sécurité. Extraire une image peut copier leurs pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Turned">Cette image est pivotée ou inclinée sur la page, elle ne peut donc pas être déplacée ni redimensionnée ici. Extraire une image peut copier ses pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Clipped">Cette image est en partie masquée par une forme de découpe, elle ne peut donc pas être déplacée ni redimensionnée ici. Extraire une image peut copier ses pixels.</sys:String>
+    <sys:String x:Key="Str_SourceImage_Unreadable">L'emplacement de cette image est illisible, elle ne peut donc pas être déplacée ni redimensionnée. Extraire une image peut copier ses pixels.</sys:String>
     <sys:String x:Key="Str_Sep_Hint">Chaque plaque montre la quantité de cette encre déposée par la page : noir pour une couverture totale, blanc pour aucune. Les plaques sans encre sur cette page sont estompées.</sys:String>
     <sys:String x:Key="Str_Sep_AllInks">Toutes les encres</sys:String>
     <sys:String x:Key="Str_Sep_Report">Rapport...</sys:String>
