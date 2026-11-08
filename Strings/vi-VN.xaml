@@ -2137,7 +2137,7 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_CM_ProofUnavailablePage">Không thể xem thử màu máy in cho trang này. Đang hiển thị màu thông thường.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">Hồ sơ CMYK làm việc</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (tích hợp)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Dùng cho màu CMYK không có hồ sơ riêng. Thiết lập này áp dụng cho mọi tài liệu.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Dùng cho màu CMYK không có hồ sơ riêng ở mọi nơi KillerPDF hiển thị, in hoặc xuất một trang. Thiết lập này áp dụng cho mọi tài liệu.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Không thể hiển thị chương này.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Các chương không thể hiển thị: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">Đang mở {0}...</sys:String>

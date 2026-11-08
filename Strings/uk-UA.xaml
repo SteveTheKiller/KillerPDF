@@ -2137,7 +2137,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_CM_ProofUnavailablePage">Кольоропроба принтера недоступна для цієї сторінки. Показано звичайні кольори.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">Робочий профіль CMYK</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (вбудований)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Використовується для кольорів CMYK без власного профілю. Цей параметр діє для всіх документів.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Використовується для кольорів CMYK без власного профілю всюди, де KillerPDF показує, друкує або експортує сторінку. Цей параметр діє для всіх документів.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Не вдається показати цей розділ.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Розділи, які не вдається показати: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">Відкриття {0}...</sys:String>

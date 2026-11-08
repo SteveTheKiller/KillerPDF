@@ -2125,7 +2125,7 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_CM_ProofUnavailablePage">Próba drukarki jest niedostępna dla tej strony. Wyświetlane są zwykłe kolory.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">Roboczy profil CMYK</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (wbudowany)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Używany dla kolorów CMYK bez własnego profilu. To ustawienie dotyczy wszystkich dokumentów.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Używany dla kolorów CMYK bez własnego profilu wszędzie tam, gdzie KillerPDF wyświetla, drukuje lub eksportuje stronę. To ustawienie dotyczy wszystkich dokumentów.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Nie można wyświetlić tego rozdziału.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Rozdziały, których nie można wyświetlić: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">Otwieranie {0}...</sys:String>

@@ -2117,7 +2117,7 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_CM_ProofUnavailablePage">Bu sayfa için yazıcı provası kullanılamıyor. Normal renkler gösteriliyor.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">Çalışma CMYK profili</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (yerleşik)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Kendi profili olmayan CMYK renkleri için kullanılır. Bu ayar tüm belgeler için geçerlidir.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">KillerPDF'nin bir sayfayı gösterdiği, yazdırdığı veya dışa aktardığı her yerde kendi profili olmayan CMYK renkleri için kullanılır. Bu ayar tüm belgeler için geçerlidir.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Bu bölüm görüntülenemiyor.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Görüntülenemeyen bölümler: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">{0} açılıyor...</sys:String>

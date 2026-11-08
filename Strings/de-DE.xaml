@@ -2126,7 +2126,7 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_CM_ProofUnavailablePage">Der Drucker-Proof ist für diese Seite nicht verfügbar. Anzeige in normalen Farben.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">CMYK-Arbeitsfarbprofil</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (integriert)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Wird für CMYK-Farben ohne eigenes Profil verwendet. Diese Einstellung gilt für alle Dokumente.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Wird für CMYK-Farben ohne eigenes Profil überall verwendet, wo KillerPDF eine Seite anzeigt, druckt oder exportiert. Diese Einstellung gilt für alle Dokumente.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Dieses Kapitel kann nicht angezeigt werden.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Kapitel, die nicht angezeigt werden können: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">{0} wird geöffnet...</sys:String>

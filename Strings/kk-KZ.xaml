@@ -2140,7 +2140,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_CM_ProofUnavailablePage">Бұл бет үшін принтердің түсті сынауы қолжетімсіз. Қалыпты түстер көрсетілуде.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">Жұмыс CMYK профилі</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (кірістірілген)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Өз профилі жоқ CMYK түстері үшін қолданылады. Бұл параметр барлық құжаттарға қолданылады.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">KillerPDF бетті көрсететін, басып шығаратын немесе экспорттайтын барлық жерде өз профилі жоқ CMYK түстері үшін қолданылады. Бұл параметр барлық құжаттарға қолданылады.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Бұл тарауды көрсету мүмкін емес.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Көрсетілмейтін тараулар: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">{0} ашылуда...</sys:String>

@@ -2026,7 +2026,7 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_CM_ProofUnavailablePage">Poskusni odtis tiskalnika za to stran ni na voljo. Prikazane so običajne barve.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">Delovni profil CMYK</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (vgrajen)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Uporablja se za barve CMYK brez lastnega profila. Ta nastavitev velja za vse dokumente.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Uporablja se za barve CMYK brez lastnega profila povsod, kjer KillerPDF prikaže, natisne ali izvozi stran. Ta nastavitev velja za vse dokumente.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Tega poglavja ni mogoče prikazati.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Poglavja, ki jih ni mogoče prikazati: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">Odpiranje {0}...</sys:String>

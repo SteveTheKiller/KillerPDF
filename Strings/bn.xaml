@@ -2117,7 +2117,7 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_CM_ProofUnavailablePage">এই পৃষ্ঠার জন্য প্রিন্টার প্রুফ উপলব্ধ নেই। স্বাভাবিক রং দেখানো হচ্ছে।</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">কার্যকরী CMYK প্রোফাইল</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (অন্তর্নির্মিত)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">নিজস্ব প্রোফাইল নেই এমন CMYK রঙের জন্য ব্যবহার করা হয়। এই সেটিং সব নথিতে প্রযোজ্য।</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">KillerPDF যেখানেই কোনো পৃষ্ঠা দেখায়, মুদ্রণ করে বা রপ্তানি করে, সেখানে নিজস্ব প্রোফাইল নেই এমন CMYK রঙের জন্য এটি ব্যবহার করা হয়। এই সেটিং সব নথিতে প্রযোজ্য।</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">এই অধ্যায়টি দেখানো যায়নি।</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">যে অধ্যায়গুলো দেখানো যায়নি: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">{0} খোলা হচ্ছে...</sys:String>

@@ -2137,7 +2137,7 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_CM_ProofUnavailablePage">Prøvetrykk for skriver er utilgjengelig for denne siden. Viser vanlige farger.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">Arbeidsprofil for CMYK</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (innebygd)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Brukes for CMYK farger som ikke har en egen profil. Denne innstillingen gjelder alle dokumenter.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Brukes for CMYK-farger uten egen profil overalt der KillerPDF viser, skriver ut eller eksporterer en side. Denne innstillingen gjelder alle dokumenter.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Dette kapittelet kan ikke vises.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Kapitler som ikke kan vises: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">Åpner {0}...</sys:String>

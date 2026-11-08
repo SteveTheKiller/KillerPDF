@@ -2140,7 +2140,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_CM_ProofUnavailablePage">Цветопроба принтера недоступна для этой страницы. Показаны обычные цвета.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">Рабочий профиль CMYK</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (встроенный)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Используется для цветов CMYK без собственного профиля. Этот параметр действует для всех документов.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Используется для цветов CMYK без собственного профиля везде, где KillerPDF показывает, печатает или экспортирует страницу. Этот параметр действует для всех документов.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Не удаётся показать эту главу.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Главы, которые не удаётся показать: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">Открытие {0}...</sys:String>

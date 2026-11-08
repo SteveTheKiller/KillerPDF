@@ -2122,7 +2122,7 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_CM_ProofUnavailablePage">Nátisk tiskárny není pro tuto stránku dostupný. Zobrazují se běžné barvy.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">Pracovní profil CMYK</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (vestavěný)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Používá se pro barvy CMYK bez vlastního profilu. Toto nastavení platí pro všechny dokumenty.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Používá se pro barvy CMYK bez vlastního profilu všude, kde KillerPDF stránku zobrazuje, tiskne nebo exportuje. Toto nastavení platí pro všechny dokumenty.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Tuto kapitolu nelze zobrazit.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Kapitoly, které nelze zobrazit: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">Otevírání {0}...</sys:String>

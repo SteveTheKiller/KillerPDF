@@ -2121,7 +2121,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_CM_ProofUnavailablePage">此页面无法使用打印机校样。正在以正常颜色显示。</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">工作 CMYK 配置文件</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001（内置）</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">用于没有自身配置文件的 CMYK 颜色。此设置适用于所有文档。</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">KillerPDF 显示、打印或导出页面时，凡是没有自身配置文件的 CMYK 颜色都使用此配置文件。此设置适用于所有文档。</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">无法显示此章节。</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">无法显示的章节：{0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">正在打开 {0}...</sys:String>

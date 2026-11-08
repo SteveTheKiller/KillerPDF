@@ -2130,7 +2130,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_CM_ProofUnavailablePage">Printer proof is unavailable for this page. Showing normal color.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">Working CMYK profile</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (built in)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Used for CMYK colors that have no profile of their own. This setting applies to every document.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Used for CMYK colors without their own profile wherever KillerPDF shows, prints or exports a page. This setting applies to every document.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">This chapter could not be displayed.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Chapters that could not be displayed: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">Opening {0}...</sys:String>

@@ -2137,7 +2137,7 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_CM_ProofUnavailablePage">A prova de impressora está indisponível para esta página. Exibindo as cores normais.</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">Perfil CMYK de trabalho</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (integrado)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">Usado para cores CMYK sem perfil próprio. Esta configuração vale para todos os documentos.</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">Usado para cores CMYK sem perfil próprio em todos os lugares onde o KillerPDF mostra, imprime ou exporta uma página. Esta configuração vale para todos os documentos.</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">Não é possível exibir este capítulo.</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">Capítulos que não podem ser exibidos: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">Abrindo {0}...</sys:String>

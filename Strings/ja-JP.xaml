@@ -2137,7 +2137,7 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_CM_ProofUnavailablePage">このページではプリンターの色校正を利用できません。通常の色で表示しています。</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmyk">作業用 CMYK プロファイル</sys:String>
     <sys:String x:Key="Str_CM_WorkingCmykBuiltIn">CGATS TR 001 (内蔵)</sys:String>
-    <sys:String x:Key="Str_CM_WorkingCmykHint">独自のプロファイルを持たない CMYK の色に使用します。この設定はすべての文書に適用されます。</sys:String>
+    <sys:String x:Key="Str_CM_WorkingCmykHint">KillerPDF がページを表示、印刷、書き出しするすべての場面で、独自のプロファイルを持たない CMYK の色に使用します。この設定はすべての文書に適用されます。</sys:String>
     <sys:String x:Key="Str_Epub_ChapterUnavailable">この章は表示できません。</sys:String>
     <sys:String x:Key="Str_Epub_ChaptersUnavailable">表示できない章: {0}</sys:String>
     <sys:String x:Key="Str_Native_Opening">{0} を開いています...</sys:String>
