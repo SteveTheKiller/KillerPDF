@@ -45,7 +45,7 @@ public sealed partial class EpubDocument
                     height = BinaryPrimitives.ReadUInt16BigEndian(payload[1..]);
                     width = BinaryPrimitives.ReadUInt16BigEndian(payload[3..]);
                     if (width <= 0 || height <= 0 || (long)width * height > MaximumSourcePixels)
-                        throw new EpubImageUnavailableException("Native EPUB JPEG exceeds the decodable size.");
+                        throw new EpubImageUnavailableException("Native EPUB JPEG exceeds the decodable size.", EpubOmissionReason.ImageTooLarge);
                     break;
                 case >= 0xc3 and <= 0xcf when marker is not (0xc4 or 0xc8 or 0xcc):
                     throw new EpubImageUnavailableException("Native EPUB JPEG coding process is not implemented.");
@@ -68,7 +68,8 @@ public sealed partial class EpubDocument
         }
         if (!scan || components == 0) throw new InvalidDataException("Native EPUB JPEG requires image data.");
         if (iccSeen && !IsSrgbProfile(icc))
-            throw new EpubImageUnavailableException("Native EPUB JPEG embedded color profiles other than sRGB are not implemented.");
+            throw new EpubImageUnavailableException("Native EPUB JPEG embedded color profiles other than sRGB are not implemented.",
+                EpubOmissionReason.ImageColorProfile);
         bool quarterTurn = orientation is >= 5 and <= 8;
         int targetWidth = quarterTurn ? maximumHeight : maximumWidth, targetHeight = quarterTurn ? maximumWidth : maximumHeight;
         int reduction = 1;

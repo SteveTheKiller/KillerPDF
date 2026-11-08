@@ -5,7 +5,11 @@ using KillerPdf.Engine.Filters;
 namespace KillerPdf.Engine.Formats.Epub;
 
 /// <summary>A single image the native reader cannot show; the image is omitted and the chapter continues.</summary>
-internal sealed class EpubImageUnavailableException(string message, Exception? inner = null) : NotSupportedException(message, inner);
+internal sealed class EpubImageUnavailableException(string message,
+    EpubOmissionReason reason = EpubOmissionReason.UnsupportedImageFormat, Exception? inner = null) : NotSupportedException(message, inner)
+{
+    internal EpubOmissionReason Reason { get; } = reason;
+}
 
 public sealed partial class EpubDocument
 {
@@ -25,7 +29,8 @@ public sealed partial class EpubDocument
         try { target = NavigationTarget(chapter, reference.Trim(' ', '\t', '\r', '\n')); }
         catch (InvalidDataException exception)
         {
-            throw new EpubImageUnavailableException("Native EPUB image is not packaged: " + reference + ".", exception);
+            throw new EpubImageUnavailableException("Native EPUB image is not packaged: " + reference + ".",
+                EpubOmissionReason.MissingResource, exception);
         }
         if (cache.TryGetValue(target, out var cached)) return cached;
         var item = Manifest.FirstOrDefault(entry => entry.Href == target);
@@ -33,7 +38,7 @@ public sealed partial class EpubDocument
             throw new EpubImageUnavailableException("Native EPUB image format is not supported: " + target
                 + (item is null ? "." : " (" + item.MediaType + ")."));
         if (_encryptedResources.Contains(target))
-            throw new EpubImageUnavailableException("Native EPUB image is encrypted: " + target + ".");
+            throw new EpubImageUnavailableException("Native EPUB image is encrypted: " + target + ".", EpubOmissionReason.Encrypted);
         int maximumWidth = (int)Math.Clamp(Math.Ceiling(2 * box.Width), 1, 32768);
         int maximumHeight = (int)Math.Clamp(Math.Ceiling(2 * box.Height), 1, 32768);
         PngDecodedImage image;
@@ -48,11 +53,13 @@ public sealed partial class EpubDocument
         catch (EpubImageUnavailableException) { throw; }
         catch (Exception error) when (error is PdfFilterException or InvalidDataException or NotSupportedException)
         {
-            throw new EpubImageUnavailableException("Native EPUB image could not be decoded: " + target + ". " + error.Message, error);
+            throw new EpubImageUnavailableException("Native EPUB image could not be decoded: " + target + ". " + error.Message,
+                EpubOmissionReason.ImageUnreadable, error);
         }
         long size = image.Samples.LongLength + (image.Alpha?.LongLength ?? 0);
         if (retainedBytes + size > RetainedImageBudget)
-            throw new EpubImageUnavailableException("Native EPUB images exceed the book's decoded image budget at " + target + ".");
+            throw new EpubImageUnavailableException("Native EPUB images exceed the book's decoded image budget at " + target + ".",
+                EpubOmissionReason.ImageTooLarge);
         retainedBytes += size;
         cache.Add(target, image);
         return image;
@@ -63,11 +70,11 @@ public sealed partial class EpubDocument
         var data = bytes.Span;
         if (data.Length < 33 || !PdfPngDecoder.HasSignature(data)
             || BinaryPrimitives.ReadUInt32BigEndian(data[8..]) != 13 || !data.Slice(12, 4).SequenceEqual("IHDR"u8))
-            throw new EpubImageUnavailableException("Native EPUB PNG header is invalid.");
+            throw new EpubImageUnavailableException("Native EPUB PNG header is invalid.", EpubOmissionReason.ImageUnreadable);
         long width = BinaryPrimitives.ReadUInt32BigEndian(data[16..]);
         long height = BinaryPrimitives.ReadUInt32BigEndian(data[20..]);
         if (width is <= 0 or > 32768 || height is <= 0 or > 32768 || width * height > MaximumSourcePixels)
-            throw new EpubImageUnavailableException("Native EPUB PNG exceeds the decodable size.");
+            throw new EpubImageUnavailableException("Native EPUB PNG exceeds the decodable size.", EpubOmissionReason.ImageTooLarge);
         if (data[28] != 0)
             throw new EpubImageUnavailableException("Native EPUB interlaced PNG images are not implemented.");
         for (int offset = 8; offset < data.Length;)
@@ -84,11 +91,13 @@ public sealed partial class EpubDocument
                 int nul = payload.IndexOf((byte)0);
                 string name = Encoding.Latin1.GetString(nul < 0 ? payload : payload[..nul]);
                 if (!name.Contains("sRGB", StringComparison.OrdinalIgnoreCase))
-                    throw new EpubImageUnavailableException("Native EPUB PNG embedded color profiles (iCCP) other than sRGB are not implemented.");
+                    throw new EpubImageUnavailableException("Native EPUB PNG embedded color profiles (iCCP) other than sRGB are not implemented.",
+                        EpubOmissionReason.ImageColorProfile);
             }
             // Coding-independent code points select another transfer or primaries, which an sRGB reader cannot honor.
             if (type.SequenceEqual("cICP"u8))
-                throw new EpubImageUnavailableException("Native EPUB PNG cICP color signaling is not implemented.");
+                throw new EpubImageUnavailableException("Native EPUB PNG cICP color signaling is not implemented.",
+                    EpubOmissionReason.ImageColorProfile);
             // Critical chunks other than the four the decoder understands change meaning; ancillary ones (lowercase first letter) are ignored.
             if ((type[0] & 0x20) == 0 && !type.SequenceEqual("IHDR"u8) && !type.SequenceEqual("PLTE"u8)
                 && !type.SequenceEqual("IDAT"u8) && !type.SequenceEqual("IEND"u8))

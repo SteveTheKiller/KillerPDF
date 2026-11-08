@@ -64,7 +64,7 @@ public sealed partial class EpubDocument
                 foreach (var key in cellAnchors.Keys.Where(key => key.SpineIndex == spineIndex).ToList())
                     cellAnchors.Remove(key);
                 string href = Spine[spineIndex].Item.Href;
-                chapterDiagnostics.Add(new(spineIndex, href, error.Message));
+                chapterDiagnostics.Add(new(spineIndex, href, error.Message) { Reason = OmissionReason(error) });
                 pages.Add(ChapterDiagnosisPage(spineIndex, options, reader, href, error.Message, cancellationToken));
             }
             // The next spine item starts by checking cancellation, so a Cancel raised here stops layout.
@@ -122,6 +122,19 @@ public sealed partial class EpubDocument
             }
         }
     }
+
+    // The one place a chapter refusal is sorted into its stable category; the message stays the English detail.
+    private static EpubOmissionReason OmissionReason(Exception error) => error switch
+    {
+        EpubImageUnavailableException image => image.Reason,
+        _ when error.Message.Contains("encrypted", StringComparison.OrdinalIgnoreCase) => EpubOmissionReason.Encrypted,
+        _ when error.Message.Contains("Scripted", StringComparison.Ordinal) => EpubOmissionReason.Scripting,
+        _ when error.Message.Contains("shaping or bidirectional", StringComparison.Ordinal) => EpubOmissionReason.UnsupportedScript,
+        InvalidDataException when error.Message.Contains("limit", StringComparison.OrdinalIgnoreCase) => EpubOmissionReason.LimitExceeded,
+        InvalidDataException => EpubOmissionReason.InvalidContent,
+        NotSupportedException => EpubOmissionReason.UnsupportedLayout,
+        _ => EpubOmissionReason.Other
+    };
 
     // HTML ol type: 1 decimal, a/A bijective base-26 letters, i/I roman numerals (1 to 3999, decimal otherwise).
     private static string ListMarkerText(int ordinal, string? type)
@@ -315,7 +328,8 @@ public sealed partial class EpubDocument
                     missingGlyphs.Add(runEnd);
                     if (reportedMissing.Add(scalar.Value))
                         contentDiagnostics.Add(new(spineIndex, resource.Href,
-                            $"No available font has a glyph for U+{scalar.Value:X4}, so a missing-glyph box is shown."));
+                            $"No available font has a glyph for U+{scalar.Value:X4}, so a missing-glyph box is shown.")
+                        { Reason = EpubOmissionReason.MissingGlyph });
                 }
                 run.Add(Cluster(runEnd, scalar.Utf16SequenceLength, glyph, substituted));
                 runEnd += scalar.Utf16SequenceLength;
@@ -1675,7 +1689,7 @@ public sealed partial class EpubDocument
                 catch (EpubImageUnavailableException error)
                 {
                     // One image the reader cannot show is omitted; the chapter keeps its text.
-                    contentDiagnostics.Add(new(spineIndex, resource.Href, error.Message));
+                    contentDiagnostics.Add(new(spineIndex, resource.Href, error.Message) { Reason = error.Reason });
                     return null;
                 }
             }

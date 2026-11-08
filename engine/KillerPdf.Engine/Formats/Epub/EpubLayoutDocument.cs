@@ -62,7 +62,42 @@ public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, True
 /// <param name="SpineIndex">The refused chapter's spine index.</param>
 /// <param name="Href">The refused chapter's package-relative path.</param>
 /// <param name="Message">The refusal's diagnosis.</param>
-public sealed record EpubChapterDiagnostic(int SpineIndex, string Href, string Message);
+public sealed record EpubChapterDiagnostic(int SpineIndex, string Href, string Message)
+{
+    /// <summary>Gets the stable reason category, for localizing the English message.</summary>
+    public EpubOmissionReason Reason { get; init; }
+}
+
+/// <summary>Why native EPUB layout left out a chapter or an item; values keep their meaning across versions.</summary>
+public enum EpubOmissionReason
+{
+    /// <summary>No narrower category applies; the message describes it.</summary>
+    Other,
+    /// <summary>The chapter or image is encrypted (DRM).</summary>
+    Encrypted,
+    /// <summary>The chapter uses scripting, which the reader does not run.</summary>
+    Scripting,
+    /// <summary>The text needs shaping or bidirectional processing the reader does not implement yet.</summary>
+    UnsupportedScript,
+    /// <summary>The chapter uses a layout construct the reader does not implement yet.</summary>
+    UnsupportedLayout,
+    /// <summary>No available font has a glyph for a character, so a missing-glyph box is shown.</summary>
+    MissingGlyph,
+    /// <summary>A referenced file is not in the book.</summary>
+    MissingResource,
+    /// <summary>An image uses a format or encoding the reader cannot decode.</summary>
+    UnsupportedImageFormat,
+    /// <summary>An image uses a color profile other than sRGB.</summary>
+    ImageColorProfile,
+    /// <summary>An image is larger than the reader can decode.</summary>
+    ImageTooLarge,
+    /// <summary>An image file is damaged.</summary>
+    ImageUnreadable,
+    /// <summary>The chapter exceeds a safety limit.</summary>
+    LimitExceeded,
+    /// <summary>The chapter's markup is malformed.</summary>
+    InvalidContent
+}
 
 /// <summary>Counts the CSS declarations and rules a laid-out chapter ignored as invalid or not implemented.</summary>
 /// <param name="SpineIndex">The chapter's spine index.</param>
