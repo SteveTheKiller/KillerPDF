@@ -38,6 +38,18 @@ public sealed class PdfColorProfile
     internal bool HasD50MediaWhite => _transform.HasD50MediaWhite;
     internal bool HasColorimetricForward => _transform.ForIntent(3) is { HasColorimetricForward: true };
     internal bool HasColorimetricReverse => _transform.ForIntent(3) is { HasColorimetricReverse: true };
+    // A working CMYK assumption converts through the perceptual forward table, or through the
+    // colorimetric one when the profile has no perceptual table. Null when neither is usable.
+    internal PdfRenderingIntent? WorkingCmykForwardIntent =>
+        DeviceColorSpaceSignature != "CMYK" ? null
+        : ActualForward(PdfRenderingIntent.Perceptual) ? PdfRenderingIntent.Perceptual
+        : ActualForward(PdfRenderingIntent.RelativeColorimetric) ? PdfRenderingIntent.RelativeColorimetric
+        : null;
+
+    private bool ActualForward(PdfRenderingIntent intent) =>
+        GetTransformSelection(intent, PdfColorTransformDirection.DeviceToConnection)
+            is { IsAvailable: true, UsesIntentFallback: false };
+
     internal void ReadPaperWhite(Span<double> xyz) => _transform.ReadPaperWhite(xyz);
     internal void ReadPaperBlack(Span<double> xyz) => _transform.ReadPaperBlack(xyz);
 

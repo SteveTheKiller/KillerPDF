@@ -18,6 +18,11 @@ public static class PdfCmykViewingDefault
     /// <summary>Gets the supported perceptual forward rendering intent.</summary>
     public const PdfRenderingIntent EffectiveIntent = PdfRenderingIntent.Perceptual;
 
+    private static readonly Lazy<PdfColorProfile> Shared = new(LoadProfile);
+
+    // One immutable bundled profile serves every render that does not choose another.
+    internal static PdfColorProfile SharedProfile => Shared.Value;
+
     /// <summary>Loads an owned copy of the bundled source viewing profile.</summary>
     public static PdfColorProfile LoadProfile()
     {

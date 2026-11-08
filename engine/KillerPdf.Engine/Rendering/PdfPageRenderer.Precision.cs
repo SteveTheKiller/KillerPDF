@@ -8,7 +8,8 @@ public sealed partial class PdfPageRenderer
     /// <summary>Renders a page into relative linear-sRGB float32 RGBA pixels.</summary>
     /// <remarks>
     /// Supports device RGB/Gray and calibrated Gray path fills, untagged CMYK path fills and strokes
-    /// through the bundled perceptual source viewing profile, variable-width strokes,
+    /// through <see cref="PdfRenderOptions.WorkingCmykProfile"/>, the bundled perceptual source viewing
+    /// profile by default, which the frame reports when untagged CMYK was painted, variable-width strokes,
     /// dashed and closed strokes, combined fill/stroke operations with either fill rule, opacity
     /// and aligned natural-size unmasked 8/16-bit images or axis-aligned enlargements
     /// with nearest or bilinear sampling. Bilinear device samples require Decode values in [0,1].
@@ -37,7 +38,7 @@ public sealed partial class PdfPageRenderer
     /// Unmasked CMYK ICC LUT images with an actual colorimetric forward table support
     /// relative colorimetric conversion at aligned natural size or eligible nearest enlargement,
     /// including DeviceCMYK images mapped through a supported resource DefaultCMYK profile.
-    /// Untagged CMYK 8/16-bit images use the bundled perceptual source viewing profile
+    /// Untagged CMYK 8/16-bit images use the same working CMYK profile
     /// at aligned natural size or eligible axis-aligned nearest or bilinear enlargement.
     /// Integer-factor reduction in both axes averages encoded source samples before conversion.
     /// Natural or nearest sampling also supports matching DeviceGray 8/16-bit soft masks
@@ -123,14 +124,26 @@ public sealed partial class PdfPageRenderer
                     && Resolve(knockoutValue) is PdfBoolean { Value: true }))
             throw new NotSupportedException("This high-precision page group is not implemented.");
         var pixels = new float[checked((int)pixelCount * 4)];
+        var workingCmyk = new PreciseCmykWorkingSpace(options.WorkingCmykProfile);
         PdfRenderedPage compatibility = RenderUncached(pageIndex, options, cancellationToken,
-            region: region, preciseRgb: pixels);
-        if (compatibility.Diagnostics.Count != 0)
+            region: region, preciseRgb: pixels, preciseCmyk: workingCmyk);
+        HashSet<string> recovery = DocumentRecoveryDiagnostics(pageIndex);
+        var frameDiagnostics = new List<string>();
+        foreach (string diagnostic in compatibility.Diagnostics)
         {
-            string diagnostic = compatibility.Diagnostics[0];
+            if (recovery.Contains(diagnostic))
+            {
+                frameDiagnostics.Add(diagnostic);
+                continue;
+            }
             throw new NotSupportedException("The page contains rendering features unavailable to the high-precision path. "
                 + diagnostic[..Math.Min(diagnostic.Length, 512)]);
         }
+        string? assumedCmyk = workingCmyk.Used ? workingCmyk.ContentSha256 : null;
+        if (assumedCmyk is not null)
+            frameDiagnostics.Add(assumedCmyk == PdfCmykViewingDefault.SharedProfile.ContentSha256
+                ? $"Untagged DeviceCMYK was converted through the bundled {PdfCmykViewingDefault.ProfileName} working CMYK profile (SHA256 {assumedCmyk})."
+                : $"Untagged DeviceCMYK was converted through the configured working CMYK profile (SHA256 {assumedCmyk}).");
         PdfGamutWarningMask? gamutWarnings = null;
         if (options.Proof is { Enabled: true } proof)
             gamutWarnings = ApplyPreciseProof(pixels, width, height, proof.PrinterProfile
@@ -138,7 +151,11 @@ public sealed partial class PdfPageRenderer
                 proof.Options, proof.GamutWarnings, cancellationToken);
         FloatRgbCompositor.DecodeSrgbInPlace(pixels, cancellationToken);
         return new PdfRenderedFrame(width, height, pixels,
-            PdfFrameColorEncoding.LinearSrgbD65, options.PixelByteLimit, gamutWarnings);
+            PdfFrameColorEncoding.LinearSrgbD65, options.PixelByteLimit, gamutWarnings)
+        {
+            Diagnostics = frameDiagnostics,
+            AssumedCmykProfileSha256 = assumedCmyk
+        };
     }
 
     private static PdfGamutWarningMask? ApplyPreciseProof(float[] pixels, int width, int height,
@@ -281,14 +298,34 @@ public sealed partial class PdfPageRenderer
         return true;
     }
 
-    private static readonly Lazy<PdfColorProfile> PreciseCmykViewingProfile = new(PdfCmykViewingDefault.LoadProfile);
-
-    private static Color PreciseCmykViewingColor(double cyan, double magenta, double yellow, double black)
+    // The working CMYK profile one float render assumes for untagged DeviceCMYK. Surfaces of the
+    // same render share it, and it records whether any untagged CMYK color was converted.
+    private sealed class PreciseCmykWorkingSpace
     {
-        Span<double> device = [cyan, magenta, yellow, black];
-        Span<double> xyz = stackalloc double[3];
-        PreciseCmykViewingProfile.Value.ToXyz(device, xyz, PdfCmykViewingDefault.EffectiveIntent);
-        return IccXyzToDisplay(xyz[0], xyz[1], xyz[2]) with { Connection = (xyz[0], xyz[1], xyz[2]) };
+        private readonly PdfColorProfile _profile;
+        private readonly Authoring.PdfRenderingIntent _intent;
+        private volatile bool _used;
+
+        internal PreciseCmykWorkingSpace(PdfColorProfile profile)
+        {
+            _profile = profile;
+            _intent = profile.WorkingCmykForwardIntent
+                ?? throw new NotSupportedException("The working CMYK profile has no usable forward transform.");
+            Convert = ConvertColor;
+        }
+
+        internal Func<double, double, double, double, Color> Convert { get; }
+        internal bool Used => _used;
+        internal string ContentSha256 => _profile.ContentSha256;
+
+        private Color ConvertColor(double cyan, double magenta, double yellow, double black)
+        {
+            _used = true;
+            Span<double> device = [cyan, magenta, yellow, black];
+            Span<double> xyz = stackalloc double[3];
+            _profile.ToXyz(device, xyz, _intent);
+            return IccXyzToDisplay(xyz[0], xyz[1], xyz[2]) with { Connection = (xyz[0], xyz[1], xyz[2]) };
+        }
     }
 
     private static void PaintPrecisePixel(RasterSurface surface, int offset, in Color color,

@@ -63,6 +63,24 @@ public sealed class PdfRenderedFrame
     /// <summary>Gets separate printer-gamut classifications, or null when none were requested.</summary>
     public PdfGamutWarningMask? PrinterGamutWarnings { get; }
 
+    /// <summary>
+    /// Gets the SHA256 content identity of the working CMYK profile assumed for untagged
+    /// DeviceCMYK paint, or null when the frame painted none.
+    /// </summary>
+    public string? AssumedCmykProfileSha256 { get; init; }
+
+    private readonly IReadOnlyList<string> _diagnostics = [];
+
+    /// <summary>
+    /// Gets notes that did not prevent precise rendering, such as document repairs made by
+    /// compatibility recovery and the working profile assumed for untagged CMYK.
+    /// </summary>
+    public IReadOnlyList<string> Diagnostics
+    {
+        get => _diagnostics;
+        init => _diagnostics = Array.AsReadOnly((value ?? throw new ArgumentNullException(nameof(value))).ToArray());
+    }
+
     /// <summary>Gets the pixel width.</summary>
     public int Width { get; }
     /// <summary>Gets the pixel height.</summary>

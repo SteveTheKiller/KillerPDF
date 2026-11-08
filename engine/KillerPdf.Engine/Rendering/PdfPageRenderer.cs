@@ -288,9 +288,23 @@ public sealed partial class PdfPageRenderer
             (left, top, left + width, top + height)).Diagnostics;
     }
 
+    // Repairs made while reading the document or page tree. They describe the file, not
+    // the paint operations, so they never limit which render path can draw the page.
+    private HashSet<string> DocumentRecoveryDiagnostics(int pageIndex)
+    {
+        var diagnostics = new HashSet<string>(_document.RecoveryDiagnostics);
+        if (_document.RecoveredUnnormalizedPassword)
+            diagnostics.Add("The supplied password authenticated a legacy unnormalized Unicode password hash.");
+        if (_tree.RecoveredCycle) diagnostics.Add("A cyclic page-tree reference was omitted.");
+        if (_recoveredPageResources.Contains(pageIndex))
+            diagnostics.Add("Invalid page resources were treated as empty.");
+        return diagnostics;
+    }
+
     private PdfRenderedPage RenderUncached(int pageIndex, PdfRenderOptions options,
         CancellationToken cancellationToken, byte[]? destination = null,
-        (int Left, int Top, int Right, int Bottom)? region = null, float[]? preciseRgb = null)
+        (int Left, int Top, int Right, int Bottom)? region = null, float[]? preciseRgb = null,
+        PreciseCmykWorkingSpace? preciseCmyk = null)
     {
         if (preciseRgb is null && options.Proof is { Enabled: true })
             throw new NotSupportedException("Printer proof output is not implemented for byte rendering.");
@@ -313,7 +327,7 @@ public sealed partial class PdfPageRenderer
         int rasterWidth = Right - Left, rasterHeight = Bottom - Top;
         var pixels = new RasterSurface(destination ?? GC.AllocateUninitializedArray<byte>(
             checked(rasterWidth * rasterHeight * 4)), Left, Top, rasterWidth, rasterHeight,
-            _pdf20BlendEndpoints) { PreciseRgb = preciseRgb };
+            _pdf20BlendEndpoints) { PreciseRgb = preciseRgb, PreciseCmyk = preciseRgb is null ? null : preciseCmyk };
         cancellationToken.ThrowIfCancellationRequested();
         System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
             pixels.Data.AsSpan(0, pixels.Length))
@@ -349,12 +363,7 @@ public sealed partial class PdfPageRenderer
                 ? [new ClipRegion(CoverageMask.Rectangle(Left, Top, Right, Bottom), storageBounds: true)] : [],
             false, null, null, false, null, null,
             new ImageColorSpace(1, null), new ImageColorSpace(1, null), null, null);
-        var diagnostics = new HashSet<string>(_document.RecoveryDiagnostics);
-        if (_document.RecoveredUnnormalizedPassword)
-            diagnostics.Add("The supplied password authenticated a legacy unnormalized Unicode password hash.");
-        if (_tree.RecoveredCycle) diagnostics.Add("A cyclic page-tree reference was omitted.");
-        if (_recoveredPageResources.Contains(pageIndex))
-            diagnostics.Add("Invalid page resources were treated as empty.");
+        var diagnostics = DocumentRecoveryDiagnostics(pageIndex);
         var activeForms = new HashSet<PdfStream>();
         long preciseGroupStorage = 0;
         int recoveredFormExpansions = 0;
@@ -2087,6 +2096,7 @@ public sealed partial class PdfPageRenderer
                             bounds.Left, bounds.Top, groupWidth, groupHeight, pixels.Pdf20BlendEndpoints)
                         {
                             PreciseRgb = new float[channels],
+                            PreciseCmyk = parentPixels.PreciseCmyk,
                             PreciseGroupAlpha = trackAlpha ? new float[channels / 4] : null
                         };
                         if (!isolated)
@@ -5884,7 +5894,7 @@ public sealed partial class PdfPageRenderer
                 && Math.Abs(sampleStepY - 1) <= 1e-9;
             bool assumedCmyk = colorSpace is { Components: 4, IsDeviceCmyk: true, Profile: null,
                 IsIccBased: false, HasIccSource: false, IsDefault: false, BlackPointCompensationEnabled: false }
-                && colorSpace.Converter == PreciseCmykViewingColor;
+                && target.PreciseCmyk is { } working && colorSpace.Converter == working.Convert;
             bool preciseCmyk = (colorSpace.IsIccBased || colorSpace.IsDeviceCmyk)
                 && colorSpace is { ComponentRange: null,
                 Profile: PdfIccProfileTransform { IsLutBased: true, IsLabInput: false,
@@ -9432,9 +9442,10 @@ public sealed partial class PdfPageRenderer
             if (enabled && BlackPointSource is not null
                 && SameProfile(BlackPointDestination, destination.InputProfile)) return this;
             ImageColorSpace source = BlackPointSource ?? this;
-            if (destination.PreciseRgb is not null && source is { Components: 4, IsDeviceCmyk: true,
+            if (destination.PreciseRgb is not null && destination.PreciseCmyk is { } working
+                && source is { Components: 4, IsDeviceCmyk: true,
                 Profile: null, HasIccSource: false, IsDefault: false, Converter: null, MultiConverter: null })
-                source = source with { Converter = PreciseCmykViewingColor };
+                source = source with { Converter = working.Convert };
             ImageColorSpace bound = source.ForNativeDestination(destination);
             return enabled ? BindBlackPointCompensation(source, bound, destination, diagnostics) : bound;
         }

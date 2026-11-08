@@ -9,6 +9,28 @@ public sealed record PdfRenderOptions
     /// <remarks>Supported PDF and native float renderers apply proof; unsupported requests and byte rendering are diagnosed.</remarks>
     public PdfDocumentProofSettings? Proof { get; init; }
 
+    private readonly PdfColorProfile? _workingCmykProfile;
+
+    /// <summary>Gets the working CMYK profile assumed for untagged DeviceCMYK on float frame renders.</summary>
+    /// <remarks>
+    /// Defaults to the bundled <see cref="PdfCmykViewingDefault"/> profile. Tagged CMYK, a resource
+    /// DefaultCMYK and a usable document output intent remain authoritative. The profile converts
+    /// through its perceptual forward table, or its relative colorimetric table when it has no
+    /// perceptual one. Frames report the profile they assumed.
+    /// </remarks>
+    public PdfColorProfile WorkingCmykProfile
+    {
+        get => _workingCmykProfile ?? PdfCmykViewingDefault.SharedProfile;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (value.WorkingCmykForwardIntent is null)
+                throw new ArgumentException("A working CMYK profile must describe CMYK with a perceptual or relative colorimetric forward table.",
+                    nameof(value));
+            _workingCmykProfile = value;
+        }
+    }
+
     /// <summary>Creates render options for an exact pixel size.</summary>
     public PdfRenderOptions(int width, int height, bool transparentBackground = false,
         bool includeAnnotations = true, bool includeFormFields = true,
