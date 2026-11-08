@@ -197,9 +197,17 @@ body.compact-sidebar .outline a:hover { color: var(--text); background: color-mi
 .statusbar .right { padding-right: 10px; opacity: .75; }
 .statusbar a { color: var(--footer-text); }
 .statusbar a:hover { color: var(--accent); }
-.statusbar { flex-wrap: wrap; }
-.statusbar .reddit-community { display: inline-flex; align-items: center; gap: 5px; padding-right: 10px; white-space: nowrap; }
+.statusbar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+.statusbar .left { grid-column: 1; grid-row: 1; min-width: 0; }
+.statusbar .right { grid-column: 3; grid-row: 1; justify-self: end; text-align: right; }
+.statusbar .reddit-community { grid-column: 2; grid-row: 1; display: inline-flex; align-items: center; justify-self: center; gap: 5px; white-space: nowrap; }
 .statusbar .reddit-community svg { flex: none; }
+@media (max-width: 760px) {
+  .statusbar { display: flex; flex-direction: column; gap: 4px; text-align: center; }
+  .statusbar .left { order: 0; }
+  .statusbar .reddit-community { order: 1; }
+  .statusbar .right { order: 2; text-align: center; }
+}
 .statusbar .right b { color: var(--logo-pdf); font-weight: 600; }
 #verEgg { cursor: pointer; }
 
