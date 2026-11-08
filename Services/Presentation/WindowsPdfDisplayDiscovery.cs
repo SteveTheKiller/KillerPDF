@@ -306,10 +306,19 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
         };
         int legacyError = DisplayConfigGetDeviceInfo(ref legacy);
         return legacyError == 0
-            ? new(PdfDisplayColorMode.Unknown, 9, legacy.Flags, null, legacy.Encoding,
+            ? new(LegacyColorMode(legacy.Flags), 9, legacy.Flags, null, legacy.Encoding,
                 legacy.Bits, advancedError, null)
             : new(PdfDisplayColorMode.Unknown, null, null, null, null, null, advancedError, legacyError);
     }
+
+    /// <summary>Interprets DISPLAYCONFIG_GET_ADVANCED_COLOR_INFO flags when the newer query is unavailable.</summary>
+    /// <remarks>
+    /// Bit 1 is advancedColorEnabled. When it is clear the display composes ordinary SDR and the
+    /// application owns the monitor conversion. When it is set, this structure cannot reliably
+    /// separate HDR from automatic color management, so the mode stays unknown.
+    /// </remarks>
+    public static PdfDisplayColorMode LegacyColorMode(uint flags) =>
+        (flags & 2) == 0 ? PdfDisplayColorMode.ConventionalSdr : PdfDisplayColorMode.Unknown;
 
     /// <summary>Ends discovery without destroying the caller-owned window.</summary>
     public void Dispose()
