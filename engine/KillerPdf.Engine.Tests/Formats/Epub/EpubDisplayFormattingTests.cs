@@ -17,12 +17,15 @@ public sealed class EpubDisplayFormattingTests
     [Theory]
     [InlineData("scripted")]
     [InlineData("cover-image scripted")]
-    public void CoverImageMetadataDoesNotAdmitOtherManifestProperties(string properties)
+    // Manifest properties on an image item do not change how the raster decodes, so the image still paints.
+    public void ImageManifestPropertiesDoNotChangeTheRasterImage(string properties)
     {
         byte[] source = Book(false, "<img src='image.png' alt='Cover'/>", "img{display:block}", RedImage(), properties), preserved = source.ToArray();
         var book = EpubDocument.Open(source);
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(40, 36, Font()) { FontSize = 10, Margin = 2 }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        var layout = book.CreateLayout(new EpubLayoutOptions(40, 36, Font()) { FontSize = 10, Margin = 2 });
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.Single(layout.Pages.SelectMany(page => page.Glyphs.OfType<NativeImagePaint>()));
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
         { PageWidthPoints = 30, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
         Assert.Equal(preserved, source);
     }

@@ -160,9 +160,12 @@ public sealed class EpubEmbeddedImageLayoutTests
         }
         var book = EpubDocument.Open(output.ToArray());
         var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
-        var error = Assert.Throws<InvalidDataException>(() => book.CreateLayout(
-            new EpubLayoutOptions(16, 16, font) { Margin = 2, FontSize = 10 }));
-        Assert.Contains("storage limit", error.Message);
+        // Images are downsampled to twice the content box before they count against the book's
+        // decoded image budget, so the seven large PNGs fit; the JPEG without image data is omitted alone.
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 16, font) { Margin = 2, FontSize = 10 });
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.Equal(7, layout.Pages.SelectMany(page => page.Glyphs.OfType<NativeImagePaint>()).Count());
+        Assert.Contains("large.jpg", Assert.Single(layout.ContentDiagnostics).Message);
     }
 
     [Theory]
@@ -232,7 +235,6 @@ public sealed class EpubEmbeddedImageLayoutTests
     [InlineData("<foreignObject/>")]
     [InlineData("<use href='../images/check.png'/>")]
     [InlineData("<image width='2' height='2' href='https://example.invalid/image.png'/>")]
-    [InlineData("<image width='2' height='2' href='../images/check.png#fragment'/>")]
     [InlineData("<image width='2' height='2' href='../images/check.png' onload='x'/>")]
     [InlineData("<image width='2' height='2' href='../images/check.png' transform='scale(2)'/>")]
     [InlineData("<image width='2' height='2' href='../images/check.png' opacity='.5'/>")]
@@ -242,6 +244,20 @@ public sealed class EpubEmbeddedImageLayoutTests
     [InlineData("<image width='2' height='2'/>")]
     [InlineData("")]
     public void SvgCoverRejectsActiveExternalAndUnimplementedContentAtBothPublicSeams(string content)
+        => AssertSvgCoverRefused(content);
+
+    // A fragment cannot name a raster image, so only the cover image is omitted and the chapter continues.
+    [Fact]
+    public void SvgCoverImageWithAFragmentIsOmittedAlone()
+    {
+        var book = EpubDocument.Open(Package(RgbPng(),
+            "<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 2 2'>"
+            + "<image width='2' height='2' href='../images/check.png#fragment'/></svg>"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        EpubImageCompatibilityTests.AssertImageOmitted(book.CreateLayout(new EpubLayoutOptions(16, 16, font) { Margin = 2, FontSize = 10 }));
+    }
+
+    private static void AssertSvgCoverRefused(string content)
     {
         var book = EpubDocument.Open(Package(RgbPng(),
             "<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 2 2'>"
@@ -465,25 +481,11 @@ public sealed class EpubEmbeddedImageLayoutTests
     [InlineData("sRGB", "03")]
     [InlineData("pHYs", "000000010000000100")]
     [InlineData("pHYs", "00000EC300000EC301")]
-    public void IndependentSupportedMetadataRendersLiteralPixels(string type, string hex)
-    {
-        var frame = ImageLayout(RgbPng(metadata: [(type, Convert.FromHexString(hex))])).RenderPage(0);
-        Assert.Equal(new float[] { 1, 0, 0, 1 }, frame.Pixels.Slice((8 * 16 + 2) * 4, 4).ToArray());
-        Assert.Equal(new float[] { 0, 1, 0, 1 }, frame.Pixels.Slice((8 * 16 + 3) * 4, 4).ToArray());
-    }
-
-    [Theory]
-    [InlineData("iCCP")]
-    [InlineData("cHRM")]
-    [InlineData("cICP")]
-    [InlineData("acTL")]
-    [InlineData("tEXt")]
-    public void AdditionalColorAnimationAndUnimplementedChunksRemainUnsupported(string type)
-    {
-        Assert.Throws<NotSupportedException>(() => ImageLayout(RgbPng(metadata: [(type, [0])])));
-    }
-
-    [Theory]
+    // Ancillary chunks that do not change the decoded pixels are ignored, as the PNG specification allows:
+    // text, chromaticities, animation control, gamma, pixel aspect and malformed ancillary payloads.
+    [InlineData("cHRM", "00")]
+    [InlineData("acTL", "00")]
+    [InlineData("tEXt", "00")]
     [InlineData("gAMA", "00000001")]
     [InlineData("gAMA", "0000B18F")]
     [InlineData("gAMA", "000186A0")]
@@ -491,11 +493,29 @@ public sealed class EpubEmbeddedImageLayoutTests
     [InlineData("pHYs", "00000EC300000EC401")]
     [InlineData("pHYs", "000000000000000000")]
     [InlineData("pHYs", "000000000000000101")]
-    public void UnsupportedGammaOrPixelAspectRatioIsDiagnosed(string type, string hex)
+    [InlineData("sRGB", "")]
+    [InlineData("sRGB", "0000")]
+    [InlineData("sRGB", "04")]
+    [InlineData("gAMA", "000001")]
+    [InlineData("gAMA", "0000000001")]
+    [InlineData("gAMA", "00000000")]
+    [InlineData("pHYs", "00000EC300000EC3")]
+    [InlineData("pHYs", "00000EC300000EC30100")]
+    [InlineData("pHYs", "00000EC300000EC302")]
+    public void IndependentSupportedMetadataRendersLiteralPixels(string type, string hex)
     {
-        byte[] png = RgbPng(metadata: [(type, Convert.FromHexString(hex))]);
-        var exception = Assert.Throws<NotSupportedException>(() => ImageLayout(png));
-        Assert.Contains(type, exception.Message);
+        var frame = ImageLayout(RgbPng(metadata: [(type, Convert.FromHexString(hex))])).RenderPage(0);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, frame.Pixels.Slice((8 * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 1, 0, 1 }, frame.Pixels.Slice((8 * 16 + 3) * 4, 4).ToArray());
+    }
+
+    // A profile or code points that select colors other than sRGB cannot be honored, so only that image is omitted.
+    [Theory]
+    [InlineData("iCCP")]
+    [InlineData("cICP")]
+    public void ColorSignalingThatCannotBeHonoredOmitsOnlyThatImage(string type)
+    {
+        EpubImageCompatibilityTests.AssertImageOmitted(ImageLayout(RgbPng(metadata: [(type, [0])])), type);
     }
 
     [Theory]
@@ -508,29 +528,16 @@ public sealed class EpubEmbeddedImageLayoutTests
     [InlineData("sRGB", "00", "crc")]
     [InlineData("gAMA", "0000B18F", "crc")]
     [InlineData("pHYs", "00000EC300000EC301", "crc")]
-    public void DuplicateLateOrCorruptImageMetadataIsDiagnosed(string type, string hex, string fault)
+    // Duplicate, late or corrupt ancillary chunks are ignored; the image data still decodes to its literal pixels.
+    public void DuplicateLateOrCorruptAncillaryMetadataIsIgnored(string type, string hex, string fault)
     {
         (string Type, byte[] Data) chunk = (type, Convert.FromHexString(hex));
         byte[] png = RgbPng(metadata: fault == "duplicate" ? [chunk, chunk] : [chunk],
             afterImage: fault == "late");
         if (fault == "crc") png[41 + chunk.Data.Length] ^= 1;
-        Assert.Throws<InvalidDataException>(() => ImageLayout(png));
-    }
-
-    [Theory]
-    [InlineData("sRGB", "")]
-    [InlineData("sRGB", "0000")]
-    [InlineData("sRGB", "04")]
-    [InlineData("gAMA", "000001")]
-    [InlineData("gAMA", "0000000001")]
-    [InlineData("gAMA", "00000000")]
-    [InlineData("pHYs", "00000EC300000EC3")]
-    [InlineData("pHYs", "00000EC300000EC30100")]
-    [InlineData("pHYs", "00000EC300000EC302")]
-    public void MalformedImageMetadataIsDiagnosed(string type, string hex)
-    {
-        byte[] png = RgbPng(metadata: [(type, Convert.FromHexString(hex))]);
-        Assert.Throws<InvalidDataException>(() => ImageLayout(png));
+        var frame = ImageLayout(png).RenderPage(0);
+        Assert.Equal(new float[] { 1, 0, 0, 1 }, frame.Pixels.Slice((8 * 16 + 2) * 4, 4).ToArray());
+        Assert.Equal(new float[] { 0, 1, 0, 1 }, frame.Pixels.Slice((8 * 16 + 3) * 4, 4).ToArray());
     }
 
     private static EpubLayoutDocument ImageLayout(byte[] png)

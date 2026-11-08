@@ -1,149 +1,145 @@
 using System.Buffers.Binary;
+using System.Text;
 using KillerPdf.Engine.Filters;
 
 namespace KillerPdf.Engine.Formats.Epub;
 
 public sealed partial class EpubDocument
 {
-    private static PngDecodedImage ReadNativeJpeg(ReadOnlyMemory<byte> bytes, long retainedBytes,
+    /// <summary>
+    /// Decodes a baseline or progressive JPEG at the smallest DCT reduction that still covers the
+    /// target box. Comments, JFIF, XMP, Photoshop and other application segments are ignored;
+    /// EXIF orientation is applied; an embedded profile other than sRGB refuses only this image.
+    /// </summary>
+    private static PngDecodedImage ReadNativeJpeg(ReadOnlyMemory<byte> bytes, int maximumWidth, int maximumHeight,
         CancellationToken cancellationToken)
     {
         var data = bytes.Span;
         cancellationToken.ThrowIfCancellationRequested();
         if (data.Length < 4 || data[0] != 0xff || data[1] != 0xd8)
             throw new InvalidDataException("Native EPUB JPEG signature is invalid.");
-        int width = 0, height = 0, components = 0, offset = 2;
-        int? adobeTransform = null;
-        bool jfif = false, jfifComponents = false, scan = false, entropy = false, ended = false;
-        while (offset < data.Length)
+        int width = 0, height = 0, components = 0, offset = 2, orientation = 1;
+        var icc = new List<byte>();
+        bool scan = false, iccSeen = false;
+        while (offset < data.Length && !scan)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (entropy && data[offset] != 0xff) { offset++; continue; }
-            if (data[offset++] != 0xff)
-                throw new InvalidDataException("Invalid native EPUB JPEG marker.");
-            while (offset < data.Length && data[offset] == 0xff)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                offset++;
-            }
+            if (data[offset++] != 0xff) throw new InvalidDataException("Invalid native EPUB JPEG marker.");
+            while (offset < data.Length && data[offset] == 0xff) offset++;
             if (offset == data.Length) throw new InvalidDataException("Truncated native EPUB JPEG marker.");
             byte marker = data[offset++];
-            if (entropy && (marker == 0 || marker is >= 0xd0 and <= 0xd7)) continue;
-            entropy = false;
-            if (marker == 0xd9) { ended = true; break; }
-            if (marker is 0 or 0xd8 or >= 0xd0 and <= 0xd7)
-                throw new InvalidDataException("Invalid native EPUB JPEG marker order.");
+            if (marker is 0x01 or >= 0xd0 and <= 0xd7) continue;
+            if (marker is 0 or 0xd8 or 0xd9) throw new InvalidDataException("Invalid native EPUB JPEG marker order.");
             if (data.Length - offset < 2) throw new InvalidDataException("Truncated native EPUB JPEG segment.");
             int length = BinaryPrimitives.ReadUInt16BigEndian(data[offset..]);
-            if (length < 2 || length > data.Length - offset)
-                throw new InvalidDataException("Truncated native EPUB JPEG segment.");
+            if (length < 2 || length > data.Length - offset) throw new InvalidDataException("Truncated native EPUB JPEG segment.");
             var payload = data.Slice(offset + 2, length - 2);
             offset += length;
             switch (marker)
             {
                 case 0xc0 or 0xc1 or 0xc2:
-                    if (components != 0 || payload.Length < 6)
-                        throw new InvalidDataException("Invalid native EPUB JPEG frame.");
+                    if (components != 0 || payload.Length < 6) throw new InvalidDataException("Invalid native EPUB JPEG frame.");
                     components = payload[5];
                     if (payload[0] != 8 || components is not (1 or 3))
-                        throw new NotSupportedException("Native EPUB JPEG requires eight-bit Gray or RGB color.");
-                    if (payload.Length != 6 + 3 * components)
-                        throw new InvalidDataException("Invalid native EPUB JPEG component table.");
-                    jfifComponents = payload[6] == 1
-                        && (components == 1 || payload[9] == 2 && payload[12] == 3);
+                        throw new EpubImageUnavailableException("Native EPUB JPEG requires eight-bit Gray or RGB color.");
                     height = BinaryPrimitives.ReadUInt16BigEndian(payload[1..]);
                     width = BinaryPrimitives.ReadUInt16BigEndian(payload[3..]);
-                    if (width is <= 0 or > 32768 || height is <= 0 or > 32768
-                        || (long)width * height > 1_048_576
-                        || retainedBytes + (long)width * height * 12 + height * 2 > 32 * 1024 * 1024)
-                        throw new InvalidDataException("Native EPUB images exceed their decoded storage limit.");
-                    int maxHorizontal = 0, maxVertical = 0;
-                    for (int component = 0; component < components; component++)
-                    {
-                        int sampling = payload[7 + component * 3];
-                        int horizontalSampling = sampling >> 4, verticalSampling = sampling & 15;
-                        if (horizontalSampling is < 1 or > 4 || verticalSampling is < 1 or > 4)
-                            throw new InvalidDataException("Invalid native EPUB JPEG component sampling.");
-                        maxHorizontal = Math.Max(maxHorizontal, horizontalSampling);
-                        maxVertical = Math.Max(maxVertical, verticalSampling);
-                    }
-                    long mcuColumns = (width + maxHorizontal * 8 - 1) / (maxHorizontal * 8);
-                    long mcuRows = (height + maxVertical * 8 - 1) / (maxVertical * 8);
-                    long paddedSamples = 0;
-                    for (int component = 0; component < components; component++)
-                    {
-                        int sampling = payload[7 + component * 3];
-                        int horizontalSampling = sampling >> 4, verticalSampling = sampling & 15;
-                        if (maxHorizontal % horizontalSampling != 0 || maxVertical % verticalSampling != 0)
-                            throw new InvalidDataException("Incompatible native EPUB JPEG component sampling.");
-                        paddedSamples += mcuColumns * horizontalSampling * mcuRows * verticalSampling * 64;
-                    }
-                    // Bound full padded planes, progressive coefficients, decoded output and Gray expansion.
-                    // A fixed reserve covers tables and other small decoder arrays.
-                    long peakBytes = retainedBytes + paddedSamples * (marker == 0xc2 ? 5 : 1)
-                        + (long)width * height * (components == 1 ? 4 : 3) + 65536;
-                    if (peakBytes > 32 * 1024 * 1024)
-                        throw new InvalidDataException("Native EPUB images exceed their decoded storage limit.");
+                    if (width <= 0 || height <= 0 || (long)width * height > MaximumSourcePixels)
+                        throw new EpubImageUnavailableException("Native EPUB JPEG exceeds the decodable size.");
                     break;
+                case >= 0xc3 and <= 0xcf when marker is not (0xc4 or 0xc8 or 0xcc):
+                    throw new EpubImageUnavailableException("Native EPUB JPEG coding process is not implemented.");
                 case 0xda:
-                    if (components == 0 || payload.Length < 4 || payload[0] == 0
-                        || payload[0] > components || payload.Length != 4 + 2 * payload[0])
-                        throw new InvalidDataException("Invalid native EPUB JPEG scan header.");
-                    scan = entropy = true;
+                    if (components == 0) throw new InvalidDataException("Invalid native EPUB JPEG scan header.");
+                    scan = true;
                     break;
-                case 0xe0:
-                    if (scan || jfif || payload.Length < 14 || !payload[..5].SequenceEqual("JFIF\0"u8)
-                        || payload[5] != 1 || payload[6] > 2 || payload[7] > 2
-                        || payload.Length != 14 + 3 * payload[12] * payload[13])
-                        throw new NotSupportedException("Native EPUB JPEG JFIF metadata is unsupported or malformed.");
-                    jfif = true;
-                    if (payload[12] != 0 || payload[13] != 0)
-                        throw new NotSupportedException("Native EPUB JPEG JFIF thumbnails are not implemented.");
-                    int horizontal = BinaryPrimitives.ReadUInt16BigEndian(payload[8..]);
-                    int vertical = BinaryPrimitives.ReadUInt16BigEndian(payload[10..]);
-                    if (horizontal == 0 || horizontal != vertical)
-                        throw new NotSupportedException("Native EPUB JPEG JFIF density requires a defined square pixel aspect ratio.");
+                case 0xe1 when payload.Length >= 14 && payload[..6].SequenceEqual("Exif\0\0"u8):
+                    orientation = ExifOrientation(payload[6..]);
                     break;
-                case 0xee:
-                    if (scan || adobeTransform is not null || payload.Length != 12
-                        || !payload[..5].SequenceEqual("Adobe"u8)
-                        || BinaryPrimitives.ReadUInt16BigEndian(payload[5..]) != 100
-                        || BinaryPrimitives.ReadUInt16BigEndian(payload[7..]) != 0
-                        || BinaryPrimitives.ReadUInt16BigEndian(payload[9..]) != 0 || payload[11] > 1)
-                        throw new NotSupportedException("Native EPUB JPEG Adobe color metadata is not implemented for this image.");
-                    adobeTransform = payload[11];
-                    break;
-                case 0xe1:
-                    throw new NotSupportedException("Native EPUB JPEG EXIF and orientation metadata are not implemented.");
-                case 0xe2:
-                    throw new NotSupportedException("Native EPUB JPEG ICC color metadata is not implemented.");
-                case 0xc4 or 0xdb or 0xdd:
+                case 0xe2 when payload.Length >= 12 && payload[..12].SequenceEqual("ICC_PROFILE\0"u8):
+                    iccSeen = true;
+                    if (payload.Length > 14) icc.AddRange(payload[14..].ToArray());
                     break;
                 default:
-                    throw new NotSupportedException("Native EPUB JPEG marker or additional metadata is not implemented.");
+                    // DHT, DQT, DRI, COM, JFIF and other application segments carry no rendering change here;
+                    // the decoder reads the Adobe transform flag itself.
+                    break;
             }
         }
-        if (!ended || !scan || components == 0 || offset != data.Length)
-            throw new InvalidDataException("Native EPUB JPEG requires complete image data and an EOI marker.");
-        if (adobeTransform == 1 && components != 3
-            || jfif && (!jfifComponents || adobeTransform == 0 && components == 3))
-            throw new NotSupportedException("Native EPUB JPEG color metadata is inconsistent with its components.");
+        if (!scan || components == 0) throw new InvalidDataException("Native EPUB JPEG requires image data.");
+        if (iccSeen && !IsSrgbProfile(icc))
+            throw new EpubImageUnavailableException("Native EPUB JPEG embedded color profiles other than sRGB are not implemented.");
+        bool quarterTurn = orientation is >= 5 and <= 8;
+        int targetWidth = quarterTurn ? maximumHeight : maximumWidth, targetHeight = quarterTurn ? maximumWidth : maximumHeight;
+        int reduction = 1;
+        while (reduction < 8 && (width + 2 * reduction - 1) / (2 * reduction) >= targetWidth
+            && (height + 2 * reduction - 1) / (2 * reduction) >= targetHeight) reduction *= 2;
+        var decoded = PdfJpegDecoder.DecodeImage(bytes, MaximumDecodeBytes, reduction);
         cancellationToken.ThrowIfCancellationRequested();
-        var decoded = PdfJpegDecoder.DecodeImage(bytes, 4 * 1024 * 1024, 1);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (decoded.Width != width || decoded.Height != height || decoded.Components != components)
-            throw new InvalidDataException("Native EPUB JPEG decoded dimensions or components differ from its frame.");
-        byte[] rgb = decoded.Samples;
-        if (components == 1)
+        if (decoded.Components != components)
+            throw new InvalidDataException("Native EPUB JPEG decoded components differ from its frame.");
+        var image = new PngDecodedImage(decoded.Samples, null, decoded.Width, decoded.Height, components, 8);
+        return orientation == 1 ? image : Orient(ToRgb(image), orientation, cancellationToken);
+    }
+
+    // TIFF tag 0x0112 in IFD0; any malformed structure leaves the default upright orientation.
+    private static int ExifOrientation(ReadOnlySpan<byte> span)
+    {
+        byte[] tiff = span.ToArray();
+        if (tiff.Length < 8) return 1;
+        bool little = tiff[0] == 'I' && tiff[1] == 'I';
+        if (!little && !(tiff[0] == 'M' && tiff[1] == 'M')) return 1;
+        int U16(int at) => little ? BinaryPrimitives.ReadUInt16LittleEndian(tiff.AsSpan(at)) : BinaryPrimitives.ReadUInt16BigEndian(tiff.AsSpan(at));
+        long ifd = little ? BinaryPrimitives.ReadUInt32LittleEndian(tiff.AsSpan(4)) : BinaryPrimitives.ReadUInt32BigEndian(tiff.AsSpan(4));
+        if (ifd < 8 || ifd + 2 > tiff.Length) return 1;
+        int count = U16((int)ifd);
+        for (int entry = 0; entry < count; entry++)
         {
-            rgb = new byte[checked(width * height * 3)];
-            for (int index = 0; index < decoded.Samples.Length; index++)
+            int at = (int)ifd + 2 + entry * 12;
+            if (at + 12 > tiff.Length) return 1;
+            if (U16(at) == 0x0112) return U16(at + 8) is var value and >= 1 and <= 8 ? value : 1;
+        }
+        return 1;
+    }
+
+    // An ICC profile is honored here only when its description names sRGB, since the reader renders in sRGB.
+    private static bool IsSrgbProfile(List<byte> profile)
+    {
+        if (profile.Count < 132) return false;
+        string text = Encoding.Latin1.GetString(profile.ToArray());
+        return text.Contains("sRGB", StringComparison.OrdinalIgnoreCase)
+            || Encoding.BigEndianUnicode.GetString(profile.ToArray()).Contains("sRGB", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Applies an EXIF orientation (TIFF 6.0) to RGB samples so the image displays upright.</summary>
+    private static PngDecodedImage Orient(PngDecodedImage image, int orientation, CancellationToken cancellationToken)
+    {
+        int width = image.Width, height = image.Height;
+        bool swap = orientation >= 5;
+        int outWidth = swap ? height : width, outHeight = swap ? width : height;
+        byte[] output = new byte[image.Samples.Length];
+        for (int y = 0; y < outHeight; y++)
+        {
+            if ((y & 63) == 0) cancellationToken.ThrowIfCancellationRequested();
+            for (int x = 0; x < outWidth; x++)
             {
-                if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-                rgb[index * 3] = rgb[index * 3 + 1] = rgb[index * 3 + 2] = decoded.Samples[index];
+                (int sx, int sy) = orientation switch
+                {
+                    2 => (width - 1 - x, y),
+                    3 => (width - 1 - x, height - 1 - y),
+                    4 => (x, height - 1 - y),
+                    5 => (y, x),
+                    6 => (y, height - 1 - x),
+                    7 => (width - 1 - y, height - 1 - x),
+                    8 => (width - 1 - y, x),
+                    _ => (x, y)
+                };
+                int source = (sy * width + sx) * 3, target = (y * outWidth + x) * 3;
+                output[target] = image.Samples[source];
+                output[target + 1] = image.Samples[source + 1];
+                output[target + 2] = image.Samples[source + 2];
             }
         }
-        cancellationToken.ThrowIfCancellationRequested();
-        return new PngDecodedImage(rgb, null, width, height, 3, 8);
+        return new PngDecodedImage(output, null, outWidth, outHeight, 3, 8);
     }
 }

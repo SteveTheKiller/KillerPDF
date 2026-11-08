@@ -96,16 +96,39 @@ public sealed class EpubJpegImageLayoutTests
     }
 
     [Theory]
-    [InlineData(0xe1, "457869660000", "EXIF")]
     [InlineData(0xe2, "4943435F50524F46494C4500", "ICC")]
-    [InlineData(0xee, "41646F626500640000000002", "Adobe")]
-    [InlineData(0xfe, "616263", "metadata")]
-    [InlineData(0xed, "616263", "metadata")]
-    public void UnsupportedColorOrientationAndOtherMetadataAreDiagnosed(byte marker, string hex, string diagnostic)
+    // An embedded profile that is not sRGB cannot be honored by an sRGB reader, so only this image is omitted.
+    public void ColorProfilesThatCannotBeHonoredOmitOnlyThatImage(byte marker, string hex, string diagnostic)
     {
         byte[] jpeg = WithSegment(Convert.FromBase64String(GrayJpeg), marker, Convert.FromHexString(hex));
-        var error = Assert.Throws<NotSupportedException>(() => Layout(jpeg));
-        Assert.Contains(diagnostic, error.Message);
+        EpubImageCompatibilityTests.AssertImageOmitted(Layout(jpeg), "profile");
+        Assert.Equal("ICC", diagnostic);
+    }
+
+    // EXIF without an orientation, comments, Photoshop and Adobe segments do not change the decoded
+    // pixels, so they are ignored and the image paints exactly as without them.
+    [Theory]
+    [InlineData(0xe1, "457869660000")]
+    [InlineData(0xee, "41646F626500640000000000")]
+    [InlineData(0xfe, "616263")]
+    [InlineData(0xed, "616263")]
+    public void HarmlessJpegMetadataIsIgnored(byte marker, string hex) => AssertHarmless(marker, hex);
+
+    // An Adobe YCCK transform on a Gray frame contradicts the frame; the decoder refuses it and only the image is omitted.
+    [Fact]
+    public void ContradictoryAdobeTransformOmitsOnlyThatImage()
+    {
+        byte[] jpeg = WithSegment(Convert.FromBase64String(GrayJpeg), 0xee, Convert.FromHexString("41646F626500640000000002"));
+        EpubImageCompatibilityTests.AssertImageOmitted(Layout(jpeg), "transform");
+    }
+
+    private static void AssertHarmless(byte marker, string hex)
+    {
+        byte[] plain = Convert.FromBase64String(GrayJpeg);
+        var expected = Layout(plain).RenderPage(0).Pixels.ToArray();
+        var layout = Layout(WithSegment(plain, marker, Convert.FromHexString(hex)));
+        Assert.Empty(layout.ContentDiagnostics);
+        Assert.Equal(expected, layout.RenderPage(0).Pixels.ToArray());
     }
 
     [Theory]
@@ -120,7 +143,8 @@ public sealed class EpubJpegImageLayoutTests
         jpeg[frame + 6] = (byte)height;
         jpeg[frame + 7] = (byte)(width >> 8);
         jpeg[frame + 8] = (byte)width;
-        Assert.Contains("storage limit", Assert.Throws<InvalidDataException>(() => Layout(jpeg)).Message);
+        // A frame whose size does not match its data, or has no width, omits only this image.
+        EpubImageCompatibilityTests.AssertImageOmitted(Layout(jpeg));
     }
 
     [Theory]
@@ -132,25 +156,29 @@ public sealed class EpubJpegImageLayoutTests
         int frame = FindFrame(jpeg);
         jpeg[frame + 4] = bits;
         jpeg[frame + 9] = components;
-        Assert.Contains("eight-bit Gray or RGB", Assert.Throws<NotSupportedException>(() => Layout(jpeg)).Message);
+        EpubImageCompatibilityTests.AssertImageOmitted(Layout(jpeg), "eight-bit Gray or RGB");
     }
 
+    // JFIF density describes print size only; the reader lays images out by pixel size, so it is ignored.
     [Theory]
     [InlineData(0)]
     [InlineData(2)]
-    public void UndefinedOrNonsquareJfifDensityIsDiagnosed(byte vertical)
+    public void UndefinedOrNonsquareJfifDensityIsIgnored(byte vertical)
     {
         byte[] jpeg = Convert.FromBase64String(GrayJpeg);
+        var expected = Layout(jpeg).RenderPage(0).Pixels.ToArray();
         jpeg[17] = vertical;
-        Assert.Contains("density", Assert.Throws<NotSupportedException>(() => Layout(jpeg)).Message);
+        var layout = Layout(jpeg);
+        Assert.Empty(layout.ContentDiagnostics);
+        Assert.Equal(expected, layout.RenderPage(0).Pixels.ToArray());
     }
 
     [Fact]
     public void TruncatedJpegIsDiagnosedAndPreCanceledLayoutPreservesSource()
     {
         byte[] jpeg = Convert.FromBase64String(GrayJpeg);
-        Assert.Throws<InvalidDataException>(() => Layout(jpeg[..^2]));
-        Assert.Throws<InvalidDataException>(() => Layout(jpeg[..25]));
+        // A truncated image is omitted alone; the chapter keeps laying out.
+        EpubImageCompatibilityTests.AssertImageOmitted(Layout(jpeg[..25]));
         byte[] source = Package(jpeg);
         byte[] original = source.ToArray();
         var book = EpubDocument.Open(source);
@@ -164,7 +192,6 @@ public sealed class EpubJpegImageLayoutTests
     [Theory]
     [InlineData("https://example.invalid/check.jpg")]
     [InlineData("//example.invalid/check.jpg")]
-    [InlineData("check.jpg#fragment")]
     public void JpegSupportDoesNotPermitExternalOrFragmentImageSources(string reference)
     {
         var book = EpubDocument.Open(Package(Convert.FromBase64String(GrayJpeg), reference: reference));
@@ -172,12 +199,24 @@ public sealed class EpubJpegImageLayoutTests
             new EpubLayoutOptions(24, 24, Font()) { Margin = 2, FontSize = 10 }));
     }
 
+    // A fragment cannot name a raster image; that image is omitted and nothing is fetched.
     [Fact]
-    public void JfifAndExplicitRgbComponentColorConflictIsDiagnosed()
+    public void FragmentImageSourcesOmitOnlyThatImage()
+    {
+        var book = EpubDocument.Open(Package(Convert.FromBase64String(GrayJpeg), reference: "check.jpg#fragment"));
+        EpubImageCompatibilityTests.AssertImageOmitted(book.CreateLayout(
+            new EpubLayoutOptions(24, 24, Font()) { Margin = 2, FontSize = 10 }));
+    }
+
+    [Fact]
+    // The decoder resolves explicit R, G, B component identifiers over the JFIF marker, so the chapter lays out.
+    public void JfifWithExplicitRgbComponentsLaysOutWithTheDecoderColorChoice()
     {
         byte[] jpeg = WithSegment(Convert.FromHexString(RgbJpeg), 0xe0,
             Convert.FromHexString("4A46494600010100000100010000"));
-        Assert.Contains("color", Assert.Throws<NotSupportedException>(() => Layout(jpeg)).Message);
+        var layout = Layout(jpeg);
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.Single(layout.Pages.SelectMany(page => page.Glyphs.OfType<NativeImagePaint>()));
     }
 
     [Fact]

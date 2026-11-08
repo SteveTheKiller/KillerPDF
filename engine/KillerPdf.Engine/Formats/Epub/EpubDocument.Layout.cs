@@ -47,15 +47,16 @@ public sealed partial class EpubDocument
         var imageCache = new Dictionary<string, PngDecodedImage>(StringComparer.Ordinal);
         long retainedImageBytes = 0;
         var chapterDiagnostics = new List<EpubChapterDiagnostic>();
+        var contentDiagnostics = new List<EpubChapterDiagnostic>();
         for (int spineIndex = 0; spineIndex < Spine.Count; spineIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            int pageMark = pages.Count, anchorMark = anchors.Count;
+            int pageMark = pages.Count, anchorMark = anchors.Count, contentMark = contentDiagnostics.Count;
             try
             {
                 AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors, cellAnchors,
                     ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences,
-                    imageCache, ref retainedImageBytes, ResolveFamily, cancellationToken);
+                    imageCache, ref retainedImageBytes, ResolveFamily, contentDiagnostics, cancellationToken);
             }
             catch (Exception error) when (options.IsolateChapterFailures
                 && error is NotSupportedException or InvalidDataException)
@@ -64,6 +65,7 @@ public sealed partial class EpubDocument
                 cancellationToken.ThrowIfCancellationRequested();
                 pages.RemoveRange(pageMark, pages.Count - pageMark);
                 anchors.RemoveRange(anchorMark, anchors.Count - anchorMark);
+                contentDiagnostics.RemoveRange(contentMark, contentDiagnostics.Count - contentMark);
                 foreach (var key in cellAnchors.Keys.Where(key => key.SpineIndex == spineIndex).ToList())
                     cellAnchors.Remove(key);
                 string href = Spine[spineIndex].Item.Href;
@@ -73,7 +75,7 @@ public sealed partial class EpubDocument
         }
         cancellationToken.ThrowIfCancellationRequested();
         return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors, cellAnchors)
-        { ChapterDiagnostics = chapterDiagnostics.AsReadOnly() };
+        { ChapterDiagnostics = chapterDiagnostics.AsReadOnly(), ContentDiagnostics = contentDiagnostics.AsReadOnly() };
 
         TrueTypeFont? ResolveFamily(EpubFontFamily? family, double weight, EpubFontStyle style)
         {
@@ -191,7 +193,8 @@ public sealed partial class EpubDocument
         ref int remainingTextLength,
         ref int remainingStylesheetBytes, ref int remainingStylesheetReferences,
         Dictionary<string, PngDecodedImage> imageCache, ref long retainedImageBytes,
-        Func<EpubFontFamily?, double, EpubFontStyle, TrueTypeFont?> resolveFamily, CancellationToken cancellationToken)
+        Func<EpubFontFamily?, double, EpubFontStyle, TrueTypeFont?> resolveFamily,
+        List<EpubChapterDiagnostic> contentDiagnostics, CancellationToken cancellationToken)
     {
         var entry = Spine[spineIndex];
         if (!entry.IsLinear || !string.IsNullOrWhiteSpace(entry.Properties))
@@ -656,7 +659,7 @@ public sealed partial class EpubDocument
                 if (block.Replaced is { Source: { } source } replaced)
                 {
                     lineBlock = block;
-                    var image = ReadNativeImage(resource.Href, source, imageCache, ref imageBytes, cancellationToken);
+                    if (TryReadImage(source) is not { } image) return;
                     var imageSize = ImageSize(image, replaced.Owner);
                     double paintLeft = contentLeft, paintTop = 0, flowHeight = imageSize.Height;
                     if (replaced.Owner.SvgViewBox is { } viewBox)
@@ -672,8 +675,6 @@ public sealed partial class EpubDocument
                         paintTop = (flowHeight - imageSize.Height) / 2;
                     }
                     if (imageSize.Width == 0) return;
-                    if (imageSize.Width > contentWidth || imageSize.Height > options.PageHeight - 2 * options.Margin)
-                        throw new NotSupportedException("The native EPUB block image exceeds the available page dimensions.");
                     if (pendingParagraphGap > 0)
                     {
                         top += !pageHasContent && existingPageCount + pages.Count == 0 && bodyPadding.Top == 0
@@ -988,13 +989,21 @@ public sealed partial class EpubDocument
                             lineStart = index < text.Length && text[index] == '\n' ? index + 1 : index;
                             continue;
                         }
-                        var image = ReadNativeImage(resource.Href, reference.Source, imageCache, ref imageBytes, cancellationToken);
-                        var imageSize = ImageSize(image, reference.Owner);
+                        if (TryReadImage(reference.Source) is not { } image) continue;
+                        // An inline image shares its line with the block's descent, so it shrinks to leave room for it.
+                        var imageSize = ImageSize(image, reference.Owner,
+                            BelowBaseline(lineBlock.Source.Style) + BelowBaseline(reference.Owner.Style) + 1);
                         if (imageSize.Width == 0) continue;
                         double imageTracking = line.Count == 0 || line[^1].Image is not null ? 0
                             : (line[^1].Style.LetterSpacing + reference.Owner.Style.LetterSpacing) / 2;
-                        if (imageTracking + imageSize.Width > contentRight - left)
-                            throw new NotSupportedException("The native EPUB image exceeds the available line width.");
+                        if (imageTracking + imageSize.Width > contentRight - left && line.Count > 0)
+                        {
+                            // An image that does not fit the rest of the line starts the next line.
+                            FlushLine(finalLine: false);
+                            left = contentLeft;
+                            lineStart = index;
+                            imageTracking = 0;
+                        }
                         left += imageTracking;
                         line.Add((index, 0, left, imageSize.Width, FontFor(reference.Owner.Style), null, image,
                             reference.Owner.Style, lineBlock.Source.Style, reference.Owner));
@@ -1367,9 +1376,15 @@ public sealed partial class EpubDocument
                 line.Clear();
             }
 
-            (double Width, double Height) ImageSize(PngDecodedImage image, EpubNativeContent.Element owner)
+            (double Width, double Height) ImageSize(PngDecodedImage image, EpubNativeContent.Element owner, double reserved = 0)
             {
                 double width = image.Width;
+                if (owner.Width is { Length: { } specified })
+                {
+                    double value = specified.Percentage ? contentWidth * specified.Value / 100
+                        : specified.Em ? owner.Style.FontSize * specified.Value : specified.Value;
+                    if (double.IsFinite(value) && value >= 0) width = value;
+                }
                 if (owner.MaximumWidth is { Length: { } maximum })
                 {
                     double limit = maximum.Percentage ? contentWidth * maximum.Value / 100
@@ -1378,7 +1393,28 @@ public sealed partial class EpubDocument
                         throw new NotSupportedException("Native EPUB maximum image width exceeds the supported dimensions.");
                     width = Math.Min(width, limit);
                 }
-                return (width, image.Height * width / image.Width);
+                // Images shrink to fit the content box, keeping their aspect ratio (CSS max-width:100% behavior readers apply).
+                double height = image.Height * width / image.Width;
+                double availableHeight = options.PageHeight - 2 * options.Margin - bodyMargins.Top - bodyMargins.Bottom
+                    - bodyPadding.Top - bodyPadding.Bottom - reserved;
+                double scale = Math.Min(1, Math.Min(contentWidth / Math.Max(width, double.Epsilon),
+                    Math.Max(1, availableHeight) / Math.Max(height, double.Epsilon)));
+                return (width * scale, height * scale);
+            }
+
+            PngDecodedImage? TryReadImage(string source)
+            {
+                try
+                {
+                    return ReadNativeImage(resource.Href, source, imageCache, ref imageBytes,
+                        (contentWidth, options.PageHeight - 2 * options.Margin), cancellationToken);
+                }
+                catch (EpubImageUnavailableException error)
+                {
+                    // One image the reader cannot show is omitted; the chapter keeps its text.
+                    contentDiagnostics.Add(new(spineIndex, resource.Href, error.Message));
+                    return null;
+                }
             }
 
             double AboveBaseline(EpubNativeContent.Style style, TrueTypeFont? selected = null)

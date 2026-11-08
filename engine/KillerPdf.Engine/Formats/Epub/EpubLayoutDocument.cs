@@ -132,6 +132,9 @@ public sealed class EpubLayoutDocument
     /// <summary>Gets the chapters replaced by diagnosis pages, in spine order.</summary>
     public IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics { get; init; } = [];
 
+    /// <summary>Gets single items, such as images, that were omitted while their chapter still laid out.</summary>
+    public IReadOnlyList<EpubChapterDiagnostic> ContentDiagnostics { get; init; } = [];
+
     /// <summary>Resolves an exact, case-sensitive package-relative chapter target returned by EPUB navigation.</summary>
     /// <remarks>Targets are limited to 4,096 characters. Fragment IDs are case-sensitive.</remarks>
     public EpubNavigationDestination ResolveNavigationTarget(string target,
