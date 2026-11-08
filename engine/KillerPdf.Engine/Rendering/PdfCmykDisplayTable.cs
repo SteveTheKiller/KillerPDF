@@ -8,7 +8,8 @@ namespace KillerPdf.Engine.Rendering;
 /// </summary>
 /// <remarks>
 /// Each ink is evaluated exactly through the profile, with the same intent and the same clip and
-/// encode steps as managed frames, and kept in a shared cache. The inverse for RGB paint entering
+/// encode steps as managed frames: directly for lookup-table profiles, through a shared cache
+/// for other profile shapes. The inverse for RGB paint entering
 /// ink fits inks on a 17-point RGB grid against a 17-point sampling of the same profile.
 /// </remarks>
 internal sealed class PdfCmykDisplayTable
