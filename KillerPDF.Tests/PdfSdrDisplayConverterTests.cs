@@ -28,6 +28,7 @@ public sealed class PdfSdrDisplayConverterTests
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]
+    [InlineData(4)]
     public void UnreadableOrUnsupportedProfileReturnsAnHonestUnavailableResult(int failure)
     {
         var converter = new PdfSdrDisplayConverter((name, token) => throw failure switch
@@ -35,7 +36,8 @@ public sealed class PdfSdrDisplayConverterTests
             0 => new IOException("File unavailable"),
             1 => new FormatException("Invalid ICC bytes"),
             2 => new NotSupportedException("Unsupported profile"),
-            _ => new System.ComponentModel.Win32Exception(2)
+            3 => new System.ComponentModel.Win32Exception(2),
+            _ => new InvalidDataException("The Windows profile exceeds the 32 MiB input limit.")
         });
         converter.UpdateDisplay(Display(12));
         var result = converter.Convert(new PdfRenderedFrame(1, 1, [1f, 0f, 0f, 1f], PdfFrameColorEncoding.LinearSrgbD65));

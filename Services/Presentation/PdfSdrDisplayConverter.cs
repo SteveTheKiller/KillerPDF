@@ -53,7 +53,7 @@ public sealed class PdfSdrDisplayConverter(Func<string, CancellationToken, PdfCo
             return new(PdfSdrConversionOutcome.Converted, display.Generation, display.MonitorIdentity,
                 profile.ContentSha256, pixels, null);
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException
             or FormatException or NotSupportedException or System.ComponentModel.Win32Exception or ArgumentException)
         {
             cancellationToken.ThrowIfCancellationRequested();
