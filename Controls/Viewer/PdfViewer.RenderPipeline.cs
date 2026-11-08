@@ -24,18 +24,20 @@ public partial class PdfViewer
     private void PresentRenderWarning(FrameworkElement image, BitmapSource bitmap, int page, string? positionStatus = null)
     {
         string? warning = null;
+        bool displayFallback = KillerPDF.Presentation.PdfDisplayFallbackNotice.Reason(_presentationDisplay, DocInvert) is not null;
         if (RenderWarnings.TryGetValue(bitmap, out var result))
         {
             if (result.Message.Length > 0)
                 warning = string.Format(Loc("Str_RenderError"),
                     string.Format(Loc("Str_PageRenderError"), page + 1) + ": " + result.Message);
-            if (result.DisplayFallbackOperation is not null)
-            {
-                string fallback = Loc("Str_CM_DisplayFallback");
-                warning = warning is null
-                    ? (positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageCount)) + ". " + fallback
-                    : warning + " " + fallback;
-            }
+            displayFallback |= result.DisplayFallbackOperation is not null;
+        }
+        if (displayFallback)
+        {
+            string fallback = Loc("Str_CM_DisplayFallback");
+            warning = warning is null
+                ? (positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageCount)) + ". " + fallback
+                : warning + " " + fallback;
         }
         image.ToolTip = warning;
         if (warning is not null && page == _currentPage

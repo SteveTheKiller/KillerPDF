@@ -237,6 +237,7 @@
     <Compile Include="..\Services\Presentation\PdfSdrDisplayConverter.cs" Link="Services\Presentation\PdfSdrDisplayConverter.cs" />
     <Compile Include="..\Services\Presentation\WindowsPdfColorProfileReader.cs" Link="Services\Presentation\WindowsPdfColorProfileReader.cs" />
     <Compile Include="..\Services\Presentation\WindowsPdfDisplayDiscovery.cs" Link="Services\Presentation\WindowsPdfDisplayDiscovery.cs" />
+    <Compile Include="..\Services\Presentation\PdfDisplayFallbackNotice.cs" Link="Services\Presentation\PdfDisplayFallbackNotice.cs" />
     <ProjectReference Include="..\engine\KillerPdf.Engine\KillerPdf.Engine.csproj" />
     <ProjectReference Include="..\third_party\NTwain\NTwain\NTwain.csproj" />
   </ItemGroup>
