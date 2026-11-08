@@ -229,7 +229,8 @@ namespace KillerPDF.Controls
 
         internal void NavigateToPageExt(int pageIndex)
         {
-            if (_doc is null || pageIndex < 0 || pageIndex >= _doc.PageCount) return;
+            // Any readable document moves: PDF, EPUB or DjVu.
+            if (!HasReadDocument || pageIndex < 0 || pageIndex >= ReadPageCount) return;
             if (_viewMode.IsContinuous())
                 NavigateContinuousToPage(pageIndex);
             else

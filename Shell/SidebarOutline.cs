@@ -52,7 +52,7 @@ namespace KillerPDF.Shell
             PageList.Visibility = Visibility.Visible;
             OutlineScrollViewer.Visibility = Visibility.Collapsed;
             OutlineExpandCollapseAllButton.Visibility = Visibility.Collapsed;
-            PageControlsRow.Visibility = _doc != null ? Visibility.Visible : Visibility.Collapsed;   // no empty box when nothing is open
+            PageControlsRow.Visibility = ActiveViewer.HasReadDocumentExt ? Visibility.Visible : Visibility.Collapsed;   // no empty box when nothing is open
             ShowControlPanelHeader(SidebarPanel.Pages);
 
             SidebarSplitter.IsEnabled = true;   // pages are resizable too now (drag the splitter)

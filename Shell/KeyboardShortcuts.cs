@@ -338,10 +338,10 @@ namespace KillerPDF.Shell
                 OpenDocumentInfo();
                 e.Handled = true;
             }
-            else if (key == Key.F5) { if (_doc is not null) SetViewMode(ViewMode.Continuous); e.Handled = true; }
-            else if (key == Key.F6) { if (_doc is not null) SetViewMode(ViewMode.Single);     e.Handled = true; }
-            else if (key == Key.F7) { if (_doc is not null) SetViewMode(ViewMode.TwoPage);    e.Handled = true; }
-            else if (key == Key.F8) { if (_doc is not null) SetViewMode(ViewMode.Grid);       e.Handled = true; }
+            else if (key == Key.F5) { if (HasReadingDocument) SetViewMode(ViewMode.Continuous); e.Handled = true; }
+            else if (key == Key.F6) { if (HasReadingDocument) SetViewMode(ViewMode.Single);     e.Handled = true; }
+            else if (key == Key.F7) { if (HasReadingDocument) SetViewMode(ViewMode.TwoPage);    e.Handled = true; }
+            else if (key == Key.F8) { if (HasReadingDocument) SetViewMode(ViewMode.Grid);       e.Handled = true; }
             // F10 = split pane. Matched as Key.System + SystemKey == Key.F10, NOT e.Key == Key.F10:
             // F10 is a system key in WPF (it activates the menu bar), so it never arrives as
             // Key.F10 and a plain check silently never fires. The Shift+F10 branch further down has
@@ -360,7 +360,7 @@ namespace KillerPDF.Shell
             { ToggleToolbarHidden(); e.Handled = true; }
             else if (key == Key.F11) { ToggleFullScreen(); e.Handled = true; }
             else if (key == Key.Escape && _fullScreen) { ToggleFullScreen(); e.Handled = true; }
-            else if (key == Key.F4 && mods == ModifierKeys.Shift && _doc is not null)
+            else if (key == Key.F4 && mods == ModifierKeys.Shift && HasReadingDocument)
             {
                 ShowCurrentFileSize();
                 e.Handled = true;
@@ -502,7 +502,7 @@ namespace KillerPDF.Shell
                 if (!e.IsRepeat) MoveActiveTabToNewWindow();
                 e.Handled = true;
             }
-            else if (key == Key.B && mods == ModifierKeys.None && _doc is not null
+            else if (key == Key.B && mods == ModifierKeys.None && HasReadingDocument
                      && (_viewMode is ViewMode.TwoPage or ViewMode.TwoPageContinuous)
                      && ShortcutsOverlay.Visibility != Visibility.Visible
                      && AboutOverlay.Visibility != Visibility.Visible)
@@ -512,7 +512,7 @@ namespace KillerPDF.Shell
                 ToggleBookMode();
                 e.Handled = true;
             }
-            else if (key == Key.N && mods == ModifierKeys.None && _doc is not null
+            else if (key == Key.N && mods == ModifierKeys.None && HasReadingDocument
                      && ShortcutsOverlay.Visibility != Visibility.Visible
                      && AboutOverlay.Visibility != Visibility.Visible)
             {
@@ -522,7 +522,7 @@ namespace KillerPDF.Shell
                 ToggleDocInvert(!ActiveViewer.DocInvert);   // per pane: flips the focused pane only
                 e.Handled = true;
             }
-            else if (key == Key.N && mods == ModifierKeys.Shift && _doc is not null
+            else if (key == Key.N && mods == ModifierKeys.Shift && HasReadingDocument
                      && ShortcutsOverlay.Visibility != Visibility.Visible
                      && AboutOverlay.Visibility != Visibility.Visible)
             {
@@ -601,32 +601,32 @@ namespace KillerPDF.Shell
                 SidebarToggle_Click(this, e);
                 e.Handled = true;
             }
-            else if (key == Key.Home && mods == ModifierKeys.None && _doc is not null)
+            else if (key == Key.Home && mods == ModifierKeys.None && HasReadingDocument)
             {
                 // First / last page (the Acrobat / Sumatra convention).
                 RecordNavJump();
                 PageList.SelectedIndex = 0;
                 e.Handled = true;
             }
-            else if (key == Key.End && mods == ModifierKeys.None && _doc is not null)
+            else if (key == Key.End && mods == ModifierKeys.None && HasReadingDocument)
             {
                 RecordNavJump();
-                PageList.SelectedIndex = _doc.PageCount - 1;
+                PageList.SelectedIndex = ReadingPageCount - 1;
                 e.Handled = true;
             }
-            else if (key == Key.D1 && mods == ModifierKeys.Control && _doc is not null)
+            else if (key == Key.D1 && mods == ModifierKeys.Control && HasReadingDocument)
             {
                 _fitMode = FitMode.None;
                 SetTrueZoom(1.0);    // actual size (Acrobat Ctrl+1); Ctrl+0 stays the 100% reset
                 e.Handled = true;
             }
-            else if (key == Key.D2 && mods == ModifierKeys.Control && _doc is not null)
+            else if (key == Key.D2 && mods == ModifierKeys.Control && HasReadingDocument)
             {
                 App.SetSetting("DefaultFitMode", FitMode.Width.ToString());
                 FitToWidth();        // (Acrobat Ctrl+2)
                 e.Handled = true;
             }
-            else if (key == Key.D3 && mods == ModifierKeys.Control && _doc is not null)
+            else if (key == Key.D3 && mods == ModifierKeys.Control && HasReadingDocument)
             {
                 App.SetSetting("DefaultFitMode", FitMode.Page.ToString());
                 FitToPage();
@@ -699,7 +699,7 @@ namespace KillerPDF.Shell
             // selection instead (same reasoning as PgUp/PgDn above).
             else if ((key == Key.Up || key == Key.Down) && mods == ModifierKeys.None)
             {
-                if (_doc is not null)
+                if (HasReadingDocument)
                 {
                     ScrollOrFlipByKey(up: key == Key.Up);
                     e.Handled = true;
@@ -755,9 +755,14 @@ namespace KillerPDF.Shell
         // jump box, Home/End) so a reader thrown 30 pages by a bookmark can retrace the hop.
 
         /// <summary>Records the CURRENT page onto the back stack. Call BEFORE performing a jump.</summary>
+        // Reading commands (page moves, view modes, zoom, history) serve every readable document, PDF,
+        // EPUB and DjVu alike; editing commands keep their own PDF check.
+        private bool HasReadingDocument => ActiveViewer.HasReadDocumentExt;
+        private int ReadingPageCount => ActiveViewer.ReadPageCountExt;
+
         private void RecordNavJump()
         {
-            if (_doc is null) return;
+            if (!HasReadingDocument) return;
             int cur = Math.Max(0, PageList.SelectedIndex);
             if (_navBack.Count > 0 && _navBack.Peek() == cur) { _navForward.Clear(); return; }
             _navBack.Push(cur);
@@ -766,14 +771,14 @@ namespace KillerPDF.Shell
 
         private void NavHistoryGo(bool back)
         {
-            if (_doc is null) return;
+            if (!HasReadingDocument) return;
             var from = back ? _navBack : _navForward;
             var to   = back ? _navForward : _navBack;
             if (from.Count == 0) return;
             int cur = Math.Max(0, PageList.SelectedIndex);
             int target = from.Pop();
             to.Push(cur);
-            if (target >= 0 && target < _doc.PageCount)
+            if (target >= 0 && target < ReadingPageCount)
                 PageList.SelectedIndex = target;
         }
 

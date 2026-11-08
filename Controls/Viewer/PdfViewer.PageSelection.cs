@@ -32,11 +32,11 @@ namespace KillerPDF.Controls
 
         private void PageJumpBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key != Key.Enter || _doc is null) return;
+            if (e.Key != Key.Enter || !HasReadDocument) return;
             e.Handled = true;
             if (int.TryParse(Host?.PageJumpText, out int pg))
             {
-                int idx = Math.Max(0, Math.Min(_doc.PageCount - 1, pg - 1));
+                int idx = Math.Max(0, Math.Min(ReadPageCount - 1, pg - 1));
                 RecordNavJump();   // Alt+Left retraces the typed jump
                 _currentPage = idx;
             }
