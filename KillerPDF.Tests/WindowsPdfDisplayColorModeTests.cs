@@ -19,6 +19,7 @@ public sealed class WindowsPdfDisplayColorModeTests
 
     [Theory]
     [InlineData(3u)]
+    [InlineData(5u)]
     [InlineData(7u)]
     public void LegacyInformationWithAdvancedColorOnStaysUnknown(uint flags)
     {

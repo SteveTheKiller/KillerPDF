@@ -313,12 +313,13 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
 
     /// <summary>Interprets DISPLAYCONFIG_GET_ADVANCED_COLOR_INFO flags when the newer query is unavailable.</summary>
     /// <remarks>
-    /// Bit 1 is advancedColorEnabled. When it is clear the display composes ordinary SDR and the
-    /// application owns the monitor conversion. When it is set, this structure cannot reliably
-    /// separate HDR from automatic color management, so the mode stays unknown.
+    /// Bit 1 is advancedColorEnabled and bit 2 is wideColorEnforced. When both are clear the display
+    /// composes ordinary SDR and the application owns the monitor conversion. Otherwise Windows may
+    /// already convert color, and this structure cannot reliably separate HDR from automatic color
+    /// management, so the mode stays unknown rather than risking a second conversion.
     /// </remarks>
     public static PdfDisplayColorMode LegacyColorMode(uint flags) =>
-        (flags & 2) == 0 ? PdfDisplayColorMode.ConventionalSdr : PdfDisplayColorMode.Unknown;
+        (flags & 6) == 0 ? PdfDisplayColorMode.ConventionalSdr : PdfDisplayColorMode.Unknown;
 
     /// <summary>Ends discovery without destroying the caller-owned window.</summary>
     public void Dispose()
