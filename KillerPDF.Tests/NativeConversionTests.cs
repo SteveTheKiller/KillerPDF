@@ -20,6 +20,12 @@ public sealed class NativeConversionTests
     [InlineData(25, 25, 10, true)]
     [InlineData(210, 297, -1, false)]
     [InlineData(double.NaN, 297, 15, false)]
+    // ISO 32000-1 annex C.2 caps a PDF page side at 14,400 pt (200 in, 5,080 mm). A 50 mm tall strip
+    // stays under the layout's pixel area (5,100 mm is 19,276 x 189 px = 3,643,164 px), so only the
+    // PDF limit refuses 5,100 mm (14,457 pt), while exactly 5,080 mm (14,400 pt) is accepted.
+    [InlineData(5080, 50, 5, true)]
+    [InlineData(5100, 50, 5, false)]
+    [InlineData(50, 5100, 5, false)]
     public void ConversionPageSizesMatchWhatEpubLayoutAccepts(double width, double height, double margin, bool fits) =>
         Assert.Equal(fits, NativePdfConversion.FitsLayout(width, height, margin));
 

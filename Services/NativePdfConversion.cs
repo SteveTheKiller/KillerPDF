@@ -11,14 +11,17 @@ internal static class NativePdfConversion
     private const double ConversionFontCssPixels = 12 * 96d / 72;
 
     /// <summary>
-    /// True when the paper and margins in millimeters are a page the EPUB layout accepts. The rule
-    /// itself is the engine's, so the dialog cannot accept a size that layout refuses later.
+    /// True when the paper and margins in millimeters are a page the EPUB layout accepts and a PDF
+    /// reader opens. Both rules are the engine's, so the dialog cannot accept a size refused later.
     /// </summary>
     internal static bool FitsLayout(double widthMm, double heightMm, double marginMm) =>
-        EpubLayoutOptions.FitsPageLimits(widthMm * CssPixelsPerMillimeter, heightMm * CssPixelsPerMillimeter,
+        EpubPdfConversionOptions.FitsPdfPageLimit(MillimetersToPoints(widthMm), MillimetersToPoints(heightMm))
+        && EpubLayoutOptions.FitsPageLimits(widthMm * CssPixelsPerMillimeter, heightMm * CssPixelsPerMillimeter,
             marginMm * CssPixelsPerMillimeter, ConversionFontCssPixels);
 
-    internal static double MillimetersToPoints(double millimeters) => millimeters * PointsPerMillimeter;
+    // Rounded to a millionth of a point so an exact size such as 5,080 mm (14,400 pt) is not pushed
+    // over a limit by binary floating point (5080 * 72 / 25.4 is 14400.000000000002 unrounded).
+    internal static double MillimetersToPoints(double millimeters) => Math.Round(millimeters * PointsPerMillimeter, 6);
 
     /// <summary>
     /// The app's EPUB conversion settings for a chosen paper size in points. A chapter the reader
