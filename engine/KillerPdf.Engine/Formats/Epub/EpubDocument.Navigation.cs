@@ -131,6 +131,18 @@ public sealed partial class EpubDocument
         return target.Length <= 4096;
     }
 
+    // The package-relative path a local reference names, whether or not the file exists; null outside the package.
+    private static string? PackagePathOf(string documentPath, string reference)
+    {
+        string trimmed = reference.Trim(' ', '\t', '\r', '\n');
+        int fragment = trimmed.IndexOf('#');
+        string path = fragment < 0 ? trimmed : trimmed[..fragment];
+        if (path.Length == 0) return documentPath;
+        string prefix = documentPath.Contains('/') ? documentPath[..(documentPath.LastIndexOf('/') + 1)] : "";
+        try { return ResolvePath(prefix, path); }
+        catch (InvalidDataException) { return null; }
+    }
+
     private string? TryNavigationTarget(string navigationPath, string reference)
     {
         try { return NavigationTarget(navigationPath, reference); }

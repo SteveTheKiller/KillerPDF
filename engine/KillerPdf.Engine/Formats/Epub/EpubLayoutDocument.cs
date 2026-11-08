@@ -66,6 +66,8 @@ public sealed record EpubChapterDiagnostic(int SpineIndex, string Href, string M
 {
     /// <summary>Gets the stable reason category, for localizing the English message.</summary>
     public EpubOmissionReason Reason { get; init; }
+    /// <summary>Gets the package-relative path of the one omitted item (an image or a link target), or null when there is none.</summary>
+    public string? ItemHref { get; init; }
 }
 
 /// <summary>Why native EPUB layout left out a chapter or an item; values keep their meaning across versions.</summary>

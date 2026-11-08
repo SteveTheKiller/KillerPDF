@@ -256,7 +256,7 @@ public sealed partial class EpubDocument
         foreach (string unresolved in content.UnresolvedLinks.Distinct(StringComparer.Ordinal).Take(1000))
             contentDiagnostics.Add(new(spineIndex, resource.Href,
                 "The link target " + unresolved + " is not in the book, so the link is inactive.")
-            { Reason = EpubOmissionReason.MissingResource });
+            { Reason = EpubOmissionReason.MissingResource, ItemHref = PackagePathOf(resource.Href, unresolved) });
         var linkTargets = new Dictionary<string, string?>(StringComparer.Ordinal);
         var formatting = new EpubFormattingTree(content, cancellationToken);
         var bodyMargins = content.ResolveBodyMargins(availableWidth);
@@ -1695,7 +1695,8 @@ public sealed partial class EpubDocument
                 catch (EpubImageUnavailableException error)
                 {
                     // One image the reader cannot show is omitted; the chapter keeps its text.
-                    contentDiagnostics.Add(new(spineIndex, resource.Href, error.Message) { Reason = error.Reason });
+                    contentDiagnostics.Add(new(spineIndex, resource.Href, error.Message)
+                    { Reason = error.Reason, ItemHref = PackagePathOf(resource.Href, source) });
                     return null;
                 }
             }
