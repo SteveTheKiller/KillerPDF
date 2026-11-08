@@ -154,7 +154,8 @@ public sealed partial class EpubDocument
                         placement.Width * pointsPerCssPixel, placement.Height * pointsPerCssPixel, external);
                     continue;
                 }
-                var destination = layout.ResolveNavigationTarget(target, cancellationToken);
+                // A link whose anchor is not in the book is left out; every other link is kept.
+                if (TryResolve(target) is not { } destination) continue;
                 builder.AddPageLink(pageIndex, placement.Left * pointsPerCssPixel,
                     options.PageHeightPoints - (placement.Top + placement.Height) * pointsPerCssPixel,
                     placement.Width * pointsPerCssPixel, placement.Height * pointsPerCssPixel,
@@ -172,11 +173,13 @@ public sealed partial class EpubDocument
             foreach (var entry in entries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (entry.Target.Length == 0)
+                // A bookmark whose anchor is missing opens its chapter; one with no chapter stays a heading.
+                var destination = entry.Target.Length == 0 ? null : TryResolve(entry.Target)
+                    ?? (entry.Target.Contains('#') ? TryResolve(entry.Target[..entry.Target.IndexOf('#')]) : null);
+                if (destination is null)
                     builder.AddBookmarkHeading(entry.Label, level);
                 else
                 {
-                    var destination = layout.ResolveNavigationTarget(entry.Target, cancellationToken);
                     builder.AddBookmark(entry.Label, destination.PageIndex, level, new PdfBookmarkOptions
                     {
                         Destination = PdfDestination.At(destination.Left * pointsPerCssPixel,
@@ -185,6 +188,12 @@ public sealed partial class EpubDocument
                 }
                 AddBookmarks(entry.Children, level + 1);
             }
+        }
+
+        EpubNavigationDestination? TryResolve(string target)
+        {
+            try { return layout.ResolveNavigationTarget(target, cancellationToken); }
+            catch (ArgumentException) { return null; }
         }
     }
 }

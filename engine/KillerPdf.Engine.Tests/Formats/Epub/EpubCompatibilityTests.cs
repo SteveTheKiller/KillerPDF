@@ -157,6 +157,8 @@ public sealed class EpubCompatibilityTests
         internal List<string> Chapters { get; } = new();
         internal string Css { get; init; } = "";
         internal string SpineAttributes { get; init; } = "";
+        internal string SpineToc { get; init; } = "";
+        internal string ExtraSpine { get; init; } = "";
         internal string ExtraManifest { get; init; } = "";
         internal string? Encryption { get; init; }
         internal string? Nav { get; init; }
@@ -183,7 +185,7 @@ public sealed class EpubCompatibilityTests
                 Add("OEBPS/nav.xhtml", Encoding.UTF8.GetBytes(Nav ?? "<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\"><head><title>Contents</title></head><body><nav epub:type=\"toc\"><ol><li><a href=\"text/c0.xhtml\">Start</a></li></ol></nav></body></html>"));
                 Add("OEBPS/content.opf", Encoding.UTF8.GetBytes($"""
                     <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:uuid:12345678-1234-1234-1234-123456789abc</dc:identifier><dc:title>Compat</dc:title><dc:language>en</dc:language></metadata>
-                    <manifest>{manifest}<item id="css" href="text/style.css" media-type="text/css"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>{ExtraManifest}</manifest><spine>{spine}</spine></package>
+                    <manifest>{manifest}<item id="css" href="text/style.css" media-type="text/css"/><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>{ExtraManifest}</manifest><spine{(SpineToc.Length > 0 ? " toc=\"" + SpineToc + "\"" : "")}>{spine}{ExtraSpine}</spine></package>
                     """));
 
                 void Add(string path, byte[] data, CompressionLevel level = CompressionLevel.Optimal)

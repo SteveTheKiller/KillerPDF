@@ -336,16 +336,15 @@ public sealed class EpubBodyBoxTests
         Assert.Equal(0, destination.PageIndex);
         Assert.Equal(1, destination.TextOffset);
         Assert.Equal(19.6, destination.Left, 6);
-        Assert.Throws<ArgumentException>(() => layout.ResolveNavigationTarget("EPUB/text.xhtml#hidden"));
+        // A hidden anchor is still a destination, at the visible text that follows it (EP-BF-020).
+        Assert.Equal(destination, layout.ResolveNavigationTarget("EPUB/text.xhtml#hidden"));
         Assert.Equal(preserved, source);
     }
 
     [Theory]
     [InlineData("<span class='hide' onclick='alert(1)'>A</span>", "Scripted EPUB XHTML text is unsupported.")]
     [InlineData("<script class='hide'>alert(1)</script>", "Scripted EPUB XHTML text is unsupported.")]
-    [InlineData("<img class='hide' src='https://example.com/image.png'/>", "External or unresolved")]
-    [InlineData("<img class='hide' src='missing.png'/>", "External or unresolved")]
-    public void DisplayNoneDoesNotBypassScriptOrResourceDiagnostics(string hidden, string diagnosis)
+    public void DisplayNoneDoesNotBypassScriptDiagnostics(string hidden, string diagnosis)
     {
         byte[] source = Book("", ".hide{display:none}", "A" + hidden + "A", ""), preserved = source.ToArray();
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));

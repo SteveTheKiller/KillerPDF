@@ -94,9 +94,7 @@ public sealed partial class EpubDocumentTests
     [Theory]
     [InlineData("<script>execute()</script><p>A</p>")]
     [InlineData("<p onclick='execute()'>A</p>")]
-    [InlineData("<p><img src='https://example.invalid/image.png' alt='Image'/></p>")]
-    [InlineData("<p><a href='javascript:execute()'>A</a></p>")]
-    public void Html5DeclarationDoesNotAdmitScriptsOrExternalReferences(string body)
+    public void Html5DeclarationDoesNotAdmitScripts(string body)
     {
         var book = Html5Book(Encoding.UTF8.GetBytes("<!DOCTYPE html><html xmlns='http://www.w3.org/1999/xhtml'><head/><body>"
             + body + "</body></html>"));
@@ -105,6 +103,22 @@ public sealed partial class EpubDocumentTests
         Assert.Throws<NotSupportedException>(() => book.ReadText(0));
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(
             new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 }));
+    }
+
+    // External references stay inert: the image is omitted and the link draws as plain text, never fetched.
+    [Theory]
+    [InlineData("<p><img src='https://example.invalid/image.png' alt='Image'/>A</p>")]
+    [InlineData("<p><a href='javascript:execute()'>A</a></p>")]
+    public void Html5DeclarationKeepsExternalReferencesInert(string body)
+    {
+        var book = Html5Book(Encoding.UTF8.GetBytes("<!DOCTYPE html><html xmlns='http://www.w3.org/1999/xhtml'><head/><body>"
+            + body + "</body></html>"));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(format12: false, includeOutlines: true));
+
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 16, font) { FontSize = 10, Margin = 2 });
+
+        Assert.Null(Assert.Single(layout.Pages[0].TextPlacements).LinkTarget);
+        Assert.NotEmpty(layout.ContentDiagnostics);
     }
 
     [Fact]

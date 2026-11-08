@@ -995,12 +995,12 @@ public sealed class EpubCssClassSelectorTests
     }
 
     [Fact]
-    public void MissingAnchorFragmentIsDiagnosedDuringConversion()
+    public void ALinkToAMissingAnchorIsLeftOutOfTheConvertedPdf()
     {
         var book = EpubDocument.Open(Book("", "<p><a href='#missing'>A</a></p>"));
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        Assert.Equal("target", Assert.Throws<ArgumentException>(() =>
-            book.ConvertToPdf(new EpubPdfConversionOptions(font))).ParamName);
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        Assert.Empty(new PdfLinkReader(pdf).ReadPage(0));
     }
 
     [Fact]

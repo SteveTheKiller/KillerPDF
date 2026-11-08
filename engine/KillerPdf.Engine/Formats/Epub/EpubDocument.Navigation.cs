@@ -10,8 +10,19 @@ public sealed partial class EpubDocument
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (Version == "2.0") return ReadNcx(cancellationToken);
+        // EPUB 3 books usually carry an NCX for older readers; it stands in when the navigation document cannot be read.
+        try { return ReadNavigationDocument(cancellationToken); }
+        catch (InvalidDataException) when (_navigationTocId is not null)
+        {
+            return ReadNcx(cancellationToken);
+        }
+    }
+
+    private IReadOnlyList<EpubNavigationEntry> ReadNavigationDocument(CancellationToken cancellationToken)
+    {
         var declarations = Manifest.Where(x => Tokens(x.Properties).Contains("nav", StringComparer.Ordinal)).Take(2).ToArray();
-        if (declarations.Length == 0) return Array.Empty<EpubNavigationEntry>();
+        if (declarations.Length == 0)
+            return _navigationTocId is null ? Array.Empty<EpubNavigationEntry>() : ReadNcx(cancellationToken);
         if (declarations.Length != 1 || declarations[0].MediaType != "application/xhtml+xml")
             throw new InvalidDataException("Invalid EPUB navigation declaration.");
         var declaration = declarations[0];
@@ -54,8 +65,9 @@ public sealed partial class EpubDocument
                 var heading = link ?? item.Element(html + "span") ?? throw new InvalidDataException("Missing EPUB navigation label.");
                 var label = NavigationLabel(heading);
                 if (label.Length == 0) throw new InvalidDataException("Empty EPUB navigation label.");
-                result.Add(new EpubNavigationEntry(label, link is null ? "" : NavigationTarget(declaration.Href, Required(link, "href")),
-                    ReadList(item.Element(html + "ol"), depth + 1)));
+                // An entry whose file is not in the book stays as an unlinked heading so its children keep their place.
+                string? target = link is null || (string?)link.Attribute("href") is not { } href ? null : TryNavigationTarget(declaration.Href, href);
+                result.Add(new EpubNavigationEntry(label, target ?? "", ReadList(item.Element(html + "ol"), depth + 1)));
             }
             return result.AsReadOnly();
         }
@@ -88,8 +100,8 @@ public sealed partial class EpubDocument
                 var label = string.Join(' ', Tokens(point.Element(ncx + "navLabel")?.Element(ncx + "text")?.Value ?? ""));
                 if (label.Length == 0) throw new InvalidDataException("Empty EPUB navigation label.");
                 var content = point.Element(ncx + "content") ?? throw new InvalidDataException("Missing EPUB NCX target.");
-                result.Add(new EpubNavigationEntry(label, NavigationTarget(declaration.Href,
-                    Required(content, "src")), ReadPoints(point, depth + 1)));
+                result.Add(new EpubNavigationEntry(label, TryNavigationTarget(declaration.Href,
+                    Required(content, "src")) ?? "", ReadPoints(point, depth + 1)));
             }
             return result.AsReadOnly();
         }
@@ -117,6 +129,12 @@ public sealed partial class EpubDocument
             || uri.Scheme is not ("http" or "https" or "mailto")) return false;
         target = uri.AbsoluteUri;
         return target.Length <= 4096;
+    }
+
+    private string? TryNavigationTarget(string navigationPath, string reference)
+    {
+        try { return NavigationTarget(navigationPath, reference); }
+        catch (InvalidDataException) { return null; }
     }
 
     private string NavigationTarget(string navigationPath, string reference)

@@ -85,11 +85,12 @@ public sealed partial class EpubDocumentTests
     [InlineData("../../outside.xhtml")]
     [InlineData("missing.xhtml#target")]
     [InlineData("one.xhtml#%0Aunsafe")]
-    public void Html5NavigationStillRejectsUnsafeOrMissingDestinations(string target)
+    public void Html5NavigationLeavesUnsafeOrMissingDestinationsUnlinked(string target)
     {
         var book = NavigationBook("<!DOCTYPE html>" + NavList("<li><a href='" + target + "'>Chapter</a></li>"));
 
-        Assert.Throws<InvalidDataException>(() => book.ReadNavigation());
+        var entry = Assert.Single(book.ReadNavigation());
+        Assert.Equal(("Chapter", ""), (entry.Label, entry.Target));
     }
 
     [Theory]

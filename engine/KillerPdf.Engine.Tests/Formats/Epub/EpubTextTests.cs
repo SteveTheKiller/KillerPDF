@@ -30,14 +30,15 @@ public sealed partial class EpubDocumentTests
     }
 
     [Theory]
-    [InlineData("<p><img src='https://example.invalid/image.png' alt='Image'/></p>", "")]
-    [InlineData("<p><a href='javascript:execute()'>Text</a></p>", "")]
-    [InlineData("<p><a href='file:///C:/private.txt'>Text</a></p>", "")]
-    [InlineData("<p><a href='../../outside.xhtml'>Text</a></p>", "")]
-    [InlineData("<p>Text</p>", "<link rel='stylesheet' href='https://example.invalid/style.css'/>")]
-    public void DiagnosesExternalOrUnsafeXhtmlReferencesWithoutFetching(string body, string head)
+    [InlineData("<p><img src='https://example.invalid/image.png' alt='Image'/></p>", "", "")]
+    [InlineData("<p><a href='javascript:execute()'>Text</a></p>", "", "Text")]
+    [InlineData("<p><a href='file:///C:/private.txt'>Text</a></p>", "", "Text")]
+    [InlineData("<p><a href='../../outside.xhtml'>Text</a></p>", "", "Text")]
+    [InlineData("<p>Text</p>", "<link rel='stylesheet' href='https://example.invalid/style.css'/>", "Text")]
+    // References outside the package are never fetched; the text around them still reads (EP-BF-019).
+    public void ExternalOrUnsafeXhtmlReferencesAreInertAndNeverFetched(string body, string head, string text)
     {
-        Assert.Throws<NotSupportedException>(() => TextBook(body, head).ReadText(0));
+        Assert.Equal(text, TextBook(body, head).ReadText(0));
     }
 
     [Theory]

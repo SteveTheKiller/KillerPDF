@@ -63,19 +63,13 @@ public sealed partial class EpubDocument
                     {
                         if (reader.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase))
                             throw new NotSupportedException("Scripted EPUB XHTML text is unsupported.");
-                        if (reader.LocalName is "href" or "src" or "data" or "poster" or "action" or "formaction")
+                        // A link to a file the book does not contain stays inert and is reported; an image that is
+                        // missing is omitted when it is laid out. Nothing is ever fetched from outside the package.
+                        if (hyperlink && reader.NamespaceURI.Length == 0 && reader.LocalName == "href" && native is not null)
                         {
                             string reference = reader.Value.Trim(' ', '\t', '\r', '\n');
-                            try
-                            {
-                                if (!(hyperlink && reader.NamespaceURI.Length == 0 && reader.LocalName == "href"
-                                    && TryExternalHyperlink(reference, out _)))
-                                    NavigationTarget(resource.Href, reference);
-                            }
-                            catch (InvalidDataException exception)
-                            {
-                                throw new NotSupportedException("External or unresolved EPUB XHTML references are unsupported.", exception);
-                            }
+                            if (!TryExternalHyperlink(reference, out _) && TryNavigationTarget(resource.Href, reference) is null)
+                                native.UnresolvedLinks.Add(reference);
                         }
                         // A source set is an optional alternative to src, which is used instead; xml:base would
                         // change how every reference resolves, so it stays refused for this chapter.
@@ -98,7 +92,13 @@ public sealed partial class EpubDocument
                     if (bodyDepth < 0 || reader.Depth <= bodyDepth) continue;
                     if (reader.LocalName == "style") styleDepth = reader.IsEmptyElement ? -1 : reader.Depth;
                     if (styleDepth >= 0) continue;
-                    if (native?.CurrentElementDisplayNone == true) continue;
+                    if (native?.CurrentElementDisplayNone == true)
+                    {
+                        // An anchor inside a display:none subtree is still a destination; it lands where the
+                        // following visible text starts.
+                        if (reader.GetAttribute("id") is { } hiddenId) native.Anchors.Add((hiddenId, result.Length, native.CurrentElement!));
+                        continue;
+                    }
                     if (reader.LocalName == "pre")
                     {
                         if (preDepth >= 0) throw new NotSupportedException("Nested EPUB preformatted text blocks are unsupported.");

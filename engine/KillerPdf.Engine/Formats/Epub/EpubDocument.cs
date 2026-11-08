@@ -34,11 +34,18 @@ public sealed partial class EpubDocument
             metadata?.Element(Dc + "creator")?.Value ?? "");
         var prefix = packagePath.Contains('/') ? packagePath[..(packagePath.LastIndexOf('/') + 1)] : "";
         var manifest = new Dictionary<string, EpubManifestItem>(StringComparer.Ordinal);
+        var missingItems = new HashSet<string>(StringComparer.Ordinal);
         foreach (var item in root.Element(Opf + "manifest")?.Elements(Opf + "item") ?? [])
         {
             var id = Required(item, "id");
             var href = ResolvePath(prefix, Required(item, "href"));
-            if (!resources.ContainsKey(href) || !manifest.TryAdd(id, new EpubManifestItem(id, href,
+            // An item whose file is not in the package is skipped with any spine reference to it (EP-BF-018).
+            if (!resources.ContainsKey(href))
+            {
+                missingItems.Add(id);
+                continue;
+            }
+            if (!manifest.TryAdd(id, new EpubManifestItem(id, href,
                 Required(item, "media-type"), (string?)item.Attribute("properties") ?? "")) || manifest.Count > 4096)
                 throw new InvalidDataException("Invalid EPUB manifest resource.");
         }
@@ -50,6 +57,7 @@ public sealed partial class EpubDocument
         var readingOrder = new List<EpubSpineItem>();
         foreach (var item in spine?.Elements(Opf + "itemref") ?? [])
         {
+            if (missingItems.Contains(Required(item, "idref"))) continue;
             if (!manifest.TryGetValue(Required(item, "idref"), out var resource) || readingOrder.Count >= 4096)
                 throw new InvalidDataException("Invalid EPUB spine reference.");
             readingOrder.Add(new EpubSpineItem(resource, (string?)item.Attribute("linear") != "no",

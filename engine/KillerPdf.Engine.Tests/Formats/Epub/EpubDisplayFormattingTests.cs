@@ -65,14 +65,15 @@ public sealed class EpubDisplayFormattingTests
     [Theory]
     [InlineData("https://example.com/cover.png")]
     [InlineData("missing.png")]
-    public void DirectBodyImageStillRejectsExternalOrMissingResources(string reference)
+    public void DirectBodyImageWithAnExternalOrMissingSourceIsOmitted(string reference)
     {
         byte[] source = Book(false, "<img src='" + reference + "' alt='Cover' title='Cover'/>", ""), preserved = source.ToArray();
         var book = EpubDocument.Open(source);
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(
+        EpubImageCompatibilityTests.AssertImageOmitted(book.CreateLayout(
             new EpubLayoutOptions(40, 36, Font()) { FontSize = 10, Margin = 2 }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(Font())
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Font())
         { PageWidthPoints = 30, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Empty(new PdfPageContentReader(pdf).Read(0).Images);
         Assert.Equal(preserved, source);
     }
 

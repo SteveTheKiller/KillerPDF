@@ -154,10 +154,10 @@ public sealed partial class EpubDocumentTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void RejectsEncodedControlCharactersInNavigationFragments(bool ncx)
+    public void AnEncodedControlCharacterFragmentLeavesItsEntryUnlinked(bool ncx)
     {
         var book = TargetBook(ncx, "one.xhtml#%0Aunsafe");
-        Assert.Throws<InvalidDataException>(() => book.ReadNavigation());
+        Assert.Equal("", Assert.Single(book.ReadNavigation()).Target);
     }
 
     [Theory]
@@ -169,9 +169,9 @@ public sealed partial class EpubDocumentTests
     [InlineData(true, "missing.xhtml#target")]
     [InlineData(false, "file:///C:/chapter.xhtml")]
     [InlineData(true, "//example.invalid/chapter.xhtml")]
-    public void RejectsNonlocalOrMissingNavigationTargets(bool ncx, string target)
+    public void NonlocalOrMissingNavigationTargetsLeaveTheirEntryUnlinked(bool ncx, string target)
     {
-        Assert.Throws<InvalidDataException>(() => TargetBook(ncx, target).ReadNavigation());
+        Assert.Equal("", Assert.Single(TargetBook(ncx, target).ReadNavigation()).Target);
     }
 
     [Theory]

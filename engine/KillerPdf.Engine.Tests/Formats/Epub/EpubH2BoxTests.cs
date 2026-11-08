@@ -168,12 +168,15 @@ public sealed class EpubH2BoxTests(ITestOutputHelper output)
         Assert.Equal(display == "none" ? 1.5 : 6, letters[^1].StartBaseLine.X);
     }
 
+    // An unsafe link draws as plain text and an unpackaged image is omitted; neither refuses the chapter.
     [Theory]
-    [InlineData("<h2><a href='javascript:execute()'>A</a></h2>", "External or unresolved EPUB XHTML references are unsupported.")]
-    // The linked image itself is admitted now; its unpackaged source is what still refuses the chapter.
-    [InlineData("<h2><a href='#x'><img src='image.png'/></a></h2>", "External or unresolved EPUB XHTML references are unsupported.")]
-    public void InvalidNestingAndUnsafeReferencesRetainExplicitRefusal(string body, string message)
-        => AssertRefused(body, message);
+    [InlineData("<h2><a href='javascript:execute()'>A</a></h2>")]
+    [InlineData("<h2><a href='#x'><img src='image.png'/>A</a></h2>")]
+    public void UnsafeLinksAndUnpackagedImagesInHeadingsStayInert(string body)
+    {
+        var layout = EpubCompatibilityTests.AssertLaysOut(EpubDocument.Open(Book(body, "h2{font-weight:normal}")), NativeOptions(Font()));
+        Assert.NotEmpty(layout.ContentDiagnostics);
+    }
 
     // Nesting HTML admits, unknown elements and an image inside a link lay out; the link has no image hit region yet.
     [Theory]

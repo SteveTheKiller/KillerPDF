@@ -149,6 +149,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private double _bodyFontSize = fallbackSize;
     internal List<SourceCharacter?> Characters { get; } = new();
     internal List<(string Id, int Offset, Element Owner)> Anchors { get; } = new();
+    /// <summary>Hyperlink references whose target file is not in the book, in source order.</summary>
+    internal List<string> UnresolvedLinks { get; } = new();
     internal Element? CurrentElement { get; private set; }
     internal List<InlineReference> Inlines { get; } = new();
     internal Element? ImageElement { get; private set; }

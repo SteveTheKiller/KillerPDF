@@ -87,12 +87,18 @@ public sealed partial class EpubDocumentTests
     }
 
     [Fact]
-    public void ConversionDiagnosesMissingNavigationAnchor()
+    public void ConversionPointsABookmarkWithAMissingAnchorAtItsChapter()
     {
         var book = EpubDocument.Open(EpubNavigationDestinationTests.Book(
             entries: "<li><a href='../first.xhtml#missing'>Missing</a></li>"));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(NavigationConversionOptions()));
 
-        Assert.Throws<ArgumentException>(() => book.ConvertToPdf(NavigationConversionOptions()));
+        var bookmark = Assert.Single(PdfBookmarkReader.Read(pdf));
+
+        Assert.Equal("Missing", bookmark.Title);
+        Assert.Equal(book.CreateLayout(new EpubLayoutOptions(100, 100, NavigationConversionOptions().DefaultFont))
+            .ResolveNavigationTarget(book.Spine.Single(entry => entry.Item.Href.EndsWith("first.xhtml")).Item.Href).PageIndex,
+            bookmark.DestinationPageIndex);
     }
 
     private static EpubPdfConversionOptions NavigationConversionOptions()

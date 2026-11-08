@@ -257,8 +257,7 @@ public sealed class EpubFontWeightTests
 
     [Theory]
     [InlineData("<p><strong onclick='bad'>A</strong></p>")]
-    [InlineData("<p><a href='#x'><strong><img src='missing.png'/></strong></a></p>")]
-    public void StrongAdmissionPreservesUnsupportedContextsAttributesAndWeightKeywords(string body)
+    public void StrongAdmissionKeepsScriptingRefused(string body)
     {
         var book = EpubDocument.Open(Book(false, body));
         var regular = Face(false); var bold = Face(true);
@@ -266,6 +265,17 @@ public sealed class EpubFontWeightTests
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(40, 26, regular)
         { FontSize = 10, Margin = 2, FontFaceResolver = Resolve }));
         Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(regular) { FontFaceResolver = Resolve }));
+    }
+
+    // A missing image inside a bold link is omitted on its own; the chapter lays out.
+    [Fact]
+    public void AMissingImageInsideStrongIsOmitted()
+    {
+        var book = EpubDocument.Open(Book(false, "<p><a href='#x'><strong><img src='missing.png'/></strong></a></p>"));
+        var regular = Face(false); var bold = Face(true);
+        EpubFontFaceResult? Resolve(EpubFontFaceRequest request) => new(request.Weight == 700 ? bold : regular, request.Weight, EpubFontMatch.Exact);
+        EpubImageCompatibilityTests.AssertImageOmitted(book.CreateLayout(new EpubLayoutOptions(40, 26, regular)
+        { FontSize = 10, Margin = 2, FontFaceResolver = Resolve }));
     }
 
     // Headings nested in other content, unknown h7, foreign-namespace and advisory attributes all lay out:

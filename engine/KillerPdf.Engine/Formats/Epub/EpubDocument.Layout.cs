@@ -253,7 +253,11 @@ public sealed partial class EpubDocument
         LoadNativeStylesheets(resource.Href, content, ref remainingStylesheetBytes,
             ref remainingStylesheetReferences, chargedStylesheets, cancellationToken);
         string text = ReadStructuralText(spineIndex, cancellationToken, content);
-        var linkTargets = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (string unresolved in content.UnresolvedLinks.Distinct(StringComparer.Ordinal).Take(1000))
+            contentDiagnostics.Add(new(spineIndex, resource.Href,
+                "The link target " + unresolved + " is not in the book, so the link is inactive.")
+            { Reason = EpubOmissionReason.MissingResource });
+        var linkTargets = new Dictionary<string, string?>(StringComparer.Ordinal);
         var formatting = new EpubFormattingTree(content, cancellationToken);
         var bodyMargins = content.ResolveBodyMargins(availableWidth);
         var bodyPadding = content.ResolveBodyPadding(availableWidth);
@@ -1296,7 +1300,8 @@ public sealed partial class EpubDocument
                 }
 
                 bool IsSpace(EpubFormattingTree.Atom atom) => atom.IsSpace && !atom.Owner.Style.PreserveWhitespace;
-                static bool BreakAfter(char value) => value is '­' or '​' or >= ' ' and <= ' ' and not ' ';
+                static bool BreakAfter(char value) => value is (char)0x00AD or (char)0x200B
+                    or >= (char)0x2000 and <= (char)0x200A and not (char)0x2007;
 
                 // Measures the word starting at an atom up to the next space or replaced element.
                 double WordWidth(int from, double previousTracking, out double leadingTracking)
@@ -1334,9 +1339,10 @@ public sealed partial class EpubDocument
                 if (!linkTargets.TryGetValue(reference, out string? target))
                 {
                     string trimmed = reference.Trim(' ', '\t', '\r', '\n');
+                    // A target outside the book leaves the text without a link (reported once per chapter).
                     target = TryExternalHyperlink(trimmed, out string external)
-                        ? external : NavigationTarget(resource.Href, trimmed);
-                    if (target.Length > 4096)
+                        ? external : TryNavigationTarget(resource.Href, trimmed);
+                    if (target?.Length > 4096)
                         throw new InvalidDataException("Native EPUB hyperlink targets exceed their 4,096-character limit.");
                     linkTargets.Add(reference, target);
                 }

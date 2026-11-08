@@ -192,10 +192,10 @@ public sealed class EpubJpegImageLayoutTests
     [Theory]
     [InlineData("https://example.invalid/check.jpg")]
     [InlineData("//example.invalid/check.jpg")]
-    public void JpegSupportDoesNotPermitExternalOrFragmentImageSources(string reference)
+    public void ExternalJpegSourcesAreOmittedAndNeverFetched(string reference)
     {
         var book = EpubDocument.Open(Package(Convert.FromBase64String(GrayJpeg), reference: reference));
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(
+        EpubImageCompatibilityTests.AssertImageOmitted(book.CreateLayout(
             new EpubLayoutOptions(24, 24, Font()) { Margin = 2, FontSize = 10 }));
     }
 
