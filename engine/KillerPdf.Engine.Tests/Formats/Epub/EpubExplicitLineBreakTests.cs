@@ -151,7 +151,6 @@ public sealed class EpubExplicitLineBreakTests
 
     [Theory]
     [InlineData("<p>A<br/>&#937;</p>", "The native EPUB font has no glyph for U+03A9.")]
-    [InlineData("<p>A<br/>AAA</p>", "The native EPUB word exceeds the available line width.")]
     // Event handlers are scripting, which the reader refuses for the chapter rather than ignoring silently.
     [InlineData("<p>A<br onclick=\"go()\"/>A</p>", "Scripted EPUB XHTML text is unsupported.")]
     public void BreakSupportPreservesTextWidthAttributeAndStructureGuards(string body, string message)

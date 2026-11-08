@@ -550,18 +550,21 @@ public sealed class EpubCssClassSelectorTests
     }
 
     [Fact]
-    public void TableCellTallerThanAFreshPageIsDiagnosedWithoutChangingSource()
+    public void TableCellTallerThanAFreshPageFlowsAsBlocksWithoutChangingSource()
     {
         byte[] source = Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}",
             "<table><tr><td>A A A</td><td>A</td></tr></table>"), original = source.ToArray();
         var book = EpubDocument.Open(source);
         var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
-        Assert.Equal("Native EPUB rows taller than one page are not implemented.",
-            Assert.Throws<NotSupportedException>(() => book.CreateLayout(
-                new EpubLayoutOptions(30, 26, font) { FontSize = 10, Margin = 2 })).Message);
-        Assert.Equal("Native EPUB rows taller than one page are not implemented.",
-            Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
-                { PageWidthPoints = 22.5, PageHeightPoints = 19.5, MarginPoints = 1.5, FontSizePoints = 7.5 })).Message);
+        // Three wrapped lines in a 12px cell need 30px of a 22px content box, so the cells flow one after
+        // another at their 12px width: two lines per page, then the second cell's line.
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 26, font) { FontSize = 10, Margin = 2 });
+        Assert.Equal(new[] { 2, 2 }, layout.Pages.Select(page => page.TextPlacements.Count));
+        Assert.All(layout.Pages.SelectMany(page => page.TextPlacements), placement => Assert.Equal(2, placement.Left));
+        Assert.Equal(new[] { "A A ", "A\nA" }, layout.Pages.Select(page => page.Text));
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+            { PageWidthPoints = 22.5, PageHeightPoints = 19.5, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        Assert.Equal(2, new PdfPageContentReader(pdf).PageCount);
         Assert.Equal(original, source);
     }
 

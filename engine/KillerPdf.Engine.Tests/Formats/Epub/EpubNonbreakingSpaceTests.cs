@@ -71,14 +71,17 @@ public sealed class EpubNonbreakingSpaceTests
     }
 
     [Fact]
-    public void NonbreakingUnitWiderThanTheLineIsExplicitlyRefused()
+    public void NonbreakingUnitWiderThanTheLineBreaksWhereItOverflows()
     {
         var font = TrueTypeFont.Load(FontBytes());
         var book = EpubDocument.Open(Book("A\u00A0A"));
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(20, 26, font)
-        { FontSize = 10, Margin = 2 }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
-        { PageWidthPoints = 15, PageHeightPoints = 19.5, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+        // The 16px line holds A and the no-break space; the second A starts the next line (decision 0009).
+        var page = Assert.Single(book.CreateLayout(new EpubLayoutOptions(20, 26, font) { FontSize = 10, Margin = 2 }).Pages);
+        Assert.Equal(new double[] { 2, 2 }, page.TextPlacements.Where(item => page.Text[item.Start - page.TextStart] == 'A')
+            .Select(item => item.Left));
+        Assert.Equal(2, new PdfPageContentReader(PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 15, PageHeightPoints = 19.5, MarginPoints = 1.5, FontSizePoints = 7.5 }))).Read(0).Letters
+            .Count(letter => letter.Value == "A"));
     }
 
     [Fact]

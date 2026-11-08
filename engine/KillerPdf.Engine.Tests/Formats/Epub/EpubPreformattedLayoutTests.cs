@@ -37,10 +37,7 @@ public sealed class EpubPreformattedLayoutTests
     [Theory]
     [InlineData("<pre>A\tA</pre>")]
     [InlineData("<pre>A&#13;A</pre>")]
-    [InlineData("<pre>AAAAAAAAAAAAA</pre>")]
-    [InlineData("<pre>AAAAAA AAAAAA</pre>")]
-    [InlineData("<pre style='margin:0;text-indent:60px'>AAA</pre>")]
-    public void UnsupportedPreformattedModesNeverCollapseOrWrapSilently(string body)
+    public void PreformattedTabsAndCarriageReturnsRemainRefused(string body)
     {
         byte[] source = Book(body), original = source.ToArray();
         var font = FontWithMappedSpace();
@@ -51,6 +48,23 @@ public sealed class EpubPreformattedLayoutTests
         { PageWidthPoints = 60, PageHeightPoints = 30, MarginPoints = 1.5, FontSizePoints = 7.5,
             FontFamilyResolver = _ => font }));
         Assert.Equal(original, source);
+    }
+
+    // Decision 0009: a preformatted line wider than the content box breaks where it overflows,
+    // keeping every character and its preserved spaces instead of refusing the chapter.
+    [Theory]
+    [InlineData("<pre>AAAAAAAAAAAAA</pre>", 13)]
+    [InlineData("<pre>AAAAAA AAAAAA</pre>", 13)]
+    [InlineData("<pre style='margin:0;text-indent:60px'>AAA</pre>", 3)]
+    public void PreformattedLinesWiderThanTheContentBoxBreakInsideIt(string body, int placed)
+    {
+        var font = FontWithMappedSpace();
+        var layout = EpubDocument.Open(Book(body)).CreateLayout(new EpubLayoutOptions(80, 40, font)
+        { FontSize = 10, Margin = 2, FontFamilyResolver = _ => font });
+        var placements = layout.Pages.SelectMany(page => page.TextPlacements).ToArray();
+        Assert.Equal(placed, placements.Length);
+        Assert.All(placements, placement => Assert.True(placement.Left + placement.Width <= 78));
+        Assert.True(placements.Select(placement => placement.Top).Distinct().Count() > 1);
     }
 
     // Display and whitespace overrides that would collapse preformatted text are dropped, so the

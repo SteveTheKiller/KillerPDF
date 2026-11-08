@@ -65,15 +65,17 @@ public sealed class EpubWordWrapLayoutTests
     [Theory]
     [InlineData("AAA")]
     [InlineData("A AAA")]
-    public void DiagnosesWordsThatCannotFitWithoutCharacterBreaking(string text)
+    public void WordsWiderThanTheLineBreakInsideTheContentBox(string text)
     {
         var book = EpubDocument.Open(Book(text));
         var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
 
-        var error = Assert.Throws<NotSupportedException>(() => book.CreateLayout(
-            new EpubLayoutOptions(16, 26, font) { FontSize = 10, Margin = 2 }));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 46, font) { FontSize = 10, Margin = 2 });
 
-        Assert.Equal("The native EPUB word exceeds the available line width.", error.Message);
+        // Every letter is placed, and none crosses the 14px right edge of the 12px content box.
+        var placements = layout.Pages.SelectMany(page => page.TextPlacements).ToArray();
+        Assert.Equal(text.Count(character => character == 'A'), placements.Length);
+        Assert.All(placements, placement => Assert.InRange(placement.Left + placement.Width, 8, 14));
     }
 
     [Fact]

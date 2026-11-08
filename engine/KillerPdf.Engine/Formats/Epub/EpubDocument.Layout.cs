@@ -469,6 +469,8 @@ public sealed partial class EpubDocument
             var initialPadding = new Dictionary<EpubFormattingTree.Block,
                 (double Height, int PaintStart, double BorderHeight, PdfRgbColor? BorderColor)>();
             var activeBounds = new Dictionary<EpubFormattingTree.Block, (double Left, double Width, double ContainingWidth)>();
+            // Cells of a row taller than a page, laid out one after another as ordinary blocks.
+            var blockCells = new HashSet<EpubFormattingTree.Block>();
             double pendingParagraphGap = 0;
             LayoutBlock(flowRoot);
             cancellationToken.ThrowIfCancellationRequested();
@@ -659,7 +661,7 @@ public sealed partial class EpubDocument
                     return;
                 }
                 if (block is EpubFormattingTree.RowGroup or EpubFormattingTree.Row
-                    || block is EpubFormattingTree.Cell && !ReferenceEquals(block, flowRoot))
+                    || block is EpubFormattingTree.Cell && !ReferenceEquals(block, flowRoot) && !blockCells.Contains(block))
                     throw new NotSupportedException("Native EPUB table parts require their table flow.");
                 double indent = block.Source.Style.TextIndentPercentage
                     ? block.Source.Style.TextIndent * contentWidth / 100 : block.Source.Style.TextIndent;
@@ -810,6 +812,7 @@ public sealed partial class EpubDocument
                     var widths = new List<double>();
                     int rowPaintCount = 0;
                     double rowLeft = contentLeft, rowHeight = 0;
+                    bool tallRow = false;
                     foreach (var child in row.Children)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -827,13 +830,21 @@ public sealed partial class EpubDocument
                         widths.Add(cellWidth);
                         var measured = LayoutFlow(cell, rowLeft, rowLeft + cellWidth, options.Margin);
                         if (measured.Pages.Count != 1)
-                            throw new NotSupportedException("Native EPUB rows taller than one page are not implemented.");
+                        {
+                            tallRow = true;
+                            break;
+                        }
                         rowPaintCount += measured.Pages[0].Glyphs.Count;
                         if (rowPaintCount > 100_000)
                             throw new InvalidDataException("The native page exceeds its paint limit.");
                         cells.Add((cell.Source, measured.Pages[0], rowLeft));
                         rowHeight = Math.Max(rowHeight, measured.Bottom - options.Margin);
                         rowLeft += cellWidth;
+                    }
+                    if (tallRow)
+                    {
+                        LayoutRowAsBlocks(row);
+                        continue;
                     }
                     if (Math.Abs(rowLeft - contentRight) > 0.0000001)
                         throw new NotSupportedException(columnsUnsupported);
@@ -905,6 +916,31 @@ public sealed partial class EpubDocument
                 }
                 if (!hadRow)
                     throw new NotSupportedException("Native EPUB tables require explicit width and row content.");
+
+                // A row that cannot fit one page keeps all of its content: its cells flow down the table's
+                // content box one after another and paginate like any block, instead of refusing the chapter.
+                void LayoutRowAsBlocks(EpubFormattingTree.Row row)
+                {
+                    var added = new List<EpubFormattingTree.Block>();
+                    for (EpubFormattingTree.Block? box = row; box is not null && !ReferenceEquals(box, table); box = box.Parent)
+                        if (activeBounds.TryAdd(box, (contentLeft, contentWidth, contentWidth))) added.Add(box);
+                    try
+                    {
+                        foreach (var child in row.Children)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            var cell = (EpubFormattingTree.Cell)child;
+                            blockCells.Add(cell);
+                            try { LayoutBlock(cell); }
+                            finally { blockCells.Remove(cell); }
+                        }
+                    }
+                    finally
+                    {
+                        foreach (var box in added) activeBounds.Remove(box);
+                    }
+                    lineBlock = table;
+                }
 
                 // CSS Tables: a cell's minimum is its widest unbreakable word and its maximum its widest line.
                 // Block content in a cell contributes its own lines; line breaks end a line and images add nothing
@@ -990,6 +1026,7 @@ public sealed partial class EpubDocument
             void LayoutInline(EpubFormattingTree.InlineSequence sequence)
             {
                 bool firstIndentedWord = !startedBlocks.Contains(lineBlock) && left > contentLeft;
+                bool indentedWordMeasured = false;
                 int first = 0, last = sequence.Atoms.Count - 1;
                 while (first <= last && IsSpace(sequence.Atoms[first])) first++;
                 while (last >= first && IsSpace(sequence.Atoms[last])) last--;
@@ -1071,27 +1108,8 @@ public sealed partial class EpubDocument
                     {
                         firstIndentedWord = false;
                         // Each collapsed separator scans only the following word, keeping lookahead linear.
-                        double wordWidth = 0;
-                        double leadingTracking = 0, previousTracking = style.LetterSpacing;
-                        bool firstCharacter = true;
-                        for (int next = at + 1; next <= last; next++)
-                        {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            var nextAtom = sequence.Atoms[next];
-                            if (nextAtom.Reference is not null || nextAtom.IsSpace) break;
-                            if (clusters.TryGetValue(nextAtom.Offset, out var nextCluster))
-                            {
-                                var nextStyle = StyleAt(nextAtom.Offset);
-                                double between = (previousTracking + nextStyle.LetterSpacing) / 2;
-                                if (firstCharacter) leadingTracking = between;
-                                else wordWidth += between;
-                                wordWidth += InlineAdvance(nextCluster, nextStyle, false);
-                                previousTracking = nextStyle.LetterSpacing;
-                                firstCharacter = false;
-                            }
-                        }
-                        if (wordWidth > contentWidth)
-                            throw new NotSupportedException("The native EPUB word exceeds the available line width.");
+                        double wordWidth = WordWidth(at + 1, style.LetterSpacing, out double leadingTracking);
+                        // A word wider than the whole line still starts its own line, then breaks where it overflows.
                         if (tracking + width + leadingTracking + wordWidth > contentRight - left)
                         {
                             FlushLine(finalLine: false);
@@ -1105,8 +1123,23 @@ public sealed partial class EpubDocument
                             continue;
                         }
                     }
-                    if (tracking + width > contentRight - left && (!firstIndentedWord || style.PreserveWhitespace))
-                        throw new NotSupportedException("The native EPUB word exceeds the available line width.");
+                    // An indented first word may overflow its line, unless it could not fit even an unindented one.
+                    if (firstIndentedWord && !style.PreserveWhitespace && !indentedWordMeasured)
+                    {
+                        indentedWordMeasured = true;
+                        if (WordWidth(at, 0, out _) > contentWidth) firstIndentedWord = false;
+                    }
+                    if (tracking + width > contentRight - left && (!firstIndentedWord || style.PreserveWhitespace) && line.Count > 0)
+                    {
+                        // Decision 0009 emergency break: with no break opportunity left, the word (or preformatted
+                        // line) breaks before the first character that no longer fits. A lone character wider than
+                        // the line is placed anyway and clipped.
+                        FlushLine(finalLine: false);
+                        left = contentLeft;
+                        lineStart = index;
+                        tracking = 0;
+                        firstIndentedWord = false;
+                    }
                     left += tracking;
                     line.Add((index, cluster.Length, left, width, cluster.Font, atom.HasSource ? outline : null, null, style,
                         lineBlock.Source.Style, atom.Owner));
@@ -1114,6 +1147,31 @@ public sealed partial class EpubDocument
                 }
 
                 bool IsSpace(EpubFormattingTree.Atom atom) => atom.IsSpace && !atom.Owner.Style.PreserveWhitespace;
+
+                // Measures the word starting at an atom up to the next space or replaced element.
+                double WordWidth(int from, double previousTracking, out double leadingTracking)
+                {
+                    double wordWidth = 0;
+                    leadingTracking = 0;
+                    bool firstCharacter = true;
+                    for (int next = from; next <= last; next++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var nextAtom = sequence.Atoms[next];
+                        if (nextAtom.Reference is not null || nextAtom.IsSpace) break;
+                        if (clusters.TryGetValue(nextAtom.Offset, out var nextCluster))
+                        {
+                            var nextStyle = StyleAt(nextAtom.Offset);
+                            double between = (previousTracking + nextStyle.LetterSpacing) / 2;
+                            if (firstCharacter) leadingTracking = between;
+                            else wordWidth += between;
+                            wordWidth += InlineAdvance(nextCluster, nextStyle, false);
+                            previousTracking = nextStyle.LetterSpacing;
+                            firstCharacter = false;
+                        }
+                    }
+                    return wordWidth;
+                }
             }
 
             string? ResolveLink(EpubNativeContent.Element? owner)
@@ -1479,8 +1537,7 @@ public sealed partial class EpubDocument
             void FinishPage(int end)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!chapterRoot && end < flowEnd)
-                    throw new NotSupportedException("Native EPUB rows taller than one page are not implemented.");
+                // A cell flow that needs a second page marks its row as taller than a page; the table lays it out as blocks.
                 if (existingPageCount + pages.Count >= 10_000)
                     throw new InvalidDataException("Native EPUB layout exceeds its 10000-page limit.");
                 var paints = backgrounds.OrderBy(fill => fill.Depth).Select(fill => fill.Paint)
