@@ -51,6 +51,30 @@ public sealed class EpubMultipleSpineLayoutTests
     }
 
     [Fact]
+    public void IsolatedLayoutReplacesOnlyTheRefusedChapterWithADiagnosisPage()
+    {
+        byte[] source = Book(["<p>A A</p>", "<p>A<sup>A</sup></p>"]), original = source.ToArray();
+        var book = EpubDocument.Open(source);
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options()));
+
+        var layout = book.CreateLayout(Options() with
+        {
+            IsolateChapterFailures = true, UnavailableChapterLabel = "Chapter unavailable"
+        });
+
+        Assert.Equal(new[] { "A ", "A" }, layout.Pages.Where(page => page.SpineIndex == 0).Select(page => page.Text));
+        var placeholder = Assert.Single(layout.Pages, page => page.SpineIndex == 1);
+        Assert.StartsWith("Chapter unavailable", placeholder.Text);
+        Assert.Contains("chapter1.xhtml", placeholder.Text);
+        var diagnostic = Assert.Single(layout.ChapterDiagnostics);
+        Assert.Equal(1, diagnostic.SpineIndex);
+        Assert.EndsWith("chapter1.xhtml", diagnostic.Href);
+        Assert.Equal("Native EPUB XHTML element is not implemented: sup.", diagnostic.Message);
+        Assert.Equal(16, layout.RenderPage(layout.Pages.ToList().IndexOf(placeholder)).Width);
+        Assert.Equal(original, source);
+    }
+
+    [Fact]
     public void ChaptersStartFreshPagesAndPreserveTheirOwnSourceCoordinates()
     {
         var book = EpubDocument.Open(Book());

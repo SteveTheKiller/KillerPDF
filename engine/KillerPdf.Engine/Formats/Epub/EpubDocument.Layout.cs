@@ -46,15 +46,34 @@ public sealed partial class EpubDocument
         int remainingStylesheetReferences = 1024;
         var imageCache = new Dictionary<string, PngDecodedImage>(StringComparer.Ordinal);
         long retainedImageBytes = 0;
+        var chapterDiagnostics = new List<EpubChapterDiagnostic>();
         for (int spineIndex = 0; spineIndex < Spine.Count; spineIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors, cellAnchors,
-                ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences,
-                imageCache, ref retainedImageBytes, ResolveFamily, cancellationToken);
+            int pageMark = pages.Count, anchorMark = anchors.Count;
+            try
+            {
+                AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors, cellAnchors,
+                    ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences,
+                    imageCache, ref retainedImageBytes, ResolveFamily, cancellationToken);
+            }
+            catch (Exception error) when (options.IsolateChapterFailures
+                && error is NotSupportedException or InvalidDataException)
+            {
+                // Work already spent stays charged to the shared budgets; only the chapter's output is withdrawn.
+                cancellationToken.ThrowIfCancellationRequested();
+                pages.RemoveRange(pageMark, pages.Count - pageMark);
+                anchors.RemoveRange(anchorMark, anchors.Count - anchorMark);
+                foreach (var key in cellAnchors.Keys.Where(key => key.SpineIndex == spineIndex).ToList())
+                    cellAnchors.Remove(key);
+                string href = Spine[spineIndex].Item.Href;
+                chapterDiagnostics.Add(new(spineIndex, href, error.Message));
+                pages.Add(ChapterDiagnosisPage(spineIndex, options, reader, href, error.Message, cancellationToken));
+            }
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors, cellAnchors);
+        return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors, cellAnchors)
+        { ChapterDiagnostics = chapterDiagnostics.AsReadOnly() };
 
         TrueTypeFont? ResolveFamily(EpubFontFamily? family, double weight, EpubFontStyle style)
         {
@@ -99,6 +118,69 @@ public sealed partial class EpubDocument
                 if (retainedFonts.Count > 64 || retainedFontBytes > 64L << 20)
                     throw new InvalidDataException("Native EPUB exceeds its retained font limit.");
             }
+        }
+    }
+
+    /// <summary>Draws the caller's label, the chapter path and the diagnosis with the fallback font.</summary>
+    private static EpubLayoutPage ChapterDiagnosisPage(int spineIndex, EpubLayoutOptions options,
+        TrueTypeOutlineReader reader, string href, string message, CancellationToken cancellationToken)
+    {
+        var font = options.DefaultFont;
+        double size = options.FontSize, lineHeight = size * 1.2;
+        double left = options.Margin, right = options.PageWidth - options.Margin;
+        double bottom = options.PageHeight - options.Margin;
+        var text = new StringBuilder();
+        var placements = new List<EpubTextPlacement>();
+        var glyphs = new List<NativePagePaint>();
+        double top = options.Margin;
+        foreach (string paragraph in new[] { options.UnavailableChapterLabel ?? "", href, message })
+        {
+            var line = new StringBuilder();
+            double width = 0;
+            foreach (string word in paragraph.Split(' '))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                string candidate = line.Length == 0 ? word : " " + word;
+                double candidateWidth = Measure(candidate);
+                if (line.Length > 0 && left + width + candidateWidth > right)
+                {
+                    Emit(line.ToString(), separator: ' ');
+                    line.Clear(); width = 0; candidate = word; candidateWidth = Measure(word);
+                }
+                line.Append(candidate);
+                width += candidateWidth;
+            }
+            Emit(line.ToString(), separator: '\n');
+        }
+        // The full diagnosis stays readable for search, copy and assistive technology even when the page clips it.
+        return new EpubLayoutPage(text.ToString().TrimEnd('\n'), 0, spineIndex, placements, glyphs);
+
+        double Measure(string value)
+        {
+            double total = 0;
+            foreach (var rune in value.EnumerateRunes())
+                total += font.GetPdfAdvanceWidth(font.GetGlyphId(rune.Value)) * size / 1000;
+            return total;
+        }
+
+        void Emit(string value, char separator)
+        {
+            if (top + lineHeight > bottom)
+            {
+                text.Append(value).Append(separator);
+                return;
+            }
+            double x = left, baseline = top + size;
+            foreach (var rune in value.EnumerateRunes())
+            {
+                ushort glyph = font.GetGlyphId(rune.Value);
+                if (glyph != 0 && reader.Outline(glyph) is { } outline)
+                    glyphs.Add(new NativeGlyphPaint(outline, x, baseline, size / 1000, options.TextColor));
+                x += font.GetPdfAdvanceWidth(glyph) * size / 1000;
+            }
+            placements.Add(new(spineIndex, text.Length, value.Length, left, top, x - left, lineHeight));
+            text.Append(value).Append(separator);
+            top += lineHeight;
         }
     }
 

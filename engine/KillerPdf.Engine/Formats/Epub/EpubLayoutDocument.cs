@@ -20,7 +20,20 @@ public sealed record EpubLayoutOptions(double PageWidth, double PageHeight, True
     public Func<EpubFontFamily, TrueTypeFont?>? FontFamilyResolver { get; init; }
     /// <summary>Gets an optional resolver for real font weights and styles, used instead of the legacy family resolver when supplied.</summary>
     public Func<EpubFontFaceRequest, EpubFontFaceResult?>? FontFaceResolver { get; init; }
+    /// <summary>
+    /// Gets whether a chapter whose content is refused is replaced by a diagnosis page instead of
+    /// refusing the whole book. Package, safety and cancellation failures still end layout.
+    /// </summary>
+    public bool IsolateChapterFailures { get; init; }
+    /// <summary>Gets the caller's localized heading for an isolated chapter's diagnosis page.</summary>
+    public string UnavailableChapterLabel { get; init; } = "This chapter could not be displayed.";
 }
+
+/// <summary>Records a chapter replaced by a diagnosis page during isolated layout.</summary>
+/// <param name="SpineIndex">The refused chapter's spine index.</param>
+/// <param name="Href">The refused chapter's package-relative path.</param>
+/// <param name="Message">The refusal's diagnosis.</param>
+public sealed record EpubChapterDiagnostic(int SpineIndex, string Href, string Message);
 
 /// <summary>Locates a UTF-16 range within display-filtered spine text and its logical CSS-pixel bounds.</summary>
 public sealed record EpubTextPlacement(int SpineIndex, int Start, int Length,
@@ -115,6 +128,9 @@ public sealed class EpubLayoutDocument
     }
     /// <summary>Gets the immutable native pages.</summary>
     public IReadOnlyList<EpubLayoutPage> Pages { get; }
+
+    /// <summary>Gets the chapters replaced by diagnosis pages, in spine order.</summary>
+    public IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics { get; init; } = [];
 
     /// <summary>Resolves an exact, case-sensitive package-relative chapter target returned by EPUB navigation.</summary>
     /// <remarks>Targets are limited to 4,096 characters. Fragment IDs are case-sensitive.</remarks>
