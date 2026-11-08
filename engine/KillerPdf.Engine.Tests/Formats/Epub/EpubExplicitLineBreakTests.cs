@@ -149,11 +149,21 @@ public sealed class EpubExplicitLineBreakTests
             new EpubTextPlacement(0, 2, 1, 13, 2, 6, 10) }, page.TextPlacements);
     }
 
+    [Fact]
+    public void AnUnmappedLetterAfterABreakShowsTheMissingGlyphAndIsReported()
+    {
+        var book = EpubDocument.Open(Book("<p>A<br/>&#937;</p>"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 36, font) { FontSize = 10, Margin = 2 });
+
+        Assert.Contains("U+03A9", Assert.Single(layout.ContentDiagnostics).Message);
+    }
+
     [Theory]
-    [InlineData("<p>A<br/>&#937;</p>", "The native EPUB font has no glyph for U+03A9.")]
     // Event handlers are scripting, which the reader refuses for the chapter rather than ignoring silently.
     [InlineData("<p>A<br onclick=\"go()\"/>A</p>", "Scripted EPUB XHTML text is unsupported.")]
-    public void BreakSupportPreservesTextWidthAttributeAndStructureGuards(string body, string message)
+    public void BreakSupportKeepsScriptingRefused(string body, string message)
     {
         var book = EpubDocument.Open(Book(body));
         var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));

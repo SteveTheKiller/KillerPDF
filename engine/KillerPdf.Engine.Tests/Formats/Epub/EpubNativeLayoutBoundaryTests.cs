@@ -105,13 +105,25 @@ public sealed class EpubNativeLayoutBoundaryTests
 
     [Theory]
     [InlineData("<p>A</p>", "<script type='text/javascript'>void 0;</script>", false, true)]
-    [InlineData("<p>\u00e9</p>", "", false, false)]
-    [InlineData("<p>B</p>", "", false, false)]
     public void DiagnosesUnsupportedContentWithoutSilentlyOmittingIt(string body, string head, bool css, bool scripted)
     {
         var book = Book(body: body, head: head, css: css, scripted: scripted);
 
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options(book)));
+    }
+
+    // An unmapped letter is not silently omitted either: it shows the missing-glyph box and is reported.
+    [Theory]
+    [InlineData("<p>\u00e9</p>", "00E9")]
+    [InlineData("<p>B</p>", "0042")]
+    public void UnmappedLettersShowTheMissingGlyphAndAreReported(string body, string codePoint)
+    {
+        var book = Book(body: body, head: "", css: false, scripted: false);
+
+        var layout = book.CreateLayout(Options(book));
+
+        Assert.Contains("U+" + codePoint, Assert.Single(layout.ContentDiagnostics).Message);
+        Assert.Single(Assert.Single(layout.Pages).TextPlacements);
     }
 
     // A head style element is an embedded stylesheet (HTML), applied like a linked one.

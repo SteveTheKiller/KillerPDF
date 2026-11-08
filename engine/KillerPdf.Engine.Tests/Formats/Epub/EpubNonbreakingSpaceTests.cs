@@ -107,14 +107,17 @@ public sealed class EpubNonbreakingSpaceTests
     [InlineData("A\u00A0A", false, false)]
     [InlineData("A\u00A0A", true, true)]
     [InlineData("A\u00E9A", false, true)]
-    public void MissingOrVisibleSpaceDoesNotSupplyUnrelatedOrUnsafeGlyphs(string text, bool visibleSpace, bool mappedSpace)
+    public void MissingOrVisibleSpaceShowsTheMissingGlyphInsteadOfAnUnrelatedOne(string text, bool visibleSpace, bool mappedSpace)
     {
         var font = TrueTypeFont.Load(FontBytes(visibleSpace: visibleSpace, mappedSpace: mappedSpace));
         byte[] source = Book(text), original = source.ToArray();
         var book = EpubDocument.Open(source);
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(36, 26, font)
-        { FontSize = 10, Margin = 2 }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        var layout = book.CreateLayout(new EpubLayoutOptions(36, 26, font) { FontSize = 10, Margin = 2 });
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.Equal($"No available font has a glyph for U+{(int)text[1]:X4}, so a missing-glyph box is shown.",
+            Assert.Single(layout.ContentDiagnostics).Message);
+        var letters = new PdfPageContentReader(PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)))).Read(0).Letters;
+        Assert.Equal(new[] { "A", "A" }, letters.Select(letter => letter.Value));
         Assert.Equal(original, source);
     }
 

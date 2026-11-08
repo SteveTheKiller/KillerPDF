@@ -247,6 +247,9 @@ public sealed partial class EpubDocument
         int decorationWork = 0;
         int inlineMetricWork = 0;
         var clusters = new Dictionary<int, EpubGlyphCluster>();
+        var blankAdvances = new Dictionary<int, double>();
+        var missingGlyphs = new HashSet<int>();
+        var reportedMissing = new HashSet<int>();
         var inlineOffsets = content.Inlines.Select(item => item.Offset).ToHashSet();
         int shapingWork = 0;
         var coverage = new Dictionary<IReadOnlyList<OpenTypeGlyphSubstitution.SubstitutionRule>,
@@ -275,8 +278,19 @@ public sealed partial class EpubDocument
                 ushort glyph = font.GetGlyphId(scalar.Value);
                 bool substituted = glyph == 0 && scalar.Value == 0xA0;
                 if (substituted) glyph = BlankSpace(font);
-                if (glyph == 0 && scalar.Value != ' ')
-                    throw new NotSupportedException($"The native EPUB font has no glyph for U+{scalar.Value:X4}.");
+                if (BlankAdvance(scalar.Value, font) is { } blankAdvance)
+                {
+                    glyph = BlankSpace(font);
+                    blankAdvances[runEnd] = blankAdvance;
+                }
+                else if (glyph == 0 && scalar.Value != ' ')
+                {
+                    // No font maps it: the missing-glyph box stands in, and the chapter reports the character once.
+                    missingGlyphs.Add(runEnd);
+                    if (reportedMissing.Add(scalar.Value))
+                        contentDiagnostics.Add(new(spineIndex, resource.Href,
+                            $"No available font has a glyph for U+{scalar.Value:X4}, so a missing-glyph box is shown."));
+                }
                 run.Add(Cluster(runEnd, scalar.Utf16SequenceLength, glyph, substituted));
                 runEnd += scalar.Utf16SequenceLength;
             }
@@ -336,9 +350,13 @@ public sealed partial class EpubDocument
                     var item = shaped[at++];
                     end = Math.Max(end, item.Start + item.Length);
                     substituted |= item.Substituted;
-                    output.Add(new(item.Glyph, font.GetAdvanceWidth(item.Glyph) / (double)font.UnitsPerEm, 0, 0));
+                    output.Add(new(item.Glyph, blankAdvances.TryGetValue(item.Start, out double blank)
+                        ? blank : font.GetAdvanceWidth(item.Glyph) / (double)font.UnitsPerEm, 0, 0));
                 } while (at < shaped.Count && shaped[at].Start < end);
-                clusters.Add(first.Start, new(first.Start, end - first.Start, font, output, substituted));
+                clusters.Add(first.Start, new(first.Start, end - first.Start, font, output, substituted)
+                {
+                    Blank = blankAdvances.ContainsKey(first.Start), Missing = missingGlyphs.Contains(first.Start)
+                });
             }
             runStart = runEnd;
         }
@@ -366,7 +384,8 @@ public sealed partial class EpubDocument
             TrueTypeFont? spaceFallback = null;
             bool Accept(TrueTypeFont selected)
             {
-                if (scalar is null || selected.GetGlyphId(scalar.Value) != 0) return true;
+                if (scalar is null || selected.GetGlyphId(scalar.Value) != 0
+                    || BlankAdvance(scalar.Value, selected) is not null) return true;
                 if (scalar == 0xA0 && spaceFallback is null && BlankSpace(selected) != 0)
                     spaceFallback = selected;
                 return false;
@@ -394,6 +413,28 @@ public sealed partial class EpubDocument
             // user agent falls back when a family lacks a face, instead of refusing the chapter.
             return options.DefaultFont;
         }
+        // Unicode 16 chapter 6, table 6-2 widths in em. Figure and punctuation spaces take the font's digit and
+        // period advances; hair space, defined only as narrower than thin (1/5), is 1/10. Soft hyphen, zero-width
+        // space and zero-width no-break space advance nothing. All of them draw no ink.
+        static double? BlankAdvance(int scalar, TrueTypeFont selected)
+        {
+            return scalar switch
+            {
+                0x00AD or 0x200B or 0xFEFF => 0,
+                0x2000 or 0x2002 => .5,
+                0x2001 or 0x2003 => 1,
+                0x2004 => 1d / 3,
+                0x2005 => .25,
+                0x2006 => 1d / 6,
+                0x2007 => Advance('0', .5),
+                0x2008 => Advance('.', .25),
+                0x2009 => .2,
+                0x200A => .1,
+                _ => null
+            };
+            double Advance(char model, double fallback) => selected.GetGlyphId(model) is var glyph and not 0
+                ? selected.GetAdvanceWidth(glyph) / (double)selected.UnitsPerEm : fallback;
+        }
         ushort BlankSpace(TrueTypeFont selected)
         {
             ushort glyph = selected.GetGlyphId(' ');
@@ -408,6 +449,12 @@ public sealed partial class EpubDocument
                 throw new NotSupportedException("Native EPUB layout requires valid Unicode scalar text.");
             int value = scalar.Value;
             if (value is >= ' ' and <= '~' or 0x2122) return scalar;
+            // Blank format and space characters need no shaping: they advance without ink.
+            if (BlankAdvance(value, options.DefaultFont) is not null) return scalar;
+            // Overlay marks (canonical combining class 1) are drawn centered over their base with no anchor
+            // height, so a zero-advance overstrike is their intended look without GPOS mark positioning.
+            // Accents and other marks still need mark attachment and stay refused below.
+            if (value is >= 0x0334 and <= 0x0338) return scalar;
             UnicodeCategory category = Rune.GetUnicodeCategory(scalar);
             if (value is >= 0x20A0 and <= 0x20CF && category == UnicodeCategory.CurrencySymbol)
                 return scalar;
@@ -1096,11 +1143,11 @@ public sealed partial class EpubDocument
                     char character = atom.IsSpace ? ' ' : text[index];
                     if (atom.IsSpace && line.Count == 0 && !style.PreserveWhitespace) continue;
                     ushort glyph = cluster.Glyphs[0].GlyphId;
-                    if (glyph == 0 && character != ' ')
+                    if (glyph == 0 && character != ' ' && !cluster.Blank && !cluster.Missing)
                         throw new NotSupportedException("The native EPUB font has no glyph for this cluster.");
                     if (!readers.TryGetValue(cluster.Font, out var selectedReader))
                         readers.Add(cluster.Font, selectedReader = new TrueTypeOutlineReader(cluster.Font));
-                    PdfGlyphOutline outline = selectedReader.Outline(glyph)
+                    PdfGlyphOutline? outline = cluster.Blank ? null : selectedReader.Outline(glyph)
                         ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
                     double width = InlineAdvance(cluster, style, character == ' ');
                     double tracking = Tracking(line.Count == 0 ? null : line[^1].Style, style);
@@ -1144,9 +1191,24 @@ public sealed partial class EpubDocument
                     line.Add((index, cluster.Length, left, width, cluster.Font, atom.HasSource ? outline : null, null, style,
                         lineBlock.Source.Style, atom.Owner));
                     left += width;
+                    // UAX #14: soft hyphen, zero-width space and the fixed-width spaces other than figure space allow
+                    // a break after them; the line breaks there when the following segment does not fit.
+                    if (atom.HasSource && BreakAfter(text[index]) && at < last && !IsSpace(sequence.Atoms[at + 1])
+                        && sequence.Atoms[at + 1].Reference is null)
+                    {
+                        double segment = WordWidth(at + 1, style.LetterSpacing, out double segmentTracking);
+                        if (left + segmentTracking + segment > contentRight)
+                        {
+                            FlushLine(finalLine: false);
+                            left = contentLeft;
+                            lineStart = sequence.Atoms[at + 1].Offset;
+                            firstIndentedWord = false;
+                        }
+                    }
                 }
 
                 bool IsSpace(EpubFormattingTree.Atom atom) => atom.IsSpace && !atom.Owner.Style.PreserveWhitespace;
+                static bool BreakAfter(char value) => value is '­' or '​' or >= ' ' and <= ' ' and not ' ';
 
                 // Measures the word starting at an atom up to the next space or replaced element.
                 double WordWidth(int from, double previousTracking, out double leadingTracking)
@@ -1168,6 +1230,8 @@ public sealed partial class EpubDocument
                             wordWidth += InlineAdvance(nextCluster, nextStyle, false);
                             previousTracking = nextStyle.LetterSpacing;
                             firstCharacter = false;
+                            // A break opportunity after this character ends the segment that must fit.
+                            if (BreakAfter(text[nextAtom.Offset])) break;
                         }
                     }
                     return wordWidth;
@@ -1455,6 +1519,8 @@ public sealed partial class EpubDocument
                         }
                     }
                     var cluster = clusters[item.Index];
+                    // Blank characters keep their placement for selection but paint nothing.
+                    if (cluster.Blank) continue;
                     double advance = 0;
                     foreach (var selected in cluster.Glyphs)
                     {

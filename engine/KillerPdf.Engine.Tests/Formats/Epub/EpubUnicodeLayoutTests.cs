@@ -144,13 +144,15 @@ public sealed class EpubUnicodeLayoutTests
     [Theory]
     [InlineData("\u03A3", "03A3")]
     [InlineData("\U0001D401", "1D401")]
-    public void MissingSupportedGlyphReportsItsFullScalarInBothPlacementAndLookahead(string text, string codePoint)
+    public void MissingSupportedGlyphShowsTheMissingGlyphAndReportsItsFullScalar(string text, string codePoint)
     {
         foreach (string prefix in new[] { "A", "A " })
         {
             var book = EpubDocument.Open(Book("<p>" + prefix + text + "</p>"));
-            var error = Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options()));
-            Assert.Equal("The native EPUB font has no glyph for U+" + codePoint + ".", error.Message);
+            var layout = book.CreateLayout(Options());
+            Assert.Empty(layout.ChapterDiagnostics);
+            Assert.Equal("No available font has a glyph for U+" + codePoint + ", so a missing-glyph box is shown.",
+                Assert.Single(layout.ContentDiagnostics).Message);
         }
     }
 

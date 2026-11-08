@@ -94,6 +94,8 @@ public sealed partial class EpubDocument
                 cancellationToken.ThrowIfCancellationRequested();
                 double size = placement.Height * pointsPerCssPixel;
                 var cluster = page.Clusters[placement.Start];
+                // A missing-glyph box has no character the embedded font can encode, so it adds no PDF text.
+                if (cluster.Missing) return;
                 double baseline = (placement.Top + cluster.Font.Ascender
                     * placement.Height / cluster.Font.UnitsPerEm) * pointsPerCssPixel;
                 var color = placement.Color ?? new PdfRgbColor(0, 0, 0);
