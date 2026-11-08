@@ -95,6 +95,24 @@ public sealed class PdfSdrDisplayConverterTests
     }
 
     [Fact]
+    public void TheMonitorProfileIsReadOncePerDisplayObservation()
+    {
+        int reads = 0;
+        var converter = new PdfSdrDisplayConverter((name, token) => { reads++; return PdfColorProfile.Load(MonitorBytes()); });
+        var frame = new PdfRenderedFrame(1, 1, [1f, 0f, 0f, 1f], PdfFrameColorEncoding.LinearSrgbD65);
+        converter.UpdateDisplay(Display(20));
+
+        for (int page = 0; page < 5; page++)
+            Assert.Equal(PdfSdrConversionOutcome.Converted, converter.Convert(frame).Outcome);
+        Assert.Equal(1, reads);
+
+        // A new display observation can name a different profile, so it is read again.
+        converter.UpdateDisplay(Display(21));
+        Assert.Equal(new byte[] { 4, 57, 111, 255 }, converter.Convert(frame).BgraPixels.ToArray());
+        Assert.Equal(2, reads);
+    }
+
+    [Fact]
     public void ObservedSdrProfileProducesDeviceBytesWithDisplayAndProfileIdentity()
     {
         var profile = PdfColorProfile.Load(MonitorBytes());

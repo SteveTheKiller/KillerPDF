@@ -16,6 +16,10 @@ public sealed record PdfSdrDisplayConversion(PdfSdrConversionOutcome Outcome,
 public sealed class PdfSdrDisplayConverter(Func<string, CancellationToken, PdfColorProfile> profileReader)
 {
     private PdfDisplayDiscoverySnapshot? _display;
+    // The monitor profile read for one display generation, reused by every page, tile and
+    // refinement converted for that observation.
+    private sealed record CachedProfile(long Generation, string? Monitor, string Name, PdfColorProfile Profile);
+    private CachedProfile? _profile;
 
     /// <summary>Replaces the immutable display observation for subsequent conversions.</summary>
     public void UpdateDisplay(PdfDisplayDiscoverySnapshot display)
@@ -42,7 +46,16 @@ public sealed class PdfSdrDisplayConverter(Func<string, CancellationToken, PdfCo
                 null, ReadOnlyMemory<byte>.Empty, "MonitorProfileNotEstablished");
         try
         {
-            var profile = profileReader(association.Name, cancellationToken);
+            var cached = Volatile.Read(ref _profile);
+            PdfColorProfile profile;
+            if (cached is not null && cached.Generation == display.Generation
+                && cached.Monitor == display.MonitorIdentity && cached.Name == association.Name)
+                profile = cached.Profile;
+            else
+            {
+                profile = profileReader(association.Name, cancellationToken);
+                Volatile.Write(ref _profile, new(display.Generation, display.MonitorIdentity, association.Name, profile));
+            }
             if (!ReferenceEquals(display, Volatile.Read(ref _display)))
                 return new(PdfSdrConversionOutcome.Stale, display.Generation, display.MonitorIdentity,
                     null, ReadOnlyMemory<byte>.Empty, null);
