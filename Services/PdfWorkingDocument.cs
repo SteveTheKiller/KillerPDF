@@ -11,6 +11,7 @@ internal sealed class PdfWorkingDocument : IDisposable
     private PdfDocument? _parsedDocument;
     private readonly Lock _readSync = new();
     private PdfCapturedReadRevision? _readRevision;
+    private readonly Lock _contentCopySync = new();
     private (PdfDocument? Document, System.Runtime.ExceptionServices.ExceptionDispatchInfo? Failure)? _contentCopy;
     private bool _closed;
 
@@ -42,9 +43,10 @@ internal sealed class PdfWorkingDocument : IDisposable
     /// parse (or its refusal) serves every click on this document instead of parsing it again each time.</summary>
     internal PdfDocument? OpenStrictForContentCopy()
     {
-        lock (_readSync)
+        // Its own lock: a first strict parse of a large file never holds up render revisions.
+        lock (_contentCopySync)
         {
-            ObjectDisposedException.ThrowIf(_closed, this);
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _closed), this);
             if (_contentCopy is null)
             {
                 try
@@ -165,12 +167,12 @@ internal sealed class PdfWorkingDocument : IDisposable
         lock (_readSync)
         {
             if (_closed) return;
-            _closed = true;
+            Volatile.Write(ref _closed, true);
             revision = _readRevision;
             _readRevision = null;
-            _contentCopy = null;
             Interlocked.Exchange(ref _parsedDocument, null);
         }
+        lock (_contentCopySync) _contentCopy = null;
         revision?.Dispose();
     }
     public void Dispose() => Close();
