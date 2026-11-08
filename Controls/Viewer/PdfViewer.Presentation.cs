@@ -102,6 +102,47 @@ public partial class PdfViewer
     {
         if (!current()) return;
         if (PageImage.Source is not { } source) return;
+        if (_nativeViewportUnavailable)
+        {
+            ShowPresentationFallback(page);
+            return;
+        }
+        try
+        {
+            await PresentPrimaryFrameCoreAsync(frame, source, display, policy, page, revision, renderGeneration,
+                proofGeneration, current, token);
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            // The sRGB bitmap is already rendered. If the native viewport cannot be built or attached,
+            // give the page back to its tile instead of leaving an empty native host on screen.
+            if (!current()) return;
+            if (_primaryViewport is { Viewport: 0 } host && host.Parent is Border border)
+            {
+                _primaryViewport = null;
+                border.Child = null;
+                border.Child = host.Abandon();
+                _nativeViewportUnavailable = true;
+            }
+            ShowPrimaryCompatibility();
+            ShowPresentationFallback(page);
+        }
+    }
+
+    private bool _nativeViewportUnavailable;
+
+    private void ShowPresentationFallback(int page)
+    {
+        string notice = string.Format(Loc("Str_PageOf"), page + 1, ReadPageCount) + ". " + Loc("Str_CM_DisplayFallback");
+        PageImage.Visibility = Visibility.Visible;
+        PageImage.ToolTip = notice;
+        if (page == _currentPage && (Host is null || Host.IsViewerFocused(this))) SetStatus(notice);
+    }
+
+    private async Task PresentPrimaryFrameCoreAsync(PdfRenderedFrame frame, ImageSource source,
+        PdfDisplayDiscoverySnapshot display, PdfDisplayPresentationDecision policy, int page, long revision,
+        long renderGeneration, long proofGeneration, Func<bool> current, CancellationToken token)
+    {
         if (_primaryViewport is null)
         {
             if (PageImage.Parent is not Grid grid || grid.Parent is not Border border)
@@ -149,7 +190,10 @@ public partial class PdfViewer
             ((Panel)_primaryViewport.OverlayRoot).Background = Brushes.Transparent;
         }
         else if (result.Outcome == PdfFrameSubmissionOutcome.Unavailable)
-            PageImage.ToolTip = string.Format(Loc("Str_RenderError"), result.Status.FailureOperation);
+        {
+            ShowPrimaryCompatibility();
+            ShowPresentationFallback(page);
+        }
     }
 
     private async Task RefinePrimaryFrameAsync(PdfBackgroundRenderCache.Request request, int page,
@@ -204,6 +248,7 @@ public partial class PdfViewer
         _presentationDisplayObserver = null;
         _primaryViewport?.Dispose();
         _primaryViewport = null;
+        _nativeViewportUnavailable = false;
         _presentationDisplay = null;
         _sdrDisplayConverter = null;
         _primaryPresentationState = null;

@@ -46,6 +46,15 @@ internal partial class WindowsPdfViewportHost : HwndHost
         return presenter ??= presenterFactory(Viewport);
     }
 
+    /// <summary>Releases the native windows and returns the overlay content so its owner can show it directly.</summary>
+    internal FrameworkElement Abandon()
+    {
+        VerifyAccess();
+        Dispose();
+        RemoveLogicalChild(OverlayRoot);
+        return OverlayRoot;
+    }
+
     internal (int Width, int Height) PixelSize => GetClientRect(Viewport, out var client)
         ? (client.Right, client.Bottom) : (0, 0);
 

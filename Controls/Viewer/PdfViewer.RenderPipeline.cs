@@ -24,7 +24,9 @@ public partial class PdfViewer
     private void PresentRenderWarning(FrameworkElement image, BitmapSource bitmap, int page, string? positionStatus = null)
     {
         string? warning = null;
-        bool displayFallback = KillerPDF.Presentation.PdfDisplayFallbackNotice.Reason(_presentationDisplay, DocInvert) is not null;
+        // A display the policy can manage still falls back when its native viewport could not be built.
+        bool displayFallback = KillerPDF.Presentation.PdfDisplayFallbackNotice.Reason(_presentationDisplay, DocInvert) is not null
+            || _nativeViewportUnavailable && !DocInvert;
         if (RenderWarnings.TryGetValue(bitmap, out var result))
         {
             if (result.Message.Length > 0)
