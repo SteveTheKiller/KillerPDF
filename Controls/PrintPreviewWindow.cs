@@ -364,17 +364,18 @@ namespace KillerPDF
         private const double NupGap = 6;
 
         // The page's printed size on an aw x ah sheet: the scale mode inside the margins for 1-up,
-        // its grid cell for N-up. The print raster is sized from this (#481).
+        // its grid cell for N-up. The print raster is sized from this (#481), and a 1-up page whose
+        // orientation differs from the sheet's turns to fill it under Fit to page (#482).
         private PrintPagePlacement.Placement PlacementFor(int idx, double aw, double ah, PrintLayout layout)
         {
             double m = layout.MarginPx;
             if (layout.NUp <= 1)
                 return PrintPagePlacement.Place(_pageDipW[idx], _pageDipH[idx], aw - 2 * m, ah - 2 * m,
-                    layout.ScaleMode, layout.CustomPct);
+                    layout.ScaleMode, layout.CustomPct, autoRotate: true);
             var (cols, rows) = NupGrid(layout);
             return PrintPagePlacement.Place(_pageDipW[idx], _pageDipH[idx],
                 Math.Max(1, (aw - 2 * m) / cols - NupGap), Math.Max(1, (ah - 2 * m) / rows - NupGap),
-                PrintPagePlacement.FitToPage, 100);
+                PrintPagePlacement.FitToPage, 100, autoRotate: false);
         }
 
         // Page offset within the printable area for the current alignment selection.
@@ -445,12 +446,16 @@ namespace KillerPDF
                     int idx = idxs[0];
                     double s = ScaleFor(idx, aw - 2 * m, ah - 2 * m, rw, rh, layout);
                     double iw = rw[idx] * s, ih = rh[idx] * s;
+                    // A landscape page on a portrait sheet (or the reverse) turns to fill it (#482).
+                    PrintPagePlacement.Placement placement = PlacementFor(idx, aw, ah, layout);
+                    if (placement.Rotated) (iw, ih) = (placement.Width, placement.Height);
                     // Snap to the printable area when the page is within a pixel of filling it, so the
                     // white sheet doesn't peek through as a 1px hairline at the page edge (float seam).
                     if (iw >= (aw - 2 * m) - 1.5) iw = aw - 2 * m + 1;   // +1 bleed: covers the right hairline (clipped by the sheet)
                     if (ih >= (ah - 2 * m) - 1.5) ih = ah - 2 * m + 1;
                     BitmapSource source = layout.Grayscale
                         ? PrintColorConverter.CreateGrayscaleBitmap(pages[idx]!) : pages[idx]!;
+                    if (placement.Rotated) source = PrintPagePlacement.Turn(source);
                     var img = new Image { Source = source, Width = iw, Height = ih };
                     RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
                     Canvas.SetLeft(img, m + OffsetH(aw - 2 * m, iw, layout));

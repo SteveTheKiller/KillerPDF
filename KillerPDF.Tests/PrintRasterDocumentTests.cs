@@ -46,4 +46,31 @@ public sealed class PrintRasterDocumentTests
         Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "Print serialization timed out.");
         if (error is not null) ExceptionDispatchInfo.Capture(error).Throw();
     }
+
+    // #482: the command line prints a landscape page in a portrait job turned to fill the sheet.
+    [Fact]
+    public void LandscapePageTurnsToFillAPortraitSheet()
+    {
+        Exception? error = null;
+        Rect bounds = Rect.Empty;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                using var document = new PrintRasterDocument(copies: 1) { PageSize = new Size(100, 200) };
+                byte[] pixels = [0, 0, 255, 255, 255, 0, 0, 255];
+                var bitmap = BitmapSource.Create(2, 1, 96, 96, PixelFormats.Bgra32, null, pixels, 8);
+                bitmap.Freeze();
+                document.Add(bitmap);
+                bounds = ((DrawingVisual)document.GetPage(0).Visual).Drawing.Bounds;
+            }
+            catch (Exception exception) { error = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(30)), "Print page composition timed out.");
+        if (error is not null) ExceptionDispatchInfo.Capture(error).Throw();
+
+        Assert.Equal(new Rect(0, 0, 100, 200), bounds);
+    }
 }

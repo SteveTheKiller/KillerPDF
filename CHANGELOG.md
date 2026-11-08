@@ -19,6 +19,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Merge accepts more PDFs with optional popup links, saved appearances and resource metadata, and preserves nested form fonts and alignment. (#455)
 - Filled Shapes rectangles retain their color and opacity in print previews, printed output and flattened copies. (#474)
 - Printing a page much larger than the paper no longer fails with a render limit error. Each page renders at the size it prints, and a page too large even at Actual size prints at a lower resolution. (#481)
+- With Fit to page, landscape pages in a portrait print job, and portrait pages in a landscape one, turn to fill the sheet instead of printing small. The preview shows the same turn. (#482)
 - PDFs without saved annotation appearances show note markers and ink strokes, and highlights keep their page positions when their stored rectangle is incorrect.
 - Text extraction recovers missing marked-content properties and stray closing tags in compatibility mode.
 - Text selection keeps separate rectangular panels apart. New searchable PDFs fit TrueType text to OCR word heights so short words stay on their lines. (#465)

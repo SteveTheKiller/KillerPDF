@@ -64,11 +64,14 @@ internal sealed class PrintRasterDocument : DocumentPaginator, IDisposable
             bitmap.Freeze();
         }
         cache.AddFirst((index, bitmap));
-        double scale = Math.Min(PageSize.Width / bitmap.PixelWidth, PageSize.Height / bitmap.PixelHeight);
-        var size = new Size(bitmap.PixelWidth * scale, bitmap.PixelHeight * scale);
+        // Every page fits its sheet, turning when its orientation differs from the sheet's (#482).
+        var placement = PrintPagePlacement.Place(bitmap.PixelWidth, bitmap.PixelHeight,
+            PageSize.Width, PageSize.Height, PrintPagePlacement.FitToPage, 100, autoRotate: true);
+        BitmapSource drawn = placement.Rotated ? PrintPagePlacement.Turn(bitmap) : bitmap;
+        var size = new Size(placement.Width, placement.Height);
         var visual = new DrawingVisual();
         using (DrawingContext drawing = visual.RenderOpen())
-            drawing.DrawImage(bitmap, new Rect(new Point((PageSize.Width - size.Width) / 2,
+            drawing.DrawImage(drawn, new Rect(new Point((PageSize.Width - size.Width) / 2,
                 (PageSize.Height - size.Height) / 2), size));
         // The serializer wraps this visual in a FixedPage. Returning a FixedPage would nest it.
         return new DocumentPage(visual, PageSize, new Rect(PageSize), new Rect(PageSize));

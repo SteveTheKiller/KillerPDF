@@ -1,3 +1,5 @@
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using EngineRenderOptions = KillerPdf.Engine.Rendering.PdfRenderOptions;
 
 namespace KillerPDF.Services;
@@ -10,14 +12,19 @@ internal static class PrintPagePlacement
     internal const int CustomScale = 2;
     internal const int ShrinkOversized = 3;
 
-    /// <summary>A page's printed size on the sheet in DIPs.</summary>
-    internal readonly record struct Placement(double Width, double Height);
+    /// <summary>A page's printed size on the sheet in DIPs, after any quarter turn.</summary>
+    internal readonly record struct Placement(double Width, double Height, bool Rotated = false);
 
     /// <summary>The printed size of a page in an area of the sheet under one scale mode.</summary>
     internal static Placement Place(double pageWidth, double pageHeight, double areaWidth, double areaHeight,
-        int scaleMode, double customPercent)
+        int scaleMode, double customPercent, bool autoRotate)
     {
         if (!Valid(pageWidth, pageHeight)) return new Placement(Math.Max(1, areaWidth), Math.Max(1, areaHeight));
+        // Fit to page turns a landscape page on a portrait sheet, or the reverse, a quarter turn so
+        // it fills the sheet (#482). The other scale modes keep the page as it is.
+        bool rotated = autoRotate && scaleMode == FitToPage && pageWidth != pageHeight
+            && areaWidth != areaHeight && (pageWidth > pageHeight) != (areaWidth > areaHeight);
+        if (rotated) (pageWidth, pageHeight) = (pageHeight, pageWidth);
         double fit = Math.Min(Math.Max(1, areaWidth) / pageWidth, Math.Max(1, areaHeight) / pageHeight);
         double scale = scaleMode switch
         {
@@ -26,7 +33,7 @@ internal static class PrintPagePlacement
             ShrinkOversized => Math.Min(1, fit),
             _ => fit
         };
-        return new Placement(pageWidth * scale, pageHeight * scale);
+        return new Placement(pageWidth * scale, pageHeight * scale, rotated);
     }
 
     /// <summary>The pixel box a page renders into for printing at a resolution (#481): the size it
@@ -37,7 +44,10 @@ internal static class PrintPagePlacement
         double pixelsPerDip = dpi / 96.0;
         if (!Valid(pageWidth, pageHeight))
             return WithinRenderLimit(Pixels(placement.Width * pixelsPerDip), Pixels(placement.Height * pixelsPerDip));
-        double scale = Math.Min(1, Math.Min(placement.Width / pageWidth, placement.Height / pageHeight));
+        // A turned page prints with its width along the sheet's height.
+        var (printedWidth, printedHeight) = placement.Rotated
+            ? (placement.Height, placement.Width) : (placement.Width, placement.Height);
+        double scale = Math.Min(1, Math.Min(printedWidth / pageWidth, printedHeight / pageHeight));
         return WithinRenderLimit(Pixels(pageWidth * scale * pixelsPerDip), Pixels(pageHeight * scale * pixelsPerDip));
     }
 
@@ -73,6 +83,16 @@ internal static class PrintPagePlacement
             cancellationToken);
         if (requireComplete) page.RequireComplete(pageIndex);
         return page;
+    }
+
+    /// <summary>A page raster given the quarter turn its placement calls for: counterclockwise, the
+    /// direction of a printer's landscape output, so the preview and the job turn it alike.</summary>
+    internal static BitmapSource Turn(BitmapSource source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var turned = new TransformedBitmap(source, new RotateTransform(270));
+        turned.Freeze();
+        return turned;
     }
 
     private static bool Valid(double width, double height) =>
