@@ -39,6 +39,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
     internal int RenderingIntent => _intent;
     internal bool SupportsBlackPointCompensation { get; }
     internal bool HasExplicitValidMediaWhite => _mediaWhiteScale is not null && !_invalidWhite;
+    internal bool HasInvalidMediaWhite => _invalidWhite;
     internal bool HasColorimetricForward => _curves is not null || _hasColorimetricForward;
     internal bool HasColorimetricReverse => CanConvertFromXyz
         && (_curves is not null || _hasColorimetricReverse);
@@ -210,7 +211,11 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
             double a = _matrix[0], b = _matrix[1], c = _matrix[2], d = _matrix[3], e = _matrix[4],
                 f = _matrix[5], g = _matrix[6], h = _matrix[7], i = _matrix[8];
             double determinant = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
-            if (Math.Abs(determinant) > 1e-15)
+            // Compare against the rows' Hadamard bound, so the test follows the matrix scale.
+            // Below one part in a million, s15Fixed16 encoding error dominates the inverse.
+            double bound = Math.Sqrt(a * a + b * b + c * c) * Math.Sqrt(d * d + e * e + f * f)
+                * Math.Sqrt(g * g + h * h + i * i);
+            if (double.IsFinite(bound) && bound > 0 && Math.Abs(determinant) > 1e-6 * bound)
             {
                 _inverseMatrix = [e * i - f * h, c * h - b * i, b * f - c * e,
                     f * g - d * i, a * i - c * g, c * d - a * f,
