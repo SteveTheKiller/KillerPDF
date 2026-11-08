@@ -140,6 +140,10 @@ public sealed partial class PdfPageRenderer
                     }
                 }
                 else bytes = _document.DecodeStream(stream, 16 * 1024 * 1024);
+                // ISO 32000 ICCBased spaces and output intents take input, display, output or
+                // color-space profiles. Device links, abstract and named-color profiles fall
+                // back to the alternate with a diagnostic.
+                if (bytes.Length < 16 || NonSourceProfileClass(bytes.AsSpan(12, 4))) return (null, 0);
                 var transform = PdfIccProfileTransform.ReadAvailable(bytes);
                 return (transform, bytes.Length);
             }
@@ -151,6 +155,12 @@ public sealed partial class PdfPageRenderer
         }).Transform;
         return profile is PdfIccProfileTransform icc ? icc.ForIntent(intent) : profile;
     }
+
+    // The ICC classes that never describe a source color space. An unset class stays
+    // accepted when its tags describe a usable device transform.
+    private static bool NonSourceProfileClass(ReadOnlySpan<byte> signature) =>
+        signature.SequenceEqual("link"u8) || signature.SequenceEqual("abst"u8)
+        || signature.SequenceEqual("nmcl"u8);
 
     private PdfColorTransform ReadCalibratedProfile(PdfArray space, double[] white,
         double[] gamma, double[]? matrix = null) => _colorProfiles.GetOrAdd(space,
