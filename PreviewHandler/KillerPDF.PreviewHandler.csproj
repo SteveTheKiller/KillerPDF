@@ -27,6 +27,9 @@
     <Compile Include="..\Services\PdfFonts.cs" Link="Services\PdfFonts.cs" />
     <Compile Include="..\Services\AppDataPaths.cs" Link="Services\AppDataPaths.cs" />
     <Compile Include="..\Services\PdfRenderCompleteness.cs" Link="Services\PdfRenderCompleteness.cs" />
+    <!-- The chosen working CMYK profile, so previews show untagged CMYK as the app does. -->
+    <Compile Include="..\Services\ProofProfileLibrary.cs" Link="Services\ProofProfileLibrary.cs" />
+    <Compile Include="..\Services\ProofPresetLibrary.cs" Link="Services\ProofPresetLibrary.cs" />
   </ItemGroup>
 
 </Project>

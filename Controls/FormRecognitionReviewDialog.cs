@@ -134,7 +134,7 @@ internal sealed class FormRecognitionReviewDialog : Window
             bool sideways = page.Rotation % 180 != 0;
             double ratio = sideways ? page.Width / page.Height : page.Height / page.Width;
             var rendered = new PdfPageRenderer(_document).Render(proposal.PageIndex,
-                new PdfRenderOptions(720, Math.Max(1, (int)Math.Round(720 * ratio))));
+                KillerPDF.Services.WorkingCmykProfiles.Apply(new PdfRenderOptions(720, Math.Max(1, (int)Math.Round(720 * ratio)))));
             bitmap = BitmapSource.Create(rendered.Width, rendered.Height, 96, 96, PixelFormats.Bgra32,
                 null, rendered.Pixels.ToArray(), rendered.Width * 4);
             bitmap.Freeze();

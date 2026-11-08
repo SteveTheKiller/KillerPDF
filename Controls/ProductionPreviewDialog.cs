@@ -43,7 +43,7 @@ internal sealed class ProductionPreviewDialog : Window
                 var entry = entries[index]; var page = entry.Page; bool sideways = page.Rotation % 180 != 0;
                 double ratio = sideways ? page.Width / page.Height : page.Height / page.Width;
                 var rendered = new PdfPageRenderer(entry.Document).Render(entry.Index,
-                    new PdfRenderOptions(800, Math.Max(1, (int)Math.Round(800 * ratio))));
+                    KillerPDF.Services.WorkingCmykProfiles.Apply(new PdfRenderOptions(800, Math.Max(1, (int)Math.Round(800 * ratio)))));
                 var bitmap = BitmapSource.Create(rendered.Width, rendered.Height, 96, 96, PixelFormats.Bgra32,
                     null, rendered.Pixels.ToArray(), rendered.Width * 4);
                 bitmap.Freeze(); image.Source = bitmap; save.IsEnabled = true;

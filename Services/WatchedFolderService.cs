@@ -45,7 +45,7 @@ public sealed class WatchedFolderService : IDisposable
         _readiness = readiness;
         _dispatcher = dispatcher ?? new PdfMacroDispatcher([
             new(PdfMacroOperation.Resize, PdfResizeMacro.Execute),
-            new(PdfMacroOperation.ConvertColor, PdfColorConversionMacro.Execute),
+            new(PdfMacroOperation.ConvertColor, WorkingCmykProfiles.ConvertColor),
             new(PdfMacroOperation.Rename, PdfRenameMacro.Execute),
             new(PdfMacroOperation.Save, (_, source, _, token) =>
             {

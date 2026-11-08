@@ -328,8 +328,8 @@ internal sealed class ParagraphEditDialog : Window
     private BitmapSource Render(PdfDocument document, CancellationToken cancellation)
     {
         var renderer = new PdfPageRenderer(document, InstalledPdfFontResolver.Instance);
-        var page = renderer.Render(_pageIndex, new PdfRenderOptions((int)Math.Ceiling(_page.Width * _pixelsPerPoint),
-            (int)Math.Ceiling(_page.Height * _pixelsPerPoint)), cancellation);
+        var page = renderer.Render(_pageIndex, KillerPDF.Services.WorkingCmykProfiles.Apply(new PdfRenderOptions(
+            (int)Math.Ceiling(_page.Width * _pixelsPerPoint), (int)Math.Ceiling(_page.Height * _pixelsPerPoint))), cancellation);
         PdfRenderCompleteness.RequireComplete(_pageIndex, PdfRenderCompleteness.Classify(page.Diagnostics));
         BitmapSource bitmap = BitmapSource.Create(page.Width, page.Height, 96, 96, PixelFormats.Bgra32,
             null, page.Pixels.ToArray(), page.Width * 4);

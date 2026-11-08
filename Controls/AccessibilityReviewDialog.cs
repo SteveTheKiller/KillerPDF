@@ -203,7 +203,8 @@ internal sealed class AccessibilityReviewDialog : Window
         double width = quarter ? page.Height : page.Width, height = quarter ? page.Width : page.Height;
         double factor = Math.Min(900 / width, 900 / height);
         var rendered = new PdfPageRenderer(document, InstalledPdfFontResolver.Instance).Render(index,
-            new PdfRenderOptions(Math.Max(1, (int)Math.Ceiling(width * factor)), Math.Max(1, (int)Math.Ceiling(height * factor))), cancellation);
+            KillerPDF.Services.WorkingCmykProfiles.Apply(new PdfRenderOptions(Math.Max(1, (int)Math.Ceiling(width * factor)),
+                Math.Max(1, (int)Math.Ceiling(height * factor)))), cancellation);
         PdfRenderCompleteness.RequireComplete(index, PdfRenderCompleteness.Classify(rendered.Diagnostics));
         BitmapSource bitmap = BitmapSource.Create(rendered.Width, rendered.Height, 96, 96, PixelFormats.Bgra32,
             null, rendered.Pixels.ToArray(), rendered.Width * 4);

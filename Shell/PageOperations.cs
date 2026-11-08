@@ -357,7 +357,8 @@ namespace KillerPDF.Shell
                        && _currentFile != null
                        && thumbnailOwner.ThumbCacheComplete
                        && cached.Length == _doc.PageCount
-                       && cached.All(item => item.ProofStamp == proof?.Stamp)
+                       && cached.All(item => item.ProofStamp == proof?.Stamp
+                           && item.WorkingCmyk == KillerPDF.Services.WorkingCmykProfiles.Generation)
                        && string.Equals(thumbnailOwner.ThumbCacheFile, _currentFile,
                                         System.StringComparison.OrdinalIgnoreCase);
 
@@ -415,7 +416,8 @@ namespace KillerPDF.Shell
                     : new PageThumbnailVm(i, filePath, protection, rot, thumbnailProof);
                 // Seed with stale thumbnail - better than blank while reloading
                 if (nativeRevision is null && oldItems != null && i < oldItems.Length
-                    && oldItems[i].ProofStamp == thumbnailProof?.Stamp)
+                    && oldItems[i].ProofStamp == thumbnailProof?.Stamp
+                    && oldItems[i].WorkingCmyk == KillerPDF.Services.WorkingCmykProfiles.Generation)
                 {
                     var prev = oldItems[i].Thumbnail;
                     if (prev != null) items[i].SetThumbnailDirect(prev);

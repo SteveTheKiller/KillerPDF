@@ -18,7 +18,7 @@ internal static class PdfAnnotationImageSource
             Math.Max(1, Math.Max(previewWidth / asset.Width, previewHeight / asset.Height)));
         int width = Math.Max(1, (int)Math.Round(asset.Width * scale));
         int height = Math.Max(1, (int)Math.Round(asset.Height * scale));
-        var options = new PdfRenderOptions(width, height, transparentBackground: true);
+        var options = WorkingCmykProfiles.Apply(new PdfRenderOptions(width, height, transparentBackground: true));
         byte[] pixels;
         try { pixels = renderer.RenderFrame(0, options).ToSrgbBgra32(); }
         catch (NotSupportedException)

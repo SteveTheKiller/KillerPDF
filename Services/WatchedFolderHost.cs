@@ -22,7 +22,7 @@ internal static class WatchedFolderHost
     internal static PdfMacroDispatcher CreateDispatcher(string storageDirectory) => new([
         new(PdfMacroOperation.Save, (_, bytes, _, token) => { token.ThrowIfCancellationRequested(); return new(bytes); }),
         new(PdfMacroOperation.Resize, PdfResizeMacro.Execute),
-        new(PdfMacroOperation.ConvertColor, PdfColorConversionMacro.Execute),
+        new(PdfMacroOperation.ConvertColor, WorkingCmykProfiles.ConvertColor),
         new(PdfMacroOperation.Rename, PdfRenameMacro.Execute),
         new(PdfMacroOperation.Watermark, PdfEngineBurn.ExecuteWatermarkMacro),
         new(PdfMacroOperation.Ocr, (step, bytes, _, token) => Recognize(step, bytes, storageDirectory, token))]);

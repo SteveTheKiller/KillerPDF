@@ -104,7 +104,7 @@ namespace KillerPDF.Features
                 new PdfMacroOperationRegistration(PdfMacroOperation.Watermark,
                     PdfEngineBurn.ExecuteWatermarkMacro),
                 new PdfMacroOperationRegistration(PdfMacroOperation.Resize, PdfResizeMacro.Execute),
-                new PdfMacroOperationRegistration(PdfMacroOperation.ConvertColor, PdfColorConversionMacro.Execute),
+                new PdfMacroOperationRegistration(PdfMacroOperation.ConvertColor, WorkingCmykProfiles.ConvertColor),
                 new PdfMacroOperationRegistration(PdfMacroOperation.DataMerge,
                     (step, data, _, token) => PdfDataMergeMacro.Execute(step, data,
                         mergePlan?.Merge.Records ?? throw new InvalidOperationException("Merge data has not been selected."),

@@ -347,3 +347,46 @@ public sealed class ProofProfileLibrary(string directory)
         }
     }
 }
+
+/// <summary>The chosen working CMYK profile, read once per choice for every render in this process.</summary>
+/// <remarks>
+/// Untagged CMYK displays, prints and exports through it everywhere. Null keeps the engine's
+/// built-in CGATS TR 001 profile. A changed choice is picked up after <see cref="Invalidate"/>.
+/// </remarks>
+internal static class WorkingCmykProfiles
+{
+    private sealed record Choice(long Generation, PdfColorProfile? Profile);
+    private static long _generation;
+    private static Choice? _choice;
+
+    /// <summary>Gets or sets where the choice is read; the application's profile library by default.</summary>
+    internal static Func<PdfColorProfile?> Source { get; set; } = () => new ProofProfileLibrary().ResolveWorkingCmykProfile();
+
+    internal static long Generation => Interlocked.Read(ref _generation);
+
+    internal static void Invalidate() => Interlocked.Increment(ref _generation);
+
+    internal static PdfColorProfile? Current()
+    {
+        long generation = Generation;
+        if (Volatile.Read(ref _choice) is { } cached && cached.Generation == generation) return cached.Profile;
+        PdfColorProfile? profile;
+        try { profile = Source(); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+            or FormatException or NotSupportedException or ArgumentException)
+        {
+            profile = null;
+        }
+        Volatile.Write(ref _choice, new Choice(generation, profile));
+        return profile;
+    }
+
+    /// <summary>Gives render options the chosen working CMYK profile; never sets null.</summary>
+    internal static KillerPdf.Engine.Rendering.PdfRenderOptions Apply(KillerPdf.Engine.Rendering.PdfRenderOptions options) =>
+        Current() is { } working ? options with { WorkingCmykProfile = working } : options;
+
+    /// <summary>The color conversion macro step, reading untagged CMYK through the chosen working profile.</summary>
+    internal static KillerPdf.Engine.Documents.PdfMacroOperationResult ConvertColor(KillerPdf.Engine.Documents.PdfMacroStep step,
+        ReadOnlyMemory<byte> source, IReadOnlyDictionary<string, string> values, CancellationToken token) =>
+        KillerPdf.Engine.Documents.PdfColorConversionMacro.Execute(step, source, values, Current(), token);
+}

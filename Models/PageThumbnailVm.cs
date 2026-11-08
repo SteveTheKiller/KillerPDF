@@ -42,6 +42,8 @@ namespace KillerPDF
         private readonly PdfCapturedReadRevision? _nativeRevision;
         private readonly PdfDocumentProofViewSnapshot? _proof = proof;
         internal PdfDocumentProofViewStamp? ProofStamp => _proof?.Stamp;
+        // The working CMYK choice this thumbnail is drawn with; a new choice redraws it.
+        internal long WorkingCmyk { get; } = Services.WorkingCmykProfiles.Generation;
 
         internal PageThumbnailVm(int pageIndex, PdfCapturedReadRevision revision, int rotation = 0,
             PdfDocumentProofViewSnapshot? proof = null)

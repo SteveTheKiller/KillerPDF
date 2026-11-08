@@ -354,11 +354,12 @@ internal sealed partial class PreviewPane : IDisposable
                     bool incomplete = false;
                     try
                     {
-                        var options = new PdfRenderOptions(request.Width, request.Height)
+                        // Explorer's preview shows untagged CMYK through the same chosen working profile.
+                        var options = KillerPDF.Services.WorkingCmykProfiles.Apply(new PdfRenderOptions(request.Width, request.Height)
                         {
                             CacheResult = false,
                             MaximumParallelism = Math.Clamp(Environment.ProcessorCount / 2, 1, 4)
-                        };
+                        });
                         PdfRenderedPage page = renderer.Render(request.Slot.Index, options, token);
                         incomplete = PdfRenderCompleteness.Classify(page.Diagnostics).Any(item => item.BlocksPublication);
                         byte[] pixels = MemoryMarshal.TryGetArray(page.Pixels, out ArraySegment<byte> segment)

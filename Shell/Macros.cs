@@ -195,7 +195,7 @@ public partial class MainWindow
             new PdfMacroOperationRegistration(PdfMacroOperation.Watermark,
                 PdfEngineBurn.ExecuteWatermarkMacro),
             new PdfMacroOperationRegistration(PdfMacroOperation.Resize, PdfResizeMacro.Execute),
-            new PdfMacroOperationRegistration(PdfMacroOperation.ConvertColor, PdfColorConversionMacro.Execute),
+            new PdfMacroOperationRegistration(PdfMacroOperation.ConvertColor, WorkingCmykProfiles.ConvertColor),
             new PdfMacroOperationRegistration(PdfMacroOperation.DataMerge,
                 (step, source, _, token) => PdfDataMergeMacro.Execute(step, source,
                     mergeRecords ?? throw new InvalidOperationException("Merge data has not been selected."),

@@ -249,11 +249,11 @@ internal sealed class PdfPageRenderSession : IDisposable
         CancellationToken cancellationToken = default)
     {
         PdfRenderedPage rendered = RenderOwnedPage(Renderer, pageIndex,
-            new EngineRenderOptions(width, height, false, false, false)
+            WithWorkingCmyk(new EngineRenderOptions(width, height, false, false, false)
             {
                 MaximumParallelism = RenderParallelism(width, height),
                 Jpeg2000PaintParallelism = Math.Clamp(Environment.ProcessorCount / 2, 1, 4)
-            }, cancellationToken);
+            }), cancellationToken);
         rendered.RequireComplete(pageIndex);
         return rendered;
     }
@@ -360,39 +360,20 @@ internal sealed class PdfPageRenderSession : IDisposable
             CreateRenderOptions(pageIndex, false, true, false, maximumWidth, maximumHeight) with { Proof = proof }), cancellationToken);
     }
 
-    /// <summary>Gets or sets where managed renders read the chosen working CMYK profile; null means built in.</summary>
-    internal static Func<KillerPdf.Engine.ColorManagement.PdfColorProfile?> WorkingCmykSource { get; set; } =
-        () => new ProofProfileLibrary().ResolveWorkingCmykProfile();
-
-    private static long _workingCmykGeneration;
-    private sealed record WorkingCmykChoice(long Generation, KillerPdf.Engine.ColorManagement.PdfColorProfile? Profile);
-    private static WorkingCmykChoice? _workingCmyk;
-
-    /// <summary>Gets the working CMYK choice generation, which changes whenever the choice changes.</summary>
-    internal static long WorkingCmykGeneration => Interlocked.Read(ref _workingCmykGeneration);
-
-    /// <summary>Marks the working CMYK choice changed, so the next managed render reads it again.</summary>
-    internal static void InvalidateWorkingCmyk() => Interlocked.Increment(ref _workingCmykGeneration);
-
-    // The chosen profile is read and parsed once per choice, not once per render.
-    private static KillerPdf.Engine.ColorManagement.PdfColorProfile? WorkingCmyk()
+    /// <summary>Gets or sets where renders read the chosen working CMYK profile; null means built in.</summary>
+    internal static Func<KillerPdf.Engine.ColorManagement.PdfColorProfile?> WorkingCmykSource
     {
-        long generation = WorkingCmykGeneration;
-        if (Volatile.Read(ref _workingCmyk) is { } cached && cached.Generation == generation) return cached.Profile;
-        KillerPdf.Engine.ColorManagement.PdfColorProfile? profile;
-        try { profile = WorkingCmykSource(); }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException
-            or FormatException or NotSupportedException or ArgumentException)
-        {
-            profile = null;
-        }
-        Volatile.Write(ref _workingCmyk, new WorkingCmykChoice(generation, profile));
-        return profile;
+        get => WorkingCmykProfiles.Source;
+        set => WorkingCmykProfiles.Source = value;
     }
 
-    // Managed (float) renders take the chosen working CMYK profile; null keeps the built-in one.
-    private static EngineRenderOptions WithWorkingCmyk(EngineRenderOptions options) =>
-        WorkingCmyk() is { } working ? options with { WorkingCmykProfile = working } : options;
+    /// <summary>Gets the working CMYK choice generation, which changes whenever the choice changes.</summary>
+    internal static long WorkingCmykGeneration => WorkingCmykProfiles.Generation;
+
+    /// <summary>Marks the working CMYK choice changed, so the next render reads it again.</summary>
+    internal static void InvalidateWorkingCmyk() => WorkingCmykProfiles.Invalidate();
+
+    private static EngineRenderOptions WithWorkingCmyk(EngineRenderOptions options) => WorkingCmykProfiles.Apply(options);
 
     internal (int Width, int Height) FittedDimensions(int pageIndex, int maximumWidth, int maximumHeight)
     {
@@ -444,7 +425,9 @@ internal sealed class PdfPageRenderSession : IDisposable
         // instead of failing the whole job (#481).
         if (_forPrinting)
             (engineWidth, engineHeight) = PrintPagePlacement.WithinRenderLimit(engineWidth, engineHeight);
-        return new EngineRenderOptions(engineWidth, engineHeight, transparentBackground,
+        // Every surface (viewer, thumbnails, print, export and the CLI) shows untagged CMYK
+        // through the chosen working profile.
+        return WithWorkingCmyk(new EngineRenderOptions(engineWidth, engineHeight, transparentBackground,
             includeAnnotations, includeFormFields)
         {
             ForPrinting = _forPrinting,
@@ -456,7 +439,7 @@ internal sealed class PdfPageRenderSession : IDisposable
             IncludeRedactionMarks = _forPrinting,
             MaximumParallelism = RenderParallelism(engineWidth, engineHeight),
             Jpeg2000PaintParallelism = Math.Clamp(Environment.ProcessorCount / 2, 1, 4)
-        };
+        });
     }
 
     // Large pages split their big row-independent paints across a few threads; output pixels
