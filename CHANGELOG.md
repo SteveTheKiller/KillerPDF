@@ -43,6 +43,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Changed
 
 - Saved TrueType text retains fractional font advances. (#472)
+- Color edges in JPEG photos and scans are smoother, most visibly red or blue text on white.
 
 ### Added
 
