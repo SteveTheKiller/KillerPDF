@@ -37,9 +37,16 @@ public sealed class ProofPresetLibrary(string directory)
         try
         {
             Directory.CreateDirectory(_directory);
-            using var gate = new FileStream(Path.Combine(_directory, "presets.lock"), FileMode.OpenOrCreate,
-                FileAccess.ReadWrite, FileShare.None);
-            var presets = GetPresets().ToList();
+            using var gate = ProofLibraryGate.Open(Path.Combine(_directory, "presets.lock"), FileMode.OpenOrCreate);
+            List<PdfProofPreset> presets;
+            bool damaged = false;
+            try { presets = ReadCatalog(CatalogPath, missingIsEmpty: true).ToList(); }
+            catch (FormatException)
+            {
+                // Start from the previous good catalog, and keep the damaged bytes for review.
+                presets = ReadPrevious().ToList();
+                damaged = true;
+            }
             change(presets);
             if (presets.Count > MaximumPresets)
                 throw new InvalidOperationException("The proof preset library is limited to 128 presets.");
@@ -61,7 +68,8 @@ public sealed class ProofPresetLibrary(string directory)
                     file.Write(buffer.ToArray());
                     file.Flush(flushToDisk: true);
                 }
-                if (File.Exists(CatalogPath)) File.Replace(temporary, CatalogPath, CatalogPath + ".bak");
+                if (File.Exists(CatalogPath))
+                    File.Replace(temporary, CatalogPath, CatalogPath + (damaged ? ".recovery" : ".bak"));
                 else File.Move(temporary, CatalogPath);
             }
             finally
@@ -75,16 +83,21 @@ public sealed class ProofPresetLibrary(string directory)
         }
     }
 
+    // The catalog a damaged one replaced, or nothing when that copy is missing or damaged too.
+    private IReadOnlyList<PdfProofPreset> ReadPrevious()
+    {
+        try { return ReadCatalog(CatalogPath + ".bak", missingIsEmpty: true); }
+        catch (FormatException) { return []; }
+    }
+
     /// <summary>Explicitly restores the previous catalog, retaining the replaced catalog for review.</summary>
+    /// <remarks>The newest replaced catalog is retained; an earlier retained copy never blocks a restore.</remarks>
     public IReadOnlyList<PdfProofPreset> RestorePrevious()
     {
         try
         {
-            using var gate = new FileStream(Path.Combine(_directory, "presets.lock"), FileMode.OpenOrCreate,
-                FileAccess.ReadWrite, FileShare.None);
+            using var gate = ProofLibraryGate.Open(Path.Combine(_directory, "presets.lock"), FileMode.OpenOrCreate);
             var presets = ReadCatalog(CatalogPath + ".bak", missingIsEmpty: false);
-            if (File.Exists(CatalogPath + ".recovery"))
-                throw new InvalidOperationException("Review the retained proof preset catalog before restoring another version.");
             using var buffer = new MemoryStream();
             using (var writer = new Utf8JsonWriter(buffer))
             {
@@ -119,7 +132,15 @@ public sealed class ProofPresetLibrary(string directory)
     }
 
     /// <summary>Reads stored presets without loading external profiles.</summary>
-    public IReadOnlyList<PdfProofPreset> GetPresets() => ReadCatalog(CatalogPath, missingIsEmpty: true);
+    /// <remarks>
+    /// A damaged catalog reads as the previous catalog, or as empty without one, so the library
+    /// keeps working. The next save retains the damaged bytes beside the catalog for review.
+    /// </remarks>
+    public IReadOnlyList<PdfProofPreset> GetPresets()
+    {
+        try { return ReadCatalog(CatalogPath, missingIsEmpty: true); }
+        catch (FormatException) { return ReadPrevious(); }
+    }
 
     private static IReadOnlyList<PdfProofPreset> ReadCatalog(string path, bool missingIsEmpty)
     {
@@ -162,4 +183,25 @@ public sealed class ProofPresetLibrary(string directory)
             throw new FormatException("The proof preset library is damaged or has invalid settings.");
         }
     }
+}
+
+/// <summary>Opens a proof library's exclusive lock file, waiting briefly for another writer.</summary>
+internal static class ProofLibraryGate
+{
+    // About two seconds in total: long enough for another instance's save, short enough for the UI.
+    private const int Attempts = 10;
+
+    internal static FileStream Open(string path, FileMode mode)
+    {
+        for (int attempt = 0; ; attempt++)
+        {
+            try { return new FileStream(path, mode, FileAccess.ReadWrite, FileShare.None); }
+            catch (IOException error) when (attempt < Attempts - 1 && IsSharingViolation(error))
+            {
+                Thread.Sleep(20 << Math.Min(attempt, 4));
+            }
+        }
+    }
+
+    private static bool IsSharingViolation(IOException error) => (error.HResult & 0xFFFF) is 32 or 33;
 }

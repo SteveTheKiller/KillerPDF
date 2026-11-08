@@ -80,20 +80,77 @@ public sealed class ProofPresetLibraryTests : IDisposable
     [InlineData("{\"schemaVersion\":1,\"schemaVersion\":1,\"presets\":[]}")]
     [InlineData("{\"schemaVersion\":1,\"presets\":{},\"presets\":[]}")]
     [InlineData("{\"schemaVersion\":\"1\",\"presets\":[]}")]
-    public void DamagedCatalogIsDiagnosedAndNeverOverwritten(string json)
+    public void DamagedCatalogIsReplacedOnlyAfterItIsKeptForReview(string json)
     {
         Directory.CreateDirectory(_directory);
         string path = Path.Combine(_directory, "proof-presets.json");
         File.WriteAllText(path, json);
         var library = new ProofPresetLibrary(_directory);
 
-        var readError = Assert.Throws<FormatException>(() => library.GetPresets());
-        var saveError = Assert.Throws<FormatException>(() => library.Save(PdfProofPreset.FromJson(Requested)));
-
-        Assert.Null(readError.InnerException);
-        Assert.Null(saveError.InnerException);
-        Assert.DoesNotContain(_directory, readError.Message);
+        Assert.Empty(library.GetPresets());
         Assert.Equal(json, File.ReadAllText(path));
+        library.Save(PdfProofPreset.FromJson(Requested));
+
+        Assert.Single(library.GetPresets());
+        Assert.Equal(json, File.ReadAllText(path + ".recovery"));
+    }
+
+    [Fact]
+    public void ADamagedCatalogFallsBackToThePreviousCatalogAndKeepsTheDamagedCopyForReview()
+    {
+        var library = new ProofPresetLibrary(_directory);
+        library.Save(PdfProofPreset.FromJson(Requested));
+        library.Save(PdfProofPreset.Capture("Second", new PdfDocumentProofSettings()));
+        string path = Path.Combine(_directory, "proof-presets.json");
+        File.WriteAllText(path, "{");
+
+        Assert.Equal("Paper proof", Assert.Single(library.GetPresets()).Name);
+        library.Save(PdfProofPreset.Capture("Third", new PdfDocumentProofSettings()));
+
+        Assert.Equal(["Paper proof", "Third"], new ProofPresetLibrary(_directory).GetPresets().Select(item => item.Name));
+        Assert.Equal("{", File.ReadAllText(path + ".recovery"));
+    }
+
+    [Fact]
+    public void ADamagedCatalogWithoutAPreviousCopyStartsEmptyAndKeepsTheDamagedCopyForReview()
+    {
+        Directory.CreateDirectory(_directory);
+        string path = Path.Combine(_directory, "proof-presets.json");
+        File.WriteAllText(path, "{");
+        var library = new ProofPresetLibrary(_directory);
+
+        Assert.Empty(library.GetPresets());
+        library.Save(PdfProofPreset.FromJson(Requested));
+
+        Assert.Equal("Paper proof", Assert.Single(new ProofPresetLibrary(_directory).GetPresets()).Name);
+        Assert.Equal("{", File.ReadAllText(path + ".recovery"));
+    }
+
+    [Fact]
+    public void RestoringThePreviousCatalogAgainIsNotBlockedByTheRetainedCopy()
+    {
+        var library = new ProofPresetLibrary(_directory);
+        library.Save(PdfProofPreset.FromJson(Requested));
+        library.Save(PdfProofPreset.Capture("Second", new PdfDocumentProofSettings()));
+        Assert.Single(library.RestorePrevious());
+        library.Save(PdfProofPreset.Capture("Third", new PdfDocumentProofSettings()));
+
+        Assert.Single(library.RestorePrevious());
+    }
+
+    [Fact]
+    public void ASaveWaitsForABrieflyHeldWriterGate()
+    {
+        var library = new ProofPresetLibrary(_directory);
+        library.Save(PdfProofPreset.FromJson(Requested));
+        var gate = new FileStream(Path.Combine(_directory, "presets.lock"), FileMode.OpenOrCreate,
+            FileAccess.ReadWrite, FileShare.None);
+        var release = Task.Run(async () => { await Task.Delay(150); gate.Dispose(); });
+
+        library.Save(PdfProofPreset.Capture("Second", new PdfDocumentProofSettings()));
+
+        release.Wait();
+        Assert.Equal(2, new ProofPresetLibrary(_directory).GetPresets().Count);
     }
 
     [Fact]
@@ -116,7 +173,8 @@ public sealed class ProofPresetLibraryTests : IDisposable
         string duplicate = Requested.Replace("Paper proof", "PAPER PROOF", StringComparison.Ordinal);
         File.WriteAllText(Path.Combine(_directory, "proof-presets.json"),
             "{\"schemaVersion\":1,\"presets\":[" + Requested + "," + duplicate + "]}");
-        Assert.Throws<FormatException>(() => new ProofPresetLibrary(_directory).GetPresets());
+        // Neither duplicate is chosen: the damaged catalog contributes no presets.
+        Assert.Empty(new ProofPresetLibrary(_directory).GetPresets());
     }
 
     [Fact]
@@ -127,9 +185,9 @@ public sealed class ProofPresetLibraryTests : IDisposable
         var library = new ProofPresetLibrary(_directory);
         _ = library.GetType();
         long before = GC.GetAllocatedBytesForCurrentThread();
-        var error = Record.Exception(() => library.GetPresets());
+        var presets = library.GetPresets();
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        Assert.IsType<FormatException>(error);
+        Assert.Empty(presets);
         Assert.True(allocated < 64 * 1024, $"Oversized rejection allocated {allocated} bytes.");
     }
 
@@ -209,7 +267,7 @@ public sealed class ProofPresetLibraryTests : IDisposable
         string path = Path.Combine(_directory, "proof-presets.json");
         const string damaged = "{damaged catalog";
         File.WriteAllText(path, damaged);
-        Assert.Throws<FormatException>(() => library.GetPresets());
+        Assert.Equal("Paper proof", Assert.Single(library.GetPresets()).Name);
 
         var restored = new ProofPresetLibrary(_directory).RestorePrevious();
 
@@ -220,7 +278,7 @@ public sealed class ProofPresetLibraryTests : IDisposable
     }
 
     [Fact]
-    public void RecoveryNeverOverwritesAnEarlierRetainedCatalog()
+    public void ALaterRecoveryRetainsTheNewestDamagedCatalogInsteadOfBlocking()
     {
         var library = new ProofPresetLibrary(_directory);
         library.Save(PdfProofPreset.FromJson(Requested));
@@ -230,10 +288,10 @@ public sealed class ProofPresetLibraryTests : IDisposable
         library.RestorePrevious();
         File.WriteAllText(path, "second damage");
 
-        Assert.Throws<InvalidOperationException>(() => library.RestorePrevious());
+        Assert.Equal("Paper proof", Assert.Single(library.RestorePrevious()).Name);
 
-        Assert.Equal("first damage", File.ReadAllText(path + ".recovery"));
-        Assert.Equal("second damage", File.ReadAllText(path));
+        Assert.Equal("second damage", File.ReadAllText(path + ".recovery"));
+        Assert.Equal("Paper proof", Assert.Single(library.GetPresets()).Name);
     }
 
     [Fact]
@@ -244,7 +302,7 @@ public sealed class ProofPresetLibraryTests : IDisposable
             Requested.Replace("Paper proof", "Proof" + index, StringComparison.Ordinal)));
         File.WriteAllText(Path.Combine(_directory, "proof-presets.json"),
             "{\"schemaVersion\":1,\"presets\":[" + entries + "]}");
-        Assert.Throws<FormatException>(() => new ProofPresetLibrary(_directory).GetPresets());
+        Assert.Empty(new ProofPresetLibrary(_directory).GetPresets());
     }
 
     [Fact]
