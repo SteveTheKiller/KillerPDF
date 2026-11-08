@@ -128,6 +128,10 @@ public sealed class PdfRenderedFrame
             throw new NotSupportedException("Display output requires a monitor profile.");
         if (monitor.DeviceColorSpaceSignature != "RGB ")
             throw new NotSupportedException("BGRA display output requires an RGB monitor profile.");
+        var reverse = monitor.GetTransformSelection(KillerPdf.Engine.Authoring.PdfRenderingIntent.RelativeColorimetric,
+            KillerPdf.Engine.ColorManagement.PdfColorTransformDirection.ConnectionToDevice);
+        if (!reverse.IsAvailable || reverse.UsesIntentFallback)
+            throw new NotSupportedException("Display output requires an actual relative colorimetric monitor reverse transform.");
         if (maximumCombinedPixelBytes is <= 0 or > MaximumPixelBytes)
             throw new ArgumentOutOfRangeException(nameof(maximumCombinedPixelBytes));
         long combinedBytes = _pixels.LongLength * (sizeof(float) + sizeof(byte))

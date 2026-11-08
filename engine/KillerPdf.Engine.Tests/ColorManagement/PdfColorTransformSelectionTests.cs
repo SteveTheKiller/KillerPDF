@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.ColorManagement;
+using KillerPdf.Engine.Rendering;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.ColorManagement;
@@ -219,6 +220,17 @@ public sealed class PdfColorTransformSelectionTests
         Assert.Throws<NotSupportedException>(() => profile.ToXyz(device, xyz, PdfRenderingIntent.AbsoluteColorimetric));
         Assert.Throws<NotSupportedException>(() => profile.FromXyz(xyz, device, PdfRenderingIntent.AbsoluteColorimetric));
         profile.ToXyz(device, xyz, PdfRenderingIntent.RelativeColorimetric);
+    }
+
+    [Fact]
+    public void DisplayConversionRefusesAMonitorWithoutAnActualRelativeReverse()
+    {
+        // The monitor has no B2A1, so relative display conversion would silently use the perceptual B2A0.
+        var monitor = PdfColorProfile.Load(Profile("RGB ", ("A2B0", IdentityLut()), ("A2B1", IdentityLut()),
+            ("B2A0", IdentityLut())));
+        var frame = new PdfRenderedFrame(1, 1, [0.5f, 0.5f, 0.5f, 1f], PdfFrameColorEncoding.LinearSrgbD65);
+
+        Assert.Throws<NotSupportedException>(() => frame.ToDisplayBgra32(monitor));
     }
 
     private static void AssertUnavailable(PdfColorTransformSelection selection)
