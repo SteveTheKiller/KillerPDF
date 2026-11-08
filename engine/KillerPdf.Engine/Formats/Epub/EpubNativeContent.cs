@@ -59,6 +59,10 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal Border? Border { get; init; }
         internal double? HeightPercentage { get; init; }
         internal (double Width, double Height)? SvgViewBox { get; init; }
+        /// <summary>The HTML ordinal value of an ordered-list item, or null for other elements.</summary>
+        internal int? ListOrdinal { get; init; }
+        /// <summary>The owning ol type attribute (1, a, A, i or I), or null for decimal.</summary>
+        internal string? ListType { get; init; }
         internal List<SourceNode> Children { get; } = new();
 
         internal double VerticalMargin(int side, double width, double fallback, bool padding = false)
@@ -128,6 +132,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             FontWeight: 700, Margins: [new(values.Margin, true), new(0, false), new(values.Margin, true), new(0, false)]));
     }
     private readonly Stack<Element> _ancestors = new();
+    private readonly Dictionary<Element, int> _listCounters = new(ReferenceEqualityComparer.Instance);
+
+    // HTML rules for parsing integers, limited to the values a list ordinal can sensibly hold.
+    private static int? ParseInteger(string? value) =>
+        int.TryParse(value?.Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int parsed)
+            && parsed is > -1_000_000_000 and < 1_000_000_000 ? parsed : null;
     private readonly Dictionary<string, List<CssRule>> _typeRules = new(StringComparer.Ordinal);
     private int _characters;
     private int _selectorWork;
@@ -309,7 +319,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 properties = properties with { Margins = null };
             if (name != "body" && properties.Padding?.Any(side => side is { Value: > 0 }) == true
                 && (!paragraph || properties.Display == DisplayKind.Inline)
-                && !(name == "ul" && properties.Display != DisplayKind.Inline
+                && !(name is "ul" or "ol" && properties.Display != DisplayKind.Inline
                     && properties.Padding[0] is not { Value: > 0 } && properties.Padding[2] is not { Value: > 0 }))
                 properties = properties with { Padding = null };
             if (properties.Background is not null && !paragraph && !IsGroupingContainer(name) && !IsFlowContainer(name)
@@ -333,14 +343,26 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             DisplayKind.Inline or DisplayKind.None => false,
             _ => paragraph || IsGroupingContainer(name) || IsFlowContainer(name) || tableDisplay is not null
         };
+        // HTML ordinal values: an ol counts its li children from start (default 1); an li value attribute resets the count.
+        int? ordinal = null;
+        if (name == "li" && parent?.Name == "ol" && !suppressed)
+        {
+            if (!_listCounters.TryGetValue(parent, out int next))
+                next = ParseInteger(parent.Identity.Attributes.GetValueOrDefault(("", "start"))) ?? 1;
+            next = ParseInteger(attributes.GetValueOrDefault(("", "value"))) ?? next;
+            ordinal = next;
+            _listCounters[parent] = next + 1;
+        }
         var element = new Element(name, parent, style, block, Characters.Count, identity)
         {
             Display = properties.Display ?? tableDisplay ?? name switch
             {
-                // Only unordered lists draw markers; ordered-list items flow as indented blocks without numbers.
-                "li" => parent?.Name == "ul" ? DisplayKind.ListItem : DisplayKind.Block,
+                // Unordered-list items draw bullets and ordered-list items draw their numbers.
+                "li" => parent?.Name is "ul" or "ol" ? DisplayKind.ListItem : DisplayKind.Block,
                 _ => block ? DisplayKind.Block : DisplayKind.Inline
             },
+            ListOrdinal = ordinal,
+            ListType = ordinal is null ? null : parent!.Identity.Attributes.GetValueOrDefault(("", "type")),
             Margins = suppressed ? null : properties.Margins, Padding = suppressed ? null : properties.Padding,
             TopBorder = suppressed ? null : properties.TopBorder, Width = suppressed ? null : properties.Width,
             MaximumWidth = suppressed ? null : properties.MaximumWidth,

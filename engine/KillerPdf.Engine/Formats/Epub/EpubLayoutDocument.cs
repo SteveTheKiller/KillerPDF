@@ -84,14 +84,18 @@ public sealed record EpubTextPlacement(int SpineIndex, int Start, int Length,
 public sealed record EpubNavigationDestination(int PageIndex, int SpineIndex, int TextOffset,
     double Left, double Top);
 
+/// <summary>An ordered-list number as drawn: its text, font, left edge, baseline and size in CSS pixels.</summary>
+internal sealed record EpubListMarker(string Text, TrueTypeFont Font, double Left, double Baseline, double Size, PdfRgbColor? Color);
+
 /// <summary>Provides native page text and logical placement geometry.</summary>
 public sealed class EpubLayoutPage
 {
     internal EpubLayoutPage(string text, int textStart, int spineIndex, IEnumerable<EpubTextPlacement> placements,
         IEnumerable<NativePagePaint> glyphs, PdfRgbColor? canvasBackground = null,
         IEnumerable<EpubGlyphCluster>? clusters = null, IEnumerable<(int Start, int Length)>? hiddenTextRanges = null,
-        IEnumerable<EpubTextPlacement>? navigationPlacements = null)
+        IEnumerable<EpubTextPlacement>? navigationPlacements = null, IEnumerable<EpubListMarker>? markers = null)
     {
+        Markers = Array.AsReadOnly((markers ?? []).ToArray());
         Text = text;
         TextStart = textStart;
         SpineIndex = spineIndex;
@@ -114,6 +118,8 @@ public sealed class EpubLayoutPage
     internal IReadOnlyDictionary<int, EpubGlyphCluster> Clusters { get; }
     internal IReadOnlyList<(int Start, int Length)> HiddenTextRanges { get; }
     internal IReadOnlyList<EpubTextPlacement> NavigationPlacements { get; }
+    /// <summary>Ordered-list numbers drawn on this page; they are not part of the page text.</summary>
+    internal IReadOnlyList<EpubListMarker> Markers { get; }
     internal PdfRgbColor? CanvasBackground { get; }
 
     internal IEnumerable<EpubTextPlacement> LinkRuns(CancellationToken cancellationToken)

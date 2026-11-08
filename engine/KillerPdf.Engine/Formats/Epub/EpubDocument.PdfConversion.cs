@@ -60,9 +60,24 @@ public sealed partial class EpubDocument
                         DrawImage(image);
                         break;
                     case NativeGlyphPaint glyph:
-                        if (emittedText.Add(glyph.SourceOffset)) DrawText(placements[glyph.SourceOffset]);
+                        // List-number glyphs have no source text; their markers are written below.
+                        if (glyph.SourceOffset >= 0 && emittedText.Add(glyph.SourceOffset)) DrawText(placements[glyph.SourceOffset]);
                         break;
                 }
+            }
+            foreach (var marker in page.Markers)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                // A number the font cannot encode keeps its native drawing only.
+                if (marker.Text.Any(character => marker.Font.GetGlyphId(character) == 0)) continue;
+                var color = marker.Color ?? new PdfRgbColor(0, 0, 0);
+                content.SetFillRgb(color.Red, color.Green, color.Blue)
+                    .BeginText()
+                    .SetFont(marker.Font, marker.Size * pointsPerCssPixel)
+                    .SetTextMatrix(1, 0, 0, 1, marker.Left * pointsPerCssPixel,
+                        options.PageHeightPoints - marker.Baseline * pointsPerCssPixel)
+                    .ShowUnicodeText(marker.Text)
+                    .EndText();
             }
             builder.AddPage(options.PageWidthPoints, options.PageHeightPoints, content);
 

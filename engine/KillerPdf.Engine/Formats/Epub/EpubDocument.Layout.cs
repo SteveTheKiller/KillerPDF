@@ -123,6 +123,32 @@ public sealed partial class EpubDocument
         }
     }
 
+    // HTML ol type: 1 decimal, a/A bijective base-26 letters, i/I roman numerals (1 to 3999, decimal otherwise).
+    private static string ListMarkerText(int ordinal, string? type)
+    {
+        switch (type)
+        {
+            case "a" or "A" when ordinal > 0:
+            {
+                var letters = new StringBuilder();
+                for (int value = ordinal; value > 0; value = (value - 1) / 26)
+                    letters.Insert(0, (char)((type == "a" ? 'a' : 'A') + (value - 1) % 26));
+                return letters.ToString();
+            }
+            case "i" or "I" when ordinal is > 0 and < 4000:
+            {
+                var roman = new StringBuilder();
+                int value = ordinal;
+                foreach (var (amount, symbol) in new[] { (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
+                    (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I") })
+                    for (; value >= amount; value -= amount) roman.Append(symbol);
+                return type == "i" ? roman.ToString().ToLowerInvariant() : roman.ToString();
+            }
+            default:
+                return ordinal.ToString(CultureInfo.InvariantCulture);
+        }
+    }
+
     /// <summary>Draws the caller's label, the chapter path and the diagnosis with the fallback font.</summary>
     private static EpubLayoutPage ChapterDiagnosisPage(int spineIndex, EpubLayoutOptions options,
         TrueTypeOutlineReader reader, string href, string message, CancellationToken cancellationToken)
@@ -501,6 +527,7 @@ public sealed partial class EpubDocument
             var navigationPlacements = new List<EpubTextPlacement>();
             var glyphs = new List<NativePagePaint>(flowEnd - flowStart);
             var backgrounds = new List<(int Depth, NativePagePaint Paint)>();
+            var listMarkers = new List<EpubListMarker>();
             int pageStart = flowStart;
             bool pageHasContent = false;
             bool pendingBreakAfter = false;
@@ -528,7 +555,8 @@ public sealed partial class EpubDocument
 
             void LayoutBlock(EpubFormattingTree.Block block)
             {
-                if (block is EpubFormattingTree.ListItem && !HasFlowContent(block))
+                // An empty numbered item still advances its list's count; it simply draws no marker line.
+                if (block is EpubFormattingTree.ListItem && block.Source.ListOrdinal is null && !HasFlowContent(block))
                     throw new NotSupportedException("Native EPUB empty list items are not implemented.");
                 double parentLeft = contentLeft, parentRight = contentRight, parentWidth = contentWidth;
                 var margins = block.Parent is null ? (Left: 0d, Right: 0d) : block.Source.HorizontalInsets(parentWidth);
@@ -647,7 +675,8 @@ public sealed partial class EpubDocument
                         top = options.Margin;
                     }
 
-                    if (block is EpubFormattingTree.ListItem completedItem && !markedItems.Contains(completedItem))
+                    if (block is EpubFormattingTree.ListItem completedItem && completedItem.Source.ListOrdinal is null
+                        && !markedItems.Contains(completedItem))
                         throw new NotSupportedException("Native EPUB list items require a supported first line.");
 
                     void PaintPadding(double height)
@@ -979,6 +1008,8 @@ public sealed partial class EpubDocument
                             placements.Add(placement with { Top = placement.Top + shift });
                         foreach (var placement in cell.NavigationPlacements)
                             navigationPlacements.Add(placement with { Top = placement.Top + shift });
+                        foreach (var marker in cell.Markers)
+                            listMarkers.Add(marker with { Baseline = marker.Baseline + shift });
                         foreach (var paint in cell.Glyphs)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -1465,7 +1496,8 @@ public sealed partial class EpubDocument
                         if (markedItems.Add(item) && !item.Source.Style.Hidden)
                         {
                             var style = item.Source.Style;
-                            glyphs.Add(new NativeMarkerPaint(itemContentLeft[item] - .8 * style.FontSize,
+                            if (item.Source.ListOrdinal is { } ordinal) PaintNumber(item, style, ordinal, baseline);
+                            else glyphs.Add(new NativeMarkerPaint(itemContentLeft[item] - .8 * style.FontSize,
                                 baseline - .35 * style.FontSize, .2 * style.FontSize, style.Color ?? options.TextColor));
                         }
                         break;
@@ -1585,6 +1617,28 @@ public sealed partial class EpubDocument
                 line.Clear();
             }
 
+            // An ordered-list marker is "N. " in the item's font, right-aligned to end where the item content starts.
+            void PaintNumber(EpubFormattingTree.ListItem item, EpubNativeContent.Style style, int ordinal, double baseline)
+            {
+                string marker = ListMarkerText(ordinal, item.Source.ListType) + ".";
+                var markerFont = FontFor(style);
+                if (!readers.TryGetValue(markerFont, out var markerReader))
+                    readers.Add(markerFont, markerReader = new TrueTypeOutlineReader(markerFont));
+                double unit = style.FontSize / markerFont.UnitsPerEm;
+                double width = markerFont.GetAdvanceWidth(markerFont.GetGlyphId(' ')) * unit;
+                foreach (char character in marker) width += markerFont.GetAdvanceWidth(markerFont.GetGlyphId(character)) * unit;
+                double x = itemContentLeft[item] - width;
+                listMarkers.Add(new(marker, markerFont, x, baseline, style.FontSize, style.Color));
+                foreach (char character in marker)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ushort glyph = markerFont.GetGlyphId(character);
+                    if (markerReader.Outline(glyph) is { } outline)
+                        glyphs.Add(new NativeGlyphPaint(outline, x, baseline, style.FontSize / 1000, style.Color ?? options.TextColor));
+                    x += markerFont.GetAdvanceWidth(glyph) * unit;
+                }
+            }
+
             (double Width, double Height) ImageSize(PngDecodedImage image, EpubNativeContent.Element owner, double reserved = 0)
             {
                 double width = image.Width;
@@ -1668,9 +1722,11 @@ public sealed partial class EpubDocument
                 }
                 if (hiddenStart >= 0) hidden.Add((hiddenStart - pageStart, end - hiddenStart));
                 pages.Add(new EpubLayoutPage(text[pageStart..end], pageStart, spineIndex, placements, paints,
-                    content.CanvasBackground, placements.Select(placement => clusters[placement.Start]), hidden, navigationPlacements));
+                    content.CanvasBackground, placements.Select(placement => clusters[placement.Start]), hidden, navigationPlacements,
+                    listMarkers));
                 pageStart = end;
                 pageHasContent = false;
+                listMarkers.Clear();
                 placements.Clear();
                 navigationPlacements.Clear();
                 glyphs.Clear();
