@@ -2041,4 +2041,17 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Iz {0} je bil izpuščen en element.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Prezrta pravila sloga: {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">Razlog: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">Uporablja nekaj, česar bralnik še ne podpira.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">Zaščiteno je s šifriranjem DRM.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">Uporablja skripte, ki jih bralnik ne izvaja.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">Njegovo besedilo potrebuje pisavo, ki je bralnik še ne zna postaviti.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">Uporablja postavitev, ki je bralnik še ne zna prikazati.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">Nobena razpoložljiva pisava nima nekaterih njegovih znakov.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">V knjigi manjka datoteka, ki jo potrebuje.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">Oblika slike ni podprta.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">Slika uporablja barvni profil, ki ga bralnik ne more pravilno prikazati.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">Slika je prevelika za prikaz.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Datoteka slike je poškodovana.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Presega varnostne omejitve bralnika.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">Njegova oznaka je poškodovana.</sys:String>
 </ResourceDictionary>

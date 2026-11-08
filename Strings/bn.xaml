@@ -2132,4 +2132,17 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} থেকে একটি আইটেম বাদ দেওয়া হয়েছে।</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">উপেক্ষিত স্টাইল নিয়ম: {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">কারণ: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">এতে এমন কিছু ব্যবহার করা হয়েছে যা রিডার এখনও সমর্থন করে না।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">এটি ডিআরএম এনক্রিপশন দ্বারা সুরক্ষিত।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">এতে স্ক্রিপ্ট ব্যবহার করা হয়েছে, যা রিডার চালায় না।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">এর লেখার জন্য এমন একটি লিখন পদ্ধতি দরকার যা রিডার এখনও সাজাতে পারে না।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">এতে এমন একটি লেআউট ব্যবহার করা হয়েছে যা রিডার এখনও দেখাতে পারে না।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">উপলব্ধ কোনো ফন্টে এর কিছু অক্ষর নেই।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">এর প্রয়োজনীয় একটি ফাইল বইটিতে নেই।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">ছবির ফরম্যাট সমর্থিত নয়।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">ছবিটি এমন একটি রঙের প্রোফাইল ব্যবহার করে যা রিডার সঠিকভাবে দেখাতে পারে না।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">ছবিটি দেখানোর জন্য অনেক বড়।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">ছবির ফাইলটি ক্ষতিগ্রস্ত।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">এটি রিডারের নিরাপত্তা সীমার চেয়ে বড়।</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">এর মার্কআপ ক্ষতিগ্রস্ত।</sys:String>
 </ResourceDictionary>

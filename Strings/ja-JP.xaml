@@ -2152,4 +2152,17 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} から項目が 1 つ省略されました。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">無視されたスタイル規則: {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">理由: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">リーダーがまだ対応していない機能を使用しています。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">DRM 暗号化で保護されています。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">リーダーが実行しないスクリプトを使用しています。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">テキストに、リーダーがまだ組版できない文字体系が必要です。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">リーダーがまだ表示できないレイアウトを使用しています。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">使用できるフォントに、一部の文字が含まれていません。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">必要なファイルがブックに含まれていません。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">画像の形式に対応していません。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">リーダーが正しく表示できないカラープロファイルを使用しています。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">画像が大きすぎて表示できません。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">画像ファイルが破損しています。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">リーダーの安全上の制限を超えています。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">マークアップが破損しています。</sys:String>
 </ResourceDictionary>

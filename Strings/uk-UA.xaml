@@ -2152,4 +2152,17 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">З {0} пропущено один елемент.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Проігноровані правила стилю: {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">Причина: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">Використовується те, чого програма читання поки не підтримує.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">Його захищено шифруванням DRM.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">Використовуються скрипти, які програма читання не виконує.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">Для його тексту потрібна система письма, яку програма читання поки не вміє верстати.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">Використовується макет, який програма читання поки не вміє показувати.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">Жоден доступний шрифт не містить деяких його символів.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">У книзі немає потрібного йому файлу.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">Формат зображення не підтримується.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">Зображення використовує колірний профіль, який програма читання не може показати правильно.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">Зображення завелике для показу.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Файл зображення пошкоджено.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Він перевищує обмеження безпеки програми читання.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">Його розмітку пошкоджено.</sys:String>
 </ResourceDictionary>

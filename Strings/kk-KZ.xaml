@@ -2155,4 +2155,17 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} ішінен бір элемент алынып тасталды.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Еленбеген стиль ережелері: {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">Себебі: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">Онда оқу құралы әлі қолдамайтын нәрсе қолданылған.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">Ол DRM шифрлауымен қорғалған.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">Онда оқу құралы орындамайтын скрипттер қолданылған.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">Оның мәтініне оқу құралы әлі беттей алмайтын жазу жүйесі қажет.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">Онда оқу құралы әлі көрсете алмайтын макет қолданылған.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">Қолжетімді қаріптердің ешқайсысында оның кейбір таңбалары жоқ.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">Оған қажетті файл кітапта жоқ.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">Сурет пішімі қолдау көрсетілмейді.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">Суретте оқу құралы дұрыс көрсете алмайтын түс профилі қолданылған.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">Сурет көрсету үшін тым үлкен.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Сурет файлы бүлінген.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Ол оқу құралының қауіпсіздік шектеулерінен асып тұр.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">Оның белгілеуі бүлінген.</sys:String>
 </ResourceDictionary>

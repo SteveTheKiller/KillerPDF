@@ -2152,4 +2152,17 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Một mục đã bị bỏ qua khỏi {0}.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Quy tắc kiểu bị bỏ qua: {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">Lý do: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">Mục này dùng một thứ mà trình đọc chưa hỗ trợ.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">Mục này được bảo vệ bằng mã hóa DRM.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">Mục này dùng tập lệnh mà trình đọc không chạy.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">Văn bản của mục này cần một hệ chữ viết mà trình đọc chưa dàn trang được.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">Mục này dùng bố cục mà trình đọc chưa hiển thị được.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">Không có phông chữ nào khả dụng chứa một số ký tự của mục này.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">Sách thiếu một tệp mà mục này cần.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">Định dạng ảnh không được hỗ trợ.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">Ảnh dùng một hồ sơ màu mà trình đọc không thể hiển thị đúng.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">Ảnh quá lớn để hiển thị.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Tệp ảnh bị hỏng.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Mục này vượt quá giới hạn an toàn của trình đọc.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">Mã đánh dấu của mục này bị hỏng.</sys:String>
 </ResourceDictionary>

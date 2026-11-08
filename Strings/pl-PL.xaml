@@ -2140,4 +2140,17 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Z {0} pominięto jeden element.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Zignorowane reguły stylu: {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">Przyczyna: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">Używa czegoś, czego czytnik jeszcze nie obsługuje.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">Jest chroniony szyfrowaniem DRM.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">Używa skryptów, których czytnik nie uruchamia.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">Jego tekst wymaga systemu pisma, którego czytnik jeszcze nie potrafi złożyć.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">Używa układu, którego czytnik jeszcze nie potrafi wyświetlić.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">Żadna dostępna czcionka nie zawiera niektórych jego znaków.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">W książce brakuje pliku, którego potrzebuje.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">Format obrazu nie jest obsługiwany.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">Obraz używa profilu kolorów, którego czytnik nie potrafi poprawnie wyświetlić.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">Obraz jest zbyt duży, aby go wyświetlić.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Plik obrazu jest uszkodzony.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Przekracza limity bezpieczeństwa czytnika.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">Jego znaczniki są uszkodzone.</sys:String>
 </ResourceDictionary>

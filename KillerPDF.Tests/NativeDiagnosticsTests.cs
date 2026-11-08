@@ -15,8 +15,28 @@ public sealed class NativeDiagnosticsTests
         ["Str_Epub_Diagnostics_ChapterRefused"] = "Not shown: {0}",
         ["Str_Epub_Diagnostics_ItemOmitted"] = "Left out: {0}",
         ["Str_Epub_Diagnostics_Ignored"] = "Ignored style rules: {0}",
-        ["Str_Epub_Diagnostics_Reason"] = "Why: {0}"
+        ["Str_Epub_Diagnostics_Reason"] = "Why: {0}",
+        ["Str_Epub_Reason_Scripting"] = "scripts",
+        ["Str_Epub_Reason_UnsupportedImageFormat"] = "image format"
     };
+
+    [Fact]
+    public void EveryOmissionReasonHasLocalizedWordingInEveryLocale()
+    {
+        // Each engine reason maps to its own key, present and non-empty in all 20 string files.
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "Strings", "en-US.xaml"))) root = root.Parent;
+        Assert.NotNull(root);
+        var files = Directory.GetFiles(Path.Combine(root.FullName, "Strings"), "*.xaml");
+        Assert.Equal(20, files.Length);
+        foreach (var reason in Enum.GetValues<KillerPdf.Engine.Formats.Epub.EpubOmissionReason>())
+        {
+            string key = NativeDocumentDiagnostics.ReasonKey(reason);
+            Assert.Equal("Str_Epub_Reason_" + reason, key);
+            foreach (string file in files)
+                Assert.Matches("x:Key=\"" + key + "\">[^<]+</sys:String>", File.ReadAllText(file));
+        }
+    }
 
     [Fact]
     public void DiagnosticsListWhatEachChapterLostInReadingOrder()
@@ -37,11 +57,15 @@ public sealed class NativeDiagnosticsTests
         Assert.Equal(2, rows[0].Lines.Count);
         // The engine names the chapter in Href and the omitted image in its message.
         Assert.Equal("Left out: EPUB/c1.xhtml", rows[0].Lines[0]);
-        Assert.StartsWith("Why: ", rows[0].Lines[1]);
-        Assert.Contains("format is not supported: EPUB/pic.gif", rows[0].Lines[1]);
+        // The panel shows the localized reason; the engine's English message stays in the copied report.
+        Assert.Equal("Why: image format", rows[0].Lines[1]);
         Assert.Equal(2, rows[1].Lines.Count);
         Assert.Equal("Not shown: EPUB/c2.xhtml", rows[1].Lines[0]);
-        Assert.StartsWith("Why: ", rows[1].Lines[1]);
+        Assert.Equal("Why: scripts", rows[1].Lines[1]);
+        string report = NativeDocumentDiagnostics.Report(rows);
+        Assert.Contains("format is not supported: EPUB/pic.gif", report);
+        Assert.Contains("Why: image format", report);
+        Assert.Contains("Scripted EPUB XHTML text is unsupported.", report);
     }
 
     [Fact]

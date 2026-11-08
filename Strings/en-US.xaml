@@ -2145,4 +2145,17 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">An item was left out of {0}.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Style rules ignored: {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">Reason: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">It uses something the reader does not support yet.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">It is protected by DRM encryption.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">It uses scripts, which the reader does not run.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">Its text needs a writing system the reader cannot lay out yet.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">It uses a layout the reader cannot show yet.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">No available font has some of its characters.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">A file it needs is missing from the book.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">The image format is not supported.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">The image uses a color profile the reader cannot show correctly.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">The image is too large to show.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">The image file is damaged.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">It is larger than the reader's safety limits allow.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">Its markup is damaged.</sys:String>
 </ResourceDictionary>

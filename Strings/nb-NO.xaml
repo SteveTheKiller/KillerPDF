@@ -2152,4 +2152,17 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Et element ble utelatt fra {0}.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Ignorerte stilregler: {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">Årsak: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">Den bruker noe leseren ikke støtter ennå.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">Den er beskyttet med DRM-kryptering.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">Den bruker skript, som leseren ikke kjører.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">Teksten krever et skriftsystem som leseren ikke kan sette opp ennå.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">Den bruker en layout som leseren ikke kan vise ennå.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">Ingen tilgjengelig skrifttype har noen av tegnene.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">En fil den trenger, mangler i boken.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">Bildeformatet støttes ikke.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">Bildet bruker en fargeprofil som leseren ikke kan vise riktig.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">Bildet er for stort til å vises.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Bildefilen er skadet.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Den overskrider leserens sikkerhetsgrenser.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">Markeringen er skadet.</sys:String>
 </ResourceDictionary>

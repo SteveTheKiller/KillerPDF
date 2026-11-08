@@ -1,5 +1,4 @@
 using System;
-using System.Text;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -31,20 +30,17 @@ internal sealed class NativeDiagnosticsDialog : Window
 
         var list = new StackPanel { Name = "NativeDiagnosticsList" };
         AutomationProperties.SetName(list, L("Str_Epub_Diagnostics_Title"));
-        var report = new StringBuilder();
         foreach (var row in rows)
         {
             var heading = Text(row.Heading, muted: false);
             heading.FontWeight = FontWeights.SemiBold;
             heading.Margin = new Thickness(0, list.Children.Count == 0 ? 0 : 12, 0, 4);
             list.Children.Add(heading);
-            report.AppendLine(row.Heading);
             foreach (string line in row.Lines)
             {
                 var item = Text(line, muted: true);
                 item.Margin = new Thickness(12, 0, 0, 2);
                 list.Children.Add(item);
-                report.Append("  ").AppendLine(line);
             }
         }
         var scroller = new ScrollViewer
@@ -57,7 +53,8 @@ internal sealed class NativeDiagnosticsDialog : Window
         Grid.SetRow(scroller, 1);
         body.Children.Add(scroller);
 
-        string text = report.ToString();
+        // The copied report keeps the engine's English diagnosis after each localized reason.
+        string text = NativeDocumentDiagnostics.Report(rows);
         var copy = UiKit.Make(L("Str_DocumentTools_Copy"), accent: false);
         copy.IsEnabled = rows.Count > 0;
         copy.Click += (_, _) =>

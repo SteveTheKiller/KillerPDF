@@ -2137,4 +2137,17 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Z {0} byla vynechána jedna položka.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Ignorovaná pravidla stylu: {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">Důvod: {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">Používá něco, co čtečka zatím nepodporuje.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">Je chráněno šifrováním DRM.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">Používá skripty, které čtečka nespouští.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">Jeho text vyžaduje systém psaní, který čtečka zatím neumí vysázet.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">Používá rozvržení, které čtečka zatím neumí zobrazit.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">Žádné dostupné písmo neobsahuje některé jeho znaky.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">V knize chybí soubor, který potřebuje.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">Formát obrázku není podporován.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">Obrázek používá barevný profil, který čtečka neumí správně zobrazit.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">Obrázek je příliš velký na zobrazení.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Soubor obrázku je poškozen.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Překračuje bezpečnostní limity čtečky.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">Jeho značkování je poškozeno.</sys:String>
 </ResourceDictionary>

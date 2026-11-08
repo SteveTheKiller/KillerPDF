@@ -2152,4 +2152,17 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Un élément a été omis de {0}.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Règles de style ignorées : {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">Motif : {0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">Il utilise un élément que le lecteur ne prend pas encore en charge.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">Il est protégé par un chiffrement DRM.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">Il utilise des scripts, que le lecteur n'exécute pas.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">Son texte nécessite un système d'écriture que le lecteur ne sait pas encore mettre en page.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">Il utilise une mise en page que le lecteur ne peut pas encore afficher.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">Aucune police disponible ne contient certains de ses caractères.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">Un fichier dont il a besoin est absent du livre.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">Le format de l'image n'est pas pris en charge.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">L'image utilise un profil colorimétrique que le lecteur ne peut pas afficher correctement.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">L'image est trop grande pour être affichée.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">Le fichier de l'image est endommagé.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">Il dépasse les limites de sécurité du lecteur.</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">Son balisage est endommagé.</sys:String>
 </ResourceDictionary>

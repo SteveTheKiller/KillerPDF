@@ -2134,4 +2134,17 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} 中有一個項目已被省略。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">已忽略的樣式規則：{0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Reason">原因：{0}</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Other">它使用了閱讀器尚未支援的內容。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Encrypted">它受 DRM 加密保護。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_Scripting">它使用了指令碼，而閱讀器不會執行指令碼。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedScript">它的文字需要閱讀器尚無法排版的書寫系統。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedLayout">它使用了閱讀器尚無法顯示的版面配置。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingGlyph">沒有可用的字型包含它的部分字元。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_MissingResource">書中缺少它所需的檔案。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_UnsupportedImageFormat">不支援該影像格式。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageColorProfile">該影像使用了閱讀器無法正確顯示的色彩設定檔。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageTooLarge">該影像過大，無法顯示。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_ImageUnreadable">該影像檔案已損毀。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_LimitExceeded">它超出了閱讀器的安全限制。</sys:String>
+    <sys:String x:Key="Str_Epub_Reason_InvalidContent">它的標記已損毀。</sys:String>
 </ResourceDictionary>
