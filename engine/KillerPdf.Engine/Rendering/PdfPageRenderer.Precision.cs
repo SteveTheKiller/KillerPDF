@@ -105,13 +105,13 @@ public sealed partial class PdfPageRenderer
             if (proofRequest.PrinterProfile is not { ProfileClassSignature: "prtr",
                 HasColorimetricForward: true, HasColorimetricReverse: true })
                 throw new NotSupportedException("Printer proof rendering requires an output profile with actual colorimetric transforms in both directions.");
+            if (proofRequest.Options.RenderingIntent == Authoring.PdfRenderingIntent.AbsoluteColorimetric
+                && !proofRequest.PrinterProfile.HasExplicitValidMediaWhite)
+                throw new NotSupportedException("Absolute printer proof conversion requires explicit valid media-white data.");
             var inverse = proofRequest.PrinterProfile.GetTransformSelection(proofRequest.Options.RenderingIntent,
                 PdfColorTransformDirection.ConnectionToDevice);
             if (!inverse.IsAvailable || inverse.UsesIntentFallback)
                 throw new NotSupportedException("Printer proof rendering requires an actual inverse for the selected intent without fallback.");
-            if (proofRequest.Options.RenderingIntent == Authoring.PdfRenderingIntent.AbsoluteColorimetric
-                && !proofRequest.PrinterProfile.HasExplicitValidMediaWhite)
-                throw new NotSupportedException("Absolute printer proof conversion requires explicit valid media-white data.");
         }
         if (options.SeparationPlate is not null)
             throw new NotSupportedException("High-precision profile and group rendering is not implemented.");

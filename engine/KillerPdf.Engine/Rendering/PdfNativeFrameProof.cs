@@ -19,12 +19,12 @@ internal static class PdfNativeFrameProof
         if (proof.PrinterProfile is not { ProfileClassSignature: "prtr",
             HasColorimetricForward: true, HasColorimetricReverse: true } printer)
             throw new NotSupportedException("Native printer proof requires an output profile with actual colorimetric transforms in both directions.");
-        var inverse = printer.GetTransformSelection(proof.Options.RenderingIntent, PdfColorTransformDirection.ConnectionToDevice);
-        if (!inverse.IsAvailable || inverse.UsesIntentFallback)
-            throw new NotSupportedException("Native printer proof requires an actual inverse for the selected intent without fallback.");
         if ((proof.Options.SimulatePaper || proof.Options.RenderingIntent == PdfRenderingIntent.AbsoluteColorimetric)
             && !printer.HasExplicitValidMediaWhite)
             throw new NotSupportedException("Native printer proof requires explicit valid media-white data.");
+        var inverse = printer.GetTransformSelection(proof.Options.RenderingIntent, PdfColorTransformDirection.ConnectionToDevice);
+        if (!inverse.IsAvailable || inverse.UsesIntentFallback)
+            throw new NotSupportedException("Native printer proof requires an actual inverse for the selected intent without fallback.");
     }
 
     internal static PdfRenderedFrame Apply(PdfRenderedFrame source, PdfRenderOptions render, CancellationToken token)

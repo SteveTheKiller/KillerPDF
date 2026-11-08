@@ -48,7 +48,9 @@ public sealed class PdfProofTransformTests
     [Fact]
     public void SelectedAbsoluteIntentAppliesOnlyToSourceToPrinterLeg()
     {
-        var proof = new PdfProofTransform(MediaWhiteGray(), Profile(gray: true), Profile(gray: false),
+        // The printer declares D50 media white, so its absolute reverse is defined. A gray reverse uses
+        // only Y, whose white is exactly 1.0, so the printer leg matches the relative values below.
+        var proof = new PdfProofTransform(MediaWhiteGray(), D50WhiteGray(), Profile(gray: false),
             PdfRenderingIntent.AbsoluteColorimetric, blackPointCompensation: false);
         double[] source = [0.5];
         double[] result = new double[3];
@@ -211,6 +213,31 @@ public sealed class PdfProofTransformTests
         Write32(data, 176, 49152);
         Write32(data, 180, 57344);
         Write32(data, 184, 32768);
+        return PdfColorProfile.Load(data);
+    }
+
+    // Identity gray TRC with an explicit D50 wtpt: X 0.9642, Y 1.0, Z 0.8249 in s15Fixed16.
+    private static PdfColorProfile D50WhiteGray()
+    {
+        byte[] data = new byte[188];
+        Write32(data, 0, 188);
+        data[8] = 4;
+        "prtr"u8.CopyTo(data.AsSpan(12));
+        "GRAY"u8.CopyTo(data.AsSpan(16));
+        "XYZ "u8.CopyTo(data.AsSpan(20));
+        "acsp"u8.CopyTo(data.AsSpan(36));
+        Write32(data, 128, 2);
+        "kTRC"u8.CopyTo(data.AsSpan(132));
+        Write32(data, 136, 156);
+        Write32(data, 140, 12);
+        "wtpt"u8.CopyTo(data.AsSpan(144));
+        Write32(data, 148, 168);
+        Write32(data, 152, 20);
+        "curv"u8.CopyTo(data.AsSpan(156));
+        "XYZ "u8.CopyTo(data.AsSpan(168));
+        Write32(data, 176, 63190);
+        Write32(data, 180, 65536);
+        Write32(data, 184, 54061);
         return PdfColorProfile.Load(data);
     }
 

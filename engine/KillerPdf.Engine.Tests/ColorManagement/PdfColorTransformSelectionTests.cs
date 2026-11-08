@@ -112,6 +112,12 @@ public sealed class PdfColorTransformSelectionTests
             var selection = profile.GetTransformSelection(intent, direction);
             Assert.Equal(intent, selection.RequestedIntent);
             Assert.Equal(direction, selection.Direction);
+            if (intent == PdfRenderingIntent.AbsoluteColorimetric)
+            {
+                // Without media white an absolute transform would be relative in disguise.
+                Assert.False(selection.IsAvailable);
+                continue;
+            }
             Assert.True(selection.IsAvailable);
             Assert.True(selection.IsMatrixTrc);
             Assert.Null(selection.TableSignature);
@@ -199,6 +205,20 @@ public sealed class PdfColorTransformSelectionTests
         Assert.Throws<NotSupportedException>(() => new PdfProofTransform(complete, printer, complete,
             PdfRenderingIntent.RelativeColorimetric, blackPointCompensation: false));
         _ = new PdfProofTransform(complete, printer, complete, PdfRenderingIntent.Perceptual, blackPointCompensation: false);
+    }
+
+    [Fact]
+    public void AbsoluteIntentWithoutMediaWhiteIsUnavailableInsteadOfSilentlyRelative()
+    {
+        var profile = PdfColorProfile.Load(Profile("RGB ", ("A2B1", IdentityLut()), ("B2A1", IdentityLut())));
+        double[] device = [0.5, 0.5, 0.5], xyz = new double[3];
+
+        Assert.False(profile.GetTransformSelection(PdfRenderingIntent.AbsoluteColorimetric).IsAvailable);
+        Assert.False(profile.GetTransformSelection(PdfRenderingIntent.AbsoluteColorimetric,
+            PdfColorTransformDirection.ConnectionToDevice).IsAvailable);
+        Assert.Throws<NotSupportedException>(() => profile.ToXyz(device, xyz, PdfRenderingIntent.AbsoluteColorimetric));
+        Assert.Throws<NotSupportedException>(() => profile.FromXyz(xyz, device, PdfRenderingIntent.AbsoluteColorimetric));
+        profile.ToXyz(device, xyz, PdfRenderingIntent.RelativeColorimetric);
     }
 
     private static void AssertUnavailable(PdfColorTransformSelection selection)

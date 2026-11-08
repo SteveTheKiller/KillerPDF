@@ -84,7 +84,7 @@ public sealed class PdfColorProfile
         if (direction is not (PdfColorTransformDirection.DeviceToConnection
             or PdfColorTransformDirection.ConnectionToDevice))
             throw new ArgumentOutOfRangeException(nameof(direction));
-        var transform = _transform.ForIntent(index);
+        var transform = PublicTransform(index);
         if (transform is null || direction == PdfColorTransformDirection.ConnectionToDevice
             && !transform.CanConvertFromXyz)
             return new(intent, direction, false, false, null, null, false, false);
@@ -125,10 +125,14 @@ public sealed class PdfColorProfile
         PdfRenderingIntent intent = PdfRenderingIntent.RelativeColorimetric)
     {
         int index = IntentIndex(intent);
-        var transform = _transform.ForIntent(index)
+        var transform = PublicTransform(index)
             ?? throw new NotSupportedException("The ICC profile does not support the requested rendering intent.");
         transform.FromXyz(xyz, device);
     }
+
+    // Absolute colorimetric needs explicit valid media white; without it the variant would be relative in disguise.
+    private PdfIccProfileTransform? PublicTransform(int index) =>
+        index == 3 && !_transform.HasExplicitValidMediaWhite ? null : _transform.ForIntent(index);
 
     /// <summary>Loads an ICC profile of at most 32 MiB without accessing external resources.</summary>
     public static PdfColorProfile Load(ReadOnlyMemory<byte> data)
@@ -150,7 +154,7 @@ public sealed class PdfColorProfile
         PdfRenderingIntent intent = PdfRenderingIntent.RelativeColorimetric)
     {
         int index = IntentIndex(intent);
-        var transform = _transform.ForIntent(index)
+        var transform = PublicTransform(index)
             ?? throw new NotSupportedException("The ICC profile does not support the requested rendering intent.");
         transform.ToXyz(device, xyz);
     }
