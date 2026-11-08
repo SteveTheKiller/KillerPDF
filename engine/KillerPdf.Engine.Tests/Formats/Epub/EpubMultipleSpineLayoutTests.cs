@@ -75,6 +75,19 @@ public sealed class EpubMultipleSpineLayoutTests
     }
 
     [Fact]
+    public void LinksIntoAnIsolatedChapterResolveToItsDiagnosisPage()
+    {
+        var book = EpubDocument.Open(Book(["<p>A A</p>", "<p id='note'>A<sup>A</sup></p>"]));
+        var layout = book.CreateLayout(Options() with { IsolateChapterFailures = true });
+        string href = Assert.Single(layout.ChapterDiagnostics).Href;
+        int placeholder = layout.Pages.ToList().FindIndex(page => page.SpineIndex == 1);
+
+        Assert.Equal(placeholder, layout.ResolveNavigationTarget(href + "#note").PageIndex);
+        Assert.Equal(placeholder, layout.ResolveNavigationTarget(href + "#missing").PageIndex);
+        Assert.Equal(placeholder, layout.ResolveNavigationTarget(href).PageIndex);
+    }
+
+    [Fact]
     public void ChaptersStartFreshPagesAndPreserveTheirOwnSourceCoordinates()
     {
         var book = EpubDocument.Open(Book());

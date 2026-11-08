@@ -147,6 +147,13 @@ public sealed class EpubLayoutDocument
         int spineIndex = Array.IndexOf(_spineHrefs, target);
         if (spineIndex >= 0 && Array.IndexOf(_spineHrefs, target, spineIndex + 1) >= 0)
             throw new InvalidDataException("The EPUB navigation target occurs more than once in the native spine.");
+        // An isolated chapter has no laid-out anchors; every target in it lands on its diagnosis page.
+        if (spineIndex >= 0 && ChapterDiagnostics.Any(item => item.SpineIndex == spineIndex))
+        {
+            for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++)
+                if (Pages[pageIndex].SpineIndex == spineIndex)
+                    return new(pageIndex, spineIndex, 0, _options.Margin, _options.Margin);
+        }
         if (fragment.Length > 0)
         {
             int? anchorOffset = null;
