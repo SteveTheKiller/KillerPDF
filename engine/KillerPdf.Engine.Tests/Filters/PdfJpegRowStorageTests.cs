@@ -27,17 +27,34 @@ public sealed class PdfJpegRowStorageTests
         int blockSize = 8 / reduction;
         for (int y = 0; y < image.Height; y++)
             for (int x = 0; x < image.Width; x++)
-                for (int component = 0; component < components; component++)
-                {
-                    int h = component == 0 ? horizontal : 1;
-                    int v = component == 0 ? vertical : 1;
-                    int column = x / (horizontal * blockSize);
-                    int row = y / (vertical * blockSize);
-                    int blockX = x * h / horizontal / blockSize % h;
-                    int blockY = y * v / vertical / blockSize % v;
-                    Assert.Equal(Level(row, column, blockY, blockX, component),
+            {
+                // The first component is at full resolution, so its blocks land as stored.
+                int column = x / (horizontal * blockSize);
+                int row = y / (vertical * blockSize);
+                int blockX = x / blockSize % horizontal;
+                int blockY = y / blockSize % vertical;
+                Assert.Equal(Level(row, column, blockY, blockX, 0), image.Samples[(y * image.Width + x) * components]);
+                for (int component = 1; component < components; component++)
+                    Assert.Equal(CenteredSample(image.Width, image.Height, horizontal, vertical, blockSize, component, x, y),
                         image.Samples[(y * image.Width + x) * components + component]);
-                }
+            }
+    }
+
+    // The other components have one block per MCU and are reconstructed at the JFIF
+    // centered sites: full-resolution x reads component coordinate (x + 0.5) / s - 0.5,
+    // blended linearly in both directions and clamped to the component's real samples.
+    private static int CenteredSample(int width, int height, int horizontal, int vertical, int blockSize,
+        int component, int x, int y)
+    {
+        int columns = (width + horizontal - 1) / horizontal, rows = (height + vertical - 1) / vertical;
+        double px = (x + 0.5) / horizontal - 0.5, py = (y + 0.5) / vertical - 0.5;
+        int left = (int)Math.Floor(px), top = (int)Math.Floor(py);
+        double fx = px - left, fy = py - top;
+        double At(int i, int j) => Level(Math.Clamp(j, 0, rows - 1) / blockSize,
+            Math.Clamp(i, 0, columns - 1) / blockSize, 0, 0, component);
+        double value = (1 - fy) * ((1 - fx) * At(left, top) + fx * At(left + 1, top))
+            + fy * ((1 - fx) * At(left, top + 1) + fx * At(left + 1, top + 1));
+        return (int)Math.Floor(value + 0.5 + 1e-9);
     }
 
     [Fact]

@@ -306,6 +306,9 @@ internal static class PdfJpegDecoder
             int mcuColumns = (_width + maxHorizontal * 8 - 1) / (maxHorizontal * 8);
             int mcuRows = (_height + maxVertical * 8 - 1) / (maxVertical * 8);
             bool rowSamples = _scanComponents.Count > 1 || components == 1;
+            // Rows of one MCU row are written once the next MCU row is decoded whenever a
+            // component is interpolated vertically, so three MCU rows stay in storage.
+            int slots = rowSamples && VerticalLag(maxVertical) ? 3 : 1;
             long temporarySampleBytes = 0;
             foreach (Component component in _components)
             {
@@ -317,14 +320,20 @@ internal static class PdfJpegDecoder
                 int blockSize = 8 / reduction;
                 component.Stride = checked(
                     mcuColumns * component.HorizontalSampling * blockSize);
+                component.RingRows = checked(
+                    (rowSamples ? slots : mcuRows) * component.VerticalSampling * blockSize);
+                // A single-component image is stored one block row at a time.
+                if (_scanComponents.Count == 1 && rowSamples) component.RingRows = blockSize;
+                component.DecodedRows = rowSamples ? 0 : int.MaxValue;
                 int sampleCount = checked(component.Stride
-                    * (rowSamples ? 1 : mcuRows) * component.VerticalSampling * blockSize);
+                    * (rowSamples ? slots : mcuRows) * component.VerticalSampling * blockSize);
                 temporarySampleBytes = checked(temporarySampleBytes + sampleCount);
                 if (temporarySampleBytes > MaximumTemporarySampleBytes)
                     throw Error("JPEG temporary samples exceed the configured safety limit.");
                 component.Samples = new byte[sampleCount];
                 if (compatibilityRecovery && !rowSamples) Array.Fill(component.Samples, (byte)128);
             }
+            PrepareUpsampling(maxHorizontal, maxVertical, outputWidth, outputHeight);
             var bits = new BitReader(source, _position);
             byte[]? output = rowSamples ? new byte[(int)outputLength] : null;
             if (compatibilityRecovery && output is not null) Array.Fill(output, (byte)128);
@@ -358,7 +367,10 @@ internal static class PdfJpegDecoder
                         return RecoveredOutput();
                     }
                     if (output is not null)
+                    {
+                        component.DecodedRows = (row + 1) * blockSize;
                         WriteRows(row * blockSize, blockSize);
+                    }
                 }
                 if (output is not null)
                     return new JpegDecodedImage(output, outputWidth, outputHeight,
@@ -378,21 +390,31 @@ internal static class PdfJpegDecoder
                             foreach (Component component in _components) component.DcPredictor = 0;
                         }
                         foreach (Component component in _scanComponents)
+                        {
+                            int slotTop = row % slots * component.VerticalSampling * (8 / reduction);
                             for (int vertical = 0; vertical < component.VerticalSampling; vertical++)
                                 for (int horizontal = 0; horizontal < component.HorizontalSampling; horizontal++)
                                     DecodeBlock(bits, component,
                                         (column * component.HorizontalSampling + horizontal)
                                             * (8 / reduction),
-                                        vertical * (8 / reduction));
+                                        slotTop + vertical * (8 / reduction));
+                        }
                     }
                 }
                 catch (PdfFilterException error) when (compatibilityRecovery && error.Message is
                     "The JPEG scan data is truncated." or "A JPEG marker interrupted scan data.")
                 {
+                    // The complete row held back for its successor is written with its
+                    // chroma clamped at its own last row.
+                    if (slots > 1 && row > 0) WriteMcuRow(row - 1);
                     return RecoveredOutput();
                 }
-                WriteRows(row * maxVertical * (8 / reduction), maxVertical * (8 / reduction));
+                foreach (Component component in _components)
+                    component.DecodedRows = (row + 1) * component.VerticalSampling * (8 / reduction);
+                if (slots == 1) WriteMcuRow(row);
+                else if (row > 0) WriteMcuRow(row - 1);
             }
+            if (slots > 1 && mcuRows > 0) WriteMcuRow(mcuRows - 1);
             return new JpegDecodedImage(output!, outputWidth, outputHeight,
                 components, _width, _height);
 
@@ -400,11 +422,15 @@ internal static class PdfJpegDecoder
                 ? new JpegDecodedImage(output, outputWidth, outputHeight, components, _width, _height)
                 : BuildOutput(maxHorizontal, maxVertical, outputWidth, outputHeight, (int)outputLength);
 
+            void WriteMcuRow(int row) =>
+                WriteRows(row * maxVertical * (8 / reduction), maxVertical * (8 / reduction));
+
             void WriteRows(int firstRow, int rowCount)
             {
                 int rows = Math.Min(rowCount, outputHeight - firstRow);
+                if (rows <= 0) return;
                 WriteOutput(output.AsSpan(firstRow * outputWidth * components,
-                    rows * outputWidth * components), maxHorizontal, maxVertical, outputWidth, rows);
+                    rows * outputWidth * components), outputWidth, firstRow, rows);
             }
         }
 
@@ -413,13 +439,159 @@ internal static class PdfJpegDecoder
             int outputLength)
         {
             var output = new byte[outputLength];
-            WriteOutput(output, maxHorizontal, maxVertical, outputWidth, outputHeight);
+            PrepareUpsampling(maxHorizontal, maxVertical, outputWidth, outputHeight);
+            WriteOutput(output, outputWidth, 0, outputHeight);
             return new JpegDecodedImage(
                 output, outputWidth, outputHeight, _components.Count, _width, _height);
         }
 
-        private void WriteOutput(Span<byte> output, int maxHorizontal, int maxVertical,
-            int outputWidth, int outputHeight)
+        private bool VerticalLag(int maxVertical) =>
+            _components.Any(component => component.VerticalSampling != maxVertical);
+
+        // Chroma siting. ITU-T T.871 places each sample of a subsampled component at the
+        // center of the full-resolution samples it covers. Along one axis with ratio s (the
+        // largest sampling factor over this component's), component sample i covers
+        // full-resolution samples s*i through s*i + s - 1, so its center is at
+        //     s*i + (s - 1) / 2.
+        // Full-resolution sample x therefore lies at component coordinate
+        //     p = (x - (s - 1) / 2) / s = (2x + 1 - s) / (2s).
+        // Writing n = 2x + 1 - s, the two nearest component samples are i0 = floor(n / 2s)
+        // and i0 + 1, and with r = n - 2s*i0 (0 <= r < 2s) x lies r / 2s of the way from
+        // i0 to i0 + 1. Linear interpolation gives
+        //     ((2s - r) * c[i0] + r * c[i0 + 1]) / 2s.
+        // For s = 2 the nearer sample weighs 3/4 and the farther 1/4 (the triangle filter),
+        // for s = 4 the nearer weighs 7/8 or 5/8, and for s = 3 every third sample lands
+        // exactly on a component sample while the others weigh 2/3 and 1/3. Indices outside the component
+        // clamp to its first or last real sample, which is the nearest one. The two
+        // axes are separable: the vertical blend is kept as an exact integer numerator,
+        // the horizontal blend multiplies in its own, and one rounding to nearest (halves
+        // up) divides by the product of both denominators. The same geometry holds on a
+        // reduced grid, because a reduced component sample covers s reduced
+        // full-resolution samples in the same arrangement.
+        private void PrepareUpsampling(int maxHorizontal, int maxVertical, int outputWidth, int outputHeight)
+        {
+            foreach (Component component in _components)
+            {
+                int stepH = maxHorizontal / component.HorizontalSampling;
+                int stepV = maxVertical / component.VerticalSampling;
+                component.StepH = stepH;
+                component.StepV = stepV;
+                component.RealColumns = (outputWidth + stepH - 1) / stepH;
+                component.RealRows = (outputHeight + stepV - 1) / stepV;
+                if (stepH == 1 && stepV == 1) continue;
+                component.UpsampledRow = new byte[outputWidth];
+                if (stepV > 1 || stepH == 2) component.VerticalSums = new int[component.RealColumns];
+                if (stepH == 1) continue;
+                component.LeftColumn = new int[outputWidth];
+                component.RightColumn = new int[outputWidth];
+                component.RightWeight = new int[outputWidth];
+                int lastColumn = component.RealColumns - 1;
+                for (int x = 0; x < outputWidth; x++)
+                {
+                    int n = 2 * x + 1 - stepH;
+                    int left = FloorDivide(n, 2 * stepH);
+                    component.LeftColumn[x] = Math.Clamp(left, 0, lastColumn);
+                    component.RightColumn[x] = Math.Clamp(left + 1, 0, lastColumn);
+                    component.RightWeight[x] = n - 2 * stepH * left;
+                }
+            }
+        }
+
+        private static int FloorDivide(int value, int divisor) =>
+            value >= 0 ? value / divisor : -((-value + divisor - 1) / divisor);
+
+        private static ReadOnlySpan<byte> StoredRow(Component component, int row) =>
+            component.Samples.AsSpan(row % component.RingRows * component.Stride, component.Stride);
+
+        private static ReadOnlySpan<byte> OutputRow(Component component, int y, int outputWidth)
+        {
+            int stepH = component.StepH, stepV = component.StepV;
+            if (stepH == 1 && stepV == 1) return StoredRow(component, y);
+            int lastRow = Math.Min(component.RealRows, component.DecodedRows) - 1;
+            int lastColumn = component.RealColumns - 1;
+            byte[] result = component.UpsampledRow;
+            int verticalScale = 1;
+            ReadOnlySpan<byte> single = default;
+            int[] sums = component.VerticalSums;
+            if (stepV == 1)
+                single = StoredRow(component, y);
+            else
+            {
+                int n = 2 * y + 1 - stepV;
+                int top = FloorDivide(n, 2 * stepV);
+                int bottomWeight = n - 2 * stepV * top;
+                int topWeight = 2 * stepV - bottomWeight;
+                ReadOnlySpan<byte> upper = StoredRow(component, Math.Clamp(top, 0, lastRow));
+                ReadOnlySpan<byte> lower = StoredRow(component, Math.Clamp(top + 1, 0, lastRow));
+                for (int i = 0; i <= lastColumn; i++)
+                    sums[i] = topWeight * upper[i] + bottomWeight * lower[i];
+                verticalScale = 2 * stepV;
+            }
+            int denominator = verticalScale * (stepH == 1 ? 1 : 2 * stepH);
+            int half = denominator / 2;
+            int shift = (denominator & (denominator - 1)) == 0 ? BitOperations.Log2((uint)denominator) : -1;
+            if (stepH == 1)
+            {
+                // Vertical only; stepV > 1 here.
+                for (int x = 0; x < outputWidth; x++)
+                    result[x] = (byte)(shift >= 0 ? (sums[x] + half) >> shift : (sums[x] + half) / denominator);
+                return result;
+            }
+            if (stepH == 2 && shift >= 0)
+            {
+                if (stepV == 1)
+                    for (int i = 0; i <= lastColumn; i++) sums[i] = single[i];
+                UpsampleHalves(sums, lastColumn, result, outputWidth, half, shift);
+                return result;
+            }
+            int[] leftColumn = component.LeftColumn, rightColumn = component.RightColumn,
+                rightWeight = component.RightWeight;
+            int fullWeight = 2 * stepH;
+            if (stepV == 1)
+            {
+                for (int x = 0; x < outputWidth; x++)
+                {
+                    int weight = rightWeight[x];
+                    int sum = (fullWeight - weight) * single[leftColumn[x]] + weight * single[rightColumn[x]];
+                    result[x] = (byte)(shift >= 0 ? (sum + half) >> shift : (sum + half) / denominator);
+                }
+                return result;
+            }
+            for (int x = 0; x < outputWidth; x++)
+            {
+                int weight = rightWeight[x];
+                int sum = (fullWeight - weight) * sums[leftColumn[x]] + weight * sums[rightColumn[x]];
+                result[x] = (byte)(shift >= 0 ? (sum + half) >> shift : (sum + half) / denominator);
+            }
+            return result;
+        }
+
+        // The ratio-two case of the general blend: x = 2i reads component coordinate
+        // i - 1/4 (weights 1 and 3 on i - 1 and i) and x = 2i + 1 reads i + 1/4 (weights 3
+        // and 1 on i and i + 1). Only the first and last columns need the edge clamp.
+        private static void UpsampleHalves(
+            int[] sums, int last, byte[] result, int width, int half, int shift)
+        {
+            if (last == 0)
+            {
+                byte only = (byte)((4 * sums[0] + half) >> shift);
+                result.AsSpan(0, width).Fill(only);
+                return;
+            }
+            result[0] = (byte)((4 * sums[0] + half) >> shift);
+            result[1] = (byte)((3 * sums[0] + sums[1] + half) >> shift);
+            for (int i = 1; i < last; i++)
+            {
+                int near = 3 * sums[i] + half;
+                result[2 * i] = (byte)((near + sums[i - 1]) >> shift);
+                result[2 * i + 1] = (byte)((near + sums[i + 1]) >> shift);
+            }
+            int lastNear = 3 * sums[last] + half;
+            result[2 * last] = (byte)((lastNear + sums[last - 1]) >> shift);
+            if (2 * last + 1 < width) result[2 * last + 1] = (byte)((lastNear + sums[last]) >> shift);
+        }
+
+        private void WriteOutput(Span<byte> output, int outputWidth, int startRow, int outputHeight)
         {
             int components = _components.Count;
             int transform = colorTransform ?? _adobeTransform ?? DefaultTransform();
@@ -434,26 +606,23 @@ internal static class PdfJpegDecoder
             {
                 Component gray = _components[0];
                 for (int y = 0; y < outputHeight; y++)
-                    gray.Samples.AsSpan(y * gray.Stride, outputWidth)
+                    StoredRow(gray, startRow + y)[..outputWidth]
                         .CopyTo(output.Slice(y * outputWidth, outputWidth));
                 return;
             }
+            // Every row below is at full resolution: subsampled components arrive already
+            // interpolated at their centered sites, and full-resolution ones as stored.
             Component firstComponent = _components[0], secondComponent = _components[1],
                 thirdComponent = _components[2];
             Component? fourthComponent = components == 4 ? _components[3] : null;
-            int firstStep = maxHorizontal / firstComponent.HorizontalSampling;
-            int secondStep = maxHorizontal / secondComponent.HorizontalSampling;
-            int thirdStep = maxHorizontal / thirdComponent.HorizontalSampling;
-            int fourthStep = fourthComponent is null ? 1 : maxHorizontal / fourthComponent.HorizontalSampling;
-            if (fourthComponent is not null && transform == 0
-                && firstStep == 1 && secondStep == 1 && thirdStep == 1 && fourthStep == 1)
+            if (fourthComponent is not null && transform == 0)
             {
                 for (int y = 0, offset = 0; y < outputHeight; y++)
                 {
-                    ReadOnlySpan<byte> firstRow = SampleRow(firstComponent, y, maxVertical);
-                    ReadOnlySpan<byte> secondRow = SampleRow(secondComponent, y, maxVertical);
-                    ReadOnlySpan<byte> thirdRow = SampleRow(thirdComponent, y, maxVertical);
-                    ReadOnlySpan<byte> fourthRow = SampleRow(fourthComponent, y, maxVertical);
+                    ReadOnlySpan<byte> firstRow = OutputRow(firstComponent, startRow + y, outputWidth);
+                    ReadOnlySpan<byte> secondRow = OutputRow(secondComponent, startRow + y, outputWidth);
+                    ReadOnlySpan<byte> thirdRow = OutputRow(thirdComponent, startRow + y, outputWidth);
+                    ReadOnlySpan<byte> fourthRow = OutputRow(fourthComponent, startRow + y, outputWidth);
                     for (int x = 0; x < outputWidth; x++)
                     {
                         output[offset++] = firstRow[x];
@@ -464,17 +633,16 @@ internal static class PdfJpegDecoder
                 }
                 return;
             }
-            if (fourthComponent is not null && transform == 2
-                && firstStep == 1 && secondStep == 1 && thirdStep == 1 && fourthStep == 1)
+            if (fourthComponent is not null && transform == 2)
             {
                 int[] crRed = CrRed, cbGreen = CbGreen, crGreen = CrGreen, cbBlue = CbBlue;
                 byte[] rangeLimit = RangeLimit;
                 for (int y = 0, offset = 0; y < outputHeight; y++)
                 {
-                    ReadOnlySpan<byte> lumaRow = SampleRow(firstComponent, y, maxVertical);
-                    ReadOnlySpan<byte> cbRow = SampleRow(secondComponent, y, maxVertical);
-                    ReadOnlySpan<byte> crRow = SampleRow(thirdComponent, y, maxVertical);
-                    ReadOnlySpan<byte> blackRow = SampleRow(fourthComponent, y, maxVertical);
+                    ReadOnlySpan<byte> lumaRow = OutputRow(firstComponent, startRow + y, outputWidth);
+                    ReadOnlySpan<byte> cbRow = OutputRow(secondComponent, startRow + y, outputWidth);
+                    ReadOnlySpan<byte> crRow = OutputRow(thirdComponent, startRow + y, outputWidth);
+                    ReadOnlySpan<byte> blackRow = OutputRow(fourthComponent, startRow + y, outputWidth);
                     for (int x = 0; x < outputWidth; x++)
                     {
                         int luma = lumaRow[x], cb = cbRow[x], cr = crRow[x];
@@ -489,25 +657,23 @@ internal static class PdfJpegDecoder
                 }
                 return;
             }
-            if (components == 3 && transform == 1 && firstStep == 1
-                && secondStep == thirdStep && secondStep is 1 or 2 or 4)
+            if (components == 3 && transform == 1)
             {
-                // Three-component YCbCr with full-resolution luma, the common case: the same
-                // arithmetic as the general loop below without per-sample step dispatch.
-                int chromaShift = secondStep == 1 ? 0 : secondStep == 2 ? 1 : 2;
+                // Three-component YCbCr, the common case: the same arithmetic as the general
+                // loop below without per-sample transform dispatch.
                 int[] crRed = CrRed, cbGreen = CbGreen, crGreen = CrGreen, cbBlue = CbBlue;
                 byte[] rangeLimit = RangeLimit;
                 for (int y = 0, offset = 0; y < outputHeight; y++)
                 {
-                    ReadOnlySpan<byte> lumaRow = SampleRow(firstComponent, y, maxVertical);
-                    ReadOnlySpan<byte> cbRow = SampleRow(secondComponent, y, maxVertical);
-                    ReadOnlySpan<byte> crRow = SampleRow(thirdComponent, y, maxVertical);
+                    ReadOnlySpan<byte> lumaRow = OutputRow(firstComponent, startRow + y, outputWidth);
+                    ReadOnlySpan<byte> cbRow = OutputRow(secondComponent, startRow + y, outputWidth);
+                    ReadOnlySpan<byte> crRow = OutputRow(thirdComponent, startRow + y, outputWidth);
                     Span<byte> outputRow = output.Slice(offset, outputWidth * 3);
                     for (int x = 0, target = 0; x < outputWidth; x++, target += 3)
                     {
                         int luma = lumaRow[x];
-                        int cb = cbRow[x >> chromaShift];
-                        int cr = crRow[x >> chromaShift];
+                        int cb = cbRow[x];
+                        int cr = crRow[x];
                         int red = luma + crRed[cr];
                         int green = luma + ((cbGreen[cb] + crGreen[cr]) >> ChromaShift);
                         int blue = luma + cbBlue[cb];
@@ -521,22 +687,23 @@ internal static class PdfJpegDecoder
             }
             for (int y = 0, offset = 0; y < outputHeight; y++)
             {
-                ReadOnlySpan<byte> firstRow = SampleRow(firstComponent, y, maxVertical);
-                ReadOnlySpan<byte> secondRow = SampleRow(secondComponent, y, maxVertical);
-                ReadOnlySpan<byte> thirdRow = SampleRow(thirdComponent, y, maxVertical);
-                ReadOnlySpan<byte> fourthRow = fourthComponent is null ? [] : SampleRow(fourthComponent, y, maxVertical);
+                ReadOnlySpan<byte> firstRow = OutputRow(firstComponent, startRow + y, outputWidth);
+                ReadOnlySpan<byte> secondRow = OutputRow(secondComponent, startRow + y, outputWidth);
+                ReadOnlySpan<byte> thirdRow = OutputRow(thirdComponent, startRow + y, outputWidth);
+                ReadOnlySpan<byte> fourthRow = fourthComponent is null ? []
+                    : OutputRow(fourthComponent, startRow + y, outputWidth);
                 for (int x = 0; x < outputWidth; x++)
                 {
-                    int first = Sample(firstRow, x, firstStep);
-                    int second = Sample(secondRow, x, secondStep);
-                    int third = Sample(thirdRow, x, thirdStep);
+                    int first = firstRow[x];
+                    int second = secondRow[x];
+                    int third = thirdRow[x];
                     if (transform == 0)
                     {
                         output[offset++] = (byte)first;
                         output[offset++] = (byte)second;
                         output[offset++] = (byte)third;
                         if (components == 4)
-                            output[offset++] = Sample(fourthRow, x, fourthStep);
+                            output[offset++] = fourthRow[x];
                     }
                     else
                     {
@@ -552,7 +719,7 @@ internal static class PdfJpegDecoder
                         output[offset++] = (byte)(components == 4 ? 255 - red : red);
                         output[offset++] = (byte)(components == 4 ? 255 - green : green);
                         output[offset++] = (byte)(components == 4 ? 255 - blue : blue);
-                        if (components == 4) output[offset++] = Sample(fourthRow, x, fourthStep);
+                        if (components == 4) output[offset++] = fourthRow[x];
                     }
                 }
             }
@@ -803,23 +970,29 @@ internal static class PdfJpegDecoder
             var (MaxHorizontal, MaxVertical, McuColumns, McuRows) = PrepareProgressiveComponents();
             if (_components.Any(component => !component.HasDc))
                 throw Error("The progressive JPEG is missing a DC scan.");
+            // As in the baseline path, vertical interpolation writes each MCU row once the
+            // next one is in storage.
+            int slots = VerticalLag(MaxVertical) ? 3 : 1;
             foreach (Component component in _components)
             {
                 int blockSize = 8 / reduction;
                 component.Stride = checked(component.BlockColumns * blockSize);
-                component.Samples = new byte[checked(
-                    component.Stride * component.VerticalSampling * blockSize)];
+                component.RingRows = checked(slots * component.VerticalSampling * blockSize);
+                component.DecodedRows = 0;
+                component.Samples = new byte[checked(component.Stride * component.RingRows)];
             }
             int outputWidth = ReducedDimension(_width);
             int outputHeight = ReducedDimension(_height);
             int components = _components.Count;
             var output = new byte[checked(outputWidth * outputHeight * components)];
+            PrepareUpsampling(MaxHorizontal, MaxVertical, outputWidth, outputHeight);
             int rowHeight = MaxVertical * (8 / reduction);
             for (int row = 0; row < McuRows; row++)
             {
                 foreach (Component component in _components)
                 {
                     int blockSize = 8 / reduction;
+                    int slotTop = row % slots * component.VerticalSampling * blockSize;
                     for (int vertical = 0; vertical < component.VerticalSampling; vertical++)
                     {
                         int sourceRow = row * component.VerticalSampling + vertical;
@@ -828,18 +1001,26 @@ internal static class PdfJpegDecoder
                         {
                             int offset = (sourceRow * component.BlockColumns + column) * 64;
                             ReadOnlySpan<int> block = component.Coefficients.AsSpan(offset, 64);
-                            WriteBlock(component, column * blockSize, vertical * blockSize,
+                            WriteBlock(component, column * blockSize, slotTop + vertical * blockSize,
                                 block, block[1..].IndexOfAnyExcept(0) >= 0);
                         }
                     }
+                    component.DecodedRows = (row + 1) * component.VerticalSampling * blockSize;
                 }
+                if (slots == 1) WriteMcuRow(row);
+                else if (row > 0) WriteMcuRow(row - 1);
+            }
+            if (slots > 1 && McuRows > 0) WriteMcuRow(McuRows - 1);
+            return new JpegDecodedImage(output, outputWidth, outputHeight, components, _width, _height);
+
+            void WriteMcuRow(int row)
+            {
                 int firstRow = row * rowHeight;
                 int rows = Math.Min(rowHeight, outputHeight - firstRow);
+                if (rows <= 0) return;
                 WriteOutput(output.AsSpan(firstRow * outputWidth * components,
-                    rows * outputWidth * components), MaxHorizontal, MaxVertical,
-                    outputWidth, rows);
+                    rows * outputWidth * components), outputWidth, firstRow, rows);
             }
-            return new JpegDecodedImage(output, outputWidth, outputHeight, components, _width, _height);
         }
 
         private void DecodeBlock(BitReader bits, Component component, int left, int top)
@@ -1130,20 +1311,6 @@ internal static class PdfJpegDecoder
             return value >= threshold ? value : value - (1 << count) + 1;
         }
 
-        private static ReadOnlySpan<byte> SampleRow(Component component, int y, int maxVertical)
-        {
-            int sampleY = y * component.VerticalSampling / maxVertical;
-            return component.Samples.AsSpan(sampleY * component.Stride, component.Stride);
-        }
-
-        private static byte Sample(ReadOnlySpan<byte> row, int x, int step) => row[step switch
-        {
-            1 => x,
-            2 => x >> 1,
-            4 => x >> 2,
-            _ => x / step
-        }];
-
         private byte ReadMarker()
         {
             while (_position < source.Length && source.Span[_position] != 0xFF) _position++;
@@ -1223,6 +1390,19 @@ internal static class PdfJpegDecoder
         internal int VisibleBlockRows { get; set; }
         internal int[] Coefficients { get; set; } = [];
         internal byte[] Samples { get; set; } = [];
+        /// <summary>Rows held in <see cref="Samples"/>; component row r is stored at r modulo this.</summary>
+        internal int RingRows { get; set; }
+        /// <summary>Component rows decoded so far; interpolation never reads past them.</summary>
+        internal int DecodedRows { get; set; }
+        internal int StepH { get; set; }
+        internal int StepV { get; set; }
+        internal int RealColumns { get; set; }
+        internal int RealRows { get; set; }
+        internal byte[] UpsampledRow { get; set; } = [];
+        internal int[] VerticalSums { get; set; } = [];
+        internal int[] LeftColumn { get; set; } = [];
+        internal int[] RightColumn { get; set; } = [];
+        internal int[] RightWeight { get; set; } = [];
         internal bool HasDc { get; set; }
         internal bool InScan { get; set; }
     }

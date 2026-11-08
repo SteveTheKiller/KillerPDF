@@ -26,6 +26,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 ### Changed
 
 - Embedded TrueType font widths retain fractional metrics. (#472)
+- Color edges in JPEG photos and scans are smoother: subsampled color is blended between its neighbors instead of repeated in blocks, which is most visible on red or blue text over white.
 
 ### Added
 
