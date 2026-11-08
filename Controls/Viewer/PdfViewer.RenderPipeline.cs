@@ -41,7 +41,13 @@ public partial class PdfViewer
         }
         image.ToolTip = warning;
         if (warning is not null && page == _currentPage
-            && (Host is null || Host.IsViewerFocused(this))) SetStatus(warning);
+            && (Host is null || Host.IsViewerFocused(this)))
+        {
+            // A render status replaces the open status, so it must keep the book's refused-chapter notice.
+            if (_nativeDoc is { UnavailableChapterCount: > 0 } native)
+                warning += " " + string.Format(Loc("Str_Epub_ChaptersUnavailable"), native.UnavailableChapterCount);
+            SetStatus(warning);
+        }
     }
 
     internal RenderMeasurement? LastPrimaryRenderMeasurement { get; private set; }
