@@ -58,7 +58,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         internal BoxWidth? MaximumWidth { get; init; }
         internal Border? Border { get; init; }
         internal double? HeightPercentage { get; init; }
-        internal (double Width, double Height)? SvgViewBox { get; init; }
+        internal EpubSvgCover? SvgCover { get; init; }
         /// <summary>The HTML ordinal value of an ordered-list item, or null for other elements.</summary>
         internal int? ListOrdinal { get; init; }
         /// <summary>The owning ol type attribute (1, a, A, i or I), or null for decimal.</summary>
@@ -188,23 +188,19 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     };
     private static bool IsFlowContainer(string? name) => name == "body" || name != "ul" && IsGroupingContainer(name);
 
-    internal void AddSvgImage(string reference, double width, double height, int offset)
+    internal void AddSvgImage(EpubSvgCover cover, int offset)
     {
         if (!_ancestors.TryPeek(out var parent) || !IsFlowContainer(parent.Name)
             || !parent.IsBlock && !parent.IsDisplayNone)
             throw new NotSupportedException("Native EPUB SVG covers require a block body or container parent.");
+        // The cover always fills the body box; CSS on the svg element (display, size, margins) is ignored.
         var identity = new SelectorIdentity("http://www.w3.org/2000/svg", [], new());
-        var properties = ResolveRules("svg", identity);
-        if ((properties with { Margins = null, Padding = null }) != default
-            || properties.Margins?.Any(value => value is not null) == true
-            || properties.Padding?.Any(value => value is not null) == true)
-            throw new NotSupportedException("Native EPUB SVG cover CSS is not implemented.");
         var element = new Element("svg", parent, parent.Style with { Background = null }, true, offset, identity)
         {
-            SvgViewBox = (width, height), IsDisplayNone = parent.IsDisplayNone
+            SvgCover = cover, IsDisplayNone = parent.IsDisplayNone
         };
         parent.Children.Add(element);
-        if (!element.IsDisplayNone) Inlines.Add(new(offset, reference, element));
+        if (!element.IsDisplayNone) Inlines.Add(new(offset, cover.Reference, element));
     }
 
     internal void Enter(XmlReader xml)

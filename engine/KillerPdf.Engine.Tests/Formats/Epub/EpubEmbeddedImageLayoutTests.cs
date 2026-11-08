@@ -237,10 +237,8 @@ public sealed class EpubEmbeddedImageLayoutTests
     [InlineData("<image width='2' height='2' href='https://example.invalid/image.png'/>")]
     [InlineData("<image width='2' height='2' href='../images/check.png' onload='x'/>")]
     [InlineData("<image width='2' height='2' href='../images/check.png' transform='scale(2)'/>")]
-    [InlineData("<image width='2' height='2' href='../images/check.png' opacity='.5'/>")]
     [InlineData("<image width='2' height='2' href='../images/check.png'><animate/></image>")]
     [InlineData("<image width='2' height='2' href='../images/check.png'/><image width='2' height='2' href='../images/check.png'/>")]
-    [InlineData("<image width='1' height='2' href='../images/check.png'/>")]
     [InlineData("<image width='2' height='2'/>")]
     [InlineData("")]
     public void SvgCoverRejectsActiveExternalAndUnimplementedContentAtBothPublicSeams(string content)
@@ -280,10 +278,23 @@ public sealed class EpubEmbeddedImageLayoutTests
         EpubCompatibilityTests.AssertSameLayout(EpubDocument.Open(Package(RgbPng(), cover, null)).CreateLayout(options), book.CreateLayout(options));
     }
 
+    // EP-BF-026: an opacity attribute, a smaller image rectangle and CSS on the svg element no longer refuse the cover.
+    [Theory]
+    [InlineData("<image width='2' height='2' href='../images/check.png' opacity='.5'/>", null)]
+    [InlineData("<image width='1' height='2' href='../images/check.png'/>", null)]
+    [InlineData("<image width='2' height='2' href='../images/check.png'/>", "svg{color:red}")]
+    public void SvgCoverInertAttributesAndCssLayOut(string content, string? css)
+    {
+        var book = EpubDocument.Open(Package(RgbPng(),
+            "<div><svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 2 2'>" + content + "</svg></div>", css));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var layout = EpubCompatibilityTests.AssertLaysOut(book, new EpubLayoutOptions(16, 16, font) { Margin = 2, FontSize = 10 });
+        Assert.Single(layout.Pages.SelectMany(page => page.Glyphs.OfType<KillerPdf.Engine.Rendering.NativeImagePaint>()));
+    }
+
     [Theory]
     [InlineData("div{display:inline}")]
-    [InlineData("svg{color:red}")]
-    public void UnsupportedSvgContainerGeometryAndCssRemainExplicit(string css)
+    public void UnsupportedSvgContainerGeometryRemainsExplicit(string css)
     {
         var book = EpubDocument.Open(Package(RgbPng(),
             "<div><svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%' viewBox='0 0 2 2'>"

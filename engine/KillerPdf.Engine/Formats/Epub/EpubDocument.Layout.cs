@@ -779,17 +779,34 @@ public sealed partial class EpubDocument
                     if (TryReadImage(source) is not { } image) return;
                     var imageSize = ImageSize(image, replaced.Owner);
                     double paintLeft = contentLeft, paintTop = 0, flowHeight = imageSize.Height;
-                    if (replaced.Owner.SvgViewBox is { } viewBox)
+                    if (replaced.Owner.SvgCover is { } cover)
                     {
                         flowHeight = options.PageHeight - 2 * options.Margin - bodyMargins.Top
                             - bodyMargins.Bottom - bodyPadding.Top - bodyPadding.Bottom;
                         if (!double.IsFinite(flowHeight) || flowHeight <= 0)
                             throw new NotSupportedException("Native EPUB SVG covers require a positive body viewport.");
-                        double viewportScale = Math.Min(contentWidth / viewBox.Width, flowHeight / viewBox.Height);
-                        double imageScale = Math.Min(viewBox.Width / image.Width, viewBox.Height / image.Height) * viewportScale;
-                        imageSize = (image.Width * imageScale, image.Height * imageScale);
-                        paintLeft += (contentWidth - imageSize.Width) / 2;
-                        paintTop = (flowHeight - imageSize.Height) / 2;
+                        // SVG 1.1 section 7.8: the viewBox maps into the body viewport, then the raster maps into the
+                        // image rectangle; what falls outside the image rectangle or the viewport is clipped.
+                        var outer = cover.Aspect.Fit(cover.Width, cover.Height, contentWidth, flowHeight);
+                        var inner = cover.ImageAspect.Fit(image.Width, image.Height, cover.ImageWidth, cover.ImageHeight);
+                        double X(double user) => outer.OffsetX + (user - cover.MinX) * outer.ScaleX;
+                        double Y(double user) => outer.OffsetY + (user - cover.MinY) * outer.ScaleY;
+                        double rasterLeft = X(cover.ImageX + inner.OffsetX), rasterTop = Y(cover.ImageY + inner.OffsetY);
+                        double rasterWidth = image.Width * inner.ScaleX * outer.ScaleX, rasterHeight = image.Height * inner.ScaleY * outer.ScaleY;
+                        double clipLeft = Math.Max(0, X(cover.ImageX)), clipTop = Math.Max(0, Y(cover.ImageY));
+                        double clipRight = Math.Min(contentWidth, X(cover.ImageX + cover.ImageWidth));
+                        double clipBottom = Math.Min(flowHeight, Y(cover.ImageY + cover.ImageHeight));
+                        // Crop whole source pixels that lie beyond the clip; the paint covers exactly what remains.
+                        int firstColumn = (int)Math.Clamp(Math.Floor((clipLeft - rasterLeft) / rasterWidth * image.Width + 1e-9), 0, image.Width);
+                        int lastColumn = (int)Math.Clamp(Math.Ceiling((clipRight - rasterLeft) / rasterWidth * image.Width - 1e-9), firstColumn, image.Width);
+                        int firstRow = (int)Math.Clamp(Math.Floor((clipTop - rasterTop) / rasterHeight * image.Height + 1e-9), 0, image.Height);
+                        int lastRow = (int)Math.Clamp(Math.Ceiling((clipBottom - rasterTop) / rasterHeight * image.Height - 1e-9), firstRow, image.Height);
+                        if (lastColumn == firstColumn || lastRow == firstRow) return;
+                        double pixelWidth = rasterWidth / image.Width, pixelHeight = rasterHeight / image.Height;
+                        paintLeft += rasterLeft + firstColumn * pixelWidth;
+                        paintTop = rasterTop + firstRow * pixelHeight;
+                        imageSize = ((lastColumn - firstColumn) * pixelWidth, (lastRow - firstRow) * pixelHeight);
+                        image = Crop(image, firstColumn, firstRow, lastColumn - firstColumn, lastRow - firstRow);
                     }
                     if (imageSize.Width == 0) return;
                     if (pendingParagraphGap > 0)

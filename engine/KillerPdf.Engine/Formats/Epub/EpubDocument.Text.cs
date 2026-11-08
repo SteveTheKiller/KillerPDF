@@ -52,7 +52,7 @@ public sealed partial class EpubDocument
                             throw new NotSupportedException("Native EPUB SVG covers require body content.");
                         var cover = ReadSvgCover(reader, resource.Href, native, ref nodeCount, cancellationToken);
                         pendingSpace = false;
-                        native?.AddSvgImage(cover.Reference, cover.Width, cover.Height, result.Length);
+                        native?.AddSvgImage(cover, result.Length);
                         continue;
                     }
                     native?.Enter(reader);

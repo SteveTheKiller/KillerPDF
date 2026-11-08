@@ -109,6 +109,21 @@ public sealed partial class EpubDocument
         return image;
     }
 
+    // Keeps a whole-pixel rectangle of a decoded RGB image (and its alpha), for SVG slice and clipping.
+    private static PngDecodedImage Crop(PngDecodedImage image, int left, int top, int width, int height)
+    {
+        if (left == 0 && top == 0 && width == image.Width && height == image.Height) return image;
+        int components = image.Components;
+        byte[] samples = new byte[checked(width * height * components)];
+        byte[]? alpha = image.Alpha is null ? null : new byte[checked(width * height)];
+        for (int row = 0; row < height; row++)
+        {
+            Array.Copy(image.Samples, ((top + row) * image.Width + left) * components, samples, row * width * components, width * components);
+            if (alpha is not null) Array.Copy(image.Alpha!, (top + row) * image.Width + left, alpha, row * width, width);
+        }
+        return image with { Samples = samples, Alpha = alpha, Width = width, Height = height };
+    }
+
     private static PngDecodedImage ToRgb(PngDecodedImage image)
     {
         if (image.Components == 3) return image;
