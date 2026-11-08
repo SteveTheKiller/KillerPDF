@@ -117,7 +117,7 @@ public sealed partial class DjvuDocument
             {
                 0x494e434c => new("IncludedComponentUnsupported", "Included components are not resolved. External files and URLs are never fetched."),
                 0x536d6d72 => new("SmmrRenderingLimited", "Only nonstriped bitonal MMR rendering is supported. Other variants and layers require additional decoding."),
-                0x42473434 => new("Iw44RenderingLimited", "Full-resolution grayscale IW44 backgrounds, including progressive chunks, are rendered without other visual layers. Other variants and layers require additional decoding."),
+                0x42473434 => new("Iw44RenderingLimited", "Full-resolution grayscale IW44 backgrounds, including progressive chunks, and initial upright block-aligned single-chunk color backgrounds are rendered without other visual layers. Color support requires version 1.2, full chroma and zero delay. Other variants and layers require additional decoding."),
                 0x46473434 or 0x536a627a or 0x4667627a or 0x42476a70 or 0x46476a70 or 0x54483434
                     => new("ImageDecodingUnsupported", "Page image codecs are not decoded by the container reader."),
                 _ => null

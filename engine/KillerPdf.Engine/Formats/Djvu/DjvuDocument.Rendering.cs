@@ -6,10 +6,12 @@ namespace KillerPdf.Engine.Formats.Djvu;
 
 public sealed partial class DjvuDocument
 {
-    /// <summary>Renders supported bitonal and grayscale content at natural dimensions, limited to a 128 MiB RGBA32F frame.</summary>
+    /// <summary>Renders supported bitonal, grayscale and initial color content at natural dimensions, limited to a 128 MiB RGBA32F frame.</summary>
     /// <remarks>
     /// Grayscale IW44 requires full-resolution version 1.2 background chunks and a positive INFO gamma.
     /// Its stored device gamma maps neutral samples to linear RGB. Image working buffers are limited to 256 MiB.
+    /// Initial color IW44 support requires one version 1.2 full-resolution background chunk, upright block-aligned
+    /// dimensions, and full chroma with zero delay. Its eight-bit RGB matches DjVuLibre 3.5.29 output.
     /// </remarks>
     public PdfRenderedFrame RenderPage(int pageIndex, CancellationToken cancellationToken = default)
     {
@@ -86,6 +88,9 @@ public sealed partial class DjvuDocument
 
     private PdfRenderedFrame RenderIw44Page(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)
     {
+        var firstBackground = chunks.First(c => c.Id == 0x42473434);
+        if (firstBackground.Length >= 3 && (_data[firstBackground.Offset + 2] & 0x80) == 0)
+            return RenderColorIw44Page(page, chunks, token);
         var (gray, gammaByte) = DecodeIw44Page(page, chunks, token);
         var pixels = new float[page.Width * page.Height * 4];
         var quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
@@ -111,6 +116,32 @@ public sealed partial class DjvuDocument
         }
         token.ThrowIfCancellationRequested();
         return new PdfRenderedFrame(width, height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
+    }
+
+    private PdfRenderedFrame RenderColorIw44Page(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        if (chunks.Any(c => c.Id is not (0x494e464f or 0x42473434 or 0x54585461 or 0x5458547a)))
+            throw new NotSupportedException("Color IW44 rendering requires a background without other visual layers.");
+        if (page.Orientation != DjvuOrientation.Upright)
+            throw new NotSupportedException("Color IW44 currently requires upright orientation.");
+        var gammaByte = _data[chunks[0].Offset + 8];
+        if (gammaByte == 0) throw new NotSupportedException("IW44 rendering requires a positive INFO gamma.");
+        var backgrounds = chunks.Where(c => c.Id == 0x42473434).Take(2)
+            .Select(c => (ReadOnlyMemory<byte>)_data.AsMemory(c.Offset, c.Length)).ToArray();
+        var rgb = DjvuIw44Decoder.DecodeColor(backgrounds, page.Width, page.Height, token);
+        var pixels = new float[page.Width * page.Height * 4];
+        for (int pixel = 0; pixel < rgb.Length / 3; pixel++)
+        {
+            token.ThrowIfCancellationRequested();
+            for (int channel = 0; channel < 3; channel++)
+                pixels[pixel * 4 + channel] = (float)Math.Pow(rgb[pixel * 3 + channel] / 255d, gammaByte / 10d);
+            pixels[pixel * 4 + 3] = 1;
+        }
+        token.ThrowIfCancellationRequested();
+        var frame = new PdfRenderedFrame(page.Width, page.Height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
+        token.ThrowIfCancellationRequested();
+        return frame;
     }
 
     private (byte[] Gray, byte Gamma) DecodeIw44Page(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)

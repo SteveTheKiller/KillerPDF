@@ -57,6 +57,82 @@ internal static class DjvuIw44Decoder
         return Reconstruct(coefficients, flags, steps, blockColumns, width, height, token);
     }
 
+    internal static byte[] DecodeColor(IReadOnlyList<ReadOnlyMemory<byte>> payloads, int width, int height, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        if (payloads.Count != 1) throw new NotSupportedException("Color IW44 currently requires a single background chunk.");
+        var payload = payloads[0].Span;
+        if (payload.Length < 9) throw new InvalidDataException("Truncated color IW44 initial chunk.");
+        if (payload[0] != 0) throw new InvalidDataException("IW44 image must begin with serial zero.");
+        if (payload[2] != 1 || payload[3] != 2)
+            throw new NotSupportedException("This color IW44 version is not supported.");
+        if (payload[8] != 0x80)
+            throw new NotSupportedException("Color IW44 decoding is not supported.");
+        if (BinaryPrimitives.ReadUInt16BigEndian(payload[4..]) != width ||
+            BinaryPrimitives.ReadUInt16BigEndian(payload[6..]) != height)
+            throw new NotSupportedException("Only full-resolution color IW44 background images are supported.");
+        if (width <= 0 || height <= 0 || width % 32 != 0 || height % 32 != 0)
+            throw new NotSupportedException("Color IW44 currently requires block-aligned dimensions.");
+        int blockColumns = width / 32, blockRows = height / 32;
+        long coefficientCount = (long)blockColumns * blockRows * 1024;
+        long pixelCount = (long)width * height;
+        int slices = payload[1];
+        // Three coefficient/flag sets, three reconstruction buffers and signed planes,
+        // RGB bytes, both float-frame copies, payload copy, context banks and array overhead.
+        long workingBytes = coefficientCount * 15 + pixelCount * 50 + payload.Length + 4096;
+        long visits = coefficientCount * 3 * (8L * slices + 1) + pixelCount * 100
+            + slices * 3L * (196 + 16);
+        if (workingBytes > MaximumWorkingBytes || visits > MaximumCoefficientVisits)
+            throw new InvalidDataException("IW44 color image exceeds the combined storage or coefficient-work limit.");
+        var coefficients = new int[3][];
+        var flags = new byte[3][];
+        var steps = new int[3][];
+        var contexts = new byte[3][];
+        for (int component = 0; component < 3; component++)
+        {
+            token.ThrowIfCancellationRequested();
+            coefficients[component] = new int[(int)coefficientCount];
+            flags[component] = new byte[(int)coefficientCount];
+            contexts[component] = new byte[98];
+            steps[component] = [0x4000, 0x8000, 0x8000, 0x10000, 0x10000, 0x10000, 0x20000, 0x20000,
+                0x20000, 0x40000, 0x40000, 0x40000, 0x80000, 0x40000, 0x40000, 0x80000];
+        }
+        var activeContexts = new byte[98];
+        var arithmetic = new DjvuZpDecoder(payload[9..].ToArray(), activeContexts, token, callerBoundsDecisions: true);
+        // Each zero-delay slice codes Y, Cb and Cr in that order. Switching context
+        // banks leaves the shared arithmetic interval and input position unchanged.
+        for (int slice = 0; slice < slices; slice++)
+            for (int component = 0; component < 3; component++)
+            {
+                token.ThrowIfCancellationRequested();
+                contexts[component].CopyTo(activeContexts, 0);
+                DecodeSlices(coefficients[component], flags[component], steps[component], arithmetic, slice, 1, token);
+                activeContexts.CopyTo(contexts[component], 0);
+            }
+        var planes = new byte[3][];
+        for (int component = 0; component < 3; component++)
+        {
+            token.ThrowIfCancellationRequested();
+            planes[component] = Reconstruct(coefficients[component], flags[component], steps[component],
+                blockColumns, width, height, token, signedColorComponent: true);
+        }
+        var rgb = new byte[(int)pixelCount * 3];
+        for (int pixel = 0; pixel < pixelCount; pixel++)
+        {
+            token.ThrowIfCancellationRequested();
+            int y = (sbyte)planes[0][pixel], cb = (sbyte)planes[1][pixel], cr = (sbyte)planes[2][pixel];
+            // Section 10.6.7 states R = Y + 1.5Cr, G = Y - Cb/4 - 0.75Cr and B = Y + 1.75Cb
+            // without an integer rounding rule. DjVuLibre's integer form floors each
+            // partial term, and its eight-bit output is the compatibility reference.
+            int quarterBlue = cb >> 2, red = cr + (cr >> 1), shared = y + 128 - quarterBlue;
+            rgb[pixel * 3] = (byte)Math.Clamp(y + 128 + red, 0, 255);
+            rgb[pixel * 3 + 1] = (byte)Math.Clamp(shared - (red >> 1), 0, 255);
+            rgb[pixel * 3 + 2] = (byte)Math.Clamp(shared + (cb << 1), 0, 255);
+        }
+        token.ThrowIfCancellationRequested();
+        return rgb;
+    }
+
     private static void DecodeSlices(int[] coefficients, byte[] flags, int[] steps, DjvuZpDecoder arithmetic, int firstSlice, int slices, CancellationToken token)
     {
         ReadOnlySpan<int> firstBuckets = [0, 1, 2, 3, 4, 8, 12, 16, 32, 48];
@@ -148,7 +224,8 @@ internal static class DjvuIw44Decoder
         coefficient < 64 ? 7 + (coefficient - 16) / 16 :
         coefficient < 256 ? 10 + (coefficient - 64) / 64 : 13 + (coefficient - 256) / 256;
 
-    private static byte[] Reconstruct(int[] coefficients, byte[] flags, int[] steps, int blockColumns, int width, int height, CancellationToken token)
+    private static byte[] Reconstruct(int[] coefficients, byte[] flags, int[] steps, int blockColumns, int width, int height, CancellationToken token,
+        bool signedColorComponent = false)
     {
         var samples = new int[width * height];
         for (var block = 0; block < coefficients.Length / 1024; block++)
@@ -192,7 +269,9 @@ internal static class DjvuIw44Decoder
             for (var x = 0; x < width; x++)
             {
                 var rounded = (samples[y * width + x] + 32L) >> 6;
-                output[(height - 1 - y) * width + x] = (byte)(127 - Math.Clamp(rounded, -128, 127));
+                output[(height - 1 - y) * width + x] = signedColorComponent
+                    ? unchecked((byte)(sbyte)Math.Clamp(rounded, -128, 127))
+                    : (byte)(127 - Math.Clamp(rounded, -128, 127));
             }
         }
         return output;
