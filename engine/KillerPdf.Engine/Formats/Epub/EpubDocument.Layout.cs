@@ -42,8 +42,12 @@ public sealed partial class EpubDocument
         var chapterDiagnostics = new List<EpubChapterDiagnostic>();
         var contentDiagnostics = new List<EpubChapterDiagnostic>();
         var ignoredDeclarations = new List<EpubIgnoredDeclarations>();
-        for (int spineIndex = 0; spineIndex < Spine.Count; spineIndex++)
+        // Decision 0009: non-linear items (notes, answers) follow the linear reading order, each in spine order.
+        var readingOrder = Enumerable.Range(0, Spine.Count).Where(index => Spine[index].IsLinear)
+            .Concat(Enumerable.Range(0, Spine.Count).Where(index => !Spine[index].IsLinear)).ToArray();
+        for (int completed = 0; completed < readingOrder.Length; completed++)
         {
+            int spineIndex = readingOrder[completed];
             cancellationToken.ThrowIfCancellationRequested();
             int pageMark = pages.Count, anchorMark = anchors.Count, contentMark = contentDiagnostics.Count;
             try
@@ -68,7 +72,7 @@ public sealed partial class EpubDocument
                 pages.Add(ChapterDiagnosisPage(spineIndex, options, reader, href, error.Message, cancellationToken));
             }
             // The next spine item starts by checking cancellation, so a Cancel raised here stops layout.
-            options.ChapterProgress?.Invoke(spineIndex + 1, Spine.Count);
+            options.ChapterProgress?.Invoke(completed + 1, Spine.Count);
         }
         cancellationToken.ThrowIfCancellationRequested();
         return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors, cellAnchors)
@@ -241,10 +245,8 @@ public sealed partial class EpubDocument
         Func<EpubFontFamily?, double, EpubFontStyle, TrueTypeFont?> resolveFamily,
         List<EpubChapterDiagnostic> contentDiagnostics, HashSet<string> chargedStylesheets, CancellationToken cancellationToken)
     {
-        var entry = Spine[spineIndex];
-        if (!entry.IsLinear || !string.IsNullOrWhiteSpace(entry.Properties))
-            throw new NotSupportedException("Native EPUB layout requires linear, reflowable, left-to-right spine items.");
-        var resource = entry.Item;
+        // Itemref properties (page-spread-*, rendition:*) only affect synthetic spreads and fixed layout; they are ignored.
+        var resource = Spine[spineIndex].Item;
         if (resource.MediaType != "application/xhtml+xml" || Tokens(resource.Properties).Any(property => property != "svg"))
             throw new NotSupportedException("Native EPUB layout requires unscripted XHTML with supported resource properties.");
         if (_resources[resource.Href].Length > MaxEntryBytes)

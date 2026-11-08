@@ -194,8 +194,7 @@ public sealed class EpubMultipleSpineLayoutTests
     }
 
     [Theory]
-    [InlineData("<p>AA</p>", " linear='no'", "")]
-    [InlineData("<p>AA</p>", " properties='page-spread-left'", "")]
+    // Non-linear items and spread properties now lay out (EpubSpineOrderTests); scripted items stay refused.
     [InlineData("<p>AA</p>", "", " properties='scripted'")]
     public void UnsupportedLaterEntriesDiagnoseInsteadOfReturningAPartialLayout(
         string body, string spineAttributes, string itemProperties)

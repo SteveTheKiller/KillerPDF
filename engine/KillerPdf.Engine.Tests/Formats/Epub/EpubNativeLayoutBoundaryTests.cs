@@ -137,12 +137,20 @@ public sealed class EpubNativeLayoutBoundaryTests
 
     [Theory]
     [InlineData(true, false, false)]
-    [InlineData(false, false, true)]
-    public void DiagnosesFixedAndNonlinearSpines(bool fixedLayout, bool multipleSpines, bool nonlinear)
+    public void DiagnosesFixedLayoutBooks(bool fixedLayout, bool multipleSpines, bool nonlinear)
     {
         var book = Book(fixedLayout: fixedLayout, multipleSpines: multipleSpines, nonlinear: nonlinear);
 
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options(book)));
+    }
+
+    // A book whose only item is non-linear still shows it, after the (empty) linear reading order.
+    [Fact]
+    public void ANonlinearOnlySpineLaysOut()
+    {
+        var book = Book(fixedLayout: false, multipleSpines: false, nonlinear: true);
+
+        EpubCompatibilityTests.AssertLaysOut(book, Options(book));
     }
 
     [Fact]

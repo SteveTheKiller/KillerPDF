@@ -158,6 +158,7 @@ public sealed class EpubCompatibilityTests
         internal string Css { get; init; } = "";
         internal string SpineAttributes { get; init; } = "";
         internal string SpineToc { get; init; } = "";
+        internal Dictionary<int, string> ItemrefAttributes { get; } = new();
         internal string ExtraSpine { get; init; } = "";
         internal string ExtraManifest { get; init; } = "";
         internal string? Encryption { get; init; }
@@ -177,7 +178,7 @@ public sealed class EpubCompatibilityTests
                 for (int index = 0; index < Chapters.Count; index++)
                 {
                     manifest.Append($"<item id=\"c{index}\" href=\"text/c{index}.xhtml\" media-type=\"application/xhtml+xml\"/>");
-                    spine.Append($"<itemref idref=\"c{index}\"{(index == Chapters.Count - 1 ? SpineAttributes : "")}/>");
+                    spine.Append($"<itemref idref=\"c{index}\"{(index == Chapters.Count - 1 ? SpineAttributes : "")}{ItemrefAttributes.GetValueOrDefault(index, "")}/>");
                     Add($"OEBPS/text/c{index}.xhtml", Encoding.UTF8.GetBytes(Chapters[index]));
                 }
                 Add("OEBPS/text/style.css", Encoding.UTF8.GetBytes(Css));
