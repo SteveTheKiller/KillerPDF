@@ -88,7 +88,13 @@ public sealed partial class DjvuDocument
                 var componentType = BinaryPrimitives.ReadUInt32BigEndian(span[chunk.Offset..]);
                 if (componentType is not (0x444a5655 or 0x444a5649 or 0x5448554d))
                     throw new InvalidDataException("Unsupported bundled component FORM type.");
-                if (metadata is not null && metadata[componentIndex].Kind != (componentType == 0x444a5655 ? 1 : componentType == 0x5448554d ? 2 : 0))
+                // FORM:DJVI holds an include (kind 0) or shared annotations (kind 3).
+                if (metadata is not null && !(componentType switch
+                    {
+                        0x444a5655 => metadata[componentIndex].Kind == 1,
+                        0x5448554d => metadata[componentIndex].Kind == 2,
+                        _ => metadata[componentIndex].Kind is 0 or 3
+                    }))
                     throw new InvalidDataException("Directory component kind does not match its FORM type.");
                 var children = ReadChunks(span, chunk.Offset + 4, chunk.Offset + chunk.Length, cancellationToken, ref chunkBudget);
                 if (children.Any(c => c.Id == 0x464f524d)) throw new InvalidDataException("Nested FORM is not allowed inside a component.");

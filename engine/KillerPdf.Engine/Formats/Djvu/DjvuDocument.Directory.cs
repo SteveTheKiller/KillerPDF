@@ -25,7 +25,8 @@ public sealed partial class DjvuDocument
                 throw new InvalidDataException("Directory component size does not match its FORM extent.");
             var flags = bytes[flagsOffset + i];
             var kind = flags & 0x3f;
-            if (kind > 2) throw new InvalidDataException("Invalid directory component flags.");
+            // Kinds follow DjVuLibre's DjVmDir: include 0, page 1, thumbnails 2, shared annotations 3.
+            if (kind > 3) throw new InvalidDataException("Invalid directory component flags.");
             var id = ReadDirectoryString(bytes, ref position, token);
             if (id.Length == 0 || !ids.Add(id)) throw new InvalidDataException("Directory component IDs must be nonempty and unique.");
             if ((flags & 0x80) != 0) _ = ReadDirectoryString(bytes, ref position, token);

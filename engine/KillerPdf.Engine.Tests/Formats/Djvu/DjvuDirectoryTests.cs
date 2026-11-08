@@ -22,6 +22,37 @@ public sealed class DjvuDirectoryTests
     }
 
     [Fact]
+    public void OpensBundlesWithASharedAnnotationComponent()
+    {
+        // FORM:DJVI "s.djvi" with directory kind 3 (shared annotations), then page "p1".
+        // The metadata is BZZ-encoded with the DjVu.js reference encoder, and DjVuLibre
+        // 3.5.29 ddjvu renders the page from this bundle.
+        var input = Convert.FromHexString(
+            "41542654464F524D0000006C444A564D4449524D000000228100020000003A0000005A" +
+            "FFFFECBF3880C50C8AFFC4E86C93F326B1246515F3EC7F" +
+            "464F524D00000018444A5649414E54610000000C286D6F646520636F6C6F7229" +
+            "464F524D00000016444A5655494E464F0000000A000200011A002C011601");
+        var page = Assert.Single(DjvuDocument.Open(input).Pages);
+        Assert.Equal(2, page.Width);
+        Assert.Equal("p1", page.ComponentId);
+    }
+
+    [Theory]
+    // The page FORM:DJVU is listed with the shared-annotation kind 3.
+    [InlineData("41542654464F524D0000006C444A564D4449524D000000218100020000003A0000005A" +
+        "FFFFECBF3880C50C8B01DDF08022E1835DCC819E158300")]
+    // The FORM:DJVI component is listed with the undefined kind 4.
+    [InlineData("41542654464F524D0000006C444A564D4449524D000000228100020000003A0000005A" +
+        "FFFFECBF3880C50C8AFF7B0C6C93F326B1246515F3EC7F")]
+    public void RejectsDirectoryKindsThatDoNotMatchTheirComponent(string header)
+    {
+        var input = Convert.FromHexString(header +
+            "464F524D00000018444A5649414E54610000000C286D6F646520636F6C6F7229" +
+            "464F524D00000016444A5655494E464F0000000A000200011A002C011601");
+        Assert.Throws<InvalidDataException>(() => DjvuDocument.Open(input));
+    }
+
+    [Fact]
     public void ExposesComponentIdsFromTheCompressedDirectory()
     {
         Assert.Equal(new[] { "p3", "p2" }, DjvuDocument.Open(ReferenceBundle()).Pages.Select(p => p.ComponentId));
@@ -72,6 +103,35 @@ public sealed class DjvuDirectoryTests
         Assert.Equal("645F8FD420D0ADD3B1CACEF6C1E6A272D229563CE872B1235650832083B64EE9",
             Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(input)));
         Assert.Equal("a", Assert.Single(DjvuDocument.Open(input).Pages).ComponentId);
+    }
+
+    [Fact]
+    public void MatchesALargeDirectoryListedInReverseFileOrder()
+    {
+        // 32000 empty FORM:DJVI includes and one page, listed last to first. Matching each
+        // directory offset by scanning the components made this quadratic.
+        const int includes = 32_000;
+        byte[] page = Convert.FromHexString("464F524D00000016444A5655494E464F0000000A000200011A002C011601");
+        // The odd directory length is followed by one zero pad byte.
+        int count = includes + 1, directoryLength = 3 + 4 * count, start = 24 + directoryLength + 1;
+        var input = new byte[start + includes * 12 + page.Length];
+        "AT&TFORM"u8.CopyTo(input);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(input.AsSpan(8), (uint)(input.Length - 12));
+        "DJVMDIRM"u8.CopyTo(input.AsSpan(12));
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(input.AsSpan(20), (uint)directoryLength);
+        input[24] = 0x81;
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(input.AsSpan(25), (ushort)count);
+        for (int i = 0; i < count; i++)
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(input.AsSpan(27 + 4 * i), (uint)(start + 12 * (count - 1 - i)));
+        for (int i = 0; i < includes; i++)
+        {
+            "FORM"u8.CopyTo(input.AsSpan(start + 12 * i));
+            input[start + 12 * i + 7] = 4;
+            "DJVI"u8.CopyTo(input.AsSpan(start + 12 * i + 8));
+        }
+        page.CopyTo(input, start + 12 * includes);
+        var document = DjvuDocument.Open(input);
+        Assert.Equal(2, Assert.Single(document.Pages).Width);
     }
 
     private static byte[] SinglePageBundle(byte[] compressed)
