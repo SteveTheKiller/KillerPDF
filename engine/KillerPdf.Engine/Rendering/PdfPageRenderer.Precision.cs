@@ -85,12 +85,7 @@ public sealed partial class PdfPageRenderer
         if (pageIndex < 0 || pageIndex >= _pages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         cancellationToken.ThrowIfCancellationRequested();
-        if (options.Proof is { Enabled: true } requested
-            && (options.ForPrinting
-                || requested.Options.RenderingIntent is not (Authoring.PdfRenderingIntent.RelativeColorimetric
-                    or Authoring.PdfRenderingIntent.Perceptual or Authoring.PdfRenderingIntent.Saturation
-                    or Authoring.PdfRenderingIntent.AbsoluteColorimetric)))
-            throw new NotSupportedException("The requested printer proof controls are not implemented for this render path.");
+        if (options.Proof is { Enabled: true } requested) PdfProofGate.Validate(requested, options.ForPrinting);
         // During migration, encoded working pixels, the compatibility surface and the owned
         // returned copy coexist. Check their combined storage before allocating any of them.
         int width = region is { } bounds ? bounds.Right - bounds.Left : options.Width;
@@ -101,19 +96,6 @@ public sealed partial class PdfPageRenderer
         if (pixelCount > options.PixelByteLimit / pixelStorage)
             throw new ArgumentException("The high-precision render exceeds its combined pixel storage limit.", nameof(options));
         var page = _tree.Pages[pageIndex].Dictionary;
-        if (options.Proof is { Enabled: true } proofRequest)
-        {
-            if (proofRequest.PrinterProfile is not { ProfileClassSignature: "prtr",
-                HasColorimetricForward: true, HasColorimetricReverse: true })
-                throw new NotSupportedException("Printer proof rendering requires an output profile with actual colorimetric transforms in both directions.");
-            if (proofRequest.Options.RenderingIntent == Authoring.PdfRenderingIntent.AbsoluteColorimetric
-                && !proofRequest.PrinterProfile.HasExplicitValidMediaWhite)
-                throw new NotSupportedException("Absolute printer proof conversion requires explicit valid media-white data.");
-            var inverse = proofRequest.PrinterProfile.GetTransformSelection(proofRequest.Options.RenderingIntent,
-                PdfColorTransformDirection.ConnectionToDevice);
-            if (!inverse.IsAvailable || inverse.UsesIntentFallback)
-                throw new NotSupportedException("Printer proof rendering requires an actual inverse for the selected intent without fallback.");
-        }
         if (options.SeparationPlate is not null)
             throw new NotSupportedException("High-precision profile and group rendering is not implemented.");
         if (page.TryGetValue(Name("Group"), out PdfObject? groupValue)
@@ -163,24 +145,7 @@ public sealed partial class PdfPageRenderer
     {
         Span<double> paperBlack = stackalloc double[3];
         Span<double> paperScale = stackalloc double[3];
-        if (options.SimulatePaper)
-        {
-            if (!printer.HasExplicitValidMediaWhite)
-                throw new NotSupportedException("Printer proof paper simulation requires explicit valid media-white data.");
-            Span<double> paper = stackalloc double[3];
-            printer.ReadPaperWhite(paper);
-            if (!options.SimulateBlack)
-            {
-                printer.ReadPaperBlack(paperBlack);
-                for (int channel = 0; channel < 3; channel++)
-                {
-                    double range = paper[channel] - paperBlack[channel];
-                    if (!double.IsFinite(range) || range <= 1e-9 || !double.IsFinite(paper[channel]) || paper[channel] <= 0)
-                        throw new NotSupportedException("Printer proof paper-only viewing requires distinct finite paper and black endpoints.");
-                    paperScale[channel] = paper[channel] / range;
-                }
-            }
-        }
+        PdfProofGate.PreparePaper(printer, options, paperBlack, paperScale);
         PdfBlackPointCompensation sourceCompensation = options.BlackPointCompensation
             && options.RenderingIntent != Authoring.PdfRenderingIntent.AbsoluteColorimetric
             ? printer.ReferenceBlackToDeviceCompensation(options.RenderingIntent) : new(1);

@@ -13,18 +13,7 @@ internal static class PdfNativeFrameProof
         long bytes = checked(retainedPixels * 16 + count * (48 + (proof.GamutWarnings ? 2 : 0)));
         if (bytes > options.PixelByteLimit)
             throw new ArgumentException("Native proof rendering exceeds the combined pixel storage limit.", nameof(options));
-        if (options.ForPrinting || proof.Options.RenderingIntent is not (PdfRenderingIntent.RelativeColorimetric
-            or PdfRenderingIntent.Perceptual or PdfRenderingIntent.Saturation or PdfRenderingIntent.AbsoluteColorimetric))
-            throw new NotSupportedException("The requested native printer proof controls are unavailable.");
-        if (proof.PrinterProfile is not { ProfileClassSignature: "prtr",
-            HasColorimetricForward: true, HasColorimetricReverse: true } printer)
-            throw new NotSupportedException("Native printer proof requires an output profile with actual colorimetric transforms in both directions.");
-        if ((proof.Options.SimulatePaper || proof.Options.RenderingIntent == PdfRenderingIntent.AbsoluteColorimetric)
-            && !printer.HasExplicitValidMediaWhite)
-            throw new NotSupportedException("Native printer proof requires explicit valid media-white data.");
-        var inverse = printer.GetTransformSelection(proof.Options.RenderingIntent, PdfColorTransformDirection.ConnectionToDevice);
-        if (!inverse.IsAvailable || inverse.UsesIntentFallback)
-            throw new NotSupportedException("Native printer proof requires an actual inverse for the selected intent without fallback.");
+        PdfProofGate.Validate(proof, options.ForPrinting);
     }
 
     internal static PdfRenderedFrame Apply(PdfRenderedFrame source, PdfRenderOptions render, CancellationToken token)
@@ -37,19 +26,7 @@ internal static class PdfNativeFrameProof
         var options = proof.Options;
         Span<double> paperBlack = stackalloc double[3];
         Span<double> paperScale = stackalloc double[3];
-        if (options.SimulatePaper && !options.SimulateBlack)
-        {
-            Span<double> paper = stackalloc double[3];
-            printer.ReadPaperWhite(paper);
-            printer.ReadPaperBlack(paperBlack);
-            for (int channel = 0; channel < 3; channel++)
-            {
-                double range = paper[channel] - paperBlack[channel];
-                if (!double.IsFinite(range) || range <= 1e-9 || !double.IsFinite(paper[channel]) || paper[channel] <= 0)
-                    throw new NotSupportedException("Native printer proof paper-only viewing requires distinct finite paper and black endpoints.");
-                paperScale[channel] = paper[channel] / range;
-            }
-        }
+        PdfProofGate.PreparePaper(printer, options, paperBlack, paperScale);
         PdfBlackPointCompensation sourceCompensation = options.BlackPointCompensation
             && options.RenderingIntent != PdfRenderingIntent.AbsoluteColorimetric
             ? printer.ReferenceBlackToDeviceCompensation(options.RenderingIntent) : new(1);

@@ -163,6 +163,26 @@ public sealed class PdfNativeReadProofTests
         AssertRgb(frame, (5 * 16 + 7) * 4, .5555593231833441, .5555593231833441, .5555593231833441);
     }
 
+    [Fact]
+    public void NativeAndPdfProofsRefuseTheSamePaperWhiteForEveryPaperSimulation()
+    {
+        // The kTRC curve ends at 60000/65535, so the forward white is about 8 percent below the
+        // declared media white, beyond the 0.001 endpoint tolerance.
+        var printer = Printer(whiteEnd: 60000);
+        var settings = new PdfDocumentProofSettings(enabled: true, printerProfile: printer,
+            options: new PdfProofOptions { BlackPointCompensation = false, SimulatePaper = true, SimulateBlack = true });
+        var pdf = new PdfPageRenderer(PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(1, 1, "0.5 g 0 0 1 1 re f"u8.ToArray()).Build()));
+        var layout = EpubDocument.Open(Book()).CreateLayout(LayoutOptions());
+
+        var pdfError = Assert.Throws<NotSupportedException>(() =>
+            pdf.RenderFrame(0, new PdfRenderOptions(1, 1) { Proof = settings }));
+        var nativeError = Assert.Throws<NotSupportedException>(() =>
+            layout.RenderPage(0, new PdfRenderOptions(16, 14) { Proof = settings }));
+
+        Assert.Equal(pdfError.Message, nativeError.Message);
+    }
+
     private static void AssertRgb(PdfRenderedFrame frame, int offset, double red, double green, double blue)
     {
         Assert.InRange(frame.Pixels[offset], red - .00003, red + .00003);
@@ -198,7 +218,8 @@ public sealed class PdfNativeReadProofTests
             options: new PdfProofOptions { BlackPointCompensation = false, SimulateBlack = true })
     };
 
-    private static PdfColorProfile Printer(bool tintedPaper = false, string profileClass = "prtr", bool mediaWhite = true)
+    private static PdfColorProfile Printer(bool tintedPaper = false, string profileClass = "prtr", bool mediaWhite = true,
+        ushort whiteEnd = 65535)
     {
         byte[] data = new byte[192];
         Write32(0, data.Length); data[8] = 4;
@@ -210,7 +231,7 @@ public sealed class PdfNativeReadProofTests
         Write32(148, 172); Write32(152, 20); "curv"u8.CopyTo(data.AsSpan(156));
         Write32(164, 2);
         BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(168), 8192);
-        BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(170), 65535);
+        BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(170), whiteEnd);
         "XYZ "u8.CopyTo(data.AsSpan(172));
         Write32(180, tintedPaper ? 52429 : 63190);
         Write32(184, tintedPaper ? 58982 : 65536);

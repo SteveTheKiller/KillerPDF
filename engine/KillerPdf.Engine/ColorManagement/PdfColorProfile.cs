@@ -36,8 +36,11 @@ public sealed class PdfColorProfile
     internal int ComponentCount => _transform.Components;
     internal bool HasExplicitValidMediaWhite => _transform.HasExplicitValidMediaWhite;
     internal bool HasD50MediaWhite => _transform.HasD50MediaWhite;
-    internal bool HasColorimetricForward => _transform.ForIntent(3) is { HasColorimetricForward: true };
-    internal bool HasColorimetricReverse => _transform.ForIntent(3) is { HasColorimetricReverse: true };
+    internal bool HasInvalidMediaWhite => _transform.HasInvalidMediaWhite;
+    // Colorimetric tables are the relative colorimetric variant's; media white only adds the
+    // absolute scale, so a malformed white point never hides a usable relative transform.
+    internal bool HasColorimetricForward => _transform.ForIntent(1) is { HasColorimetricForward: true };
+    internal bool HasColorimetricReverse => _transform.ForIntent(1) is { HasColorimetricReverse: true };
     // A working CMYK assumption converts through the perceptual forward table, or through the
     // colorimetric one when the profile has no perceptual table. Null when neither is usable.
     internal PdfRenderingIntent? WorkingCmykForwardIntent =>
