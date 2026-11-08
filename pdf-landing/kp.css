@@ -197,6 +197,9 @@ body.compact-sidebar .outline a:hover { color: var(--text); background: color-mi
 .statusbar .right { padding-right: 10px; opacity: .75; }
 .statusbar a { color: var(--footer-text); }
 .statusbar a:hover { color: var(--accent); }
+.statusbar { flex-wrap: wrap; }
+.statusbar .reddit-community { display: inline-flex; align-items: center; gap: 5px; padding-right: 10px; white-space: nowrap; }
+.statusbar .reddit-community svg { flex: none; }
 .statusbar .right b { color: var(--logo-pdf); font-weight: 600; }
 #verEgg { cursor: pointer; }
 
