@@ -103,12 +103,17 @@ public sealed class EpubGsubExtensionTests
     [InlineData("other-type")]
     [InlineData("extension-flags")]
     [InlineData("coverage-format")]
-    public void UnsupportedSelectedExtensionStillHasAnExplicitDiagnosis(string variant)
+    public void UnsupportedSelectedExtensionIsSkippedAndTheTextIsKept(string variant)
     {
         var font = TrueTypeFont.Load(Font(variant));
         var book = EpubDocument.Open(Book());
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(200, 200, font)));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        var layout = book.CreateLayout(new EpubLayoutOptions(200, 200, font) { Margin = 8, FontSize = 20 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("fi", page.Text);
+        Assert.Equal(2, page.TextPlacements.Count);
+        Assert.All(page.TextPlacements, p => { Assert.Equal(1, p.Length); Assert.Equal(12, p.Width); });
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        Assert.Equal("fi", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(letter => letter.Value)));
     }
 
     [Fact]

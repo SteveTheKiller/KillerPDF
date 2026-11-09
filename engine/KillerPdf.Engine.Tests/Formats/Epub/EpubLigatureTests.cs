@@ -112,23 +112,38 @@ public sealed class EpubLigatureTests
     [InlineData("truncated")]
     [InlineData("offset")]
     [InlineData("glyph")]
-    [InlineData("work")]
     public void InvalidSubstitutionDataHasBoundedDiagnosis(string variant)
     {
         var font = TrueTypeFont.Load(Font(variant));
         var book = EpubDocument.Open(Book());
         var error = Assert.Throws<InvalidDataException>(() => book.CreateLayout(new EpubLayoutOptions(200, 200, font)));
         Assert.Contains("GSUB", error.Message);
-        if (variant == "work") Assert.Contains("work limit", error.Message);
+    }
+
+    [Theory]
+    [InlineData("flags")]
+    [InlineData("lookup-type")]
+    [InlineData("required")]
+    [InlineData("work")]
+    public void SubstitutionsTheReaderCannotApplyKeepTheTextWithoutThem(string variant)
+    {
+        var font = TrueTypeFont.Load(Font(variant));
+        var book = EpubDocument.Open(Book());
+        var layout = book.CreateLayout(new EpubLayoutOptions(200, 200, font) { Margin = 8, FontSize = 20 });
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("fi", page.Text);
+        Assert.Equal(2, page.TextPlacements.Count);
+        Assert.All(page.TextPlacements, p => { Assert.Equal(1, p.Length); Assert.Equal(12, p.Width); });
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+        Assert.Equal("fi", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(letter => letter.Value)));
     }
 
     [Fact]
-    public void UnsupportedLookupFlagsAreDiagnosedAndCancellationIsHonored()
+    public void CancellationIsHonoredWhileReadingASkippedLookupFont()
     {
         var font = TrueTypeFont.Load(Font("flags"));
         var book = EpubDocument.Open(Book());
         var options = new EpubLayoutOptions(200, 200, font);
-        Assert.Contains("flags", Assert.Throws<NotSupportedException>(() => book.CreateLayout(options)).Message);
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => book.CreateLayout(options, cancellation.Token));
         Assert.Throws<OperationCanceledException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font), cancellation.Token));
@@ -214,15 +229,6 @@ public sealed class EpubLigatureTests
         Assert.Equal("\u03B1\u03B2", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(letter => letter.Value)));
     }
 
-    [Fact]
-    public void UnsupportedRequiredFeatureIsDiagnosed()
-    {
-        var font = TrueTypeFont.Load(Font("required"));
-        var book = EpubDocument.Open(Book());
-        Assert.Contains("required", Assert.Throws<NotSupportedException>(() =>
-            book.CreateLayout(new EpubLayoutOptions(200, 200, font))).Message);
-    }
-
 static byte[] Book(string body = "<p>fi</p>")
 {
     using var output = new MemoryStream();
@@ -296,6 +302,7 @@ static byte[] Font(string variant = "selected")
     if (variant == "offset") U16(gsub, 58, 65535);
     if (variant == "glyph") U16(gsub, 74, 4);
     if (variant == "flags") U16(gsub, 50, 8);
+    if (variant == "lookup-type") U16(gsub, 48, 6);
     if (variant == "greek-flags") U16(gsub, 50, 8);
     if (variant == "version") U16(gsub, 2, 1);
     if (variant == "work")
