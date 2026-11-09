@@ -79,9 +79,28 @@ public sealed class PdfOverlayTailScaleTests
         finally { if (File.Exists(path)) File.Delete(path); }
     }
 
+    // Opening a PDF read the measurements and then the overlay tail, each from its own read of the file and its own
+    // parse, which copies every byte again: a 330 MB scan left about 1.3 GB of copies behind for the next collection.
+    // Given the parse the measurements were read from, the tail takes no copy of the file.
+    [Fact]
+    public void TheTailReadsTheParseItIsGivenWithoutCopyingTheFile()
+    {
+        byte[] source = PlainPdf(200, commentOnEveryPage: true, padding: 8 << 20);
+        var parsed = KillerPdf.Engine.Documents.PdfDocument.Open(source);
+        PdfOverlayAnnotations.TakeEditableTail(source, parsed);   // warm the code paths
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        OverlayExtraction extracted = PdfOverlayAnnotations.TakeEditableTail(source, parsed);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Empty(extracted.Records);
+        Assert.Same(source, extracted.Bytes);
+        Assert.True(allocated < source.Length / 4, $"Allocated {allocated:N0} bytes for a {source.Length:N0}-byte file.");
+    }
+
     // A flat page tree of blank pages, each optionally carrying one sticky note, written by hand so the fixture
     // itself costs nothing to build.
-    private static byte[] PlainPdf(int pages, bool commentOnEveryPage)
+    private static byte[] PlainPdf(int pages, bool commentOnEveryPage, int padding = 0)
     {
         var objects = new List<string>();
         int pagesObject = 2;
@@ -98,6 +117,8 @@ public sealed class PdfOverlayTailScaleTests
         if (commentOnEveryPage)
             for (int i = 0; i < pages; i++)
                 objects.Add($"<< /Type /Annot /Subtype /Text /Rect [10 10 30 30] /Contents (Note {i + 1}) >>");
+        // An unreferenced stream that stands in for a scan's page images: bytes a parse copies but never reads.
+        if (padding > 0) objects.Add($"<< /Length {padding} >>\nstream\n{new string('x', padding)}\nendstream");
 
         using var stream = new MemoryStream();
         void Write(string text) => stream.Write(Encoding.ASCII.GetBytes(text));

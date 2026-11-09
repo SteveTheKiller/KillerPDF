@@ -243,8 +243,9 @@ namespace KillerPDF.Shell
                 throw new WorkingCopyUnavailableException(error);
             }
             workingPath = _completeDocumentSource.Path;
-            List<PdfEngineIntegration.MeasurementData> openedMeasurements = TakeMeasurementsFromWorkingCopy(ref workingPath);
-            IReadOnlyList<OverlayRecord> openedOverlays = TakeTextOverlaysFromWorkingCopy(ref workingPath);
+            List<PdfEngineIntegration.MeasurementData> openedMeasurements =
+                TakeMeasurementsFromWorkingCopy(ref workingPath, out StrictWorkingCopy? strictCopy);
+            IReadOnlyList<OverlayRecord> openedOverlays = TakeTextOverlaysFromWorkingCopy(ref workingPath, strictCopy);
             _currentFile = workingPath;
             // A document with no pages is refused before any of the previous document's session state
             // (annotations, labels, undo history) is replaced, so a declined repair leaves nothing half-open.
@@ -344,14 +345,23 @@ namespace KillerPDF.Shell
         // Measurements are edited on the page overlay and written back on save, so the working copy
         // sheds the ones the file carries and they return as overlay measurements. A read-only open
         // keeps them in the page, where the renderer still shows them.
-        private List<PdfEngineIntegration.MeasurementData> TakeMeasurementsFromWorkingCopy(ref string workingPath)
+        // The working copy's bytes and their strict parse, read once at open for the measurements and kept for the overlay
+        // tail while the copy is unchanged: each step read and parsed the whole file on its own, which for a large scan
+        // left four copies of the file behind for the next collection.
+        private sealed record StrictWorkingCopy(byte[] Bytes, PdfDocument Parse);
+
+        private List<PdfEngineIntegration.MeasurementData> TakeMeasurementsFromWorkingCopy(ref string workingPath, out StrictWorkingCopy? strictCopy)
         {
+            strictCopy = null;
             if (_doc is null || _doc.IsReadOnly) return [];
             try
             {
+                byte[] bytes = File.ReadAllBytes(workingPath);
+                strictCopy = new StrictWorkingCopy(bytes, PdfDocument.Open(bytes));
                 List<PdfEngineIntegration.MeasurementData> measurements =
-                    PdfEngineIntegration.ReadMeasurements(PdfDocument.Open(File.ReadAllBytes(workingPath)));
+                    PdfEngineIntegration.ReadMeasurements(strictCopy.Parse);
                 if (measurements.Count == 0) return measurements;
+                strictCopy = null;   // the copy is about to change
                 string stripped = App.MakeTempFile("measure");
                 PdfEngineIntegration.RemoveMeasurements(workingPath, stripped);
                 // The stripped copy opens before the live document closes, so a failed reopen keeps
@@ -370,12 +380,14 @@ namespace KillerPDF.Shell
             }
         }
 
-        private IReadOnlyList<OverlayRecord> TakeTextOverlaysFromWorkingCopy(ref string workingPath)
+        private IReadOnlyList<OverlayRecord> TakeTextOverlaysFromWorkingCopy(ref string workingPath, StrictWorkingCopy? strictCopy)
         {
             if (_doc is null || _doc.IsReadOnly) return [];
             try
             {
-                OverlayExtraction extracted = PdfOverlayAnnotations.TakeEditableTail(File.ReadAllBytes(workingPath));
+                OverlayExtraction extracted = strictCopy is not null
+                    ? PdfOverlayAnnotations.TakeEditableTail(strictCopy.Bytes, strictCopy.Parse)
+                    : PdfOverlayAnnotations.TakeEditableTail(File.ReadAllBytes(workingPath));
                 if (extracted.Records.Count == 0) return [];
                 string stripped = App.MakeTempFile("overlays");
                 File.WriteAllBytes(stripped, extracted.Bytes);

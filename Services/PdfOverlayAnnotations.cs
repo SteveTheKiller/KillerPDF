@@ -156,13 +156,27 @@ public static class PdfOverlayAnnotations
         return result.AsReadOnly();
     }
 
+    /// <summary>As <see cref="TakeEditableTail(byte[])"/>, reading <paramref name="document"/>, a strict parse of
+    /// <paramref name="sourceBytes"/> the caller already holds.</summary>
+    public static OverlayExtraction TakeEditableTail(byte[] sourceBytes, PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(sourceBytes);
+        ArgumentNullException.ThrowIfNull(document);
+        return TakeEditableTail(sourceBytes, () => document);
+    }
+
     /// <summary>Moves only an intact owned tail into the editable layer, preserving all source bytes.</summary>
     public static OverlayExtraction TakeEditableTail(byte[] sourceBytes)
     {
         ArgumentNullException.ThrowIfNull(sourceBytes);
+        return TakeEditableTail(sourceBytes, () => PdfDocument.Open(sourceBytes));
+    }
+
+    private static OverlayExtraction TakeEditableTail(byte[] sourceBytes, Func<PdfDocument> open)
+    {
         try
         {
-            PdfDocument document = PdfDocument.Open(sourceBytes);
+            PdfDocument document = open();
             // Extraction is restricted to unencrypted working copies.
             if (document.IsEncrypted) return new(sourceBytes, []);
             var pages = PdfPageInformation.Read(document);
@@ -194,7 +208,8 @@ public static class PdfOverlayAnnotations
                 extracted.AddRange(tail.AsEnumerable().Reverse());
             }
             byte[] bytes = extracted.Count == 0 ? sourceBytes : editor.Build();
-            PdfDocument remaining = PdfDocument.Open(bytes);
+            // Nothing taken leaves the bytes as they were, so their parse is the one already read.
+            PdfDocument remaining = extracted.Count == 0 ? document : PdfDocument.Open(bytes);
             // A page-content layer cannot be promoted above a remaining native annotation.
             var batchCandidates = ReadPageBatches(remaining);
             IReadOnlyList<int> remainingCounts = batchCandidates.Count == 0 ? [] : PdfCommentReader.ReadPageAnnotationCounts(remaining);
