@@ -38,14 +38,18 @@ public partial class PdfViewer
         // A display the policy can manage still falls back when its native viewport could not be built.
         bool displayFallback = KillerPDF.Presentation.PdfDisplayFallbackNotice.Reason(_presentationDisplay, DocInvert) is not null
             || _nativeViewportUnavailable && !DocInvert;
+        var requestedProof = _active?.ProofView.CaptureProof().Settings;
+        bool proofRefused = RenderWarnings.TryGetValue(bitmap, out var recorded) && recorded.ProofUnavailable;
+        var proofKeys = KillerPDF.Presentation.PdfViewingFrameConversion.ProofNoticeKeys(requestedProof?.Enabled == true,
+            requestedProof?.PrinterProfile is not null, proofRefused, _active?.ProofPreferenceNoticeKey);
         if (RenderWarnings.TryGetValue(bitmap, out var result))
         {
             if (result.Message.Length > 0)
                 warning = string.Format(Loc("Str_RenderError"),
                     string.Format(Loc("Str_PageRenderError"), page + 1) + ": " + result.Message);
-            if (result.ProofUnavailable)
+            if (proofKeys.Page is { } proofKey)
             {
-                string proofNotice = Loc("Str_CM_ProofUnavailablePage");
+                string proofNotice = Loc(proofKey);
                 warning = warning is null
                     ? (positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageCount)) + ". " + proofNotice
                     : warning + " " + proofNotice;
@@ -66,6 +70,9 @@ public partial class PdfViewer
             // A render status replaces the open status, so it must keep the book's refused-chapter notice.
             if (_nativeDoc is { UnavailableChapterCount: > 0 } native)
                 warning += " " + string.Format(Loc("Str_Epub_ChaptersUnavailable"), native.UnavailableChapterCount);
+            // ...and the open-time proof preference notice.
+            if (proofKeys.StatusOnly is { } preferenceKey)
+                warning += " " + Loc(preferenceKey);
             SetStatus(warning);
         }
     }

@@ -55,6 +55,24 @@ internal static class PdfViewingFrameConversion
     internal static string? LinearFallbackOperation(bool monitorRequested, string? keptFallback) =>
         monitorRequested ? keptFallback : keptFallback ?? PreciseRenderUnavailable;
 
+    /// <summary>
+    /// The proof notice a rendered page shows, and an open-time notice the status must keep
+    /// when a page warning replaces it.
+    /// </summary>
+    /// <remarks>
+    /// When the requested printer profile itself is unavailable, the page did not refuse anything:
+    /// the notice names the profile (the open-time reason, or the generic unavailable profile) and
+    /// already carries the open-time notice. Otherwise any open-time notice is kept in the status.
+    /// </remarks>
+    internal static (string? Page, string? StatusOnly) ProofNoticeKeys(bool proofRequested, bool profileAvailable,
+        bool proofRefusedForPage, string? preferenceNoticeKey)
+    {
+        if (proofRequested && !profileAvailable)
+            return (proofRefusedForPage ? preferenceNoticeKey ?? "Str_CM_ProfileUnavailable" : null,
+                proofRefusedForPage ? null : preferenceNoticeKey);
+        return (proofRefusedForPage ? "Str_CM_ProofUnavailablePage" : null, preferenceNoticeKey);
+    }
+
     private static PdfViewingPixels Convert(PdfRenderedFrame frame, PdfSdrDisplayConverter? monitor,
         bool proofUnavailable, CancellationToken token)
     {

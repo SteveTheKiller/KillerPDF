@@ -87,6 +87,42 @@ public sealed class PdfViewingFrameConversionTests
             PdfViewingFrameConversion.LinearFallbackOperation(monitorRequested: false, kept.DisplayFallbackOperation));
     }
 
+    [Fact]
+    public void AProofWhoseSavedProfileIsMissingNamesTheProfileNotThePage()
+    {
+        var keys = PdfViewingFrameConversion.ProofNoticeKeys(proofRequested: true, profileAvailable: false,
+            proofRefusedForPage: true, preferenceNoticeKey: "Str_CM_ProfileMissing");
+
+        Assert.Equal("Str_CM_ProfileMissing", keys.Page);
+        Assert.Null(keys.StatusOnly);
+    }
+
+    [Fact]
+    public void AnUnavailableProfileChosenInTheDialogSaysTheProfileIsUnavailable()
+    {
+        var keys = PdfViewingFrameConversion.ProofNoticeKeys(true, false, true, null);
+
+        Assert.Equal("Str_CM_ProfileUnavailable", keys.Page);
+    }
+
+    [Fact]
+    public void APageThatRefusesAnAvailableProofStillSaysSoAndKeepsTheOpenNotice()
+    {
+        var keys = PdfViewingFrameConversion.ProofNoticeKeys(true, true, true, "Str_CM_PreferencesSaveFailed");
+
+        Assert.Equal("Str_CM_ProofUnavailablePage", keys.Page);
+        Assert.Equal("Str_CM_PreferencesSaveFailed", keys.StatusOnly);
+    }
+
+    [Fact]
+    public void AnOpenNoticeSurvivesARenderWarningThatIsNotAboutTheProof()
+    {
+        var keys = PdfViewingFrameConversion.ProofNoticeKeys(false, false, false, "Str_CM_PreferencesLoadFailed");
+
+        Assert.Null(keys.Page);
+        Assert.Equal("Str_CM_PreferencesLoadFailed", keys.StatusOnly);
+    }
+
     private static PdfRenderedFrame RedFrame() => new(1, 1, [1f, 0f, 0f, 1f], PdfFrameColorEncoding.LinearSrgbD65);
 
     private static PdfRenderedPage Compatible() => new(1, 1, [0, 0, 255, 255], PdfRenderBackend.Engine, null);
