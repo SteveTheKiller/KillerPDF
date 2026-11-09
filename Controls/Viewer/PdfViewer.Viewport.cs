@@ -1234,6 +1234,7 @@ namespace KillerPDF.Controls
                 }
                 _continuousCanvases.Remove(pg);
                 _pages.Remove(pg);
+                _gridFresh.Remove(pg);
             }
         }
 
@@ -1261,6 +1262,7 @@ namespace KillerPDF.Controls
                 _annotationCanvas.Children.Remove(lo);
             _linkOverlays.Clear();
             _continuousCanvases.Clear();   // keep the page->tile map in sync with the visible tiles
+            _gridFresh.Clear();
             // Unified map: keep only the CURRENT primary entry (key == _annotationCanvas.Tag) and drop
             // everything else - the secondary overlays and any stale primary entry from a prior page.
             int primPage = _annotationCanvas.Tag is int tp ? tp : -1;
@@ -1275,6 +1277,9 @@ namespace KillerPDF.Controls
         /// </summary>
         private async void RenderAdditionalPages(int primaryPageIdx)
         {
+            // A fill pass (FillGridAroundCurrentPage) draws only Grid pages without a current bitmap.
+            bool fillOnly = _gridFillPass;
+            _gridFillPass = false;
             if (_currentFile is null || !HasReadDocument) return;
             // Grid is a stable overview anchored at page 0 (independent of the selected page), so it
             // always shows the whole document instead of only the selected page onward.
@@ -1398,13 +1403,22 @@ namespace KillerPDF.Controls
             // once; the pages are then drawn outward from the page being looked at. Building tiles only as their bitmaps
             // arrived, in page order, dropped a jump past the pages drawn so far.
             int renderCenter = primaryPageIdx + 1;
+            int renderFirst = primaryPageIdx + 1, renderLast = limit - 1;
             if (_viewMode == ViewMode.Grid)
             {
                 AddGridPlaceholders(primaryPageIdx + 1, limit, primaryDipW);
                 renderCenter = Math.Clamp(State.CurrentPage, primaryPageIdx + 1, limit - 1);
+                // Grid draws the pages within two screens of the page being looked at and lets go of the bitmaps of
+                // pages further off, so its memory and its drawing follow the viewport, not the length of the document.
+                int reach = GridPagesPerScreen() * 2;
+                renderFirst = Math.Max(primaryPageIdx + 1, renderCenter - reach);
+                renderLast = Math.Min(limit - 1, renderCenter + reach);
+                ReleaseGridTilesOutside(renderCenter - reach * 2, renderCenter + reach * 2);
+                if (!fillOnly) _gridFresh.Clear();
             }
             _gridRenderCenter = renderCenter;
-            int[] renderOrder = [.. ContinuousRenderOrder.Around(renderCenter, primaryPageIdx + 1, limit - 1)];
+            int[] renderOrder = [.. ContinuousRenderOrder.Around(renderCenter, renderFirst, renderLast)
+                .Where(page => !fillOnly || !_gridFresh.Contains(page))];
 
             // Render pixels on a background thread and attach each page tile to the UI as soon
             // as it is ready, so large documents fill in progressively instead of blocking
@@ -1580,6 +1594,54 @@ namespace KillerPDF.Controls
         /// </summary>
         // The page the current Grid pass draws outward from.
         private int _gridRenderCenter = -1;
+        // Set for one pass that draws only the Grid pages missing a current bitmap.
+        private bool _gridFillPass;
+        // Grid pages whose bitmap the latest full pass (or a fill pass after it) drew.
+        private readonly HashSet<int> _gridFresh = [];
+
+        /// <summary>Draws the Grid pages around the current page that have no current bitmap: after a jump, or when a
+        /// scroll settles on pages let go of or not drawn yet. Pages already drawn are left as they are.</summary>
+        private void FillGridAroundCurrentPage()
+        {
+            if (_viewMode != ViewMode.Grid) return;
+            _gridFillPass = true;
+            RenderAdditionalPages(0);
+        }
+
+        /// <summary>True when a page within a screen of the current page has no current Grid bitmap.</summary>
+        private bool GridNeedsFillAroundCurrentPage()
+        {
+            if (_viewMode != ViewMode.Grid || State.CurrentPage < 0) return false;
+            int span = GridPagesPerScreen();
+            int last = Math.Min(ReadPageCount - 1, State.CurrentPage + span);
+            for (int page = Math.Max(1, State.CurrentPage - span); page <= last; page++)
+                if (GridTileIsBlank(page)) return true;
+            return false;
+        }
+
+        /// <summary>About how many Grid pages one screen shows: the columns times the rows that fit, plus a row.</summary>
+        private int GridPagesPerScreen()
+        {
+            int columns = Math.Max(1, _gridColumns);
+            double tileHeight = Math.Max(1, _annotationCanvas.Height) * Math.Max(0.01, _zoomLevel);
+            double viewport = PagePreviewPanel.ViewportHeight > 0 ? PagePreviewPanel.ViewportHeight : PagePreviewPanel.ActualHeight;
+            int rows = Math.Max(1, (int)Math.Ceiling(Math.Max(1, viewport) / tileHeight)) + 1;
+            return Math.Max(6, columns * rows);
+        }
+
+        /// <summary>Lets go of the bitmaps of Grid pages outside the range; their slots keep their size.</summary>
+        private void ReleaseGridTilesOutside(int first, int last)
+        {
+            foreach (var (page, overlay) in _continuousCanvases)
+            {
+                if (page >= first && page <= last) continue;
+                if (overlay.Parent is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Image { Source: not null } image)
+                {
+                    image.Source = null;
+                    _gridFresh.Remove(page);
+                }
+            }
+        }
 
         /// <summary>Appends an empty Grid slot, sized from the page's own proportions, for each page from
         /// <paramref name="first"/> up to <paramref name="end"/> that has none, in page order, so the panel's child
@@ -1617,6 +1679,7 @@ namespace KillerPDF.Controls
 
         private void AddSecondaryTile(int pi, System.Windows.Media.Imaging.BitmapSource bitmap, double primaryDipW)
         {
+            if (_viewMode == ViewMode.Grid) _gridFresh.Add(pi);
             int w = bitmap.PixelWidth, h = bitmap.PixelHeight;
             int pageDipW = (int)Math.Round(primaryDipW);
             int pageDipH = (int)Math.Round(primaryDipW * h / w);
@@ -1809,7 +1872,7 @@ namespace KillerPDF.Controls
                             // Grid opens to its 3-across default; other modes fit to width.
                             if (_viewMode == ViewMode.Grid)
                             {
-                                _gridColumns = Math.Min(_doc?.PageCount ?? 1, 3);
+                                _gridColumns = Math.Min(ReadPageCount, 3);
                                 SetZoom(GridZoomForN(_gridColumns));
                             }
                             else
@@ -1821,7 +1884,7 @@ namespace KillerPDF.Controls
                             // percentage when available; old records retain their internal-scale fallback.
                             if (_viewMode == ViewMode.Grid)
                             {
-                                _gridColumns = Math.Min(_doc?.PageCount ?? 1, 3);
+                                _gridColumns = Math.Min(ReadPageCount, 3);
                                 SetZoom(GridZoomForN(_gridColumns));
                             }
                             else if (_fitMode == FitMode.Width)   FitToWidth();
@@ -1996,9 +2059,8 @@ namespace KillerPDF.Controls
                         RefineVisibleRegions();
                         return;
                     }
-                    // A scroll into a part of the Grid not drawn yet draws it next.
-                    if (_viewMode == ViewMode.Grid && State.CurrentPage != _gridRenderCenter && GridTileIsBlank(State.CurrentPage))
-                        RenderAdditionalPages(0);
+                    // A scroll onto Grid pages not drawn yet, or let go of, draws them next.
+                    if (GridNeedsFillAroundCurrentPage()) FillGridAroundCurrentPage();
                     // Never re-render the primary in Grid (it would shift page 0's width basis and
                     // desync the column math); guards a timer started just before a switch into grid.
                     if (_viewMode != ViewMode.Grid && State.CurrentPage >= 0)
