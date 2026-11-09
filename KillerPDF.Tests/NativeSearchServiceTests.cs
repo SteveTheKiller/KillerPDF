@@ -331,6 +331,40 @@ public sealed class NativeSearchServiceTests
         Assert.Equal(3, result.Hits[0].left, 12);
     }
 
+    // A hit found from page text alone gets its highlight areas when its page is located: the same areas, union and
+    // page text a search that read the geometry gives (see SearchesCapturedEpubLayoutWithoutPdfConversion).
+    [Fact]
+    public void LocatingAnEpubPagesHitsGivesTheirHighlightAreas()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenEpub(Book(), SmallPage()));
+        SearchHit Unlocated(int start) => new(0, 0, 0, 0, 0, start, 1) { HasGeometry = false, Located = false };
+
+        var located = SearchService.LocateNative(revision, 0, [Unlocated(2), Unlocated(0)], CancellationToken.None);
+
+        Assert.Equal(new[] { 0, 2 }, located.Select(hit => hit.Start));
+        Assert.All(located, hit =>
+        {
+            Assert.True(hit.Located);
+            Assert.True(hit.HasGeometry);
+            Assert.Equal("A A", hit.Source!.Content.TrimEnd('\n'));
+            Assert.False(hit.Source.Editable);
+            var area = Assert.Single(hit.Areas);
+            Assert.Equal((area.Left, area.Bottom, area.Right, area.Top), (hit.left, hit.bottom, hit.right, hit.top));
+            Assert.Equal(24, hit.bottom, 12);
+            Assert.Equal(33, hit.top, 12);
+        });
+        Assert.Equal(3, located[0].left, 12);
+    }
+
+    private static EpubLayoutOptions SmallPage()
+    {
+        using var resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        return new EpubLayoutOptions(80, 48, TrueTypeFont.Load(fontBytes.ToArray())) { FontSize = 12, Margin = 4 };
+    }
+
     // Search matches each page's indexed text first; only a page with a match reads its geometry, so a rare word
     // lays out at most the one chapter it is in instead of every chapter of the book.
     [Fact]

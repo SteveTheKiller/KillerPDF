@@ -7,6 +7,9 @@ namespace KillerPDF.Services
     {
         internal SearchTextSource? Source { get; init; }
         internal bool HasGeometry { get; init; } = true;
+        /// <summary>False while a native EPUB hit's highlight areas are still to be read, which
+        /// <see cref="SearchService.LocateNative"/> does for the pages a reader looks at.</summary>
+        internal bool Located { get; init; } = true;
         internal IReadOnlyList<KillerPdf.Engine.Documents.PdfContentBounds> Areas { get; init; } = [];
         internal (int page, double left, double bottom, double right, double top) Rectangle =>
             (page, left, bottom, right, top);
@@ -190,6 +193,81 @@ namespace KillerPDF.Services
             return result;
         }
 
+        private const int MaximumNativeHighlightAreas = 200_000;
+
+        /// <summary>
+        /// Reads one page's geometry and gives the hits found on it their highlight areas, exactly as a search that
+        /// read the geometry with the text does. The hits come back in page-text order.
+        /// </summary>
+        internal static IReadOnlyList<SearchHit> LocateNative(PdfCapturedReadRevision revision, int pageIndex,
+            IReadOnlyList<SearchHit> hits, CancellationToken cancellationToken)
+        {
+            void CheckCancellation()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (revision.IsClosed) throw new OperationCanceledException("The captured native document was closed.");
+            }
+            CheckCancellation();
+            using var lease = revision.Rent(cancellationToken);
+            var page = lease.ReadNativeTextPage(pageIndex);
+            int highlightAreas = 0;
+            return Locate(pageIndex, page, [.. hits.Select(hit => (hit.Start, hit.Length)).Order()],
+                ref highlightAreas, CheckCancellation);
+        }
+
+        // Gives each span on the page the text regions it overlaps, in one pass over spans and regions in text order.
+        private static List<SearchHit> Locate(int pageIndex, KillerPdf.Engine.Documents.PdfReadTextPage page,
+            IReadOnlyList<(int Start, int Length)> spans, ref int highlightAreas, Action checkCancellation)
+        {
+            var located = new List<SearchHit>(spans.Count);
+            var regions = page.Regions.OrderBy(region => region.Start).ToArray();
+            var activeRegions = new SortedDictionary<int, KillerPdf.Engine.Documents.PdfReadTextRegion>();
+            var regionEnds = new PriorityQueue<int, int>();
+            int nextRegion = 0;
+            foreach (var span in spans)
+            {
+                checkCancellation();
+                while (regionEnds.TryPeek(out int expired, out int end) && end <= span.Start)
+                {
+                    checkCancellation();
+                    regionEnds.Dequeue();
+                    activeRegions.Remove(expired);
+                }
+                while (nextRegion < regions.Length && regions[nextRegion].Start < span.Start + span.Length)
+                {
+                    checkCancellation();
+                    var region = regions[nextRegion];
+                    int regionEnd = region.Start + region.Length;
+                    if (regionEnd > span.Start)
+                    {
+                        activeRegions.Add(nextRegion, region);
+                        regionEnds.Enqueue(nextRegion, regionEnd);
+                    }
+                    nextRegion++;
+                }
+                var areas = new List<KillerPdf.Engine.Documents.PdfContentBounds>();
+                foreach (var region in activeRegions.Values)
+                {
+                    checkCancellation();
+                    if (region.Start < span.Start + span.Length && region.Start + region.Length > span.Start)
+                    {
+                        if (highlightAreas == MaximumNativeHighlightAreas)
+                            throw new System.IO.InvalidDataException("Native search exceeded the highlight area limit.");
+                        areas.Add(region.Bounds);
+                        highlightAreas++;
+                    }
+                }
+                bool found = areas.Count > 0;
+                double left = found ? areas.Min(area => area.Left) : 0, bottom = found ? areas.Min(area => area.Bottom) : 0;
+                double right = found ? areas.Max(area => area.Right) : 0, top = found ? areas.Max(area => area.Top) : 0;
+                var source = new SearchTextSource(pageIndex, left, bottom, right, top,
+                    page.Text, Guid.Empty, Editable: false);
+                located.Add(new SearchHit(pageIndex, left, bottom, right, top, span.Start, span.Length)
+                    { Source = source, HasGeometry = found, Areas = areas.AsReadOnly() });
+            }
+            return located;
+        }
+
         private static SearchResult SearchNative(PdfCapturedReadRevision revision, string query, bool matchCase,
             bool wholeWord, CancellationToken cancellationToken)
         {
@@ -197,7 +275,6 @@ namespace KillerPDF.Services
             if (string.IsNullOrWhiteSpace(query)) return result;
             using var lease = revision.Rent(cancellationToken);
             var failures = new PageFailures();
-            const int maximumHighlightAreas = 200_000;
             const int maximumMatches = 100_000;
             int highlightAreas = 0;
             void CheckCancellation()
@@ -209,6 +286,7 @@ namespace KillerPDF.Services
             // match then read their geometry, so a chapter without a match is never laid out. A chapter with one match
             // lays out about one page from the page index; a second match there lays the rest of that chapter out once.
             var matchedPages = new List<int>();
+            var pageSpans = new Dictionary<int, List<(int Start, int Length)>>();
             int matches = 0;
             for (int pageIndex = 0; pageIndex < revision.PageCount; pageIndex++)
             {
@@ -220,12 +298,13 @@ namespace KillerPDF.Services
                     MarkUnreadable(pageIndex, error);
                     continue;
                 }
-                int pageMatches = TextReplacePlanner.FindSpans(text, query, matchCase, wholeWord).Count();
-                if (pageMatches == 0) continue;
-                matches += pageMatches;
+                var spans = TextReplacePlanner.FindSpans(text, query, matchCase, wholeWord);
+                if (spans.Count == 0) continue;
+                matches += spans.Count;
                 if (matches > maximumMatches)
                     throw new System.IO.InvalidDataException("Native search exceeded the match limit.");
                 matchedPages.Add(pageIndex);
+                pageSpans[pageIndex] = [.. spans.Select(span => (span.Start, span.Length))];
             }
             var geometryPages = new Dictionary<int, KillerPdf.Engine.Documents.PdfReadTextPage>();
             for (int at = matchedPages.Count - 1; at >= 0; at--)
@@ -243,66 +322,7 @@ namespace KillerPDF.Services
             {
                 CheckCancellation();
                 if (!geometryPages.TryGetValue(pageIndex, out var page)) continue;
-                bool matchedPage = false;
-                var regions = page.Regions.OrderBy(region => region.Start).ToArray();
-                var activeRegions = new SortedDictionary<int, KillerPdf.Engine.Documents.PdfReadTextRegion>();
-                var regionEnds = new PriorityQueue<int, int>();
-                int nextRegion = 0;
-                foreach (var span in TextReplacePlanner.FindSpans(page.Text, query, matchCase, wholeWord))
-                {
-                    CheckCancellation();
-                    if (result.TotalHits == maximumMatches)
-                        throw new System.IO.InvalidDataException("Native search exceeded the match limit.");
-                    while (regionEnds.TryPeek(out int expired, out int end) && end <= span.Start)
-                    {
-                        CheckCancellation();
-                        regionEnds.Dequeue();
-                        activeRegions.Remove(expired);
-                    }
-                    while (nextRegion < regions.Length && regions[nextRegion].Start < span.Start + span.Length)
-                    {
-                        CheckCancellation();
-                        var region = regions[nextRegion];
-                        int regionEnd = region.Start + region.Length;
-                        if (regionEnd > span.Start)
-                        {
-                            activeRegions.Add(nextRegion, region);
-                            regionEnds.Enqueue(nextRegion, regionEnd);
-                        }
-                        nextRegion++;
-                    }
-                    var areas = new List<KillerPdf.Engine.Documents.PdfContentBounds>();
-                    foreach (var region in activeRegions.Values)
-                    {
-                        CheckCancellation();
-                        if (region.Start < span.Start + span.Length && region.Start + region.Length > span.Start)
-                        {
-                            if (highlightAreas == maximumHighlightAreas)
-                                throw new System.IO.InvalidDataException("Native search exceeded the highlight area limit.");
-                            areas.Add(region.Bounds);
-                            highlightAreas++;
-                        }
-                    }
-                    bool located = areas.Count > 0;
-                    double left = located ? areas.Min(area => area.Left) : 0, bottom = located ? areas.Min(area => area.Bottom) : 0;
-                    double right = located ? areas.Max(area => area.Right) : 0, top = located ? areas.Max(area => area.Top) : 0;
-                    var source = new SearchTextSource(pageIndex, left, bottom, right, top,
-                        page.Text, Guid.Empty, Editable: false);
-                    result.Hits.Add(new SearchHit(pageIndex, left, bottom, right, top, span.Start, span.Length)
-                        { Source = source, HasGeometry = located, Areas = areas.AsReadOnly() });
-                    if (!matchedPage)
-                    {
-                        result.ResultPages.Add(pageIndex);
-                        matchedPage = true;
-                    }
-                    if (located)
-                    {
-                        if (!result.PageRects.TryGetValue(pageIndex, out var rectangles))
-                            result.PageRects[pageIndex] = rectangles = [];
-                        rectangles.AddRange(areas.Select(area => (area.Left, area.Bottom, area.Right, area.Top)));
-                    }
-                    result.TotalHits++;
-                }
+                AddHits(result, pageIndex, Locate(pageIndex, page, pageSpans[pageIndex], ref highlightAreas, CheckCancellation));
             }
             CheckCancellation();
             failures.RequireAReadablePage(revision.PageCount);
@@ -313,6 +333,23 @@ namespace KillerPDF.Services
                 result.UnreadablePages.Add(pageIndex);
                 result.UnreadableMessages[pageIndex] = error.Message;
                 failures.Refused(error);
+            }
+        }
+
+        private static void AddHits(SearchResult result, int pageIndex, IReadOnlyList<SearchHit> hits)
+        {
+            if (hits.Count == 0) return;
+            result.ResultPages.Add(pageIndex);
+            foreach (SearchHit hit in hits)
+            {
+                result.Hits.Add(hit);
+                if (hit.HasGeometry)
+                {
+                    if (!result.PageRects.TryGetValue(pageIndex, out var rectangles))
+                        result.PageRects[pageIndex] = rectangles = [];
+                    rectangles.AddRange(hit.Areas.Select(area => (area.Left, area.Bottom, area.Right, area.Top)));
+                }
+                result.TotalHits++;
             }
         }
 
