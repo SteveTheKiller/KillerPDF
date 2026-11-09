@@ -538,53 +538,7 @@ namespace KillerPDF.Controls
             var (referenceWidth, _) = ReadPhysicalPageSize(0);
             _continuousPageW = Math.Max(200.0, referenceWidth * (96.0 / 72.0));
 
-            for (int i = 0; i < ReadPageCount; i++)
-            {
-                var (pw, ph) = ReadVisualPageSize(i);
-                // Scaffold: reuse this tab's cached render dimensions (from a prior render of this page) so
-                // the frame is built at its REAL size up front. On a tab switch the page slots are already the
-                // right shape - no dark estimate-sized box that resizes when the bitmap finally streams in.
-                // Fall back to the page-box estimate only the first time a page is laid out. Both are the same
-                // canonical render-dim space (longest side -> 2048), so annotation coordinates stay identical.
-                int rdW, rdH;
-                if (_renderDims.TryGetValue(i, out var cachedDims) && cachedDims.w > 0 && cachedDims.h > 0)
-                {
-                    rdW = cachedDims.w;
-                    rdH = cachedDims.h;
-                }
-                else
-                {
-                    double maxDim = Math.Max(pw, ph);
-                    rdW = Math.Max(1, (int)Math.Round(2048.0 * pw / maxDim));
-                    rdH = Math.Max(1, (int)Math.Round(2048.0 * ph / maxDim));
-                    _renderDims[i] = (rdW, rdH);
-                }
-                double slotH = _continuousPageW * rdH / (double)rdW;
-                double slotScale = _continuousPageW / rdW;
-                var overlay = BuildPageOverlay(i, rdW, rdH, new System.Windows.Media.ScaleTransform(slotScale, slotScale));
-
-                var pageImg = new Image { Stretch = Stretch.None, Width = _continuousPageW, Height = slotH };
-                RenderOptions.SetBitmapScalingMode(pageImg, BitmapScalingMode.HighQuality);
-
-                var slotGrid = new Grid();
-                slotGrid.Children.Add(pageImg);
-                slotGrid.Children.Add(overlay);
-                // A page's links are read when the page is drawn, in SetContinuousSlot. Reading every page's here
-                // laid a whole book out, and read every link of a long PDF, on the UI thread before the first page.
-
-                var placeholder = new Border
-                {
-                    Width      = _continuousPageW,
-                    Height     = slotH,
-                    Margin     = new Thickness(0, 0, 0, 12),
-                    Background = Brushes.White,   // empty-page scaffold while the bitmap streams in (not a dark box)
-                    Tag = i,
-                    Child = slotGrid
-                };
-                // #128: no click-to-select in Continuous. The current page follows the viewport via
-                // scroll-sync (like Acrobat/Sumatra), so a click must not scroll or move the counter.
-                _continuousPanel.Children.Add(placeholder);
-            }
+            for (int i = 0; i < ReadPageCount; i++) AddContinuousSlot(i);
             LayoutContinuousSlots();
 
             // Paint existing annotations onto the freshly built per-page overlays so they show
@@ -613,6 +567,64 @@ namespace KillerPDF.Controls
             });
 
             _ = RenderContinuousPages(initialPage);
+        }
+
+        // One continuous-view slot at the end: a white placeholder at the page's size. Its page image and annotation
+        // overlay are built when the page is first drawn (EnsureContinuousSlotContent), so a long document does not
+        // build and lay out thousands of them before its first page shows. A paginating book adds its new pages here too.
+        private void AddContinuousSlot(int i)
+        {
+            var (pw, ph) = ReadVisualPageSize(i);
+            // Scaffold: reuse this tab's cached render dimensions (from a prior render of this page) so
+            // the frame is built at its REAL size up front. On a tab switch the page slots are already the
+            // right shape - no dark estimate-sized box that resizes when the bitmap finally streams in.
+            // Fall back to the page-box estimate only the first time a page is laid out. Both are the same
+            // canonical render-dim space (longest side -> 2048), so annotation coordinates stay identical.
+            int rdW, rdH;
+            if (_renderDims.TryGetValue(i, out var cachedDims) && cachedDims.w > 0 && cachedDims.h > 0)
+            {
+                rdW = cachedDims.w;
+                rdH = cachedDims.h;
+            }
+            else
+            {
+                double maxDim = Math.Max(pw, ph);
+                rdW = Math.Max(1, (int)Math.Round(2048.0 * pw / maxDim));
+                rdH = Math.Max(1, (int)Math.Round(2048.0 * ph / maxDim));
+                _renderDims[i] = (rdW, rdH);
+            }
+            // #128: no click-to-select in Continuous. The current page follows the viewport via
+            // scroll-sync (like Acrobat/Sumatra), so a click must not scroll or move the counter.
+            _continuousPanel.Children.Add(new Border
+            {
+                Width      = _continuousPageW,
+                Height     = _continuousPageW * rdH / (double)rdW,
+                Margin     = new Thickness(0, 0, 0, 12),
+                Background = Brushes.White,   // empty-page scaffold while the bitmap streams in (not a dark box)
+                Tag = i,
+            });
+        }
+
+        // A slot's page image and annotation overlay, built the first time the page is drawn. A page's links are read
+        // then too (SetContinuousSlot): reading every page's up front laid a whole book out, and read every link of a
+        // long PDF, on the UI thread before the first page showed.
+        private Grid EnsureContinuousSlotContent(int i)
+        {
+            var slot = (Border)_continuousPanel.Children[i];
+            if (slot.Child is Grid built) return built;
+            var (rdW, rdH) = _renderDims.TryGetValue(i, out var dims) && dims.w > 0 && dims.h > 0
+                ? dims : (2048, Math.Max(1, (int)Math.Round(2048 * slot.Height / slot.Width)));
+            double slotScale = _continuousPageW / rdW;
+            var overlay = BuildPageOverlay(i, rdW, rdH, new System.Windows.Media.ScaleTransform(slotScale, slotScale));
+            // The overlay misses the tool change that set every other page's cursor, so it takes the current one.
+            overlay.Cursor = _annotationCanvas.Cursor;
+            var pageImg = new Image { Stretch = Stretch.None, Width = _continuousPageW, Height = slot.Height };
+            RenderOptions.SetBitmapScalingMode(pageImg, BitmapScalingMode.HighQuality);
+            var slotGrid = new Grid();
+            slotGrid.Children.Add(pageImg);
+            slotGrid.Children.Add(overlay);
+            slot.Child = slotGrid;
+            return slotGrid;
         }
 
         // ── Continuous view virtualization (#122) ──────────────────────────────────────────────
@@ -648,8 +660,8 @@ namespace KillerPDF.Controls
             foreach (int i in ContinuousRenderOrder.Around(centerPage, lo, hi))
             {
                 if (i >= _continuousPanel.Children.Count) continue;
-                if (_continuousPanel.Children[i] is Border b && b.Child is Grid g
-                    && g.Children.Count > 0 && g.Children[0] is Image img && img.Source == null)
+                if (_continuousPanel.Children[i] is Border b && (b.Child is not Grid g
+                    || g.Children.Count > 0 && g.Children[0] is Image { Source: null }))
                     todo.Add(i);
             }
             if (todo.Count == 0)
@@ -827,7 +839,8 @@ namespace KillerPDF.Controls
             int fw = bmp.PixelWidth, fh = bmp.PixelHeight;
             double dipW = slot.Width;
             double dipH = dipW * fh / fw;
-            if (slot.Child is not Grid slotGrid || slotGrid.Children.Count == 0 || slotGrid.Children[0] is not Image pageImg)
+            var slotGrid = EnsureContinuousSlotContent(fi);
+            if (slotGrid.Children.Count == 0 || slotGrid.Children[0] is not Image pageImg)
                 return;
 
             RemoveVisibleDetail(pageImg);
@@ -947,6 +960,9 @@ namespace KillerPDF.Controls
             bool missing = false;
             for (int i = 0; i < _continuousPanel.Children.Count; i++)
             {
+                bool near = i >= first - ContinuousKeepPages && i <= last + ContinuousKeepPages;
+                // A slot whose page was never drawn is only a placeholder; one near the viewport needs drawing.
+                if (_continuousPanel.Children[i] is Border { Child: null }) { missing |= near; continue; }
                 if (_continuousPanel.Children[i] is not Border b || b.Child is not Grid g
                     || g.Children.Count == 0 || g.Children[0] is not Image img) continue;
                 bool keep = i >= first - ContinuousReleasePages && i <= last + ContinuousReleasePages;

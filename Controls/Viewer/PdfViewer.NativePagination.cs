@@ -119,46 +119,6 @@ public partial class PdfViewer
         }
     }
 
-    // One continuous-view slot at the end, built as SetupContinuousView builds each page's slot.
-    private void AddContinuousSlot(int i)
-    {
-        var (pw, ph) = ReadVisualPageSize(i);
-        int rdW, rdH;
-        if (_renderDims.TryGetValue(i, out var cachedDims) && cachedDims.w > 0 && cachedDims.h > 0)
-        {
-            rdW = cachedDims.w;
-            rdH = cachedDims.h;
-        }
-        else
-        {
-            double maxDim = Math.Max(pw, ph);
-            rdW = Math.Max(1, (int)Math.Round(2048.0 * pw / maxDim));
-            rdH = Math.Max(1, (int)Math.Round(2048.0 * ph / maxDim));
-            _renderDims[i] = (rdW, rdH);
-        }
-        double slotH = _continuousPageW * rdH / (double)rdW;
-        double slotScale = _continuousPageW / rdW;
-        var overlay = BuildPageOverlay(i, rdW, rdH, new System.Windows.Media.ScaleTransform(slotScale, slotScale));
-        var pageImg = new System.Windows.Controls.Image
-        {
-            Stretch = System.Windows.Media.Stretch.None, Width = _continuousPageW, Height = slotH
-        };
-        System.Windows.Media.RenderOptions.SetBitmapScalingMode(pageImg, System.Windows.Media.BitmapScalingMode.HighQuality);
-        var slotGrid = new System.Windows.Controls.Grid();
-        slotGrid.Children.Add(pageImg);
-        slotGrid.Children.Add(overlay);
-        // A book's page reads its links when the page is drawn (SetContinuousSlot), never here.
-        _continuousPanel.Children.Add(new System.Windows.Controls.Border
-        {
-            Width = _continuousPageW,
-            Height = slotH,
-            Margin = new System.Windows.Thickness(0, 0, 0, 12),
-            Background = System.Windows.Media.Brushes.White,
-            Tag = i,
-            Child = slotGrid
-        });
-    }
-
     private void ShowPaginationProgress(NativeWorkingDocument book)
     {
         var (paginated, total) = book.PaginationProgress;
