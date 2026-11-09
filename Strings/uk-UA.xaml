@@ -268,6 +268,7 @@
     <sys:String x:Key="Str_Save_DamagedUsageRights">Цей PDF пошкоджено, і він містить права на використання Reader. Збереження порушило б їх, тому файл не змінено.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">Відкрито {0} (растрове відновлення - збережіть, щоб зберегти зміни) - сторінок: {1}</sys:String>
     <sys:String x:Key="Str_PageOf">Сторінка {0} з {1}</sys:String>
+    <sys:String x:Key="Str_PagesOf">Сторінки {0}-{1} з {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Сторінка {0} з {1}  (посилань: {2})</sys:String>
     <sys:String x:Key="Str_PageFormFields">Сторінка {0} з {1} - ця сторінка містить поля форми для заповнення</sys:String>
     <sys:String x:Key="Str_PageRenderError">Сторінка {0} - не вдалося відобразити</sys:String>
@@ -527,7 +528,6 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Pos_TopLeft">Зверху ліворуч</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Друк</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Відтворення {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Частину вмісту не вдалося відобразити точно. Сторінки {0} буде надруковано так, як показано.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Принтер</sys:String>
@@ -537,7 +537,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Print_SourceAuto">Типове для принтера</sys:String>
     <sys:String x:Key="Str_Print_Properties">Властивості принтера...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">Не вдалося відкрити властивості принтера:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">ПРИНТЕР</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">ПАПІР</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">РОЗМІТКА</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ВИВЕДЕННЯ</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Орієнтація</sys:String>
@@ -553,6 +553,9 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Print_Pages">Сторінки</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">наприклад, 1-3,5  (порожньо = усі)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">Немає сторінок</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">Аркуш {0} з {1}</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">Аркуші {0}-{1} з {2}</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">Недостатньо місця для двох сторінок</sys:String>
     <sys:String x:Key="Str_Print_Margins">Поля</sys:String>
     <sys:String x:Key="Str_Margin_None">Немає</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Вузькі</sys:String>
@@ -560,7 +563,6 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Margin_Wide">Широкі</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Сторінок на аркуші</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Двосторонній друк</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>

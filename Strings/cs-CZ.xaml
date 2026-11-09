@@ -268,6 +268,7 @@ Stránku lze nahradit jejím obrázkem se začerněnými označenými oblastmi. 
     <sys:String x:Key="Str_Save_DamagedUsageRights">Tento PDF je poškozený a obsahuje práva k použití v aplikaci Reader. Uložením by se tato práva narušila, proto soubor nebyl změněn.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">Otevřeno {0} (rastrová oprava - změny zachováte uložením) - stránek: {1}</sys:String>
     <sys:String x:Key="Str_PageOf">Stránka {0} z {1}</sys:String>
+    <sys:String x:Key="Str_PagesOf">Stránky {0}-{1} z {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Stránka {0} z {1}  (odkazů: {2})</sys:String>
     <sys:String x:Key="Str_PageFormFields">Stránka {0} z {1} - tato stránka obsahuje vyplnitelná pole formuláře</sys:String>
     <sys:String x:Key="Str_PageRenderError">Stránka {0} - nelze vykreslit</sys:String>
@@ -527,7 +528,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Pos_TopLeft">Vlevo nahoře</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Tisk</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Vykreslování {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Část obsahu nebylo možné vykreslit přesně. Stránky {0} se vytisknou tak, jak jsou zobrazeny.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Tiskárna</sys:String>
@@ -544,6 +544,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Print_Pages">Stránky</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">např. 1-3,5  (prázdné = vše)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">Žádné stránky</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">List {0} z {1}</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">Listy {0}-{1} z {2}</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">Není dost místa pro dvě stránky</sys:String>
     <sys:String x:Key="Str_Print_Margins">Okraje</sys:String>
     <sys:String x:Key="Str_Margin_None">Žádné</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Úzké</sys:String>
@@ -551,7 +554,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Margin_Wide">Široké</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Stránek na list</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Oboustranný tisk</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
@@ -1162,7 +1164,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Print_SourceAuto">Výchozí nastavení tiskárny</sys:String>
     <sys:String x:Key="Str_Print_Properties">Vlastnosti tiskárny...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">Vlastnosti tiskárny se nepodařilo otevřít:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">TISKÁRNA</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">PAPÍR</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">ROZVRŽENÍ</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">VÝSTUP</sys:String>
     <sys:String x:Key="Str_View_BookMode">Knižní rozvržení</sys:String>

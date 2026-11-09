@@ -250,6 +250,7 @@
     <sys:String x:Key="Str_Save_DamagedUsageRights">এই PDF ক্ষতিগ্রস্ত এবং এতে Reader-এর ব্যবহারের অধিকার আছে। সংরক্ষণ করলে সেগুলো নষ্ট হয়ে যাবে, তাই ফাইলটি পরিবর্তন করা হয়নি।</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">{0} খোলা হয়েছে (রাস্টারাইজড মেরামত - পরিবর্তন রাখতে সংরক্ষণ করুন) - {1} পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_PageOf">{1}-এর মধ্যে {0} পৃষ্ঠা</sys:String>
+    <sys:String x:Key="Str_PagesOf">{2}-এর মধ্যে {0}-{1} পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_PageOfLinks">{1}-এর মধ্যে {0} পৃষ্ঠা  ({2}টি লিংক)</sys:String>
     <sys:String x:Key="Str_PageFormFields">{1}-এর মধ্যে {0} পৃষ্ঠা - এই পৃষ্ঠায় পূরণযোগ্য ফর্ম ফিল্ড রয়েছে</sys:String>
     <sys:String x:Key="Str_PageRenderError">{0} পৃষ্ঠা - রেন্ডার করা যায়নি</sys:String>
@@ -451,7 +452,6 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Pos_TopLeft">উপরে বামে</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - মুদ্রণ</sys:String>
     <sys:String x:Key="Str_Print_Rendering">রেন্ডার হচ্ছে {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">কিছু বিষয়বস্তু হুবহু আঁকা যায়নি। পৃষ্ঠা {0} যেমন দেখা যাচ্ছে তেমনই মুদ্রিত হবে।</sys:String>
     <sys:String x:Key="Str_Print_Printer">প্রিন্টার</sys:String>
@@ -468,6 +468,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Print_Pages">পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">যেমন 1-3,5  (খালি = সব)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">কোনো পৃষ্ঠা নেই</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">{1}-এর মধ্যে {0} শীট</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">{2}-এর মধ্যে {0}-{1} শীট</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">দুটি পৃষ্ঠার জন্য যথেষ্ট জায়গা নেই</sys:String>
     <sys:String x:Key="Str_Print_Margins">মার্জিন</sys:String>
     <sys:String x:Key="Str_Margin_None">কোনোটি নয়</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">সরু</sys:String>
@@ -475,7 +478,6 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Margin_Wide">চওড়া</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">প্রতি শীটে পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">উভয় পাশে প্রিন্ট করুন</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
@@ -1157,7 +1159,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Print_SourceAuto">প্রিন্টারের ডিফল্ট</sys:String>
     <sys:String x:Key="Str_Print_Properties">প্রিন্টারের বৈশিষ্ট্য...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">প্রিন্টারের বৈশিষ্ট্য খোলা যায়নি:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">প্রিন্টার</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">কাগজ</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">লেআউট</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">আউটপুট</sys:String>
     <sys:String x:Key="Str_View_BookMode">বই লেআউট</sys:String>

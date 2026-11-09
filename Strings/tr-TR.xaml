@@ -250,6 +250,7 @@ Sayfa, işaretli alanları karartılmış kendi görüntüsüyle değiştirilebi
     <sys:String x:Key="Str_Save_DamagedUsageRights">Bu PDF hasarlı ve Reader kullanım haklarını içeriyor. Kaydetmek bu hakları bozacağından dosya değiştirilmedi.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">Açıldı {0} (rasterize edilerek onarıldı - değişiklikleri korumak için kaydedin) - {1} sayfa</sys:String>
     <sys:String x:Key="Str_PageOf">Sayfa {0} / {1}</sys:String>
+    <sys:String x:Key="Str_PagesOf">Sayfa {0}-{1} / {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Sayfa {0} / {1}  ({2} bağlantı)</sys:String>
     <sys:String x:Key="Str_PageFormFields">Sayfa {0} / {1} - bu sayfa doldurulabilir form alanları içeriyor</sys:String>
     <sys:String x:Key="Str_PageRenderError">Sayfa {0} - görüntülenemedi</sys:String>
@@ -451,7 +452,6 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Pos_TopLeft">Üst Sol</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Yazdır</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Oluşturuluyor {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Bazı içerikler tam olarak çizilemedi. {0} sayfaları gösterildiği gibi yazdırılır.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Yazıcı</sys:String>
@@ -468,6 +468,9 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Print_Pages">Sayfalar</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">örn. 1-3,5  (boş = tümü)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">Sayfa yok</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">Yaprak {0} / {1}</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">Yaprak {0}-{1} / {2}</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">İki sayfa için yeterli yer yok</sys:String>
     <sys:String x:Key="Str_Print_Margins">Kenar boşlukları</sys:String>
     <sys:String x:Key="Str_Margin_None">Yok</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Dar</sys:String>
@@ -475,7 +478,6 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Margin_Wide">Geniş</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Yaprak başına sayfa</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Her iki yüze yazdır</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
@@ -1157,7 +1159,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Print_SourceAuto">Yazıcı varsayılanı</sys:String>
     <sys:String x:Key="Str_Print_Properties">Yazıcı özellikleri...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">Yazıcı özellikleri açılamadı:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">YAZICI</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">KÂĞIT</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">DÜZEN</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ÇIKTI</sys:String>
     <sys:String x:Key="Str_View_BookMode">Kitap düzeni</sys:String>

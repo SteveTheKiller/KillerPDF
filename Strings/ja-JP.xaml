@@ -268,6 +268,7 @@
     <sys:String x:Key="Str_Save_DamagedUsageRights">この PDF は破損しており、Reader の使用権限が含まれています。保存するとそれらが無効になるため、ファイルは変更されていません。</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">{0} を開きました (ラスタライズ修復 - 変更を保存するには保存が必要) - {1} ページ</sys:String>
     <sys:String x:Key="Str_PageOf">{0} / {1} ページ</sys:String>
+    <sys:String x:Key="Str_PagesOf">{0}-{1} / {2} ページ</sys:String>
     <sys:String x:Key="Str_PageOfLinks">{0} / {1} ページ  ({2} リンク)</sys:String>
     <sys:String x:Key="Str_PageFormFields">{0} / {1} ページ - このページには入力可能なフォームフィールドが含まれています</sys:String>
     <sys:String x:Key="Str_PageRenderError">ページ {0} - レンダリングできませんでした</sys:String>
@@ -527,7 +528,6 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Pos_TopLeft">上部左</sys:String>
 
     <!-- ── 印刷ダイアログ ────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - 印刷</sys:String>
     <sys:String x:Key="Str_Print_Rendering">レンダリング中 {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">一部の内容を正確に描画できませんでした。{0} ページは表示どおりに印刷されます。</sys:String>
     <sys:String x:Key="Str_Print_Printer">プリンター</sys:String>
@@ -537,7 +537,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Print_SourceAuto">プリンターの既定</sys:String>
     <sys:String x:Key="Str_Print_Properties">プリンターのプロパティ...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">プリンターのプロパティを開けませんでした：</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">プリンター</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">用紙</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">レイアウト</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">出力</sys:String>
     <sys:String x:Key="Str_Print_Orientation">向き</sys:String>
@@ -553,6 +553,9 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Print_Pages">ページ</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">例 : 1-3,5 (空欄=すべて)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">ページがありません</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">{0} / {1} 枚目</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">{0}-{1} / {2} 枚目</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">2ページを表示する余裕がありません</sys:String>
     <sys:String x:Key="Str_Print_Margins">余白</sys:String>
     <sys:String x:Key="Str_Margin_None">なし</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">狭い</sys:String>
@@ -560,7 +563,6 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Margin_Wide">広い</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">1枚あたりのページ数</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">両面印刷</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>

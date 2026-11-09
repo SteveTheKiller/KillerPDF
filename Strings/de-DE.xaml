@@ -250,6 +250,7 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
     <sys:String x:Key="Str_Save_DamagedUsageRights">Dieses PDF ist beschädigt und enthält Reader-Nutzungsrechte. Beim Speichern gingen diese verloren, daher wurde die Datei nicht geändert.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">Geöffnet: {0} (Raster-Reparatur - zum Beibehalten der Änderungen speichern) - {1} Seite(n)</sys:String>
     <sys:String x:Key="Str_PageOf">Seite {0} von {1}</sys:String>
+    <sys:String x:Key="Str_PagesOf">Seiten {0}-{1} von {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Seite {0} von {1}  ({2} Link(s))</sys:String>
     <sys:String x:Key="Str_PageFormFields">Seite {0} von {1} - diese Seite enthält ausfüllbare Formularfelder</sys:String>
     <sys:String x:Key="Str_PageRenderError">Seite {0} konnte nicht dargestellt werden</sys:String>
@@ -451,7 +452,6 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Pos_TopLeft">Oben links</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Drucken</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Rendern {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Einige Inhalte konnten nicht exakt dargestellt werden. Die Seiten {0} werden wie angezeigt gedruckt.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Drucker</sys:String>
@@ -468,6 +468,9 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Print_Pages">Seiten</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">z. B. 1-3,5  (leer = alle)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">Keine Seiten</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">Blatt {0} von {1}</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">Blätter {0}-{1} von {2}</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">Nicht genug Platz für zwei Seiten</sys:String>
     <sys:String x:Key="Str_Print_Margins">Ränder</sys:String>
     <sys:String x:Key="Str_Margin_None">Keine</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Schmal</sys:String>
@@ -475,7 +478,6 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Margin_Wide">Breit</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Seiten pro Blatt</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Beidseitig drucken</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
@@ -1163,7 +1165,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Print_SourceAuto">Druckerstandard</sys:String>
     <sys:String x:Key="Str_Print_Properties">Druckereigenschaften...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">Die Druckereigenschaften konnten nicht geöffnet werden:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">DRUCKER</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">PAPIER</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">LAYOUT</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">AUSGABE</sys:String>
     <sys:String x:Key="Str_View_BookMode">Buchlayout</sys:String>

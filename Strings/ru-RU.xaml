@@ -268,6 +268,7 @@
     <sys:String x:Key="Str_Save_DamagedUsageRights">Этот PDF поврежден и содержит права на использование Reader. Сохранение нарушит их, поэтому файл не изменен.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">Открыто {0} (растрированный ремонт - сохранить, чтобы сохранить изменения) - {1} страница(ы)</sys:String>
     <sys:String x:Key="Str_PageOf">Страница {0} из {1}</sys:String>
+    <sys:String x:Key="Str_PagesOf">Страницы {0}-{1} из {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Страница {0} из {1}  ({2} ссылка(и))</sys:String>
     <sys:String x:Key="Str_PageFormFields">Страница {0} из {1} - эта страница содержит поля формы, которые можно заполнить</sys:String>
     <sys:String x:Key="Str_PageRenderError">Страница {0} - не удалось отрендерить</sys:String>
@@ -527,7 +528,6 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Pos_TopLeft">Вверху слева</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Печать</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Отрисовка {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Часть содержимого не удалось отрисовать точно. Страницы {0} будут напечатаны так, как показаны.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Принтер</sys:String>
@@ -537,7 +537,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Print_SourceAuto">Принтер по умолчанию</sys:String>
     <sys:String x:Key="Str_Print_Properties">Свойства принтера...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">Не удалось открыть свойства принтера:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">ПРИНТЕР</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">БУМАГА</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">РАСПОЛОЖЕНИЕ</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ВЫВОД</sys:String>
     <sys:String x:Key="Str_Print_Orientation">ОРИЕНТАЦИЯ</sys:String>
@@ -553,6 +553,9 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Print_Pages">Страницы</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">прим. 1-3,5  (пусто = все)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">Нет страниц</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">Лист {0} из {1}</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">Листы {0}-{1} из {2}</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">Недостаточно места для двух страниц</sys:String>
     <sys:String x:Key="Str_Print_Margins">Поля</sys:String>
     <sys:String x:Key="Str_Margin_None">Нет</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Узкие</sys:String>
@@ -560,7 +563,6 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Margin_Wide">Широкие</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Страниц на листе</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Двухсторонняя печать</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>

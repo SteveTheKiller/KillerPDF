@@ -246,6 +246,7 @@
     <sys:String x:Key="Str_Save_DamagedUsageRights">Ta PDF je poškodovan in vsebuje pravice za uporabo v programu Reader. Shranjevanje bi jih razveljavilo, zato datoteka ni bila spremenjena.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">Odprta je rastrirana popravljena kopija datoteke {0}; shranite za ohranitev sprememb (strani: {1})</sys:String>
     <sys:String x:Key="Str_PageOf">Stran {0} od {1}</sys:String>
+    <sys:String x:Key="Str_PagesOf">Strani {0}-{1} od {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Stran {0} od {1}  (povezave: {2})</sys:String>
     <sys:String x:Key="Str_PageFormFields">Stran {0} od {1} vsebuje izpolnljiva polja obrazca</sys:String>
     <sys:String x:Key="Str_PageRenderError">Strani {0} ni bilo mogoče izrisati</sys:String>
@@ -470,7 +471,6 @@
     <sys:String x:Key="Str_Pos_TopCenter">Zgoraj na sredini</sys:String>
     <sys:String x:Key="Str_Pos_TopRight">Zgoraj desno</sys:String>
     <sys:String x:Key="Str_Pos_TopLeft">Zgoraj levo</sys:String>
-    <sys:String x:Key="Str_Print_Title">KillerPDF: Tiskanje</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Izrisovanje {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Dela vsebine ni bilo mogoče natančno izrisati. Strani {0} se natisnejo tako, kot so prikazane.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Tiskalnik</sys:String>
@@ -480,7 +480,7 @@
     <sys:String x:Key="Str_Print_SourceAuto">Privzeto za tiskalnik</sys:String>
     <sys:String x:Key="Str_Print_Properties">Lastnosti tiskalnika...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">Lastnosti tiskalnika ni bilo mogoče odpreti:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">TISKALNIK</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">PAPIR</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">POSTAVITEV</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">IZHOD</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Usmerjenost</sys:String>
@@ -496,6 +496,9 @@
     <sys:String x:Key="Str_Print_Pages">Strani</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">npr. 1-3,5  (prazno = vse)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">Ni strani</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">List {0} od {1}</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">Lista {0}-{1} od {2}</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">Ni dovolj prostora za dve strani</sys:String>
     <sys:String x:Key="Str_Print_Margins">Robovi</sys:String>
     <sys:String x:Key="Str_Margin_None">Brez</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Ozki</sys:String>
@@ -503,7 +506,6 @@
     <sys:String x:Key="Str_Margin_Wide">Široki</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Strani na list</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Tiskaj obojestransko</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>

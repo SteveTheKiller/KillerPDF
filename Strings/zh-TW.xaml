@@ -252,6 +252,7 @@
     <sys:String x:Key="Str_Save_DamagedUsageRights">此 PDF 已損壞且帶有 Reader 使用權限。儲存會破壞這些權限，因此檔案未被變更。</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">已開啟 {0}（點陣化修復 - 請儲存以保留變更）- {1} 頁</sys:String>
     <sys:String x:Key="Str_PageOf">第 {0} 頁，共 {1} 頁</sys:String>
+    <sys:String x:Key="Str_PagesOf">第 {0}-{1} 頁，共 {2} 頁</sys:String>
     <sys:String x:Key="Str_PageOfLinks">第 {0} 頁，共 {1} 頁（{2} 個連結）</sys:String>
     <sys:String x:Key="Str_PageFormFields">第 {0} 頁，共 {1} 頁 - 此頁面包含可填寫的表單欄位</sys:String>
     <sys:String x:Key="Str_PageRenderError">第 {0} 頁 - 無法呈現</sys:String>
@@ -453,7 +454,6 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Pos_TopLeft">左上</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - 列印</sys:String>
     <sys:String x:Key="Str_Print_Rendering">正在轉譯 {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">部分內容無法精確繪製。第 {0} 頁將依顯示效果列印。</sys:String>
     <sys:String x:Key="Str_Print_Printer">印表機</sys:String>
@@ -470,6 +470,9 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Print_Pages">頁面</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">例如 1-3,5（空白 = 全部）</sys:String>
     <sys:String x:Key="Str_Print_NoPages">無頁面</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">第 {0} 張，共 {1} 張</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">第 {0}-{1} 張，共 {2} 張</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">空間不足，無法顯示兩頁</sys:String>
     <sys:String x:Key="Str_Print_Margins">邊界</sys:String>
     <sys:String x:Key="Str_Margin_None">無</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">窄</sys:String>
@@ -477,7 +480,6 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Margin_Wide">寬</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">每張頁數</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">雙面列印</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
@@ -1159,7 +1161,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Print_SourceAuto">印表機預設</sys:String>
     <sys:String x:Key="Str_Print_Properties">印表機內容...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">無法開啟印表機內容：</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">印表機</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">紙張</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">版面配置</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">輸出</sys:String>
     <sys:String x:Key="Str_View_BookMode">書籍版面</sys:String>

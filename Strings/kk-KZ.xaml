@@ -190,6 +190,7 @@
     <sys:String x:Key="Str_Save_DamagedUsageRights">Бұл PDF зақымдалған және Reader пайдалану құқықтары бар. Сақтау оларды бұзады, сондықтан файл өзгертілген жоқ.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">{0} ашылды (растрленген жөндеу - өзгерістерді сақтаңыз) - {1} бет</sys:String>
     <sys:String x:Key="Str_PageOf">{0} / {1} бет</sys:String>
+    <sys:String x:Key="Str_PagesOf">{0}-{1} / {2} бет</sys:String>
     <sys:String x:Key="Str_PageOfLinks">{0} / {1} бет  ({2} сілтеме)</sys:String>
     <sys:String x:Key="Str_PageFormFields">{0} / {1} бет - бұл бетте толтырылатын пішін өрістері бар</sys:String>
     <sys:String x:Key="Str_PageRenderError">{0} бет - көрсетілмеді</sys:String>
@@ -447,7 +448,6 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Pos_TopLeft">Жоғарғы сол</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Басып шығару</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Көрсету {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Кейбір мазмұнды дәл салу мүмкін болмады. {0} беттер көрсетілгендей басып шығарылады.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Принтер</sys:String>
@@ -457,7 +457,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Print_SourceAuto">Принтердің әдепкі мәні</sys:String>
     <sys:String x:Key="Str_Print_Properties">Принтер сипаттары...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">Принтер сипаттарын ашу мүмкін болмады:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">ПРИНТЕР</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">ҚАҒАЗ</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">ОРНАЛАСУ</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ШЫҒАРЫЛЫМ</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Бағдар</sys:String>
@@ -473,6 +473,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Print_Pages">Беттер</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">мысалы: 1-3,5  (бос = барлығы)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">Бет жоқ</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">{0} / {1} парақ</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">{0}-{1} / {2} парақ</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">Екі бет үшін орын жеткіліксіз</sys:String>
     <sys:String x:Key="Str_Print_Margins">Жиектер</sys:String>
     <sys:String x:Key="Str_Margin_None">Жоқ</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Тар</sys:String>
@@ -480,7 +483,6 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Margin_Wide">Кең</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Парақтағы бет саны</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Екі жағынан басып шығару</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>

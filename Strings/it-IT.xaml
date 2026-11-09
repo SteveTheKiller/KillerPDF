@@ -268,6 +268,7 @@ La pagina può essere sostituita da un'immagine di sé stessa con le aree contra
     <sys:String x:Key="Str_Save_DamagedUsageRights">Questo PDF è danneggiato e contiene diritti di utilizzo di Reader. Il salvataggio li invaliderebbe, quindi il file non è stato modificato.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">Aperto {0} (riparazione rasterizzata - salva per mantenere le modifiche) - {1} pagine</sys:String>
     <sys:String x:Key="Str_PageOf">Pagina {0} / {1}</sys:String>
+    <sys:String x:Key="Str_PagesOf">Pagine {0}-{1} / {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Pagina {0} / {1}  ({2} collegamento/i)</sys:String>
     <sys:String x:Key="Str_PageFormFields">Pagina {0} / {1} - questa pagina contiene campi modulo compilabili</sys:String>
     <sys:String x:Key="Str_PageRenderError">Pagina {0} - impossibile rasterizzare</sys:String>
@@ -527,7 +528,6 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Pos_TopLeft">In alto a sinistra</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Stampa</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Elaborazione {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Alcuni contenuti non sono stati disegnati con esattezza. Le pagine {0} vengono stampate come visualizzate.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Stampante</sys:String>
@@ -537,7 +537,7 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Print_SourceAuto">Predefinita stampante</sys:String>
     <sys:String x:Key="Str_Print_Properties">Proprietà stampante...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">Impossibile aprire le proprietà della stampante:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">STAMPANTE</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">CARTA</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">LAYOUT</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">DESTINAZIONE</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Orientamento</sys:String>
@@ -553,6 +553,9 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Print_Pages">Pagine</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">es. 1-3,5  (vuoto = tutte)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">Nessuna pagina</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">Foglio {0} / {1}</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">Fogli {0}-{1} / {2}</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">Spazio insufficiente per due pagine</sys:String>
     <sys:String x:Key="Str_Print_Margins">Margini</sys:String>
     <sys:String x:Key="Str_Margin_None">Nessuno</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Minimi</sys:String>
@@ -560,7 +563,6 @@ Vuoi ridimensionare le pagine a una dimensione supportata? Le pagine manterranno
     <sys:String x:Key="Str_Margin_Wide">Larghi</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Pagine per foglio</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Stampa fronte / retro</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>

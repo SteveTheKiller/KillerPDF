@@ -250,6 +250,7 @@ La página se puede sustituir por una imagen de sí misma con las áreas marcada
     <sys:String x:Key="Str_Save_DamagedUsageRights">Este PDF está dañado y tiene derechos de uso de Reader. Al guardarlo se perderían, por lo que el archivo no se modificó.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">Abierto {0} (reparación rasterizada - guarda para conservar cambios) - {1} página(s)</sys:String>
     <sys:String x:Key="Str_PageOf">Página {0} de {1}</sys:String>
+    <sys:String x:Key="Str_PagesOf">Páginas {0}-{1} de {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Página {0} de {1}  ({2} enlace(s))</sys:String>
     <sys:String x:Key="Str_PageFormFields">Página {0} de {1} - esta página contiene campos de formulario rellenables</sys:String>
     <sys:String x:Key="Str_PageRenderError">Página {0} - no se pudo renderizar</sys:String>
@@ -451,7 +452,6 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Pos_TopLeft">Arriba izquierda</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Imprimir</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Renderizando {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Parte del contenido no se pudo dibujar con exactitud. Las páginas {0} se imprimen tal como se muestran.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Impresora</sys:String>
@@ -468,6 +468,9 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Print_Pages">Páginas</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">ej. 1-3,5  (vacío = todas)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">Sin páginas</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">Hoja {0} de {1}</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">Hojas {0}-{1} de {2}</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">No hay espacio suficiente para dos páginas</sys:String>
     <sys:String x:Key="Str_Print_Margins">Márgenes</sys:String>
     <sys:String x:Key="Str_Margin_None">Ninguno</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Estrecho</sys:String>
@@ -475,7 +478,6 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Margin_Wide">Ancho</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Páginas por hoja</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Imprimir a doble cara</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
@@ -1157,7 +1159,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Print_SourceAuto">Predeterminado de la impresora</sys:String>
     <sys:String x:Key="Str_Print_Properties">Propiedades de la impresora...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">No se pudieron abrir las propiedades de la impresora:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">IMPRESORA</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">PAPEL</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">DISEÑO</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">SALIDA</sys:String>
     <sys:String x:Key="Str_View_BookMode">Diseño de libro</sys:String>

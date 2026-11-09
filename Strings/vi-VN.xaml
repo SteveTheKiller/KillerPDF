@@ -268,6 +268,7 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
     <sys:String x:Key="Str_Save_DamagedUsageRights">PDF này bị hỏng và có quyền sử dụng của Reader. Lưu sẽ làm mất các quyền này, nên tệp chưa bị thay đổi.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">Đã mở {0} (đã sửa bằng cách rasterize - hãy lưu lại để giữ các thay đổi) - {1} trang</sys:String>
     <sys:String x:Key="Str_PageOf">Trang {0} / {1}</sys:String>
+    <sys:String x:Key="Str_PagesOf">Trang {0}-{1} / {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Trang {0} / {1}  ({2} liên kết)</sys:String>
     <sys:String x:Key="Str_PageFormFields">Trang {0} / {1} - trang này chứa các trường biểu mẫu có thể điền</sys:String>
     <sys:String x:Key="Str_PageRenderError">Trang {0} - không thể kết xuất</sys:String>
@@ -527,7 +528,6 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Pos_TopLeft">Trái trên</sys:String>
 
     <!-- ── Hộp thoại In ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - In</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Đang kết xuất {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Không thể vẽ chính xác một số nội dung. Các trang {0} sẽ được in như đang hiển thị.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Máy in</sys:String>
@@ -537,7 +537,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Print_SourceAuto">Mặc định của máy in</sys:String>
     <sys:String x:Key="Str_Print_Properties">Thuộc tính máy in...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">Không thể mở thuộc tính máy in:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">MÁY IN</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">GIẤY</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">BỐ CỤC</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">ĐẦU RA</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Hướng giấy</sys:String>
@@ -553,6 +553,9 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Print_Pages">Trang</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">ví dụ: 1-3,5 (để trống = tất cả)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">Không có trang nào</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">Tờ {0} / {1}</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">Tờ {0}-{1} / {2}</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">Không đủ chỗ cho hai trang</sys:String>
     <sys:String x:Key="Str_Print_Margins">Lề</sys:String>
     <sys:String x:Key="Str_Margin_None">Không có</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Hẹp</sys:String>
@@ -560,7 +563,6 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Margin_Wide">Rộng</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Số trang trên mỗi tờ</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">In hai mặt</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>

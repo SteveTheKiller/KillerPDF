@@ -12,6 +12,7 @@ using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using KillerPDF.Services;
+using KillerPDF.Controls;
 
 namespace KillerPDF
 {
@@ -84,6 +85,11 @@ namespace KillerPDF
         private double _areaH = 1056;  // (11in * 96)
 
         private readonly Grid _previewHost = new();
+        private FrameworkElement _previewColumn = null!;
+        // 1 / 2 / Book, from the title-bar switch. Spreads pair printed sheets.
+        private PreviewLayout _layout;
+        private readonly List<FrameworkElement> _shownSheets = [];
+        private readonly Dictionary<PreviewLayout, RadioButton> _layoutButtons = [];
         private readonly TextBlock _pageLabel = new();
         private readonly TextBlock _renderLabel = new();   // "Rendering X / Y" line shown above the page nav
         private IReadOnlyList<int> _incompletePages = [];   // pages that print as shown, named after loading
@@ -132,14 +138,13 @@ namespace KillerPDF
             _renderPath  = renderPath;
             _cleanupPath = cleanupPath;
 
-            Title  = S("Str_Print_Title");
-            Width  = 936;
-            Height = 716;
-            MinWidth  = 720;
-            MinHeight = 480;
+            // The name rides after the hyphen in code, so no translation can bring a colon back.
+            Title  = "KillerPDF - " + S("Str_Ctx_Print");
             DialogFrame.Configure(this, owner, resizable: true);
             UseLayoutRounding = true;
-            DialogFrame.EnableEdgeResize(this);
+            _layout = InitialLayout(owner);
+            // The current page opens on the spread that holds it (every page is selected at open).
+            _previewIndex = Math.Max(0, Math.Min(currentPageIndex, pageCount - 1));
 
             // Reuse the main window's themed scrollbar (per-theme thumb) for this dialog's scrollers.
             if (owner?.TryFindResource(typeof(System.Windows.Controls.Primitives.ScrollBar)) is Style sbStyle)
@@ -149,6 +154,36 @@ namespace KillerPDF
             UpdateDuplexAvailability();
             RefreshArea();
             UpdatePreview();
+            // Opens exactly as tall as the open options and the buttons, wide enough for the
+            // pages to fill that height, at the size it was last left at otherwise.
+            DialogFrame.EnablePageSizing(this, "Print", _previewColumn, fittedExtraWidth: FittedExtraWidth);
+            Loaded += (_, _) => _printerCombo.Focus();
+        }
+
+        // The preview opens as the document is read: a two-page view shows spreads (Book when the
+        // viewer's book layout is on), anything else one sheet. The choice stays in this window.
+        private static PreviewLayout InitialLayout(Window? owner)
+        {
+            try
+            {
+                if (owner is MainWindow main && main.ActiveViewer is { } viewer)
+                {
+                    ViewMode mode = viewer.CaptureComparisonViewStateExt().View;
+                    return PreviewSpreads.FromViewer(
+                        mode is ViewMode.TwoPage or ViewMode.TwoPageContinuous, PdfViewer.BookMode);
+                }
+            }
+            catch { /* no viewer state: one sheet */ }
+            return PreviewLayout.Single;
+        }
+
+        // The width beyond the minimum that lets the preview's pages fill its height.
+        private double FittedExtraWidth()
+        {
+            double frameH = _previewHost.ActualHeight, frameW = _previewHost.ActualWidth;
+            if (frameH <= 0 || _areaW <= 0) return 0;
+            int pages = _layout == PreviewLayout.Single ? 1 : 2;
+            return PreviewSpreads.FrameWidthFor(frameH, _areaH / _areaW, pages) - frameW;
         }
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
@@ -299,8 +334,8 @@ namespace KillerPDF
 
         private void ApplyComboStyle(ComboBox combo)
         {
-            // Match the dialog buttons and the file dialog's field height.
-            combo.Height = 28;
+            // Every page-window control is 26 high.
+            combo.Height = PageWindowLayout.ControlHeight;
             if (FindOwnerStyle("DarkComboBox") is Style s)
             {
                 combo.Style = s;
@@ -517,29 +552,38 @@ namespace KillerPDF
             // Print Preview used to rebuild the dialog frame, title bar, bevels and clipping here.
             // That private shell drifted from every other dialog. Keep only its body and put it in
             // the canonical shared frame.
-            var body = new Grid();
-            body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(260) });
-            body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            body.Children.Add(BuildSettingsColumn());
-            body.Children.Add(BuildPreviewColumn());
+            // The page-window family layout with the options on the LEFT: Print is a different
+            // kind of tool from the editing windows (Steve, 2026-11-08). Every group opens, and
+            // the window is exactly as tall as they are plus the buttons.
+            var options = BuildOptions(out FrameworkElement footer);
+            _previewColumn = BuildPreviewColumn();
+            int columns = SystemParameters.WorkArea.Width < 820 ? 1 : 2;
+            // Body orders Tab as the options, the footer, then the preview's page arrows.
+            var body = PageWindowLayout.Body(options, footer, _previewColumn, out _, columns, optionsLeft: true);
 
             _rootGrid = new Grid();
             _rootGrid.Children.Add(body);
-            Content = DialogFrame.Frame(this, Owner, S("Str_Print_Title"),
-                () => { DialogResult = false; Close(); }, _rootGrid);
+            Content = DialogFrame.Frame(this, Owner, Title,
+                () => { DialogResult = false; Close(); }, _rootGrid, titleAccessory: BuildLayoutSwitch());
         }
 
-        private Grid BuildSettingsColumn()
+        // A labelled cell of the two-column grid; a spanning cell takes the whole row.
+        private static StackPanel Cell(TwoColumnPanel grid, string label, UIElement control, bool span = false)
         {
-            // Options live in a scroller (buttons are pinned below), so only a little top/side inset.
-            var panel = new StackPanel { Margin = new Thickness(16, 8, 12, 4) };
+            var cell = PageWindowLayout.Labeled(label, control);
+            if (span) TwoColumnPanel.SetSpan(cell, true);
+            grid.Children.Add(cell);
+            return cell;
+        }
 
-            // Collapsible sections, the Transform/Stamp dialog pattern (WrapSection): PRINTER and
-            // OUTPUT open, LAYOUT tucked away - it holds the set-and-forget options.
-            int secPrinter = panel.Children.Count;
+        private StackPanel BuildOptions(out FrameworkElement footer)
+        {
+            // Essentials: no header, always open. PRINTER, PAGES TO PRINT and OUTPUT dissolve here.
+            var essentials = new TwoColumnPanel();
+            var paperGrid = new TwoColumnPanel();
+            var layoutGrid = new TwoColumnPanel();
 
-            panel.Children.Add(Label(S("Str_Print_Printer")));
-            var printerCombo = new ComboBox { Margin = new Thickness(0, 4, 0, 6), Height = 26 };
+            var printerCombo = new ComboBox();
             ApplyComboStyle(printerCombo);
             printerCombo.SelectionChanged += (s, _) =>
             {
@@ -554,19 +598,30 @@ namespace KillerPDF
                 }
             };
             _printerCombo = printerCombo;
-            panel.Children.Add(printerCombo);
+            System.Windows.Automation.AutomationProperties.SetName(printerCombo, S("Str_Print_Printer"));
 
             // The driver's own dialog reaches what this window has no control for: finishing,
-            // named trays, secure print, and quality panels.
-            var properties = MakeButton(S("Str_Print_Properties"), false);
-            properties.Margin = new Thickness(0, 0, 0, 12);
+            // named trays, secure print, and quality panels. A 26 square "..." docked right.
+            var properties = MakeButton("…", false);
+            properties.Width = PageWindowLayout.ControlHeight;
+            properties.Height = PageWindowLayout.ControlHeight;
+            properties.Padding = new Thickness(0);
+            properties.Margin = new Thickness(4, 0, 0, 0);
+            properties.ToolTip = S("Str_Print_Properties");
+            System.Windows.Automation.AutomationProperties.SetName(properties, S("Str_Print_Properties"));
             properties.Click += (_, _) => ShowPrinterProperties();
-            panel.Children.Add(properties);
+            // The combo fills, the button sits right of it, and Tab reaches them in that order.
+            var printerRow = new Grid();
+            printerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            printerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(properties, 1);
+            printerRow.Children.Add(printerCombo);
+            printerRow.Children.Add(properties);
+            Cell(essentials, S("Str_Print_Printer"), printerRow, span: true);
 
             // #186: paper size. "Match document" keeps the automatic pick; anything else
             // overrides both the preview sheet and the spooled ticket.
-            panel.Children.Add(Label(S("Str_Print_Paper")));
-            var paper = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            var paper = new ComboBox();
             ApplyComboStyle(paper);
             _paperCombo = paper;
             PopulatePaperSizes();
@@ -577,11 +632,11 @@ namespace KillerPDF
                 RefreshArea();
                 UpdatePreview();
             };
-            panel.Children.Add(paper);
+            System.Windows.Automation.AutomationProperties.SetName(paper, S("Str_Print_Paper"));
+            Cell(paperGrid, S("Str_Print_Paper"), paper);
 
             // Paper source (adeit's #186 follow-up). Default leaves the ticket alone.
-            panel.Children.Add(Label(S("Str_Print_Source")));
-            var source = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            var source = new ComboBox();
             ApplyComboStyle(source);
             _sourceCombo = source;
             PopulatePaperSources();
@@ -590,47 +645,52 @@ namespace KillerPDF
                 int i = ((ComboBox)s).SelectedIndex;
                 _sourceOverride = i > 0 && i - 1 < _sourceBins.Count ? _sourceBins[i - 1] : null;
             };
-            panel.Children.Add(source);
-            WrapSection(panel, secPrinter, S("Str_Print_SecPrinter"), expanded: true);
-            int secPages = panel.Children.Count;
+            System.Windows.Automation.AutomationProperties.SetName(source, S("Str_Print_Source"));
+            Cell(paperGrid, S("Str_Print_Source"), source);
 
             // Pages to print: the typed range plus the odd/even subset (#134) that Word-style
             // manual duplex lives in - print the odds, flip the stack, print the evens.
-            panel.Children.Add(Label(S("Str_Print_Pages")));
             _pagesBox = UiKit.Field();
             _pagesBox.Text = "";
-            _pagesBox.Margin = new Thickness(0, 4, 0, 2);
-            // Typing a range re-filters the preview to just those pages (jump back to the first one).
-            _pagesBox.TextChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
-            panel.Children.Add(_pagesBox);
-            panel.Children.Add(new TextBlock
+            _pagesBox.Height = PageWindowLayout.ControlHeight;
+            _pagesBox.VerticalContentAlignment = VerticalAlignment.Center;
+            // The range hint is the field's placeholder and tooltip.
+            _pagesBox.ToolTip = S("Str_Print_PagesHint");
+            System.Windows.Automation.AutomationProperties.SetName(_pagesBox, S("Str_Print_Pages"));
+            System.Windows.Automation.AutomationProperties.SetHelpText(_pagesBox, S("Str_Print_PagesHint"));
+            var pagesHint = new TextBlock
             {
-                Text         = S("Str_Print_PagesHint"),
-                Foreground   = R("MutedTextBrush"),
-                FontSize     = 11,
-                Margin       = new Thickness(0, 0, 0, 8),
-                TextWrapping = TextWrapping.Wrap
-            });
+                Text = S("Str_Print_PagesHint"), FontSize = 12, IsHitTestVisible = false,
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 6, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            pagesHint.SetResourceReference(TextBlock.ForegroundProperty, "DimTextBrush");
+            // Typing a range re-filters the preview to just those pages (jump back to the first one).
+            _pagesBox.TextChanged += (_, _) =>
+            {
+                pagesHint.Visibility = string.IsNullOrEmpty(_pagesBox.Text) ? Visibility.Visible : Visibility.Collapsed;
+                _previewIndex = 0; UpdatePreview();
+            };
+            var pagesHost = new Grid();
+            pagesHost.Children.Add(_pagesBox);
+            pagesHost.Children.Add(pagesHint);
+            Cell(essentials, S("Str_Print_Pages"), pagesHost);
 
-            _subsetCombo = new ComboBox { Margin = new Thickness(0, 0, 0, 4), Height = 26 };
+            _subsetCombo = new ComboBox();
             ApplyComboStyle(_subsetCombo);
             _subsetCombo.Items.Add(S("Str_Print_AllPages"));
             _subsetCombo.Items.Add(S("Str_Print_OddOnly"));
             _subsetCombo.Items.Add(S("Str_Print_EvenOnly"));
             _subsetCombo.SelectedIndex = 0;
             _subsetCombo.SelectionChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
-            panel.Children.Add(_subsetCombo);
+            System.Windows.Automation.AutomationProperties.SetName(_subsetCombo, S("Str_Print_Pages"));
+            Cell(essentials, " ", _subsetCombo);
 
             var reverseCheck = UiKit.CheckBox(S("Str_Print_Reverse"));
-            reverseCheck.Margin = new Thickness(0, 2, 0, 12);
             reverseCheck.Checked   += (_, _) => { _reverse = true;  _previewIndex = 0; UpdatePreview(); };
             reverseCheck.Unchecked += (_, _) => { _reverse = false; _previewIndex = 0; UpdatePreview(); };
-            panel.Children.Add(reverseCheck);
-            WrapSection(panel, secPages, S("Str_Print_SecPages"), expanded: true);
-            int secLayout = panel.Children.Count;
 
-            panel.Children.Add(Label(S("Str_Print_Orientation")));
-            var orient = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            var orient = new ComboBox();
             ApplyComboStyle(orient);
             orient.Items.Add(S("Str_Print_Portrait"));
             orient.Items.Add(S("Str_Print_Landscape"));
@@ -642,10 +702,10 @@ namespace KillerPDF
                 UpdatePreview();
             };
             _orientCombo = orient;
-            panel.Children.Add(orient);
+            System.Windows.Automation.AutomationProperties.SetName(orient, S("Str_Print_Orientation"));
+            Cell(layoutGrid, S("Str_Print_Orientation"), orient);
 
-            panel.Children.Add(Label(S("Str_Stamp_Position")));
-            var position = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            var position = new ComboBox();
             ApplyComboStyle(position);
             // (resource key, horizontal 0/1/2, vertical 0/1/2)
             var positions = new (string key, int h, int v)[]
@@ -667,11 +727,11 @@ namespace KillerPDF
                     UpdatePreview();
                 }
             };
-            panel.Children.Add(position);
+            System.Windows.Automation.AutomationProperties.SetName(position, S("Str_Stamp_Position"));
+            Cell(layoutGrid, S("Str_Stamp_Position"), position);
 
             // Margins: an extra inset applied inside the printable area.
-            panel.Children.Add(Label(S("Str_Print_Margins")));
-            var margins = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            var margins = new ComboBox();
             ApplyComboStyle(margins);
             var marginOpts = new (string name, double inches)[]
             {
@@ -687,11 +747,11 @@ namespace KillerPDF
                 int i = ((ComboBox)s).SelectedIndex;
                 if (i >= 0 && i < marginOpts.Length) { _marginPx = marginOpts[i].inches * 96.0; UpdatePreview(); }
             };
-            panel.Children.Add(margins);
+            System.Windows.Automation.AutomationProperties.SetName(margins, S("Str_Print_Margins"));
+            Cell(layoutGrid, S("Str_Print_Margins"), margins);
 
             // Pages per sheet (N-up): KillerPDF composes the sheet itself.
-            panel.Children.Add(Label(S("Str_Print_PagesPerSheet")));
-            var nup = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            var nup = new ComboBox();
             ApplyComboStyle(nup);
             foreach (var n in new[] { "1", "2", "4", "6", "9" }) nup.Items.Add(n);
             nup.SelectedIndex = 0;
@@ -701,10 +761,10 @@ namespace KillerPDF
                 _previewIndex = 0;
                 UpdatePreview();
             };
-            panel.Children.Add(nup);
+            System.Windows.Automation.AutomationProperties.SetName(nup, S("Str_Print_PagesPerSheet"));
+            Cell(layoutGrid, S("Str_Print_PagesPerSheet"), nup);
 
-            panel.Children.Add(Label(S("Str_Print_Scale")));
-            var scale = new ComboBox { Margin = new Thickness(0, 4, 0, 6), Height = 26 };
+            var scale = new ComboBox();
             ApplyComboStyle(scale);
             scale.Items.Add(S("Str_Print_Fit"));
             scale.Items.Add(S("Str_Print_Actual"));
@@ -716,7 +776,8 @@ namespace KillerPDF
                     System.Globalization.CultureInfo.InvariantCulture, out double savedPct) && savedPct > 0)
                 _customPct = savedPct;
             scale.SelectedIndex = _scaleMode;
-            panel.Children.Add(scale);
+            System.Windows.Automation.AutomationProperties.SetName(scale, S("Str_Print_Scale"));
+            Cell(layoutGrid, S("Str_Print_Scale"), scale);
 
             // Custom percentage: a compact box (always 1-100ish) with a "%" suffix, revealed only
             // when "Custom" is chosen - it slides down into place instead of always taking space.
@@ -737,9 +798,11 @@ namespace KillerPDF
 
             // Full-width row matching the Copies field: the box fills the column, with the stepper and the
             // "%" suffix docked at the right edge.
+            // It sits beside Scale, so revealing it never changes the window's height.
+            _scaleBox.Height = PageWindowLayout.ControlHeight;
             var scaleRow = new DockPanel
             {
-                Margin        = new Thickness(0, 0, 0, 12),
+                Height        = PageWindowLayout.ControlHeight,
                 LastChildFill = true,
                 Visibility    = Visibility.Collapsed
             };
@@ -785,37 +848,47 @@ namespace KillerPDF
                 }
                 UpdatePreview();
             };
-            panel.Children.Add(scaleRow);
-            WrapSection(panel, secLayout, S("Str_Print_SecLayout"), expanded: false);
-            int secOutput = panel.Children.Count;
+            System.Windows.Automation.AutomationProperties.SetName(_scaleBox, S("Str_Print_ScaleHint"));
+            Cell(layoutGrid, " ", scaleRow);
 
-            panel.Children.Add(Label(S("Str_Print_Copies")));
             _copiesBox = UiKit.Field();
             _copiesBox.Text = "1";
+            _copiesBox.Height = PageWindowLayout.ControlHeight;
             _copiesBox.VerticalContentAlignment = VerticalAlignment.Center;
+            System.Windows.Automation.AutomationProperties.SetName(_copiesBox, S("Str_Print_Copies"));
             // Copies is replicated `copies` times in DoPrint, so 1 means exactly one printout; min 1.
             var (getCopies, setCopies) = NumericField(_copiesBox, 1, 9999);
 
             // Stepper flush against the right edge of the full-width field, so the row lines up with the
             // Printer / Pages fields above and below it.
             var copiesSpin = BuildStepper(getCopies, setCopies);
-            var copiesRow = new DockPanel { Margin = new Thickness(0, 4, 0, 12), LastChildFill = true };
+            var copiesRow = new DockPanel { Height = PageWindowLayout.ControlHeight, LastChildFill = true };
             DockPanel.SetDock(copiesSpin, Dock.Right);
             copiesRow.Children.Add(copiesSpin);   // docked right, full field height
             copiesRow.Children.Add(_copiesBox);   // fills the rest of the column width
-            panel.Children.Add(copiesRow);
+            Cell(essentials, S("Str_Print_Copies"), copiesRow);
 
             // Two-sided: the printer does the flipping; we just set the ticket when it's supported.
             _duplexCheck = UiKit.CheckBox(S("Str_Print_TwoSided"));
-            _duplexCheck.Margin = new Thickness(0, 2, 0, 4);
             _duplexCheck.Checked   += (_, _) => { _duplex = true;  UpdateFlipAvailability(); };
             _duplexCheck.Unchecked += (_, _) => { _duplex = false; UpdateFlipAvailability(); };
             _duplexCheck.IsChecked = App.GetSetting("PrintDuplex") == "1";   // restore; cleared below if unsupported
-            panel.Children.Add(_duplexCheck);
+            // Print on both sides with Reverse order directly under it: a compact pair of two 22
+            // high rows, level with the labelled Flip pages on beside it.
+            ToolTipService.SetShowOnDisabled(_duplexCheck, true);
+            var sidesPair = new StackPanel { Margin = new Thickness(0, 2, 0, 8) };
+            System.Windows.Automation.AutomationProperties.SetName(_duplexCheck, S("Str_Print_TwoSided"));
+            System.Windows.Automation.AutomationProperties.SetName(reverseCheck, S("Str_Print_Reverse"));
+            foreach (var check in new[] { _duplexCheck, reverseCheck })
+            {
+                check.MinHeight = 22;
+                check.VerticalContentAlignment = VerticalAlignment.Center;
+                check.Margin = new Thickness(0);
+                sidesPair.Children.Add(check);
+            }
 
             // Long edge (books) or short edge (notepads): which side the back of the sheet lands on.
-            panel.Children.Add(Label(S("Str_Print_FlipOn")));
-            _flipCombo = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            _flipCombo = new ComboBox();
             ApplyComboStyle(_flipCombo);
             _flipCombo.Items.Add(S("Str_Print_FlipLong"));
             _flipCombo.Items.Add(S("Str_Print_FlipShort"));
@@ -827,12 +900,10 @@ namespace KillerPDF
                 _duplexShort = _flipCombo.SelectedIndex == 1;
                 UpdatePreview();
             };
-            panel.Children.Add(_flipCombo);
 
             // Color vs black & white. Sent on the print ticket so color-restricted print policies
             // (e.g. "B&W needs no password") see the job correctly instead of treating it as color.
-            panel.Children.Add(Label(S("Str_Print_Color")));
-            var colorMode = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            var colorMode = new ComboBox();
             ApplyComboStyle(colorMode);
             colorMode.Items.Add(S("Str_Print_Color"));
             colorMode.Items.Add(S("Str_Print_BW"));
@@ -844,11 +915,13 @@ namespace KillerPDF
                 UpdatePreview();
             };
             _colorCombo = colorMode;
-            panel.Children.Add(colorMode);
-            WrapSection(panel, secOutput, S("Str_Print_SecOutput"), expanded: true);
+            System.Windows.Automation.AutomationProperties.SetName(colorMode, S("Str_Print_Color"));
+            Cell(essentials, S("Str_Print_Color"), colorMode);
+            essentials.Children.Add(sidesPair);
+            Cell(essentials, S("Str_Print_FlipOn"), _flipCombo);
             UpdateDuplexAvailability();
 
-            var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            // Cancel then Print, the family order, with Print as the accent button on the right.
             var cancel = MakeButton(S("Str_Stamp_Cancel"), false);
             cancel.Click += (_, _) => { DialogResult = false; Close(); };
             cancel.IsCancel = true;          // Esc cancels the dialog
@@ -857,32 +930,121 @@ namespace KillerPDF
             print.IsDefault = true;          // Enter prints
             print.IsEnabled = !_isLoading;   // enabled once all pages have rendered
             _printBtn = print;
-            cancel.Margin = new Thickness(8, 0, 0, 0);   // gap; Cancel sits to the right of Print
-            btnRow.Children.Add(print);
-            btnRow.Children.Add(cancel);
+            footer = PageWindowLayout.Footer(null, cancel, print);
 
-            // Scroll the options and PIN the buttons at the bottom, so they're never cut off when
-            // the window is short or the custom-scale field is showing. Scroll wheel works too.
-            var optionsScroller = new ScrollViewer
+            // Essentials, then PAPER and LAYOUT, both open on every open.
+            var options = new StackPanel { Margin = new Thickness(0, 4, 0, 0) };
+            options.Children.Add(essentials);
+            options.Children.Add(PageWindowLayout.Divider());
+            options.Children.Add(PageWindowLayout.Section(S("Str_Print_SecPaper"), paperGrid, out _));
+            options.Children.Add(PageWindowLayout.Divider());
+            options.Children.Add(PageWindowLayout.Section(S("Str_Print_SecLayout"), layoutGrid, out _));
+            return options;
+        }
+
+        // The title-bar 1 / 2 / Book switch. Its names are the View menu's; it never writes back
+        // to the document's view mode or to the book-layout setting.
+        private FrameworkElement BuildLayoutSwitch()
+        {
+            var strip = new Border { BorderThickness = new Thickness(1), CornerRadius = UiKit.RadControl, Height = 24 };
+            strip.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            KeyboardNavigation.SetTabNavigation(row, KeyboardNavigationMode.Once);
+            KeyboardNavigation.SetDirectionalNavigation(row, KeyboardNavigationMode.Cycle);
+            var segments = new (PreviewLayout Layout, string Key, string Icon)[]
             {
-                Content                       = panel,
-                // Stay out of the way while the open sections fit. Expanding Layout or shortening
-                // the window still produces a real scrollbar when the options overflow.
-                VerticalScrollBarVisibility   = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+                (PreviewLayout.Single, "Str_View_Single", "M4,1.5 h6 v11 h-6 Z"),
+                (PreviewLayout.TwoPage, "Str_View_TwoPage", "M1.5,1.5 h6 v11 h-6 Z M8.5,1.5 h6 v11 h-6 Z"),
+                (PreviewLayout.Book, "Str_View_BookMode", "M1,3 h4 v8 h-4 Z M8,1.5 h5 v11 h-5 Z M13,1.5 h5 v11 h-5 Z"),
             };
-            Grid.SetRow(optionsScroller, 0);
+            for (int i = 0; i < segments.Length; i++)
+            {
+                var (layout, key, icon) = segments[i];
+                var button = new RadioButton
+                {
+                    GroupName = "PrintPreviewLayout",
+                    Width = 28, Height = 22,
+                    IsChecked = layout == _layout,
+                    Template = SegmentTemplate(i > 0),
+                    Content = new System.Windows.Shapes.Path
+                    {
+                        Data = Geometry.Parse(icon), StrokeThickness = 1, Fill = Brushes.Transparent,
+                        Stretch = Stretch.None, SnapsToDevicePixels = true,
+                        VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center
+                    },
+                    ToolTip = S(key),
+                    Cursor = Cursors.Hand,
+                };
+                ((System.Windows.Shapes.Path)button.Content).SetBinding(System.Windows.Shapes.Shape.StrokeProperty,
+                    new System.Windows.Data.Binding(nameof(Control.Foreground)) { Source = button });
+                ToolTipService.SetShowOnDisabled(button, true);
+                System.Windows.Automation.AutomationProperties.SetName(button, S(key));
+                // Tab lands on the chosen segment; the arrow keys move between segments.
+                // Only the chosen segment is a Tab stop, so Tab lands on it.
+                button.IsTabStop = layout == _layout;
+                button.Checked += (_, _) =>
+                {
+                    foreach (var other in _layoutButtons.Values) other.IsTabStop = ReferenceEquals(other, button);
+                    if (_layout != layout) { _layout = layout; UpdatePreview(); }
+                };
+                _layoutButtons[layout] = button;
+                row.Children.Add(button);
+            }
+            strip.Child = row;
+            return strip;
+        }
 
-            var btnHost = new Border { Child = btnRow, Padding = new Thickness(16, 8, 12, 12) };
-            Grid.SetRow(btnHost, 1);
+        // A switch segment: the selection fill when chosen, a 2px accent ring for keyboard focus.
+        private static ControlTemplate SegmentTemplate(bool leftEdge)
+        {
+            var face = new FrameworkElementFactory(typeof(Border)) { Name = "face" };
+            face.SetValue(Border.BackgroundProperty, Brushes.Transparent);
+            face.SetValue(Border.BorderThicknessProperty, new Thickness(leftEdge ? 1 : 0, 0, 0, 0));
+            face.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
+            var ring = new FrameworkElementFactory(typeof(Border)) { Name = "ring" };
+            ring.SetValue(Border.BorderThicknessProperty, new Thickness(2));
+            ring.SetValue(Border.CornerRadiusProperty, new CornerRadius(2));
+            ring.SetValue(UIElement.VisibilityProperty, Visibility.Collapsed);
+            ring.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush");
+            var content = new FrameworkElementFactory(typeof(ContentPresenter));
+            content.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            content.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+            var grid = new FrameworkElementFactory(typeof(Grid));
+            face.AppendChild(content);
+            grid.AppendChild(face);
+            grid.AppendChild(ring);
+            var template = new ControlTemplate(typeof(RadioButton)) { VisualTree = grid };
+            var normal = new Setter(Control.ForegroundProperty, new DynamicResourceExtension("MutedTextBrush"));
+            var baseStyle = new Trigger { Property = UIElement.IsEnabledProperty, Value = true };
+            baseStyle.Setters.Add(normal);
+            template.Triggers.Add(baseStyle);
+            var on = new Trigger { Property = System.Windows.Controls.Primitives.ToggleButton.IsCheckedProperty, Value = true };
+            on.Setters.Add(new Setter(Border.BackgroundProperty, new DynamicResourceExtension("SelectionAccent"), "face"));
+            on.Setters.Add(new Setter(Control.ForegroundProperty, new DynamicResourceExtension("OnPrimaryBrush")));
+            template.Triggers.Add(on);
+            var focus = new Trigger { Property = UIElement.IsKeyboardFocusedProperty, Value = true };
+            focus.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Visible, "ring"));
+            template.Triggers.Add(focus);
+            var off = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
+            off.Setters.Add(new Setter(UIElement.OpacityProperty, 0.35));
+            off.Setters.Add(new Setter(Control.ForegroundProperty, new DynamicResourceExtension("MutedTextBrush")));
+            template.Triggers.Add(off);
+            return template;
+        }
 
-            var column = new Grid();
-            column.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            column.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            column.Children.Add(optionsScroller);
-            column.Children.Add(btnHost);
-            Grid.SetColumn(column, 0);
-            return column;
+        // Spreads need room for two 162 wide pages; a narrower frame shows one, and the two-page
+        // segments say why.
+        private PreviewLayout EffectiveLayout()
+        {
+            bool room = _previewHost.ActualWidth <= 0 || PreviewSpreads.FitsTwo(_previewHost.ActualWidth);
+            foreach (var (layout, button) in _layoutButtons)
+            {
+                if (layout == PreviewLayout.Single) continue;
+                button.IsEnabled = room;
+                button.ToolTip = room ? S(layout == PreviewLayout.Book ? "Str_View_BookMode" : "Str_View_TwoPage")
+                                      : S("Str_Print_NoRoomForTwo");
+            }
+            return room ? _layout : PreviewLayout.Single;
         }
 
         private DockPanel BuildPreviewColumn()
@@ -892,34 +1054,52 @@ namespace KillerPDF
                 Background       = R("BgCanvas"),
                 BorderBrush      = R("PaneBorderBrush"),   // 1px frame, matching the main document pane
                 BorderThickness  = new Thickness(1),
-                // Keep a real gutter between the settings/scrollbar column and the preview frame.
-                Margin           = new Thickness(8, 4, 8, 12),
-                CornerRadius     = UiKit.RadControl
+                // 8 on top, left and right; the nav row sits directly under the frame.
+                Margin           = new Thickness(8, 8, 8, 0),
+                CornerRadius     = UiKit.RadCard
             };
 
             var grid = new Grid();
             grid.Children.Add(_previewHost);
+            // The pages re-fit on every size change; crossing the two-page floor rebuilds the spread.
+            bool lastRoom = true;
+            _previewHost.SizeChanged += (_, _) =>
+            {
+                bool room = PreviewSpreads.FitsTwo(_previewHost.ActualWidth);
+                if (room != lastRoom && _layout != PreviewLayout.Single) { lastRoom = room; UpdatePreview(); }
+                else { lastRoom = room; FitSheets(); }
+            };
 
-            var navigation = new Grid { Height = 42, Margin = new Thickness(8, 0, 8, 8) };
+            var navigation = new Grid { MinHeight = 36, Margin = new Thickness(8, 2, 8, 6) };
             navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             navigation.ColumnDefinitions.Add(new ColumnDefinition());
             navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             _previousPage = MakeButton("‹", false);
-            _previousPage.Width = 44;
+            _previousPage.Width = 32;
+            _previousPage.Height = PageWindowLayout.ControlHeight;
+            _previousPage.Padding = new Thickness(0);
             _previousPage.ToolTip = S("Str_Kb_PrevPage");
-            _previousPage.Click += (_, _) => { if (_previewIndex > 0) { _previewIndex--; UpdatePreview(); } };
+            System.Windows.Automation.AutomationProperties.SetName(_previousPage, S("Str_Kb_PrevPage"));
+            _previousPage.Click += (_, _) => StepSpread(-1);
             Grid.SetColumn(_previousPage, 0);
             navigation.Children.Add(_previousPage);
             _nextPage = MakeButton("›", false);
-            _nextPage.Width = 44;
+            _nextPage.Width = 32;
+            _nextPage.Height = PageWindowLayout.ControlHeight;
+            _nextPage.Padding = new Thickness(0);
             _nextPage.ToolTip = S("Str_Kb_NextPage");
-            _nextPage.Click += (_, _) => { if (_previewIndex < SheetCount() - 1) { _previewIndex++; UpdatePreview(); } };
+            System.Windows.Automation.AutomationProperties.SetName(_nextPage, S("Str_Kb_NextPage"));
+            _nextPage.Click += (_, _) => StepSpread(+1);
             Grid.SetColumn(_nextPage, 2);
             navigation.Children.Add(_nextPage);
 
             _pageLabel.Foreground = R("TextBrush");
             _pageLabel.HorizontalAlignment = HorizontalAlignment.Center;
             _pageLabel.FontSize = 12;
+            _pageLabel.SetResourceReference(TextBlock.FontFamilyProperty, "MonoFont");
+            // "Pages 4-5 of 71" is announced as the spread changes.
+            System.Windows.Automation.AutomationProperties.SetLiveSetting(_pageLabel,
+                System.Windows.Automation.AutomationLiveSetting.Polite);
 
             // Rendering progress stays with the counter, but the compact strip now lives below the
             // framed content pane instead of consuming document-preview height.
@@ -964,17 +1144,36 @@ namespace KillerPDF
             DockPanel.SetDock(navigation, Dock.Bottom);
             previewColumn.Children.Add(navigation);
             previewColumn.Children.Add(UiKit.PaneWithShadow(wrap));
-            Grid.SetColumn(previewColumn, 1);
             return previewColumn;
         }
 
-        private static TextBlock Label(string text) => new()
+        // Steps the preview by one spread (or one sheet in the single layout).
+        private void StepSpread(int delta)
         {
-            Text       = text,
-            Foreground = R("TextBrush"),
-            FontSize   = 12,
-            FontWeight = FontWeights.SemiBold
-        };
+            int sheets = SheetCount();
+            if (sheets == 0) return;
+            var layout = EffectiveLayout();
+            var spreads = PreviewSpreads.Spreads(sheets, layout);
+            int at = PreviewSpreads.SpreadOf(Math.Max(0, Math.Min(_previewIndex, sheets - 1)), sheets, layout);
+            int next = Math.Max(0, Math.Min(at + delta, spreads.Count - 1));
+            if (next == at) return;
+            _previewIndex = spreads[next].First;
+            UpdatePreview();
+        }
+
+        // Sizes the shown sheet or spread to fill the frame less the 16 margins, 12 apart.
+        private void FitSheets()
+        {
+            if (_shownSheets.Count == 0 || _areaW <= 0) return;
+            Size frame = new(_previewHost.ActualWidth, _previewHost.ActualHeight);
+            if (frame.Width <= 0 || frame.Height <= 0) return;
+            Size page = PreviewSpreads.PageSize(frame, _areaH / _areaW, _shownSheets.Count);
+            foreach (var sheet in _shownSheets)
+            {
+                sheet.Width = Math.Floor(page.Width);
+                sheet.Height = Math.Floor(page.Height);
+            }
+        }
 
         // ---- Behavior --------------------------------------------------------
 
@@ -1039,39 +1238,6 @@ namespace KillerPDF
             catch { /* driver quirk - automatic entry only */ }
             _paperCombo.SelectedIndex = 0;
             _paperOverride = null;
-        }
-
-        // Collapsible section, the TransformWindow.WrapSection pattern: lifts the children added
-        // since <paramref name="start"/> into a togglable body under a chevron header.
-        private static void WrapSection(StackPanel host, int start, string title, bool expanded)
-        {
-            var children = host.Children.Cast<UIElement>().Skip(start).ToList();
-            while (host.Children.Count > start) host.Children.RemoveAt(start);
-            var body = new StackPanel { Visibility = expanded ? Visibility.Visible : Visibility.Collapsed };
-            foreach (var child in children) body.Children.Add(child);
-            var chevron = new TextBlock
-            {
-                Text = expanded ? "▾" : "▸", Width = 16, FontSize = 12,
-                Foreground = R("MutedTextBrush"), VerticalAlignment = VerticalAlignment.Center,
-            };
-            var label = UiKit.SectionHeader(title);
-            label.Margin = new Thickness(0);
-            var row = new StackPanel { Orientation = Orientation.Horizontal };
-            row.Children.Add(chevron);
-            row.Children.Add(label);
-            var header = new Border
-            {
-                Background = Brushes.Transparent, Cursor = Cursors.Hand,
-                Padding = new Thickness(0, 5, 0, 5), Child = row,
-            };
-            header.MouseLeftButtonUp += (_, _2) =>
-            {
-                bool open = body.Visibility != Visibility.Visible;
-                body.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
-                chevron.Text = open ? "▾" : "▸";
-            };
-            host.Children.Add(header);
-            host.Children.Add(body);
         }
 
         // Input bins from the driver; "Unknown" entries are noise and dropped.
@@ -1212,38 +1378,63 @@ namespace KillerPDF
             }
             _printBtn?.IsEnabled = !_isLoading && !_printing;
             int sheets = Math.Max(1, (selected.Count + _nUp - 1) / _nUp);
-            int sheet = Math.Max(0, Math.Min(_previewIndex, sheets - 1));
-            _previewIndex = sheet;
-            _previousPage?.IsEnabled = sheet > 0;
-            _nextPage?.IsEnabled = sheet + 1 < sheets;
+            // Spreads pair printed SHEETS, after the range, subset, reverse and pages per sheet.
+            var layout = EffectiveLayout();
+            var spreads = PreviewSpreads.Spreads(sheets, layout);
+            int at = PreviewSpreads.SpreadOf(Math.Max(0, Math.Min(_previewIndex, sheets - 1)), sheets, layout);
+            var (first, second) = spreads[at];
+            _previewIndex = first;
+            _previousPage?.IsEnabled = at > 0;
+            _nextPage?.IsEnabled = at + 1 < spreads.Count;
 
-            // Source pages on this sheet, taken from the SELECTED set (one for 1-up, up to _nUp for N-up).
-            List<int> idxs = SelectedSheets()[sheet];
-            _shownPages = [.. idxs];
+            // Source pages on these sheets, taken from the SELECTED set (one for 1-up, up to _nUp for N-up).
+            var allSheets = SelectedSheets();
+            var shown = new List<List<int>> { allSheets[first] };
+            if (second >= 0) shown.Add(allSheets[second]);
+            _shownPages = [.. shown.SelectMany(s => s)];
 
             // Page/sheet nav label is always shown; the "Rendering X / Y" line above it appears only while
-            // pages are still streaming in. 1-up shows the real page number (so a filtered preview reads
+            // pages are still streaming in. 1-up shows the real page numbers (so a filtered preview reads
             // "Page 6 of 108"); N-up shows the sheet position within the selected set.
+            int PageOn(List<int> s) => s.Count > 0 ? s[0] + 1 : 1;
             _pageLabel.Text = _nUp > 1
-                ? $"Sheet {sheet + 1} of {sheets}"
-                : string.Format(S("Str_PageOf"), idxs.Count > 0 ? idxs[0] + 1 : 1, _pages.Length);
+                ? (second < 0
+                    ? string.Format(S("Str_Print_SheetOf"), first + 1, sheets)
+                    : string.Format(S("Str_Print_SheetsOf"), first + 1, second + 1, sheets))
+                : (second < 0
+                    ? string.Format(S("Str_PageOf"), PageOn(shown[0]), _pages.Length)
+                    : string.Format(S("Str_PagesOf"), PageOn(shown[0]), PageOn(shown[1]), _pages.Length));
             UpdateRenderLabel();
+            _shownSheets.Clear();
 
-            // If any page on this sheet hasn't rendered yet, show a spinner instead of composing.
-            if (idxs.Any(i => _pages[i] is null))
+            // If any page on these sheets hasn't rendered yet, show a spinner instead of composing.
+            if (_shownPages.Any(i => _pages[i] is null))
             {
                 _previewHost.Children.Add(BuildLoadingIndicator());
                 return;
             }
 
-            var paper = ComposeSheet(idxs, _areaW, _areaH, _pages, _rasterW, _rasterH);
-
-            var vb = new Viewbox
+            // Each sheet keeps its own drop shadow; the pair sits 12 apart, centered in the frame.
+            var spread = new StackPanel
             {
-                Child = paper, Stretch = Stretch.Uniform, Margin = new Thickness(20),
-                Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 14, ShadowDepth = 3, Direction = 270, Opacity = 0.5 }
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
             };
-            _previewHost.Children.Add(vb);
+            foreach (var idxs in shown)
+            {
+                var paper = ComposeSheet(idxs, _areaW, _areaH, _pages, _rasterW, _rasterH);
+                var vb = new Viewbox
+                {
+                    Child = paper, Stretch = Stretch.Uniform,
+                    Margin = new Thickness(spread.Children.Count > 0 ? PreviewSpreads.Gap : 0, 0, 0, 0),
+                    Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 14, ShadowDepth = 3, Direction = 270, Opacity = 0.45 }
+                };
+                _shownSheets.Add(vb);
+                spread.Children.Add(vb);
+            }
+            _previewHost.Children.Add(spread);
+            FitSheets();
         }
 
         // Shows/hides the "Rendering X / Y" line above the page nav based on load state.

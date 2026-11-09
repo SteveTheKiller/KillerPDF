@@ -269,6 +269,7 @@ The page can be replaced with an image of itself with the marked areas blacked o
     <sys:String x:Key="Str_Save_DamagedUsageRights">This PDF is damaged and carries Reader usage rights. Saving would break them, so the file was not changed.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">Opened a rasterized repair of {0}; save to keep changes ({1} page(s))</sys:String>
     <sys:String x:Key="Str_PageOf">Page {0} of {1}</sys:String>
+    <sys:String x:Key="Str_PagesOf">Pages {0}-{1} of {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Page {0} of {1}  ({2} link(s))</sys:String>
     <sys:String x:Key="Str_PageFormFields">Page {0} of {1} contains fillable form fields</sys:String>
     <sys:String x:Key="Str_PageRenderError">Page {0} could not be rendered</sys:String>
@@ -528,7 +529,6 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Pos_TopLeft">Top Left</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF: Print</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Rendering {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Some content could not be drawn exactly. Pages {0} print as shown.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Printer</sys:String>
@@ -538,7 +538,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Print_SourceAuto">Printer default</sys:String>
     <sys:String x:Key="Str_Print_Properties">Printer properties...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">Could not open the printer properties:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">PRINTER</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">PAPER</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">LAYOUT</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">OUTPUT</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Orientation</sys:String>
@@ -554,6 +554,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Print_Pages">Pages</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">e.g. 1-3,5  (blank = all)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">No pages</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">Sheet {0} of {1}</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">Sheets {0}-{1} of {2}</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">Not enough room for two pages</sys:String>
     <sys:String x:Key="Str_Print_Margins">Margins</sys:String>
     <sys:String x:Key="Str_Margin_None">None</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Narrow</sys:String>
@@ -561,7 +564,6 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Margin_Wide">Wide</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Pages per sheet</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Print on both sides</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>

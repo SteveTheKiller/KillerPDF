@@ -268,6 +268,7 @@ Siden kan erstattes med et bilde av seg selv der de markerte områdene er sverte
     <sys:String x:Key="Str_Save_DamagedUsageRights">Denne PDF-en er skadet og har Reader-bruksrettigheter. Lagring ville ødelagt dem, så filen er ikke endret.</sys:String>
     <sys:String x:Key="Str_OpenedRasterRepair">Åpnet {0} (rasterisert reparasjon, lagre for å beholde endringer) - {1} side(r)</sys:String>
     <sys:String x:Key="Str_PageOf">Side {0} av {1}</sys:String>
+    <sys:String x:Key="Str_PagesOf">Sider {0}-{1} av {2}</sys:String>
     <sys:String x:Key="Str_PageOfLinks">Side {0} av {1}  ({2} lenke(r))</sys:String>
     <sys:String x:Key="Str_PageFormFields">Side {0} av {1} - denne siden har fyllbare skjemafelt</sys:String>
     <sys:String x:Key="Str_PageRenderError">Side {0} - kunne ikke gjengis</sys:String>
@@ -527,7 +528,6 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Pos_TopLeft">Øverst til venstre</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Skriv ut</sys:String>
     <sys:String x:Key="Str_Print_Rendering">Gjengir {0} / {1}</sys:String>
     <sys:String x:Key="Str_Print_IncompletePages">Noe innhold kunne ikke tegnes nøyaktig. Sidene {0} skrives ut slik de vises.</sys:String>
     <sys:String x:Key="Str_Print_Printer">Skriver</sys:String>
@@ -537,7 +537,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Print_SourceAuto">Skriverens standard</sys:String>
     <sys:String x:Key="Str_Print_Properties">Skriveregenskaper...</sys:String>
     <sys:String x:Key="Str_Err_PrinterProperties">Kunne ikke åpne skriveregenskapene:</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">SKRIVER</sys:String>
+    <sys:String x:Key="Str_Print_SecPaper">PAPIR</sys:String>
     <sys:String x:Key="Str_Print_SecLayout">OPPSETT</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">UTDATA</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Retning</sys:String>
@@ -553,6 +553,9 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Print_Pages">Sider</sys:String>
     <sys:String x:Key="Str_Print_PagesHint">f.eks. 1-3,5  (tomt = alle)</sys:String>
     <sys:String x:Key="Str_Print_NoPages">Ingen sider</sys:String>
+    <sys:String x:Key="Str_Print_SheetOf">Ark {0} av {1}</sys:String>
+    <sys:String x:Key="Str_Print_SheetsOf">Ark {0}-{1} av {2}</sys:String>
+    <sys:String x:Key="Str_Print_NoRoomForTwo">Ikke nok plass til to sider</sys:String>
     <sys:String x:Key="Str_Print_Margins">Marger</sys:String>
     <sys:String x:Key="Str_Margin_None">Ingen</sys:String>
     <sys:String x:Key="Str_Margin_Narrow">Smal</sys:String>
@@ -560,7 +563,6 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Margin_Wide">Bred</sys:String>
     <sys:String x:Key="Str_Print_PagesPerSheet">Sider per ark</sys:String>
     <sys:String x:Key="Str_Print_TwoSided">Skriv ut på begge sider</sys:String>
-    <sys:String x:Key="Str_Print_SecPages">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_Reverse">Reverse order</sys:String>
     <sys:String x:Key="Str_Print_FlipOn">Flip pages on</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Long edge</sys:String>
