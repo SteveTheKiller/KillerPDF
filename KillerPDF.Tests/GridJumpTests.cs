@@ -71,6 +71,23 @@ public sealed class GridJumpTests
         Assert.DoesNotContain("_doc?.PageCount", bootstrap, StringComparison.Ordinal);
     }
 
+    // Grid drew every tile 1536 px tall whatever its size on screen: about 1.5 times too large at 98% (a 1004 px tile)
+    // and about half too small at 294% (3011 px), where the enlarged tile looked soft. A tile is now drawn at its size
+    // on screen (ViewerRenderResolutionTests pins the size), and a zoom or monitor change draws the tiles again once
+    // the change settles instead of on every zoom step.
+    [Fact]
+    public void GridDrawsTilesAtTheirSizeOnScreenAndAgainOnceAZoomSettles()
+    {
+        string viewport = Viewport();
+        string pass = Between(viewport, "private async void RenderAdditionalPages(int primaryPageIdx)", "private void AddSecondaryTile(");
+
+        Assert.Contains("int secondaryMax = _viewMode == ViewMode.Grid ? GridTileBudget() :", pass, StringComparison.Ordinal);
+        Assert.Contains("if (secondaryMax != _gridTileBudget && _gridTileBudget > 0 && !_gridBudgetSettled)", pass, StringComparison.Ordinal);
+        Assert.Contains("_gridTileBudget = secondaryMax;", pass, StringComparison.Ordinal);
+        string timer = Between(viewport, "internal void StartRerenderTimer()", "protected override void OnDpiChanged(");
+        Assert.Contains("if (_viewMode == ViewMode.Grid && _gridTileBudget > 0 && GridTileBudget() != _gridTileBudget)", timer, StringComparison.Ordinal);
+    }
+
     private static string Viewport() => File.ReadAllText(Path.Combine(Root(), "Controls", "Viewer", "PdfViewer.Viewport.cs"));
 
     private static string Between(string source, string start, string end)

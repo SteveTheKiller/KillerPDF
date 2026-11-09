@@ -1263,6 +1263,7 @@ namespace KillerPDF.Controls
             _linkOverlays.Clear();
             _continuousCanvases.Clear();   // keep the page->tile map in sync with the visible tiles
             _gridFresh.Clear();
+            _gridTileBudget = 0;
             // Unified map: keep only the CURRENT primary entry (key == _annotationCanvas.Tag) and drop
             // everything else - the secondary overlays and any stale primary entry from a prior page.
             int primPage = _annotationCanvas.Tag is int tp ? tp : -1;
@@ -1364,9 +1365,10 @@ namespace KillerPDF.Controls
             // the same effective pixel density. The old secondary budget was only 1536 pixels and
             // did not follow zoom, while the primary used a 2048-pixel zoom-aware budget. WPF then
             // enlarged the right page from fewer pixels, making it visibly softer than the left.
-            // Grid retains its smaller capped budget because it may keep many pages on screen.
+            // Grid draws each tile at the size it shows in device pixels (GridTileBudget), so a small tile is not drawn
+            // large and a zoomed-in one is not enlarged from too few pixels.
             var secondaryDpi = VisualTreeHelper.GetDpi(this);
-            int secondaryMax = Math.Min(2048, ViewerRenderResolution.Secondary(
+            int secondaryMax = _viewMode == ViewMode.Grid ? GridTileBudget() : Math.Min(2048, ViewerRenderResolution.Secondary(
                 _viewMode == ViewMode.TwoPage,
                 secondaryDpi.DpiScaleX,
                 secondaryDpi.DpiScaleY,
@@ -1414,6 +1416,15 @@ namespace KillerPDF.Controls
                 renderFirst = Math.Max(primaryPageIdx + 1, renderCenter - reach);
                 renderLast = Math.Min(limit - 1, renderCenter + reach);
                 ReleaseGridTilesOutside(renderCenter - reach * 2, renderCenter + reach * 2);
+                // A zoom or monitor change makes the tiles' size on screen differ from the one they were drawn at. The
+                // tiles on show stretch until the change settles, then the scroll-settle timer draws them again once.
+                if (secondaryMax != _gridTileBudget && _gridTileBudget > 0 && !_gridBudgetSettled)
+                {
+                    StartRerenderTimer();
+                    return;
+                }
+                _gridBudgetSettled = false;
+                _gridTileBudget = secondaryMax;
                 if (!fillOnly) _gridFresh.Clear();
             }
             _gridRenderCenter = renderCenter;
@@ -1596,6 +1607,18 @@ namespace KillerPDF.Controls
         private int _gridRenderCenter = -1;
         // Set for one pass that draws only the Grid pages missing a current bitmap.
         private bool _gridFillPass;
+        // The tile size the Grid's bitmaps were drawn at, and whether a changed size has settled and may be drawn.
+        private int _gridTileBudget;
+        private bool _gridBudgetSettled;
+
+        /// <summary>The longest side, in device pixels, a Grid tile shows at now.</summary>
+        private int GridTileBudget()
+        {
+            var dpi = VisualTreeHelper.GetDpi(this);
+            double longest = Math.Max(_annotationCanvas.Width, _annotationCanvas.Height);
+            return ViewerRenderResolution.GridTile(double.IsFinite(longest) && longest > 0 ? longest : 2048,
+                dpi.DpiScaleX, dpi.DpiScaleY, _zoomLevel);
+        }
         // Grid pages whose bitmap the latest full pass (or a fill pass after it) drew.
         private readonly HashSet<int> _gridFresh = [];
 
@@ -2059,8 +2082,14 @@ namespace KillerPDF.Controls
                         RefineVisibleRegions();
                         return;
                     }
-                    // A scroll onto Grid pages not drawn yet, or let go of, draws them next.
-                    if (GridNeedsFillAroundCurrentPage()) FillGridAroundCurrentPage();
+                    // A settled zoom or monitor change draws the Grid again at its new tile size; a scroll onto Grid pages
+                    // not drawn yet, or let go of, draws them next.
+                    if (_viewMode == ViewMode.Grid && _gridTileBudget > 0 && GridTileBudget() != _gridTileBudget)
+                    {
+                        _gridBudgetSettled = true;
+                        RenderAdditionalPages(0);
+                    }
+                    else if (GridNeedsFillAroundCurrentPage()) FillGridAroundCurrentPage();
                     // Never re-render the primary in Grid (it would shift page 0's width basis and
                     // desync the column math); guards a timer started just before a switch into grid.
                     if (_viewMode != ViewMode.Grid && State.CurrentPage >= 0)
