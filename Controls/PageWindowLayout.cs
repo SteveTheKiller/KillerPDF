@@ -54,6 +54,16 @@ namespace KillerPDF.Controls
             return new Size(w * clamp, h * clamp);
         }
 
+        /// <summary>How much wider the preview frame must be for the page, at the frame's height less
+        /// the margins, to fit; zero when it already fits.</summary>
+        public static double FittedExtraWidth(Size frame, Size page)
+        {
+            if (page.Width <= 0 || page.Height <= 0) return 0;
+            double pageHeight = Math.Max(0, frame.Height - 2 * PageMargin);
+            double needed = pageHeight * page.Width / page.Height + 2 * PageMargin;
+            return Math.Max(0, needed - frame.Width);
+        }
+
         /// <summary>A collapsible section: a keyboard-reachable header button over its body.
         /// Every section starts open.</summary>
         public static StackPanel Section(string title, UIElement body, out FrameworkElement header)
@@ -352,7 +362,7 @@ namespace KillerPDF.Controls
             return slots;
         }
 
-        private double Width(Size available, out double column)
+        private double RowWidth(Size available, out double column)
         {
             int columns = ColumnCount;
             double width = double.IsInfinity(available.Width) || double.IsNaN(available.Width)
@@ -363,7 +373,7 @@ namespace KillerPDF.Controls
 
         protected override Size MeasureOverride(Size availableSize)
         {
-            double width = Width(availableSize, out double column);
+            double width = RowWidth(availableSize, out double column);
             var slots = Slots();
             var heights = new double[slots.Length == 0 ? 0 : slots[^1].Row + 1];
             for (int i = 0; i < slots.Length; i++)
@@ -379,7 +389,7 @@ namespace KillerPDF.Controls
 
         protected override Size ArrangeOverride(Size finalSize)
         {
-            double width = Width(finalSize, out double column);
+            double width = RowWidth(finalSize, out double column);
             var slots = Slots();
             var heights = new double[slots.Length == 0 ? 0 : slots[^1].Row + 1];
             for (int i = 0; i < slots.Length; i++)

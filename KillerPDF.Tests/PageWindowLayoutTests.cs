@@ -188,6 +188,22 @@ public sealed class PageWindowLayoutTests
         });
     }
 
+    // Spec 2.2, default width: the preview widens until the page fills the frame's height. A 266 x 600
+    // frame leaves 568 of height inside the 16 margins; a Letter page that tall is 568 x 612 / 792 =
+    // 438.91 wide, so the frame needs 438.91 + 32 = 470.91, which is 204.91 more than it has.
+    [Fact]
+    public void TheDefaultWidthGrowsUntilThePageFillsTheFrameHeight()
+    {
+        Assert.Equal(204.91, PageWindowLayout.FittedExtraWidth(new Size(266, 600), new Size(612, 792)), 2);
+    }
+
+    // A frame already wide enough for the full-height page asks for nothing more.
+    [Fact]
+    public void AWideEnoughFrameNeedsNoExtraWidth()
+    {
+        Assert.Equal(0, PageWindowLayout.FittedExtraWidth(new Size(800, 600), new Size(612, 792)));
+    }
+
     // Print keeps its options on the left on purpose; the preview then takes the right.
     [Fact]
     public void PrintsOptionsSitOnTheLeftWithThePreviewOnTheRight()
