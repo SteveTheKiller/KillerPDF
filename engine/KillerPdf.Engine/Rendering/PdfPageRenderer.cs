@@ -5034,36 +5034,42 @@ public sealed partial class PdfPageRenderer
     {
         MeshDecoder mesh = ReadMeshDecoder(
             stream, resources, hasFlags: true, state.Transform, target, diagnostics, state.RenderingIntent, state.BlackPointCompensation);
+        var coverage = new MeshCoverage(mesh.Convert, mesh.ColorSpace, state, target,
+            targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
         var previous = new MeshVertex[3];
         bool rendered = false;
-        while (mesh.HasData)
-        {
-            uint flag = mesh.ReadFlag();
-            if (flag == 0)
-            {
-                previous[0] = mesh.ReadVertex();
-                mesh.ReadFlag();
-                previous[1] = mesh.ReadVertex();
-                mesh.ReadFlag();
-                previous[2] = mesh.ReadVertex();
-            }
-            else if (flag == 1)
-            {
-                previous[0] = previous[1];
-                previous[1] = previous[2];
-                previous[2] = mesh.ReadVertex();
-            }
-            else if (flag == 2)
-            {
-                previous[1] = previous[2];
-                previous[2] = mesh.ReadVertex();
-            }
-            else throw new FormatException("A free-form mesh shading has an invalid edge flag.");
-            PaintMeshTriangle(previous[0], previous[1], previous[2], mesh, state, target,
-                targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
-            rendered = true;
-        }
+        coverage.Collect(ReadTriangles);
         return rendered;
+
+        void ReadTriangles()
+        {
+            while (mesh.HasData)
+            {
+                uint flag = mesh.ReadFlag();
+                if (flag == 0)
+                {
+                    previous[0] = mesh.ReadVertex();
+                    mesh.ReadFlag();
+                    previous[1] = mesh.ReadVertex();
+                    mesh.ReadFlag();
+                    previous[2] = mesh.ReadVertex();
+                }
+                else if (flag == 1)
+                {
+                    previous[0] = previous[1];
+                    previous[1] = previous[2];
+                    previous[2] = mesh.ReadVertex();
+                }
+                else if (flag == 2)
+                {
+                    previous[1] = previous[2];
+                    previous[2] = mesh.ReadVertex();
+                }
+                else throw new FormatException("A free-form mesh shading has an invalid edge flag.");
+                AddMeshTriangle(coverage, previous[0], previous[1], previous[2]);
+                rendered = true;
+            }
+        }
     }
 
     private bool RenderLatticeMeshShading(PdfStream stream, PdfDictionary resources,
@@ -5075,33 +5081,36 @@ public sealed partial class PdfPageRenderer
             throw new FormatException("A lattice mesh shading has an invalid row width.");
         MeshDecoder mesh = ReadMeshDecoder(
             stream, resources, hasFlags: false, state.Transform, target, diagnostics, state.RenderingIntent, state.BlackPointCompensation);
+        var coverage = new MeshCoverage(mesh.Convert, mesh.ColorSpace, state, target,
+            targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
         MeshVertex[]? previous = null;
         int rowCount = 0;
-        while (mesh.HasData)
-        {
-            var current = new MeshVertex[verticesPerRow];
-            for (int column = 0; column < current.Length; column++)
-            {
-                if ((column & 0x3FFF) == 0)
-                    cancellationToken.ThrowIfCancellationRequested();
-                if (!mesh.HasData)
-                    throw new FormatException("A lattice mesh shading has an incomplete row.");
-                current[column] = mesh.ReadVertex();
-            }
-            if (previous is not null)
-                for (int column = 1; column < verticesPerRow; column++)
-                {
-                    PaintMeshTriangle(previous[column - 1], previous[column],
-                        current[column], mesh, state, target, targetWidth, targetHeight,
-                        scaleX, scaleY, cancellationToken);
-                    PaintMeshTriangle(previous[column - 1], current[column],
-                        current[column - 1], mesh, state, target, targetWidth, targetHeight,
-                        scaleX, scaleY, cancellationToken);
-                }
-            previous = current;
-            rowCount++;
-        }
+        coverage.Collect(ReadRows);
         return rowCount >= 2;
+
+        void ReadRows()
+        {
+            while (mesh.HasData)
+            {
+                var current = new MeshVertex[verticesPerRow];
+                for (int column = 0; column < current.Length; column++)
+                {
+                    if ((column & 0x3FFF) == 0)
+                        cancellationToken.ThrowIfCancellationRequested();
+                    if (!mesh.HasData)
+                        throw new FormatException("A lattice mesh shading has an incomplete row.");
+                    current[column] = mesh.ReadVertex();
+                }
+                if (previous is not null)
+                    for (int column = 1; column < verticesPerRow; column++)
+                    {
+                        AddMeshTriangle(coverage, previous[column - 1], previous[column], current[column]);
+                        AddMeshTriangle(coverage, previous[column - 1], current[column], current[column - 1]);
+                    }
+                previous = current;
+                rowCount++;
+            }
+        }
     }
 
     private MeshDecoder ReadMeshDecoder(
@@ -5133,53 +5142,9 @@ public sealed partial class PdfPageRenderer
             colorSpace, function, transform);
     }
 
-    private static void PaintMeshTriangle(MeshVertex first, MeshVertex second,
-        MeshVertex third, MeshDecoder mesh, GraphicsState state, RasterSurface target, int targetWidth,
-        int targetHeight, double scaleX, double scaleY,
-        CancellationToken cancellationToken)
-    {
-        double area = Edge(first.Point, second.Point, third.Point.X, third.Point.Y);
-        if (Math.Abs(area) < 1e-12) return;
-        double minimumX = Math.Min(first.Point.X, Math.Min(second.Point.X, third.Point.X));
-        double maximumX = Math.Max(first.Point.X, Math.Max(second.Point.X, third.Point.X));
-        double minimumY = Math.Min(first.Point.Y, Math.Min(second.Point.Y, third.Point.Y));
-        double maximumY = Math.Max(first.Point.Y, Math.Max(second.Point.Y, third.Point.Y));
-        if (maximumX <= 0 || minimumX >= targetWidth / scaleX
-            || maximumY <= 0 || minimumY >= targetHeight / scaleY) return;
-        int left = Math.Clamp((int)Math.Floor(minimumX * scaleX), 0, targetWidth - 1);
-        int right = Math.Clamp((int)Math.Ceiling(maximumX * scaleX), 0, targetWidth - 1);
-        int top = Math.Clamp(targetHeight - (int)Math.Ceiling(maximumY * scaleY),
-            0, targetHeight - 1);
-        int bottom = Math.Clamp(targetHeight - (int)Math.Floor(minimumY * scaleY),
-            0, targetHeight - 1);
-        var values = new double[first.Values.Length];
-        for (int y = top; y <= bottom; y++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            for (int x = left; x <= right; x++)
-            {
-                double pageX = (x + 0.5) / scaleX;
-                double pageY = (targetHeight - y - 0.5) / scaleY;
-                double clipAlpha = ClipAlpha(state.Clips, x, y);
-                if (clipAlpha <= 0) continue;
-                double a = Edge(second.Point, third.Point, pageX, pageY) / area;
-                double b = Edge(third.Point, first.Point, pageX, pageY) / area;
-                double c = 1 - a - b;
-                if (a < -1e-9 || b < -1e-9 || c < -1e-9) continue;
-                for (int component = 0; component < values.Length; component++)
-                    values[component] = first.Values[component] * a
-                        + second.Values[component] * b + third.Values[component] * c;
-                Color color = OverprintColor(mesh.Convert(values), mesh.ColorSpace,
-                    state.FillOverprint, 0);
-                SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
-                    state.BlendMode, state.GraphicsSoftMask, state.Knockout,
-                    shape: clipAlpha, alphaIsShape: state.AlphaIsShape);
-            }
-        }
-
-        static double Edge(Point from, Point to, double x, double y) =>
-            (to.X - from.X) * (y - from.Y) - (to.Y - from.Y) * (x - from.X);
-    }
+    private static void AddMeshTriangle(MeshCoverage coverage, MeshVertex first, MeshVertex second,
+        MeshVertex third) =>
+        coverage.Add(first.Point, first.Values, second.Point, second.Values, third.Point, third.Values);
 
     private bool RenderPatchMeshShading(PdfStream stream, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
@@ -5215,10 +5180,28 @@ public sealed partial class PdfPageRenderer
             + 2 * dataComponents * componentBits);
         var points = new Point[16];
         var values = new double[4][];
-        (int clipLeft, int clipTop, int clipRight, int clipBottom) = GetRasterBounds(
-            state.Clips, null, targetWidth, targetHeight, scaleX, scaleY);
-        bool[]? clipMask = state.Clips.Any(clip => !clip.StorageBounds) ? BuildClipMask() : null;
-        while (bytes.Length * 8 - bitOffset >= minimumRecordBits)
+        const int divisions = 4;
+        var grid = new Point[4, 4];
+        var sampledPoints = new Point[divisions + 1, divisions + 1];
+        var sampledValues = new double[divisions + 1, divisions + 1][];
+        var bernstein = new double[divisions + 1][];
+        for (int row = 0; row <= divisions; row++)
+        {
+            bernstein[row] = Bernstein(row / (double)divisions);
+            for (int column = 0; column <= divisions; column++)
+                sampledValues[row, column] = new double[dataComponents];
+        }
+        var coverage = new MeshCoverage(Convert, colorSpace, state, target,
+            targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
+        coverage.Collect(ReadPatches);
+        return rendered;
+
+        void ReadPatches()
+        {
+            while (bytes.Length * 8 - bitOffset >= minimumRecordBits)
+                ReadPatch();
+        }
+        void ReadPatch()
         {
             uint flag = Read(flagBits);
             if (flag > 3 || !rendered && flag != 0)
@@ -5255,7 +5238,6 @@ public sealed partial class PdfPageRenderer
             RenderPatch(points, values);
             rendered = true;
         }
-        return rendered;
 
         uint Read(int bits)
         {
@@ -5272,14 +5254,6 @@ public sealed partial class PdfPageRenderer
         }
         Color Convert(double[] components) =>
             function is null ? colorSpace.Convert(components) : function(components[0]);
-        bool[] BuildClipMask()
-        {
-            var mask = new bool[checked(targetWidth * targetHeight)];
-            for (int y = clipTop; y < clipBottom; y++)
-                for (int x = clipLeft; x < clipRight; x++)
-                    mask[y * targetWidth + x] = ClipCoverage(state.Clips, x, y) >= 128;
-            return mask;
-        }
         static void AddCoonsInteriorPoints(Point[] source)
         {
             source[12] = Combine(source[0], -4, source[1], 6, source[11], 6,
@@ -5301,84 +5275,36 @@ public sealed partial class PdfPageRenderer
         }
         void RenderPatch(Point[] source, double[][] colors)
         {
-            Point[,] grid =
-            {
-                { source[0], source[1], source[2], source[3] },
-                { source[11], source[12], source[13], source[4] },
-                { source[10], source[15], source[14], source[5] },
-                { source[9], source[8], source[7], source[6] }
-            };
-            const int divisions = 4;
-            var sampledPoints = new Point[divisions + 1, divisions + 1];
-            var sampledValues = new double[divisions + 1, divisions + 1][];
+            // The mesh copies each triangle's values as it is added, so the sample buffers are
+            // reused from patch to patch.
+            grid[0, 0] = source[0]; grid[0, 1] = source[1]; grid[0, 2] = source[2]; grid[0, 3] = source[3];
+            grid[1, 0] = source[11]; grid[1, 1] = source[12]; grid[1, 2] = source[13]; grid[1, 3] = source[4];
+            grid[2, 0] = source[10]; grid[2, 1] = source[15]; grid[2, 2] = source[14]; grid[2, 3] = source[5];
+            grid[3, 0] = source[9]; grid[3, 1] = source[8]; grid[3, 2] = source[7]; grid[3, 3] = source[6];
             for (int row = 0; row <= divisions; row++)
                 for (int column = 0; column <= divisions; column++)
                 {
                     double u = column / (double)divisions;
                     double v = row / (double)divisions;
-                    sampledPoints[row, column] = BezierSurface(grid, u, v);
-                    sampledValues[row, column] = Bilinear(colors, u, v);
+                    sampledPoints[row, column] = BezierSurface(grid, bernstein[column], bernstein[row]);
+                    Bilinear(colors, u, v, sampledValues[row, column]);
                 }
             for (int row = 0; row < divisions; row++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 for (int column = 0; column < divisions; column++)
                 {
-                    PaintTriangle(sampledPoints[row, column], sampledValues[row, column],
+                    coverage.Add(sampledPoints[row, column], sampledValues[row, column],
                         sampledPoints[row, column + 1], sampledValues[row, column + 1],
                         sampledPoints[row + 1, column + 1], sampledValues[row + 1, column + 1]);
-                    PaintTriangle(sampledPoints[row, column], sampledValues[row, column],
+                    coverage.Add(sampledPoints[row, column], sampledValues[row, column],
                         sampledPoints[row + 1, column + 1], sampledValues[row + 1, column + 1],
                         sampledPoints[row + 1, column], sampledValues[row + 1, column]);
                 }
             }
         }
-        void PaintTriangle(Point first, double[] firstValues, Point second,
-            double[] secondValues, Point third, double[] thirdValues)
+        static Point BezierSurface(Point[,] points, double[] bu, double[] bv)
         {
-            double area = Edge(first, second, third.X, third.Y);
-            if (Math.Abs(area) < 1e-12) return;
-            double minimumX = Math.Min(first.X, Math.Min(second.X, third.X));
-            double maximumX = Math.Max(first.X, Math.Max(second.X, third.X));
-            double minimumY = Math.Min(first.Y, Math.Min(second.Y, third.Y));
-            double maximumY = Math.Max(first.Y, Math.Max(second.Y, third.Y));
-            if (maximumX <= 0 || minimumX >= targetWidth / scaleX
-                || maximumY <= 0 || minimumY >= targetHeight / scaleY) return;
-            int left = Math.Clamp((int)Math.Floor(minimumX * scaleX),
-                clipLeft, Math.Max(clipLeft, clipRight - 1));
-            int right = Math.Clamp((int)Math.Ceiling(maximumX * scaleX),
-                clipLeft, Math.Max(clipLeft, clipRight - 1));
-            int top = Math.Clamp(targetHeight - (int)Math.Ceiling(maximumY * scaleY),
-                clipTop, Math.Max(clipTop, clipBottom - 1));
-            int bottom = Math.Clamp(targetHeight - (int)Math.Floor(minimumY * scaleY),
-                clipTop, Math.Max(clipTop, clipBottom - 1));
-            if (clipLeft >= clipRight || clipTop >= clipBottom) return;
-            var components = new double[firstValues.Length];
-            for (int y = top; y <= bottom; y++)
-                for (int x = left; x <= right; x++)
-                {
-                    double pageX = (x + 0.5) / scaleX;
-                    double pageY = (targetHeight - y - 0.5) / scaleY;
-                    if (clipMask is not null && !clipMask[y * targetWidth + x]) continue;
-                    double a = Edge(second, third, pageX, pageY) / area;
-                    double b = Edge(third, first, pageX, pageY) / area;
-                    double c = 1 - a - b;
-                    if (a < -1e-9 || b < -1e-9 || c < -1e-9) continue;
-                    for (int component = 0; component < components.Length; component++)
-                        components[component] = firstValues[component] * a
-                            + secondValues[component] * b + thirdValues[component] * c;
-                    Color color = OverprintColor(Convert(components), colorSpace,
-                        state.FillOverprint, 0);
-                    SetPixel(target, targetWidth, x, y, color,
-                        state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
-                        state.Knockout, alphaIsShape: state.AlphaIsShape);
-                }
-        }
-        static double Edge(Point first, Point second, double x, double y) =>
-            (second.X - first.X) * (y - first.Y) - (second.Y - first.Y) * (x - first.X);
-        static Point BezierSurface(Point[,] points, double u, double v)
-        {
-            double[] bu = Bernstein(u), bv = Bernstein(v);
             double x = 0, y = 0;
             for (int row = 0; row < 4; row++)
                 for (int column = 0; column < 4; column++)
@@ -5395,15 +5321,13 @@ public sealed partial class PdfPageRenderer
             return [inverse * inverse * inverse, 3 * value * inverse * inverse,
                 3 * value * value * inverse, value * value * value];
         }
-        static double[] Bilinear(double[][] values, double u, double v)
+        static void Bilinear(double[][] values, double u, double v, double[] result)
         {
-            var result = new double[values[0].Length];
             for (int component = 0; component < result.Length; component++)
                 result[component] = values[0][component] * (1 - u) * (1 - v)
                     + values[1][component] * u * (1 - v)
                     + values[2][component] * u * v
                     + values[3][component] * (1 - u) * v;
-            return result;
         }
     }
 

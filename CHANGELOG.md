@@ -24,6 +24,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Text extraction recovers missing marked-content properties and stray closing tags in compatibility mode.
 - Text selection keeps separate rectangular panels apart. New searchable PDFs fit TrueType text to OCR word heights so short words stay on their lines. (#465)
 - JPEG 2000 images use their encoded sample depth when the PDF declares a different value.
+- Gradient mesh shadings have smooth clipped edges instead of jagged ones.
 - Rasterize Region keeps earlier region images intact on repeated operations and leaves invisible clipping paths out of its content counts. (#369)
 - Display fallback preserves page sizes and identifies sRGB output when monitor correction is unavailable. Sidebar previews follow the document's proof settings. Native document navigation keeps the footer page count current. Zoomed page details stay aligned when scrolling, and switching from Continuous to Single-page viewing preserves the correct zoom. (#264, #472)
 - Save Flattened shows output pixel dimensions and scale, matching image export. (#462)
