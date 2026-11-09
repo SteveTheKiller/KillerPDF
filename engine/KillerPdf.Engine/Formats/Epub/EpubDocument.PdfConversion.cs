@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Rendering;
 
 namespace KillerPdf.Engine.Formats.Epub;
@@ -93,7 +94,9 @@ public sealed partial class EpubDocument
                         break;
                     case NativeGlyphPaint glyph:
                         // List-number glyphs have no source text; their markers are written below.
-                        if (glyph.SourceOffset >= 0 && emittedText.Add(glyph.SourceOffset)) DrawText(placements[glyph.SourceOffset]);
+                        if (glyph.SourceOffset >= 0 && page.Clusters.TryGetValue(glyph.SourceOffset, out var drawn) && drawn.Missing)
+                            DrawOutline(glyph, placements[glyph.SourceOffset].Color ?? new PdfRgbColor(0, 0, 0));
+                        else if (glyph.SourceOffset >= 0 && emittedText.Add(glyph.SourceOffset)) DrawText(placements[glyph.SourceOffset]);
                         break;
                 }
             }
@@ -136,6 +139,62 @@ public sealed partial class EpubDocument
                     options.PageHeightPoints - (paint.Top + paint.Height) * pointsPerCssPixel,
                     paint.Width * pointsPerCssPixel, paint.Height * pointsPerCssPixel);
             }
+            // A glyph PDF text cannot name (the font's .notdef box) is filled as its outline, so the PDF shows what the
+            // reader shows. TrueType contours mix on-curve points with quadratic controls whose midpoints are implied.
+            void DrawOutline(NativeGlyphPaint glyph, PdfRgbColor color)
+            {
+                double X(double x) => (glyph.Left + x * glyph.Scale) * pointsPerCssPixel;
+                double Y(double y) => options.PageHeightPoints - (glyph.Baseline - y * glyph.Scale) * pointsPerCssPixel;
+                static PdfGlyphPoint Mid(PdfGlyphPoint a, PdfGlyphPoint b) => new((a.X + b.X) / 2, (a.Y + b.Y) / 2, true);
+                bool drew = false;
+                foreach (var contour in glyph.Outline.Contours)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var points = contour.Points;
+                    if (points.Count < 2) continue;
+                    int first = -1;
+                    for (int index = 0; index < points.Count && first < 0; index++) if (points[index].OnCurve) first = index;
+                    var start = first >= 0 ? points[first] : Mid(points[^1], points[0]);
+                    if (!drew) content.SetFillRgb(color.Red, color.Green, color.Blue);
+                    drew = true;
+                    content.MoveTo(X(start.X), Y(start.Y));
+                    var current = start;
+                    PdfGlyphPoint? quadratic = null;
+                    var cubic = new List<PdfGlyphPoint>(2);
+                    int count = first >= 0 ? points.Count - 1 : points.Count;
+                    for (int step = 1; step <= count + 1; step++)
+                    {
+                        // The last step returns to the start point, which closes any pending curve.
+                        var point = step > count ? start : points[((first >= 0 ? first : -1) + step + points.Count) % points.Count];
+                        if (point.OnCurve)
+                        {
+                            if (cubic.Count == 2) content.CurveTo(X(cubic[0].X), Y(cubic[0].Y), X(cubic[1].X), Y(cubic[1].Y), X(point.X), Y(point.Y));
+                            else if (quadratic is { } control) Quadratic(current, control, point);
+                            else content.LineTo(X(point.X), Y(point.Y));
+                            quadratic = null;
+                            cubic.Clear();
+                            current = point;
+                        }
+                        else if (point.IsCubicControl) cubic.Add(point);
+                        else if (quadratic is { } control)
+                        {
+                            var middle = Mid(control, point);
+                            Quadratic(current, control, middle);
+                            current = middle;
+                            quadratic = point;
+                        }
+                        else quadratic = point;
+                    }
+                    content.ClosePath();
+                }
+                if (drew) content.Fill();
+
+                // A quadratic Bezier as the cubic with controls two thirds of the way to the quadratic control.
+                void Quadratic(PdfGlyphPoint from, PdfGlyphPoint control, PdfGlyphPoint to) => content.CurveTo(
+                    X(from.X + 2 * (control.X - from.X) / 3), Y(from.Y + 2 * (control.Y - from.Y) / 3),
+                    X(to.X + 2 * (control.X - to.X) / 3), Y(to.Y + 2 * (control.Y - to.Y) / 3), X(to.X), Y(to.Y));
+            }
+
             void DrawText(EpubTextPlacement placement)
             {
                 cancellationToken.ThrowIfCancellationRequested();
