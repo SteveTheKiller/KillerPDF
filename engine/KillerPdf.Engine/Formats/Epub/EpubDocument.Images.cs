@@ -63,7 +63,54 @@ public sealed partial class EpubDocument
                 EpubOmissionReason.ImageUnreadable, error);
         }
         image = Orient(image, key.TurnA, key.TurnB, key.TurnC, key.TurnD);
+        if (key.Warp is { } warp) image = Warp(image, warp, cancellationToken);
         return key.CropWidth < 0 ? image : Crop(image, key.CropLeft, key.CropTop, key.CropWidth, key.CropHeight);
+    }
+
+    /// <summary>
+    /// Resamples the raster through the warp by inverse mapping: each output pixel center maps back into the source,
+    /// which is sampled bilinearly from its four nearest pixels (edge pixels repeat). Output pixels whose center maps
+    /// outside the source or its clip rectangle stay transparent, so the drawing keeps its turned outline.
+    /// </summary>
+    private static PngDecodedImage Warp(PngDecodedImage image, EpubImageWarp warp, CancellationToken cancellationToken)
+    {
+        double determinant = warp.A * warp.D - warp.B * warp.C;
+        if (!double.IsFinite(determinant) || Math.Abs(determinant) < 1e-12)
+            throw new EpubImageUnavailableException("Native EPUB SVG image transform collapses the image.", EpubOmissionReason.UnsupportedLayout);
+        // Inverse of the linear part: x = (D (u - E) - C (v - F)) / det, y = (A (v - F) - B (u - E)) / det.
+        double ia = warp.D / determinant, ic = -warp.C / determinant, ib = -warp.B / determinant, id = warp.A / determinant;
+        int width = warp.Width, height = warp.Height, components = image.Components;
+        double left = Math.Max(0, warp.ClipLeft), top = Math.Max(0, warp.ClipTop);
+        double right = Math.Min(image.Width, warp.ClipRight), bottom = Math.Min(image.Height, warp.ClipBottom);
+        byte[] samples = new byte[checked(width * height * components)];
+        byte[] alpha = new byte[checked(width * height)];
+        var source = image.Samples;
+        var sourceAlpha = image.Alpha;
+        for (int v = 0; v < height; v++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int u = 0; u < width; u++)
+            {
+                double du = u + .5 - warp.E, dv = v + .5 - warp.F;
+                double x = ia * du + ic * dv, y = ib * du + id * dv;
+                if (x < left || x > right || y < top || y > bottom) continue;
+                // Pixel centers sit at half coordinates, so the four neighbors of (x, y) start at (x - 0.5, y - 0.5).
+                double sx = Math.Clamp(x - .5, 0, image.Width - 1), sy = Math.Clamp(y - .5, 0, image.Height - 1);
+                int x0 = (int)sx, y0 = (int)sy;
+                int x1 = Math.Min(x0 + 1, image.Width - 1), y1 = Math.Min(y0 + 1, image.Height - 1);
+                double fx = sx - x0, fy = sy - y0;
+                double w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
+                int p00 = y0 * image.Width + x0, p10 = y0 * image.Width + x1, p01 = y1 * image.Width + x0, p11 = y1 * image.Width + x1;
+                int to = v * width + u;
+                for (int channel = 0; channel < components; channel++)
+                    samples[to * components + channel] = (byte)Math.Round(w00 * source[p00 * components + channel]
+                        + w10 * source[p10 * components + channel] + w01 * source[p01 * components + channel]
+                        + w11 * source[p11 * components + channel]);
+                alpha[to] = sourceAlpha is null ? (byte)255 : (byte)Math.Round(w00 * sourceAlpha[p00] + w10 * sourceAlpha[p10]
+                    + w01 * sourceAlpha[p01] + w11 * sourceAlpha[p11]);
+            }
+        }
+        return image with { Samples = samples, Alpha = alpha, Width = width, Height = height };
     }
 
     /// <summary>

@@ -171,9 +171,11 @@ public sealed partial class EpubDocument
                         ? EpubSvgMatrix.Parse(transform) ?? throw Unsupported() : EpubSvgMatrix.Identity
                 };
                 if (cover.ImageWidth <= 0 || cover.ImageHeight <= 0) throw Unsupported();
-                // A rotation or skew off the quarter turns would need the raster resampled, which is not implemented.
-                if (!cover.Transform.KeepsAxes)
-                    throw new NotSupportedException("Native EPUB SVG images rotated or skewed off the axes are not drawn yet.");
+                // A rotation or skew off the quarter turns is resampled when laid out; a transform that collapses the
+                // image to a line or a point draws nothing anyone could see, so it stays an omitted drawing.
+                var linear = cover.Transform;
+                if (!linear.KeepsAxes && !(Math.Abs(linear.A * linear.D - linear.B * linear.C) > 1e-9))
+                    throw new NotSupportedException("Native EPUB SVG images whose transform collapses them are not drawn.");
             }
         }
         return cover ?? throw Unsupported();

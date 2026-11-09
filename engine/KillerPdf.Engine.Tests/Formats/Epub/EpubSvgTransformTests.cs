@@ -37,6 +37,37 @@ public sealed class EpubSvgTransformTests
         Assert.Equal((20, 10), (paint.Image.Width, paint.Image.Height));
     }
 
+    // Off the axes the raster is resampled: rotate(45 50 50) turns the 100 by 100 gray square into a diamond whose tips
+    // touch the 0.56-per-unit viewport's edge midpoints, so a corner of the viewport is left white and the middle of an
+    // edge is gray. The point (5, 50) is 45 units from the center along an axis (inside the diamond); (95, 5) is 90 units
+    // away in the diamond's norm (|dx| + |dy|, over its 70.7 reach), so it is outside.
+    [Theory]
+    [InlineData("rotate(45 50 50)")]
+    // skewX(30) about the center row shifts the row at y = 5 left by tan 30 * 45 = 26 units, so it covers -26 to 74 and
+    // (95, 5) is left white; the center row (5, 50) does not move.
+    [InlineData("translate(0 50) skewX(30) translate(0 -50)")]
+    public void ARotatedOrSkewedImageIsResampledAndClippedToItsTurnedOutline(string transform)
+    {
+        var book = new Book
+        {
+            Chapters = { Chapter("<div><svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 100 100' preserveAspectRatio='none'>"
+                + $"<image width='100' height='100' transform='{transform}' xlink:href='../images/c.png'/></svg></div>") },
+            ExtraManifest = "<item id=\"c\" href=\"images/c.png\" media-type=\"image/png\"/>"
+        };
+        book.Resources.Add(("images/c.png", EpubImageCompatibilityTests.Png(20, 20, 2)));
+
+        var layout = Layout(book, 60, 60);
+
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.Empty(layout.ContentDiagnostics);
+        var frame = layout.RenderPage(0);
+        float Red(double userX, double userY) => frame.Pixels[((int)(2 + userY * .56) * frame.Width + (int)(2 + userX * .56)) * 4];
+        // Frames hold linear light: the PNG's sRGB 128 (0.502) is ((0.502 + 0.055) / 1.055)^2.4 = 0.216.
+        Assert.InRange(Red(50, 50), .20f, .23f);
+        Assert.InRange(Red(5, 50), .20f, .23f);
+        Assert.Equal(1f, Red(95, 5));
+    }
+
     // SVG content the reader does not draw is left out as one item; the chapter's text stays.
     [Theory]
     [InlineData("<foreignObject/>")]

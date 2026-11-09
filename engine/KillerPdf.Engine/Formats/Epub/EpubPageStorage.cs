@@ -15,11 +15,23 @@ internal sealed record EpubDeferredImagePaint(EpubImageKey Key, double Left, dou
 
 /// <summary>
 /// Identifies one decoded raster: the packaged path, the decode box, the quarter turn or flip an SVG transform applies
-/// (signs of its linear part, before the crop), and the crop.
+/// (signs of its linear part, before the crop), the crop, and for a rotation or skew off the axes the resampling warp.
 /// </summary>
 internal sealed record EpubImageKey(string Target, double BoxWidth, double BoxHeight,
     int CropLeft = 0, int CropTop = 0, int CropWidth = -1, int CropHeight = -1,
-    int TurnA = 1, int TurnB = 0, int TurnC = 0, int TurnD = 1);
+    int TurnA = 1, int TurnB = 0, int TurnC = 0, int TurnD = 1)
+{
+    /// <summary>The off-axis warp applied before the crop, or null for none.</summary>
+    internal EpubImageWarp? Warp { get; init; }
+}
+
+/// <summary>
+/// Resamples a raster through an affine map off the axes: source pixel coordinates (x, y) land at output pixel
+/// coordinates u = A x + C y + E and v = B x + D y + F in a Width by Height raster. Only source points inside the clip
+/// rectangle (source pixel coordinates) are drawn; everything else in the output is transparent.
+/// </summary>
+internal sealed record EpubImageWarp(double A, double B, double C, double D, double E, double F, int Width, int Height,
+    double ClipLeft, double ClipTop, double ClipRight, double ClipBottom);
 
 /// <summary>
 /// Decodes book images on demand behind a bounded, thread-safe least-recently-used cache, so the decoded-image

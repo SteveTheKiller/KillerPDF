@@ -894,17 +894,20 @@ public sealed partial class EpubDocument
                         double X(double user) => outer.OffsetX + (user - cover.MinX) * outer.ScaleX;
                         double Y(double user) => outer.OffsetY + (user - cover.MinY) * outer.ScaleY;
                         // SVG 1.1 section 7.6: the image's transform maps its fitted raster and its clip rectangle into
-                        // viewBox units. It keeps the axes (ReadSvgCover leaves out anything else), so a turned or
-                        // flipped raster is turned or flipped whole and both rectangles stay axis-aligned.
+                        // viewBox units. A transform that keeps the axes turns or flips the raster whole, so both
+                        // rectangles stay axis-aligned; a rotation or skew off the axes resamples the raster into its
+                        // bounding box, transparent outside its turned clip rectangle.
                         var turn = cover.Transform;
                         var raster = (X: cover.ImageX + inner.OffsetX, Y: cover.ImageY + inner.OffsetY,
                             Width: image.Width * inner.ScaleX, Height: image.Height * inner.ScaleY);
                         var clip = (X: cover.ImageX, Y: cover.ImageY, Width: cover.ImageWidth, Height: cover.ImageHeight);
+                        var untransformed = raster;
+                        var untransformedClip = clip;
                         if (turn != EpubSvgMatrix.Identity)
                         {
                             raster = turn.Bounds(raster.X, raster.Y, raster.Width, raster.Height);
                             clip = turn.Bounds(clip.X, clip.Y, clip.Width, clip.Height);
-                            if (turn.A <= 0 || turn.D <= 0)
+                            if (turn.KeepsAxes && (turn.A <= 0 || turn.D <= 0))
                                 image = LoadImage(imageKeys[image] with
                                 {
                                     TurnA = Math.Sign(turn.A), TurnB = Math.Sign(turn.B), TurnC = Math.Sign(turn.C), TurnD = Math.Sign(turn.D)
@@ -912,6 +915,31 @@ public sealed partial class EpubDocument
                         }
                         double rasterLeft = X(raster.X), rasterTop = Y(raster.Y);
                         double rasterWidth = raster.Width * outer.ScaleX, rasterHeight = raster.Height * outer.ScaleY;
+                        if (!turn.KeepsAxes)
+                        {
+                            // The output keeps the source's pixel size on the page: one output pixel per source pixel along
+                            // x. Source pixel (x, y) lies at viewBox point raster + (x, y) * inner scale before the transform.
+                            double perPixelX = inner.ScaleX * outer.ScaleX, perPixelY = inner.ScaleY * outer.ScaleY;
+                            double density = 1 / Math.Sqrt(Math.Abs(perPixelX * perPixelY));
+                            int warpWidth = (int)Math.Ceiling(rasterWidth * density - 1e-9);
+                            int warpHeight = (int)Math.Ceiling(rasterHeight * density - 1e-9);
+                            if (warpWidth <= 0 || warpHeight <= 0) return;
+                            if (warpWidth > 8192 || warpHeight > 8192 || (long)warpWidth * warpHeight > 16_000_000)
+                                throw new EpubImageUnavailableException("Native EPUB SVG image is too large to resample.", EpubOmissionReason.ImageTooLarge);
+                            // Output pixel coordinates: page offsets from the bounding box's corner, times the density.
+                            double a = density * outer.ScaleX * turn.A * inner.ScaleX, b = density * outer.ScaleY * turn.B * inner.ScaleX;
+                            double c = density * outer.ScaleX * turn.C * inner.ScaleY, d = density * outer.ScaleY * turn.D * inner.ScaleY;
+                            double originX = turn.A * untransformed.X + turn.C * untransformed.Y + turn.E;
+                            double originY = turn.B * untransformed.X + turn.D * untransformed.Y + turn.F;
+                            var warp = new EpubImageWarp(a, b, c, d, density * (X(originX) - rasterLeft), density * (Y(originY) - rasterTop),
+                                warpWidth, warpHeight,
+                                (untransformedClip.X - untransformed.X) / inner.ScaleX, (untransformedClip.Y - untransformed.Y) / inner.ScaleY,
+                                (untransformedClip.X + untransformedClip.Width - untransformed.X) / inner.ScaleX,
+                                (untransformedClip.Y + untransformedClip.Height - untransformed.Y) / inner.ScaleY);
+                            image = LoadImage(imageKeys[image] with { Warp = warp });
+                            rasterWidth = warpWidth / density;
+                            rasterHeight = warpHeight / density;
+                        }
                         double clipLeft = Math.Max(0, X(clip.X)), clipTop = Math.Max(0, Y(clip.Y));
                         double clipRight = Math.Min(contentWidth, X(clip.X + clip.Width));
                         double clipBottom = Math.Min(flowHeight, Y(clip.Y + clip.Height));
