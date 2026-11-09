@@ -51,7 +51,7 @@ public partial class PdfViewer
             {
                 string proofNotice = Loc(proofKey);
                 warning = warning is null
-                    ? (positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageCount)) + ". " + proofNotice
+                    ? (positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageTotal)) + ". " + proofNotice
                     : warning + " " + proofNotice;
             }
             displayFallback |= result.DisplayFallbackOperation is not null;
@@ -60,7 +60,7 @@ public partial class PdfViewer
         {
             string fallback = Loc("Str_CM_DisplayFallback");
             warning = warning is null
-                ? (positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageCount)) + ". " + fallback
+                ? (positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageTotal)) + ". " + fallback
                 : warning + " " + fallback;
         }
         image.ToolTip = warning;

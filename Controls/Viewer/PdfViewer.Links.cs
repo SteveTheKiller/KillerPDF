@@ -378,7 +378,7 @@ namespace KillerPDF.Controls
             }
 
             if (links.Count > 0)
-                SetStatus(string.Format(Loc("Str_PageOfLinks"), pageIndex + 1, ReadPageCount, links.Count));
+                SetStatus(string.Format(Loc("Str_PageOfLinks"), pageIndex + 1, ReadPageTotal, links.Count));
         }
 
         /// <summary>

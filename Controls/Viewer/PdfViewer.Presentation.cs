@@ -159,7 +159,7 @@ public partial class PdfViewer
 
     private void ShowPresentationFallback(int page)
     {
-        string notice = string.Format(Loc("Str_PageOf"), page + 1, ReadPageCount) + ". " + Loc("Str_CM_DisplayFallback");
+        string notice = string.Format(Loc("Str_PageOf"), page + 1, ReadPageTotal) + ". " + Loc("Str_CM_DisplayFallback");
         PageImage.Visibility = Visibility.Visible;
         PageImage.ToolTip = notice;
         if (page == _currentPage && (Host is null || Host.IsViewerFocused(this))) SetStatus(notice);
