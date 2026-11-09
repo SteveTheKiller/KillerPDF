@@ -55,6 +55,15 @@ public sealed partial class PdfPageRenderer
     /// clamped to x in [0, width] in double precision. A polygon with a non-finite vertex adds
     /// nothing.
     /// </para>
+    /// <para>
+    /// Accumulation routes. Because the cell values are integers and sums do not depend on
+    /// order, each edge-row can be computed whenever convenient. Rasters of up to 32,768 pixels
+    /// keep a full grid of cells and add every edge-row as the edge arrives. Larger rasters keep
+    /// one row of cells: an edge that stays inside the raster and spans only a few rows is turned
+    /// into its cell values when it is added, filed by row and merged with repeats of the same
+    /// cell; every other edge is stored and visited row by row in the sweep. Both routes use the
+    /// same per-row formulas, so they give the same integers.
+    /// </para>
     /// </remarks>
     private sealed class CoverageRasterizer
     {
@@ -65,7 +74,14 @@ public sealed partial class PdfPageRenderer
         private const double DirectLimit = 1 << 25;
         private const int SmallWorkingBytes = 64 * 1024;
         private const int PreclearBytes = 256 * 1024;
-        private const int MaximumRetainedEdges = 4 * 1024 * 1024 / 40;
+        private const int MaximumRetainedEdges = 4 * 1024 * 1024 / 48;
+        private const int MaximumRetainedCells = 4 * 1024 * 1024 / 12;
+        private const int MaximumRetainedChunks = MaximumRetainedCells / 32;
+        private const int TrimAfterSmallSweeps = 8;
+        private const long MaximumRetainedBytes = 16L * 1024 * 1024;
+        // Interior edges spanning fewer rows than this are turned into cell entries when added.
+        private const int EagerRows = 4;
+        private int _smallSweeps;
 
         private struct Edge
         {
@@ -75,14 +91,39 @@ public sealed partial class PdfPageRenderer
             internal bool Interior;
         }
 
+        // Two cell values for one raster cell. Key holds the row in its high half and the column
+        // in its low half; rasters have at most 32,768 rows and columns, so both fit.
+        private struct CellEntry
+        {
+            internal int Key, Left, Right;
+        }
+
+        // An open entry merges repeats until its values could leave the int range. One piece
+        // adds at most 512 * 256 units, so this bound leaves ample room.
+        private const long MergeLimit = 1L << 30;
+
         private Edge[] _edges = new Edge[64];
-        private int _edgeCount;
+        // Geometry added since the reset; the stored edges and cell entries are its parts.
+        private int _edgeCount, _storedEdges;
+        // Cell entries are filed by row as they arrive, in chains of fixed-size chunks, so the
+        // sweep reads each row's entries without sorting them. A row's chain is valid only
+        // while its stamp equals the current one, which spares clearing the row tables.
+        private const int ChunkEntries = 32;
+        private CellEntry[] _chunkData = new CellEntry[ChunkEntries * 64];
+        private int[] _chunkNext = new int[64];
+        private int _chunkCount;
+        private int[] _rowHead = [], _rowTail = [], _tailFill = [], _rowStamp = [];
+        private int _stamp = 1;
+        private int _pendingKey;
+        private long _pendingLeft, _pendingRight;
+        private int[] _quantX = [], _quantY = [];
+        private bool _pendingOpen;
         private int _minColumn, _maxColumn, _minRow, _maxRow;
         private long[] _cells = [];
         private ulong[] _touched = [];
         private int _wordMin, _wordMax;
         private int[] _rowStarts = [];
-        private int[] _order = [];
+        private Edge[] _sorted = [];
         private int[] _active = [];
         private byte[] _working = [];
         // Rasters up to this many pixels, glyph masks among them, accumulate straight into a
@@ -106,7 +147,18 @@ public sealed partial class PdfPageRenderer
         internal void Reset()
         {
             if (_dense && _edgeCount > 0) ClearGrid();
-            _edgeCount = 0;
+            if (_chunkCount > 0)
+            {
+                // A new stamp empties every row chain at once.
+                _chunkCount = 0;
+                if (++_stamp == int.MaxValue)
+                {
+                    Array.Clear(_rowStamp);
+                    _stamp = 1;
+                }
+            }
+            _edgeCount = _storedEdges = 0;
+            _pendingOpen = false;
             _rowBase = 0;
             _minColumn = _minRow = int.MaxValue;
             _maxColumn = _maxRow = int.MinValue;
@@ -233,6 +285,8 @@ public sealed partial class PdfPageRenderer
 
         private readonly struct LeaveCells { }
 
+        private readonly struct EmitCells { }
+
         // One row of an edge whose cells all lie inside the raster, written at
         // cells[origin + column] for local columns. The integers equal Accumulate's: rows inside
         // one column use its single-column formula and the others its column walk, without
@@ -241,7 +295,7 @@ public sealed partial class PdfPageRenderer
         private void InteriorRow<TMark>(ref Edge edge, int row, long[] cells, int origin)
             where TMark : struct
         {
-            bool mark = typeof(TMark) == typeof(MarkCells);
+            bool mark = typeof(TMark) == typeof(MarkCells), emit = typeof(TMark) == typeof(EmitCells);
             int rowTop = (row << ScaleShift) - edge.Y0;
             int ya = Math.Max(0, rowTop), yb = Math.Min(edge.Dy, rowTop + Scale);
             if (yb <= ya) return;
@@ -256,17 +310,7 @@ public sealed partial class PdfPageRenderer
                 if (edge.Dx == 0 || column == (int)((high - 1) >> ScaleShift))
                 {
                     long share = Math.Clamp(height * (low + high - 2L * column * Scale), 0, total);
-                    int at = origin + column;
-                    cells[at] += sign * (total - share);
-                    cells[at + 1] += sign * share;
-                    if (mark)
-                    {
-                        int lowWord = at >> 6, highWord = (at + 1) >> 6;
-                        _touched[lowWord] |= 1UL << at;
-                        _touched[highWord] |= 1UL << (at + 1);
-                        if (lowWord < _wordMin) _wordMin = lowWord;
-                        if (highWord > _wordMax) _wordMax = highWord;
-                    }
+                    Put<TMark>(cells, origin + column, sign * (total - share), sign * share, row);
                     return;
                 }
             }
@@ -279,17 +323,7 @@ public sealed partial class PdfPageRenderer
             {
                 double mean = leftX + rightX - 2.0 * first * Scale;
                 long share = Math.Clamp((long)Math.Round(height * mean), 0, total);
-                int cell = origin + first;
-                cells[cell] += sign * (total - share);
-                cells[cell + 1] += sign * share;
-                if (mark)
-                {
-                    int low = cell >> 6, high = (cell + 1) >> 6;
-                    _touched[low] |= 1UL << cell;
-                    _touched[high] |= 1UL << (cell + 1);
-                    if (low < _wordMin) _wordMin = low;
-                    if (high > _wordMax) _wordMax = high;
-                }
+                Put<TMark>(cells, origin + first, sign * (total - share), sign * share, row);
                 return;
             }
             // Several columns: Accumulate's walk, with no clipping needed inside the raster.
@@ -321,13 +355,36 @@ public sealed partial class PdfPageRenderer
                     long piece = nextShare - previousShare;
                     double sum = previousX + nextX - 2.0 * column * Scale;
                     long right = Math.Clamp((long)Math.Round((nextProgress - previousProgress) * sum), 0, Math.Max(piece, 0));
-                    cells[rowCell + column] += sign * (piece - right);
-                    cells[rowCell + column + 1] += sign * right;
+                    if (emit) AddCellEntry(row, rowCell + column, sign * (piece - right), sign * right);
+                    else
+                    {
+                        cells[rowCell + column] += sign * (piece - right);
+                        cells[rowCell + column + 1] += sign * right;
+                    }
                     previousX = nextX;
                     previousProgress = nextProgress;
                     previousShare = nextShare;
                 }
             }
+        }
+
+        // Adds a piece's two cell values: into the row cells, marked for the row sweep, or as a
+        // cell entry for the given row.
+        private void Put<TMark>(long[] cells, int at, long left, long right, int row) where TMark : struct
+        {
+            if (typeof(TMark) == typeof(EmitCells))
+            {
+                AddCellEntry(row, at, left, right);
+                return;
+            }
+            cells[at] += left;
+            cells[at + 1] += right;
+            if (typeof(TMark) != typeof(MarkCells)) return;
+            int lowWord = at >> 6, highWord = (at + 1) >> 6;
+            _touched[lowWord] |= 1UL << at;
+            _touched[highWord] |= 1UL << (at + 1);
+            if (lowWord < _wordMin) _wordMin = lowWord;
+            if (highWord > _wordMax) _wordMax = highWord;
         }
 
         // Records cells [from, to] as touched in the current row.
@@ -412,11 +469,43 @@ public sealed partial class PdfPageRenderer
             int count = polygon.Count;
             if (count < 3) return;
             double x, y;
-            // A non-finite vertex anywhere drops the whole polygon before any edge is added.
-            for (int index = 0; !polygon.AlwaysFinite && index < count; index++)
+            if (!_dense)
             {
-                polygon.Get(index, out x, out y);
-                if (!double.IsFinite(x) || !double.IsFinite(y)) return;
+                // Quantize once into integers; a polygon that stays inside the raster then takes
+                // the integer route, and every other one the general route below.
+                if (_quantX.Length < count)
+                {
+                    _quantX = new int[Math.Max(count, _quantX.Length * 2)];
+                    _quantY = new int[_quantX.Length];
+                }
+                double limitX = (double)(Width - 1) * Scale, limitY = (double)Height * Scale;
+                bool interior = true;
+                for (int index = 0; index < count; index++)
+                {
+                    polygon.Get(index, out x, out y);
+                    // A non-finite vertex anywhere drops the whole polygon.
+                    if (!double.IsFinite(x) || !double.IsFinite(y)) return;
+                    if (x >= 0 && x < limitX && y >= 0 && y <= limitY)
+                    {
+                        _quantX[index] = (int)x;
+                        _quantY[index] = (int)y;
+                    }
+                    else interior = false;
+                }
+                if (interior)
+                {
+                    AddInteriorPolygon(count);
+                    return;
+                }
+            }
+            else
+            {
+                // A non-finite vertex anywhere drops the whole polygon before any edge is added.
+                for (int index = 0; !polygon.AlwaysFinite && index < count; index++)
+                {
+                    polygon.Get(index, out x, out y);
+                    if (!double.IsFinite(x) || !double.IsFinite(y)) return;
+                }
             }
             polygon.Get(0, out double firstX, out double firstY);
             x = firstX;
@@ -429,6 +518,70 @@ public sealed partial class PdfPageRenderer
                 y = nextY;
             }
             AddEdge(x, y, firstX, firstY);
+        }
+
+        // Adds a quantized polygon whose vertices all lie inside the raster, with no left
+        // folding or far-edge cutting to consider. Every value matches the general route:
+        // single-cell edges become the same cell entries and the rest the same stored edges.
+        private void AddInteriorPolygon(int count)
+        {
+            int[] xs = _quantX, ys = _quantY;
+            int minX = int.MaxValue, maxX = int.MinValue, minRow = _minRow, maxRow = _maxRow;
+            bool stored = false;
+            int previousX = xs[count - 1], previousY = ys[count - 1];
+            for (int index = 0; index < count; index++)
+            {
+                int x0 = previousX, y0 = previousY, x1 = xs[index], y1 = ys[index];
+                previousX = x1;
+                previousY = y1;
+                if (y0 == y1) continue;
+                int sign = 1;
+                if (y0 > y1)
+                {
+                    (x0, y0, x1, y1) = (x1, y1, x0, y0);
+                    sign = -1;
+                }
+                int firstRow = y0 >> ScaleShift, lastRow = (y1 - 1) >> ScaleShift;
+                if (firstRow < minRow) minRow = firstRow;
+                if (lastRow > maxRow) maxRow = lastRow;
+                int low = Math.Min(x0, x1), high = Math.Max(x0, x1);
+                if (low < minX) minX = low;
+                if (high > maxX) maxX = high;
+                stored = true;
+                int dx = x1 - x0;
+                if (firstRow == lastRow)
+                {
+                    int offset = x0 & (Scale - 1);
+                    long left = Math.Min(0, dx) + offset, right = Math.Max(0, dx) + offset;
+                    int first = (int)(left >> ScaleShift);
+                    if (dx == 0 || first == (int)((right - 1) >> ScaleShift))
+                    {
+                        long height = y1 - y0, total = height * (2 * Scale);
+                        long share = Math.Clamp(height * (left + right - 2L * first * Scale), 0, total);
+                        AddCellEntry(firstRow, (x0 >> ScaleShift) + first, sign * (total - share), sign * share);
+                        continue;
+                    }
+                }
+                var edge = new Edge
+                {
+                    X0 = x0, Y0 = y0, Dx = dx, Dy = y1 - y0, Sign = sign,
+                    FirstRow = firstRow, LastRow = lastRow, Interior = true,
+                };
+                if (firstRow != lastRow) edge.DxPerDy = (double)edge.Dx / edge.Dy;
+                if (lastRow - firstRow < EagerRows)
+                {
+                    for (int row = firstRow; row <= lastRow; row++)
+                        InteriorRow<EmitCells>(ref edge, row, _cells, x0 >> ScaleShift);
+                    continue;
+                }
+                if (_storedEdges == _edges.Length) Array.Resize(ref _edges, Math.Max(64, _edges.Length * 2));
+                _edges[_storedEdges++] = edge;
+            }
+            if (!stored) return;
+            _minRow = minRow;
+            _maxRow = maxRow;
+            _edgeCount++;
+            NoteColumns(minX >> ScaleShift, maxX >> ScaleShift);
         }
 
         /// <summary>
@@ -613,8 +766,84 @@ public sealed partial class PdfPageRenderer
                 return;
             }
             edge.Interior = Math.Min(x0, x1) >= 0 && Math.Max(x0, x1) < (Width - 1) * Scale;
-            if (_edgeCount > _edges.Length) Array.Resize(ref _edges, _edges.Length * 2);
-            _edges[_edgeCount - 1] = edge;
+            if (edge.Interior && edge.LastRow - edge.FirstRow < EagerRows)
+            {
+                // A short interior edge becomes its cell values right away, computed by the same
+                // row routine the sweep uses, so it never joins the active edges.
+                int last = Math.Min(edge.LastRow, Height - 1);
+                for (int row = Math.Max(edge.FirstRow, 0); row <= last; row++)
+                    InteriorRow<EmitCells>(ref edge, row, _cells, x0 >> ScaleShift);
+                return;
+            }
+            if (_storedEdges == _edges.Length) Array.Resize(ref _edges, Math.Max(64, _edges.Length * 2));
+            _edges[_storedEdges++] = edge;
+        }
+
+        // Cell entries from one polygon often land in the same cell one after another, so the
+        // latest entry stays open and absorbs repeats before it is stored.
+        private void AddCellEntry(int row, int column, long left, long right)
+        {
+            int key = row << 16 | column;
+            if (_pendingOpen && _pendingKey == key)
+            {
+                long mergedLeft = _pendingLeft + left, mergedRight = _pendingRight + right;
+                if (Math.Abs(mergedLeft) < MergeLimit && Math.Abs(mergedRight) < MergeLimit)
+                {
+                    _pendingLeft = mergedLeft;
+                    _pendingRight = mergedRight;
+                    return;
+                }
+            }
+            FlushCellEntry();
+            _pendingKey = key;
+            _pendingLeft = left;
+            _pendingRight = right;
+            _pendingOpen = true;
+        }
+
+        private void FlushCellEntry()
+        {
+            if (!_pendingOpen) return;
+            _pendingOpen = false;
+            int row = _pendingKey >> 16;
+            if (_rowStamp.Length < Height)
+            {
+                int length = Math.Max(Height, _rowStamp.Length * 2);
+                Array.Resize(ref _rowStamp, length);
+                Array.Resize(ref _rowHead, length);
+                Array.Resize(ref _rowTail, length);
+                Array.Resize(ref _tailFill, length);
+            }
+            int tail;
+            if (_rowStamp[row] != _stamp)
+            {
+                _rowStamp[row] = _stamp;
+                _rowHead[row] = _rowTail[row] = tail = NewChunk();
+                _tailFill[row] = 0;
+            }
+            else if (_tailFill[row] == ChunkEntries)
+            {
+                tail = NewChunk();
+                _chunkNext[_rowTail[row]] = tail;
+                _rowTail[row] = tail;
+                _tailFill[row] = 0;
+            }
+            else tail = _rowTail[row];
+            _chunkData[tail * ChunkEntries + _tailFill[row]++] = new CellEntry
+            {
+                Key = _pendingKey, Left = (int)_pendingLeft, Right = (int)_pendingRight,
+            };
+        }
+
+        private int NewChunk()
+        {
+            if (_chunkCount == _chunkNext.Length)
+            {
+                Array.Resize(ref _chunkNext, _chunkNext.Length * 2);
+                Array.Resize(ref _chunkData, _chunkNext.Length * ChunkEntries);
+            }
+            _chunkNext[_chunkCount] = -1;
+            return _chunkCount++;
         }
 
         // Clears every grid cell the current geometry can have touched.
@@ -649,12 +878,20 @@ public sealed partial class PdfPageRenderer
             int rows = bottom - top, maskWidth = right - left;
             int size = checked(maskWidth * rows);
             byte[] buffer;
-            bool pooled;
+            bool pooled, owned = false;
             if (!rent && size <= SmallWorkingBytes)
             {
                 if (_working.Length < size) _working = new byte[Math.Max(size, Math.Min(SmallWorkingBytes, _working.Length * 2))];
                 buffer = _working;
                 pooled = false;
+            }
+            else if (!rent && !_dense)
+            {
+                // A large owned mask is swept straight into its own array, which arrives cleared
+                // and becomes the mask unless rows or columns need trimming.
+                buffer = new byte[size];
+                pooled = false;
+                owned = true;
             }
             else
             {
@@ -691,40 +928,70 @@ public sealed partial class PdfPageRenderer
                 return Produce(buffer, pooled, rent, top, left, maskWidth,
                     tightLeft, tightTop, tightRight, tightBottom);
             }
-            PrepareScratch(rows, edgeCount);
+            FlushCellEntry();
+            int storedEdges = _storedEdges, chunkCount = _chunkCount;
+            PrepareScratch(rows, storedEdges);
             // A small mask is cleared in one call, so rows write only their nonzero runs. Large
             // masks write their zero runs row by row instead of writing most bytes twice.
-            bool cleared = size <= PreclearBytes;
-            if (cleared) buffer.AsSpan(0, size).Clear();
+            bool cleared = owned || size <= PreclearBytes;
+            if (cleared && !owned) buffer.AsSpan(0, size).Clear();
 
             // Order the edges by their first visible row with a counting sort.
             Span<int> starts = _rowStarts.AsSpan(0, rows + 1);
             starts.Clear();
-            for (int index = 0; index < edgeCount; index++)
+            for (int index = 0; index < storedEdges; index++)
             {
                 ref Edge edge = ref _edges[index];
                 if (edge.LastRow < top || edge.FirstRow >= bottom) continue;
                 starts[Math.Max(edge.FirstRow, top) - top + 1]++;
             }
             for (int row = 1; row <= rows; row++) starts[row] += starts[row - 1];
-            for (int index = 0; index < edgeCount; index++)
+            // The edges themselves move into row order, so the edges active in a row sit close
+            // together in memory however the path ordered its subpaths.
+            Edge[] edges = _sorted;
+            for (int index = 0; index < storedEdges; index++)
             {
                 ref Edge edge = ref _edges[index];
                 if (edge.LastRow < top || edge.FirstRow >= bottom) continue;
-                _order[starts[Math.Max(edge.FirstRow, top) - top]++] = index;
+                edges[starts[Math.Max(edge.FirstRow, top) - top]++] = edge;
             }
             // starts[row] now holds the end of that row's run, which is the next row's start.
 
             int activeCount = 0, next = 0;
-            Edge[] edges = _edges;
-            int[] active = _active, order = _order;
+            CellEntry[] chunkData = _chunkData;
+            int[] chunkNext = _chunkNext;
+            int[] active = _active;
             long[] rowCells = _cells;
+            ulong[] touched = _touched;
             for (int row = top; row < bottom; row++)
             {
                 int end = starts[row - top];
-                while (next < end) active[activeCount++] = order[next++];
+                while (next < end) active[activeCount++] = next++;
                 _wordMin = int.MaxValue;
                 _wordMax = -1;
+                if (chunkCount > 0 && _rowStamp.Length > row && _rowStamp[row] == _stamp)
+                {
+                    int wordMin = _wordMin, wordMax = _wordMax, tail = _rowTail[row];
+                    for (int chunk = _rowHead[row]; chunk >= 0; chunk = chunkNext[chunk])
+                    {
+                        int start = chunk * ChunkEntries;
+                        int stop = start + (chunk == tail ? _tailFill[row] : ChunkEntries);
+                        for (int index = start; index < stop; index++)
+                        {
+                            ref CellEntry entry = ref chunkData[index];
+                            int at = entry.Key & 0xFFFF;
+                            rowCells[at] += entry.Left;
+                            rowCells[at + 1] += entry.Right;
+                            int lowWord = at >> 6, highWord = (at + 1) >> 6;
+                            touched[lowWord] |= 1UL << at;
+                            touched[highWord] |= 1UL << (at + 1);
+                            if (lowWord < wordMin) wordMin = lowWord;
+                            if (highWord > wordMax) wordMax = highWord;
+                        }
+                    }
+                    _wordMin = wordMin;
+                    _wordMax = wordMax;
+                }
                 for (int index = activeCount - 1; index >= 0; index--)
                 {
                     ref Edge edge = ref edges[active[index]];
@@ -743,14 +1010,14 @@ public sealed partial class PdfPageRenderer
                 }
             }
             Reset();
-            TrimRetained();
+            TrimRetained(storedEdges, chunkCount);
             return Produce(buffer, pooled, rent, top, left, maskWidth,
-                tightLeft, tightTop, tightRight, tightBottom);
+                tightLeft, tightTop, tightRight, tightBottom, owned);
         }
 
         // Moves the nonzero part of the working rows into the returned mask.
         private static CoverageMask Produce(byte[] buffer, bool pooled, bool rent, int top, int left,
-            int maskWidth, int tightLeft, int tightTop, int tightRight, int tightBottom)
+            int maskWidth, int tightLeft, int tightTop, int tightRight, int tightBottom, bool owned = false)
         {
             if (tightTop < 0)
             {
@@ -768,6 +1035,10 @@ public sealed partial class PdfPageRenderer
                         .CopyTo(buffer.AsSpan(row * tightWidth, tightWidth));
                 return new CoverageMask(tightLeft, tightTop, tightRight, tightBottom, buffer, rented: true);
             }
+            // An owned working array that needs no trimming is already the exact mask.
+            if (owned && tightLeft == left && tightWidth == maskWidth && tightTop == top
+                && buffer.Length == tightWidth * tightHeight)
+                return new CoverageMask(tightLeft, tightTop, tightRight, tightBottom, buffer);
             var coverage = new byte[checked(tightWidth * tightHeight)];
             for (int row = 0; row < tightHeight; row++)
                 buffer.AsSpan((tightTop - top + row) * maskWidth + tightLeft - left, tightWidth)
@@ -782,22 +1053,68 @@ public sealed partial class PdfPageRenderer
             int words = (Width >> 6) + 1;
             if (_touched.Length < words) _touched = new ulong[words];
             if (_rowStarts.Length < rows + 1) _rowStarts = new int[Math.Max(rows + 1, _rowStarts.Length * 2)];
-            if (_order.Length < edgeCount)
+            if (_sorted.Length < edgeCount)
             {
-                _order = new int[Math.Max(edgeCount, _order.Length * 2)];
-                _active = new int[_order.Length];
+                _sorted = new Edge[Math.Max(edgeCount, _sorted.Length * 2)];
+                _active = new int[_sorted.Length];
             }
         }
 
-        // Keeps per-thread scratch modest after one extreme path.
-        private void TrimRetained()
+        // Keeps per-thread scratch modest. Storage past the limit stays while large paths keep
+        // arriving, so a page of them does not reallocate per fill, and is released once
+        // several sweeps in a row have needed little of it.
+        private void TrimRetained(int storedEdges, int chunkCount)
         {
-            if (_edges.Length > MaximumRetainedEdges) _edges = new Edge[1024];
-            if (_order.Length > MaximumRetainedEdges)
+            bool large = _edges.Length > MaximumRetainedEdges || _sorted.Length > MaximumRetainedEdges
+                || _chunkNext.Length > MaximumRetainedChunks;
+            if (!large) return;
+            // Past a hard ceiling the storage goes at once, so an idle thread never keeps it.
+            long retained = (_edges.Length + (long)_sorted.Length) * 48 + _active.Length * 4L
+                + _chunkData.Length * 12L + _chunkNext.Length * 4L + (_quantX.Length + (long)_quantY.Length) * 4;
+            if (retained > MaximumRetainedBytes) _smallSweeps = TrimAfterSmallSweeps;
+            else if (storedEdges > MaximumRetainedEdges / 4 || chunkCount > MaximumRetainedChunks / 4)
             {
-                _order = [];
+                _smallSweeps = 0;
+                return;
+            }
+            if (++_smallSweeps < TrimAfterSmallSweeps) return;
+            _smallSweeps = 0;
+            if (_edges.Length > MaximumRetainedEdges) _edges = new Edge[1024];
+            if (_sorted.Length > MaximumRetainedEdges)
+            {
+                _sorted = [];
                 _active = [];
             }
+            if (_chunkNext.Length > MaximumRetainedChunks)
+            {
+                _chunkNext = new int[64];
+                _chunkData = new CellEntry[64 * ChunkEntries];
+            }
+            if (_quantX.Length > MaximumRetainedCells) _quantX = _quantY = [];
+        }
+
+        // Adds a piece's values to a cell and its right neighbour, the same as two AddCell calls.
+        private void AddPair(int column, long left, long right)
+        {
+            if (column < 0 || column + 1 >= Width)
+            {
+                AddCell(column, left);
+                AddCell(column + 1, right);
+                return;
+            }
+            if (_dense)
+            {
+                _grid[_rowBase + column] += left;
+                _grid[_rowBase + column + 1] += right;
+                return;
+            }
+            _cells[column] += left;
+            _cells[column + 1] += right;
+            int lowWord = column >> 6, highWord = (column + 1) >> 6;
+            _touched[lowWord] |= 1UL << column;
+            _touched[highWord] |= 1UL << (column + 1);
+            if (lowWord < _wordMin) _wordMin = lowWord;
+            if (highWord > _wordMax) _wordMax = highWord;
         }
 
         private void AddCell(int column, long value)
@@ -832,8 +1149,7 @@ public sealed partial class PdfPageRenderer
                 else
                 {
                     long share = sign * height * (2 * offset);
-                    AddCell(column0, full - share);
-                    AddCell(column0 + 1, share);
+                    AddPair(column0, full - share, share);
                 }
                 return;
             }
@@ -851,8 +1167,7 @@ public sealed partial class PdfPageRenderer
                     else if (column < Width)
                     {
                         long share = Math.Clamp(height * (low + high - 2L * first * Scale), 0, total);
-                        AddCell(column, sign * (total - share));
-                        AddCell(column + 1, sign * share);
+                        AddPair(column, sign * (total - share), sign * share);
                     }
                     return;
                 }
@@ -876,8 +1191,7 @@ public sealed partial class PdfPageRenderer
                 {
                     double mean = leftX + rightX - 2.0 * firstColumn * Scale;
                     long share = Math.Clamp((long)Math.Round(height * mean), 0, totalShare);
-                    AddCell(column, sign * (totalShare - share));
-                    AddCell(column + 1, sign * share);
+                    AddPair(column, sign * (totalShare - share), sign * share);
                 }
                 return;
             }
@@ -925,8 +1239,7 @@ public sealed partial class PdfPageRenderer
                 long piece = nextShare - previousShare;
                 double sum = previousX + nextX - 2.0 * column * Scale;
                 long right = Math.Clamp((long)Math.Round((nextProgress - previousProgress) * sum), 0, Math.Max(piece, 0));
-                AddCell(column0 + column, sign * (piece - right));
-                AddCell(column0 + column + 1, sign * right);
+                AddPair(column0 + column, sign * (piece - right), sign * right);
                 previousX = nextX;
                 previousProgress = nextProgress;
                 previousShare = nextShare;
