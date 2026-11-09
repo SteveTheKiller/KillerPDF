@@ -335,9 +335,21 @@ public sealed partial class EpubDocument
             throw new InvalidDataException("Native EPUB text exceeds its 16,000,000-character layout limit.");
         remainingTextLength -= text.Length;
         var anchorsByCell = new Dictionary<EpubNativeContent.Element, List<(string Id, int Offset)>>();
+        var anchorIds = new HashSet<string>(StringComparer.Ordinal);
+        var repeatedIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var anchor in content.Anchors)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            // HTML: the first element with an id is the one a fragment finds; a repeat is reported once and ignored.
+            if (!anchorIds.Add(anchor.Id))
+            {
+                if (repeatedIds.Add(anchor.Id) && repeatedIds.Count <= 1000)
+                    contentDiagnostics.Add(new(spineIndex, resource.Href,
+                        "The id " + anchor.Id + " is used more than once, so links to it go to its first use.")
+                    // A repeated id is malformed markup; the existing reason keeps the app's localized wording.
+                    { Reason = EpubOmissionReason.InvalidContent });
+                continue;
+            }
             if (anchors.Count >= 100_000)
                 throw new InvalidDataException("Native EPUB anchors exceed their 100,000 destination limit.");
             int offset = Math.Min(anchor.Offset, text.Length);

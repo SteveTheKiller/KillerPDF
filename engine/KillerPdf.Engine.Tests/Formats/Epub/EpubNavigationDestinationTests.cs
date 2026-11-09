@@ -18,11 +18,11 @@ public sealed class EpubNavigationDestinationTests
     }
 
     [Fact]
-    public void DuplicateAnchorIdentityIsAmbiguousWithinItsChapter()
+    public void ARepeatedIdLeadsToItsFirstUse()
     {
         var layout = EpubDocument.Open(Book(firstBody: "<p><span id='same'>A</span> <span id='same'>A</span></p>"))
             .CreateLayout(Options());
-        Assert.Throws<InvalidDataException>(() => layout.ResolveNavigationTarget("EPUB/first.xhtml#same"));
+        Assert.Equal(0, layout.ResolveNavigationTarget("EPUB/first.xhtml#same").TextOffset);
     }
 
     [Theory]
@@ -46,7 +46,8 @@ public sealed class EpubNavigationDestinationTests
     [Fact]
     public void AnchorWorkIsBoundedAcrossRepeatedEmptySpineContent()
     {
-        string body = "<p>" + string.Concat(Enumerable.Repeat("<span id='a'/>", 50_001)) + "</p>";
+        // Distinct ids: a repeated id is reported and dropped, so only distinct ones count toward the bound.
+        string body = "<p>" + string.Concat(Enumerable.Range(0, 50_001).Select(index => $"<span id='a{index}'/>")) + "</p>";
         var book = EpubDocument.Open(Book(firstBody: body, spine: "<itemref idref='first'/><itemref idref='first'/>"));
         var exception = Assert.Throws<InvalidDataException>(() => book.CreateLayout(Options()));
         Assert.Contains("anchor", exception.Message, StringComparison.OrdinalIgnoreCase);
