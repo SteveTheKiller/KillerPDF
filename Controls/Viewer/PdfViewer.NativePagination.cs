@@ -29,8 +29,10 @@ public partial class PdfViewer
             if (_continuousPanel.Children.Count != before) return;
             for (int page = before; page < ReadPageCount; page++) AddContinuousSlot(page);
             LayoutContinuousSlots();
-            // The pages around the one being read, which may include new ones when it is near the end.
-            _ = RenderContinuousPages(_currentPage);
+            // The pages around the one being read, which may include new ones when it is near the end. A pass still
+            // drawing is left to finish: starting a new one cancels it, and on a slow machine a refresh every half second
+            // kept the first page from ever being drawn. The scroll-settle pass picks up any new slot it misses.
+            if (_continuousRenderTask is not { IsCompleted: false }) _ = RenderContinuousPages(_currentPage);
         }
         else if (_viewMode == ViewMode.Grid)
         {
