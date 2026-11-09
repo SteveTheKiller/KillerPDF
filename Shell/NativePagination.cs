@@ -69,7 +69,7 @@ public partial class MainWindow
             if (!ReferenceEquals(viewer, ActiveViewer)) continue;
             // The finished list is drawn whole once; until then the added pages are listed without thumbnails, so the
             // thumbnail reader does not keep stopping pagination to lay chapters out.
-            if (finished) RefreshPageList();
+            if (finished) KeepReaderInput(RefreshPageList);
             else if (after > before) AppendNativePageList(book, before, after);
             _pageTotalLabel.Text = SidebarPageBinding.Total(after, book.IsPaginating);
             SyncPageNavigationButtons();
@@ -84,10 +84,30 @@ public partial class MainWindow
         var items = new PageThumbnailVm[after];
         Array.Copy(shown, items, before);
         for (int index = before; index < after; index++) items[index] = new PageThumbnailVm(index, revision, 0, proof);
-        _sidebarPages.Show(items, provisional: book.IsPaginating);
-        ApplyPageThumbnailLayout();
-        ActiveViewer.SyncPageListSelection(ActiveViewer.CurrentPageIndex);
+        KeepReaderInput(() =>
+        {
+            _sidebarPages.Show(items, provisional: book.IsPaginating);
+            ApplyPageThumbnailLayout();
+            ActiveViewer.SyncPageListSelection(ActiveViewer.CurrentPageIndex);
+        });
         ActiveViewer.ThumbCache = items;
         ActiveViewer.ThumbCacheComplete = false;
+    }
+
+    // Re-seating the page list writes the current page into the page box and scrolls the list back to it. While a book
+    // paginates that happens every half second, so it would wipe a page number being typed and pull the list away from
+    // where the reader scrolled it; both are put back.
+    private void KeepReaderInput(Action reseat)
+    {
+        bool typing = _pageJumpBox.IsKeyboardFocusWithin;
+        string typed = _pageJumpBox.Text;
+        int caret = _pageJumpBox.CaretIndex;
+        var list = FindSidebarDescendant<System.Windows.Controls.ScrollViewer>(PageList);
+        double offset = list?.VerticalOffset ?? 0;
+        reseat();
+        list?.ScrollToVerticalOffset(offset);
+        if (!typing) return;
+        _pageJumpBox.Text = typed;
+        _pageJumpBox.CaretIndex = Math.Min(caret, typed.Length);
     }
 }
