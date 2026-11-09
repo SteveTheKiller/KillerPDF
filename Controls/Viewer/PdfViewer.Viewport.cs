@@ -2152,17 +2152,20 @@ namespace KillerPDF.Controls
             SetZoom(trueZoom / zf);
         }
 
-        internal void ZoomIn_Click(object sender, RoutedEventArgs e)
+        internal void ZoomIn_Click(object sender, RoutedEventArgs e) => StepZoomByUser(zoomIn: true);
+        internal void ZoomOut_Click(object sender, RoutedEventArgs e) => StepZoomByUser(zoomIn: false);
+
+        /// <summary>
+        /// One zoom step the user asked for (toolbar, menu or keyboard). It marks viewport intent,
+        /// so a fit still pending from a view switch or document open does not replace it.
+        /// <see cref="SetZoom"/> stays unmarked for programmatic fits and restores.
+        /// </summary>
+        internal void StepZoomByUser(bool zoomIn)
         {
             MarkViewportIntent();
-            if (_viewMode == ViewMode.Grid) GridZoomStep(false);
-            else if (!AdjustPendingZoomStep(ZoomStep)) SetZoom(_zoomLevel + ZoomStep);
-        }
-        internal void ZoomOut_Click(object sender, RoutedEventArgs e)
-        {
-            MarkViewportIntent();
-            if (_viewMode == ViewMode.Grid) GridZoomStep(true);
-            else if (!AdjustPendingZoomStep(-ZoomStep)) SetZoom(_zoomLevel - ZoomStep);
+            double step = zoomIn ? ZoomStep : -ZoomStep;
+            if (_viewMode == ViewMode.Grid) GridZoomStep(!zoomIn);
+            else if (!AdjustPendingZoomStep(step)) SetZoom(_zoomLevel + step);
         }
 
         /// <summary>Set by SyncZoomBox around its programmatic writes. Same story as

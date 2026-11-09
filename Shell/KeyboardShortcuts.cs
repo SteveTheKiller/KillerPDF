@@ -716,13 +716,13 @@ namespace KillerPDF.Shell
             else if (Services.KeyLayout.IsCtrlChar(key, '+', '=')
                      || ((key == Key.OemPlus || key == Key.Add) && mods == ModifierKeys.Control))
             {
-                if (_viewMode == ViewMode.Grid) GridZoomStep(false); else SetZoom(_zoomLevel + ZoomStep);
+                ActiveViewer.StepZoomByUser(zoomIn: true);
                 e.Handled = true;
             }
             else if (Services.KeyLayout.IsCtrlChar(key, '-')
                      || ((key == Key.OemMinus || key == Key.Subtract) && mods == ModifierKeys.Control))
             {
-                if (_viewMode == ViewMode.Grid) GridZoomStep(true); else SetZoom(_zoomLevel - ZoomStep);
+                ActiveViewer.StepZoomByUser(zoomIn: false);
                 e.Handled = true;
             }
             else if (key == Key.D0 && mods == ModifierKeys.Control)
