@@ -421,7 +421,8 @@ public sealed partial class EpubDocument
     {
         // Itemref properties (page-spread-*, rendition:*) only affect synthetic spreads and fixed layout; they are ignored.
         var resource = Spine[spineIndex].Item;
-        if (resource.MediaType != "application/xhtml+xml" || Tokens(resource.Properties).Any(property => property != "svg"))
+        // Only scripting refuses a chapter, as in ReadStructuralText; nav, mathml and remote-resources are not fetched or are ignored.
+        if (resource.MediaType != "application/xhtml+xml" || Tokens(resource.Properties).Contains("scripted", StringComparer.Ordinal))
             throw new NotSupportedException("Native EPUB layout requires unscripted XHTML with supported resource properties.");
         if (_resources[resource.Href].Length > MaxEntryBytes)
             throw new InvalidDataException("Native EPUB XHTML exceeds its 8 MiB resource limit.");

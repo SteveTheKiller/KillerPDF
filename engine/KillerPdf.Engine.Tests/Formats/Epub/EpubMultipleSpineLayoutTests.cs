@@ -204,6 +204,31 @@ public sealed class EpubMultipleSpineLayoutTests
         Assert.Throws<NotSupportedException>(() => book.CreateLayout(Options()));
     }
 
+    [Theory]
+    [InlineData(" properties='mathml'")]
+    [InlineData(" properties='remote-resources'")]
+    [InlineData(" properties='mathml remote-resources'")]
+    [InlineData(" properties='future-property'")]
+    public void ChapterManifestPropertiesOtherThanScriptedStillLayOutAndConvert(string itemProperties)
+    {
+        var book = EpubDocument.Open(Book(["<p>A</p>", "<p>AA</p>"], lastItemProperties: itemProperties));
+        var layout = book.CreateLayout(Options() with { IsolateChapterFailures = true });
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.Equal("AA", layout.Pages.Last().Text);
+        Assert.Equal(1, layout.Pages.Last().SpineIndex);
+        book.ConvertToPdf(new EpubPdfConversionOptions(Options().DefaultFont));
+    }
+
+    [Fact]
+    public void ANavigationDocumentListedInTheSpineStillLaysOutAndConverts()
+    {
+        var book = EpubDocument.Open(Book(["<p>A</p>", "<p>AA</p>"], navigationInSpine: true));
+        var layout = book.CreateLayout(Options() with { PageWidth = 200, PageHeight = 100, IsolateChapterFailures = true });
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.Equal(3, layout.Pages.Select(page => page.SpineIndex).Distinct().Count());
+        Assert.Equal("Chapters", string.Concat(layout.Pages.Where(page => page.SpineIndex == 2).Select(page => page.Text)));
+    }
+
     [Fact]
     public void CancellationPrecedesOptionsAndPropagatesThroughNativeReading()
     {
@@ -285,7 +310,7 @@ public sealed class EpubMultipleSpineLayoutTests
     };
 
     private static byte[] Book(string[]? bodies = null, int[]? spineOrder = null,
-        string lastSpineAttributes = "", string lastItemProperties = "")
+        string lastSpineAttributes = "", string lastItemProperties = "", bool navigationInSpine = false)
     {
         bodies ??= ["<p>A A</p>", "<p>AA</p>"];
         spineOrder ??= Enumerable.Range(0, bodies.Length).ToArray();
@@ -299,7 +324,8 @@ public sealed class EpubMultipleSpineLayoutTests
             string manifest = string.Concat(Enumerable.Range(0, bodies.Length).Reverse().Select(index =>
                 $"<item id='chapter{index}' href='chapter{bodies.Length - index}.xhtml' media-type='application/xhtml+xml'{(index == bodies.Length - 1 ? lastItemProperties : "")}/>"));
             string spine = string.Concat(spineOrder.Select((index, position) =>
-                $"<itemref idref='chapter{index}'{(position == spineOrder.Length - 1 ? lastSpineAttributes : "")}/>"));
+                $"<itemref idref='chapter{index}'{(position == spineOrder.Length - 1 ? lastSpineAttributes : "")}/>"))
+                + (navigationInSpine ? "<itemref idref='nav'/>" : "");
             Add("EPUB/book.opf", $"""
                 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
                   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:multiple-spine</dc:identifier><dc:title>Multiple chapters</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2026-11-03T00:00:00Z</meta></metadata>

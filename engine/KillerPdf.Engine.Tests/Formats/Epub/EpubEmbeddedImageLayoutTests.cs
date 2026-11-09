@@ -100,17 +100,28 @@ public sealed class EpubEmbeddedImageLayoutTests
     }
 
     [Fact]
-    public void SvgManifestDeclarationDoesNotAdmitScriptedOrRemoteResourceProperties()
+    public void SvgManifestDeclarationDoesNotAdmitScriptedContent()
     {
-        foreach (string properties in new[] { "svg scripted", "svg remote-resources", "svg mathml", "svg unknown" })
-        {
-            var book = EpubDocument.Open(Package(RgbPng(), "<p>A</p>", properties: properties));
-            var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
-            Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(16, 16, font)
-            { Margin = 2, FontSize = 10 }));
-            Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
-            { PageWidthPoints = 12, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
-        }
+        var book = EpubDocument.Open(Package(RgbPng(), "<p>A</p>", properties: "svg scripted"));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(16, 16, font)
+        { Margin = 2, FontSize = 10 }));
+        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 12, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 }));
+    }
+
+    [Theory]
+    [InlineData("svg remote-resources")]
+    [InlineData("svg mathml")]
+    [InlineData("svg unknown")]
+    public void SvgManifestDeclarationWithOtherPropertiesStillLaysOutAtBothSeams(string properties)
+    {
+        var book = EpubDocument.Open(Package(RgbPng(), "<p>A</p>", properties: properties));
+        var font = TrueTypeFont.Load(book.ReadResource("EPUB/fonts/test.ttf"));
+        var layout = book.CreateLayout(new EpubLayoutOptions(16, 16, font) { Margin = 2, FontSize = 10 });
+        Assert.Equal("A", Assert.Single(layout.Pages).Text);
+        book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 12, PageHeightPoints = 12, MarginPoints = 1.5, FontSizePoints = 7.5 });
     }
 
     [Fact]
