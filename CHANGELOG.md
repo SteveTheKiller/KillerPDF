@@ -28,6 +28,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - JPEG 2000 images use their encoded sample depth when the PDF declares a different value.
 - Gradient mesh shadings have smooth clipped edges instead of jagged ones.
 - Rasterize Region keeps earlier region images intact on repeated operations and leaves invisible clipping paths out of its content counts. (#369)
+- Zoomed page details stay aligned when scrolling, and switching from Continuous to Single-page viewing keeps the correct zoom.
 - Save Flattened shows output pixel dimensions and scale, matching image export. (#462)
 - View controls follow the active tab or pane, and opening a document during a sidebar transition keeps its thumbnails visible. (#473)
 - The file picker no longer stalls on a disconnected network folder when it opens, a relative or malformed path typed in the path box is refused instead of being looked up against the wrong folder, a pattern such as *.log typed in the name box filters the list, and a full path typed in the name box can be accepted even when the shown folder failed to list.
