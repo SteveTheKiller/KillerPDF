@@ -480,6 +480,47 @@ public sealed class NativeSearchServiceTests
     private static int ChapterLayoutCount(object chapters) =>
         (int)chapters.GetType().GetProperty("Layouts", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(chapters)!;
 
+    // An EPUB tab is read-only until Convert to PDF: opening the book lets the tab's PDF working document go, and both
+    // Replace commands stop at the missing document before they read the current match or run a search. So a hit whose
+    // highlight areas are still being read is never replaced, and Replace never starts the search over.
+    [Fact]
+    public void ReplaceOnAnEpubTabStopsBeforeItReadsTheMatchOrSearches()
+    {
+        string adopt = Between(Source("Shell", "NativeDocuments.cs"), "private void AdoptNativeDocument(",
+            "ActiveViewer.NativeDocumentRef = opened;");
+        Assert.Contains("_doc = null;", adopt);
+        string bar = Source("Shell", "Search.cs");
+        foreach (var (start, end) in new[] { ("private void ReplaceCurrentMatch()", "private void ReplaceAllMatches()"),
+            ("private void ReplaceAllMatches()", "private void AfterReplace(") })
+        {
+            string body = Between(bar, start, end);
+            int guard = body.IndexOf("_doc is null) return;", StringComparison.Ordinal);
+            Assert.True(guard >= 0, start);
+            foreach (string use in new[] { "Search.", "ReplaceText", "EnsureEditable" })
+            {
+                int at = body.IndexOf(use, StringComparison.Ordinal);
+                Assert.True(at < 0 || at > guard, $"{start} uses {use} before the document check.");
+            }
+        }
+    }
+
+    private static string Between(string source, string start, string end)
+    {
+        int from = source.IndexOf(start, StringComparison.Ordinal);
+        Assert.True(from >= 0, "Not found: " + start);
+        int to = source.IndexOf(end, from, StringComparison.Ordinal);
+        Assert.True(to > from, "Not found: " + end);
+        return source[from..to];
+    }
+
+    private static string Source(params string[] parts)
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "KillerPDF.csproj")))
+            directory = directory.Parent;
+        return File.ReadAllText(Path.Combine([directory!.FullName, .. parts]));
+    }
+
     // The engine's chapter re-layout cache, reached by reflection because the app tests do not see engine internals.
     private static object ChapterLayouts(PdfReadSnapshot snapshot)
     {
