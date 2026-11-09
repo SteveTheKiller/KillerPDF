@@ -210,7 +210,16 @@ namespace KillerPDF.Shell
         string IViewerHost.PageJumpText { get => _pageJumpBox.Text; set => _pageJumpBox.Text = value; }
         bool IViewerHost.PageJumpEnabled { set { _pageJumpBox.IsEnabled = value; SyncPageNavigationButtons(); } }
         bool IViewerHost.CloseFileEnabled { set => _closeFileBtnRef.IsEnabled = value; }
-        string IViewerHost.PageTotalText { set { _pageTotalLabel.Text = value; SyncPageNavigationButtons(); } }
+        // A book still being paginated shows its total as provisional ("/ 340+") until the last page is known.
+        string IViewerHost.PageTotalText
+        {
+            set
+            {
+                _pageTotalLabel.Text = value != Controls.SidebarPageBinding.Empty
+                    && ActiveViewer?.NativeDocumentRef is { IsPaginating: true } ? value + "+" : value;
+                SyncPageNavigationButtons();
+            }
+        }
         void IViewerHost.SelectAllPageJumpText() => _pageJumpBox.SelectAll();
 
         void IViewerHost.SyncZoomDisplay(string? fitTag, string displayText)

@@ -615,8 +615,12 @@ namespace KillerPDF.Shell
             }
             else if (key == Key.End && mods == ModifierKeys.None && HasReadingDocument)
             {
-                RecordNavJump();
-                PageList.SelectedIndex = ReadingPageCount - 1;
+                // A book still being paginated has its last page once pagination ends.
+                if (!ActiveViewer.GoToPageWhenPaginatedExt(0, page => { RecordNavJump(); PageList.SelectedIndex = page; }, last: true))
+                {
+                    RecordNavJump();
+                    PageList.SelectedIndex = ReadingPageCount - 1;
+                }
                 e.Handled = true;
             }
             else if (key == Key.D1 && mods == ModifierKeys.Control && HasReadingDocument)

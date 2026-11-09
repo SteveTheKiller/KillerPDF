@@ -1,0 +1,93 @@
+using KillerPDF.Controls;
+using KillerPDF.Services;
+
+namespace KillerPDF.Shell;
+
+public partial class MainWindow
+{
+    // How often the views take in the pages paginated since the last look, while a book is still paginating.
+    private static readonly TimeSpan PaginationRefresh = TimeSpan.FromMilliseconds(500);
+
+    // A long EPUB opens at its first chapter while the rest is paginated in the background. Every half second the
+    // views showing it take in the new pages at their end: page slots, Grid tiles, the page list and the provisional
+    // total ("/ 340+"). Pages already shown never change. When the last page is known the total settles and the page
+    // list draws the thumbnails of the pages added meanwhile.
+    private async void FollowNativePagination(NativeWorkingDocument book, string fileName)
+    {
+        try
+        {
+            while (book.IsPaginating)
+            {
+                await Task.WhenAny(book.Pagination, Task.Delay(PaginationRefresh));
+                if (_windowResourcesReleased || Dispatcher.HasShutdownStarted) return;
+                ShowPaginatedPages(book, finished: false);
+            }
+            if (_windowResourcesReleased || Dispatcher.HasShutdownStarted) return;
+            ShowPaginatedPages(book, finished: true);
+            // Closing the book cancels pagination; that needs no word. A failure keeps the pages already shown.
+            if (book.Pagination.IsFaulted && !book.IsClosed && IsShowing(book))
+                KillerDialog.Show(this, string.Format(Loc("Str_Dlg_FailedOpen"),
+                        book.Pagination.Exception!.GetBaseException().Message),
+                    Loc("Str_Dlg_AppTitle"), System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            else if (book.Pagination.IsCompletedSuccessfully && IsShowing(book)
+                && _paginatingOpenStatus.Book == book && StatusText.Text == _paginatingOpenStatus.Text)
+                SetStatus(OpenedStatus(fileName, book));
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            // Following is display only; the book itself stays readable.
+        }
+        finally
+        {
+            // Nothing here may keep a closed book in memory.
+            if (ReferenceEquals(_paginatingOpenStatus.Book, book)) _paginatingOpenStatus = default;
+        }
+    }
+
+    private bool IsShowing(NativeWorkingDocument book) => ReferenceEquals(ActiveViewer.NativeDocumentRef, book);
+
+    // The open message of a book still being paginated, so a finished pagination can correct its page count while the
+    // status bar still shows it.
+    private (NativeWorkingDocument? Book, string? Text) _paginatingOpenStatus;
+
+    private string OpenedStatus(string fileName, NativeWorkingDocument book)
+    {
+        string status = string.Format(Loc("Str_Opened"), fileName,
+            book.IsPaginating ? book.ShownPageCount + "+" : book.ShownPageCount.ToString());
+        if (book.UnavailableChapterCount > 0)
+            status += " " + string.Format(Loc("Str_Epub_ChaptersUnavailable"), book.UnavailableChapterCount);
+        return status;
+    }
+
+    private void ShowPaginatedPages(NativeWorkingDocument book, bool finished)
+    {
+        var (before, after) = book.ShowPaginatedPages();
+        foreach (var viewer in new[] { Viewer, ViewerB })
+        {
+            if (!ReferenceEquals(viewer.NativeDocumentRef, book)) continue;
+            viewer.ShowPaginatedPagesExt(before);
+            if (!ReferenceEquals(viewer, ActiveViewer)) continue;
+            // The finished list is drawn whole once; until then the added pages are listed without thumbnails, so the
+            // thumbnail reader does not keep stopping pagination to lay chapters out.
+            if (finished) RefreshPageList();
+            else if (after > before) AppendNativePageList(book, before, after);
+            _pageTotalLabel.Text = SidebarPageBinding.Total(after, book.IsPaginating);
+            SyncPageNavigationButtons();
+        }
+    }
+
+    private void AppendNativePageList(NativeWorkingDocument book, int before, int after)
+    {
+        if (PageList.ItemsSource is not PageThumbnailVm[] shown || shown.Length != before) { RefreshPageList(); return; }
+        var revision = book.CaptureReadRevision();
+        var proof = ActiveViewer.DocumentProofView?.CaptureProof();
+        var items = new PageThumbnailVm[after];
+        Array.Copy(shown, items, before);
+        for (int index = before; index < after; index++) items[index] = new PageThumbnailVm(index, revision, 0, proof);
+        _sidebarPages.Show(items, provisional: book.IsPaginating);
+        ApplyPageThumbnailLayout();
+        ActiveViewer.SyncPageListSelection(ActiveViewer.CurrentPageIndex);
+        ActiveViewer.ThumbCache = items;
+        ActiveViewer.ThumbCacheComplete = false;
+    }
+}

@@ -18,11 +18,17 @@ namespace KillerPDF.Controls
         /// Shell/FileOperations.cs and PdfViewer.Tabs.cs still write this inline.</summary>
         internal const string Empty = "/ -";
 
-        internal void Show(IList? items)
+        /// <param name="items">The page list, or null with no document.</param>
+        /// <param name="provisional">True while a book is still being paginated: the total reads "/ 340+" and
+        /// settles when the last page is known.</param>
+        internal void Show(IList? items, bool provisional = false)
         {
             // Re-binding the same list rebuilds every container, so only assign on a real change.
             if (!ReferenceEquals(list.ItemsSource, items)) list.ItemsSource = items;
-            total.Text = items is null ? Empty : $"/ {items.Count}";
+            total.Text = items is null ? Empty : Total(items.Count, provisional);
         }
+
+        /// <summary>The page total as the footer shows it.</summary>
+        internal static string Total(int count, bool provisional) => provisional ? $"/ {count}+" : $"/ {count}";
     }
 }

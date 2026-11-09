@@ -61,15 +61,17 @@ public partial class MainWindow
             };
             panel.Children.Add(cancelButton);
         }
-        // Each laid-out chapter updates the overlay, so a long book shows it is moving.
+        // Each laid-out chapter updates the overlay, so a long book shows it is moving. The open returns at the first
+        // chapter; reports from the background pagination after that are FollowNativePagination's to show.
         var busyText = (busy.Child as Panel)?.Children.OfType<TextBlock>().FirstOrDefault();
+        bool overlayShown = true;
         var progress = new Progress<(int Done, int Total)>(report =>
         {
-            if (busyText is not null && !token.IsCancellationRequested)
+            if (busyText is not null && overlayShown && !token.IsCancellationRequested)
                 busyText.Text = string.Format(Loc("Str_Native_OpeningChapter"), Path.GetFileName(path), report.Done, report.Total);
         });
         NativeWorkingDocument? opened = null;
-        bool adopted = false, overlayShown = true;
+        bool adopted = false;
         try
         {
             try
@@ -91,6 +93,7 @@ public partial class MainWindow
             AdoptNativeDocument(path, opened);
             FinalizeAsyncOpen();
             adopted = true;
+            if (opened.IsPaginating) FollowNativePagination(opened, Path.GetFileName(path));
         }
         catch (Exception error)
         {
@@ -155,11 +158,11 @@ public partial class MainWindow
         _viewMode = Enum.TryParse<ViewMode>(App.GetSetting("ViewMode"), out var preferredView)
             ? preferredView : ViewMode.Continuous;
         BootstrapDocumentView(0, autoFit: true);
-        string status = string.Format(Loc("Str_Opened"), Path.GetFileName(path), opened.PageCount);
+        // A book still being paginated reports its pages so far as "340+"; FollowNativePagination corrects the count.
+        string status = OpenedStatus(Path.GetFileName(path), opened);
         if (ActiveViewer.ProofPreferenceNoticeKeyExt is { } notice) status += " " + Loc(notice);
-        if (opened.UnavailableChapterCount > 0)
-            status += " " + string.Format(Loc("Str_Epub_ChaptersUnavailable"), opened.UnavailableChapterCount);
         SetStatus(status);
+        _paginatingOpenStatus = opened.IsPaginating ? (opened, StatusText.Text) : default;
         SyncSidebarToDocState(hasDoc: true, startup: false);
         ActiveViewer.CompleteTabLoadExt();
     }

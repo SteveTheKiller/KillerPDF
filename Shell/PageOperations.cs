@@ -395,7 +395,9 @@ namespace KillerPDF.Shell
                 return;
             }
 
-            int    pageCount = nativeRevision?.PageCount ?? EnsureEngineDocumentSession().Pages.Count;
+            // A book still being paginated lists the pages the views show; more are appended as they are taken in.
+            var nativeBook = thumbnailOwner.NativeDocumentRef;
+            int    pageCount = nativeBook?.ShownPageCount ?? EnsureEngineDocumentSession().Pages.Count;
             string filePath  = _currentFile;
             OpenedProtection protection = _protection;
             int preservedPage = ActiveViewer.CurrentPageIndex;
@@ -423,7 +425,7 @@ namespace KillerPDF.Shell
                     if (prev != null) items[i].SetThumbnailDirect(prev);
                 }
             }
-            _sidebarPages.Show(items);
+            _sidebarPages.Show(items, provisional: nativeBook?.IsPaginating == true);
             ApplyPageThumbnailLayout();
             ActiveViewer.SyncPageListSelection(preservedPage);
 

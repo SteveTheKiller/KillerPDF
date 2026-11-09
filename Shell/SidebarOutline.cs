@@ -162,18 +162,15 @@ namespace KillerPDF.Shell
             {
                 if (!ReferenceEquals(ActiveViewer.NativeDocumentRef, native.Owner)
                     || string.IsNullOrEmpty(native.Entry.Target)) return;
-                try
+                // In a book still being paginated, an entry for a later chapter waits for that chapter's page numbers.
+                var viewer = ActiveViewer;
+                viewer.GoToNativeTargetExt(native.Owner, native.Entry.Target, PageList.SelectedIndex, destination =>
                 {
-                    var destination = native.Owner.ResolveNavigationTarget(native.Entry.Target, PageList.SelectedIndex);
+                    if (!ReferenceEquals(ActiveViewer, viewer)) return;
                     RecordNavJump();
                     PageList.SelectedIndex = destination.PageIndex;
-                    _ = ActiveViewer.RevealNativeNavigationExt(native.Owner, destination);
-                }
-                catch (Exception error) when (error is InvalidDataException or NotSupportedException
-                    or ArgumentException or ObjectDisposedException)
-                {
-                    SetStatus(string.Format(Loc("Str_Pages_Failed"), error.Message));
-                }
+                    _ = viewer.RevealNativeNavigationExt(native.Owner, destination);
+                });
                 return;
             }
             if (e.NewValue is TreeViewItem item && item.Tag is OutlineNodeRef nref && nref.PageIndex >= 0 && _doc is not null)
