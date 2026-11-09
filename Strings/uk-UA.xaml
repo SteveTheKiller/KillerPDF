@@ -129,6 +129,7 @@
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">ВЕРСІЯ</sys:String>
+    <sys:String x:Key="Str_About_ColorStatus">Керування кольором: монітори HDR і фізична точність кольорів перебувають у розробці.</sys:String>
     <sys:String x:Key="Str_About_Publisher">ВИДАВЕЦЬ</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">ВІДБИТОК</sys:String>
     <sys:String x:Key="Str_About_ExeSha">SHA256 EXE</sys:String>

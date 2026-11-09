@@ -129,6 +129,7 @@ Stronę można zastąpić jej obrazem z zaczernionymi zaznaczonymi obszarami. Te
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">WERSJA</sys:String>
+    <sys:String x:Key="Str_About_ColorStatus">Zarządzanie kolorami: monitory HDR i fizyczna dokładność kolorów są w trakcie opracowywania.</sys:String>
     <sys:String x:Key="Str_About_Publisher">WYDAWCA</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">ODCISK PALCA</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

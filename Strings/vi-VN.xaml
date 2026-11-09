@@ -129,6 +129,7 @@ Có thể thay trang bằng hình ảnh của chính nó với các vùng đã �
 
     <!-- ── Lớp thông tin Giới thiệu ─────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">PHIÊN BẢN</sys:String>
+    <sys:String x:Key="Str_About_ColorStatus">Quản lý màu: màn hình HDR và độ chính xác màu vật lý đang được phát triển.</sys:String>
     <sys:String x:Key="Str_About_Publisher">NHÀ PHÁT HÀNH</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">VÂN TAY CHỨNG THƯ</sys:String>
     <sys:String x:Key="Str_About_ExeSha">SHA256 EXE</sys:String>

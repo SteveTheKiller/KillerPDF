@@ -119,6 +119,7 @@
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Bližnjice na tipkovnici (F1)</sys:String>
     <sys:String x:Key="Str_TT_About">O programu KillerPDF (F12)</sys:String>
     <sys:String x:Key="Str_About_Version">RAZLIČICA</sys:String>
+    <sys:String x:Key="Str_About_ColorStatus">Upravljanje barv: monitorji HDR in fizična natančnost barv sta v razvoju.</sys:String>
     <sys:String x:Key="Str_About_Publisher">IZDAJATELJ</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">PRSTNI ODTIS</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

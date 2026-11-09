@@ -127,6 +127,7 @@ La página se puede sustituir por una imagen de sí misma con las áreas marcada
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERSIÓN</sys:String>
+    <sys:String x:Key="Str_About_ColorStatus">Gestión del color: los monitores HDR y la precisión física del color están en desarrollo.</sys:String>
     <sys:String x:Key="Str_About_Publisher">EDITOR</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">HUELLA DIGITAL</sys:String>
     <sys:String x:Key="Str_About_ExeSha">SHA256 EXE</sys:String>

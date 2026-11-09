@@ -3184,6 +3184,12 @@
                                                Foreground="{DynamicResource MutedTextBrush}"
                                                HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
                                 </Grid>
+                                <!-- Product status, not a warning: HDR and physical color accuracy
+                                     are still in progress in 1.9.3. Wraps at large app scale. -->
+                                <TextBlock Text="{DynamicResource Str_About_ColorStatus}"
+                                           Foreground="{DynamicResource MutedTextBrush}"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                           TextWrapping="Wrap" Margin="0,4,0,0"/>
                             </StackPanel>
                             <StackPanel Margin="0,0,0,10">
                                 <TextBlock Text="{DynamicResource Str_About_Publisher}" Foreground="{DynamicResource MutedTextBrush}"

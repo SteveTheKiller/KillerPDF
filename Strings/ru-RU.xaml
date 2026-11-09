@@ -129,6 +129,7 @@
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">ВЕРСИЯ</sys:String>
+    <sys:String x:Key="Str_About_ColorStatus">Управление цветом: мониторы HDR и физическая точность цветопередачи находятся в разработке.</sys:String>
     <sys:String x:Key="Str_About_Publisher">ИЗДАТЕЛЬ</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">ОТПЕЧАТОК</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

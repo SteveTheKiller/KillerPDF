@@ -129,6 +129,7 @@ La page peut être remplacée par une image d'elle-même avec les zones marquée
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERSION</sys:String>
+    <sys:String x:Key="Str_About_ColorStatus">Gestion des couleurs : les écrans HDR et la précision physique des couleurs sont en cours de développement.</sys:String>
     <sys:String x:Key="Str_About_Publisher">ÉDITEUR</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">EMPREINTE</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>

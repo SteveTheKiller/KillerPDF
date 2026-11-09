@@ -127,6 +127,7 @@ Die Seite kann durch ein Bild ihrer selbst ersetzt werden, in dem die markierten
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERSION</sys:String>
+    <sys:String x:Key="Str_About_ColorStatus">Farbmanagement: HDR-Monitore und physische Farbgenauigkeit sind in Arbeit.</sys:String>
     <sys:String x:Key="Str_About_Publisher">HERAUSGEBER</sys:String>
     <sys:String x:Key="Str_About_Thumbprint">FINGERABDRUCK</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
