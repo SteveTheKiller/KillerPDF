@@ -30,6 +30,8 @@ namespace KillerPDF.Controls
         public const double PageMargin = 16;
         public const double ControlHeight = 26;
         public const double HeaderHeight = 28;
+        /// <summary>The name of the options column's scroller, for tests and acceptance drivers.</summary>
+        public const string OptionsScrollerName = "PageWindowOptions";
 
         /// <summary>The fixed width of the options content: two columns and the gap, or one column.</summary>
         public static double ContentWidth(int columns)
@@ -228,16 +230,21 @@ namespace KillerPDF.Controls
             options.HorizontalAlignment = HorizontalAlignment.Left;
             options.Margin = new Thickness(OptionsInset, 0, 0, 0);
             TwoColumnPanel.SetColumns(options, columns);
-            var side = new DockPanel();
-            DockPanel.SetDock(footer, Dock.Bottom);
-            side.Children.Add(footer);
+            // Children are added in Tab order (spec 5): the options, then the footer pinned under
+            // them, then the preview with its nav arrows. Placement comes from the rows and columns.
+            var side = new Grid();
+            side.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            side.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             side.Children.Add(new ScrollViewer
             {
+                Name = OptionsScrollerName,
                 Content = options,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 Focusable = false,
             });
+            Grid.SetRow(footer, 1);
+            side.Children.Add(footer);
             optionsColumn = new Border
             {
                 Width = columns >= 2 ? OptionsWidth : NarrowOptionsWidth,
@@ -245,7 +252,7 @@ namespace KillerPDF.Controls
                 Child = side,
             };
             Grid.SetColumn(optionsColumn, optionsColumnIndex);
-            grid.Children.Add(optionsColumn);
+            grid.Children.Insert(0, optionsColumn);
             return grid;
         }
 

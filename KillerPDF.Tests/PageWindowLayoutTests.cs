@@ -204,6 +204,29 @@ public sealed class PageWindowLayoutTests
         Assert.Equal(0, PageWindowLayout.FittedExtraWidth(new Size(800, 600), new Size(612, 792)));
     }
 
+    // Spec 5: Tab runs through the options, then the footer, then the preview's nav arrows, on either
+    // side. Tab follows the visual tree when no TabIndex is set, so that is the order checked.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TabGoesThroughTheOptionsThenTheFooterThenThePreview(bool optionsLeft)
+    {
+        RunSta(() =>
+        {
+            var option = new Button { Content = "option" };
+            var footerButton = new Button { Content = "footer" };
+            var navArrow = new Button { Content = "nav" };
+            var body = PageWindowLayout.Body(new StackPanel { Children = { option } }, new StackPanel { Children = { footerButton } },
+                new StackPanel { Children = { navArrow } }, out _, optionsLeft: optionsLeft);
+            body.Measure(new Size(1200, 800));
+            body.Arrange(new Rect(0, 0, 1200, 800));
+
+            var order = VisualOrder<Button>(body).Select(b => (string)b.Content).ToArray();
+
+            Assert.Equal(new[] { "option", "footer", "nav" }, order);
+        });
+    }
+
     // Print keeps its options on the left on purpose; the preview then takes the right.
     [Fact]
     public void PrintsOptionsSitOnTheLeftWithThePreviewOnTheRight()
@@ -222,6 +245,16 @@ public sealed class PageWindowLayoutTests
             Assert.Equal(456, Bounds(preview, body).Left, 3);
             Assert.Equal(744, preview.ActualWidth, 3);
         });
+    }
+
+    private static IEnumerable<T> VisualOrder<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match) yield return match;
+            foreach (var nested in VisualOrder<T>(child)) yield return nested;
+        }
     }
 
     private static Border Cell(double height) => new() { Height = height };
