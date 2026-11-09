@@ -59,6 +59,11 @@ namespace KillerPDF.Shell
                 }
             }
 
+            // A focused control in a docked tool options row keeps Space, Enter and the arrows: they
+            // press its toggle or move its slider instead of panning, cropping or turning the page.
+            if (_syntheticShortcut is null && Controls.ToolOptionsBar.OwnsKey(e.OriginalSource, e.Key, Keyboard.Modifiers))
+                return;
+
             if (_syntheticShortcut is null && ShortcutTogglePolicy.IsToggle(e.Key, Keyboard.Modifiers, e.SystemKey))
             {
                 if (!e.IsRepeat) SetKeyboardShortcutsEnabled(!KeyboardShortcutsEnabled);

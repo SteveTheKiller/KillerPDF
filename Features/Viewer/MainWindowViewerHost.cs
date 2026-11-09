@@ -85,10 +85,7 @@ namespace KillerPDF.Shell
         void IViewerHost.ApplyTextStyleToSelection() => ApplyTextStyleToSelection();
         void IViewerHost.ShowDrawSettings(EditTool tool) => ShowDrawSettings(tool);
         void IViewerHost.HideDrawSettings() => HideDrawSettings();
-        System.Windows.Controls.Border IViewerHost.MakeBarGrip(int dotCount) => MakeBarGrip(dotCount);
         FrameworkElement IViewerHost.BuildBarHost(FrameworkElement content) => BuildBarHost(content);
-        void IViewerHost.PlaceAnnotationBar(System.Windows.Controls.Border bar,
-            System.Windows.Controls.Border grip, bool fadeIn) => PlaceAnnotationBar(bar, grip, fadeIn);
         void IViewerHost.PlaceImageFromDialog(Point position, int pageIndex)
             => PlaceImageFromDialog(position, pageIndex);
         void IViewerHost.PlaceSignature(Point position, int pageIndex) => PlaceSignature(position, pageIndex);
@@ -116,13 +113,7 @@ namespace KillerPDF.Shell
         string IViewerHost.GestureFor(string cap) => GestureFor(cap);
 
         bool IViewerHost.FullScreen => _fullScreen;
-        bool IViewerHost.VerticalScrollVisible
-        {
-            get => _vScrollVisible;
-            set => _vScrollVisible = value;
-        }
         bool IViewerHost.SpaceHeld => _spaceHeld;
-        void IViewerHost.RepositionAnnotationBars() => RepositionAnnotationBars();
         void IViewerHost.PopulateContextMenu(PdfViewer viewer, Point point, int pageIndex)
             => ((IViewerHost)this).RunWithViewerContext(viewer, () => PopulateContextMenu(point, pageIndex));
         void IViewerHost.RefreshPageList(PdfViewer viewer)

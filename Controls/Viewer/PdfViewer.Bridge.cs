@@ -79,11 +79,9 @@ namespace KillerPDF.Controls
 
         private string Loc(string key) => Host!.Loc(key);
         private void SetStatus(string text) => Host!.SetStatus(text);
-        private void RepositionAnnotationBars() => Host!.RepositionAnnotationBars();
 
         private EditTool _currentTool = EditTool.Select;
         private bool _fullScreen => Host!.FullScreen;
-        private bool _vScrollVisible { get => Host!.VerticalScrollVisible; set => Host!.VerticalScrollVisible = value; }
         private bool _spaceHeld => Host!.SpaceHeld;
 
         // Zoom limits stay defined on the window: MainWindow.xaml.cs and KeyboardShortcuts.cs read

@@ -121,8 +121,7 @@ namespace KillerPDF.Controls
         private SavedSignature? _pendingSignature;
         private readonly List<Point> _shapePolyPoints = [];
         private EditTool? _annotBarTool;
-        private bool _annotBarMinimized;
-        private readonly List<FrameworkElement> _annotBarDragInners = [];
+        private Border? _drawSettingsBar;
         private SolidColorBrush _swatchDimBorder => Host!.SwatchDimBorder;
 
         // ══ What Tabs.cs reaches for, now that it lives here ════════════════════════════════
@@ -197,11 +196,6 @@ namespace KillerPDF.Controls
             => Host!.BuildDecorations(underline, strike);
         private void ShowDrawSettings(EditTool t) => Host!.ShowDrawSettings(t);
         private void HideDrawSettings() => Host!.HideDrawSettings();
-        private Border MakeBarGrip(int dotCount = 3) => Host!.MakeBarGrip(dotCount);
-        private FrameworkElement BuildBarHost(FrameworkElement content) => Host!.BuildBarHost(content);
-        private void PlaceAnnotationBar(Border bar, Border grip, bool fadeIn = false)
-            => Host!.PlaceAnnotationBar(bar, grip, fadeIn);
-        private System.Windows.Media.Effects.DropShadowEffect AnnotBarShadow() => Host!.AnnotBarShadow();
         private void PlaceImageFromDialog(Point pos, int pageIdx) => Host!.PlaceImageFromDialog(pos, pageIdx);
         private void PlaceSignature(Point pos, int pageIdx) => Host!.PlaceSignature(pos, pageIdx);
         private void ShowSignaturePopup() => Host!.ShowSignaturePopup();

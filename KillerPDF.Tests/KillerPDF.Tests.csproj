@@ -156,6 +156,9 @@
     <Compile Include="..\Controls\WindowFx.cs" Link="Controls\WindowFx.cs" />
     <Compile Include="..\Controls\AccessibleControls.cs" Link="Controls\AccessibleControls.cs" />
     <Compile Include="..\Controls\ToolOptionsLayout.cs" Link="Controls\ToolOptionsLayout.cs" />
+    <Compile Include="..\Controls\ToolOptionsDock.cs" Link="Controls\ToolOptionsDock.cs" />
+    <Compile Include="..\Controls\ToolOptionsControls.cs" Link="Controls\ToolOptionsControls.cs" />
+    <Compile Include="..\Controls\ToolOptionsBar.cs" Link="Controls\ToolOptionsBar.cs" />
     <Compile Include="..\Controls\TooltipTextConverter.cs" Link="Controls\TooltipTextConverter.cs" />
     <Compile Include="..\Controls\PickerAcceptRule.cs" Link="Controls\PickerAcceptRule.cs" />
     <Compile Include="..\Controls\FormToggleSurface.cs" Link="Controls\FormToggleSurface.cs" />

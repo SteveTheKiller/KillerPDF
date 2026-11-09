@@ -265,16 +265,6 @@ namespace KillerPDF.Controls
                     PagePreviewPanel.ScrollableWidth <= 0 ? 0 : PagePreviewPanel.HorizontalOffset / PagePreviewPanel.ScrollableWidth,
                     PagePreviewPanel.ScrollableHeight <= 0 ? 0 : PagePreviewPanel.VerticalOffset / PagePreviewPanel.ScrollableHeight);
 
-            // The vertical scrollbar can appear/disappear without a window resize (zoom, page count
-            // changes). When it does, re-anchor the annotate bars so a right-docked bar tracks the
-            // scrollbar's edge instead of getting covered (or stranded once it's gone).
-            bool vis = PagePreviewPanel.ComputedVerticalScrollBarVisibility == Visibility.Visible;
-            if (vis != _vScrollVisible)
-            {
-                _vScrollVisible = vis;
-                RepositionAnnotationBars();
-            }
-
             if (_viewMode.IsContinuous() && _continuousTops.Count > 0)
             {
                 double viewportCenter = (PagePreviewPanel.VerticalOffset + PagePreviewPanel.ViewportHeight * 0.5)
@@ -2494,7 +2484,6 @@ namespace KillerPDF.Controls
 
         private void PagePreviewPanelSizeChangedCore(SizeChangedEventArgs e)
         {
-            RepositionAnnotationBars();   // cheap; keep the draw/text bar tracking its anchored edge
             if (_cropPreviewRect is not null || _cropConfirmBar is not null) return;
 
             if (_viewMode == ViewMode.Grid)
@@ -2561,7 +2550,6 @@ namespace KillerPDF.Controls
             if (_active?.PendingFitRestore is not null && _active.PendingZoom is not null)
             {
                 TryApplyPendingViewport();
-                RepositionAnnotationBars();
                 return;
             }
             if (_viewMode == ViewMode.Grid)
@@ -2571,12 +2559,10 @@ namespace KillerPDF.Controls
                 // settles in one pass instead of looping.
                 if (_doc is not null && _gridColumns >= 1)
                     SetZoom(Math.Max(ZoomMin, Math.Min(ZoomMax, GridZoomForN(_gridColumns))));
-                RepositionAnnotationBars();   // settle the bar against the final pane size
                 return;
             }
             if (_fitMode == FitMode.Width) FitToWidth(scroll: FitScroll.KeepOffset);
             else if (_fitMode == FitMode.Page) FitToPage(scroll: FitScroll.KeepOffset);
-            RepositionAnnotationBars();   // settle the bar against the final pane size (scrollbar may have toggled)
         }
 
         private int NearestContinuousPage(double yInPanel)

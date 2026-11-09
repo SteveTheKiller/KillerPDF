@@ -49,65 +49,42 @@ namespace KillerPDF.Controls
                 return;
             }
 
-            _annotBarDragInners.Clear();
-            var outer = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(8, 2, 8, 2), Background = Brushes.Transparent };
-            var grip = MakeBarGrip();
-            outer.Children.Add(grip);
+            // The Redact tool's options dock in the pane's options row: the mark count, the marking
+            // and property buttons, and Apply, which never leaves the row.
+            var bar = new ToolOptionsBar(EditTool.Redact, Loc("Str_Lbl_Redact"), Loc("Str_Bar_More"));
 
             _redactCountText = new TextBlock
             {
                 FontFamily = UiKit.UiFont,
                 FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 10, 0)
+                VerticalAlignment = VerticalAlignment.Center
             };
             _redactCountText.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-            outer.Children.Add(_redactCountText);
+            bar.Add(ToolOptionGroup.Count, _redactCountText);
 
-            Button BarButton(string key, string tipKey, bool accent, RoutedEventHandler click)
+            void BarButton(string id, string key, string tipKey, bool accent, RoutedEventHandler click)
             {
                 var button = UiKit.Make(Loc(key), accent);
                 button.SetResourceReference(ContentControl.ContentProperty, key);
                 button.SetResourceReference(FrameworkElement.ToolTipProperty, tipKey);
-                button.Padding = new Thickness(10, 4, 10, 4);
-                button.Margin = new Thickness(0, 0, 5, 0);
+                button.Padding = new Thickness(10, 0, 10, 0);
+                button.Height = ToolOptionsControls.ControlHeight;
+                button.VerticalAlignment = VerticalAlignment.Center;
+                System.Windows.Automation.AutomationProperties.SetAutomationId(button, "Redact" + id);
                 button.Click += click;
-                outer.Children.Add(button);
-                return button;
+                bar.Add(id, button);
             }
 
-            BarButton("Str_Redact_Find", "Str_Redact_FindTip", false, (_, _) => FindTextForRedaction());
-            BarButton("Str_Redact_MarkSearch", "Str_Redact_MarkSearchTip", false, (_, _) => MarkSearchResultsForRedaction());
-            BarButton("Str_Redact_MarkPages", "Str_Redact_MarkPagesTip", false, (_, _) => MarkPagesForRedaction());
-            BarButton("Str_Redact_Properties", "Str_Redact_PropertiesTip", false, (_, _) => EditRedactionProperties());
-            BarButton("Str_Redact_Clear", "Str_Redact_ClearTip", false, (_, _) => ClearRedactionMarks());
-            var divider = new Border { Width = 1, Margin = new Thickness(2, 0, 8, 0), VerticalAlignment = VerticalAlignment.Stretch };
-            divider.SetResourceReference(Border.BackgroundProperty, "CardBorderBrush");
-            outer.Children.Add(divider);
-            BarButton("Str_Redact_Apply", "Str_Redact_ApplyTip", true, (_, _) => ApplyRedaction());
+            BarButton(ToolOptionGroup.Find, "Str_Redact_Find", "Str_Redact_FindTip", false, (_, _) => FindTextForRedaction());
+            BarButton(ToolOptionGroup.MarkSearch, "Str_Redact_MarkSearch", "Str_Redact_MarkSearchTip", false, (_, _) => MarkSearchResultsForRedaction());
+            BarButton(ToolOptionGroup.MarkPages, "Str_Redact_MarkPages", "Str_Redact_MarkPagesTip", false, (_, _) => MarkPagesForRedaction());
+            BarButton(ToolOptionGroup.Properties, "Str_Redact_Properties", "Str_Redact_PropertiesTip", false, (_, _) => EditRedactionProperties());
+            BarButton(ToolOptionGroup.Clear, "Str_Redact_Clear", "Str_Redact_ClearTip", false, (_, _) => ClearRedactionMarks());
+            BarButton(ToolOptionGroup.Apply, "Str_Redact_Apply", "Str_Redact_ApplyTip", true, (_, _) => ApplyRedaction());
 
-            var bar = new Border
-            {
-                BorderThickness = new Thickness(1, 0, 1, 1),
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
-                CornerRadius = new CornerRadius(0, 0, 4, 4),
-                Padding = new Thickness(4),
-                Effect = AnnotBarShadow(),
-                Child = BuildBarHost(outer)
-            };
-            bar.SetResourceReference(Border.BackgroundProperty, "AnnotationBarBrush");
-            bar.SetResourceReference(Border.BorderBrushProperty, "AnnotationBarBorderBrush");
             _redactBar = bar;
-
-            if (PagePreviewPanel.Parent is Grid previewArea)
-            {
-                Panel.SetZIndex(bar, 100);
-                previewArea.Children.Add(bar);
-                PlaceAnnotationBar(bar, grip, fadeIn: false);
-            }
+            ToolOptionsDock.Bar = bar;
             _annotBarTool = EditTool.Redact;
-            _annotBarMinimized = false;
             UpdateRedactionCount();
             RepaintRedactionMarks();
         }
@@ -117,7 +94,7 @@ namespace KillerPDF.Controls
         {
             if (_redactBar is not null)
             {
-                (_redactBar.Parent as Panel)?.Children.Remove(_redactBar);
+                if (ReferenceEquals(ToolOptionsDock.Bar, _redactBar)) ToolOptionsDock.Bar = null;
                 _redactBar = null;
             }
             _redactCountText = null;
@@ -196,6 +173,7 @@ namespace KillerPDF.Controls
             _redactCountText.Text = _redactMarks.Count == 0
                 ? Loc("Str_Redact_NoMarks")
                 : string.Format(Loc("Str_Redact_Count"), _redactMarks.Count, pages);
+            ToolOptionsBar.RemeasureOwner(_redactCountText);   // a longer count must not push Apply off the row
         }
 
         private bool TryPageGeometry(int pageIndex, out double pageWidth, out double pageHeight,

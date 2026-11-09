@@ -353,8 +353,9 @@ namespace KillerPDF.Controls
         }
         internal List<Point> ShapePolyPointsRef => _shapePolyPoints;
         internal EditTool? AnnotBarToolRef { get => _annotBarTool; set => _annotBarTool = value; }
-        internal bool AnnotBarMinimizedRef { get => _annotBarMinimized; set => _annotBarMinimized = value; }
-        internal List<FrameworkElement> AnnotBarDragInnersRef => _annotBarDragInners;
+        internal Border? DrawSettingsBarRef { get => _drawSettingsBar; set => _drawSettingsBar = value; }
+        /// <summary>This pane's docked tool options row (ToolOptionsDock.Bar holds the active bar).</summary>
+        internal ToolOptionsDock ToolOptionsDockRef => ToolOptionsDock;
 
         // ── Save paths ───────────────────────────────────────────────────────────────────────
         internal void WriteFormValuesToDocumentExt(string path) => WriteFormValuesToDocument(path);

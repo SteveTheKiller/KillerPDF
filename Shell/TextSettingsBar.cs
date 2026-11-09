@@ -129,19 +129,6 @@ namespace KillerPDF.Shell
             if (dlg.Accepted) apply(dlg.SelectedColor);
         }
 
-        // Diagonal rainbow fill for the "more colors" swatches that open the picker.
-        private static LinearGradientBrush RainbowBrush() => new()
-        {
-            StartPoint = new Point(0, 0),
-            EndPoint = new Point(1, 1),
-            GradientStops =
-            {
-                new GradientStop(Colors.Red, 0), new GradientStop(Colors.Yellow, 0.25),
-                new GradientStop(Colors.Lime, 0.5), new GradientStop(Colors.Cyan, 0.7),
-                new GradientStop(Colors.Blue, 1)
-            }
-        };
-
         private void ApplyTextStyleToSelection()
         {
             if (_activeTextBox is not null)
@@ -227,170 +214,66 @@ namespace KillerPDF.Shell
 
         private void ShowTextSettings()
         {
-            bool appearing = _annotBarTool != EditTool.Text;   // real appear/switch vs same-tool refresh
-            if (_textSettingsBar is not null)
-            {
-                if (appearing) FadeOutAndRemoveBar(_textSettingsBar);
-                else (PagePreviewPanel.Parent as Grid)?.Children.Remove(_textSettingsBar);
-                _textSettingsBar = null;
-            }
+            var bar = NewToolBar(EditTool.Text);
 
-            // Keep each row's controls together as the bar wraps. The paired columns group
-            // font, size and replacement blur; text and fill colors; and their opacities.
-            StackPanel Group()
+            // Font: the typeface (fixed 140 with an ellipsis and its name as the tooltip, since font
+            // names vary without limit), then Bold, Italic, Strikethrough and Underline toggles whose
+            // glyphs preview their own effect.
+            var fontBox = new ComboBox
             {
-                return new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    // Right margin = the gap to the next group; top/bottom = the gap between wrapped rows.
-                    Margin = new Thickness(0, 3, 16, 3)
-                };
-            }
-            TextBlock DimLabel(string text, int top, bool rightAlign = false)
-            {
-                var t = new TextBlock
-                {
-                    Text = text,
-                    FontFamily = UiKit.UiFont,
-                    FontSize = 11,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = rightAlign ? HorizontalAlignment.Right : HorizontalAlignment.Left,
-                    Margin = new Thickness(0, top, 6, 0)
-                };
-                t.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-                return t;
-            }
-            Border ColorSwatch(Color c, bool isActive, MouseButtonEventHandler onClick)
-            {
-                var sw = new Border
-                {
-                    Width = 18,
-                    Height = 18,
-                    Background = new SolidColorBrush(c),
-                    BorderThickness = new Thickness(isActive ? 2 : 1),
-                    CornerRadius = new CornerRadius(3),
-                    Margin = new Thickness(1),
-                    Cursor = Cursors.Hand
-                };
-                if (isActive) sw.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush");
-                else sw.BorderBrush = _swatchDimBorder;
-                sw.MouseLeftButtonDown += onClick;
-                return sw;
-            }
-            // Opens the full RGB picker. When the current color isn't one of the presets it shows that
-            // color with an accent ring (and a small rainbow corner), so the bar reflects a custom pick.
-            Grid MoreColorsSwatch(Color current, bool customActive, MouseButtonEventHandler onClick)
-            {
-                var grid = new Grid { Width = 18, Height = 18, Margin = new Thickness(1), Cursor = Cursors.Hand, ToolTip = Loc("Str_Bar_MoreColors") };
-                var bg = new Border
-                {
-                    CornerRadius = new CornerRadius(3),
-                    BorderThickness = new Thickness(customActive ? 2 : 1),
-                    Background = customActive
-                        ? (Brush)new SolidColorBrush(Color.FromRgb(current.R, current.G, current.B))
-                        : RainbowBrush()
-                };
-                if (customActive) bg.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush"); else bg.BorderBrush = _swatchDimBorder;
-                grid.Children.Add(bg);
-                if (customActive)
-                    grid.Children.Add(new System.Windows.Shapes.Polygon
-                    {
-                        Points = [new Point(18, 7), new Point(18, 18), new Point(7, 18)],
-                        Fill = RainbowBrush(),
-                        IsHitTestVisible = false
-                    });
-                grid.MouseLeftButtonDown += onClick;
-                return grid;
-            }
-
-            // Drag grip, centered vertically against whatever height the wrapped rows produce.
-            var textGrip = MakeBarGrip(4);
-            textGrip.VerticalAlignment = VerticalAlignment.Center;
-            // (grip is added to the WrapPanel host directly, below.)
-
-            var swatchRow1 = new StackPanel { Orientation = Orientation.Horizontal };
-            foreach (var color in SwatchColors)
-            {
-                var c = color;
-                bool isActive = c.R == _textColor.R && c.G == _textColor.G && c.B == _textColor.B;
-                swatchRow1.Children.Add(ColorSwatch(c, isActive, (_, _) =>
-                {
-                    _textColor = Color.FromArgb(_textOpacity, c.R, c.G, c.B);
-                    ApplyTextStyleToSelection();
-                    ShowTextSettings();
-                }));
-            }
-            bool textCustom = !SwatchColors.Any(sc => sc.R == _textColor.R && sc.G == _textColor.G && sc.B == _textColor.B);
-            swatchRow1.Children.Add(MoreColorsSwatch(_textColor, textCustom, (_, _) => OpenColorPicker(_textColor, c =>
-            {
-                _textColor = Color.FromArgb(_textOpacity, c.R, c.G, c.B);
-                ApplyTextStyleToSelection();
-                ShowTextSettings();
-            }, () => ShowTextSettings())));
-            var grpColor = Group();
-            grpColor.Children.Add(DimLabel(Loc("Str_Bar_Color"), 0));
-            grpColor.Children.Add(swatchRow1);
-
-            var swatchRow2 = new StackPanel { Orientation = Orientation.Horizontal };
-            bool noneActive = _textFillColor.A == 0;
-            var noneGrid = new Grid { Width = 18, Height = 18, Margin = new Thickness(1), Cursor = Cursors.Hand };
-            var noneBg = new Border { CornerRadius = new CornerRadius(3), Background = Brushes.White, BorderThickness = new Thickness(noneActive ? 2 : 1) };
-            if (noneActive) noneBg.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush"); else noneBg.BorderBrush = _swatchDimBorder;
-            noneGrid.Children.Add(noneBg);
-            noneGrid.Children.Add(new System.Windows.Shapes.Line { X1 = 3, Y1 = 15, X2 = 15, Y2 = 3, Stroke = Brushes.Red, StrokeThickness = 1.5 });
-            noneGrid.MouseLeftButtonDown += (_, _) =>
-            {
-                _textFillColor = Color.FromArgb(0, _textFillColor.R, _textFillColor.G, _textFillColor.B);
-                ApplyTextStyleToSelection();
-                ShowTextSettings();
+                Width = 140, Height = Controls.ToolOptionsControls.ControlHeight,
+                VerticalAlignment = VerticalAlignment.Center, FontFamily = UiKit.UiFont, FontSize = 11,
+                MaxDropDownHeight = 320, Margin = new Thickness(0, 0, 4, 0), ToolTip = _textFontName
             };
-            swatchRow2.Children.Add(noneGrid);
-            foreach (var color in SwatchColors)
+            if (FindResource("DarkComboBox") is Style cbStyle) fontBox.Style = cbStyle;
+            if (FindResource("DarkComboItem") is Style ciStyle) fontBox.ItemContainerStyle = ciStyle;
+            fontBox.Height = Controls.ToolOptionsControls.ControlHeight;
+            System.Windows.Automation.AutomationProperties.SetName(fontBox, LabelName(Loc("Str_Bar_Font")));
+            System.Windows.Automation.AutomationProperties.SetAutomationId(fontBox, "TextFont");
+            foreach (var fn in SystemFontNames) fontBox.Items.Add(fn);
+            fontBox.SelectedItem = _textFontName;
+            fontBox.SelectionChanged += (s, e) =>
             {
-                var c = color;
-                bool isActive = _textFillColor.A > 0 && c.R == _textFillColor.R && c.G == _textFillColor.G && c.B == _textFillColor.B;
-                swatchRow2.Children.Add(ColorSwatch(c, isActive, (_, _) =>
-                {
-                    byte a = _textFillColor.A == 0 ? (byte)255 : _textFillColor.A;   // enable at full/current opacity
-                    _textFillColor = Color.FromArgb(a, c.R, c.G, c.B);
-                    ApplyTextStyleToSelection();
-                    ShowTextSettings();
-                }));
-            }
-            bool fillCustom = _textFillColor.A > 0 && !SwatchColors.Any(sc => sc.R == _textFillColor.R && sc.G == _textFillColor.G && sc.B == _textFillColor.B);
-            swatchRow2.Children.Add(MoreColorsSwatch(_textFillColor.A == 0 ? Colors.White : _textFillColor, fillCustom, (_, _) => OpenColorPicker(_textFillColor.A == 0 ? Colors.White : _textFillColor, c =>
-            {
-                byte a = _textFillColor.A == 0 ? (byte)255 : _textFillColor.A;
-                _textFillColor = Color.FromArgb(a, c.R, c.G, c.B);
-                ApplyTextStyleToSelection();
-                ShowTextSettings();
-            }, () => ShowTextSettings())));
-            var grpFill = Group();
-            grpFill.Children.Add(DimLabel(Loc("Str_Bar_Fill"), 0));
-            grpFill.Children.Add(swatchRow2);
-
-            // Size group: its own single-row group, packed beside Font whenever the width allows.
-            var sizeStack = Group();
-            sizeStack.Children.Add(DimLabel(Loc("Str_Bar_Size"), 0));
-            var sizeSlider = new Slider
-            {
-                Minimum = 8,
-                Maximum = 72,
-                Value = Math.Max(8, Math.Min(72, _textFontSize)),
-                Width = 90,
-                VerticalAlignment = VerticalAlignment.Center,
-                TickFrequency = 1,
-                IsSnapToTickEnabled = true,
-                Style = (Style)FindResource("DarkSlider")
+                if (fontBox.SelectedItem is string fn) { _textFontName = fn; fontBox.ToolTip = fn; ApplyTextStyleToSelection(); }
             };
+            bar.Add(Controls.ToolOptionGroup.Font, BarGroup(BarLabel(Loc("Str_Bar_Font")), fontBox));
+
+            FrameworkElement StyleToggle(string glyph, string tipKey, string id, bool active, FontWeight fw, FontStyle fs,
+                TextDecorationCollection? deco, Action onClick)
+            {
+                var text = new TextBlock
+                {
+                    Text = glyph, FontFamily = UiKit.UiFont, FontSize = 12, FontWeight = fw, FontStyle = fs,
+                    TextDecorations = deco, VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+                text.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+                var toggle = Controls.ToolOptionsControls.IconToggle(text, active, Loc(tipKey), () => { onClick(); ShowTextSettings(); });
+                System.Windows.Automation.AutomationProperties.SetAutomationId(toggle, id);
+                return toggle;
+            }
+            bar.Add(Controls.ToolOptionGroup.Style, BarGroup(
+                StyleToggle("B", "Str_Lbl_Bold", "TextBold", _textBold, FontWeights.Bold, FontStyles.Normal, null,
+                    () => { _textBold = !_textBold; ApplyTextStyleToSelection(); }),
+                StyleToggle("I", "Str_Lbl_Italic", "TextItalic", _textItalic, FontWeights.Normal, FontStyles.Italic, null,
+                    () => { _textItalic = !_textItalic; ApplyTextStyleToSelection(); }),
+                StyleToggle("S", "Str_Lbl_Strike", "TextStrike", _textStrike, FontWeights.Normal, FontStyles.Normal, TextDecorations.Strikethrough,
+                    () => { _textStrike = !_textStrike; ApplyTextStyleToSelection(); }),
+                StyleToggle("U", "Str_Lbl_Underline", "TextUnderline", _textUnderline, FontWeights.Normal, FontStyles.Normal, TextDecorations.Underline,
+                    () => { _textUnderline = !_textUnderline; ApplyTextStyleToSelection(); })));
+
+            // Size: slider, minus and plus steppers and an exact 40-wide box, in points.
+            var sizeSlider = BarSlider(8, 72, Math.Max(8, Math.Min(72, _textFontSize)), LabelName(Loc("Str_Bar_Size")));
+            sizeSlider.TickFrequency = 1;
+            sizeSlider.IsSnapToTickEnabled = true;
             // Editable size box (type an exact value; the slider stays for quick coarse adjustment).
             var sizeBox = new TextBox
             {
                 Text = $"{_textFontSize:0.##}",
                 FontFamily = UiKit.UiFont,
                 FontSize = 11,
-                Width = 32,
+                Width = 40,
+                Height = Controls.ToolOptionsControls.ControlHeight,
                 MaxLength = 4,
                 VerticalAlignment = VerticalAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
@@ -399,6 +282,8 @@ namespace KillerPDF.Shell
                 BorderThickness = new Thickness(1),
                 Template = FlatTextBoxTemplate()
             };
+            System.Windows.Automation.AutomationProperties.SetName(sizeBox, LabelName(Loc("Str_Bar_Size")) + " (pt)");
+            System.Windows.Automation.AutomationProperties.SetAutomationId(sizeBox, "TextSizeBox");
             sizeBox.SetResourceReference(TextBox.BackgroundProperty, "TextFieldBrush");
             sizeBox.SetResourceReference(TextBox.ForegroundProperty, "TextBrush");
             sizeBox.SetResourceReference(TextBox.BorderBrushProperty, "CardBorderBrush");
@@ -443,32 +328,13 @@ namespace KillerPDF.Shell
                 sizeBox.Text = $"{_textFontSize:0.##}";
                 ApplyTextStyleToSelection();
             }
-            // Tiny stepper button (− / +) for one-point nudges next to the slider.
-            Border StepButton(string glyph, Action onClick)
+            // Stepper buttons (minus / plus) for one-point nudges next to the slider.
+            FrameworkElement StepButton(string glyph, string name, string id, Action onClick)
             {
-                var st = new TextBlock
-                {
-                    Text = glyph,
-                    FontFamily = UiKit.UiFont,
-                    FontSize = 13,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                };
-                st.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-                var sb = new Border
-                {
-                    Width = 18,
-                    Height = 20,
-                    CornerRadius = new CornerRadius(3),
-                    Margin = new Thickness(3, 0, 0, 0),
-                    Cursor = Cursors.Hand,
-                    BorderThickness = new Thickness(1),
-                    Background = Brushes.Transparent,
-                    Child = st,
-                    BorderBrush = _swatchDimBorder
-                };
-                sb.MouseLeftButtonDown += (_, _) => onClick();
-                return sb;
+                var step = Controls.ToolOptionsControls.Step(glyph, name, onClick);
+                step.Margin = new Thickness(3, 0, 0, 0);
+                System.Windows.Automation.AutomationProperties.SetAutomationId(step, id);
+                return step;
             }
             sizeBox.PreviewKeyDown += (s, e) =>
             {
@@ -477,50 +343,86 @@ namespace KillerPDF.Shell
             };
             sizeBox.LostFocus += (s, e) => CommitSizeBox();
             sizeBox.GotFocus += (s, e) => sizeBox.SelectAll();
-            sizeStack.Children.Add(sizeSlider);
-            sizeStack.Children.Add(StepButton("−", () => SetSize(_textFontSize - 1)));   // minus
-            sizeStack.Children.Add(StepButton("+", () => SetSize(_textFontSize + 1)));
-            sizeStack.Children.Add(sizeBox);
-            sizeStack.Children.Add(ptLabel);
+            string sizeName = LabelName(Loc("Str_Bar_Size"));
+            bar.Add(Controls.ToolOptionGroup.Size, BarGroup(BarLabel(Loc("Str_Bar_Size")), sizeSlider,
+                StepButton("−", sizeName + " -1 pt", "TextSizeDown", () => SetSize(_textFontSize - 1)),
+                StepButton("+", sizeName + " +1 pt", "TextSizeUp", () => SetSize(_textFontSize + 1)),
+                sizeBox, ptLabel));
 
-            var spacingStack = Group();
-            spacingStack.Children.Add(DimLabel(Loc("Str_Bar_LetterSpacing"), 0));
-            var spacingSlider = new Slider
+            // Color, then Fill with its No fill chip first. A swatch press rebuilds the bar so the
+            // new current color shows checked; the dock gives the keyboard focus back to it.
+            void PickText(Color c)
             {
-                Minimum = -2,
-                Maximum = 20,
-                Value = _textLetterSpacing,
-                Width = 90,
-                TickFrequency = .25,
-                IsSnapToTickEnabled = true,
-                VerticalAlignment = VerticalAlignment.Center,
-                Style = (Style)FindResource("DarkSlider")
-            };
-            var spacingLabel = new TextBlock
+                _textColor = Color.FromArgb(_textOpacity, c.R, c.G, c.B);
+                ApplyTextStyleToSelection();
+                ShowTextSettings();
+            }
+            var (grpColor, colorChip) = BuildColorGroup("Text", _textColor, true, PickText,
+                () => OpenColorPicker(_textColor, PickText, () => ShowTextSettings()));
+            bar.Add(Controls.ToolOptionGroup.Color, grpColor, colorChip);
+
+            void PickFill(Color c)
             {
-                Text = $"{_textLetterSpacing:0.##} pt",
-                Width = 48,
-                FontFamily = UiKit.MonoFont,
-                FontSize = 11,
-                Margin = new Thickness(4, 0, 0, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-                TextAlignment = TextAlignment.Right
+                byte a = _textFillColor.A == 0 ? (byte)255 : _textFillColor.A;   // enable at full/current opacity
+                _textFillColor = Color.FromArgb(a, c.R, c.G, c.B);
+                ApplyTextStyleToSelection();
+                ShowTextSettings();
+            }
+            bool noFill = _textFillColor.A == 0;
+            var noneChip = Controls.ToolOptionsControls.NoFill(noFill,
+                LabelName(Loc("Str_Bar_Fill")) + " " + Loc("Str_Margin_None"), () =>
+                {
+                    _textFillColor = Color.FromArgb(0, _textFillColor.R, _textFillColor.G, _textFillColor.B);
+                    ApplyTextStyleToSelection();
+                    ShowTextSettings();
+                });
+            System.Windows.Automation.AutomationProperties.SetAutomationId(noneChip, "FillNone");
+            var fillShown = noFill ? Colors.White : _textFillColor;
+            var (grpFill, _) = BuildColorGroup("Fill", fillShown, !noFill, PickFill,
+                () => OpenColorPicker(fillShown, PickFill, () => ShowTextSettings()), noneChip);
+
+            // Opacity and Fill Opacity: two independent groups.
+            var opacitySlider = BarSlider(10, 255, _textOpacity, LabelName(Loc("Str_Bar_Opacity")));
+            var opacityLabel = BarReadout($"{(int)(_textOpacity / 255.0 * 100)}%");
+            opacitySlider.ValueChanged += (s, e) =>
+            {
+                byte a = (byte)e.NewValue;
+                opacityLabel.Text = $"{(int)(a / 255.0 * 100)}%";
+                _textOpacity = a;
+                _textColor = Color.FromArgb(a, _textColor.R, _textColor.G, _textColor.B);
+                ApplyTextStyleToSelection();
             };
-            spacingLabel.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+
+            byte curFillA = _textFillColor.A == 0 ? (byte)255 : _textFillColor.A;
+            var fillOpSlider = BarSlider(10, 255, curFillA, LabelName(Loc("Str_Bar_FillOpacity")));
+            var fillOpLabel = BarReadout($"{(int)(curFillA / 255.0 * 100)}%");
+            fillOpSlider.ValueChanged += (s, e) =>
+            {
+                byte a = (byte)e.NewValue;
+                fillOpLabel.Text = $"{(int)(a / 255.0 * 100)}%";
+                // Dragging opacity turns the fill on (defaults to the current color, white for whiteout).
+                _textFillColor = Color.FromArgb(a, _textFillColor.R, _textFillColor.G, _textFillColor.B);
+                ApplyTextStyleToSelection();
+            };
+
+            var spacingSlider = BarSlider(-2, 20, _textLetterSpacing, LabelName(Loc("Str_Bar_LetterSpacing")));
+            spacingSlider.TickFrequency = .25;
+            spacingSlider.IsSnapToTickEnabled = true;
+            var spacingLabel = BarReadout($"{_textLetterSpacing:0.##} pt", 48);
             spacingSlider.ValueChanged += (_, e) =>
             {
                 _textLetterSpacing = Math.Round(e.NewValue, 2);
                 spacingLabel.Text = $"{_textLetterSpacing:0.##} pt";
                 ApplyTextStyleToSelection();
             };
-            spacingStack.Children.Add(spacingSlider);
-            spacingStack.Children.Add(spacingLabel);
 
-            StackPanel? blurStack = null;
+            bar.Add(Controls.ToolOptionGroup.Fill, grpFill);
+            bar.Add(Controls.ToolOptionGroup.Opacity, BarGroup(BarLabel(Loc("Str_Bar_Opacity")), opacitySlider, opacityLabel));
+            bar.Add(Controls.ToolOptionGroup.FillOpacity, BarGroup(BarLabel(Loc("Str_Bar_FillOpacity")), fillOpSlider, fillOpLabel));
+            bar.Add(Controls.ToolOptionGroup.Spacing, BarGroup(BarLabel(Loc("Str_Bar_LetterSpacing")), spacingSlider, spacingLabel));
+
             if (_selectedAnnotation is TextAnnotation { PairId.Length: > 0 } replacement)
             {
-                blurStack = Group();
-                blurStack.Children.Add(DimLabel(Loc("Str_Bar_Blur"), 0));
                 double BlurUnit()
                 {
                     if (_doc is not null && _renderDims.TryGetValue(replacement.PageIndex, out var dimensions)
@@ -531,21 +433,11 @@ namespace KillerPDF.Shell
                     }
                     return 1;
                 }
-                var blurSlider = new Slider
-                {
-                    Name = "ReplacementTextBlurSlider", Minimum = 0, Maximum = 2,
-                    Value = Math.Clamp(replacement.BlurRadius * BlurUnit(), 0, 2),
-                    Width = 90, TickFrequency = .05, IsSnapToTickEnabled = true,
-                    VerticalAlignment = VerticalAlignment.Center, Style = (Style)FindResource("DarkSlider")
-                };
-                System.Windows.Automation.AutomationProperties.SetName(blurSlider, Loc("Str_Bar_Blur"));
-                var blurLabel = new TextBlock
-                {
-                    Text = $"{blurSlider.Value:0.##} pt", Width = 48,
-                    FontFamily = UiKit.MonoFont, FontSize = 11, Margin = new Thickness(4, 0, 0, 0),
-                    VerticalAlignment = VerticalAlignment.Center, TextAlignment = TextAlignment.Right
-                };
-                blurLabel.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+                var blurSlider = BarSlider(0, 2, Math.Clamp(replacement.BlurRadius * BlurUnit(), 0, 2), Loc("Str_Bar_Blur"));
+                blurSlider.Name = "ReplacementTextBlurSlider";
+                blurSlider.TickFrequency = .05;
+                blurSlider.IsSnapToTickEnabled = true;
+                var blurLabel = BarReadout($"{blurSlider.Value:0.##} pt", 48);
                 blurSlider.ValueChanged += (_, e) =>
                 {
                     if (!ReferenceEquals(_selectedAnnotation, replacement)) return;
@@ -559,222 +451,30 @@ namespace KillerPDF.Shell
                     if (_selectionBorder is not null) _activeCanvas.Children.Add(_selectionBorder);
                     foreach (var handle in _resizeHandles) _activeCanvas.Children.Add(handle);
                 };
-                blurStack.Children.Add(blurSlider);
-                blurStack.Children.Add(blurLabel);
+                bar.Add(Controls.ToolOptionGroup.Blur, BarGroup(BarLabel(Loc("Str_Bar_Blur")), blurSlider, blurLabel));
             }
 
-            // Font group: typeface selector + Bold / Italic / Strikethrough / Underline.
-            // A small square toggle whose glyph previews its own effect (bold B, italic I, struck-through S).
-            Border StyleToggle(string glyph, string tip, bool active, FontWeight fw, FontStyle fs, TextDecorationCollection? deco, Action onClick)
-            {
-                var gt = new TextBlock
-                {
-                    Text = glyph,
-                    FontFamily = UiKit.UiFont,
-                    FontSize = 12,
-                    FontWeight = fw,
-                    FontStyle = fs,
-                    TextDecorations = deco,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = HorizontalAlignment.Center
-                };
-                gt.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-                var b = new Border
-                {
-                    Width = 22,
-                    Height = 20,
-                    CornerRadius = new CornerRadius(3),
-                    Margin = new Thickness(2, 0, 0, 0),
-                    Cursor = Cursors.Hand,
-                    ToolTip = tip,
-                    BorderThickness = new Thickness(active ? 2 : 1),
-                    Background = active ? AccentBrush(40) : Brushes.Transparent,
-                    Child = gt
-                };
-                if (active) b.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush"); else b.BorderBrush = _swatchDimBorder;
-                b.MouseLeftButtonDown += (_, _) => onClick();
-                return b;
-            }
-
-            var fontStack = Group();
-            fontStack.Children.Add(DimLabel(Loc("Str_Bar_Font"), 0));
-            var fontBox = new ComboBox
-            {
-                Width = 132,
-                Height = 22,
-                VerticalAlignment = VerticalAlignment.Center,
-                FontFamily = UiKit.UiFont,
-                FontSize = 11,
-                MaxDropDownHeight = 320,
-                Margin = new Thickness(0, 0, 4, 0)
-            };
-            if (FindResource("DarkComboBox") is Style cbStyle) fontBox.Style = cbStyle;
-            if (FindResource("DarkComboItem") is Style ciStyle) fontBox.ItemContainerStyle = ciStyle;
-            foreach (var fn in SystemFontNames) fontBox.Items.Add(fn);
-            fontBox.SelectedItem = _textFontName;
-            fontBox.SelectionChanged += (s, e) =>
-            {
-                if (fontBox.SelectedItem is string fn) { _textFontName = fn; ApplyTextStyleToSelection(); }
-            };
-            fontStack.Children.Add(fontBox);
-            fontStack.Children.Add(StyleToggle("B", Loc("Str_Lbl_Bold"), _textBold, FontWeights.Bold, FontStyles.Normal, null,
-                () => { _textBold = !_textBold; ApplyTextStyleToSelection(); ShowTextSettings(); }));
-            fontStack.Children.Add(StyleToggle("I", Loc("Str_Lbl_Italic"), _textItalic, FontWeights.Normal, FontStyles.Italic, null,
-                () => { _textItalic = !_textItalic; ApplyTextStyleToSelection(); ShowTextSettings(); }));
-            fontStack.Children.Add(StyleToggle("S", Loc("Str_Lbl_Strike"), _textStrike, FontWeights.Normal, FontStyles.Normal, TextDecorations.Strikethrough,
-                () => { _textStrike = !_textStrike; ApplyTextStyleToSelection(); ShowTextSettings(); }));
-            fontStack.Children.Add(StyleToggle("U", Loc("Str_Lbl_Underline"), _textUnderline, FontWeights.Normal, FontStyles.Normal, TextDecorations.Underline,
-                () => { _textUnderline = !_textUnderline; ApplyTextStyleToSelection(); ShowTextSettings(); }));
-
-            // Opacity and Fill Opacity: two independent single-row groups.
-            var grpOpacity = Group();
-            grpOpacity.Children.Add(DimLabel(Loc("Str_Bar_Opacity"), 0));
-            var opacitySlider = new Slider
-            {
-                Minimum = 10,
-                Maximum = 255,
-                Value = _textOpacity,
-                Width = 90,
-                VerticalAlignment = VerticalAlignment.Center,
-                Style = (Style)FindResource("DarkSlider")
-            };
-            grpOpacity.Children.Add(opacitySlider);
-            var opacityLabel = new TextBlock
-            {
-                Text = $"{(int)(_textOpacity / 255.0 * 100)}%",
-                FontFamily = UiKit.UiFont,
-                FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 0, 0, 0),
-                Width = 40,
-                TextAlignment = TextAlignment.Right
-            };
-            opacityLabel.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-            grpOpacity.Children.Add(opacityLabel);
-            opacitySlider.ValueChanged += (s, e) =>
-            {
-                byte a = (byte)e.NewValue;
-                opacityLabel.Text = $"{(int)(a / 255.0 * 100)}%";
-                _textOpacity = a;
-                _textColor = Color.FromArgb(a, _textColor.R, _textColor.G, _textColor.B);
-                ApplyTextStyleToSelection();
-            };
-
-            var grpFillOp = Group();
-            grpFillOp.Children.Add(DimLabel(Loc("Str_Bar_FillOpacity"), 0));
-            byte curFillA = _textFillColor.A == 0 ? (byte)255 : _textFillColor.A;
-            var fillOpSlider = new Slider
-            {
-                Minimum = 10,
-                Maximum = 255,
-                Value = curFillA,
-                Width = 90,
-                VerticalAlignment = VerticalAlignment.Center,
-                Style = (Style)FindResource("DarkSlider")
-            };
-            grpFillOp.Children.Add(fillOpSlider);
-            var fillOpLabel = new TextBlock
-            {
-                Text = $"{(int)(curFillA / 255.0 * 100)}%",
-                FontFamily = UiKit.UiFont,
-                FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 0, 0, 0),
-                Width = 40,
-                TextAlignment = TextAlignment.Right
-            };
-            fillOpLabel.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-            grpFillOp.Children.Add(fillOpLabel);
-            fillOpSlider.ValueChanged += (s, e) =>
-            {
-                byte a = (byte)e.NewValue;
-                fillOpLabel.Text = $"{(int)(a / 255.0 * 100)}%";
-                // Dragging opacity turns the fill on (defaults to the current color, white for whiteout).
-                _textFillColor = Color.FromArgb(a, _textFillColor.R, _textFillColor.G, _textFillColor.B);
-                ApplyTextStyleToSelection();
-            };
-
-            // Intentional two-row interim layout for 1.7.5, assembled as three vertical pairs so
-            // related controls share an exact left edge: Font over Size, Text Color over Fill, and
-            // Text Opacity over Fill Opacity. The outer WrapPanel moves a whole pair at narrow split-
-            // pane widths instead of separating a label from the control directly beneath it.
-            var fontPair = new StackPanel();
-            fontPair.Children.Add(fontStack);
-            fontPair.Children.Add(sizeStack);
-            fontPair.Children.Add(spacingStack);
-            if (blurStack is not null) fontPair.Children.Add(blurStack);
-
-            // Edit paragraph takes the free third row under the swatches, so it adds no width.
             var paragraphButton = UiKit.Make(Loc("Str_Paragraph_Title"), false);
-            paragraphButton.HorizontalAlignment = HorizontalAlignment.Left;
-            paragraphButton.MinHeight = 22;
-            paragraphButton.Padding = new Thickness(10, 1, 10, 1);
-            paragraphButton.Margin = new Thickness(0, 3, 0, 0);
+            paragraphButton.Height = Controls.ToolOptionsControls.ControlHeight;
+            paragraphButton.Padding = new Thickness(10, 0, 10, 0);
+            paragraphButton.VerticalAlignment = VerticalAlignment.Center;
             paragraphButton.ToolTip = ShortcutTip("Str_Paragraph_Title", "AltShift:P");
+            System.Windows.Automation.AutomationProperties.SetAutomationId(paragraphButton, "TextEditParagraph");
             paragraphButton.Click += (_, _) => EditParagraph(PageList.SelectedIndex);
+            bar.Add(Controls.ToolOptionGroup.Paragraph, paragraphButton);
 
-            var colorPair = new StackPanel();
-            colorPair.Children.Add(grpColor);
-            colorPair.Children.Add(grpFill);
-            colorPair.Children.Add(paragraphButton);
-
-            // Side by side once the bar is too narrow to keep them in the first row, so the
-            // wrapped row stays one line deep.
-            var opacityPair = new WrapPanel { Orientation = Orientation.Horizontal };
-            opacityPair.Children.Add(grpOpacity);
-            opacityPair.Children.Add(grpFillOp);
-
-            var pairHost = new WrapPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Margin = new Thickness(8, 2, 8, 2),
-                Background = Brushes.Transparent
-            };
-            pairHost.Children.Add(textGrip);
-            pairHost.Children.Add(fontPair);
-            pairHost.Children.Add(colorPair);
-            pairHost.Children.Add(opacityPair);
+            // The replacement layer grid is three rows tall, so it always lives in the "..." menu.
             if (BuildReplacementLayerControls() is { } replacementLayers)
-                pairHost.Children.Add(replacementLayers);
-            _annotBarDragInners.Clear();
+                bar.Add(Controls.ToolOptionGroup.Layers, replacementLayers, overflowOnly: true);
 
-            _textSettingsBar = new Border
-            {
-                BorderThickness = new Thickness(1, 0, 1, 1),   // no top border - the toolbar above already separates
-                HorizontalAlignment = HorizontalAlignment.Right,  // right-anchored; slid via the grip
-                VerticalAlignment = VerticalAlignment.Top,
-                CornerRadius = new CornerRadius(0),
-                Padding = new Thickness(4),
-                Effect = AnnotBarShadow(),
-                Child = BuildBarHost(pairHost),
-                Margin = new Thickness(0, 0, 0, 0)
-            };
-            _textSettingsBar.SetResourceReference(Border.BackgroundProperty, "AnnotationBarBrush");
-            _textSettingsBar.SetResourceReference(Border.BorderBrushProperty, "AnnotationBarBorderBrush");
-            _textSettingsBar.SetResourceReference(Border.CornerRadiusProperty, "AnnotationBarCornerRadius");
-
-            var previewArea = PagePreviewPanel.Parent as Grid;
-            if (previewArea is not null)
-            {
-                Panel.SetZIndex(_textSettingsBar, 100);
-                previewArea.Children.Add(_textSettingsBar);
-                // Cap the paired layout to the document area. At split-pane widths whole columns wrap
-                // together; at normal widths the two rows retain their deliberate vertical alignment.
-                pairHost.SetBinding(FrameworkElement.MaxWidthProperty, new System.Windows.Data.Binding("ActualWidth")
-                    { Source = previewArea, Converter = _barWidthInset });
-                WireBarWrapAdaptation(pairHost, textGrip, fontPair, previewArea);
-                PlaceAnnotationBar(_textSettingsBar, textGrip, fadeIn: appearing);
-            }
+            DockToolBar(bar);
+            _textSettingsBar = bar;
             _annotBarTool = EditTool.Text;
-            _annotBarMinimized = false;   // a freshly built bar is full-size
         }
-
-        // (The shared overflow machinery - MakeBarOverflow and WireBarOverflow - lives in
-        // AnnotationBars.cs, used by this bar and the draw/highlight/line/shape bar alike.)
 
         private void HideTextSettings()
         {
-            FadeOutAndRemoveBar(_textSettingsBar);
+            UndockToolBar(_textSettingsBar);
             _textSettingsBar = null;
             if (_annotBarTool == EditTool.Text) _annotBarTool = null;
         }

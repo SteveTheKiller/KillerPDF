@@ -277,7 +277,6 @@ public partial class PdfViewer
 
     private void ReleasePresentationResources()
     {
-        ReleaseAnnotationPresentation();
         _presentationDisplayObserver?.Dispose();
         _presentationDisplayObserver = null;
         _primaryViewport?.Dispose();

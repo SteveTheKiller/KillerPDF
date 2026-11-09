@@ -122,7 +122,7 @@ namespace KillerPDF.Shell
         private Color _highlightColor { get => ActiveViewer.HighlightColorRef; set => ActiveViewer.HighlightColorRef = value; }
         // Strikethrough / underline lines: opaque red by default.
         private Color _lineAnnotColor { get => ActiveViewer.LineAnnotColorRef; set => ActiveViewer.LineAnnotColorRef = value; }
-        private Border? _drawSettingsBar;
+        private Border? _drawSettingsBar { get => ActiveViewer.DrawSettingsBarRef; set => ActiveViewer.DrawSettingsBarRef = value; }
 
         // Text (typewriter) tool settings
         private double _textFontSize { get => ActiveViewer.TextFontSizeRef; set => ActiveViewer.TextFontSizeRef = value; }
@@ -352,6 +352,7 @@ namespace KillerPDF.Shell
             // Replaces the single `Viewer.Owner = this` - ViewerB exists from startup, collapsed,
             // so its bridge would NullReference the moment anything touched it otherwise.
             InitSplitPanes();
+            RetireFloatingBarSettings();   // the docked options row keeps no position (AnnotationBars.cs)
             InitTabPlacement();
             WirePageListEdgeFades();   // sidebar page-list edge fades (SidebarLayout.cs)
             _pageContentGrid  = ActiveViewer.PageGrid;

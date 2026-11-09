@@ -314,7 +314,6 @@ namespace KillerPDF.Shell
         partial void AfterWindowStateChanged()
         {
             UpdateWindowChrome();
-            RepositionAnnotationBars();
         }
 
         // The kit's corner call on a state change gives the same answer as UpdateWindowChrome.
@@ -330,170 +329,6 @@ namespace KillerPDF.Shell
         {
             base.OnRenderSizeChanged(sizeInfo);
             UpdateWindowChrome();
-            RepositionAnnotationBars();
-        }
-
-        // Re-applies the saved placement to every visible annotation bar. Called synchronously from the
-        // window events that resize/move the content area (resize, maximize/restore, move), so
-        // the bar tracks its anchored edge and stays fully on-screen through all of them.
-        internal void RepositionAnnotationBars()
-        {
-            if (PagePreviewPanel?.Parent is not Grid area) return;
-            foreach (var bar in new[] { _drawSettingsBar, _textSettingsBar })
-                if (bar is not null)
-                {
-                    if (WindowState == WindowState.Minimized || !bar.IsVisible)
-                        CancelAnnotationBarLayout(bar);
-                    else
-                        PositionAnnotationBar(bar, area);
-                }
-        }
-
-        private readonly Dictionary<Border, System.Windows.Threading.DispatcherOperation> _annotationBarLayout = [];
-
-        private void CancelAnnotationBarLayout(Border bar)
-        {
-            if (_annotationBarLayout.Remove(bar, out var pending)) pending.Abort();
-        }
-
-        private void AnnotBarLoaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is Border bar && bar.Parent is Grid area) PositionAnnotationBar(bar, area);
-        }
-
-        private void AnnotBarUnloaded(object sender, RoutedEventArgs e)
-        {
-            if (sender is Border bar) CancelAnnotationBarLayout(bar);
-        }
-
-        private void AnnotBarVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
-        {
-            if (sender is not Border bar) return;
-            if (!bar.IsVisible) CancelAnnotationBarLayout(bar);
-            else if (bar.Parent is Grid area) PositionAnnotationBar(bar, area);
-        }
-
-        // Anchors a bar to whichever edge it sits nearer and clamps it fully inside the document area:
-        // the gap from the anchored edge is honored when there's room, otherwise reduced so the bar
-        // never crosses the opposite edge. No-op until the bar has a measured width (PlaceAnnotationBar's
-        // deferred pass positions it once laid out).
-        private void PositionAnnotationBar(Border bar, Grid area, bool deferUntilMeasured = true)
-        {
-            bar.Loaded -= AnnotBarLoaded;
-            bar.Loaded += AnnotBarLoaded;
-            bar.Unloaded -= AnnotBarUnloaded;
-            bar.Unloaded += AnnotBarUnloaded;
-            bar.IsVisibleChanged -= AnnotBarVisibilityChanged;
-            bar.IsVisibleChanged += AnnotBarVisibilityChanged;
-            bool canDeferLayout = WindowState != WindowState.Minimized && bar.IsVisible && bar.IsLoaded;
-            if (!canDeferLayout || bar.ActualHeight > 0 || ThemeManager.Current != Theme.SE98)
-                CancelAnnotationBarLayout(bar);
-            // 98SE: classic toolbar band - flush, truly full width, no floating gaps and no slide
-            // parking. The document scroller is inset by the band's height (SyncSe98BarInset), so
-            // the vertical scrollbar starts BELOW the band instead of poking up beside its right
-            // end. Restores the theme's own edge thickness and padding: SetBarDockedBorder below
-            // writes hardcoded 1px borders and 4px padding straight over the BarEdgeThickness /
-            // BarPadding resource references, which is what flattened the classic 2px light bevel
-            // into a thin misplaced line.
-            if (ThemeManager.Current == Theme.SE98)
-            {
-                bar.HorizontalAlignment = HorizontalAlignment.Stretch;
-                bar.Margin = new Thickness(0);
-                bar.SetResourceReference(Border.BorderThicknessProperty, "BarEdgeThickness");
-                bar.SetResourceReference(Border.PaddingProperty, "BarPadding");
-                bar.SetResourceReference(Border.CornerRadiusProperty, "AnnotationBarCornerRadius");
-                // Allow one deferred layout pass, never a self-requeueing Loaded loop that
-                // starves input while the band has no height. Size/load/visibility events and
-                // window restore resume positioning when layout becomes possible again.
-                if (bar.ActualHeight <= 0 && canDeferLayout && deferUntilMeasured && !_annotationBarLayout.ContainsKey(bar))
-                    _annotationBarLayout[bar] = Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
-                        (Action)(() =>
-                        {
-                            _annotationBarLayout.Remove(bar);
-                            if (bar.IsLoaded && bar.IsVisible && WindowState != WindowState.Minimized && bar.Parent is Grid a)
-                                PositionAnnotationBar(bar, a, deferUntilMeasured: false);
-                        }));
-                SyncSe98BarInset(bar, area);
-                return;
-            }
-            SyncSe98BarInset(bar, area);   // clears a leftover 98SE inset after a theme switch
-            double w = bar.ActualWidth;
-            // The document's vertical scrollbar lives on the right edge of the area. Keep the bar clear
-            // of it when it's showing; when it isn't, the bar can use the full edge.
-            double sb = VerticalScrollBarInset();
-            double maxLeft = Math.Max(0, area.ActualWidth - w);
-            if (_annotBarCenterFrac is double frac)
-            {
-                // Center-parking needs a real measured width to place; edge anchors below don't, so they
-                // must still run on a freshly-rebuilt (unmeasured) bar - otherwise a same-tool refresh
-                // (e.g. clicking Bold) reveals the new bar at the default right edge, over the scrollbar.
-                if (w <= 0) return;
-                // Parked away from both edges: keep the same fraction of the width so it scales smoothly
-                // with the window instead of lurching toward an edge. Clamp so it never slides under the
-                // scrollbar on the right.
-                double maxLeftCentered = Math.Max(0, maxLeft - sb);
-                double left = Math.Max(0, Math.Min(maxLeftCentered, frac * area.ActualWidth - w / 2));
-                bar.HorizontalAlignment = HorizontalAlignment.Left;
-                bar.Margin = new Thickness(left, bar.Margin.Top, 0, 0);
-                SetBarDockedBorder(bar, dockedLeft: false, dockedRight: false);
-            }
-            else if (_annotBarAnchorRight)
-            {
-                // Sit the bar against the scrollbar's left edge when it's present (gap + scrollbar width),
-                // otherwise honor the plain gap right up to the pane edge.
-                double g = Math.Min(maxLeft, (_annotBarGap ?? 8) + sb);
-                bar.HorizontalAlignment = HorizontalAlignment.Right;
-                bar.Margin = new Thickness(0, bar.Margin.Top, g, 0);
-                // Only merge with the pane's edge line when nothing (no scrollbar) sits between them.
-                SetBarDockedBorder(bar, dockedLeft: false, dockedRight: sb <= 0 && g <= 0.5);
-            }
-            else
-            {
-                double g = Math.Min(maxLeft, _annotBarGap ?? 8);
-                bar.HorizontalAlignment = HorizontalAlignment.Left;
-                bar.Margin = new Thickness(g, bar.Margin.Top, 0, 0);
-                SetBarDockedBorder(bar, dockedLeft: g <= 0.5, dockedRight: false);
-            }
-        }
-
-        // Width reserved by the document pane's vertical scrollbar (matches the ScrollBar style's fixed
-        // 12px in MainWindow.xaml). Zero when the scrollbar isn't currently shown, so a docked bar can
-        // reach the pane edge; otherwise the bar stops at the scrollbar's left edge.
-        private const double DocScrollBarWidth = 12;
-        private double VerticalScrollBarInset() =>
-            PagePreviewPanel?.ComputedVerticalScrollBarVisibility == Visibility.Visible ? DocScrollBarWidth : 0;
-
-        // When the bar is docked flush against a side, drop its own 1px border on that side and swap it
-        // for 1px of padding. The document pane's border (same brush) then serves as the single shared
-        // edge line - no 2px double border, and no size or position change (so nothing jumps).
-        private static void SetBarDockedBorder(Border bar, bool dockedLeft, bool dockedRight)
-        {
-            bar.BorderThickness = new Thickness(dockedLeft ? 0 : 1, 0, dockedRight ? 0 : 1, 1);
-            bar.Padding = new Thickness(dockedLeft ? 5 : 4, 4, dockedRight ? 5 : 4, 4);
-        }
-
-        // 98SE reserves the docked band's height as top margin on the pane's document scroller, so
-        // the page and its vertical scrollbar start below the band (a classic toolbar strip) instead
-        // of the bar floating over them. Every other theme (and a removed bar) resolves to 0, which
-        // also clears a leftover inset after a theme switch. The scroller is looked up from the
-        // bar's own area so the inset always lands on the pane the bar actually lives in.
-        private static void SyncSe98BarInset(Border bar, Grid area, bool removing = false)
-        {
-            ScrollViewer? sv = null;
-            foreach (object child in area.Children)
-                if (child is ScrollViewer s) { sv = s; break; }
-            if (sv is null) return;
-            double inset = !removing && ThemeManager.Current == Theme.SE98 ? bar.ActualHeight : 0;
-            if (Math.Abs(sv.Margin.Top - inset) > 0.5)
-                sv.Margin = new Thickness(0, inset, 0, 0);
-        }
-
-        // Re-anchor a bar when its own size settles or changes (first measure, or the WrapPanel
-        // dropping to a second row on a narrow pane) - the 98SE scroller inset must track the
-        // band's real height, and the floating themes re-clamp against the new width.
-        private void AnnotBarSizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            if (sender is Border b && b.Parent is Grid a) PositionAnnotationBar(b, a);
         }
 
         // Snapping changes the window's position/size but NOT its WindowState (it stays Normal), so
@@ -502,7 +337,6 @@ namespace KillerPDF.Shell
         private void OnWindowLocationChanged(object? sender, EventArgs e)
         {
             UpdateWindowChrome();
-            RepositionAnnotationBars();
         }
 
         // Applies the frame border and corner treatment for the current window layout.

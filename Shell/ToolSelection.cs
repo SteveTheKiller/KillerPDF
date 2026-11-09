@@ -47,15 +47,6 @@ namespace KillerPDF.Shell
         private void SetTool(EditTool tool, bool restoringPane = false)
         {
             if (_doc is null) tool = EditTool.Select;
-            // Re-clicking the tool that owns the visible annotate bar tucks the bar away (or brings it
-            // back) instead of rebuilding it - no flicker, and a quick way to get it out of the way.
-            bool reclickedAnnotTool = !restoringPane && tool == _currentTool && tool == _annotBarTool
-                && (_textSettingsBar is not null || _drawSettingsBar is not null || _cropConfirmBar is not null);
-            if (reclickedAnnotTool)
-            {
-                ToggleAnnotBarMinimized();
-                return;
-            }
 
             // A PDF whose owner restricts editing is view-only until its owner password is entered.
             // Choosing an editing tool asks for it; re-applying the tab's tool on open or a tab
@@ -115,16 +106,27 @@ namespace KillerPDF.Shell
             foreach (var overlay in _continuousCanvases.Values)
                 overlay.Cursor = toolCursor;
 
-            // Show/hide draw settings bar (the Measure bar is the draw bar with the Measure controls)
-            if ((tool is EditTool.Draw or EditTool.Line or EditTool.Shape or EditTool.Measure) || tool == EditTool.Highlight
-                || tool == EditTool.Strikethrough || tool == EditTool.Underline)
-                ShowDrawSettings(tool);
+            // Show or hide the docked options bar (the Measure bar is the draw bar with the Measure
+            // controls). Focusing a pane keeps the bar it already shows for this tool: rebuilding it
+            // there would replace the control a click or Tab into that pane's bar just reached.
+            var barKind = ToolOptionsCatalog.BarFor(tool);
+            bool keepBar = _focusingPane && ActiveViewer.ToolOptionsDockRef.Bar is ToolOptionsBar docked
+                && docked.Tool == tool && _annotBarTool == tool;
+            if (barKind == ToolOptionsBarKind.Draw)
+            {
+                if (!keepBar) ShowDrawSettings(tool);
+                else if (tool == EditTool.Measure && ActiveViewer.ToolOptionsDockRef.Bar is ToolOptionsBar measureBar)
+                {
+                    // The Scale and page size readouts are window fields; point them at this pane's row.
+                    _measureScaleButton = measureBar.GroupContent(ToolOptionGroup.Scale) as Button;
+                    _measurePageSizeText = measureBar.GroupContent(ToolOptionGroup.PageSize) as TextBlock;
+                    RefreshMeasureBar();
+                }
+            }
             else
                 HideDrawSettings();
 
-            // Show/hide text tool settings bar
-            if (tool == EditTool.Text)
-                ShowTextSettings();
+            if (barKind == ToolOptionsBarKind.Text) { if (!keepBar) ShowTextSettings(); }
             else
                 HideTextSettings();
 

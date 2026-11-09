@@ -450,6 +450,12 @@
                 <Border x:Name="PaneBevelOuterLight" Panel.ZIndex="100" IsHitTestVisible="False" BorderBrush="{DynamicResource PaneBevelLightBrush}" BorderThickness="{DynamicResource PaneBevelDarkThickness}"/>
                 <Border x:Name="PaneBevelInnerDark" Panel.ZIndex="100" IsHitTestVisible="False" Margin="{DynamicResource PaneBevelInnerMargin}" BorderBrush="{DynamicResource PaneBevelDark2Brush}" BorderThickness="{DynamicResource PaneBevel2LightThickness}"/>
                 <Border x:Name="PaneBevelInnerLight" Panel.ZIndex="100" IsHitTestVisible="False" Margin="{DynamicResource PaneBevelInnerMargin}" BorderBrush="{DynamicResource PaneBevelLight2Brush}" BorderThickness="{DynamicResource PaneBevel2DarkThickness}"/>
+                <!-- The active tool's options bar docks at the top of the pane and DocumentArea, the
+                     document and everything layered over it, starts below it, so the bar never
+                     covers the page (ToolOptionsDock). Overlays added to PagePreviewPanel.Parent land
+                     in DocumentArea and so position from the document's top, not the pane's. -->
+                <local:ToolOptionsDock x:Name="ToolOptionsDock">
+                <Grid x:Name="DocumentArea">
                 <!-- Film grain - sits on the canvas background, behind the document.
                      Needs no CornerRadius of its own: the clip on DocPaneContent rounds
                      everything inside the card, grain included. -->
@@ -673,6 +679,8 @@
                         </Grid>
                     </Border>
                 </Grid>
+                </Grid><!-- /DocumentArea -->
+                </local:ToolOptionsDock>
             </Grid>
         </Border>
         </Grid><!-- /card row -->

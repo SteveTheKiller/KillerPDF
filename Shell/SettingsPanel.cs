@@ -70,9 +70,8 @@ namespace KillerPDF.Shell
             el.BeginAnimation(UIElement.OpacityProperty, anim);
         }
 
-        // Fades an annotate (draw/text) settings bar out over ~90ms, then removes it from its parent -
-        // so the bar dissolves when its tool is deselected and crossfades when switching tools, matching
-        // the About/Settings overlays.
+        // Fades a field-anchored flyout bar (the form font size bar) out over ~90ms, then removes it
+        // from its parent, matching the About/Settings overlays.
         private static void FadeOutAndRemoveBar(Border? bar)
         {
             if (bar is null) return;
@@ -81,59 +80,9 @@ namespace KillerPDF.Shell
             anim.Completed += (_, _) =>
             {
                 bar.BeginAnimation(UIElement.OpacityProperty, null);
-                // Release the 98SE scroller inset before the bar leaves its area, so the document
-                // slides back up to the pane top when the band disappears.
-                if (bar.Parent is Grid area) SyncSe98BarInset(bar, area, removing: true);
                 (bar.Parent as Panel)?.Children.Remove(bar);
             };
             bar.BeginAnimation(UIElement.OpacityProperty, anim);
-        }
-
-        // Collapses the visible annotate bar to a thin peek strip, or expands it back. Triggered by
-        // re-clicking the already-active tool, so a second click tucks the bar away instead of the
-        // old behavior of rebuilding it (which flickered).
-        private void ToggleAnnotBarMinimized()
-        {
-            var bar = _textSettingsBar ?? _drawSettingsBar ?? _cropConfirmBar;
-            if (bar is null) return;
-            _annotBarMinimized = !_annotBarMinimized;
-            bar.ClipToBounds = true;
-            const double peek = 13;   // thin strip, just enough for the grip dots
-            if (_annotBarMinimized)
-            {
-                // Freeze the current width so collapsing the content can't shrink the bar to the dots and
-                // slide it to the corner - it stays a same-width strip in place.
-                bar.Width = bar.ActualWidth;
-                bar.Effect = null;   // minimized strips never carry a drop shadow
-                _annotBarFullHeight = bar.ActualHeight > 0 ? bar.ActualHeight : bar.DesiredSize.Height;
-                var anim = new DoubleAnimation(_annotBarFullHeight, peek, new Duration(TimeSpan.FromMilliseconds(120)))
-                { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
-                anim.Completed += (_, _) =>
-                {
-                    _annotBarContent?.Visibility = Visibility.Collapsed;
-                    _annotBarDots?.Visibility = Visibility.Visible;
-                    bar.ClipToBounds = false;   // content is hidden now, nothing to clip
-                };
-                bar.BeginAnimation(FrameworkElement.HeightProperty, anim);
-            }
-            else
-            {
-                // Show the full content again before growing back, and let the width track content again.
-                bar.Width = double.NaN;
-                bar.Effect = AnnotBarShadow();   // restore the drop shadow on the expanded bar
-                _annotBarContent?.Visibility = Visibility.Visible;
-                _annotBarDots?.Visibility = Visibility.Collapsed;
-                double full = _annotBarFullHeight > 0 ? _annotBarFullHeight : bar.ActualHeight;
-                var anim = new DoubleAnimation(peek, full, new Duration(TimeSpan.FromMilliseconds(120)))
-                { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
-                anim.Completed += (_, _) =>
-                {
-                    bar.BeginAnimation(FrameworkElement.HeightProperty, null);
-                    bar.Height = double.NaN;   // back to auto so it tracks its content again
-                    bar.ClipToBounds = false;
-                };
-                bar.BeginAnimation(FrameworkElement.HeightProperty, anim);
-            }
         }
 
         // Confirm-before-opening-links (About card footer). One key, positive sense - see the
@@ -361,9 +310,8 @@ namespace KillerPDF.Shell
         {
             var active = ActiveViewer;
             var other = ReferenceEquals(active, Viewer) ? ViewerB : Viewer;
-            // Refresh the inactive pane first. BuildBarHost keeps a few drag/minimize references
-            // at window scope, so finishing on the active pane leaves those references pointed at
-            // the controls the shared toolbar is currently operating.
+            // Each pane docks its own bar, built in that pane's context; the active pane goes last
+            // so the shared Measure readouts end up pointing at the bar the user is working in.
             if (!ReferenceEquals(other, active)) RefreshOpenAnnotationBars(other);
             RefreshOpenAnnotationBars(active);
         }

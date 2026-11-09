@@ -18,32 +18,28 @@ namespace KillerPDF.Shell
         private TextBlock? _measurePageSizeText;
         private MeasureScaleDialog.DialogState? _measureScaleState;
 
-        /// <summary>Builds the two Measure groups: type, scale and units; then page size and report.</summary>
-        private (StackPanel Main, StackPanel Info) BuildMeasureGroups()
+        /// <summary>The Measure groups in row order: types, scale, units, page size and report.</summary>
+        private List<(string Id, FrameworkElement Group)> BuildMeasureGroups()
         {
-            var main = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 16, 2) };
-            main.Children.Add(MeasureModeButton(MeasurementKind.Distance, "Str_Measure_TT_Distance", DistanceGlyph()));
-            main.Children.Add(MeasureModeButton(MeasurementKind.Perimeter, "Str_Measure_TT_Perimeter", PerimeterGlyph()));
-            main.Children.Add(MeasureModeButton(MeasurementKind.Area, "Str_Measure_TT_Area", AreaGlyph()));
-            main.Children.Add(MeasureModeButton(MeasurementKind.Angle, "Str_Measure_TT_Angle", AngleGlyph()));
+            var modes = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            modes.Children.Add(MeasureModeButton(MeasurementKind.Distance, "Str_Measure_TT_Distance", DistanceGlyph()));
+            modes.Children.Add(MeasureModeButton(MeasurementKind.Perimeter, "Str_Measure_TT_Perimeter", PerimeterGlyph()));
+            modes.Children.Add(MeasureModeButton(MeasurementKind.Area, "Str_Measure_TT_Area", AreaGlyph()));
+            modes.Children.Add(MeasureModeButton(MeasurementKind.Angle, "Str_Measure_TT_Angle", AngleGlyph()));
 
             _measureScaleButton = MeasureBarButton("", "Str_Measure_TT_Scale", () => OpenMeasureScale());
             _measureScaleButton.ToolTip = ShortcutTip("Str_Measure_TT_Scale", "AltShift:D5");
-            _measureScaleButton.Margin = new Thickness(10, 0, 6, 0);
-            main.Children.Add(_measureScaleButton);
+            System.Windows.Automation.AutomationProperties.SetAutomationId(_measureScaleButton, "MeasureScale");
 
-            var units = new ComboBox
-            {
-                Width = 132,
-                VerticalAlignment = VerticalAlignment.Center,
-                ToolTip = Loc("Str_Measure_TT_Units")
-            };
-            if (UiKit.DarkComboStyle is Style comboStyle) units.Style = comboStyle;
-            System.Windows.Automation.AutomationProperties.SetName(units, Loc("Str_Measure_TT_Units"));
+            // Sized to its longest unit name instead of a fixed 132 (spec 3.3).
+            var names = MeasurementUnits.Offered.Select(unit => MeasureScaleDialog.UnitName(unit.Id)).ToList();
+            var units = CompactCombo(names, Loc("Str_Measure_TT_Units"));
+            System.Windows.Automation.AutomationProperties.SetAutomationId(units, "MeasureUnits");
             string current = ActiveViewer.MeasureUnit;
             foreach (MeasureUnit unit in MeasurementUnits.Offered)
             {
                 var item = new ComboBoxItem { Content = MeasureScaleDialog.UnitName(unit.Id), Tag = unit.Id };
+                if (FindResource("DarkComboItem") is Style itemStyle) item.Style = itemStyle;
                 units.Items.Add(item);
                 if (unit.Id == current) units.SelectedItem = item;
             }
@@ -55,24 +51,25 @@ namespace KillerPDF.Shell
                     RefreshMeasureBar();
                 }
             };
-            main.Children.Add(units);
 
-            var info = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 16, 2) };
             _measurePageSizeText = new TextBlock
             {
-                FontFamily = UiKit.UiFont,
+                FontFamily = UiKit.MonoFont,
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 10, 0),
                 ToolTip = Loc("Str_Measure_TT_PageSize")
             };
             _measurePageSizeText.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-            info.Children.Add(_measurePageSizeText);
             var report = MeasureBarButton(Loc("Str_Measure_Report"), "Str_Measure_TT_Report", ShowMeasurementReport);
             report.ToolTip = KillerFamily.Layout.ShortcutHints.WithHint(Loc("Str_Measure_TT_Report"), GestureFor("CtrlShift:D") + ", Y");
-            info.Children.Add(report);
+            System.Windows.Automation.AutomationProperties.SetAutomationId(report, "MeasureReport");
             RefreshMeasureBar();
-            return (main, info);
+            return
+            [
+                (Controls.ToolOptionGroup.Modes, modes), (Controls.ToolOptionGroup.Scale, _measureScaleButton),
+                (Controls.ToolOptionGroup.Units, units), (Controls.ToolOptionGroup.PageSize, _measurePageSizeText),
+                (Controls.ToolOptionGroup.Report, report),
+            ];
         }
 
         /// <summary>Updates the scale and page size readouts for the page in view.</summary>
@@ -83,46 +80,35 @@ namespace KillerPDF.Shell
             if (_measureScaleButton is not null)
                 _measureScaleButton.Content = string.Format(Loc("Str_Measure_Scale"), ActiveViewer.MeasureScaleText(page));
             _measurePageSizeText?.Text = string.Format(Loc("Str_Measure_PageSize"), ActiveViewer.MeasurePageSizeText(page));
+            // The texts can grow (a named scale, another page size); re-fit the row so nothing clips.
+            Controls.ToolOptionsBar.RemeasureOwner(_measureScaleButton);
         }
 
+        // A text button of the row: 24 tall, padding 10,0 (spec 3.3).
         private Button MeasureBarButton(string text, string tipKey, Action click)
         {
             var button = UiKit.Make(text, false);
-            button.Padding = new Thickness(10, 3, 10, 3);
-            button.Margin = new Thickness(0, 0, 6, 0);
+            button.Padding = new Thickness(10, 0, 10, 0);
+            button.Height = Controls.ToolOptionsControls.ControlHeight;
             button.VerticalAlignment = VerticalAlignment.Center;
             button.ToolTip = Loc(tipKey);
             button.Click += (_, _) => click();
             return button;
         }
 
-        // Radio-style type buttons whose glyphs are drawn shapes, like the Shapes tool's picker.
-        private Border MeasureModeButton(MeasurementKind kind, string tipKey, FrameworkElement glyph)
+        // Radio-style type toggles whose glyphs are drawn shapes, like the Shapes tool's picker.
+        private FrameworkElement MeasureModeButton(MeasurementKind kind, string tipKey, FrameworkElement glyph)
         {
             bool active = ActiveViewer.MeasureMode == kind;
             foreach (Shape shape in GlyphShapes(glyph))
                 shape.SetResourceReference(Shape.StrokeProperty, active ? "SelectionAccent" : "MutedTextBrush");
-            var button = new Border
+            var button = Controls.ToolOptionsControls.IconToggle(glyph, active, Loc(tipKey), () =>
             {
-                Width = 28,
-                Height = 22,
-                CornerRadius = new CornerRadius(3),
-                BorderThickness = new Thickness(active ? 1.5 : 1),
-                Background = Brushes.Transparent,
-                Margin = new Thickness(1, 0, 1, 0),
-                Cursor = Cursors.Hand,
-                ToolTip = ShortcutTip(tipKey, "AltShift:D" + ((int)kind + 1)),
-                Child = glyph
-            };
-            System.Windows.Automation.AutomationProperties.SetName(button, Loc(tipKey));
-            if (active) button.SetResourceReference(Border.BorderBrushProperty, "SelectionAccent");
-            else button.BorderBrush = _swatchDimBorder;
-            button.MouseLeftButtonDown += (_, _) =>
-            {
-                if (ActiveViewer.MeasureMode == kind) return;
-                ActiveViewer.MeasureMode = kind;
+                // A checked toggle unchecks itself when pressed again; rebuild so it shows checked.
+                if (ActiveViewer.MeasureMode != kind) ActiveViewer.MeasureMode = kind;
                 ShowDrawSettings(EditTool.Measure);
-            };
+            }, ShortcutTip(tipKey, "AltShift:D" + ((int)kind + 1)));
+            System.Windows.Automation.AutomationProperties.SetAutomationId(button, "MeasureMode" + kind);
             return button;
         }
 

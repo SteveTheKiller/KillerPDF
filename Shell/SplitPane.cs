@@ -563,7 +563,9 @@ namespace KillerPDF.Shell
             SyncZoomBox();
             SyncPickerState();
             UpdatePageSizeDisplay();
-            SetTool(_currentTool, restoringPane: true);
+            _focusingPane = true;
+            try { SetTool(_currentTool, restoringPane: true); }
+            finally { _focusingPane = false; }
             UpdateSignaturePlacementHint();
             UpdateStampIndicator();
 
@@ -578,6 +580,9 @@ namespace KillerPDF.Shell
         /// with one pane there is nothing to disambiguate.</summary>
         private void ApplyFocusHalo()
         {
+            // The pane without focus keeps its own options row, dimmed (redesign 3.5).
+            Viewer.ToolOptionsDockRef.Dimmed = _isSplit && !ReferenceEquals(ActiveViewer, Viewer);
+            ViewerB.ToolOptionsDockRef.Dimmed = _isSplit && !ReferenceEquals(ActiveViewer, ViewerB);
             if (!_isSplit)
             {
                 Viewer.SetFocusHalo(false);

@@ -100,9 +100,7 @@ namespace KillerPDF.Features
         void ApplyTextStyleToSelection();
         void ShowDrawSettings(EditTool tool);
         void HideDrawSettings();
-        Border MakeBarGrip(int dotCount);
         FrameworkElement BuildBarHost(FrameworkElement content);
-        void PlaceAnnotationBar(Border bar, Border grip, bool fadeIn);
         void PlaceImageFromDialog(Point position, int pageIndex);
         void PlaceSignature(Point position, int pageIndex);
         void ShowSignaturePopup();
@@ -125,9 +123,7 @@ namespace KillerPDF.Features
         /// shortcuts. Takes keyboard map names such as "Ctrl:W".</summary>
         string GestureFor(string cap);
         bool FullScreen { get; }
-        bool VerticalScrollVisible { get; set; }
         bool SpaceHeld { get; }
-        void RepositionAnnotationBars();
         void PopulateContextMenu(PdfViewer viewer, Point point, int pageIndex);
         void RefreshPageList(PdfViewer viewer);
         void LoadOutlines(PdfViewer viewer);

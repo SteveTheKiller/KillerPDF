@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -22,11 +23,11 @@ namespace KillerPDF.Shell
     public partial class MainWindow
     {
         // ============================================================
-        // Draw/Highlight settings bar
+        // Docked tool options bars (Draw, Highlight, Underline, Strikethrough, Line, Shapes, Measure)
         // ============================================================
 
-        // The quick-colors shown in the annotate bars. User-configurable via the color picker's swatch
-        // row (shared "UserSwatches" setting); seeded with these 8 defaults, restorable via the picker's
+        // The quick-colors shown in the options bars. User-configurable via the color picker's swatch
+        // row (shared "UserSwatches" setting); seeded with these defaults, restorable via the picker's
         // Reset. SwatchColors reads the live set each time a bar is built, so edits show up immediately.
         private static readonly Color[] DefaultSwatchColors = UiKit.DefaultSwatches;
         private static Color[] SwatchColors => LoadUserSwatches();
@@ -46,8 +47,6 @@ namespace KillerPDF.Shell
 
         // Frozen cached brushes for hot-path UI construction
         private static readonly SolidColorBrush _swatchDimBorder = Freeze(new SolidColorBrush(Color.FromRgb(0x44, 0x44, 0x44)));
-        private static readonly SolidColorBrush _drawBarBackground = Freeze(new SolidColorBrush(Color.FromRgb(0x1a, 0x1a, 0x1a)));
-        private static readonly SolidColorBrush _thumbBorderBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33)));
 
         private static T Freeze<T>(T freezable) where T : System.Windows.Freezable
         {
@@ -55,9 +54,8 @@ namespace KillerPDF.Shell
             return freezable;
         }
 
-        // Wraps a floating annotation bar's content with the app's film-grain layer so these bars
-        // carry the same texture as the Settings / signature / dialog surfaces. The grain extends
-        // under the host border's 4px padding (negative margin) and matches its bottom corners.
+        // Wraps a floating panel's content (the search bar) with the app's film-grain layer, so it
+        // carries the same texture as the Settings / signature / dialog surfaces.
         private static Grid GrainWrap(UIElement content)
         {
             var g = new Grid();
@@ -73,913 +71,306 @@ namespace KillerPDF.Shell
             return g;
         }
 
-        // A grab handle (vertical dots) placed at the left of an annotation bar so it can be slid
-        // left/right along the top of the document. Returns the handle for EnableBarSlide.
-        private Border MakeBarGrip(int dotCount = 3)
-        {
-            // Real ellipse dots (not a braille glyph, which didn't render on some fonts/themes - the
-            // grip looked empty on the Light bars). Matches the sidebar splitter / minimized-bar dots.
-            // dotCount scales with bar height: 3 for single-row bars, 4 for the double-height text bar.
-            var dots = new StackPanel { Orientation = Orientation.Vertical, VerticalAlignment = VerticalAlignment.Center };
-            var fill = (Brush)FindResource("MutedTextBrush");
-            for (int i = 0; i < dotCount; i++)
-                dots.Children.Add(new System.Windows.Shapes.Ellipse
-                { Width = 3, Height = 3, Margin = new Thickness(0, 1.5, 0, 1.5), Fill = fill });
-            return new Border
-            {
-                Background = Brushes.Transparent,
-                Cursor = Cursors.Hand,
-                Padding = new Thickness(1, 0, 10, 0),   // hard to the left edge, more gap before the labels
-                VerticalAlignment = VerticalAlignment.Stretch,
-                Child = dots
-            };
-        }
-
-        // Wraps an annotate bar's content with a film-grain layer (always visible, even minimized) and a
-        // hidden grip-dots strip (the same dots the sidebar splitter uses) revealed when minimized.
+        // The grain and 98SE dark edge for the viewer's notice bars (native viewing, restrictions).
+        // Tool options no longer use it: they dock in their pane's ToolOptionsBar.
         private Grid BuildBarHost(FrameworkElement content)
         {
             var host = new Grid();
-
-            // KillerNotes ribbon contract: 98SE adds the dark right edge to the host's light
-            // top/left edge. Other themes define this as transparent/zero, so their floating
-            // annotation card remains unchanged.
             var darkEdge = new Border { IsHitTestVisible = false };
             darkEdge.SetResourceReference(Border.BorderBrushProperty, "BarEdgeDarkBrush");
             darkEdge.SetResourceReference(Border.BorderThicknessProperty, "BarEdgeDarkThickness");
             Panel.SetZIndex(darkEdge, 20);
             host.Children.Add(darkEdge);
-
-            // Grain stays put when the controls collapse, so the minimized strip keeps the texture.
-            // SetResourceReference so a theme switch retargets it - 98SE's GrainOpacity of 0 must
-            // actually clear the texture on an already-built bar (a FindResource snapshot did not).
             var hostGrain = new Border { Margin = new Thickness(-4), IsHitTestVisible = false };
             hostGrain.SetResourceReference(Border.CornerRadiusProperty, "AnnotationBarCornerRadius");
             hostGrain.SetResourceReference(UIElement.OpacityProperty, "GrainOpacity");
             hostGrain.SetResourceReference(Border.BackgroundProperty, "GrainBrushShared");
             host.Children.Add(hostGrain);
-
-            host.Children.Add(content);   // the collapsible controls
-
-            var dots = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                IsHitTestVisible = false
-            };
-            var fill = TryFindResource("MutedTextBrush") as Brush ?? Brushes.Gray;   // match the sidebar handle dots
-            for (int i = 0; i < 6; i++)
-                dots.Children.Add(new System.Windows.Shapes.Ellipse
-                { Width = 3, Height = 3, Margin = new Thickness(2, 0, 2, 0), Fill = fill });
-            // The dots live in a transparent, hit-testable strip that fills the bar. While the bar is
-            // minimized this strip is shown, so the whole peek strip can be dragged left/right (the slide
-            // is wired to it in PlaceAnnotationBar) - same as dragging the grip on the expanded bar.
-            var dotsStrip = new Border
-            {
-                Background = Brushes.Transparent,
-                Cursor = Cursors.Hand,
-                Visibility = Visibility.Collapsed,
-                Child = dots
-            };
-            host.Children.Add(dotsStrip);
-
-            _annotBarContent = content;
-            _annotBarDots = dotsStrip;
+            host.Children.Add(content);
             return host;
         }
 
-        // Drop shadow for the annotate bars: offset straight down with depth >= blur, so it falls on the
-        // sides and bottom but never above the bar (no halo between it and the toolbar). Removed entirely
-        // while minimized.
+        // Drop shadow for the viewer's floating notice bars: straight down, never above the bar.
         private static System.Windows.Media.Effects.DropShadowEffect AnnotBarShadow()
             => new() { Color = Colors.Black, BlurRadius = 6, ShadowDepth = 3, Direction = 270,
                 Opacity = Application.Current.TryFindResource("BarShadowOpacity") is double opacity ? opacity : 0.38 };
 
-        // Lets the annotation bars slide horizontally along the top via their grip, clamped inside
-        // the document area, with the X position remembered (shared across the draw/text bars).
-        private void EnableBarSlide(FrameworkElement grip, Border bar, FrameworkElement bounds, bool backgroundOnly = false)
-        {
-            if (backgroundOnly)
-            {
-                // Only empty panel space is draggable. Query the current hit target so controls
-                // immediately keep their own cursor when the pointer leaves that space.
-                grip.QueryCursor += (_, e) =>
-                {
-                    if (!ReferenceEquals(e.OriginalSource, grip)) return;
-                    e.Cursor = Cursors.Hand;
-                    e.Handled = true;
-                };
-            }
-            else grip.Cursor = Cursors.Hand;
-            // A capture lost to an alt-tab or a dialog never reaches the button-up handler, which
-            // would strand the drag cursor on screen for the rest of the session.
-            grip.LostMouseCapture += (s, e) => DragCursors.EndDrag();
-            grip.MouseLeftButtonDown += (s, e) =>
-            {
-                // When wired on a content panel, only act on clicks that hit the panel's OWN background
-                // (empty gaps). A click on a child control (slider, swatch, combo) reports that child as
-                // the source, so we bail and let the control handle it - even controls that don't mark the
-                // event handled never start a drag. The grip / peek strip pass backgroundOnly=false.
-                if (backgroundOnly && !ReferenceEquals(e.OriginalSource, grip)) return;
-                // Double-click any draggable surface (grip, peek strip, or an empty area of the bar)
-                // toggles minimize - same gesture everywhere.
-                if (e.ClickCount == 2) { e.Handled = true; ToggleAnnotBarMinimized(); return; }
-                double w = bar.ActualWidth;
-                // Drag uniformly in left-edge coordinates whatever the current anchor; the edge it
-                // anchors to is decided on release from where it ends up.
-                double curLeft = bar.HorizontalAlignment == HorizontalAlignment.Right
-                    ? bounds.ActualWidth - bar.Margin.Right - w
-                    : bar.Margin.Left;
-                bar.HorizontalAlignment = HorizontalAlignment.Left;
-                bar.Margin = new Thickness(curLeft, bar.Margin.Top, 0, 0);
-                bar.Tag = (e.GetPosition(bounds).X, curLeft);   // (startX, origLeft)
-                grip.CaptureMouse();
-                DragCursors.BeginDrag(Cursors.Hand);
-                e.Handled = true;
-            };
-            grip.MouseMove += (s, e) =>
-            {
-                if (bar.Tag is not (double startX, double origLeft) || !grip.IsMouseCaptured) return;
-                double w = bar.ActualWidth;
-                // Stop the drag at the scrollbar's left edge (not the pane edge) so the bar never
-                // overshoots the scrollbar and then snaps back on release - the "bounce" the user saw.
-                double sb = VerticalScrollBarInset();
-                double maxLeft = Math.Max(0, bounds.ActualWidth - w - sb);
-                double nl = Math.Max(0, Math.Min(maxLeft, origLeft + (e.GetPosition(bounds).X - startX)));
-                bar.Margin = new Thickness(nl, bar.Margin.Top, 0, 0);
-                // Merge the docked-side border with the pane border live while dragging (no footprint
-                // change), so it doesn't pop in on release. The right side only docks flush when no
-                // scrollbar sits between the bar and the pane edge.
-                SetBarDockedBorder(bar, dockedLeft: nl <= 0.5, dockedRight: sb <= 0 && nl >= maxLeft - 0.5);
-            };
-            grip.MouseLeftButtonUp += (s, e) =>
-            {
-                if (!grip.IsMouseCaptured) return;
-                grip.ReleaseMouseCapture();
-                DragCursors.EndDrag();
-                double w = bar.ActualWidth;
-                double left = bar.Margin.Left;
-                // Measure the right gap from the scrollbar's left edge (the usable content edge), so a
-                // bar parked against the scrollbar records gap ~0 and PositionAnnotationBar re-adds the
-                // scrollbar width once - no double inset, no jump.
-                double sb = VerticalScrollBarInset();
-                double rightGap = Math.Max(0, (bounds.ActualWidth - sb) - (left + w));
-                const double snap = 24;   // within this many px of an edge, cling to that edge exactly
-                if (left <= snap)
-                {
-                    _annotBarCenterFrac = null; _annotBarAnchorRight = false; _annotBarGap = Math.Max(0, left);
-                }
-                else if (rightGap <= snap)
-                {
-                    _annotBarCenterFrac = null; _annotBarAnchorRight = true; _annotBarGap = rightGap;
-                }
-                else
-                {
-                    // Away from both edges: remember it as a fraction of the width so resizing scales it
-                    // smoothly rather than snapping it to an edge.
-                    _annotBarCenterFrac = (left + w / 2) / bounds.ActualWidth;
-                }
-                App.SetSetting("AnnotBarFrac",
-                    _annotBarCenterFrac?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "");
-                App.SetSetting("AnnotBarGap", ((int)(_annotBarGap ?? 8)).ToString());
-                App.SetSetting("AnnotBarRightSide", _annotBarAnchorRight ? "1" : "0");
-                if (PagePreviewPanel?.Parent is Grid area) PositionAnnotationBar(bar, area);
-                e.Handled = true;
-            };
-        }
-
-        // Saved horizontal placement for the floating draw/text settings bars (shared by both). The bar
-        // anchors to whichever edge it sits nearer and remembers its gap from that edge, so it clings to
-        // that edge on resize. RepositionAnnotationBars re-applies it - clamped fully inside the document
-        // area - from the same window events that keep the Settings panel in-window, so it can never end
-        // up off-screen regardless of which edge it was parked against.
-        private double? _annotBarGap;
-        private bool _annotBarAnchorRight = true;
-        private double? _annotBarCenterFrac;   // set when parked away from both edges: hold this fraction of the width
-        private bool _vScrollVisible;          // last-known document vertical scrollbar state, to reposition bars on change
         private EditTool? _annotBarTool { get => ActiveViewer.AnnotBarToolRef; set => ActiveViewer.AnnotBarToolRef = value; }
-        private bool _annotBarMinimized { get => ActiveViewer.AnnotBarMinimizedRef; set => ActiveViewer.AnnotBarMinimizedRef = value; }
-        private double _annotBarFullHeight;    // remembered full height to expand back to
-        private FrameworkElement? _annotBarContent;   // the bar's normal content (hidden while minimized)
-        private FrameworkElement? _annotBarDots;      // grip-dots strip shown while minimized
-        private List<FrameworkElement> _annotBarDragInners => ActiveViewer.AnnotBarDragInnersRef;
 
-        // Positions an annotation bar and wires up sliding. If we already know the X (this session or
-        // saved), set it synchronously so the bar appears in place; only the very first time do we
-        // defer to compute the default top-right from the laid-out width.
-        private void PlaceAnnotationBar(Border bar, Border grip, bool fadeIn = false)
+        // Set while FocusPane re-applies the pane's tool, so SetTool keeps a bar that is already docked.
+        private bool _focusingPane;
+
+        // The floating bar remembered where it was slid to. The docked row has no position, so these
+        // are dropped the first time 1.9.3 runs.
+        private static void RetireFloatingBarSettings()
         {
-            if (PagePreviewPanel.Parent is not Grid area) return;
-
-            if (_annotBarGap is null && _annotBarCenterFrac is null)
-            {
-                if (double.TryParse(App.GetSetting("AnnotBarFrac"), System.Globalization.NumberStyles.Float,
-                                    System.Globalization.CultureInfo.InvariantCulture, out double f))
-                {
-                    _annotBarCenterFrac = f;   // parked away from both edges last time
-                }
-                else
-                {
-                    _annotBarGap = int.TryParse(App.GetSetting("AnnotBarGap"), out int sg) ? sg : 8;
-                    _annotBarAnchorRight = App.GetSetting("AnnotBarRightSide") != "0";   // default: right edge
-                }
-            }
-            // Track the bar's own size (first measure, wrap to a second row) so the 98SE scroller
-            // inset and the floating themes' edge clamp stay in step with the real height/width.
-            bar.SizeChanged -= AnnotBarSizeChanged;
-            bar.SizeChanged += AnnotBarSizeChanged;
-            EnableBarSlide(grip, bar, area);
-            // The minimized peek strip drags the bar too, so a collapsed bar can be repositioned.
-            if (_annotBarDots is not null) EnableBarSlide(_annotBarDots, bar, area);
-            // Empty areas of the bar content drag it too (and double-click them to minimize). The content
-            // panel(s) have a Transparent background, so only the gaps between controls trigger this -
-            // clicks that land on a slider/swatch/combo still go to that control.
-            if (_annotBarContent is not null) EnableBarSlide(_annotBarContent, bar, area, backgroundOnly: true);
-            foreach (var inner in _annotBarDragInners)
-                if (inner is not null) EnableBarSlide(inner, bar, area, backgroundOnly: true);
-            // A freshly built bar has no measured width yet, so PositionAnnotationBar can't place it until
-            // layout runs. Hide it for that one frame (Opacity 0 still lays out, so width measures), then
-            // anchor and reveal it - otherwise it renders at its default right edge first and visibly
-            // jumps to its saved spot on every tool switch.
-            bar.Opacity = 0;
-            PositionAnnotationBar(bar, area);   // sync position (edge-anchored modes are correct without a width)
-            if (fadeIn)
-            {
-                // Start the fade-in immediately so it overlaps the outgoing bar's fade-out (a true
-                // crossfade). Waiting for the deferred layout pass left a frame where neither bar was
-                // visible, which read as a blink. Final clamp/center still happens once laid out.
-                bar.BeginAnimation(UIElement.OpacityProperty,
-                    new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(110)))
-                    { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } });
-                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
-                    (Action)(() => PositionAnnotationBar(bar, area)));
-            }
-            else if (_annotBarCenterFrac is not null)
-            {
-                // Center-parked needs a measured width to place, so stay hidden one layout frame so it
-                // can't render at the default edge first and then jump.
-                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
-                    (Action)(() => { PositionAnnotationBar(bar, area); bar.Opacity = 1; }));
-            }
-            else
-            {
-                // Edge-anchored: already placed correctly above (no width needed), so reveal it right away
-                // instead of hiding for a frame - that one hidden frame was the "blink" on a same-tool
-                // refresh / same-family tool switch.
-                bar.Opacity = 1;
-            }
+            foreach (string key in new[] { "AnnotBarFrac", "AnnotBarGap", "AnnotBarRightSide" })
+                if (App.GetSetting(key) is not null) App.RemoveSetting(key);
         }
 
-        // Subtracts the annotate-bar chrome (padding + border + a gap from the scrollbar) from the document
-        // area's width, giving the wrap panel the width it's actually allowed to occupy before wrapping.
-        private static readonly InsetWidthConverter _barWidthInset = new();
-        private sealed class InsetWidthConverter : System.Windows.Data.IValueConverter
+        // ---- shared row parts ----------------------------------------------------------------
+
+        private static string ToolNameKey(EditTool tool) => tool switch
         {
-            public object Convert(object value, Type t, object p, System.Globalization.CultureInfo c)
-                => value is double d ? Math.Max(0.0, d - 28.0) : value;
-            public object ConvertBack(object value, Type t, object p, System.Globalization.CultureInfo c) => value;
+            EditTool.Text => "Str_Lbl_Text",
+            EditTool.Highlight => "Str_Lbl_Highlight",
+            EditTool.Underline => "Str_Lbl_Underline",
+            EditTool.Strikethrough => "Str_Lbl_Strike",
+            EditTool.Line => "Str_Lbl_Line",
+            EditTool.Shape => "Str_Lbl_Shape",
+            EditTool.Draw => "Str_Lbl_Draw",
+            EditTool.Measure => "Str_Lbl_Measure",
+            EditTool.Crop => "Str_Lbl_Crop",
+            _ => "Str_Lbl_Redact",
+        };
+
+        private ToolOptionsBar NewToolBar(EditTool tool) => new(tool, Loc(ToolNameKey(tool)), Loc("Str_Bar_More"));
+
+        // Docks a bar in the active pane, replacing whatever that pane's row showed.
+        private void DockToolBar(ToolOptionsBar bar) => ActiveViewer.ToolOptionsDockRef.Bar = bar;
+
+        // Takes a bar out of the active pane's row, if it is still the one shown there.
+        private void UndockToolBar(Border? bar)
+        {
+            var dock = ActiveViewer.ToolOptionsDockRef;
+            if (bar is not null && ReferenceEquals(dock.Bar, bar)) dock.Bar = null;
         }
 
-        // Adapts a wrapping annotate bar to very narrow widths: once its content blocks can no longer sit on
-        // a single row, the drag grip is hidden (non-essential at that size) and the blocks gain a little
-        // vertical breathing room as they stack; the inline separators are hidden so they don't float as
-        // stray ticks between stacked rows. The single-row fit test deliberately uses only fixed quantities
-        // (block widths + a constant gap allowance, never the grip or separator visibility we toggle), so a
-        // toggle can never change the test result and oscillate.
-        private void WireBarWrapAdaptation(WrapPanel host, FrameworkElement grip, FrameworkElement primary,
-                                           FrameworkElement sizeSource)
+        // The label in front of a group ("Color:", "Size:"), 6 from its control.
+        private static TextBlock BarLabel(string text)
         {
-            // The grip only shrinks to a thin draggable nub once the grip + the first block can no longer
-            // share a row (the window's skinniest) - not merely when the bar wraps. The threshold is the
-            // grip + first-block widths, measured ONCE at full size and frozen, so shrinking the grip can
-            // never feed back into the decision and oscillate. Spacing between groups is handled by the
-            // groups' own margins (not separators), so it survives wrapping with no stray ticks.
-            double gripThreshold = 0;
-            Thickness gripFull = (grip as Border)?.Padding ?? new Thickness();
-            bool? lastGripMin = null;
-            void SetGripMinimized(bool min)
+            var label = new TextBlock
             {
-                if (grip is not Border gb) return;
-                if (gb.Child is UIElement dots) dots.Visibility = min ? Visibility.Collapsed : Visibility.Visible;
-                gb.Padding = min ? new Thickness(1, 0, 2, 0) : gripFull;   // keep a few draggable px
-            }
-            void Apply()
-            {
-                double avail = host.MaxWidth;
-                if (double.IsNaN(avail) || double.IsInfinity(avail) || avail <= 0) return;
-                if (gripThreshold <= 0)
-                {
-                    double g = grip.DesiredSize.Width, p = primary.DesiredSize.Width;
-                    if (g <= 0 || p <= 0) return;   // not measured yet; a later pass will retry
-                    gripThreshold = g + p + 8.0;
-                }
-                bool gripMin = avail + 0.5 < gripThreshold;
-                if (lastGripMin == gripMin) return;
-                lastGripMin = gripMin;
-                SetGripMinimized(gripMin);
-            }
-            // Drive off the document area's width (the monotonic signal) rather than the panel's own size:
-            // once the grip shrinks and the bar fits a row again, the panel stops resizing, so only the
-            // source's width change tells us there is room to restore the grip. Unhook on teardown - the bar
-            // is rebuilt often (every swatch click), so a lingering handler would leak.
-            void onSource(object? sender, SizeChangedEventArgs e) => Apply();
-            sizeSource.SizeChanged += onSource;
-            host.Unloaded += (_, _) => sizeSource.SizeChanged -= onSource;
-            host.SizeChanged += (_, _) => Apply();   // catches the first valid measurement
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)Apply);
+                Text = text, FontFamily = UiKit.UiFont, FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0)
+            };
+            label.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+            return label;
         }
 
-        // Shared overflow chevron + popup for the annotate bars: an E712 "More" button whose popup
-        // (anchored to the button - flyouts anchor to their own button, always) stacks whatever
-        // groups WireBarOverflow sheds.
-        private static Border MakeBarOverflow(out Popup popup, out StackPanel stack)
+        private static StackPanel BarGroup(params UIElement[] children)
         {
-            var s = new StackPanel { Margin = new Thickness(10, 6, 10, 6) };
-            // Family flyout rule: the film grain is the LAST child, OVER the items, non-hit-testable.
-            var inner = new Grid();
-            inner.Children.Add(s);
-            // SetResourceReference so a theme switch retargets it (98SE clears grain via opacity 0).
-            var popGrain = new Border { CornerRadius = new CornerRadius(4), IsHitTestVisible = false };
-            popGrain.SetResourceReference(UIElement.OpacityProperty, "GrainOpacity");
-            popGrain.SetResourceReference(Border.BackgroundProperty, "GrainBrushShared");
-            inner.Children.Add(popGrain);
-            var border = new Border
-            {
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                Child = inner
-            };
-            border.SetResourceReference(Border.BackgroundProperty, "MenuBackgroundBrush");
-            border.SetResourceReference(Border.BorderBrushProperty, "MenuBorderBrush");
-            var glyph = new Glyph
-            {
-                Text = ((char)0xE712).ToString(),   // MDL2 More - the same chevron as the toolbar overflow
-                FontFamily = UiKit.IconFont,
-                FontSize = 13,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            glyph.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-            var btn = new Border
-            {
-                Width = 22,
-                Height = 20,
-                CornerRadius = new CornerRadius(3),
-                Margin = new Thickness(0, 3, 0, 3),
-                VerticalAlignment = VerticalAlignment.Center,
-                Cursor = Cursors.Hand,
-                Background = Brushes.Transparent,
-                ToolTip = Loc("Str_Bar_More"),
-                Child = glyph,
-                Visibility = Visibility.Collapsed
-            };
-            var p = new Popup
-            {
-                PlacementTarget = btn,
-                Placement = PlacementMode.Bottom,
-                VerticalOffset = 4,
-                StaysOpen = false,
-                AllowsTransparency = true,
-                Child = border
-            };
-            // Open on mouse UP, not down: a StaysOpen=false popup opened mid-mouse-down inherits
-            // the press's capture and closes again the moment the button is released, so it only
-            // stayed open while the click was held. Down is still handled so the press can't start
-            // a bar drag. The 200ms guard covers the toggle-close case (the closing click's up
-            // would otherwise instantly reopen it).
-            var closedAt = DateTime.MinValue;
-            p.Closed += (_, _) => closedAt = DateTime.UtcNow;
-            btn.MouseLeftButtonDown += (_, e) => e.Handled = true;
-            btn.MouseLeftButtonUp += (_, e) =>
-            {
-                e.Handled = true;
-                if ((DateTime.UtcNow - closedAt).TotalMilliseconds < 200) return;
-                p.IsOpen = true;
-            };
-            popup = p;
-            stack = s;
-            return btn;
+            var group = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            foreach (var child in children) group.Children.Add(child);
+            return group;
         }
 
-        // Caps an annotate bar at two wrapped rows. Group widths are measured ONCE and frozen (the
-        // WireBarWrapAdaptation anti-oscillation rule): the fit test simulates the WrapPanel's own
-        // first-fit line breaking against the available width and, while the visible groups would
-        // need a third row, sheds the next group in shedOrder into the overflow popup - restoring
-        // them in reverse when there is room again. Groups not named in shedOrder never collapse.
-        private void WireBarOverflow(WrapPanel host, Border overflowBtn, Popup popup,
-                                     StackPanel popupStack, StackPanel[] groups, int[] shedOrder,
-                                     FrameworkElement sizeSource)
+        // An 80-wide slider named after its label, so a screen reader says what it changes. The app's
+        // DarkSlider style is not focusable; in the row a slider is a Tab stop the arrows move.
+        private Slider BarSlider(double min, double max, double value, string name)
         {
-            double[] widths = new double[groups.Length];
-            double btnWidth = 26;   // chevron + margin; always reserved in the test (constant input)
-            int shedCount = 0;
-
-            int LinesNeeded(int shed)
+            var slider = new Slider
             {
-                var inPopup = new bool[groups.Length];
-                for (int i = 0; i < shed; i++) inPopup[shedOrder[i]] = true;
-                double avail = host.MaxWidth;
-                double line = btnWidth; int lines = 1;
-                for (int i = 0; i < groups.Length; i++)
-                {
-                    if (inPopup[i]) continue;
-                    double w = widths[i];
-                    if (line + w > avail && line > btnWidth) { lines++; line = btnWidth; }
-                    line += w;
-                }
-                return lines;
-            }
-
-            void MoveToPopup(int gi)
-            {
-                host.Children.Remove(groups[gi]);
-                int at = 0;   // keep display order inside the popup too
-                foreach (UIElement child in popupStack.Children)
-                    if (child is StackPanel sp && Array.IndexOf(groups, sp) is int ci && ci >= 0 && ci < gi) at++;
-                popupStack.Children.Insert(at, groups[gi]);
-            }
-            void MoveToBar(int gi)
-            {
-                popupStack.Children.Remove(groups[gi]);
-                int at = 1;   // index 0 is the grip
-                for (int i = 0; i < gi; i++)
-                    if (host.Children.Contains(groups[i])) at++;
-                host.Children.Insert(at, groups[gi]);
-            }
-
-            void Apply()
-            {
-                double avail = host.MaxWidth;
-                if (double.IsNaN(avail) || double.IsInfinity(avail) || avail <= 0) return;
-                if (widths[0] <= 0)
-                {
-                    for (int i = 0; i < groups.Length; i++)
-                    {
-                        double w = groups[i].DesiredSize.Width;
-                        if (w <= 0) return;   // not measured yet; a later pass retries
-                        widths[i] = w;
-                    }
-                }
-                int want = shedCount;
-                while (want < shedOrder.Length && LinesNeeded(want) > 2) want++;
-                while (want > 0 && LinesNeeded(want - 1) <= 2) want--;
-                if (want == shedCount) return;
-                if (want > shedCount)
-                    for (int i = shedCount; i < want; i++) MoveToPopup(shedOrder[i]);
-                else
-                    for (int i = shedCount - 1; i >= want; i--) MoveToBar(shedOrder[i]);
-                shedCount = want;
-                overflowBtn.Visibility = shedCount > 0 ? Visibility.Visible : Visibility.Collapsed;
-                if (shedCount == 0 && popup.IsOpen) popup.IsOpen = false;
-            }
-
-            void onSource(object? sender, SizeChangedEventArgs e) => Apply();
-            sizeSource.SizeChanged += onSource;
-            host.Unloaded += (_, _) => sizeSource.SizeChanged -= onSource;
-            host.SizeChanged += (_, _) => Apply();
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)Apply);
+                Minimum = min, Maximum = max, Value = value, Width = 80,
+                VerticalAlignment = VerticalAlignment.Center, Style = (Style)FindResource("DarkSlider")
+            };
+            slider.Focusable = true;
+            slider.IsTabStop = true;
+            slider.Height = ToolOptionsControls.ControlHeight;
+            slider.SmallChange = Math.Max(slider.SmallChange, (max - min) <= 3 ? 0.05 : 1);
+            AutomationProperties.SetName(slider, name);
+            return slider;
         }
+
+        // The mono readout after a slider, fixed at 36 and right-aligned so the row never shifts.
+        private static TextBlock BarReadout(string text, double width = 36)
+        {
+            var readout = new TextBlock
+            {
+                Text = text, FontFamily = UiKit.MonoFont, FontSize = 11, Width = width,
+                TextAlignment = TextAlignment.Right, VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(4, 0, 0, 0)
+            };
+            readout.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+            return readout;
+        }
+
+        private static string LabelName(string label) => label.Trim().TrimEnd(':', '：').Trim();
+
+        private static string Hex(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+
+        // A combo 24 tall and as wide as its longest item plus the chevron, capped at 160 (spec 3.3).
+        private static ComboBox CompactCombo(IEnumerable<string> texts, string name)
+        {
+            var combo = new ComboBox
+            {
+                Height = ToolOptionsControls.ControlHeight, FontSize = 12, VerticalAlignment = VerticalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center, ToolTip = name
+            };
+            if (UiKit.DarkComboStyle is Style style) combo.Style = style;
+            combo.Height = ToolOptionsControls.ControlHeight;
+            AutomationProperties.SetName(combo, name);
+            var typeface = new Typeface(UiKit.UiFont, FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+            double widest = 0;
+            foreach (string text in texts)
+                widest = Math.Max(widest, new FormattedText(text, System.Globalization.CultureInfo.CurrentUICulture,
+                    FlowDirection.LeftToRight, typeface, 12, Brushes.Black, 1.0).WidthIncludingTrailingWhitespace);
+            combo.Width = Math.Min(160, Math.Ceiling(widest) + 8 + 22 + 6);
+            return combo;
+        }
+
+        // The quick colors, then More colors... A swatch is checked when it is the current color.
+        // The chip is the group's compact form for a narrow pane. Ids let a rebuilt bar give the
+        // keyboard focus back to the swatch that was pressed.
+        private (StackPanel Group, ButtonBase Chip) BuildColorGroup(string idPrefix, Color current, bool showCurrent,
+            Action<Color> pick, Action openMore, UIElement? leading = null)
+        {
+            string label = Loc("Str_Bar_Color");
+            if (idPrefix == "Fill") label = Loc("Str_Bar_Fill");
+            var group = BarGroup(BarLabel(label));
+            if (leading is not null) group.Children.Add(leading);
+            var swatches = SwatchColors;
+            for (int i = 0; i < swatches.Length; i++)
+            {
+                var c = swatches[i];
+                bool on = showCurrent && c.R == current.R && c.G == current.G && c.B == current.B;
+                var swatch = ToolOptionsControls.Swatch(c, on, LabelName(label) + " " + Hex(c), () => pick(c));
+                AutomationProperties.SetAutomationId(swatch, idPrefix + "Swatch" + i);
+                group.Children.Add(swatch);
+            }
+            bool custom = showCurrent && !swatches.Any(c => c.R == current.R && c.G == current.G && c.B == current.B);
+            var more = ToolOptionsControls.MoreColors(Loc("Str_Bar_MoreColors"), openMore, custom ? current : null);
+            AutomationProperties.SetAutomationId(more, idPrefix + "MoreColors");
+            group.Children.Add(more);
+            var chip = ToolOptionsControls.ColorChip(showCurrent ? current : Colors.White,
+                LabelName(label) + " " + (showCurrent ? Hex(current) : ""));
+            AutomationProperties.SetAutomationId(chip, idPrefix + "Chip");
+            return (group, chip);
+        }
+
+        // ---- the draw bar family -------------------------------------------------------------
 
         private void ShowDrawSettings(EditTool tool)
         {
-            // Fade the bar in only when it's genuinely appearing (no bar yet, or coming from the text
-            // bar). Switching between tools that share this same draw bar (Highlight / Underline /
-            // Strikethrough / Draw) swaps it in place instantly - otherwise the two near-identical bars
-            // crossfade through ~50% opacity and read as a blink even though nothing visually changed.
-            bool prevWasDrawBar = _annotBarTool is EditTool.Draw or EditTool.Highlight
-                                                or EditTool.Underline or EditTool.Strikethrough or EditTool.Line
-                                                or EditTool.Shape or EditTool.Measure;
-            bool appearing = _annotBarTool != tool && !prevWasDrawBar;
-            if (_drawSettingsBar is not null)
-            {
-                // On a switch, fade the old bar out (crossfades with the new one); on a refresh, swap it
-                // out instantly so clicking a swatch doesn't flicker the whole bar.
-                if (appearing) FadeOutAndRemoveBar(_drawSettingsBar);
-                else (PagePreviewPanel.Parent as Grid)?.Children.Remove(_drawSettingsBar);
-                _drawSettingsBar = null;
-            }
-
-            // WrapPanel so that on a too-narrow window the control groups drop to a second/third row
-            // instead of overflowing. Its MaxWidth is pinned to the document area below so it knows when
-            // to wrap; controls are added in self-contained groups so a wrap never splits a label from
-            // its slider.
-            var panel = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(8, 2, 8, 2), Background = Brushes.Transparent };
-
-            // Drag grip so the bar can be slid left/right along the top.
-            var drawGrip = MakeBarGrip();
-            panel.Children.Add(drawGrip);
+            var bar = NewToolBar(tool);
+            bool usesDrawStyle = tool is EditTool.Draw or EditTool.Line or EditTool.Shape or EditTool.Measure;
+            bool isLineTool = tool is EditTool.Strikethrough or EditTool.Underline;
 
             // The Measure tool leads with its own controls; color, size and opacity follow.
-            StackPanel? measureMain = null, measureInfo = null;
             if (tool == EditTool.Measure)
-            {
-                (measureMain, measureInfo) = BuildMeasureGroups();
-                panel.Children.Add(measureMain);
-                panel.Children.Add(measureInfo);
-            }
+                foreach (var (id, group) in BuildMeasureGroups()) bar.Add(id, group);
             else
             {
                 _measureScaleButton = null;
                 _measurePageSizeText = null;
             }
 
-            // A small checkbox + label for the bar (Level on the Line tool, Eraser on Highlight / Draw).
-            StackPanel BarCheck(string label, bool active, string tip, Action<bool> onChanged)
+            // Shapes (#127 Phase 3): radio-style toggles whose glyphs are literal mini shapes (drawn
+            // WPF elements, so they render on every locale and font), then the Fill check.
+            if (tool == EditTool.Shape)
             {
-                var p = new StackPanel
+                var kinds = BarGroup();
+                foreach (var (kind, glyph, tipKey) in new (ShapeKind, Shape, string)[]
                 {
-                    Orientation = Orientation.Horizontal,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(2, 0, 18, 0),
-                    Cursor = Cursors.Hand,
-                    ToolTip = tip
-                };
-                var box = new Border
-                {
-                    Width = 15,
-                    Height = 15,
-                    CornerRadius = new CornerRadius(3),
-                    BorderThickness = new Thickness(active ? 0 : 1),
-                    Background = Brushes.Transparent,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0, 0, 5, 0)
-                };
-                var mark = new TextBlock
-                {
-                    Text = "✓",
-                    FontSize = 10,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                box.Child = mark;
-                // The checked box is the family selection pair, so the tick reads on every accent
-                // (white on the yellow accent was unreadable).
-                mark.SetResourceReference(TextBlock.ForegroundProperty, "SelectionFg");
-                box.BorderBrush = _swatchDimBorder;
-                void UpdateCheckVisual()
-                {
-                    box.BorderThickness = new Thickness(active ? 0 : 1);
-                    mark.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
-                    // Keep the checked fill live so it follows theme changes.
-                    if (active) box.SetResourceReference(Border.BackgroundProperty, "SelectionBg");
-                    else box.Background = Brushes.Transparent;
-                }
-                UpdateCheckVisual();
-                var lbl = new TextBlock
-                {
-                    Text = label,
-                    FontFamily = UiKit.UiFont,
-                    FontSize = 11,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                lbl.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-                p.Children.Add(box);
-                p.Children.Add(lbl);
-                p.MouseLeftButtonDown += (_, _) =>
-                {
-                    active = !active;
-                    onChanged(active);
-                    UpdateCheckVisual();
-                };
-                return p;
-            }
-            // Built here, added at the END of the bar (after Opacity) where there's more room than
-            // squeezed in before the color swatches.
-            StackPanel? barCheck = tool switch
-            {
-                EditTool.Line => BarCheck(Loc("Str_Bar_Level"), _lineLevel,
-                    Loc("Str_Bar_TT_Level"),
-                    value => _lineLevel = value),
-                EditTool.Highlight => BarCheck(Loc("Str_Bar_AnnotationEraser"), _highlightErase,
-                    Loc("Str_Bar_TT_EraserBox"),
-                    value => _highlightErase = value),
-                EditTool.Draw => BarCheck(Loc("Str_Bar_Eraser"), _drawErase,
-                    Loc("Str_Bar_TT_EraserBrush"),
-                    value => _drawErase = value),
-                EditTool.Shape => ShapeKindPicker(),
-                _ => null
-            };
-
-            // Shapes tool (#127 Phase 3): radio-style buttons whose glyphs are literal mini shapes
-            // (drawn WPF elements, not font glyphs, so they render on every locale/font setup),
-            // plus the Fill toggle. Clicking a shape switches the sub-mode and rebuilds the bar.
-            StackPanel ShapeKindPicker()
-            {
-                Border KindBtn(ShapeKind kind, Shape glyph, string tip)
+                    (ShapeKind.Rectangle, new Rectangle { Width = 13, Height = 9 }, "Str_Bar_TT_ShapeBox"),
+                    (ShapeKind.Ellipse, new Ellipse { Width = 13, Height = 9 }, "Str_Bar_TT_ShapeEllipse"),
+                    (ShapeKind.Polygon, new Polygon
+                    {
+                        Width = 13, Height = 11,
+                        Points = [new Point(6.5, 0), new Point(13, 4.5), new Point(10.5, 11), new Point(2.5, 11), new Point(0, 4.5)]
+                    }, "Str_Bar_TT_ShapeFreeform"),
+                })
                 {
                     bool active = _shapeKind == kind;
                     glyph.StrokeThickness = 1.5;
                     glyph.Fill = Brushes.Transparent;
-                    glyph.HorizontalAlignment = HorizontalAlignment.Center;
-                    glyph.VerticalAlignment = VerticalAlignment.Center;
                     glyph.SetResourceReference(Shape.StrokeProperty, active ? "SelectionAccent" : "MutedTextBrush");
-                    var b = new Border
+                    var toggle = ToolOptionsControls.IconToggle(glyph, active, Loc(tipKey), () =>
                     {
-                        Width = 26,
-                        Height = 20,
-                        CornerRadius = new CornerRadius(3),
-                        BorderThickness = new Thickness(active ? 1.5 : 1),
-                        Background = Brushes.Transparent,
-                        Margin = new Thickness(1, 0, 1, 0),
-                        Cursor = Cursors.Hand,
-                        ToolTip = tip,
-                        Child = glyph
-                    };
-                    if (active) b.SetResourceReference(Border.BorderBrushProperty, "SelectionAccent");
-                    else b.BorderBrush = _swatchDimBorder;
-                    b.MouseLeftButtonDown += (_, _) =>
-                    {
-                        if (_shapeKind == kind) return;
+                        if (_shapeKind == kind) { ShowDrawSettings(tool); return; }
                         _shapeKind = kind;
                         if (kind != ShapeKind.Polygon) CancelShapePolygon();
                         ShowDrawSettings(tool);
-                    };
-                    return b;
+                    });
+                    AutomationProperties.SetAutomationId(toggle, "ShapeKind" + kind);
+                    kinds.Children.Add(toggle);
                 }
-
-                var row = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 0, 0) };
-                row.Children.Add(KindBtn(ShapeKind.Rectangle, new Rectangle { Width = 13, Height = 9 },
-                    Loc("Str_Bar_TT_ShapeBox")));
-                row.Children.Add(KindBtn(ShapeKind.Ellipse, new Ellipse { Width = 13, Height = 9 },
-                    Loc("Str_Bar_TT_ShapeEllipse")));
-                var pent = new Polygon
-                {
-                    Width = 13,
-                    Height = 11,
-                    Points = [new Point(6.5, 0), new Point(13, 4.5), new Point(10.5, 11), new Point(2.5, 11), new Point(0, 4.5)]
-                };
-                row.Children.Add(KindBtn(ShapeKind.Polygon, pent,
-                    Loc("Str_Bar_TT_ShapeFreeform")));
-
-                var fillCheck = BarCheck(Loc("Str_Bar_ShapeFill"), _shapeFill,
-                    Loc("Str_Bar_TT_ShapeFill"),
-                    value => _shapeFill = value);
-                fillCheck.Margin = new Thickness(10, 0, 18, 0);
-                row.Children.Add(fillCheck);
-                return row;
+                bar.Add(ToolOptionGroup.Kinds, kinds);
+                bar.Add(ToolOptionGroup.Fill, ToolOptionsControls.Check(Loc("Str_Bar_ShapeFill"), _shapeFill,
+                    Loc("Str_Bar_ShapeFill"), value => _shapeFill = value, Loc("Str_Bar_TT_ShapeFill")));
             }
 
-            // Color group (label + swatches + more) - one wrap unit.
-            var colorGroup = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 16, 2) };
-            var colorLbl = new TextBlock
-            {
-                Text = Loc("Str_Bar_Color"),
-                FontFamily = UiKit.UiFont,
-                FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 6, 0)
-            };
-            colorLbl.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-            colorGroup.Children.Add(colorLbl);
-
-            // Color swatches
-            bool isLineTool = tool == EditTool.Strikethrough || tool == EditTool.Underline;
-            var activeColor = (tool is EditTool.Draw or EditTool.Line or EditTool.Shape or EditTool.Measure) ? _drawColor
+            var activeColor = usesDrawStyle ? _drawColor
                             : isLineTool ? Color.FromRgb(_lineAnnotColor.R, _lineAnnotColor.G, _lineAnnotColor.B)
                             : Color.FromRgb(_highlightColor.R, _highlightColor.G, _highlightColor.B);
-            foreach (var color in SwatchColors)
+            void ApplyPick(Color c)
             {
-                bool isActive = color == activeColor;
-                var swatch = new Border
-                {
-                    Width = 18,
-                    Height = 18,
-                    Background = Freeze(new SolidColorBrush(color)),
-                    BorderThickness = new Thickness(isActive ? 2 : 1),
-                    CornerRadius = new CornerRadius(3),
-                    Margin = new Thickness(1),
-                    Cursor = Cursors.Hand,
-                    Tag = color
-                };
-                if (isActive)
-                    swatch.SetResourceReference(Border.BorderBrushProperty, "PrimaryBrush");
-                else
-                    swatch.BorderBrush = _swatchDimBorder;
-                swatch.MouseLeftButtonDown += (s, e) =>
-                {
-                    var c = (Color)((Border)s!).Tag;
-                    if ((tool is EditTool.Draw or EditTool.Line or EditTool.Shape or EditTool.Measure))
-                        _drawColor = Color.FromArgb(_drawOpacity, c.R, c.G, c.B);
-                    else if (isLineTool)
-                        _lineAnnotColor = Color.FromArgb(_lineAnnotColor.A, c.R, c.G, c.B);
-                    else
-                        _highlightColor = Color.FromArgb(_highlightColor.A, c.R, c.G, c.B);
-                    ApplyDrawStyleToSelection();   // edit the selected annotation, if any
-                    ShowDrawSettings(tool); // refresh selection
-                };
-                colorGroup.Children.Add(swatch);
-            }
-
-            // "More colors..." -> full RGB picker, applied to whichever draw color this bar drives.
-            var moreDraw = new Border
-            {
-                Width = 18,
-                Height = 18,
-                CornerRadius = new CornerRadius(3),
-                Margin = new Thickness(1),
-                Cursor = Cursors.Hand,
-                BorderThickness = new Thickness(1),
-                ToolTip = Loc("Str_Bar_MoreColors"),
-                BorderBrush = _swatchDimBorder,
-                Background = new LinearGradientBrush
-                {
-                    StartPoint = new Point(0, 0),
-                    EndPoint = new Point(1, 1),
-                    GradientStops =
-                    {
-                        new GradientStop(Colors.Red, 0), new GradientStop(Colors.Yellow, 0.25),
-                        new GradientStop(Colors.Lime, 0.5), new GradientStop(Colors.Cyan, 0.7),
-                        new GradientStop(Colors.Blue, 1)
-                    }
-                }
-            };
-            moreDraw.MouseLeftButtonDown += (_, _) => OpenColorPicker(activeColor, c =>
-            {
-                if ((tool is EditTool.Draw or EditTool.Line or EditTool.Shape or EditTool.Measure)) _drawColor = Color.FromArgb(_drawOpacity, c.R, c.G, c.B);
+                if (usesDrawStyle) _drawColor = Color.FromArgb(_drawOpacity, c.R, c.G, c.B);
                 else if (isLineTool) _lineAnnotColor = Color.FromArgb(_lineAnnotColor.A, c.R, c.G, c.B);
                 else _highlightColor = Color.FromArgb(_highlightColor.A, c.R, c.G, c.B);
-                ApplyDrawStyleToSelection();
-                ShowDrawSettings(tool);
-            }, () => ShowDrawSettings(tool));
-            colorGroup.Children.Add(moreDraw);
-            panel.Children.Add(colorGroup);
+                ApplyDrawStyleToSelection();   // edit the selected annotation, if any
+                ShowDrawSettings(tool);        // show the new current swatch
+            }
+            var (colorGroup, colorChip) = BuildColorGroup("Draw", activeColor, true, ApplyPick,
+                () => OpenColorPicker(activeColor, ApplyPick, () => ShowDrawSettings(tool)));
+            bar.Add(ToolOptionGroup.Color, colorGroup, colorChip);
 
-            // Single-row groups (Color, Size, Opacity+toggle) packed directly by the outer WrapPanel;
-            // Opacity and the Level/Eraser toggle share one unit so the toggle never lands on a row by
-            // itself. When even one group per row would need a third row, the least important groups
-            // collapse into the overflow chevron - see WireBarOverflow below.
-            var dOpacityUnit = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-            StackPanel? sizeGroupRef = null;
-            _annotBarDragInners.Clear();
-
-            // Size slider (draw only)
-            if ((tool is EditTool.Draw or EditTool.Line or EditTool.Shape or EditTool.Measure))
+            if (usesDrawStyle)
             {
-                var sizeGroup = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 16, 2) };
-                var sizeLbl = new TextBlock
+                var sizeSlider = BarSlider(1, 60, _drawWidth, LabelName(Loc("Str_Bar_Size")));
+                sizeSlider.TickFrequency = 1;
+                sizeSlider.IsSnapToTickEnabled = true;
+                var sizeReadout = BarReadout($"{_drawWidth:F0}px");
+                sizeSlider.ValueChanged += (_, e) =>
                 {
-                    Text = Loc("Str_Bar_Size"),
-                    FontFamily = UiKit.UiFont,
-                    FontSize = 11,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0, 0, 6, 0)
+                    _drawWidth = e.NewValue;
+                    sizeReadout.Text = $"{e.NewValue:F0}px";
+                    ApplyDrawStyleToSelection();
                 };
-                sizeLbl.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-                sizeGroup.Children.Add(sizeLbl);
-
-                var sizeSlider = new Slider
-                {
-                    Minimum = 1,
-                    Maximum = 60,
-                    Value = _drawWidth,
-                    Width = 90,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    TickFrequency = 1,
-                    IsSnapToTickEnabled = true,
-                    Style = (Style)FindResource("DarkSlider")
-                };
-                sizeSlider.ValueChanged += (s, e) => { _drawWidth = e.NewValue; ApplyDrawStyleToSelection(); };
-                sizeGroup.Children.Add(sizeSlider);
-
-                var sizeLabel = new TextBlock
-                {
-                    Text = $"{_drawWidth:F0}px",
-                    FontFamily = UiKit.UiFont,
-                    FontSize = 11,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(4, 0, 0, 0),
-                    Width = 34,
-                    TextAlignment = TextAlignment.Right
-                };
-                sizeLabel.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-                sizeSlider.ValueChanged += (s, e) => sizeLabel.Text = $"{e.NewValue:F0}px";
-                sizeGroup.Children.Add(sizeLabel);
-                panel.Children.Add(sizeGroup);
-                sizeGroupRef = sizeGroup;
+                bar.Add(ToolOptionGroup.Size, BarGroup(BarLabel(Loc("Str_Bar_Size")), sizeSlider, sizeReadout));
             }
 
-            // Opacity group (label + slider + value) - one wrap unit.
-            var opacityGroup = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 2, 16, 2) };
-            var opacityLbl = new TextBlock
-            {
-                Text = Loc("Str_Bar_Opacity"),
-                FontFamily = UiKit.UiFont,
-                FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 6, 0)
-            };
-            opacityLbl.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-            opacityGroup.Children.Add(opacityLbl);
-
-            byte currentOpacity = (tool is EditTool.Draw or EditTool.Line or EditTool.Shape or EditTool.Measure) ? _drawOpacity : isLineTool ? _lineAnnotColor.A : _highlightColor.A;
-            var opacitySlider = new Slider
-            {
-                Minimum = 10,
-                Maximum = 255,
-                Value = currentOpacity,
-                Width = 90,
-                VerticalAlignment = VerticalAlignment.Center,
-                Style = (Style)FindResource("DarkSlider")
-            };
-            var opacityLabel = new TextBlock
-            {
-                Text = $"{(int)(currentOpacity / 255.0 * 100)}%",
-                FontFamily = UiKit.UiFont,
-                FontSize = 11,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 0, 6, 0),
-                Width = 40,
-                TextAlignment = TextAlignment.Right
-            };
-            opacityLabel.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
-            opacitySlider.ValueChanged += (s, e) =>
+            byte currentOpacity = usesDrawStyle ? _drawOpacity : isLineTool ? _lineAnnotColor.A : _highlightColor.A;
+            var opacitySlider = BarSlider(10, 255, currentOpacity, LabelName(Loc("Str_Bar_Opacity")));
+            var opacityReadout = BarReadout($"{(int)(currentOpacity / 255.0 * 100)}%");
+            opacitySlider.ValueChanged += (_, e) =>
             {
                 byte a = (byte)e.NewValue;
-                opacityLabel.Text = $"{(int)(a / 255.0 * 100)}%";
-                if ((tool is EditTool.Draw or EditTool.Line or EditTool.Shape or EditTool.Measure))
+                opacityReadout.Text = $"{(int)(a / 255.0 * 100)}%";
+                if (usesDrawStyle)
                 {
                     _drawOpacity = a;
                     _drawColor = Color.FromArgb(a, _drawColor.R, _drawColor.G, _drawColor.B);
                 }
-                else if (isLineTool)
-                {
-                    _lineAnnotColor = Color.FromArgb(a, _lineAnnotColor.R, _lineAnnotColor.G, _lineAnnotColor.B);
-                }
-                else
-                {
-                    _highlightColor = Color.FromArgb(a, _highlightColor.R, _highlightColor.G, _highlightColor.B);
-                }
-                ApplyDrawStyleToSelection();   // edit the selected annotation, if any
+                else if (isLineTool) _lineAnnotColor = Color.FromArgb(a, _lineAnnotColor.R, _lineAnnotColor.G, _lineAnnotColor.B);
+                else _highlightColor = Color.FromArgb(a, _highlightColor.R, _highlightColor.G, _highlightColor.B);
+                ApplyDrawStyleToSelection();
             };
-            opacityGroup.Children.Add(opacitySlider);
-            opacityGroup.Children.Add(opacityLabel);
-            dOpacityUnit.Children.Add(opacityGroup);
-
-            // Level (Line) / annotation eraser (Highlight) / eraser (Draw) toggle rides at the end of the Opacity unit, so it
-            // stays beside Opacity as the bar collapses instead of dropping onto a row by itself.
-            if (barCheck is not null)
+            var opacityGroup = BarGroup(BarLabel(Loc("Str_Bar_Opacity")), opacitySlider, opacityReadout);
+            // Level (Line) and the brush eraser (Draw) ride with Opacity, so they shed together.
+            FrameworkElement? ridingCheck = tool switch
             {
-                barCheck.Margin = new Thickness(0, 2, 2, 2);
-                dOpacityUnit.Children.Add(barCheck);
+                EditTool.Line => ToolOptionsControls.Check(Loc("Str_Bar_Level"), _lineLevel, Loc("Str_Bar_Level"),
+                    value => _lineLevel = value, Loc("Str_Bar_TT_Level")),
+                EditTool.Draw => ToolOptionsControls.Check(Loc("Str_Bar_Eraser"), _drawErase, Loc("Str_Bar_Eraser"),
+                    value => _drawErase = value, Loc("Str_Bar_TT_EraserBrush")),
+                _ => null
+            };
+            if (ridingCheck is not null)
+            {
+                ridingCheck.Margin = new Thickness(12, 0, 0, 0);
+                opacityGroup.Children.Add(ridingCheck);
             }
-            panel.Children.Add(dOpacityUnit);
+            bar.Add(ToolOptionGroup.Opacity, opacityGroup);
+
+            if (tool == EditTool.Highlight)
+                bar.Add(ToolOptionGroup.Eraser, ToolOptionsControls.Check(Loc("Str_Bar_AnnotationEraser"), _highlightErase,
+                    Loc("Str_Bar_AnnotationEraser"), value => _highlightErase = value, Loc("Str_Bar_TT_EraserBox")));
+
+            // The replacement layer grid is three rows tall, so it always lives in the "..." menu.
             if (BuildReplacementLayerControls() is { } replacementLayers)
-                panel.Children.Add(replacementLayers);
-            var drawOverflowBtn = MakeBarOverflow(out var drawOverflowPopup, out var drawOverflowStack);
-            panel.Children.Add(drawOverflowBtn);
-            panel.Children.Add(drawOverflowPopup);   // renders nothing; keeps the popup in the tree for DynamicResource
+                bar.Add(ToolOptionGroup.Layers, replacementLayers, overflowOnly: true);
 
-            _drawSettingsBar = new Border
-            {
-                HorizontalAlignment = HorizontalAlignment.Right,  // right-anchored; slid via the grip
-                VerticalAlignment = VerticalAlignment.Top,
-                CornerRadius = new CornerRadius(0),
-                Effect = AnnotBarShadow(),
-                Child = BuildBarHost(panel),
-                Margin = new Thickness(0, 0, 0, 0)
-            };
-            _drawSettingsBar.SetResourceReference(Border.BackgroundProperty, "AnnotationBarBrush");
-            _drawSettingsBar.SetResourceReference(Border.CornerRadiusProperty, "AnnotationBarCornerRadius");
-            // Match the Text bar's pane-integrated edge. BarEdgeBrush is white in 98SE and made
-            // this one bar look like a separate raised slab even though both use the same host.
-            _drawSettingsBar.SetResourceReference(Border.BorderBrushProperty, "AnnotationBarBorderBrush");
-            _drawSettingsBar.SetResourceReference(Border.BorderThicknessProperty, "BarEdgeThickness");
-            _drawSettingsBar.SetResourceReference(Border.PaddingProperty, "BarPadding");
-
-            var previewArea = PagePreviewPanel.Parent as Grid;
-            if (previewArea is not null)
-            {
-                Panel.SetZIndex(_drawSettingsBar, 100);
-                previewArea.Children.Add(_drawSettingsBar);
-                // Cap the wrap panel to the document area's width (less the bar chrome) so it wraps the
-                // control groups to new rows once the window is too narrow to hold them on one line.
-                panel.SetBinding(FrameworkElement.MaxWidthProperty, new System.Windows.Data.Binding("ActualWidth")
-                { Source = previewArea, Converter = _barWidthInset });
-                WireBarWrapAdaptation(panel, drawGrip, colorGroup, previewArea);
-                var drawGroups = sizeGroupRef is null
-                    ? new StackPanel[] { colorGroup, dOpacityUnit }
-                    : [colorGroup, sizeGroupRef, dOpacityUnit];
-                int[] drawShed = sizeGroupRef is null ? [1] : [2, 1];   // opacity unit first, then size; color anchored
-                if (measureMain is not null && measureInfo is not null)
-                {
-                    // Measure: the type, scale and units stay; page size and report go after opacity and size.
-                    drawGroups = [measureMain, measureInfo, .. drawGroups];
-                    drawShed = [.. drawShed.Select(index => index + 2), 1];
-                }
-                WireBarOverflow(panel, drawOverflowBtn, drawOverflowPopup, drawOverflowStack, drawGroups, drawShed, previewArea);
-                PlaceAnnotationBar(_drawSettingsBar, drawGrip, fadeIn: appearing);
-            }
+            DockToolBar(bar);
+            _drawSettingsBar = bar;
             _annotBarTool = tool;
-            _annotBarMinimized = false;   // a freshly built bar is full-size
         }
 
         private void HideDrawSettings()
         {
-            FadeOutAndRemoveBar(_drawSettingsBar);
+            UndockToolBar(_drawSettingsBar);
             _drawSettingsBar = null;
-            if (_annotBarTool is EditTool.Draw or EditTool.Highlight
-                or EditTool.Strikethrough or EditTool.Underline or EditTool.Shape or EditTool.Measure)
+            if (ToolOptionsCatalog.BarFor(_annotBarTool) == ToolOptionsBarKind.Draw)
                 _annotBarTool = null;
             _measureScaleButton = null;
             _measurePageSizeText = null;
