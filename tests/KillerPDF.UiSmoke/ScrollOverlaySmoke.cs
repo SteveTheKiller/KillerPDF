@@ -254,9 +254,16 @@ internal static class ScrollOverlaySmoke
                 var optionsScroll = Descendants<ScrollViewer>(content).Single(scroll => scroll.Name == "PageWindowOptions");
                 var verticalBar = (ScrollBar)optionsScroll.Template.FindName("PART_VerticalScrollBar", optionsScroll);
                 var sidebar = (Border)((Grid)optionsScroll.Parent).Parent;
+                // The window is sized to its open options, so the scrollbar only shows when the window
+                // is shorter than them: measure the edge at a height that forces it, then put it back.
+                Settle(content, 980, 420);
                 double barInset = Bounds(sidebar, content).Right - Bounds(verticalBar, content).Right;
-                if (Math.Abs(barInset) > 1)
-                { report.Add($"FAIL sidebar scrollbar is inset {barInset:F1} from its edge"); failures++; }
+                // The content is laid out detached from its window, so IsVisible is false throughout;
+                // the scroller's computed visibility says whether the bar is shown.
+                bool barShown = optionsScroll.ComputedVerticalScrollBarVisibility == Visibility.Visible;
+                if (!barShown || Math.Abs(barInset) > 1)
+                { report.Add($"FAIL sidebar scrollbar is inset {barInset:F1} from its edge (shown {barShown})"); failures++; }
+                Settle(content, 980, 720);
                 report.Add($"{mode} applyRight={edge:F1} controlRight={controlEdge:F1}");
                 if (controlEdge > edge + 1) { report.Add("FAIL controls extend beyond action buttons"); failures++; }
                 Render(content, Path.Combine(folder, mode + ".png"));
@@ -335,7 +342,10 @@ internal static class ScrollOverlaySmoke
         File.WriteAllBytes(sourcePath, sourceBytes);
         object paneA = window.FindName("Viewer"), paneB = window.FindName("ViewerB");
         Type paneType = paneA.GetType();
-        paneType.GetMethod("OpenInNewTabExt", Members)!.Invoke(paneA, [sourcePath]);
+        // Reflection fills no optional parameters: pass Missing for each one after the path
+        // (the initial proof settings today), so a new optional parameter does not break this.
+        MethodInfo openTab = paneType.GetMethod("OpenInNewTabExt", Members)!;
+        openTab.Invoke(paneA, [sourcePath, .. openTab.GetParameters().Skip(1).Select(_ => Type.Missing)]);
         MethodInfo focus = type.GetMethod("FocusPane", Members)!;
         focus.Invoke(window, [paneB]);
         var pagesButton = (Button)window.FindName("SidebarPagesTab");
