@@ -253,6 +253,11 @@ namespace KillerPDF.Controls
                 CancelVisibleRefinement();
                 StartRerenderTimer();
             }
+            // A layout that brings other pages into view without a scroll, such as a Grid rebuilt at another zoom,
+            // gets their search highlights read once it settles.
+            else if ((e.ExtentHeightChange != 0 || e.ExtentWidthChange != 0 || e.ViewportHeightChange != 0)
+                && _searchBar is { Visibility: Visibility.Visible } && Search.WaitsForPagesOnScreen)
+                StartRerenderTimer();
 
             if (_active is not null)
             {

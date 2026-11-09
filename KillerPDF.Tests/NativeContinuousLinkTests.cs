@@ -21,6 +21,19 @@ public sealed class NativeContinuousLinkTests
         Assert.Contains("if (_nativeDoc is not null && !_continuousLinks.ContainsKey(fi)) AddSecondaryPageLinks(fi, rdW, rdH);", slot);
     }
 
+    // A Grid rebuilt at another zoom changes which pages are on screen without scrolling. An EPUB search reads a page's
+    // highlight areas once the page is on screen, so a layout change that moves pages into view also repaints them; on
+    // SN01 a zoomed-out Grid showed highlights only on the page that had them before, until the grid was scrolled.
+    [Fact]
+    public void ALayoutChangeRepaintsSearchHighlightsForPagesItBringsIntoView()
+    {
+        string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+        string scroll = Between(viewport, "private void PagePreviewPanel_ScrollChanged(", "if (_active is not null)");
+
+        Assert.Contains("e.ExtentHeightChange != 0 || e.ExtentWidthChange != 0 || e.ViewportHeightChange != 0", scroll);
+        Assert.Contains("Search.WaitsForPagesOnScreen", scroll);
+    }
+
     private static string Between(string source, string start, string end)
     {
         int from = source.IndexOf(start, StringComparison.Ordinal);
