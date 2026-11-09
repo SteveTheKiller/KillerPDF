@@ -45,6 +45,40 @@ public static class PdfOverlayAnnotations
         return PdfEditablePageOverlayEditor.AppendMany(document, batches.Select(batch => BatchUnit(pages, batch)).ToArray());
     }
 
+    /// <summary>The placed annotations of a page that its editing batch cannot hold: an image the editing layer
+    /// rejects, or one that would take the batch past its payload limit. The caller draws them as page content, so
+    /// the page still saves with its other edits editable.</summary>
+    internal static HashSet<PageAnnotation> UnbatchablePlaced(IReadOnlyList<PageAnnotation> annotations)
+    {
+        var result = new HashSet<PageAnnotation>();
+        long imageData = annotations.Sum(annotation => annotation switch
+        {
+            ImageAnnotation image => (long)image.ImageData.Length,
+            SignatureAnnotation { ImageData: { } data } => data.Length,
+            _ => 0L
+        });
+        if (imageData <= 1024 * 1024) return result;
+        long used = 64 * 1024;
+        var placed = new List<PlacedAnnotation>();
+        foreach (PageAnnotation annotation in annotations)
+        {
+            if (annotation is PlacedAnnotation candidate) placed.Add(candidate);
+            else used += ModelSize(annotation);
+        }
+        foreach (PlacedAnnotation annotation in placed)
+        {
+            long size;
+            try { ValidateModel(annotation); size = ModelSize(annotation); }
+            catch (Exception error) when (Unsupported(error)) { result.Add(annotation); continue; }
+            if (used + size > MaximumPayload) result.Add(annotation);
+            else used += size;
+        }
+        return result;
+    }
+
+    private static long ModelSize(PageAnnotation annotation) =>
+        JsonSerializer.SerializeToUtf8Bytes(annotation, ModelType(Kind(annotation)), Json).Length + 128;
+
     private static PdfEditablePageOverlayUnit BatchUnit(IReadOnlyList<PdfPageInformation> pages, OverlayPageBatch batch)
     {
         (int pageIndex, int renderWidth, int renderHeight, int rotation, IReadOnlyList<PageAnnotation> annotations,
@@ -122,19 +156,24 @@ public static class PdfOverlayAnnotations
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(records);
         if (records.Count is 0 or > MaximumRecords) throw new ArgumentException("Supply between 1 and 10000 new annotations.", nameof(records));
-        return AttachChunk(document, records);
+        return AttachChunk(document, records, false) ?? throw new InvalidOperationException("No overlay metadata was attached.");
     }
 
     /// <summary>Attaches every record to the document in <paramref name="bytes"/>, in chunks of at most
-    /// <see cref="MaximumRecords"/>, so a document with very many new annotations saves.</summary>
+    /// <see cref="MaximumRecords"/>, so a document with very many new annotations saves. A record whose editing
+    /// representation is too large or invalid is left as the plain native annotation it already is, so the save does
+    /// not fail over an image the editing layer cannot hold.</summary>
     internal static byte[] AttachAll(byte[] bytes, IReadOnlyList<OverlayWriteRecord> records)
     {
         for (int start = 0; start < records.Count; start += MaximumRecords)
-            bytes = AttachChunk(PdfDocument.Open(bytes), records.Skip(start).Take(MaximumRecords).ToArray());
+        {
+            var chunk = records.Skip(start).Take(MaximumRecords).ToArray();
+            if (AttachChunk(PdfDocument.Open(bytes), chunk, true) is { } attached) bytes = attached;
+        }
         return bytes;
     }
 
-    private static byte[] AttachChunk(PdfDocument document, IReadOnlyList<OverlayWriteRecord> records)
+    private static byte[]? AttachChunk(PdfDocument document, IReadOnlyList<OverlayWriteRecord> records, bool skipUneditable)
     {
         // One lookup serves every record; matching each against every comment made many notes quadratic.
         var comments = new Dictionary<(int Page, int Index), PdfCommentInfo>();
@@ -143,6 +182,7 @@ public static class PdfOverlayAnnotations
         var pages = PdfPageInformation.Read(document);
         var update = new PdfIncrementalUpdateBuilder(document);
         var seen = new HashSet<int>();
+        int attached = 0;
         foreach (OverlayWriteRecord record in records)
         {
             if (record.Annotation is null || !seen.Add(record.ObjectNumber))
@@ -154,25 +194,31 @@ public static class PdfOverlayAnnotations
                 ?? throw new ArgumentException("The annotation must be indirect.", nameof(records));
             if (annotation.ContainsKey(MetadataName)) throw new ArgumentException("The annotation already carries overlay metadata.", nameof(records));
             string kind = Kind(record.Annotation);
-            ValidateModel(record.Annotation);
-            ValidateCanvas(record.RenderWidth, record.RenderHeight, record.Rotation);
             PdfPageInformation frame = pages[comment.PageIndex];
-            ValidateNative(document, annotation, comment, record.Annotation);
-            var envelope = new Envelope(kind, record.Annotation.HistoryId, record.RenderWidth,
-                record.RenderHeight, record.Rotation, frame.Left, frame.Bottom, frame.Width,
-                frame.Height, frame.UserUnit, Fingerprint(document, annotation),
-                JsonSerializer.SerializeToElement(record.Annotation, ModelType(kind), Json));
-            byte[] payload = JsonSerializer.SerializeToUtf8Bytes(envelope, Json);
-            if (payload.Length > MaximumPayload) throw new ArgumentException("Overlay metadata exceeds the payload limit.", nameof(records));
-            using (JsonDocument check = JsonDocument.Parse(payload, new() { MaxDepth = 32 })) ValidateJson(check.RootElement);
+            byte[] payload;
+            try
+            {
+                ValidateModel(record.Annotation);
+                ValidateCanvas(record.RenderWidth, record.RenderHeight, record.Rotation);
+                ValidateNative(document, annotation, comment, record.Annotation);
+                var envelope = new Envelope(kind, record.Annotation.HistoryId, record.RenderWidth,
+                    record.RenderHeight, record.Rotation, frame.Left, frame.Bottom, frame.Width,
+                    frame.Height, frame.UserUnit, Fingerprint(document, annotation),
+                    JsonSerializer.SerializeToElement(record.Annotation, ModelType(kind), Json));
+                payload = JsonSerializer.SerializeToUtf8Bytes(envelope, Json);
+                if (payload.Length > MaximumPayload) throw new ArgumentException("Overlay metadata exceeds the payload limit.", nameof(records));
+                using (JsonDocument check = JsonDocument.Parse(payload, new() { MaxDepth = 32 })) ValidateJson(check.RootElement);
+            }
+            catch (Exception error) when (skipUneditable && Unsupported(error)) { continue; }
             var metadata = new PdfDictionary(new Dictionary<PdfName, PdfObject>
             {
                 [Name("V")] = new PdfInteger(IsSourcePdfImage(record.Annotation) ? 2 : 1),
                 [Name("Data")] = new PdfString(payload, PdfStringForm.Hexadecimal)
             });
             update.ReplaceObject(record.ObjectNumber, new PdfDictionary(annotation.Append(new(MetadataName, metadata))));
+            attached++;
         }
-        return update.Build();
+        return attached == 0 ? null : update.Build();
     }
 
     /// <summary>Reads validated logical overlays without changing the native annotation stack.</summary>

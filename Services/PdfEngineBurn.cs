@@ -144,6 +144,9 @@ internal static class PdfEngineBurn
             bool editableBatch = !forRasterization
                 && pageModels.Any(annotation => annotation is TextAnnotation { PairId.Length: > 0 })
                 && pageModels.All(annotation => annotation is TextAnnotation or HighlightAnnotation or InkAnnotation or PlacedAnnotation);
+            // An image the editing batch cannot hold is drawn as page content instead of failing the save.
+            HashSet<PageAnnotation> unbatched = editableBatch ? PdfOverlayAnnotations.UnbatchablePlaced(pageModels) : [];
+            if (unbatched.Count > 0) pageModels.RemoveAll(unbatched.Contains);
             var content = new PdfContentStreamBuilder().SaveState();
             ApplyVisualTransform(content, page.Left, page.Bottom, page.Width, page.Height, rotation);
 
@@ -164,7 +167,7 @@ internal static class PdfEngineBurn
                     // (PdfEngineIntegration.WriteMeasurements); prints and exports draw them in.
                     if (measurementsAsAnnotations && annotation is MeasurementAnnotation) continue;
                     if (nativeTail.Contains(annotation)) continue;
-                    DrawAnnotation(annotationContent, annotation, sx, sy, fonts);
+                    DrawAnnotation(unbatched.Contains(annotation) ? content : annotationContent, annotation, sx, sy, fonts);
                 }
                 if (editableBatch)
                 {
@@ -186,7 +189,7 @@ internal static class PdfEngineBurn
                 if (hasAnnotations)
                     foreach (PageAnnotation annotation in pageAnnotations!)
                     {
-                        if (editableBatch || !ReplacementLayers.IsVisible(annotation) || nativeTail.Contains(annotation)
+                        if (editableBatch && !unbatched.Contains(annotation) || !ReplacementLayers.IsVisible(annotation) || nativeTail.Contains(annotation)
                             || measurementsAsAnnotations && annotation is MeasurementAnnotation) continue;
                         descriptions.Add(annotation is TextAnnotation text && !string.IsNullOrWhiteSpace(text.Content)
                             ? text.Content : annotation is SignatureAnnotation ? "Signature" : "Markup");
