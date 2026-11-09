@@ -39,8 +39,7 @@ namespace KillerPDF
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(24),
-            Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 14, ShadowDepth = 3, Direction = 270, Opacity = 0.4 }
+            Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 14, ShadowDepth = 3, Direction = 270, Opacity = 0.45 }
         };
         private readonly Canvas _overlay = new() { IsHitTestVisible = false, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         private FrameworkElement _previewArea = null!;
@@ -54,7 +53,7 @@ namespace KillerPDF
         private ComboBox _numPos = null!;
         private Border _numSwatch = null!;
         private Color _numColor;
-        private StackPanel _numBody = null!;
+        private TwoColumnPanel _numBody = null!;
 
         // Watermark controls
         private CheckBox _wmEnable = null!;
@@ -67,11 +66,15 @@ namespace KillerPDF
         private string? _wmImagePath;
         private BitmapImage? _wmImageSrc;
         private TextBlock _wmImageLabel = null!;
-        private StackPanel _wmBody = null!, _wmTextPanel = null!, _wmImagePanel = null!;
+        private TwoColumnPanel _wmBody = null!;
+        // Cells shown only for a text watermark or only for an image watermark.
+        private UIElement[] _wmTextOnly = [], _wmImageOnly = [];
+        private FrameworkElement _previewColumn = null!;
 
         private readonly Style? _darkSlider, _darkCombo;
 
-        private static SolidColorBrush R(string key) => (SolidColorBrush)Application.Current.Resources[key];
+        // Brush, never SolidColorBrush: any theme may state a surface as a gradient.
+        private static Brush R(string key) => PageWindowLayout.ThemeBrush(Application.Current?.TryFindResource(key));
         private static string S(string key) => Application.Current.TryFindResource(key) as string ?? key;
 
         // (resource key, horizontal 0/1/2, vertical 0 top / 1 middle / 2 bottom)
@@ -98,10 +101,6 @@ namespace KillerPDF
 
             Title = "KillerPDF - " + S("Str_Stamp_Suffix");
             System.Windows.Automation.AutomationProperties.SetAutomationId(this, "StampDialog");
-            Width = 980;
-            Height = 720;
-            MinWidth = 680;
-            MinHeight = 480;
             DialogFrame.Configure(this, owner, resizable: true);
 
             _darkSlider = owner.TryFindResource("DarkSlider") as Style;
@@ -128,65 +127,35 @@ namespace KillerPDF
 
         private void BuildUi(Window owner)
         {
-            var root = new DockPanel();
-
-            // ---- Right sidebar ----
-            // No outer right padding keeps the scrollbar at the window edge; the footer and
-            // scrolled content get their own right inset so nothing sits under the bar.
-            var sidebar = new Border { Width = 300, Background = Brushes.Transparent, Padding = new Thickness(16, 8, 0, 14) };
-            DockPanel.SetDock(sidebar, Dock.Right);
-            var side = new DockPanel();
-
-            // Docked footer: Reset all link above a right-aligned Cancel / Apply row. Right inset keeps the
-            // buttons off the reserved scrollbar gutter.
-            var bottom = new StackPanel { Margin = new Thickness(0, 10, 16, 0) };
-            var resetLink = UiKit.LinkLabel(S("Str_Tf_ResetAll"), ResetAll);
-            resetLink.Margin = new Thickness(0, 0, 0, 8);
-            bottom.Children.Add(resetLink);
-            var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            // Footer: "Reset all" on the left, then Cancel and Apply, on one row.
+            var resetLink = PageWindowLayout.LinkButton(S("Str_Tf_ResetAll"), ResetAll);
             var cancelBtn = UiKit.Make(S("Str_Tf_Cancel"), false);
             cancelBtn.Click += (_, _2) => { Applied = false; Close(); };
             cancelBtn.IsCancel = true;   // Esc
-            cancelBtn.Margin = new Thickness(0, 0, 8, 0);
-            actionRow.Children.Add(cancelBtn);
             _applyBtn = UiKit.Make(S("Str_Tf_Apply"), true);
             System.Windows.Automation.AutomationProperties.SetAutomationId(_applyBtn, "StampApply");
             _applyBtn.Click += (_, _2) => CommitAndClose();
             _applyBtn.IsDefault = true;   // Enter
-            actionRow.Children.Add(_applyBtn);
-            bottom.Children.Add(actionRow);
-            DockPanel.SetDock(bottom, Dock.Bottom);
-            side.Children.Add(bottom);
+            var footer = PageWindowLayout.Footer(resetLink, cancelBtn, _applyBtn);
 
-            // Keep fields and section headers clear of the always-reserved scrollbar gutter.
-            var stack = new StackPanel { Margin = new Thickness(0, 0, 16, 0) };
-            stack.Children.Add(BuildWatermarkSection());
-            stack.Children.Add(Divider());
-            stack.Children.Add(BuildNumbersSection());
+            // Both sections are always open, so the window's height covers everything; a section's
+            // controls stay disabled until its checkbox turns it on, and Apply writes only what is on.
+            var options = new StackPanel();
+            options.Children.Add(BuildWatermarkSection());
+            options.Children.Add(PageWindowLayout.Divider());
+            options.Children.Add(BuildNumbersSection());
 
-            // Scrollbar is ALWAYS reserved (Visible, not Auto) so the content never shifts left when it
-            // appears. This is the rule for these sidebar windows.
-            var scroller = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Visible, Content = stack };
-            side.Children.Add(scroller);
-            sidebar.Child = side;
-            root.Children.Add(sidebar);
-
-            // ---- Left preview ----
+            // ---- Preview: the framed page, with the stepper under the frame ----
+            bool paged = _pageProvider != null && _pageCount > 1;
             var previewWrap = new Border
             {
                 BorderThickness = new Thickness(1),
-                CornerRadius = UiKit.RadControl,
-                Margin = new Thickness(8, 4, 8, 12),
+                CornerRadius = UiKit.RadCard,
+                Margin = new Thickness(8, 8, 8, paged ? 0 : 8),
                 ClipToBounds = true
             };
             previewWrap.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
             previewWrap.SetResourceReference(Border.BorderBrushProperty, "PaneBorderBrush");
-
-            // The page image (row 0) and the stepper (row 1) live in separate rows so the stepper sits
-            // BELOW the page instead of overlapping it - same row layout as the print preview.
-            var previewLayout = new Grid();
-            previewLayout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            previewLayout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
             var imageHost = new Grid();
             AddGrain(imageHost, owner, 0.05, cornerRadius: 0);
@@ -194,18 +163,17 @@ namespace KillerPDF
             _preview.Source = _pageSrc;
             imageHost.Children.Add(_preview);
             imageHost.Children.Add(_overlay);
-            Grid.SetRow(imageHost, 0);
-            previewLayout.Children.Add(imageHost);
-            previewWrap.Child = previewLayout;
-            _previewArea = imageHost;   // size the page against the image row only, never the stepper row
+            previewWrap.Child = imageHost;
+            _previewArea = imageHost;
+            var previewColumn = new DockPanel();
             // Page stepper: the wheel over the preview (or the arrows) walks pages so you can preview the
             // stamp on any page - the per-page number and range checks update as you go. Only when the caller
             // supplies a page provider and there's more than one page.
-            if (_pageProvider != null && _pageCount > 1)
+            if (paged)
             {
                 var nav = BuildPageNav();
-                Grid.SetRow(nav, 1);
-                previewLayout.Children.Add(nav);
+                DockPanel.SetDock(nav, Dock.Bottom);
+                previewColumn.Children.Add(nav);
                 previewWrap.PreviewMouseWheel += (_, e) =>
                 {
                     int notches = Math.Max(1, Math.Abs(e.Delta) / 120);
@@ -215,9 +183,20 @@ namespace KillerPDF
             }
             _previewArea.SizeChanged += (_, _2) => { SizePreviewImage(); Schedule(); };
             // Family shadow under the content pane, like the main window (flat on 98SE).
-            root.Children.Add(UiKit.PaneWithShadow(previewWrap));
+            previewColumn.Children.Add(UiKit.PaneWithShadow(previewWrap));
+            _previewColumn = previewColumn;
+
+            // A work area narrower than the minimum window (456 options + 24 halo + 282 preview)
+            // falls back to one 288 wide column of options.
+            int columns = SystemParameters.WorkArea.Width < PageWindowLayout.OptionsWidth + 24 + 282 ? 1 : 2;
+            var root = PageWindowLayout.Body(options, footer, previewColumn, out _, columns);
 
             Content = DialogFrame.Frame(this, Owner, "KillerPDF - " + S("Str_Stamp_Suffix"), () => { Applied = false; Close(); }, root);
+            // As tall as both open sections and the footer, resizable from every edge, remembered;
+            // the first open widens until the page fills the preview's height.
+            DialogFrame.EnablePageSizing(this, "Stamp", _previewColumn, fittedExtraWidth: () =>
+                PageWindowLayout.FittedExtraWidth(new Size(_previewArea.ActualWidth, _previewArea.ActualHeight),
+                    _pageHpt > 0 && _pageWpt > 0 ? new Size(_pageWpt, _pageHpt) : new Size(_pageSrc.PixelWidth, _pageSrc.PixelHeight)));
 
             // Esc-to-close is wired by DialogFrame.Frame; Enter commits.
             KeyDown += (_, e) => { if (e.Key == Key.Enter) CommitAndClose(); };
@@ -239,53 +218,44 @@ namespace KillerPDF
         private StackPanel BuildNumbersSection()
         {
             var wrap = new StackPanel();
-            _numBody = new StackPanel { Margin = new Thickness(0, 4, 0, 0) };
             _numEnable = SectionToggle(S("Str_Stamp_SecNumbers"), _spec.NumbersEnabled);
             _numEnable.Checked   += (_, _2) => { UpdateEnabledStates(); Schedule(); };
             _numEnable.Unchecked += (_, _2) => { UpdateEnabledStates(); Schedule(); };
-            wrap.Children.Add(SectionHeaderRow(_numEnable, _numBody));
+            wrap.Children.Add(PageWindowLayout.HeaderRow(_numEnable));
 
-            _numBody.Children.Add(UiKit.GroupLabel(S("Str_Stamp_StartAt")));
-            _numStart = UiKit.Field();
-            _numStart.Text = _spec.StartNumber.ToString();
-            _numStart.Margin = new Thickness(0, 0, 0, 8);
-            _numStart.TextChanged += (_, _2) => Schedule();
-            _numBody.Children.Add(_numStart);
-
-            _numBody.Children.Add(UiKit.GroupLabel(S("Str_Stamp_Format")));
-            _numFormat = UiKit.Field();
-            _numFormat.Text = _spec.Format;
+            _numFormat = MakeField(_spec.Format);
             _numFormat.TextChanged += (_, _2) => Schedule();
-            _numBody.Children.Add(_numFormat);
-            _numBody.Children.Add(new TextBlock { Text = S("Str_Stamp_Hint"), Foreground = R("MutedTextBrush"), FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
-            _numBody.Children.Add(new TextBlock { Text = S("Str_Stamp_Hint2"), Foreground = R("MutedTextBrush"), FontSize = 11, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) });
+            var hints = new StackPanel();
+            hints.Children.Add(PageWindowLayout.Hint(S("Str_Stamp_Hint")));
+            hints.Children.Add(PageWindowLayout.Hint(S("Str_Stamp_Hint2")));
+            ((FrameworkElement)hints.Children[0]).Margin = new Thickness(0, -4, 0, 0);
 
-            _numBody.Children.Add(SliderBoxRow(S("Str_Stamp_FontSize"), 6, 96, _spec.NumFontPt, out _, out _numSize));
+            _numStart = MakeField(_spec.StartNumber.ToString());
+            _numStart.TextChanged += (_, _2) => Schedule();
 
-            _numBody.Children.Add(ColorRow(S("Str_Stamp_Color"), _numColor, out _numSwatch, c => { _numColor = c; Schedule(); }, "StampPageNumberColor"));
+            var numSize = SliderBoxRow(S("Str_Stamp_FontSize"), 6, 96, _spec.NumFontPt, out _, out _numSize);
+            var numColor = ColorRow(S("Str_Stamp_Color"), _numColor, out _numSwatch, c => { _numColor = c; Schedule(); }, "StampPageNumberColor");
 
-            _numBody.Children.Add(UiKit.GroupLabel(S("Str_Stamp_Pages")));
-            _numRange = UiKit.Field();
-            _numRange.Text = _spec.NumRange;
-            _numRange.ToolTip = S("Str_Crop_RangeTip");
-            _numRange.Margin = new Thickness(0, 0, 0, 8);
-            _numRange.TextChanged += (_, _2) => Schedule();
-            _numBody.Children.Add(_numRange);
-
-            // Position is the last page-number option (it's the least-changed setting).
-            _numBody.Children.Add(UiKit.GroupLabel(S("Str_Stamp_Position")));
             _numPos = MakePosCombo(_spec.NumPosH, _spec.NumPosV);
             _numPos.SelectionChanged += (_, _2) => { UpdateMirrorEnabled(); Schedule(); };
-            _numBody.Children.Add(_numPos);
+
+            _numRange = MakeField(_spec.NumRange);
+            _numRange.ToolTip = S("Str_Crop_RangeTip");
+            _numRange.TextChanged += (_, _2) => Schedule();
 
             _numMirror = UiKit.CheckBox(S("Str_Stamp_Mirror"));
             _numMirror.IsChecked = _spec.NumMirror;
-            _numMirror.Margin = new Thickness(0, 6, 0, 0);
             _numMirror.Checked   += (_, _2) => Schedule();
             _numMirror.Unchecked += (_, _2) => Schedule();
-            _numBody.Children.Add(_numMirror);
             UpdateMirrorEnabled();
 
+            _numBody = Grid2(
+                Span(PageWindowLayout.Labeled(S("Str_Stamp_Format"), _numFormat)),
+                Span(hints),
+                PageWindowLayout.Labeled(S("Str_Stamp_StartAt"), _numStart), numSize,
+                numColor, PageWindowLayout.Labeled(S("Str_Stamp_Position"), _numPos),
+                PageWindowLayout.Labeled(S("Str_Stamp_Pages"), _numRange),
+                PageWindowLayout.Labeled(" ", Row(_numMirror)));
             wrap.Children.Add(_numBody);
             return wrap;
         }
@@ -294,14 +264,13 @@ namespace KillerPDF
         private StackPanel BuildWatermarkSection()
         {
             var wrap = new StackPanel();
-            _wmBody = new StackPanel { Margin = new Thickness(0, 4, 0, 0) };
             _wmEnable = SectionToggle(S("Str_Stamp_SecWatermark"), _spec.WmEnabled);
             _wmEnable.Checked   += (_, _2) => { UpdateEnabledStates(); Schedule(); };
             _wmEnable.Unchecked += (_, _2) => { UpdateEnabledStates(); Schedule(); };
-            wrap.Children.Add(SectionHeaderRow(_wmEnable, _wmBody));
+            wrap.Children.Add(PageWindowLayout.HeaderRow(_wmEnable));
 
-            // Type: text vs image (clean UiKit radios line up with the section content directly).
-            var typeRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 6) };
+            // Type: text vs image.
+            var typeRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
             _wmTextRadio = MakeRadio(S("Str_Stamp_WmText"), !_spec.WmIsImage);
             _wmTextRadio.Margin = new Thickness(0, 0, 14, 0);
             _wmImageRadio = MakeRadio(S("Str_Stamp_WmImage"), _spec.WmIsImage);
@@ -309,59 +278,52 @@ namespace KillerPDF
             _wmImageRadio.Checked += (_, _2) => { UpdateEnabledStates(); Schedule(); };
             typeRow.Children.Add(_wmTextRadio);
             typeRow.Children.Add(_wmImageRadio);
-            _wmBody.Children.Add(typeRow);
 
-            // Text sub-panel
-            _wmTextPanel = new StackPanel();
-            _wmTextPanel.Children.Add(UiKit.GroupLabel(S("Str_Stamp_WmTextLabel")));
-            _wmText = UiKit.Field();
-            _wmText.Text = _spec.WmText;
-            _wmText.Margin = new Thickness(0, 0, 0, 8);
+            _wmPos = MakePosCombo(_spec.WmPosH, _spec.WmPosV);
+            _wmPos.SelectionChanged += (_, _2) => Schedule();
+
+            // Text mode: the text, its font and size, and its color.
+            _wmText = MakeField(_spec.WmText);
             _wmText.TextChanged += (_, _2) => Schedule();
-            _wmTextPanel.Children.Add(_wmText);
-
-            var wmFontRow = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 8) };
-            wmFontRow.Children.Add(new TextBlock { Text = S("Str_Bar_Font"), Foreground = R("MutedTextBrush"), FontFamily = UiKit.UiFont, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-            _wmFont = new ComboBox { Width = 188, Height = 26, MaxDropDownHeight = 320, VerticalAlignment = VerticalAlignment.Center };
+            _wmFont = new ComboBox { Height = PageWindowLayout.ControlHeight, MaxDropDownHeight = 320 };
             if (_darkCombo != null) _wmFont.Style = _darkCombo; else { _wmFont.Background = R("BgCanvas"); _wmFont.Foreground = R("TextBrush"); }
+            System.Windows.Automation.AutomationProperties.SetName(_wmFont, S("Str_Bar_Font"));
             foreach (var fn in MainWindow.SystemFontNames) _wmFont.Items.Add(fn);
             _wmFont.SelectedItem = _spec.WmFont;
             _wmFont.SelectionChanged += (_, _2) => Schedule();
-            wmFontRow.Children.Add(_wmFont);
-            _wmTextPanel.Children.Add(wmFontRow);
-            _wmTextPanel.Children.Add(SliderBoxRow(S("Str_Stamp_FontSize"), 12, 200, _spec.WmFontPt, out _, out _wmSize));
-            _wmTextPanel.Children.Add(ColorRow(S("Str_Stamp_Color"), _wmColor, out _wmSwatch, c => { _wmColor = c; Schedule(); }, "StampWatermarkColor"));
-            _wmBody.Children.Add(_wmTextPanel);
+            var textCell = Span(PageWindowLayout.Labeled(S("Str_Stamp_WmTextLabel"), _wmText));
+            var fontCell = PageWindowLayout.Labeled(S("Str_Bar_Font"), _wmFont);
+            var sizeCell = SliderBoxRow(S("Str_Stamp_FontSize"), 12, 200, _spec.WmFontPt, out _, out _wmSize);
+            var colorCell = ColorRow(S("Str_Stamp_Color"), _wmColor, out _wmSwatch, c => { _wmColor = c; Schedule(); }, "StampWatermarkColor");
 
-            // Image sub-panel: filename fills the left, the Choose button sits right-aligned across from it.
-            _wmImagePanel = new StackPanel();
-            var imgRow = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
+            // Image mode, in the same slots: the chosen file across both columns, then its scale.
+            var imgRow = new DockPanel { MinHeight = PageWindowLayout.ControlHeight };
             var chooseBtn = UiKit.Make(S("Str_Stamp_ChooseImage"), false);
+            chooseBtn.Height = PageWindowLayout.ControlHeight;
+            chooseBtn.Padding = new Thickness(10, 0, 10, 0);
             chooseBtn.Click += (_, _2) => ChooseImage();
             DockPanel.SetDock(chooseBtn, Dock.Right);
             imgRow.Children.Add(chooseBtn);
-            _wmImageLabel = new TextBlock { Text = System.IO.Path.GetFileName(_wmImagePath ?? ""), Foreground = R("MutedTextBrush"), FontSize = 11, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
+            _wmImageLabel = new TextBlock { Text = System.IO.Path.GetFileName(_wmImagePath ?? ""), Foreground = R("MutedTextBrush"), FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
             imgRow.Children.Add(_wmImageLabel);
-            _wmImagePanel.Children.Add(imgRow);
-            _wmImagePanel.Children.Add(SliderBoxRow(S("Str_Stamp_Scale"), 10, 200, _spec.WmScale * 100, out _wmScale, out _));
-            _wmBody.Children.Add(_wmImagePanel);
+            var imageCell = PageWindowLayout.Labeled(" ", imgRow);
+            var scaleCell = SliderBoxRow(S("Str_Stamp_Scale"), 10, 200, _spec.WmScale * 100, out _wmScale, out _);
 
-            // Shared watermark controls
-            _wmBody.Children.Add(SliderBoxRow(S("Str_Stamp_Angle"), -90, 90, _spec.WmAngle, out _wmAngle, out _));
-            _wmBody.Children.Add(SliderBoxRow(S("Str_Stamp_Opacity"), 5, 100, _spec.WmOpacity * 100, out _wmOpacity, out _));
+            _wmTextOnly = [textCell, fontCell, sizeCell, colorCell];
+            _wmImageOnly = [imageCell, scaleCell];
 
-            _wmBody.Children.Add(UiKit.GroupLabel(S("Str_Stamp_Position")));
-            _wmPos = MakePosCombo(_spec.WmPosH, _spec.WmPosV);
-            _wmPos.SelectionChanged += (_, _2) => Schedule();
-            _wmBody.Children.Add(_wmPos);
-
-            _wmBody.Children.Add(UiKit.GroupLabel(S("Str_Stamp_Pages")));
-            _wmRange = UiKit.Field();
-            _wmRange.Text = _spec.WmRange;
+            var opacityCell = SliderBoxRow(S("Str_Stamp_Opacity"), 5, 100, _spec.WmOpacity * 100, out _wmOpacity, out _);
+            var angleCell = SliderBoxRow(S("Str_Stamp_Angle"), -90, 90, _spec.WmAngle, out _wmAngle, out _);
+            _wmRange = MakeField(_spec.WmRange);
             _wmRange.ToolTip = S("Str_Crop_RangeTip");
             _wmRange.TextChanged += (_, _2) => Schedule();
-            _wmBody.Children.Add(_wmRange);
 
+            _wmBody = Grid2(
+                PageWindowLayout.Labeled(" ", Row(typeRow)), PageWindowLayout.Labeled(S("Str_Stamp_Position"), _wmPos),
+                Span(Swap(textCell, imageCell)),
+                Swap(fontCell, scaleCell), Swap(sizeCell, new Border()),
+                Swap(colorCell, new Border()), opacityCell,
+                angleCell, PageWindowLayout.Labeled(S("Str_Stamp_Pages"), _wmRange));
             wrap.Children.Add(_wmBody);
             return wrap;
         }
@@ -377,56 +339,76 @@ namespace KillerPDF
             return cb;
         }
 
-        // Collapsible section header. The enable checkbox itself expands (checked) or collapses (unchecked)
-        // the body; the chevron is just a non-clickable indicator of that state.
-        private static StackPanel SectionHeaderRow(CheckBox enable, StackPanel body)
+        private static TwoColumnPanel Grid2(params UIElement[] cells)
         {
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
-            var chevron = new TextBlock
-            {
-                FontSize = 12, Foreground = R("MutedTextBrush"),
-                Width = 14, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0)
-            };
-            void Sync()
-            {
-                bool on = enable.IsChecked == true;
-                body.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
-                chevron.Text = on ? "▾" : "▸";   // down when expanded, right when collapsed
-            }
-            enable.Checked   += (_, _2) => Sync();
-            enable.Unchecked += (_, _2) => Sync();
-            Sync();
-            row.Children.Add(chevron);
-            row.Children.Add(enable);
-            return row;
+            var grid = new TwoColumnPanel();
+            foreach (var cell in cells) grid.Children.Add(cell);
+            return grid;
+        }
+
+        private static UIElement Span(UIElement cell)
+        {
+            TwoColumnPanel.SetSpan(cell, true);
+            return cell;
+        }
+
+        // Two cells that take turns in one slot (text and image watermark), so switching never
+        // moves the cells around them.
+        private static Grid Swap(UIElement first, UIElement second)
+        {
+            var slot = new Grid();
+            slot.Children.Add(first);
+            slot.Children.Add(second);
+            return slot;
+        }
+
+        private static FrameworkElement Row(FrameworkElement control)
+        {
+            control.VerticalAlignment = VerticalAlignment.Center;
+            control.Margin = new Thickness(0);
+            return new Border { MinHeight = PageWindowLayout.ControlHeight, Child = control };
+        }
+
+        private static TextBox MakeField(string text)
+        {
+            var field = UiKit.Field();
+            field.Text = text;
+            field.Height = PageWindowLayout.ControlHeight;
+            field.VerticalContentAlignment = VerticalAlignment.Center;
+            field.Padding = new Thickness(6, 0, 6, 0);
+            // The field template has no disabled look; dim it like the checkboxes and radios while
+            // its section is off.
+            field.IsEnabledChanged += (_, _) => field.Opacity = field.IsEnabled ? 1 : 0.4;
+            return field;
         }
 
         // A slider paired with a small numeric input box (two-way synced), e.g. font size.
         private StackPanel SliderBoxRow(string label, double min, double max, double value, out Slider slider, out TextBox box)
         {
-            var panel = new StackPanel { Margin = new Thickness(0, 2, 0, 8) };
-            panel.Children.Add(UiKit.GroupLabel(label));
-            var grid = new Grid();
+            var grid = new Grid { Height = PageWindowLayout.ControlHeight };
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var s = new Slider { Minimum = min, Maximum = max, Value = Math.Max(min, Math.Min(max, value)), SmallChange = 1, LargeChange = 4, VerticalAlignment = VerticalAlignment.Center };
             if (_darkSlider != null) s.Style = _darkSlider;
-            var b = UiKit.Field(46);
-            b.Text = ((int)Math.Round(value)).ToString();
+            s.VerticalAlignment = VerticalAlignment.Center;
+            System.Windows.Automation.AutomationProperties.SetName(s, label);
+            var b = MakeField(((int)Math.Round(value)).ToString());
+            b.Width = 46;
             b.Margin = new Thickness(8, 0, 0, 0);
+            System.Windows.Automation.AutomationProperties.SetName(b, label);
             bool guard = false;
             s.ValueChanged += (_, _2) => { if (guard) return; guard = true; b.Text = ((int)Math.Round(s.Value)).ToString(); guard = false; Schedule(); };
             b.TextChanged += (_, _2) => { if (guard) return; if (double.TryParse(b.Text, out double d)) { guard = true; s.Value = Math.Max(min, Math.Min(max, d)); guard = false; Schedule(); } };
             Grid.SetColumn(s, 0); Grid.SetColumn(b, 1);
             grid.Children.Add(s); grid.Children.Add(b);
-            panel.Children.Add(grid);
             slider = s; box = b;
-            return panel;
+            return PageWindowLayout.Labeled(label, grid);
         }
 
         private ComboBox MakePosCombo(int h, int v)
         {
-            var combo = new ComboBox { Margin = new Thickness(0, 0, 0, 8), Height = 26 };
+            var combo = new ComboBox { Height = PageWindowLayout.ControlHeight };
+            System.Windows.Automation.AutomationProperties.SetName(combo, S("Str_Stamp_Position"));
             if (_darkCombo != null) combo.Style = _darkCombo; else { combo.Background = R("BgCanvas"); combo.Foreground = R("TextBrush"); }
             int sel = 0;
             for (int i = 0; i < Positions.Length; i++)
@@ -447,9 +429,6 @@ namespace KillerPDF
 
         private StackPanel ColorRow(string label, Color initial, out Border swatch, Action<Color> onPick, string automationId)
         {
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8), VerticalAlignment = VerticalAlignment.Center };
-            row.Children.Add(new TextBlock { Text = label, Foreground = R("MutedTextBrush"), FontFamily = UiKit.UiFont, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
-
             var sw = new Border
             {
                 Width = 44, Height = 22, CornerRadius = UiKit.RadControl,
@@ -483,16 +462,18 @@ namespace KillerPDF
             };
 
             swatch = sw;
-            row.Children.Add(btn);
-            return row;
+            btn.HorizontalAlignment = HorizontalAlignment.Left;
+            return PageWindowLayout.Labeled(label, Row(btn));
         }
-
-        private static Border Divider() => new() { Height = 1, Background = R("CardBorderBrush"), Opacity = 0.6, Margin = new Thickness(0, 12, 0, 12) };
 
         private void UpdateEnabledStates()
         {
-            _wmTextPanel?.Visibility = _wmImageRadio.IsChecked == true ? Visibility.Collapsed : Visibility.Visible;
-            _wmImagePanel?.Visibility = _wmImageRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            bool image = _wmImageRadio?.IsChecked == true;
+            foreach (var cell in _wmTextOnly) cell.Visibility = image ? Visibility.Collapsed : Visibility.Visible;
+            foreach (var cell in _wmImageOnly) cell.Visibility = image ? Visibility.Visible : Visibility.Collapsed;
+            // A section's controls work only while its checkbox has it on.
+            _wmBody?.IsEnabled = _wmEnable?.IsChecked == true;
+            _numBody?.IsEnabled = _numEnable?.IsChecked == true;
             // Nothing to apply unless at least one section is enabled - EXCEPT when the document
             // already has stamps: applying with both sections off is how they are removed (#145).
             _applyBtn?.IsEnabled = _hadExisting
@@ -537,22 +518,25 @@ namespace KillerPDF
 
         // ---------- preview ----------
         // ---------- Preview page stepper ----------
-        private StackPanel BuildPageNav()
+        // The nav row under the frame (spec 2.2): 36 high, 32 x 26 arrows at the frame's edges.
+        private Grid BuildPageNav()
         {
             _prevArrow = MakeNavArrow("", () => GoToPage(_pageIndex - 1));   // ChevronLeft
             _nextArrow = MakeNavArrow("", () => GoToPage(_pageIndex + 1));   // ChevronRight
+            _prevArrow.ToolTip = S("Str_Kb_PrevPage");
+            _nextArrow.ToolTip = S("Str_Kb_NextPage");
             _pageNavLabel = new TextBlock
             {
-                FontFamily = UiKit.UiFont, FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 12, 0)
+                FontFamily = UiKit.MonoFont, FontSize = 12,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
             };
             _pageNavLabel.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-            var row = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 6, 0, 8)
-            };
+            var row = new Grid { Height = 36, Margin = new Thickness(8, 2, 8, 6) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(_pageNavLabel, 1);
+            Grid.SetColumn(_nextArrow, 2);
             row.Children.Add(_prevArrow);
             row.Children.Add(_pageNavLabel);
             row.Children.Add(_nextArrow);
@@ -566,6 +550,9 @@ namespace KillerPDF
             var b = UiKit.Make(glyph, false);
             b.FontFamily = UiKit.IconFont;
             b.FontSize = 12;
+            b.Width = 32;
+            b.Height = PageWindowLayout.ControlHeight;
+            b.Padding = new Thickness(0);
             b.Click += (_, _2) => onClick();
             return b;
         }
@@ -624,15 +611,12 @@ namespace KillerPDF
         private void SizePreviewImage()
         {
             if (_previewArea == null) return;
-            double availW = Math.Max(1, _previewArea.ActualWidth - 48);
-            double availH = Math.Max(1, _previewArea.ActualHeight - 48);
-            double ar = _pageHpt > 0 ? _pageWpt / _pageHpt : (_pageSrc.PixelWidth / (double)_pageSrc.PixelHeight);
-            double w = availW, h = w / ar;
-            if (h > availH) { h = availH; w = h * ar; }
-            _preview.Width = w;
-            _preview.Height = h;
-            _overlay.Width = w;
-            _overlay.Height = h;
+            var page = _pageHpt > 0 && _pageWpt > 0 ? new Size(_pageWpt, _pageHpt) : new Size(_pageSrc.PixelWidth, _pageSrc.PixelHeight);
+            Size fit = PageWindowLayout.FitPage(new Size(_previewArea.ActualWidth, _previewArea.ActualHeight), page, page);
+            _preview.Width = fit.Width;
+            _preview.Height = fit.Height;
+            _overlay.Width = fit.Width;
+            _overlay.Height = fit.Height;
         }
 
         private static HashSet<int> ParseRange(string range, int pageCount)

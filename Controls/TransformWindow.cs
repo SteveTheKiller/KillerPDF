@@ -58,11 +58,11 @@ namespace KillerPDF
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(24),
             Effect = new System.Windows.Media.Effects.DropShadowEffect
             { Color = Colors.Black, BlurRadius = 14, ShadowDepth = 3, Direction = 270, Opacity = 0.45 }
         };
         private readonly Border _previewArea = null!;
+        private readonly FrameworkElement _previewColumn = null!;
         private readonly MatrixTransform _previewTransform = new();
         private Point? _previewPanStart;
         private double _srcW;
@@ -107,7 +107,8 @@ namespace KillerPDF
         private readonly CheckBox _perspectiveCheck = null!;
         private int _dragPerspective = -1;
 
-        private static SolidColorBrush R(string key) => (SolidColorBrush)Application.Current.Resources[key];
+        // Brush, never SolidColorBrush: any theme may state a surface as a gradient.
+        private static Brush R(string key) => PageWindowLayout.ThemeBrush(Application.Current?.TryFindResource(key));
         private static string S(string key) => Application.Current.TryFindResource(key) as string ?? key;
 
         public TransformWindow(Window owner, IReadOnlyList<PagePreview> pages,
@@ -125,10 +126,6 @@ namespace KillerPDF
             string toolName = S(mode == TransformWindowMode.Transform
                 ? "Str_Tf_Suffix" : "Str_ColorCorrection");
             Title = "KillerPDF - " + toolName;
-            Width = 980;
-            Height = 720;
-            MinWidth = 640;
-            MinHeight = 460;
             DialogFrame.Configure(this, owner, resizable: true);
 
             Style? darkSlider = owner?.TryFindResource("DarkSlider") is Style sliderStyle
@@ -144,31 +141,12 @@ namespace KillerPDF
             _previewTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
             _previewTimer.Tick += (_, _2) => { _previewTimer.Stop(); UpdatePreview(); };
 
-            var root = new DockPanel();
+            // Borrow the main window's themed scrollbar so the options scroller isn't the OS default.
+            if (owner?.TryFindResource(typeof(System.Windows.Controls.Primitives.ScrollBar)) is Style sbStyle)
+                Resources[typeof(System.Windows.Controls.Primitives.ScrollBar)] = sbStyle;
 
-            // ---- Right sidebar (transparent so it blends with the dark title bar, like Print Preview) ----
-            var sidebar = new Border
-            {
-                Width = 288,
-                Background = Brushes.Transparent,
-                Padding = new Thickness(16, 8, 0, 14)
-            };
-            DockPanel.SetDock(sidebar, Dock.Right);
-
-            var side = new DockPanel();
-
-            // Bottom: a "Reset all" text link on its own line (translations like "Tout reinitialiser" are
-            // long), with Cancel / Apply right-aligned beneath it - so nothing crowds or clips.
-            var bottom = new StackPanel { Margin = new Thickness(0, 10, 16, 0) };
-            var resetAll = new TextBlock
-            {
-                Text = S("Str_Tf_ResetAll"), FontFamily = UiKit.UiFont, FontSize = 12,
-                Foreground = R("MutedTextBrush"), Cursor = Cursors.Hand,
-                VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Left
-            };
-            resetAll.MouseEnter += (_, _2) => resetAll.Foreground = R("PrimaryBrush");
-            resetAll.MouseLeave += (_, _2) => resetAll.Foreground = R("MutedTextBrush");
-            resetAll.MouseLeftButtonUp += (_, _2) =>
+            // Footer: "Reset all" on the left, then Cancel and Apply, on one row.
+            var resetAll = PageWindowLayout.LinkButton(S("Str_Tf_ResetAll"), () =>
             {
                 _quarter = 0; _rotSlider.Value = 0; _scaleSlider.Value = 100;
                 _resizeRadio.IsChecked = true; _flipHCheck.IsChecked = false; _flipVCheck.IsChecked = false;
@@ -176,104 +154,99 @@ namespace KillerPDF
                 ResetLevels();   // #174
                 ResetColorAdjustments();
                 ResetQuality();
-            };
-            bottom.Children.Add(resetAll);
-            var actionRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 8, 0, 0) };
+            });
             var cancelBtn = UiKit.Make(S("Str_Tf_Cancel"), false);
-            cancelBtn.Margin = new Thickness(0, 0, 8, 0);
             cancelBtn.Click += (_, _2) => { Applied = false; Close(); };
             cancelBtn.IsCancel = true;   // Esc
-            actionRow.Children.Add(cancelBtn);
             var applyBtn = UiKit.Make(pages.Count == 1 ? S("Str_Tf_Apply") : $"{S("Str_Tf_Apply")} ({pages.Count})", true);
             applyBtn.Click += (_, _2) => CommitAndClose();
             applyBtn.IsDefault = true;   // Enter
-            actionRow.Children.Add(applyBtn);
-            bottom.Children.Add(actionRow);
-            DockPanel.SetDock(bottom, Dock.Bottom);
-            side.Children.Add(bottom);
+            var footer = PageWindowLayout.Footer(resetAll, cancelBtn, applyBtn);
 
-            var stack = new StackPanel();
-
-            int rotateStart = stack.Children.Count;
-            // Quarter-turn buttons.
-            var turnRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 6) };
-            var turnL = UiKit.Make("↺ 90°", false);
+            // ---- ROTATE: quarter turns | angle readout and Reset, then the fine angle across both ----
+            var turnRow = new StackPanel { Orientation = Orientation.Horizontal };
+            var turnL = SmallButton("↺ 90°");
             turnL.Margin = new Thickness(0, 0, 6, 0);
             turnL.Click += (_, _2) => { _quarter = (_quarter + 3) % 4; UpdatePreview(); };
-            var turnR = UiKit.Make("90° ↻", false);
+            var turnR = SmallButton("90° ↻");
             turnR.Click += (_, _2) => { _quarter = (_quarter + 1) % 4; UpdatePreview(); };
             turnRow.Children.Add(turnL);
             turnRow.Children.Add(turnR);
-            stack.Children.Add(turnRow);
-
-            _rotSlider = new Slider { Minimum = -45, Maximum = 45, Value = 0, TickFrequency = 1, SmallChange = 0.1, LargeChange = 1, Margin = new Thickness(0, 2, 0, 2) };
-            if (darkSlider != null) _rotSlider.Style = darkSlider;
-            _rotSlider.ValueChanged += (_, ev) => { _fine = Math.Round(ev.NewValue, 1); _rotReadout?.Text = $"{Total:0.0}°"; SchedulePreview(); };
-            stack.Children.Add(_rotSlider);
-            stack.Children.Add(ValueRow(S("Str_Tf_Angle"), "0.0°", out _rotReadout, out var rotReset));
+            _rotReadout = new TextBlock
+            {
+                Text = "0.0°", Foreground = R("TextBrush"), FontFamily = UiKit.MonoFont, FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0)
+            };
+            var rotReset = SmallButton(S("Str_Tf_Reset"));
             rotReset.Click += (_, _2) => { _quarter = 0; _rotSlider.Value = 0; UpdatePreview(); };
+            var angleRow = new DockPanel { Height = PageWindowLayout.ControlHeight, LastChildFill = false };
+            DockPanel.SetDock(rotReset, Dock.Right);
+            DockPanel.SetDock(_rotReadout, Dock.Right);
+            angleRow.Children.Add(rotReset);
+            angleRow.Children.Add(_rotReadout);
+            _rotSlider = new Slider { Minimum = -45, Maximum = 45, Value = 0, TickFrequency = 1, SmallChange = 0.1, LargeChange = 1 };
+            if (darkSlider != null) _rotSlider.Style = darkSlider;
+            System.Windows.Automation.AutomationProperties.SetName(_rotSlider, S("Str_Tf_Angle"));
+            _rotSlider.ValueChanged += (_, ev) => { _fine = Math.Round(ev.NewValue, 1); _rotReadout?.Text = $"{Total:0.0}°"; SchedulePreview(); };
+            var rotate = Grid2(
+                PageWindowLayout.Labeled(" ", turnRow),
+                PageWindowLayout.Labeled(S("Str_Tf_Angle"), angleRow),
+                Span(Cell(Row(_rotSlider))));
 
-            WrapSection(stack, rotateStart, S("Str_Tf_Rotate"), expanded: true);
-            stack.Children.Add(Divider());
+            // ---- FLIP ----
+            _flipHCheck = MakeCheck(S("Str_Tf_FlipH"));
+            _flipHCheck.Checked   += (_, _2) => { _flipH = true;  UpdatePreview(); };
+            _flipHCheck.Unchecked += (_, _2) => { _flipH = false; UpdatePreview(); };
+            _flipVCheck = MakeCheck(S("Str_Tf_FlipV"));
+            _flipVCheck.Checked   += (_, _2) => { _flipV = true;  UpdatePreview(); };
+            _flipVCheck.Unchecked += (_, _2) => { _flipV = false; UpdatePreview(); };
+            var flip = Grid2(Cell(Row(_flipHCheck)), Cell(Row(_flipVCheck)));
 
-            int scaleStart = stack.Children.Count;
-            _scaleSlider = new Slider { Minimum = 25, Maximum = 200, Value = 100, TickFrequency = 5, SmallChange = 1, LargeChange = 10, Margin = new Thickness(0, 2, 0, 2) };
+            // ---- SCALE: size slider | when scaling, then the output size across both ----
+            _scaleReadout = PageWindowLayout.Readout("100%");
+            _scaleSlider = new Slider { Minimum = 25, Maximum = 200, Value = 100, TickFrequency = 5, SmallChange = 1, LargeChange = 10 };
             if (darkSlider != null) _scaleSlider.Style = darkSlider;
+            System.Windows.Automation.AutomationProperties.SetName(_scaleSlider, S("Str_Tf_Size"));
             _scaleSlider.ValueChanged += (_, ev) => { _scale = Math.Round(ev.NewValue) / 100.0; _scaleReadout.Text = $"{ev.NewValue:0}%"; SchedulePreview(); };
-            stack.Children.Add(_scaleSlider);
-            stack.Children.Add(ValueRow(S("Str_Tf_Size"), "100%", out _scaleReadout, out var scaleReset));
+            var scaleReset = SmallButton(S("Str_Tf_Reset"));
+            scaleReset.Margin = new Thickness(6, 0, 0, 0);
             scaleReset.Click += (_, _2) => _scaleSlider.Value = 100;
-
-            stack.Children.Add(new TextBlock { Text = S("Str_Tf_WhenScaling"), Foreground = R("MutedTextBrush"), FontFamily = UiKit.UiFont, FontSize = 11, Margin = new Thickness(0, 10, 0, 4) });
+            var sizeRow = new DockPanel();
+            DockPanel.SetDock(scaleReset, Dock.Right);
+            sizeRow.Children.Add(scaleReset);
+            sizeRow.Children.Add(Row(_scaleSlider));
             _resizeRadio = MakeRadio(S("Str_Tf_ResizePage"), true, themeRadio);
             var fixedRadio = MakeRadio(S("Str_Tf_KeepSize"), false, themeRadio);
             _resizeRadio.Checked += (_, _2) => { _fixedPage = false; UpdatePreview(); };
             fixedRadio.Checked += (_, _2) => { _fixedPage = true; UpdatePreview(); };
-            stack.Children.Add(_resizeRadio);
-            stack.Children.Add(fixedRadio);
-
+            var scalingModes = new StackPanel();
+            scalingModes.Children.Add(_resizeRadio);
+            scalingModes.Children.Add(fixedRadio);
             // Live output dimensions, so scale changes (including above 100%, where the preview clamps to
             // fit) are always legible as a number even when the page can't grow on screen.
-            _sizeReadout = new TextBlock { Foreground = R("MutedTextBrush"), FontFamily = UiKit.MonoFont, FontSize = 11, Margin = new Thickness(0, 8, 0, 0) };
-            stack.Children.Add(_sizeReadout);
+            _sizeReadout = PageWindowLayout.StatusLine();
+            var scale = Grid2(
+                PageWindowLayout.Labeled(S("Str_Tf_Size"), sizeRow, _scaleReadout),
+                PageWindowLayout.Labeled(S("Str_Tf_WhenScaling"), scalingModes),
+                Span(Cell(_sizeReadout)));
 
-            WrapSection(stack, scaleStart, S("Str_Tf_Scale"), expanded: false);
-            stack.Children.Add(Divider());
-            int flipStart = stack.Children.Count;
-            _flipHCheck = MakeCheck(S("Str_Tf_FlipH"));
-            _flipHCheck.Checked   += (_, _2) => { _flipH = true;  UpdatePreview(); };
-            _flipHCheck.Unchecked += (_, _2) => { _flipH = false; UpdatePreview(); };
-            stack.Children.Add(_flipHCheck);
-            _flipVCheck = MakeCheck(S("Str_Tf_FlipV"));
-            _flipVCheck.Checked   += (_, _2) => { _flipV = true;  UpdatePreview(); };
-            _flipVCheck.Unchecked += (_, _2) => { _flipV = false; UpdatePreview(); };
-            stack.Children.Add(_flipVCheck);
-
-            WrapSection(stack, flipStart, S("Str_Tf_Flip"), expanded: false);
-            stack.Children.Add(Divider());
-            int skewStart = stack.Children.Count;
+            // ---- SKEW: level line | live coordinates, then the hint across both ----
             _deskewCheck = MakeCheck(S("Str_Tf_LevelLine"));
             _deskewCheck.Checked   += (_, _2) => { _lineCanvas.IsHitTestVisible = true; };
             _deskewCheck.Unchecked += (_, _2) => { _lineCanvas.IsHitTestVisible = false; _alignLine.Visibility = Visibility.Collapsed; _lineCoords.Text = ""; };
-            stack.Children.Add(_deskewCheck);
-            stack.Children.Add(new TextBlock
-            {
-                Text = S("Str_Tf_SkewHint"),
-                Foreground = R("MutedTextBrush"), FontFamily = UiKit.UiFont, FontSize = 10,
-                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0)
-            });
             // Live cursor coordinates (page points), so the user can place the line precisely on the small
-            // preview. Start point on press, end point as they drag.
-            _lineCoords = new TextBlock
-            {
-                Text = "", Foreground = R("MutedTextBrush"), FontFamily = UiKit.MonoFont,
-                FontSize = 11, LineHeight = 16, Margin = new Thickness(0, 6, 0, 0), Padding = new Thickness(3)
-            };
-            stack.Children.Add(_lineCoords);
+            // preview. Start point on press, end point as they drag. Two fixed lines, so the window
+            // never grows while dragging.
+            _lineCoords = PageWindowLayout.StatusLine();
+            _lineCoords.LineHeight = 14;
+            _lineCoords.LineStackingStrategy = LineStackingStrategy.BlockLineHeight;
+            _lineCoords.Height = 28;
+            var skew = Grid2(
+                Cell(Row(_deskewCheck)),
+                Cell(_lineCoords),
+                Span(PageWindowLayout.Hint(S("Str_Tf_SkewHint"))));
 
-            WrapSection(stack, skewStart, S("Str_Tf_Skew"), expanded: false);
-            stack.Children.Add(Divider());
-            int perspectiveStart = stack.Children.Count;
+            // ---- PERSPECTIVE: correct | Reset corners, then the hint across both ----
             _perspectiveCheck = MakeCheck(S("Str_Tf_CorrectPerspective"));
             _perspectiveCheck.Checked += (_, _2) =>
             {
@@ -287,86 +260,77 @@ namespace KillerPDF
                 _perspectiveCanvas.Visibility = Visibility.Collapsed;
                 _perspectiveCanvas.IsHitTestVisible = false;
             };
-            stack.Children.Add(_perspectiveCheck);
-            stack.Children.Add(new TextBlock
-            {
-                Text = S("Str_Tf_PerspectiveHint"),
-                Foreground = R("MutedTextBrush"), FontFamily = UiKit.UiFont, FontSize = 10,
-                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0)
-            });
-            var resetPerspective = UiKit.Make(S("Str_Tf_ResetCorners"), false);
-            resetPerspective.Margin = new Thickness(0, 7, 0, 0);
+            var resetPerspective = SmallButton(S("Str_Tf_ResetCorners"));
             resetPerspective.HorizontalAlignment = HorizontalAlignment.Left;
             resetPerspective.Click += (_, _2) => ResetPerspective();
-            stack.Children.Add(resetPerspective);
-            WrapSection(stack, perspectiveStart, S("Str_Tf_Perspective"), expanded: false);
+            var perspective = Grid2(
+                Cell(Row(_perspectiveCheck)),
+                Cell(resetPerspective),
+                Span(PageWindowLayout.Hint(S("Str_Tf_PerspectiveHint"))));
 
-            int colorControlsStart = stack.Children.Count;
+            // ---- COLOR (Color correction): exposure | saturation, auto exposure, white balance ----
+            var exposure = AddColorSlider(darkSlider, "Str_Cc_Exposure", -3, 3, 0, 0.1,
+                value => ColorAdjustments = ColorAdjustments with { Exposure = value },
+                value => value.ToString("+0.00;-0.00;0.00"), continuous: true);
+            var saturation = AddColorSlider(darkSlider, "Str_Cc_Saturation", 0, 200, 100, 1,
+                value => ColorAdjustments = ColorAdjustments with { Saturation = value / 100 },
+                value => value.ToString("0") + "%");
+            _autoExposure = MakeCheck(S("Str_Cc_AutoExposure"));
+            _autoExposure.Checked += (_, _) => SetAutoExposure(true);
+            _autoExposure.Unchecked += (_, _) => SetAutoExposure(false);
+            var whiteBalance = new TextBlock
+            {
+                Text = S("Str_Cc_WhiteBalance"), Foreground = R("MutedTextBrush"), FontFamily = UiKit.UiFont,
+                FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 2, 0, 6)
+            };
+            var warmth = AddColorSlider(darkSlider, "Str_Cc_Warmth", -100, 100, 0, 1,
+                value => ColorAdjustments = ColorAdjustments with { Warmth = value },
+                value => value.ToString("+0;-0;0"), "Str_Cc_WarmthHint");
+            var tint = AddColorSlider(darkSlider, "Str_Cc_Tint", -100, 100, 0, 1,
+                value => ColorAdjustments = ColorAdjustments with { Tint = value },
+                value => value.ToString("+0;-0;0"), "Str_Cc_TintHint");
+            _autoWhiteBalance = MakeCheck(S("Str_Cc_AutoWhiteBalance"));
+            _autoWhiteBalance.Checked += (_, _) => SetAutoWhiteBalance(true);
+            _autoWhiteBalance.Unchecked += (_, _) => SetAutoWhiteBalance(false);
+            var colorReset = SmallButton(S("Str_Tf_Reset"));
+            colorReset.HorizontalAlignment = HorizontalAlignment.Right;
+            colorReset.Click += (_, _) => ResetColorAdjustments();
+            var color = Grid2(
+                exposure, saturation,
+                Cell(Row(_autoExposure)), Empty(),
+                Span(whiteBalance),
+                warmth, tint,
+                Cell(Row(_autoWhiteBalance)), Cell(colorReset));
 
             // #174: LEVELS - FineReader-style source levels for rescuing pale scans. Black point,
             // white point, and a midtone gamma; live in the preview, baked on Apply like every
             // other correction here.
-            stack.Children.Add(Divider());
-            int levelsStart = stack.Children.Count;
-            stack.Children.Add(SliderLabel(S("Str_Tf_LevelsBlack")));
-            _lvlBlack = new Slider { Minimum = 0, Maximum = 200, Value = 0, TickFrequency = 5, SmallChange = 1, LargeChange = 10, Margin = new Thickness(0, 2, 0, 2) };
+            var blackValue = PageWindowLayout.Readout("0");
+            _lvlBlack = new Slider { Minimum = 0, Maximum = 200, Value = 0, TickFrequency = 5, SmallChange = 1, LargeChange = 10 };
             if (darkSlider != null) _lvlBlack.Style = darkSlider;
-            _lvlBlack.ValueChanged += (_, ev) => { LevelBlack = (int)Math.Round(ev.NewValue); SchedulePreview(); };
-            stack.Children.Add(_lvlBlack);
-            stack.Children.Add(SliderLabel(S("Str_Tf_LevelsWhite")));
-            _lvlWhite = new Slider { Minimum = 55, Maximum = 255, Value = 255, TickFrequency = 5, SmallChange = 1, LargeChange = 10, Margin = new Thickness(0, 2, 0, 2) };
+            System.Windows.Automation.AutomationProperties.SetName(_lvlBlack, S("Str_Tf_LevelsBlack"));
+            _lvlBlack.ValueChanged += (_, ev) => { LevelBlack = (int)Math.Round(ev.NewValue); blackValue.Text = LevelBlack.ToString(); SchedulePreview(); };
+            var whiteValue = PageWindowLayout.Readout("255");
+            _lvlWhite = new Slider { Minimum = 55, Maximum = 255, Value = 255, TickFrequency = 5, SmallChange = 1, LargeChange = 10 };
             if (darkSlider != null) _lvlWhite.Style = darkSlider;
-            _lvlWhite.ValueChanged += (_, ev) => { LevelWhite = (int)Math.Round(ev.NewValue); SchedulePreview(); };
-            stack.Children.Add(_lvlWhite);
-            stack.Children.Add(SliderLabel(S("Str_Tf_LevelsGamma")));
-            _lvlGamma = new Slider { Minimum = 0.2, Maximum = 2.5, Value = 1.0, TickFrequency = 0.05, SmallChange = 0.05, LargeChange = 0.2, Margin = new Thickness(0, 2, 0, 2) };
+            System.Windows.Automation.AutomationProperties.SetName(_lvlWhite, S("Str_Tf_LevelsWhite"));
+            _lvlWhite.ValueChanged += (_, ev) => { LevelWhite = (int)Math.Round(ev.NewValue); whiteValue.Text = LevelWhite.ToString(); SchedulePreview(); };
+            var gammaValue = PageWindowLayout.Readout("1.00");
+            _lvlGamma = new Slider { Minimum = 0.2, Maximum = 2.5, Value = 1.0, TickFrequency = 0.05, SmallChange = 0.05, LargeChange = 0.2 };
             if (darkSlider != null) _lvlGamma.Style = darkSlider;
-            _lvlGamma.ValueChanged += (_, ev) => { LevelGamma = Math.Round(ev.NewValue, 2); SchedulePreview(); };
-            stack.Children.Add(_lvlGamma);
-            var levelsReset = UiKit.Make(S("Str_Tf_Reset"), false);
-            levelsReset.Margin = new Thickness(0, 7, 0, 0);
-            levelsReset.HorizontalAlignment = HorizontalAlignment.Left;
+            System.Windows.Automation.AutomationProperties.SetName(_lvlGamma, S("Str_Tf_LevelsGamma"));
+            _lvlGamma.ValueChanged += (_, ev) => { LevelGamma = Math.Round(ev.NewValue, 2); gammaValue.Text = LevelGamma.ToString("0.00"); SchedulePreview(); };
+            var levelsReset = SmallButton(S("Str_Tf_Reset"));
+            levelsReset.HorizontalAlignment = HorizontalAlignment.Right;
             levelsReset.Click += (_, _2) => ResetLevels();
-            stack.Children.Add(levelsReset);
-            WrapSection(stack, levelsStart, S("Str_Tf_Levels"), expanded: false);
-
-            stack.Children.Add(Divider());
-            int colorStart = stack.Children.Count;
-            AddColorSlider(stack, darkSlider, "Str_Cc_Exposure", -3, 3, 0, 0.1,
-                value => ColorAdjustments = ColorAdjustments with { Exposure = value },
-                value => value.ToString("+0.00;-0.00;0.00"), continuous: true);
-            _autoExposure = MakeCheck(S("Str_Cc_AutoExposure"));
-            _autoExposure.Margin = new Thickness(0, 3, 0, 6);
-            _autoExposure.Checked += (_, _) => SetAutoExposure(true);
-            _autoExposure.Unchecked += (_, _) => SetAutoExposure(false);
-            stack.Children.Add(_autoExposure);
-            AddColorSlider(stack, darkSlider, "Str_Cc_Saturation", 0, 200, 100, 1,
-                value => ColorAdjustments = ColorAdjustments with { Saturation = value / 100 },
-                value => value.ToString("0") + "%");
-            stack.Children.Add(SectionHeader(S("Str_Cc_WhiteBalance")));
-            AddColorSlider(stack, darkSlider, "Str_Cc_Warmth", -100, 100, 0, 1,
-                value => ColorAdjustments = ColorAdjustments with { Warmth = value },
-                value => value.ToString("+0;-0;0"), "Str_Cc_WarmthHint");
-            AddColorSlider(stack, darkSlider, "Str_Cc_Tint", -100, 100, 0, 1,
-                value => ColorAdjustments = ColorAdjustments with { Tint = value },
-                value => value.ToString("+0;-0;0"), "Str_Cc_TintHint");
-            _autoWhiteBalance = MakeCheck(S("Str_Cc_AutoWhiteBalance"));
-            _autoWhiteBalance.Margin = new Thickness(0, 3, 0, 6);
-            _autoWhiteBalance.Checked += (_, _) => SetAutoWhiteBalance(true);
-            _autoWhiteBalance.Unchecked += (_, _) => SetAutoWhiteBalance(false);
-            stack.Children.Add(_autoWhiteBalance);
-            var colorReset = UiKit.Make(S("Str_Tf_Reset"), false);
-            colorReset.Margin = new Thickness(0, 7, 0, 0);
-            colorReset.HorizontalAlignment = HorizontalAlignment.Left;
-            colorReset.Click += (_, _) => ResetColorAdjustments();
-            stack.Children.Add(colorReset);
-            WrapSection(stack, colorStart, S("Str_Cc_Color"), expanded: true);
+            var levels = Grid2(
+                PageWindowLayout.Labeled(S("Str_Tf_LevelsBlack"), Row(_lvlBlack), blackValue),
+                PageWindowLayout.Labeled(S("Str_Tf_LevelsWhite"), Row(_lvlWhite), whiteValue),
+                PageWindowLayout.Labeled(S("Str_Tf_LevelsGamma"), Row(_lvlGamma), gammaValue),
+                PageWindowLayout.Labeled(" ", levelsReset));
 
             // #173: output quality applies after geometry and levels. Defaults preserve the
             // existing lossless, automatic-resolution Transform behavior.
-            stack.Children.Add(Divider());
-            int qualityStart = stack.Children.Count;
-            stack.Children.Add(SliderLabel(S("Str_Tf_ColorMode")));
             _colorMode = new ComboBox
             {
                 ItemsSource = new[]
@@ -374,104 +338,94 @@ namespace KillerPDF
                     S("Str_Print_Color"), S("Str_Tf_Grayscale"), S("Str_Tf_BlackWhite")
                 },
                 SelectedIndex = 0,
-                Margin = new Thickness(0, 3, 0, 3)
+                Height = PageWindowLayout.ControlHeight
             };
             if (darkCombo != null) _colorMode.Style = darkCombo;
+            System.Windows.Automation.AutomationProperties.SetName(_colorMode, S("Str_Tf_ColorMode"));
             _colorMode.SelectionChanged += (_, _) =>
             {
                 ColorMode = (PageColorMode)Math.Max(0, _colorMode.SelectedIndex);
                 _bwThreshold.IsEnabled = ColorMode == PageColorMode.BlackAndWhite;
                 SchedulePreview();
             };
-            stack.Children.Add(_colorMode);
-            stack.Children.Add(SliderLabel(S("Str_Tf_Threshold")));
             _bwThreshold = new Slider
             {
                 Minimum = 0, Maximum = 255, Value = 160, IsEnabled = false,
                 TickFrequency = 5, SmallChange = 1, LargeChange = 10,
-                Margin = new Thickness(0, 2, 0, 2)
             };
             if (darkSlider != null) _bwThreshold.Style = darkSlider;
-            var thresholdValue = SliderLabel("160");
-            thresholdValue.HorizontalAlignment = HorizontalAlignment.Right;
+            System.Windows.Automation.AutomationProperties.SetName(_bwThreshold, S("Str_Tf_Threshold"));
+            var thresholdValue = PageWindowLayout.Readout("160");
             _bwThreshold.ValueChanged += (_, ev) =>
             {
                 BlackWhiteThreshold = (int)Math.Round(ev.NewValue);
                 thresholdValue.Text = BlackWhiteThreshold.ToString();
                 SchedulePreview();
             };
-            stack.Children.Add(_bwThreshold);
-            stack.Children.Add(thresholdValue);
 
             _setDpi = MakeCheck(S("Str_Tf_SetDpi"));
             _setDpi.Checked += (_, _) => { OutputDpi = (int)Math.Round(_dpiSlider.Value); _dpiSlider.IsEnabled = true; };
             _setDpi.Unchecked += (_, _) => { OutputDpi = 0; _dpiSlider.IsEnabled = false; };
-            stack.Children.Add(_setDpi);
-            _dpiReadout = SliderLabel("300 DPI");
-            _dpiReadout.HorizontalAlignment = HorizontalAlignment.Right;
+            // DPI, pixel size and scale: one line across both columns, the full text in its tooltip.
+            _dpiReadout = PageWindowLayout.StatusLine();
             _dpiSlider = new Slider
             {
                 Minimum = 72, Maximum = 600, Value = OneTimesDpi(), IsEnabled = false,
                 TickFrequency = 25, SmallChange = 1, LargeChange = 25,
-                Margin = new Thickness(0, 2, 0, 2)
             };
             if (darkSlider != null) _dpiSlider.Style = darkSlider;
+            System.Windows.Automation.AutomationProperties.SetName(_dpiSlider, S("Str_Tf_SetDpi"));
             _dpiSlider.ValueChanged += (_, ev) =>
             {
                 if (_setDpi.IsChecked == true) OutputDpi = (int)Math.Round(ev.NewValue);
                 UpdateDpiReadout();
             };
-            stack.Children.Add(_dpiSlider);
-            stack.Children.Add(_dpiReadout);
 
             _useJpeg = MakeCheck(S("Str_Tf_UseJpeg"));
             _useJpeg.Checked += (_, _) => { UseJpegCompression = true; _jpegSlider.IsEnabled = true; };
             _useJpeg.Unchecked += (_, _) => { UseJpegCompression = false; _jpegSlider.IsEnabled = false; };
-            stack.Children.Add(_useJpeg);
-            var jpegValue = SliderLabel("85%");
-            jpegValue.HorizontalAlignment = HorizontalAlignment.Right;
+            var jpegValue = PageWindowLayout.Readout("85%");
             _jpegSlider = new Slider
             {
                 Minimum = 25, Maximum = 100, Value = 85, IsEnabled = false,
                 TickFrequency = 5, SmallChange = 1, LargeChange = 5,
-                Margin = new Thickness(0, 2, 0, 2)
             };
             if (darkSlider != null) _jpegSlider.Style = darkSlider;
+            System.Windows.Automation.AutomationProperties.SetName(_jpegSlider, S("Str_Tf_UseJpeg"));
             _jpegSlider.ValueChanged += (_, ev) =>
             {
                 JpegQuality = (int)Math.Round(ev.NewValue);
                 jpegValue.Text = $"{ev.NewValue:0}%";
             };
-            stack.Children.Add(_jpegSlider);
-            stack.Children.Add(jpegValue);
-            var qualityReset = UiKit.Make(S("Str_Tf_Reset"), false);
-            qualityReset.Margin = new Thickness(0, 7, 0, 0);
+            var qualityReset = SmallButton(S("Str_Tf_Reset"));
             qualityReset.HorizontalAlignment = HorizontalAlignment.Left;
             qualityReset.Click += (_, _) => ResetQuality();
-            stack.Children.Add(qualityReset);
-            WrapSection(stack, qualityStart, S("Str_Tf_Quality"), expanded: false);
+            var quality = Grid2(
+                PageWindowLayout.Labeled(S("Str_Tf_ColorMode"), _colorMode),
+                PageWindowLayout.Labeled(S("Str_Tf_Threshold"), Row(_bwThreshold), thresholdValue),
+                Cell(CheckOverSlider(_setDpi, null, _dpiSlider)),
+                Cell(CheckOverSlider(_useJpeg, jpegValue, _jpegSlider)),
+                Span(Cell(_dpiReadout)),
+                Cell(qualityReset), Empty());
 
-            int visibleStart = mode == TransformWindowMode.Transform ? 0 : colorControlsStart;
-            int visibleEnd = mode == TransformWindowMode.Transform ? colorControlsStart : stack.Children.Count;
-            for (int i = 0; i < stack.Children.Count; i++)
-                if (i < visibleStart || i >= visibleEnd)
-                    stack.Children[i].Visibility = Visibility.Collapsed;
-
-            if (mode == TransformWindowMode.ColorCorrection &&
-                colorControlsStart < stack.Children.Count)
-                stack.Children[colorControlsStart].Visibility = Visibility.Collapsed;
-
-            // Padding belongs to the controls, leaving the scrollbar at the window edge.
-            stack.Margin = new Thickness(0, 0, 16, 0);
-
-            side.Children.Add(new ScrollViewer
+            // Transform shows the geometry sections and Color correction its own three, COLOR first.
+            // Every section starts open; the controls of the other mode are built but never shown.
+            var options = new StackPanel();
+            var sections = mode == TransformWindowMode.Transform
+                ? new (string Title, UIElement Body)[]
+                {
+                    (S("Str_Tf_Rotate"), rotate), (S("Str_Tf_Flip"), flip), (S("Str_Tf_Scale"), scale),
+                    (S("Str_Tf_Skew"), skew), (S("Str_Tf_Perspective"), perspective)
+                }
+                : new (string Title, UIElement Body)[]
+                {
+                    (S("Str_Cc_Color"), color), (S("Str_Tf_Levels"), levels), (S("Str_Tf_Quality"), quality)
+                };
+            for (int i = 0; i < sections.Length; i++)
             {
-                Content = stack,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            });
-            sidebar.Child = side;
-            root.Children.Add(sidebar);
+                if (i > 0) options.Children.Add(PageWindowLayout.Divider());
+                options.Children.Add(PageWindowLayout.Section(sections[i].Title, sections[i].Body, out _));
+            }
 
             // ---- Preview area: a documentbg box (1px frame, margin, rounded) with grain in the margins and
             //      the page (sized to its true relative scale, with a drop shadow) centered on top. ----
@@ -479,7 +433,7 @@ namespace KillerPDF
             {
                 BorderThickness = new Thickness(1),
                 CornerRadius = UiKit.RadCard,
-                Margin = new Thickness(8, 4, 8, 12),
+                Margin = new Thickness(8, 8, 8, pages.Count > 1 ? 0 : 8),
                 ClipToBounds = true
             };
             previewWrap.SetResourceReference(Border.BackgroundProperty, "BgCanvas");
@@ -600,12 +554,11 @@ namespace KillerPDF
             var previewColumn = new DockPanel();
             if (pages.Count > 1)
             {
-                var navigation = new Grid { Height = 38, Margin = new Thickness(8, 0, 8, 8) };
+                var navigation = new Grid { Height = 36, Margin = new Thickness(8, 2, 8, 6) };
                 navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 navigation.ColumnDefinitions.Add(new ColumnDefinition());
                 navigation.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                _previousPage = UiKit.Make("‹", false);
-                _previousPage.Width = 44;
+                _previousPage = NavArrow("‹");
                 _previousPage.ToolTip = S("Str_Kb_PrevPage");
                 _previousPage.Click += (_, _2) => ShowPreviewPage(_previewPageIndex - 1);
                 Grid.SetColumn(_previousPage, 0);
@@ -620,8 +573,7 @@ namespace KillerPDF
                 };
                 Grid.SetColumn(_pageCounter, 1);
                 navigation.Children.Add(_pageCounter);
-                _nextPage = UiKit.Make("›", false);
-                _nextPage.Width = 44;
+                _nextPage = NavArrow("›");
                 _nextPage.ToolTip = S("Str_Kb_NextPage");
                 _nextPage.Click += (_, _2) => ShowPreviewPage(_previewPageIndex + 1);
                 Grid.SetColumn(_nextPage, 2);
@@ -631,9 +583,19 @@ namespace KillerPDF
             }
             // Family shadow under the content pane, like the main window (flat on 98SE).
             previewColumn.Children.Add(UiKit.PaneWithShadow(previewWrap));
-            root.Children.Add(previewColumn);
+            _previewColumn = previewColumn;
+
+            // A work area narrower than the minimum window (456 options + 24 halo + 282 preview)
+            // falls back to one 288 wide column of options.
+            int columns = SystemParameters.WorkArea.Width < PageWindowLayout.OptionsWidth + 24 + 282 ? 1 : 2;
+            var root = PageWindowLayout.Body(options, footer, previewColumn, out _, columns);
 
             Content = DialogFrame.Frame(this, Owner, "KillerPDF - " + toolName, () => { Applied = false; Close(); }, root);
+            // As tall as the open options and the footer, resizable from every edge, remembered per
+            // mode; the first open widens until the page fills the preview's height.
+            DialogFrame.EnablePageSizing(this, mode == TransformWindowMode.Transform ? "Transform" : "ColorCorrection",
+                _previewColumn, fittedExtraWidth: () => PageWindowLayout.FittedExtraWidth(
+                    new Size(_previewArea.ActualWidth - 2, _previewArea.ActualHeight - 2), new Size(_srcW, _srcH)));
             UpdatePreview();   // populate the output-size readout at the original dimensions
             UpdatePageNavigation();
 
@@ -880,26 +842,20 @@ namespace KillerPDF
             _lvlBlack.Value = 0; _lvlWhite.Value = 255; _lvlGamma.Value = 1.0;
         }
 
-        private void AddColorSlider(StackPanel host, Style? style, string labelKey,
+        // A labelled color slider cell (label and mono readout over the slider). The sliders are
+        // listed in creation order: exposure, saturation, warmth, tint.
+        private FrameworkElement AddColorSlider(Style? style, string labelKey,
             double minimum, double maximum, double initial, double step,
             Action<double> changed, Func<double, string> format, string? hintKey = null,
             bool continuous = false)
         {
-            var row = new DockPanel { Margin = new Thickness(0, 6, 0, 0) };
-            var readout = SliderLabel(format(initial));
-            readout.Margin = new Thickness(8, 0, 0, 0);
-            DockPanel.SetDock(readout, Dock.Right);
-            row.Children.Add(readout);
-            var label = SliderLabel(S(labelKey));
-            label.Margin = new Thickness(0);
-            row.Children.Add(label);
-            host.Children.Add(row);
+            var readout = PageWindowLayout.Readout(format(initial));
             var slider = new Slider
             {
                 Minimum = minimum, Maximum = maximum, Value = initial,
                 SmallChange = step, LargeChange = step * 10, TickFrequency = step,
                 IsSnapToTickEnabled = false,
-                Margin = new Thickness(0, 2, 0, 2), Tag = initial,
+                Tag = initial,
                 ToolTip = hintKey is null ? S(labelKey) : S(hintKey)
             };
             if (style is not null) slider.Style = style;
@@ -917,7 +873,7 @@ namespace KillerPDF
                 else SchedulePreview();
             };
             _colorAdjustmentSliders.Add(slider);
-            host.Children.Add(slider);
+            return PageWindowLayout.Labeled(S(labelKey), Row(slider), readout);
         }
 
         private void ResetColorAdjustments()
@@ -963,12 +919,6 @@ namespace KillerPDF
             JpegQuality = 85;
             SchedulePreview();
         }
-
-        private static TextBlock SliderLabel(string text) => new()
-        {
-            Text = text, Foreground = R("MutedTextBrush"), FontFamily = UiKit.UiFont,
-            FontSize = 10, Margin = new Thickness(0, 6, 0, 0),
-        };
 
         private void UpdatePreview()
         {
@@ -1021,85 +971,75 @@ namespace KillerPDF
         private void SizePreviewImage()
         {
             if (_previewArea is null || _preview.Source is not BitmapSource bmp || _srcW <= 0 || _srcH <= 0) return;
-            const double m = 48;   // match the page's 24px margin on each side
-            double areaW = Math.Max(1, _previewArea.ActualWidth - m);
-            double areaH = Math.Max(1, _previewArea.ActualHeight - m);
-            double baseFit = Math.Min(areaW / _srcW, areaH / _srcH);   // scale that fits the original page
-            double dispW = bmp.PixelWidth * baseFit;
-            double dispH = bmp.PixelHeight * baseFit;
-            double clamp = Math.Min(1.0, Math.Min(areaW / dispW, areaH / dispH));   // never overflow the box
-            _preview.Width = dispW * clamp;
-            _preview.Height = dispH * clamp;
+            // Inside the 1px frame border, less the 16 page margin on every side.
+            var frame = new Size(Math.Max(0, _previewArea.ActualWidth - 2), Math.Max(0, _previewArea.ActualHeight - 2));
+            Size page = PageWindowLayout.FitPage(frame, new Size(_srcW, _srcH), new Size(bmp.PixelWidth, bmp.PixelHeight));
+            _preview.Width = page.Width;
+            _preview.Height = page.Height;
             Dispatcher.BeginInvoke(new Action(ClampPreviewPan), DispatcherPriority.Loaded);
             Dispatcher.BeginInvoke(new Action(UpdatePerspectiveOverlay), DispatcherPriority.Loaded);
         }
 
-        private static TextBlock SectionHeader(string text) => new()
+        // ---- options layout helpers (spec 2.2: 26 high controls, 8 under each cell) ----
+        private static TwoColumnPanel Grid2(params UIElement[] cells)
         {
-            Text = text, Foreground = R("MutedTextBrush"), FontFamily = UiKit.UiFont,
-            FontSize = 10, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 6, 0, 4)
-        };
-
-        private static void WrapSection(StackPanel host, int start, string title, bool expanded)
-        {
-            var children = host.Children.Cast<UIElement>().Skip(start).ToList();
-            while (host.Children.Count > start) host.Children.RemoveAt(start);
-            var body = new StackPanel { Visibility = expanded ? Visibility.Visible : Visibility.Collapsed };
-            foreach (var child in children) body.Children.Add(child);
-            var chevron = new TextBlock
-            {
-                Text = expanded ? "▾" : "▸", Width = 16, FontSize = 12,
-                Foreground = R("MutedTextBrush"), VerticalAlignment = VerticalAlignment.Center,
-            };
-            var label = SectionHeader(title);
-            label.Margin = new Thickness(0);
-            var row = new StackPanel { Orientation = Orientation.Horizontal };
-            row.Children.Add(chevron);
-            row.Children.Add(label);
-            var header = new Border
-            {
-                Background = Brushes.Transparent, Cursor = Cursors.Hand,
-                Padding = new Thickness(0, 5, 0, 5), Child = row,
-            };
-            header.MouseLeftButtonUp += (_, _2) =>
-            {
-                bool open = body.Visibility != Visibility.Visible;
-                body.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
-                chevron.Text = open ? "▾" : "▸";
-            };
-            host.Children.Add(header);
-            host.Children.Add(body);
+            var grid = new TwoColumnPanel();
+            foreach (var cell in cells) grid.Children.Add(cell);
+            return grid;
         }
 
-        private static Border Divider()
+        private static UIElement Span(UIElement cell)
         {
-            var b = new Border { Height = 1, Margin = new Thickness(0, 14, 0, 12) };
-            b.SetResourceReference(Border.BackgroundProperty, "CardBorderBrush");
-            return b;
+            TwoColumnPanel.SetSpan(cell, true);
+            return cell;
         }
 
-        private static DockPanel ValueRow(string label, string value, out TextBlock valueBlock, out Button reset)
+        private static FrameworkElement Cell(UIElement content) => new Border { Margin = new Thickness(0, 0, 0, 8), Child = content };
+
+        private static FrameworkElement Empty() => new Border();
+
+        // A control centered in a 26 high row that may grow when its label wraps.
+        private static FrameworkElement Row(FrameworkElement control)
         {
-            var row = new DockPanel { Margin = new Thickness(0, 2, 0, 0) };
-            reset = UiKit.Make(S("Str_Tf_Reset"), false);
-            reset.Padding = new Thickness(8, 1, 8, 1);
-            reset.FontSize = 11;
-            DockPanel.SetDock(reset, Dock.Right);
-            row.Children.Add(reset);
-            valueBlock = new TextBlock
+            control.VerticalAlignment = VerticalAlignment.Center;
+            control.Margin = new Thickness(0);
+            return new Border { MinHeight = PageWindowLayout.ControlHeight, Child = control };
+        }
+
+        // A checkbox with an optional readout on its row, and its slider under it.
+        private static FrameworkElement CheckOverSlider(CheckBox check, TextBlock? readout, Slider slider)
+        {
+            var head = new DockPanel();
+            if (readout != null)
             {
-                Text = value, Foreground = R("TextBrush"), FontFamily = UiKit.MonoFont,
-                FontSize = 12, VerticalAlignment = VerticalAlignment.Center,
-                TextAlignment = TextAlignment.Right, Margin = new Thickness(0, 0, 8, 0)
-            };
-            DockPanel.SetDock(valueBlock, Dock.Right);
-            row.Children.Add(valueBlock);
-            row.Children.Add(new TextBlock
-            {
-                Text = label, Foreground = R("MutedTextBrush"), FontFamily = UiKit.UiFont,
-                FontSize = 11, VerticalAlignment = VerticalAlignment.Center
-            });
-            return row;
+                readout.VerticalAlignment = VerticalAlignment.Center;
+                DockPanel.SetDock(readout, Dock.Right);
+                head.Children.Add(readout);
+            }
+            head.Children.Add(Row(check));
+            var cell = new StackPanel();
+            cell.Children.Add(head);
+            cell.Children.Add(Row(slider));
+            return cell;
+        }
+
+        private static Button SmallButton(string text)
+        {
+            var button = UiKit.Make(text, false);
+            button.Height = PageWindowLayout.ControlHeight;
+            button.Padding = new Thickness(10, 0, 10, 0);
+            button.VerticalAlignment = VerticalAlignment.Center;
+            return button;
+        }
+
+        private static Button NavArrow(string glyph)
+        {
+            var button = UiKit.Make(glyph, false);
+            button.Width = 32;
+            button.Height = PageWindowLayout.ControlHeight;
+            button.Padding = new Thickness(0);
+            button.FontSize = 16;
+            return button;
         }
 
         private static RadioButton MakeRadio(string text, bool isChecked, Style? style)
@@ -1117,7 +1057,7 @@ namespace KillerPDF
         private static CheckBox MakeCheck(string text)
         {
             var cb = UiKit.CheckBox(text);
-            cb.Margin = new Thickness(0, 3, 0, 0);
+            cb.Margin = new Thickness(0);
             return cb;
         }
 

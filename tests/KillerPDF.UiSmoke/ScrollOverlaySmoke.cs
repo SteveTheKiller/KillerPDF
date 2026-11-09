@@ -279,7 +279,10 @@ internal static class ScrollOverlaySmoke
                     report.Add("ColorCorrection pointer anchor, refresh persistence, and minimum zoom checked");
                     var sliders = ((IEnumerable<Slider>)transformType.GetField("_colorAdjustmentSliders", Members)!
                         .GetValue(dialog)!).ToArray();
-                    var reset = ((Panel)sliders[0].Parent).Children.OfType<Button>().Single();
+                    // The COLOR section's Reset sits in the same two-column grid as its sliders.
+                    DependencyObject colorGrid = sliders[0];
+                    while (colorGrid is not Panel { Children.Count: > 2 }) colorGrid = VisualTreeHelper.GetParent(colorGrid);
+                    var reset = Descendants<Button>(colorGrid).Single();
                     sliders[0].Value = 0.037;
                     object exposureSettings = transformType.GetProperty("ColorAdjustments", Members)!.GetValue(dialog)!;
                     double exposure = (double)exposureSettings.GetType().GetProperty("Exposure")!.GetValue(exposureSettings)!;
