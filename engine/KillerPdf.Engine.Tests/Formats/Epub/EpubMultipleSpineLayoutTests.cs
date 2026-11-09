@@ -240,6 +240,16 @@ public sealed class EpubMultipleSpineLayoutTests
     }
 
     [Fact]
+    public void ConversionToleratesASpineThatListsTheSameChapterTwice()
+    {
+        var book = EpubDocument.Open(Book(["<p>A</p>", "<p>AA</p>"], spineOrder: [0, 0, 1]));
+        var layout = book.CreateLayout(Options());
+        Assert.Equal(3, layout.Pages.Select(page => page.SpineIndex).Distinct().Count());
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(Options().DefaultFont)));
+        Assert.Equal("A", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(letter => letter.Value)));
+    }
+
+    [Fact]
     public void CancellationPrecedesOptionsAndPropagatesThroughNativeReading()
     {
         byte[] bytes = Book();

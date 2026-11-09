@@ -256,7 +256,8 @@ public sealed partial class EpubDocument
         EpubNavigationDestination? TryResolve(string target)
         {
             try { return layout.ResolveNavigationTarget(target, cancellationToken); }
-            catch (ArgumentException) { return null; }
+            // A chapter the spine lists twice, or an anchor defined twice, is ambiguous: the bookmark falls back as if missing.
+            catch (Exception error) when (error is ArgumentException or InvalidDataException) { return null; }
         }
     }
 }
