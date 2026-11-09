@@ -560,8 +560,7 @@ namespace KillerPDF.Shell
             {
                 if (page >= native.PageCount) return;
                 var geometry = native.GetNativePageGeometry(page);
-                pdfW = geometry.Width;
-                pdfH = geometry.Height;
+                (pdfW, pdfH) = Features.SearchController.NativeHighlightPageSize(geometry);
                 intrinsicRotation = geometry.IntrinsicRotation;
             }
             else

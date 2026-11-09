@@ -91,6 +91,11 @@ namespace KillerPDF.Features
         /// some pages' highlight areas are still to be read, otherwise the pages with rectangles.</summary>
         internal IEnumerable<int> PagesWithResults => _locator is not null ? ResultPages : AllSearchRects.Keys;
 
+        /// <summary>The native page's size in points, the unit of its highlight rectangles, for placing them on the
+        /// page. The page's own size is in its layout unit: CSS pixels for EPUB, image pixels for DjVu.</summary>
+        internal static (double Width, double Height) NativeHighlightPageSize(KillerPdf.Engine.Documents.PdfReadPageGeometry geometry) =>
+            (geometry.WidthPoints, geometry.HeightPoints);
+
         // A native EPUB search lists its hits from page text alone. A page's highlight areas are read on a worker when
         // the reader looks at it (the current hit's page, and each page on screen), then the highlights repaint.
         private PdfCapturedReadRevision? _locator;

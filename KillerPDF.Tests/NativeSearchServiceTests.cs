@@ -465,6 +465,24 @@ public sealed class NativeSearchServiceTests
         while (!condition()) await Task.Delay(1, deadline.Token);
     }
 
+    // Highlight rectangles are in page points, like all native text geometry. An EPUB page is laid out in CSS pixels at
+    // 96 per inch, so the 200 by 160 pixel page the highlights are placed on measures 150 by 120 points; a hit at the
+    // right margin then sits at the page's right edge instead of three quarters of the way across.
+    [Fact]
+    public void NativeHighlightsArePlacedOnThePageMeasuredInPoints()
+    {
+        var snapshot = PdfReadSnapshot.OpenEpub(Chapters("<p style='text-align:right'>AAAA</p>"), MediumPage());
+        using var revision = new PdfCapturedReadRevision(snapshot);
+
+        var size = KillerPDF.Features.SearchController.NativeHighlightPageSize(snapshot.GetPageGeometry(0));
+
+        Assert.Equal((150.0, 120.0), size);
+        var hit = Assert.Single(SearchService.LocateNative(revision, 0,
+            [new SearchHit(0, 0, 0, 0, 0, 0, 4) { HasGeometry = false, Located = false }], CancellationToken.None));
+        // Right-aligned text ends inside the small right margin, so within the last tenth of the page's width.
+        Assert.InRange(hit.right, size.Width * 0.9, size.Width);
+    }
+
     private static EpubLayoutOptions MediumPage()
     {
         using var resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
