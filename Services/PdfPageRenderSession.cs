@@ -704,21 +704,58 @@ internal sealed class PdfCapturedReadRevision : IDisposable
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         _native = snapshot;
-        _pages = [.. Enumerable.Range(0, snapshot.PageCount).Select(index =>
-        {
-            var geometry = snapshot.GetPageGeometry(index);
-            return new EnginePageInformation
-            {
-                Left = 0, Bottom = 0, Width = geometry.WidthPoints, Height = geometry.HeightPoints,
-                UserUnit = 1, Rotation = geometry.IntrinsicRotation
-            };
-        })];
+        _nativePages = snapshot;
+        _pages = [];
+        GrowNativePages();
         ContentIdentity = snapshot.SourceSha256;
         Format = snapshot.Format;
     }
 
+    // A native book still being paginated adds pages at its end; the revision grows with it, so everything keyed to
+    // this revision stays current. The pages it already has never change.
+    private readonly EngineReadSnapshot? _nativePages;
+    private readonly List<EnginePageInformation> _grownPages = [];
+
+    private void GrowNativePages()
+    {
+        if (_nativePages is not { } snapshot) return;
+        lock (_sync)
+            for (int index = _grownPages.Count, count = snapshot.PageCount; index < count; index++)
+            {
+                var geometry = snapshot.GetPageGeometry(index);
+                _grownPages.Add(new EnginePageInformation
+                {
+                    Left = 0, Bottom = 0, Width = geometry.WidthPoints, Height = geometry.HeightPoints,
+                    UserUnit = 1, Rotation = geometry.IntrinsicRotation
+                });
+            }
+    }
+
     internal string ContentIdentity { get; }
-    internal int PageCount => _pages.Count;
+    internal int PageCount
+    {
+        get
+        {
+            if (_nativePages is null) return _pages.Count;
+            GrowNativePages();
+            lock (_sync) return _grownPages.Count;
+        }
+    }
+
+    /// <summary>True while the native book this revision reads is still adding pages.</summary>
+    internal bool IsPaginating => _nativePages?.IsPaginating ?? false;
+
+    /// <summary>
+    /// Blocks until every page is known, for work that needs the whole book. A book whose pagination failed or was
+    /// stopped by closing it keeps the pages it has, and those are what the caller then reads.
+    /// </summary>
+    internal void WaitForPagination(CancellationToken cancellationToken)
+    {
+        if (_nativePages is not { IsPaginating: true } snapshot) return;
+        try { snapshot.Pagination.Wait(cancellationToken); }
+        catch (AggregateException) { }
+        cancellationToken.ThrowIfCancellationRequested();
+    }
 
     internal bool IsClosed
     {
@@ -730,6 +767,12 @@ internal sealed class PdfCapturedReadRevision : IDisposable
 
     internal EnginePageInformation GetPageGeometry(int pageIndex)
     {
+        if (_nativePages is not null)
+        {
+            if (pageIndex < 0 || pageIndex >= PageCount)
+                throw new ArgumentOutOfRangeException(nameof(pageIndex));
+            lock (_sync) return _grownPages[pageIndex];
+        }
         if (pageIndex < 0 || pageIndex >= _pages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         return _pages[pageIndex];

@@ -19,6 +19,7 @@ internal sealed class NativeWorkingDocument : IDisposable
     {
         _source = source;
         _snapshot = snapshot;
+        _shownPages = snapshot.PageCount;
     }
 
     internal static NativeWorkingDocument OpenDjvu(ReadOnlyMemory<byte> source,
@@ -29,13 +30,22 @@ internal sealed class NativeWorkingDocument : IDisposable
     }
 
     internal static NativeWorkingDocument OpenEpub(ReadOnlyMemory<byte> source, EpubLayoutOptions options,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) => OpenEpub(source, options, inBackground: false, cancellationToken);
+
+    /// <summary>
+    /// Opens an EPUB. With <paramref name="inBackground"/>, it returns once the first chapter is laid out and the rest
+    /// of the book is paginated in the background (<see cref="IsPaginating"/>); closing the book stops that.
+    /// </summary>
+    internal static NativeWorkingDocument OpenEpub(ReadOnlyMemory<byte> source, EpubLayoutOptions options,
+        bool inBackground, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(options);
         // EPUB uses the engine's single package limit (128 MiB) for large illustrated editions.
         byte[] captured = CaptureSource(source, cancellationToken, EpubDocument.MaxPackageBytes);
-        return new NativeWorkingDocument(captured, PdfReadSnapshot.OpenEpub(captured, options, cancellationToken));
+        return new NativeWorkingDocument(captured, inBackground
+            ? PdfReadSnapshot.OpenEpubProgressive(captured, options, cancellationToken)
+            : PdfReadSnapshot.OpenEpub(captured, options, cancellationToken));
     }
 
     private static byte[] CaptureSource(ReadOnlyMemory<byte> source, CancellationToken cancellationToken,
@@ -50,6 +60,43 @@ internal sealed class NativeWorkingDocument : IDisposable
     internal PdfDocumentFormat Format => _snapshot.Format;
     internal string ContentIdentity => _snapshot.SourceSha256;
     internal int PageCount => _snapshot.PageCount;
+    /// <summary>
+    /// The pages the window shows: the count at open, then whatever <see cref="ShowPaginatedPages"/> last took in. The
+    /// views, the page list and the page total all size from this one number on the UI thread, so they agree while
+    /// pagination adds pages behind them.
+    /// </summary>
+    internal int ShownPageCount => _shownPages;
+    private volatile int _shownPages;
+
+    /// <summary>Takes in the pages paginated since the last call; returns the shown count before and after.</summary>
+    internal (int Before, int After) ShowPaginatedPages()
+    {
+        int before = ShownPageCount;
+        int after = Math.Max(before, _snapshot.PageCount);
+        _shownPages = after;
+        return (before, after);
+    }
+
+    /// <summary>True while a book's later pages are still being added; pages already counted never change.</summary>
+    internal bool IsPaginating => _snapshot.IsPaginating;
+    /// <summary>Completes when every page is known; fails with what stopped pagination, canceled once closed first.</summary>
+    internal Task Pagination => _snapshot.Pagination;
+
+    internal bool IsClosed
+    {
+        get { lock (_sync) return _closed; }
+    }
+
+    /// <summary>How many spine items are paginated so far and how many there are, for showing a wait's progress.</summary>
+    internal (int Paginated, int Total) PaginationProgress => _snapshot.PaginationProgress;
+
+    /// <summary>Waits until the page exists; false when the book turned out shorter.</summary>
+    internal Task<bool> WaitForPageAsync(int pageIndex, CancellationToken cancellationToken = default)
+        => _snapshot.WaitForPageAsync(pageIndex, cancellationToken);
+
+    /// <summary>Waits until a navigation target resolves to its final page: its chapter is paginated.</summary>
+    internal Task WaitForNavigationTargetAsync(string target, CancellationToken cancellationToken = default)
+        => _snapshot.WaitForNavigationTargetAsync(target, cancellationToken);
     internal int UnavailableChapterCount => _snapshot.ChapterDiagnostics.Count;
     internal IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics => _snapshot.ChapterDiagnostics;
     internal IReadOnlyList<EpubChapterDiagnostic> ContentDiagnostics => _snapshot.ContentDiagnostics;

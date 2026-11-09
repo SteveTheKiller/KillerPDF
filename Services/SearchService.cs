@@ -273,6 +273,9 @@ namespace KillerPDF.Services
         {
             var result = new SearchResult { NativeRevisionId = revision.Id };
             if (string.IsNullOrWhiteSpace(query)) return result;
+            // A book still being paginated is searched once every page is known, so the hit count is the whole book's
+            // and never grows under the results already shown.
+            revision.WaitForPagination(cancellationToken);
             using var lease = revision.Rent(cancellationToken);
             var failures = new PageFailures();
             const int maximumMatches = 100_000;
