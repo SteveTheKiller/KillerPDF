@@ -36,8 +36,9 @@ internal sealed class PdfEngineDocumentSession
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         // Same recovery and the same key as the working document, so a file that opened is never
-        // rejected here.
-        PdfDocument document = PdfEngineIntegration.OpenForReading(File.ReadAllBytes(path), protection);
+        // rejected here. The working document registers its parse for its complete copy, so opening
+        // that copy shares the parse instead of reading and parsing the whole file a second time.
+        PdfDocument document = PdfPageRenderSession.OpenDocument(path, protection);
         return new PdfEngineDocumentSession(path, document,
             PdfPageInformation.Read(document));
     }

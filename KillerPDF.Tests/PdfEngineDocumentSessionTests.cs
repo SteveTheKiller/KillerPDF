@@ -32,6 +32,38 @@ public sealed class PdfEngineDocumentSessionTests
         finally { if (File.Exists(path)) File.Delete(path); }
     }
 
+    // Opening a PDF parses it once for the working document and registers that parse for its complete copy. The engine
+    // session read the copy and parsed it again, a full extra parse of the file before the first page could show.
+    [Fact]
+    public void Open_SharesTheParseTheWorkingDocumentRegisteredForItsCopy()
+    {
+        string source = Path.Combine(Path.GetTempPath(), $"killerpdf-session-source-{Guid.NewGuid():N}.pdf");
+        string copy = Path.Combine(Path.GetTempPath(), $"killerpdf-session-copy-{Guid.NewGuid():N}.pdf");
+        PdfWorkingDocument? working = null;
+        try
+        {
+            File.WriteAllBytes(source, new PdfDocumentBuilder().AddBlankPage(320, 480).AddBlankPage(612, 792).Build());
+            working = PdfWorkingDocument.Open(source, null);
+            working.Save(copy);
+            working.RegisterCopy(copy);
+            PdfDocument? parsed = working.ParsedDocument;
+            Assert.NotNull(parsed);
+
+            PdfEngineDocumentSession session = PdfEngineDocumentSession.Open(copy, OpenedProtection.None);
+
+            // The first reader of a registered parse takes it over, so the working document lets go of it.
+            Assert.Same(parsed, session.Document);
+            Assert.Equal(2, session.PageCount);
+            Assert.Equal(612, session.Pages[1].Width);
+        }
+        finally
+        {
+            working?.Close();
+            if (File.Exists(source)) File.Delete(source);
+            if (File.Exists(copy)) File.Delete(copy);
+        }
+    }
+
     [Fact]
     public void CaptureRotations_UsesNativeStateThenPreservesCompleteApplicationState()
     {
