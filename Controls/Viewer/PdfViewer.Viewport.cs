@@ -566,7 +566,9 @@ namespace KillerPDF.Controls
                 slotGrid.Children.Add(overlay);
                 // Record this page's links so they're clickable in continuous view (resolved by the
                 // bounds-check in Canvas_MouseLeftButtonDown). Without this, links never work in scrolling view.
-                AddSecondaryPageLinks(i, rdW, rdH);
+                // A book's links come from its page layout, and reading every page's here laid the whole book
+                // out on the UI thread before the first page showed; its pages get theirs in SetContinuousSlot.
+                if (_nativeDoc is null) AddSecondaryPageLinks(i, rdW, rdH);
 
                 var placeholder = new Border
                 {
@@ -850,6 +852,8 @@ namespace KillerPDF.Controls
                 ov.Height = rdH;
                 ov.LayoutTransform = new System.Windows.Media.ScaleTransform(dipW / rdW, dipW / rdW);
             }
+            // A book page's links, read once the page itself has been laid out to draw it.
+            if (_nativeDoc is not null && !_continuousLinks.ContainsKey(fi)) AddSecondaryPageLinks(fi, rdW, rdH);
 
             // Slot heights are now exact; recompute scroll offsets from them.
             LayoutContinuousSlots();
