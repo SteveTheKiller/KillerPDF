@@ -43,7 +43,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The Measure tool's options bar follows a language or theme change right away instead of keeping the old ones until the tool is chosen again.
 - Dialogs meant to be resizable, such as Comments, Color Management and the certificate list, can now be resized from any edge, never get smaller than they open, and maximize without covering the taskbar.
 - Grid view keeps only the pages near the screen in memory and draws those first, so a long document in Grid no longer climbs into gigabytes, a page you jump to shows at once, and typing stays responsive.
-- The file picker's folder tree keeps its keyboard focus ring after a theme change. It used to disappear, so a keyboard user could no longer see which folder had focus.
 
 ### Changed
 
