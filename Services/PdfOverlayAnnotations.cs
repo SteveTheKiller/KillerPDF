@@ -17,6 +17,8 @@ public sealed record OverlayWriteRecord(PageAnnotation Annotation, int RenderWid
     int Rotation, int AnnotationIndex, int ObjectNumber);
 public sealed record OverlayRecord(PageAnnotation Annotation, int RenderWidth, int RenderHeight,
     int Rotation, int AnnotationIndex, int ObjectNumber);
+internal sealed record OverlayPageBatch(int PageIndex, int RenderWidth, int RenderHeight, int Rotation,
+    IReadOnlyList<PageAnnotation> Annotations, PdfContentStreamBuilder Content, string? Description);
 public sealed record OverlayExtraction(byte[] Bytes, IReadOnlyList<OverlayRecord> Records);
 
 public static class PdfOverlayAnnotations
@@ -31,11 +33,23 @@ public static class PdfOverlayAnnotations
 
     internal static byte[] AppendPageBatch(PdfDocument document, int pageIndex,
         int renderWidth, int renderHeight, int rotation, IReadOnlyList<PageAnnotation> annotations,
-        PdfContentStreamBuilder content, string? description)
+        PdfContentStreamBuilder content, string? description) =>
+        AppendPageBatches(document, [new(pageIndex, renderWidth, renderHeight, rotation, annotations, content, description)]);
+
+    /// <summary>Appends every page's batch in one pass; one batch per page.</summary>
+    internal static byte[] AppendPageBatches(PdfDocument document, IReadOnlyList<OverlayPageBatch> batches)
     {
+        IReadOnlyList<PdfPageInformation> pages = PdfPageInformation.Read(document);
+        return PdfEditablePageOverlayEditor.AppendMany(document, batches.Select(batch => BatchUnit(pages, batch)).ToArray());
+    }
+
+    private static PdfEditablePageOverlayUnit BatchUnit(IReadOnlyList<PdfPageInformation> pages, OverlayPageBatch batch)
+    {
+        (int pageIndex, int renderWidth, int renderHeight, int rotation, IReadOnlyList<PageAnnotation> annotations,
+            PdfContentStreamBuilder content, string? description) = batch;
         ValidateCanvas(renderWidth, renderHeight, rotation);
         if (annotations.Count is 0 or > 10000) throw new ArgumentException("Invalid overlay batch size.");
-        PdfPageInformation frame = PdfPageInformation.Read(document)[pageIndex];
+        PdfPageInformation frame = pages[pageIndex];
         var identities = new HashSet<Guid>();
         var items = annotations.Select(annotation =>
         {
@@ -51,8 +65,7 @@ public static class PdfOverlayAnnotations
         byte[] payload = JsonSerializer.SerializeToUtf8Bytes(envelope, Json);
         if (payload.Length > MaximumPayload) throw new ArgumentException("Overlay batch exceeds the payload limit.");
         using (JsonDocument check = JsonDocument.Parse(payload, new() { MaxDepth = 32 })) ValidateJson(check.RootElement);
-        return PdfEditablePageOverlayEditor.Append(document, pageIndex, frame.Width, frame.Height,
-            content, payload, description, expectedRotation: rotation);
+        return new PdfEditablePageOverlayUnit(pageIndex, frame.Width, frame.Height, content, payload, description, rotation);
     }
 
     private static IReadOnlyList<PageBatch> ReadPageBatches(PdfDocument document)

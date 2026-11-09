@@ -36,6 +36,10 @@ public sealed class PdfEditablePageOverlay
     public ReadOnlyMemory<byte> EditingData => _data.ToArray();
 }
 
+/// <summary>One page's content and opaque editing data for <see cref="PdfEditablePageOverlayEditor.AppendMany"/>.</summary>
+public sealed record PdfEditablePageOverlayUnit(int PageIndex, double Width, double Height,
+    PdfContentStreamBuilder Content, ReadOnlyMemory<byte> EditingData, string? Description, int? ExpectedRotation = null);
+
 /// <summary>Persists removable, opaque editing data with normal PDF page content.</summary>
 public static class PdfEditablePageOverlayEditor
 {
@@ -47,26 +51,55 @@ public static class PdfEditablePageOverlayEditor
     /// <summary>Appends one owned content unit.</summary>
     public static byte[] Append(PdfDocument document, int pageIndex, double width, double height,
         PdfContentStreamBuilder content, ReadOnlyMemory<byte> editingData, string? description,
-        int? expectedRotation = null)
+        int? expectedRotation = null) =>
+        AppendMany(document, [new PdfEditablePageOverlayUnit(pageIndex, width, height, content, editingData,
+            description, expectedRotation)]);
+
+    /// <summary>Appends one owned content unit to each of several distinct pages in one pass, so the
+    /// number of incremental revisions does not grow with the number of pages.</summary>
+    public static byte[] AppendMany(PdfDocument document, IReadOnlyList<PdfEditablePageOverlayUnit> units)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (editingData.Length > MaximumData) throw new ArgumentOutOfRangeException(nameof(editingData));
-        if (expectedRotation is int rotation && rotation is not (0 or 90 or 180 or 270))
-            throw new ArgumentOutOfRangeException(nameof(expectedRotation));
-        PdfPageTreeEntry original = PdfPageTree.Read(document).Pages[pageIndex];
-        if (!original.Dictionary.ContainsKey(N("Contents")))
+        ArgumentNullException.ThrowIfNull(units);
+        if (units.Count == 0) throw new ArgumentException("Supply at least one overlay unit.", nameof(units));
+        var unitPages = new HashSet<int>();
+        foreach (PdfEditablePageOverlayUnit unit in units)
         {
-            var normalize = new PdfIncrementalUpdateBuilder(document);
+            ArgumentNullException.ThrowIfNull(unit, nameof(units));
+            ArgumentNullException.ThrowIfNull(unit.Content, nameof(units));
+            if (unit.EditingData.Length > MaximumData) throw new ArgumentOutOfRangeException(nameof(units));
+            if (unit.ExpectedRotation is int rotation && rotation is not (0 or 90 or 180 or 270))
+                throw new ArgumentOutOfRangeException(nameof(units));
+            if (!unitPages.Add(unit.PageIndex))
+                throw new ArgumentException("Each overlay unit must be on a different page.", nameof(units));
+        }
+        IReadOnlyList<PdfPageTreeEntry> originals = PdfPageTree.Read(document).Pages;
+        PdfIncrementalUpdateBuilder? normalize = null;
+        foreach (PdfEditablePageOverlayUnit unit in units)
+        {
+            PdfPageTreeEntry original = originals[unit.PageIndex];
+            if (original.Dictionary.ContainsKey(N("Contents"))) continue;
+            normalize ??= new PdfIncrementalUpdateBuilder(document);
             var pageEntries = original.Dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
             pageEntries[N("Contents")] = normalize.AddObject(new PdfStream(new PdfDictionary([]), []));
             normalize.ReplaceObject(original.Reference.ObjectNumber, new PdfDictionary(pageEntries));
-            document = Reopen(document, normalize.Build());
         }
+        if (normalize is not null) document = Reopen(document, normalize.Build());
         var editor = new PdfIncrementalPageEditor(document);
-        if (description is null) editor.AppendPageArtifact(pageIndex, width, height, content);
-        else editor.AppendPageDescribedContent(pageIndex, width, height, content, description);
+        foreach (PdfEditablePageOverlayUnit unit in units)
+            if (unit.Description is null) editor.AppendPageArtifact(unit.PageIndex, unit.Width, unit.Height, unit.Content);
+            else editor.AppendPageDescribedContent(unit.PageIndex, unit.Width, unit.Height, unit.Content, unit.Description);
         PdfDocument appended = Reopen(document, editor.Build());
-        PdfPageTreeEntry page = PdfPageTree.Read(appended).Pages[pageIndex];
+        IReadOnlyList<PdfPageTreeEntry> appendedPages = PdfPageTree.Read(appended).Pages;
+        var update = new PdfIncrementalUpdateBuilder(appended);
+        foreach (PdfEditablePageOverlayUnit unit in units)
+            Describe(appended, appendedPages[unit.PageIndex], unit.EditingData, unit.ExpectedRotation, update);
+        return update.Build();
+    }
+
+    private static void Describe(PdfDocument appended, PdfPageTreeEntry page, ReadOnlyMemory<byte> editingData,
+        int? expectedRotation, PdfIncrementalUpdateBuilder update)
+    {
         PdfArray contents = Contents(appended, page);
         var prefix = contents[0] as PdfIndirectReference ?? throw Invalid();
         var invocation = contents[^1] as PdfIndirectReference ?? throw Invalid();
@@ -93,8 +126,7 @@ public static class PdfEditablePageOverlayEditor
         entries[N("UnitHash")] = Bytes(MetadataHash(new PdfDictionary(entries)));
         var dictionary = stream.Dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
         dictionary.Add(Metadata, new PdfDictionary(entries));
-        return new PdfIncrementalUpdateBuilder(appended).ReplaceObject(invocation.ObjectNumber,
-            new PdfStream(new PdfDictionary(dictionary), stream.EncodedData.Span)).Build();
+        update.ReplaceObject(invocation.ObjectNumber, new PdfStream(new PdfDictionary(dictionary), stream.EncodedData.Span));
     }
     /// <summary>Reads intact owned tail units.</summary>
     public static IReadOnlyList<PdfEditablePageOverlay> Read(PdfDocument document)

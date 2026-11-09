@@ -117,8 +117,9 @@ internal static class PdfEngineBurn
         HashSet<int> watermarkPages = stamps is { WmEnabled: true }
             ? [.. PdfBurn.StampPageRange(stamps.WmRange, pages.Count)] : [];
         int firstNumberPage = numberPages.Count == 0 ? 0 : numberPages.Min();
-        var pageBatches = new List<(int Page, int Width, int Height, int Rotation,
-            List<PageAnnotation> Models, PdfContentStreamBuilder Content, string? Description)>();
+        var pageBatches = new List<OverlayPageBatch>();
+        // Every page's annotation count comes from one page tree read; reading it per page made long saves quadratic.
+        Func<int, int>? annotationCounts = null;
 
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++)
         {
@@ -136,7 +137,8 @@ internal static class PdfEngineBurn
             double visualWidth = rotation is 90 or 270 ? page.Height : page.Width;
             double visualHeight = rotation is 90 or 270 ? page.Width : page.Height;
             HashSet<PageAnnotation> nativeTail = hasAnnotations && !forRasterization
-                ? NativeTextTail(pageAnnotations!, PdfCommentReader.ReadPageAnnotationCount(document, pageIndex) > 0).ToHashSet() : [];
+                ? NativeTextTail(pageAnnotations!,
+                    (annotationCounts ??= AnnotationCounts(document))(pageIndex) > 0).ToHashSet() : [];
             var pageModels = hasAnnotations ? pageAnnotations!.Where(annotation => !nativeTail.Contains(annotation)
                 && !(measurementsAsAnnotations && annotation is MeasurementAnnotation)).ToList() : [];
             bool editableBatch = !forRasterization
@@ -170,7 +172,7 @@ internal static class PdfEngineBurn
                     string[] descriptions = pageModels.Where(ReplacementLayers.IsVisible).Select(annotation =>
                         annotation is TextAnnotation text && !string.IsNullOrWhiteSpace(text.Content)
                             ? text.Content : annotation is SignatureAnnotation ? "Signature" : "Markup").ToArray();
-                    pageBatches.Add((pageIndex, renderWidth, renderHeight, rotation, pageModels,
+                    pageBatches.Add(new(pageIndex, renderWidth, renderHeight, rotation, pageModels,
                         annotationContent, descriptions.Length == 0 ? null : string.Join("\n", descriptions)));
                 }
             }
@@ -201,12 +203,10 @@ internal static class PdfEngineBurn
 
         cancellationToken.ThrowIfCancellationRequested();
         byte[] result = editor.Build();
-        foreach (var batch in pageBatches)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            result = PdfOverlayAnnotations.AppendPageBatch(PdfDocument.Open(result), batch.Page,
-                batch.Width, batch.Height, batch.Rotation, batch.Models, batch.Content, batch.Description);
-        }
+        // All edited pages go into one update; one update per page passed the reader's revision limit at a few
+        // hundred pages.
+        if (pageBatches.Count > 0)
+            result = PdfOverlayAnnotations.AppendPageBatches(PdfDocument.Open(result), pageBatches);
         if (!forRasterization)
             result = SaveTextAnnotations(result, annotations, renderDims, onlyPage, rotations, fonts, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -223,6 +223,7 @@ internal static class PdfEngineBurn
         var pages = PdfPageInformation.Read(document);
         var editor = new PdfIncrementalAnnotationEditor(document);
         var pending = new List<(PageAnnotation Annotation, int Width, int Height, int Rotation, int Index)>();
+        Func<int, int> annotationCounts = AnnotationCounts(document);
         foreach ((int pageIndex, List<PageAnnotation> items) in annotations)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -232,7 +233,7 @@ internal static class PdfEngineBurn
             double visualWidth = rotation is 90 or 270 ? page.Height : page.Width;
             double visualHeight = rotation is 90 or 270 ? page.Width : page.Height;
             var (renderWidth, renderHeight) = AnnotationSpace(renderDims, pageIndex, visualWidth, visualHeight);
-            int annotationIndex = PdfCommentReader.ReadPageAnnotationCount(document, pageIndex);
+            int annotationIndex = annotationCounts(pageIndex);
             foreach (PageAnnotation annotation in NativeTextTail(items, annotationIndex > 0))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -279,6 +280,21 @@ internal static class PdfEngineBurn
                 item.Index, comment.ObjectNumber!.Value);
         }).ToArray();
         return PdfOverlayAnnotations.Attach(saved, records);
+    }
+
+    // A malformed annotation array on a page the save does not touch must not stop the save, so that case keeps
+    // reading only the pages asked about.
+    private static Func<int, int> AnnotationCounts(PdfDocument document)
+    {
+        try
+        {
+            IReadOnlyList<int> counts = PdfCommentReader.ReadPageAnnotationCounts(document);
+            return pageIndex => counts[pageIndex];
+        }
+        catch (InvalidOperationException)
+        {
+            return pageIndex => PdfCommentReader.ReadPageAnnotationCount(document, pageIndex);
+        }
     }
 
     private static IEnumerable<PageAnnotation> NativeTextTail(List<PageAnnotation> annotations, bool hasNativeAnnotations)
