@@ -77,6 +77,7 @@
     <Compile Include="..\Controls\BusyProgressPanel.cs" Link="Controls\BusyProgressPanel.cs" />
     <Compile Include="..\Controls\ScaledDialogFit.cs" Link="Controls\ScaledDialogFit.cs" />
     <Compile Include="..\Controls\DialogScale.cs" Link="Controls\DialogScale.cs" />
+    <Compile Include="..\Controls\PageWindowLayout.cs" Link="Controls\PageWindowLayout.cs" />
     <Compile Include="..\Services\PrintPermission.cs" Link="Services\PrintPermission.cs" />
     <Compile Include="..\Services\PdfRestrictions.cs" Link="Services\PdfRestrictions.cs" />
     <Compile Include="..\Services\OpenedProtection.cs" Link="Services\OpenedProtection.cs" />
