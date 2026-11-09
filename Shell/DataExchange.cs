@@ -30,10 +30,13 @@ public partial class MainWindow
 
     // Output copies compose editable overlays and document side state. Structural edits keep
     // those separate through CreateExchangeSnapshot so reloading cannot burn them twice.
+    // Production layouts and Data Merge rebuild pages from their content and do not carry
+    // annotations, so KillerPDF's own text and markup are drawn into the page here, as 1.9.2 did,
+    // with replaced text still removed; a save keeps added text as editable annotations instead.
     private string CreateOutputSnapshot()
     {
         CommitActiveTextBox();
-        return WriteSavedCopyToTemp();
+        return WriteSavedCopyToTemp(flattenEditing: true);
     }
 
     private string CreateExchangeSnapshot()

@@ -94,7 +94,8 @@ internal static class PdfEngineBurn
         IReadOnlyDictionary<int, int>? rotations = null,
         bool forRasterization = false,
         bool measurementsAsAnnotations = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool flattenEditing = false)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -136,12 +137,12 @@ internal static class PdfEngineBurn
                 ? NormalizeRotation(overrideRotation) : page.Rotation;
             double visualWidth = rotation is 90 or 270 ? page.Height : page.Width;
             double visualHeight = rotation is 90 or 270 ? page.Width : page.Height;
-            HashSet<PageAnnotation> nativeTail = hasAnnotations && !forRasterization
+            HashSet<PageAnnotation> nativeTail = hasAnnotations && !forRasterization && !flattenEditing
                 ? NativeTextTail(pageAnnotations!,
                     (annotationCounts ??= AnnotationCounts(document))(pageIndex) > 0).ToHashSet() : [];
             var pageModels = hasAnnotations ? pageAnnotations!.Where(annotation => !nativeTail.Contains(annotation)
                 && !(measurementsAsAnnotations && annotation is MeasurementAnnotation)).ToList() : [];
-            bool editableBatch = !forRasterization
+            bool editableBatch = !forRasterization && !flattenEditing
                 && pageModels.Any(annotation => annotation is TextAnnotation { PairId.Length: > 0 })
                 && pageModels.All(annotation => annotation is TextAnnotation or HighlightAnnotation or InkAnnotation or PlacedAnnotation);
             // An image the editing batch cannot hold is drawn as page content instead of failing the save.
@@ -210,7 +211,7 @@ internal static class PdfEngineBurn
         // hundred pages.
         if (pageBatches.Count > 0)
             result = PdfOverlayAnnotations.AppendPageBatches(PdfDocument.Open(result), pageBatches);
-        if (!forRasterization)
+        if (!forRasterization && !flattenEditing)
             result = SaveTextAnnotations(result, annotations, renderDims, onlyPage, rotations, fonts, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         Replace(path, result);

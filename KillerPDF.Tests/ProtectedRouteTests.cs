@@ -267,7 +267,7 @@ public sealed class ProtectedRouteTests : IDisposable
         Assert.DoesNotContain("RepairHarmlessSaveArtifacts(printPath)", print);
 
         // Only extraction, OCR and raster exports request disposable copies.
-        Assert.Matches(@"string WriteSavedCopyToTemp\(bool forRasterization = false, bool throwaway = false\)", reduce);
+        Assert.Matches(@"string WriteSavedCopyToTemp\(bool forRasterization = false, bool throwaway = false, bool flattenEditing = false\)", reduce);
         Assert.Matches(@"if \(throwaway\) PdfEngineIntegration\.PrepareThrowawayCopy\(clean\);\s*else PdfEngineIntegration\.RepairHarmlessSaveArtifacts\(clean\);", reduce);
         // Reduce, Save Copy, Sign, the macros and the rest keep the refusal: nothing else in the shell asks.
         string[] askers = [.. Directory.EnumerateFiles(Path.Combine(root, "Shell"), "*.cs")

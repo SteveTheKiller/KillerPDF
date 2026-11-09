@@ -97,7 +97,7 @@ namespace KillerPDF.Shell
         // signed, certified or usage-rights document is refused, because the output stands in for it.
         // Extract Pages and Export pass throwaway: their output is a new file the protection never
         // carries into, so the copy is readied instead.
-        private string WriteSavedCopyToTemp(bool forRasterization = false, bool throwaway = false)
+        private string WriteSavedCopyToTemp(bool forRasterization = false, bool throwaway = false, bool flattenEditing = false)
         {
             Dictionary<int, int> rotations = SnapshotPageRotations();
             string clean = App.MakeTempFile("reduceclean");
@@ -113,7 +113,7 @@ namespace KillerPDF.Shell
                 if (_annotations.Values.Any(list => list.Count > 0) || HasActiveStamps)
                 {
                     PdfEngineBurn.Burn(copy, _annotations, _renderDims, _docStampSpec, null, _pageRotations,
-                        forRasterization: forRasterization, measurementsAsAnnotations: true);
+                        forRasterization: forRasterization, measurementsAsAnnotations: true, flattenEditing: flattenEditing);
                     PdfEngineIntegration.StripLinkAppearances(copy);
                 }
                 WriteFormValuesToDocument(copy);
