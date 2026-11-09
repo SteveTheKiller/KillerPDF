@@ -18,13 +18,26 @@ public sealed class PdfEngineBurnScaleTests
     [Fact]
     public void SavingALongPdfWithMarkupOnEveryPageIsQuick()
     {
+        // Four times the pages should take about four or five times as long. The per-page tree reads made it about
+        // nine times as long (1.5 s at 750 pages, 13.9 s at 3,000), and a ratio holds up on a loaded machine where a
+        // fixed time budget does not.
+        TimeMarkupSave(50);   // warms up the code paths so the first measured save is not mostly start-up cost
+        TimeSpan quarter = TimeMarkupSave(Pages / 4);
+        TimeSpan full = TimeMarkupSave(Pages);
+        double growth = full.TotalMilliseconds / Math.Max(1, quarter.TotalMilliseconds);
+        Assert.True(growth < 7,$"750 pages took {quarter.TotalMilliseconds:F0} ms and 3,000 took {full.TotalMilliseconds:F0} ms.");
+        Assert.True(full < TimeSpan.FromSeconds(20), $"Took {full.TotalMilliseconds:F0} ms.");
+    }
+
+    private static TimeSpan TimeMarkupSave(int pages)
+    {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-burn-scale-{Guid.NewGuid():N}.pdf");
         try
         {
-            File.WriteAllBytes(path, BlankPdf(Pages));
+            File.WriteAllBytes(path, BlankPdf(pages));
             var annotations = new Dictionary<int, List<PageAnnotation>>();
             var dimensions = new Dictionary<int, (int w, int h)>();
-            for (int page = 0; page < Pages; page++)
+            for (int page = 0; page < pages; page++)
             {
                 annotations[page] =
                 [
@@ -33,14 +46,9 @@ public sealed class PdfEngineBurnScaleTests
                 ];
                 dimensions[page] = (816, 1056);
             }
-
             var clock = Stopwatch.StartNew();
             PdfEngineBurn.Burn(path, annotations, dimensions, measurementsAsAnnotations: true);
-            clock.Stop();
-
-            // 1.9.2 saved this in about 0.7 s and the fix in about 1 s (5 s on a fully loaded machine); counting each
-            // page's annotations with its own page tree read took about 13 s.
-            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(8), $"Took {clock.Elapsed.TotalMilliseconds:F0} ms.");
+            return clock.Elapsed;
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }
