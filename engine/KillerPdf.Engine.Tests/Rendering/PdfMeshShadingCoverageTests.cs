@@ -100,9 +100,10 @@ public sealed class PdfMeshShadingCoverageTests
 
     // Independent oracle: the polygon's area inside each device pixel, integrated over 1024
     // scanlines per pixel row with the exact span length along each scanline.
-    private static double[,] CircleCoverage()
+    private static double[,] CircleCoverage() => PolygonCoverage(CircleVertices());
+
+    private static double[,] PolygonCoverage((double X, double Y)[] polygon)
     {
-        (double X, double Y)[] polygon = CircleVertices();
         var coverage = new double[Size, Size];
         const int scanlines = 1024;
         var crossings = new List<double>();
@@ -127,6 +128,48 @@ public sealed class PdfMeshShadingCoverageTests
                     }
             }
         return coverage;
+    }
+
+    // A mesh is often filled as a pattern through its own outline, or clipped to it. The clip
+    // and the mesh then have the same edge, and a pixel that edge half covers is half painted,
+    // as a plain fill of that path is, not a quarter painted by stacking the two coverages.
+    [Theory]
+    [InlineData("pattern")]
+    [InlineData("clip")]
+    public void MeshInsideItsOwnOutlineBlendsEdgePixelsByThatOutlineOnce(string route)
+    {
+        (double X, double Y)[] triangle = [(4.5, 4.5), (35.5, 4.5), (4.5, 35.5)];
+        const string outline = "4.5 4.5 m 35.5 4.5 l 4.5 35.5 l h";
+        static byte[] Coordinate(double value)
+        {
+            int units = (int)Math.Round(value * 1000);
+            return [(byte)(units >> 8), (byte)units];
+        }
+        var data = new List<byte>();
+        foreach ((double x, double y) in triangle)
+            data.AddRange([0, .. Coordinate(x), .. Coordinate(y), 255, 0, 0]);
+        string shading = Stream(Encoding.Latin1.GetString([.. data]),
+            "/ShadingType 4 /ColorSpace /DeviceRGB /BitsPerCoordinate 16 /BitsPerComponent 8 "
+            + "/BitsPerFlag 8 /Decode [0 65.535 0 65.535 0 1 0 1 0 1]");
+        PdfRenderedPage page = route == "pattern"
+            ? RenderPage($"/Pattern cs /P1 scn {outline} f",
+                "<< /Pattern << /P1 << /PatternType 2 /Shading 5 0 R >> >> >>", shading)
+            : RenderPage($"q {outline} W n /Sh1 sh Q", "<< /Shading << /Sh1 5 0 R >> >>", shading);
+        double[,] coverage = PolygonCoverage(triangle);
+
+        // Worked value: pixel (4, 20) spans x 4 to 5 and the edge x = 4.5 halves it, so green
+        // and blue are 255 * (1 - 0.5) = 127.5.
+        Assert.InRange(coverage[20, 4], 0.499, 0.501);
+        for (int y = 0; y < Size; y++)
+            for (int x = 0; x < Size; x++)
+            {
+                double expected = 255 * (1 - coverage[y, x]);
+                byte[] pixel = Pixel(page, x, y);
+                Assert.True(pixel[2] >= 253 && Math.Abs(pixel[0] - expected) <= 2
+                    && Math.Abs(pixel[1] - expected) <= 2,
+                    $"Pixel ({x}, {y}) with coverage {coverage[y, x]:F3} is RGB {pixel[2]},{pixel[1]},{pixel[0]}; "
+                    + $"expected 255,{expected:F1},{expected:F1}.");
+            }
     }
 
     // Two Coons patches share the edge x = 20.25 and together cover the square 4.5 to 35.5.

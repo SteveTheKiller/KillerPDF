@@ -295,8 +295,12 @@ public sealed partial class PdfPageRenderer
                 {
                     ulong mask = masks[offset + x];
                     if (mask == 0) continue;
-                    double shape = BitOperations.PopCount(mask) / fullCoverage
-                        * ClipAlpha(state.Clips, x, y);
+                    // A mesh is usually clipped to its own outline, so its edges and the clip's lie
+                    // on top of each other. The smaller coverage is the area both leave painted
+                    // when one edge nests inside the other; multiplying would paint such a pixel
+                    // by the square of its coverage.
+                    double shape = Math.Min(BitOperations.PopCount(mask) / fullCoverage,
+                        ClipAlpha(state.Clips, x, y));
                     if (shape <= 0) continue;
                     Interpolate(CollectionsMarshal.AsSpan(_triangles)[Math.Abs(owners[offset + x]) - 1],
                         x + 0.5, y + 0.5, values);
