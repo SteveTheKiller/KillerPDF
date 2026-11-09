@@ -90,15 +90,16 @@ public static class PdfEditablePageOverlayEditor
             if (unit.Description is null) editor.AppendPageArtifact(unit.PageIndex, unit.Width, unit.Height, unit.Content);
             else editor.AppendPageDescribedContent(unit.PageIndex, unit.Width, unit.Height, unit.Content, unit.Description);
         PdfDocument appended = Reopen(document, editor.Build());
-        IReadOnlyList<PdfPageTreeEntry> appendedPages = PdfPageTree.Read(appended).Pages;
+        var lookup = new DocumentLookup(appended);
+        IReadOnlyList<PdfPageTreeEntry> appendedPages = lookup.Tree.Pages;
         var update = new PdfIncrementalUpdateBuilder(appended);
         foreach (PdfEditablePageOverlayUnit unit in units)
-            Describe(appended, appendedPages[unit.PageIndex], unit.EditingData, unit.ExpectedRotation, update);
+            Describe(appended, appendedPages[unit.PageIndex], unit.EditingData, unit.ExpectedRotation, update, lookup);
         return update.Build();
     }
 
     private static void Describe(PdfDocument appended, PdfPageTreeEntry page, ReadOnlyMemory<byte> editingData,
-        int? expectedRotation, PdfIncrementalUpdateBuilder update)
+        int? expectedRotation, PdfIncrementalUpdateBuilder update, DocumentLookup lookup)
     {
         PdfArray contents = Contents(appended, page);
         var prefix = contents[0] as PdfIndirectReference ?? throw Invalid();
@@ -117,11 +118,11 @@ public static class PdfEditablePageOverlayEditor
             [N("Page")] = page.Reference,
             [N("Resource")] = N(resource),
             [N("Data")] = new PdfString(editingData.Span, PdfStringForm.Hexadecimal),
-            [N("Frame")] = Bytes(Frame(appended, page, expectedRotation)),
+            [N("Frame")] = Bytes(Frame(appended, page, expectedRotation, lookup)),
             [N("Graph")] = Bytes(Graph(appended, form)),
             [N("InvocationGraph")] = Bytes(InvocationGraph(appended, stream)),
             [N("PrefixGraph")] = Bytes(Graph(appended, prefix)),
-            [N("Structure")] = CaptureStructure(appended, page, form)
+            [N("Structure")] = CaptureStructure(appended, page, form, lookup)
         };
         entries[N("UnitHash")] = Bytes(MetadataHash(new PdfDictionary(entries)));
         var dictionary = stream.Dictionary.ToDictionary(pair => pair.Key, pair => pair.Value);
@@ -136,7 +137,8 @@ public static class PdfEditablePageOverlayEditor
             && (document.DeclaredPermissions is not PdfDocumentPermissions permissions || !permissions.AllowContentCopying))
             throw new InvalidOperationException("The authenticated PDF must permit copying editable page content.");
         var result = new List<PdfEditablePageOverlay>();
-        foreach (PdfPageTreeEntry page in PdfPageTree.Read(document).Pages)
+        var lookup = new DocumentLookup(document);
+        foreach (PdfPageTreeEntry page in lookup.Tree.Pages)
         {
             try
             {
@@ -168,10 +170,10 @@ public static class PdfEditablePageOverlayEditor
                         || !Same(XObjects(document, page)[name], form)) throw Invalid();
                     var data = metadata[N("Data")] as PdfString ?? throw Invalid();
                     if (data.Bytes.Length > MaximumData
-                        || !StringBytes(metadata[N("Frame")]).SequenceEqual(Frame(document, page, null))
+                        || !StringBytes(metadata[N("Frame")]).SequenceEqual(Frame(document, page, null, lookup))
                         || !StringBytes(metadata[N("Graph")]).SequenceEqual(Graph(document, form))) throw Invalid();
                     if (!PdfObjectWriter.Write(metadata[N("Structure")]).AsSpan()
-                        .SequenceEqual(PdfObjectWriter.Write(CaptureStructure(document, page, form)))) throw Invalid();
+                        .SequenceEqual(PdfObjectWriter.Write(CaptureStructure(document, page, form, lookup)))) throw Invalid();
                     result.Add(new PdfEditablePageOverlay(page.Index, invocation.ObjectNumber, form.ObjectNumber,
                         data.Bytes.ToArray(), prefix, Convert.ToHexString(SHA256.HashData(PdfObjectWriter.Write(metadata)))));
                 }
@@ -212,15 +214,29 @@ public static class PdfEditablePageOverlayEditor
         return update.Build();
     }
 
-    private static PdfObject CaptureStructure(PdfDocument document, PdfPageTreeEntry page, PdfIndirectReference form)
+    // Reads each document-wide structure once for a pass over many units; reading the page tree, page information
+    // or parent tree again per unit made opening and saving documents with many edited pages quadratic.
+    private sealed class DocumentLookup(PdfDocument document)
+    {
+        private PdfPageTree? _tree;
+        private IReadOnlyList<PdfPageInformation>? _pages;
+        private ILookup<long, PdfNumberTreeEntry>? _parents;
+        internal PdfPageTree Tree => _tree ??= PdfPageTree.Read(document);
+        internal int Rotation(int pageIndex) => (_pages ??= PdfPageInformation.Read(document))[pageIndex].Rotation;
+        internal PdfNumberTreeEntry[] ParentEntries(PdfObject parentTree, long key) =>
+            [.. (_parents ??= PdfNumberTree.Read(document, parentTree).ToLookup(entry => entry.Key))[key]];
+    }
+
+    private static PdfObject CaptureStructure(PdfDocument document, PdfPageTreeEntry page, PdfIndirectReference form,
+        DocumentLookup? lookup = null)
     {
         PdfStream stream = Stream(document, form);
         if (!stream.Dictionary.TryGetValue(N("StructParents"), out PdfObject? keyValue)) return PdfNull.Instance;
         if (keyValue is not PdfInteger key || key.Value < 0) throw Invalid();
-        PdfPageTree tree = PdfPageTree.Read(document);
+        lookup ??= new DocumentLookup(document);
+        PdfPageTree tree = lookup.Tree;
         var root = Resolve(document, tree.Catalog[N("StructTreeRoot")]) as PdfDictionary ?? throw Invalid();
-        PdfNumberTreeEntry[] entries = PdfNumberTree.Read(document, root[N("ParentTree")])
-            .Where(entry => entry.Key == key.Value).ToArray();
+        PdfNumberTreeEntry[] entries = lookup.ParentEntries(root[N("ParentTree")], key.Value);
         if (entries.Length != 1 || Resolve(document, entries[0].Value) is not PdfArray { Count: 1 } references
             || references[0] is not PdfIndirectReference reference) throw Invalid();
         var structure = Resolve(document, reference) as PdfDictionary ?? throw Invalid();
@@ -256,10 +272,11 @@ public static class PdfEditablePageOverlayEditor
         PdfPageTree tree, IReadOnlyList<PdfEditablePageOverlay> overlays)
     {
         var structures = new List<PdfDictionary>();
+        var lookup = new DocumentLookup(document);
         foreach (PdfEditablePageOverlay unit in overlays)
         {
             PdfObject value = CaptureStructure(document, tree.Pages[unit.PageIndex],
-                new PdfIndirectReference(unit.FormObjectNumber, 0));
+                new PdfIndirectReference(unit.FormObjectNumber, 0), lookup);
             if (value is PdfDictionary structure) structures.Add(structure);
         }
         if (structures.Count == 0) return;
@@ -353,7 +370,7 @@ public static class PdfEditablePageOverlayEditor
     private static byte[] MetadataHash(PdfDictionary metadata) => SHA256.HashData(PdfObjectWriter.Write(
         new PdfDictionary(metadata.Where(pair => !pair.Key.Equals(N("UnitHash")))
             .OrderBy(pair => pair.Key.ValueAsLatin1(), StringComparer.Ordinal))));
-    private static byte[] Frame(PdfDocument document, PdfPageTreeEntry page, int? rotation)
+    private static byte[] Frame(PdfDocument document, PdfPageTreeEntry page, int? rotation, DocumentLookup? lookup = null)
     {
         var values = new List<PdfObject> { page.Reference };
         foreach (string key in new[] { "MediaBox", "CropBox", "BleedBox", "TrimBox", "ArtBox", "UserUnit" })
@@ -370,7 +387,7 @@ public static class PdfEditablePageOverlayEditor
             else if (value is not PdfNull && (key != "UserUnit" || value is not (PdfInteger or PdfReal))) throw Invalid();
             values.Add(value);
         }
-        int angle = rotation ?? PdfPageInformation.Read(document)[page.Index].Rotation;
+        int angle = rotation ?? (lookup ?? new DocumentLookup(document)).Rotation(page.Index);
         values.Add(new PdfInteger(angle));
         return SHA256.HashData(PdfObjectWriter.Write(new PdfArray(values)));
     }

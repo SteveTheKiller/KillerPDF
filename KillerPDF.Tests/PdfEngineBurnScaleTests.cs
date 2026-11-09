@@ -80,6 +80,38 @@ public sealed class PdfEngineBurnScaleTests
         finally { if (File.Exists(path)) File.Delete(path); }
     }
 
+    // Opening a saved PDF moves its edited text back into the editing layer. Each edited page's check read every
+    // page's information and the whole page tree again, so 3,000 edited pages took about 31 s to reopen.
+    [Fact]
+    public void ReopeningAPdfWithTextEditedOnEveryPageIsQuick()
+    {
+        const int pages = 1500;
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-reopen-edits-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, BlankPdf(pages));
+            var annotations = new Dictionary<int, List<PageAnnotation>>();
+            var dimensions = new Dictionary<int, (int w, int h)>();
+            for (int page = 0; page < pages; page++)
+            {
+                annotations[page] = [new TextAnnotation { PageIndex = page, PairId = $"edit-{page}", Content = $"Edited line {page + 1}",
+                    Position = new Point(60, 400), Width = 220, Height = 30 }];
+                dimensions[page] = (816, 1056);
+            }
+            PdfEngineBurn.Burn(path, annotations, dimensions, measurementsAsAnnotations: true);
+            byte[] saved = File.ReadAllBytes(path);
+
+            var clock = Stopwatch.StartNew();
+            OverlayExtraction extracted = PdfOverlayAnnotations.TakeEditableTail(saved);
+            clock.Stop();
+
+            Assert.Equal(pages, extracted.Records.Select(record => record.Annotation).OfType<TextAnnotation>().Count());
+            // Reading 1,500 pages once is well under a second; the per-page rereads took about 8 s here.
+            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(4), $"Took {clock.Elapsed.TotalMilliseconds:F0} ms.");
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
     private static byte[] BlankPdf(int pages)
     {
         var builder = new PdfDocumentBuilder();
