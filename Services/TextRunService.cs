@@ -69,8 +69,21 @@ namespace KillerPDF.Services
         // the key never gets the text the key decrypted.
         private readonly Dictionary<(string Path, long Ticks, int Page, bool Keyed), PageTextRuns?> _cache = [];
 
+        // Like the PDF overload, a page whose text cannot be read (a damaged DjVu text layer) has no runs; the Select
+        // tool asks on every mouse move, so throwing would raise the crash dialog each time. Cancellation and a
+        // retired revision still throw, as their callers expect.
         public PageTextRuns? GetPage(PdfCapturedReadRevision revision, int pageIdx,
             CancellationToken cancellationToken = default)
+        {
+            try { return ReadNativePage(revision, pageIdx, cancellationToken); }
+            catch (Exception error) when (error is InvalidDataException or NotSupportedException or FormatException)
+            {
+                return null;
+            }
+        }
+
+        private static PageTextRuns ReadNativePage(PdfCapturedReadRevision revision, int pageIdx,
+            CancellationToken cancellationToken)
         {
             using var lease = revision.Rent(cancellationToken);
             var page = lease.ReadNativeTextPage(pageIdx);

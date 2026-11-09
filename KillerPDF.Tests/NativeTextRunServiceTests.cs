@@ -280,6 +280,17 @@ public sealed class NativeTextRunServiceTests
         });
     }
 
+    // The Select tool asks for a page's text runs on every mouse move. A DjVu page whose text layer is damaged still
+    // renders, so asking for its runs must give none instead of throwing into the crash dialog on each move.
+    [Fact]
+    public void ADjvuPageWithADamagedTextLayerHasNoTextRunsInsteadOfThrowing()
+    {
+        using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("ab",
+            Zone(10, 20, 30, 40, 10, 5))));
+
+        Assert.Null(new TextRunService().GetPage(revision, 0));
+    }
+
     private static byte[] Page(string text, params byte[][] zones)
     {
         byte[] bytes = Encoding.UTF8.GetBytes(text);
