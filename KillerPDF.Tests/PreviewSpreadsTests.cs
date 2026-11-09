@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using KillerPDF.Controls;
 using Xunit;
@@ -106,5 +107,34 @@ public sealed class PreviewSpreadsTests
     {
         Assert.Equal(801.333, PreviewSpreads.FrameWidthFor(600, 1.5, 2), 3);
         Assert.Equal(410.667, PreviewSpreads.FrameWidthFor(600, 1.5, 1), 3);
+    }
+
+    // The viewer and Print agree on what faces what: every page's spread in Print's list starts
+    // where the viewer's formula puts its left page, for book and two-page, odd and even counts.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PrintSpreadsStartWhereTheViewerPutsTheLeftPage(bool book)
+    {
+        var layout = book ? PreviewLayout.Book : PreviewLayout.TwoPage;
+        for (int count = 1; count <= 9; count++)
+        {
+            var spreads = PreviewSpreads.Spreads(count, layout);
+            for (int page = 0; page < count; page++)
+                Assert.Equal(PreviewSpreads.SpreadStart(page, book), spreads[PreviewSpreads.SpreadOf(page, count, layout)].First);
+        }
+    }
+
+    // One formula: the viewer's two-page navigation calls the shared helper instead of its own copy.
+    [Fact]
+    public void TheViewerPairsSpreadsThroughTheSharedHelper()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "KillerPDF.csproj")))
+            directory = directory.Parent;
+        string viewport = File.ReadAllText(Path.Combine(directory!.FullName, "Controls", "Viewer", "PdfViewer.Viewport.cs"));
+
+        Assert.Contains("PreviewSpreads.SpreadStart(page, BookMode)", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("page - ((page + 1) % 2)", viewport, StringComparison.Ordinal);
     }
 }

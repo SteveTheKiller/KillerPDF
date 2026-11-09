@@ -2417,9 +2417,9 @@ namespace KillerPDF.Controls
         // (1,2), (3,4)... like a physical book instead of (0,1), (2,3). Global preference.
         internal static bool BookMode => App.GetSetting("TwoPageBook") == "1";
 
-        // Left page of the spread containing <paramref name="page"/> under the active layout.
-        private static int SpreadStart(int page)
-            => BookMode ? (page == 0 ? 0 : page - ((page + 1) % 2)) : page - page % 2;
+        // Left page of the spread containing <paramref name="page"/> under the active layout. One
+        // formula for the viewer and Print's spread preview, so they never pair pages differently.
+        private static int SpreadStart(int page) => PreviewSpreads.SpreadStart(page, BookMode);
 
         // #193: re-run the current mode's layout in place (the book toggle re-pairs spreads).
         // This must bypass ApplyViewMode's same-mode early return: the mode stays TwoPage while its
