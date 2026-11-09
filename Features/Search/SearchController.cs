@@ -77,11 +77,87 @@ namespace KillerPDF.Features
                     && current.right == area.Right && current.top == area.Top;
         }
 
+        /// <summary>The page's highlight rectangles. A native EPUB page whose highlight areas are not read yet
+        /// has none; asking starts reading them, and the highlights repaint when they arrive.</summary>
         internal bool TryGetPageRects(int page,
-            out List<(double left, double bottom, double right, double top)> rects) =>
-            AllSearchRects.TryGetValue(page, out rects!);
+            out List<(double left, double bottom, double right, double top)> rects)
+        {
+            if (AllSearchRects.TryGetValue(page, out rects!)) return true;
+            Locate(page);
+            return false;
+        }
 
-        internal IEnumerable<int> PagesWithResults => AllSearchRects.Keys;
+        /// <summary>The pages the painter offers to <see cref="TryGetPageRects"/>: every page with a hit while
+        /// some pages' highlight areas are still to be read, otherwise the pages with rectangles.</summary>
+        internal IEnumerable<int> PagesWithResults => _locator is not null ? ResultPages : AllSearchRects.Keys;
+
+        // A native EPUB search lists its hits from page text alone. A page's highlight areas are read on a worker when
+        // the reader looks at it (the current hit's page, and each page on screen), then the highlights repaint.
+        private PdfCapturedReadRevision? _locator;
+        private readonly HashSet<int> _unlocatedPages = [];
+        private readonly HashSet<int> _locating = [];
+        private int _locateGeneration;
+
+        // Forgets the pages waiting for their areas; a reading still running for them is dropped when it lands.
+        private void ForgetLocation()
+        {
+            _locator = null;
+            _unlocatedPages.Clear();
+            _locating.Clear();
+            _locateGeneration++;
+        }
+
+        private void TrackLocation(PdfCapturedReadRevision? locator)
+        {
+            ForgetLocation();
+            foreach (SearchHit hit in _matches)
+                if (!hit.Located) _unlocatedPages.Add(hit.page);
+            if (_unlocatedPages.Count > 0 && locator is not null) _locator = locator;
+            else _unlocatedPages.Clear();
+        }
+
+        private void Locate(int page)
+        {
+            if (_locator is not { } revision || !_unlocatedPages.Contains(page) || !_locating.Add(page)) return;
+            _ = LocateAsync(revision, page, [.. HitsOn(page)], _locateGeneration);
+        }
+
+        private async Task LocateAsync(PdfCapturedReadRevision revision, int page, SearchHit[] hits, int generation)
+        {
+            IReadOnlyList<SearchHit>? located = null;
+            try { located = await Task.Run(() => SearchService.LocateNative(revision, page, hits, CancellationToken.None)); }
+            // A closed book or a page that cannot be laid out keeps its hits counted, without highlights.
+            catch (Exception) { }
+            if (generation != _locateGeneration) return;
+            _locating.Remove(page);
+            _unlocatedPages.Remove(page);
+            located ??= [.. hits.Select(hit => hit with { Located = true, HasGeometry = false })];
+            var byPosition = located.ToDictionary(hit => (hit.Start, hit.Length));
+            for (int at = FirstMatchOn(page); at < _matches.Count && _matches[at].page == page; at++)
+                if (byPosition.TryGetValue((_matches[at].Start, _matches[at].Length), out var hit)) _matches[at] = hit;
+            var rectangles = located.Where(hit => hit.HasGeometry)
+                .SelectMany(hit => hit.Areas.Select(area => (area.Left, area.Bottom, area.Right, area.Top))).ToList();
+            if (rectangles.Count > 0) AllSearchRects[page] = rectangles;
+            _host.RepaintHighlights();
+        }
+
+        private IEnumerable<SearchHit> HitsOn(int page)
+        {
+            for (int at = FirstMatchOn(page); at < _matches.Count && _matches[at].page == page; at++) yield return _matches[at];
+        }
+
+        // A native match list is in page order, so the first match on a page is found by halving.
+        private int FirstMatchOn(int page)
+        {
+            int low = 0, high = _matches.Count;
+            while (low < high)
+            {
+                int middle = (low + high) / 2;
+                if (_matches[middle].page < page) low = middle + 1;
+                else high = middle;
+            }
+            return low;
+        }
 
         /// <summary>The part of a search a tab parks through <see cref="Capture"/>. Its rects, pages
         /// and page cursor already park as fields of their own on the tab's session.</summary>
@@ -91,11 +167,13 @@ namespace KillerPDF.Features
             internal Guid? NativeRevisionId { get; init; }
             internal string? File { get; init; }
             internal long Revision { get; init; } = -1;
+            /// <summary>The native book the matches' highlight areas are still read from, when some are.</summary>
+            internal PdfCapturedReadRevision? Locator { get; init; }
         }
 
         internal ParkedSearch Capture() =>
             new(LastQuery, LastMatchCase, LastWholeWord, [.. _matches], _matchCursor)
-                { NativeRevisionId = _resultNativeRevisionId, File = _searchedFile, Revision = _resultRevision };
+                { NativeRevisionId = _resultNativeRevisionId, File = _searchedFile, Revision = _resultRevision, Locator = _locator };
 
         /// <summary>Puts back what <see cref="Capture"/> parked for the tab coming in, or a blank
         /// state for a tab that has never searched.</summary>
@@ -116,6 +194,7 @@ namespace KillerPDF.Features
             LastWholeWord = parked?.WholeWord ?? false;
             _matches.Clear();
             if (parked is not null) _matches.AddRange(parked.Matches);
+            TrackLocation(parked?.Locator);
             _matchCursor = parked?.MatchCursor ?? -1;
             _resultNativeRevisionId = parked?.NativeRevisionId;
             if (parked?.NativeRevisionId is not null)
@@ -132,6 +211,7 @@ namespace KillerPDF.Features
         internal void ClearMatches()
         {
             CancelPending();
+            ForgetLocation();
             AllSearchRects.Clear();
             ResultPages.Clear();
             _matches.Clear();
@@ -182,7 +262,7 @@ namespace KillerPDF.Features
                 if (found is null) return;
                 _resultRevision = editRevision;
                 _resultNativeRevisionId = found.NativeRevisionId;
-                ShowResults(query, matchCase, wholeWord, found);
+                ShowResults(query, matchCase, wholeWord, found, source.NativeRevision);
             }
             catch
             {
@@ -205,6 +285,7 @@ namespace KillerPDF.Features
             LastMatchCase = matchCase;
             LastWholeWord = wholeWord;
             _host.ClearHighlights();
+            ForgetLocation();
             AllSearchRects.Clear();
             ResultPages.Clear();
             _matches.Clear();
@@ -213,7 +294,8 @@ namespace KillerPDF.Features
             UnreadablePages = [];
         }
 
-        private void ShowResults(string query, bool matchCase, bool wholeWord, SearchResult sr)
+        private void ShowResults(string query, bool matchCase, bool wholeWord, SearchResult sr,
+            PdfCapturedReadRevision? locator)
         {
             ClearResults(query, matchCase, wholeWord);
             UnreadablePages = [.. sr.UnreadablePages];
@@ -239,6 +321,7 @@ namespace KillerPDF.Features
                 : sr.Hits.OrderBy(hit => hit.page).ThenByDescending(hit => hit.top).ThenBy(hit => hit.left);
             foreach (SearchHit hit in ordered)
                 if (hit.Source is not null || !_host.IsCovered(hit.page, hit.left, hit.bottom, hit.right, hit.top)) _matches.Add(hit);
+            TrackLocation(locator);
 
             if (_matches.Count == 0)
             {
@@ -288,6 +371,7 @@ namespace KillerPDF.Features
             UpdateStatus();
             if (_host.CurrentPageIndex != targetPage)
                 _host.GoToPage(targetPage);
+            Locate(targetPage);
             _host.RepaintHighlights();
         }
 

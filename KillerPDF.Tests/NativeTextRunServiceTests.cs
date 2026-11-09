@@ -27,7 +27,7 @@ public sealed class NativeTextRunServiceTests
         var visible = SearchService.Search(source, "right", true, false, CancellationToken.None);
         Assert.Equal(1, visible.TotalHits);
         Assert.Equal(4, Assert.Single(visible.Hits).Start);
-        Assert.True(visible.Hits[0].HasGeometry);
+        Assert.True(Assert.Single(SearchService.LocateNative(revision, 0, visible.Hits, CancellationToken.None)).HasGeometry);
         var runs = new TextRunService().GetPage(revision, 0)!;
         Assert.Equal("leftright", TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _));
         Assert.Equal("leftright", PageReadingText.Build(runs).Text);

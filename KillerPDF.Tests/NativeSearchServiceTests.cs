@@ -215,7 +215,8 @@ public sealed class NativeSearchServiceTests
         public void SetResultText(string text) => Completed.TrySetResult(text);
         public void SetResultCount(string text, string? tooltip) => Completed.TrySetResult(text);
         public void ClearHighlights() { }
-        public void RepaintHighlights() { }
+        public int Repaints { get; private set; }
+        public void RepaintHighlights() => Repaints++;
         public bool IsCovered(int pageIdx, double left, double bottom, double right, double top) => false;
     }
 
@@ -320,7 +321,11 @@ public sealed class NativeSearchServiceTests
             "A", true, true, CancellationToken.None);
         Assert.Equal(2, result.TotalHits);
         Assert.Equal(new[] { 0, 2 }, result.Hits.Select(hit => hit.Start));
-        Assert.All(result.Hits, hit =>
+        Assert.Equal(new[] { 0 }, result.ResultPages);
+        Assert.All(result.Hits, hit => Assert.False(hit.Source!.Editable));
+
+        var located = SearchService.LocateNative(revision, 0, result.Hits, CancellationToken.None);
+        Assert.All(located, hit =>
         {
             Assert.True(hit.HasGeometry);
             Assert.False(hit.Source!.Editable);
@@ -328,7 +333,7 @@ public sealed class NativeSearchServiceTests
             Assert.Equal(24, hit.bottom, 12);
             Assert.Equal(33, hit.top, 12);
         });
-        Assert.Equal(3, result.Hits[0].left, 12);
+        Assert.Equal(3, located[0].left, 12);
     }
 
     // A hit found from page text alone gets its highlight areas when its page is located: the same areas, union and
@@ -386,12 +391,94 @@ public sealed class NativeSearchServiceTests
             "BB", true, true, CancellationToken.None);
 
         var hit = Assert.Single(result.Hits);
-        Assert.True(hit.HasGeometry);
         Assert.Equal("BB", hit.Source!.Content.Substring(hit.Start, hit.Length));
         Assert.Equal(new[] { hit.page }, result.ResultPages);
-        int layouts = (int)chapters.GetType().GetProperty("Layouts", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(chapters)!;
+        Assert.True(Assert.Single(SearchService.LocateNative(revision, hit.page, [hit], CancellationToken.None)).HasGeometry);
+        int layouts = ChapterLayoutCount(chapters);
         Assert.True(layouts <= 1, $"A search with one match laid out {layouts} chapters.");
     }
+
+    // A common word matches on nearly every page. Its hit list (pages, counts and the text around each hit) comes from
+    // the page index alone, so listing it lays out no chapter; highlight areas are read later for the pages shown.
+    [Fact]
+    public void NativeSearchListsACommonWordsHitsWithoutLayingOutAChapter()
+    {
+        string filler = string.Concat(Enumerable.Repeat("<p>AAAA AAA AAAAA AA AAAA AAA</p>", 30));
+        var snapshot = PdfReadSnapshot.OpenEpub(Chapters(filler, filler, filler, filler, filler), MediumPage());
+        using var revision = new PdfCapturedReadRevision(snapshot);
+        var chapters = ChapterLayouts(snapshot);
+        StopLayingOutAhead(chapters);
+        Assert.True(snapshot.PageCount > 10);
+
+        var result = SearchService.Search(new CurrentSearchSnapshot([], []) { NativeRevision = revision },
+            "AAAA", true, true, CancellationToken.None);
+
+        // Two whole-word matches in each of 30 paragraphs in each of 5 chapters.
+        Assert.Equal(300, result.TotalHits);
+        Assert.Equal(300, result.Hits.Count);
+        Assert.True(result.ResultPages.Count > 10);
+        Assert.All(result.Hits, hit => Assert.Equal("AAAA", hit.Source!.Content.Substring(hit.Start, hit.Length)));
+        Assert.Equal(0, ChapterLayoutCount(chapters));
+    }
+
+    // The search bar reads highlight areas only for what the reader sees: the current hit's page at once, and any other
+    // page when the painter asks for it, each laying out about one page from the page index.
+    [Fact]
+    public async Task SearchControllerLocatesOnlyTheCurrentHitsPageAndThePagesItIsAskedFor()
+    {
+        string filler = string.Concat(Enumerable.Repeat("<p>AAAA AAA AAAAA AA AAAA AAA</p>", 30));
+        var snapshot = PdfReadSnapshot.OpenEpub(Chapters(filler, filler, filler, filler, filler), MediumPage());
+        using var revision = new PdfCapturedReadRevision(snapshot);
+        var chapters = ChapterLayouts(snapshot);
+        StopLayingOutAhead(chapters);
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
+        var controller = new KillerPDF.Features.SearchController(host) { MatchCase = true, WholeWord = true };
+
+        controller.Run("AAAA");
+        Assert.Equal("1 / 300", await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        // One repaint when the search lands, one when the current hit's areas arrive.
+        await Until(() => host.Repaints >= 2);
+
+        var current = controller.CurrentOccurrence!;
+        Assert.Equal(0, current.page);
+        Assert.True(current.HasGeometry);
+        Assert.NotEmpty(current.Areas);
+        Assert.All(current.Areas, area => Assert.True(controller.IsCurrentArea(0, area)));
+        Assert.NotNull(controller.CurrentMatch);
+        Assert.Equal(new[] { 0 }, controller.AllSearchRects.Keys);
+        Assert.Equal(controller.ResultPages, controller.PagesWithResults);
+        Assert.Equal(1, ChapterLayoutCount(chapters));
+
+        int last = controller.ResultPages[^1];
+        Assert.False(controller.TryGetPageRects(last, out _));
+        await Until(() => host.Repaints >= 3);
+        Assert.True(controller.TryGetPageRects(last, out var rectangles));
+        Assert.NotEmpty(rectangles);
+        Assert.Equal(new[] { 0, last }, controller.AllSearchRects.Keys.Order());
+        Assert.Equal(2, ChapterLayoutCount(chapters));
+        Assert.Equal(3, host.Repaints);
+    }
+
+    private static async Task Until(Func<bool> condition)
+    {
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (!condition()) await Task.Delay(1, deadline.Token);
+    }
+
+    private static EpubLayoutOptions MediumPage()
+    {
+        using var resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        return new EpubLayoutOptions(200, 160, TrueTypeFont.Load(fontBytes.ToArray())) { FontSize = 12, Margin = 4 };
+    }
+
+    private static void StopLayingOutAhead(object chapters) =>
+        chapters.GetType().GetProperty("PrefetchNeighbors", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(chapters, false);
+
+    private static int ChapterLayoutCount(object chapters) =>
+        (int)chapters.GetType().GetProperty("Layouts", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(chapters)!;
 
     // The engine's chapter re-layout cache, reached by reflection because the app tests do not see engine internals.
     private static object ChapterLayouts(PdfReadSnapshot snapshot)

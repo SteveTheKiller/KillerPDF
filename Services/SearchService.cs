@@ -282,11 +282,14 @@ namespace KillerPDF.Services
                 cancellationToken.ThrowIfCancellationRequested();
                 if (revision.IsClosed) throw new OperationCanceledException("The captured native document was closed.");
             }
-            // Pass 1 matches each page's text alone, which a native EPUB reads from its page index; only pages with a
-            // match then read their geometry, so a chapter without a match is never laid out. A chapter with one match
-            // lays out about one page from the page index; a second match there lays the rest of that chapter out once.
+            // Pass 1 matches each page's text alone, which a native EPUB reads from its page index. An EPUB's hit list
+            // stops there, so no chapter is laid out to list a common word's hits on nearly every page: the viewer reads
+            // the highlight areas of the pages it shows through LocateNative. Other formats read their geometry with
+            // their text, so the pages with a match read it now.
+            bool lazy = revision.Format == KillerPdf.Engine.Documents.PdfDocumentFormat.Epub;
             var matchedPages = new List<int>();
             var pageSpans = new Dictionary<int, List<(int Start, int Length)>>();
+            var pageTexts = new Dictionary<int, string>();
             int matches = 0;
             for (int pageIndex = 0; pageIndex < revision.PageCount; pageIndex++)
             {
@@ -305,6 +308,22 @@ namespace KillerPDF.Services
                     throw new System.IO.InvalidDataException("Native search exceeded the match limit.");
                 matchedPages.Add(pageIndex);
                 pageSpans[pageIndex] = [.. spans.Select(span => (span.Start, span.Length))];
+                if (lazy) pageTexts[pageIndex] = text;
+            }
+            if (lazy)
+            {
+                result.UnreadablePages.Sort();
+                foreach (int pageIndex in matchedPages)
+                {
+                    CheckCancellation();
+                    var source = new SearchTextSource(pageIndex, 0, 0, 0, 0, pageTexts[pageIndex], Guid.Empty, Editable: false);
+                    AddHits(result, pageIndex, [.. pageSpans[pageIndex].Select(span =>
+                        new SearchHit(pageIndex, 0, 0, 0, 0, span.Start, span.Length)
+                            { Source = source, HasGeometry = false, Located = false })]);
+                }
+                CheckCancellation();
+                failures.RequireAReadablePage(revision.PageCount);
+                return result;
             }
             var geometryPages = new Dictionary<int, KillerPdf.Engine.Documents.PdfReadTextPage>();
             for (int at = matchedPages.Count - 1; at >= 0; at--)
