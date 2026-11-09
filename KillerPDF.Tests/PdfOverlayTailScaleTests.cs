@@ -9,7 +9,9 @@ namespace KillerPDF.Tests;
 
 // Opening a PDF moves its editable overlay tail into the editing layer before the first page shows. That step read the
 // whole page tree again for every page, so a 10,000-page PDF sat on a blank window for about six minutes on SHREDDER
-// and a 2,000-page one for about seven seconds. These pin that the step stays linear in the page count.
+// and a 2,000-page one for about seven seconds. These pin that pages without KillerPDF overlays are no longer read
+// that way; a page that carries an overlay is still counted with its own page tree read.
+[Collection(nameof(PdfOverlayTailScaleTests))]
 public sealed class PdfOverlayTailScaleTests
 {
     private const int Pages = 3000;
@@ -42,6 +44,39 @@ public sealed class PdfOverlayTailScaleTests
         Assert.Empty(extracted.Records);
         Assert.Same(source, extracted.Bytes);
         Assert.True(clock.Elapsed < TimeSpan.FromSeconds(3), $"Took {clock.Elapsed.TotalMilliseconds:F0} ms.");
+    }
+
+    // A long document a user annotated in KillerPDF on every page: each page's comment is an overlay that moves to the
+    // editing layer at open. Counting each page's annotations read the whole page tree again, about 11 s at 1,500 pages.
+    [Fact]
+    public void ALongPdfWithAnOverlayOnEveryPageGivesUpItsTailQuickly()
+    {
+        const int pages = 1500;
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-overlay-scale-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, PlainPdf(pages, commentOnEveryPage: false));
+            var annotations = new Dictionary<int, List<PageAnnotation>>();
+            var dimensions = new Dictionary<int, (int w, int h)>();
+            for (int page = 0; page < pages; page++)
+            {
+                annotations[page] = [new TextAnnotation { Content = $"Note {page + 1}", Position = new System.Windows.Point(10, 70),
+                    Width = 160, Height = 25, PageIndex = page }];
+                dimensions[page] = (200, 100);
+            }
+            PdfEngineBurn.Burn(path, annotations, dimensions);
+            byte[] saved = File.ReadAllBytes(path);
+
+            var clock = Stopwatch.StartNew();
+            OverlayExtraction extracted = PdfOverlayAnnotations.TakeEditableTail(saved);
+            clock.Stop();
+
+            Assert.Equal(pages, extracted.Records.Count);
+            Assert.Equal("Note 1500", Assert.IsType<TextAnnotation>(extracted.Records[^1].Annotation).Content);
+            // Linear work is under a second here; each removal checked every annotation in the file, about 3.4 s.
+            Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), $"Took {clock.Elapsed.TotalMilliseconds:F0} ms.");
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
     }
 
     // A flat page tree of blank pages, each optionally carrying one sticky note, written by hand so the fixture
@@ -80,3 +115,7 @@ public sealed class PdfOverlayTailScaleTests
         return stream.ToArray();
     }
 }
+
+// Timed tests run on their own, so the rest of the suite does not share their cores.
+[CollectionDefinition(nameof(PdfOverlayTailScaleTests), DisableParallelization = true)]
+public sealed class PdfOverlayTailScaleTestsCollection;

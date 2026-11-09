@@ -170,14 +170,15 @@ public static class PdfOverlayAnnotations
             var extracted = new List<OverlayRecord>();
             var editor = new PdfIncrementalAnnotationEditor(document);
             // A tail starts at a page's topmost annotation and holds only annotations that carry overlay metadata,
-            // so a page with no such comment has none. Counting a page's annotations reads the page tree, so only
-            // those pages are counted: per page, a long PDF read the whole tree once for every page at open.
+            // so a page with no such comment has none. Every page's count comes from one page-tree read: counted
+            // a page at a time, a long PDF read the whole tree once for every page at open.
+            IReadOnlyList<int> counts = PdfCommentReader.ReadPageAnnotationCounts(document);
             foreach (var pageComments in comments.Where(group => group.Any(comment => CarriesOverlayMetadata(document, comment)))
                 .OrderBy(group => group.Key))
             {
                 int page = pageComments.Key;
                 var stack = pageComments.ToDictionary(c => c.AnnotationIndex);
-                int count = PdfCommentReader.ReadPageAnnotationCount(document, page);
+                int count = counts[page];
                 var tail = new List<OverlayRecord>();
                 bool invalid = false;
                 for (int index = count - 1; index >= 0; index--)
@@ -195,8 +196,9 @@ public static class PdfOverlayAnnotations
             byte[] bytes = extracted.Count == 0 ? sourceBytes : editor.Build();
             PdfDocument remaining = PdfDocument.Open(bytes);
             // A page-content layer cannot be promoted above a remaining native annotation.
-            var batches = ReadPageBatches(remaining).Where(batch =>
-                PdfCommentReader.ReadPageAnnotationCount(remaining, batch.Overlay.PageIndex) == 0).ToArray();
+            var batchCandidates = ReadPageBatches(remaining);
+            IReadOnlyList<int> remainingCounts = batchCandidates.Count == 0 ? [] : PdfCommentReader.ReadPageAnnotationCounts(remaining);
+            var batches = batchCandidates.Where(batch => remainingCounts[batch.Overlay.PageIndex] == 0).ToArray();
             if (batches.Length > 0)
             {
                 bytes = PdfEditablePageOverlayEditor.Remove(remaining, batches.Select(batch => batch.Overlay).ToArray());

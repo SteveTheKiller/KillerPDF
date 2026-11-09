@@ -1134,6 +1134,9 @@ public sealed class PdfIncrementalAnnotationEditor
 
     private void EnsureRemovalKeepsReplyTargets(PendingRemoval removal)
     {
+        // Only a pending reply can lose its target. Without one there is nothing to check, and reading every
+        // annotation name in the file for each removal made removing one annotation per page quadratic.
+        if (!_annotations.Any(annotation => PendingReplyTarget(annotation) is not null)) return;
         Dictionary<(int PageIndex, string Name), PdfIndirectReference> existing =
             ExistingAnnotationNames();
         foreach (PendingRemoval earlier in _removals)

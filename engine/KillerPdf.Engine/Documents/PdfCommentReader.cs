@@ -124,6 +124,29 @@ public static partial class PdfCommentReader
                 $"Page {pageIndex + 1} /Annots value is not an array.");
     }
 
+    /// <summary>
+    /// Returns every page's raw annotation-array count from one page-tree read, as
+    /// <see cref="ReadPageAnnotationCount"/> counts a single page. A malformed array is rejected.
+    /// </summary>
+    public static IReadOnlyList<int> ReadPageAnnotationCounts(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (!document.IsDecrypted)
+            throw new InvalidOperationException(
+                "Authenticate the document before reading annotations.");
+        IReadOnlyList<PdfPageTreeEntry> pages = PdfPageTree.Read(document).Pages;
+        var counts = new int[pages.Count];
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++)
+        {
+            if (!pages[pageIndex].Dictionary.TryGetValue(Name("Annots"), out PdfObject? value)) continue;
+            counts[pageIndex] = Resolve(document, value) is PdfArray annotations
+                ? annotations.Count
+                : throw new InvalidOperationException(
+                    $"Page {pageIndex + 1} /Annots value is not an array.");
+        }
+        return Array.AsReadOnly(counts);
+    }
+
     /// <summary>Returns annotations that contain review text, in page annotation order.</summary>
     public static IReadOnlyList<PdfCommentInfo> Read(PdfDocument document) => Read(document, includeMarkupWithoutText: false);
 

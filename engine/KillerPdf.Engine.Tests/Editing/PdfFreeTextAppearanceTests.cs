@@ -199,6 +199,7 @@ public sealed class PdfFreeTextAppearanceTests
         Assert.Single(PdfCommentReader.Read(reopened, true));
         Assert.Equal(4, PdfCommentReader.ReadPageAnnotationCount(reopened, 0));
         Assert.Equal(0, PdfCommentReader.ReadPageAnnotationCount(reopened, 1));
+        Assert.Equal([4, 0], PdfCommentReader.ReadPageAnnotationCounts(reopened));
     }
 
     [Fact]
@@ -206,6 +207,8 @@ public sealed class PdfFreeTextAppearanceTests
     {
         var document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(100, 100).Build());
         Assert.Throws<ArgumentNullException>(() => PdfCommentReader.ReadPageAnnotationCount(null!, 0));
+        Assert.Throws<ArgumentNullException>(() => PdfCommentReader.ReadPageAnnotationCounts(null!));
+        Assert.Equal([0], PdfCommentReader.ReadPageAnnotationCounts(document));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfCommentReader.ReadPageAnnotationCount(document, -1));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfCommentReader.ReadPageAnnotationCount(document, 1));
     }
@@ -229,6 +232,7 @@ public sealed class PdfFreeTextAppearanceTests
             new KeyValuePair<PdfName, PdfObject>(N("Annots"), value))));
         var reopened = PdfDocument.Open(update.Build());
         Assert.Throws<InvalidOperationException>(() => PdfCommentReader.ReadPageAnnotationCount(reopened, 0));
+        Assert.Throws<InvalidOperationException>(() => PdfCommentReader.ReadPageAnnotationCounts(reopened));
     }
 
     private static void AssertPixel(byte[] pixels, int x, int y, byte r, byte g, byte b)
