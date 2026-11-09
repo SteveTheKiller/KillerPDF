@@ -25,6 +25,7 @@ public sealed record OverlayExtraction(byte[] Bytes, IReadOnlyList<OverlayRecord
 public static class PdfOverlayAnnotations
 {
     private const int MaximumPayload = 8 * 1024 * 1024;
+    private const int MaximumRecords = 10000;
     private static readonly PdfName MetadataName = Name("KillerPDFOverlay");
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -120,8 +121,25 @@ public static class PdfOverlayAnnotations
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(records);
-        if (records.Count is 0 or > 10000) throw new ArgumentException("Supply between 1 and 10000 new annotations.", nameof(records));
-        var comments = PdfCommentReader.Read(document, true);
+        if (records.Count is 0 or > MaximumRecords) throw new ArgumentException("Supply between 1 and 10000 new annotations.", nameof(records));
+        return AttachChunk(document, records);
+    }
+
+    /// <summary>Attaches every record to the document in <paramref name="bytes"/>, in chunks of at most
+    /// <see cref="MaximumRecords"/>, so a document with very many new annotations saves.</summary>
+    internal static byte[] AttachAll(byte[] bytes, IReadOnlyList<OverlayWriteRecord> records)
+    {
+        for (int start = 0; start < records.Count; start += MaximumRecords)
+            bytes = AttachChunk(PdfDocument.Open(bytes), records.Skip(start).Take(MaximumRecords).ToArray());
+        return bytes;
+    }
+
+    private static byte[] AttachChunk(PdfDocument document, IReadOnlyList<OverlayWriteRecord> records)
+    {
+        // One lookup serves every record; matching each against every comment made many notes quadratic.
+        var comments = new Dictionary<(int Page, int Index), PdfCommentInfo>();
+        foreach (PdfCommentInfo comment in PdfCommentReader.Read(document, true))
+            comments.TryAdd((comment.PageIndex, comment.AnnotationIndex), comment);
         var pages = PdfPageInformation.Read(document);
         var update = new PdfIncrementalUpdateBuilder(document);
         var seen = new HashSet<int>();
@@ -129,9 +147,9 @@ public static class PdfOverlayAnnotations
         {
             if (record.Annotation is null || !seen.Add(record.ObjectNumber))
                 throw new ArgumentException("Annotation identities must be unique.", nameof(records));
-            PdfCommentInfo comment = comments.SingleOrDefault(c => c.PageIndex == record.Annotation.PageIndex
-                && c.AnnotationIndex == record.AnnotationIndex && c.ObjectNumber == record.ObjectNumber)
-                ?? throw new ArgumentException("The annotation identity does not match the document.", nameof(records));
+            if (!comments.TryGetValue((record.Annotation.PageIndex, record.AnnotationIndex), out PdfCommentInfo? comment)
+                || comment.ObjectNumber != record.ObjectNumber)
+                throw new ArgumentException("The annotation identity does not match the document.", nameof(records));
             PdfDictionary annotation = document.Resolve(record.ObjectNumber) as PdfDictionary
                 ?? throw new ArgumentException("The annotation must be indirect.", nameof(records));
             if (annotation.ContainsKey(MetadataName)) throw new ArgumentException("The annotation already carries overlay metadata.", nameof(records));

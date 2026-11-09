@@ -52,6 +52,24 @@ public sealed class PdfOverlayLimitsTests : IDisposable
     private static Dictionary<int, (int w, int h)> Dims(int pages) =>
         Enumerable.Range(0, pages).ToDictionary(page => page, _ => (400, 400));
 
+    [Fact]
+    public void MoreThanTenThousandNotesSave()
+    {
+        const int pages = 5, notes = 10001;
+        string path = Blank(pages);
+        var byPage = Enumerable.Range(0, pages).ToDictionary(page => page, _ => new List<PageAnnotation>());
+        for (int index = 0; index < notes; index++)
+            byPage[index % pages].Add(new TextAnnotation
+            {
+                PageIndex = index % pages, Content = "n" + index, Position = new Point(index % 40 * 9, index / 40 % 40 * 9),
+                Width = 8, Height = 8, FontSize = 4
+            });
+
+        PdfEngineBurn.Burn(path, byPage, Dims(pages));
+
+        Assert.Equal(notes, PdfOverlayAnnotations.TakeEditableTail(File.ReadAllBytes(path)).Records.Count);
+    }
+
     [Theory]
     [InlineData(PdfSignatureCertificationPermission.FormFillingAndSignatures)]
     [InlineData(PdfSignatureCertificationPermission.FormFillingSignaturesAndAnnotations)]

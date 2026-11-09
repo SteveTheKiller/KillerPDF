@@ -271,15 +271,13 @@ internal static class PdfEngineBurn
             }
         }
         if (pending.Count == 0) return bytes;
-        PdfDocument saved = PdfDocument.Open(editor.Build());
-        var comments = PdfCommentReader.Read(saved, true);
-        var records = pending.Select(item =>
-        {
-            PdfCommentInfo comment = comments.Single(c => c.PageIndex == item.Annotation.PageIndex && c.AnnotationIndex == item.Index);
-            return new OverlayWriteRecord(item.Annotation, item.Width, item.Height, item.Rotation,
-                item.Index, comment.ObjectNumber!.Value);
-        }).ToArray();
-        return PdfOverlayAnnotations.Attach(saved, records);
+        byte[] savedBytes = editor.Build();
+        var comments = new Dictionary<(int Page, int Index), PdfCommentInfo>();
+        foreach (PdfCommentInfo comment in PdfCommentReader.Read(PdfDocument.Open(savedBytes), true))
+            comments.TryAdd((comment.PageIndex, comment.AnnotationIndex), comment);
+        var records = pending.Select(item => new OverlayWriteRecord(item.Annotation, item.Width, item.Height, item.Rotation,
+            item.Index, comments[(item.Annotation.PageIndex, item.Index)].ObjectNumber!.Value)).ToArray();
+        return PdfOverlayAnnotations.AttachAll(savedBytes, records);
     }
 
     // A malformed annotation array on a page the save does not touch must not stop the save, so that case keeps
