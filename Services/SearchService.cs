@@ -206,8 +206,8 @@ namespace KillerPDF.Services
                 if (revision.IsClosed) throw new OperationCanceledException("The captured native document was closed.");
             }
             // Pass 1 matches each page's text alone, which a native EPUB reads from its page index; only pages with a
-            // match then read their geometry. Those are read last page first, so a chapter laid out as far as its last
-            // match already holds its earlier ones and is laid out once.
+            // match then read their geometry, so a chapter without a match is never laid out. A chapter with one match
+            // lays out about one page from the page index; a second match there lays the rest of that chapter out once.
             var matchedPages = new List<int>();
             int matches = 0;
             for (int pageIndex = 0; pageIndex < revision.PageCount; pageIndex++)
