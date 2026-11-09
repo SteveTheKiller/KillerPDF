@@ -45,6 +45,19 @@ public sealed class ContinuousSlotTests
         Assert.Equal(4, Count(viewport, " + 1, ReadPageTotal, $\"{DisplayZoomPct():F0}\")"));
     }
 
+    // Continuous pages are drawn at twice the width they show (ViewerRenderResolution.ContinuousWidth), and a settled
+    // zoom-in draws the pages near the viewport again at the width they now need.
+    [Fact]
+    public void ContinuousPagesAreDrawnForTheirSizeOnScreenAndRedrawnAfterAZoomIn()
+    {
+        string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+        string render = Between(viewport, "internal async System.Threading.Tasks.Task RenderContinuousPages(", "private void SetContinuousSlot(");
+
+        Assert.Contains("int renderW        = ViewerRenderResolution.ContinuousWidth(targetW, renderDpi.DpiScaleX, renderDpi.DpiScaleY, _zoomLevel);", render);
+        Assert.Contains("_continuousDrawnWidths.TryGetValue(i, out int drawn) && drawn < renderW", render);
+        Assert.Contains("if (ContinuousNeedsSharperPages()) _ = RenderContinuousPages(Math.Max(0, _currentPage));", viewport);
+    }
+
     private static int Count(string source, string text)
     {
         int count = 0;

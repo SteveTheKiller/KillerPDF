@@ -521,6 +521,7 @@ namespace KillerPDF.Controls
             _continuousTops.Clear();
             _continuousCanvases.Clear();
             _continuousLinks.Clear();
+            _continuousDrawnWidths.Clear();
             _pages.Clear();
 
             // Fresh slot set: any hi-res re-sharpen bookkeeping from the previous layout is stale.
@@ -639,6 +640,17 @@ namespace KillerPDF.Controls
         private const int ContinuousReleasePages = 15;   // release only beyond this (hysteresis, no edge churn)
         private System.Threading.Tasks.Task? _continuousRenderTask;
         private int _continuousRenderCenterPage = -1;
+        // The raster width each continuous page was last drawn at (ViewerRenderResolution.ContinuousWidth).
+        private readonly Dictionary<int, int> _continuousDrawnWidths = [];
+
+        /// <summary>True when a page near the viewport was drawn narrower than the current zoom and monitor need.</summary>
+        private bool ContinuousNeedsSharperPages()
+        {
+            var dpi = VisualTreeHelper.GetDpi(this);
+            int now = ViewerRenderResolution.ContinuousWidth(_continuousPageW, dpi.DpiScaleX, dpi.DpiScaleY, _zoomLevel);
+            int lo = Math.Max(0, _currentPage - ContinuousKeepPages), hi = _currentPage + ContinuousKeepPages;
+            return _continuousDrawnWidths.Any(pair => pair.Key >= lo && pair.Key <= hi && pair.Value < now);
+        }
 
         internal async System.Threading.Tasks.Task RenderContinuousPages(int centerPage)
         {
@@ -650,7 +662,11 @@ namespace KillerPDF.Controls
             string currentFile = _currentFile;
             int pageCount      = ReadPageCount;
             double targetW     = _continuousPageW;
-            int renderW        = Math.Max(800, Math.Min(2048, (int)(targetW * 2)));
+            // Drawn at twice the width the page shows, at most twice its width in DIPs: a long document opened at a
+            // fit-page zoom no longer draws its pages several times larger than they show. A settled zoom-in redraws
+            // the pages near the viewport at the new width (ContinuousNeedsSharperPages).
+            var renderDpi      = VisualTreeHelper.GetDpi(this);
+            int renderW        = ViewerRenderResolution.ContinuousWidth(targetW, renderDpi.DpiScaleX, renderDpi.DpiScaleY, _zoomLevel);
 
             // Window of pages to materialize. Slots that already hold a base bitmap are skipped;
             // slots holding a hi-res re-sharpened bitmap belong to the resharpen pass, skip too.
@@ -661,7 +677,8 @@ namespace KillerPDF.Controls
             {
                 if (i >= _continuousPanel.Children.Count) continue;
                 if (_continuousPanel.Children[i] is Border b && (b.Child is not Grid g
-                    || g.Children.Count > 0 && g.Children[0] is Image { Source: null }))
+                    || g.Children.Count > 0 && g.Children[0] is Image { Source: null }
+                    || _continuousDrawnWidths.TryGetValue(i, out int drawn) && drawn < renderW))
                     todo.Add(i);
             }
             if (todo.Count == 0)
@@ -713,6 +730,7 @@ namespace KillerPDF.Controls
                             Dispatcher.Invoke(() =>
                             {
                                 if (!Current()) return;
+                                _continuousDrawnWidths[fic] = renderW;
                                 SetContinuousSlot(fic, cb);
                             });
                             continue;
@@ -816,6 +834,7 @@ namespace KillerPDF.Controls
                                     ProofUnavailable = existing.ProofUnavailable || monitorWarning is not null
                                 });
                             }
+                            _continuousDrawnWidths[fi] = renderW;
                             if (continuousMonitor is null) CacheRender(session, fi, renderW, prot, bmp,
                                 continuous: true, proofStamp: proof?.Stamp);
                             SetContinuousSlot(fi, bmp);
@@ -2098,6 +2117,8 @@ namespace KillerPDF.Controls
                         HighlightSearchResultsOnCurrentPage();
                     if (_viewMode.IsContinuous())
                     {
+                        // A settled zoom-in draws the pages near the viewport again at the width they now need.
+                        if (ContinuousNeedsSharperPages()) _ = RenderContinuousPages(Math.Max(0, _currentPage));
                         RefineVisibleRegions();
                         return;
                     }

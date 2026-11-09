@@ -38,4 +38,20 @@ public sealed class ViewerRenderResolutionTests
         Assert.Equal(1536, ViewerRenderResolution.Secondary(false, 1.0, 1.0, 4.0));
         Assert.Equal(3072, ViewerRenderResolution.Secondary(false, 2.0, 2.0, 4.0));
     }
+
+    // Continuous view draws each page twice as wide as it shows on screen, then scales it to the page's width in DIPs.
+    // It drew 1632 px for a letter page (816 DIPs) at every zoom; below full size it now draws twice its width on
+    // screen, never under 256 px and never more than before. 2 x 816 x 0.46 = 750.72 px; at 150% monitor scale 1126.08.
+    [Theory]
+    [InlineData(816, 1.0, 1.0, 1.0, 1632)]
+    [InlineData(816, 1.0, 1.0, 2.0, 1632)]
+    [InlineData(816, 1.0, 1.0, 0.46, 751)]
+    [InlineData(816, 1.5, 1.5, 0.46, 1127)]
+    [InlineData(300, 1.0, 1.0, 1.0, 800)]
+    [InlineData(816, 1.0, 1.0, 0.05, 256)]
+    public void ContinuousPagesAreDrawnTwiceTheirWidthOnScreen(double pageWidthDip, double dpiX, double dpiY, double zoom,
+        int expected)
+    {
+        Assert.Equal(expected, ViewerRenderResolution.ContinuousWidth(pageWidthDip, dpiX, dpiY, zoom));
+    }
 }
