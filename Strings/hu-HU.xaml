@@ -1410,6 +1410,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Search_Summary">{0} találat {1} oldalon</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Olvashatatlan oldalak, nem keresve: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Nincs találat az olvasható oldalakon. {0} oldalt nem sikerült beolvasni.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Várakozás az oldalakra: {1} fejezetből a(z) {0}.</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Előző találat (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Következő találat (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Bezárás (Esc)</sys:String>
@@ -2144,6 +2145,7 @@ A szerkesztés, a mentés és néhány más funkció esetleg nem működik megfe
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Könyvdiagnosztika</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">A könyv ezen részei kimaradtak vagy leegyszerűsödtek. Az eredeti fájl változatlan.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Ebből a könyvből semmi sem maradt ki.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Az oldalak számlálása még folyik ({1} fejezetből a(z) {0}.). A lista az eddig megszámolt fejezeteket tartalmazza, és a számlálás végén frissül.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">{0}. fejezet</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Nem jelenik meg: {0}. Helyette egy tájékoztató oldal látható.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">A(z) {0} egyik eleme kimaradt.</sys:String>

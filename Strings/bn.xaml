@@ -1403,6 +1403,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Search_Summary">{1}টি পাতায় {0}টি মিল</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">অপঠনযোগ্য পৃষ্ঠা, অনুসন্ধান হয়নি: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">পড়া যায় এমন পৃষ্ঠাগুলোতে কোনো মিল নেই। {0}টি পৃষ্ঠা পড়া যায়নি।</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">পৃষ্ঠার জন্য অপেক্ষা করা হচ্ছে, {1}টি অধ্যায়ের মধ্যে {0} নম্বর</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">পূর্ববর্তী মিল (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">পরবর্তী মিল (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">বন্ধ করুন (Esc)</sys:String>
@@ -2137,6 +2138,7 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_Epub_Diagnostics_Title">বইয়ের ডায়াগনস্টিক</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">বইয়ের এই অংশগুলো বাদ দেওয়া বা সরল করা হয়েছে। মূল ফাইলটি অপরিবর্তিত আছে।</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">এই বই থেকে কিছুই বাদ দেওয়া হয়নি।</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">পৃষ্ঠা এখনও গোনা হচ্ছে ({1}টি অধ্যায়ের মধ্যে {0} নম্বর)। এই তালিকায় এ পর্যন্ত গোনা অধ্যায়গুলো আছে, গোনা শেষ হলে এটি হালনাগাদ হবে।</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">অধ্যায় {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">দেখানো হয়নি: {0}। এর জায়গায় একটি বিজ্ঞপ্তি পৃষ্ঠা দেখানো হবে।</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} থেকে একটি আইটেম বাদ দেওয়া হয়েছে।</sys:String>

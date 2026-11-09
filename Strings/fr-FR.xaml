@@ -1423,6 +1423,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Search_Summary">{0} résultats sur {1} pages</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Pages illisibles, non recherchées : {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Aucun résultat dans les pages lisibles. {0} pages n’ont pas pu être lues.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">En attente des pages, chapitre {0} sur {1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Résultat précédent (Maj+Entrée)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Résultat suivant (Entrée)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Fermer (Échap)</sys:String>
@@ -2157,6 +2158,7 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Diagnostic du livre</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Ces parties du livre ont été omises ou simplifiées. Le fichier d'origine n'est pas modifié.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Rien n'a été omis de ce livre.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Les pages sont encore en cours de comptage (chapitre {0} sur {1}). Cette liste couvre les chapitres déjà comptés et se met à jour une fois le comptage terminé.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Chapitre {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Non affiché : {0}. Une page d'avis le remplace.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Un élément a été omis de {0}.</sys:String>

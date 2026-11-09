@@ -6,10 +6,22 @@ using KillerPDF.Services;
 
 namespace KillerPDF;
 
-// Lists, per chapter, what a native book left out, with Copy and Close like the document reports.
+// Lists, per chapter, what a native book left out, with Copy and Close like the document reports. A book still being
+// paginated says so above the list, which covers the chapters counted so far, and the list fills in when counting ends.
 internal sealed class NativeDiagnosticsDialog : Window
 {
+    private readonly TextBlock _intro;
+    private readonly StackPanel _list;
+    private readonly Button _copy;
+    private string _report = "";
+
     internal NativeDiagnosticsDialog(Window owner, IReadOnlyList<NativeDiagnosticRow> rows)
+        : this(owner, rows, null, null) { }
+
+    /// <param name="rebuild">Reads the rows again, once the book has finished counting its pages.</param>
+    /// <param name="counting">The still-counting note, or null when every page is known.</param>
+    internal NativeDiagnosticsDialog(Window owner, IReadOnlyList<NativeDiagnosticRow> rows,
+        Func<IReadOnlyList<NativeDiagnosticRow>>? rebuild, Func<string?>? counting)
     {
         Title = "KillerPDF - " + L("Str_Epub_Diagnostics_Title");
         Width = 640;
@@ -24,28 +36,16 @@ internal sealed class NativeDiagnosticsDialog : Window
         body.RowDefinitions.Add(new RowDefinition());
         body.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        var intro = Text(L(rows.Count > 0 ? "Str_Epub_Diagnostics_Intro" : "Str_Epub_Diagnostics_None"), muted: true);
-        intro.Margin = new Thickness(0, 0, 0, 12);
-        body.Children.Add(intro);
+        _intro = Text("", muted: true);
+        _intro.Margin = new Thickness(0, 0, 0, 12);
+        AutomationProperties.SetLiveSetting(_intro, AutomationLiveSetting.Polite);
+        body.Children.Add(_intro);
 
-        var list = new StackPanel { Name = "NativeDiagnosticsList" };
-        AutomationProperties.SetName(list, L("Str_Epub_Diagnostics_Title"));
-        foreach (var row in rows)
-        {
-            var heading = Text(row.Heading, muted: false);
-            heading.FontWeight = FontWeights.SemiBold;
-            heading.Margin = new Thickness(0, list.Children.Count == 0 ? 0 : 12, 0, 4);
-            list.Children.Add(heading);
-            foreach (string line in row.Lines)
-            {
-                var item = Text(line, muted: true);
-                item.Margin = new Thickness(12, 0, 0, 2);
-                list.Children.Add(item);
-            }
-        }
+        _list = new StackPanel { Name = "NativeDiagnosticsList" };
+        AutomationProperties.SetName(_list, L("Str_Epub_Diagnostics_Title"));
         var scroller = new ScrollViewer
         {
-            Content = list,
+            Content = _list,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             Focusable = true
@@ -54,15 +54,13 @@ internal sealed class NativeDiagnosticsDialog : Window
         body.Children.Add(scroller);
 
         // The copied report keeps the engine's English diagnosis after each localized reason.
-        string text = NativeDocumentDiagnostics.Report(rows);
-        var copy = UiKit.Make(L("Str_DocumentTools_Copy"), accent: false);
-        copy.IsEnabled = rows.Count > 0;
-        copy.Click += (_, _) =>
+        _copy = UiKit.Make(L("Str_DocumentTools_Copy"), accent: false);
+        _copy.Click += (_, _) =>
         {
             try
             {
-                Clipboard.SetText(text);
-                copy.Content = L("Str_DocumentTools_Copied");
+                Clipboard.SetText(_report);
+                _copy.Content = L("Str_DocumentTools_Copied");
             }
             catch (Exception ex)
             {
@@ -74,13 +72,54 @@ internal sealed class NativeDiagnosticsDialog : Window
         close.IsDefault = true;
         close.IsCancel = true;
         close.Click += (_, _) => Close();
-        var buttons = UiKit.ButtonRow(copy, close);
+        var buttons = UiKit.ButtonRow(_copy, close);
         buttons.Margin = new Thickness(0, 14, 0, 0);
         Grid.SetRow(buttons, 2);
         body.Children.Add(buttons);
 
+        Show(rows, counting?.Invoke());
+        if (counting?.Invoke() is not null && rebuild is not null)
+        {
+            // While the book counts its pages the note follows its progress; when counting ends the list is read again.
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+            timer.Tick += (_, _) =>
+            {
+                if (counting() is { } note)
+                {
+                    _intro.Text = note;
+                    return;
+                }
+                timer.Stop();
+                Show(rebuild(), null);
+            };
+            timer.Start();
+            Closed += (_, _) => timer.Stop();
+        }
+
         Content = DialogFrame.Frame(this, owner, Title, Close, body);
         Loaded += (_, _) => scroller.Focus();
+    }
+
+    private void Show(IReadOnlyList<NativeDiagnosticRow> rows, string? countingNote)
+    {
+        _intro.Text = countingNote ?? L(rows.Count > 0 ? "Str_Epub_Diagnostics_Intro" : "Str_Epub_Diagnostics_None");
+        _list.Children.Clear();
+        foreach (var row in rows)
+        {
+            var heading = Text(row.Heading, muted: false);
+            heading.FontWeight = FontWeights.SemiBold;
+            heading.Margin = new Thickness(0, _list.Children.Count == 0 ? 0 : 12, 0, 4);
+            _list.Children.Add(heading);
+            foreach (string line in row.Lines)
+            {
+                var item = Text(line, muted: true);
+                item.Margin = new Thickness(12, 0, 0, 2);
+                _list.Children.Add(item);
+            }
+        }
+        _report = NativeDocumentDiagnostics.Report(rows);
+        _copy.IsEnabled = rows.Count > 0;
+        _copy.Content = L("Str_DocumentTools_Copy");
     }
 
     private static TextBlock Text(string text, bool muted)

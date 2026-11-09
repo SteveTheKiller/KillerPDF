@@ -1319,6 +1319,7 @@
     <sys:String x:Key="Str_Search_Summary">Ujemanja: {0}, na straneh: {1}</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Neberljive strani, niso preiskane: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Ni ujemanj na berljivih straneh. Število strani, ki jih ni bilo mogoče prebrati: {0}.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Čakanje na strani, poglavje {0} od {1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Prejšnje ujemanje (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Naslednje ujemanje (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Zapri (Esc)</sys:String>
@@ -2046,6 +2047,7 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Diagnostika knjige</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Ti deli knjige so bili izpuščeni ali poenostavljeni. Izvirna datoteka je nespremenjena.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Iz te knjige ni bilo izpuščeno nič.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Strani se še štejejo (poglavje {0} od {1}). Seznam zajema doslej preštete poglavja in se posodobi, ko je štetje končano.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Poglavje {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Ni prikazano: {0}. Namesto tega se prikaže stran z obvestilom.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Iz {0} je bil izpuščen en element.</sys:String>

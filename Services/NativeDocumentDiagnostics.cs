@@ -31,6 +31,19 @@ internal static class NativeDocumentDiagnostics
         return report.ToString();
     }
 
+    /// <summary>
+    /// The note above the rows while the book is still being paginated, naming how far it has come; null once every
+    /// page is known. The rows cover only the chapters paginated so far.
+    /// </summary>
+    internal static string? CountingNote(NativeWorkingDocument document, Func<string, string> loc)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(loc);
+        if (!document.IsPaginating) return null;
+        var (paginated, total) = document.PaginationProgress;
+        return string.Format(loc("Str_Epub_Diagnostics_Counting"), paginated, total);
+    }
+
     /// <remarks>
     /// Chapters appear in reading order and only when something was refused, omitted or ignored.
     /// The panel shows a localized reason; the report adds the engine's English message after it.

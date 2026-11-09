@@ -21,6 +21,23 @@ public sealed class NativeDiagnosticsTests
     };
 
     [Fact]
+    public async Task TheDiagnosticsSayTheBookIsStillBeingCountedUntilItsLastPageIsKnown()
+    {
+        using var gate = new ManualResetEventSlim();
+        using var owner = NativeWorkingDocument.OpenEpub(NativeProgressiveOpenTests.Book(),
+            NativeProgressiveOpenTests.Gated(gate), inBackground: true);
+        static string Loc(string key) => key == "Str_Epub_Diagnostics_Counting" ? "counting {0} of {1}" : key;
+
+        string? counting = NativeDocumentDiagnostics.CountingNote(owner, Loc);
+        gate.Set();
+        await owner.Pagination.WaitAsync(TimeSpan.FromSeconds(20));
+
+        // Chapter 0 of 4 is paginated when the open returns; once the last page is known the note goes.
+        Assert.Equal("counting 1 of 4", counting);
+        Assert.Null(NativeDocumentDiagnostics.CountingNote(owner, Loc));
+    }
+
+    [Fact]
     public void EveryOmissionReasonHasLocalizedWordingInEveryLocale()
     {
         // Each engine reason maps to its own key, present and non-empty in all 20 string files.

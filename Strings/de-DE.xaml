@@ -1412,6 +1412,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Search_Summary">{0} Treffer auf {1} Seiten</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Unlesbare Seiten, nicht durchsucht: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Keine Treffer auf den lesbaren Seiten. {0} Seiten konnten nicht gelesen werden.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Warten auf die Seiten, Kapitel {0} von {1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Vorheriger Treffer (Umschalt+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Nächster Treffer (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Schließen (Esc)</sys:String>
@@ -2146,6 +2147,7 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Buchdiagnose</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Diese Teile des Buchs wurden weggelassen oder vereinfacht. Die Originaldatei bleibt unverändert.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Aus diesem Buch wurde nichts weggelassen.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Die Seiten werden noch gezählt (Kapitel {0} von {1}). Die Liste umfasst die bisher gezählten Kapitel und wird aktualisiert, sobald das Zählen abgeschlossen ist.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Kapitel {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Nicht angezeigt: {0}. An seine Stelle tritt eine Hinweisseite.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Aus {0} wurde ein Element weggelassen.</sys:String>

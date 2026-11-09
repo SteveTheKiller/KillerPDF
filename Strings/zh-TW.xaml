@@ -1405,6 +1405,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Search_Summary">在 {1} 頁中找到 {0} 個相符項目</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">無法讀取的頁面，未搜尋：{0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">可讀取的頁面中沒有相符項目。有 {0} 頁無法讀取。</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">正在等待頁面，第 {0} 章，共 {1} 章</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">上一個相符項目 (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">下一個相符項目 (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">關閉 (Esc)</sys:String>
@@ -2139,6 +2140,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Title">書籍診斷</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">書中的這些部分已被省略或簡化。原始檔案未變更。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">這本書沒有任何內容被省略。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">仍在計算頁面（第 {0} 章，共 {1} 章）。此清單包含目前已計算的章節，計算完成後會更新。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">第 {0} 章</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">未顯示：{0}。將以通知頁取代。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} 中有一個項目已被省略。</sys:String>

@@ -1411,6 +1411,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Search_Summary">{0} wyników na {1} stronach</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Nieczytelne strony, nieprzeszukane: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Brak wyników na czytelnych stronach. Liczba stron, których nie udało się odczytać: {0}.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Oczekiwanie na strony, rozdział {0} z {1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Poprzedni wynik (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Następny wynik (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Zamknij (Esc)</sys:String>
@@ -2145,6 +2146,7 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Diagnostyka książki</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Te części książki zostały pominięte lub uproszczone. Oryginalny plik pozostaje bez zmian.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Z tej książki nic nie pominięto.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Strony są jeszcze liczone (rozdział {0} z {1}). Lista obejmuje policzone dotąd rozdziały i zostanie zaktualizowana po zakończeniu liczenia.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Rozdział {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Niewyświetlone: {0}. W jego miejscu pojawia się strona z informacją.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Z {0} pominięto jeden element.</sys:String>

@@ -1423,6 +1423,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Search_Summary">Збігів: {0} на сторінках: {1}</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Нечитабельні сторінки, без пошуку: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Збігів на читабельних сторінках немає. Не вдалося прочитати сторінок: {0}.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Очікування сторінок, розділ {0} з {1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Попередній збіг (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Наступний збіг (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Закрити (Esc)</sys:String>
@@ -2157,6 +2158,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Діагностика книги</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Ці частини книги було пропущено або спрощено. Вихідний файл не змінено.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">З цієї книги нічого не пропущено.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Сторінки ще підраховуються (розділ {0} з {1}). Список охоплює вже підраховані розділи й оновиться, коли підрахунок завершиться.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Розділ {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Не показано: {0}. Натомість відображається сторінка з повідомленням.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">З {0} пропущено один елемент.</sys:String>

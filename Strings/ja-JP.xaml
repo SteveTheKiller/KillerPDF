@@ -1423,6 +1423,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Search_Summary">{1} ページに {0} 件の一致</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">読み取れないページ（検索対象外）：{0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">読み取れたページに一致はありません。{0} ページは読み取れませんでした。</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">ページを待っています（{1} 章中 {0} 章）</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">前の一致 (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">次の一致 (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">閉じる (Esc)</sys:String>
@@ -2157,6 +2158,7 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_Epub_Diagnostics_Title">書籍の診断</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">この本の以下の部分は省略または簡略化されました。元のファイルは変更されていません。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">この本から省略された部分はありません。</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">ページを数えています（{1} 章中 {0} 章）。この一覧はこれまでに数えた章を示し、数え終わると更新されます。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">第 {0} 章</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">表示されません: {0}。代わりにお知らせページが表示されます。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} から項目が 1 つ省略されました。</sys:String>

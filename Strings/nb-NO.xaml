@@ -1423,6 +1423,7 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Search_Summary">{0} treff på {1} sider</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Uleselige sider, ikke søkt: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Ingen treff på de lesbare sidene. {0} sider kunne ikke leses.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Venter på sidene, kapittel {0} av {1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Forrige treff (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Neste treff (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Lukk (Esc)</sys:String>
@@ -2157,6 +2158,7 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Bokdiagnostikk</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Disse delene av boken ble utelatt eller forenklet. Originalfilen er uendret.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Ingenting ble utelatt fra denne boken.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Sidene telles fortsatt (kapittel {0} av {1}). Listen dekker kapitlene som er talt så langt, og oppdateres når tellingen er ferdig.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Kapittel {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Vises ikke: {0}. En varselside tar dens plass.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Et element ble utelatt fra {0}.</sys:String>

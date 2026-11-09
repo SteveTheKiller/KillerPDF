@@ -1423,6 +1423,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Search_Summary">{0} correspondências em {1} páginas</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Páginas ilegíveis, sem busca: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Nenhuma correspondência nas páginas legíveis. {0} páginas não puderam ser lidas.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Aguardando as páginas, capítulo {0} de {1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Correspondência anterior (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Próxima correspondência (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Fechar (Esc)</sys:String>
@@ -2157,6 +2158,7 @@ A edição, o salvamento e alguns outros recursos podem não funcionar corretame
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Diagnóstico do livro</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Estas partes do livro foram omitidas ou simplificadas. O arquivo original não foi alterado.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Nada foi omitido deste livro.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">As páginas ainda estão sendo contadas (capítulo {0} de {1}). Esta lista cobre os capítulos contados até agora e é atualizada quando a contagem termina.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Capítulo {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Não exibido: {0}. Uma página de aviso ocupa o lugar dele.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Um item foi omitido de {0}.</sys:String>

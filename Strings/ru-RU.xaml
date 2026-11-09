@@ -1426,6 +1426,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Search_Summary">{0} совпадений на {1} страницах</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Нечитаемые страницы, не искались: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Нет совпадений на читаемых страницах. Не удалось прочитать страниц: {0}.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Ожидание страниц, глава {0} из {1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Предыдущее совпадение (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Следующее совпадение (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Закрыть (Esc)</sys:String>
@@ -2160,6 +2161,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Диагностика книги</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Эти части книги были пропущены или упрощены. Исходный файл не изменён.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Из этой книги ничего не пропущено.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Страницы ещё подсчитываются (глава {0} из {1}). Список охватывает уже подсчитанные главы и обновится, когда подсчёт завершится.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Глава {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Не показано: {0}. Вместо неё отображается страница с уведомлением.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Из {0} пропущен один элемент.</sys:String>

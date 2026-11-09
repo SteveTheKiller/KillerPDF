@@ -222,7 +222,30 @@ namespace KillerPDF.Features
         }
 
         /// <summary>Stops a running search and leaves the results on show as they are.</summary>
-        internal void CancelPending() => _runner.Cancel();
+        internal void CancelPending()
+        {
+            _paginationWait++;
+            _runner.Cancel();
+        }
+
+        // Each search's pagination note; a newer search or a cancel ends the older note.
+        private long _paginationWait;
+
+        // Writes "Waiting for pages, chapter n of m" until the search's book is paginated or the search ends or is
+        // stopped. Returns whether it wrote anything.
+        private async Task<bool> ShowPaginationWait(PdfCapturedReadRevision book, Task searching)
+        {
+            long wait = ++_paginationWait;
+            bool wrote = false;
+            while (wait == _paginationWait && !searching.IsCompleted && book.IsPaginating)
+            {
+                var (paginated, total) = book.PaginationProgress;
+                _host.SetResultText(string.Format(_host.Loc("Str_Search_WaitingForPages"), paginated, total));
+                wrote = true;
+                await Task.WhenAny(searching, Task.Delay(250));
+            }
+            return wrote;
+        }
 
         /// <summary>The query-too-short reset (search box text dropped under 2 chars).</summary>
         internal void ClearMatches()
@@ -273,11 +296,21 @@ namespace KillerPDF.Features
                 CurrentSearchSnapshot source = _host.CaptureSearchSnapshot();
                 long editRevision = _host.SearchRevision;
                 _searchedFile = file;
-                SearchResult? found = await _runner.RunAsync(
+                var searching = _runner.RunAsync(
                     token => SearchService.Search(source, query, matchCase, wholeWord, token),
                     () => _host.CurrentFile == file && Revision(file) == revision && _host.SearchRevision == editRevision
                         && _host.NativeSearchRevisionId == source.NativeRevision?.Id);
-                if (found is null) return;
+                // A book still being paginated is searched once its last page is known; until then the bar says how far
+                // pagination has come.
+                bool waited = source.NativeRevision is { IsPaginating: true } paginating
+                    && await ShowPaginationWait(paginating, searching);
+                SearchResult? found = await searching;
+                if (found is null)
+                {
+                    // Stopped (a new query, Esc or the tab closing): the waiting note goes unless a newer search wrote its own.
+                    if (waited && !_runner.IsRunning) _host.SetResultText("");
+                    return;
+                }
                 _resultRevision = editRevision;
                 _resultNativeRevisionId = found.NativeRevisionId;
                 ShowResults(query, matchCase, wholeWord, found, source.NativeRevision);

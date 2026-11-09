@@ -55,8 +55,11 @@ namespace KillerPDF.Controls
         private void ShowNativeDiagnostics()
         {
             if (_nativeDoc is not { } native || Window.GetWindow(this) is not Window owner || Host is null) return;
-            var rows = Services.NativeDocumentDiagnostics.Build(native, Host.Loc);
-            new NativeDiagnosticsDialog(owner, rows).ShowDialog();
+            var host = Host;
+            var rows = Services.NativeDocumentDiagnostics.Build(native, host.Loc);
+            // A book still counting its pages says so, and the list fills in when counting ends.
+            new NativeDiagnosticsDialog(owner, rows, () => Services.NativeDocumentDiagnostics.Build(native, host.Loc),
+                () => Services.NativeDocumentDiagnostics.CountingNote(native, host.Loc)).ShowDialog();
         }
 
         // Same surface tokens, grain host and shadow as the restriction notice, centered at the top of the pane.

@@ -745,6 +745,9 @@ internal sealed class PdfCapturedReadRevision : IDisposable
     /// <summary>True while the native book this revision reads is still adding pages.</summary>
     internal bool IsPaginating => _nativePages?.IsPaginating ?? false;
 
+    /// <summary>How many of the book's spine items are paginated so far, and how many it has.</summary>
+    internal (int Paginated, int Total) PaginationProgress => _nativePages?.PaginationProgress ?? (0, 0);
+
     /// <summary>
     /// Blocks until every page is known, for work that needs the whole book. A book whose pagination failed or was
     /// stopped by closing it keeps the pages it has, and those are what the caller then reads.

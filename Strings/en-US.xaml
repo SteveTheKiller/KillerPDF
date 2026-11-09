@@ -1433,6 +1433,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Search_Summary">{0} matches on {1} pages</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Unreadable pages, not searched: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">No matches on the readable pages. {0} pages could not be read.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Waiting for pages, chapter {0} of {1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Previous Match (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Next Match (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Close (Esc)</sys:String>
@@ -2150,6 +2151,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Book diagnostics</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">These parts of the book were left out or simplified. The original file is unchanged.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Nothing was left out of this book.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Pages are still being counted (chapter {0} of {1}). This list covers the chapters counted so far and updates when counting is done.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Chapter {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Not shown: {0}. A notice page takes its place.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">An item was left out of {0}.</sys:String>

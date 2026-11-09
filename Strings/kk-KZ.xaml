@@ -1323,6 +1323,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Search_Summary">{1} бетте {0} сәйкестік</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Оқылмайтын беттер, ізделмеді: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Оқуға болатын беттерде сәйкестік жоқ. {0} бетті оқу мүмкін болмады.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Беттер күтілуде, {1} тараудың {0}-тарауы</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Алдыңғы сәйкестік (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Келесі сәйкестік (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Жабу (Esc)</sys:String>
@@ -2160,6 +2161,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Кітап диагностикасы</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Кітаптың бұл бөліктері алынып тасталды немесе жеңілдетілді. Бастапқы файл өзгермеген.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Бұл кітаптан ешнәрсе алынып тасталмады.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Беттер әлі саналуда ({1} тараудың {0}-тарауы). Тізім осы уақытқа дейін саналған тарауларды қамтиды және санау аяқталғанда жаңартылады.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">{0}-тарау</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Көрсетілмеді: {0}. Оның орнына хабарландыру беті шығады.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} ішінен бір элемент алынып тасталды.</sys:String>

@@ -1403,6 +1403,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Search_Summary">{0} coincidencias en {1} páginas</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Páginas ilegibles, sin buscar: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Sin coincidencias en las páginas legibles. No se pudieron leer {0} páginas.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Esperando las páginas, capítulo {0} de {1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Coincidencia anterior (Mayús+Intro)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Siguiente coincidencia (Intro)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Cerrar (Esc)</sys:String>
@@ -2137,6 +2138,7 @@ Es posible que la edición, el guardado y algunas otras funciones no funcionen c
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Diagnóstico del libro</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Estas partes del libro se omitieron o se simplificaron. El archivo original no se ha modificado.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">No se omitió nada de este libro.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Las páginas aún se están contando (capítulo {0} de {1}). Esta lista incluye los capítulos contados hasta ahora y se actualiza cuando termina el recuento.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Capítulo {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">No se muestra: {0}. En su lugar aparece una página de aviso.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Se omitió un elemento de {0}.</sys:String>

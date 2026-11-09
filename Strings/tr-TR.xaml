@@ -1403,6 +1403,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Search_Summary">{0} eşleşme, {1} sayfa</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Okunamayan sayfalar, aranmadı: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Okunabilir sayfalarda eşleşme yok. {0} sayfa okunamadı.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Sayfalar bekleniyor, bölüm {0}/{1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Önceki eşleşme (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Sonraki eşleşme (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Kapat (Esc)</sys:String>
@@ -2137,6 +2138,7 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Kitap tanılama</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Kitabın bu kısımları atlandı veya basitleştirildi. Özgün dosya değişmedi.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Bu kitaptan hiçbir şey atlanmadı.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Sayfalar hâlâ sayılıyor (bölüm {0}/{1}). Bu liste şimdiye kadar sayılan bölümleri kapsar ve sayım bitince güncellenir.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Bölüm {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Gösterilmedi: {0}. Yerine bir bildirim sayfası gösterilir.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} dosyasından bir öğe atlandı.</sys:String>

@@ -1423,6 +1423,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Search_Summary">{0} kết quả phù hợp trên {1} trang</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Trang không đọc được, chưa tìm: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Không có kết quả phù hợp trên các trang đọc được. Có {0} trang không đọc được.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Đang chờ các trang, chương {0}/{1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Kết quả trước (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Kết quả tiếp theo (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Đóng (Esc)</sys:String>
@@ -2157,6 +2158,7 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Chẩn đoán sách</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Những phần này của sách đã bị bỏ qua hoặc được đơn giản hóa. Tệp gốc không bị thay đổi.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Không có nội dung nào của sách này bị bỏ qua.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Các trang vẫn đang được đếm (chương {0}/{1}). Danh sách này gồm các chương đã đếm đến giờ và sẽ cập nhật khi đếm xong.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Chương {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Không hiển thị: {0}. Một trang thông báo sẽ thay thế.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Một mục đã bị bỏ qua khỏi {0}.</sys:String>

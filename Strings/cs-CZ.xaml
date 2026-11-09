@@ -1408,6 +1408,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Search_Summary">{0} shod na {1} stránkách</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Nečitelné stránky, nehledáno: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Na čitelných stránkách nejsou žádné shody. Počet stránek, které se nepodařilo přečíst: {0}.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingForPages">Čeká se na stránky, kapitola {0} z {1}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Předchozí shoda (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Další shoda (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Zavřít (Esc)</sys:String>
@@ -2142,6 +2143,7 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_Epub_Diagnostics_Title">Diagnostika knihy</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Intro">Tyto části knihy byly vynechány nebo zjednodušeny. Původní soubor zůstává beze změny.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">Z této knihy nebylo nic vynecháno.</sys:String>
+    <sys:String x:Key="Str_Epub_Diagnostics_Counting">Stránky se ještě počítají (kapitola {0} z {1}). Seznam zahrnuje dosud spočítané kapitoly a po dokončení počítání se aktualizuje.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Kapitola {0}</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Nezobrazeno: {0}. Místo toho se zobrazí stránka s upozorněním.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Z {0} byla vynechána jedna položka.</sys:String>

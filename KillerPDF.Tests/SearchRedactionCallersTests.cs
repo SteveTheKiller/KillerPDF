@@ -446,8 +446,9 @@ public sealed class SearchRedactionCallersTests : IDisposable
         Assert.Contains("_runner.RunAsync(", run);
         Assert.Contains("_host.CurrentFile == file", run);
         // A running search leaves the results on show until its own arrive, and a dropped one never touches them.
-        int awaited = run.IndexOf("await _runner.RunAsync(", StringComparison.Ordinal);
-        int dropped = run.IndexOf("if (found is null) return;", StringComparison.Ordinal);
+        // A search on a book still being paginated shows its progress while it waits, then awaits the same run.
+        int awaited = run.IndexOf("await searching;", StringComparison.Ordinal);
+        int dropped = run.IndexOf("if (found is null)", StringComparison.Ordinal);
         Assert.InRange(dropped, awaited, run.IndexOf("ShowResults(", StringComparison.Ordinal));
         Assert.DoesNotContain("ClearResults(", run[(run.IndexOf("try", StringComparison.Ordinal))..dropped]);
     }
