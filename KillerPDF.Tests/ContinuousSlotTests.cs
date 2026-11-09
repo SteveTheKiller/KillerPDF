@@ -33,6 +33,26 @@ public sealed class ContinuousSlotTests
         Assert.DoesNotContain("private void AddContinuousSlot(", pagination);
     }
 
+    // While a book paginates, its page total reads like "340+". The page badge and the fit statuses say it too.
+    [Fact]
+    public void PageStatusesShowTheProvisionalTotalWhileABookPaginates()
+    {
+        string viewport = Source("Controls", "Viewer", "PdfViewer.Viewport.cs");
+
+        Assert.Contains("ShowPageBadgeText($\"{page + 1} / {ReadPageTotal}\");", viewport);
+        Assert.Equal(2, Count(viewport, "Loc(\"Str_FitWidth\"), "));
+        Assert.Equal(2, Count(viewport, "Loc(\"Str_FitPage\"), "));
+        Assert.Equal(4, Count(viewport, " + 1, ReadPageTotal, $\"{DisplayZoomPct():F0}\")"));
+    }
+
+    private static int Count(string source, string text)
+    {
+        int count = 0;
+        for (int at = source.IndexOf(text, StringComparison.Ordinal); at >= 0; at = source.IndexOf(text, at + 1, StringComparison.Ordinal))
+            count++;
+        return count;
+    }
+
     private static string Between(string source, string start, string end)
     {
         int from = source.IndexOf(start, StringComparison.Ordinal);

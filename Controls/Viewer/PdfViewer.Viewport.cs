@@ -204,7 +204,7 @@ namespace KillerPDF.Controls
         private void ShowPageBadge(int page)
         {
             if (ReadPageCount < 2) return;
-            ShowPageBadgeText($"{page + 1} / {ReadPageCount}");
+            ShowPageBadgeText($"{page + 1} / {ReadPageTotal}");
         }
 
         // #197 follow-up: one number says the least in Grid, where several tiles share the screen -
@@ -2526,7 +2526,7 @@ namespace KillerPDF.Controls
                     if (ci >= 0) NavigateContinuousToPage(ci);
                 }
                 if (ci >= 0 && HasReadDocument)
-                    PresentCurrentPageStatus(string.Format(Loc("Str_FitWidth"), ci + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
+                    PresentCurrentPageStatus(string.Format(Loc("Str_FitWidth"), ci + 1, ReadPageTotal, $"{DisplayZoomPct():F0}"));
                 return;
             }
 
@@ -2541,7 +2541,7 @@ namespace KillerPDF.Controls
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, slotW / dipW));
             ApplyZoom(lite);
             if (idx >= 0 && HasReadDocument)
-                PresentCurrentPageStatus(string.Format(Loc("Str_FitWidth"), idx + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
+                PresentCurrentPageStatus(string.Format(Loc("Str_FitWidth"), idx + 1, ReadPageTotal, $"{DisplayZoomPct():F0}"));
         }
 
         internal void FitToPage(bool lite = false, FitScroll scroll = FitScroll.PageTop)
@@ -2584,7 +2584,7 @@ namespace KillerPDF.Controls
                     ResetContinuousFitHorizontalOffset();
                     NavigateContinuousToPage(ci);
                 }
-                PresentCurrentPageStatus(string.Format(Loc("Str_FitPage"), ci + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
+                PresentCurrentPageStatus(string.Format(Loc("Str_FitPage"), ci + 1, ReadPageTotal, $"{DisplayZoomPct():F0}"));
                 return;
             }
 
@@ -2597,7 +2597,7 @@ namespace KillerPDF.Controls
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax,
                 Math.Min(slotW2 / dipW, viewH / dipH2)));
             ApplyZoom(lite);
-            PresentCurrentPageStatus(string.Format(Loc("Str_FitPage"), idx + 1, ReadPageCount, $"{DisplayZoomPct():F0}"));
+            PresentCurrentPageStatus(string.Format(Loc("Str_FitPage"), idx + 1, ReadPageTotal, $"{DisplayZoomPct():F0}"));
         }
 
         // Re-fit the main view after a reload. Grid keeps its column-fit (FitToWidth alone would

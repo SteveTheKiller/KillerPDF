@@ -15,7 +15,7 @@ public sealed class NativePageCountTests
         string badge = Between(Viewport(), "private void ShowPageBadge(int page)", "private void ShowPageBadgeText(string text)");
 
         Assert.DoesNotContain("_doc", badge, StringComparison.Ordinal);
-        Assert.Contains("ShowPageBadgeText($\"{page + 1} / {ReadPageCount}\");", badge, StringComparison.Ordinal);
+        Assert.Contains("ShowPageBadgeText($\"{page + 1} / {ReadPageTotal}\");", badge, StringComparison.Ordinal);
         Assert.Contains("$\"{first + 1}-{last + 1} / {ReadPageCount}\"", badge, StringComparison.Ordinal);
     }
 
