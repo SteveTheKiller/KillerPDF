@@ -54,6 +54,14 @@ namespace KillerPDF.Shell
         void ISearchHost.ClearHighlights() => ClearSearchHighlights();
         void ISearchHost.RepaintHighlights() => HighlightSearchResultsOnCurrentPage();
         bool ISearchHost.IsPageOnScreen(int pageIdx) => ActiveViewer.IsPageOnScreen(pageIdx);
+        void ISearchHost.ShowReplaceAvailable(bool available) => ShowReplaceToggle(available);
+
+        // EPUB and DjVu tabs are read-only until they are converted to PDF, so their bar is Find alone.
+        private void ShowReplaceToggle(bool available)
+        {
+            if (!available) SetReplaceRowVisible(false);
+            _replaceToggleBtn?.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
+        }
         bool ISearchHost.IsCovered(int pageIdx, double left, double bottom, double right, double top)
             => ActiveViewer.IsPdfRectCovered(pageIdx, left, bottom, right, top);
 
@@ -69,10 +77,12 @@ namespace KillerPDF.Shell
             ShowSearchBar();
         }
 
-        // Ctrl+H: the find bar with its replace row open. An open bar keeps its search text.
+        // Ctrl+H: the find bar with its replace row open. An open bar keeps its search text. A read-only
+        // EPUB or DjVu tab opens Find alone.
         private void ShowReplaceBar()
         {
             if (_searchBar is not { Visibility: Visibility.Visible }) ShowSearchBar();
+            if (!Search.ReplaceAvailable) return;
             SetReplaceRowVisible(true);
             TextBox? target = string.IsNullOrEmpty(_searchBox?.Text) ? _searchBox : _replaceBox;
             target?.Focus();
@@ -318,6 +328,7 @@ namespace KillerPDF.Shell
 
             _searchBar.Visibility = Visibility.Visible;
             SetReplaceRowVisible(false);
+            ShowReplaceToggle(Search.ReplaceAvailable);
             UpdateSearchOptionButtons();
             _searchBox!.Text = "";
             _searchStatus?.Text = "";

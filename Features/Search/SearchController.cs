@@ -95,6 +95,13 @@ namespace KillerPDF.Features
         /// when they come on screen, so the viewer repaints highlights once a scroll settles.</summary>
         internal bool WaitsForPagesOnScreen => _unlocatedPages.Count > 0;
 
+        /// <summary>True when the tab's text can be replaced: a PDF. EPUB and DjVu tabs are read-only until
+        /// they are converted to PDF.</summary>
+        internal bool ReplaceAvailable => _host.NativeSearchRevisionId is null;
+
+        // A tab switch or a newly opened document can change whether the tab's text can be replaced.
+        private void AnnounceReplaceAvailable() => _host.ShowReplaceAvailable(ReplaceAvailable);
+
         /// <summary>The native page's size in points, the unit of its highlight rectangles, for placing them on the
         /// page. The page's own size is in its layout unit: CSS pixels for EPUB, image pixels for DjVu.</summary>
         internal static (double Width, double Height) NativeHighlightPageSize(KillerPdf.Engine.Documents.PdfReadPageGeometry geometry) =>
@@ -188,6 +195,7 @@ namespace KillerPDF.Features
         /// state for a tab that has never searched.</summary>
         internal void Restore(ParkedSearch? parked)
         {
+            AnnounceReplaceAvailable();
             if (parked is not null && (parked.NativeRevisionId != _host.NativeSearchRevisionId
                 || parked.NativeRevisionId is not null && parked.Revision != _host.SearchRevision))
             {
@@ -235,6 +243,7 @@ namespace KillerPDF.Features
         {
             ClearMatches();
             LastQuery = string.Empty;
+            AnnounceReplaceAvailable();
         }
 
         /// <summary>

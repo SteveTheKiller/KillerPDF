@@ -20,6 +20,10 @@ namespace KillerPDF.Features
         /// overlay for every page, so a page with an overlay is not necessarily on screen.</summary>
         bool IsPageOnScreen(int pageIdx) => true;
 
+        /// <summary>Shows or hides the Replace row and its toggle. EPUB and DjVu tabs are read-only until
+        /// they are converted to PDF, so the bar offers Find alone there.</summary>
+        void ShowReplaceAvailable(bool available) { }
+
         /// <summary>Navigates to the page (the match being stepped to lives there).</summary>
         void GoToPage(int pageIdx);
 

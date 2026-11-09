@@ -215,6 +215,8 @@ public sealed class NativeSearchServiceTests
         public void SetResultText(string text) => Completed.TrySetResult(text);
         public void SetResultCount(string text, string? tooltip) => Completed.TrySetResult(text);
         public void ClearHighlights() { }
+        public bool? ReplaceShown { get; private set; }
+        public void ShowReplaceAvailable(bool available) => ReplaceShown = available;
         public Func<int, bool> OnScreen { get; set; } = _ => true;
         public bool IsPageOnScreen(int pageIdx) => OnScreen(pageIdx);
         public int Repaints { get; private set; }
@@ -530,6 +532,33 @@ public sealed class NativeSearchServiceTests
 
     private static int ChapterLayoutCount(object chapters) =>
         (int)chapters.GetType().GetProperty("Layouts", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(chapters)!;
+
+    // The search bar offers Replace only on a tab whose text can be replaced. An EPUB or DjVu tab is read-only until it
+    // is converted to PDF, so the bar there is Find alone; coming back to a PDF tab, or opening one, brings Replace back.
+    [Fact]
+    public void ReplaceIsOfferedOnlyOnPdfTabs()
+    {
+        using var book = new PdfCapturedReadRevision(PdfReadSnapshot.OpenEpub(Book(), SmallPage()));
+        using var scan = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = book });
+        var controller = new KillerPDF.Features.SearchController(host);
+
+        Assert.False(controller.ReplaceAvailable);
+        controller.Restore(null);
+        Assert.False(host.ReplaceShown);
+
+        host.NativeSearchRevisionId = null;
+        Assert.True(controller.ReplaceAvailable);
+        controller.Restore(null);
+        Assert.True(host.ReplaceShown);
+
+        host.NativeSearchRevisionId = scan.Id;
+        controller.ClearPageResults();
+        Assert.False(host.ReplaceShown);
+        host.NativeSearchRevisionId = null;
+        controller.ClearPageResults();
+        Assert.True(host.ReplaceShown);
+    }
 
     // An EPUB tab is read-only until Convert to PDF: opening the book lets the tab's PDF working document go, and both
     // Replace commands stop at the missing document before they read the current match or run a search. So a hit whose
