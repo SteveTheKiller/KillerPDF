@@ -49,7 +49,20 @@ namespace KillerPDF
             PdfDocumentProofViewSnapshot? proof = null)
             : this(pageIndex, string.Empty, null, rotation, proof) => _nativeRevision = revision;
 
-        public BitmapSource? Thumbnail => _thumb;
+        /// <summary>The list reads this only for rows it shows, so a missing or stale picture asks the list's
+        /// thumbnail window to draw it.</summary>
+        public BitmapSource? Thumbnail
+        {
+            get
+            {
+                if (_thumb is null || _stale) RequestThumbnail?.Invoke(PageIndex);
+                return _thumb;
+            }
+        }
+
+        /// <summary>Asks for this row's picture; set by the page list that owns the row.</summary>
+        internal Action<int>? RequestThumbnail { get; set; }
+        private bool _stale;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -66,7 +79,11 @@ namespace KillerPDF
         /// no binding exists yet. Used to carry old thumbnails across a RefreshPageList
         /// call so the list never flashes blank.
         /// </summary>
-        internal void SetThumbnailDirect(BitmapSource src) => _thumb = src;
+        internal void SetThumbnailDirect(BitmapSource src)
+        {
+            _thumb = src;
+            _stale = true;   // shown until this row's own picture is drawn
+        }
 
         /// <summary>Called by RefreshPageList's bulk background loader.</summary>
         internal void SetThumbnail(BitmapSource src)
@@ -79,6 +96,21 @@ namespace KillerPDF
             app.Dispatcher.BeginInvoke(new Action(() =>
             {
                 _thumb = src;
+                _stale = false;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumbnail)));
+            }));
+        }
+
+        /// <summary>Lets go of the picture of a row the list has not asked for lately. A row still on screen asks
+        /// for it again when the list reads it.</summary>
+        internal void ReleaseThumbnail()
+        {
+            var app = Application.Current;
+            if (app == null) return;
+            app.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (_thumb is null) return;
+                _thumb = null;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumbnail)));
             }));
         }

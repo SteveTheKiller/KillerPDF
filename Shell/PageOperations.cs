@@ -425,6 +425,41 @@ namespace KillerPDF.Shell
                     if (prev != null) items[i].SetThumbnailDirect(prev);
                 }
             }
+            // Draw thumbnails only for the rows the list shows, newest request first, and keep a bounded number:
+            // drawing and holding one for every page took about 805 MiB at 10,000 pages and 8 GiB at 100,000.
+            // The rows ask through their Thumbnail binding, which the list reads only for rows it realizes.
+            PdfPageRenderSession? renderSession = null;
+            var sessionGate = new object();
+            var window = new ThumbnailWindow<System.Windows.Media.Imaging.BitmapSource>(pageCount, (i, token) =>
+            {
+                lock (sessionGate)
+                {
+                    if (ct.IsCancellationRequested) return null;
+                    rotSnap.TryGetValue(i, out int rot);
+                    if (nativeRevision is not null)
+                        return PageThumbnailVm.BuildNativeThumb(nativeRevision, i, rot, 128, 256, ct, thumbnailProof?.Settings);
+                    renderSession ??= PdfPageRenderSession.OpenEngineFirst(filePath, 128, 256, protection);
+                    PdfRenderedPage page = renderSession.RenderPreview(i, ct, thumbnailProof?.Settings);
+                    int tw = page.Width;
+                    int th = page.Height;
+                    byte[] raw = page.Pixels;
+                    if (tw <= 0 || th <= 0 || raw == null || raw.Length < tw * th * 4) return null;
+                    if (rot != 0)
+                        (raw, tw, th) = BitmapHelpers.RotateBitmap(raw, tw, th, rot);
+                    return PageThumbnailVm.BuildThumbFromRaw(raw, tw, th);
+                }
+            }, (i, image) =>
+            {
+                if (ct.IsCancellationRequested) return;
+                if (image is null) items[i].ReleaseThumbnail();
+                else items[i].SetThumbnail(image);
+            });
+            ct.Register(() =>
+            {
+                window.Dispose();
+                lock (sessionGate) { renderSession?.Dispose(); renderSession = null; }
+            });
+            foreach (var item in items) item.RequestThumbnail = window.Request;
             _sidebarPages.Show(items, provisional: nativeBook?.IsPaginating == true);
             ApplyPageThumbnailLayout();
             ActiveViewer.SyncPageListSelection(preservedPage);
@@ -435,50 +470,9 @@ namespace KillerPDF.Shell
             ActiveViewer.ThumbCacheFile = filePath;
             ActiveViewer.ThumbCacheComplete = false;
 
-            // Load thumbnails sequentially on a background thread via a single doc reader.
-            _ = System.Threading.Tasks.Task.Run(() =>
-            {
-                try
-                {
-                    using var renderSession = nativeRevision is null
-                        ? PdfPageRenderSession.OpenEngineFirst(filePath, 128, 256, protection) : null;
-                    for (int i = 0; i < pageCount; i++)
-                    {
-                        if (ct.IsCancellationRequested) return;
-                        try
-                        {
-                            if (nativeRevision is not null)
-                            {
-                                rotSnap.TryGetValue(i, out int nativeRotation);
-                                var nativeThumb = PageThumbnailVm.BuildNativeThumb(nativeRevision, i,
-                                    nativeRotation, 128, 256, ct, thumbnailProof?.Settings);
-                                if (nativeThumb is not null && !ct.IsCancellationRequested)
-                                    items[i].SetThumbnail(nativeThumb);
-                                continue;
-                            }
-                            if (renderSession is null)
-                                throw new InvalidOperationException("A PDF thumbnail renderer is required.");
-                            PdfRenderedPage page = renderSession.RenderPreview(i, ct, thumbnailProof?.Settings);
-                            int tw = page.Width;
-                            int th = page.Height;
-                            byte[] raw = page.Pixels;
-                            if (tw <= 0 || th <= 0 || raw == null || raw.Length < tw * th * 4)
-                                continue;
-                            rotSnap.TryGetValue(i, out int rot);
-                            if (rot != 0)
-                                (raw, tw, th) = BitmapHelpers.RotateBitmap(raw, tw, th, rot);
-                            var src = PageThumbnailVm.BuildThumbFromRaw(raw, tw, th);
-                            if (src != null && !ct.IsCancellationRequested)
-                                items[i].SetThumbnail(src);
-                        }
-                        catch { /* skip failed thumbnail; item shows label-only */ }
-                    }
-                    if (!ct.IsCancellationRequested)
-                        thumbnailOwner.Dispatcher.Invoke(() =>
-                            thumbnailOwner.MarkThumbnailCacheComplete(items));
-                }
-                catch { /* docReader open failed; all items remain label-only */ }
-            }, ct);
+            // Every row draws itself when shown, so the list is complete as it stands and a pane that is focused
+            // again reuses it.
+            thumbnailOwner.MarkThumbnailCacheComplete(items);
         }
     }
 }

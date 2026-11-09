@@ -142,6 +142,7 @@
     <Compile Include="..\Services\PageDropRoute.cs" Link="Services\PageDropRoute.cs" />
     <Compile Include="..\Services\AccessibilityReviewSource.cs" Link="Services\AccessibilityReviewSource.cs" />
     <Compile Include="..\Services\PdfEngineDocumentSession.cs" Link="Services\PdfEngineDocumentSession.cs" />
+    <Compile Include="..\Services\ThumbnailWindow.cs" Link="Services\ThumbnailWindow.cs" />
     <Compile Include="..\Services\RuntimeEncodingBootstrap.cs" Link="Services\RuntimeEncodingBootstrap.cs" />
     <Compile Include="..\Services\Signing\KillerCmsSigner.cs" Link="Services\Signing\KillerCmsSigner.cs" />
     <Compile Include="..\Services\Signing\CertificateCatalog.cs" Link="Services\Signing\CertificateCatalog.cs" />
