@@ -64,8 +64,21 @@ public sealed class PdfSdrDisplayConverterTests
         Assert.Null(result.ProfileContentSha256);
     }
 
+    [Fact]
+    public void AnSdrDisplayWithNoAssociatedProfileIsAnSrgbMonitorWithoutAFallback()
+    {
+        // Windows treats an unprofiled SDR monitor as sRGB, so its device bytes are the sRGB
+        // encoding of the frame: linear red (1, 0, 0) is sRGB red, BGRA 0, 0, 255, 255.
+        var converter = new PdfSdrDisplayConverter((name, token) => throw new InvalidOperationException("No profile file may be read."));
+        converter.UpdateDisplay(Display(9, profile: PdfDisplayProfileStatus.NoProfile));
+        var result = converter.Convert(new PdfRenderedFrame(1, 1, [1f, 0f, 0f, 1f], PdfFrameColorEncoding.LinearSrgbD65));
+        Assert.Equal(PdfSdrConversionOutcome.Converted, result.Outcome);
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, result.BgraPixels.ToArray());
+        Assert.Null(result.FailureOperation);
+        Assert.Equal(9, result.DisplayGeneration);
+    }
+
     [Theory]
-    [InlineData(PdfDisplayProfileStatus.NoProfile)]
     [InlineData(PdfDisplayProfileStatus.Unavailable)]
     [InlineData(PdfDisplayProfileStatus.CrossAdapterAmbiguous)]
     public void UnestablishedProfileReturnsNoManagedPixelsAndDoesNotReadAFile(PdfDisplayProfileStatus status)

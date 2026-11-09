@@ -246,21 +246,29 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
             {
                 // Modern display associations use the target adapter with the source identifier.
                 result = getDefault(scope, path.Target.Adapter, path.Source.Id, 0, 7, out name);
-                if (result != 0)
-                    return new(PdfDisplayProfileStatus.Unavailable, scope, null, "ColorProfileGetDisplayDefault", result);
-                if (name == 0)
-                    return new(PdfDisplayProfileStatus.NoProfile, scope, null, null, null);
+                if (result != 0 || name == 0) return DefaultProfileResult(scope, result, null);
                 for (int length = 0; length < 32768; length++)
                 {
                     if (Marshal.ReadInt16(name, length * 2) != 0) continue;
-                    return length == 0 ? new(PdfDisplayProfileStatus.NoProfile, scope, null, null, null)
-                        : new(PdfDisplayProfileStatus.Named, scope, Marshal.PtrToStringUni(name, length), null, null);
+                    return DefaultProfileResult(scope, 0, Marshal.PtrToStringUni(name, length));
                 }
                 return new(PdfDisplayProfileStatus.Unavailable, scope, null, "ColorProfileNameLimit", null);
             }
             finally { if (name != 0) LocalFree(name); }
         }
         finally { NativeLibrary.Free(library); }
+    }
+
+    /// <summary>Maps a ColorProfileGetDisplayDefault result and returned name to an association.</summary>
+    /// <remarks>A display without an association reports ERROR_FILE_NOT_FOUND; that is no profile, not a failure.</remarks>
+    public static PdfDisplayProfileAssociation DefaultProfileResult(uint scope, int hresult, string? name)
+    {
+        const int NoAssociation = unchecked((int)0x80070002);
+        if (hresult == NoAssociation) return new(PdfDisplayProfileStatus.NoProfile, scope, null, null, null);
+        if (hresult != 0)
+            return new(PdfDisplayProfileStatus.Unavailable, scope, null, "ColorProfileGetDisplayDefault", hresult);
+        return string.IsNullOrEmpty(name) ? new(PdfDisplayProfileStatus.NoProfile, scope, null, null, null)
+            : new(PdfDisplayProfileStatus.Named, scope, name, null, null);
     }
 
     static PdfDisplaySdrWhiteLevel CaptureSdrWhiteLevel(DisplayTarget target, CancellationToken cancellationToken)
