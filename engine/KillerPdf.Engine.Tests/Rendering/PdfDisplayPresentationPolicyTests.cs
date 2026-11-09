@@ -70,6 +70,27 @@ public sealed class PdfDisplayPresentationPolicyTests
             PdfMonitorTransformOwner.Application, 1, null), PdfDisplayPresentationPolicy.Resolve(display));
     }
 
+    // A conventional SDR monitor with no profile is sRGB to Windows, which is what a page's sRGB bytes already are, so it
+    // needs no monitor conversion and no fallback notice: pages draw through the plain sRGB path, as in 1.9.2. A
+    // monitor with a profile keeps application conversion (above), and one whose profile cannot be read still needs it.
+    [Fact]
+    public void ConventionalSdrWithoutAProfileNeedsNoMonitorConversion()
+    {
+        var target = new PdfDisplayTarget("plain-output", null)
+        {
+            ColorState = new(PdfDisplayColorMode.ConventionalSdr, 15, 1, 0, 0, 8, null, null),
+            StandardProfile = new(PdfDisplayProfileStatus.NoProfile, 0, null, null, null)
+        };
+        var display = new PdfDisplayDiscoverySnapshot(46, PdfDisplayDiscoveryStatus.Available,
+            "plain-desktop", new PdfDisplayBounds(0, 0, 1920, 1080), null, null)
+        {
+            TargetAssociation = new(PdfDisplayTargetStatus.SingleTarget, [target])
+        };
+
+        Assert.Equal(new PdfDisplayPresentationDecision(PdfPresentationMode.CompatibilitySdr,
+            PdfMonitorTransformOwner.None, 1, null), PdfDisplayPresentationPolicy.Resolve(display));
+    }
+
     [Fact]
     public void AdvancedColorSdrUsesDisplayWhiteWithoutHdrWhiteScaling()
     {

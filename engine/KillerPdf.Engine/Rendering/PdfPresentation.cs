@@ -8,7 +8,9 @@ public enum PdfMonitorTransformOwner
     /// <summary>The application owns monitor conversion.</summary>
     Application,
     /// <summary>The compositor owns monitor conversion.</summary>
-    Compositor
+    Compositor,
+    /// <summary>No monitor conversion is needed: an SDR monitor without a profile shows sRGB bytes as they are.</summary>
+    None
 }
 
 /// <summary>Describes the active presentation transport.</summary>

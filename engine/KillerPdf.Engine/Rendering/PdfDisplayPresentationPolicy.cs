@@ -13,7 +13,7 @@ public sealed record PdfDisplayPresentationDecision(PdfPresentationMode Mode,
 /// <remarks>
 /// This policy interprets Windows Advanced Color observations. It does not create a transport,
 /// load a monitor profile, perform conversion or establish physical accuracy. Conventional SDR
-/// requires application-managed conversion. Advanced Color leaves final conversion to the
+/// requires application-managed conversion when the monitor has a profile, and none when it has none. Advanced Color leaves final conversion to the
 /// compositor; only HDR needs the reported SDR-white adjustment to its 80-nit scRGB reference.
 /// An unavailable decision must not be treated as a successfully managed fallback.
 /// </remarks>
@@ -27,8 +27,12 @@ public static class PdfDisplayPresentationPolicy
             && display.TargetAssociation is { Status: PdfDisplayTargetStatus.SingleTarget, Targets.Count: 1 } association)
         {
             var target = association.Targets[0];
+            // An SDR monitor without a profile is sRGB to Windows, so pages are shown as their sRGB bytes with no
+            // conversion; one with a profile, or whose profile could not be established, is converted by the application.
             if (target.ColorState?.Mode == PdfDisplayColorMode.ConventionalSdr)
-                return new(PdfPresentationMode.CompatibilitySdr, PdfMonitorTransformOwner.Application, 1, null);
+                return new(PdfPresentationMode.CompatibilitySdr,
+                    target.StandardProfile?.Status == PdfDisplayProfileStatus.NoProfile
+                        ? PdfMonitorTransformOwner.None : PdfMonitorTransformOwner.Application, 1, null);
             if (target.ColorState?.Mode == PdfDisplayColorMode.AdvancedColorSdr)
                 return new(PdfPresentationMode.LinearFloat, PdfMonitorTransformOwner.Compositor, 1, null);
             if (target is { ColorState.Mode: PdfDisplayColorMode.Hdr,

@@ -140,7 +140,8 @@ internal static class SdrMonitorSmoke
                 [target with { StandardProfile = new(PdfDisplayProfileStatus.NoProfile, 0, null, null, null) }]) };
             ReturnToSingle();
             CheckPixels([0, 0, 255, 255], "missing-profile");
-            // Windows treats an unprofiled SDR monitor as sRGB: sRGB pixels are the managed result, so no fallback is shown.
+            // Windows treats an unprofiled SDR monitor as sRGB, so pages take the plain sRGB path with no monitor
+            // conversion and no fallback notice.
             if (profileReads != previousReads || !string.IsNullOrWhiteSpace(image.ToolTip?.ToString()))
                 throw new InvalidOperationException("A monitor without a profile must show sRGB without a fallback warning and without reading a profile.");
             checks.Add(new { stage, actual, visible, profileReads, warning = image.ToolTip.ToString() });

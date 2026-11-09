@@ -39,16 +39,8 @@ public sealed class PdfSdrDisplayConverter(Func<string, CancellationToken, PdfCo
         if (policy.TransformOwner != PdfMonitorTransformOwner.Application)
             return new(PdfSdrConversionOutcome.Unavailable, display.Generation, display.MonitorIdentity,
                 null, ReadOnlyMemory<byte>.Empty, "ApplicationMonitorConversionNotSelected");
+        // A monitor without a profile is never the application's to convert (the policy above returns first).
         var association = display.TargetAssociation!.Targets[0].StandardProfile;
-        // Windows treats an SDR monitor without an associated profile as sRGB, so its device
-        // bytes are the frame's sRGB encoding and nothing has fallen back.
-        if (association is { Status: PdfDisplayProfileStatus.NoProfile })
-        {
-            byte[] srgb = frame.ToSrgbBgra32(cancellationToken);
-            return ReferenceEquals(display, Volatile.Read(ref _display))
-                ? new(PdfSdrConversionOutcome.Converted, display.Generation, display.MonitorIdentity, null, srgb, null)
-                : new(PdfSdrConversionOutcome.Stale, display.Generation, display.MonitorIdentity, null, ReadOnlyMemory<byte>.Empty, null);
-        }
         if (association is not { Status: PdfDisplayProfileStatus.Named }
             || string.IsNullOrWhiteSpace(association.Name))
             return new(PdfSdrConversionOutcome.Unavailable, display.Generation, display.MonitorIdentity,
