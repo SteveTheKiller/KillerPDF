@@ -74,11 +74,13 @@ internal sealed class EpubFormattingTree
                         else if (!space)
                             throw new InvalidDataException("Native EPUB source text has no normalized position.");
                         bool preserved = text.Owner.Style.PreserveWhitespace;
+                        // The CR of a preformatted CR LF pair has no text of its own; its LF ends the line.
+                        if (preserved && !mapped && text.Value[raw] == '\r') continue;
                         if (preserved && !mapped)
                             throw new InvalidDataException("Native EPUB preserved text has no source position.");
                         if (!preserved && space && sequence.Atoms.LastOrDefault() is { IsSpace: true }) continue;
                         sequence.Atoms.Add(new(mapped ? index : cursor, text.Owner, IsSpace: space, HasSource: mapped,
-                            HardBreak: preserved && text.Value[raw] == '\n'));
+                            HardBreak: preserved && text.Value[raw] is '\n' or '\r'));
                     }
                     continue;
                 }

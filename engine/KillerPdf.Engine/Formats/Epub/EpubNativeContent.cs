@@ -410,10 +410,6 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal Text TextNode(string value)
     {
         var owner = _ancestors.Peek();
-        if (owner.Style.PreserveWhitespace && value.Contains('\t'))
-            throw new NotSupportedException("Native EPUB preformatted tabs are not implemented.");
-        if (owner.Style.PreserveWhitespace && value.Contains('\r'))
-            throw new NotSupportedException("Native EPUB preformatted literal carriage returns are not implemented.");
         if (owner.Name == "ul" && !IsFormattingWhitespace(value))
             throw new NotSupportedException("Native EPUB unordered-list text requires a list item.");
         if (owner.Name == "hr")

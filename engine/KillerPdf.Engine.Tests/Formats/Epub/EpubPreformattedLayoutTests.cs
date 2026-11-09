@@ -34,19 +34,56 @@ public sealed class EpubPreformattedLayoutTests
         Assert.Equal(original, source);
     }
 
+    // CSS Text 3 tab-size: 8, measured in the pre font's space advance (6px at 10px here), so stops fall every 48px
+    // from the line start; a tab that starts on a stop moves to the following one.
     [Theory]
-    [InlineData("<pre>A\tA</pre>")]
-    [InlineData("<pre>A&#13;A</pre>")]
-    public void PreformattedTabsAndCarriageReturnsRemainRefused(string body)
+    [InlineData("<pre style='margin:0'>A\tA</pre>", 1, 8, 42, 50)]
+    [InlineData("<pre style='margin:0'>\tA</pre>", 0, 2, 48, 50)]
+    [InlineData("<pre style='margin:0'>AAAAAAAA\tA</pre>", 8, 50, 48, 98)]
+    public void PreformattedTabsAdvanceToTheNextEightSpaceStop(string body, int tab, double tabLeft, double tabWidth, double nextLeft)
     {
         byte[] source = Book(body), original = source.ToArray();
         var font = FontWithMappedSpace();
         var book = EpubDocument.Open(source);
-        Assert.Throws<NotSupportedException>(() => book.CreateLayout(new EpubLayoutOptions(80, 40, font)
-        { FontSize = 10, Margin = 2, FontFamilyResolver = _ => font }));
-        Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
-        { PageWidthPoints = 60, PageHeightPoints = 30, MarginPoints = 1.5, FontSizePoints = 7.5,
+        var layout = book.CreateLayout(new EpubLayoutOptions(120, 40, font)
+        { FontSize = 10, Margin = 2, FontFamilyResolver = _ => font, IsolateChapterFailures = true });
+        Assert.Empty(layout.ChapterDiagnostics);
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal('\t', page.Text[tab]);
+        var placed = page.TextPlacements.Single(item => item.Start == tab);
+        Assert.Equal(tabLeft, placed.Left, 6);
+        Assert.Equal(tabWidth, placed.Width, 6);
+        Assert.Equal(nextLeft, page.TextPlacements.Single(item => item.Start == tab + 1).Left, 6);
+        // In the PDF the letter after the tab keeps its place: 0.75 points per CSS pixel.
+        var pdf = PdfDocument.Open(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 90, PageHeightPoints = 30, MarginPoints = 1.5, FontSizePoints = 7.5,
             FontFamilyResolver = _ => font }));
+        Assert.Equal(nextLeft * 0.75, new PdfPageContentReader(pdf).Read(0).Letters.Last().StartBaseLine.X, 6);
+        Assert.Equal(original, source);
+    }
+
+    // The parser already folds literal line breaks (XML 1.0 section 2.11), but a CR written as &#13; survives it. Like the
+    // XML end-of-line rule, a CR LF pair and a lone CR then end the line as a single line feed (CSS Text 3 would show the
+    // lone CR as a space instead; KP-B4 follows the XML rule).
+    [Theory]
+    [InlineData("<pre style='margin:0'>A&#13;A</pre>")]
+    [InlineData("<pre style='margin:0'>A&#13;&#10;A</pre>")]
+    [InlineData("<pre style='margin:0'>A&#13;\nA</pre>")]
+    public void PreformattedCarriageReturnsEndTheLineOnce(string body)
+    {
+        byte[] source = Book(body), original = source.ToArray();
+        var font = FontWithMappedSpace();
+        var book = EpubDocument.Open(source);
+        Assert.Equal("A\nA", book.ReadText(0));
+        var layout = book.CreateLayout(new EpubLayoutOptions(80, 40, font)
+        { FontSize = 10, Margin = 2, FontFamilyResolver = _ => font, IsolateChapterFailures = true });
+        Assert.Empty(layout.ChapterDiagnostics);
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal("A\nA", page.Text);
+        Assert.Equal(new double[] { 2, 12 }, page.TextPlacements.Select(item => item.Top));
+        Assert.Equal(new double[] { 2, 2 }, page.TextPlacements.Select(item => item.Left));
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+        { PageWidthPoints = 60, PageHeightPoints = 30, MarginPoints = 1.5, FontSizePoints = 7.5, FontFamilyResolver = _ => font }));
         Assert.Equal(original, source);
     }
 

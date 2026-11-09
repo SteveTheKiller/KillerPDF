@@ -145,6 +145,13 @@ public sealed partial class EpubDocument
                         if (preDepth >= 0)
                         {
                             pendingSpace = false;
+                            // A CR written as &#13; survives parsing; like XML end-of-line handling, CR LF and a
+                            // lone CR end the line once, as a line feed.
+                            if (character == '\r')
+                            {
+                                if (offset + 1 < reader.Value.Length && reader.Value[offset + 1] == '\n') continue;
+                                character = '\n';
+                            }
                             Append(character, source is null ? null : new(source, offset));
                             preservedTextEnd = result.Length;
                         }

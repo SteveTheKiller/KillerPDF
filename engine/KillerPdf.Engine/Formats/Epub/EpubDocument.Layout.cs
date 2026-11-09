@@ -366,10 +366,12 @@ public sealed partial class EpubDocument
             ILookup<ushort, OpenTypeGlyphSubstitution.SubstitutionRule>>(ReferenceEqualityComparer.Instance);
         // Per-chapter work caps scale with the chapter's own character bound so long chapters fit.
         const int chapterWork = 8 * EpubNativeContent.MaximumChapterCharacters;
+        // How far the current line has advanced, for preformatted tab stops.
+        double lineAdvance = 0;
         for (int runStart = 0; runStart < text.Length;)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (text[runStart] == '\n') { runStart++; continue; }
+            if (text[runStart] == '\n') { runStart++; lineAdvance = 0; continue; }
             int runEnd = runStart;
             var run = new List<EpubGlyphCluster>();
             var owner = content.Characters[runStart]?.Node.Owner;
@@ -388,7 +390,17 @@ public sealed partial class EpubDocument
                 ushort glyph = font.GetGlyphId(scalar.Value);
                 bool substituted = glyph == 0 && scalar.Value == 0xA0;
                 if (substituted) glyph = BlankSpace(font);
-                if (BlankAdvance(scalar.Value, font) is { } blankAdvance)
+                double size = (owner?.Style ?? content.DefaultStyle).FontSize;
+                if (scalar.Value == '\t')
+                {
+                    // CSS Text 3 tab-size 8: stops every eight space advances of this font from the line start.
+                    ushort spaceGlyph = font.GetGlyphId(' ');
+                    double stop = 8 * size * (spaceGlyph == 0 ? .5 : font.GetAdvanceWidth(spaceGlyph) / (double)font.UnitsPerEm);
+                    double next = (Math.Floor(lineAdvance / stop + 1e-9) + 1) * stop;
+                    glyph = BlankSpace(font);
+                    blankAdvances[runEnd] = (next - lineAdvance) / size;
+                }
+                else if (BlankAdvance(scalar.Value, font) is { } blankAdvance)
                 {
                     glyph = BlankSpace(font);
                     blankAdvances[runEnd] = blankAdvance;
@@ -403,6 +415,8 @@ public sealed partial class EpubDocument
                         { Reason = EpubOmissionReason.MissingGlyph });
                 }
                 run.Add(Cluster(runEnd, scalar.Utf16SequenceLength, glyph, substituted));
+                lineAdvance += size * (blankAdvances.TryGetValue(runEnd, out double blankEm) ? blankEm
+                    : font.GetAdvanceWidth(glyph) / (double)font.UnitsPerEm);
                 runEnd += scalar.Utf16SequenceLength;
             }
             if (!latin && smallCaps && run.Any(cluster => Rune.GetUnicodeCategory(ReadScalar(cluster.Start))
@@ -495,7 +509,8 @@ public sealed partial class EpubDocument
             TrueTypeFont? spaceFallback = null;
             bool Accept(TrueTypeFont selected)
             {
-                if (scalar is null || selected.GetGlyphId(scalar.Value) != 0
+                // A tab draws nothing, so it stays in the run's font and measures that font's spaces.
+                if (scalar is null or '\t' || selected.GetGlyphId(scalar.Value) != 0
                     || BlankAdvance(scalar.Value, selected) is not null) return true;
                 if (scalar == 0xA0 && spaceFallback is null && BlankSpace(selected) != 0)
                     spaceFallback = selected;
@@ -559,7 +574,7 @@ public sealed partial class EpubDocument
             if (!Rune.TryGetRuneAt(text, index, out Rune scalar))
                 throw new NotSupportedException("Native EPUB layout requires valid Unicode scalar text.");
             int value = scalar.Value;
-            if (value is >= ' ' and <= '~' or 0x2122) return scalar;
+            if (value is >= ' ' and <= '~' or 0x2122 or '\t') return scalar;
             // Blank format and space characters need no shaping: they advance without ink.
             if (BlankAdvance(value, options.DefaultFont) is not null) return scalar;
             // Overlay marks (canonical combining class 1) are drawn centered over their base with no anchor

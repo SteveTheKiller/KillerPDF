@@ -11,7 +11,7 @@ public sealed class EpubOmissionReasonTests
     [Theory]
     [InlineData("<p>A</p><script>x</script>", EpubOmissionReason.Scripting)]
     [InlineData("<p>A&#x05D7;</p>", EpubOmissionReason.UnsupportedScript)]
-    [InlineData("<pre>A\tA</pre>", EpubOmissionReason.UnsupportedLayout)]
+    [InlineData("<pre>A<pre>A</pre></pre>", EpubOmissionReason.UnsupportedLayout)]
     public void ChapterRefusalsCarryTheirReason(string body, EpubOmissionReason reason)
     {
         var layout = Layout(new Book { Chapters = { Chapter(body) } });
