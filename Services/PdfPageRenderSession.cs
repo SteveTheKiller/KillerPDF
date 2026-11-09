@@ -870,6 +870,18 @@ internal sealed class PdfCapturedReadRevision : IDisposable
             return page;
         }
 
+        // The page's text alone, which a native EPUB reads from its page index without laying the chapter out again.
+        internal string ReadNativeText(int pageIndex)
+        {
+            _ = _session ?? throw new ObjectDisposedException(nameof(Lease));
+            cancellation.Token.ThrowIfCancellationRequested();
+            EngineReadSnapshot snapshot = _nativeSnapshot
+                ?? throw new NotSupportedException("Native text is available only for captured native documents.");
+            string text = snapshot.ReadPageText(pageIndex, cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
+            return text;
+        }
+
         internal KillerPdf.Engine.Rendering.PdfRenderedFrame RenderFrame(int pageIndex, EngineRenderOptions options)
         {
             IRenderSession active = _session ?? throw new ObjectDisposedException(nameof(Lease));

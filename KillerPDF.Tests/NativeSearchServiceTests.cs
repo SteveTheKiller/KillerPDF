@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.IO;
 using System.IO.Compression;
+using System.Reflection;
 using System.Text;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Fonts;
@@ -328,6 +329,76 @@ public sealed class NativeSearchServiceTests
             Assert.Equal(33, hit.top, 12);
         });
         Assert.Equal(3, result.Hits[0].left, 12);
+    }
+
+    // Search matches each page's indexed text first; only a page with a match reads its geometry, so a rare word
+    // lays out at most the one chapter it is in instead of every chapter of the book.
+    [Fact]
+    public void NativeSearchLaysOutOnlyTheChapterWithTheMatch()
+    {
+        using var resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        string filler = string.Concat(Enumerable.Repeat("<p>AAAA AAA AAAAA AA AAAA AAA</p>", 30));
+        var snapshot = PdfReadSnapshot.OpenEpub(Chapters(filler, filler, filler + "<p>AA BB</p>", filler, filler),
+            new EpubLayoutOptions(200, 160, TrueTypeFont.Load(fontBytes.ToArray())) { FontSize = 12, Margin = 4 });
+        using var revision = new PdfCapturedReadRevision(snapshot);
+        var chapters = ChapterLayouts(snapshot);
+        chapters.GetType().GetProperty("PrefetchNeighbors", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(chapters, false);
+        Assert.True(snapshot.PageCount > 10);
+
+        var result = SearchService.Search(new CurrentSearchSnapshot([], []) { NativeRevision = revision },
+            "BB", true, true, CancellationToken.None);
+
+        var hit = Assert.Single(result.Hits);
+        Assert.True(hit.HasGeometry);
+        Assert.Equal("BB", hit.Source!.Content.Substring(hit.Start, hit.Length));
+        Assert.Equal(new[] { hit.page }, result.ResultPages);
+        int layouts = (int)chapters.GetType().GetProperty("Layouts", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(chapters)!;
+        Assert.True(layouts <= 1, $"A search with one match laid out {layouts} chapters.");
+    }
+
+    // The engine's chapter re-layout cache, reached by reflection because the app tests do not see engine internals.
+    private static object ChapterLayouts(PdfReadSnapshot snapshot)
+    {
+        const BindingFlags members = BindingFlags.NonPublic | BindingFlags.Instance;
+        object layout = typeof(PdfReadSnapshot).GetProperty("EpubLayout", members)!.GetValue(snapshot)!;
+        return layout.GetType().GetProperty("ChapterPages", members)!.GetValue(layout)!;
+    }
+
+    private static byte[] Chapters(params string[] bodies)
+    {
+        using var output = new MemoryStream();
+        using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
+        {
+            Add("mimetype", "application/epub+zip", CompressionLevel.NoCompression);
+            Add("META-INF/container.xml", """
+                <container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0"><rootfiles><rootfile full-path="EPUB/book.opf" media-type="application/oebps-package+xml"/></rootfiles></container>
+                """);
+            string manifest = string.Concat(bodies.Select((_, index) =>
+                $"<item id=\"c{index}\" href=\"c{index}.xhtml\" media-type=\"application/xhtml+xml\"/>"));
+            string spine = string.Concat(bodies.Select((_, index) => $"<itemref idref=\"c{index}\"/>"));
+            Add("EPUB/book.opf", $"""
+                <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id">
+                  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="id">urn:test:native-search-chapters</dc:identifier><dc:title>Native search</dc:title><dc:language>en</dc:language><meta property="dcterms:modified">2026-11-05T00:00:00Z</meta></metadata>
+                  <manifest>{manifest}<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/></manifest>
+                  <spine>{spine}</spine>
+                </package>
+                """);
+            for (int index = 0; index < bodies.Length; index++)
+                Add($"EPUB/c{index}.xhtml", "<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>Chapter</title></head><body>"
+                    + bodies[index] + "</body></html>");
+            Add("EPUB/nav.xhtml", """
+                <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="c0.xhtml">Native search</a></li></ol></nav></body></html>
+                """);
+            void Add(string path, string text, CompressionLevel compression = CompressionLevel.Optimal)
+            {
+                using var stream = zip.CreateEntry(path, compression).Open();
+                stream.Write(Encoding.UTF8.GetBytes(text));
+            }
+        }
+        return output.ToArray();
     }
 
     [Fact]

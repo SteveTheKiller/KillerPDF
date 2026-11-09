@@ -205,18 +205,44 @@ namespace KillerPDF.Services
                 cancellationToken.ThrowIfCancellationRequested();
                 if (revision.IsClosed) throw new OperationCanceledException("The captured native document was closed.");
             }
+            // Pass 1 matches each page's text alone, which a native EPUB reads from its page index; only pages with a
+            // match then read their geometry. Those are read last page first, so a chapter laid out as far as its last
+            // match already holds its earlier ones and is laid out once.
+            var matchedPages = new List<int>();
+            int matches = 0;
             for (int pageIndex = 0; pageIndex < revision.PageCount; pageIndex++)
             {
                 CheckCancellation();
-                KillerPdf.Engine.Documents.PdfReadTextPage page;
-                try { page = lease.ReadNativeTextPage(pageIndex); }
+                string text;
+                try { text = lease.ReadNativeText(pageIndex); }
                 catch (Exception error) when (CanSkipPage(error))
                 {
-                    result.UnreadablePages.Add(pageIndex);
-                    result.UnreadableMessages[pageIndex] = error.Message;
-                    failures.Refused(error);
+                    MarkUnreadable(pageIndex, error);
                     continue;
                 }
+                int pageMatches = TextReplacePlanner.FindSpans(text, query, matchCase, wholeWord).Count();
+                if (pageMatches == 0) continue;
+                matches += pageMatches;
+                if (matches > maximumMatches)
+                    throw new System.IO.InvalidDataException("Native search exceeded the match limit.");
+                matchedPages.Add(pageIndex);
+            }
+            var geometryPages = new Dictionary<int, KillerPdf.Engine.Documents.PdfReadTextPage>();
+            for (int at = matchedPages.Count - 1; at >= 0; at--)
+            {
+                CheckCancellation();
+                int pageIndex = matchedPages[at];
+                try { geometryPages[pageIndex] = lease.ReadNativeTextPage(pageIndex); }
+                catch (Exception error) when (CanSkipPage(error))
+                {
+                    MarkUnreadable(pageIndex, error);
+                }
+            }
+            result.UnreadablePages.Sort();
+            foreach (int pageIndex in matchedPages)
+            {
+                CheckCancellation();
+                if (!geometryPages.TryGetValue(pageIndex, out var page)) continue;
                 bool matchedPage = false;
                 var regions = page.Regions.OrderBy(region => region.Start).ToArray();
                 var activeRegions = new SortedDictionary<int, KillerPdf.Engine.Documents.PdfReadTextRegion>();
@@ -281,6 +307,13 @@ namespace KillerPDF.Services
             CheckCancellation();
             failures.RequireAReadablePage(revision.PageCount);
             return result;
+
+            void MarkUnreadable(int pageIndex, Exception error)
+            {
+                result.UnreadablePages.Add(pageIndex);
+                result.UnreadableMessages[pageIndex] = error.Message;
+                failures.Refused(error);
+            }
         }
 
         // The reader's notes on a page that lost content to a stream nothing could decode: missing when

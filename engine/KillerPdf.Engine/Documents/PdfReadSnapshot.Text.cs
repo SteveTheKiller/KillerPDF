@@ -19,6 +19,41 @@ public sealed class PdfReadTextPage
 
 public sealed partial class PdfReadSnapshot
 {
+    /// <summary>The native EPUB layout behind this snapshot, or null for other formats.</summary>
+    internal Formats.Epub.EpubLayoutDocument? EpubLayout => _layout;
+
+    /// <summary>Reads a page's text exactly as <see cref="ReadTextPage"/> returns it, without its geometry.</summary>
+    /// <remarks>An EPUB page's text comes from the book's page index, so reading it never lays its chapter out again.</remarks>
+    public string ReadPageText(int pageIndex, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_djvu is not null) return ReadTextPage(pageIndex, cancellationToken).Text;
+        GetPageGeometry(pageIndex);
+        return VisibleText(_layout!.Pages[pageIndex], null, cancellationToken);
+    }
+
+    // The one copy of the visible-text rule: hidden characters are left out, and offsets (when given, one per character
+    // plus the end) map each page-text index to its index in the visible text.
+    private static string VisibleText(Formats.Epub.EpubLayoutPage page, int[]? offsets, CancellationToken cancellationToken)
+    {
+        string text = page.Text;
+        var hidden = page.HiddenTextRanges;
+        if (hidden.Count == 0) return text;
+        var visible = new System.Text.StringBuilder(text.Length);
+        int rangeIndex = 0;
+        for (int index = 0; index < text.Length; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            while (rangeIndex < hidden.Count && index >= hidden[rangeIndex].Start + hidden[rangeIndex].Length)
+                rangeIndex++;
+            if (offsets is not null) offsets[index] = visible.Length;
+            if (rangeIndex >= hidden.Count || index < hidden[rangeIndex].Start)
+                visible.Append(text[index]);
+        }
+        if (offsets is not null) offsets[text.Length] = visible.Length;
+        return visible.ToString();
+    }
+
     /// <summary>Reads native text and unrotated point geometry. Intrinsic rotation remains in GetPageGeometry.</summary>
     public PdfReadTextPage ReadTextPage(int pageIndex, CancellationToken cancellationToken = default)
     {
@@ -70,20 +105,8 @@ public sealed partial class PdfReadSnapshot
         cancellationToken.ThrowIfCancellationRequested();
         if (page.HiddenTextRanges.Count > 0)
         {
-            var visible = new System.Text.StringBuilder(page.Text.Length);
             var offsets = new int[page.Text.Length + 1];
-            int rangeIndex = 0;
-            for (int index = 0; index < page.Text.Length; index++)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                while (rangeIndex < page.HiddenTextRanges.Count
-                    && index >= page.HiddenTextRanges[rangeIndex].Start + page.HiddenTextRanges[rangeIndex].Length)
-                    rangeIndex++;
-                offsets[index] = visible.Length;
-                if (rangeIndex >= page.HiddenTextRanges.Count || index < page.HiddenTextRanges[rangeIndex].Start)
-                    visible.Append(page.Text[index]);
-            }
-            offsets[page.Text.Length] = visible.Length;
+            string visible = VisibleText(page, offsets, cancellationToken);
             for (int index = 0; index < regions.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -94,7 +117,7 @@ public sealed partial class PdfReadSnapshot
                     Length = offsets[region.Start + region.Length] - offsets[region.Start]
                 };
             }
-            return new PdfReadTextPage(visible.ToString(), regions);
+            return new PdfReadTextPage(visible, regions);
         }
         return new PdfReadTextPage(page.Text, regions);
     }
