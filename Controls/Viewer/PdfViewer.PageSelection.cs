@@ -111,7 +111,7 @@ namespace KillerPDF.Controls
                         // viewport width is valid (it can still be 0 mid-open, which would fall back
                         // to a carried-over zoom and show a single large page).
                         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
-                            (Action)(() => SetZoom(GridZoomForN(Math.Min(_doc?.PageCount ?? 1, 3)))));
+                            (Action)(() => SetZoom(GridZoomForN(Math.Min(ReadPageCount, 3)))));
                     }
                     else if (_currentPage < _pageContentPanel.Children.Count
                              && _pageContentPanel.Children[_currentPage] is FrameworkElement gridTile)

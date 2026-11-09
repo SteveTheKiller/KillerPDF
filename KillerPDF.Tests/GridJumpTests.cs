@@ -31,6 +31,18 @@ public sealed class GridJumpTests
         Assert.Contains("if (GridTileIsBlank(_currentPage)) RenderAdditionalPages(0);", grid, StringComparison.Ordinal);
     }
 
+    // A book has no PDF working document, so a column count taken from it gave an EPUB one column: Grid opened War and
+    // Peace at 294%, one page across. The first Grid display counts the pages of whatever the tab shows.
+    [Fact]
+    public void GridOpensABookWithTheSameColumnsAsAPdf()
+    {
+        string selection = File.ReadAllText(Path.Combine(Root(), "Controls", "Viewer", "PdfViewer.PageSelection.cs"));
+        string grid = Between(selection, "if (_viewMode == ViewMode.Grid)", "// Clicking either page of the spread");
+
+        Assert.Contains("SetZoom(GridZoomForN(Math.Min(ReadPageCount, 3)))", grid, StringComparison.Ordinal);
+        Assert.DoesNotContain("_doc?.PageCount", grid, StringComparison.Ordinal);
+    }
+
     private static string Viewport() => File.ReadAllText(Path.Combine(Root(), "Controls", "Viewer", "PdfViewer.Viewport.cs"));
 
     private static string Between(string source, string start, string end)
