@@ -29,6 +29,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Embedded TrueType font widths retain fractional metrics. (#472)
 - Color edges in JPEG photos and scans are smoother: subsampled color is blended between its neighbors instead of repeated in blocks, which is most visible on red or blue text over white.
 - Byte rendering shows untagged CMYK through the render's working CMYK profile (CGATS TR 001 by default), evaluating each ink exactly through the profile so it equals the managed result, and fits the RGB to ink inverse to that profile within a 300 percent total ink limit. The PDFium-derived process ink tables are removed. Against them, 300 test pages move by 0.6 delta E 2000 on average and a dense swatch grid by at most 6.1. The color conversion macro accepts a working CMYK profile and converts RGB to gray with the 0.3, 0.59 and 0.11 weights of ISO 32000. (#264)
+- Paths and text are drawn by a new anti-aliasing rasterizer.
 
 ### Added
 
