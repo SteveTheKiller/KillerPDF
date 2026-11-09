@@ -251,9 +251,9 @@ internal static class ScrollOverlaySmoke
                 var level = (Slider)transformType.GetField(mode == "ColorCorrection" ? "_lvlWhite" : "_rotSlider", Members)!.GetValue(dialog)!;
                 double edge = Bounds(apply, content).Right;
                 double controlEdge = Bounds(level, content).Right;
-                var optionsScroll = Descendants<ScrollViewer>(content).Single(scroll => scroll.Parent is DockPanel);
+                var optionsScroll = Descendants<ScrollViewer>(content).Single(scroll => scroll.Name == "PageWindowOptions");
                 var verticalBar = (ScrollBar)optionsScroll.Template.FindName("PART_VerticalScrollBar", optionsScroll);
-                var sidebar = (Border)((DockPanel)optionsScroll.Parent).Parent;
+                var sidebar = (Border)((Grid)optionsScroll.Parent).Parent;
                 double barInset = Bounds(sidebar, content).Right - Bounds(verticalBar, content).Right;
                 if (Math.Abs(barInset) > 1)
                 { report.Add($"FAIL sidebar scrollbar is inset {barInset:F1} from its edge"); failures++; }

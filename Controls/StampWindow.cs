@@ -192,6 +192,8 @@ namespace KillerPDF
             var root = PageWindowLayout.Body(options, footer, previewColumn, out _, columns);
 
             Content = DialogFrame.Frame(this, Owner, "KillerPDF - " + S("Str_Stamp_Suffix"), () => { Applied = false; Close(); }, root);
+            // Focus starts on the first setting, the Watermark switch; a checkbox leaves Enter to Apply.
+            Loaded += (_, _2) => _wmEnable.Focus();
             // As tall as both open sections and the footer, resizable from every edge, remembered;
             // the first open widens until the page fills the preview's height.
             DialogFrame.EnablePageSizing(this, "Stamp", _previewColumn, fittedExtraWidth: () =>
@@ -391,6 +393,7 @@ namespace KillerPDF
             var s = new Slider { Minimum = min, Maximum = max, Value = Math.Max(min, Math.Min(max, value)), SmallChange = 1, LargeChange = 4, VerticalAlignment = VerticalAlignment.Center };
             if (_darkSlider != null) s.Style = _darkSlider;
             s.VerticalAlignment = VerticalAlignment.Center;
+            s.Focusable = true;   // the app's DarkSlider style takes sliders out of Tab
             System.Windows.Automation.AutomationProperties.SetName(s, label);
             var b = MakeField(((int)Math.Round(value)).ToString());
             b.Width = 46;

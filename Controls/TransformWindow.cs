@@ -591,6 +591,11 @@ namespace KillerPDF
             var root = PageWindowLayout.Body(options, footer, previewColumn, out _, columns);
 
             Content = DialogFrame.Frame(this, Owner, "KillerPDF - " + toolName, () => { Applied = false; Close(); }, root);
+            // Color correction opens with focus on its first setting, Exposure, so Tab and the arrow keys
+            // start there; a slider leaves Enter to Apply. Transform keeps today's open focus: its first
+            // control is the 90-degree button, which would take Enter away from Apply.
+            if (mode == TransformWindowMode.ColorCorrection)
+                Loaded += (_, _2) => _colorAdjustmentSliders[0].Focus();
             // As tall as the open options and the footer, resizable from every edge, remembered per
             // mode; the first open widens until the page fills the preview's height.
             DialogFrame.EnablePageSizing(this, mode == TransformWindowMode.Transform ? "Transform" : "ColorCorrection",
@@ -1001,6 +1006,9 @@ namespace KillerPDF
         // A control centered in a 26 high row that may grow when its label wraps.
         private static FrameworkElement Row(FrameworkElement control)
         {
+            // The app's DarkSlider style takes sliders out of Tab; here every slider is a Tab stop and
+            // its arrow keys move it (the page-flip keys already step aside for a focused slider).
+            if (control is Slider slider) slider.Focusable = true;
             control.VerticalAlignment = VerticalAlignment.Center;
             control.Margin = new Thickness(0);
             return new Border { MinHeight = PageWindowLayout.ControlHeight, Child = control };
