@@ -16,6 +16,7 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
     // The chapter the reader is in; arriving in another one lays out its neighbors ahead.
     private int _current = -1;
     private int _readersWaiting;
+    private int _aheadChapter = -1;
     private readonly Lock _lock = new();
     // Layout shares the book's font, outline and image-box caches, so chapters are laid out one at a time.
     private readonly Lock _layoutLock = new();
@@ -58,7 +59,8 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
         lock (_lock)
         {
             _readersWaiting++;
-            _aheadCancel?.Cancel();
+            // Work ahead on the very chapter the reader needs is finished rather than started over.
+            if (_aheadChapter != entry.SpineIndex) _aheadCancel?.Cancel();
         }
         EpubLayoutPage page;
         lock (_layoutLock)
@@ -188,6 +190,7 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
                     lock (_lock)
                     {
                         _aheadCancel = cancel;
+                        _aheadChapter = chapter;
                         // A reader already waiting for this lock goes first.
                         if (_readersWaiting > 0) cancel.Cancel();
                     }
@@ -209,7 +212,11 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
         {
             lock (_lock)
             {
-                if (ReferenceEquals(_aheadCancel, cancel)) _aheadCancel = null;
+                if (ReferenceEquals(_aheadCancel, cancel))
+                {
+                    _aheadCancel = null;
+                    _aheadChapter = -1;
+                }
                 _inFlight--;
             }
             cancel.Dispose();
@@ -219,7 +226,7 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
 }
 
 /// <summary>
-/// One low-priority background thread lays chapters out ahead of the reader for every open book, so this work never
+/// One background thread lays chapters out ahead of the reader for every open book, so this work never
 /// crowds the thread pool that drawing uses. Each book waits in line once and takes one chapter per turn.
 /// </summary>
 internal static class EpubLayoutAhead
@@ -237,7 +244,8 @@ internal static class EpubLayoutAhead
             Books.Enqueue(next);
             if (_worker is null)
             {
-                _worker = new Thread(Loop) { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = "EPUB layout ahead" };
+                // Normal priority: a reader waits for this thread to notice a cancel, which a starved thread would delay.
+                _worker = new Thread(Loop) { IsBackground = true, Name = "EPUB layout ahead" };
                 _worker.Start();
             }
             Monitor.Pulse(Gate);
