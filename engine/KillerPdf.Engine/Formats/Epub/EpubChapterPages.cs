@@ -8,9 +8,14 @@ namespace KillerPdf.Engine.Formats.Epub;
 /// <param name="relayout">Lays a chapter out again from its start, stopping once it has the given number of pages.</param>
 /// <param name="readingOrder">Spine indices in reading order, for finding a chapter's neighbors.</param>
 /// <param name="capacity">How many chapters stay laid out: the one being read and its two neighbors.</param>
-internal sealed class EpubChapterPages(Func<int, int, IReadOnlyList<EpubLayoutPage>> relayout, IReadOnlyList<int> readingOrder,
-    int capacity = 3)
+internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOnlyList<EpubLayoutPage>> relayout,
+    IReadOnlyList<int> readingOrder, int capacity = 3)
 {
+    // Background layout a reader's request stops, so a page turn never waits behind work done ahead.
+    private CancellationTokenSource? _aheadCancel;
+    // The chapter the reader is in; arriving in another one lays out its neighbors ahead.
+    private int _current = -1;
+    private int _readersWaiting;
     private readonly Lock _lock = new();
     // Layout shares the book's font, outline and image-box caches, so chapters are laid out one at a time.
     private readonly Lock _layoutLock = new();
@@ -20,6 +25,9 @@ internal sealed class EpubChapterPages(Func<int, int, IReadOnlyList<EpubLayoutPa
     private readonly List<int> _ahead = new();
     private bool _aheadQueued;
     private int _inFlight;
+
+    /// <summary>How many chapter layouts readers have asked for since the book opened.</summary>
+    internal int Layouts { get; private set; }
 
     /// <summary>Gets or sets whether a chapter laid out for a reader also lays out its neighbors in the background.</summary>
     internal bool PrefetchNeighbors { get; set; } = true;
@@ -42,13 +50,30 @@ internal sealed class EpubChapterPages(Func<int, int, IReadOnlyList<EpubLayoutPa
     /// <summary>Returns the laid-out page for this index entry, laying its chapter out again when it is not cached.</summary>
     internal EpubLayoutPage Resident(EpubLayoutPage entry, int ordinal)
     {
-        if (Cached(entry.SpineIndex, ordinal + 1) is { } hit) return hit[ordinal];
+        if (Cached(entry.SpineIndex, ordinal + 1) is { } hit)
+        {
+            Arrive(entry.SpineIndex);
+            return hit[ordinal];
+        }
+        lock (_lock)
+        {
+            _readersWaiting++;
+            _aheadCancel?.Cancel();
+        }
         EpubLayoutPage page;
         lock (_layoutLock)
         {
-            if (Cached(entry.SpineIndex, ordinal + 1) is { } raced) return raced[ordinal];
-            // A page turn needs only this page, and later pages cannot change earlier ones, so layout stops here.
-            var pages = relayout(entry.SpineIndex, ordinal + 1);
+            lock (_lock) _readersWaiting--;
+            if (Cached(entry.SpineIndex, ordinal + 1) is { } raced)
+            {
+                Arrive(entry.SpineIndex);
+                return raced[ordinal];
+            }
+            // A jump needs only this page, and later pages cannot change earlier ones, so layout stops there; reading on
+            // past what a jump laid out lays out the whole chapter, so each page turn does not start it over.
+            Layouts++;
+            var pages = relayout(entry.SpineIndex, Cached(entry.SpineIndex, 1, touch: false) is null ? ordinal + 1 : int.MaxValue,
+                CancellationToken.None);
             // Layout is deterministic; a chapter that lays out differently the second time is a reader defect.
             if (pages.Count <= ordinal || pages.Count > PageCount(entry.SpineIndex)
                 || pages[ordinal].TextStart != entry.TextStart || pages[ordinal].Text != entry.Text)
@@ -56,8 +81,20 @@ internal sealed class EpubChapterPages(Func<int, int, IReadOnlyList<EpubLayoutPa
             Store(entry.SpineIndex, pages, first: true);
             page = pages[ordinal];
         }
+        lock (_lock) _current = entry.SpineIndex;
         if (PrefetchNeighbors) Prefetch(entry.SpineIndex);
         return page;
+    }
+
+    // A page from a chapter laid out ahead: the reader has moved on, so the next neighbors are laid out ahead in turn.
+    private void Arrive(int spineIndex)
+    {
+        lock (_lock)
+        {
+            if (_current == spineIndex) return;
+            _current = spineIndex;
+        }
+        if (PrefetchNeighbors) Prefetch(spineIndex);
     }
 
     private int PageCount(int spineIndex)
@@ -142,23 +179,40 @@ internal sealed class EpubChapterPages(Func<int, int, IReadOnlyList<EpubLayoutPa
             _ahead.RemoveAt(0);
             _inFlight++;
         }
+        var cancel = new CancellationTokenSource();
         try
         {
             if (_pageCounts.ContainsKey(chapter))
                 lock (_layoutLock)
                 {
+                    lock (_lock)
+                    {
+                        _aheadCancel = cancel;
+                        // A reader already waiting for this lock goes first.
+                        if (_readersWaiting > 0) cancel.Cancel();
+                    }
                     if (Cached(chapter, PageCount(chapter), touch: false) is null)
                     {
-                        var pages = relayout(chapter, int.MaxValue);
+                        var pages = relayout(chapter, int.MaxValue, cancel.Token);
                         if (pages.Count == PageCount(chapter)) Store(chapter, pages, first: false);
                     }
                 }
+        }
+        // A reader's request stopped it; the chapter waits for the next turn unless a newer list replaced it.
+        catch (OperationCanceledException)
+        {
+            lock (_lock) if (!_ahead.Contains(chapter)) _ahead.Add(chapter);
         }
         // Laying out ahead is only an optimization: a failure here surfaces when the page is really needed.
         catch (Exception) { }
         finally
         {
-            lock (_lock) _inFlight--;
+            lock (_lock)
+            {
+                if (ReferenceEquals(_aheadCancel, cancel)) _aheadCancel = null;
+                _inFlight--;
+            }
+            cancel.Dispose();
         }
         return true;
     }

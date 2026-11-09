@@ -54,6 +54,24 @@ public sealed class EpubChapterRelayoutTests
         Assert.Equal(chapterPages, cache.ResidentPageCount(1));
     }
 
+    // Reading on from the first page must not lay the chapter out again from its start for every page.
+    [Fact]
+    public void ReadingAChapterPageByPageLaysItOutAtMostTwice()
+    {
+        var book = new Book();
+        for (int chapter = 0; chapter < 2; chapter++)
+            book.Chapters.Add(Chapter(string.Concat(Enumerable.Repeat("<p>AAAA AAA AAAAA AA AAAA AAA AAAAA AA AAAA AAA</p>", 400))));
+        var layout = EpubDocument.Open(book.Build()).CreateLayout(Options());
+        var cache = layout.ChapterPages!;
+        cache.PrefetchNeighbors = false;
+        var pages = Enumerable.Range(0, layout.Pages.Count).Where(index => layout.Pages[index].SpineIndex == 1).ToArray();
+        Assert.True(pages.Length > 4);
+
+        foreach (int index in pages) Assert.NotEmpty(layout.Pages[index].TextPlacements);
+
+        Assert.True(cache.Layouts <= 2, $"The chapter was laid out {cache.Layouts} times for {pages.Length} pages.");
+    }
+
     // Turning past the end of a chapter, or back before its start, finds the neighbor already laid out.
     [Fact]
     public void ReadingAChapterLaysItsNeighborsOutInTheBackground()

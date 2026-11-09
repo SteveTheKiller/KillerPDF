@@ -115,7 +115,7 @@ public sealed partial class EpubDocument
 
         // Lays one chapter out again exactly as the first time: the same fonts, image boxes and stylesheets, with the
         // book's work budgets already proven by the first layout, and its diagnostics and anchors already recorded.
-        IReadOnlyList<EpubLayoutPage> Relayout(int spineIndex, int stopAfterPages)
+        IReadOnlyList<EpubLayoutPage> Relayout(int spineIndex, int stopAfterPages, CancellationToken relayoutToken)
         {
             // The chapter starts at the same book page as before: the first page of a book collapses its top margin,
             // and cell anchors and the page limit count book pages, so empty places stand in for the earlier pages.
@@ -129,7 +129,7 @@ public sealed partial class EpubDocument
                     new List<(int SpineIndex, string Id, int Offset)>(),
                     new Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination>(),
                     ref text, ref stylesheetBytes, ref stylesheetReferences, imageBoxes, images, bookReaders, ResolveFamily,
-                    new List<EpubChapterDiagnostic>(), new HashSet<string>(StringComparer.Ordinal), CancellationToken.None,
+                    new List<EpubChapterDiagnostic>(), new HashSet<string>(StringComparer.Ordinal), relayoutToken,
                     stopAfterPages);
             }
             catch (EpubLayoutStopped stopped) { return stopped.Pages; }
