@@ -16,7 +16,9 @@ internal sealed class EpubChapterPages(Func<int, int, IReadOnlyList<EpubLayoutPa
     private readonly Lock _layoutLock = new();
     private readonly LinkedList<(int SpineIndex, IReadOnlyList<EpubLayoutPage> Pages)> _order = new();
     private readonly Dictionary<int, int> _pageCounts = new();
-    private readonly HashSet<int> _prefetching = new();
+    // The chapters to lay out ahead, nearest first; the latest page turn replaces the list.
+    private readonly List<int> _ahead = new();
+    private bool _aheadQueued;
 
     /// <summary>Gets or sets whether a chapter laid out for a reader also lays out its neighbors in the background.</summary>
     internal bool PrefetchNeighbors { get; set; } = true;
@@ -104,31 +106,92 @@ internal sealed class EpubChapterPages(Func<int, int, IReadOnlyList<EpubLayoutPa
         int position = -1;
         for (int at = 0; at < readingOrder.Count; at++)
             if (readingOrder[at] == spineIndex) { position = at; break; }
-        var wanted = new List<int> { spineIndex };
-        if (position + 1 < readingOrder.Count) wanted.Add(readingOrder[position + 1]);
-        if (position > 0) wanted.Add(readingOrder[position - 1]);
-        foreach (int chapter in wanted)
+        lock (_lock)
         {
-            lock (_lock)
-                if (!_pageCounts.ContainsKey(chapter) || !_prefetching.Add(chapter)) continue;
-            ThreadPool.UnsafeQueueUserWorkItem(_ =>
+            _ahead.Clear();
+            _ahead.Add(spineIndex);
+            if (position >= 0 && position + 1 < readingOrder.Count) _ahead.Add(readingOrder[position + 1]);
+            if (position > 0) _ahead.Add(readingOrder[position - 1]);
+            if (_aheadQueued) return;
+            _aheadQueued = true;
+        }
+        EpubLayoutAhead.Enqueue(LayOutAhead);
+    }
+
+    // Lays out one wanted chapter, then yields the background thread to other open books until its next turn.
+    private bool LayOutAhead()
+    {
+        int chapter;
+        lock (_lock)
+        {
+            if (_ahead.Count == 0)
             {
-                try
+                _aheadQueued = false;
+                return false;
+            }
+            chapter = _ahead[0];
+            _ahead.RemoveAt(0);
+        }
+        try
+        {
+            if (_pageCounts.ContainsKey(chapter))
+                lock (_layoutLock)
                 {
-                    lock (_layoutLock)
+                    if (Cached(chapter, PageCount(chapter), touch: false) is null)
                     {
-                        if (Cached(chapter, PageCount(chapter), touch: false) is not null) return;
                         var pages = relayout(chapter, int.MaxValue);
                         if (pages.Count == PageCount(chapter)) Store(chapter, pages, first: false);
                     }
                 }
-                // Laying out ahead is only an optimization: a failure here surfaces when the page is really needed.
-                catch (Exception) { }
-                finally
-                {
-                    lock (_lock) _prefetching.Remove(chapter);
-                }
-            }, null);
+        }
+        // Laying out ahead is only an optimization: a failure here surfaces when the page is really needed.
+        catch (Exception) { }
+        return true;
+    }
+}
+
+/// <summary>
+/// One low-priority background thread lays chapters out ahead of the reader for every open book, so this work never
+/// crowds the thread pool that drawing uses. Each book waits in line once and takes one chapter per turn.
+/// </summary>
+internal static class EpubLayoutAhead
+{
+    // A plain monitor object, since the worker waits on it.
+    private static readonly object Gate = new();
+    private static readonly Queue<Func<bool>> Books = new();
+    private static Thread? _worker;
+
+    /// <summary>Queues a book's next chapter; the function returns whether the book wants another turn.</summary>
+    internal static void Enqueue(Func<bool> next)
+    {
+        lock (Gate)
+        {
+            Books.Enqueue(next);
+            if (_worker is null)
+            {
+                _worker = new Thread(Loop) { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = "EPUB layout ahead" };
+                _worker.Start();
+            }
+            Monitor.Pulse(Gate);
+        }
+    }
+
+    private static void Loop()
+    {
+        while (true)
+        {
+            Func<bool> next;
+            lock (Gate)
+            {
+                while (Books.Count == 0) Monitor.Wait(Gate);
+                next = Books.Dequeue();
+            }
+            bool again;
+            try { again = next(); }
+            catch (Exception) { again = false; }
+            if (again)
+                lock (Gate) Books.Enqueue(next);
         }
     }
 }
+
