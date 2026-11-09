@@ -187,15 +187,27 @@ public sealed class PdfRenderedFrame
         cancellationToken.ThrowIfCancellationRequested();
         var output = new byte[_pixels.Length];
         bool linear = ColorEncoding == PdfFrameColorEncoding.LinearSrgbD65;
+        // A channel's byte depends on its value alone, and a page repeats few values (paper white, ink), so the last
+        // value encoded is kept: a repeat costs a comparison of the value's bits instead of a power function.
+        int lastBits = BitConverter.SingleToInt32Bits(float.NaN);
+        byte lastByte = 0;
         for (int offset = 0; offset < _pixels.Length; offset += 4)
         {
             if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            output[offset] = Encode(_pixels[offset + 2]);
-            output[offset + 1] = Encode(_pixels[offset + 1]);
-            output[offset + 2] = Encode(_pixels[offset]);
+            output[offset] = Remembered(_pixels[offset + 2]);
+            output[offset + 1] = Remembered(_pixels[offset + 1]);
+            output[offset + 2] = Remembered(_pixels[offset]);
             output[offset + 3] = Quantize(_pixels[offset + 3]);
         }
         return output;
+
+        byte Remembered(float channel)
+        {
+            int bits = BitConverter.SingleToInt32Bits(channel);
+            if (bits == lastBits) return lastByte;
+            lastBits = bits;
+            return lastByte = Encode(channel);
+        }
 
         byte Encode(double channel)
         {
