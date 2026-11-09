@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.3] - Unreleased
 
-1.9.3 fixes form saving, merging, region rasterization, OCR output folders, updates and the file picker, and balances the About settings columns.
+1.9.3 opens large PDFs faster, fixes form saving, merging, region rasterization, OCR output folders, updates and the file picker, and balances the About settings columns.
 
 ### Fixed
 
@@ -43,6 +43,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - The Measure tool's options bar follows a language or theme change right away instead of keeping the old ones until the tool is chosen again.
 - Dialogs meant to be resizable, such as Comments, Color Management and the certificate list, can now be resized from any edge, never get smaller than they open, and maximize without covering the taskbar.
 - Grid view keeps only the pages near the screen in memory and draws those first, so a long document in Grid no longer climbs into gigabytes, a page you jump to shows at once, and typing stays responsive.
+- Large PDFs open faster and use far less memory. On a slower test PC a 10,000-page PDF shows its first page in about 5 seconds instead of 14 and holds about 460 MB instead of 1.5 GB, and a 20,000-page PDF in about 6 seconds instead of 12, at about 480 MB instead of 3 GB. Opening reads the file fewer times, page thumbnails are drawn only for the pages in view, each page's links are read when the page is drawn, and pages shown below 100% are drawn at the size they appear.
 
 ### Changed
 
