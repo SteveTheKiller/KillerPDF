@@ -906,8 +906,14 @@ internal static class PdfEngineBurn
             byte[] bytes = File.ReadAllBytes(path);
             using var stream = new MemoryStream(bytes);
             using (var header = Image.FromStream(stream, useEmbeddedColorManagement: false, validateImageData: false))
+            {
+                // An image that stores no resolution reads as the display's DPI in a DPI-aware process
+                // (144 at 150% scaling), so only a stored resolution is used; otherwise WatermarkImageSize
+                // falls back to 96, as the preview's decoder does.
+                bool stored = (header.Flags & (int)ImageFlags.HasRealDpi) != 0;
                 return LoadImage(bytes, opacity) is { } image
-                    ? (image, header.HorizontalResolution, header.VerticalResolution) : null;
+                    ? (image, stored ? header.HorizontalResolution : 0, stored ? header.VerticalResolution : 0) : null;
+            }
         }
         catch { return null; }
     }
