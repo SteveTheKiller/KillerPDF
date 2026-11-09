@@ -9,6 +9,7 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Signing;
 using KillerPdf.Engine.Writing;
 
 namespace KillerPDF.Services;
@@ -195,6 +196,9 @@ public static class PdfOverlayAnnotations
             PdfDocument document = open();
             // Extraction is restricted to unencrypted working copies.
             if (document.IsEncrypted) return new(sourceBytes, []);
+            // A certified document keeps its overlays as native annotations: moving them into the editing layer would
+            // make a form-fill save drop the certification, as the page-content remover already refuses to do.
+            if (PdfSignatureReader.ReadCertificationPermission(document).HasValue) return new(sourceBytes, []);
             // Page geometry and annotation counts are read only when a page has a comment carrying overlay metadata:
             // a long PDF without KillerPDF overlays read every page's geometry for nothing.
             IReadOnlyList<PdfPageInformation>? pages = null;
