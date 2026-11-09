@@ -999,12 +999,8 @@ internal static partial class PdfEngineIntegration
     private static byte[] BuildFormValues(PdfDocument document, FormEdits edits, out IReadOnlyCollection<string> kept)
     {
         var fonts = new Dictionary<string, TrueTypeFont>(StringComparer.OrdinalIgnoreCase);
-        IReadOnlyList<PdfFormWidgetInfo> widgets =
-        [
-            .. Enumerable.Range(
-                0, PdfPageInformation.Read(document).Count)
-                .SelectMany(pageIndex => PdfFormWidgetReader.ReadPage(document, pageIndex))
-        ];
+        // The plan's names are the ones edits use, including the keys given to renamed unlisted fields.
+        IReadOnlyList<PdfFormWidgetInfo> widgets = [.. FormBindings(document).Pages.SelectMany(page => page)];
         document = AttachUnlistedFormFields(document);
         var editor = new PdfIncrementalPageEditor(document);
         foreach ((string name, string value) in edits.TextValues.OrderBy(item => item.Key))
@@ -1102,8 +1098,21 @@ internal static partial class PdfEngineIntegration
     private static FormBindingPlan BuildFormBindings(PdfDocument document)
     {
         var reader = new PdfFormWidgetReader(document);
+        // A page whose widgets cannot be read shows none, as in 1.9.2; the other pages keep theirs, and saving form
+        // values is refused because that page's fields are unknown.
+        string? unreadable = null;
         IReadOnlyList<PdfFormWidgetInfo>[] pages = Enumerable.Range(0, PdfPageInformation.Read(document).Count)
-            .Select(reader.Read).ToArray();
+            .Select(pageIndex =>
+            {
+                try { return reader.Read(pageIndex); }
+                catch (Exception error) when (error is InvalidOperationException or InvalidDataException
+                    or NotSupportedException or FormatException)
+                {
+                    unreadable ??= "A page's form fields could not be read.";
+                    return (IReadOnlyList<PdfFormWidgetInfo>)[];
+                }
+            }).ToArray();
+        if (unreadable is not null) return new FormBindingPlan(pages, [], null, null, [], unreadable);
         try { return Bind(); }
         catch (FormBindingRefusedException error)
         {
