@@ -78,6 +78,9 @@
     <Compile Include="..\Controls\ScaledDialogFit.cs" Link="Controls\ScaledDialogFit.cs" />
     <Compile Include="..\Controls\DialogScale.cs" Link="Controls\DialogScale.cs" />
     <Compile Include="..\Controls\PageWindowLayout.cs" Link="Controls\PageWindowLayout.cs" />
+    <Compile Include="..\Controls\PageWindowSizing.cs" Link="Controls\PageWindowSizing.cs" />
+    <Compile Include="..\Controls\WindowPlacement.cs" Link="Controls\WindowPlacement.cs" />
+    <Compile Include="..\Controls\WorkAreaFit.cs" Link="Controls\WorkAreaFit.cs" />
     <Compile Include="..\Services\PrintPermission.cs" Link="Services\PrintPermission.cs" />
     <Compile Include="..\Services\PdfRestrictions.cs" Link="Services\PdfRestrictions.cs" />
     <Compile Include="..\Services\OpenedProtection.cs" Link="Services\OpenedProtection.cs" />

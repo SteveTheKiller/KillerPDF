@@ -139,20 +139,7 @@ namespace KillerPDF
             MinHeight = 480;
             DialogFrame.Configure(this, owner, resizable: true);
             UseLayoutRounding = true;
-
-            // Borderless windows (WindowStyle.None) have no native resize border, so
-            // WindowChrome restores edge resizing without showing the grip handle.
-            // The visible card is inset by a small transparent margin for the drop shadow. The
-            // resize border is a touch larger than that margin so the resize zone reaches the
-            // card's visible edge rather than floating in the empty halo around it.
-            System.Windows.Shell.WindowChrome.SetWindowChrome(this, new System.Windows.Shell.WindowChrome
-            {
-                ResizeBorderThickness = new Thickness(12),
-                CaptionHeight         = 0,
-                GlassFrameThickness   = new Thickness(0),
-                CornerRadius          = new CornerRadius(0),
-                UseAeroCaptionButtons = false
-            });
+            DialogFrame.EnableEdgeResize(this);
 
             // Reuse the main window's themed scrollbar (per-theme thumb) for this dialog's scrollers.
             if (owner?.TryFindResource(typeof(System.Windows.Controls.Primitives.ScrollBar)) is Style sbStyle)

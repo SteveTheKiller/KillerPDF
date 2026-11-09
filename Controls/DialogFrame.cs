@@ -1,4 +1,5 @@
 using System;
+using KillerFamily.Windowing;
 using KillerPDF.Controls;
 using KillerPDF.Shell;
 using System.Linq;
@@ -70,7 +71,10 @@ namespace KillerPDF
             internal bool Classic => (bool)GetValue(ClassicProperty);
         }
 
-        public static Border BuildTitleBar(Window win, Window? owner, string? fullTitle, Action onClose)
+        //   accessory  - optional control placed just left of the close button (Print's 1 / 2 / Book
+        //                switch); it stays clickable inside the WindowChrome resize band
+        public static Border BuildTitleBar(Window win, Window? owner, string? fullTitle, Action onClose,
+            FrameworkElement? accessory = null)
         {
             // Transparent (not null) background so the WHOLE bar is hit-testable and acts as a drag handle.
             bool caption = Value(owner, "UseDialogCaption", false);
@@ -82,7 +86,19 @@ namespace KillerPDF
             };
             bar.SetResourceReference(CaptionBorder.ClassicProperty, "UseDialogCaption");
             bar.SetResourceReference(Border.BackgroundProperty, "DialogTitleBarBrush");
-            bar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) win.DragMove(); };
+            bar.MouseLeftButtonDown += (_, e) =>
+            {
+                if (e.ButtonState != MouseButtonState.Pressed) return;
+                // A double-click maximizes or restores a resizable dialog, as on the main window.
+                if (e.ClickCount == 2 && win.ResizeMode == ResizeMode.CanResize)
+                {
+                    e.Handled = true;
+                    win.WindowState = win.WindowState == WindowState.Maximized
+                        ? WindowState.Normal : WindowState.Maximized;
+                    return;
+                }
+                win.DragMove();
+            };
 
             var grid = new Grid
             {
@@ -95,6 +111,15 @@ namespace KillerPDF
             };
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            if (accessory is not null)
+            {
+                accessory.VerticalAlignment = VerticalAlignment.Center;
+                accessory.Margin = new Thickness(0, 0, 8, 0);
+                System.Windows.Shell.WindowChrome.SetIsHitTestVisibleInChrome(accessory, true);
+                Grid.SetColumn(accessory, 1);
+                grid.Children.Add(accessory);
+            }
 
             var wordmark = UiKit.WordmarkFont;
             var wordmarkPdf = UiKit.WordmarkFontPdf;
@@ -242,7 +267,7 @@ namespace KillerPDF
             close.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; onClose(); };
             // Keyboard and automation invoke Click without pointer preview events.
             close.Click += (_, _) => onClose();
-            Grid.SetColumn(close, 1);
+            Grid.SetColumn(close, 2);
             grid.Children.Add(close);
 
             // No grain of its own: the bar is transparent over the card, which already carries it.
@@ -288,6 +313,168 @@ namespace KillerPDF
             TextOptions.SetTextRenderingMode(win, TextRenderingMode.Grayscale);
             if (fade) WindowFx.EnableFadeClose(win);
         }
+
+        // ---- Page windows: resizable, sized from their options, remembered per type ----------
+        //
+        // KillerUI gives these borderless dialogs no resize edges: WindowStyle.None with
+        // AllowsTransparency ignores ResizeMode.CanResize. WindowChrome restores the edges. The
+        // card sits inside a 12 DIP transparent halo for its shadow, so the resize band matches
+        // the halo and the drag zone reaches the card's visible edge.
+        private const double ResizeBand = 12;
+
+        internal static void EnableEdgeResize(Window win)
+        {
+            win.ResizeMode = ResizeMode.CanResize;
+            System.Windows.Shell.WindowChrome.SetWindowChrome(win, new System.Windows.Shell.WindowChrome
+            {
+                ResizeBorderThickness = new Thickness(ResizeBand),
+                CaptionHeight         = 0,
+                GlassFrameThickness   = new Thickness(0),
+                CornerRadius          = new CornerRadius(0),
+                UseAeroCaptionButtons = false
+            });
+        }
+
+        /// <summary>
+        /// Opts a page window (Print, Transform, Color correction, Stamp) into the shared size
+        /// rules. Call after Content is set to DialogFrame.Frame's result. Before the window is
+        /// shown, its framed content is measured with <paramref name="preview"/> collapsed: that
+        /// height (options, footer, title bar and frame) is the window's height and MinHeight, and
+        /// MinWidth adds a one-page preview floor. A placement saved for <paramref name="windowType"/>
+        /// ("Print", "Transform", "ColorCorrection", "Stamp") is restored and raised to that
+        /// minimum; otherwise the window opens centered on its owner, <paramref name="fittedExtraWidth"/>
+        /// wider than the minimum (read after a layout pass at the minimum size, so it can look at
+        /// the preview pane). Either way it is then fitted to the monitor's work area, and the
+        /// placement is saved on close. Double-clicking the title bar maximizes it.
+        /// </summary>
+        internal static void EnablePageSizing(Window win, string windowType, UIElement preview,
+            double scale = 1, double previewFloor = PageWindowSizing.PreviewFloor,
+            Func<double>? fittedExtraWidth = null)
+        {
+            EnableEdgeResize(win);
+            win.SourceInitialized += (_, _) =>
+            {
+                if (win.Content is not FrameworkElement content) return;
+                var shown = preview.Visibility;
+                preview.Visibility = Visibility.Collapsed;
+                content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                Size optionsOnly = content.DesiredSize;
+                preview.Visibility = shown;
+
+                Size min = PageWindowSizing.Minimum(optionsOnly, previewFloor, scale);
+                win.SizeToContent = SizeToContent.Manual;
+                win.MinWidth = min.Width;
+                win.MinHeight = min.Height;
+                win.Width = min.Width;
+                win.Height = min.Height;
+
+                bool restored = PageWindowSizing.Restore(win, windowType, App.GetSetting);
+                if (!restored)
+                {
+                    if (fittedExtraWidth is not null)
+                    {
+                        content.Measure(min);
+                        content.Arrange(new Rect(min));
+                        double extra = fittedExtraWidth();
+                        if (double.IsFinite(extra) && extra > 0) win.Width = Math.Ceiling(min.Width + extra);
+                    }
+                    CenterOnOwner(win);
+                    WorkAreaFit.Fit(win, keepMargin: true);
+                    // A window the work area shrank is centered on its owner again, then kept on screen.
+                    CenterOnOwner(win);
+                }
+                WorkAreaFit.Fit(win, keepMargin: !restored);
+
+                if (PresentationSource.FromVisual(win) is System.Windows.Interop.HwndSource source)
+                    source.AddHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+                    {
+                        if (msg == WM_GETMINMAXINFO) { ClampMaximized(win, hwnd, lParam); handled = true; }
+                        return IntPtr.Zero;
+                    });
+                ApplyWindowState(win);
+            };
+            win.StateChanged += (_, _) => ApplyWindowState(win);
+            win.Closing += (_, _) => PageWindowSizing.Save(win, windowType, App.SetSetting);
+        }
+
+        // Maximized, the card fills the work area: no shadow halo and no resize band around it.
+        private static void ApplyWindowState(Window win)
+        {
+            bool max = win.WindowState == WindowState.Maximized;
+            if (win.Content is FrameworkElement host)
+            {
+                if (max) host.Margin = new Thickness(0);
+                else host.SetResourceReference(FrameworkElement.MarginProperty, "DialogHaloMargin");
+            }
+            if (System.Windows.Shell.WindowChrome.GetWindowChrome(win) is { } chrome)
+                chrome.ResizeBorderThickness = new Thickness(max ? 0 : ResizeBand);
+        }
+
+        // WindowStartupLocation.CenterOwner is resolved by WPF after this point, and WorkAreaFit
+        // needs a real position to pick the monitor, so the centering is done here.
+        private static void CenterOnOwner(Window win)
+        {
+            win.WindowStartupLocation = WindowStartupLocation.Manual;
+            Rect area;
+            if (win.Owner is { } owner && PresentationSource.FromVisual(owner) is System.Windows.Interop.HwndSource os
+                && os.CompositionTarget is { } target
+                && GetWindowRect(os.Handle, out RECT r) && r.right > r.left)
+            {
+                Point a = target.TransformFromDevice.Transform(new Point(r.left, r.top));
+                Point b = target.TransformFromDevice.Transform(new Point(r.right, r.bottom));
+                area = new Rect(a, b);
+            }
+            else area = SystemParameters.WorkArea;
+            win.Left = Math.Round(area.Left + (area.Width - win.Width) / 2);
+            win.Top = Math.Round(area.Top + (area.Height - win.Height) / 2);
+        }
+
+        private const int WM_GETMINMAXINFO = 0x0024;
+        private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+        // A WindowStyle.None window maximizes over the taskbar unless the maximize size is clamped
+        // to the monitor's work area. Handling the message takes it away from WPF, which is how WPF
+        // enforces MinWidth and MinHeight on a drag, so the minimum track size is set here too.
+        private static void ClampMaximized(Window win, IntPtr hwnd, IntPtr lParam)
+        {
+            var mmi = System.Runtime.InteropServices.Marshal.PtrToStructure<MINMAXINFO>(lParam);
+            IntPtr monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            if (monitor != IntPtr.Zero)
+            {
+                var info = new MONITORINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf(typeof(MONITORINFO)) };
+                if (GetMonitorInfo(monitor, ref info))
+                {
+                    RECT mon = info.rcMonitor, work = info.rcWork;
+                    mmi.ptMaxPosition.x = Math.Abs(work.left - mon.left);
+                    mmi.ptMaxPosition.y = Math.Abs(work.top - mon.top);
+                    mmi.ptMaxSize.x = Math.Abs(work.right - work.left);
+                    mmi.ptMaxSize.y = Math.Abs(work.bottom - work.top);
+                    mmi.ptMaxTrackSize.x = Math.Max(mmi.ptMaxTrackSize.x, mmi.ptMaxSize.x);
+                    mmi.ptMaxTrackSize.y = Math.Max(mmi.ptMaxTrackSize.y, mmi.ptMaxSize.y);
+                }
+            }
+            var src = PresentationSource.FromVisual(win);
+            double sx = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+            double sy = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+            if (win.MinWidth > 0) mmi.ptMinTrackSize.x = (int)Math.Ceiling(win.MinWidth * sx);
+            if (win.MinHeight > 0) mmi.ptMinTrackSize.y = (int)Math.Ceiling(win.MinHeight * sy);
+            System.Runtime.InteropServices.Marshal.StructureToPtr(mmi, lParam, true);
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct POINT { public int x, y; }
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct RECT { public int left, top, right, bottom; }
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct MINMAXINFO { public POINT ptReserved, ptMaxSize, ptMaxPosition, ptMinTrackSize, ptMaxTrackSize; }
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private struct MONITORINFO { public int cbSize; public RECT rcMonitor; public RECT rcWork; public uint dwFlags; }
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
 
         private static Border FrameRing(Window? owner, string brushKey, string thicknessKey, string? marginKey = null)
         {
@@ -390,7 +577,7 @@ namespace KillerPDF
         // grows the window with it; the halo around the card keeps its size.
         public static UIElement Frame(
             Window win, Window? owner, string title, Action onClose, UIElement body,
-            Thickness? haloMargin = null, double scale = 1)
+            Thickness? haloMargin = null, double scale = 1, FrameworkElement? titleAccessory = null)
         {
             win.KeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; onClose(); } };
 
@@ -404,7 +591,7 @@ namespace KillerPDF
             };
 
             var root = new DockPanel();
-            var titleBar = BuildTitleBar(win, owner, title, onClose);
+            var titleBar = BuildTitleBar(win, owner, title, onClose, titleAccessory);
             titleBar.Height = Value(owner, "DialogTitleBarHeight", 40.0);
             titleBar.SetResourceReference(FrameworkElement.HeightProperty, "DialogTitleBarHeight");
             DockPanel.SetDock(titleBar, Dock.Top);
