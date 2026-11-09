@@ -1335,7 +1335,25 @@ internal static class DocumentStateSmoke
         object reader = Activator.CreateInstance(readerType, [document])!;
         object content = readerType.GetMethod("Read", [typeof(int), typeof(CancellationToken)])!
             .Invoke(reader, [page, CancellationToken.None])!;
-        return (string)content.GetType().GetProperty("Text")!.GetValue(content)!;
+        return (string)content.GetType().GetProperty("Text")!.GetValue(content)! + SavedTextAnnotations(engine, document, page);
+    }
+
+    // Since 1.9.3 a save keeps text added with the Text tool as an editable free-text annotation instead of page
+    // content, so the page's visible text is its content plus those annotations' text.
+    internal static string SavedTextAnnotations(Assembly engine, object document, int page)
+    {
+        Type reader = engine.GetType("KillerPdf.Engine.Documents.PdfCommentReader", true)!;
+        var comments = (System.Collections.IEnumerable)reader.GetMethod("Read", [document.GetType(), typeof(bool)])!
+            .Invoke(null, [document, true])!;
+        var text = new System.Text.StringBuilder();
+        foreach (object comment in comments)
+        {
+            Type type = comment.GetType();
+            if ((int)type.GetProperty("PageIndex")!.GetValue(comment)! != page
+                || type.GetProperty("Subtype")!.GetValue(comment) as string != "FreeText") continue;
+            text.Append('\n').Append(type.GetProperty("Contents")!.GetValue(comment) as string);
+        }
+        return text.ToString();
     }
 
     internal static void CaptureOwnedWindow(Window owner, string path)

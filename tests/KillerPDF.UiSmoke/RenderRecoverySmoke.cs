@@ -1136,7 +1136,8 @@ internal static class RenderRecoverySmoke
             .GetMethod("Open", [typeof(ReadOnlyMemory<byte>)])!.Invoke(null, [new ReadOnlyMemory<byte>(bytes)])!;
         object reader = Activator.CreateInstance(engine.GetType("KillerPdf.Engine.Documents.PdfPageContentReader", true)!, [document])!;
         object content = reader.GetType().GetMethod("Read")!.Invoke(reader, [0, CancellationToken.None])!;
-        return (string)content.GetType().GetProperty("Text")!.GetValue(content)!;
+        return (string)content.GetType().GetProperty("Text")!.GetValue(content)!
+            + DocumentStateSmoke.SavedTextAnnotations(engine, document, 0);
     }
 
     private static IEnumerable<DependencyObject> Children(DependencyObject root)
