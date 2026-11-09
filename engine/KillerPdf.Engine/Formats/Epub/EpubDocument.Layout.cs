@@ -139,7 +139,9 @@ public sealed partial class EpubDocument
                     new Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination>(),
                     ref text, ref stylesheetBytes, ref stylesheetReferences, imageBoxes, images, bookReaders, ResolveFamily,
                     new List<EpubChapterDiagnostic>(), new HashSet<string>(StringComparer.Ordinal), relayoutToken,
-                    stopAfterPages, resume);
+                    stopAfterPages, resume,
+                    // Where the page after the last one asked for begins, so glyphs past it are not shaped.
+                    stopAtOffset: stopAfterPages < points.Length ? pages[firstPage + stopAfterPages].TextStart : int.MaxValue);
                 laid = again.GetRange(firstPage, again.Count - firstPage);
             }
             catch (EpubLayoutStopped stopped) { laid = stopped.Pages; }
@@ -320,7 +322,8 @@ public sealed partial class EpubDocument
         Dictionary<TrueTypeFont, TrueTypeOutlineReader> bookReaders,
         Func<EpubFontFamily?, double, EpubFontStyle, TrueTypeFont?> resolveFamily,
         List<EpubChapterDiagnostic> contentDiagnostics, HashSet<string> chargedStylesheets, CancellationToken cancellationToken,
-        int stopAfterPages = int.MaxValue, EpubResumePoint? resume = null, List<EpubResumePoint?>? resumePoints = null)
+        int stopAfterPages = int.MaxValue, EpubResumePoint? resume = null, List<EpubResumePoint?>? resumePoints = null,
+        int stopAtOffset = int.MaxValue)
     {
         // Itemref properties (page-spread-*, rendition:*) only affect synthetic spreads and fixed layout; they are ignored.
         var resource = Spine[spineIndex].Item;
@@ -396,7 +399,8 @@ public sealed partial class EpubDocument
         const int chapterWork = 8 * EpubNativeContent.MaximumChapterCharacters;
         // How far the current line has advanced, for preformatted tab stops.
         double lineAdvance = 0;
-        for (int runStart = 0; runStart < text.Length;)
+        var (shapeStart, shapeStop) = ShapedRange();
+        for (int runStart = shapeStart; runStart < shapeStop;)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (text[runStart] == '\n') { runStart++; lineAdvance = 0; continue; }
@@ -512,6 +516,35 @@ public sealed partial class EpubDocument
                 });
             }
             runStart = runEnd;
+        }
+        // A page laid out alone needs glyphs only from the block its layout resumes at through the text its last line can
+        // reach: the inline content holding the first character after the stopping page (whose first line ends that page)
+        // and, when that character is in a table, the whole table, which is measured before any of it is placed. Runs
+        // start at an element's text, so starting at the resumed block's start shapes every later run as the full pass did.
+        (int Start, int Stop) ShapedRange()
+        {
+            int start = 0, stop = text.Length;
+            if (resume is not null)
+            {
+                var block = formatting.Root;
+                foreach (int child in resume.Path) block = (EpubFormattingTree.Block)block.Children[child];
+                start = Math.Min(block.Source.Offset, text.Length);
+            }
+            if (stopAtOffset < text.Length)
+            {
+                int at = Math.Max(stopAtOffset, start);
+                while (at < text.Length && (text[at] == '\n' || content.Characters[at] is null)) at++;
+                stop = at;
+                if (at < text.Length)
+                {
+                    if (formatting.TextSequences.TryGetValue(at, out var sequence))
+                        foreach (var atom in sequence.Atoms) stop = Math.Max(stop, atom.Offset + 2);
+                    for (var owner = content.Characters[at]?.Node.Owner; owner is not null; owner = owner.Parent)
+                        if (owner.Display == EpubNativeContent.DisplayKind.Table) stop = Math.Max(stop, owner.EndOffset);
+                }
+                stop = Math.Min(text.Length, Math.Max(stop, at + 2));
+            }
+            return (start, stop);
         }
         void ChargeShapingWork()
         {
