@@ -341,7 +341,7 @@ internal sealed class ExtractImageDialog : Window
         }
         _swatch.Background = new SolidColorBrush(FillColor);
         // Copy tints the selection; Cut shows the page as it will look, with the fill in place.
-        Color accent = R("PrimaryBrush").Color;
+        Color accent = KillerPDF.Controls.PageWindowLayout.ThemeColor(Application.Current?.TryFindResource("PrimaryBrush"), Color.FromRgb(0x22, 0xBB, 0x56));
         var pixels = new byte[_width * _height * 4];
         if (_selection is not null)
         {
@@ -388,6 +388,7 @@ internal sealed class ExtractImageDialog : Window
         FontSize = size, Margin = new Thickness(0, 4, 0, 0)
     };
 
-    private static SolidColorBrush R(string key) => (SolidColorBrush)Application.Current.Resources[key];
+    // Brush, never SolidColorBrush: any theme may state a surface as a gradient.
+    private static Brush R(string key) => KillerPDF.Controls.PageWindowLayout.ThemeBrush(Application.Current?.TryFindResource(key));
     private static string L(string key) => Application.Current.TryFindResource(key) as string ?? key;
 }

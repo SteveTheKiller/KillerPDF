@@ -1284,7 +1284,7 @@ namespace KillerPDF.Shell
                     Child         = rowGrid,
                     ToolTip       = path
                 };
-                row.MouseEnter += (_, _) => { row.Background = (SolidColorBrush)FindResource("RowHoverBrush"); del.Opacity = 1; };
+                row.MouseEnter += (_, _) => { row.Background = (System.Windows.Media.Brush)FindResource("RowHoverBrush"); del.Opacity = 1; };
                 row.MouseLeave += (_, _) => { row.Background = System.Windows.Media.Brushes.Transparent; del.Opacity = 0; };
                 row.MouseLeftButtonDown += (_, ev) =>
                 {

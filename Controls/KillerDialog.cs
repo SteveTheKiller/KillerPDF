@@ -20,9 +20,10 @@ namespace KillerPDF
     // ============================================================
     internal static class KillerDialog
     {
-        // Pulls the current theme brush at call time so dialogs respect light/dark/HC themes.
-        private static SolidColorBrush R(string key)
-            => (SolidColorBrush)Application.Current.Resources[key];
+        // Pulls the current theme brush at call time so dialogs respect light/dark/HC themes. Brush,
+        // never SolidColorBrush: any theme may state a surface as a gradient.
+        private static Brush R(string key)
+            => KillerPDF.Controls.PageWindowLayout.ThemeBrush(Application.Current?.TryFindResource(key));
 
         private static string L(string key, string fallback)
             => Application.Current.TryFindResource(key) as string ?? fallback;

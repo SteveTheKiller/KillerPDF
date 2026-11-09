@@ -28,6 +28,18 @@ public sealed class PageWindowLayoutTests
         Assert.Same(Brushes.Transparent, PageWindowLayout.ThemeBrush("not a brush"));
     }
 
+    // Where a raw color is needed (a tint drawn from the accent), a gradient gives its first stop,
+    // as Print's RColor does, and anything else the fallback.
+    [Fact]
+    public void AThemeColorComesFromASolidBrushOrAGradientsFirstStop()
+    {
+        var gradient = new LinearGradientBrush(Color.FromRgb(0x38, 0x75, 0x52), Color.FromRgb(0x10, 0x4E, 0x2B), 90);
+
+        Assert.Equal(Color.FromRgb(0x22, 0xBB, 0x56), PageWindowLayout.ThemeColor(new SolidColorBrush(Color.FromRgb(0x22, 0xBB, 0x56)), Colors.Gray));
+        Assert.Equal(Color.FromRgb(0x38, 0x75, 0x52), PageWindowLayout.ThemeColor(gradient, Colors.Gray));
+        Assert.Equal(Colors.Gray, PageWindowLayout.ThemeColor(null, Colors.Gray));
+    }
+
     // Letter page in a 500 x 700 frame: 468 x 668 is left inside the 16 margins, and the width
     // binds first (468 / 612 = 0.7647 against 668 / 792 = 0.8434), so 468 x 605.65.
     [Fact]

@@ -41,6 +41,15 @@ namespace KillerPDF.Controls
         /// this never casts to SolidColorBrush; anything else becomes transparent.</summary>
         public static Brush ThemeBrush(object? resource) => resource as Brush ?? Brushes.Transparent;
 
+        /// <summary>A theme resource as a raw color: a solid brush's color, a gradient's first stop,
+        /// or the fallback.</summary>
+        public static Color ThemeColor(object? resource, Color fallback) => resource switch
+        {
+            SolidColorBrush solid => solid.Color,
+            GradientBrush { GradientStops.Count: > 0 } gradient => gradient.GradientStops[0].Color,
+            _ => fallback,
+        };
+
         /// <summary>The page's drawn size in the preview frame. The original page fits the frame
         /// less the margin on every side; the drawn bitmap (scaled, rotated) keeps that same factor,
         /// so a 50% page looks half as big, and is clamped so it never runs past the frame.</summary>

@@ -200,7 +200,7 @@ namespace KillerPDF.Controls
                         Text = placed.Content,
                         Background = TextEditBackground(),
                         Foreground = new SolidColorBrush(pcol),
-                        BorderBrush = (SolidColorBrush)FindResource("PrimaryBrush"),
+                        BorderBrush = (Brush)FindResource("PrimaryBrush"),
                         SelectionBrush = AccentBrush(),
                         CaretBrush = new SolidColorBrush(pcol),
                         Template = FlatTextBoxTemplate(),
@@ -562,7 +562,7 @@ namespace KillerPDF.Controls
                 Text = text,
                 Background = Brushes.Transparent,   // the opaque cover behind supplies the backdrop
                 Foreground = new SolidColorBrush(inkColor),
-                BorderBrush = (SolidColorBrush)FindResource("PrimaryBrush"),
+                BorderBrush = (Brush)FindResource("PrimaryBrush"),
                 SelectionBrush = AccentBrush(),
                 CaretBrush = new SolidColorBrush(inkColor),
                 Template = FlatTextBoxTemplate(),
@@ -676,7 +676,7 @@ namespace KillerPDF.Controls
                 Text = text,
                 Background = new SolidColorBrush(background),   // hides the old line while typing
                 Foreground = new SolidColorBrush(inkColor),
-                BorderBrush = (SolidColorBrush)FindResource("PrimaryBrush"),
+                BorderBrush = (Brush)FindResource("PrimaryBrush"),
                 SelectionBrush = AccentBrush(),
                 CaretBrush = new SolidColorBrush(inkColor),
                 Template = FlatTextBoxTemplate(),
@@ -896,7 +896,7 @@ namespace KillerPDF.Controls
             {
                 Background = TextEditBackground(),
                 Foreground = new SolidColorBrush(_textColor),
-                BorderBrush = (SolidColorBrush)FindResource("PrimaryBrush"),
+                BorderBrush = (Brush)FindResource("PrimaryBrush"),
                 SelectionBrush = AccentBrush(),
                 CaretBrush = new SolidColorBrush(_textColor),
                 Template = FlatTextBoxTemplate(),

@@ -424,15 +424,15 @@ namespace KillerPDF.Shell
                     Text = "",
                     FontFamily = UiKit.IconFont,
                     FontSize = 11,
-                    Foreground = (SolidColorBrush)FindResource("MutedTextBrush"),
+                    Foreground = (Brush)FindResource("MutedTextBrush"),
                     Cursor = Cursors.Hand,
                     HorizontalAlignment = HorizontalAlignment.Right,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(0, 0, 6, 0),
                     Padding = new Thickness(4)
                 };
-                closeText.MouseEnter += (_, _) => { closeText.Foreground = (SolidColorBrush)FindResource("DangerRed"); closeText.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 4, ShadowDepth = 1, Direction = 270, Opacity = 0.5 }; };
-                closeText.MouseLeave += (_, _) => { closeText.Foreground = (SolidColorBrush)FindResource("MutedTextBrush"); closeText.Effect = null; };
+                closeText.MouseEnter += (_, _) => { closeText.Foreground = (Brush)FindResource("DangerRed"); closeText.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Colors.Black, BlurRadius = 4, ShadowDepth = 1, Direction = 270, Opacity = 0.5 }; };
+                closeText.MouseLeave += (_, _) => { closeText.Foreground = (Brush)FindResource("MutedTextBrush"); closeText.Effect = null; };
                 var closeButton = new Button { Content = closeText, Style = (Style)FindResource("ToolbarButton"),
                     Background = Brushes.Transparent, BorderThickness = new Thickness(0), Padding = new Thickness(0) };
                 System.Windows.Automation.AutomationProperties.SetName(closeButton, Loc("Str_Lbl_Close"));
@@ -529,7 +529,7 @@ namespace KillerPDF.Shell
                 }
 
                 item.MouseEnter += (s, e) =>
-                    ((Button)s!).BorderBrush = (SolidColorBrush)FindResource("PrimaryBrush");
+                    ((Button)s!).BorderBrush = (Brush)FindResource("PrimaryBrush");
                 item.MouseLeave += (s, e) =>
                     ((Button)s!).BorderBrush = _swatchDimBorder;
 
@@ -545,7 +545,7 @@ namespace KillerPDF.Shell
                     VerticalAlignment = VerticalAlignment.Top,
                     Margin = new Thickness(0, 0, 2, 0),
                     Background = new SolidColorBrush(Color.FromArgb(200, 30, 30, 30)),
-                    Foreground = (SolidColorBrush)FindResource("DangerRed"),
+                    Foreground = (Brush)FindResource("DangerRed"),
                     BorderThickness = new Thickness(0),
                     Cursor = Cursors.Hand,
                     Padding = new Thickness(0),
@@ -569,7 +569,7 @@ namespace KillerPDF.Shell
                 stack.Children.Add(new TextBlock
                 {
                     Text = sectionTitle,
-                    Foreground = (SolidColorBrush)FindResource("MutedTextBrush"),
+                    Foreground = (Brush)FindResource("MutedTextBrush"),
                     FontFamily = UiKit.UiFont,
                     FontWeight = FontWeights.SemiBold,
                     FontSize = 11,
@@ -596,7 +596,7 @@ namespace KillerPDF.Shell
                     stack.Children.Add(new TextBlock
                     {
                         Text = Loc("Str_Sig_None"),
-                        Foreground = (SolidColorBrush)FindResource("MutedTextBrush"),
+                        Foreground = (Brush)FindResource("MutedTextBrush"),
                         FontFamily = UiKit.UiFont,
                         FontSize = 11,
                         FontStyle = FontStyles.Italic,
@@ -628,7 +628,7 @@ namespace KillerPDF.Shell
             stack.Children.Add(new Rectangle
             {
                 Height = 1,
-                Fill = (SolidColorBrush)FindResource("CardBorderBrush"),
+                Fill = (Brush)FindResource("CardBorderBrush"),
                 Margin = new Thickness(4, 6, 4, 2)
             });
 
@@ -675,8 +675,8 @@ namespace KillerPDF.Shell
 
             _signaturePopup = new Border
             {
-                Background = (SolidColorBrush)FindResource("MenuBackgroundBrush"),
-                BorderBrush = (SolidColorBrush)FindResource("MenuBorderBrush"),
+                Background = (Brush)FindResource("MenuBackgroundBrush"),
+                BorderBrush = (Brush)FindResource("MenuBorderBrush"),
                 BorderThickness = classicCaption ? new Thickness(0) : new Thickness(1),
                 CornerRadius = new CornerRadius(0),
                 Padding = new Thickness(0),
@@ -824,7 +824,7 @@ namespace KillerPDF.Shell
             // Pen-width selector: three preset thicknesses, active one highlighted. On the left so the
             // modal does not read bottom-right-heavy.
             var penRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(14, 6, 12, 0), VerticalAlignment = VerticalAlignment.Center };
-            penRow.Children.Add(new TextBlock { Text = Loc("Str_Sig_Pen"), Foreground = (SolidColorBrush)FindResource("MutedTextBrush"), FontFamily = UiKit.UiFont, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) });
+            penRow.Children.Add(new TextBlock { Text = Loc("Str_Sig_Pen"), Foreground = (Brush)FindResource("MutedTextBrush"), FontFamily = UiKit.UiFont, FontSize = 11, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0) });
             var penOptions = new (string Label, double W)[] { (Loc("Str_Sig_Thin"), 2.0), (Loc("Str_Sig_Medium"), 4.5), (Loc("Str_Sig_Thick"), 9.0) };
             var penBtns = new List<Button>();
             void RefreshPen()
@@ -833,8 +833,8 @@ namespace KillerPDF.Shell
                 {
                     bool active = Math.Abs(penOptions[bi].W - penWidth) < 0.01;
                     penBtns[bi].Background  = active ? (Brush)FindResource("SelectionBg") : (Brush)FindResource("PaneBrush");
-                    penBtns[bi].Foreground  = active ? (SolidColorBrush)FindResource("SelectionFg") : (SolidColorBrush)FindResource("TextBrush");
-                    penBtns[bi].BorderBrush = active ? (SolidColorBrush)FindResource("PrimaryBrush")      : (SolidColorBrush)FindResource("CardBorderBrush");
+                    penBtns[bi].Foreground  = active ? (Brush)FindResource("SelectionFg") : (Brush)FindResource("TextBrush");
+                    penBtns[bi].BorderBrush = active ? (Brush)FindResource("PrimaryBrush")      : (Brush)FindResource("CardBorderBrush");
                 }
             }
             foreach (var (lbl, w) in penOptions)

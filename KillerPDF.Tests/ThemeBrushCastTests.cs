@@ -41,6 +41,24 @@ public sealed class ThemeBrushCastTests
         Assert.True(offenders.Count == 0, "Gradient-capable keys cast to SolidColorBrush:\n" + string.Join("\n", offenders.Distinct()));
     }
 
+    // Any theme is free to state any surface as a gradient, not only the keys that are gradients
+    // today, so no theme lookup is hard-cast to SolidColorBrush whatever its key.
+    [Fact]
+    public void NoThemeLookupIsCastToSolidColorBrush()
+    {
+        string root = FindRepositoryRoot();
+        var offenders = new List<string>();
+        foreach (string file in AppSources(root))
+        {
+            string[] lines = File.ReadAllLines(file);
+            for (int i = 0; i < lines.Length; i++)
+                if (Regex.IsMatch(lines[i], @"\(SolidColorBrush\)\s*(?:Application\.Current\.)?(?:\w+\.)?(?:TryFindResource|FindResource|Resources\s*\[)")
+                    || Regex.IsMatch(lines[i], @"static\s+SolidColorBrush\s+R\(\s*string\s+key\s*\)"))
+                    offenders.Add($"{Path.GetRelativePath(root, file)}:{i + 1}");
+        }
+        Assert.True(offenders.Count == 0, "Theme lookups cast to SolidColorBrush:\n" + string.Join("\n", offenders));
+    }
+
     private static HashSet<string> GradientKeys(string root)
     {
         var keys = new HashSet<string>(StringComparer.Ordinal);
