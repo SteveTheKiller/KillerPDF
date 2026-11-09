@@ -910,13 +910,17 @@ internal static class PdfEngineBurn
                 // An image that stores no resolution reads as the display's DPI in a DPI-aware process
                 // (144 at 150% scaling), so only a stored resolution is used; otherwise WatermarkImageSize
                 // falls back to 96, as the preview's decoder does.
-                bool stored = (header.Flags & (int)ImageFlags.HasRealDpi) != 0;
-                return LoadImage(bytes, opacity) is { } image
-                    ? (image, stored ? header.HorizontalResolution : 0, stored ? header.VerticalResolution : 0) : null;
+                var (dpiX, dpiY) = StoredResolution(header.Flags, header.HorizontalResolution, header.VerticalResolution);
+                return LoadImage(bytes, opacity) is { } image ? (image, dpiX, dpiY) : null;
             }
         }
         catch { return null; }
     }
+
+    /// <summary>The resolution an image stores, or zero when it stores none, so the caller applies
+    /// its own fallback instead of the display DPI GDI+ reports for such an image.</summary>
+    internal static (double DpiX, double DpiY) StoredResolution(int flags, float horizontal, float vertical)
+        => (flags & (int)ImageFlags.HasRealDpi) != 0 ? (horizontal, vertical) : (0, 0);
 
     private static EngineImage? LoadImage(byte[] bytes, double opacity = 1)
     {

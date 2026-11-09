@@ -43,6 +43,26 @@ public sealed class WatermarkImageSizeTests
         Assert.InRange(height, 65.95, 66.05);
     }
 
+    // In a DPI-aware process GDI+ reports the display's DPI (144 at 150%) for an image that stores
+    // none, so the burn trusts the reported resolution only when the image says it is stored. This
+    // holds on any build machine, whatever its display scaling.
+    [Fact]
+    public void AReportedResolutionTheImageDoesNotStoreFallsBackToNinetySixDpi()
+    {
+        (double dpiX, double dpiY) = PdfEngineBurn.StoredResolution(flags: 0x2, horizontal: 144, vertical: 144);
+
+        (double width, double height) = WatermarkImageSize.Points(298, 88, dpiX, dpiY, PageWidth, 1.0);
+        Assert.InRange(width, 223.45, 223.55);    // 298 / 96 * 72
+        Assert.InRange(height, 65.95, 66.05);     // 88 / 96 * 72
+    }
+
+    [Fact]
+    public void AStoredResolutionIsUsed()
+    {
+        const int hasRealDpi = 0x1000;   // ImageFlags.HasRealDpi
+        Assert.Equal((72d, 144d), PdfEngineBurn.StoredResolution(hasRealDpi, 72, 144));
+    }
+
     [Theory]
     [InlineData(5669)]
     [InlineData(2835)]   // 72 DPI
