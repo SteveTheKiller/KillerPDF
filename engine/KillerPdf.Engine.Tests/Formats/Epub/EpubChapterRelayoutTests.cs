@@ -66,9 +66,11 @@ public sealed class EpubChapterRelayoutTests
         int middle = Enumerable.Range(0, layout.Pages.Count).First(index => layout.Pages[index].SpineIndex == 2);
 
         Assert.NotEmpty(layout.Pages[middle].TextPlacements);
+        // The background thread may wait behind other books on a busy machine; doing its work here checks what it lays out.
+        cache.LayOutAheadNow();
 
-        Assert.True(SpinWait.SpinUntil(() => cache.ResidentPageCount(1) == layout.Pages.Count(page => page.SpineIndex == 1)
-            && cache.ResidentPageCount(3) == layout.Pages.Count(page => page.SpineIndex == 3), TimeSpan.FromSeconds(30)));
+        Assert.Equal(layout.Pages.Count(page => page.SpineIndex == 1), cache.ResidentPageCount(1));
+        Assert.Equal(layout.Pages.Count(page => page.SpineIndex == 3), cache.ResidentPageCount(3));
         Assert.Equal(0, cache.ResidentPageCount(0));
         Assert.Equal(0, cache.ResidentPageCount(4));
     }

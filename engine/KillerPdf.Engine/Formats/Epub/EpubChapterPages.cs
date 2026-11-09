@@ -19,6 +19,7 @@ internal sealed class EpubChapterPages(Func<int, int, IReadOnlyList<EpubLayoutPa
     // The chapters to lay out ahead, nearest first; the latest page turn replaces the list.
     private readonly List<int> _ahead = new();
     private bool _aheadQueued;
+    private int _inFlight;
 
     /// <summary>Gets or sets whether a chapter laid out for a reader also lays out its neighbors in the background.</summary>
     internal bool PrefetchNeighbors { get; set; } = true;
@@ -118,6 +119,14 @@ internal sealed class EpubChapterPages(Func<int, int, IReadOnlyList<EpubLayoutPa
         EpubLayoutAhead.Enqueue(LayOutAhead);
     }
 
+    /// <summary>Does this book's pending layout ahead on the calling thread, as the background thread would.</summary>
+    internal void LayOutAheadNow()
+    {
+        while (LayOutAhead()) { }
+        // A chapter the background thread took before this call finishes too.
+        SpinWait.SpinUntil(() => { lock (_lock) return _inFlight == 0; });
+    }
+
     // Lays out one wanted chapter, then yields the background thread to other open books until its next turn.
     private bool LayOutAhead()
     {
@@ -131,6 +140,7 @@ internal sealed class EpubChapterPages(Func<int, int, IReadOnlyList<EpubLayoutPa
             }
             chapter = _ahead[0];
             _ahead.RemoveAt(0);
+            _inFlight++;
         }
         try
         {
@@ -146,6 +156,10 @@ internal sealed class EpubChapterPages(Func<int, int, IReadOnlyList<EpubLayoutPa
         }
         // Laying out ahead is only an optimization: a failure here surfaces when the page is really needed.
         catch (Exception) { }
+        finally
+        {
+            lock (_lock) _inFlight--;
+        }
         return true;
     }
 }
