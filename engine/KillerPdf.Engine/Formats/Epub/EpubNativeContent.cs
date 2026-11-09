@@ -133,6 +133,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     }
     private readonly Stack<Element> _ancestors = new();
     private readonly Dictionary<Element, int> _listCounters = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<Style, Style> _styles = new();
 
     // HTML rules for parsing integers, limited to the values a list ordinal can sensibly hold.
     private static int? ParseInteger(string? value) =>
@@ -325,6 +326,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
                 properties = properties with { Background = null };
         }
         Style style = suppressed ? inherited : properties.Apply(inherited, contentHeight);
+        // Elements with the same computed style share one record, so a long chapter keeps a few dozen, not thousands.
+        if (!_styles.TryAdd(style, style)) style = _styles[style];
         if (!suppressed)
         {
             if (name == "body")

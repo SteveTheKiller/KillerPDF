@@ -12,6 +12,15 @@ public sealed partial class EpubDocument
 {
     /// <summary>Lays out native EPUB pages in CSS pixels using an explicit fallback font.</summary>
     public EpubLayoutDocument CreateLayout(EpubLayoutOptions options, CancellationToken cancellationToken = default)
+        => CreateLayout(options, null, cancellationToken);
+
+    /// <summary>
+    /// Lays out the book once to find its page breaks. Each finished page is handed to <paramref name="residentPage"/>
+    /// with its index while its whole layout is still in memory; afterwards the book keeps only a compact page index
+    /// and lays a chapter out again when its placements, paints or clusters are next needed.
+    /// </summary>
+    internal EpubLayoutDocument CreateLayout(EpubLayoutOptions options, Action<EpubLayoutPage, int>? residentPage,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(options);
@@ -47,17 +56,24 @@ public sealed partial class EpubDocument
         // Decision 0009: non-linear items (notes, answers) follow the linear reading order, each in spine order.
         var readingOrder = Enumerable.Range(0, Spine.Count).Where(index => Spine[index].IsLinear)
             .Concat(Enumerable.Range(0, Spine.Count).Where(index => !Spine[index].IsLinear)).ToArray();
+        var anchorDestinations = new Dictionary<(int SpineIndex, int Offset), EpubNavigationDestination>();
+        // Font lookups made while laying a chapter out again follow that work's token, not the finished open's.
+        var layoutToken = cancellationToken;
+        var firstPageOf = new Dictionary<int, int>();
+        var chapterPages = new EpubChapterPages(Relayout, readingOrder);
         for (int completed = 0; completed < readingOrder.Length; completed++)
         {
             int spineIndex = readingOrder[completed];
             cancellationToken.ThrowIfCancellationRequested();
             int pageMark = pages.Count, anchorMark = anchors.Count, contentMark = contentDiagnostics.Count;
+            bool laidOut = false;
             try
             {
                 int ignored = AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors, cellAnchors,
                     ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences,
                     imageBoxes, images, bookReaders, ResolveFamily, contentDiagnostics, chargedStylesheets, cancellationToken);
                 if (ignored > 0) ignoredDeclarations.Add(new(spineIndex, Spine[spineIndex].Item.Href, ignored));
+                laidOut = true;
             }
             catch (Exception error) when (options.IsolateChapterFailures
                 && error is NotSupportedException or InvalidDataException)
@@ -73,19 +89,56 @@ public sealed partial class EpubDocument
                 chapterDiagnostics.Add(new(spineIndex, href, error.Message) { Reason = OmissionReason(error) });
                 pages.Add(ChapterDiagnosisPage(spineIndex, options, reader, href, error.Message, cancellationToken));
             }
+            if (laidOut)
+                EpubLayoutDocument.RecordAnchorDestinations(pages, pageMark, spineIndex,
+                    anchors.Skip(anchorMark).Select(anchor => anchor.Offset), options.Margin, anchorDestinations, cancellationToken);
+            for (int pageIndex = pageMark; pageIndex < pages.Count; pageIndex++) residentPage?.Invoke(pages[pageIndex], pageIndex);
+            // A laid-out chapter keeps only its index entries; a diagnosis page is small and stays whole.
+            if (laidOut)
+            {
+                firstPageOf[spineIndex] = pageMark;
+                chapterPages.Register(spineIndex, pages.Count - pageMark);
+                for (int pageIndex = pageMark; pageIndex < pages.Count; pageIndex++)
+                    pages[pageIndex] = pages[pageIndex].Indexed(chapterPages, pageIndex - pageMark);
+            }
             // The next spine item starts by checking cancellation, so a Cancel raised here stops layout.
             options.ChapterProgress?.Invoke(completed + 1, Spine.Count);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors, cellAnchors)
+        layoutToken = CancellationToken.None;
+        return new EpubLayoutDocument(options, pages, Spine.Select(entry => entry.Item.Href), anchors, cellAnchors,
+            anchorDestinations)
         {
             ChapterDiagnostics = chapterDiagnostics.AsReadOnly(), ContentDiagnostics = contentDiagnostics.AsReadOnly(),
-            IgnoredDeclarations = ignoredDeclarations.AsReadOnly()
+            IgnoredDeclarations = ignoredDeclarations.AsReadOnly(), ChapterPages = chapterPages
         };
+
+        // Lays one chapter out again exactly as the first time: the same fonts, image boxes and stylesheets, with the
+        // book's work budgets already proven by the first layout, and its diagnostics and anchors already recorded.
+        IReadOnlyList<EpubLayoutPage> Relayout(int spineIndex, int stopAfterPages)
+        {
+            // The chapter starts at the same book page as before: the first page of a book collapses its top margin,
+            // and cell anchors and the page limit count book pages, so empty places stand in for the earlier pages.
+            int firstPage = firstPageOf[spineIndex];
+            var again = new List<EpubLayoutPage>(firstPage + 16);
+            again.AddRange(Enumerable.Repeat<EpubLayoutPage>(null!, firstPage));
+            int text = int.MaxValue, stylesheetBytes = int.MaxValue, stylesheetReferences = int.MaxValue;
+            try
+            {
+                AppendNativeSpinePages(spineIndex, options, contentWidth, reader, again,
+                    new List<(int SpineIndex, string Id, int Offset)>(),
+                    new Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination>(),
+                    ref text, ref stylesheetBytes, ref stylesheetReferences, imageBoxes, images, bookReaders, ResolveFamily,
+                    new List<EpubChapterDiagnostic>(), new HashSet<string>(StringComparer.Ordinal), CancellationToken.None,
+                    stopAfterPages);
+            }
+            catch (EpubLayoutStopped stopped) { return stopped.Pages; }
+            return again.GetRange(firstPage, again.Count - firstPage);
+        }
 
         TrueTypeFont? ResolveFamily(EpubFontFamily? family, double weight, EpubFontStyle style)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            layoutToken.ThrowIfCancellationRequested();
             if (options.FontFaceResolver is { } resolveFace)
             {
                 var request = new EpubFontFaceRequest(family, weight, options.DefaultFont) { Style = style };
@@ -94,7 +147,7 @@ public sealed partial class EpubDocument
                 // EP-BF-031: past 256 distinct lookups, further families fall back to the default face.
                 if (faceFonts.Count >= 256) return null;
                 var result = resolveFace(request);
-                cancellationToken.ThrowIfCancellationRequested();
+                layoutToken.ThrowIfCancellationRequested();
                 // EP-BF-021: CFF-outline faces cannot be drawn yet, so they are passed over like a missing face.
                 if (result?.Font is { HasCffOutlines: true }) result = null;
                 // A face beyond the retained-font budget falls back the same way instead of refusing the chapter.
@@ -115,7 +168,7 @@ public sealed partial class EpubDocument
             if (familyFonts.TryGetValue(key, out var cached)) return cached;
             if (familyFonts.Count >= 256) return null;
             var selected = options.FontFamilyResolver(family);
-            cancellationToken.ThrowIfCancellationRequested();
+            layoutToken.ThrowIfCancellationRequested();
             if (selected is { HasCffOutlines: true } || selected is not null && !CanRetain(selected)) selected = null;
             if (selected is not null) RetainFace(selected);
             familyFonts.Add(key, selected);
@@ -253,7 +306,8 @@ public sealed partial class EpubDocument
         Dictionary<string, (double Width, double Height)> imageBoxes, EpubImageStore images,
         Dictionary<TrueTypeFont, TrueTypeOutlineReader> bookReaders,
         Func<EpubFontFamily?, double, EpubFontStyle, TrueTypeFont?> resolveFamily,
-        List<EpubChapterDiagnostic> contentDiagnostics, HashSet<string> chargedStylesheets, CancellationToken cancellationToken)
+        List<EpubChapterDiagnostic> contentDiagnostics, HashSet<string> chargedStylesheets, CancellationToken cancellationToken,
+        int stopAfterPages = int.MaxValue)
     {
         // Itemref properties (page-spread-*, rendition:*) only affect synthetic spreads and fixed layout; they are ignored.
         var resource = Spine[spineIndex].Item;
@@ -1799,8 +1853,15 @@ public sealed partial class EpubDocument
                 navigationPlacements.Clear();
                 glyphs.Clear();
                 backgrounds.Clear();
+                if (chapterRoot && pages.Count >= stopAfterPages) throw new EpubLayoutStopped(pages);
             }
         }
+    }
+
+    /// <summary>Ends a chapter's layout once it has the pages a reader asked for; finished pages never change.</summary>
+    private sealed class EpubLayoutStopped(List<EpubLayoutPage> pages) : Exception
+    {
+        internal List<EpubLayoutPage> Pages { get; } = pages;
     }
 
 }

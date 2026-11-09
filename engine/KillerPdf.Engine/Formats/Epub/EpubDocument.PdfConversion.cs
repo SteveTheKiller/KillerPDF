@@ -15,6 +15,10 @@ public sealed partial class EpubDocument
             throw new ArgumentOutOfRangeException(nameof(options),
                 "PDF pages must be 3 to 14,400 points (200 inches) on each side.");
         const double pointsPerCssPixel = 72d / 96d;
+        var builder = new PdfDocumentBuilder();
+        // Each page is written while its chapter's layout is in memory, so the book is laid out only once;
+        // its links are kept until every page exists, since a link may lead to a later page.
+        var linkRuns = new List<(int PageIndex, EpubTextPlacement Placement)>();
         var layout = CreateLayout(new EpubLayoutOptions(
             options.PageWidthPoints / pointsPerCssPixel,
             options.PageHeightPoints / pointsPerCssPixel, options.DefaultFont)
@@ -25,10 +29,35 @@ public sealed partial class EpubDocument
             FontFaceResolver = options.FontFaceResolver,
             IsolateChapterFailures = options.IsolateChapterFailures,
             UnavailableChapterLabel = options.UnavailableChapterLabel
-        }, cancellationToken);
-        var builder = new PdfDocumentBuilder();
-        foreach (var page in layout.Pages)
+        }, AddPage, cancellationToken);
+        foreach (var (pageIndex, placement) in linkRuns)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (placement.LinkTarget is not { } target || placement.Width <= 0 || placement.Height <= 0) continue;
+            if (TryExternalHyperlink(target, out string external))
+            {
+                builder.AddUriLink(pageIndex, placement.Left * pointsPerCssPixel,
+                    options.PageHeightPoints - (placement.Top + placement.Height) * pointsPerCssPixel,
+                    placement.Width * pointsPerCssPixel, placement.Height * pointsPerCssPixel, external);
+                continue;
+            }
+            // A link whose anchor is not in the book is left out; every other link is kept.
+            if (TryResolve(target) is not { } destination) continue;
+            builder.AddPageLink(pageIndex, placement.Left * pointsPerCssPixel,
+                options.PageHeightPoints - (placement.Top + placement.Height) * pointsPerCssPixel,
+                placement.Width * pointsPerCssPixel, placement.Height * pointsPerCssPixel,
+                destination.PageIndex, destination: PdfDestination.At(destination.Left * pointsPerCssPixel,
+                    options.PageHeightPoints - destination.Top * pointsPerCssPixel));
+        }
+        AddBookmarks(ReadNavigation(cancellationToken), 0);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] result = builder.Build();
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
+
+        void AddPage(EpubLayoutPage page, int pageIndex)
+        {
+            foreach (var run in page.LinkRuns(cancellationToken)) linkRuns.Add((pageIndex, run));
             cancellationToken.ThrowIfCancellationRequested();
             if (page.Glyphs.Any(paint => paint is not (NativeGlyphPaint or NativeRectanglePaint or NativeMarkerPaint)
                     && paint is not NativeImagePaint { Image: { Components: 3, Bits: 8 } }))
@@ -142,31 +171,6 @@ public sealed partial class EpubDocument
                     .EndText();
             }
         }
-        for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++)
-            foreach (var placement in layout.Pages[pageIndex].LinkRuns(cancellationToken))
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (placement.LinkTarget is not { } target || placement.Width <= 0 || placement.Height <= 0) continue;
-                if (TryExternalHyperlink(target, out string external))
-                {
-                    builder.AddUriLink(pageIndex, placement.Left * pointsPerCssPixel,
-                        options.PageHeightPoints - (placement.Top + placement.Height) * pointsPerCssPixel,
-                        placement.Width * pointsPerCssPixel, placement.Height * pointsPerCssPixel, external);
-                    continue;
-                }
-                // A link whose anchor is not in the book is left out; every other link is kept.
-                if (TryResolve(target) is not { } destination) continue;
-                builder.AddPageLink(pageIndex, placement.Left * pointsPerCssPixel,
-                    options.PageHeightPoints - (placement.Top + placement.Height) * pointsPerCssPixel,
-                    placement.Width * pointsPerCssPixel, placement.Height * pointsPerCssPixel,
-                    destination.PageIndex, destination: PdfDestination.At(destination.Left * pointsPerCssPixel,
-                        options.PageHeightPoints - destination.Top * pointsPerCssPixel));
-            }
-        AddBookmarks(ReadNavigation(cancellationToken), 0);
-        cancellationToken.ThrowIfCancellationRequested();
-        byte[] result = builder.Build();
-        cancellationToken.ThrowIfCancellationRequested();
-        return result;
 
         void AddBookmarks(IReadOnlyList<EpubNavigationEntry> entries, int level)
         {

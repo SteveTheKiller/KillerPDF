@@ -134,7 +134,7 @@ public sealed class EpubLayoutPage
         EpubImageStore? images = null)
     {
         Markers = Array.AsReadOnly((markers ?? []).ToArray());
-        Text = text;
+        _text = text;
         TextStart = textStart;
         SpineIndex = spineIndex;
         _storage = new EpubPageStorage(placements, navigationPlacements, glyphs, clusters, images);
@@ -142,24 +142,63 @@ public sealed class EpubLayoutPage
         HiddenTextRanges = Array.AsReadOnly((hiddenTextRanges ?? []).ToArray());
     }
 
-    private readonly EpubPageStorage _storage;
+    // An index entry: the page's text, its chapter and its position there; the layout itself is rebuilt on demand.
+    private EpubLayoutPage(EpubLayoutPage resident, EpubChapterPages chapter, int ordinal)
+    {
+        Markers = resident.Markers;
+        TextStart = resident.TextStart;
+        SpineIndex = resident.SpineIndex;
+        CanvasBackground = resident.CanvasBackground;
+        HiddenTextRanges = resident.HiddenTextRanges;
+        string text = resident.Text;
+        byte[] encoded = System.Text.Encoding.UTF8.GetBytes(text);
+        // Book text is valid Unicode, so UTF-8 keeps it exactly in about half the space; anything else stays a string.
+        if (System.Text.Encoding.UTF8.GetString(encoded) == text) _utf8Text = encoded;
+        else _text = text;
+        _chapter = chapter;
+        _ordinal = ordinal;
+    }
+
+    private readonly EpubPageStorage? _storage;
+    private readonly EpubChapterPages? _chapter;
+    private readonly int _ordinal;
+    private readonly string? _text;
+    private readonly byte[]? _utf8Text;
+    // The decoded text is kept only while a caller still uses it, so repeated reads do not decode again.
+    private WeakReference<string>? _decoded;
+
+    /// <summary>Turns a laid-out page into its compact index entry.</summary>
+    internal EpubLayoutPage Indexed(EpubChapterPages chapter, int ordinal) => new(this, chapter, ordinal);
+
+    private EpubPageStorage Storage => _storage ?? _chapter!.Resident(this, _ordinal)._storage!;
+
     /// <summary>Gets the page's normalized text with display-none subtrees omitted.</summary>
-    public string Text { get; }
+    public string Text
+    {
+        get
+        {
+            if (_text is not null) return _text;
+            if (_decoded is not null && _decoded.TryGetTarget(out var cached)) return cached;
+            string text = System.Text.Encoding.UTF8.GetString(_utf8Text!);
+            _decoded = new WeakReference<string>(text);
+            return text;
+        }
+    }
     /// <summary>Gets the UTF-16 offset in display-filtered spine text where this page starts.</summary>
     public int TextStart { get; }
     /// <summary>Gets this page's original declared spine index.</summary>
     public int SpineIndex { get; }
     /// <summary>Gets logical text placements independently of glyph ink.</summary>
-    public IReadOnlyList<EpubTextPlacement> TextPlacements => _storage.TextPlacements;
+    public IReadOnlyList<EpubTextPlacement> TextPlacements => Storage.TextPlacements;
     /// <summary>Rebuilds this page's paints on each access; deferred images are decoded through the book's store.</summary>
-    internal IReadOnlyList<NativePagePaint> Glyphs => _storage.Paints();
+    internal IReadOnlyList<NativePagePaint> Glyphs => Storage.Paints();
     /// <summary>The number of paints without rebuilding them.</summary>
-    internal int PaintCount => _storage.PaintCount;
+    internal int PaintCount => Storage.PaintCount;
     /// <summary>The paints as laid out, with images still deferred, for moving a cell page into its row.</summary>
-    internal IReadOnlyList<NativePagePaint> StoredPaints => _storage.Paints(decodeImages: false);
-    internal IReadOnlyDictionary<int, EpubGlyphCluster> Clusters => _storage.Clusters;
+    internal IReadOnlyList<NativePagePaint> StoredPaints => Storage.Paints(decodeImages: false);
+    internal IReadOnlyDictionary<int, EpubGlyphCluster> Clusters => Storage.Clusters;
     internal IReadOnlyList<(int Start, int Length)> HiddenTextRanges { get; }
-    internal IReadOnlyList<EpubTextPlacement> NavigationPlacements => _storage.NavigationPlacements;
+    internal IReadOnlyList<EpubTextPlacement> NavigationPlacements => Storage.NavigationPlacements;
     /// <summary>Ordered-list numbers drawn on this page; they are not part of the page text.</summary>
     internal IReadOnlyList<EpubListMarker> Markers { get; }
     internal PdfRgbColor? CanvasBackground { get; }
@@ -198,19 +237,62 @@ public sealed class EpubLayoutDocument
     private readonly string[] _spineHrefs;
     private readonly (int SpineIndex, string Id, int Offset)[] _anchors;
     private readonly Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> _cellAnchors;
+    private readonly Dictionary<(int SpineIndex, int Offset), EpubNavigationDestination> _anchorDestinations;
 
     internal EpubLayoutDocument(EpubLayoutOptions options, IEnumerable<EpubLayoutPage> pages,
         IEnumerable<string> spineHrefs, IEnumerable<(int SpineIndex, string Id, int Offset)> anchors,
-        Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> cellAnchors)
+        Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> cellAnchors,
+        Dictionary<(int SpineIndex, int Offset), EpubNavigationDestination> anchorDestinations)
     {
         _options = options with { };
         Pages = Array.AsReadOnly(pages.ToArray());
         _spineHrefs = spineHrefs.ToArray();
         _anchors = anchors.ToArray();
         _cellAnchors = new(cellAnchors);
+        _anchorDestinations = new(anchorDestinations);
+    }
+
+    /// <summary>
+    /// Finds where each anchor of a just laid-out chapter lands, while its placements are still in memory: the first
+    /// navigation placement at or after the anchor's offset, or the end of the chapter's last placement.
+    /// </summary>
+    internal static void RecordAnchorDestinations(IReadOnlyList<EpubLayoutPage> pages, int firstPage, int spineIndex,
+        IEnumerable<int> offsets, double margin, Dictionary<(int SpineIndex, int Offset), EpubNavigationDestination> destinations,
+        CancellationToken cancellationToken)
+    {
+        if (firstPage >= pages.Count) return;
+        // A running maximum of placement starts makes "first placement whose start reaches the offset" a binary search.
+        var reach = new List<int>();
+        var at = new List<(int Page, EpubTextPlacement Placement)>();
+        for (int pageIndex = firstPage; pageIndex < pages.Count; pageIndex++)
+            foreach (var placement in pages[pageIndex].NavigationPlacements)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                reach.Add(reach.Count == 0 ? placement.Start : Math.Max(reach[^1], placement.Start));
+                at.Add((pageIndex, placement));
+            }
+        foreach (int offset in offsets)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (destinations.ContainsKey((spineIndex, offset))) continue;
+            int low = 0, high = reach.Count;
+            while (low < high)
+            {
+                int middle = (low + high) >>> 1;
+                if (reach[middle] >= offset) high = middle; else low = middle + 1;
+            }
+            destinations[(spineIndex, offset)] = low < at.Count
+                ? new(at[low].Page, spineIndex, offset, at[low].Placement.Left, at[low].Placement.Top)
+                : at.Count > 0
+                    ? new(at[^1].Page, spineIndex, offset, at[^1].Placement.Left + at[^1].Placement.Width, at[^1].Placement.Top)
+                    : new(firstPage, spineIndex, offset, margin, margin);
+        }
     }
     /// <summary>Gets the immutable native pages.</summary>
     public IReadOnlyList<EpubLayoutPage> Pages { get; }
+
+    /// <summary>The cache that lays chapters out again on demand.</summary>
+    internal EpubChapterPages? ChapterPages { get; init; }
 
     /// <summary>Gets the chapters replaced by diagnosis pages, in reading order (linear items first, then non-linear ones).</summary>
     public IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics { get; init; } = [];
@@ -258,21 +340,9 @@ public sealed class EpubLayoutDocument
             {
                 if (_cellAnchors.TryGetValue((spineIndex, fragment, offset), out var cellDestination))
                     return cellDestination;
-                EpubNavigationDestination? cursor = null;
-                for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (Pages[pageIndex].SpineIndex != spineIndex) continue;
-                    cursor ??= new(pageIndex, spineIndex, offset, _options.Margin, _options.Margin);
-                    foreach (var placement in Pages[pageIndex].NavigationPlacements)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        if (placement.Start >= offset)
-                            return new(pageIndex, spineIndex, offset, placement.Left, placement.Top);
-                        cursor = new(pageIndex, spineIndex, offset, placement.Left + placement.Width, placement.Top);
-                    }
-                }
-                if (cursor is not null) return cursor;
+                // Recorded at layout, so following a link never lays its chapter out again.
+                if (_anchorDestinations.TryGetValue((spineIndex, offset), out var destination))
+                    return destination;
             }
             throw new ArgumentException("The EPUB navigation anchor is not in the native chapter.", nameof(target));
         }
