@@ -1434,12 +1434,34 @@ public sealed partial class EpubDocument
                         double segment = WordWidth(at + 1, style.LetterSpacing, out double segmentTracking);
                         if (left + segmentTracking + segment > contentRight)
                         {
+                            if (text[index] == (char)0x00AD) ShowHyphen(index, style);
                             FlushLine(finalLine: false);
                             left = contentLeft;
                             lineStart = sequence.Atoms[at + 1].Offset;
                             firstIndentedWord = false;
                         }
                     }
+                }
+
+                // CSS Text 3 hyphens: manual: the line ends at the soft hyphen, so it shows the font's hyphen (U+2010, or the
+                // hyphen-minus). The page text keeps the soft hyphen, so copy and search read the word whole, and the PDF
+                // draws the hyphen glyph as text U+00AD, which readers join across the break.
+                void ShowHyphen(int at, EpubNativeContent.Style shown)
+                {
+                    var item = line[^1];
+                    if (item.Index != at || !clusters.TryGetValue(at, out var blank)) return;
+                    var face = blank.Font;
+                    ushort glyph = face.GetGlyphId(0x2010) is var dash and not 0 ? dash : face.GetGlyphId('-');
+                    if (glyph == 0) return;
+                    if (!readers.TryGetValue(face, out var faceReader))
+                        readers.Add(face, faceReader = new TrueTypeOutlineReader(face));
+                    if (faceReader.Outline(glyph) is not { } outline) return;
+                    double advance = face.GetAdvanceWidth(glyph) / (double)face.UnitsPerEm;
+                    clusters[at] = new(at, blank.Length, face, [new(glyph, advance, 0, 0)], substituted: true);
+                    item.Width = advance * shown.FontSize;
+                    item.Outline = outline;
+                    line[^1] = item;
+                    left = item.Left + item.Width;
                 }
 
                 bool IsSpace(EpubFormattingTree.Atom atom) => atom.IsSpace && !atom.Owner.Style.PreserveWhitespace;
