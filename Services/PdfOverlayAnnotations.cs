@@ -166,12 +166,17 @@ public static class PdfOverlayAnnotations
             // Extraction is restricted to unencrypted working copies.
             if (document.IsEncrypted) return new(sourceBytes, []);
             var pages = PdfPageInformation.Read(document);
-            var comments = PdfCommentReader.Read(document, true);
+            var comments = PdfCommentReader.Read(document, true).ToLookup(comment => comment.PageIndex);
             var extracted = new List<OverlayRecord>();
             var editor = new PdfIncrementalAnnotationEditor(document);
-            for (int page = 0; page < pages.Count; page++)
+            // A tail starts at a page's topmost annotation and holds only annotations that carry overlay metadata,
+            // so a page with no such comment has none. Counting a page's annotations reads the page tree, so only
+            // those pages are counted: per page, a long PDF read the whole tree once for every page at open.
+            foreach (var pageComments in comments.Where(group => group.Any(comment => CarriesOverlayMetadata(document, comment)))
+                .OrderBy(group => group.Key))
             {
-                var stack = comments.Where(c => c.PageIndex == page).ToDictionary(c => c.AnnotationIndex);
+                int page = pageComments.Key;
+                var stack = pageComments.ToDictionary(c => c.AnnotationIndex);
                 int count = PdfCommentReader.ReadPageAnnotationCount(document, page);
                 var tail = new List<OverlayRecord>();
                 bool invalid = false;
@@ -201,6 +206,10 @@ public static class PdfOverlayAnnotations
         }
         catch (Exception error) when (Unsupported(error)) { return new(sourceBytes, []); }
     }
+
+    private static bool CarriesOverlayMetadata(PdfDocument document, PdfCommentInfo comment) =>
+        comment.ObjectNumber is int number && document.Resolve(number) is PdfDictionary annotation
+        && annotation.ContainsKey(MetadataName);
 
     private static OverlayRecord? TryRead(PdfDocument document, PdfCommentInfo comment, PdfPageInformation frame)
     {
