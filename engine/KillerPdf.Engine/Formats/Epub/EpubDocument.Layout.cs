@@ -60,6 +60,7 @@ public sealed partial class EpubDocument
         // Font lookups made while laying a chapter out again follow that work's token, not the finished open's.
         var layoutToken = cancellationToken;
         var firstPageOf = new Dictionary<int, int>();
+        var resumePointsOf = new Dictionary<int, EpubResumePoint?[]>();
         var chapterPages = new EpubChapterPages(Relayout, readingOrder);
         for (int completed = 0; completed < readingOrder.Length; completed++)
         {
@@ -67,11 +68,13 @@ public sealed partial class EpubDocument
             cancellationToken.ThrowIfCancellationRequested();
             int pageMark = pages.Count, anchorMark = anchors.Count, contentMark = contentDiagnostics.Count;
             bool laidOut = false;
+            var points = new List<EpubResumePoint?>();
             try
             {
                 int ignored = AppendNativeSpinePages(spineIndex, options, contentWidth, reader, pages, anchors, cellAnchors,
                     ref remainingTextLength, ref remainingStylesheetBytes, ref remainingStylesheetReferences,
-                    imageBoxes, images, bookReaders, ResolveFamily, contentDiagnostics, chargedStylesheets, cancellationToken);
+                    imageBoxes, images, bookReaders, ResolveFamily, contentDiagnostics, chargedStylesheets, cancellationToken,
+                    resumePoints: points);
                 if (ignored > 0) ignoredDeclarations.Add(new(spineIndex, Spine[spineIndex].Item.Href, ignored));
                 laidOut = true;
             }
@@ -98,6 +101,8 @@ public sealed partial class EpubDocument
             {
                 firstPageOf[spineIndex] = pageMark;
                 chapterPages.Register(spineIndex, pages.Count - pageMark);
+                // One resume point per page (the first page has none); the chapter's last page break adds one more.
+                resumePointsOf[spineIndex] = points.Take(pages.Count - pageMark).ToArray();
                 for (int pageIndex = pageMark; pageIndex < pages.Count; pageIndex++)
                     pages[pageIndex] = pages[pageIndex].Indexed(chapterPages, pageIndex - pageMark);
             }
@@ -115,14 +120,18 @@ public sealed partial class EpubDocument
 
         // Lays one chapter out again exactly as the first time: the same fonts, image boxes and stylesheets, with the
         // book's work budgets already proven by the first layout, and its diagnostics and anchors already recorded.
-        IReadOnlyList<EpubLayoutPage> Relayout(int spineIndex, int stopAfterPages, CancellationToken relayoutToken)
+        // From the page asked for, it resumes at the state recorded for that page instead of the chapter start.
+        EpubChapterRun Relayout(int spineIndex, int fromPage, int stopAfterPages, CancellationToken relayoutToken)
         {
             // The chapter starts at the same book page as before: the first page of a book collapses its top margin,
             // and cell anchors and the page limit count book pages, so empty places stand in for the earlier pages.
             int firstPage = firstPageOf[spineIndex];
+            var points = resumePointsOf[spineIndex];
+            var resume = fromPage > 0 && fromPage < points.Length ? points[fromPage] : null;
             var again = new List<EpubLayoutPage>(firstPage + 16);
             again.AddRange(Enumerable.Repeat<EpubLayoutPage>(null!, firstPage));
             int text = int.MaxValue, stylesheetBytes = int.MaxValue, stylesheetReferences = int.MaxValue;
+            IReadOnlyList<EpubLayoutPage> laid;
             try
             {
                 AppendNativeSpinePages(spineIndex, options, contentWidth, reader, again,
@@ -130,10 +139,14 @@ public sealed partial class EpubDocument
                     new Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination>(),
                     ref text, ref stylesheetBytes, ref stylesheetReferences, imageBoxes, images, bookReaders, ResolveFamily,
                     new List<EpubChapterDiagnostic>(), new HashSet<string>(StringComparer.Ordinal), relayoutToken,
-                    stopAfterPages);
+                    stopAfterPages, resume);
+                laid = again.GetRange(firstPage, again.Count - firstPage);
             }
-            catch (EpubLayoutStopped stopped) { return stopped.Pages; }
-            return again.GetRange(firstPage, again.Count - firstPage);
+            catch (EpubLayoutStopped stopped) { laid = stopped.Pages; }
+            // The page the resumed block began on lacks what came before the block, so it is dropped with the rest.
+            var kept = new EpubLayoutPage?[laid.Count];
+            for (int page = Math.Max(0, fromPage); page < laid.Count; page++) kept[page] = laid[page];
+            return new EpubChapterRun(kept, laid.Count - (resume?.Page ?? 0));
         }
 
         TrueTypeFont? ResolveFamily(EpubFontFamily? family, double weight, EpubFontStyle style)
@@ -307,7 +320,7 @@ public sealed partial class EpubDocument
         Dictionary<TrueTypeFont, TrueTypeOutlineReader> bookReaders,
         Func<EpubFontFamily?, double, EpubFontStyle, TrueTypeFont?> resolveFamily,
         List<EpubChapterDiagnostic> contentDiagnostics, HashSet<string> chargedStylesheets, CancellationToken cancellationToken,
-        int stopAfterPages = int.MaxValue)
+        int stopAfterPages = int.MaxValue, EpubResumePoint? resume = null, List<EpubResumePoint?>? resumePoints = null)
     {
         // Itemref properties (page-spread-*, rendition:*) only affect synthetic spreads and fixed layout; they are ignored.
         var resource = Spine[spineIndex].Item;
@@ -668,6 +681,25 @@ public sealed partial class EpubDocument
             // Cells of a row taller than a page, laid out one after another as ordinary blocks.
             var blockCells = new HashSet<EpubFormattingTree.Block>();
             double pendingParagraphGap = 0;
+            // Resume points, chapter flow only. While resuming, the blocks on the recorded path are entered again without
+            // repeating what they already did on earlier pages, down to the block whose start was recorded; from there
+            // layout runs as it did the first time. The pages before the recorded one are placeholders.
+            int[]? resumePath = null;
+            int resumeLevel = 0;
+            EpubFormattingTree.Block? candidateBlock = null;
+            EpubResumePoint? candidate = null;
+            if (chapterRoot && resume is not null)
+            {
+                for (int page = 0; page < resume.Page; page++) pages.Add(null!);
+                top = resume.Top;
+                pendingParagraphGap = resume.PendingGap;
+                pendingBreakAfter = resume.PendingBreakAfter;
+                pageHasContent = resume.PageHasContent;
+                pageStart = resume.PageStart;
+                resumePath = resume.Path;
+            }
+            // The chapter's first page needs no resume point.
+            if (chapterRoot) resumePoints?.Add(null);
             LayoutBlock(flowRoot);
             cancellationToken.ThrowIfCancellationRequested();
             if (chapterRoot && bodyPadding.Bottom > 0 && top + bodyPadding.Bottom > options.PageHeight - options.Margin)
@@ -677,6 +709,19 @@ public sealed partial class EpubDocument
 
             void LayoutBlock(EpubFormattingTree.Block block)
             {
+                // A block on the resume path above the recorded one began on an earlier page: it is entered again for its
+                // box, and what its start did then (breaks, top padding, its margin) is not repeated. The recorded block
+                // itself, and every block after it, lays out as the first time.
+                int level = resumeLevel;
+                bool resumedThrough = resumePath is not null && level < resumePath.Length;
+                if (resumePath is not null && !resumedThrough) resumePath = null;
+                if (!resumedThrough) RecordCandidate(block);
+                else
+                {
+                    if ((resume!.Started >> level & 1) != 0) startedBlocks.Add(block);
+                    if (block is EpubFormattingTree.ListItem resumedItem && (resume.Marked >> level & 1) != 0)
+                        markedItems.Add(resumedItem);
+                }
                 // An empty numbered item still advances its list's count; it simply draws no marker line.
                 if (block is EpubFormattingTree.ListItem && block.Source.ListOrdinal is null && !HasFlowContent(block))
                     throw new NotSupportedException("Native EPUB empty list items are not implemented.");
@@ -712,7 +757,7 @@ public sealed partial class EpubDocument
                 activeBounds.Add(block, (backgroundBounds.Left, backgroundBounds.Width, parentWidth));
                 try
                 {
-                    if (block.Parent is not null && pageHasContent
+                    if (!resumedThrough && block.Parent is not null && pageHasContent
                         && (block.Source.Style.PageBreakBefore || pendingBreakAfter && HasFlowContent(block)))
                     {
                         int boundary = Math.Min(block.Source.Offset, text.Length);
@@ -729,7 +774,7 @@ public sealed partial class EpubDocument
                         ? side.Width.Value * (side.Width.Em ? block.Source.Style.FontSize : 1) : 0;
                     if (!double.IsFinite(borderTop) || borderTop > 32768)
                         throw new NotSupportedException("Native EPUB top border exceeds the supported dimensions.");
-                    if ((paddingTop > 0 || paddingBottom > 0 || borderTop > 0) && block.Source.IsParagraph)
+                    if (!resumedThrough && (paddingTop > 0 || paddingBottom > 0 || borderTop > 0) && block.Source.IsParagraph)
                     {
                         pendingParagraphGap = Math.Max(pendingParagraphGap, block.Source.VerticalMargin(0,
                             activeBounds[block].ContainingWidth, pageHasContent ? options.FontSize : 0));
@@ -748,18 +793,29 @@ public sealed partial class EpubDocument
                         paddingTop = 0;
                         borderTop = 0;
                     }
-                    if (borderTop > 0)
+                    if (resumedThrough)
                     {
-                        PaintPadding(borderTop);
-                        if (borderColor is { } fill)
-                            backgrounds.Add((SourceDepth(block.Source), new NativeRectanglePaint(
-                                backgroundBounds.Left, top, backgroundBounds.Width, borderTop, fill)));
-                        top += borderTop;
+                        // Its top border and padding were drawn when it began; what still waits to move with its first
+                        // line is as recorded.
+                        foreach (var waiting in resume!.Padding ?? [])
+                            if (waiting.Depth == level)
+                                initialPadding[block] = (waiting.Height, waiting.PaintStart, waiting.BorderHeight, waiting.BorderColor);
                     }
-                    if (paddingTop + borderTop > 0)
-                        initialPadding[block] = (paddingTop + borderTop, initialPaintStart, borderTop, borderColor);
-                    PaintPadding(paddingTop);
-                    top += paddingTop;
+                    else
+                    {
+                        if (borderTop > 0)
+                        {
+                            PaintPadding(borderTop);
+                            if (borderColor is { } fill)
+                                backgrounds.Add((SourceDepth(block.Source), new NativeRectanglePaint(
+                                    backgroundBounds.Left, top, backgroundBounds.Width, borderTop, fill)));
+                            top += borderTop;
+                        }
+                        if (paddingTop + borderTop > 0)
+                            initialPadding[block] = (paddingTop + borderTop, initialPaintStart, borderTop, borderColor);
+                        PaintPadding(paddingTop);
+                        top += paddingTop;
+                    }
                     LayoutBlockContent(block);
                     double remainingPadding = paddingBottom;
                     int? paddingEnd = null;
@@ -867,7 +923,11 @@ public sealed partial class EpubDocument
                     throw new NotSupportedException("Native EPUB text indentation exceeds the supported page dimensions.");
                 int boundary = Math.Min(block.Source.Offset, text.Length);
                 while (boundary < text.Length && content.Characters[boundary] is null) boundary++;
-                if (block.Source.HasBlockMargins && block.Source.VerticalMargin(0,
+                // Resuming through this block: its top margin is already in the recorded pending gap, and the children
+                // before the one on the path were laid out on earlier pages.
+                bool resumedHere = resumePath is not null;
+                int firstPart = resumedHere ? resumePath![resumeLevel] : 0;
+                if (!resumedHere && block.Source.HasBlockMargins && block.Source.VerticalMargin(0,
                     activeBounds[block].ContainingWidth, 0, padding: true) == 0
                     && block.Source.VerticalMargin(2, activeBounds[block].ContainingWidth, 0, padding: true) == 0
                     && block.Source.TopBorder is not { Visible: true, Width.Value: > 0 })
@@ -981,11 +1041,13 @@ public sealed partial class EpubDocument
                     pageHasContent = true;
                     return;
                 }
-                foreach (var part in block.Children)
+                for (int partIndex = firstPart; partIndex < block.Children.Count; partIndex++)
                 {
+                    var part = block.Children[partIndex];
                     cancellationToken.ThrowIfCancellationRequested();
                     if (part is EpubFormattingTree.Block child)
                     {
+                        if (resumedHere && partIndex == firstPart) resumeLevel++;
                         LayoutBlock(child);
                         continue;
                     }
@@ -1998,6 +2060,49 @@ public sealed partial class EpubDocument
                     ? (height - (selected.Ascender - selected.Descender) * style.FontSize / selected.UnitsPerEm) / 2
                     : 0;
 
+            // Remembers the layout state as this block begins, so a page that begins after it can resume here. Blocks in
+            // tables are passed over (their cells lay out in flows of their own), so a page inside a table resumes from
+            // the last block before the table.
+            void RecordCandidate(EpubFormattingTree.Block block)
+            {
+                if (!chapterRoot || resumePoints is null || IsTablePart(block)) return;
+                int depth = 0;
+                for (var up = block.Parent; up is not null; up = up.Parent)
+                {
+                    if (IsTablePart(up)) return;
+                    depth++;
+                }
+                if (depth >= 64) return;
+                ulong started = 0, marked = 0;
+                List<EpubResumePadding>? waiting = null;
+                int ancestorLevel = depth - 1;
+                for (var up = block.Parent; up is not null; up = up.Parent, ancestorLevel--)
+                {
+                    if (startedBlocks.Contains(up)) started |= 1UL << ancestorLevel;
+                    if (up is EpubFormattingTree.ListItem item && markedItems.Contains(item)) marked |= 1UL << ancestorLevel;
+                    if (initialPadding.TryGetValue(up, out var pad))
+                        (waiting ??= []).Add(new(ancestorLevel, pad.Height, pad.PaintStart, pad.BorderHeight, pad.BorderColor));
+                }
+                candidateBlock = block;
+                // The path is found only when a page actually ends after this block.
+                candidate = new EpubResumePoint(depth == 0 ? [] : null!, pages.Count, top, pendingParagraphGap, pageStart,
+                    (byte)((pendingBreakAfter ? 1 : 0) | (pageHasContent ? 2 : 0)), started, marked, waiting?.ToArray());
+            }
+
+            static bool IsTablePart(EpubFormattingTree.Block block) => block is EpubFormattingTree.Table
+                or EpubFormattingTree.RowGroup or EpubFormattingTree.Row or EpubFormattingTree.Cell;
+
+            // The resume point for the page that begins next: the last block that began before it.
+            EpubResumePoint? NextResumePoint()
+            {
+                if (candidate is null || candidate.Path is not null) return candidate;
+                var path = new List<int>();
+                for (var block = candidateBlock!; block.Parent is { } parent; block = parent)
+                    path.Add(parent.Children.IndexOf(block));
+                path.Reverse();
+                return candidate = candidate with { Path = path.ToArray() };
+            }
+
             void FinishPage(int end)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -2032,6 +2137,7 @@ public sealed partial class EpubDocument
                 navigationPlacements.Clear();
                 glyphs.Clear();
                 backgrounds.Clear();
+                if (chapterRoot) resumePoints?.Add(NextResumePoint());
                 if (chapterRoot && pages.Count >= stopAfterPages) throw new EpubLayoutStopped(pages);
             }
         }

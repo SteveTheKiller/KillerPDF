@@ -33,7 +33,8 @@ public sealed class EpubChapterRelayoutTests
         foreach (int index in order) Assert.Equal(first[index], Fingerprint(layout.Pages[index]));
     }
 
-    // A cold page turn lays out only as far as the page it needs; later pages cannot change earlier ones.
+    // A cold page turn keeps only the page it needs (it resumes from the page index, so the pages before it are not laid
+    // out whole); reading on then lays out the whole chapter.
     [Fact]
     public void OpeningAPageLaysItsChapterOutOnlyUpToThatPage()
     {
@@ -49,9 +50,30 @@ public sealed class EpubChapterRelayoutTests
 
         Assert.NotEmpty(layout.Pages[first + 1].TextPlacements);
 
-        Assert.Equal(2, cache.ResidentPageCount(1));
+        Assert.Equal(1, cache.ResidentPageCount(1));
         Assert.NotEmpty(layout.Pages[first + chapterPages - 1].TextPlacements);
         Assert.Equal(chapterPages, cache.ResidentPageCount(1));
+    }
+
+    // A jump into a long chapter resumes layout from the page index's record of the block that page continues, so the
+    // last of more than twenty pages is shown after laying out at most the one page before it, and comes out identical.
+    [Fact]
+    public void AJumpToTheLastPageOfALongChapterLaysOutAtMostOnePageBeforeIt()
+    {
+        var book = new Book();
+        for (int chapter = 0; chapter < 3; chapter++)
+            book.Chapters.Add(Chapter(string.Concat(Enumerable.Repeat("<p>AAAA AAA AAAAA AA AAAA AAA AAAAA AA AAAA AAA</p>", 1200))));
+        var first = new Dictionary<int, string>();
+        var layout = EpubDocument.Open(book.Build()).CreateLayout(Options(), (page, index) => first.Add(index, Fingerprint(page)),
+            CancellationToken.None);
+        var cache = layout.ChapterPages!;
+        cache.PrefetchNeighbors = false;
+        int last = Enumerable.Range(0, layout.Pages.Count).Last(index => layout.Pages[index].SpineIndex == 1);
+        Assert.True(layout.Pages.Count(page => page.SpineIndex == 1) > 20);
+
+        Assert.Equal(first[last], Fingerprint(layout.Pages[last]));
+
+        Assert.True(cache.PagesLaidOut <= 2, $"The jump laid out {cache.PagesLaidOut} pages to show one.");
     }
 
     // Reading on from the first page must not lay the chapter out again from its start for every page.

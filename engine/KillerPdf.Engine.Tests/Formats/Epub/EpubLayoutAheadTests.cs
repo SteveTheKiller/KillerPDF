@@ -99,12 +99,14 @@ public sealed class EpubLayoutAheadTests
 
         internal FakeBook(Action<int, bool, CancellationToken>? during = null)
         {
-            Cache = new EpubChapterPages((chapter, stop, token) =>
+            Cache = new EpubChapterPages((chapter, from, stop, token) =>
             {
                 bool ahead = token.CanBeCanceled;
                 Requests.Enqueue((chapter, ahead));
                 during?.Invoke(chapter, ahead, token);
-                return Pages(chapter).Take(Math.Min(stop, PagesPerChapter)).ToList();
+                var pages = Pages(chapter).Take(Math.Min(stop, PagesPerChapter))
+                    .Select((page, ordinal) => ordinal < from ? null : page).ToList();
+                return new EpubChapterRun(pages, pages.Count - from);
             }, Enumerable.Range(0, Chapters).ToArray());
             for (int chapter = 0; chapter < Chapters; chapter++)
             {

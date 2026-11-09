@@ -1,14 +1,21 @@
 namespace KillerPdf.Engine.Formats.Epub;
 
+/// <summary>One layout of part of a chapter: its pages by position (null before the first one asked for) and how many
+/// pages the layout produced, including any it laid out only to reach the first one asked for.</summary>
+internal sealed record EpubChapterRun(IReadOnlyList<EpubLayoutPage?> Pages, int LaidOut);
+
 /// <summary>
 /// Keeps the full layout of only the few most recently used chapters. A book is laid out once to find its page
 /// breaks; each page then keeps its chapter, its position in the chapter and its text, and a chapter whose
 /// placements, paints and clusters are needed again is laid out again from its source, as e-readers do.
 /// </summary>
-/// <param name="relayout">Lays a chapter out again from its start, stopping once it has the given number of pages.</param>
+/// <param name="relayout">
+/// Lays a chapter out again from the given page (resuming where the page index recorded that page's layout state), and
+/// stops once the chapter has the given number of pages; the pages before the first one asked for are null.
+/// </param>
 /// <param name="readingOrder">Spine indices in reading order, for finding a chapter's neighbors.</param>
 /// <param name="capacity">How many chapters stay laid out: the one being read and its two neighbors.</param>
-internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOnlyList<EpubLayoutPage>> relayout,
+internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, EpubChapterRun> relayout,
     IReadOnlyList<int> readingOrder, int capacity = 3)
 {
     // Background layout a reader's request stops, so a page turn never waits behind work done ahead.
@@ -20,7 +27,8 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
     private readonly Lock _lock = new();
     // Layout shares the book's font, outline and image-box caches, so chapters are laid out one at a time.
     private readonly Lock _layoutLock = new();
-    private readonly LinkedList<(int SpineIndex, IReadOnlyList<EpubLayoutPage> Pages)> _order = new();
+    // Each cached chapter holds one slot per page; a jump fills only the page it needed.
+    private readonly LinkedList<(int SpineIndex, EpubLayoutPage?[] Pages)> _order = new();
     private readonly Dictionary<int, int> _pageCounts = new();
     // The chapters to lay out ahead, nearest first; the latest page turn replaces the list.
     private readonly List<int> _ahead = new();
@@ -34,6 +42,9 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
     /// <summary>How many chapters were laid out ahead of the reader since the book opened.</summary>
     internal int AheadLayouts { get; private set; }
 
+    /// <summary>How many pages readers' layouts produced since the book opened, including pages laid out only to reach one.</summary>
+    internal int PagesLaidOut { get; private set; }
+
     /// <summary>Gets or sets whether a chapter laid out for a reader also lays out its neighbors in the background.</summary>
     internal bool PrefetchNeighbors { get; set; } = true;
 
@@ -42,7 +53,7 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
     {
         lock (_lock)
             foreach (var entry in _order)
-                if (entry.SpineIndex == spineIndex) return entry.Pages.Count;
+                if (entry.SpineIndex == spineIndex) return entry.Pages.Count(page => page is not null);
         return 0;
     }
 
@@ -55,10 +66,10 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
     /// <summary>Returns the laid-out page for this index entry, laying its chapter out again when it is not cached.</summary>
     internal EpubLayoutPage Resident(EpubLayoutPage entry, int ordinal)
     {
-        if (Cached(entry.SpineIndex, ordinal + 1) is { } hit)
+        if (Cached(entry.SpineIndex, ordinal) is { } hit)
         {
             Arrive(entry.SpineIndex);
-            return hit[ordinal];
+            return hit[ordinal]!;
         }
         lock (_lock)
         {
@@ -75,22 +86,25 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
                 _readersWaiting--;
                 ThrowIfClosed();
             }
-            if (Cached(entry.SpineIndex, ordinal + 1) is { } raced)
+            if (Cached(entry.SpineIndex, ordinal) is { } raced)
             {
                 Arrive(entry.SpineIndex);
-                return raced[ordinal];
+                return raced[ordinal]!;
             }
-            // A jump needs only this page, and later pages cannot change earlier ones, so layout stops there; reading on
-            // past what a jump laid out lays out the whole chapter, so each page turn does not start it over.
+            // A jump needs only this page: layout resumes from the state the page index recorded for it and stops there.
+            // Reading on past what a jump laid out lays out the whole chapter, so each page turn does not start it over.
             Layouts++;
-            var pages = relayout(entry.SpineIndex, Cached(entry.SpineIndex, 1, touch: false) is null ? ordinal + 1 : int.MaxValue,
-                CancellationToken.None);
+            bool jump = Find(entry.SpineIndex) is null;
+            var run = jump ? relayout(entry.SpineIndex, ordinal, ordinal + 1, CancellationToken.None)
+                : relayout(entry.SpineIndex, 0, int.MaxValue, CancellationToken.None);
+            PagesLaidOut += run.LaidOut;
+            var pages = run.Pages;
             // Layout is deterministic; a chapter that lays out differently the second time is a reader defect.
-            if (pages.Count <= ordinal || pages.Count > PageCount(entry.SpineIndex)
-                || pages[ordinal].TextStart != entry.TextStart || pages[ordinal].Text != entry.Text)
+            if (pages.Count <= ordinal || pages.Count > PageCount(entry.SpineIndex) || pages[ordinal] is not { } laidOut
+                || laidOut.TextStart != entry.TextStart || laidOut.Text != entry.Text)
                 throw new InvalidOperationException("A native EPUB chapter laid out differently the second time.");
             Store(entry.SpineIndex, pages, first: true);
-            page = pages[ordinal];
+            page = laidOut;
         }
         lock (_lock) _current = entry.SpineIndex;
         if (PrefetchNeighbors) Prefetch(entry.SpineIndex);
@@ -145,14 +159,14 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
         lock (_lock) return _pageCounts[spineIndex];
     }
 
-    // The cached pages when at least this many are laid out; a reader's use marks the chapter most recently used.
-    private IReadOnlyList<EpubLayoutPage>? Cached(int spineIndex, int needed, bool touch = true)
+    // The cached pages when this page is laid out; a reader's use marks the chapter most recently used.
+    private EpubLayoutPage?[]? Cached(int spineIndex, int ordinal, bool touch = true)
     {
         lock (_lock)
             for (var node = _order.First; node is not null; node = node.Next)
             {
                 if (node.Value.SpineIndex != spineIndex) continue;
-                if (node.Value.Pages.Count < needed) return null;
+                if (node.Value.Pages[ordinal] is null) return null;
                 if (touch && !ReferenceEquals(node, _order.First))
                 {
                     _order.Remove(node);
@@ -163,22 +177,37 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
         return null;
     }
 
-    // The chapter being read goes first; a chapter laid out ahead of the reader goes just behind it.
-    private void Store(int spineIndex, IReadOnlyList<EpubLayoutPage> pages, bool first)
+    // The chapter's cached pages, complete or not, without marking it used.
+    private EpubLayoutPage?[]? Find(int spineIndex)
+    {
+        lock (_lock)
+            foreach (var entry in _order)
+                if (entry.SpineIndex == spineIndex) return entry.Pages;
+        return null;
+    }
+
+    // The chapter being read goes first; a chapter laid out ahead of the reader goes just behind it. Pages laid out now
+    // join the ones already cached for the chapter.
+    private void Store(int spineIndex, IReadOnlyList<EpubLayoutPage?> pages, bool first)
     {
         lock (_lock)
         {
             // A reader that finished after the book closed still gets its page; the chapter is not kept.
             if (_closed) return;
+            EpubLayoutPage?[]? slots = null;
             for (var node = _order.First; node is not null; node = node.Next)
                 if (node.Value.SpineIndex == spineIndex)
                 {
                     first |= ReferenceEquals(node, _order.First);
+                    slots = node.Value.Pages;
                     _order.Remove(node);
                     break;
                 }
-            if (first || _order.First is null) _order.AddFirst((spineIndex, pages));
-            else _order.AddAfter(_order.First, (spineIndex, pages));
+            slots ??= new EpubLayoutPage?[_pageCounts[spineIndex]];
+            for (int ordinal = 0; ordinal < pages.Count; ordinal++)
+                if (pages[ordinal] is { } page) slots[ordinal] = page;
+            if (first || _order.First is null) _order.AddFirst((spineIndex, slots));
+            else _order.AddAfter(_order.First, (spineIndex, slots));
             while (_order.Count > capacity) _order.RemoveLast();
         }
     }
@@ -238,10 +267,10 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
                         // A reader already waiting for this lock goes first, and a closed book lays out nothing more.
                         if (_readersWaiting > 0 || _closed) cancel.Cancel();
                     }
-                    if (Cached(chapter, PageCount(chapter), touch: false) is null)
+                    if (Find(chapter) is not { } cached || Array.IndexOf(cached, null) >= 0)
                     {
                         AheadLayouts++;
-                        var pages = relayout(chapter, int.MaxValue, cancel.Token);
+                        var pages = relayout(chapter, 0, int.MaxValue, cancel.Token).Pages;
                         if (pages.Count == PageCount(chapter)) Store(chapter, pages, first: false);
                     }
                 }
