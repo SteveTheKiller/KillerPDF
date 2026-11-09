@@ -235,21 +235,120 @@ public sealed class EpubLayoutDocument
 {
     private readonly EpubLayoutOptions _options;
     private readonly string[] _spineHrefs;
-    private readonly (int SpineIndex, string Id, int Offset)[] _anchors;
-    private readonly Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> _cellAnchors;
-    private readonly Dictionary<(int SpineIndex, int Offset), EpubNavigationDestination> _anchorDestinations;
+    // Pagination adds whole chapters, in reading order, while readers use the pages before it; everything a reader
+    // looks up is published here under _published, and nothing published changes afterwards.
+    private readonly Lock _published = new();
+    private readonly EpubPageIndex _pages = new();
+    private readonly List<(int SpineIndex, string Id, int Offset)> _anchors = new();
+    private readonly Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> _cellAnchors = new();
+    private readonly Dictionary<(int SpineIndex, int Offset), EpubNavigationDestination> _anchorDestinations = new();
+    private readonly HashSet<int> _paginatedChapters = new();
+    private EpubChapterDiagnostic[] _chapterDiagnostics = [];
+    private EpubChapterDiagnostic[] _contentDiagnostics = [];
+    private EpubIgnoredDeclarations[] _ignoredDeclarations = [];
+    // Completed and replaced each time a chapter is published, so a waiter wakes once per chapter.
+    private TaskCompletionSource _progress = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _pagination = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    internal EpubLayoutDocument(EpubLayoutOptions options, IEnumerable<EpubLayoutPage> pages,
-        IEnumerable<string> spineHrefs, IEnumerable<(int SpineIndex, string Id, int Offset)> anchors,
-        Dictionary<(int SpineIndex, string Id, int Offset), EpubNavigationDestination> cellAnchors,
-        Dictionary<(int SpineIndex, int Offset), EpubNavigationDestination> anchorDestinations)
+    internal EpubLayoutDocument(EpubLayoutOptions options, IEnumerable<string> spineHrefs)
     {
         _options = options with { };
-        Pages = Array.AsReadOnly(pages.ToArray());
         _spineHrefs = spineHrefs.ToArray();
-        _anchors = anchors.ToArray();
-        _cellAnchors = new(cellAnchors);
-        _anchorDestinations = new(anchorDestinations);
+    }
+
+    /// <summary>Adds one chapter's pages, anchors and diagnostics, as pagination finishes the chapter.</summary>
+    internal void Publish(int spineIndex, IReadOnlyList<EpubLayoutPage> pages,
+        IEnumerable<(int SpineIndex, string Id, int Offset)> anchors,
+        IEnumerable<KeyValuePair<(int SpineIndex, string Id, int Offset), EpubNavigationDestination>> cellAnchors,
+        IEnumerable<KeyValuePair<(int SpineIndex, int Offset), EpubNavigationDestination>> anchorDestinations,
+        IEnumerable<EpubChapterDiagnostic> chapterDiagnostics, IEnumerable<EpubChapterDiagnostic> contentDiagnostics,
+        EpubIgnoredDeclarations? ignored)
+    {
+        TaskCompletionSource woken;
+        lock (_published)
+        {
+            _anchors.AddRange(anchors);
+            foreach (var (key, value) in cellAnchors) _cellAnchors[key] = value;
+            foreach (var (key, value) in anchorDestinations) _anchorDestinations[key] = value;
+            _chapterDiagnostics = [.. _chapterDiagnostics, .. chapterDiagnostics];
+            _contentDiagnostics = [.. _contentDiagnostics, .. contentDiagnostics];
+            if (ignored is not null) _ignoredDeclarations = [.. _ignoredDeclarations, ignored];
+            _paginatedChapters.Add(spineIndex);
+            // The pages go last, so a reader who sees a page also finds its chapter's anchors and diagnostics.
+            _pages.Append(pages);
+            woken = _progress;
+            _progress = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+        woken.TrySetResult();
+    }
+
+    /// <summary>Ends pagination: every page is known, or the book was closed (null) or failed (the error).</summary>
+    internal void EndPagination(Exception? failure = null, bool closed = false)
+    {
+        TaskCompletionSource woken;
+        lock (_published)
+        {
+            if (_pagination.Task.IsCompleted) return;
+            if (closed) _pagination.TrySetCanceled();
+            else if (failure is not null) _pagination.TrySetException(failure);
+            else _pagination.TrySetResult();
+            woken = _progress;
+        }
+        woken.TrySetResult();
+    }
+
+    /// <summary>Gets whether pages are still being added at the end of the book.</summary>
+    public bool IsPaginating => !_pagination.Task.IsCompleted;
+
+    /// <summary>Gets how many spine items are paginated so far, and how many the spine has.</summary>
+    public (int Paginated, int Total) PaginationProgress
+    {
+        get { lock (_published) return (_paginatedChapters.Count, _spineHrefs.Length); }
+    }
+
+    /// <summary>
+    /// Completes when every page is known. It fails with the error that stopped pagination, and is canceled when the
+    /// book is closed first. Pages already added stay valid either way.
+    /// </summary>
+    public Task Pagination => _pagination.Task;
+
+    /// <summary>Waits until the page exists; false when pagination ended without reaching it.</summary>
+    public async Task<bool> WaitForPageAsync(int pageIndex, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
+        while (true)
+        {
+            Task next;
+            lock (_published)
+            {
+                if (pageIndex < _pages.Count) return true;
+                if (_pagination.Task.IsCompleted) return false;
+                next = _progress.Task;
+            }
+            await next.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Waits until the chapter a navigation target names is paginated, or pagination ends; a target outside the spine
+    /// returns at once. <see cref="ResolveNavigationTarget"/> then resolves it as it would in a finished book.
+    /// </summary>
+    public async Task WaitForNavigationTargetAsync(string target, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        int fragmentStart = target.IndexOf('#');
+        int spineIndex = Array.IndexOf(_spineHrefs, fragmentStart < 0 ? target : target[..fragmentStart]);
+        if (spineIndex < 0) return;
+        while (true)
+        {
+            Task next;
+            lock (_published)
+            {
+                if (_paginatedChapters.Contains(spineIndex) || _pagination.Task.IsCompleted) return;
+                next = _progress.Task;
+            }
+            await next.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -288,20 +387,23 @@ public sealed class EpubLayoutDocument
                     : new(firstPage, spineIndex, offset, margin, margin);
         }
     }
-    /// <summary>Gets the immutable native pages.</summary>
-    public IReadOnlyList<EpubLayoutPage> Pages { get; }
+    /// <summary>
+    /// Gets the native pages. While <see cref="IsPaginating"/> is true the list grows at its end, a chapter at a time;
+    /// a page already in it never changes.
+    /// </summary>
+    public IReadOnlyList<EpubLayoutPage> Pages => _pages;
 
     /// <summary>The cache that lays chapters out again on demand.</summary>
     internal EpubChapterPages? ChapterPages { get; init; }
 
     /// <summary>Gets the chapters replaced by diagnosis pages, in reading order (linear items first, then non-linear ones).</summary>
-    public IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics { get; init; } = [];
+    public IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics => Array.AsReadOnly(Volatile.Read(ref _chapterDiagnostics));
 
     /// <summary>Gets single items, such as images, that were omitted while their chapter still laid out.</summary>
-    public IReadOnlyList<EpubChapterDiagnostic> ContentDiagnostics { get; init; } = [];
+    public IReadOnlyList<EpubChapterDiagnostic> ContentDiagnostics => Array.AsReadOnly(Volatile.Read(ref _contentDiagnostics));
 
     /// <summary>Gets, for each laid-out chapter that ignored any, how many CSS declarations and rules it ignored.</summary>
-    public IReadOnlyList<EpubIgnoredDeclarations> IgnoredDeclarations { get; init; } = [];
+    public IReadOnlyList<EpubIgnoredDeclarations> IgnoredDeclarations => Array.AsReadOnly(Volatile.Read(ref _ignoredDeclarations));
 
     /// <summary>Resolves an exact, case-sensitive package-relative chapter target returned by EPUB navigation.</summary>
     /// <remarks>Targets are limited to 4,096 characters. Fragment IDs are case-sensitive.</remarks>
@@ -318,8 +420,19 @@ public sealed class EpubLayoutDocument
         int spineIndex = Array.IndexOf(_spineHrefs, target);
         if (spineIndex >= 0 && Array.IndexOf(_spineHrefs, target, spineIndex + 1) >= 0)
             throw new InvalidDataException("The EPUB navigation target occurs more than once in the native spine.");
+        lock (_published)
+            return Resolve(target, fragment, spineIndex, cancellationToken);
+    }
+
+    // Called under _published, so a chapter being published is seen whole or not at all.
+    private EpubNavigationDestination Resolve(string target, string fragment, int spineIndex,
+        CancellationToken cancellationToken)
+    {
+        // Its page numbers are not known until pagination reaches it; WaitForNavigationTargetAsync waits for that.
+        if (spineIndex >= 0 && !_paginatedChapters.Contains(spineIndex) && IsPaginating)
+            throw new InvalidOperationException("The EPUB navigation target's chapter is not paginated yet.");
         // An isolated chapter has no laid-out anchors; every target in it lands on its diagnosis page.
-        if (spineIndex >= 0 && ChapterDiagnostics.Any(item => item.SpineIndex == spineIndex))
+        if (spineIndex >= 0 && _chapterDiagnostics.Any(item => item.SpineIndex == spineIndex))
         {
             for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++)
                 if (Pages[pageIndex].SpineIndex == spineIndex)
@@ -380,4 +493,81 @@ public sealed class EpubLayoutDocument
             options.Height / _options.PageHeight, Pages[pageIndex].CanvasBackground);
         return PdfNativeFrameProof.Apply(frame, options, cancellationToken);
     }
+}
+
+/// <summary>
+/// The book's pages as an append-only list: one writer adds pages at the end while any thread reads. A reader takes
+/// one published state, so the count it sees and the pages under that count always belong together. To its readers
+/// it is a read-only list, as the pages of a finished book always were.
+/// </summary>
+internal sealed class EpubPageIndex : IReadOnlyList<EpubLayoutPage>, IList<EpubLayoutPage>
+{
+    private sealed record State(EpubLayoutPage[] Items, int Count);
+    private State _state = new(new EpubLayoutPage[16], 0);
+
+    public int Count => Volatile.Read(ref _state).Count;
+
+    public EpubLayoutPage this[int index]
+    {
+        get
+        {
+            var state = Volatile.Read(ref _state);
+            if ((uint)index >= (uint)state.Count) throw new ArgumentOutOfRangeException(nameof(index));
+            return state.Items[index];
+        }
+    }
+
+    /// <summary>Adds pages at the end. Callers serialize their appends.</summary>
+    internal void Append(IReadOnlyList<EpubLayoutPage> pages)
+    {
+        var state = _state;
+        var items = state.Items;
+        int count = state.Count + pages.Count;
+        // Slots past a published count are never read, so they are filled in place; a full array is copied first.
+        if (count > items.Length)
+        {
+            var grown = new EpubLayoutPage[Math.Max(count, items.Length * 2)];
+            Array.Copy(items, grown, state.Count);
+            items = grown;
+        }
+        for (int index = 0; index < pages.Count; index++) items[state.Count + index] = pages[index];
+        Volatile.Write(ref _state, new State(items, count));
+    }
+
+    public IEnumerator<EpubLayoutPage> GetEnumerator()
+    {
+        var state = Volatile.Read(ref _state);
+        for (int index = 0; index < state.Count; index++) yield return state.Items[index];
+    }
+
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public bool IsReadOnly => true;
+
+    public int IndexOf(EpubLayoutPage item)
+    {
+        var state = Volatile.Read(ref _state);
+        return Array.IndexOf(state.Items, item, 0, state.Count);
+    }
+
+    public bool Contains(EpubLayoutPage item) => IndexOf(item) >= 0;
+
+    public void CopyTo(EpubLayoutPage[] array, int arrayIndex)
+    {
+        // A caller sizes the array from Count first; pages added since then are left out rather than overrun it.
+        var state = Volatile.Read(ref _state);
+        Array.Copy(state.Items, 0, array, arrayIndex, Math.Min(state.Count, array.Length - arrayIndex));
+    }
+
+    EpubLayoutPage IList<EpubLayoutPage>.this[int index]
+    {
+        get => this[index];
+        set => throw new NotSupportedException("The native pages are read-only.");
+    }
+
+    void IList<EpubLayoutPage>.Insert(int index, EpubLayoutPage item) => throw new NotSupportedException("The native pages are read-only.");
+    void IList<EpubLayoutPage>.RemoveAt(int index) => throw new NotSupportedException("The native pages are read-only.");
+    void ICollection<EpubLayoutPage>.Add(EpubLayoutPage item) => throw new NotSupportedException("The native pages are read-only.");
+    void ICollection<EpubLayoutPage>.Clear() => throw new NotSupportedException("The native pages are read-only.");
+    bool ICollection<EpubLayoutPage>.Remove(EpubLayoutPage item) => throw new NotSupportedException("The native pages are read-only.");
 }

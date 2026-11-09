@@ -96,13 +96,14 @@ public sealed partial class PdfReadSnapshot
 
     /// <summary>Gets EPUB spine indexes in the order their pages appear, non-linear items last; empty for other formats.</summary>
     public IReadOnlyList<int> ReadingOrder => _layout?.Pages.Select(page => page.SpineIndex).Distinct().ToArray() ?? [];
+    // DjVu pages each have their own geometry; every EPUB page has the one geometry, however many pages there are yet.
     private readonly PdfReadPageGeometry[] _geometries;
 
     private PdfReadSnapshot(EpubLayoutDocument layout, PdfReadPageGeometry geometry, string sourceSha256,
         Func<IReadOnlyList<EpubNavigationEntry>> navigation, CancellationToken cancellationToken)
     {
         _layout = layout;
-        _geometries = Enumerable.Repeat(geometry, layout.Pages.Count).ToArray();
+        _geometries = [geometry];
         Format = PdfDocumentFormat.Epub;
         SourceSha256 = sourceSha256;
         var captured = CaptureNavigation(() => navigation().Select(entry => CaptureEntry(entry, cancellationToken)), cancellationToken);
@@ -125,7 +126,20 @@ public sealed partial class PdfReadSnapshot
 
     /// <summary>Captures source bytes and creates a native EPUB layout.</summary>
     public static PdfReadSnapshot OpenEpub(ReadOnlyMemory<byte> bytes, EpubLayoutOptions options,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) => OpenEpub(bytes, options, inBackground: false, cancellationToken);
+
+    /// <summary>
+    /// Captures source bytes and lays out the EPUB's first chapter in reading order, then returns while the rest of
+    /// the book is paginated in the background, in reading order. <see cref="PageCount"/> grows a chapter at a time
+    /// until <see cref="Pagination"/> completes; pages already counted never change. The finished snapshot holds the
+    /// pages <see cref="OpenEpub(ReadOnlyMemory{byte}, EpubLayoutOptions, CancellationToken)"/> lays out. The token
+    /// cancels the first chapter; <see cref="ReleaseLayout"/> stops the background pagination.
+    /// </summary>
+    public static PdfReadSnapshot OpenEpubProgressive(ReadOnlyMemory<byte> bytes, EpubLayoutOptions options,
+        CancellationToken cancellationToken = default) => OpenEpub(bytes, options, inBackground: true, cancellationToken);
+
+    private static PdfReadSnapshot OpenEpub(ReadOnlyMemory<byte> bytes, EpubLayoutOptions options, bool inBackground,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(options);
@@ -136,11 +150,50 @@ public sealed partial class PdfReadSnapshot
         string sourceSha256 = Convert.ToHexString(SHA256.HashData(source));
         var capturedOptions = options with { };
         var publication = EpubDocument.Open(source, cancellationToken);
-        var layout = publication.CreateLayout(capturedOptions, cancellationToken);
-        return new PdfReadSnapshot(layout,
-            new PdfReadPageGeometry(capturedOptions.PageWidth, capturedOptions.PageHeight,
-                PdfReadPageUnit.CssPixel, 96, 96, 0), sourceSha256,
-            () => publication.ReadNavigation(cancellationToken), cancellationToken);
+        var layout = inBackground ? publication.CreateLayoutInBackground(capturedOptions, cancellationToken)
+            : publication.CreateLayout(capturedOptions, cancellationToken);
+        try
+        {
+            return new PdfReadSnapshot(layout,
+                new PdfReadPageGeometry(capturedOptions.PageWidth, capturedOptions.PageHeight,
+                    PdfReadPageUnit.CssPixel, 96, 96, 0), sourceSha256,
+                () => publication.ReadNavigation(cancellationToken), cancellationToken);
+        }
+        catch
+        {
+            // Nobody will close a snapshot that was never returned, so its background pagination stops here.
+            layout.ChapterPages?.Close();
+            throw;
+        }
+    }
+
+    /// <summary>Gets whether EPUB pages are still being added at the end of the book; false for other formats.</summary>
+    public bool IsPaginating => _layout?.IsPaginating ?? false;
+
+    /// <summary>Gets how many EPUB spine items are paginated so far and how many there are; (0, 0) for other formats.</summary>
+    public (int Paginated, int Total) PaginationProgress => _layout?.PaginationProgress ?? (0, 0);
+
+    /// <summary>
+    /// Completes when every page is known: at once for DjVu and for a blocking EPUB open. It fails with the error that
+    /// stopped pagination and is canceled when the layout is released first; pages already counted stay valid.
+    /// </summary>
+    public Task Pagination => _layout?.Pagination ?? Task.CompletedTask;
+
+    /// <summary>Waits until the page exists; false when pagination ended without reaching it.</summary>
+    public Task<bool> WaitForPageAsync(int pageIndex, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
+        return _layout?.WaitForPageAsync(pageIndex, cancellationToken) ?? Task.FromResult(pageIndex < PageCount);
+    }
+
+    /// <summary>
+    /// Waits until <see cref="ResolveNavigationTarget"/> can resolve the target as in the finished book: for EPUB,
+    /// until pagination has reached the target's chapter or ended. Other formats return at once.
+    /// </summary>
+    public Task WaitForNavigationTargetAsync(string target, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        return _layout?.WaitForNavigationTargetAsync(target, cancellationToken) ?? Task.CompletedTask;
     }
     /// <summary>Gets the original source format.</summary>
     public PdfDocumentFormat Format { get; }
@@ -149,7 +202,7 @@ public sealed partial class PdfReadSnapshot
     /// <summary>Gets the identity of this immutable layout.</summary>
     public Guid LayoutIdentity { get; } = Guid.NewGuid();
     /// <summary>Gets the native page count.</summary>
-    public int PageCount => _geometries.Length;
+    public int PageCount => _layout?.Pages.Count ?? _geometries.Length;
 
     /// <summary>
     /// Ends this book's page layout when its owner closes it: work queued to lay pages out ahead of the reader is
@@ -162,7 +215,7 @@ public sealed partial class PdfReadSnapshot
     {
         if (pageIndex < 0 || pageIndex >= PageCount)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
-        return _geometries[pageIndex];
+        return _geometries[_layout is null ? pageIndex : 0];
     }
     /// <summary>Renders a native page with intrinsic rotation already applied, preserving its frame encoding.</summary>
     public PdfRenderedFrame RenderPage(int pageIndex, CancellationToken cancellationToken = default) =>

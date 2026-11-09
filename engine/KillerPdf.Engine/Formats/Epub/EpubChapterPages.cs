@@ -35,6 +35,10 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
     private bool _aheadQueued;
     private int _inFlight;
     private bool _closed;
+    // The chapter pagination is laying out; a reader who needs the layout lock stops it, and pagination starts that
+    // chapter over once the reader is done. Closing the book stops pagination for good.
+    private CancellationTokenSource? _paginationStep;
+    private readonly CancellationTokenSource _closing = new();
 
     /// <summary>How many chapter layouts readers have asked for since the book opened.</summary>
     internal int Layouts { get; private set; }
@@ -77,6 +81,8 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
             _readersWaiting++;
             // Work ahead on the very chapter the reader needs is finished rather than started over.
             if (_aheadChapter != entry.SpineIndex) _aheadCancel?.Cancel();
+            // A chapter still being paginated is never the one a reader needs, since its pages are not published yet.
+            _paginationStep?.Cancel();
         }
         EpubLayoutPage page;
         lock (_layoutLock)
@@ -140,7 +146,74 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
         // The running layout ahead may dispose its token source as it finishes; then there is nothing left to cancel.
         try { running?.Cancel(); }
         catch (ObjectDisposedException) { }
+        // Pagination stops at its next check and its thread ends, so it no longer holds the book either.
+        _closing.Cancel();
         EpubLayoutAhead.Remove(this);
+    }
+
+    /// <summary>Cancelled when the book closes.</summary>
+    internal CancellationToken Closing => _closing.Token;
+
+    /// <summary>
+    /// Runs one pagination step under the layout lock, after any reader already waiting for it. A reader who arrives
+    /// while the step runs cancels it; the step must then leave the book as it found it, and it runs again once the
+    /// reader is done. That second run is not cancelled, so a reader who keeps laying chapters out cannot hold
+    /// pagination back for good: each chapter is started over at most once. Throws
+    /// <see cref="OperationCanceledException"/> once the book is closed.
+    /// </summary>
+    internal T Paginate<T>(Func<CancellationToken, T> step)
+    {
+        bool stoppedOnce = false;
+        while (true)
+        {
+            // Readers go first: one waiting for the lock is let in before pagination takes it again.
+            SpinWait.SpinUntil(() => { lock (_lock) return _readersWaiting == 0 || _closed; });
+            _closing.Token.ThrowIfCancellationRequested();
+            using var preempted = CancellationTokenSource.CreateLinkedTokenSource(_closing.Token);
+            lock (_layoutLock)
+            {
+                lock (_lock)
+                {
+                    _paginationStep = stoppedOnce ? null : preempted;
+                    if (_readersWaiting > 0 && !stoppedOnce) preempted.Cancel();
+                }
+                stoppedOnce = true;
+                try { return step(preempted.Token); }
+                catch (OperationCanceledException) when (!_closing.IsCancellationRequested && preempted.IsCancellationRequested) { }
+                finally
+                {
+                    lock (_lock) _paginationStep = null;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Offers the full layout of a chapter pagination just finished, before its pages become index entries. The chapter
+    /// is kept when the reader is in it or about to turn into it, so it is not laid out a second time for them.
+    /// </summary>
+    internal void Paginated(int spineIndex, IReadOnlyList<EpubLayoutPage> pages)
+    {
+        bool keep, first;
+        lock (_lock)
+        {
+            if (_closed) return;
+            // Before anyone reads, the reader starts at the beginning of the reading order.
+            int reading = _current >= 0 ? _current : readingOrder[0];
+            int position = IndexOf(reading);
+            first = spineIndex == reading && _current < 0;
+            keep = spineIndex == reading || position >= 0 && position + 1 < readingOrder.Count
+                && readingOrder[position + 1] == spineIndex;
+            if (keep) _ahead.Remove(spineIndex);
+        }
+        if (keep) Store(spineIndex, pages, first);
+    }
+
+    private int IndexOf(int spineIndex)
+    {
+        for (int at = 0; at < readingOrder.Count; at++)
+            if (readingOrder[at] == spineIndex) return at;
+        return -1;
     }
 
     // A page from a chapter laid out ahead: the reader has moved on, so the next neighbors are laid out ahead in turn.
@@ -257,7 +330,9 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
         var cancel = new CancellationTokenSource();
         try
         {
-            if (_pageCounts.ContainsKey(chapter))
+            bool registered;
+            lock (_lock) registered = _pageCounts.ContainsKey(chapter);
+            if (registered)
                 lock (_layoutLock)
                 {
                     lock (_lock)
