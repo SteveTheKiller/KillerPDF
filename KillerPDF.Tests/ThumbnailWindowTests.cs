@@ -61,4 +61,25 @@ public sealed class ThumbnailWindowTests
 
         Assert.Equal(2, drawn.Count(page => page == 7));
     }
+
+    // The renderer behind the thumbnails holds decoded page images, so it is let go whenever no row is waiting and
+    // opened again for the next request; a scanned PDF otherwise kept it for as long as the tab was open.
+    [Fact]
+    public void TheRendererIsLetGoWhenNoRowIsWaiting()
+    {
+        int drained = 0;
+        var shown = new ConcurrentDictionary<int, string>();
+        using var window = new ThumbnailWindow<string>(100, (page, _) => $"thumb {page}",
+            (page, image) => { if (image is not null) shown[page] = image; }, retain: 8,
+            drained: () => Interlocked.Increment(ref drained));
+
+        window.Request(3);
+        window.Request(4);
+        Assert.True(SpinWait.SpinUntil(() => shown.Count == 2 && Volatile.Read(ref drained) >= 1, TimeSpan.FromSeconds(10)),
+            "The renderer was not let go after the rows were drawn.");
+        int afterFirst = Volatile.Read(ref drained);
+        window.Request(5);
+        Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref drained) > afterFirst, TimeSpan.FromSeconds(10)),
+            "The renderer was not let go after a later row was drawn.");
+    }
 }

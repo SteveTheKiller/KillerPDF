@@ -453,6 +453,10 @@ namespace KillerPDF.Shell
                 if (ct.IsCancellationRequested) return;
                 if (image is null) items[i].ReleaseThumbnail();
                 else items[i].SetThumbnail(image);
+            }, drained: () =>
+            {
+                // The renderer holds decoded page images; a scanned PDF kept them while the tab stayed open.
+                lock (sessionGate) { renderSession?.Dispose(); renderSession = null; }
             });
             ct.Register(() =>
             {

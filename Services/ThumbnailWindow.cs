@@ -3,7 +3,8 @@ namespace KillerPDF.Services;
 /// <summary>Draws page thumbnails for the rows a page list asks for, one at a time on a background thread, newest
 /// request first so the rows on screen fill before rows scrolled past. Only the most recently drawn
 /// <c>retain</c> thumbnails are held; older ones are released and drawn again if their row is asked for again.
-/// A long document no longer draws and holds a thumbnail for every page as it opens.</summary>
+/// A long document no longer draws and holds a thumbnail for every page as it opens. <c>drained</c> runs each time no
+/// row is waiting, so the caller can let go of its renderer between passes.</summary>
 internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
 {
     internal const int DefaultRetain = 256;
@@ -12,6 +13,7 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
     private readonly Func<int, CancellationToken, TImage?> _render;
     private readonly Action<int, TImage?> _publish;
     private readonly int _retain;
+    private readonly Action? _drained;
     private readonly CancellationTokenSource _cancel = new();
     private readonly Lock _sync = new();
     private readonly List<int> _requests = [];           // newest last
@@ -21,7 +23,7 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
     private bool _running;
 
     internal ThumbnailWindow(int pageCount, Func<int, CancellationToken, TImage?> render, Action<int, TImage?> publish,
-        int retain = DefaultRetain)
+        int retain = DefaultRetain, Action? drained = null)
     {
         ArgumentNullException.ThrowIfNull(render);
         ArgumentNullException.ThrowIfNull(publish);
@@ -30,6 +32,7 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
         _render = render;
         _publish = publish;
         _retain = retain;
+        _drained = drained;
     }
 
     /// <summary>Asks for a row's thumbnail. A row already drawn or waiting is left as it is.</summary>
@@ -55,7 +58,13 @@ internal sealed class ThumbnailWindow<TImage> : IDisposable where TImage : class
             int page;
             lock (_sync)
             {
-                if (_requests.Count == 0 || token.IsCancellationRequested) { _running = false; return; }
+                if (_requests.Count == 0 || token.IsCancellationRequested)
+                {
+                    _running = false;
+                    // Called under the lock, so a request arriving now starts a new pass only after this returns.
+                    if (!token.IsCancellationRequested) _drained?.Invoke();
+                    return;
+                }
                 page = _requests[^1];
                 _requests.RemoveAt(_requests.Count - 1);
             }
