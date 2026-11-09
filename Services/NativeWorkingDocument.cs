@@ -169,6 +169,9 @@ internal sealed class NativeWorkingDocument : IDisposable
             _revision = null;
         }
         revision?.Dispose();
+        // With the revision's leases cancelled, the book's queued layout ahead is dropped so the closed book can be
+        // collected; a read already laying out finishes, and nothing new is laid out.
+        _snapshot.ReleaseLayout();
     }
 
     public void Dispose() => Close();

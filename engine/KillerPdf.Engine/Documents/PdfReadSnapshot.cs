@@ -150,6 +150,13 @@ public sealed partial class PdfReadSnapshot
     public Guid LayoutIdentity { get; } = Guid.NewGuid();
     /// <summary>Gets the native page count.</summary>
     public int PageCount => _geometries.Length;
+
+    /// <summary>
+    /// Ends this book's page layout when its owner closes it: work queued to lay pages out ahead of the reader is
+    /// cancelled and dropped, and a page that would need laying out again is refused. Page text stays readable, and a
+    /// read already in progress finishes. Calling it again does nothing; DjVu documents have no layout to release.
+    /// </summary>
+    public void ReleaseLayout() => _layout?.ChapterPages?.Close();
     /// <summary>Gets the natural geometry of a native page.</summary>
     public PdfReadPageGeometry GetPageGeometry(int pageIndex)
     {

@@ -26,9 +26,13 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
     private readonly List<int> _ahead = new();
     private bool _aheadQueued;
     private int _inFlight;
+    private bool _closed;
 
     /// <summary>How many chapter layouts readers have asked for since the book opened.</summary>
     internal int Layouts { get; private set; }
+
+    /// <summary>How many chapters were laid out ahead of the reader since the book opened.</summary>
+    internal int AheadLayouts { get; private set; }
 
     /// <summary>Gets or sets whether a chapter laid out for a reader also lays out its neighbors in the background.</summary>
     internal bool PrefetchNeighbors { get; set; } = true;
@@ -58,6 +62,7 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
         }
         lock (_lock)
         {
+            ThrowIfClosed();
             _readersWaiting++;
             // Work ahead on the very chapter the reader needs is finished rather than started over.
             if (_aheadChapter != entry.SpineIndex) _aheadCancel?.Cancel();
@@ -65,7 +70,11 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
         EpubLayoutPage page;
         lock (_layoutLock)
         {
-            lock (_lock) _readersWaiting--;
+            lock (_lock)
+            {
+                _readersWaiting--;
+                ThrowIfClosed();
+            }
             if (Cached(entry.SpineIndex, ordinal + 1) is { } raced)
             {
                 Arrive(entry.SpineIndex);
@@ -86,6 +95,38 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
         lock (_lock) _current = entry.SpineIndex;
         if (PrefetchNeighbors) Prefetch(entry.SpineIndex);
         return page;
+    }
+
+    internal bool IsClosed
+    {
+        get { lock (_lock) return _closed; }
+    }
+
+    // Called under _lock.
+    private void ThrowIfClosed()
+    {
+        if (_closed) throw new ObjectDisposedException(nameof(EpubLayoutDocument), "The native EPUB book was closed.");
+    }
+
+    /// <summary>
+    /// Ends the book's layout: queued layout ahead is dropped and work in progress ahead is cancelled, cached chapters are
+    /// let go, and a page that would need laying out again is refused. A reader already laying out finishes. Idempotent.
+    /// </summary>
+    internal void Close()
+    {
+        CancellationTokenSource? running;
+        lock (_lock)
+        {
+            if (_closed) return;
+            _closed = true;
+            _ahead.Clear();
+            _order.Clear();
+            running = _aheadCancel;
+        }
+        // The running layout ahead may dispose its token source as it finishes; then there is nothing left to cancel.
+        try { running?.Cancel(); }
+        catch (ObjectDisposedException) { }
+        EpubLayoutAhead.Remove(this);
     }
 
     // A page from a chapter laid out ahead: the reader has moved on, so the next neighbors are laid out ahead in turn.
@@ -127,6 +168,8 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
     {
         lock (_lock)
         {
+            // A reader that finished after the book closed still gets its page; the chapter is not kept.
+            if (_closed) return;
             for (var node = _order.First; node is not null; node = node.Next)
                 if (node.Value.SpineIndex == spineIndex)
                 {
@@ -148,6 +191,7 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
             if (readingOrder[at] == spineIndex) { position = at; break; }
         lock (_lock)
         {
+            if (_closed) return;
             _ahead.Clear();
             _ahead.Add(spineIndex);
             if (position >= 0 && position + 1 < readingOrder.Count) _ahead.Add(readingOrder[position + 1]);
@@ -155,7 +199,7 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
             if (_aheadQueued) return;
             _aheadQueued = true;
         }
-        EpubLayoutAhead.Enqueue(LayOutAhead);
+        EpubLayoutAhead.Enqueue(this);
     }
 
     /// <summary>Does this book's pending layout ahead on the calling thread, as the background thread would.</summary>
@@ -167,12 +211,12 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
     }
 
     // Lays out one wanted chapter, then yields the background thread to other open books until its next turn.
-    private bool LayOutAhead()
+    internal bool LayOutAhead()
     {
         int chapter;
         lock (_lock)
         {
-            if (_ahead.Count == 0)
+            if (_closed || _ahead.Count == 0)
             {
                 _aheadQueued = false;
                 return false;
@@ -191,11 +235,12 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
                     {
                         _aheadCancel = cancel;
                         _aheadChapter = chapter;
-                        // A reader already waiting for this lock goes first.
-                        if (_readersWaiting > 0) cancel.Cancel();
+                        // A reader already waiting for this lock goes first, and a closed book lays out nothing more.
+                        if (_readersWaiting > 0 || _closed) cancel.Cancel();
                     }
                     if (Cached(chapter, PageCount(chapter), touch: false) is null)
                     {
+                        AheadLayouts++;
                         var pages = relayout(chapter, int.MaxValue, cancel.Token);
                         if (pages.Count == PageCount(chapter)) Store(chapter, pages, first: false);
                     }
@@ -204,7 +249,7 @@ internal sealed class EpubChapterPages(Func<int, int, CancellationToken, IReadOn
         // A reader's request stopped it; the chapter waits for the next turn unless a newer list replaced it.
         catch (OperationCanceledException)
         {
-            lock (_lock) if (!_ahead.Contains(chapter)) _ahead.Add(chapter);
+            lock (_lock) if (!_closed && !_ahead.Contains(chapter)) _ahead.Add(chapter);
         }
         // Laying out ahead is only an optimization: a failure here surfaces when the page is really needed.
         catch (Exception) { }
@@ -233,15 +278,37 @@ internal static class EpubLayoutAhead
 {
     // A plain monitor object, since the worker waits on it.
     private static readonly object Gate = new();
-    private static readonly Queue<Func<bool>> Books = new();
+    private static readonly Queue<EpubChapterPages> Books = new();
     private static Thread? _worker;
+    private static int _held;
 
-    /// <summary>Queues a book's next chapter; the function returns whether the book wants another turn.</summary>
-    internal static void Enqueue(Func<bool> next)
+    /// <summary>Keeps the thread from starting another turn until the result is disposed (tests only).</summary>
+    internal static IDisposable Hold()
+    {
+        lock (Gate) _held++;
+        return new Release();
+    }
+
+    private sealed class Release : IDisposable
+    {
+        private int _done;
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _done, 1) != 0) return;
+            lock (Gate)
+            {
+                _held--;
+                Monitor.PulseAll(Gate);
+            }
+        }
+    }
+
+    /// <summary>Queues a book for its next chapter; its turn returns whether it wants another.</summary>
+    internal static void Enqueue(EpubChapterPages book)
     {
         lock (Gate)
         {
-            Books.Enqueue(next);
+            Books.Enqueue(book);
             if (_worker is null)
             {
                 // Normal priority: a reader waits for this thread to notice a cancel, which a starved thread would delay.
@@ -252,21 +319,36 @@ internal static class EpubLayoutAhead
         }
     }
 
+    /// <summary>Takes a closed book out of the line, so the queue no longer keeps it in memory.</summary>
+    internal static void Remove(EpubChapterPages book)
+    {
+        lock (Gate)
+        {
+            if (!Books.Contains(book)) return;
+            var kept = Books.Where(queued => !ReferenceEquals(queued, book)).ToArray();
+            Books.Clear();
+            foreach (var queued in kept) Books.Enqueue(queued);
+        }
+    }
+
     private static void Loop()
     {
         while (true)
         {
-            Func<bool> next;
+            EpubChapterPages? next;
             lock (Gate)
             {
-                while (Books.Count == 0) Monitor.Wait(Gate);
+                while (Books.Count == 0 || _held > 0) Monitor.Wait(Gate);
                 next = Books.Dequeue();
             }
             bool again;
-            try { again = next(); }
+            try { again = next.LayOutAhead(); }
             catch (Exception) { again = false; }
             if (again)
-                lock (Gate) Books.Enqueue(next);
+                lock (Gate)
+                    if (!next.IsClosed) Books.Enqueue(next);
+            // The waiting thread holds no book, so a closed one can be collected.
+            next = null;
         }
     }
 }

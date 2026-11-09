@@ -14,6 +14,55 @@ namespace KillerPDF.Tests;
 
 public sealed class NativeWorkingDocumentTests
 {
+    // Closing a book (closing its tab or opening another book over it) drops the layout ahead queued for it, so the
+    // closed book is collected even while the shared layout-ahead thread is still busy, and lays out no more chapters.
+    [Fact]
+    public void ClosingAnEpubLetsItBeCollectedWhileItsLayoutAheadWaits()
+    {
+        var layoutAhead = typeof(PdfReadSnapshot).Assembly.GetType("KillerPdf.Engine.Formats.Epub.EpubLayoutAhead")!;
+        using var hold = (IDisposable)layoutAhead.GetMethod("Hold",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.Invoke(null, null)!;
+        var (book, closed) = OpenReadAndClose();
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(book.TryGetTarget(out _), "A closed book stayed in memory behind its queued layout ahead.");
+        Assert.True(closed, "A closed book laid a chapter out again.");
+    }
+
+    // The queue holds the book's chapter cache, and through its layout function the package, fonts and caches; that
+    // cache is watched, since the snapshot object alone can be collected either way.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static (WeakReference<object> Book, bool LayoutRefused) OpenReadAndClose()
+    {
+        using Stream resource = typeof(PdfReadSnapshot).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSans-Regular.ttf")!;
+        using var fontBytes = new MemoryStream();
+        resource.CopyTo(fontBytes);
+        string filler = string.Concat(Enumerable.Repeat("<p>AAAA AAA AAAAA AA AAAA AAA</p>", 30));
+        var owner = NativeWorkingDocument.OpenEpub(NativeSearchServiceTests.Chapters(filler, filler, filler, filler),
+            new EpubLayoutOptions(200, 160, TrueTypeFont.Load(fontBytes.ToArray())) { FontSize = 12, Margin = 4 });
+        var snapshot = (PdfReadSnapshot)typeof(NativeWorkingDocument).GetField("_snapshot",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(owner)!;
+        int last = snapshot.PageCount - 1;
+        using (var lease = owner.CaptureReadRevision().Rent())
+            // Reading a page lays its chapter out and queues its neighbor to be laid out ahead.
+            Assert.NotEmpty(lease.ReadNativeTextPage(last / 2).Regions);
+
+        owner.Close();
+        owner.Close();
+
+        bool refused = false;
+        try { _ = snapshot.ReadTextPage(last); }
+        catch (ObjectDisposedException) { refused = true; }
+        const System.Reflection.BindingFlags members = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+        object layout = typeof(PdfReadSnapshot).GetProperty("EpubLayout", members)!.GetValue(snapshot)!;
+        object chapters = layout.GetType().GetProperty("ChapterPages", members)!.GetValue(layout)!;
+        return (new WeakReference<object>(chapters), refused);
+    }
+
     [Fact]
     public void NativeEpubOwnerRetainsLinkRegionsAndHonorsItsLifetime()
     {

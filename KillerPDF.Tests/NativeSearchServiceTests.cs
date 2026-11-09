@@ -367,7 +367,7 @@ public sealed class NativeSearchServiceTests
         return layout.GetType().GetProperty("ChapterPages", members)!.GetValue(layout)!;
     }
 
-    private static byte[] Chapters(params string[] bodies)
+    internal static byte[] Chapters(params string[] bodies)
     {
         using var output = new MemoryStream();
         using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
