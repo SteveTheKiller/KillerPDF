@@ -69,7 +69,7 @@ public partial class MainWindow
             {
                 if (!EnsureMayWrite(PdfOutput.Printable)) return;
                 CommitActiveTextBox();
-                snapshot = WriteSavedCopyToTemp();
+                snapshot = WriteSavedCopyToTemp(flattenEditing: MacroSourceCopy.NeedsAddedTextInPageContent(macro));
             }
             var busy = ShowBusyOverlay(Loc("Str_Macro_Running"));
             CancellationToken token = BeginCancellableOp(title);

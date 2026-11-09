@@ -127,7 +127,7 @@ public partial class MainWindow
         string? snapshot = null;
         try
         {
-            snapshot = WriteSavedCopyToTemp();
+            snapshot = WriteSavedCopyToTemp(flattenEditing: MacroSourceCopy.NeedsAddedTextInPageContent(macro));
             byte[] source = await File.ReadAllBytesAsync(snapshot, token);
             PdfMacroRunReport report = await Task.Run(() => dispatcher.RunReport(
                 macro, [new ReadOnlyMemory<byte>(source)],

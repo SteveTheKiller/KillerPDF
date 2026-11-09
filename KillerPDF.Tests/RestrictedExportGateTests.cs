@@ -26,7 +26,7 @@ public sealed class RestrictedExportGateTests
     [InlineData("Shell/Macros.cs", "Str_Macro_RedactNothing", "Str_Macro_Running")]
     [InlineData("Shell/ProductionTools.cs", "ReferenceEquals(_doc, sourceDocument)", "string[] sourcePaths")]
     [InlineData("Shell/DocumentTools.cs", "private async void RunDataMerge()", "Str_DataMerge_SelectData")]
-    [InlineData("Shell/MacroDataMerge.cs", "if (!batch && !sourceCurrent())", "snapshot = WriteSavedCopyToTemp()")]
+    [InlineData("Shell/MacroDataMerge.cs", "if (!batch && !sourceCurrent())", "snapshot = WriteSavedCopyToTemp(flattenEditing: MacroSourceCopy.NeedsAddedTextInPageContent(macro))")]
     [InlineData("Shell/FileOperations.cs", "private async Task ExportImagesFlow(", "EnsureEngineDocumentSession()")]
     [InlineData("Shell/SidebarPanels.cs", "private void SaveAttachmentCopy(", "var dialog = new Controls.FileDialog")]
     public void OutputPathsAskForTheOwnerPasswordFirst(string file, string start, string end)

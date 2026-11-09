@@ -2152,7 +2152,7 @@ namespace KillerPDF.Shell
             try
             {
                 snapshot = WriteSavedCopyToTemp(
-                    forRasterization: options.OfficeMode == PdfOfficeExportMode.PageImages, throwaway: true);
+                    forRasterization: options.OfficeMode == PdfOfficeExportMode.PageImages, throwaway: true, flattenEditing: true);
                 // The saved copy holds the tab's own bytes, so it reads under the tab's protection.
                 var document = PdfEngineIntegration.OpenForReading(System.IO.File.ReadAllBytes(snapshot), _protection);
                 PdfStructuredExportReport losses = PdfStructuredExport.InspectLosses(document, options.Format, pages, officeMode: options.OfficeMode);
