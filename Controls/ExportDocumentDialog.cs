@@ -28,7 +28,9 @@ internal sealed class ExportDocumentDialog : Window
         MaxHeight = Math.Max(260, SystemParameters.WorkArea.Height - 40);
         SizeToContent = SizeToContent.WidthAndHeight;
         UseLayoutRounding = true;
-        DialogFrame.Configure(this, owner, resizable: true);
+        // A short form that sizes to its content: dragged larger on SN01, its buttons floated
+        // mid-window instead of staying at the bottom, so it keeps its fitted size.
+        DialogFrame.Configure(this, owner, resizable: false);
         AutomationProperties.SetAutomationId(this, "ExportDocumentDialog");
 
         var body = new StackPanel { Margin = new Thickness(20, 6, 20, 16) };

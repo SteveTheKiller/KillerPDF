@@ -312,6 +312,9 @@ namespace KillerPDF
             TextOptions.SetTextFormattingMode(win, TextFormattingMode.Display);
             TextOptions.SetTextRenderingMode(win, TextRenderingMode.Grayscale);
             if (fade) WindowFx.EnableFadeClose(win);
+            // A dialog that declares itself resizable really is: edges, a maximize that respects
+            // the taskbar, and never smaller than the size it opened at.
+            if (resizable) EnableEdgeResize(win);
         }
 
         // ---- Page windows: resizable, sized from their options, remembered per type ----------
@@ -322,9 +325,14 @@ namespace KillerPDF
         // the halo and the drag zone reaches the card's visible edge.
         private const double ResizeBand = 12;
 
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window, object> Resizable = new();
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window, object> PageWindows = new();
+
         internal static void EnableEdgeResize(Window win)
         {
             win.ResizeMode = ResizeMode.CanResize;
+            if (Resizable.TryGetValue(win, out _)) return;
+            Resizable.Add(win, new object());
             System.Windows.Shell.WindowChrome.SetWindowChrome(win, new System.Windows.Shell.WindowChrome
             {
                 ResizeBorderThickness = new Thickness(ResizeBand),
@@ -333,6 +341,28 @@ namespace KillerPDF
                 CornerRadius          = new CornerRadius(0),
                 UseAeroCaptionButtons = false
             });
+            win.SourceInitialized += (_, _) =>
+            {
+                if (PresentationSource.FromVisual(win) is System.Windows.Interop.HwndSource source)
+                    source.AddHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
+                    {
+                        if (msg == WM_GETMINMAXINFO) { ClampMaximized(win, hwnd, lParam); handled = true; }
+                        return IntPtr.Zero;
+                    });
+                ApplyWindowState(win);
+            };
+            win.StateChanged += (_, _) => ApplyWindowState(win);
+            // The opening size is the smallest the layout was designed for. Page windows set
+            // their own minimum from their options instead.
+            win.Loaded += (_, _) =>
+            {
+                if (PageWindows.TryGetValue(win, out _)) return;
+                Size min = PageWindowSizing.OpeningMinimum(new Size(win.ActualWidth, win.ActualHeight),
+                    new Size(win.MinWidth, win.MinHeight),
+                    new Size(SystemParameters.WorkArea.Width, SystemParameters.WorkArea.Height));
+                win.MinWidth = min.Width;
+                win.MinHeight = min.Height;
+            };
         }
 
         /// <summary>
@@ -351,6 +381,7 @@ namespace KillerPDF
             double scale = 1, double previewFloor = PageWindowSizing.PreviewFloor,
             Func<double>? fittedExtraWidth = null)
         {
+            PageWindows.AddOrUpdate(win, new object());
             EnableEdgeResize(win);
             win.SourceInitialized += (_, _) =>
             {
@@ -384,16 +415,9 @@ namespace KillerPDF
                     CenterOnOwner(win);
                 }
                 WorkAreaFit.Fit(win, keepMargin: !restored);
-
-                if (PresentationSource.FromVisual(win) is System.Windows.Interop.HwndSource source)
-                    source.AddHook((IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) =>
-                    {
-                        if (msg == WM_GETMINMAXINFO) { ClampMaximized(win, hwnd, lParam); handled = true; }
-                        return IntPtr.Zero;
-                    });
+                // A placement restored as maximized drops the halo before the first frame.
                 ApplyWindowState(win);
             };
-            win.StateChanged += (_, _) => ApplyWindowState(win);
             win.Closing += (_, _) => PageWindowSizing.Save(win, windowType, App.SetSetting);
         }
 
@@ -475,7 +499,6 @@ namespace KillerPDF
         private static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
-
         private static Border FrameRing(Window? owner, string brushKey, string thicknessKey, string? marginKey = null)
         {
             var ring = new Border

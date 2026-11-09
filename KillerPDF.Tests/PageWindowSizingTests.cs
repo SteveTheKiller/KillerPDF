@@ -121,6 +121,35 @@ public sealed class PageWindowSizingTests
         Assert.Equal(new Rect(0, 0, 1366, 728), fitted);
     }
 
+    // Every dialog that declares itself resizable gets resize edges, and can never be dragged
+    // smaller than it opened: the certificate catalog opens 900 x 650 over a 650 x 440 minimum.
+    [Fact]
+    public void AResizableDialogKeepsItsOpeningSizeAsItsMinimum()
+    {
+        Size min = PageWindowSizing.OpeningMinimum(new Size(900, 650), new Size(650, 440), new Size(1920, 1040));
+
+        Assert.Equal(new Size(900, 650), min);
+    }
+
+    // A declared minimum larger than the opening size still wins.
+    [Fact]
+    public void TheDeclaredMinimumStillWins()
+        => Assert.Equal(new Size(460, 360),
+            PageWindowSizing.OpeningMinimum(new Size(300, 200), new Size(460, 360), new Size(1920, 1040)));
+
+    // An opening size that is not known yet (0 or NaN) keeps the declared side; a size-to-content
+    // dialog's height is its laid-out height.
+    [Fact]
+    public void AnUnknownOpeningSideKeepsTheDeclaredOne()
+        => Assert.Equal(new Size(320, 500),
+            PageWindowSizing.OpeningMinimum(new Size(double.NaN, 500), new Size(320, 0), new Size(1920, 1040)));
+
+    // A dialog opened larger than a small work area can still be resized on it.
+    [Fact]
+    public void TheMinimumNeverExceedsTheWorkArea()
+        => Assert.Equal(new Size(1366, 728),
+            PageWindowSizing.OpeningMinimum(new Size(2000, 1200), new Size(650, 440), new Size(1366, 728)));
+
     private static void RunSta(Action action)
     {
         Exception? failure = null;

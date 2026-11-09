@@ -22,6 +22,20 @@ namespace KillerPDF.Controls
             => new(Math.Ceiling(optionsOnly.Width + previewFloor * (scale > 0 ? scale : 1)),
                    Math.Ceiling(optionsOnly.Height));
 
+        /// <summary>The smallest size a resizable dialog may be dragged to: the size it opened at,
+        /// so its layout never shrinks below what it was designed for, never below its declared
+        /// minimum, and never beyond the work area. An unknown opening side keeps the declared one.</summary>
+        public static Size OpeningMinimum(Size opening, Size declared, Size workArea)
+        {
+            static double Side(double open, double floor, double area)
+            {
+                double side = double.IsFinite(open) && open > 0 ? Math.Max(open, floor) : floor;
+                return double.IsFinite(area) && area > 0 ? Math.Min(side, area) : side;
+            }
+            return new Size(Side(opening.Width, declared.Width, workArea.Width),
+                            Side(opening.Height, declared.Height, workArea.Height));
+        }
+
         /// <summary>The settings key a page window type stores one placement value under, for
         /// example "PageWin.Print.WindowPlacement".</summary>
         public static string SettingKey(string windowType, string key) => "PageWin." + windowType + "." + key;
