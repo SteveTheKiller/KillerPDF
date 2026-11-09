@@ -36,6 +36,12 @@ namespace KillerPDF.Controls
             e.Handled = true;
             if (int.TryParse(Host?.PageJumpText, out int pg))
             {
+                // A page past the ones a still-paginating book shows is gone to once pagination reaches it.
+                if (GoToPageWhenPaginatedExt(pg - 1, page => { RecordNavJump(); _currentPage = page; }))
+                {
+                    Keyboard.ClearFocus();
+                    return;
+                }
                 int idx = Math.Max(0, Math.Min(ReadPageCount - 1, pg - 1));
                 RecordNavJump();   // Alt+Left retraces the typed jump
                 _currentPage = idx;

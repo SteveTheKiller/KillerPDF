@@ -153,18 +153,13 @@ namespace KillerPDF.Controls
                     FollowLinkTarget(native.Target);
                     return;
                 }
-                try
+                // In a book still being paginated, a link into a later chapter waits for that chapter's page numbers.
+                GoToNativeTargetExt(native.Owner, native.Target, _currentPage, destination =>
                 {
-                    var destination = native.Owner.ResolveNavigationTarget(native.Target, _currentPage);
                     RecordNavJump();
                     _currentPage = destination.PageIndex;
                     _ = RevealNativeNavigationExt(native.Owner, destination);
-                }
-                catch (Exception error) when (error is InvalidDataException or NotSupportedException
-                    or ArgumentException or ObjectDisposedException)
-                {
-                    SetStatus(string.Format(Loc("Str_Pages_Failed"), error.Message));
-                }
+                });
                 return;
             }
 
@@ -282,7 +277,9 @@ namespace KillerPDF.Controls
                             var destination = owner.ResolveNavigationTarget(link.Target, pageIndex);
                             tip = string.Format(Loc("Str_Link_GoToPage"), destination.PageIndex + 1);
                         }
-                        catch (Exception error) when (error is InvalidDataException or NotSupportedException or ArgumentException)
+                        // InvalidOperationException: the target's chapter is not paginated yet, so its page is unknown.
+                        catch (Exception error) when (error is InvalidDataException or NotSupportedException or ArgumentException
+                            or InvalidOperationException)
                         {
                             System.Diagnostics.Debug.WriteLine($"Native link label: {error.Message}");
                         }

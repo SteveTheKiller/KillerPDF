@@ -14,14 +14,15 @@ public partial class PdfViewer
     private bool HasReadDocument => _doc is not null || _nativeDoc is not null;
     internal bool HasReadDocumentExt => HasReadDocument;
     internal int ReadPageCountExt => ReadPageCount;
-    private int ReadPageCount => _nativeDoc?.PageCount ?? _doc?.PageCount ?? 0;
+    // A book still being paginated counts the pages the window has taken in, so every view agrees on one total.
+    private int ReadPageCount => _nativeDoc?.ShownPageCount ?? _doc?.PageCount ?? 0;
 
     private void PresentCurrentPageStatus(string? positionStatus = null)
     {
         int page = _currentPage;
         if (!HasReadDocument || page < 0 || page >= ReadPageCount
             || Host?.IsViewerFocused(this) == false) return;
-        SetStatus(positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageCount) + $" - {DisplayZoomPct():F0}%");
+        SetStatus(positionStatus ?? string.Format(Loc("Str_PageOf"), page + 1, ReadPageTotal) + $" - {DisplayZoomPct():F0}%");
         if (VisibleCanvasForPage(page)?.Parent is Grid grid && grid.Children.Count > 0
             && grid.Children[0] is Image image && image.Source is System.Windows.Media.Imaging.BitmapSource bitmap)
             PresentRenderWarning(image, bitmap, page, positionStatus);
