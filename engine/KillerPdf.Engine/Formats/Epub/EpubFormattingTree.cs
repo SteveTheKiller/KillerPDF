@@ -39,16 +39,24 @@ internal sealed class EpubFormattingTree
         int work = 0;
         VisitChildren(Root.Source, Root);
 
-        void VisitChildren(EpubNativeContent.Element element, Block containing)
+        void VisitChildren(EpubNativeContent.Element element, Block originalContaining)
         {
+            // CSS 2.1 section 17.2.1: consecutive content a row holds outside cells shares one anonymous cell, and a
+            // table or row group wraps it in an anonymous row as well; a real row or cell ends the anonymous box.
+            Block? anonymous = null;
+            bool tablePart = element.Display is EpubNativeContent.DisplayKind.Table
+                or EpubNativeContent.DisplayKind.TableRowGroup or EpubNativeContent.DisplayKind.TableRow;
             foreach (var child in element.Children)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (++work > WorkLimit)
                     throw new InvalidDataException("Native EPUB formatting exceeds its box work limit.");
+                var containing = originalContaining;
+                if (tablePart && Wrapped(child)) containing = Anonymous(child);
+                else if (tablePart && child is EpubNativeContent.Element { IsDisplayNone: false }) anonymous = null;
                 if (child is EpubNativeContent.Text text)
                 {
-                    if ((element.Name is "ul" or "ol" || element.Display is EpubNativeContent.DisplayKind.Table or EpubNativeContent.DisplayKind.TableRowGroup or EpubNativeContent.DisplayKind.TableRow)
+                    if ((element.Name is "ul" or "ol" || tablePart)
                         && EpubNativeContent.IsFormattingWhitespace(text.Value)) continue;
                     var positions = new Dictionary<int, int>();
                     foreach (int index in text.Positions)
@@ -106,6 +114,57 @@ internal sealed class EpubFormattingTree
                     else Sequence(target).Atoms.Add(new(reference.Offset, source, reference));
                 }
                 else VisitChildren(source, target);
+            }
+
+            // Content outside the table structure: visible text, or an element that is not a part this table level
+            // expects (a table keeps its caption and other blocks as captions, as before).
+            bool Wrapped(EpubNativeContent.SourceNode child) => child switch
+            {
+                EpubNativeContent.Text text => !EpubNativeContent.IsFormattingWhitespace(text.Value),
+                EpubNativeContent.Element { IsDisplayNone: true } => false,
+                EpubNativeContent.Element part => element.Display switch
+                {
+                    EpubNativeContent.DisplayKind.TableRow => part.Display != EpubNativeContent.DisplayKind.TableCell,
+                    EpubNativeContent.DisplayKind.TableRowGroup => part.Display != EpubNativeContent.DisplayKind.TableRow,
+                    _ => !part.IsBlock || part.Display == EpubNativeContent.DisplayKind.TableCell
+                },
+                _ => false
+            };
+
+            Block Anonymous(EpubNativeContent.SourceNode child)
+            {
+                int start = child is EpubNativeContent.Text text ? text.Offset : ((EpubNativeContent.Element)child).Offset;
+                int end = child is EpubNativeContent.Text node ? (node.Positions.Count == 0 ? node.Offset : node.Positions[^1] + 1)
+                    : ((EpubNativeContent.Element)child).EndOffset;
+                // A cell a table or row group holds directly needs only an anonymous row around it.
+                bool cell = child is EpubNativeContent.Element { Display: EpubNativeContent.DisplayKind.TableCell };
+                // A cell after anonymous content joins that content's anonymous row.
+                if (cell && anonymous is Cell { Parent: Row anonymousParent }) anonymous = anonymousParent;
+                if (anonymous is null)
+                {
+                    Block parent = originalContaining;
+                    if (element.Display != EpubNativeContent.DisplayKind.TableRow)
+                    {
+                        var row = new Row(EpubNativeContent.AnonymousTableBox(element, EpubNativeContent.DisplayKind.TableRow, start), parent);
+                        parent.Children.Add(row);
+                        parent = row;
+                    }
+                    if (cell) anonymous = parent;
+                    else
+                    {
+                        anonymous = new Cell(EpubNativeContent.AnonymousTableBox(parent.Source, EpubNativeContent.DisplayKind.TableCell, start), parent);
+                        parent.Children.Add(anonymous);
+                    }
+                }
+                else if (!cell && anonymous is Row anonymousRow)
+                {
+                    anonymous = new Cell(EpubNativeContent.AnonymousTableBox(anonymousRow.Source, EpubNativeContent.DisplayKind.TableCell, start), anonymousRow);
+                    anonymousRow.Children.Add(anonymous);
+                }
+                // The anonymous boxes reach to the end of what they hold, so their flows lay out all of it.
+                for (Block? box = anonymous; box is not null && !ReferenceEquals(box, originalContaining); box = box.Parent)
+                    box.Source.EndOffset = Math.Max(box.Source.EndOffset, end);
+                return anonymous;
             }
         }
 

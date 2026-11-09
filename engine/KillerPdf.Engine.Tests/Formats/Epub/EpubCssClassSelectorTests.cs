@@ -384,9 +384,7 @@ public sealed class EpubCssClassSelectorTests
     }
 
     [Theory]
-    [InlineData("<tbody><td>A</td></tbody>")]
     [InlineData("<tbody><tbody><tr><td>A</td><td>A</td></tr></tbody></tbody>")]
-    [InlineData("<tbody>A<tr><td>A</td><td>A</td></tr></tbody>")]
     public void TableBodyGroupsDiagnoseUnsupportedStructurePaintAndBreaks(string body)
     {
         var book = EpubDocument.Open(Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}", "<table>" + body + "</table>"));
@@ -503,12 +501,14 @@ public sealed class EpubCssClassSelectorTests
         Assert.NotEqual((ushort)0, font.GetGlyphId(0xA0));
         var book = EpubDocument.Open(Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}",
             "<table>\u00A0<tr><td>A</td><td>A</td></tr></table>"));
-        Assert.Equal("Native EPUB table text requires a cell.",
-            Assert.Throws<NotSupportedException>(() => book.CreateLayout(
-                new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 })).Message);
-        Assert.Equal("Native EPUB table text requires a cell.",
-            Assert.Throws<NotSupportedException>(() => book.ConvertToPdf(new EpubPdfConversionOptions(font)
-                { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 })).Message);
+        // CSS 2.1 section 17.2.1: the space gets an anonymous row and cell across the table, above the real row.
+        const char nonbreaking = (char)0xA0;
+        var page = Assert.Single(book.CreateLayout(new EpubLayoutOptions(30, 36, font) { FontSize = 10, Margin = 2 }).Pages);
+        Assert.Contains(nonbreaking, page.Text);
+        var space = page.TextPlacements.Single(item => page.Text[item.Start - page.TextStart] == nonbreaking);
+        Assert.True(page.TextPlacements.Where(item => page.Text[item.Start - page.TextStart] == 'A').All(item => item.Top > space.Top));
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)
+            { PageWidthPoints = 22.5, PageHeightPoints = 27, MarginPoints = 1.5, FontSizePoints = 7.5 }));
     }
 
     [Fact]
@@ -568,11 +568,24 @@ public sealed class EpubCssClassSelectorTests
         Assert.Equal(original, source);
     }
 
+    // Text directly in a table and cells directly in a row group lay out (CSS 2.1 section 17.2.1); nested tables are
+    // covered by EpubTableCompletionTests.
     [Theory]
-    // Explicit-width tables still need cells that fill the width; colspan is honored in automatic tables.
+    [InlineData("<table>A<tr><td>A</td><td>A</td></tr></table>", 3)]
+    [InlineData("<table><tbody><td>A</td><td>A</td></tbody></table>", 2)]
+    [InlineData("<table><tbody>A<tr><td>A</td><td>A</td></tr></tbody></table>", 3)]
+    public void TableStructureThatUsedToBeRefusedLaysOut(string body, int letters)
+    {
+        var book = EpubDocument.Open(Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}", body));
+        var font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var layout = book.CreateLayout(new EpubLayoutOptions(30, 46, font) { FontSize = 10, Margin = 2 });
+        Assert.Equal(letters, layout.Pages.Sum(page => page.TextPlacements.Count(item => page.Text[item.Start - page.TextStart] == 'A')));
+        Assert.NotEmpty(book.ConvertToPdf(new EpubPdfConversionOptions(font)));
+    }
+
+    [Theory]
+    // An explicit-width table whose only row spans its columns gives no column widths, so its row cannot fill the table.
     [InlineData("<table><tr><td colspan='2'>A</td></tr></table>")]
-    [InlineData("<table><tr><td><table><tr><td>A</td></tr></table></td><td>A</td></tr></table>")]
-    [InlineData("<table>A<tr><td>A</td><td>A</td></tr></table>")]
     public void InitialTableSliceDiagnosesUnimplementedStructure(string body)
     {
         var book = EpubDocument.Open(Book("table{width:24px;border-spacing:0}td{width:12px;padding:0}", body));

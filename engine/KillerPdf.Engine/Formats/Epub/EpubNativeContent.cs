@@ -416,12 +416,18 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
             throw new NotSupportedException("Native EPUB unordered-list text requires a list item.");
         if (owner.Name == "hr")
             throw new NotSupportedException("Native EPUB horizontal rules cannot contain text.");
-        if (owner.Display is DisplayKind.Table or DisplayKind.TableRowGroup or DisplayKind.TableRow && !IsFormattingWhitespace(value))
-            throw new NotSupportedException("Native EPUB table text requires a cell.");
         var node = new Text(value, owner, Characters.Count);
         owner.Children.Add(node);
         return node;
     }
+
+    /// <summary>
+    /// CSS 2.1 section 17.2.1: an anonymous row or cell box around content a table part holds directly. It inherits the
+    /// part's inherited style and has no margins, padding, width or background of its own.
+    /// </summary>
+    internal static Element AnonymousTableBox(Element part, DisplayKind display, int offset)
+        => new("", part, part.Style with { Background = null }, true, offset,
+            new SelectorIdentity(part.Identity.NamespaceName, [], new())) { Display = display };
 
     internal static bool IsFormattingWhitespace(string value) =>
         value.All(character => character is ' ' or '\t' or '\r' or '\n');
