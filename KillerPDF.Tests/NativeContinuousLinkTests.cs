@@ -18,7 +18,9 @@ public sealed class NativeContinuousLinkTests
         string slot = Between(viewport, "private void SetContinuousSlot(", "LayoutContinuousSlots();");
 
         Assert.DoesNotContain("AddSecondaryPageLinks(", setup);
-        Assert.Contains("if (!_continuousLinks.ContainsKey(fi)) AddSecondaryPageLinks(fi, rdW, rdH);", slot);
+        Assert.Contains("if (!_continuousLinks.ContainsKey(fi))", slot);
+        Assert.Contains("if (_nativeDoc is null) _continuousLinks[fi] = GetPageLinks(fi, rdW, rdH);", slot);
+        Assert.Contains("else AddSecondaryPageLinks(fi, rdW, rdH);", slot);
     }
 
     // A Grid rebuilt at another zoom changes which pages are on screen without scrolling. An EPUB search reads a page's

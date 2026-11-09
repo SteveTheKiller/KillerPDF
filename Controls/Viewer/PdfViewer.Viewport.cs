@@ -855,8 +855,13 @@ namespace KillerPDF.Controls
                 ov.LayoutTransform = new System.Windows.Media.ScaleTransform(dipW / rdW, dipW / rdW);
             }
             // A page's links, read once the page itself is drawn, so they're clickable in continuous view (resolved by
-            // the bounds-check in Canvas_MouseLeftButtonDown).
-            if (!_continuousLinks.ContainsKey(fi)) AddSecondaryPageLinks(fi, rdW, rdH);
+            // the bounds-check in Canvas_MouseLeftButtonDown). A PDF page records only their areas, as it did when they
+            // were read at setup; a book page also gets its keyboard link overlays.
+            if (!_continuousLinks.ContainsKey(fi))
+            {
+                if (_nativeDoc is null) _continuousLinks[fi] = GetPageLinks(fi, rdW, rdH);
+                else AddSecondaryPageLinks(fi, rdW, rdH);
+            }
 
             // Slot heights are now exact; recompute scroll offsets from them.
             LayoutContinuousSlots();
