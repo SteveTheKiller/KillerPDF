@@ -79,7 +79,15 @@ public sealed partial class DjvuDocument
             foreach (var entry in entries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                int destination = ResolveNavigationTarget(entry.Target, cancellationToken: cancellationToken);
+                int destination;
+                try { destination = ResolveNavigationTarget(entry.Target, cancellationToken: cancellationToken); }
+                catch (Exception error) when (error is InvalidDataException or NotSupportedException or ArgumentException)
+                {
+                    // A bookmark that names no page (an external link, a viewer command, a missing page) is left out and
+                    // its children take its place; it does not stop the conversion.
+                    AddBookmarks(entry.Children, level);
+                    continue;
+                }
                 builder.AddBookmark(entry.Label, destination, level);
                 AddBookmarks(entry.Children, level + 1);
             }

@@ -78,36 +78,25 @@ public sealed class DjvuPdfBookmarkConversionTests
     }
 
     [Theory]
-    [InlineData("FFFFDFFE677686C4DEA2B8264CE221515962765A01EC79D046E5B9C8ACDD", "#3", "available page")]
-    [InlineData("FFFFDDFF7181577E9398687984229201C1F9EA392D9DFD552BB303CFF3C994BA24EF", "#%GG", "malformed percent escape")]
-    public void ConversionRejectsAnUnavailableOrMalformedChildWithoutDroppingIt(string compressed, string target, string diagnosis)
-    {
-        var native = DjvuDocument.Open(Bundle(Convert.FromHexString(compressed), 2));
-        Assert.Equal(target, Assert.Single(Assert.Single(native.ReadNavigation()).Children).Target);
-        Assert.Contains(diagnosis, Assert.Throws<InvalidDataException>(() => native.ConvertToPdf()).Message);
-        Assert.Equal(target, Assert.Single(Assert.Single(native.ReadNavigation()).Children).Target);
-    }
-
-    [Theory]
+    [InlineData("FFFFDFFE677686C4DEA2B8264CE221515962765A01EC79D046E5B9C8ACDD", "#3")]
+    [InlineData("FFFFDDFF7181577E9398687984229201C1F9EA392D9DFD552BB303CFF3C994BA24EF", "#%GG")]
     [InlineData("FFFFBEFE710C28F93592410B5CF4B441265886801308C6F898CB4D8CED4B11FA0A0D2DA16A5F67125659A6D9239A8972A5E2C78FA840C4DF1377847F", "https://example.invalid/book.djvu#1")]
     [InlineData("FFFFCDFE7F76863FBC025ABA36A516DE0900FFA2E9F107C2A87E079BD69999AE5EEC498A99F8E284C32BE0BF30FEB2C1BF", "#1?djvuopts&zoom=200")]
-    public void ConversionRejectsExternalOrViewerCommandChildren(string compressed, string target)
-    {
-        var native = DjvuDocument.Open(Bundle(Convert.FromHexString(compressed), 2));
-        Assert.Equal(target, Assert.Single(Assert.Single(native.ReadNavigation()).Children).Target);
-        Assert.Contains("Only local DjVu page targets", Assert.Throws<NotSupportedException>(() => native.ConvertToPdf()).Message);
-    }
-
-    [Theory]
     [InlineData("FFFFDEFE710C2AC6A2AA329492D5DE9D96F971884581345EF822EC098183D1F6", "#+1")]
     [InlineData("FFFFDCFE710C2AC6A2AA32949450349AC361D315FB62A8ACC55DD6C0F0FF6E77EF3B", "#%2B1")]
-    public void ConversionDiagnosesRelativeOutlineTargetsWithoutInventingACurrentPage(string compressed, string target)
+    public void ConversionLeavesOutAChildThatNamesNoPageInsteadOfFailing(string compressed, string target)
     {
+        // A page that is not there, a malformed escape, an external link, a viewer command and a relative
+        // target with no current page are each left out of the PDF; the rest of the outline still converts.
         var native = DjvuDocument.Open(Bundle(Convert.FromHexString(compressed), 2));
         Assert.Equal(target, Assert.Single(Assert.Single(native.ReadNavigation()).Children).Target);
-        var error = Assert.Throws<ArgumentException>(() => native.ConvertToPdf());
-        Assert.Contains("relative DjVu target requires the current page index", error.Message);
-        Assert.Equal("currentPageIndex", error.ParamName);
+        var pdf = PdfDocument.Open(native.ConvertToPdf());
+        var outlines = Dictionary(pdf, Dictionary(pdf, pdf.Trailer[Name("Root")])[Name("Outlines")]);
+        var root = Dictionary(pdf, outlines[Name("First")]);
+        Assert.Equal(1, Assert.IsType<PdfInteger>(outlines[Name("Count")]).Value);
+        Assert.Equal(Assert.Single(native.ReadNavigation()).Label, Title(root));
+        Assert.False(root.ContainsKey(Name("First")));
+        Assert.Equal(target, Assert.Single(Assert.Single(native.ReadNavigation()).Children).Target);
     }
 
     [Fact]

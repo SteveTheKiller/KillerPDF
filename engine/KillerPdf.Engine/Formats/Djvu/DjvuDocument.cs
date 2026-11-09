@@ -106,7 +106,12 @@ public sealed partial class DjvuDocument
                 if (span.Slice(chunk.Offset, 4).SequenceEqual("DJVU"u8))
                 {
                     if (pages.Count == 4096) throw new InvalidDataException("DjVu page count exceeds the 4096 page limit.");
-                    pages.Add(ReadPage(span, children) with { ComponentId = metadata?[componentIndex].Id });
+                    pages.Add(ReadPage(span, children) with
+                    {
+                        ComponentId = metadata?[componentIndex].Id,
+                        ComponentName = metadata?[componentIndex].Name,
+                        ComponentTitle = metadata?[componentIndex].Title
+                    });
                     pageForms.Add(chunk);
                 }
             }
@@ -194,6 +199,12 @@ public sealed record DjvuPageInfo(int Width, int Height, int Dpi, byte MinorVers
 {
     /// <summary>The bundled directory component ID, or null when it is unavailable.</summary>
     public string? ComponentId { get; init; }
+
+    /// <summary>The directory component name a bookmark may use as a target, or null when it has none.</summary>
+    public string? ComponentName { get; init; }
+
+    /// <summary>The directory component title a bookmark may use as a target, or null when it has none.</summary>
+    public string? ComponentTitle { get; init; }
 }
 
 /// <summary>Clockwise page rotation in degrees.</summary>

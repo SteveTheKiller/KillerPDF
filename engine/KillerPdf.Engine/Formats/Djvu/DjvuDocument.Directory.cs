@@ -4,7 +4,7 @@ namespace KillerPdf.Engine.Formats.Djvu;
 
 public sealed partial class DjvuDocument
 {
-    private readonly record struct DirectoryComponent(string Id, int Kind);
+    private readonly record struct DirectoryComponent(string Id, int Kind, string? Name, string? Title);
 
     private static DirectoryComponent[]? ReadDirectoryMetadata(ReadOnlySpan<byte> encoded,
         List<Chunk> components, CancellationToken token)
@@ -29,9 +29,9 @@ public sealed partial class DjvuDocument
             if (kind > 3) throw new InvalidDataException("Invalid directory component flags.");
             var id = ReadDirectoryString(bytes, ref position, token);
             if (id.Length == 0 || !ids.Add(id)) throw new InvalidDataException("Directory component IDs must be nonempty and unique.");
-            if ((flags & 0x80) != 0) _ = ReadDirectoryString(bytes, ref position, token);
-            if ((flags & 0x40) != 0) _ = ReadDirectoryString(bytes, ref position, token);
-            result[i] = new(id, kind);
+            var name = (flags & 0x80) != 0 ? ReadDirectoryString(bytes, ref position, token) : null;
+            var title = (flags & 0x40) != 0 ? ReadDirectoryString(bytes, ref position, token) : null;
+            result[i] = new(id, kind, name, title);
         }
         if (position != bytes.Length) throw new InvalidDataException("Unexpected decoded bytes after the directory.");
         return result;

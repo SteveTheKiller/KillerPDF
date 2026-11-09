@@ -23,6 +23,11 @@ public sealed partial class DjvuDocument
             throw new InvalidDataException("The DjVu navigation target contains a control character.");
         for (var index = 0; index < Pages.Count; index++)
             if (string.Equals(Pages[index].ComponentId, pageTarget, StringComparison.Ordinal)) return index;
+        // DjVuLibre resolves a "#target" by ID, then name, then title.
+        for (var index = 0; index < Pages.Count; index++)
+            if (string.Equals(Pages[index].ComponentName, pageTarget, StringComparison.Ordinal)) return index;
+        for (var index = 0; index < Pages.Count; index++)
+            if (string.Equals(Pages[index].ComponentTitle, pageTarget, StringComparison.Ordinal)) return index;
         if (pageTarget.Contains('?', StringComparison.Ordinal))
             throw new NotSupportedException("Only local DjVu page targets are supported; viewer commands are not executed.");
         if (int.TryParse(pageTarget, System.Globalization.NumberStyles.None,
