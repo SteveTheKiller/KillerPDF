@@ -1429,7 +1429,9 @@ public sealed partial class EpubDocument
                     {
                         firstIndentedWord = false;
                         // Each collapsed separator scans only the following word, keeping lookahead linear.
-                        double wordWidth = WordWidth(at + 1, style.LetterSpacing, out double leadingTracking);
+                        double wordWidth = WordWidth(at + 1, style.LetterSpacing, out double leadingTracking, out int wordHyphen);
+                        // A word whose first part ends at a soft hyphen needs room for the hyphen a break there shows.
+                        if (wordHyphen >= 0) wordWidth += HyphenWidth(wordHyphen);
                         // A word wider than the whole line still starts its own line, then breaks where it overflows.
                         if (tracking + width + leadingTracking + wordWidth > contentRight - left)
                         {
@@ -1448,7 +1450,7 @@ public sealed partial class EpubDocument
                     if (firstIndentedWord && !style.PreserveWhitespace && !indentedWordMeasured)
                     {
                         indentedWordMeasured = true;
-                        if (WordWidth(at, 0, out _) > contentWidth) firstIndentedWord = false;
+                        if (WordWidth(at, 0, out _, out _) > contentWidth) firstIndentedWord = false;
                     }
                     if (tracking + width > contentRight - left && (!firstIndentedWord || style.PreserveWhitespace) && line.Count > 0)
                     {
@@ -1470,7 +1472,9 @@ public sealed partial class EpubDocument
                     if (atom.HasSource && BreakAfter(text[index]) && at < last && !IsSpace(sequence.Atoms[at + 1])
                         && sequence.Atoms[at + 1].Reference is null)
                     {
-                        double segment = WordWidth(at + 1, style.LetterSpacing, out double segmentTracking);
+                        double segment = WordWidth(at + 1, style.LetterSpacing, out double segmentTracking, out int segmentHyphen);
+                        // Breaking at the next soft hyphen would show a hyphen there, so the segment needs its width too.
+                        if (segmentHyphen >= 0) segment += HyphenWidth(segmentHyphen);
                         if (left + segmentTracking + segment > contentRight)
                         {
                             if (text[index] == (char)0x00AD) ShowHyphen(index, style);
@@ -1507,11 +1511,22 @@ public sealed partial class EpubDocument
                 static bool BreakAfter(char value) => value is (char)0x00AD or (char)0x200B
                     or >= (char)0x2000 and <= (char)0x200A and not (char)0x2007;
 
-                // Measures the word starting at an atom up to the next space or replaced element.
-                double WordWidth(int from, double previousTracking, out double leadingTracking)
+                // The width of the hyphen a line break at this soft hyphen shows, as ShowHyphen draws it.
+                double HyphenWidth(int at)
+                {
+                    if (!clusters.TryGetValue(at, out var blank)) return 0;
+                    var face = blank.Font;
+                    ushort glyph = face.GetGlyphId(0x2010) is var dash and not 0 ? dash : face.GetGlyphId('-');
+                    return glyph == 0 ? 0 : face.GetAdvanceWidth(glyph) / (double)face.UnitsPerEm * StyleAt(at).FontSize;
+                }
+
+                // Measures the word starting at an atom up to the next space or replaced element, or through the next
+                // break opportunity; softHyphen is that opportunity's index when it is a soft hyphen, otherwise -1.
+                double WordWidth(int from, double previousTracking, out double leadingTracking, out int softHyphen)
                 {
                     double wordWidth = 0;
                     leadingTracking = 0;
+                    softHyphen = -1;
                     bool firstCharacter = true;
                     for (int next = from; next <= last; next++)
                     {
@@ -1528,7 +1543,11 @@ public sealed partial class EpubDocument
                             previousTracking = nextStyle.LetterSpacing;
                             firstCharacter = false;
                             // A break opportunity after this character ends the segment that must fit.
-                            if (BreakAfter(text[nextAtom.Offset])) break;
+                            if (BreakAfter(text[nextAtom.Offset]))
+                            {
+                                if (text[nextAtom.Offset] == (char)0x00AD) softHyphen = nextAtom.Offset;
+                                break;
+                            }
                         }
                     }
                     return wordWidth;

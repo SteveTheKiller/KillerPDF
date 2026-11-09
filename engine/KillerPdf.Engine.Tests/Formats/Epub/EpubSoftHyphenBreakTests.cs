@@ -55,6 +55,25 @@ public sealed class EpubSoftHyphenBreakTests
         Assert.Equal("AA", string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(letter => letter.Value)));
     }
 
+    // A 20px page with 2px margins ends lines at 18. After "A" (2 to 8) and a second "A" (8 to 14), a hyphen shown at the
+    // second soft hyphen would end at 20, past the edge, so the line breaks at the first soft hyphen, whose hyphen ends at 14.
+    [Fact]
+    public void ASoftHyphenBreakReservesRoomForTheHyphen()
+    {
+        var font = HyphenFont();
+        var book = EpubDocument.Open(new Book { Chapters = { Chapter("<p>A&#173;A&#173;AAA</p>") } }.Build());
+
+        var layout = book.CreateLayout(new EpubLayoutOptions(20, 80, font) { FontSize = 10, Margin = 2, IsolateChapterFailures = true });
+
+        var page = Assert.Single(layout.Pages);
+        var hyphens = page.TextPlacements.Where(placement => placement.Start is 1 or 3 && placement.Width > 0).ToArray();
+        Assert.NotEmpty(hyphens);
+        Assert.All(hyphens, hyphen => Assert.True(hyphen.Left + hyphen.Width <= 18,
+            $"The hyphen at {hyphen.Start} ends at {hyphen.Left + hyphen.Width}, past the line's right edge at 18."));
+        var first = page.TextPlacements.Single(placement => placement.Start == 1);
+        Assert.Equal((8d, 6d), (first.Left, first.Width));
+    }
+
     private static bool Inked(PdfRenderedFrame frame, int left, int top, int right, int bottom)
     {
         var pixels = frame.Pixels;
