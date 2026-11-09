@@ -98,6 +98,32 @@ public sealed class PdfOverlayTailScaleTests
         Assert.True(allocated < source.Length / 4, $"Allocated {allocated:N0} bytes for a {source.Length:N0}-byte file.");
     }
 
+    // A PDF with no KillerPDF overlays needs only its comments and its pages' content arrays looked at. The tail also
+    // read every page's geometry, twice, which on a 20,000-page PDF made it slower than the rest of the open it was
+    // added to.
+    [Fact]
+    public void ATailWithNothingToTakeReadsNoPageGeometry()
+    {
+        byte[] source = PlainPdf(Pages, commentOnEveryPage: true);
+        var parsed = KillerPdf.Engine.Documents.PdfDocument.Open(source);
+        PdfOverlayAnnotations.TakeEditableTail(source, parsed);   // resolve the objects every read below shares
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        KillerPdf.Engine.Documents.PdfCommentReader.Read(parsed, true);
+        KillerPdf.Engine.Editing.PdfEditablePageOverlayEditor.Read(parsed);
+        long needed = GC.GetAllocatedBytesForCurrentThread() - before;
+        before = GC.GetAllocatedBytesForCurrentThread();
+        KillerPdf.Engine.Documents.PdfPageInformation.Read(parsed);
+        long geometry = GC.GetAllocatedBytesForCurrentThread() - before;
+        before = GC.GetAllocatedBytesForCurrentThread();
+        OverlayExtraction extracted = PdfOverlayAnnotations.TakeEditableTail(source, parsed);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Empty(extracted.Records);
+        Assert.True(allocated < needed + geometry / 2,
+            $"Allocated {allocated:N0} bytes; comments and content arrays take {needed:N0}, page geometry {geometry:N0}.");
+    }
+
     // A flat page tree of blank pages, each optionally carrying one sticky note, written by hand so the fixture
     // itself costs nothing to build.
     private static byte[] PlainPdf(int pages, bool commentOnEveryPage, int padding = 0)

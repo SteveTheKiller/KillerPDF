@@ -58,8 +58,11 @@ public static class PdfOverlayAnnotations
     private static IReadOnlyList<PageBatch> ReadPageBatches(PdfDocument document)
     {
         var result = new List<PageBatch>();
+        var overlays = PdfEditablePageOverlayEditor.Read(document);
+        // Page geometry is read only for a document that has a page-content layer to check against it.
+        if (overlays.Count == 0) return result;
         var pages = PdfPageInformation.Read(document);
-        foreach (var overlay in PdfEditablePageOverlayEditor.Read(document))
+        foreach (var overlay in overlays)
         {
             try
             {
@@ -179,19 +182,23 @@ public static class PdfOverlayAnnotations
             PdfDocument document = open();
             // Extraction is restricted to unencrypted working copies.
             if (document.IsEncrypted) return new(sourceBytes, []);
-            var pages = PdfPageInformation.Read(document);
+            // Page geometry and annotation counts are read only when a page has a comment carrying overlay metadata:
+            // a long PDF without KillerPDF overlays read every page's geometry for nothing.
+            IReadOnlyList<PdfPageInformation>? pages = null;
             var comments = PdfCommentReader.Read(document, true).ToLookup(comment => comment.PageIndex);
             var extracted = new List<OverlayRecord>();
             var editor = new PdfIncrementalAnnotationEditor(document);
             // A tail starts at a page's topmost annotation and holds only annotations that carry overlay metadata,
             // so a page with no such comment has none. Every page's count comes from one page-tree read: counted
             // a page at a time, a long PDF read the whole tree once for every page at open.
-            IReadOnlyList<int> counts = PdfCommentReader.ReadPageAnnotationCounts(document);
+            IReadOnlyList<int>? counts = null;
             foreach (var pageComments in comments.Where(group => group.Any(comment => CarriesOverlayMetadata(document, comment)))
                 .OrderBy(group => group.Key))
             {
                 int page = pageComments.Key;
                 var stack = pageComments.ToDictionary(c => c.AnnotationIndex);
+                pages ??= PdfPageInformation.Read(document);
+                counts ??= PdfCommentReader.ReadPageAnnotationCounts(document);
                 int count = counts[page];
                 var tail = new List<OverlayRecord>();
                 bool invalid = false;
