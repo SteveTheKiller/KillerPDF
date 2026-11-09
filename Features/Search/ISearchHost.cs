@@ -16,6 +16,10 @@ namespace KillerPDF.Features
         /// <summary>The page currently selected in the sidebar/page list.</summary>
         int CurrentPageIndex { get; }
 
+        /// <summary>True when part of the page is in the document viewport now. A long book can have an
+        /// overlay for every page, so a page with an overlay is not necessarily on screen.</summary>
+        bool IsPageOnScreen(int pageIdx) => true;
+
         /// <summary>Navigates to the page (the match being stepped to lives there).</summary>
         void GoToPage(int pageIdx);
 

@@ -882,6 +882,35 @@ namespace KillerPDF.Controls
             if (_nativeDoc is not null) AddSecondaryPageLinks(fi, rdW, rdH);
         }
 
+        /// <summary>True when part of the page is in the document viewport now. Continuous and Grid keep an
+        /// overlay for pages well outside the viewport, so having an overlay does not mean being on screen.</summary>
+        internal bool IsPageOnScreen(int pageIndex)
+        {
+            if (!HasReadDocument || pageIndex < 0) return false;
+            if (_viewMode.IsContinuous())
+            {
+                if (pageIndex >= _continuousTops.Count || pageIndex >= _continuousPanel.Children.Count) return false;
+                double viewTop = PagePreviewPanel.VerticalOffset / Math.Max(0.01, _zoomLevel);
+                double viewBot = (PagePreviewPanel.VerticalOffset + PagePreviewPanel.ViewportHeight) / Math.Max(0.01, _zoomLevel);
+                double top = _continuousTops[pageIndex];
+                double bot = top + ((FrameworkElement)_continuousPanel.Children[pageIndex]).Height;
+                return bot >= viewTop && top <= viewBot;
+            }
+            if (_viewMode == ViewMode.Grid && _pageContentPanel.Children.Count > 1
+                && PagePreviewPanel.Content is FrameworkElement gridRoot)
+            {
+                if (pageIndex >= _pageContentPanel.Children.Count
+                    || _pageContentPanel.Children[pageIndex] is not FrameworkElement tile || tile.ActualHeight <= 0) return false;
+                double viewTop = PagePreviewPanel.VerticalOffset;
+                double viewBottom = viewTop + PagePreviewPanel.ViewportHeight;
+                double top = tile.TranslatePoint(new Point(0, 0), gridRoot).Y;
+                double bottom = tile.TranslatePoint(new Point(0, tile.ActualHeight), gridRoot).Y;
+                return bottom > viewTop && top < viewBottom;
+            }
+            // Single Page and Two-Page give an overlay only to the pages they show.
+            return VisibleCanvasForPage(pageIndex) is not null;
+        }
+
         // Scroll-settle window maintenance for virtualized Continuous view (#122): releases the
         // bitmaps of slots far outside the viewport (heights are kept, so nothing moves) and
         // kicks a render pass when unrendered slots have come near. Runs on the UI thread from
@@ -1888,6 +1917,10 @@ namespace KillerPDF.Controls
                     // Its page images must load even while optional sharpening waits for focus.
                     if (_viewMode.IsContinuous()) VirtualizeContinuousSlots();
                     if (Host != null && !Host.IsViewerFocused(this)) return;
+                    // An EPUB search reads a page's highlight areas once the page is on screen, so the pages a
+                    // scroll brought into view get theirs now.
+                    if (_searchBar is { Visibility: Visibility.Visible } && Search.WaitsForPagesOnScreen)
+                        HighlightSearchResultsOnCurrentPage();
                     if (_viewMode.IsContinuous())
                     {
                         RefineVisibleRegions();

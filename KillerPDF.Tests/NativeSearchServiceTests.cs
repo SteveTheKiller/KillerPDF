@@ -215,6 +215,8 @@ public sealed class NativeSearchServiceTests
         public void SetResultText(string text) => Completed.TrySetResult(text);
         public void SetResultCount(string text, string? tooltip) => Completed.TrySetResult(text);
         public void ClearHighlights() { }
+        public Func<int, bool> OnScreen { get; set; } = _ => true;
+        public bool IsPageOnScreen(int pageIdx) => OnScreen(pageIdx);
         public int Repaints { get; private set; }
         public void RepaintHighlights() => Repaints++;
         public bool IsCovered(int pageIdx, double left, double bottom, double right, double top) => false;
@@ -457,6 +459,37 @@ public sealed class NativeSearchServiceTests
         Assert.Equal(new[] { 0, last }, controller.AllSearchRects.Keys.Order());
         Assert.Equal(2, ChapterLayoutCount(chapters));
         Assert.Equal(3, host.Repaints);
+    }
+
+    // A long book can have an overlay for every page, and the painter offers each of them. Only the pages in the
+    // viewport have their highlight areas read, so painting cannot lay out the whole book behind the reader's page.
+    [Fact]
+    public async Task SearchControllerLocatesNoPageOffTheScreen()
+    {
+        string filler = string.Concat(Enumerable.Repeat("<p>AAAA AAA AAAAA AA AAAA AAA</p>", 30));
+        var snapshot = PdfReadSnapshot.OpenEpub(Chapters(filler, filler, filler, filler, filler), MediumPage());
+        using var revision = new PdfCapturedReadRevision(snapshot);
+        var chapters = ChapterLayouts(snapshot);
+        StopLayingOutAhead(chapters);
+        var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision }) { OnScreen = page => page == 0 };
+        var controller = new KillerPDF.Features.SearchController(host) { MatchCase = true, WholeWord = true };
+
+        controller.Run("AAAA");
+        Assert.Equal("1 / 300", await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        await Until(() => host.Repaints >= 2);
+        foreach (int page in controller.PagesWithResults.ToArray()) controller.TryGetPageRects(page, out _);
+        await Task.Delay(300);
+
+        Assert.Equal(new[] { 0 }, controller.AllSearchRects.Keys);
+        Assert.Equal(1, ChapterLayoutCount(chapters));
+        Assert.True(controller.WaitsForPagesOnScreen);
+
+        int last = controller.ResultPages[^1];
+        host.OnScreen = page => page == last;
+        Assert.False(controller.TryGetPageRects(last, out _));
+        await Until(() => host.Repaints >= 3);
+        Assert.True(controller.TryGetPageRects(last, out _));
+        Assert.Equal(2, ChapterLayoutCount(chapters));
     }
 
     private static async Task Until(Func<bool> condition)

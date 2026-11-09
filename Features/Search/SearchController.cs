@@ -78,18 +78,22 @@ namespace KillerPDF.Features
         }
 
         /// <summary>The page's highlight rectangles. A native EPUB page whose highlight areas are not read yet
-        /// has none; asking starts reading them, and the highlights repaint when they arrive.</summary>
+        /// has none; asking for a page on screen starts reading them, and the highlights repaint when they arrive.</summary>
         internal bool TryGetPageRects(int page,
             out List<(double left, double bottom, double right, double top)> rects)
         {
             if (AllSearchRects.TryGetValue(page, out rects!)) return true;
-            Locate(page);
+            if (_unlocatedPages.Contains(page) && _host.IsPageOnScreen(page)) Locate(page);
             return false;
         }
 
         /// <summary>The pages the painter offers to <see cref="TryGetPageRects"/>: every page with a hit while
         /// some pages' highlight areas are still to be read, otherwise the pages with rectangles.</summary>
         internal IEnumerable<int> PagesWithResults => _locator is not null ? ResultPages : AllSearchRects.Keys;
+
+        /// <summary>True while some pages with hits still wait for their highlight areas, which are read
+        /// when they come on screen, so the viewer repaints highlights once a scroll settles.</summary>
+        internal bool WaitsForPagesOnScreen => _unlocatedPages.Count > 0;
 
         /// <summary>The native page's size in points, the unit of its highlight rectangles, for placing them on the
         /// page. The page's own size is in its layout unit: CSS pixels for EPUB, image pixels for DjVu.</summary>

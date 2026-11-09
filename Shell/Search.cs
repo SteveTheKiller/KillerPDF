@@ -53,6 +53,7 @@ namespace KillerPDF.Shell
 
         void ISearchHost.ClearHighlights() => ClearSearchHighlights();
         void ISearchHost.RepaintHighlights() => HighlightSearchResultsOnCurrentPage();
+        bool ISearchHost.IsPageOnScreen(int pageIdx) => ActiveViewer.IsPageOnScreen(pageIdx);
         bool ISearchHost.IsCovered(int pageIdx, double left, double bottom, double right, double top)
             => ActiveViewer.IsPdfRectCovered(pageIdx, left, bottom, right, top);
 
