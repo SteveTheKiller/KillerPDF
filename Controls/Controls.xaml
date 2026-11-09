@@ -355,7 +355,8 @@
                     <Grid x:Name="InputRoot" Tag="{DynamicResource UseDialogCaption}">
                     <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{DynamicResource ControlCornerRadius}">
-                        <input:InputContentHost x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        <input:InputContentHost x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+                                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
                     </Border>
                     <!-- Recessed field bevel - brushes CROSSED against the thicknesses so it
                          sinks rather than raises. Nothing on any theme but 98SE. -->
@@ -369,6 +370,10 @@
                             BorderBrush="{DynamicResource PaneBevelLight2Brush}" BorderThickness="{DynamicResource PaneBevel2DarkThickness}"/>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <!-- Before the compact trigger, so a compact theme's own floor wins. -->
+                        <Trigger Property="AcceptsReturn" Value="False">
+                            <Setter TargetName="InputRoot" Property="MinHeight" Value="26"/>
+                        </Trigger>
                         <MultiDataTrigger>
                             <MultiDataTrigger.Conditions>
                                 <Condition Binding="{Binding Tag, ElementName=InputRoot}" Value="True"/>
@@ -385,13 +390,23 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <!-- A single-line field is as tall as the dropdown beside it (ComboBox Height 26):
+                 no vertical padding, text centered, and the template's 26px floor above. The
+                 padding also reaches the content host, so 6,3 used to count twice and stood a
+                 one-line field 31px tall. Multi-line fields keep their padding and their height. -->
+            <Trigger Property="AcceptsReturn" Value="False">
+                <Setter Property="Padding" Value="6,0"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- Implicit TextBox style so the search inputs pick up the theme without per-box styling. -->
     <Style TargetType="TextBox" BasedOn="{StaticResource DarkTextBox}"/>
 
     <Style x:Key="DialogPickerTextBox" TargetType="TextBox" BasedOn="{StaticResource DarkTextBox}">
-        <Setter Property="Height" Value="28"/>
+        <Setter Property="Height" Value="26"/>
         <Style.Triggers>
             <DataTrigger Binding="{Binding Tag, ElementName=RootBorder}" Value="True">
                 <Setter Property="Height" Value="Auto"/>

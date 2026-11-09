@@ -47,6 +47,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Saved TrueType text retains fractional font advances. (#472)
 - Color edges in JPEG photos and scans are smoother, most visibly red or blue text on white.
 - CMYK colors without their own profile now look the same in the viewer, thumbnails, printing, exports, the preview pane, the command line and the color conversion macro, all following the working CMYK profile (CGATS TR 001 unless you choose another). Colors move very little: about 0.6 delta E on average across test pages, and about 6 at most on test swatches. (#264)
+- Single-line text fields are as tall as the dropdowns beside them, so form rows line up instead of the text boxes standing oversized.
 
 ### Added
 
