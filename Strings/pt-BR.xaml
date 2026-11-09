@@ -1424,6 +1424,7 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Search_PagesSkipped">Páginas ilegíveis, sem busca: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Nenhuma correspondência nas páginas legíveis. {0} páginas não puderam ser lidas.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Aguardando as páginas, capítulo {0} de {1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Aguardando {0}%</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Correspondência anterior (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Próxima correspondência (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Fechar (Esc)</sys:String>

@@ -1404,6 +1404,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Search_PagesSkipped">Okunamayan sayfalar, aranmadı: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Okunabilir sayfalarda eşleşme yok. {0} sayfa okunamadı.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Sayfalar bekleniyor, bölüm {0}/{1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Bekleniyor %{0}</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Önceki eşleşme (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Sonraki eşleşme (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Kapat (Esc)</sys:String>

@@ -23,12 +23,17 @@ public sealed class NativeSearchPaginationTests
 
         controller.Run("AAAAA");
         string waiting = await host.NextText().WaitAsync(Patience);
+        string? tooltip = host.Tooltip;
         bool countedEarly = host.Counts.Count > 0;
         gate.Set();
         string count = await host.Count.Task.WaitAsync(Patience);
 
-        // Chapter 0 of 4 is paginated when the open returns; chapter 1 waits for the gate.
-        Assert.Equal("waiting 1 of 4", waiting);
+        // Chapter 0 of 4 is paginated when the open returns; chapter 1 waits for the gate. The counter is narrow, so it
+        // shows the share of chapters and its tooltip says the rest.
+        Assert.Equal("waiting 25%", waiting);
+        Assert.Equal("waiting for chapter 1 of 4", tooltip);
+        // The note's tooltip does not outlive it.
+        Assert.Null(host.Tooltip);
         Assert.False(countedEarly, "The search counted before the book was paginated.");
         Assert.Equal($"1 / {expected}", count);
     }
@@ -74,7 +79,18 @@ public sealed class NativeSearchPaginationTests
         public long SearchRevision => 0;
         public int CurrentPageIndex => 0;
         public CurrentSearchSnapshot CaptureSearchSnapshot() => source;
-        public string Loc(string key) => key == "Str_Search_WaitingForPages" ? "waiting {0} of {1}" : key;
+        public string Loc(string key) => key switch
+        {
+            "Str_Search_WaitingShort" => "waiting {0}%",
+            "Str_Search_WaitingForPages" => "waiting for chapter {0} of {1}",
+            _ => key
+        };
+        public string? Tooltip { get; private set; }
+        public void SetResultNote(string text, string? tooltip)
+        {
+            Tooltip = tooltip;
+            SetResultText(text);
+        }
         public void SetStatus(string text) { }
         public void GoToPage(int pageIdx) { }
         public void SetResultText(string text)

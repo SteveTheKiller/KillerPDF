@@ -1424,6 +1424,7 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Search_PagesSkipped">Нечитабельні сторінки, без пошуку: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Збігів на читабельних сторінках немає. Не вдалося прочитати сторінок: {0}.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Очікування сторінок, розділ {0} з {1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Очікування {0}%</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Попередній збіг (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Наступний збіг (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Закрити (Esc)</sys:String>

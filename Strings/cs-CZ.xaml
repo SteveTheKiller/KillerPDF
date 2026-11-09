@@ -1409,6 +1409,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Search_PagesSkipped">Nečitelné stránky, nehledáno: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Na čitelných stránkách nejsou žádné shody. Počet stránek, které se nepodařilo přečíst: {0}.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Čeká se na stránky, kapitola {0} z {1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Čeká se {0} %</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Předchozí shoda (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Další shoda (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Zavřít (Esc)</sys:String>

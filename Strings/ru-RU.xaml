@@ -1427,6 +1427,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Search_PagesSkipped">Нечитаемые страницы, не искались: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Нет совпадений на читаемых страницах. Не удалось прочитать страниц: {0}.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Ожидание страниц, глава {0} из {1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Ожидание {0}%</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Предыдущее совпадение (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Следующее совпадение (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Закрыть (Esc)</sys:String>

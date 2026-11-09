@@ -1424,6 +1424,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Search_PagesSkipped">Pages illisibles, non recherchées : {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Aucun résultat dans les pages lisibles. {0} pages n’ont pas pu être lues.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">En attente des pages, chapitre {0} sur {1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Attente {0} %</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Résultat précédent (Maj+Entrée)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Résultat suivant (Entrée)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Fermer (Échap)</sys:String>

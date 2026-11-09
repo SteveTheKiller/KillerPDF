@@ -1320,6 +1320,7 @@
     <sys:String x:Key="Str_Search_PagesSkipped">Neberljive strani, niso preiskane: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Ni ujemanj na berljivih straneh. Število strani, ki jih ni bilo mogoče prebrati: {0}.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Čakanje na strani, poglavje {0} od {1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Čakanje {0} %</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Prejšnje ujemanje (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Naslednje ujemanje (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Zapri (Esc)</sys:String>

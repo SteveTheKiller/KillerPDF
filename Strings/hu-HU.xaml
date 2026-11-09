@@ -1411,6 +1411,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Search_PagesSkipped">Olvashatatlan oldalak, nem keresve: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Nincs találat az olvasható oldalakon. {0} oldalt nem sikerült beolvasni.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Várakozás az oldalakra: {1} fejezetből a(z) {0}.</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Várakozás {0}%</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Előző találat (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Következő találat (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Bezárás (Esc)</sys:String>

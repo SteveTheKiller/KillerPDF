@@ -239,8 +239,11 @@ namespace KillerPDF.Features
             bool wrote = false;
             while (wait == _paginationWait && !searching.IsCompleted && book.IsPaginating)
             {
+                // The counter is narrow, so it shows the share of chapters paginated; the tooltip names them.
                 var (paginated, total) = book.PaginationProgress;
-                _host.SetResultText(string.Format(_host.Loc("Str_Search_WaitingForPages"), paginated, total));
+                int percent = total > 0 ? paginated * 100 / total : 0;
+                _host.SetResultNote(string.Format(_host.Loc("Str_Search_WaitingShort"), percent),
+                    string.Format(_host.Loc("Str_Search_WaitingForPages"), paginated, total));
                 wrote = true;
                 await Task.WhenAny(searching, Task.Delay(250));
             }
@@ -308,9 +311,11 @@ namespace KillerPDF.Features
                 if (found is null)
                 {
                     // Stopped (a new query, Esc or the tab closing): the waiting note goes unless a newer search wrote its own.
-                    if (waited && !_runner.IsRunning) _host.SetResultText("");
+                    if (waited && !_runner.IsRunning) _host.SetResultNote("", null);
                     return;
                 }
+                // The waiting note's tooltip goes with it; the results write their own.
+                if (waited) _host.SetResultNote("", null);
                 _resultRevision = editRevision;
                 _resultNativeRevisionId = found.NativeRevisionId;
                 ShowResults(query, matchCase, wholeWord, found, source.NativeRevision);

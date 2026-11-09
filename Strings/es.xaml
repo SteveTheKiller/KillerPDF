@@ -1404,6 +1404,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">Páginas ilegibles, sin buscar: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Sin coincidencias en las páginas legibles. No se pudieron leer {0} páginas.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Esperando las páginas, capítulo {0} de {1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Esperando {0} %</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Coincidencia anterior (Mayús+Intro)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Siguiente coincidencia (Intro)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Cerrar (Esc)</sys:String>

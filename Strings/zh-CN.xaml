@@ -1408,6 +1408,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Search_PagesSkipped">无法读取的页面，未搜索：{0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">可读取的页面中没有匹配项。有 {0} 页无法读取。</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">正在等待页面，第 {0} 章，共 {1} 章</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">等待中 {0}%</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">上一个匹配项 (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">下一个匹配项 (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">关闭 (Esc)</sys:String>

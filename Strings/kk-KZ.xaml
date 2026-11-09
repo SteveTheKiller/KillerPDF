@@ -1324,6 +1324,7 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Search_PagesSkipped">Оқылмайтын беттер, ізделмеді: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Оқуға болатын беттерде сәйкестік жоқ. {0} бетті оқу мүмкін болмады.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Беттер күтілуде, {1} тараудың {0}-тарауы</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Күту {0}%</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Алдыңғы сәйкестік (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Келесі сәйкестік (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Жабу (Esc)</sys:String>

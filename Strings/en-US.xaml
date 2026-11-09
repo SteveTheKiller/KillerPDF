@@ -1434,6 +1434,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Search_PagesSkipped">Unreadable pages, not searched: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">No matches on the readable pages. {0} pages could not be read.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Waiting for pages, chapter {0} of {1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Waiting {0}%</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Previous Match (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Next Match (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Close (Esc)</sys:String>

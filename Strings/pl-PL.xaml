@@ -1412,6 +1412,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Search_PagesSkipped">Nieczytelne strony, nieprzeszukane: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Brak wyników na czytelnych stronach. Liczba stron, których nie udało się odczytać: {0}.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Oczekiwanie na strony, rozdział {0} z {1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Czekanie {0}%</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Poprzedni wynik (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Następny wynik (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Zamknij (Esc)</sys:String>

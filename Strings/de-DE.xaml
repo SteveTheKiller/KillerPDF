@@ -1413,6 +1413,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Search_PagesSkipped">Unlesbare Seiten, nicht durchsucht: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Keine Treffer auf den lesbaren Seiten. {0} Seiten konnten nicht gelesen werden.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Warten auf die Seiten, Kapitel {0} von {1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Warten {0} %</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Vorheriger Treffer (Umschalt+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Nächster Treffer (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Schließen (Esc)</sys:String>

@@ -1424,6 +1424,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Search_PagesSkipped">Trang không đọc được, chưa tìm: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">Không có kết quả phù hợp trên các trang đọc được. Có {0} trang không đọc được.</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">Đang chờ các trang, chương {0}/{1}</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">Đang chờ {0}%</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">Kết quả trước (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">Kết quả tiếp theo (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">Đóng (Esc)</sys:String>

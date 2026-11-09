@@ -1404,6 +1404,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Search_PagesSkipped">অপঠনযোগ্য পৃষ্ঠা, অনুসন্ধান হয়নি: {0}</sys:String>
     <sys:String x:Key="Str_Search_NoMatchesPartial">পড়া যায় এমন পৃষ্ঠাগুলোতে কোনো মিল নেই। {0}টি পৃষ্ঠা পড়া যায়নি।</sys:String>
     <sys:String x:Key="Str_Search_WaitingForPages">পৃষ্ঠার জন্য অপেক্ষা করা হচ্ছে, {1}টি অধ্যায়ের মধ্যে {0} নম্বর</sys:String>
+    <sys:String x:Key="Str_Search_WaitingShort">অপেক্ষা {0}%</sys:String>
     <sys:String x:Key="Str_Search_PreviousTT">পূর্ববর্তী মিল (Shift+Enter)</sys:String>
     <sys:String x:Key="Str_Search_NextTT">পরবর্তী মিল (Enter)</sys:String>
     <sys:String x:Key="Str_Search_CloseTT">বন্ধ করুন (Esc)</sys:String>

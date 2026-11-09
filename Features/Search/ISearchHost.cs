@@ -31,6 +31,10 @@ namespace KillerPDF.Features
         /// leaving the tooltip alone - mirrors what the old code did on those paths.</summary>
         void SetResultText(string text);
 
+        /// <summary>Writes a short note in the result counter with a longer tooltip, such as how far a book still
+        /// being paginated has come while a search waits for it.</summary>
+        void SetResultNote(string text, string? tooltip) => SetResultText(text);
+
         /// <summary>Writes the "12 / 73" counter and its page-breakdown tooltip.</summary>
         void SetResultCount(string text, string? tooltip);
 
