@@ -7,6 +7,41 @@ namespace KillerPDF.Tests;
 public sealed class WindowsPdfDisplayColorModeTests
 {
     [Fact]
+    public void AFreshCaptureOfTheSameDisplayKeepsItsGeneration()
+    {
+        Assert.True(WindowsPdfDisplayDiscovery.SameObservation(Observed(4, "monitor.icc"), Observed(5, "monitor.icc")));
+    }
+
+    [Theory]
+    [InlineData("other.icc")]
+    [InlineData(null)]
+    public void AChangedProfileAssociationIsANewObservation(string? profile)
+    {
+        Assert.False(WindowsPdfDisplayDiscovery.SameObservation(Observed(4, "monitor.icc"), Observed(4, profile)));
+    }
+
+    [Fact]
+    public void AnotherMonitorIsANewObservation()
+    {
+        Assert.False(WindowsPdfDisplayDiscovery.SameObservation(Observed(4, "monitor.icc"),
+            Observed(4, "monitor.icc") with { MonitorIdentity = "\\\\.\\DISPLAY2" }));
+    }
+
+    private static PdfDisplayDiscoverySnapshot Observed(long generation, string? profile) =>
+        new(generation, PdfDisplayDiscoveryStatus.Available, "\\\\.\\DISPLAY1", new PdfDisplayBounds(0, 0, 1920, 1080), null, null)
+        {
+            // Fresh instances each time, as Capture builds them.
+            TargetAssociation = new(PdfDisplayTargetStatus.SingleTarget,
+                [new PdfDisplayTarget("target:7330/0", "Monitor")
+                {
+                    ColorState = new(PdfDisplayColorMode.ConventionalSdr, 15, 0, 0, 0, 8, null, null),
+                    StandardProfile = profile is null ? new(PdfDisplayProfileStatus.NoProfile, 1, null, null, null)
+                        : new(PdfDisplayProfileStatus.Named, 1, profile, null, null),
+                    SdrWhiteLevel = new(1000, 80, null)
+                }])
+        };
+
+    [Fact]
     public void ADefaultProfileQueryThatFindsNoAssociationIsNoProfile()
     {
         // ColorProfileGetDisplayDefault reports a display without an association as

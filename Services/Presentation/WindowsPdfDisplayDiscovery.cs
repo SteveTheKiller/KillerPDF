@@ -117,16 +117,24 @@ public sealed class WindowsPdfDisplayDiscovery : IDisposable
                 { TargetAssociation = CaptureTargets(info.Device, cancellationToken) };
         cancellationToken.ThrowIfCancellationRequested();
         var previous = Status;
-        if (invalidation == _capturedInvalidationSerial
-            && observed.Status == previous.Status && observed.MonitorIdentity == previous.MonitorIdentity
-            && observed.Bounds == previous.Bounds && observed.FailureOperation == previous.FailureOperation
-            && observed.NativeErrorCode == previous.NativeErrorCode
-            && SameTargets(observed.TargetAssociation, previous.TargetAssociation)) return previous;
+        if (invalidation == _capturedInvalidationSerial && SameObservation(previous, observed)) return previous;
         observed = observed with { Generation = checked(previous.Generation + 1) };
         _capturedInvalidationSerial = invalidation;
         Volatile.Write(ref _status, observed);
         return observed;
     }
+
+    /// <summary>
+    /// Whether a fresh capture repeats the previous observation, so its generation is kept.
+    /// Activation, window movement and showing the window re-capture without invalidating, so a
+    /// profile association changed without a broadcast is picked up there and only a real change
+    /// (including the association) starts a new generation.
+    /// </summary>
+    public static bool SameObservation(PdfDisplayDiscoverySnapshot previous, PdfDisplayDiscoverySnapshot observed) =>
+        observed.Status == previous.Status && observed.MonitorIdentity == previous.MonitorIdentity
+        && observed.Bounds == previous.Bounds && observed.FailureOperation == previous.FailureOperation
+        && observed.NativeErrorCode == previous.NativeErrorCode
+        && SameTargets(observed.TargetAssociation, previous.TargetAssociation);
 
     static bool SameTargets(PdfDisplayTargetAssociation? first, PdfDisplayTargetAssociation? second) =>
         ReferenceEquals(first, second) || first is not null && second is not null
