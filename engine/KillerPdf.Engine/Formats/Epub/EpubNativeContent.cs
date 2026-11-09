@@ -134,6 +134,7 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     private readonly Stack<Element> _ancestors = new();
     private readonly Dictionary<Element, int> _listCounters = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<Style, Style> _styles = new();
+    private readonly Dictionary<string, EpubFontFamily[]> _fontFamilyLists = new(StringComparer.Ordinal);
 
     // HTML rules for parsing integers, limited to the values a list ordinal can sensibly hold.
     private static int? ParseInteger(string? value) =>
@@ -329,6 +330,12 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
         }
         Style style = suppressed ? inherited : properties.Apply(inherited, contentHeight);
         // Elements with the same computed style share one record, so a long chapter keeps a few dozen, not thousands.
+        // Records compare the family list by reference, so equal lists from separate declarations become one list first.
+        if (style.FontFamilies is { } families)
+        {
+            string familyKey = string.Join("\n", families.Select(family => (family.IsGeneric ? "g:" : "n:") + family.Name));
+            if (!_fontFamilyLists.TryAdd(familyKey, families)) style = style with { FontFamilies = _fontFamilyLists[familyKey] };
+        }
         if (!_styles.TryAdd(style, style)) style = _styles[style];
         if (!suppressed)
         {
