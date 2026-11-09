@@ -1651,7 +1651,6 @@
         <Setter Property="Foreground" Value="{DynamicResource MenuTextBrush}"/>
         <Setter Property="FontFamily" Value="{DynamicResource MonoFont}"/>
         <Setter Property="FontSize" Value="11"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -1783,7 +1782,6 @@
     <Style x:Key="RailButton" TargetType="Button">
         <Setter Property="AutomationProperties.Name" Value="{Binding RelativeSource={RelativeSource Self}, Path=ToolTip}"/>
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <!-- 20 logical hugs the 16px glyphs; the RailW=24 column (SearchPanel.cs) leaves only a
              2px inset per side, so zooming scales the icons rather than blank strip. -->
         <Setter Property="Width" Value="20"/>
@@ -1961,7 +1959,6 @@
              you scan down, and with the row's StackPanel margin also dropped a row is the same
              height in both halves of the sidebar. -->
         <Setter Property="Padding" Value="2,0"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Template">
@@ -2268,7 +2265,6 @@
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="0"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="ItemContainerStyle" Value="{StaticResource FolderTreeItem}"/>
         <Setter Property="ScrollViewer.CanContentScroll" Value="False"/>
         <Setter Property="Template">
@@ -2868,7 +2864,6 @@
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="9,4"/>
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -2912,7 +2907,6 @@
         <Setter Property="Height" Value="24"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">

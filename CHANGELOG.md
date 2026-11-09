@@ -42,6 +42,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Image watermarks are applied at the size the preview shows: the image's own size from its resolution, with Scale as a percent of that. (#478)
 - The Measure tool's options bar follows a language or theme change right away instead of keeping the old ones until the tool is chosen again.
 - Dialogs meant to be resizable, such as Comments, Color Management and the certificate list, can now be resized from any edge, never get smaller than they open, and maximize without covering the taskbar.
+- Toolbar buttons, close buttons and the file picker's folder tree keep their keyboard focus ring after a theme change. It used to disappear from them, so a keyboard user could no longer see which of them had focus.
 
 ### Changed
 
