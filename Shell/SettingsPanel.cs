@@ -373,11 +373,11 @@ namespace KillerPDF.Shell
             ((KillerPDF.Features.IViewerHost)this).RunWithViewerContext(viewer, () =>
             {
                 var tool = _annotBarTool;
-                if (tool == EditTool.Text)
-                    ShowTextSettings();
-                else if (tool is EditTool bt && bt is EditTool.Draw or EditTool.Highlight
-                    or EditTool.Line or EditTool.Strikethrough or EditTool.Underline or EditTool.Shape)
-                    ShowDrawSettings(bt);
+                switch (KillerPDF.Controls.ToolOptionsCatalog.BarFor(tool))
+                {
+                    case KillerPDF.Controls.ToolOptionsBarKind.Text: ShowTextSettings(); break;
+                    case KillerPDF.Controls.ToolOptionsBarKind.Draw: ShowDrawSettings(tool!.Value); break;
+                }
 
                 RebuildCropBarForLocale();
             });

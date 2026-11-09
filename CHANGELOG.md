@@ -40,6 +40,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Hiding shortcut hints removes the hints the app adds to tooltips in every language, including translated keys such as (Strg+D).
 - About places link confirmation in the left column and aligns Clear all Data on the same bottom row.
 - Image watermarks are applied at the size the preview shows: the image's own size from its resolution, with Scale as a percent of that. (#478)
+- The Measure tool's options bar follows a language or theme change right away instead of keeping the old ones until the tool is chosen again.
 
 ### Changed
 
