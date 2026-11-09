@@ -1862,7 +1862,7 @@ namespace KillerPDF.Controls
                         if (Host == null || Host.IsViewerFocused(this)) RefreshPageView(applyIdx);
                     });
 
-            // If the user has zoomed in past ~10% of the last render, queue a deferred re-render at
+            // After a zoom, queue a deferred re-render at
             // higher resolution so text re-sharpens quickly (especially on high-DPI displays, where
             // the upscaled bitmap shows blur sooner). The timer debounces rapid Ctrl+scroll.
             // Skipped in Grid: this re-renders via the selected page (not page 0) and, once the render
@@ -1870,9 +1870,12 @@ namespace KillerPDF.Controls
             // the grid's column math. That desync locks Ctrl+scroll to a 1<->2 column toggle. The grid
             // is an overview and doesn't need the re-sharpen.
             // Continuous re-sharpens on ANY zoom change (zoom-in sharpens the visible pages, zoom-out
-            // restores base bitmaps so hi-res memory is released); the other modes only on a >10% zoom-in.
-            if (applyIdx >= 0 && _doc is not null && _viewMode != ViewMode.Grid
-                && (_viewMode.IsContinuous() || _zoomLevel > _lastRenderZoom * 1.10))
+            // restores base bitmaps so hi-res memory is released).
+            // Every other mode re-sharpens on ANY zoom change too. Single and Two-Page only refine
+            // the visible regions, which decide per page whether more pixels are needed; gating on
+            // a 10% zoom-in over the last full render left pages blurry after zooming out and back
+            // in (the last render zoom stays at the earlier, higher value).
+            if (applyIdx >= 0 && _doc is not null && _viewMode != ViewMode.Grid)
             {
                 StartRerenderTimer();
             }
@@ -2681,6 +2684,9 @@ namespace KillerPDF.Controls
             int idx = _currentPage;
             var modeSession = _active;
             bool ModeCurrent() => _viewMode == mode && ReferenceEquals(_active, modeSession);
+            // A zoom the user picks while the new mode's first page renders outranks the switch's fit.
+            long modeIntent = modeSession?.ViewportIntentRevision ?? 0;
+            bool ModeIntentCurrent() => (modeSession?.ViewportIntentRevision ?? 0) == modeIntent;
             if (mode.IsContinuous())
             {
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
@@ -2733,8 +2739,9 @@ namespace KillerPDF.Controls
                         return;
                     }
                     // Switching into Single or Two-Page fits the whole page so it isn't left at an
-                    // awkward carried-over zoom from another mode.
-                    if      (mode == ViewMode.Single || mode == ViewMode.TwoPage) FitToPage();
+                    // awkward carried-over zoom from another mode, unless the user has zoomed since.
+                    if (!ModeIntentCurrent())               ApplyZoom();
+                    else if (mode == ViewMode.Single || mode == ViewMode.TwoPage) FitToPage();
                     else if (_fitMode == FitMode.Width) FitToWidth();
                     else if (_fitMode == FitMode.Page)  FitToPage();
                     else                                ApplyZoom();
