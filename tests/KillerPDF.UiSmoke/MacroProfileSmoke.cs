@@ -132,7 +132,8 @@ internal static class MacroProfileSmoke
         Type runner = engine.GetType("KillerPdf.Engine.Diagnostics.PdfPreflightRunner", true)!;
         string Report(object profile)
         {
-            object report = runner.GetMethod("Run")!.Invoke(null, [new ReadOnlyMemory<byte>(bytes), profile, null])!;
+            object report = runner.GetMethod("Run", [typeof(ReadOnlyMemory<byte>), profile.GetType(), typeof(string)])!
+                .Invoke(null, [new ReadOnlyMemory<byte>(bytes), profile, null])!;
             return (string)report.GetType().GetMethod("ToJson")!.Invoke(report, [false])!;
         }
         string before = Report(expected!), after = Report(actual);

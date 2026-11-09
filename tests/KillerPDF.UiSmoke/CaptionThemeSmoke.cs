@@ -12,6 +12,17 @@ using static DocumentStateSmoke;
 
 internal static class CaptionThemeSmoke
 {
+    // DialogFrame.Frame gains optional parameters over time; reflection must pass every one, so the
+    // defaults fill whatever the call leaves out.
+    private static object?[] WithDefaults(MethodInfo method, object?[] given)
+    {
+        ParameterInfo[] parameters = method.GetParameters();
+        var args = new object?[parameters.Length];
+        for (int index = 0; index < args.Length; index++)
+            args[index] = index < given.Length ? given[index] : parameters[index].DefaultValue;
+        return args;
+    }
+
     internal static int RunButtonTransitions(Window owner, string folder, bool invokeActions = false)
     {
         if (invokeActions)
@@ -40,7 +51,7 @@ internal static class CaptionThemeSmoke
                 button.Click += (_, _) => clicks[button]++;
                 body.Children.Add(button);
             }
-            window.Content = build.Invoke(null, [window, owner, "KillerPDF - Button controls", (Action)window.Close, body, null]);
+            window.Content = build.Invoke(null, WithDefaults(build, [window, owner, "KillerPDF - Button controls", (Action)window.Close, body, null]));
             windows.Add(window); window.Show();
             Wait(() => buttons.All(button => button.IsVisible && button.IsEnabled && button.ActualWidth == 140 && button.ActualHeight == 40), "public factory buttons laid out");
             return buttons;
@@ -153,8 +164,8 @@ internal static class CaptionThemeSmoke
                 var control = new Button { Content = "Invoke presence control" };
                 control.Click += (_, _) => controlCalls++;
                 var halo = new Thickness(7, 8, 9, 10);
-                var frame = (FrameworkElement)build.Invoke(null, [window, owner, "KillerPDF - Close control",
-                    (Action)(() => { closeCalls++; window.Close(); }), control, halo])!;
+                var frame = (FrameworkElement)build.Invoke(null, WithDefaults(build, [window, owner, "KillerPDF - Close control",
+                    (Action)(() => { closeCalls++; window.Close(); }), control, halo]))!;
                 window.Content = frame;
                 try
                 {
@@ -261,7 +272,7 @@ internal static class CaptionThemeSmoke
         {
             var window = new Window { Owner = owner, Width = 600, Height = 100, WindowStyle = WindowStyle.None,
                 ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.CenterOwner };
-            var frame = (FrameworkElement)build.Invoke(null, [window, owner, title, (Action)window.Close, new Grid(), null])!;
+            var frame = (FrameworkElement)build.Invoke(null, WithDefaults(build, [window, owner, title, (Action)window.Close, new Grid(), null]))!;
             window.Content = frame; windows.Add(window); window.Show();
             var bar = Descendants<DockPanel>(frame).Single().Children.OfType<Border>().First();
             Wait(() => bar.IsVisible && bar.ActualWidth > 300 && bar.ActualHeight >= 18, "actual shared caption rendered");
