@@ -1394,6 +1394,18 @@ namespace KillerPDF.Controls
             // streaming tiles in from the background render.
             double primaryDipW = _annotationCanvas.Width;
 
+            // Grid lays out a slot for every page before drawing any, in page order, so a jump can scroll to any page at
+            // once; the pages are then drawn outward from the page being looked at. Building tiles only as their bitmaps
+            // arrived, in page order, dropped a jump past the pages drawn so far.
+            int renderCenter = primaryPageIdx + 1;
+            if (_viewMode == ViewMode.Grid)
+            {
+                AddGridPlaceholders(primaryPageIdx + 1, limit, primaryDipW);
+                renderCenter = Math.Clamp(State.CurrentPage, primaryPageIdx + 1, limit - 1);
+            }
+            _gridRenderCenter = renderCenter;
+            int[] renderOrder = [.. ContinuousRenderOrder.Around(renderCenter, primaryPageIdx + 1, limit - 1)];
+
             // Render pixels on a background thread and attach each page tile to the UI as soon
             // as it is ready, so large documents fill in progressively instead of blocking
             // until every page has been rendered.
@@ -1431,7 +1443,7 @@ namespace KillerPDF.Controls
                     ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
                     try
                     {
-                        for (int i = primaryPageIdx + 1; i < limit; i++)
+                        foreach (int i in renderOrder)
                         {
                             if (cts.IsCancellationRequested) break;
                             int rot = secRotations.TryGetValue(i, out int rr) ? rr : 0;
@@ -1469,7 +1481,7 @@ namespace KillerPDF.Controls
                                 if (nativeRevision is not null)
                                 {
                                     var prepared = await _viewportRenderQueue.Enqueue(
-                                        (nativeRevision, "secondary", i), 10 + i - primaryPageIdx,
+                                        (nativeRevision, "secondary", i), 10 + Math.Abs(i - renderCenter),
                                         Math.Min((proof?.Settings.Enabled == true ? 64L : 40L) * secondaryMax * secondaryMax, 512L << 20),
                                         token => PrepareNativePrimaryBitmap(nativeRevision, i, secondaryMax, rot, invert, token,
                                             proof?.Settings, secondaryMonitor), secondaryToken);
@@ -1494,7 +1506,7 @@ namespace KillerPDF.Controls
                                     continue;
                                 }
                                 var rendered = await _viewportRenderQueue.Enqueue(
-                                    (renderRequest, "secondary", i), 10 + i - primaryPageIdx,
+                                    (renderRequest, "secondary", i), 10 + Math.Abs(i - renderCenter),
                                     Math.Min((proof?.Settings.Enabled == true ? 64L : secondaryMonitor is not null ? 40L : 8L)
                                         * secondaryMax * secondaryMax, 512L << 20), token =>
                                     {
@@ -1566,6 +1578,43 @@ namespace KillerPDF.Controls
         /// Builds one secondary-page tile (image + annotation overlay + links) and appends it
         /// to the page content panel. Must run on the UI thread.
         /// </summary>
+        // The page the current Grid pass draws outward from.
+        private int _gridRenderCenter = -1;
+
+        /// <summary>Appends an empty Grid slot, sized from the page's own proportions, for each page from
+        /// <paramref name="first"/> up to <paramref name="end"/> that has none, in page order, so the panel's child
+        /// <c>i</c> is page <c>i</c>. Links and annotations wait for the page's bitmap.</summary>
+        private void AddGridPlaceholders(int first, int end, double primaryDipW)
+        {
+            int pageDipW = (int)Math.Round(primaryDipW);
+            if (pageDipW <= 0) return;
+            for (int pi = first; pi < end; pi++)
+            {
+                if (_continuousCanvases.ContainsKey(pi)) continue;
+                var (width, height) = ReadVisualPageSize(pi);
+                int pageDipH = Math.Max(1, (int)Math.Round(primaryDipW * height / Math.Max(1e-6, width)));
+                var img = new Image { Stretch = Stretch.None, Width = pageDipW, Height = pageDipH };
+                RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+                var overlay = BuildPageOverlay(pi, pageDipW, pageDipH, null);
+                overlay.Cursor = CursorForTool(_currentTool);
+                var pageGrid = new Grid();
+                pageGrid.Children.Add(img);
+                pageGrid.Children.Add(overlay);
+                _pageContentPanel.Children.Add(new Border
+                {
+                    Background = Brushes.White,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(0, 0, GridGapPx / Math.Max(0.01, _zoomLevel), GridGapPx / Math.Max(0.01, _zoomLevel)),
+                    Child = pageGrid
+                });
+            }
+        }
+
+        /// <summary>True when the page has a Grid slot whose bitmap has not arrived yet.</summary>
+        private bool GridTileIsBlank(int page) =>
+            _viewMode == ViewMode.Grid && _continuousCanvases.TryGetValue(page, out var overlay)
+            && overlay.Parent is Grid grid && grid.Children.Count > 0 && grid.Children[0] is Image { Source: null };
+
         private void AddSecondaryTile(int pi, System.Windows.Media.Imaging.BitmapSource bitmap, double primaryDipW)
         {
             int w = bitmap.PixelWidth, h = bitmap.PixelHeight;
@@ -1577,6 +1626,18 @@ namespace KillerPDF.Controls
             if (_continuousCanvases.TryGetValue(pi, out var exOverlay)
                 && exOverlay.Parent is Grid exGrid && exGrid.Children.Count > 0 && exGrid.Children[0] is Image exImg)
             {
+                // A Grid slot laid out ahead of its bitmap takes the page's real size, links and annotations now.
+                if (exImg.Source is null)
+                {
+                    exImg.Width = pageDipW;
+                    exImg.Height = pageDipH;
+                    exOverlay.Width = pageDipW;
+                    exOverlay.Height = pageDipH;
+                    if (!_renderDims.ContainsKey(pi)) _renderDims[pi] = (pageDipW, pageDipH);
+                    exImg.Source = bitmap;
+                    AddSecondaryPageLinks(pi, pageDipW, pageDipH);
+                    RenderAllAnnotations(pi);
+                }
                 exImg.Source = bitmap;
                 PresentRenderWarning(exImg, bitmap, pi);
                 // Keep the grid's constant on-screen gap exact across zoom/column changes: the
@@ -1935,6 +1996,9 @@ namespace KillerPDF.Controls
                         RefineVisibleRegions();
                         return;
                     }
+                    // A scroll into a part of the Grid not drawn yet draws it next.
+                    if (_viewMode == ViewMode.Grid && State.CurrentPage != _gridRenderCenter && GridTileIsBlank(State.CurrentPage))
+                        RenderAdditionalPages(0);
                     // Never re-render the primary in Grid (it would shift page 0's width basis and
                     // desync the column math); guards a timer started just before a switch into grid.
                     if (_viewMode != ViewMode.Grid && State.CurrentPage >= 0)

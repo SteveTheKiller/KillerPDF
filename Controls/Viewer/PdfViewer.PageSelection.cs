@@ -118,6 +118,8 @@ namespace KillerPDF.Controls
                     {
                         // Scroll the chosen page's tile into view (BringIntoView accounts for the zoom transform).
                         gridTile.BringIntoView();
+                        // Every page has a slot, but a page not drawn yet is drawn next, with its neighbors.
+                        if (GridTileIsBlank(_currentPage)) RenderAdditionalPages(0);
                     }
                     return;
                 }
