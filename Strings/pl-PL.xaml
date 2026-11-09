@@ -1350,6 +1350,14 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">„{0}" ma uszkodzoną strukturę i nie można go dodać.&#10;&#10;Czy KillerPDF ma spróbować naprawy? Zostanie utworzona naprawiona kopia. Oryginalny plik nie zostanie zmieniony.&#10;&#10;Uwaga: naprawionym plikom mogą brakować zakładki, formularze i inne funkcje interaktywne.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Model języka ({0}) zostanie teraz pobrany, aby OCR mógł działać.&#10;&#10;W każdej chwili możesz dodać więcej języków lub przełączyć się na modele wyższej jakości w menu OCR.</sys:String>
     <sys:String x:Key="Str_Bar_More">Więcej ustawień</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Brak wypełnienia</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Zmniejsz rozmiar o 1 pt</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Zwiększ rozmiar o 1 pt</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Jednostki</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Różowy</sys:String>
+    <sys:String x:Key="Str_Color_Black">Czarny</sys:String>
+    <sys:String x:Key="Str_Color_White">Biały</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Utrzymuje linię na najbliższej osi (poziomej lub pionowej)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Przeciągnij ramkę, aby usunąć wszystkie adnotacje w środku</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Przeciągnij po adnotacjach, aby je usunąć</sys:String>

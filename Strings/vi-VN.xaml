@@ -1361,6 +1361,14 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" có cấu trúc bị hỏng và không thể thêm được.&#10;&#10;Bạn có muốn KillerPDF thử sửa chữa không? Một bản sao đã sửa chữa sẽ được tạo. Tệp gốc sẽ không bị thay đổi.&#10;&#10;Lưu ý: các tệp được sửa chữa có thể bị mất dấu trang, biểu mẫu và các tính năng tương tác khác.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Một mô hình ngôn ngữ ({0}) sẽ được tải xuống ngay bây giờ để OCR có thể chạy.&#10;&#10;Bạn có thể thêm nhiều ngôn ngữ hơn hoặc chuyển sang các mô hình chất lượng cao hơn bất cứ lúc nào từ menu OCR.</sys:String>
     <sys:String x:Key="Str_Bar_More">Thêm cài đặt</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Không tô</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Giảm cỡ 1 pt</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Tăng cỡ 1 pt</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Đơn vị</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Hồng</sys:String>
+    <sys:String x:Key="Str_Color_Black">Đen</sys:String>
+    <sys:String x:Key="Str_Color_White">Trắng</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Giữ đường thẳng trên trục gần nhất (ngang hoặc dọc)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Kéo một khung để xóa mọi chú thích bên trong nó</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Quét cọ qua các chú thích để xóa chúng</sys:String>

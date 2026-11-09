@@ -1342,6 +1342,14 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}"-এর কাঠামো ক্ষতিগ্রস্ত, তাই যোগ করা যায়নি।&#10;&#10;KillerPDF কি মেরামতের চেষ্টা করবে? একটি মেরামত করা কপি তৈরি হবে। মূল ফাইল বদলাবে না।&#10;&#10;দ্রষ্টব্য: মেরামত করা ফাইলে বুকমার্ক, ফর্ম ও অন্যান্য ইন্টারঅ্যাক্টিভ বৈশিষ্ট্য নাও থাকতে পারে।</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">OCR চালানোর জন্য এখন একটি ভাষার মডেল ({0}) ডাউনলোড হবে।&#10;&#10;OCR মেনু থেকে যেকোনো সময় আরও ভাষা যোগ করতে বা উচ্চমানের মডেলে যেতে পারবেন।</sys:String>
     <sys:String x:Key="Str_Bar_More">আরও সেটিংস</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">কোনো ফিল নেই</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">আকার 1 pt কমান</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">আকার 1 pt বাড়ান</sys:String>
+    <sys:String x:Key="Str_Crop_Units">একক</sys:String>
+    <sys:String x:Key="Str_Color_Pink">গোলাপি</sys:String>
+    <sys:String x:Key="Str_Color_Black">কালো</sys:String>
+    <sys:String x:Key="Str_Color_White">সাদা</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">লাইনটিকে নিকটতম অক্ষে রাখে (অনুভূমিক বা উল্লম্ব)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">ভিতরের সব টীকা মুছতে একটি বাক্স টানুন</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">টীকার উপর ব্রাশ চালিয়ে সেগুলি মুছুন</sys:String>

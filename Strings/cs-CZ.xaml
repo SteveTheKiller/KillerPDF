@@ -1347,6 +1347,14 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">„{0}" má poškozenou strukturu a nepodařilo se jej přidat.&#10;&#10;Má se KillerPDF pokusit o opravu? Vytvoří se opravená kopie. Původní soubor se nezmění.&#10;&#10;Poznámka: opraveným souborům mohou chybět záložky, formuláře a další interaktivní funkce.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Nyní se stáhne jazykový model ({0}), aby OCR mohlo běžet.&#10;&#10;Další jazyky nebo modely vyšší kvality můžete kdykoli přidat v nabídce OCR.</sys:String>
     <sys:String x:Key="Str_Bar_More">Další možnosti</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Bez výplně</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Zmenšit o 1 pt</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Zvětšit o 1 pt</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Jednotky</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Růžová</sys:String>
+    <sys:String x:Key="Str_Color_Black">Černá</sys:String>
+    <sys:String x:Key="Str_Color_White">Bílá</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Udrží čáru na nejbližší ose (vodorovné nebo svislé)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Tažením rámečku odstraníte všechny anotace uvnitř</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Přejetím přes anotace je odstraníte</sys:String>

@@ -1351,6 +1351,14 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">„{0}“ hat eine beschädigte Struktur und konnte nicht hinzugefügt werden.&#10;&#10;Soll KillerPDF eine Reparatur versuchen? Es wird eine reparierte Kopie erstellt. Die Originaldatei wird nicht verändert.&#10;&#10;Hinweis: Reparierten Dateien können Lesezeichen, Formulare und andere interaktive Funktionen fehlen.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Ein Sprachmodell ({0}) wird jetzt heruntergeladen, damit OCR laufen kann.&#10;&#10;Sie können jederzeit über das OCR-Menü weitere Sprachen hinzufügen oder zu Modellen höherer Qualität wechseln.</sys:String>
     <sys:String x:Key="Str_Bar_More">Weitere Einstellungen</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Keine Füllung</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Um 1 pt verkleinern</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Um 1 pt vergrößern</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Einheiten</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Rosa</sys:String>
+    <sys:String x:Key="Str_Color_Black">Schwarz</sys:String>
+    <sys:String x:Key="Str_Color_White">Weiß</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Hält die Linie auf der nächstgelegenen Achse (horizontal oder vertikal)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Ziehen Sie einen Rahmen, um alle Anmerkungen darin zu löschen</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Über Anmerkungen streichen, um sie zu löschen</sys:String>

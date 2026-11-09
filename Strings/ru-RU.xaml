@@ -1364,6 +1364,14 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" имеет поврежденную структуру и не может быть добавлен.&#10;&#10;Хотите, чтобы KillerPDF попытался выполнить восстановление? Будет создана восстановленная копия. Исходный файл изменен не будет.&#10;&#10;Примечание: в восстановленных файлах могут отсутствовать закладки, формы и другие интерактивные функции.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Языковая модель ({0}) будет загружена сейчас, чтобы можно было запустить распознавание текста.&#10;&#10;Вы можете в любое время добавить дополнительные языки или переключиться на модели более высокого качества из меню распознавания текста.</sys:String>
     <sys:String x:Key="Str_Bar_More">Дополнительные настройки</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Без заливки</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Уменьшить размер на 1 pt</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Увеличить размер на 1 pt</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Единицы</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Розовый</sys:String>
+    <sys:String x:Key="Str_Color_Black">Чёрный</sys:String>
+    <sys:String x:Key="Str_Color_White">Белый</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Держите линию на ближайшей оси (горизонтальной или вертикальной).</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Перетащите прямоугольник, чтобы удалить все примечания внутри него</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Проведите кистью по аннотациям, чтобы удалить их</sys:String>

@@ -1361,6 +1361,14 @@ Dimensioná-las para um tamanho aceito? As páginas mantêm a aparência e as pr
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">“{0}” tem a estrutura danificada e não pôde ser adicionado.&#10;&#10;Deseja que o KillerPDF tente um reparo? Uma cópia reparada será criada. O arquivo original não será alterado.&#10;&#10;Observação: os arquivos reparados podem perder marcadores, formulários e outros recursos interativos.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Um modelo de idioma ({0}) será baixado agora para que o OCR possa ser executado.&#10;&#10;Você pode adicionar mais idiomas ou mudar para modelos de maior qualidade a qualquer momento pelo menu OCR.</sys:String>
     <sys:String x:Key="Str_Bar_More">Mais configurações</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Sem preenchimento</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Diminuir o tamanho em 1 pt</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Aumentar o tamanho em 1 pt</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Unidades</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Rosa</sys:String>
+    <sys:String x:Key="Str_Color_Black">Preto</sys:String>
+    <sys:String x:Key="Str_Color_White">Branco</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Manter a linha no eixo mais próximo (horizontal ou vertical)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Arraste uma caixa para excluir todas as anotações dentro dela</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Passe o pincel sobre as anotações para excluí-las</sys:String>

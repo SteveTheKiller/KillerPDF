@@ -1258,6 +1258,14 @@
     <sys:String x:Key="Str_Dlg_RepairAsk">Datoteka »{0}« ima poškodovano strukturo in je ni bilo mogoče dodati.&#10;&#10;Naj KillerPDF poskusi popravilo? Ustvarjena bo popravljena kopija, izvirna datoteka pa se ne bo spremenila.&#10;&#10;Opomba: v popravljenih datotekah lahko manjkajo zaznamki, obrazci in druge interaktivne funkcije.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk">Za izvajanje OCR bo zdaj prenesen jezikovni model ({0}).&#10;&#10;V meniju OCR lahko kadar koli dodate več jezikov ali preklopite na modele višje kakovosti.</sys:String>
     <sys:String x:Key="Str_Bar_More">Več nastavitev</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Brez polnila</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Zmanjšaj velikost za 1 pt</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Povečaj velikost za 1 pt</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Enote</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Roza</sys:String>
+    <sys:String x:Key="Str_Color_Black">Črna</sys:String>
+    <sys:String x:Key="Str_Color_White">Bela</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Ohrani črto na najbližji osi (vodoravni ali navpični)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Povlecite okvir, da izbrišete vse pripombe v njem</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Povlecite s čopičem čez pripombe, da jih izbrišete</sys:String>

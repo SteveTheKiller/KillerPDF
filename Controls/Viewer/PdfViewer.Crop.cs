@@ -330,7 +330,8 @@ namespace KillerPDF.Controls
             };
             unitCombo.Height = ToolOptionsControls.ControlHeight;
             System.Windows.Automation.AutomationProperties.SetAutomationId(unitCombo, "CropUnits");
-            System.Windows.Automation.AutomationProperties.SetName(unitCombo, "pt / in / %");
+            System.Windows.Automation.AutomationProperties.SetName(unitCombo, Loc("Str_Crop_Units"));
+            unitCombo.SetResourceReference(FrameworkElement.ToolTipProperty, "Str_Crop_Units");
             foreach (var u in new[] { "pt", "in", "%" }) unitCombo.Items.Add(u);
             unitCombo.SelectedItem = _cropUnit;
             unitCombo.SelectionChanged += (_, _) => { _cropUnit = unitCombo.SelectedItem as string ?? "pt"; SyncCropBoxInputs(); };

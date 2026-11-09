@@ -338,6 +338,24 @@ public sealed class ToolOptionsBarTests
         });
     }
 
+    // A screen reader names a quick color by its color name in the app's language, not its hex value.
+    // The nine default swatches (UiKit.DefaultSwatches) each have a name; any other color has none.
+    [Theory]
+    [InlineData(0xE0, 0x3C, 0x3C, "Str_Color_Red")]
+    [InlineData(0xE8, 0x7A, 0x1E, "Str_Color_Orange")]
+    [InlineData(0xF2, 0xC0, 0x1E, "Str_Color_Yellow")]
+    [InlineData(0x2E, 0xA5, 0x4C, "Str_Color_Green")]
+    [InlineData(0x2E, 0x86, 0xDE, "Str_Color_Blue")]
+    [InlineData(0x8E, 0x5B, 0xD6, "Str_Color_Purple")]
+    [InlineData(0xE0, 0x4A, 0x9A, "Str_Color_Pink")]
+    [InlineData(0x00, 0x00, 0x00, "Str_Color_Black")]
+    [InlineData(0xFF, 0xFF, 0xFF, "Str_Color_White")]
+    [InlineData(0x12, 0x34, 0x56, null)]
+    public void QuickColorsAreNamedByTheirColorName(byte r, byte g, byte b, string? key)
+    {
+        Assert.Equal(key, ToolOptionsControls.ColorNameKey(System.Windows.Media.Color.FromRgb(r, g, b)));
+    }
+
     private static void RunSta(Action action)
     {
         Exception? error = null;

@@ -1261,6 +1261,14 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
 Ескерту: жөнделген файлдарда бетбелгілер, пішіндер және басқа интерактивті мүмкіндіктер болмауы мүмкін.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">OCR іске қосылуы үшін қазір тіл үлгісі ({0}) жүктеледі.&#10;&#10;OCR мәзірінен кез келген уақытта қосымша тілдер қоса немесе жоғары сапалы үлгілерге ауыса аласыз.</sys:String>
     <sys:String x:Key="Str_Bar_More">Қосымша параметрлер</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Бояусыз</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Өлшемді 1 pt кішірейту</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Өлшемді 1 pt үлкейту</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Бірліктер</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Қызғылт</sys:String>
+    <sys:String x:Key="Str_Color_Black">Қара</sys:String>
+    <sys:String x:Key="Str_Color_White">Ақ</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Сызықты ең жақын осьте ұстау (көлденең немесе тік)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Ішіндегі әрбір ескертпені жою үшін төртбұрыш сүйреңіз</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Ескертпелерді жою үшін олардың үстінен сызыңыз</sys:String>

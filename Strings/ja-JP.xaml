@@ -1361,6 +1361,14 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">「{0}」は構造が破損しているため追加できませんでした。&#10;&#10;KillerPDF で修復を試みますか？修復済みコピーが作成されます。元のファイルは変更されません。&#10;&#10;注意 : 修復済みファイルでは、しおり、フォーム、その他のインタラクティブ機能が失われる場合があります。</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">OCR を実行するため、言語モデル（{0}）を今すぐダウンロードします。&#10;&#10;OCR メニューからいつでも言語を追加したり、より高品質なモデルに切り替えたりできます。</sys:String>
     <sys:String x:Key="Str_Bar_More">その他の設定</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}：{1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">塗りつぶしなし</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">サイズを 1 pt 小さくする</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">サイズを 1 pt 大きくする</sys:String>
+    <sys:String x:Key="Str_Crop_Units">単位</sys:String>
+    <sys:String x:Key="Str_Color_Pink">ピンク</sys:String>
+    <sys:String x:Key="Str_Color_Black">黒</sys:String>
+    <sys:String x:Key="Str_Color_White">白</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">線を最も近い軸 (水平または垂直) に揃えます</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">ボックスをドラッグして、その中のすべての注釈を削除します</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">注釈をなぞって削除します</sys:String>

@@ -189,6 +189,12 @@ namespace KillerPDF.Shell
 
         private static string Hex(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
+        // A swatch's accessible name: its group and its color's name in the app's language, or the
+        // hex value for a color without a name ("Color: Red", "Fill: #123456").
+        private string SwatchName(string groupLabel, Color c) =>
+            string.Format(Loc("Str_Bar_SwatchName"), LabelName(groupLabel),
+                ToolOptionsControls.ColorNameKey(c) is { } key ? Loc(key) : Hex(c));
+
         // A combo 24 tall and as wide as its longest item plus the chevron, capped at 160 (spec 3.3).
         private static ComboBox CompactCombo(IEnumerable<string> texts, string name)
         {
@@ -224,7 +230,7 @@ namespace KillerPDF.Shell
             {
                 var c = swatches[i];
                 bool on = showCurrent && c.R == current.R && c.G == current.G && c.B == current.B;
-                var swatch = ToolOptionsControls.Swatch(c, on, LabelName(label) + " " + Hex(c), () => pick(c));
+                var swatch = ToolOptionsControls.Swatch(c, on, SwatchName(label, c), () => pick(c));
                 AutomationProperties.SetAutomationId(swatch, idPrefix + "Swatch" + i);
                 group.Children.Add(swatch);
             }
@@ -233,7 +239,7 @@ namespace KillerPDF.Shell
             AutomationProperties.SetAutomationId(more, idPrefix + "MoreColors");
             group.Children.Add(more);
             var chip = ToolOptionsControls.ColorChip(showCurrent ? current : Colors.White,
-                LabelName(label) + " " + (showCurrent ? Hex(current) : ""));
+                showCurrent ? SwatchName(label, current) : LabelName(label));
             AutomationProperties.SetAutomationId(chip, idPrefix + "Chip");
             return (group, chip);
         }

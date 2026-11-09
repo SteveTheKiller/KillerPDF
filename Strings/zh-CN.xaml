@@ -1346,6 +1346,14 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" 的结构已损坏，无法添加。&#10;&#10;要让 KillerPDF 尝试修复吗？将创建一个修复副本，原文件不会被更改。&#10;&#10;注意：修复后的文件可能缺少书签、表单和其他交互功能。</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">现在将下载语言模型（{0}）以便运行 OCR。&#10;&#10;您可以随时在 OCR 菜单中添加更多语言或切换到更高质量的模型。</sys:String>
     <sys:String x:Key="Str_Bar_More">更多设置</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}：{1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">无填充</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">字号减小 1 pt</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">字号增大 1 pt</sys:String>
+    <sys:String x:Key="Str_Crop_Units">单位</sys:String>
+    <sys:String x:Key="Str_Color_Pink">粉色</sys:String>
+    <sys:String x:Key="Str_Color_Black">黑色</sys:String>
+    <sys:String x:Key="Str_Color_White">白色</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">使线条保持在最近的轴上（水平或垂直）</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">拖出一个框以删除其中的所有注释</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">在注释上涂抹以将其删除</sys:String>

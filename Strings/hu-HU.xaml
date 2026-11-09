@@ -1349,6 +1349,14 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">A(z) "{0}" szerkezete sérült, ezért nem adható hozzá.&#10;&#10;Megpróbálja a KillerPDF megjavítani? Javított másolat készül. Az eredeti fájl nem változik.&#10;&#10;Megjegyzés: a javított fájlokból hiányozhatnak a könyvjelzők, űrlapok és más interaktív funkciók.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Egy nyelvi modell ({0}) letöltésre kerül, hogy az OCR futhasson.&#10;&#10;Az OCR menüből bármikor hozzáadhat további nyelveket vagy válthat jobb minőségű modellekre.</sys:String>
     <sys:String x:Key="Str_Bar_More">További beállítások</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Nincs kitöltés</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Méret csökkentése 1 ponttal</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Méret növelése 1 ponttal</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Mértékegység</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Rózsaszín</sys:String>
+    <sys:String x:Key="Str_Color_Black">Fekete</sys:String>
+    <sys:String x:Key="Str_Color_White">Fehér</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">A vonalat a legközelebbi tengelyen tartja (vízszintes vagy függőleges)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Húzzon egy keretet a benne lévő összes jegyzet törléséhez</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Húzza át a jegyzeteket a törlésükhöz</sys:String>

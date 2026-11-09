@@ -1370,6 +1370,14 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Dlg_OpenedReadOnlyXRef" xml:space="preserve">"{0}" has a non-standard structure and was opened read-only.&#10;&#10;Editing, saving, and some other features may not work correctly.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">A language model ({0}) will be downloaded now so OCR can run.&#10;&#10;You can add more languages or switch to higher quality models any time from the OCR menu.</sys:String>
     <sys:String x:Key="Str_Bar_More">More settings</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">No fill</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Decrease size by 1 pt</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Increase size by 1 pt</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Units</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Pink</sys:String>
+    <sys:String x:Key="Str_Color_Black">Black</sys:String>
+    <sys:String x:Key="Str_Color_White">White</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Keep the line on the nearest axis (horizontal or vertical)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Drag a box to delete every annotation inside it</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Brush over annotations to delete them</sys:String>

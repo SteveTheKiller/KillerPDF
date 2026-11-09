@@ -1361,6 +1361,14 @@ Vil du skalere dem til en støttet størrelse? Sidene beholder utseende og propo
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">«{0}» har en skadet struktur og kunne ikke legges til.&#10;&#10;Vil du at KillerPDF skal prøve å reparere den? Det opprettes en reparert kopi, og originalfilen endres ikke.&#10;&#10;Merk: reparerte filer kan mangle bokmerker, skjemaer og andre interaktive funksjoner.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">En språkmodell ({0}) lastes ned nå slik at OCR kan kjøre.&#10;&#10;Du kan når som helst legge til flere språk eller bytte til modeller med høyere kvalitet fra OCR-menyen.</sys:String>
     <sys:String x:Key="Str_Bar_More">Flere innstillinger</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Ingen fyll</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Reduser størrelsen med 1 pt</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Øk størrelsen med 1 pt</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Enheter</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Rosa</sys:String>
+    <sys:String x:Key="Str_Color_Black">Svart</sys:String>
+    <sys:String x:Key="Str_Color_White">Hvit</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Hold linjen på nærmeste akse (vannrett eller loddrett)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Dra en boks for å slette alle merknader inni den</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Børst over merknader for å slette dem</sys:String>

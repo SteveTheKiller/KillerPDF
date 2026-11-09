@@ -1342,6 +1342,14 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" hasarlı bir yapıya sahip ve eklenemedi.&#10;&#10;KillerPDF onarmayı denesin mi? Onarılmış bir kopya oluşturulacak. Özgün dosya değiştirilmeyecek.&#10;&#10;Not: onarılan dosyalarda yer imleri, formlar ve diğer etkileşimli özellikler eksik olabilir.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">OCR'nin çalışabilmesi için şimdi bir dil modeli ({0}) indirilecek.&#10;&#10;OCR menüsünden istediğiniz zaman başka diller ekleyebilir veya daha yüksek kaliteli modellere geçebilirsiniz.</sys:String>
     <sys:String x:Key="Str_Bar_More">Diğer ayarlar</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Dolgu yok</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Boyutu 1 pt küçült</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Boyutu 1 pt büyüt</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Birimler</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Pembe</sys:String>
+    <sys:String x:Key="Str_Color_Black">Siyah</sys:String>
+    <sys:String x:Key="Str_Color_White">Beyaz</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Çizgiyi en yakın eksende tutar (yatay veya dikey)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">İçindeki tüm açıklamaları silmek için bir kutu sürükleyin</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Silmek için açıklamaların üzerinden geçin</sys:String>

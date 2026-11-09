@@ -1342,6 +1342,14 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" tiene una estructura dañada y no se pudo añadir.&#10;&#10;¿Desea que KillerPDF intente repararlo? Se creará una copia reparada. El archivo original no se modificará.&#10;&#10;Nota: los archivos reparados pueden carecer de marcadores, formularios y otras funciones interactivas.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Se descargará ahora un modelo de idioma ({0}) para poder ejecutar OCR.&#10;&#10;Puede añadir más idiomas o cambiar a modelos de mayor calidad en cualquier momento desde el menú OCR.</sys:String>
     <sys:String x:Key="Str_Bar_More">Más opciones</sys:String>
+    <sys:String x:Key="Str_Bar_SwatchName">{0}: {1}</sys:String>
+    <sys:String x:Key="Str_Bar_NoFill">Sin relleno</sys:String>
+    <sys:String x:Key="Str_Bar_SizeDown">Reducir el tamaño 1 pt</sys:String>
+    <sys:String x:Key="Str_Bar_SizeUp">Aumentar el tamaño 1 pt</sys:String>
+    <sys:String x:Key="Str_Crop_Units">Unidades</sys:String>
+    <sys:String x:Key="Str_Color_Pink">Rosa</sys:String>
+    <sys:String x:Key="Str_Color_Black">Negro</sys:String>
+    <sys:String x:Key="Str_Color_White">Blanco</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Mantiene la línea en el eje más cercano (horizontal o vertical)</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">Arrastre un recuadro para eliminar todas las anotaciones dentro</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">Pase el pincel sobre las anotaciones para eliminarlas</sys:String>

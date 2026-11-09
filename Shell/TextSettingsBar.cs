@@ -343,10 +343,9 @@ namespace KillerPDF.Shell
             };
             sizeBox.LostFocus += (s, e) => CommitSizeBox();
             sizeBox.GotFocus += (s, e) => sizeBox.SelectAll();
-            string sizeName = LabelName(Loc("Str_Bar_Size"));
             bar.Add(Controls.ToolOptionGroup.Size, BarGroup(BarLabel(Loc("Str_Bar_Size")), sizeSlider,
-                StepButton("−", sizeName + " -1 pt", "TextSizeDown", () => SetSize(_textFontSize - 1)),
-                StepButton("+", sizeName + " +1 pt", "TextSizeUp", () => SetSize(_textFontSize + 1)),
+                StepButton("−", Loc("Str_Bar_SizeDown"), "TextSizeDown", () => SetSize(_textFontSize - 1)),
+                StepButton("+", Loc("Str_Bar_SizeUp"), "TextSizeUp", () => SetSize(_textFontSize + 1)),
                 sizeBox, ptLabel));
 
             // Color, then Fill with its No fill chip first. A swatch press rebuilds the bar so the
@@ -369,8 +368,7 @@ namespace KillerPDF.Shell
                 ShowTextSettings();
             }
             bool noFill = _textFillColor.A == 0;
-            var noneChip = Controls.ToolOptionsControls.NoFill(noFill,
-                LabelName(Loc("Str_Bar_Fill")) + " " + Loc("Str_Margin_None"), () =>
+            var noneChip = Controls.ToolOptionsControls.NoFill(noFill, Loc("Str_Bar_NoFill"), () =>
                 {
                     _textFillColor = Color.FromArgb(0, _textFillColor.R, _textFillColor.G, _textFillColor.B);
                     ApplyTextStyleToSelection();

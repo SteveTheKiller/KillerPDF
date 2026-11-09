@@ -32,6 +32,22 @@ namespace KillerPDF.Controls
         public static FrameworkElement Swatch(Color color, bool selected, string name, Action click)
             => Pressable(new ToggleButton { IsChecked = selected }, Chip(Frozen(color), selected), 24, name, name, click);
 
+        /// <summary>The string key of a quick color's name, for its accessible name. Null for a color
+        /// with no name of its own (a custom swatch), which is then named by its hex value.</summary>
+        public static string? ColorNameKey(Color color) => (color.R, color.G, color.B) switch
+        {
+            (0xE0, 0x3C, 0x3C) => "Str_Color_Red",
+            (0xE8, 0x7A, 0x1E) => "Str_Color_Orange",
+            (0xF2, 0xC0, 0x1E) => "Str_Color_Yellow",
+            (0x2E, 0xA5, 0x4C) => "Str_Color_Green",
+            (0x2E, 0x86, 0xDE) => "Str_Color_Blue",
+            (0x8E, 0x5B, 0xD6) => "Str_Color_Purple",
+            (0xE0, 0x4A, 0x9A) => "Str_Color_Pink",
+            (0x00, 0x00, 0x00) => "Str_Color_Black",
+            (0xFF, 0xFF, 0xFF) => "Str_Color_White",
+            _ => null,
+        };
+
         /// <summary>The color group's compact form on a narrow pane: one chip of the current color
         /// that opens the swatches below itself.</summary>
         public static ButtonBase ColorChip(Color color, string name)
