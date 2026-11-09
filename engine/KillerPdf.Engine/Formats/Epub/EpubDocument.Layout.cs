@@ -1425,6 +1425,9 @@ public sealed partial class EpubDocument
                         ?? throw new NotSupportedException("The native EPUB glyph outline format is not implemented.");
                     double width = InlineAdvance(cluster, style, character == ' ');
                     double tracking = Tracking(line.Count == 0 ? null : line[^1].Style, style);
+                    // A preformatted tab reaches the next stop measured from the start of the line it is laid out on.
+                    bool tab = atom.HasSource && text[index] == '\t' && style.PreserveWhitespace;
+                    if (tab) PlaceTab();
                     if (character == ' ' && !style.PreserveWhitespace)
                     {
                         firstIndentedWord = false;
@@ -1462,11 +1465,32 @@ public sealed partial class EpubDocument
                         lineStart = index;
                         tracking = 0;
                         firstIndentedWord = false;
+                        if (tab) PlaceTab();
                     }
                     left += tracking;
                     line.Add((index, cluster.Length, left, width, cluster.Font, atom.HasSource ? outline : null, null, style,
                         lineBlock.Source.Style, atom.Owner));
                     left += width;
+
+                    // CSS Text 3 tab-size 8: stops every eight space advances of the tab's font from the line start, and
+                    // a tab that would advance less than half the width of its font's "0" (0.5em without one) goes on to
+                    // the following stop. The cluster keeps the advance, so drawing and the PDF place the next letter there.
+                    void PlaceTab()
+                    {
+                        var face = cluster.Font;
+                        double size = style.FontSize;
+                        double Em(ushort id) => face.GetAdvanceWidth(id) / (double)face.UnitsPerEm;
+                        ushort spaceGlyph = face.GetGlyphId(' '), zeroGlyph = face.GetGlyphId('0');
+                        double stop = 8 * size * (spaceGlyph == 0 ? .5 : Em(spaceGlyph));
+                        double half = size * (zeroGlyph == 0 ? .5 : Em(zeroGlyph)) / 2;
+                        double from = left + tracking - contentLeft;
+                        double next = (Math.Floor(from / stop + 1e-9) + 1) * stop;
+                        if (next - from < half - 1e-9) next += stop;
+                        cluster = new(cluster.Start, cluster.Length, face, [new(cluster.Glyphs[0].GlyphId, (next - from) / size, 0, 0)],
+                            cluster.Substituted) { Blank = cluster.Blank, Missing = cluster.Missing };
+                        clusters[index] = cluster;
+                        width = InlineAdvance(cluster, style, false);
+                    }
                     // UAX #14: soft hyphen, zero-width space and the fixed-width spaces other than figure space allow
                     // a break after them; the line breaks there when the following segment does not fit.
                     if (atom.HasSource && BreakAfter(text[index]) && at < last && !IsSpace(sequence.Atoms[at + 1])

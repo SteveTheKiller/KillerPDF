@@ -40,6 +40,9 @@ public sealed class EpubPreformattedLayoutTests
     [InlineData("<pre style='margin:0'>A\tA</pre>", 1, 8, 42, 50)]
     [InlineData("<pre style='margin:0'>\tA</pre>", 0, 2, 48, 50)]
     [InlineData("<pre style='margin:0'>AAAAAAAA\tA</pre>", 8, 50, 48, 98)]
+    // CSS Text 3: a tab advancing less than 0.5ch goes on to the next stop. The font has no "0", so 1ch is 0.5em (5px):
+    // after 47.4px (seven A of 6px and one of 5.4px at 9px) the stop at 48 is 0.6px away, so the tab ends at 96.
+    [InlineData("<pre style='margin:0'>AAAAAAA<span style='font-size:9px'>A</span>\tA</pre>", 8, 49.4, 48.6, 98)]
     public void PreformattedTabsAdvanceToTheNextEightSpaceStop(string body, int tab, double tabLeft, double tabWidth, double nextLeft)
     {
         byte[] source = Book(body), original = source.ToArray();
@@ -60,6 +63,24 @@ public sealed class EpubPreformattedLayoutTests
             FontFamilyResolver = _ => font }));
         Assert.Equal(nextLeft * 0.75, new PdfPageContentReader(pdf).Read(0).Letters.Last().StartBaseLine.X, 6);
         Assert.Equal(original, source);
+    }
+
+    // A preformatted line wider than the page breaks before the A that no longer fits (the 56px line holds nine); the tab
+    // on the wrapped line then measures its stops from that line's start: after AA (2 to 14) it advances to 2 + 48.
+    [Fact]
+    public void APreformattedTabAfterAnEmergencyWrapMeasuresFromTheWrappedLine()
+    {
+        byte[] source = Book("<pre style='margin:0'>AAAAAAAAAAA\tA</pre>");
+        var font = FontWithMappedSpace();
+        var layout = EpubDocument.Open(source).CreateLayout(new EpubLayoutOptions(60, 60, font)
+        { FontSize = 10, Margin = 2, FontFamilyResolver = _ => font, IsolateChapterFailures = true });
+
+        Assert.Empty(layout.ChapterDiagnostics);
+        var page = Assert.Single(layout.Pages);
+        Assert.Equal(12, page.TextPlacements.Single(item => item.Start == 9).Top);
+        var tab = page.TextPlacements.Single(item => item.Start == 11);
+        Assert.Equal((14d, 36d), (tab.Left, tab.Width));
+        Assert.Equal(50, page.TextPlacements.Single(item => item.Start == 12).Left, 6);
     }
 
     // The parser already folds literal line breaks (XML 1.0 section 2.11), but a CR written as &#13; survives it. Like the
