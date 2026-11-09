@@ -62,7 +62,34 @@ public sealed partial class EpubDocument
             throw new EpubImageUnavailableException("Native EPUB image could not be decoded: " + target + ". " + error.Message,
                 EpubOmissionReason.ImageUnreadable, error);
         }
+        image = Orient(image, key.TurnA, key.TurnB, key.TurnC, key.TurnD);
         return key.CropWidth < 0 ? image : Crop(image, key.CropLeft, key.CropTop, key.CropWidth, key.CropHeight);
+    }
+
+    /// <summary>
+    /// Turns or flips the raster by an axis-keeping linear map whose entries are -1, 0 or 1 (an SVG image transform's
+    /// signs): source column x and row y land at u = a x + c y and v = b x + d y, shifted to start at zero.
+    /// </summary>
+    private static PngDecodedImage Orient(PngDecodedImage image, int a, int b, int c, int d)
+    {
+        if (a == 1 && b == 0 && c == 0 && d == 1) return image;
+        int width = Math.Abs(a) * image.Width + Math.Abs(c) * image.Height;
+        int height = Math.Abs(b) * image.Width + Math.Abs(d) * image.Height;
+        int components = image.Components;
+        byte[] samples = new byte[checked(width * height * components)];
+        byte[]? alpha = image.Alpha is null ? null : new byte[checked(width * height)];
+        for (int y = 0; y < image.Height; y++)
+            for (int x = 0; x < image.Width; x++)
+            {
+                int u = Index(a, x, image.Width) + Index(c, y, image.Height);
+                int v = Index(b, x, image.Width) + Index(d, y, image.Height);
+                int from = y * image.Width + x, to = v * width + u;
+                Array.Copy(image.Samples, from * components, samples, to * components, components);
+                if (alpha is not null) alpha[to] = image.Alpha![from];
+            }
+        return image with { Samples = samples, Alpha = alpha, Width = width, Height = height };
+
+        static int Index(int sign, int value, int extent) => sign switch { 1 => value, -1 => extent - 1 - value, _ => 0 };
     }
 
     private static PngDecodedImage ReadNativePng(ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)

@@ -230,18 +230,12 @@ public sealed class EpubEmbeddedImageLayoutTests
         Assert.Equal(preserved, source);
     }
 
+    // Scripting still keeps its chapter from showing; other SVG content the reader cannot draw is an omitted item
+    // (EpubSvgTransformTests).
     [Theory]
     [InlineData("<script/>")]
-    [InlineData("<foreignObject/>")]
-    [InlineData("<use href='../images/check.png'/>")]
-    [InlineData("<image width='2' height='2' href='https://example.invalid/image.png'/>")]
     [InlineData("<image width='2' height='2' href='../images/check.png' onload='x'/>")]
-    [InlineData("<image width='2' height='2' href='../images/check.png' transform='scale(2)'/>")]
-    [InlineData("<image width='2' height='2' href='../images/check.png'><animate/></image>")]
-    [InlineData("<image width='2' height='2' href='../images/check.png'/><image width='2' height='2' href='../images/check.png'/>")]
-    [InlineData("<image width='2' height='2'/>")]
-    [InlineData("")]
-    public void SvgCoverRejectsActiveExternalAndUnimplementedContentAtBothPublicSeams(string content)
+    public void ScriptedSvgIsRefusedAtBothPublicSeams(string content)
         => AssertSvgCoverRefused(content);
 
     // A fragment cannot name a raster image, so only the cover image is omitted and the chapter continues.

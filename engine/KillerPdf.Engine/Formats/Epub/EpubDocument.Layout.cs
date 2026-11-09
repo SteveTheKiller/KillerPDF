@@ -323,6 +323,9 @@ public sealed partial class EpubDocument
             contentDiagnostics.Add(new(spineIndex, resource.Href,
                 "The link target " + unresolved + " is not in the book, so the link is inactive.")
             { Reason = EpubOmissionReason.MissingResource, ItemHref = PackagePathOf(resource.Href, unresolved) });
+        foreach (string drawing in content.OmittedDrawings.Take(1000))
+            contentDiagnostics.Add(new(spineIndex, resource.Href, "An SVG drawing was left out: " + drawing)
+            { Reason = EpubOmissionReason.UnsupportedLayout });
         var linkTargets = new Dictionary<string, string?>(StringComparer.Ordinal);
         var formatting = new EpubFormattingTree(content, cancellationToken);
         var bodyMargins = content.ResolveBodyMargins(availableWidth);
@@ -890,11 +893,28 @@ public sealed partial class EpubDocument
                         var inner = cover.ImageAspect.Fit(image.Width, image.Height, cover.ImageWidth, cover.ImageHeight);
                         double X(double user) => outer.OffsetX + (user - cover.MinX) * outer.ScaleX;
                         double Y(double user) => outer.OffsetY + (user - cover.MinY) * outer.ScaleY;
-                        double rasterLeft = X(cover.ImageX + inner.OffsetX), rasterTop = Y(cover.ImageY + inner.OffsetY);
-                        double rasterWidth = image.Width * inner.ScaleX * outer.ScaleX, rasterHeight = image.Height * inner.ScaleY * outer.ScaleY;
-                        double clipLeft = Math.Max(0, X(cover.ImageX)), clipTop = Math.Max(0, Y(cover.ImageY));
-                        double clipRight = Math.Min(contentWidth, X(cover.ImageX + cover.ImageWidth));
-                        double clipBottom = Math.Min(flowHeight, Y(cover.ImageY + cover.ImageHeight));
+                        // SVG 1.1 section 7.6: the image's transform maps its fitted raster and its clip rectangle into
+                        // viewBox units. It keeps the axes (ReadSvgCover leaves out anything else), so a turned or
+                        // flipped raster is turned or flipped whole and both rectangles stay axis-aligned.
+                        var turn = cover.Transform;
+                        var raster = (X: cover.ImageX + inner.OffsetX, Y: cover.ImageY + inner.OffsetY,
+                            Width: image.Width * inner.ScaleX, Height: image.Height * inner.ScaleY);
+                        var clip = (X: cover.ImageX, Y: cover.ImageY, Width: cover.ImageWidth, Height: cover.ImageHeight);
+                        if (turn != EpubSvgMatrix.Identity)
+                        {
+                            raster = turn.Bounds(raster.X, raster.Y, raster.Width, raster.Height);
+                            clip = turn.Bounds(clip.X, clip.Y, clip.Width, clip.Height);
+                            if (turn.A <= 0 || turn.D <= 0)
+                                image = LoadImage(imageKeys[image] with
+                                {
+                                    TurnA = Math.Sign(turn.A), TurnB = Math.Sign(turn.B), TurnC = Math.Sign(turn.C), TurnD = Math.Sign(turn.D)
+                                });
+                        }
+                        double rasterLeft = X(raster.X), rasterTop = Y(raster.Y);
+                        double rasterWidth = raster.Width * outer.ScaleX, rasterHeight = raster.Height * outer.ScaleY;
+                        double clipLeft = Math.Max(0, X(clip.X)), clipTop = Math.Max(0, Y(clip.Y));
+                        double clipRight = Math.Min(contentWidth, X(clip.X + clip.Width));
+                        double clipBottom = Math.Min(flowHeight, Y(clip.Y + clip.Height));
                         // Crop whole source pixels that lie beyond the clip; the paint covers exactly what remains.
                         int firstColumn = (int)Math.Clamp(Math.Floor((clipLeft - rasterLeft) / rasterWidth * image.Width + 1e-9), 0, image.Width);
                         int lastColumn = (int)Math.Clamp(Math.Ceiling((clipRight - rasterLeft) / rasterWidth * image.Width - 1e-9), firstColumn, image.Width);

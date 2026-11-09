@@ -44,10 +44,16 @@ public sealed partial class EpubDocumentTests
     [Theory]
     [InlineData("<pre>  Code<pre>  Indent</pre></pre>")]
     [InlineData("<img alt='Alternative'/>")]
-    [InlineData("<svg xmlns='http://www.w3.org/2000/svg'><text>Diagram</text></svg>")]
     public void DiagnosesUnsupportedXhtmlInsteadOfInventingTextLayout(string body)
     {
         Assert.Throws<NotSupportedException>(() => TextBook(body).ReadText(0));
+    }
+
+    // An SVG drawing the reader cannot show is left out whole; its text is not invented and the rest still reads.
+    [Fact]
+    public void AnUndrawableSvgDrawingIsLeftOutOfTheText()
+    {
+        Assert.Equal("Before\nAfter", TextBook("<p>Before</p><svg xmlns='http://www.w3.org/2000/svg'><text>Diagram</text></svg><p>After</p>").ReadText(0).Replace("\n\n", "\n"));
     }
 
     // HTML renders unknown and unsupported elements' text as inline content, so their text is read in order.

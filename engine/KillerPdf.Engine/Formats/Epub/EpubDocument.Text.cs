@@ -50,9 +50,22 @@ public sealed partial class EpubDocument
                     {
                         if (bodyDepth < 0 || reader.Depth <= bodyDepth)
                             throw new NotSupportedException("Native EPUB SVG covers require body content.");
-                        var cover = ReadSvgCover(reader, resource.Href, native, ref nodeCount, cancellationToken);
+                        // A drawing the reader cannot show is left out as one item and reading goes on after it;
+                        // scripting still keeps the chapter from showing. Closing the subtree ends on the svg's end.
+                        EpubSvgCover? cover = null;
+                        string? omitted = null;
+                        using (var drawing = reader.ReadSubtree())
+                        {
+                            drawing.Read();
+                            try { cover = ReadSvgCover(drawing, resource.Href, native, ref nodeCount, cancellationToken); }
+                            catch (NotSupportedException error) when (!error.Message.Contains("Scripted", StringComparison.Ordinal))
+                            {
+                                omitted = error.Message;
+                            }
+                        }
                         pendingSpace = false;
-                        native?.AddSvgImage(cover, result.Length);
+                        if (cover is not null) native?.AddSvgImage(cover, result.Length);
+                        else native?.OmittedDrawings.Add(omitted!);
                         continue;
                     }
                     native?.Enter(reader);

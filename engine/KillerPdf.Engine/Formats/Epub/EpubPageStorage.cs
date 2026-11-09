@@ -13,9 +13,13 @@ namespace KillerPdf.Engine.Formats.Epub;
 /// <summary>An image paint that names its decoded raster instead of holding it; pages decode it when drawn.</summary>
 internal sealed record EpubDeferredImagePaint(EpubImageKey Key, double Left, double Top, double Width, double Height) : NativePagePaint;
 
-/// <summary>Identifies one decoded, possibly cropped, raster: the packaged path, the decode box and the crop.</summary>
+/// <summary>
+/// Identifies one decoded raster: the packaged path, the decode box, the quarter turn or flip an SVG transform applies
+/// (signs of its linear part, before the crop), and the crop.
+/// </summary>
 internal sealed record EpubImageKey(string Target, double BoxWidth, double BoxHeight,
-    int CropLeft = 0, int CropTop = 0, int CropWidth = -1, int CropHeight = -1);
+    int CropLeft = 0, int CropTop = 0, int CropWidth = -1, int CropHeight = -1,
+    int TurnA = 1, int TurnB = 0, int TurnC = 0, int TurnD = 1);
 
 /// <summary>
 /// Decodes book images on demand behind a bounded, thread-safe least-recently-used cache, so the decoded-image

@@ -152,6 +152,8 @@ internal sealed class EpubNativeContent(double fallbackSize, double contentHeigh
     internal List<(string Id, int Offset, Element Owner)> Anchors { get; } = new();
     /// <summary>Hyperlink references whose target file is not in the book, in source order.</summary>
     internal List<string> UnresolvedLinks { get; } = new();
+    /// <summary>Why each SVG drawing the reader cannot show was left out, in document order.</summary>
+    internal List<string> OmittedDrawings { get; } = new();
     internal Element? CurrentElement { get; private set; }
     internal List<InlineReference> Inlines { get; } = new();
     internal Element? ImageElement { get; private set; }
