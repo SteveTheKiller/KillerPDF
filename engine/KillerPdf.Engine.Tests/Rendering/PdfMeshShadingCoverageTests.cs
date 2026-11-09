@@ -132,7 +132,7 @@ public sealed class PdfMeshShadingCoverageTests
 
     // A mesh is often filled as a pattern through its own outline, or clipped to it. The clip
     // and the mesh then have the same edge, and a pixel that edge half covers is half painted,
-    // as a plain fill of that path is, not a quarter painted by stacking the two coverages.
+    // as a plain fill of that path is, not a quarter painted by stacking two coverages.
     [Theory]
     [InlineData("pattern")]
     [InlineData("clip")]
@@ -163,7 +163,11 @@ public sealed class PdfMeshShadingCoverageTests
         for (int y = 0; y < Size; y++)
             for (int x = 0; x < Size; x++)
             {
-                double expected = 255 * (1 - coverage[y, x]);
+                // The mesh itself paints the pixels whose centers it covers, edges included;
+                // the clip then sets how much of each such pixel is painted.
+                double centerX = x + 0.5, centerY = Size - y - 0.5;
+                bool inMesh = centerX >= 4.5 && centerY >= 4.5 && centerX + centerY <= 40;
+                double expected = inMesh ? 255 * (1 - coverage[y, x]) : 255;
                 byte[] pixel = Pixel(page, x, y);
                 Assert.True(pixel[2] >= 253 && Math.Abs(pixel[0] - expected) <= 2
                     && Math.Abs(pixel[1] - expected) <= 2,
@@ -173,13 +177,12 @@ public sealed class PdfMeshShadingCoverageTests
     }
 
     // Two Coons patches share the edge x = 20.25 and together cover the square 4.5 to 35.5.
-    // The shared edge is interior to the shape, so pixels along it are fully covered and show
-    // the plain shading color: no gap and no double paint, even at half opacity. The square's
-    // own outer edges cross pixel centers, so those pixels are half covered and blend by half.
+    // The shared edge is interior to the shape, so pixels along it show the plain shading
+    // color: no gap and no double paint, even at half opacity.
     [Theory]
     [InlineData(1.0)]
     [InlineData(0.5)]
-    public void AdjacentPatchesShowNoSeamAndBlendTheirOuterEdges(double opacity)
+    public void AdjacentPatchesShowNoSeam(double opacity)
     {
         static byte[] Coordinate(double value)
         {
@@ -210,32 +213,65 @@ public sealed class PdfMeshShadingCoverageTests
         PdfRenderedPage page = RenderPage("/GS1 gs /Sh1 sh",
             $"<< /Shading << /Sh1 5 0 R >> /ExtGState << /GS1 << /ca {alpha} >> >> >>", shading);
 
-        for (int y = 0; y < Size; y++)
-            for (int x = 0; x < Size; x++)
+        // Device row y covers page y from 39 - y to 40 - y, so rows and columns 5 to 34 lie
+        // wholly inside the square; column 20 carries the shared edge.
+        double expected = 255 * (1 - opacity);
+        for (int y = 5; y <= 34; y++)
+            for (int x = 5; x <= 34; x++)
             {
-                // Device row y covers page y from 39 - y to 40 - y.
-                double width = Math.Max(0, Math.Min(x + 1, 35.5) - Math.Max(x, 4.5));
-                double height = Math.Max(0, Math.Min(Size - y, 35.5) - Math.Max(Size - y - 1, 4.5));
-                double c = width * height;
-                double expected = 255 * (1 - opacity * c);
                 byte[] pixel = Pixel(page, x, y);
                 Assert.True(pixel[2] >= 253 && Math.Abs(pixel[0] - expected) <= 2
                     && Math.Abs(pixel[1] - expected) <= 2,
-                    $"Pixel ({x}, {y}) with coverage {c:F3} is RGB {pixel[2]},{pixel[1]},{pixel[0]}; "
+                    $"Pixel ({x}, {y}) is RGB {pixel[2]},{pixel[1]},{pixel[0]}; "
                     + $"expected 255,{expected:F1},{expected:F1}.");
             }
     }
 
-    private static PdfRenderedPage RenderPage(string content, string resources, string shading)
+    // Plotting tools such as Matplotlib and Asymptote export a surface as thousands of separate
+    // one-triangle shadings. Two such shadings that share an edge must tile like one surface:
+    // every pixel on the shared edge shows the shading color, with no lighter seam between them.
+    [Fact]
+    public void SeparateTriangleShadingsSharingAnEdgeTileWithoutASeam()
+    {
+        static string Triangle((double X, double Y)[] corners)
+        {
+            var data = new List<byte>();
+            foreach ((double x, double y) in corners)
+            {
+                int ux = (int)Math.Round(x * 1000), uy = (int)Math.Round(y * 1000);
+                data.AddRange([0, (byte)(ux >> 8), (byte)ux, (byte)(uy >> 8), (byte)uy, 255, 0, 0]);
+            }
+            return Stream(Encoding.Latin1.GetString([.. data]),
+                "/ShadingType 4 /ColorSpace /DeviceRGB /BitsPerCoordinate 16 /BitsPerComponent 8 "
+                + "/BitsPerFlag 8 /Decode [0 65.535 0 65.535 0 1 0 1 0 1]");
+        }
+        // The shared edge runs corner to corner across the square, through pixel centers.
+        PdfRenderedPage page = RenderPage("/Sh1 sh /Sh2 sh",
+            "<< /Shading << /Sh1 5 0 R /Sh2 6 0 R >> >>",
+            Triangle([(4.5, 4.5), (35.5, 4.5), (4.5, 35.5)]),
+            Triangle([(35.5, 4.5), (35.5, 35.5), (4.5, 35.5)]));
+
+        // Device row y covers page y from 39 - y to 40 - y, so rows and columns 5 to 34 lie
+        // wholly inside the square, and the shared edge crosses every one of those rows.
+        for (int y = 5; y <= 34; y++)
+            for (int x = 5; x <= 34; x++)
+            {
+                byte[] pixel = Pixel(page, x, y);
+                Assert.True(pixel[2] >= 253 && pixel[1] <= 2 && pixel[0] <= 2,
+                    $"Pixel ({x}, {y}) is RGB {pixel[2]},{pixel[1]},{pixel[0]}; expected the shading's 255,0,0.");
+            }
+    }
+
+    private static PdfRenderedPage RenderPage(string content, string resources, params string[] shadings)
     {
         var objects = new List<string>
         {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {Size} {Size}] /Resources {resources} /Contents 4 0 R >>",
-            Stream(content),
-            shading
+            Stream(content)
         };
+        objects.AddRange(shadings);
         PdfDocument document = PdfDocument.Open(RawPdf(objects));
         PdfRenderedPage page = new PdfPageRenderer(document).Render(
             0, new PdfRenderOptions(Size, Size, includeAnnotations: false, includeFormFields: false));

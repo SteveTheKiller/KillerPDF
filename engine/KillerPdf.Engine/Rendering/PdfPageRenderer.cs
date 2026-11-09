@@ -5038,7 +5038,7 @@ public sealed partial class PdfPageRenderer
             targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
         var previous = new MeshVertex[3];
         bool rendered = false;
-        coverage.Collect(ReadTriangles);
+        ReadTriangles();
         return rendered;
 
         void ReadTriangles()
@@ -5085,7 +5085,7 @@ public sealed partial class PdfPageRenderer
             targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
         MeshVertex[]? previous = null;
         int rowCount = 0;
-        coverage.Collect(ReadRows);
+        ReadRows();
         return rowCount >= 2;
 
         void ReadRows()
@@ -5193,7 +5193,7 @@ public sealed partial class PdfPageRenderer
         }
         var coverage = new MeshCoverage(Convert, colorSpace, state, target,
             targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
-        coverage.Collect(ReadPatches);
+        ReadPatches();
         return rendered;
 
         void ReadPatches()

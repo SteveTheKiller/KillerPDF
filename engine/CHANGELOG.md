@@ -18,7 +18,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Compatibility text extraction recovers missing non-visibility properties and stray marked-content closing tags while preserving ActualText replacements.
 - Searchable text fits supported TrueType glyph heights to OCR word boxes, keeping short words on their visual lines. (#465)
 - JPX rendering uses codestream precision in strict and compatibility modes while retaining dimension checks.
-- Mesh shadings (types 4 to 7) blend their clipped and outer edges by coverage like other paints, and patches or triangles that share an edge meet without a seam.
+- Mesh shadings (types 4 to 7) blend their clipped edges by clip coverage like other paints, while patches, triangles and separate shadings that share an edge still meet without a seam.
 - Repeated partial rasterization preserves form-local image resources, and affected-content counts exclude unpainted paths. (#369)
 - Comment reading includes empty free-text markup without losing annotation-array positions. (#466)
 - Hidden caller-authored free-text and stamp annotations can retain editing data without adding tagged reading-order descriptions. (#467)
