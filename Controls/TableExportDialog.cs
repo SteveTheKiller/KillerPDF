@@ -41,7 +41,7 @@ internal sealed class TableExportDialog : Window
         BitmapSource preview, int rotation, double scale)
     {
         _document = document; _pageIndex = pageIndex; _preview = preview; _rotation = rotation;
-        Title = $"KillerPDF: {L("Str_TableExport_Title")}";
+        Title = "KillerPDF - " + L("Str_TableExport_Title");
         Width = Math.Min(620 * Math.Clamp(scale, 0.7, 2.5), SystemParameters.WorkArea.Width - 40);
         MaxHeight = SystemParameters.WorkArea.Height - 40;
         SizeToContent = SizeToContent.Height;
