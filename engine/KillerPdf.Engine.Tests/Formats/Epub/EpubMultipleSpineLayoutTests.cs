@@ -230,6 +230,16 @@ public sealed class EpubMultipleSpineLayoutTests
     }
 
     [Fact]
+    public void ProcessingInstructionsInAChapterAreIgnoredByLayoutAndConversion()
+    {
+        var book = EpubDocument.Open(Book(["<p>A</p>", "<?xml-stylesheet href='x.css'?><p>AA</p>"]));
+        var layout = book.CreateLayout(Options() with { IsolateChapterFailures = true });
+        Assert.Empty(layout.ChapterDiagnostics);
+        Assert.Equal("AA", layout.Pages.Last().Text);
+        book.ConvertToPdf(new EpubPdfConversionOptions(Options().DefaultFont));
+    }
+
+    [Fact]
     public void CancellationPrecedesOptionsAndPropagatesThroughNativeReading()
     {
         byte[] bytes = Book();

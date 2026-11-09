@@ -99,10 +99,10 @@ public sealed partial class EpubDocumentTests
     }
 
     [Fact]
-    public void DiagnosesXhtmlProcessingInstructionsWithoutApplyingThem()
+    public void IgnoresXhtmlProcessingInstructionsWithoutApplyingThem()
     {
         var book = TextBook("<p>Text</p>", "<?xml-stylesheet href='https://example.invalid/style.css'?>");
-        Assert.Throws<NotSupportedException>(() => book.ReadText(0));
+        Assert.Equal("Text", book.ReadText(0));
     }
 
     [Fact]

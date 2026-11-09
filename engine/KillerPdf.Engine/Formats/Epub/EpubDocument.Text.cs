@@ -40,8 +40,6 @@ public sealed partial class EpubDocument
                 // Two million nodes is what an 8 MiB chapter of four-byte empty elements could hold.
                 if (++nodeCount > 2_000_000 || reader.Depth > 128)
                     throw new InvalidDataException("EPUB XHTML text exceeds processing limits.");
-                if (reader.NodeType == XmlNodeType.ProcessingInstruction)
-                    throw new NotSupportedException("EPUB XHTML processing instructions are unsupported.");
                 if (reader.NodeType is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace)
                     native?.Count(reader.Value.Length);
                 if (reader.NodeType == XmlNodeType.Element)
