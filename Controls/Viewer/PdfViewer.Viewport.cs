@@ -203,18 +203,18 @@ namespace KillerPDF.Controls
 
         private void ShowPageBadge(int page)
         {
-            if (_doc is null || _doc.PageCount < 2) return;
-            ShowPageBadgeText($"{page + 1} / {_doc.PageCount}");
+            if (ReadPageCount < 2) return;
+            ShowPageBadgeText($"{page + 1} / {ReadPageCount}");
         }
 
         // #197 follow-up: one number says the least in Grid, where several tiles share the screen -
         // the badge names the visible span there instead ("2-5 / 50").
         private void ShowPageBadgeSpan(int first, int last)
         {
-            if (_doc is null || _doc.PageCount < 2) return;
+            if (ReadPageCount < 2) return;
             ShowPageBadgeText(first == last
-                ? $"{first + 1} / {_doc.PageCount}"
-                : $"{first + 1}-{last + 1} / {_doc.PageCount}");
+                ? $"{first + 1} / {ReadPageCount}"
+                : $"{first + 1}-{last + 1} / {ReadPageCount}");
         }
 
         private void ShowPageBadgeText(string text)
@@ -2111,7 +2111,7 @@ namespace KillerPDF.Controls
         protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
         {
             base.OnDpiChanged(oldDpi, newDpi);
-            if (_doc is not null) StartRerenderTimer();
+            if (HasReadDocument) StartRerenderTimer();
         }
 
         private void ResetZoom() => SetTrueZoom(1.0);
