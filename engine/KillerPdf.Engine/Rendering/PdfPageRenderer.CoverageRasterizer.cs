@@ -878,20 +878,14 @@ public sealed partial class PdfPageRenderer
             int rows = bottom - top, maskWidth = right - left;
             int size = checked(maskWidth * rows);
             byte[] buffer;
-            bool pooled, owned = false;
+            // An owned mask is swept into pooled scratch and copied once into its exact array, so
+            // trimming never costs a second allocation.
+            bool pooled;
             if (!rent && size <= SmallWorkingBytes)
             {
                 if (_working.Length < size) _working = new byte[Math.Max(size, Math.Min(SmallWorkingBytes, _working.Length * 2))];
                 buffer = _working;
                 pooled = false;
-            }
-            else if (!rent && !_dense)
-            {
-                // A large owned mask is swept straight into its own array, which arrives cleared
-                // and becomes the mask unless rows or columns need trimming.
-                buffer = new byte[size];
-                pooled = false;
-                owned = true;
             }
             else
             {
@@ -933,8 +927,8 @@ public sealed partial class PdfPageRenderer
             PrepareScratch(rows, storedEdges);
             // A small mask is cleared in one call, so rows write only their nonzero runs. Large
             // masks write their zero runs row by row instead of writing most bytes twice.
-            bool cleared = owned || size <= PreclearBytes;
-            if (cleared && !owned) buffer.AsSpan(0, size).Clear();
+            bool cleared = size <= PreclearBytes;
+            if (cleared) buffer.AsSpan(0, size).Clear();
 
             // Order the edges by their first visible row with a counting sort.
             Span<int> starts = _rowStarts.AsSpan(0, rows + 1);
@@ -1012,12 +1006,12 @@ public sealed partial class PdfPageRenderer
             Reset();
             TrimRetained(storedEdges, chunkCount);
             return Produce(buffer, pooled, rent, top, left, maskWidth,
-                tightLeft, tightTop, tightRight, tightBottom, owned);
+                tightLeft, tightTop, tightRight, tightBottom);
         }
 
         // Moves the nonzero part of the working rows into the returned mask.
         private static CoverageMask Produce(byte[] buffer, bool pooled, bool rent, int top, int left,
-            int maskWidth, int tightLeft, int tightTop, int tightRight, int tightBottom, bool owned = false)
+            int maskWidth, int tightLeft, int tightTop, int tightRight, int tightBottom)
         {
             if (tightTop < 0)
             {
@@ -1035,11 +1029,8 @@ public sealed partial class PdfPageRenderer
                         .CopyTo(buffer.AsSpan(row * tightWidth, tightWidth));
                 return new CoverageMask(tightLeft, tightTop, tightRight, tightBottom, buffer, rented: true);
             }
-            // An owned working array that needs no trimming is already the exact mask.
-            if (owned && tightLeft == left && tightWidth == maskWidth && tightTop == top
-                && buffer.Length == tightWidth * tightHeight)
-                return new CoverageMask(tightLeft, tightTop, tightRight, tightBottom, buffer);
-            var coverage = new byte[checked(tightWidth * tightHeight)];
+            // Every byte is copied in below, so the owned array skips the runtime's zeroing.
+            byte[] coverage = GC.AllocateUninitializedArray<byte>(checked(tightWidth * tightHeight));
             for (int row = 0; row < tightHeight; row++)
                 buffer.AsSpan((tightTop - top + row) * maskWidth + tightLeft - left, tightWidth)
                     .CopyTo(coverage.AsSpan(row * tightWidth, tightWidth));
