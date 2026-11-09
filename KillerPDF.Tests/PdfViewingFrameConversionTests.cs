@@ -61,6 +61,32 @@ public sealed class PdfViewingFrameConversionTests
         Assert.Null(result.DisplayFallbackOperation);
     }
 
+    [Fact]
+    public void APrimaryPageThatRefusesTheProofKeepsMonitorConversionWithoutADisplayFallback()
+    {
+        // The primary page's direct float render refuses the proof; the viewing fallback then
+        // draws it unproofed and still converts it for the monitor, so monitor color is not lost.
+        var proof = new PdfDocumentProofSettings(enabled: true);
+        var kept = PdfViewingFrameConversion.Render(
+            requested => requested?.Enabled == true ? throw new NotSupportedException("No proof here.") : RedFrame(),
+            Compatible, proof, Monitor(), default);
+
+        Assert.Equal(MonitorRed, kept.Pixels);
+        Assert.Null(PdfViewingFrameConversion.LinearFallbackOperation(monitorRequested: true, kept.DisplayFallbackOperation));
+    }
+
+    [Fact]
+    public void ACompositorPrimaryPageWithoutAFloatFrameStillShowsTheDisplayFallback()
+    {
+        // Without application monitor conversion the page only reaches the compositor as a float
+        // frame; drawing the sRGB fallback instead is a display fallback.
+        var kept = PdfViewingFrameConversion.Render(_ => throw new NotSupportedException("No proof here."),
+            Compatible, new PdfDocumentProofSettings(enabled: true), null, default);
+
+        Assert.Equal(PdfViewingFrameConversion.PreciseRenderUnavailable,
+            PdfViewingFrameConversion.LinearFallbackOperation(monitorRequested: false, kept.DisplayFallbackOperation));
+    }
+
     private static PdfRenderedFrame RedFrame() => new(1, 1, [1f, 0f, 0f, 1f], PdfFrameColorEncoding.LinearSrgbD65);
 
     private static PdfRenderedPage Compatible() => new(1, 1, [0, 0, 255, 255], PdfRenderBackend.Engine, null);

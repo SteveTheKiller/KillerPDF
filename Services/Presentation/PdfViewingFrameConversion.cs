@@ -43,6 +43,18 @@ internal static class PdfViewingFrameConversion
         return Compatible(renderCompatible(), proofUnavailable, monitor is null ? null : PreciseRenderUnavailable);
     }
 
+    /// <summary>
+    /// The display fallback for a primary page whose direct float render failed and was redrawn
+    /// by the viewing fallback, given what that fallback recorded.
+    /// </summary>
+    /// <remarks>
+    /// With application monitor conversion the fallback converts for the monitor itself and
+    /// records whatever it could not keep, so its record stands. Without it the page reaches the
+    /// compositor only as a float frame, so drawing the sRGB fallback is a display fallback.
+    /// </remarks>
+    internal static string? LinearFallbackOperation(bool monitorRequested, string? keptFallback) =>
+        monitorRequested ? keptFallback : keptFallback ?? PreciseRenderUnavailable;
+
     private static PdfViewingPixels Convert(PdfRenderedFrame frame, PdfSdrDisplayConverter? monitor,
         bool proofUnavailable, CancellationToken token)
     {

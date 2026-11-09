@@ -118,9 +118,12 @@ public partial class PdfViewer
             var fallback = native is not null
                 ? PrepareNativePrimaryBitmap(native, page, maximumSize, 0, false, token, proof, monitor)
                 : PreparePrimaryBitmap(request!, page, maximumSize, 0, false, token, proof, monitor);
-            if (!RenderWarnings.TryGetValue(fallback.Bitmap, out var recorded) || recorded.DisplayFallbackOperation is null)
+            RenderWarnings.TryGetValue(fallback.Bitmap, out var recorded);
+            string? displayFallback = KillerPDF.Presentation.PdfViewingFrameConversion.LinearFallbackOperation(
+                monitor is not null, recorded?.DisplayFallbackOperation);
+            if (displayFallback != recorded?.DisplayFallbackOperation)
                 RenderWarnings.AddOrUpdate(fallback.Bitmap, (recorded ?? new RenderWarning(""))
-                    with { DisplayFallbackOperation = KillerPDF.Presentation.PdfViewingFrameConversion.PreciseRenderUnavailable });
+                    with { DisplayFallbackOperation = displayFallback });
             return (fallback.Bitmap, fallback.Measurement, null);
         }
     }
