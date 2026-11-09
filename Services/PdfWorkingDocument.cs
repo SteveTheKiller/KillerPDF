@@ -143,6 +143,11 @@ internal sealed class PdfWorkingDocument : IDisposable
         destination.Write(_source);
     }
 
+    /// <summary>The document's bookmark tree, read from the working bytes as they are. Saving them into a memory
+    /// stream first copied the file about three times, which a large scan left behind for the next collection.</summary>
+    internal IReadOnlyList<PdfBookmarkInfo> ReadBookmarks(OpenedProtection? protection) =>
+        PdfEngineIntegration.ReadBookmarks(_source, protection);
+
     /// <summary>Registers a byte-identical copy written by <see cref="Save(string)"/> with the parse
     /// this document already holds, so rendering from the copy does not parse the file again.</summary>
     internal void RegisterCopy(string path)

@@ -241,16 +241,9 @@ namespace KillerPDF.Shell
         private IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> ReadEngineBookmarks()
         {
             if (_doc is null) return [];
-            byte[] bytes;
             if (_doc.IsReadOnly && !string.IsNullOrWhiteSpace(_currentFile) && File.Exists(_currentFile))
-                bytes = File.ReadAllBytes(_currentFile);
-            else
-            {
-                using var stream = new MemoryStream();
-                _doc.Save(stream);
-                bytes = stream.ToArray();
-            }
-            return PdfEngineIntegration.ReadBookmarks(bytes, _protection);
+                return PdfEngineIntegration.ReadBookmarks(File.ReadAllBytes(_currentFile), _protection);
+            return _doc.ReadBookmarks(_protection);
         }
 
         private void AddOutlineItems(ItemCollection target,

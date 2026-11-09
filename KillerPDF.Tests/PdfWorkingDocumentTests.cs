@@ -11,6 +11,65 @@ namespace KillerPDF.Tests;
 
 public sealed class PdfWorkingDocumentTests
 {
+    // The outline was read by saving the working document into a growing memory stream and copying that out before
+    // parsing it, about three copies of the file: roughly 1 GB on a 330 MB scan, left behind for the next collection.
+    [Fact]
+    public void BookmarksAreReadWithoutCopyingTheDocumentAgain()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-bookmarks-{Guid.NewGuid():N}.pdf");
+        PdfWorkingDocument? working = null;
+        try
+        {
+            byte[] padded = OutlinedPdfWithUnusedStream(8 << 20);
+            File.WriteAllBytes(path, padded);
+            working = PdfWorkingDocument.Open(path, null);
+            working.ReadBookmarks(null);   // warm the code paths
+
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            var bookmarks = working.ReadBookmarks(null);
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.Equal("Second", Assert.Single(bookmarks).Title);
+            // One parse owns one copy of the file; anything beyond about that is a needless copy.
+            Assert.True(allocated < padded.Length * 3L / 2, $"Allocated {allocated:N0} bytes for a {padded.Length:N0}-byte file.");
+        }
+        finally
+        {
+            working?.Close();
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    // Two pages, one bookmark to the second, and an unreferenced stream standing in for a scan's page images: bytes a
+    // parse copies but never reads. Written by hand so the size is exact.
+    private static byte[] OutlinedPdfWithUnusedStream(int padding)
+    {
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R >>",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] >>",
+            "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
+            "<< /Title (Second) /Parent 5 0 R /Dest [4 0 R /Fit] >>",
+            $"<< /Length {padding} >>\nstream\n{new string('x', padding)}\nendstream",
+        ];
+        using var stream = new MemoryStream();
+        void Write(string text) => stream.Write(System.Text.Encoding.ASCII.GetBytes(text));
+        Write("%PDF-1.7\n");
+        var offsets = new long[objects.Length];
+        for (int i = 0; i < objects.Length; i++)
+        {
+            offsets[i] = stream.Position;
+            Write($"{i + 1} 0 obj\n{objects[i]}\nendobj\n");
+        }
+        long xref = stream.Position;
+        Write($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (long offset in offsets) Write(offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n");
+        Write($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return stream.ToArray();
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
