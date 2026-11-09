@@ -144,7 +144,7 @@ internal static class SdrMonitorSmoke
             // conversion and no fallback notice.
             if (profileReads != previousReads || !string.IsNullOrWhiteSpace(image.ToolTip?.ToString()))
                 throw new InvalidOperationException("A monitor without a profile must show sRGB without a fallback warning and without reading a profile.");
-            checks.Add(new { stage, actual, visible, profileReads, warning = image.ToolTip.ToString() });
+            checks.Add(new { stage, actual, visible, profileReads, warning = image.ToolTip?.ToString() });
 
             stage = "continuous-monitor-profile";
             display = display with { Generation = 34, TargetAssociation = new(PdfDisplayTargetStatus.SingleTarget, [target]) };
