@@ -2088,7 +2088,7 @@ namespace KillerPDF.Controls
             // the visible regions, which decide per page whether more pixels are needed; gating on
             // a 10% zoom-in over the last full render left pages blurry after zooming out and back
             // in (the last render zoom stays at the earlier, higher value).
-            if (applyIdx >= 0 && _doc is not null && _viewMode != ViewMode.Grid)
+            if (applyIdx >= 0 && HasReadDocument && _viewMode != ViewMode.Grid)
             {
                 StartRerenderTimer();
             }
@@ -2110,6 +2110,15 @@ namespace KillerPDF.Controls
                     // Synchronized scrolling also exposes new pages in the unfocused pane.
                     // Its page images must load even while optional sharpening waits for focus.
                     if (_viewMode.IsContinuous()) VirtualizeContinuousSlots();
+                    // A settled zoom or monitor change draws the Grid again at its new tile size; a scroll onto Grid pages
+                    // not drawn yet, or let go of, draws them next. Grid pages are drawn only from here, so this runs in
+                    // the unfocused pane too, like the continuous page images above.
+                    if (_viewMode == ViewMode.Grid && _gridTileBudget > 0 && GridTileBudget() != _gridTileBudget)
+                    {
+                        _gridBudgetSettled = true;
+                        RenderAdditionalPages(0);
+                    }
+                    else if (GridNeedsFillAroundCurrentPage()) FillGridAroundCurrentPage();
                     if (Host != null && !Host.IsViewerFocused(this)) return;
                     // An EPUB search reads a page's highlight areas once the page is on screen, so the pages a
                     // scroll brought into view get theirs now.
@@ -2122,14 +2131,6 @@ namespace KillerPDF.Controls
                         RefineVisibleRegions();
                         return;
                     }
-                    // A settled zoom or monitor change draws the Grid again at its new tile size; a scroll onto Grid pages
-                    // not drawn yet, or let go of, draws them next.
-                    if (_viewMode == ViewMode.Grid && _gridTileBudget > 0 && GridTileBudget() != _gridTileBudget)
-                    {
-                        _gridBudgetSettled = true;
-                        RenderAdditionalPages(0);
-                    }
-                    else if (GridNeedsFillAroundCurrentPage()) FillGridAroundCurrentPage();
                     // Never re-render the primary in Grid (it would shift page 0's width basis and
                     // desync the column math); guards a timer started just before a switch into grid.
                     if (_viewMode != ViewMode.Grid && State.CurrentPage >= 0)

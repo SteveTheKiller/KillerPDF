@@ -197,9 +197,10 @@ namespace KillerPDF.Controls
             // panning path. Once a second finger changes the scale, own the rest of this gesture so
             // ScrollViewer does not translate the document underneath the pinch focal point (#271).
             if (!_pinchZooming && Math.Abs(scale - 1.0) < 0.002) return;
+            // With no document the gesture stays the ScrollViewer's.
+            if (!HasReadDocument) return;
             _pinchZooming = true;
             e.Handled = true;
-            if (_doc is null) return;
 
             MarkViewportIntent();
             if (AdjustPendingTrueZoom(scale)) return;
@@ -226,11 +227,10 @@ namespace KillerPDF.Controls
             if (!_pinchZooming) return;
             e.Handled = true;
             _pinchZooming = false;
-            if (_doc is null) return;
+            if (!HasReadDocument) return;
             _zoomSettleTimer?.Stop();
             ApplyZoom();
-            if (_currentPage >= 0)
-                SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, _doc.PageCount) + $" - {DisplayZoomPct():F0}%");
+            PresentCurrentPageStatus();
         }
 
         // Wheel over the toolbar zoom dropdown: same multiplicative step as Ctrl+scroll, without
@@ -239,7 +239,7 @@ namespace KillerPDF.Controls
         internal void ZoomBoxWheel(MouseWheelEventArgs e)
         {
             e.Handled = true;
-            if (_doc is null) return;
+            if (!HasReadDocument) return;
             if (_viewMode == ViewMode.Grid) { GridZoomStep(e.Delta < 0); return; }
             MarkViewportIntent();
             if (AdjustPendingTrueZoom(Math.Pow(WheelZoomFactor, e.Delta / 120.0))) return;
@@ -267,10 +267,9 @@ namespace KillerPDF.Controls
                     _zoomSettleTimer!.Stop();
                     _wheelZoomAnchorActive = false;
                     _wheelZoomRevision++;
-                    if (_doc is null) return;
+                    if (!HasReadDocument) return;
                     ApplyZoom();
-                    if (_currentPage >= 0)
-                        SetStatus(string.Format(Loc("Str_PageOf"), _currentPage + 1, _doc.PageCount) + $" - {DisplayZoomPct():F0}%");
+                    PresentCurrentPageStatus();
                 };
             }
             _zoomSettleTimer.Stop();
@@ -300,7 +299,7 @@ namespace KillerPDF.Controls
         // event for it). Same per-delta distance as the vertical wheel; positive = right.
         internal void ScrollHorizontalExt(int delta)
         {
-            if (_doc is null || PagePreviewPanel.Visibility != Visibility.Visible) return;
+            if (!HasReadDocument || PagePreviewPanel.Visibility != Visibility.Visible) return;
             PagePreviewPanel.ScrollToHorizontalOffset(
                 PagePreviewPanel.HorizontalOffset + delta * (48.0 / 120.0) * WheelScrollFactor);
         }
