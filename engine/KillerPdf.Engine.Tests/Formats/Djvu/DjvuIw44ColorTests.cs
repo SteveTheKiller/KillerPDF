@@ -41,9 +41,11 @@ public sealed class DjvuIw44ColorTests
     }
 
     // Header byte 50 is the chroma byte: 0 codes chrominance at half resolution with no delay. DjVuLibre 3.5.29 ddjvu
-    // renders this file, and the 31 x 32 one below, as RGB [255,1,1] at every pixel. PDF conversion stays grayscale only.
+    // renders this file, and the 31 x 32 one below, as RGB [255,1,1] at every pixel. Converted to PDF, it is one 32 x 32
+    // RGB image that KillerPDF's PDF renderer draws as the eight-bit sRGB value of that color at every pixel: [255,1,1]
+    // at gamma 2.2 is linear [1, 0.0000051, 0.0000051], sRGB [255, 0.017, 0.017], stored as [255,0,0].
     [Fact]
-    public void HalfResolutionChromaRendersNativelyAndConversionKeepsItsRefusal()
+    public void HalfResolutionChromaRendersAndConvertsLikeTheReferenceDecoder()
     {
         byte[] source = OwnedRedField(), original;
         source[50] = 0;
@@ -51,9 +53,13 @@ public sealed class DjvuIw44ColorTests
         var document = DjvuDocument.Open(source);
 
         AssertOwnedRed(document.RenderPage(0), 32);
-        var conversion = Assert.Throws<NotSupportedException>(() => document.ConvertToPdf());
+        var pdf = KillerPdf.Engine.Documents.PdfDocument.Open(document.ConvertToPdf());
 
-        Assert.Equal("Color IW44 decoding is not supported.", conversion.Message);
+        var image = Assert.Single(new KillerPdf.Engine.Documents.PdfPageContentReader(pdf).ReadImagePlacements(0));
+        Assert.Equal((32, 32), (image.PixelWidth, image.PixelHeight));
+        var drawn = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(32, 32)).Pixels.ToArray();
+        for (int pixel = 0; pixel < 32 * 32; pixel++)
+            Assert.Equal((0, 0, 255), (drawn[pixel * 4], drawn[pixel * 4 + 1], drawn[pixel * 4 + 2]));
         Assert.Equal(original, source);
     }
 
@@ -138,8 +144,9 @@ public sealed class DjvuIw44ColorTests
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => document.RenderPage(0, cancellation.Token));
-        var conversion = Assert.Throws<NotSupportedException>(() => document.ConvertToPdf());
-        Assert.Equal("Color IW44 decoding is not supported.", conversion.Message);
+        Assert.Throws<OperationCanceledException>(() => document.ConvertToPdf(cancellation.Token));
+        Assert.Single(KillerPdf.Engine.Documents.PdfPageInformation.Read(
+            KillerPdf.Engine.Documents.PdfDocument.Open(document.ConvertToPdf())));
         Assert.Equal(original, source);
     }
 

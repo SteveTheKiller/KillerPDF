@@ -5,7 +5,7 @@ namespace KillerPdf.Engine.Formats.Djvu;
 
 public sealed partial class DjvuDocument
 {
-    /// <summary>Converts supported bitonal, grayscale and compound pages, completely located text, and local bookmarks to a separate PDF.</summary>
+    /// <summary>Converts supported bitonal, grayscale, color photo and compound pages, completely located text, and local bookmarks to a separate PDF.</summary>
     public byte[] ConvertToPdf(CancellationToken cancellationToken = default)
         => ConvertToPdf(new List<DjvuDiagnostic>(), cancellationToken);
 
@@ -36,6 +36,11 @@ public sealed partial class DjvuDocument
             if (Classify(page, chunks) == PageLayers.Compound)
             {
                 AddCompoundPdfPage(builder, page, chunks, text, pageIndex, diagnostics, cancellationToken);
+                continue;
+            }
+            if (IsColorPhotoPage(page, chunks))
+            {
+                AddColorPhotoPdfPage(builder, page, chunks, text, pageIndex, diagnostics, cancellationToken);
                 continue;
             }
             if (chunks.Any(chunk => chunk.Id == 0x42473434))

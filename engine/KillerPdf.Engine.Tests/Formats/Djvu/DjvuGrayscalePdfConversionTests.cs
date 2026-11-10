@@ -139,9 +139,10 @@ public sealed class DjvuGrayscalePdfConversionTests
         }
         else if (scenario == "color")
         {
-            // Native rendering decodes color IW44; PDF conversion stays grayscale only.
+            // A page-size color IW44 image alone is a color photo page: it renders natively and converts as one image.
             Assert.Equal(4, native.RenderPage(0).Width);
-            Assert.Equal("Color IW44 decoding is not supported.", Assert.Throws<NotSupportedException>(() => native.ConvertToPdf()).Message);
+            var image = Assert.Single(new PdfPageContentReader(PdfDocument.Open(native.ConvertToPdf())).ReadImagePlacements(0));
+            Assert.Equal((4, 4), (image.PixelWidth, image.PixelHeight));
         }
         else
         {

@@ -9,27 +9,48 @@ internal static class PdfPngPredictorEncoder
         byte[] output = new byte[checked((rowBytes + 1) * height)];
         byte[] candidate = new byte[rowBytes];
         for (int row = 0; row < height; row++)
-        {
-            ReadOnlySpan<byte> source = pixels.Slice(row * rowBytes, rowBytes);
-            ReadOnlySpan<byte> previous = row == 0
-                ? []
-                : pixels.Slice((row - 1) * rowBytes, rowBytes);
-            int bestFilter = 0;
-            long bestScore = Score(source);
-            Span<byte> best = output.AsSpan(row * (rowBytes + 1) + 1, rowBytes);
-            source.CopyTo(best);
-            for (int filter = 1; filter <= 4; filter++)
-            {
-                Filter(source, previous, colors, filter, candidate);
-                long score = Score(candidate);
-                if (score >= bestScore) continue;
-                bestFilter = filter;
-                bestScore = score;
-                candidate.AsSpan().CopyTo(best);
-            }
-            output[row * (rowBytes + 1)] = (byte)bestFilter;
-        }
+            EncodeRow(pixels, rowBytes, colors, row, output.AsSpan(row * (rowBytes + 1), rowBytes + 1), candidate);
         return output;
+    }
+
+    /// <summary>
+    /// Writes the bytes <see cref="Encode"/> returns to <paramref name="destination"/> one row at a time, holding two
+    /// rows of working storage instead of a second copy of the image.
+    /// </summary>
+    internal static void EncodeTo(Stream destination, int width, int height, int colors, ReadOnlySpan<byte> pixels)
+    {
+        int rowBytes = checked(width * colors);
+        byte[] encoded = new byte[rowBytes + 1];
+        byte[] candidate = new byte[rowBytes];
+        for (int row = 0; row < height; row++)
+        {
+            EncodeRow(pixels, rowBytes, colors, row, encoded, candidate);
+            destination.Write(encoded);
+        }
+    }
+
+    // One row as its filter type byte and the row filtered with the predictor whose output scores lowest.
+    private static void EncodeRow(ReadOnlySpan<byte> pixels, int rowBytes, int colors, int row, Span<byte> encoded,
+        byte[] candidate)
+    {
+        ReadOnlySpan<byte> source = pixels.Slice(row * rowBytes, rowBytes);
+        ReadOnlySpan<byte> previous = row == 0
+            ? []
+            : pixels.Slice((row - 1) * rowBytes, rowBytes);
+        int bestFilter = 0;
+        long bestScore = Score(source);
+        Span<byte> best = encoded.Slice(1, rowBytes);
+        source.CopyTo(best);
+        for (int filter = 1; filter <= 4; filter++)
+        {
+            Filter(source, previous, colors, filter, candidate);
+            long score = Score(candidate);
+            if (score >= bestScore) continue;
+            bestFilter = filter;
+            bestScore = score;
+            candidate.AsSpan().CopyTo(best);
+        }
+        encoded[0] = (byte)bestFilter;
     }
 
     private static void Filter(ReadOnlySpan<byte> row, ReadOnlySpan<byte> previous,

@@ -124,6 +124,36 @@ public sealed partial class DjvuDocument
         }
     }
 
+    // A color photo page (one color IW44 image at page size, no mask) converts as one RGB image at its stored
+    // resolution, never reduced: the eight-bit sRGB values of its linear colors at the page gamma, as compound
+    // backgrounds convert, written over the decoded samples in place, and drawn in stored orientation under the page's
+    // turn. The full decode holds at most DjvuIw44Decoder.ColorWorkingBytes (about 240 MB for a 600 dpi letter page)
+    // and is released before the image is compressed.
+    private void AddColorPhotoPdfPage(PdfDocumentBuilder builder, DjvuPageInfo page, List<Chunk> chunks,
+        DjvuTextPage text, int pageIndex, ICollection<DjvuDiagnostic> diagnostics, CancellationToken token)
+    {
+        var raster = DecodeColorIw44Raster(page, WithoutAnnotations(chunks), token, callerBytesPerPixel: 0);
+        var encoded = SrgbSamples(raster.Linear);
+        var rgb = raster.Samples;
+        for (int i = 0; i < rgb.Length; i++) rgb[i] = encoded[rgb[i]];
+        token.ThrowIfCancellationRequested();
+        int width = page.Width, height = page.Height;
+        double scale = 72d / page.Dpi;
+        bool quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
+        var image = PdfImage.FromRgbRows(width, height, rgb);
+        token.ThrowIfCancellationRequested();
+        var content = new PdfContentStreamBuilder().SaveState();
+        switch (page.Orientation)
+        {
+            case DjvuOrientation.Clockwise90: content.Transform(0, -1, 1, 0, 0, width * scale); break;
+            case DjvuOrientation.CounterClockwise90: content.Transform(0, 1, -1, 0, height * scale, 0); break;
+            case DjvuOrientation.UpsideDown: content.Transform(-1, 0, 0, -1, width * scale, height * scale); break;
+        }
+        content.DrawImage(image, 0, 0, width * scale, height * scale).RestoreState();
+        AddLocatedPdfText(content, text, page, pageIndex, diagnostics, token);
+        builder.AddPage((quarterTurn ? height : width) * scale, (quarterTurn ? width : height) * scale, content);
+    }
+
     // A layer at its stored size, placed so each stored sample covers its reduction's square of page pixels from the
     // top left corner. Gray samples keep the page gamma as a calibrated gray space, as grayscale pages convert; color
     // samples are written as the sRGB values of their linear colors.
