@@ -254,4 +254,32 @@ namespace KillerPDF.Controls
             return template;
         }
     }
+
+    /// <summary>
+    /// One user gesture on an options bar slider: a thumb drag, a held or pressed key, or a track click. A bar
+    /// records one undo step per gesture, not one per tick, so a drag cannot fill the undo history by itself.
+    /// </summary>
+    internal sealed class SliderGesture
+    {
+        private bool _open;
+
+        public SliderGesture(Slider slider)
+        {
+            ArgumentNullException.ThrowIfNull(slider);
+            // Handled events count too: the thumb and track mark their own input handled.
+            slider.AddHandler(Thumb.DragCompletedEvent, new DragCompletedEventHandler((_, _) => _open = false), true);
+            slider.AddHandler(UIElement.PreviewMouseLeftButtonUpEvent, new MouseButtonEventHandler((_, _) => _open = false), true);
+            slider.AddHandler(UIElement.KeyUpEvent, new KeyEventHandler((_, _) => _open = false), true);
+            slider.AddHandler(UIElement.LostKeyboardFocusEvent,
+                new KeyboardFocusChangedEventHandler((_, _) => _open = false), true);
+        }
+
+        /// <summary>True for the first change of a gesture, false for the rest of it.</summary>
+        public bool Starts()
+        {
+            if (_open) return false;
+            _open = true;
+            return true;
+        }
+    }
 }

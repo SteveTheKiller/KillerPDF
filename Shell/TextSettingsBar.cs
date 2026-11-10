@@ -436,12 +436,14 @@ namespace KillerPDF.Shell
                 blurSlider.TickFrequency = .05;
                 blurSlider.IsSnapToTickEnabled = true;
                 var blurLabel = BarReadout($"{blurSlider.Value:0.##} pt", 48);
+                // One undo step per drag or key press, not one per tick.
+                var blurGesture = new Controls.SliderGesture(blurSlider);
                 blurSlider.ValueChanged += (_, e) =>
                 {
                     if (!ReferenceEquals(_selectedAnnotation, replacement)) return;
                     double radius = Math.Round(e.NewValue, 2) / BlurUnit();
                     if (replacement.BlurRadius == radius) return;
-                    ActiveViewer.PushPageSnapshotUndoExt(replacement.PageIndex);
+                    if (blurGesture.Starts()) ActiveViewer.PushPageSnapshotUndoExt(replacement.PageIndex);
                     replacement.BlurRadius = radius;
                     blurLabel.Text = $"{e.NewValue:0.##} pt";
                     MarkDirty();
