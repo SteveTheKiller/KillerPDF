@@ -79,12 +79,10 @@ public sealed class DjvuPdfLocatedTextConversionTests
     [InlineData("bottom")]
     [InlineData("right")]
     [InlineData("top")]
-    [InlineData("supplementary")]
-    [InlineData("control")]
     [InlineData("whitespace")]
     [InlineData("zone-count")]
     [InlineData("logical-length")]
-    public void ConversionRefusesTextItCannotPreserveWithoutChangingNativeSource(string scenario)
+    public void ConversionLeavesOutTextItCannotPlaceAndNamesThePageWithoutChangingNativeSource(string scenario)
     {
         (string text, byte[][] zones) = scenario switch
         {
@@ -97,8 +95,6 @@ public sealed class DjvuPdfLocatedTextConversionTests
             "bottom" => ("A", [Zone(0, -1, 1, 1, 0, 1)]),
             "right" => ("A", [Zone(2, 0, 2, 1, 0, 1)]),
             "top" => ("A", [Zone(0, 1, 1, 2, 0, 1)]),
-            "supplementary" => ("\U0001f600", [Zone(0, 0, 1, 1, 0, 4)]),
-            "control" => ("\0", [Zone(0, 0, 1, 1, 0, 1)]),
             "whitespace" => ("\t\n", []),
             "zone-count" => (new string('A', 4097),
                 Enumerable.Range(0, 4097).Select(index => Zone(0, 0, 1, 1, index, 1)).ToArray()),
@@ -109,12 +105,54 @@ public sealed class DjvuPdfLocatedTextConversionTests
         byte[] original = source.ToArray();
         var native = DjvuDocument.Open(source);
         float[] originalPixels = native.RenderPage(0).Pixels.ToArray();
+        var notices = new List<DjvuDiagnostic>();
 
-        Assert.Contains("preserve text", Assert.Throws<NotSupportedException>(() => native.ConvertToPdf()).Message);
+        var pdf = PdfDocument.Open(native.ConvertToPdf(notices));
 
+        Assert.Empty(new PdfPageContentReader(pdf).Read(0).Letters);
+        var frame = new PdfPageRenderer(pdf).Render(0, new PdfRenderOptions(3, 2));
+        Assert.Equal(new byte[] { 255, 0, 0, 255, 255, 255 }, frame.Pixels.ToArray().Where((_, index) => index % 4 == 0));
+        var notice = Assert.Single(notices);
+        Assert.Equal("TextNotConverted", notice.Code);
+        Assert.StartsWith("Page 1 text was left out", notice.Message, StringComparison.Ordinal);
         Assert.Equal(text, native.ReadText(0));
         Assert.Equal(original, source);
         Assert.Equal(originalPixels, native.RenderPage(0).Pixels.ToArray());
+    }
+
+    // The djvu2spec reference edition writes the prime of "Z'-Coder" as U+007F on 33 of its 39 pages.
+    [Theory]
+    [InlineData("\U0001f600", "�")]
+    [InlineData("\0", "�")]
+    [InlineData("Z\u007f-Coder", "Z�-Coder")]
+    public void ConversionWritesCharactersTheTextLayerCannotRepresentAsReplacementCharacters(string text, string expected)
+    {
+        var native = DjvuDocument.Open(Page(1, text, Zone(0, 0, 1, 1, 0, Encoding.UTF8.GetByteCount(text))));
+        var notices = new List<DjvuDiagnostic>();
+
+        var pdf = PdfDocument.Open(native.ConvertToPdf(notices));
+
+        Assert.Equal(expected, string.Concat(new PdfPageContentReader(pdf).Read(0).Letters.Select(letter => letter.Value)));
+        var notice = Assert.Single(notices);
+        Assert.Equal("TextCharactersReplaced", notice.Code);
+        Assert.StartsWith("Page 1 text", notice.Message, StringComparison.Ordinal);
+        Assert.Equal(text, native.ReadText(0));
+    }
+
+    [Fact]
+    public void AMalformedTextLayerCostsOnlyItsPageText()
+    {
+        // A zone record cut short: reading the text fails, the page image still converts.
+        byte[] source = Page(1, "A", Zone(0, 0, 1, 1, 0, 1)[..16]);
+        var native = DjvuDocument.Open(source);
+        Assert.Throws<InvalidDataException>(() => native.ReadText(0));
+        var notices = new List<DjvuDiagnostic>();
+
+        var pdf = PdfDocument.Open(native.ConvertToPdf(notices));
+
+        Assert.Single(PdfPageInformation.Read(pdf));
+        Assert.Empty(new PdfPageContentReader(pdf).Read(0).Letters);
+        Assert.Equal("TextNotConverted", Assert.Single(notices).Code);
     }
 
     [Fact]

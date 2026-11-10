@@ -71,11 +71,14 @@ public sealed class DjvuPdfConversionTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void ConversionRejectsTextRatherThanDroppingIt()
+    public void ConversionLeavesOutUnlocatedTextWithANoticeNamingThePage()
     {
         var native = DjvuDocument.Open(Page(1, Chunk("TXTa", [0, 0, 1, (byte)'A', 1])));
         Assert.Equal("A", native.ReadText(0));
-        Assert.Contains("preserve text", Assert.Throws<NotSupportedException>(() => native.ConvertToPdf()).Message);
+        var notices = new List<DjvuDiagnostic>();
+        var pdf = PdfDocument.Open(native.ConvertToPdf(notices));
+        Assert.Empty(new PdfPageContentReader(pdf).Read(0).Letters);
+        Assert.Contains("Page 1 text was left out", Assert.Single(notices).Message);
         Assert.Equal("A", native.ReadText(0));
     }
 
@@ -107,10 +110,13 @@ public sealed class DjvuPdfConversionTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void ConversionDoesNotIgnoreUnreadableText()
+    public void ConversionReportsUnreadableTextItLeavesOut()
     {
         var native = DjvuDocument.Open(Page(1, Chunk("TXTz", [0])));
-        Assert.Throws<InvalidDataException>(() => native.ConvertToPdf());
+        Assert.Throws<InvalidDataException>(() => native.ReadText(0));
+        var notices = new List<DjvuDiagnostic>();
+        Assert.Single(PdfPageInformation.Read(PdfDocument.Open(native.ConvertToPdf(notices))));
+        Assert.Equal("TextNotConverted", Assert.Single(notices).Code);
     }
 
     [Fact]

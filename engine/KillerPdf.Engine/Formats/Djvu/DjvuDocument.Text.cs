@@ -32,40 +32,46 @@ public sealed partial class DjvuDocument
         // Like DjVuLibre, the version byte and its zones are present only when bytes follow the text.
         var hasZones = payload.Length > length + 3;
         if (hasZones && payload[length + 3] != 1) throw new NotSupportedException("Only TXTa text version 1 is supported.");
-        try
+        cancellationToken.ThrowIfCancellationRequested();
+        var bytes = payload.Slice(3, length);
+        // The text layer is UTF-8, but real files made by older tools hold single bytes from other encodings. Each
+        // maximal ill-formed subsequence reads as one U+FFFD (Unicode 3.9, substitution of maximal subparts), so
+        // the rest of the page's text and its zones stay readable. Only scalar and replaced-sequence boundaries have
+        // UTF16 offsets; interior bytes remain -1.
+        var builder = new StringBuilder(length);
+        var utf16Offsets = new int[length + 1];
+        Array.Fill(utf16Offsets, -1);
+        Span<char> units = stackalloc char[2];
+        var replaced = 0;
+        for (var offset = 0; offset < length;)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var result = new UTF8Encoding(false, true).GetString(payload.Slice(3, length));
-            cancellationToken.ThrowIfCancellationRequested();
-            var zones = hasZones ? ReadTextZones(payload[(length + 4)..], payload.Slice(3, length), cancellationToken) : [];
-            return new DjvuTextPage(result, zones);
+            utf16Offsets[offset] = builder.Length;
+            if (Rune.DecodeFromUtf8(bytes[offset..], out var rune, out var consumed) != System.Buffers.OperationStatus.Done)
+            {
+                rune = Rune.ReplacementChar;
+                replaced++;
+            }
+            builder.Append(units[..rune.EncodeToUtf16(units)]);
+            offset += consumed;
         }
-        catch (DecoderFallbackException exception)
-        {
-            throw new InvalidDataException("TXTa contains invalid UTF8.", exception);
-        }
+        utf16Offsets[length] = builder.Length;
+        cancellationToken.ThrowIfCancellationRequested();
+        var zones = hasZones ? ReadTextZones(payload[(length + 4)..], length, utf16Offsets, cancellationToken) : [];
+        DjvuDiagnostic[] diagnostics = replaced == 0 ? [] :
+        [
+            new("TextEncodingInvalid", $"Page {pageIndex + 1} text is not valid UTF-8. {replaced} unreadable byte " +
+                "sequences read as replacement characters; the rest of the page's text is unchanged.")
+        ];
+        return new DjvuTextPage(builder.ToString(), zones, diagnostics);
     }
 
-    private static DjvuTextZone[] ReadTextZones(ReadOnlySpan<byte> zones, ReadOnlySpan<byte> text, CancellationToken cancellationToken)
+    private static DjvuTextZone[] ReadTextZones(ReadOnlySpan<byte> zones, int textLength, int[] utf16Offsets,
+        CancellationToken cancellationToken)
     {
         if (zones.Length / 17 > 65_536) throw new InvalidDataException("TXTa zone count exceeds the 65536 zone limit.");
         if (zones.Length % 17 != 0) throw new InvalidDataException("Truncated TXTa zone record.");
         if (zones.IsEmpty) return [];
-        var textLength = text.Length;
-        // Only scalar boundaries have UTF16 offsets. Interior UTF8 bytes remain -1.
-        var utf16Offsets = new int[textLength + 1];
-        Array.Fill(utf16Offsets, -1);
-        var utf16Offset = 0;
-        for (var offset = 0; offset < text.Length;)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            utf16Offsets[offset] = utf16Offset;
-            if (Rune.DecodeFromUtf8(text[offset..], out var rune, out var consumed) != System.Buffers.OperationStatus.Done)
-                throw new InvalidDataException("TXTa contains invalid UTF8.");
-            offset += consumed;
-            utf16Offset += rune.Utf16SequenceLength;
-        }
-        utf16Offsets[textLength] = utf16Offset;
         var result = new DjvuTextZone[zones.Length / 17];
         Span<int> childrenRemaining = stackalloc int[64];
         Span<int> parentIndexes = stackalloc int[64];

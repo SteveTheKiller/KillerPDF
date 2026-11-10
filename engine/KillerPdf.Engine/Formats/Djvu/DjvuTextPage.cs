@@ -26,11 +26,14 @@ public sealed class DjvuTextPage
     public string Text { get; }
     /// <summary>Immutable zones in encoded order.</summary>
     public IReadOnlyList<DjvuTextZone> Zones { get; }
+    /// <summary>Notices about text that could not be read exactly, each naming its page.</summary>
+    public IReadOnlyList<DjvuDiagnostic> Diagnostics { get; }
 
-    internal DjvuTextPage(string text, DjvuTextZone[] zones)
+    internal DjvuTextPage(string text, DjvuTextZone[] zones, DjvuDiagnostic[]? diagnostics = null)
     {
         Text = text;
         Zones = Array.AsReadOnly(zones);
+        Diagnostics = Array.AsReadOnly(diagnostics ?? []);
     }
 }
 

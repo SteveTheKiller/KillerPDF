@@ -164,7 +164,6 @@ public sealed class NativeWorkingDocumentTests
     [InlineData("canceled")]
     [InlineData("closed")]
     [InlineData("wrong-format")]
-    [InlineData("text")]
     [InlineData("navigation")]
     [InlineData("malformed")]
     public void FailedDjvuPublicationPreservesOriginalAndLeavesNoPartialOutput(string failure)
@@ -176,7 +175,6 @@ public sealed class NativeWorkingDocumentTests
             byte[] original = failure switch
             {
                 "wrong-format" => Book(),
-                "text" => [.. "AT&T"u8, .. Chunk("FORM", [.. DjvuPage()[12..], .. Chunk("TXTa", [0, 0, 1, (byte)'A', 1])])],
                 "navigation" => Convert.FromHexString(
                     "41542654464F524D00000064444A564D4449524D0000001181000100000052FFFFF8BF9E1FCC877DC900" +
                     "4E41564D00000020FFFFDCFE710ED97FCE8AD681247C75F5957907266F39911034415499EB17C37B" +

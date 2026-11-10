@@ -35,13 +35,22 @@ public sealed class DjvuBzzTerminationTests
     [Theory]
     [InlineData("FFFFFC849DBF", "header")]
     [InlineData("FFFFF9DFFE69F862", "text is truncated")]
-    [InlineData("FFFFF8DFFE6D44F2C7", "UTF8")]
     [InlineData("FFFFE9824DB69849B9A22D8F13C043FC6A3F", "zone record")]
     public void RejectsIndependentlyEncodedMalformedTextPayloads(string compressed, string error)
     {
         var document = DjvuDocument.Open(Page(Convert.FromHexString(compressed)));
         var exception = Assert.Throws<InvalidDataException>(() => document.ReadText(0));
         Assert.Contains(error, exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReadsIndependentlyEncodedTextThatIsNotUtf8WithReplacementCharacters()
+    {
+        // DjVuLibre's bzz -d decodes this payload to 00 00 02 FF FF 01: two bytes that are never UTF-8, each one
+        // maximal ill-formed subsequence, so each reads as U+FFFD.
+        var document = DjvuDocument.Open(Page(Convert.FromHexString("FFFFF8DFFE6D44F2C7")));
+        Assert.Equal("��", document.ReadText(0));
+        Assert.Equal("TextEncodingInvalid", Assert.Single(document.ReadTextPage(0).Diagnostics).Code);
     }
 
     [Fact]

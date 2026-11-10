@@ -130,10 +130,13 @@ public sealed class DjvuGrayscalePdfConversionTests
         }
         var original = source.ToArray();
         var native = DjvuDocument.Open(source);
-        if (scenario == "unreadable-text")
-            Assert.Throws<InvalidDataException>(() => native.ConvertToPdf());
-        else if (scenario == "unlocated-text")
-            Assert.Contains("preserve text", Assert.Throws<NotSupportedException>(() => native.ConvertToPdf()).Message);
+        if (scenario is "unreadable-text" or "unlocated-text")
+        {
+            // Text that cannot be read or placed costs only the page's text: the gray page converts, with a notice.
+            var notices = new List<DjvuDiagnostic>();
+            Assert.Single(PdfPageInformation.Read(PdfDocument.Open(native.ConvertToPdf(notices))));
+            Assert.Equal("TextNotConverted", Assert.Single(notices).Code);
+        }
         else if (scenario == "color")
         {
             // Native rendering decodes color IW44; PDF conversion stays grayscale only.

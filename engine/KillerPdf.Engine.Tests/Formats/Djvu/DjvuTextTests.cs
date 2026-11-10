@@ -179,14 +179,16 @@ public sealed class DjvuTextTests
         Assert.Empty(page.Zones);
     }
 
+    // Unicode 15, 3.9, Table 3-8: FF never begins a sequence; C0 is never a lead byte, so AF stands alone; ED only
+    // leads 80 to 9F, so A0 stands alone. Each pair is two maximal ill-formed subsequences, two U+FFFD.
     [Theory]
     [InlineData(0xff, 0xff)]
     [InlineData(0xc0, 0xaf)]
     [InlineData(0xed, 0xa0)]
-    public void RejectsMalformedUtf8InsteadOfSubstitutingReplacementCharacters(byte first, byte second)
+    public void ReadsMalformedUtf8AsOneReplacementCharacterPerMaximalSubpart(byte first, byte second)
     {
         var document = DjvuDocument.Open(Page(Chunk("TXTa", [0, 0, 2, first, second, 1])));
-        Assert.Throws<InvalidDataException>(() => document.ReadText(0));
+        Assert.Equal("��", document.ReadText(0));
     }
 
     [Theory]
