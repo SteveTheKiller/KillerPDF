@@ -564,8 +564,10 @@ internal static class NativeReadingSmoke
                     Image unavailableImage = ProofImage();
                     if (!Patch((BitmapSource)unavailableImage.Source, .8, .8).All(value => value >= 254))
                         throw new InvalidOperationException("Unavailable proof did not restore normal native viewing.");
-                    if (unavailableImage.ToolTip?.ToString()?.Contains("proof", StringComparison.OrdinalIgnoreCase) != true)
-                        throw new InvalidOperationException("Unavailable native proof lost its visible diagnostic.");
+                    // Since e7435d5 a page whose requested printer profile is unavailable names the profile, not the proof.
+                    string profileNotice = (string)owner.FindResource("Str_CM_ProfileUnavailable");
+                    if (unavailableImage.ToolTip?.ToString()?.Contains(profileNotice, StringComparison.Ordinal) != true)
+                        throw new InvalidOperationException("Unavailable native proof lost its visible diagnostic: " + unavailableImage.ToolTip);
                     object unavailableRequest = proofProperty.GetValue(restoredProofOwner)!;
                     if (!(bool)proofSettingsType.GetProperty("Enabled")!.GetValue(unavailableRequest)!
                         || proofSettingsType.GetProperty("PrinterProfile")!.GetValue(unavailableRequest) is not null)
@@ -579,7 +581,7 @@ internal static class NativeReadingSmoke
                     if (!Patch((BitmapSource)restoredImage.Source, .8, .8).All(value => value >= 254))
                         throw new InvalidOperationException("Disabling native proof did not restore normal white paper.");
                     Wait(() => Patch(Capture(owner, ProofBounds(restoredImage)), .8, .8).All(value => value >= 254));
-                    if (restoredImage.ToolTip?.ToString()?.Contains("proof", StringComparison.OrdinalIgnoreCase) == true)
+                    if (restoredImage.ToolTip?.ToString()?.Contains(profileNotice, StringComparison.Ordinal) == true)
                         throw new InvalidOperationException("Disabling native proof retained its unavailable diagnostic.");
                     events.Add(new { stage, restoredWhiteSource = true, restoredWhiteScreen = true });
                     stage = "document-proof-stamp-setup";

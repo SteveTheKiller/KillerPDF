@@ -221,14 +221,18 @@ internal static class ProofTwoPageSmoke
         {
             var warnings = Pages().Select(page => new { page.Page, warning = page.Image.ToolTip?.ToString() }).ToArray();
             events.Add(new { stage, warnings, requestedProofRetained = expected });
-            if (warnings.Any(page => (page.warning?.Contains("proof", StringComparison.OrdinalIgnoreCase) == true) != expected))
+            // Since e7435d5 a page whose requested printer profile is unavailable names the profile, not the proof.
+            string notice = (string)owner.FindResource("Str_CM_ProfileUnavailable");
+            if (warnings.Any(page => (page.warning?.Contains(notice, StringComparison.Ordinal) == true) != expected))
                 throw new InvalidOperationException("A native page has an incorrect unavailable-proof diagnostic.");
         }
         void CheckMonitorWarnings()
         {
             var warnings = Pages().Select(page => new { page.Page, warning = page.Image.ToolTip?.ToString() }).ToArray();
             events.Add(new { stage, monitorWarnings = warnings });
-            if (warnings.Any(page => page.warning?.Contains("MonitorProfileConversionUnavailable", StringComparison.Ordinal) != true))
+            // Since ca651d4 the page shows the localized display fallback notice instead of the operation code.
+            string notice = (string)owner.FindResource("Str_CM_DisplayFallback");
+            if (warnings.Any(page => page.warning?.Contains(notice, StringComparison.Ordinal) != true))
                 throw new InvalidOperationException("A native page lost its unavailable-monitor-profile diagnostic.");
         }
         void CheckScreens(bool proof)

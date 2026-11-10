@@ -311,7 +311,8 @@ internal static class ColorManagementSmoke
                 {
                     Product(Control<TextBlock>("ProofProfileStatus").Text == "The profile library could not be read. Your current proof settings are unchanged.",
                         "A damaged library must produce a readable panel diagnosis.");
-                    Product(!Control<ComboBox>("ProofProfile").IsEnabled && !Control<Button>("ColorManagementApply").IsEnabled,
+                    // Since 8a4ebf2 Apply stays available so proofing can still be turned off; the profile choice stays locked.
+                    Product(!Control<ComboBox>("ProofProfile").IsEnabled && Control<Button>("ColorManagementApply").IsEnabled,
                         "A damaged library must not allow accidental replacement of the requested profile.");
                     dialog.UpdateLayout();
                     var damagedCapture = NativeReadingSmoke.Capture(dialog, new Rect(
@@ -451,15 +452,20 @@ internal static class ColorManagementSmoke
                     if (!catalog.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Preference fixture escaped owned evidence.");
                     Product(File.Exists(catalog), "Earlier actual Apply must have saved document preferences before the fault fixture replaces its catalog.");
                     File.WriteAllText(catalog, "{invalid-document-preferences");
-                    owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [source]);
-                    Wait(() => View() is not null && ((TextBlock)owner.FindName("FileNameLabel")).Text == Path.GetFileName(source));
-                    Product(View()!.Document.Id != previousOwner, "A preference storage failure must not prevent reopening the PDF into a new owner.");
-                    Product(View()!.CaptureProof().Settings == new PdfDocumentProofSettings(), "Unreadable preferences must leave a new document at default proof off.");
-                    OpenReviewPanel("storage-load");
-                    OpenReviewPanel("storage-apply");
-                    Product(View()!.CaptureProof().Settings.Enabled && View()!.CaptureProof().Settings.PrinterProfile is null,
-                        "A failed preference save must retain the explicitly applied in-memory viewing request.");
-                    OpenReviewPanel("storage-save");
+                    // Since 93ab8d4 a damaged catalog reads as its kept previous copy and the next save replaces it,
+                    // so only a catalog that cannot be read or written fails: hold it open exclusively meanwhile.
+                    using (new FileStream(catalog, FileMode.Open, FileAccess.Read, FileShare.None))
+                    {
+                        owner.GetType().GetMethod("OpenFromExternal")!.Invoke(owner, [source]);
+                        Wait(() => View() is not null && ((TextBlock)owner.FindName("FileNameLabel")).Text == Path.GetFileName(source));
+                        Product(View()!.Document.Id != previousOwner, "A preference storage failure must not prevent reopening the PDF into a new owner.");
+                        Product(View()!.CaptureProof().Settings == new PdfDocumentProofSettings(), "Unreadable preferences must leave a new document at default proof off.");
+                        OpenReviewPanel("storage-load");
+                        OpenReviewPanel("storage-apply");
+                        Product(View()!.CaptureProof().Settings.Enabled && View()!.CaptureProof().Settings.PrinterProfile is null,
+                            "A failed preference save must retain the explicitly applied in-memory viewing request.");
+                        OpenReviewPanel("storage-save");
+                    }
                     Product(File.ReadAllText(catalog) == "{invalid-document-preferences", "Load and failed Save must preserve the damaged preference catalog for recovery.");
                     Product(File.ReadAllBytes(source).SequenceEqual(original), "Preference storage faults must preserve the original PDF bytes.");
                     break;
@@ -581,21 +587,29 @@ internal static class ColorManagementSmoke
                     File.WriteAllBytes(Path.Combine(folder, "imported-paper.icc"), imported);
                 }
                 if (next == "invalid-import") File.WriteAllBytes(Path.Combine(folder, "invalid-paper.icc"), InvalidProfile());
+                FileStream? unreadableLibrary = null;
                 if (next == "corrupt-library")
                 {
                     string catalog = Path.GetFullPath(Path.Combine(folder, "data", "color-management", "profiles", "profiles.json"));
                     string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder)) + Path.DirectorySeparatorChar;
                     if (!catalog.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Library fixture escaped owned evidence.");
                     File.WriteAllText(catalog, "{invalid-library");
+                    // Since dcb96ee a damaged list reads as its kept previous copy, so only a list that cannot be
+                    // read at all reaches the library diagnosis: hold it open exclusively while the panel reads it.
+                    unreadableLibrary = new FileStream(catalog, FileMode.Open, FileAccess.Read, FileShare.None);
                 }
                 stage = next;
                 handled = false;
-                ShortcutHintsSmoke.Key(owner, 0x44, 0x11, 0x10);
-                Wait(() => (menu = PresentationSource.CurrentSources.Cast<PresentationSource>().SelectMany(source => Descendants(source.RootVisual))
-                    .OfType<ContextMenu>().FirstOrDefault(candidate => candidate.IsOpen)) is not null);
-                item = menu!.Items.OfType<MenuItem>().Single(entry => entry.Header?.ToString() == "Color Management");
-                ((IInvokeProvider)new MenuItemAutomationPeer(item).GetPattern(PatternInterface.Invoke)!).Invoke();
-                Wait(() => handled && !Application.Current.Windows.Cast<Window>().Any(window => window != owner && window.IsVisible));
+                try
+                {
+                    ShortcutHintsSmoke.Key(owner, 0x44, 0x11, 0x10);
+                    Wait(() => (menu = PresentationSource.CurrentSources.Cast<PresentationSource>().SelectMany(source => Descendants(source.RootVisual))
+                        .OfType<ContextMenu>().FirstOrDefault(candidate => candidate.IsOpen)) is not null);
+                    item = menu!.Items.OfType<MenuItem>().Single(entry => entry.Header?.ToString() == "Color Management");
+                    ((IInvokeProvider)new MenuItemAutomationPeer(item).GetPattern(PatternInterface.Invoke)!).Invoke();
+                    Wait(() => handled && !Application.Current.Windows.Cast<Window>().Any(window => window != owner && window.IsVisible));
+                }
+                finally { unreadableLibrary?.Dispose(); }
                 var changed = View()!.CaptureProof().Settings;
                 bool appliedPreset = next is "apply-preset" or "corrupt-library";
                 Product(changed.Enabled == !appliedPreset
