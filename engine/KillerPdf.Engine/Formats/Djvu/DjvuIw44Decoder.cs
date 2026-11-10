@@ -7,6 +7,26 @@ internal static class DjvuIw44Decoder
     private const long MaximumWorkingBytes = 256L * 1024 * 1024;
     private const long MaximumCoefficientVisits = 512_000_000;
 
+    /// <summary>
+    /// The bytes a grayscale decode holds at once: coefficients, flags, reconstruction, gray output and what the
+    /// caller builds from it, plus the copied chunks and fixed overhead.
+    /// </summary>
+    internal static long GrayscaleWorkingBytes(int width, int height, long payloadBytes, int chunkCount, int callerBytesPerPixel)
+    {
+        long coefficientCount = (long)((width + 31) / 32) * ((height + 31) / 32) * 1024;
+        return coefficientCount * 5 + (long)width * height * (5 + callerBytesPerPixel) + payloadBytes + 2048 + chunkCount * 128L;
+    }
+
+    /// <summary>
+    /// The bytes a color decode holds at once: three coefficient and flag sets, reconstruction buffers and signed
+    /// planes, RGB bytes, both float-frame copies, the payload copy, context banks and array overhead.
+    /// </summary>
+    internal static long ColorWorkingBytes(int width, int height, long payloadBytes)
+    {
+        long coefficientCount = (long)(width / 32) * (height / 32) * 1024;
+        return coefficientCount * 15 + (long)width * height * 50 + payloadBytes + 4096;
+    }
+
     // callerBytesPerPixel is what the caller builds from the gray bytes per pixel, counted with the decoder's own
     // buffers: 32 for a float RGBA frame and its owned copy, 0 when the gray bytes are kept as they are.
     internal static byte[] DecodeGrayscale(IReadOnlyList<ReadOnlyMemory<byte>> payloads, int width, int height, CancellationToken token,
@@ -38,8 +58,7 @@ internal static class DjvuIw44Decoder
         var blockRows = (height + 31) / 32;
         var coefficientCount = (long)blockColumns * blockRows * 1024;
         var pixelCount = (long)width * height;
-        // Includes coefficients, flags, reconstruction, gray output and what the caller builds from it.
-        var workingBytes = coefficientCount * 5 + pixelCount * (5 + callerBytesPerPixel) + payloadBytes + 2048 + payloads.Count * 128L;
+        var workingBytes = GrayscaleWorkingBytes(width, height, payloadBytes, payloads.Count, callerBytesPerPixel);
         var visits = coefficientCount * (8L * slices + 1) + pixelCount * 20;
         if (slices > 4096 || workingBytes > MaximumWorkingBytes || visits > MaximumCoefficientVisits)
             throw new InvalidDataException("IW44 image exceeds the combined storage or coefficient-work limit.");
@@ -80,9 +99,7 @@ internal static class DjvuIw44Decoder
         long coefficientCount = (long)blockColumns * blockRows * 1024;
         long pixelCount = (long)width * height;
         int slices = payload[1];
-        // Three coefficient/flag sets, three reconstruction buffers and signed planes,
-        // RGB bytes, both float-frame copies, payload copy, context banks and array overhead.
-        long workingBytes = coefficientCount * 15 + pixelCount * 50 + payload.Length + 4096;
+        long workingBytes = ColorWorkingBytes(width, height, payload.Length);
         long visits = coefficientCount * 3 * (8L * slices + 1) + pixelCount * 100
             + slices * 3L * (196 + 16);
         if (workingBytes > MaximumWorkingBytes || visits > MaximumCoefficientVisits)

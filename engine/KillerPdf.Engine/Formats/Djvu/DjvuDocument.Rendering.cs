@@ -29,18 +29,25 @@ public sealed partial class DjvuDocument
         return DecodeSupportedPage(page, chunks, cancellationToken, callerBytesPerPixel: 0);
     }
 
-    /// <summary>The bytes <see cref="DecodePage"/> keeps for a page, found from its chunks without decoding it.</summary>
-    internal long DecodedPageBytes(int pageIndex, CancellationToken cancellationToken)
+    /// <summary>
+    /// The bytes <see cref="DecodePage"/> keeps for a page, and the most it holds at once while decoding, found from
+    /// the page's chunks without decoding it. Smmr decodes straight into the kept bits; IW44 needs its coefficients.
+    /// </summary>
+    internal (long Kept, long Decoding) DecodedPageBytes(int pageIndex, CancellationToken cancellationToken)
     {
         var (page, chunks) = ReadPageChunks(pageIndex, cancellationToken);
-        var layout = PdfNativeSampleLayout.Bits;
-        if (chunks.Any(c => c.Id == 0x42473434))
+        var backgrounds = chunks.Where(c => c.Id == 0x42473434).ToList();
+        if (backgrounds.Count == 0)
         {
-            var first = chunks.First(c => c.Id == 0x42473434);
-            layout = first.Length >= 3 && (_data[first.Offset + 2] & 0x80) == 0
-                ? PdfNativeSampleLayout.Rgb : PdfNativeSampleLayout.Gray;
+            long bits = PdfNativeCompactRaster.StorageBytes(PdfNativeSampleLayout.Bits, page.Width, page.Height);
+            return (bits, bits);
         }
-        return PdfNativeCompactRaster.StorageBytes(layout, page.Width, page.Height);
+        if (backgrounds[0].Length >= 3 && (_data[backgrounds[0].Offset + 2] & 0x80) == 0)
+            return (PdfNativeCompactRaster.StorageBytes(PdfNativeSampleLayout.Rgb, page.Width, page.Height),
+                DjvuIw44Decoder.ColorWorkingBytes(page.Width, page.Height, backgrounds[0].Length));
+        return (PdfNativeCompactRaster.StorageBytes(PdfNativeSampleLayout.Gray, page.Width, page.Height),
+            DjvuIw44Decoder.GrayscaleWorkingBytes(page.Width, page.Height, backgrounds.Sum(c => (long)c.Length),
+                backgrounds.Count, callerBytesPerPixel: 0));
     }
 
     private (DjvuPageInfo Page, List<Chunk> Chunks) ReadSupportedPage(int pageIndex, CancellationToken cancellationToken)

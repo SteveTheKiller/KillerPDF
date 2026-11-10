@@ -241,8 +241,10 @@ public sealed partial class PdfReadSnapshot
             (width, height) = (height, width);
         bool resized = options.Width != width || options.Height != height;
         // The page stays decoded as its own bits or bytes; only the requested frame is float, built and then copied.
-        long decoded = _djvu!.DecodedPageBytes(pageIndex, cancellationToken);
-        if (checked(decoded + (long)options.Width * options.Height * 2 * 4 * sizeof(float)) > options.PixelByteLimit)
+        // The decoder's own buffers are gone by then, so the larger of the two peaks is what the render holds.
+        var (decoded, decoding) = _djvu!.DecodedPageBytes(pageIndex, cancellationToken);
+        if (Math.Max(decoding, checked(decoded + (long)options.Width * options.Height * 2 * 4 * sizeof(float)))
+            > options.PixelByteLimit)
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
         if (resized)
             PdfNativeFrameResampler.CheckWork(width, height, options.Width, options.Height);
@@ -281,8 +283,8 @@ public sealed partial class PdfReadSnapshot
         int naturalHeight = (int)Math.Ceiling(geometry.Height);
         if (geometry.IntrinsicRotation is 90 or 270)
             (naturalWidth, naturalHeight) = (naturalHeight, naturalWidth);
-        long decoded = _djvu!.DecodedPageBytes(pageIndex, cancellationToken);
-        if (checked(decoded + (long)width * height * 2 * 4 * sizeof(float)) > options.PixelByteLimit)
+        var (decoded, decoding) = _djvu!.DecodedPageBytes(pageIndex, cancellationToken);
+        if (Math.Max(decoding, checked(decoded + (long)width * height * 2 * 4 * sizeof(float))) > options.PixelByteLimit)
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
         PdfNativeFrameResampler.CheckWork(naturalWidth, naturalHeight, options.Width, options.Height, width, height,
             left, top);

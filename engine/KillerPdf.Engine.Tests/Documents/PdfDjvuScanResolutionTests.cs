@@ -56,12 +56,19 @@ public sealed class PdfDjvuScanResolutionTests
     // A fitted page is at most 2048 pixels on its long side. Area averaging a 600 dpi page down to it reads about
     // (5100 + 1583) x (6600 + 2048) = 57.8 million source taps, inside the 64 million tap work limit.
     [Theory]
-    [InlineData(5100, 6600, 1583, 2048)]
-    [InlineData(4960, 7016, 1448, 2048)]
-    public void A600DpiScanPageDrawsFittedAt2048Pixels(int width, int height, int fitWidth, int fitHeight)
+    [InlineData(5100, 6600, 600, 1583, 2048)]
+    [InlineData(4960, 7016, 600, 1448, 2048)]
+    [InlineData(2550, 3300, 300, 1583, 2048)]
+    public void AScanPageDrawsFittedAt2048Pixels(int width, int height, int dpi, int fitWidth, int fitHeight)
     {
-        var snapshot = PdfReadSnapshot.OpenDjvu(HalfBlackPage(width, height, 600, 1));
+        var snapshot = PdfReadSnapshot.OpenDjvu(HalfBlackPage(width, height, dpi, 1));
+        snapshot.RenderPage(0, new PdfRenderOptions(8, 8, maximumPixelBytes: ViewerBudget));
+        GC.Collect();
+        long before = GC.GetAllocatedBytesForCurrentThread();
         var fit = snapshot.RenderPage(0, new PdfRenderOptions(fitWidth, fitHeight, maximumPixelBytes: ViewerBudget));
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        // The fitted float frame and its owned copy are at most 1583 x 2048 x 32 = 98.9 MiB; the bits add 4.4 MB.
+        Assert.True(allocated < 112L << 20, $"A {fitWidth} x {fitHeight} fit of a {width} x {height} page allocated {allocated} bytes.");
         Assert.Equal(fitWidth, fit.Width);
         Assert.Equal(fitHeight, fit.Height);
         var pixels = fit.Pixels;
@@ -131,6 +138,23 @@ public sealed class PdfDjvuScanResolutionTests
         // The IW44 decoder's coefficients, flags, reconstruction and gray samples are 5 bytes per coefficient and
         // 5 per pixel (80.8 MiB); the gray page is kept as those bytes, never as a 16-byte float frame.
         Assert.True(allocated < 96L << 20, $"A 396 x 512 thumbnail of a 2550 x 3300 gray page allocated {allocated} bytes.");
+    }
+
+    // While a 2550 x 3300 IW44 page decodes, its 80 x 104 blocks of 1024 coefficients take 5 bytes each (4 value,
+    // 1 flag) and its 8,415,000 pixels 5 each (4 reconstruction, 1 gray): 42,598,400 + 42,075,000 bytes, plus the
+    // 9-byte chunk and 2,176 bytes of fixed overhead, 84,675,585 in all. That is more than the thumbnail and the kept
+    // gray bytes (6,488,064 + 8,416,024), so it is what a budget has to cover: 80 MiB is too little, 81 MiB enough.
+    [Fact]
+    public void AGrayscaleScanPageCountsItsDecoderBuffersAgainstTheBudget()
+    {
+        var snapshot = PdfReadSnapshot.OpenDjvu(FlatGrayPage(2550, 3300, 300));
+        Assert.Throws<ArgumentException>(() =>
+            snapshot.RenderPage(0, new PdfRenderOptions(396, 512, maximumPixelBytes: 80L << 20)));
+        Assert.Throws<ArgumentException>(() =>
+            snapshot.RenderPageRegion(0, new PdfRenderOptions(2550, 3300, maximumPixelBytes: 80L << 20), 0, 0, 64, 64));
+        Assert.Equal(396, snapshot.RenderPage(0, new PdfRenderOptions(396, 512, maximumPixelBytes: 81L << 20)).Width);
+        Assert.Equal(64, snapshot.RenderPageRegion(0, new PdfRenderOptions(2550, 3300, maximumPixelBytes: 81L << 20),
+            0, 0, 64, 64).Width);
     }
 
     private static byte[] FlatGrayPage(int width, int height, int dpi)
