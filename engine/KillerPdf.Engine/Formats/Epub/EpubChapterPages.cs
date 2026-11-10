@@ -154,16 +154,21 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
     /// <summary>Cancelled when the book closes.</summary>
     internal CancellationToken Closing => _closing.Token;
 
+    /// <summary>How many times readers can stop pagination of one chapter before it runs to the end regardless.</summary>
+    internal const int PaginationPreemptions = 4;
+
     /// <summary>
     /// Runs one pagination step under the layout lock, after any reader already waiting for it. A reader who arrives
     /// while the step runs cancels it; the step must then leave the book as it found it, and it runs again once the
-    /// reader is done. That second run is not cancelled, so a reader who keeps laying chapters out cannot hold
-    /// pagination back for good: each chapter is started over at most once. Throws
-    /// <see cref="OperationCanceledException"/> once the book is closed.
+    /// reader is done. A reader is often the UI thread, so the runs again can be stopped too, up to
+    /// <see cref="PaginationPreemptions"/> times; the run after that is not cancelled, so a reader who keeps laying
+    /// chapters out cannot hold pagination back for good. Throws <see cref="OperationCanceledException"/> once the
+    /// book is closed.
     /// </summary>
     internal T Paginate<T>(Func<CancellationToken, T> step)
     {
-        bool stoppedOnce = false;
+        // Every run before this one was stopped by a reader.
+        int runs = 0;
         while (true)
         {
             // Readers go first: one waiting for the lock is let in before pagination takes it again.
@@ -172,12 +177,13 @@ internal sealed class EpubChapterPages(Func<int, int, int, CancellationToken, Ep
             using var preempted = CancellationTokenSource.CreateLinkedTokenSource(_closing.Token);
             lock (_layoutLock)
             {
+                bool stoppable = runs < PaginationPreemptions;
                 lock (_lock)
                 {
-                    _paginationStep = stoppedOnce ? null : preempted;
-                    if (_readersWaiting > 0 && !stoppedOnce) preempted.Cancel();
+                    _paginationStep = stoppable ? preempted : null;
+                    if (_readersWaiting > 0 && stoppable) preempted.Cancel();
                 }
-                stoppedOnce = true;
+                runs++;
                 try { return step(preempted.Token); }
                 catch (OperationCanceledException) when (!_closing.IsCancellationRequested && preempted.IsCancellationRequested) { }
                 finally
