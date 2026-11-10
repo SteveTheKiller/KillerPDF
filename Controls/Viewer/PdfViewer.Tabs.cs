@@ -684,7 +684,9 @@ namespace KillerPDF.Controls
             FileNameLabel.Text = System.IO.Path.GetFileName(_active.OriginalFile ?? "");
             _annotationCanvas.Children.Clear();
             MarkDirty(_isDirty);   // sync the Save button color to this tab's dirty state
-            BootstrapDocumentView(session.PageIndex, autoFit: false,
+            // A Fit Page tab fits the viewport it returns to: opening another tab adds the tab strip,
+            // so the zoom it was fitted at no longer shows the whole page.
+            BootstrapDocumentView(session.PageIndex, autoFit: false, restoreFitMode: session.Fit == FitMode.Page,
                 restoreVerticalOffset: session.View.IsContinuous() ? session.ScrollV : null);
             Host?.ViewerNavigationChanged(this);
             SetTool(_active.Tool); // restore this document's active editing tool (and its tool bar)
