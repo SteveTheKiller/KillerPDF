@@ -314,6 +314,7 @@ public static class PdfOptionalContentEditor
 
         PdfDocument flattened = changed ? PdfDocument.Open(editor.Build()) : document;
         flattened = FlattenAnnotations(flattened);
+        flattened = RemovePageLayerProperties(flattened);
         foreach (PdfOptionalContentGroupInfo group in info.Groups)
             flattened = PdfDocument.Open(
                 RemoveUnusedGroup(flattened, group.ObjectNumber));
@@ -483,6 +484,50 @@ public static class PdfOptionalContentEditor
                     InspectResources(nestedResources, depth + 1);
                 }
             }
+        }
+
+        // No page content or Form XObject marks optional content any more, but a page that draws a form keeps all
+        // of its resources, since the form may use them. Its layer entries are dead and would keep every layer
+        // referenced, so they are dropped. Other marked-content properties stay.
+        PdfDocument RemovePageLayerProperties(PdfDocument input)
+        {
+            var update = new PdfIncrementalUpdateBuilder(input);
+            bool removed = false;
+            foreach (PdfPageTreeEntry page in PdfPageTree.Read(input).Pages)
+            {
+                if (!page.InheritedValues.TryGetValue(ResourcesKey, out PdfObject? resourcesValue)
+                    || ResolveIn(input, resourcesValue) is not PdfDictionary resources
+                    || !resources.TryGetValue(PropertiesKey, out PdfObject? propertiesValue)
+                    || ResolveIn(input, propertiesValue) is not PdfDictionary properties)
+                    continue;
+                KeyValuePair<PdfName, PdfObject>[] kept = [.. properties.Where(item =>
+                    !(ResolveIn(input, item.Value) is PdfDictionary property
+                        && property.TryGetValue(TypeKey, out PdfObject? typeValue)
+                        && ResolveIn(input, typeValue) is PdfName type
+                        && type.ValueAsLatin1() is "OCG" or "OCMD"))];
+                if (kept.Length == properties.Count) continue;
+                var resourceEntries = resources.ToDictionary(entry => entry.Key, entry => entry.Value);
+                if (kept.Length == 0) resourceEntries.Remove(PropertiesKey);
+                else resourceEntries[PropertiesKey] = new PdfDictionary(kept);
+                var pageEntries = page.Dictionary.ToDictionary(entry => entry.Key, entry => entry.Value);
+                pageEntries[ResourcesKey] = new PdfDictionary(resourceEntries);
+                update.ReplaceObject(page.Reference.ObjectNumber, new PdfDictionary(pageEntries));
+                removed = true;
+            }
+            return removed ? PdfDocument.Open(update.Build()) : input;
+        }
+
+        static PdfObject ResolveIn(PdfDocument input, PdfObject value)
+        {
+            var visited = new HashSet<(int, int)>();
+            for (int depth = 0; value is PdfIndirectReference reference; depth++)
+            {
+                if (depth >= 32 || !visited.Add((reference.ObjectNumber, reference.Generation)))
+                    throw new InvalidOperationException(
+                        "An optional-content value has an invalid reference chain.");
+                value = input.Resolve(reference);
+            }
+            return value;
         }
 
         PdfDocument FlattenAnnotations(PdfDocument input)

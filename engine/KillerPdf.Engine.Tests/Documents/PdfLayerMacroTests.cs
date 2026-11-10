@@ -31,6 +31,31 @@ public sealed class PdfLayerMacroTests
             PdfLayerMacro.FlattenStep(["Missing"]), source));
     }
 
+    // Text added in KillerPDF draws a Form XObject on the page. A form can use the page's
+    // resources, so the page keeps all of them, and its layer entries kept every layer
+    // referenced: flattening refused with "Layer N is still referenced".
+    [Fact]
+    public void MacroFlattensAPageThatAlsoDrawsAForm()
+    {
+        var hidden = new PdfOptionalContentGroup("Hidden", initiallyVisible: false);
+        var visible = new PdfOptionalContentGroup("Visible");
+        var added = new PdfFormXObject(50, 20, new PdfContentStreamBuilder().Rectangle(0, 0, 50, 20).Fill());
+        byte[] source = new PdfDocumentBuilder().AddPage(200, 200,
+            new PdfContentStreamBuilder()
+                .BeginOptionalContent(hidden).BeginText()
+                    .SetFont(PdfStandardFont.Helvetica, 12).MoveText(10, 20)
+                    .ShowLatin1Text("Hidden text").EndText().EndMarkedContent()
+                .BeginOptionalContent(visible).BeginText()
+                    .SetFont(PdfStandardFont.Helvetica, 12).MoveText(10, 40)
+                    .ShowLatin1Text("Visible text").EndText().EndMarkedContent()
+                .DrawForm(added, 10, 100)).Build();
+
+        PdfDocument output = PdfDocument.Open(PdfLayerMacro.Execute(PdfLayerMacro.FlattenStep(), source));
+
+        Assert.Equal("Visible text", new PdfPageContentReader(output).Read(0).Text);
+        Assert.Empty(PdfOptionalContentReader.Read(output).Groups);
+    }
+
     [Fact]
     public void MacroEditsLayerNamesVisibilityLocksAndMergesByStableName()
     {

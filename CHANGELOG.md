@@ -38,6 +38,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Recent files appear immediately after an update reopens an empty window.
 - Make Searchable opens its save dialog in the original PDF's folder instead of the last-used folder.
 - The visible signature date uses the same year-month-day format on every region setting.
+- Flatten Layers works on layered PDFs with added text instead of stopping with a "Layer is still referenced" error.
 - Changing the file type in the save picker while the name box holds characters no file name can carry keeps the name as typed and shows the invalid-path message.
 - Hiding shortcut hints removes the hints the app adds to tooltips in every language, including translated keys such as (Strg+D).
 - About places link confirmation in the left column and aligns Clear all Data on the same bottom row.

@@ -21,6 +21,7 @@ The 1.9.3 engine adds floating-point rendering, portable profile conversion and 
 - Mesh shadings (types 4 to 7) blend their clipped edges by clip coverage like other paints, while patches, triangles and separate shadings that share an edge still meet without a seam.
 - Repeated partial rasterization preserves form-local image resources, and affected-content counts exclude unpainted paths. (#369)
 - Comment reading includes empty free-text markup without losing annotation-array positions. (#466)
+- Layer flattening removes a page's layer resource entries when the page also draws a Form XObject, so the layers can be unregistered.
 - Hidden caller-authored free-text and stamp annotations can retain editing data without adding tagged reading-order descriptions. (#467)
 - Document, annotation and attachment dates are written with the Gregorian calendar whatever the current culture, so Thai, Arabic and Persian regions no longer write years like 2569. Preflight messages write their numbers with a decimal point.
 
