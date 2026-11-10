@@ -49,9 +49,12 @@ internal sealed class TableExportDialog : Window
         DialogFrame.Configure(this, owner, resizable: true);
         AutomationProperties.SetAutomationId(this, "TableExportDialog");
 
-        var body = new DockPanel { Margin = new Thickness(20, 6, 20, 16),
+        // Part of the bottom spacing sits inside the scaled body, below the buttons. When the window is shorter than the
+        // dialog wants (a large app scale on a short screen), the body is clipped at its bottom edge, and at a scale
+        // such as 2.5 layout rounding pushed buttons flush with that edge half a pixel past it.
+        var body = new DockPanel { Margin = new Thickness(20, 6, 20, 14),
             LayoutTransform = new ScaleTransform(Math.Clamp(scale, 0.7, 2.5), Math.Clamp(scale, 0.7, 2.5)) };
-        var footer = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
+        var footer = new StackPanel { Margin = new Thickness(0, 8, 0, 2) };
         _format = new ComboBox { ItemsSource = new[] { "XLSX", "CSV" }, SelectedIndex = 0,
             Style = UiKit.DarkComboStyle, MinWidth = 85, Height = 30, Margin = new Thickness(0, 0, 8, 0) };
         AutomationProperties.SetName(_format, L("Str_ExportImg_Format"));

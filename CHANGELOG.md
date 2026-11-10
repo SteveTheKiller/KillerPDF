@@ -32,6 +32,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Returning to a tab at Fit Page fits the page to the view again, so the page is no longer cut off after another tab opens.
 - Leaving full screen puts the window back at its earlier width instead of leaving it much wider, and a narrow split window at a large app scale keeps room for both panes instead of squeezing the second one to a sliver.
 - Transform and Color correction on a page with comments or text boxes show an error when the temporary folder cannot be written, instead of a crash report.
+- The table export window keeps its format choice, Cancel and Export buttons fully inside the window at a large app scale on a short screen instead of cutting off their bottom edge.
 - Save Flattened shows output pixel dimensions and scale, matching image export. (#462)
 - View controls follow the active tab or pane, and opening a document during a sidebar transition keeps its thumbnails visible. (#473)
 - The file picker no longer stalls on a disconnected network folder when it opens, a relative or malformed path typed in the path box is refused instead of being looked up against the wrong folder, a pattern such as *.log typed in the name box filters the list, and a full path typed in the name box can be accepted even when the shown folder failed to list.
