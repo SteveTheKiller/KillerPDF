@@ -2145,6 +2145,15 @@ Düzenleme, kaydetme ve bazı diğer özellikler doğru çalışmayabilir.</sys:
     <sys:String x:Key="Str_Epub_Diagnostics_None">Bu kitaptan hiçbir şey atlanmadı.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Sayfalar hâlâ sayılıyor (bölüm {0}/{1}). Bu liste şimdiye kadar sayılan bölümleri kapsar ve sayım bitince güncellenir.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Bölüm {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Bu belgenin bazı bölümleri görüntülenemedi veya okunamadı.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Belge tanılama</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Belgenin bu kısımları atlandı veya tamamen okunamadı. Özgün dosya değişmedi.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Bu belgeden hiçbir şey atlanmadı.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Belgenin tamamı</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Sayfa {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Bazı ortak parçalar açılmayan ayrı dosyalarda saklanıyor, bu yüzden bunları kullanan sayfalar eksik olabilir.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Sayfalar DjVu'nun daha yeni bir sürümünü kullanıyor, bu yüzden tam olarak doğru görüntülenmeyebilir.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Bu sayfanın metnindeki bazı karakterler okunamadı ve yer tutucu bir karakterle değiştirildi, bu yüzden arama ve kopyalama bunları bulamayabilir.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Gösterilmedi: {0}. Yerine bir bildirim sayfası gösterilir.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} dosyasından bir öğe atlandı.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Yok sayılan stil kuralları: {0}</sys:String>

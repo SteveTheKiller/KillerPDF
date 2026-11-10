@@ -2149,6 +2149,15 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_None">这本书没有任何内容被省略。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">仍在统计页面（第 {0} 章，共 {1} 章）。此列表包含目前已统计的章节，统计完成后会更新。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">第 {0} 章</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">无法显示或读取此文档的部分内容。</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">文档诊断</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">文档中的这些部分已被省略或无法完整读取。原始文件未更改。</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">此文档没有任何内容被省略。</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">整个文档</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">第 {0} 页</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">部分共享内容存放在单独的文件中，这些文件不会被打开，因此使用它们的页面可能不完整。</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">这些页面使用较新版本的 DjVu，因此可能无法完全准确地显示。</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">此页文字中有部分字符无法读取，已替换为占位符，因此搜索和复制可能找不到它们。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">未显示：{0}。将以通知页代替。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} 中有一个项目已被省略。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">已忽略的样式规则：{0}</sys:String>

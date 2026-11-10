@@ -88,6 +88,12 @@ public sealed partial class PdfReadSnapshot
     /// <summary>The DjVu document's shared-dictionary decodes and cached bytes; zero for other formats.</summary>
     internal (int Decodes, long Bytes) DjvuDictionaryCacheState => _djvu?.DictionaryCacheState ?? default;
 
+    /// <summary>
+    /// Gets the DjVu document's notices found at open, such as unresolved included components or a newer page
+    /// version; empty for other formats. Page text notices come with each page's text from <see cref="ReadTextPage"/>.
+    /// </summary>
+    public IReadOnlyList<DjvuDiagnostic> DjvuDiagnostics => _djvu?.Diagnostics ?? [];
+
     /// <summary>Gets EPUB chapters replaced by diagnosis pages during isolated layout; empty for other formats.</summary>
     public IReadOnlyList<EpubChapterDiagnostic> ChapterDiagnostics => _layout?.ChapterDiagnostics ?? [];
 

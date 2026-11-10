@@ -2150,6 +2150,15 @@ Poznámka: opraveným souborům mohou chybět záložky, formuláře a další i
     <sys:String x:Key="Str_Epub_Diagnostics_None">Z této knihy nebylo nic vynecháno.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Stránky se ještě počítají (kapitola {0} z {1}). Seznam zahrnuje dosud spočítané kapitoly a po dokončení počítání se aktualizuje.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Kapitola {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Části tohoto dokumentu se nepodařilo zobrazit nebo přečíst.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Diagnostika dokumentu</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Tyto části dokumentu byly vynechány nebo je nebylo možné přečíst celé. Původní soubor zůstává beze změny.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Z tohoto dokumentu nebylo nic vynecháno.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Celý dokument</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Stránka {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Některé sdílené části jsou uloženy v samostatných souborech, které se neotevírají, takže stránky, které je používají, mohou být neúplné.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Stránky používají novější verzi formátu DjVu, takže se nemusí zobrazit přesně.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Některé znaky v textu této stránky nebylo možné přečíst a byly nahrazeny zástupným znakem, takže je vyhledávání a kopírování nemusí najít.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Nezobrazeno: {0}. Místo toho se zobrazí stránka s upozorněním.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Z {0} byla vynechána jedna položka.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Ignorovaná pravidla stylu: {0}</sys:String>

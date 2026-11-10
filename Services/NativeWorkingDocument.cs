@@ -103,7 +103,38 @@ internal sealed class NativeWorkingDocument : IDisposable
     internal IReadOnlyList<EpubIgnoredDeclarations> IgnoredDeclarations => _snapshot.IgnoredDeclarations;
     internal IReadOnlyList<int> ReadingOrder => _snapshot.ReadingOrder;
     /// <summary>True when a chapter or an item was left out; ignored style rules alone are not omissions.</summary>
-    internal bool HasOmissions => ChapterDiagnostics.Count > 0 || ContentDiagnostics.Count > 0;
+    internal bool HasOmissions => ChapterDiagnostics.Count > 0 || ContentDiagnostics.Count > 0 || DjvuNotices.Count > 0;
+
+    // Page notices arrive as each page's text is first read, on whatever thread read it.
+    private readonly SortedDictionary<(int Page, string Code), DjvuDiagnostic> _pageNotices = [];
+
+    /// <summary>The DjVu notices the reader is told about, document ones first, then page ones in page order.</summary>
+    internal IReadOnlyList<DjvuDiagnostic> DjvuNotices
+    {
+        get
+        {
+            var document = _snapshot.DjvuDiagnostics.Where(NativeDocumentDiagnostics.RaisesNotice);
+            lock (_sync) return [.. document, .. _pageNotices.Values];
+        }
+    }
+
+    /// <summary>Raised, on the reading thread, when a page's text adds a notice the reader is told about.</summary>
+    internal event Action? NoticesChanged;
+
+    // The captured revision reports each DjVu page text it reads; a page notice already known, or one arriving after
+    // the document closed, changes nothing.
+    private void RecordTextNotices(IReadOnlyList<DjvuDiagnostic> notices)
+    {
+        bool added = false;
+        lock (_sync)
+        {
+            if (_closed) return;
+            foreach (var notice in notices)
+                if (notice.PageIndex is int page && NativeDocumentDiagnostics.RaisesNotice(notice))
+                    added |= _pageNotices.TryAdd((page, notice.Code), notice);
+        }
+        if (added) NoticesChanged?.Invoke();
+    }
 
     internal byte[] ConvertDjvuToPdf(CancellationToken cancellationToken = default)
         => ConvertDjvuToPdf(new List<DjvuDiagnostic>(), cancellationToken);
@@ -186,7 +217,7 @@ internal sealed class NativeWorkingDocument : IDisposable
         {
             ObjectDisposedException.ThrowIf(_closed, this);
             if (_revision is { IsClosed: false } revision) return revision;
-            return _revision = new PdfCapturedReadRevision(_snapshot);
+            return _revision = new PdfCapturedReadRevision(_snapshot, RecordTextNotices);
         }
     }
 

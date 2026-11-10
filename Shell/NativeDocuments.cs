@@ -131,6 +131,7 @@ public partial class MainWindow
         _doc = null;
         ActiveViewer.NativeDocumentRef?.Close();
         ActiveViewer.NativeDocumentRef = opened;
+        ActiveViewer.FollowNativeNoticesExt(opened);
         CloseEngineDocumentSession();
         _currentFile = path;
         _originalFile = path;

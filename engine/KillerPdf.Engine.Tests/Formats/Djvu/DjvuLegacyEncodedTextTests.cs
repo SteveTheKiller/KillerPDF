@@ -50,6 +50,33 @@ public sealed class DjvuLegacyEncodedTextTests
         Assert.Equal([(0, 1), (2, 3), (6, 1), (8, 4), (13, 1), (15, 5)], page.Regions.Select(r => (r.Start, r.Length)));
     }
 
+    // The viewer reads page text through the snapshot, so the page's notice comes with it, naming the page.
+    [Fact]
+    public void TheViewerTextPageCarriesTheNoticeNamingThePage()
+    {
+        var snapshot = PdfReadSnapshot.OpenDjvu(Page(Text, Zones()));
+
+        var notice = Assert.Single(snapshot.ReadTextPage(0).Diagnostics);
+
+        Assert.Equal("TextEncodingInvalid", notice.Code);
+        Assert.Equal(0, notice.PageIndex);
+        Assert.Empty(PdfReadSnapshot.OpenDjvu(Page("AB"u8.ToArray(), [Zone(0, 0, 1, 1, 0, 2)])).ReadTextPage(0).Diagnostics);
+    }
+
+    // INFO minor version 27 is newer than the November 2005 reference's 26; the Smmr mask adds its rendering notice.
+    // Both are document notices, with no page.
+    [Fact]
+    public void TheSnapshotCarriesTheDocumentNoticesFoundAtOpen()
+    {
+        byte[] source = Page("AB"u8.ToArray(), [Zone(0, 0, 1, 1, 0, 2)]);
+        source[28] = 27;
+
+        var snapshot = PdfReadSnapshot.OpenDjvu(source);
+
+        Assert.Equal(["SmmrRenderingLimited", "PageVersionUnsupported"], snapshot.DjvuDiagnostics.Select(d => d.Code));
+        Assert.All(snapshot.DjvuDiagnostics, notice => Assert.Null(notice.PageIndex));
+    }
+
     [Fact]
     public void ConversionKeepsThePageAndItsTextAndReportsThePage()
     {

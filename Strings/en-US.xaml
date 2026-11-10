@@ -2158,6 +2158,15 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Epub_Diagnostics_None">Nothing was left out of this book.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Pages are still being counted (chapter {0} of {1}). This list covers the chapters counted so far and updates when counting is done.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Chapter {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Parts of this document could not be shown or read.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Document diagnostics</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">These parts of the document were left out or could not be read in full. The original file is unchanged.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Nothing was left out of this document.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Whole document</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Page {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Some shared parts are stored in separate files, which are not opened, so pages that use them may be incomplete.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">The pages use a newer DjVu version, so they may not look exactly as intended.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Some characters in this page's text could not be read and were replaced with a placeholder, so search and copy may not find them.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Not shown: {0}. A notice page takes its place.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">An item was left out of {0}.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Style rules ignored: {0}</sys:String>

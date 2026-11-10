@@ -741,15 +741,25 @@ internal sealed class PdfCapturedReadRevision : IDisposable, IVisibleRegionSourc
     internal Guid Id { get; } = Guid.NewGuid();
     internal EngineDocumentFormat Format { get; }
 
-    internal PdfCapturedReadRevision(EngineReadSnapshot snapshot)
+    /// <param name="textNotices">Told the notices of each DjVu page text a lease reads.</param>
+    internal PdfCapturedReadRevision(EngineReadSnapshot snapshot,
+        Action<IReadOnlyList<KillerPdf.Engine.Formats.Djvu.DjvuDiagnostic>>? textNotices = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         _native = snapshot;
         _nativePages = snapshot;
+        _textNotices = textNotices;
         _pages = [];
         GrowNativePages();
         ContentIdentity = snapshot.SourceSha256;
         Format = snapshot.Format;
+    }
+
+    private readonly Action<IReadOnlyList<KillerPdf.Engine.Formats.Djvu.DjvuDiagnostic>>? _textNotices;
+
+    private void ReportTextNotices(KillerPdf.Engine.Documents.PdfReadTextPage page)
+    {
+        if (page.Diagnostics.Count > 0) _textNotices?.Invoke(page.Diagnostics);
     }
 
     // A native book still being paginated adds pages at its end; the revision grows with it, so everything keyed to
@@ -987,16 +997,19 @@ internal sealed class PdfCapturedReadRevision : IDisposable, IVisibleRegionSourc
                 ?? throw new NotSupportedException("Native text is available only for captured native documents.");
             var page = snapshot.ReadTextPage(pageIndex, cancellation.Token);
             cancellation.Token.ThrowIfCancellationRequested();
+            owner.ReportTextNotices(page);
             return page;
         }
 
         // The page's text alone, which a native EPUB reads from its page index without laying the chapter out again.
+        // A DjVu page's text is its text page's, read whole so its notices are reported too.
         internal string ReadNativeText(int pageIndex)
         {
             _ = _session ?? throw new ObjectDisposedException(nameof(Lease));
             cancellation.Token.ThrowIfCancellationRequested();
             EngineReadSnapshot snapshot = _nativeSnapshot
                 ?? throw new NotSupportedException("Native text is available only for captured native documents.");
+            if (snapshot.Format == EngineDocumentFormat.Djvu) return ReadNativeTextPage(pageIndex).Text;
             string text = snapshot.ReadPageText(pageIndex, cancellation.Token);
             cancellation.Token.ThrowIfCancellationRequested();
             return text;

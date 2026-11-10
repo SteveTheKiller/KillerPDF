@@ -43,6 +43,9 @@ namespace KillerPDF.Controls
                 previewArea.Children.Add(_nativeNotice);
             }
             RescaleNativeNotice();
+            // One bar serves every tab, so it takes the wording of the active document's format each time.
+            _nativeNoticeMessage?.SetResourceReference(TextBlock.TextProperty,
+                Services.NativeDocumentDiagnostics.WordingFor(native.Format).Notice);
             bool appearing = _nativeNotice.Visibility != Visibility.Visible;
             _nativeNotice.Visibility = Visibility.Visible;
             if (appearing && _nativeNoticeMessage is not null)
@@ -59,8 +62,19 @@ namespace KillerPDF.Controls
             var rows = Services.NativeDocumentDiagnostics.Build(native, host.Loc);
             // A book still counting its pages says so, and the list fills in when counting ends.
             new NativeDiagnosticsDialog(owner, rows, () => Services.NativeDocumentDiagnostics.Build(native, host.Loc),
-                () => Services.NativeDocumentDiagnostics.CountingNote(native, host.Loc)).ShowDialog();
+                () => Services.NativeDocumentDiagnostics.CountingNote(native, host.Loc),
+                Services.NativeDocumentDiagnostics.WordingFor(native.Format)).ShowDialog();
         }
+
+        /// <summary>
+        /// Follows a native document's notices: a DjVu page whose text is first read with characters it could not read
+        /// raises the bar then, on the UI thread, if that document is still the one shown.
+        /// </summary>
+        internal void FollowNativeNoticesExt(Services.NativeWorkingDocument document)
+            => document.NoticesChanged += () => Dispatcher.BeginInvoke(() =>
+            {
+                if (ReferenceEquals(_nativeDoc, document)) UpdateNativeNotice();
+            });
 
         // Same surface tokens, grain host and shadow as the restriction notice, centered at the top of the pane.
         private static (Border Bar, TextBlock Message) BuildNativeNotice(Features.IViewerHost host,
@@ -83,7 +97,6 @@ namespace KillerPDF.Controls
                 TextWrapping = TextWrapping.Wrap,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            message.SetResourceReference(TextBlock.TextProperty, "Str_Epub_Diagnostics_Notice");
             message.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
             AutomationProperties.SetLiveSetting(message, AutomationLiveSetting.Polite);
 

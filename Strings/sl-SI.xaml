@@ -2054,6 +2054,15 @@ Urejanje, shranjevanje in nekatere druge funkcije morda ne delujejo pravilno.</s
     <sys:String x:Key="Str_Epub_Diagnostics_None">Iz te knjige ni bilo izpuščeno nič.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Strani se še štejejo (poglavje {0} od {1}). Seznam zajema doslej preštete poglavja in se posodobi, ko je štetje končano.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Poglavje {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Nekaterih delov tega dokumenta ni bilo mogoče prikazati ali prebrati.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Diagnostika dokumenta</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Ti deli dokumenta so bili izpuščeni ali jih ni bilo mogoče v celoti prebrati. Izvirna datoteka je nespremenjena.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Iz tega dokumenta ni bilo izpuščeno nič.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Celoten dokument</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Stran {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Nekateri skupni deli so shranjeni v ločenih datotekah, ki se ne odprejo, zato so strani, ki jih uporabljajo, morda nepopolne.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Strani uporabljajo novejšo različico formata DjVu, zato morda ne bodo prikazane povsem natančno.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Nekaterih znakov v besedilu te strani ni bilo mogoče prebrati, zato so bili nadomeščeni z nadomestnim znakom, iskanje in kopiranje pa jih morda ne bosta našla.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Ni prikazano: {0}. Namesto tega se prikaže stran z obvestilom.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Iz {0} je bil izpuščen en element.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Prezrta pravila sloga: {0}</sys:String>

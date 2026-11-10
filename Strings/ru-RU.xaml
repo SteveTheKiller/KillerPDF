@@ -2168,6 +2168,15 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Epub_Diagnostics_None">Из этой книги ничего не пропущено.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Страницы ещё подсчитываются (глава {0} из {1}). Список охватывает уже подсчитанные главы и обновится, когда подсчёт завершится.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Глава {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Некоторые части этого документа не удалось показать или прочитать.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Диагностика документа</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Эти части документа были пропущены или прочитаны не полностью. Исходный файл не изменён.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Из этого документа ничего не пропущено.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Весь документ</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Страница {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Некоторые общие части хранятся в отдельных файлах, которые не открываются, поэтому страницы, где они используются, могут быть неполными.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Страницы используют более новую версию DjVu, поэтому они могут отображаться не совсем точно.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Некоторые символы в тексте этой страницы не удалось прочитать, поэтому они заменены символом-заполнителем, и поиск или копирование могут их не найти.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Не показано: {0}. Вместо неё отображается страница с уведомлением.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Из {0} пропущен один элемент.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Проигнорированные правила стиля: {0}</sys:String>

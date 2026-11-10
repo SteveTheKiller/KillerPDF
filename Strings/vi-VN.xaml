@@ -2165,6 +2165,15 @@ Chỉnh sửa, lưu và một số tính năng khác có thể không hoạt đ�
     <sys:String x:Key="Str_Epub_Diagnostics_None">Không có nội dung nào của sách này bị bỏ qua.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Các trang vẫn đang được đếm (chương {0}/{1}). Danh sách này gồm các chương đã đếm đến giờ và sẽ cập nhật khi đếm xong.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Chương {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Không thể hiển thị hoặc đọc một số phần của tài liệu này.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Chẩn đoán tài liệu</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Những phần này của tài liệu đã bị bỏ qua hoặc không đọc được đầy đủ. Tệp gốc không bị thay đổi.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Không có nội dung nào của tài liệu này bị bỏ qua.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Toàn bộ tài liệu</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Trang {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Một số phần dùng chung được lưu trong các tệp riêng, vốn không được mở, nên các trang sử dụng chúng có thể không đầy đủ.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Các trang dùng phiên bản DjVu mới hơn, nên có thể không hiển thị hoàn toàn chính xác.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Một số ký tự trong văn bản của trang này không đọc được và đã được thay bằng ký tự giữ chỗ, nên tìm kiếm và sao chép có thể không tìm thấy chúng.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Không hiển thị: {0}. Một trang thông báo sẽ thay thế.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Một mục đã bị bỏ qua khỏi {0}.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Quy tắc kiểu bị bỏ qua: {0}</sys:String>

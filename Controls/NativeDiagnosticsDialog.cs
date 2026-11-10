@@ -13,6 +13,7 @@ internal sealed class NativeDiagnosticsDialog : Window
     private readonly TextBlock _intro;
     private readonly StackPanel _list;
     private readonly Button _copy;
+    private readonly NativeNoticeWording _wording;
     private string _report = "";
 
     internal NativeDiagnosticsDialog(Window owner, IReadOnlyList<NativeDiagnosticRow> rows)
@@ -20,10 +21,12 @@ internal sealed class NativeDiagnosticsDialog : Window
 
     /// <param name="rebuild">Reads the rows again, once the book has finished counting its pages.</param>
     /// <param name="counting">The still-counting note, or null when every page is known.</param>
+    /// <param name="wording">The title, intro and empty note for the document's format; a book's by default.</param>
     internal NativeDiagnosticsDialog(Window owner, IReadOnlyList<NativeDiagnosticRow> rows,
-        Func<IReadOnlyList<NativeDiagnosticRow>>? rebuild, Func<string?>? counting)
+        Func<IReadOnlyList<NativeDiagnosticRow>>? rebuild, Func<string?>? counting, NativeNoticeWording? wording = null)
     {
-        Title = "KillerPDF - " + L("Str_Epub_Diagnostics_Title");
+        _wording = wording ?? NativeDocumentDiagnostics.WordingFor(KillerPdf.Engine.Documents.PdfDocumentFormat.Epub);
+        Title = "KillerPDF - " + L(_wording.Title);
         Width = 640;
         Height = 520;
         MinWidth = 420;
@@ -42,7 +45,7 @@ internal sealed class NativeDiagnosticsDialog : Window
         body.Children.Add(_intro);
 
         _list = new StackPanel { Name = "NativeDiagnosticsList" };
-        AutomationProperties.SetName(_list, L("Str_Epub_Diagnostics_Title"));
+        AutomationProperties.SetName(_list, L(_wording.Title));
         var scroller = new ScrollViewer
         {
             Content = _list,
@@ -102,7 +105,7 @@ internal sealed class NativeDiagnosticsDialog : Window
 
     private void Show(IReadOnlyList<NativeDiagnosticRow> rows, string? countingNote)
     {
-        _intro.Text = countingNote ?? L(rows.Count > 0 ? "Str_Epub_Diagnostics_Intro" : "Str_Epub_Diagnostics_None");
+        _intro.Text = countingNote ?? L(rows.Count > 0 ? _wording.Intro : _wording.None);
         _list.Children.Clear();
         foreach (var row in rows)
         {

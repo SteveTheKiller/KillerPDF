@@ -2165,6 +2165,15 @@ KillerPDF で修復を試みますか？修復済みコピーが作成されま�
     <sys:String x:Key="Str_Epub_Diagnostics_None">この本から省略された部分はありません。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">ページを数えています（{1} 章中 {0} 章）。この一覧はこれまでに数えた章を示し、数え終わると更新されます。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">第 {0} 章</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">このドキュメントの一部を表示または読み取れませんでした。</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">ドキュメントの診断</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">このドキュメントの以下の部分は省略されたか、完全には読み取れませんでした。元のファイルは変更されていません。</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">このドキュメントから省略された部分はありません。</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">ドキュメント全体</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">{0} ページ</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">一部の共有パーツは別のファイルに保存されており、そのファイルは開かれないため、それを使うページは不完全な場合があります。</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">ページが新しいバージョンの DjVu を使用しているため、正確に表示されない場合があります。</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">このページのテキストに読み取れない文字があったため、代替文字に置き換えました。検索やコピーではそれらの文字が見つからない場合があります。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">表示されません: {0}。代わりにお知らせページが表示されます。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} から項目が 1 つ省略されました。</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">無視されたスタイル規則: {0}</sys:String>

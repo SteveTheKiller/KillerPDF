@@ -2165,6 +2165,15 @@ Redigering, lagring og enkelte andre funksjoner fungerer kanskje ikke som de ska
     <sys:String x:Key="Str_Epub_Diagnostics_None">Ingenting ble utelatt fra denne boken.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Sidene telles fortsatt (kapittel {0} av {1}). Listen dekker kapitlene som er talt så langt, og oppdateres når tellingen er ferdig.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Kapittel {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Deler av dette dokumentet kunne ikke vises eller leses.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Dokumentdiagnostikk</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Disse delene av dokumentet ble utelatt eller kunne ikke leses helt. Originalfilen er uendret.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Ingenting ble utelatt fra dette dokumentet.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Hele dokumentet</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Side {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Noen delte deler ligger i egne filer, som ikke åpnes, så sider som bruker dem, kan være ufullstendige.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Sidene bruker en nyere DjVu-versjon, så de vises kanskje ikke helt nøyaktig.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Noen tegn i teksten på denne siden kunne ikke leses og ble erstattet med et plassholdertegn, så søk og kopiering finner dem kanskje ikke.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Vises ikke: {0}. En varselside tar dens plass.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Et element ble utelatt fra {0}.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Ignorerte stilregler: {0}</sys:String>

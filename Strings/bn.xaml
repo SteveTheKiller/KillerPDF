@@ -2145,6 +2145,15 @@ KillerPDF কি মেরামতের চেষ্টা করবে? এ�
     <sys:String x:Key="Str_Epub_Diagnostics_None">এই বই থেকে কিছুই বাদ দেওয়া হয়নি।</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">পৃষ্ঠা এখনও গোনা হচ্ছে ({1}টি অধ্যায়ের মধ্যে {0} নম্বর)। এই তালিকায় এ পর্যন্ত গোনা অধ্যায়গুলো আছে, গোনা শেষ হলে এটি হালনাগাদ হবে।</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">অধ্যায় {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">এই নথির কিছু অংশ দেখানো বা পড়া যায়নি।</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">নথির ডায়াগনস্টিক</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">নথির এই অংশগুলো বাদ দেওয়া হয়েছে বা পুরোপুরি পড়া যায়নি। মূল ফাইলটি অপরিবর্তিত আছে।</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">এই নথি থেকে কিছুই বাদ দেওয়া হয়নি।</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">পুরো নথি</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">পৃষ্ঠা {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">কিছু ভাগ করা অংশ আলাদা ফাইলে রাখা আছে, যেগুলো খোলা হয় না, তাই সেগুলো ব্যবহার করা পৃষ্ঠাগুলো অসম্পূর্ণ হতে পারে।</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">পৃষ্ঠাগুলো DjVu-এর একটি নতুন সংস্করণ ব্যবহার করে, তাই সেগুলো হুবহু ঠিকভাবে না-ও দেখাতে পারে।</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">এই পৃষ্ঠার লেখার কিছু অক্ষর পড়া যায়নি, তাই সেগুলোর জায়গায় একটি স্থানধারক চিহ্ন বসানো হয়েছে এবং খোঁজা বা কপি করার সময় সেগুলো পাওয়া না-ও যেতে পারে।</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">দেখানো হয়নি: {0}। এর জায়গায় একটি বিজ্ঞপ্তি পৃষ্ঠা দেখানো হবে।</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} থেকে একটি আইটেম বাদ দেওয়া হয়েছে।</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">উপেক্ষিত স্টাইল নিয়ম: {0}</sys:String>

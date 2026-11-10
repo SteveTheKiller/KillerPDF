@@ -12,9 +12,48 @@ internal sealed record NativeDiagnosticRow(string Heading, IReadOnlyList<string>
     internal IReadOnlyList<string> ReportLines { get; init; } = Lines;
 }
 
+/// <summary>The string keys of the notice bar's message and of the diagnostics dialog's title, intro and empty note.</summary>
+internal sealed record NativeNoticeWording(string Notice, string Title, string Intro, string None);
+
 /// <summary>Turns what a native book left out or ignored into localized rows, one per chapter.</summary>
 internal static class NativeDocumentDiagnostics
 {
+    /// <summary>
+    /// The DjVu notice codes the reader is told about; each has a reason key in all locales. Included components a
+    /// bundle does not carry leave shared shapes or annotations out of the pages that use them; a newer page version
+    /// may not render exactly; text that is not UTF-8 searches and copies with placeholders. The rest only describe
+    /// what the decoder supports (Smmr, IW44, JPEG layers and thumbnails, whose refused pages say so where they are
+    /// drawn) or what the directory index lacks without changing the pages, and an indirect or unknown directory opens
+    /// no pages at all, so the document never reaches the viewer.
+    /// </summary>
+    internal static IReadOnlyList<string> RaisingDjvuCodes { get; } =
+        ["IncludedComponentUnsupported", "PageVersionUnsupported", "TextEncodingInvalid"];
+
+    internal static bool RaisesNotice(KillerPdf.Engine.Formats.Djvu.DjvuDiagnostic notice)
+        => RaisingDjvuCodes.Contains(notice.Code);
+
+    /// <summary>The string key for a DjVu notice's reason.</summary>
+    internal static string DjvuReasonKey(string code) => "Str_Djvu_Reason_" + code;
+
+    /// <summary>The bar and dialog wording for a document format: a DjVu file is a document, an EPUB a book.</summary>
+    internal static NativeNoticeWording WordingFor(KillerPdf.Engine.Documents.PdfDocumentFormat format) =>
+        format == KillerPdf.Engine.Documents.PdfDocumentFormat.Djvu
+            ? new("Str_Djvu_Diagnostics_Notice", "Str_Djvu_Diagnostics_Title", "Str_Djvu_Diagnostics_Intro",
+                "Str_Djvu_Diagnostics_None")
+            : new("Str_Epub_Diagnostics_Notice", "Str_Epub_Diagnostics_Title", "Str_Epub_Diagnostics_Intro",
+                "Str_Epub_Diagnostics_None");
+
+    // The whole document's row first, then one per page in page order, each line a localized reason; the copied
+    // report adds the engine's English message.
+    private static IReadOnlyList<NativeDiagnosticRow> BuildDjvu(NativeWorkingDocument document, Func<string, string> loc)
+        => document.DjvuNotices.GroupBy(notice => notice.PageIndex).Select(group => new NativeDiagnosticRow(
+                group.Key is int page ? string.Format(loc("Str_Djvu_Diagnostics_Page"), page + 1)
+                    : loc("Str_Djvu_Diagnostics_Document"),
+                group.Select(notice => loc(DjvuReasonKey(notice.Code))).ToArray())
+            {
+                ReportLines = group.Select(notice => loc(DjvuReasonKey(notice.Code)) + " (" + notice.Message + ")").ToArray()
+            }).ToArray();
+
     /// <summary>The string key for an engine omission reason; every reason has one in all locales.</summary>
     internal static string ReasonKey(EpubOmissionReason reason) =>
         "Str_Epub_Reason_" + (Enum.IsDefined(reason) ? reason : EpubOmissionReason.Other);
@@ -52,6 +91,7 @@ internal static class NativeDocumentDiagnostics
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(loc);
+        if (document.Format == KillerPdf.Engine.Documents.PdfDocumentFormat.Djvu) return BuildDjvu(document, loc);
         var lines = new SortedDictionary<int, (List<string> Shown, List<string> Report)>();
         foreach (var refused in document.ChapterDiagnostics)
             Add(refused, "Str_Epub_Diagnostics_ChapterRefused");

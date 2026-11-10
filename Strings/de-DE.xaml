@@ -2154,6 +2154,15 @@ Bearbeiten, Speichern und einige andere Funktionen funktionieren möglicherweise
     <sys:String x:Key="Str_Epub_Diagnostics_None">Aus diesem Buch wurde nichts weggelassen.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Die Seiten werden noch gezählt (Kapitel {0} von {1}). Die Liste umfasst die bisher gezählten Kapitel und wird aktualisiert, sobald das Zählen abgeschlossen ist.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Kapitel {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Teile dieses Dokuments konnten nicht angezeigt oder gelesen werden.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Dokumentdiagnose</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Diese Teile des Dokuments wurden weggelassen oder konnten nicht vollständig gelesen werden. Die Originaldatei bleibt unverändert.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Aus diesem Dokument wurde nichts weggelassen.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Gesamtes Dokument</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Seite {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Einige gemeinsam genutzte Teile liegen in separaten Dateien, die nicht geöffnet werden. Seiten, die sie verwenden, können daher unvollständig sein.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Die Seiten verwenden eine neuere DjVu-Version und werden daher möglicherweise nicht exakt dargestellt.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Einige Zeichen im Text dieser Seite waren nicht lesbar und wurden durch einen Platzhalter ersetzt. Suchen und Kopieren finden sie daher möglicherweise nicht.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Nicht angezeigt: {0}. An seine Stelle tritt eine Hinweisseite.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Aus {0} wurde ein Element weggelassen.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Ignorierte Stilregeln: {0}</sys:String>

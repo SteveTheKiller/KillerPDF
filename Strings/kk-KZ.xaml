@@ -2168,6 +2168,15 @@ KillerPDF жөндеуге әрекет жасасын ба? Жөнделген 
     <sys:String x:Key="Str_Epub_Diagnostics_None">Бұл кітаптан ешнәрсе алынып тасталмады.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Беттер әлі саналуда ({1} тараудың {0}-тарауы). Тізім осы уақытқа дейін саналған тарауларды қамтиды және санау аяқталғанда жаңартылады.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">{0}-тарау</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Құжаттың кейбір бөліктерін көрсету не оқу мүмкін болмады.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Құжат диагностикасы</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Құжаттың бұл бөліктері алынып тасталды немесе толық оқылмады. Бастапқы файл өзгермеген.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Бұл құжаттан ешнәрсе алынып тасталмады.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Бүкіл құжат</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">{0}-бет</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Кейбір ортақ бөліктер бөлек файлдарда сақталған, олар ашылмайды, сондықтан оларды пайдаланатын беттер толық болмауы мүмкін.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Беттер DjVu-дің жаңа нұсқасын пайдаланады, сондықтан олар дәл көрсетілмеуі мүмкін.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Осы беттің мәтініндегі кейбір таңбалар оқылмады және орынбасар таңбамен ауыстырылды, сондықтан іздеу мен көшіру оларды таппауы мүмкін.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Көрсетілмеді: {0}. Оның орнына хабарландыру беті шығады.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">{0} ішінен бір элемент алынып тасталды.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Еленбеген стиль ережелері: {0}</sys:String>

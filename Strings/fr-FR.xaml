@@ -2165,6 +2165,15 @@ La modification, l'enregistrement et certaines autres fonctions peuvent ne pas f
     <sys:String x:Key="Str_Epub_Diagnostics_None">Rien n'a été omis de ce livre.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Les pages sont encore en cours de comptage (chapitre {0} sur {1}). Cette liste couvre les chapitres déjà comptés et se met à jour une fois le comptage terminé.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Chapitre {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Certaines parties de ce document n'ont pas pu être affichées ou lues.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Diagnostic du document</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Ces parties du document ont été omises ou n'ont pas pu être lues entièrement. Le fichier d'origine n'est pas modifié.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Rien n'a été omis de ce document.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Document entier</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Page {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Certaines parties partagées se trouvent dans des fichiers distincts, qui ne sont pas ouverts. Les pages qui les utilisent peuvent donc être incomplètes.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Les pages utilisent une version plus récente de DjVu et risquent de ne pas s'afficher exactement.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Certains caractères du texte de cette page étaient illisibles et ont été remplacés par un caractère de substitution. La recherche et la copie risquent donc de ne pas les trouver.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Non affiché : {0}. Une page d'avis le remplace.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Un élément a été omis de {0}.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Règles de style ignorées : {0}</sys:String>

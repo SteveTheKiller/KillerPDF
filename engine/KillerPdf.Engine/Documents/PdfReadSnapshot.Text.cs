@@ -6,15 +6,22 @@ public sealed record PdfReadTextRegion(int Start, int Length, PdfContentBounds B
 /// <summary>Immutable original native page text and its available selectable regions.</summary>
 public sealed class PdfReadTextPage
 {
-    internal PdfReadTextPage(string text, IEnumerable<PdfReadTextRegion> regions)
+    internal PdfReadTextPage(string text, IEnumerable<PdfReadTextRegion> regions,
+        IReadOnlyList<Formats.Djvu.DjvuDiagnostic>? diagnostics = null)
     {
         Text = text;
         Regions = Array.AsReadOnly(regions.ToArray());
+        Diagnostics = diagnostics ?? [];
     }
     /// <summary>Gets original page text, including source separators.</summary>
     public string Text { get; }
     /// <summary>Gets actual source regions without invented character subdivisions.</summary>
     public IReadOnlyList<PdfReadTextRegion> Regions { get; }
+    /// <summary>
+    /// Gets notices about how a DjVu page's text was read, such as TextEncodingInvalid for text that is not valid
+    /// UTF-8, each naming its page; empty for other formats and for text read as stored.
+    /// </summary>
+    public IReadOnlyList<Formats.Djvu.DjvuDiagnostic> Diagnostics { get; }
 }
 
 public sealed partial class PdfReadSnapshot
@@ -64,7 +71,7 @@ public sealed partial class PdfReadSnapshot
         if (_djvu is not null)
         {
             var source = _djvu.ReadTextPage(pageIndex, cancellationToken);
-            if (source.Zones.Count == 0) return new PdfReadTextPage(source.Text, []);
+            if (source.Zones.Count == 0) return new PdfReadTextPage(source.Text, [], source.Diagnostics);
             // Prefix counts keep overlapping legacy ranges linear in text plus zones.
             var contentCounts = new int[source.Text.Length + 1];
             for (int index = 0; index < source.Text.Length; index++)
@@ -90,7 +97,7 @@ public sealed partial class PdfReadSnapshot
                         (zone.Left + zone.Width) * scaleX, (zone.Bottom + zone.Height) * scaleY)));
             }
             cancellationToken.ThrowIfCancellationRequested();
-            return new PdfReadTextPage(source.Text, regions);
+            return new PdfReadTextPage(source.Text, regions, source.Diagnostics);
         }
         var page = _layout!.Pages[pageIndex];
         foreach (var placement in page.TextPlacements)

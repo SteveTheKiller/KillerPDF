@@ -2166,6 +2166,15 @@ Modifica, salvataggio e alcune altre funzionalità potrebbero non funzionare cor
     <sys:String x:Key="Str_Epub_Diagnostics_None">Nessuna parte di questo libro è stata omessa.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Le pagine sono ancora in fase di conteggio (capitolo {0} di {1}). Questo elenco copre i capitoli contati finora e si aggiorna al termine del conteggio.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Capitolo {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Non è stato possibile visualizzare o leggere alcune parti di questo documento.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Diagnostica del documento</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Queste parti del documento sono state omesse o non è stato possibile leggerle per intero. Il file originale non è stato modificato.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Nessuna parte di questo documento è stata omessa.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Intero documento</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Pagina {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Alcune parti condivise si trovano in file separati, che non vengono aperti, quindi le pagine che le usano potrebbero essere incomplete.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Le pagine usano una versione più recente di DjVu, quindi potrebbero non essere visualizzate esattamente.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Alcuni caratteri nel testo di questa pagina non erano leggibili e sono stati sostituiti con un segnaposto, quindi la ricerca e la copia potrebbero non trovarli.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Non visualizzato: {0}. Al suo posto compare una pagina di avviso.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Un elemento è stato omesso da {0}.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Regole di stile ignorate: {0}</sys:String>

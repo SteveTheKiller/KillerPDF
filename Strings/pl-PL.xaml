@@ -2153,6 +2153,15 @@ Edytowanie, zapisywanie i niektóre inne funkcje mogą nie działać prawidłowo
     <sys:String x:Key="Str_Epub_Diagnostics_None">Z tej książki nic nie pominięto.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Strony są jeszcze liczone (rozdział {0} z {1}). Lista obejmuje policzone dotąd rozdziały i zostanie zaktualizowana po zakończeniu liczenia.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Rozdział {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Nie można było wyświetlić ani odczytać części tego dokumentu.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Diagnostyka dokumentu</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Te części dokumentu zostały pominięte lub nie udało się ich w pełni odczytać. Oryginalny plik pozostaje bez zmian.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">Z tego dokumentu nic nie pominięto.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Cały dokument</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Strona {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Niektóre wspólne części są zapisane w osobnych plikach, które nie są otwierane, więc strony, które z nich korzystają, mogą być niekompletne.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Strony używają nowszej wersji formatu DjVu, więc mogą nie wyświetlać się dokładnie.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Niektórych znaków w tekście tej strony nie udało się odczytać, więc zastąpiono je znakiem zastępczym i wyszukiwanie oraz kopiowanie mogą ich nie znaleźć.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Niewyświetlone: {0}. W jego miejscu pojawia się strona z informacją.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">Z {0} pominięto jeden element.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Zignorowane reguły stylu: {0}</sys:String>

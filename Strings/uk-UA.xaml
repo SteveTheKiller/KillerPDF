@@ -2165,6 +2165,15 @@ KillerPDF не створюватиме двох установлених коп
     <sys:String x:Key="Str_Epub_Diagnostics_None">З цієї книги нічого не пропущено.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Counting">Сторінки ще підраховуються (розділ {0} з {1}). Список охоплює вже підраховані розділи й оновиться, коли підрахунок завершиться.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Chapter">Розділ {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Notice">Деякі частини цього документа не вдалося показати або прочитати.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Title">Діагностика документа</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Intro">Ці частини документа було пропущено або прочитано не повністю. Вихідний файл не змінено.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_None">З цього документа нічого не пропущено.</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Document">Увесь документ</sys:String>
+    <sys:String x:Key="Str_Djvu_Diagnostics_Page">Сторінка {0}</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_IncludedComponentUnsupported">Деякі спільні частини зберігаються в окремих файлах, які не відкриваються, тому сторінки, що їх використовують, можуть бути неповними.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_PageVersionUnsupported">Сторінки використовують новішу версію DjVu, тому можуть відображатися не зовсім точно.</sys:String>
+    <sys:String x:Key="Str_Djvu_Reason_TextEncodingInvalid">Деякі символи в тексті цієї сторінки не вдалося прочитати, тому їх замінено символом-заповнювачем, і пошук або копіювання можуть їх не знайти.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ChapterRefused">Не показано: {0}. Натомість відображається сторінка з повідомленням.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_ItemOmitted">З {0} пропущено один елемент.</sys:String>
     <sys:String x:Key="Str_Epub_Diagnostics_Ignored">Проігноровані правила стилю: {0}</sys:String>
