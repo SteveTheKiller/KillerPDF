@@ -7,7 +7,10 @@ internal static class DjvuIw44Decoder
     private const long MaximumWorkingBytes = 256L * 1024 * 1024;
     private const long MaximumCoefficientVisits = 512_000_000;
 
-    internal static byte[] DecodeGrayscale(IReadOnlyList<ReadOnlyMemory<byte>> payloads, int width, int height, CancellationToken token)
+    // callerBytesPerPixel is what the caller builds from the gray bytes per pixel, counted with the decoder's own
+    // buffers: 32 for a float RGBA frame and its owned copy, 0 when the gray bytes are kept as they are.
+    internal static byte[] DecodeGrayscale(IReadOnlyList<ReadOnlyMemory<byte>> payloads, int width, int height, CancellationToken token,
+        int callerBytesPerPixel = 32)
     {
         token.ThrowIfCancellationRequested();
         if (payloads.Count is < 1 or > 256) throw new InvalidDataException("Invalid IW44 chunk count.");
@@ -35,8 +38,8 @@ internal static class DjvuIw44Decoder
         var blockRows = (height + 31) / 32;
         var coefficientCount = (long)blockColumns * blockRows * 1024;
         var pixelCount = (long)width * height;
-        // Includes coefficients, flags, reconstruction, gray output and both float-frame copies.
-        var workingBytes = coefficientCount * 5 + pixelCount * 37 + payloadBytes + 2048 + payloads.Count * 128L;
+        // Includes coefficients, flags, reconstruction, gray output and what the caller builds from it.
+        var workingBytes = coefficientCount * 5 + pixelCount * (5 + callerBytesPerPixel) + payloadBytes + 2048 + payloads.Count * 128L;
         var visits = coefficientCount * (8L * slices + 1) + pixelCount * 20;
         if (slices > 4096 || workingBytes > MaximumWorkingBytes || visits > MaximumCoefficientVisits)
             throw new InvalidDataException("IW44 image exceeds the combined storage or coefficient-work limit.");

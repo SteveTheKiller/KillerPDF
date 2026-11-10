@@ -57,7 +57,9 @@ public sealed class PdfNativeCapturedReadRevisionTests
         Assert.Equal(.4375f, scaled.Pixels[(2 * 4 + 2) * 4]);
         Assert.Throws<ArgumentException>(() => lease.RenderFrame(0,
             new PdfRenderOptions(2, 3, maximumPixelBytes: 50)));
-        PdfRenderedFrame frame = lease.RenderFrame(0, new PdfRenderOptions(2, 3, maximumPixelBytes: 192));
+        // The 3 x 2 mask is held as two one-byte rows and a two-entry float table (10 bytes); the 6-pixel float frame
+        // is built and then copied (192 bytes).
+        PdfRenderedFrame frame = lease.RenderFrame(0, new PdfRenderOptions(2, 3, maximumPixelBytes: 202));
         Assert.Equal(2, frame.Width);
         Assert.Equal(3, frame.Height);
         Assert.Equal(0f, frame.Pixels[20]);

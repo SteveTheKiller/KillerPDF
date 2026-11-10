@@ -19,13 +19,46 @@ public sealed partial class DjvuDocument
         return RenderSupportedPage(page, chunks, cancellationToken);
     }
 
+    /// <summary>
+    /// Decodes a page into the form it was coded in: Smmr as one bit per pixel, grayscale IW44 as one byte and color
+    /// IW44 as three, at natural size and in stored orientation, with the page's turn applied when it is read.
+    /// </summary>
+    internal PdfNativeCompactRaster DecodePage(int pageIndex, CancellationToken cancellationToken)
+    {
+        var (page, chunks) = ReadPageChunks(pageIndex, cancellationToken);
+        return DecodeSupportedPage(page, chunks, cancellationToken, callerBytesPerPixel: 0);
+    }
+
+    /// <summary>The bytes <see cref="DecodePage"/> keeps for a page, found from its chunks without decoding it.</summary>
+    internal long DecodedPageBytes(int pageIndex, CancellationToken cancellationToken)
+    {
+        var (page, chunks) = ReadPageChunks(pageIndex, cancellationToken);
+        var layout = PdfNativeSampleLayout.Bits;
+        if (chunks.Any(c => c.Id == 0x42473434))
+        {
+            var first = chunks.First(c => c.Id == 0x42473434);
+            layout = first.Length >= 3 && (_data[first.Offset + 2] & 0x80) == 0
+                ? PdfNativeSampleLayout.Rgb : PdfNativeSampleLayout.Gray;
+        }
+        return PdfNativeCompactRaster.StorageBytes(layout, page.Width, page.Height);
+    }
+
     private (DjvuPageInfo Page, List<Chunk> Chunks) ReadSupportedPage(int pageIndex, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var page = Pages[pageIndex];
-        if (page.MajorVersion != 0 || page.MinorVersion > 26) throw new NotSupportedException("Rendering this DjVu page version is not supported.");
-        if ((long)page.Width * page.Height > 128L * 1024 * 1024 / (4 * sizeof(float)))
+        // A whole page as a float frame is kept to 128 MiB; viewers resample the compact decode instead.
+        if ((long)page.Width * page.Height > 128L * 1024 * 1024 / (4 * sizeof(float))
+            && page.MajorVersion == 0 && page.MinorVersion <= 26)
             throw new InvalidDataException("The DjVu frame exceeds the 128 MiB storage limit.");
+        return ReadPageChunks(pageIndex, cancellationToken);
+    }
+
+    private (DjvuPageInfo Page, List<Chunk> Chunks) ReadPageChunks(int pageIndex, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var page = Pages[pageIndex];
+        if (page.MajorVersion != 0 || page.MinorVersion > 26) throw new NotSupportedException("Rendering this DjVu page version is not supported.");
         var form = _pageForms[pageIndex];
         var budget = 65_535;
         var chunks = ReadChunks(_data, form.Offset + 4, form.Offset + form.Length, cancellationToken, ref budget);
@@ -33,8 +66,13 @@ public sealed partial class DjvuDocument
     }
 
     private PdfRenderedFrame RenderSupportedPage(DjvuPageInfo page, List<Chunk> chunks, CancellationToken cancellationToken)
+        => DecodeSupportedPage(page, chunks, cancellationToken).ToFrame(cancellationToken);
+
+    // callerBytesPerPixel is what the caller builds per pixel from the decode: 32 for a float frame and its copy.
+    private PdfNativeCompactRaster DecodeSupportedPage(DjvuPageInfo page, List<Chunk> chunks, CancellationToken cancellationToken,
+        int callerBytesPerPixel = 32)
     {
-        if (chunks.Any(c => c.Id == 0x42473434)) return RenderIw44Page(page, chunks, cancellationToken);
+        if (chunks.Any(c => c.Id == 0x42473434)) return DecodeIw44Raster(page, chunks, cancellationToken, callerBytesPerPixel);
         if (chunks.Any(c => c.Id is not (0x494e464f or 0x536d6d72 or 0x54585461 or 0x5458547a)))
             throw new NotSupportedException("Rendering this page requires unsupported layers, annotations or component content.");
         if (chunks.Count(c => c.Id == 0x536d6d72) > 1) throw new InvalidDataException("A page contains duplicate Smmr masks.");
@@ -56,69 +94,24 @@ public sealed partial class DjvuDocument
             throw new InvalidDataException("Smmr G4 decoding failed.", exception);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        var pixels = new float[page.Width * page.Height * 4];
-        var quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
-        var width = quarterTurn ? page.Height : page.Width;
-        var height = quarterTurn ? page.Width : page.Height;
-        var stride = (page.Width + 7) / 8;
-        for (var y = 0; y < page.Height; y++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            for (var x = 0; x < page.Width; x++)
-            {
-                var (targetX, targetY) = page.Orientation switch
-                {
-                    DjvuOrientation.Clockwise90 => (page.Height - 1 - y, x),
-                    DjvuOrientation.CounterClockwise90 => (y, page.Width - 1 - x),
-                    DjvuOrientation.UpsideDown => (page.Width - 1 - x, page.Height - 1 - y),
-                    _ => (x, y)
-                };
-                var offset = (targetY * width + targetX) * 4;
-                var value = (packed[y * stride + x / 8] & (1 << (7 - x % 8))) == 0 ? 1f : 0f;
-                if ((payload[3] & 1) != 0) value = 1 - value;
-                pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = value;
-                pixels[offset + 3] = 1;
-            }
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-        var frame = new PdfRenderedFrame(width, height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
-        cancellationToken.ThrowIfCancellationRequested();
-        return frame;
+        // CCITT white is a zero bit; the MMR invert flag swaps the two values.
+        float[] linear = (payload[3] & 1) != 0 ? [0f, 1f] : [1f, 0f];
+        return new PdfNativeCompactRaster(PdfNativeSampleLayout.Bits, page.Width, page.Height, packed, linear,
+            (int)page.Orientation);
     }
 
-    private PdfRenderedFrame RenderIw44Page(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)
+    private PdfNativeCompactRaster DecodeIw44Raster(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token,
+        int callerBytesPerPixel)
     {
         var firstBackground = chunks.First(c => c.Id == 0x42473434);
         if (firstBackground.Length >= 3 && (_data[firstBackground.Offset + 2] & 0x80) == 0)
-            return RenderColorIw44Page(page, chunks, token);
-        var (gray, gamma) = DecodeIw44Page(page, chunks, token);
-        var pixels = new float[page.Width * page.Height * 4];
-        var quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
-        var width = quarterTurn ? page.Height : page.Width;
-        var height = quarterTurn ? page.Width : page.Height;
-        for (var y = 0; y < page.Height; y++)
-        {
-            token.ThrowIfCancellationRequested();
-            for (var x = 0; x < page.Width; x++)
-            {
-                var (targetX, targetY) = page.Orientation switch
-                {
-                    DjvuOrientation.Clockwise90 => (page.Height - 1 - y, x),
-                    DjvuOrientation.CounterClockwise90 => (y, page.Width - 1 - x),
-                    DjvuOrientation.UpsideDown => (page.Width - 1 - x, page.Height - 1 - y),
-                    _ => (x, y)
-                };
-                var offset = (targetY * width + targetX) * 4;
-                var value = (float)Math.Pow(gray[y * page.Width + x] / 255d, gamma);
-                pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = value;
-                pixels[offset + 3] = 1;
-            }
-        }
-        token.ThrowIfCancellationRequested();
-        return new PdfRenderedFrame(width, height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
+            return DecodeColorIw44Raster(page, chunks, token);
+        var (gray, gamma) = DecodeIw44Page(page, chunks, token, callerBytesPerPixel);
+        return new PdfNativeCompactRaster(PdfNativeSampleLayout.Gray, page.Width, page.Height, gray, LinearTable(gamma),
+            (int)page.Orientation);
     }
 
-    private PdfRenderedFrame RenderColorIw44Page(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)
+    private PdfNativeCompactRaster DecodeColorIw44Raster(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         if (chunks.Any(c => c.Id is not (0x494e464f or 0x42473434 or 0x54585461 or 0x5458547a)))
@@ -129,32 +122,31 @@ public sealed partial class DjvuDocument
         var backgrounds = chunks.Where(c => c.Id == 0x42473434).Take(2)
             .Select(c => (ReadOnlyMemory<byte>)_data.AsMemory(c.Offset, c.Length)).ToArray();
         var rgb = DjvuIw44Decoder.DecodeColor(backgrounds, page.Width, page.Height, token);
-        var pixels = new float[page.Width * page.Height * 4];
-        for (int pixel = 0; pixel < rgb.Length / 3; pixel++)
-        {
-            token.ThrowIfCancellationRequested();
-            for (int channel = 0; channel < 3; channel++)
-                pixels[pixel * 4 + channel] = (float)Math.Pow(rgb[pixel * 3 + channel] / 255d, gamma);
-            pixels[pixel * 4 + 3] = 1;
-        }
         token.ThrowIfCancellationRequested();
-        var frame = new PdfRenderedFrame(page.Width, page.Height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
-        token.ThrowIfCancellationRequested();
-        return frame;
+        return new PdfNativeCompactRaster(PdfNativeSampleLayout.Rgb, page.Width, page.Height, rgb, LinearTable(gamma), 0);
+    }
+
+    // Each eight-bit sample at the INFO gamma, as a linear channel value.
+    private static float[] LinearTable(double gamma)
+    {
+        var table = new float[256];
+        for (int value = 0; value < 256; value++) table[value] = (float)Math.Pow(value / 255d, gamma);
+        return table;
     }
 
     // Like DjVuInfo::decode, a missing gamma byte means 2.2 and stored values clamp to 0.3 through 5.0.
     private double InfoGamma(List<Chunk> chunks)
         => chunks[0].Length < 9 ? 2.2 : Math.Clamp(_data[chunks[0].Offset + 8] / 10d, 0.3, 5.0);
 
-    private (byte[] Gray, double Gamma) DecodeIw44Page(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token)
+    private (byte[] Gray, double Gamma) DecodeIw44Page(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token,
+        int callerBytesPerPixel = 32)
     {
         if (chunks.Any(c => c.Id is not (0x494e464f or 0x42473434 or 0x54585461 or 0x5458547a)))
             throw new NotSupportedException("IW44 rendering requires a grayscale background without other visual layers.");
         var gamma = InfoGamma(chunks);
         var backgrounds = chunks.Where(c => c.Id == 0x42473434).Take(257)
             .Select(c => (ReadOnlyMemory<byte>)_data.AsMemory(c.Offset, c.Length)).ToArray();
-        var gray = DjvuIw44Decoder.DecodeGrayscale(backgrounds, page.Width, page.Height, token);
+        var gray = DjvuIw44Decoder.DecodeGrayscale(backgrounds, page.Width, page.Height, token, callerBytesPerPixel);
         token.ThrowIfCancellationRequested();
         return (gray, gamma);
     }

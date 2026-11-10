@@ -76,8 +76,10 @@ public sealed class PdfScaledDjvuReadSnapshotTests
         var bytes = Page();
         bytes[42] = 0;
         var malformed = PdfReadSnapshot.OpenDjvu(bytes);
-        Assert.Throws<ArgumentException>(() => malformed.RenderPage(0, new PdfRenderOptions(4, 6, maximumPixelBytes: 959)));
-        Assert.Throws<InvalidDataException>(() => malformed.RenderPage(0, new PdfRenderOptions(4, 6, maximumPixelBytes: 960)));
+        // The 3 x 2 mask is held as two one-byte rows and a two-entry float table (10 bytes); the 4 x 6 float frame is
+        // built and then copied (24 x 32 = 768 bytes).
+        Assert.Throws<ArgumentException>(() => malformed.RenderPage(0, new PdfRenderOptions(4, 6, maximumPixelBytes: 777)));
+        Assert.Throws<InvalidDataException>(() => malformed.RenderPage(0, new PdfRenderOptions(4, 6, maximumPixelBytes: 778)));
         Assert.Throws<OperationCanceledException>(() => malformed.RenderPage(-1, null!, new CancellationToken(true)));
         Assert.Throws<ArgumentNullException>(() => malformed.RenderPage(-1, null!));
         Assert.Throws<ArgumentOutOfRangeException>(() => malformed.RenderPage(-1, new PdfRenderOptions(4, 6)));

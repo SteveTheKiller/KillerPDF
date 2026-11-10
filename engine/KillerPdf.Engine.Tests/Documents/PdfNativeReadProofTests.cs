@@ -48,6 +48,20 @@ public sealed class PdfNativeReadProofTests
         Assert.Equal(saved, bytes);
     }
 
+    // The viewer proofs within 256 MiB. A 600 dpi letter page's bits are 4.2 MB, not a 538 MB float frame.
+    [Fact]
+    public void A600DpiScanPageDrawsAProofedThumbnailInsideTheProofBudget()
+    {
+        var snapshot = PdfReadSnapshot.OpenDjvu(PdfDjvuScanResolutionTests.HalfBlackPage(5100, 6600, 600, 1));
+        var frame = snapshot.RenderPage(0, Options(396, 512) with { });
+        var budgeted = snapshot.RenderPage(0, new PdfRenderOptions(396, 512, maximumPixelBytes: 256L << 20)
+            { Proof = Options(1, 1).Proof });
+        Assert.Equal(frame.Pixels.ToArray(), budgeted.Pixels.ToArray());
+        // Worked ICC endpoints: black becomes the curve's black fraction 8192/65535, white stays white.
+        AssertLuminance(budgeted, 0, .125001907377737087);
+        AssertLuminance(budgeted, 395 * 4, 1);
+    }
+
     [Theory]
     [InlineData(false, false, 0, 0, 0, 1, 1, 1)]
     [InlineData(false, true, .125001907377737087, .125001907377737087, .125001907377737087, 1, 1, 1)]
@@ -89,7 +103,9 @@ public sealed class PdfNativeReadProofTests
 
     [Theory]
     [InlineData(false, 16, 14, 11200)]
-    [InlineData(true, 6, 1, 348)]
+    // The 3 x 1 DjVu mask is kept as one byte and a two-entry float table (9 bytes) beside six proofed pixels at
+    // 48 bytes and a 2-byte warning class each: 9 + 6 x 50 = 309.
+    [InlineData(true, 6, 1, 309)]
     public void NativeProofBoundsCombinedStorageAndReturnsIndependentWarningMasks(
         bool djvu, int width, int height, long exactBytes)
     {

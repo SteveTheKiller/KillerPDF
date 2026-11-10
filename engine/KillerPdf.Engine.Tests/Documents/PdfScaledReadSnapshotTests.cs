@@ -115,7 +115,9 @@ public sealed class PdfScaledReadSnapshotTests
         byte[] bytes = DjvuPage(orientation);
         var snapshot = PdfReadSnapshot.OpenDjvu(bytes);
         var natural = snapshot.RenderPage(0);
-        var frame = snapshot.RenderPage(0, new PdfRenderOptions(width, height, maximumPixelBytes: 192));
+        // The 3 x 2 mask is held as two one-byte rows and a two-entry float table (10 bytes); the 6-pixel float frame
+        // is built and then copied (192 bytes).
+        var frame = snapshot.RenderPage(0, new PdfRenderOptions(width, height, maximumPixelBytes: 202));
         Assert.Equal(width, frame.Width);
         Assert.Equal(height, frame.Height);
         Assert.Equal(natural.ColorEncoding, frame.ColorEncoding);

@@ -240,14 +240,18 @@ public sealed partial class PdfReadSnapshot
         if (geometry.IntrinsicRotation is 90 or 270)
             (width, height) = (height, width);
         bool resized = options.Width != width || options.Height != height;
-        long pixels = checked((long)width * height + (resized ? (long)options.Width * options.Height : 0));
-        if (pixels > options.PixelByteLimit / (2 * 4 * sizeof(float)))
+        // The page stays decoded as its own bits or bytes; only the requested frame is float, built and then copied.
+        long decoded = _djvu!.DecodedPageBytes(pageIndex, cancellationToken);
+        if (checked(decoded + (long)options.Width * options.Height * 2 * 4 * sizeof(float)) > options.PixelByteLimit)
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
         if (resized)
             PdfNativeFrameResampler.CheckWork(width, height, options.Width, options.Height);
-        PdfNativeFrameProof.Preflight(options, resized ? (long)width * height : 0);
-        var frame = _djvu!.RenderPage(pageIndex, cancellationToken);
-        var output = resized ? PdfNativeFrameResampler.Resize(frame, options.Width, options.Height, cancellationToken) : frame;
+        PdfNativeFrameProof.Preflight(options, decoded);
+        var raster = _djvu.DecodePage(pageIndex, cancellationToken);
+        var output = resized
+            ? PdfNativeFrameResampler.Resize(raster, options.Width, options.Height, 0, 0, options.Width, options.Height,
+                cancellationToken)
+            : raster.ToFrame(cancellationToken);
         return PdfNativeFrameProof.Apply(output, options, cancellationToken);
     }
 
@@ -270,20 +274,21 @@ public sealed partial class PdfReadSnapshot
             throw new ArgumentOutOfRangeException(nameof(width), "The region must fit inside the page raster.");
         if (options.SeparationPlate is not null)
             throw new NotSupportedException("Native DjVu rendering does not support color separations.");
-        // Smmr and IW44 data decode only as a whole page, so the natural frame (at most 128 MiB) is decoded once and
+        // Smmr and IW44 data decode only as a whole page, so the page is decoded once into its own bits or bytes and
         // only the region is resampled from it; the requested page size itself is never stored.
         var geometry = _geometries[pageIndex];
         int naturalWidth = (int)Math.Ceiling(geometry.Width);
         int naturalHeight = (int)Math.Ceiling(geometry.Height);
         if (geometry.IntrinsicRotation is 90 or 270)
             (naturalWidth, naturalHeight) = (naturalHeight, naturalWidth);
-        long pixels = checked((long)naturalWidth * naturalHeight + (long)width * height);
-        if (pixels > options.PixelByteLimit / (2 * 4 * sizeof(float)))
+        long decoded = _djvu!.DecodedPageBytes(pageIndex, cancellationToken);
+        if (checked(decoded + (long)width * height * 2 * 4 * sizeof(float)) > options.PixelByteLimit)
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
-        PdfNativeFrameResampler.CheckWork(naturalWidth, naturalHeight, options.Width, options.Height, width, height);
-        PdfNativeFrameProof.Preflight(options, (long)naturalWidth * naturalHeight, (long)width * height);
-        var frame = _djvu!.RenderPage(pageIndex, cancellationToken);
-        var output = PdfNativeFrameResampler.Resize(frame, options.Width, options.Height,
+        PdfNativeFrameResampler.CheckWork(naturalWidth, naturalHeight, options.Width, options.Height, width, height,
+            left, top);
+        PdfNativeFrameProof.Preflight(options, decoded, (long)width * height);
+        var raster = _djvu.DecodePage(pageIndex, cancellationToken);
+        var output = PdfNativeFrameResampler.Resize(raster, options.Width, options.Height,
             left, top, width, height, cancellationToken);
         return PdfNativeFrameProof.Apply(output, options, cancellationToken);
     }
