@@ -245,6 +245,17 @@ public sealed class ProofProfileLibrary(string directory)
     /// <remarks>A missing, unreadable or damaged choice reads as the built-in profile.</remarks>
     public string? GetWorkingCmykProfileSha256()
     {
+        try { return ReadWorkingCmykChoice(); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    // A missing or damaged choice is no choice. A choice file that exists but cannot be read now throws, so a
+    // caller that remembers the result can tell it from no choice.
+    private string? ReadWorkingCmykChoice()
+    {
         try
         {
             using var document = JsonDocument.Parse(ReadBoundedFile(WorkingCmykPath, 4096),
@@ -254,7 +265,7 @@ public sealed class ProofProfileLibrary(string directory)
             string? hash = document.RootElement.GetProperty("contentSha256").GetString();
             return hash is { Length: 64 } && hash.All(char.IsAsciiHexDigit) ? hash.ToUpperInvariant() : null;
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException or JsonException
             or InvalidOperationException or KeyNotFoundException or FormatException)
         {
             return null;
@@ -293,10 +304,12 @@ public sealed class ProofProfileLibrary(string directory)
     }
 
     /// <summary>Loads the chosen working CMYK profile, or null for the built-in one.</summary>
-    /// <remarks>A choice whose owned copy is missing, changed or not a usable CMYK profile resolves to null.</remarks>
+    /// <remarks>A choice whose owned copy is missing, changed or not a usable CMYK profile resolves to null. A library
+    /// that is busy or cannot be read now throws <see cref="IOException"/> or <see cref="UnauthorizedAccessException"/>
+    /// instead, since that is not a choice of the built-in profile.</remarks>
     public PdfColorProfile? ResolveWorkingCmykProfile()
     {
-        if (GetWorkingCmykProfileSha256() is not { } reference) return null;
+        if (ReadWorkingCmykChoice() is not { } reference) return null;
         try
         {
             byte[] bytes;
@@ -308,7 +321,7 @@ public sealed class ProofProfileLibrary(string directory)
             _ = new KillerPdf.Engine.Rendering.PdfRenderOptions(1, 1) { WorkingCmykProfile = profile };
             return profile;
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException
             or FormatException or NotSupportedException or ArgumentException)
         {
             return null;
@@ -404,8 +417,13 @@ internal static class WorkingCmykProfiles
             return cached.Profile;
         PdfColorProfile? profile;
         try { profile = Source(); }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException
-            or FormatException or NotSupportedException or ArgumentException)
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            // A busy or unreadable library is not remembered, so the next call reads it again. Until then the
+            // profile last read for this choice file still applies.
+            return Volatile.Read(ref _choice) is { } previous && previous.Stamp == stamp ? previous.Profile : null;
+        }
+        catch (Exception error) when (error is FormatException or NotSupportedException or ArgumentException)
         {
             profile = null;
         }

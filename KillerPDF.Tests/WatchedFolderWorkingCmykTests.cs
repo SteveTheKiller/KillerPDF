@@ -77,6 +77,27 @@ public sealed class WatchedFolderWorkingCmykTests : IDisposable
         Assert.Equal(0, reads);
     }
 
+    // Another process can hold the library gate past its retries. That miss must not be
+    // remembered as "use the built-in profile" for a long-lived host: once the gate is free,
+    // the chosen profile comes back without the choice file being rewritten.
+    [Fact]
+    public void ABusyLibraryGateIsNotRememberedAsTheBuiltInProfile()
+    {
+        string directory = Path.Combine(_root, "profiles");
+        var library = new ProofProfileLibrary(directory);
+        ProofProfileEntry affine = library.Import("Affine", Convert.FromBase64String(AffineCmyk));
+        library.SetWorkingCmykProfile(affine.ContentSha256);
+        WorkingCmykProfiles.Source = library.ResolveWorkingCmykProfile;
+        WorkingCmykProfiles.Stamp = library.GetWorkingCmykChoiceStamp;
+        WorkingCmykProfiles.Invalidate();
+
+        using (new FileStream(Path.Combine(directory, "library.lock"), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            WorkingCmykProfiles.Current();
+        PdfColorProfile? afterRelease = WorkingCmykProfiles.Current();
+
+        Assert.Equal(affine.ContentSha256, afterRelease?.ContentSha256);
+    }
+
     // The gray the conversion should produce: the weighted sum of the page's managed color.
     private static int Gray(byte[] source, PdfColorProfile? working)
     {
