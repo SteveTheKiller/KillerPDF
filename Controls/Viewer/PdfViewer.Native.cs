@@ -28,6 +28,14 @@ public partial class PdfViewer
             PresentRenderWarning(image, bitmap, page, positionStatus);
     }
 
+    // The footer for a page shown at Fit Width or Fit Page, or null at any other zoom.
+    private string? FitPageStatus(int page) => _fitMode switch
+    {
+        FitMode.Width => string.Format(Loc("Str_FitWidth"), page + 1, ReadPageTotal, $"{DisplayZoomPct():F0}"),
+        FitMode.Page => string.Format(Loc("Str_FitPage"), page + 1, ReadPageTotal, $"{DisplayZoomPct():F0}"),
+        _ => null
+    };
+
     internal async Task RevealNativeNavigationExt(NativeWorkingDocument owner, PdfReadNavigationDestination destination)
     {
         long request = ++_nativeNavigationRequest;
@@ -74,7 +82,8 @@ public partial class PdfViewer
             if (Current())
             {
                 CaptureActiveIfAny();
-                PresentCurrentPageStatus();
+                // A link or outline jump keeps the fit the footer already reports.
+                PresentCurrentPageStatus(FitPageStatus(_currentPage));
             }
         }
         catch (Exception error) when (error is not OutOfMemoryException)
