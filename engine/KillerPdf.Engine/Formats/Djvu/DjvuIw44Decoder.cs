@@ -47,16 +47,40 @@ internal static class DjvuIw44Decoder
     /// the luminance is reconstructed, or later the three planes and the RGB output, plus the copied chunks, what the
     /// caller builds per pixel, context banks and array overhead.
     /// </summary>
-    internal static long ColorWorkingBytes(int width, int height, long payloadBytes, int callerBytesPerPixel = 32)
+    /// <remarks>
+    /// At a <paramref name="subsample"/> of 2, 4 or 8 only the coefficients that reach that scale keep their 16-bit
+    /// values; every finer one keeps two bits of decoding state, and the planes and output are the subsampled size.
+    /// </remarks>
+    internal static long ColorWorkingBytes(int width, int height, long payloadBytes, int callerBytesPerPixel = 32,
+        int subsample = 1)
     {
-        long pixels = (long)width * height;
-        long peak = Math.Max(3 * CoefficientBytes(width, height) + BlockRowBytes(width) + pixels, 6 * pixels);
+        long pixels = (long)((width + subsample - 1) / subsample) * ((height + subsample - 1) / subsample);
+        long peak = Math.Max(3 * CoefficientBytes(width, height, subsample) + BlockRowBytes(width, subsample) + pixels,
+            6 * pixels);
         return peak + pixels * callerBytesPerPixel + payloadBytes + 4096;
     }
 
-    private static long CoefficientBytes(int width, int height) => (long)((width + 31) / 32) * ((height + 31) / 32) * 1024 * sizeof(short);
+    // Per 32 x 32 block: 16-bit values for the coefficients a subsampled image needs, two bits for each other one.
+    private static long CoefficientBytes(int width, int height, int subsample = 1)
+    {
+        int kept = KeptCoefficients(subsample);
+        return (long)((width + 31) / 32) * ((height + 31) / 32) * (kept * sizeof(short) + (1024 - kept) / 4);
+    }
 
-    private static long BlockRowBytes(int width) => (long)((width + 31) / 32) * 1024 * sizeof(short);
+    private static long BlockRowBytes(int width, int subsample = 1)
+        => (long)((width + 31) / 32) * KeptCoefficients(subsample) * sizeof(short);
+
+    // A coefficient's position in its block is a multiple of the subsample in both directions exactly when it is
+    // among the first 1024 / subsample^2: its index bits alternate column and row, least significant last. 2, 4 and 8
+    // keep 256, 64 and 16 (bands 0 to 6, 0 to 3, and band 0), so every band is kept whole or not at all.
+    private static int KeptCoefficients(int subsample) => subsample switch
+    {
+        1 => 1024,
+        2 => 256,
+        4 => 64,
+        8 => 16,
+        _ => throw new ArgumentOutOfRangeException(nameof(subsample), "IW44 decodes at a subsample of 1, 2, 4 or 8.")
+    };
 
     /// <summary>
     /// The coefficient visits <paramref name="slices"/> slices make over <paramref name="blocks"/> blocks. A slice
@@ -100,7 +124,7 @@ internal static class DjvuIw44Decoder
         long work = SliceWork(slices, blocks) + blocks * 1024 * ReconstructionWorkPerPixel;
         if (slices > MaximumSlices || workingBytes > MaximumWorkingBytes || work > MaximumWork)
             throw new InvalidDataException("IW44 image exceeds the combined storage or coefficient-work limit.");
-        var plane = new Plane(blocks);
+        var plane = new Plane(blocks, 1024);
         for (var serial = 0; serial < payloads.Count; serial++)
         {
             token.ThrowIfCancellationRequested();
@@ -122,9 +146,16 @@ internal static class DjvuIw44Decoder
         return output;
     }
 
+    /// <summary>
+    /// Decodes a color image to RGB bytes, top row first. A <paramref name="subsample"/> of 2, 4 or 8 returns the image
+    /// reconstructed only down to that scale, (width + subsample - 1) / subsample by (height + subsample - 1) /
+    /// subsample samples: each is the wavelet's own sample at that position of the 32 x 32 block grid, so a page
+    /// shown smaller than itself decodes in a fraction of the memory and reconstruction work.
+    /// </summary>
     internal static byte[] DecodeColor(IReadOnlyList<ReadOnlyMemory<byte>> payloads, int width, int height, CancellationToken token,
-        int callerBytesPerPixel = 32)
+        int callerBytesPerPixel = 32, int subsample = 1)
     {
+        int kept = KeptCoefficients(subsample);
         token.ThrowIfCancellationRequested();
         if (payloads.Count is < 1 or > 256) throw new InvalidDataException("Invalid IW44 chunk count.");
         var payload = payloads[0].Span;
@@ -143,14 +174,15 @@ internal static class DjvuIw44Decoder
         var (slices, payloadBytes) = ScanChunks(payloads, token);
         int blockColumns = (width + 31) / 32, blockRows = (height + 31) / 32;
         long blocks = (long)blockColumns * blockRows;
-        long pixelCount = (long)width * height;
-        long workingBytes = ColorWorkingBytes(width, height, payloadBytes, callerBytesPerPixel);
+        int outputWidth = (width + subsample - 1) / subsample, outputHeight = (height + subsample - 1) / subsample;
+        long pixelCount = (long)outputWidth * outputHeight;
+        long workingBytes = ColorWorkingBytes(width, height, payloadBytes, callerBytesPerPixel, subsample);
         long work = SliceWork(slices, blocks) + 2 * SliceWork(Math.Max(0, slices - chromaDelay), blocks)
-            + 3 * blocks * 1024 * ReconstructionWorkPerPixel;
+            + 3 * blocks * kept * ReconstructionWorkPerPixel;
         if (slices > MaximumSlices || workingBytes > MaximumWorkingBytes || work > MaximumWork)
             throw new InvalidDataException("IW44 color image exceeds the combined storage or coefficient-work limit.");
         var planes = new Plane[3];
-        for (int component = 0; component < 3; component++) planes[component] = new Plane(blocks);
+        for (int component = 0; component < 3; component++) planes[component] = new Plane(blocks, kept);
         var activeContexts = new byte[98];
         // Each slice codes Y, then Cb and Cr once the chroma delay has passed. Every chunk restarts the arithmetic
         // decoder; each component keeps its own context bank, and switching banks leaves the arithmetic interval and
@@ -174,10 +206,13 @@ internal static class DjvuIw44Decoder
         for (int component = 0; component < 3; component++)
         {
             token.ThrowIfCancellationRequested();
-            bool half = component > 0 && halfChroma;
-            Reconstruct(planes[component], blockColumns, width, height, half, token);
-            signed[component] = SignedSamples(planes[component].Coefficients!, blockColumns * 32, width, height, half, token);
+            // Half-resolution chroma reconstructs to scale 2, which a subsampled image never goes below anyway.
+            bool half = component > 0 && halfChroma && subsample == 1;
+            Reconstruct(planes[component], blockColumns, width, height, half, token, subsample);
+            signed[component] = SignedSamples(planes[component].Coefficients!, blockColumns * 32 / subsample,
+                outputWidth, outputHeight, half, token);
             planes[component].Coefficients = null;
+            planes[component].States = null;
         }
         var rgb = new byte[(int)pixelCount * 3];
         for (int pixel = 0; pixel < pixelCount; pixel++)
@@ -213,15 +248,35 @@ internal static class DjvuIw44Decoder
         return (slices, payloadBytes);
     }
 
-    // One component's coefficients, kept as 16-bit values in block order (1024 per 32 x 32 block, row-major blocks)
+    // One component's coefficients, kept as 16-bit values in block order (Kept per 32 x 32 block, row-major blocks)
     // until reconstruction moves them into raster order in place, with its quantization steps, context bank and
-    // slice count.
-    private sealed class Plane(long blocks)
+    // slice count. Coefficients past Kept, which only a finer scale than the one decoded needs, keep two bits each
+    // in States: zero, significant and not yet refined, or refined.
+    private sealed class Plane(long blocks, int kept)
     {
-        internal short[]? Coefficients = new short[blocks * 1024];
+        internal readonly long Blocks = blocks;
+        internal readonly int Kept = kept;
+        internal short[]? Coefficients = new short[blocks * kept];
+        internal byte[]? States = kept == 1024 ? null : new byte[blocks * ((1024 - kept) / 4)];
         internal readonly int[] Steps = (int[])InitialSteps.Clone();
         internal readonly byte[] Contexts = new byte[98];
         internal int Slices;
+
+        internal int State(long block, int index)
+        {
+            long position = block * (1024 - Kept) + index - Kept;
+            return (States![position >> 2] >> (int)(2 * (position & 3))) & 3;
+        }
+
+        internal void SetState(long block, int index, int state)
+        {
+            long position = block * (1024 - Kept) + index - Kept;
+            int shift = (int)(2 * (position & 3));
+            States![position >> 2] = (byte)((States[position >> 2] & ~(3 << shift)) | (state << shift));
+        }
+
+        internal bool NonZero(long block, int index)
+            => index < Kept ? Coefficients![block * Kept + index] != 0 : State(block, index) != 0;
     }
 
     private static bool IsNullSlice(int band, ReadOnlySpan<int> steps)
@@ -243,22 +298,29 @@ internal static class DjvuIw44Decoder
     {
         int band = plane.Slices % 10;
         plane.Slices++;
-        if (!IsNullSlice(band, plane.Steps)) DecodeBand(plane.Coefficients!, plane.Steps, band, arithmetic, token);
+        if (!IsNullSlice(band, plane.Steps))
+        {
+            if (FirstBuckets[band] * 16 < plane.Kept) DecodeBand(plane, plane.Steps, band, arithmetic, token);
+            else DecodeBandStates(plane, plane.Steps, band, arithmetic, token);
+        }
         HalveSteps(band, plane.Steps);
     }
 
-    private static void DecodeBand(short[] coefficients, int[] steps, int band, DjvuZpDecoder arithmetic, CancellationToken token)
+    // A band of coefficients kept as values. Parents always lie in a coarser band, so they are kept values too.
+    private static void DecodeBand(Plane plane, int[] steps, int band, DjvuZpDecoder arithmetic, CancellationToken token)
     {
+        var coefficients = plane.Coefficients!;
+        int kept = plane.Kept;
         int firstBucket = FirstBuckets[band], bucketCount = BucketCounts[band];
         int first = firstBucket * 16, count = bucketCount * 16;
         Span<int> bandSteps = stackalloc int[count];
         for (int k = 0; k < count; k++) bandSteps[k] = steps[StepIndex(first + k)];
         Span<byte> flags = stackalloc byte[count];
         Span<byte> bucketFlags = stackalloc byte[16];
-        for (var block = 0; block < coefficients.Length; block += 1024)
+        for (long block = 0; block < coefficients.LongLength; block += kept)
         {
             token.ThrowIfCancellationRequested();
-            var values = coefficients.AsSpan(block + first, count);
+            var values = coefficients.AsSpan((int)block + first, count);
             byte blockFlags = 0;
             bucketFlags.Clear();
             // Flags describe the state before any update in this block band.
@@ -283,7 +345,7 @@ internal static class DjvuIw44Decoder
                     var activeParents = 0;
                     if (band != 0)
                     {
-                        var parent = block + (firstBucket + bucket) * 4;
+                        var parent = (int)block + (firstBucket + bucket) * 4;
                         for (var j = 0; j < 4; j++)
                             if (coefficients[parent + j] != 0) activeParents++;
                         activeParents = Math.Min(3, activeParents);
@@ -324,6 +386,82 @@ internal static class DjvuIw44Decoder
         }
     }
 
+    // A band only a finer scale than the decoded one needs: the same decisions as DecodeBand, read in the same contexts,
+    // from two bits per coefficient. Every step is a power of two halved at each visit of its band, so a coefficient
+    // made significant at step s holds 3s/2, exactly three times the step at its next visit, which is its first
+    // refinement and the only time its magnitude is at most three steps (after it, at least five). The magnitude
+    // stays below 0x8000 (at most 2s), so the 16-bit values never wrap. Zero, awaiting its first refinement, and
+    // refined are all the decoder ever asks of such a coefficient; the sign bit is decoded and dropped.
+    private static void DecodeBandStates(Plane plane, int[] steps, int band, DjvuZpDecoder arithmetic, CancellationToken token)
+    {
+        int firstBucket = FirstBuckets[band], bucketCount = BucketCounts[band];
+        int first = firstBucket * 16, count = bucketCount * 16;
+        Span<int> bandSteps = stackalloc int[count];
+        for (int k = 0; k < count; k++) bandSteps[k] = steps[StepIndex(first + k)];
+        Span<byte> flags = stackalloc byte[count];
+        Span<byte> states = stackalloc byte[count];
+        Span<byte> bucketFlags = stackalloc byte[16];
+        for (long block = 0; block < plane.Blocks; block++)
+        {
+            token.ThrowIfCancellationRequested();
+            byte blockFlags = 0;
+            bucketFlags.Clear();
+            for (var bucket = 0; bucket < bucketCount; bucket++)
+            {
+                for (var j = 0; j < 16; j++)
+                {
+                    int k = bucket * 16 + j;
+                    states[k] = (byte)plane.State(block, first + k);
+                    var flag = bandSteps[k] is > 0 and < 0x8000 ? states[k] == 0 ? (byte)1 : (byte)2 : (byte)0;
+                    flags[k] = flag;
+                    bucketFlags[bucket] |= flag;
+                }
+                blockFlags |= bucketFlags[bucket];
+            }
+            var decodeBuckets = bucketCount < 16 || (blockFlags & 2) != 0 ||
+                (blockFlags & 1) != 0 && arithmetic.Bit(0) != 0;
+            if (decodeBuckets)
+            {
+                for (var bucket = 0; bucket < bucketCount; bucket++)
+                {
+                    if ((bucketFlags[bucket] & 1) == 0) continue;
+                    var activeParents = 0;
+                    var parent = (firstBucket + bucket) * 4;
+                    for (var j = 0; j < 4; j++)
+                        if (plane.NonZero(block, parent + j)) activeParents++;
+                    activeParents = Math.Min(3, activeParents);
+                    var context = 1 + band * 8 + ((blockFlags & 2) != 0 ? 4 : 0) + activeParents;
+                    if (arithmetic.Bit(context) != 0) bucketFlags[bucket] |= 4;
+                }
+                for (var bucket = 0; bucket < bucketCount; bucket++)
+                {
+                    if ((bucketFlags[bucket] & 4) == 0) continue;
+                    var potential = 0;
+                    var start = bucket * 16;
+                    for (var j = 0; j < 16; j++) if ((flags[start + j] & 1) != 0) potential++;
+                    for (var j = 0; j < 16; j++)
+                    {
+                        if ((flags[start + j] & 1) == 0) continue;
+                        var context = 81 + ((bucketFlags[bucket] & 2) != 0 ? 8 : 0) + Math.Min(7, potential);
+                        if (arithmetic.Bit(context) != 0)
+                        {
+                            arithmetic.Bit();
+                            plane.SetState(block, first + start + j, 1);
+                            potential = 0;
+                        }
+                        if (potential > 0) potential--;
+                    }
+                }
+            }
+            for (var k = 0; k < count; k++)
+            {
+                if ((flags[k] & 2) == 0) continue;
+                arithmetic.Bit(states[k] == 1 ? 97 : -1);
+                if (states[k] == 1) plane.SetState(block, first + k, 2);
+            }
+        }
+    }
+
     private static int StepIndex(int coefficient) => coefficient < 4 ? coefficient :
         coefficient < 16 ? 4 + (coefficient - 4) / 4 :
         coefficient < 64 ? 7 + (coefficient - 16) / 16 :
@@ -331,12 +469,21 @@ internal static class DjvuIw44Decoder
 
     // Moves the plane's coefficients from block order into raster order (rows padded to whole blocks) one block
     // row at a time, then runs the inverse wavelet transform in place in 16 bits, as DjVuLibre does.
-    private static void Reconstruct(Plane plane, int blockColumns, int width, int height, bool halfResolution, CancellationToken token)
+    // At a subsample the kept coefficients sit on every subsample-th row and column of the full raster; they move into
+    // a raster of that grid alone, and the transform runs its scales down to the subsample on it, each scale divided by
+    // the subsample. A scale's row and column counts are the same on either grid ((n - 1) / scale + 1 equals
+    // ((n - 1) / subsample) / (scale / subsample) + 1), so every lifting step sees the same neighbors and the samples
+    // are the full transform's own samples at that scale. DjVuLibre's subsampled images saturate the last column pass
+    // as its full-size ones do, so scale 1 of the grid being reconstructed saturates; with that its output matches
+    // ddjvu -subsample byte for byte, over the rectangle ddjvu keeps (it rounds the size and anchors bottom left).
+    private static void Reconstruct(Plane plane, int blockColumns, int width, int height, bool halfResolution, CancellationToken token,
+        int subsample = 1)
     {
         var data = plane.Coefficients!;
-        int paddedWidth = blockColumns * 32, rowLength = blockColumns * 1024;
-        Span<int> biasSteps = stackalloc int[1024];
-        for (int i = 0; i < 1024; i++) biasSteps[i] = plane.Steps[StepIndex(i)];
+        int kept = plane.Kept, cell = 32 / subsample;
+        int paddedWidth = blockColumns * cell, rowLength = blockColumns * kept;
+        Span<int> biasSteps = stackalloc int[kept];
+        for (int i = 0; i < kept; i++) biasSteps[i] = plane.Steps[StepIndex(i)];
         var row = new short[rowLength];
         for (int start = 0; start < data.Length; start += rowLength)
         {
@@ -344,8 +491,8 @@ internal static class DjvuIw44Decoder
             data.AsSpan(start, rowLength).CopyTo(row);
             for (int block = 0; block < blockColumns; block++)
             {
-                int source = block * 1024, target = start + block * 32;
-                for (int i = 0; i < 1024; i++)
+                int source = block * kept, target = start + block * cell;
+                for (int i = 0; i < kept; i++)
                 {
                     int value = row[source + i];
                     // Keep arithmetic interval centers unchanged. A sample that became significant in its band's
@@ -353,13 +500,15 @@ internal static class DjvuIw44Decoder
                     // and it reconstructs at 3/8 of its interval until its first refinement.
                     if (value != 0 && Math.Abs(value) == 3 * biasSteps[i])
                         value = value > 0 ? value - biasSteps[i] / 4 : value + biasSteps[i] / 4;
-                    data[target + BlockRow[i] * paddedWidth + BlockColumn[i]] = (short)value;
+                    data[target + BlockRow[i] / subsample * paddedWidth + BlockColumn[i] / subsample] = (short)value;
                 }
             }
         }
+        width = (width + subsample - 1) / subsample;
+        height = (height + subsample - 1) / subsample;
         var line = new int[width];
         var evens = new int[(width + 1) / 2];
-        for (var scale = 16; scale >= (halfResolution ? 2 : 1); scale /= 2)
+        for (var scale = 16 / subsample; scale >= (halfResolution ? 2 : 1); scale /= 2)
         {
             TransformColumns(data, paddedWidth, scale, width, (height - 1) / scale + 1, token);
             for (var y = 0; y < height; y += scale)

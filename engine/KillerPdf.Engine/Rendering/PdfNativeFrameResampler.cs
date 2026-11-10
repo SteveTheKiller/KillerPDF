@@ -142,11 +142,28 @@ internal sealed class PdfNativeCompactRaster
 {
     internal PdfNativeCompactRaster(PdfNativeSampleLayout layout, int storedWidth, int storedHeight, byte[] samples,
         float[] linear, int rotation)
+        : this(layout, storedWidth, storedHeight, samples, linear, rotation, 1, storedWidth, storedHeight)
+    {
+    }
+
+    /// <summary>
+    /// A page decoded at a whole <paramref name="reduction"/>: each stored sample covers that many page pixels across
+    /// and down from the page's stored top left corner, the last row and column only what is left of the page.
+    /// </summary>
+    internal PdfNativeCompactRaster(PdfNativeSampleLayout layout, int storedWidth, int storedHeight, byte[] samples,
+        float[] linear, int rotation, int reduction, int pageWidth, int pageHeight)
     {
         if (rotation is not (0 or 90 or 180 or 270)) throw new ArgumentOutOfRangeException(nameof(rotation));
+        if (reduction < 1 || (pageWidth + reduction - 1) / reduction != storedWidth
+            || (pageHeight + reduction - 1) / reduction != storedHeight)
+            throw new ArgumentOutOfRangeException(nameof(reduction));
+        if (reduction > 1 && layout != PdfNativeSampleLayout.Rgb) throw new ArgumentOutOfRangeException(nameof(layout));
         Layout = layout;
         StoredWidth = storedWidth;
         StoredHeight = storedHeight;
+        Reduction = reduction;
+        PageWidth = rotation is 90 or 270 ? pageHeight : pageWidth;
+        PageHeight = rotation is 90 or 270 ? pageWidth : pageHeight;
         RowUnits = layout switch
         {
             PdfNativeSampleLayout.Bits => (storedWidth + 7) / 8 * 8,
@@ -181,6 +198,9 @@ internal sealed class PdfNativeCompactRaster
         Linear = linear;
         Rotation = rotation;
         Layers = layers;
+        Reduction = 1;
+        PageWidth = rotation is 90 or 270 ? storedHeight : storedWidth;
+        PageHeight = rotation is 90 or 270 ? storedWidth : storedHeight;
     }
 
     private readonly int _rowShift;
@@ -216,6 +236,15 @@ internal sealed class PdfNativeCompactRaster
     internal int Rotation { get; }
     internal int Width => Rotation is 90 or 270 ? StoredHeight : StoredWidth;
     internal int Height => Rotation is 90 or 270 ? StoredWidth : StoredHeight;
+    /// <summary>How many page pixels each stored sample covers across and down; 1 for a natural-size decode.</summary>
+    internal int Reduction { get; }
+    /// <summary>The displayed page size in pixels, which a reduced raster's samples cover.</summary>
+    internal int PageWidth { get; }
+    internal int PageHeight { get; }
+    // Displayed columns run against stored ones for a half turn and a clockwise quarter turn (stored rows, bottom
+    // up); displayed rows run against them for a half turn and a counterclockwise quarter turn (Offsets).
+    internal bool ColumnsReversed => Rotation is 90 or 180;
+    internal bool RowsReversed => Rotation is 180 or 270;
 
     /// <summary>The bytes the raster holds.</summary>
     internal static long StorageBytes(PdfNativeSampleLayout layout, int storedWidth, int storedHeight) => layout switch
@@ -269,6 +298,7 @@ internal sealed class PdfNativeCompactRaster
     /// <summary>The natural-size linear RGBA channels, so a caller can let the raster go before copying them.</summary>
     internal float[] ToPixels(CancellationToken token)
     {
+        if (Reduction != 1) throw new InvalidOperationException("A reduced raster is drawn only by resampling.");
         int width = Width, height = Height;
         int[] columns = new int[width], rows = new int[height];
         for (int x = 0; x < width; x++) columns[x] = x;
@@ -380,8 +410,10 @@ internal static class PdfNativeFrameResampler
     internal static float[] ResizePixels(PdfNativeCompactRaster source, int width, int height,
         int left, int top, int regionWidth, int regionHeight, CancellationToken token)
     {
-        var xs = MakeTaps(source.Width, width, left, regionWidth, token);
-        var ys = MakeTaps(source.Height, height, top, regionHeight, token);
+        var xs = source.Reduction == 1 ? MakeTaps(source.Width, width, left, regionWidth, token)
+            : MakeCellTaps(source.Width, source.PageWidth, source.Reduction, source.ColumnsReversed, width, left, regionWidth, token);
+        var ys = source.Reduction == 1 ? MakeTaps(source.Height, height, top, regionHeight, token)
+            : MakeCellTaps(source.Height, source.PageHeight, source.Reduction, source.RowsReversed, height, top, regionHeight, token);
         var (columnOffsets, rowOffsets) = source.Offsets(Indexes(xs), Indexes(ys));
         int[][] columns = Positions(xs, columnOffsets), rows = Positions(ys, rowOffsets);
         bool rgb = source.Layout == PdfNativeSampleLayout.Rgb;
@@ -450,6 +482,66 @@ internal static class PdfNativeFrameResampler
             for (int j = 0; j < taps[i].Length; j++) result[i][j] = offsets[n++];
         }
         return result;
+    }
+
+    // Taps over a reduced raster's samples, by the page pixels each covers: output i spans page [i P / t, (i + 1) P / t)
+    // and reads every sample cell it overlaps, weighted by the overlap. Cell k spans stored page pixels [k r,
+    // min((k + 1) r, P)), so the last cell is partial; on a reversed axis displayed cell j is stored cell n - 1 - j,
+    // measured from the far edge. Only reduction is supported: the decode is chosen with at least as many samples as
+    // the output.
+    private static Tap[][] MakeCellTaps(int cells, int page, int reduction, bool reversed, int target, int first,
+        int count, CancellationToken token)
+    {
+        var result = new Tap[count][];
+        for (int n = 0; n < count; n++)
+        {
+            token.ThrowIfCancellationRequested();
+            var (start, end, low, high) = CellSpan(cells, page, reduction, reversed, target, first + n);
+            var taps = new Tap[high - low];
+            for (int k = low; k < high; k++)
+            {
+                double cellStart = (double)k * reduction, cellEnd = Math.Min((double)(k + 1) * reduction, page);
+                taps[k - low] = new(reversed ? cells - 1 - k : k,
+                    (Math.Min(end, cellEnd) - Math.Max(start, cellStart)) / (end - start));
+            }
+            result[n] = taps;
+        }
+        return result;
+    }
+
+    // Output i's span in stored page pixels and the stored cells [low, high) it overlaps.
+    private static (double Start, double End, int Low, int High) CellSpan(int cells, int page, int reduction,
+        bool reversed, int target, int i)
+    {
+        double start = (double)i * page / target, end = (double)(i + 1) * page / target;
+        if (reversed) (start, end) = (page - end, page - start);
+        int low = Math.Clamp((int)Math.Floor(start / reduction), 0, cells - 1);
+        int high = Math.Clamp((int)Math.Ceiling(end / reduction), low + 1, cells);
+        return (start, end, low, high);
+    }
+
+    /// <summary>
+    /// <see cref="CheckWork(int, int, int, int, int, int, int, int)"/> for a raster decoded at a reduction, counting
+    /// exactly the taps <see cref="MakeCellTaps"/> builds. Width and height are the displayed page's pixels.
+    /// </summary>
+    internal static void CheckReducedWork(int width, int height, int reduction, int rotation, int targetWidth,
+        int targetHeight, int regionWidth, int regionHeight, int left = 0, int top = 0)
+    {
+        bool columnsReversed = rotation is 90 or 180, rowsReversed = rotation is 180 or 270;
+        int cellsX = (width + reduction - 1) / reduction, cellsY = (height + reduction - 1) / reduction;
+        long Taps(int cells, int page, bool reversed, int target, int first, int count)
+        {
+            long taps = 0;
+            for (int i = first; i < first + count; i++)
+            {
+                var (_, _, low, high) = CellSpan(cells, page, reduction, reversed, target, i);
+                taps += high - low;
+            }
+            return taps;
+        }
+        if (checked(Taps(cellsX, width, columnsReversed, targetWidth, left, regionWidth)
+                * Taps(cellsY, height, rowsReversed, targetHeight, top, regionHeight)) > 64_000_000)
+            throw new InvalidDataException("Native resampling exceeds the weighted work limit.");
     }
 
     private static Tap[][] MakeTaps(int source, int target, int first, int count, CancellationToken token)

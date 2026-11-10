@@ -24,17 +24,45 @@ public sealed partial class DjvuDocument
     /// and color IW44 as three, compound pages as their mask over layers at their stored sizes, at natural size and in
     /// stored orientation, with the page's turn applied when it is read.
     /// </summary>
-    internal PdfNativeCompactRaster DecodePage(int pageIndex, CancellationToken cancellationToken)
+    /// <remarks>
+    /// A color photo page decodes at <paramref name="subsample"/> (from <see cref="DecodeSubsample"/>): IW44's own
+    /// samples at that wavelet scale, each covering subsample page pixels across and down.
+    /// </remarks>
+    internal PdfNativeCompactRaster DecodePage(int pageIndex, CancellationToken cancellationToken, int subsample = 1)
     {
         var (page, chunks) = ReadPageChunks(pageIndex, cancellationToken);
-        return DecodeSupportedPage(page, chunks, cancellationToken, callerBytesPerPixel: 0);
+        return DecodeSupportedPage(page, chunks, cancellationToken, callerBytesPerPixel: 0,
+            subsample: IsColorPhotoPage(page, chunks) ? subsample : 1);
+    }
+
+    /// <summary>
+    /// The subsample a page decodes at to be drawn at <paramref name="width"/> by <paramref name="height"/> pixels in
+    /// stored orientation: for a color photo page, the coarsest of 8, 4 and 2 whose samples still number at least the
+    /// output's in both directions, so the drawing only ever reduces; 1 otherwise, and for every other page.
+    /// </summary>
+    internal int DecodeSubsample(int pageIndex, int width, int height, CancellationToken cancellationToken)
+    {
+        var (page, chunks) = ReadPageChunks(pageIndex, cancellationToken);
+        if (!IsColorPhotoPage(page, chunks)) return 1;
+        foreach (int subsample in (ReadOnlySpan<int>)[8, 4, 2])
+            if ((page.Width + subsample - 1) / subsample >= width && (page.Height + subsample - 1) / subsample >= height)
+                return subsample;
+        return 1;
+    }
+
+    // A full-size color IW44 background with no mask or foreground: the page compound composition does not cover.
+    private bool IsColorPhotoPage(DjvuPageInfo page, List<Chunk> chunks)
+    {
+        var background = chunks.FirstOrDefault(c => c.Id == Bg44Id);
+        return background.Id != 0 && Classify(page, chunks) == PageLayers.Other
+            && Iw44Header(background) is { Channels: 3 } header && header.Width == page.Width && header.Height == page.Height;
     }
 
     /// <summary>
     /// The bytes <see cref="DecodePage"/> keeps for a page, and the most it holds at once while decoding, found from
     /// the page's chunks without decoding it. Smmr decodes straight into the kept bits; IW44 needs its coefficients.
     /// </summary>
-    internal (long Kept, long Decoding) DecodedPageBytes(int pageIndex, CancellationToken cancellationToken)
+    internal (long Kept, long Decoding) DecodedPageBytes(int pageIndex, CancellationToken cancellationToken, int subsample = 1)
     {
         var (page, chunks) = ReadPageChunks(pageIndex, cancellationToken);
         switch (Classify(page, chunks))
@@ -53,9 +81,13 @@ public sealed partial class DjvuDocument
             return (bits, bits);
         }
         if (backgrounds[0].Length >= 3 && (_data[backgrounds[0].Offset + 2] & 0x80) == 0)
-            return (PdfNativeCompactRaster.StorageBytes(PdfNativeSampleLayout.Rgb, page.Width, page.Height),
+        {
+            if (!IsColorPhotoPage(page, chunks)) subsample = 1;
+            return (PdfNativeCompactRaster.StorageBytes(PdfNativeSampleLayout.Rgb, (page.Width + subsample - 1) / subsample,
+                    (page.Height + subsample - 1) / subsample),
                 DjvuIw44Decoder.ColorWorkingBytes(page.Width, page.Height, backgrounds.Sum(c => (long)c.Length),
-                    callerBytesPerPixel: 0));
+                    callerBytesPerPixel: 0, subsample));
+        }
         return (PdfNativeCompactRaster.StorageBytes(PdfNativeSampleLayout.Gray, page.Width, page.Height),
             DjvuIw44Decoder.GrayscaleWorkingBytes(page.Width, page.Height, backgrounds.Sum(c => (long)c.Length),
                 backgrounds.Count, callerBytesPerPixel: 0));
@@ -88,7 +120,7 @@ public sealed partial class DjvuDocument
 
     // callerBytesPerPixel is what the caller builds per pixel from the decode: 32 for a float frame and its copy.
     private PdfNativeCompactRaster DecodeSupportedPage(DjvuPageInfo page, List<Chunk> chunks, CancellationToken cancellationToken,
-        int callerBytesPerPixel = 32)
+        int callerBytesPerPixel = 32, int subsample = 1)
     {
         chunks = WithoutAnnotations(chunks);
         switch (Classify(page, chunks))
@@ -96,7 +128,8 @@ public sealed partial class DjvuDocument
             case PageLayers.Compound: return DecodeCompoundRaster(page, chunks, cancellationToken);
             case PageLayers.Jb2Mask: return DecodeJb2Raster(page, chunks, cancellationToken);
         }
-        if (chunks.Any(c => c.Id == 0x42473434)) return DecodeIw44Raster(page, chunks, cancellationToken, callerBytesPerPixel);
+        if (chunks.Any(c => c.Id == 0x42473434))
+            return DecodeIw44Raster(page, chunks, cancellationToken, callerBytesPerPixel, subsample);
         if (chunks.Any(c => c.Id is not (0x494e464f or 0x536d6d72 or 0x54585461 or 0x5458547a)))
             throw new NotSupportedException("Rendering this page requires unsupported layers, annotations or component content.");
         if (chunks.Count(c => c.Id == 0x536d6d72) > 1) throw new InvalidDataException("A page contains duplicate Smmr masks.");
@@ -136,19 +169,20 @@ public sealed partial class DjvuDocument
     }
 
     private PdfNativeCompactRaster DecodeIw44Raster(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token,
-        int callerBytesPerPixel)
+        int callerBytesPerPixel, int subsample = 1)
     {
         var firstBackground = chunks.First(c => c.Id == 0x42473434);
         if (firstBackground.Length >= 3 && (_data[firstBackground.Offset + 2] & 0x80) == 0)
-            return DecodeColorIw44Raster(page, chunks, token, callerBytesPerPixel);
+            return DecodeColorIw44Raster(page, chunks, token, callerBytesPerPixel, subsample);
         var (gray, gamma) = DecodeIw44Page(page, chunks, token, callerBytesPerPixel);
         return new PdfNativeCompactRaster(PdfNativeSampleLayout.Gray, page.Width, page.Height, gray, LinearTable(gamma),
             (int)page.Orientation);
     }
 
-    // Every BG44 chunk refines the image; the page turn applies when the RGB bytes are read, as for gray pages.
+    // Every BG44 chunk refines the image; the page turn applies when the RGB bytes are read, as for gray pages. At a
+    // subsample the raster holds IW44's samples at that scale and covers the page through its reduction.
     private PdfNativeCompactRaster DecodeColorIw44Raster(DjvuPageInfo page, List<Chunk> chunks, CancellationToken token,
-        int callerBytesPerPixel)
+        int callerBytesPerPixel, int subsample = 1)
     {
         token.ThrowIfCancellationRequested();
         if (chunks.Any(c => c.Id is not (0x494e464f or 0x42473434 or 0x54585461 or 0x5458547a)))
@@ -156,10 +190,11 @@ public sealed partial class DjvuDocument
         var gamma = InfoGamma(chunks);
         var backgrounds = chunks.Where(c => c.Id == 0x42473434).Take(257)
             .Select(c => (ReadOnlyMemory<byte>)_data.AsMemory(c.Offset, c.Length)).ToArray();
-        var rgb = DjvuIw44Decoder.DecodeColor(backgrounds, page.Width, page.Height, token, callerBytesPerPixel);
+        var rgb = DjvuIw44Decoder.DecodeColor(backgrounds, page.Width, page.Height, token, callerBytesPerPixel, subsample);
         token.ThrowIfCancellationRequested();
-        return new PdfNativeCompactRaster(PdfNativeSampleLayout.Rgb, page.Width, page.Height, rgb, LinearTable(gamma),
-            (int)page.Orientation);
+        return new PdfNativeCompactRaster(PdfNativeSampleLayout.Rgb, (page.Width + subsample - 1) / subsample,
+            (page.Height + subsample - 1) / subsample, rgb, LinearTable(gamma), (int)page.Orientation, subsample,
+            page.Width, page.Height);
     }
 
     // Each eight-bit sample at the INFO gamma, as a linear channel value.

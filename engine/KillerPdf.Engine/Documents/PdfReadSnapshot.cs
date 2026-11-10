@@ -242,14 +242,16 @@ public sealed partial class PdfReadSnapshot
         int height = (int)Math.Ceiling(geometry.Height);
         if (geometry.IntrinsicRotation is 90 or 270)
             (width, height) = (height, width);
-        bool resized = options.Width != width || options.Height != height;
-        var (decoded, decoding) = _djvu!.DecodedPageBytes(pageIndex, cancellationToken);
+        int subsample = DecodeSubsample(pageIndex, geometry, options, cancellationToken);
+        bool resized = subsample > 1 || options.Width != width || options.Height != height;
+        var (decoded, decoding) = _djvu!.DecodedPageBytes(pageIndex, cancellationToken, subsample);
         if (NativePeakBytes(decoded, decoding, (long)options.Width * options.Height) > options.PixelByteLimit)
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
         if (resized)
-            PdfNativeFrameResampler.CheckWork(width, height, options.Width, options.Height);
+            CheckWork(width, height, subsample, geometry.IntrinsicRotation, options, options.Width, options.Height, 0, 0);
         PdfNativeFrameProof.Preflight(options, decoded);
-        var pixels = DecodedPixels(pageIndex, resized, options, 0, 0, options.Width, options.Height, cancellationToken);
+        var pixels = DecodedPixels(pageIndex, subsample, resized, options, 0, 0, options.Width, options.Height,
+            cancellationToken);
         var output = new PdfRenderedFrame(options.Width, options.Height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
         return PdfNativeFrameProof.Apply(output, options, cancellationToken);
     }
@@ -263,11 +265,34 @@ public sealed partial class PdfReadSnapshot
         return Math.Max(decoding, Math.Max(checked(decoded + floats), checked(2 * floats)));
     }
 
-    // Decodes the page and resamples it, returning only the float pixels, so nothing here outlives the call.
-    private float[] DecodedPixels(int pageIndex, bool resized, PdfRenderOptions options, int left, int top, int width,
-        int height, CancellationToken cancellationToken)
+    // A color photo page drawn smaller than itself decodes at the coarsest IW44 subsample that still has at least as
+    // many samples as the drawing (the requested page size, turned back to stored orientation); a 600 dpi page's
+    // fitted view then needs a quarter of its full decode and its thumbnail far less. Other pages decode whole.
+    private int DecodeSubsample(int pageIndex, PdfReadPageGeometry geometry, PdfRenderOptions options,
+        CancellationToken cancellationToken)
     {
-        var raster = _djvu!.DecodePage(pageIndex, cancellationToken);
+        bool quarterTurn = geometry.IntrinsicRotation is 90 or 270;
+        return _djvu!.DecodeSubsample(pageIndex, quarterTurn ? options.Height : options.Width,
+            quarterTurn ? options.Width : options.Height, cancellationToken);
+    }
+
+    // The exact resampling taps for the region, over natural pixels or over a subsampled decode's sample cells.
+    private static void CheckWork(int naturalWidth, int naturalHeight, int subsample, int rotation, PdfRenderOptions options,
+        int width, int height, int left, int top)
+    {
+        if (subsample == 1)
+            PdfNativeFrameResampler.CheckWork(naturalWidth, naturalHeight, options.Width, options.Height, width, height,
+                left, top);
+        else
+            PdfNativeFrameResampler.CheckReducedWork(naturalWidth, naturalHeight, subsample, rotation, options.Width,
+                options.Height, width, height, left, top);
+    }
+
+    // Decodes the page and resamples it, returning only the float pixels, so nothing here outlives the call.
+    private float[] DecodedPixels(int pageIndex, int subsample, bool resized, PdfRenderOptions options, int left, int top,
+        int width, int height, CancellationToken cancellationToken)
+    {
+        var raster = _djvu!.DecodePage(pageIndex, cancellationToken, subsample);
         return resized
             ? PdfNativeFrameResampler.ResizePixels(raster, options.Width, options.Height, left, top, width, height,
                 cancellationToken)
@@ -300,13 +325,13 @@ public sealed partial class PdfReadSnapshot
         int naturalHeight = (int)Math.Ceiling(geometry.Height);
         if (geometry.IntrinsicRotation is 90 or 270)
             (naturalWidth, naturalHeight) = (naturalHeight, naturalWidth);
-        var (decoded, decoding) = _djvu!.DecodedPageBytes(pageIndex, cancellationToken);
+        int subsample = DecodeSubsample(pageIndex, geometry, options, cancellationToken);
+        var (decoded, decoding) = _djvu!.DecodedPageBytes(pageIndex, cancellationToken, subsample);
         if (NativePeakBytes(decoded, decoding, (long)width * height) > options.PixelByteLimit)
             throw new ArgumentException("The native render exceeds the caller's combined pixel storage limit.", nameof(options));
-        PdfNativeFrameResampler.CheckWork(naturalWidth, naturalHeight, options.Width, options.Height, width, height,
-            left, top);
+        CheckWork(naturalWidth, naturalHeight, subsample, geometry.IntrinsicRotation, options, width, height, left, top);
         PdfNativeFrameProof.Preflight(options, decoded, (long)width * height);
-        var pixels = DecodedPixels(pageIndex, true, options, left, top, width, height, cancellationToken);
+        var pixels = DecodedPixels(pageIndex, subsample, true, options, left, top, width, height, cancellationToken);
         var output = new PdfRenderedFrame(width, height, pixels, PdfFrameColorEncoding.LinearSrgbD65);
         return PdfNativeFrameProof.Apply(output, options, cancellationToken);
     }
