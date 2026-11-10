@@ -703,7 +703,17 @@ namespace KillerPDF.Shell
         /// overflow arrows. Sidebar and footer geometry are measured in the current layout.</summary>
         private void SyncSplitMinWidth()
         {
-            double chrome = Math.Max(0, ActualWidth - ContentPane.ActualWidth);
+            // Full screen hides the footer and sidebar, so its layout says nothing about the window's
+            // normal minimum. Measured there, the floor grew far past the normal width and kept the
+            // window that wide when full screen ended.
+            if (_fullScreen) return;
+            // The space the document area is given, not its own width: in a window narrower than both
+            // panes' minimums the panes overflow that space, and their width would leave no chrome.
+            Thickness inset = ContentPane.Margin;
+            double given = System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot(ContentPane).Width
+                - inset.Left - inset.Right;
+            double content = given > 0 ? Math.Min(ContentPane.ActualWidth, given) : ContentPane.ActualWidth;
+            double chrome = Math.Max(0, ActualWidth - content);
             double floor = _isSplit
                 ? chrome + SplitGutter + MinPaneWidth * 2
                 : chrome + MinPaneWidth;
