@@ -146,7 +146,7 @@ public sealed class DjvuIw44ColorTests
     [Fact]
     public void OtherLayersRemainRefused()
     {
-        byte[] source = WithTrailingChunk("ANTa"), original = source.ToArray();
+        byte[] source = WithTrailingChunk("BGjp"), original = source.ToArray();
         var document = DjvuDocument.Open(source);
         Assert.Throws<NotSupportedException>(() => document.RenderPage(0));
         Assert.Equal(original, source);

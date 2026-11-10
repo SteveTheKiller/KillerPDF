@@ -90,6 +90,7 @@ public sealed partial class DjvuDocument
     private PdfNativeCompactRaster DecodeSupportedPage(DjvuPageInfo page, List<Chunk> chunks, CancellationToken cancellationToken,
         int callerBytesPerPixel = 32)
     {
+        chunks = WithoutAnnotations(chunks);
         switch (Classify(page, chunks))
         {
             case PageLayers.Compound: return DecodeCompoundRaster(page, chunks, cancellationToken);
@@ -107,6 +108,11 @@ public sealed partial class DjvuDocument
         return new PdfNativeCompactRaster(PdfNativeSampleLayout.Bits, page.Width, page.Height, packed, linear,
             (int)page.Orientation);
     }
+
+    // ANTa and ANTz hold view settings and overlaid links and highlights (8.2, Table 1), not page pixels; DjVuLibre
+    // draws a page the same with or without them.
+    private static List<Chunk> WithoutAnnotations(List<Chunk> chunks)
+        => chunks.Where(c => c.Id is not (0x414e5461 or 0x414e547a)).ToList();
 
     private (byte[] Bits, bool Inverted) DecodeSmmr(DjvuPageInfo page, Chunk mask, CancellationToken cancellationToken)
     {

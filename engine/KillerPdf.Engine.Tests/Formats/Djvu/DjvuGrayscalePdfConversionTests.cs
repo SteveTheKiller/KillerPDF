@@ -121,7 +121,7 @@ public sealed class DjvuGrayscalePdfConversionTests
         {
             case "version": source[28] = 27; break;
             case "color": source[44] = 1; break;
-            case "layer": source = Append(source, Chunk("ANTa", [0])); break;
+            case "layer": source = Append(source, Chunk("BGjp", [0])); break;
             case "continuation": source = Append(source, Chunk("BG44", [2, 0])); break;
             case "unreadable-text": source = Append(source, Chunk("TXTz", [0])); break;
             case "unlocated-text": source = Append(source, Chunk("TXTa", [0,0,1,(byte)'A',1])); break;

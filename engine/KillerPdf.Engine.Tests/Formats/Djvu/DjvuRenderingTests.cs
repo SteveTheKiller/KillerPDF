@@ -163,7 +163,7 @@ public sealed class DjvuRenderingTests
     [InlineData("Sjbz")]
     [InlineData("INCL")]
     [InlineData("XXXX")]
-    [InlineData("ANTa")]
+    [InlineData("BGjp")]
     [InlineData("")]
     public void UnsupportedOrMissingVisualContentDoesNotReturnASuccessfulFrame(string extraChunk)
     {

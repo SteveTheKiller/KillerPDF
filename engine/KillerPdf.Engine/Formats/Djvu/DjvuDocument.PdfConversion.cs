@@ -22,7 +22,7 @@ public sealed partial class DjvuDocument
             if (chunks.Any(chunk => chunk.Id == 0x42473434))
             {
                 (page, chunks) = ReadSupportedPage(pageIndex, cancellationToken);
-                var (gray, gamma) = DecodeIw44Page(page, chunks, cancellationToken);
+                var (gray, gamma) = DecodeIw44Page(page, WithoutAnnotations(chunks), cancellationToken);
                 bool quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
                 int pixelWidth = quarterTurn ? page.Height : page.Width;
                 int pixelHeight = quarterTurn ? page.Width : page.Height;
