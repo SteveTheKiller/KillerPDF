@@ -1232,6 +1232,13 @@ public sealed class PdfIncrementalAnnotationEditor
                 ("Encoding", Name("WinAnsiEncoding"))))
             : null;
         Dictionary<PdfImage, PdfIndirectReference> images = AllocateImages(update);
+        Dictionary<PdfFormXObject, PdfStream> typedAppearances = ImportTypedAppearances(update, _annotations
+            .Select(annotation => annotation switch
+            {
+                PendingTypedFreeText text => text.Appearance,
+                PendingTypedStamp stamp => stamp.Appearance,
+                _ => null
+            }).OfType<PdfFormXObject>());
         Dictionary<(int PageIndex, string Name), PdfIndirectReference> annotationNames =
             ExistingAnnotationNames();
         foreach (PendingRemoval removal in _removals)
@@ -1276,8 +1283,7 @@ public sealed class PdfIncrementalAnnotationEditor
                     typedEntries.Add(("BS", BorderStyle(0)));
                     update.SetObject(item.AnnotationReference,
                         WithStructureParent(Dictionary([.. typedEntries]), item, structureParentKeys));
-                    update.SetObject(item.AppearanceReference!,
-                        ImportTypedAppearance(update, typedFreeText.Appearance));
+                    update.SetObject(item.AppearanceReference!, typedAppearances[typedFreeText.Appearance]);
                     break;
                 case PendingFreeText freeText:
                     EditorFontBinding binding = fonts[freeText.Font];
@@ -1327,8 +1333,7 @@ public sealed class PdfIncrementalAnnotationEditor
                             page.Reference, item.AnnotationReference, item.AppearanceReference!,
                             new PdfRgbColor(0, 0, 0), 1, typedStamp.Contents, typedStamp.Metadata)]),
                             item, structureParentKeys));
-                    update.SetObject(item.AppearanceReference!,
-                        ImportTypedAppearance(update, typedStamp.Appearance));
+                    update.SetObject(item.AppearanceReference!, typedAppearances[typedStamp.Appearance]);
                     break;
                 case PendingImageStamp stamp:
                     update.SetObject(item.AnnotationReference,
@@ -3233,22 +3238,33 @@ public sealed class PdfIncrementalAnnotationEditor
         Math.Sqrt(Math.Pow(right.X - left.X, 2)
             + Math.Pow(right.Y - left.Y, 2));
 
-    private static PdfStream ImportTypedAppearance(
-        PdfIncrementalUpdateBuilder update, PdfFormXObject appearance)
+    private static Dictionary<PdfFormXObject, PdfStream> ImportTypedAppearances(
+        PdfIncrementalUpdateBuilder update, IEnumerable<PdfFormXObject> appearances)
     {
-        // The authoring pipeline owns resource serialization and font subsetting.
-        // Import the complete graph, including resources of nested forms and images.
-        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
-            .AddPage(appearance.Width, appearance.Height,
-                new PdfContentStreamBuilder().DrawForm(appearance, 0, 0)).Build());
-        PdfDictionary page = PdfPageTree.Read(source).Pages[0].Dictionary;
+        PdfFormXObject[] distinct = [.. appearances.Distinct(ReferenceEqualityComparer.Instance).Cast<PdfFormXObject>()];
+        var imported = new Dictionary<PdfFormXObject, PdfStream>(ReferenceEqualityComparer.Instance);
+        if (distinct.Length == 0) return imported;
+        // The authoring pipeline owns resource serialization and font subsetting. Every appearance is authored
+        // into one document, a page each, so appearances in one font share one subset, and that document's
+        // complete graph, including resources of nested forms and images, is imported once. Authoring, reading
+        // and importing a document per appearance embedded a copy of the font in every one.
+        var builder = new PdfDocumentBuilder();
+        foreach (PdfFormXObject appearance in distinct)
+            builder.AddPage(appearance.Width, appearance.Height,
+                new PdfContentStreamBuilder().DrawForm(appearance, 0, 0));
+        PdfDocument source = PdfDocument.Open(builder.Build());
         PdfObject Resolve(PdfObject value) => value is PdfIndirectReference reference
             ? source.Resolve(reference) : value;
-        var resources = (PdfDictionary)Resolve(page[Name("Resources")]);
-        var forms = (PdfDictionary)Resolve(resources[Name("XObject")]);
-        var form = (PdfStream)Resolve(forms.Single().Value);
         var importer = new PdfObjectGraphImporter(source, update, []);
-        return (PdfStream)importer.Import(form);
+        IReadOnlyList<PdfPageTreeEntry> pages = PdfPageTree.Read(source).Pages;
+        for (int index = 0; index < distinct.Length; index++)
+        {
+            var resources = (PdfDictionary)Resolve(pages[index].Dictionary[Name("Resources")]);
+            var forms = (PdfDictionary)Resolve(resources[Name("XObject")]);
+            var form = (PdfStream)Resolve(forms.Single().Value);
+            imported.Add(distinct[index], (PdfStream)importer.Import(form));
+        }
+        return imported;
     }
 
     private static PdfDictionary FreeTextDictionary(

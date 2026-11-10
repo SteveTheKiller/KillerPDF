@@ -120,6 +120,51 @@ public sealed class PdfEngineBurnScaleTests
         finally { if (File.Exists(path)) File.Delete(path); }
     }
 
+    // Each text box's look was written as a one-page PDF of its own, read back and copied in, so every box carried
+    // its own copy of the font. Saving 3,000 notes took 16 to 18 s, about 850 MiB more memory and an 87 MB file,
+    // where 1.9.2 took 12 to 15 s and about 580 MiB. Boxes in one font now share one embedded font program, and the
+    // same save takes 6 to 10 s, about 150 to 200 MiB and a 12 MB file. Counting font programs holds on a busy
+    // machine where a time budget does not.
+    [Fact]
+    public void TextBoxesInOneFontShareOneEmbeddedFont()
+    {
+        const int pages = 12;
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-burn-fonts-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, BlankPdf(pages));
+            var annotations = new Dictionary<int, List<PageAnnotation>>();
+            var dimensions = new Dictionary<int, (int w, int h)>();
+            for (int page = 0; page < pages; page++)
+            {
+                annotations[page] =
+                [
+                    new TextAnnotation { PageIndex = page, Content = $"Note on page {page + 1}", FontName = "Arial",
+                        Position = new Point(60, 400), Width = 220, Height = 30 },
+                    new TextAnnotation { PageIndex = page, Content = "Second note", FontName = "Arial",
+                        Position = new Point(60, 500), Width = 220, Height = 30 }
+                ];
+                dimensions[page] = (816, 1056);
+            }
+
+            PdfEngineBurn.Burn(path, annotations, dimensions, measurementsAsAnnotations: true);
+
+            var saved = KillerPdf.Engine.Documents.PdfDocument.Open(File.ReadAllBytes(path));
+            Assert.Equal(pages * 2, PdfOverlayAnnotations.Read(saved).Count);
+            int fontPrograms = 0;
+            foreach (var entry in saved.CrossReferences)
+            {
+                if (entry.Value.Type is not (KillerPdf.Engine.CrossReference.PdfCrossReferenceEntryType.InUse
+                    or KillerPdf.Engine.CrossReference.PdfCrossReferenceEntryType.Compressed)) continue;
+                if (saved.Resolve(entry.Key) is KillerPdf.Engine.Objects.PdfDictionary descriptor
+                    && descriptor.Any(item => item.Key.ValueAsLatin1() is "FontFile" or "FontFile2" or "FontFile3"))
+                    fontPrograms++;
+            }
+            Assert.Equal(1, fontPrograms);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
     private static byte[] BlankPdf(int pages)
     {
         var builder = new PdfDocumentBuilder();
