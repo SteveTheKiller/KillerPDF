@@ -16,14 +16,10 @@ public partial class MainWindow
     {
         try
         {
-            while (book.IsPaginating)
-            {
-                await Task.WhenAny(book.Pagination, Task.Delay(PaginationRefresh));
-                if (_windowResourcesReleased || Dispatcher.HasShutdownStarted) return;
-                ShowPaginatedPages(book, finished: false);
-            }
+            await NativePaginationFollower.FollowAsync(book, PaginationRefresh,
+                () => _windowResourcesReleased || Dispatcher.HasShutdownStarted,
+                (before, after, finished) => ShowPaginatedPages(book, before, after, finished));
             if (_windowResourcesReleased || Dispatcher.HasShutdownStarted) return;
-            ShowPaginatedPages(book, finished: true);
             // Closing the book cancels pagination; that needs no word. A failure keeps the pages already shown.
             if (book.Pagination.IsFaulted && !book.IsClosed && IsShowing(book))
                 KillerDialog.Show(this, string.Format(Loc("Str_Dlg_FailedOpen"),
@@ -59,9 +55,8 @@ public partial class MainWindow
         return status;
     }
 
-    private void ShowPaginatedPages(NativeWorkingDocument book, bool finished)
+    private void ShowPaginatedPages(NativeWorkingDocument book, int before, int after, bool finished)
     {
-        var (before, after) = book.ShowPaginatedPages();
         foreach (var viewer in new[] { Viewer, ViewerB })
         {
             if (!ReferenceEquals(viewer.NativeDocumentRef, book)) continue;
