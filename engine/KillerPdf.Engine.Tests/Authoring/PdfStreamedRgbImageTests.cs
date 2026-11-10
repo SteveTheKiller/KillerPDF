@@ -40,6 +40,81 @@ public sealed class PdfStreamedRgbImageTests
         Assert.Equal(pixels, PdfStreamDecoder.Decode(stream, document.Resolve, pixels.Length));
     }
 
+    // A 600 dpi letter photo (5100 x 6600) took about 5 s to encode with no way to stop it. The token is read before
+    // the first row and then once per band of 32 rows (about 25 ms of that page), so a cancel stops the encode after
+    // at most 32 more rows.
+    [Fact]
+    public void ACanceledEncodeStopsWithinThirtyTwoRowsOfTheCancel()
+    {
+        const int width = 64, height = 1000;
+        using var cancellation = new CancellationTokenSource();
+        var destination = new CancelingStream(cancellation, cancelOnWrite: 1);
+
+        Assert.Throws<OperationCanceledException>(() => PdfPngPredictorEncoder.EncodeTo(destination, width, height, 3,
+            Noise(width, height), cancellation.Token));
+
+        Assert.InRange(destination.WritesAfterCancel, 0, 32);
+    }
+
+    [Fact]
+    public void ACanceledTokenStopsTheStreamedImageBeforeItsFirstRow()
+    {
+        const int width = 64, height = 200;
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var destination = new CancelingStream(cancellation, cancelOnWrite: 0);
+
+        Assert.Throws<OperationCanceledException>(() => PdfPngPredictorEncoder.EncodeTo(destination, width, height, 3,
+            Noise(width, height), cancellation.Token));
+        Assert.Equal(0, destination.Writes);
+        Assert.Throws<OperationCanceledException>(() => PdfImage.FromRgbRows(width, height, Noise(width, height),
+            cancellation.Token));
+    }
+
+    // Uncanceled, the streamed rows are exactly the whole-image predictor's output, band edges included.
+    [Fact]
+    public void AnUncanceledStreamedEncodeWritesExactlyTheWholeImageEncoderBytes()
+    {
+        const int width = 37, height = 101;
+        var pixels = Noise(width, height);
+        using var cancellation = new CancellationTokenSource();
+        using var destination = new MemoryStream();
+
+        PdfPngPredictorEncoder.EncodeTo(destination, width, height, 3, pixels, cancellation.Token);
+
+        Assert.Equal(PdfPngPredictorEncoder.Encode(width, height, 3, pixels), destination.ToArray());
+    }
+
+    private static byte[] Noise(int width, int height)
+    {
+        var pixels = new byte[width * height * 3];
+        new Random(11).NextBytes(pixels);
+        return pixels;
+    }
+
+    // Counts row writes and cancels the token at the given write (1 = the first row; 0 = never).
+    private sealed class CancelingStream(CancellationTokenSource cancellation, int cancelOnWrite) : Stream
+    {
+        internal int Writes { get; private set; }
+        internal int WritesAfterCancel { get; private set; }
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            Writes++;
+            if (cancelOnWrite > 0 && Writes > cancelOnWrite) WritesAfterCancel++;
+            if (Writes == cancelOnWrite) cancellation.Cancel();
+        }
+        public override void Write(byte[] buffer, int offset, int count) => Write(buffer.AsSpan(offset, count));
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+    }
+
     private static PdfStream ImageStream(PdfDocument document)
     {
         PdfDictionary Dictionary(PdfObject? value) => Assert.IsType<PdfDictionary>(

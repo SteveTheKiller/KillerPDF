@@ -140,7 +140,7 @@ public sealed partial class DjvuDocument
         int width = page.Width, height = page.Height;
         double scale = 72d / page.Dpi;
         bool quarterTurn = page.Orientation is DjvuOrientation.Clockwise90 or DjvuOrientation.CounterClockwise90;
-        var image = PdfImage.FromRgbRows(width, height, rgb);
+        var image = PdfImage.FromRgbRows(width, height, rgb, token);
         token.ThrowIfCancellationRequested();
         var content = new PdfContentStreamBuilder().SaveState();
         switch (page.Orientation)

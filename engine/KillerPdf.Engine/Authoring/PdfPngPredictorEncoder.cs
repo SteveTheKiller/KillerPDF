@@ -2,6 +2,9 @@ namespace KillerPdf.Engine.Authoring;
 
 internal static class PdfPngPredictorEncoder
 {
+    // About 25 ms of a 600 dpi letter photo row by row through the predictor and Flate.
+    internal const int CancellationRowBand = 32;
+
     internal static byte[] Encode(
         int width, int height, int colors, ReadOnlySpan<byte> pixels)
     {
@@ -15,15 +18,18 @@ internal static class PdfPngPredictorEncoder
 
     /// <summary>
     /// Writes the bytes <see cref="Encode"/> returns to <paramref name="destination"/> one row at a time, holding two
-    /// rows of working storage instead of a second copy of the image.
+    /// rows of working storage instead of a second copy of the image. The token is read before the first row and then
+    /// once per <see cref="CancellationRowBand"/> rows, so a canceled encode writes at most that many more rows.
     /// </summary>
-    internal static void EncodeTo(Stream destination, int width, int height, int colors, ReadOnlySpan<byte> pixels)
+    internal static void EncodeTo(Stream destination, int width, int height, int colors, ReadOnlySpan<byte> pixels,
+        CancellationToken cancellationToken = default)
     {
         int rowBytes = checked(width * colors);
         byte[] encoded = new byte[rowBytes + 1];
         byte[] candidate = new byte[rowBytes];
         for (int row = 0; row < height; row++)
         {
+            if (row % CancellationRowBand == 0) cancellationToken.ThrowIfCancellationRequested();
             EncodeRow(pixels, rowBytes, colors, row, encoded, candidate);
             destination.Write(encoded);
         }

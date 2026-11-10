@@ -198,9 +198,11 @@ public sealed class PdfImage
     /// <summary>
     /// Compresses 8-bit RGB pixels as <see cref="FromRgb"/> does with its adaptive PNG predictor, streaming each
     /// predicted row into one Flate stream. A page-size photo then holds only its pixels and the compressed image,
-    /// not the predicted copy and a second, unpredicted compression beside them.
+    /// not the predicted copy and a second, unpredicted compression beside them. A canceled token stops the encode
+    /// within one band of rows.
     /// </summary>
-    internal static PdfImage FromRgbRows(int width, int height, ReadOnlySpan<byte> pixels)
+    internal static PdfImage FromRgbRows(int width, int height, ReadOnlySpan<byte> pixels,
+        CancellationToken cancellationToken = default)
     {
         ValidateDimensions(width, height);
         int required = RequiredBytes(width, height, 3);
@@ -208,7 +210,7 @@ public sealed class PdfImage
             throw new ArgumentException($"An {width} by {height} RGB image requires {required} bytes.", nameof(pixels));
         using var output = new MemoryStream();
         using (var zlib = new ZLibStream(output, CompressionLevel.Optimal, leaveOpen: true))
-            PdfPngPredictorEncoder.EncodeTo(zlib, width, height, 3, pixels);
+            PdfPngPredictorEncoder.EncodeTo(zlib, width, height, 3, pixels, cancellationToken);
         return new PdfImage(width, height, 8, PdfImageColorSpace.Rgb, "FlateDecode", output.ToArray(),
             invertComponents: false, pngPredictorColors: 3);
     }
