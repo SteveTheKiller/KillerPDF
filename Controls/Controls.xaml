@@ -181,9 +181,11 @@
                     <Border x:Name="borderRing" IsHitTestVisible="False" CornerRadius="{Binding CornerRadius, ElementName=border}" BorderThickness="{Binding BorderThickness, ElementName=border}" BorderBrush="{Binding Background, ElementName=border}" Margin="{Binding Margin, ElementName=border}" Visibility="{Binding Visibility, ElementName=border}" Opacity="{Binding Opacity, ElementName=border}"/><Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{DynamicResource ControlCornerRadius}" Padding="{TemplateBinding Padding}">
+                        <!-- No stroke effect on the caption: an effect rasterizes the text and blurs it
+                             at rest. PrimaryButton strokes a copy instead, but this template also
+                             carries BareButton's icon content, which cannot appear twice. -->
                         <ContentPresenter x:Name="label" HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          Effect="{DynamicResource TextStroke}"/>
+                                          VerticalAlignment="Center"/>
                     </Border>
                     <!-- Raised button bevel. Nothing on any theme but 98SE. -->
                     <Border IsHitTestVisible="False"
@@ -370,10 +372,16 @@
                             BorderBrush="{DynamicResource PaneBevelLight2Brush}" BorderThickness="{DynamicResource PaneBevel2DarkThickness}"/>
                     </Grid>
                     <ControlTemplate.Triggers>
-                        <!-- Before the compact trigger, so a compact theme's own floor wins. -->
-                        <Trigger Property="AcceptsReturn" Value="False">
+                        <!-- Before the compact trigger, so a compact theme's own floor wins. Only for
+                             a box that sizes itself: one given an explicit Height (an editor's find
+                             box, an in-place rename) keeps the height it was given. -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="AcceptsReturn" Value="False"/>
+                                <Condition Property="Height" Value="NaN"/>
+                            </MultiTrigger.Conditions>
                             <Setter TargetName="InputRoot" Property="MinHeight" Value="26"/>
-                        </Trigger>
+                        </MultiTrigger>
                         <MultiDataTrigger>
                             <MultiDataTrigger.Conditions>
                                 <Condition Binding="{Binding Tag, ElementName=InputRoot}" Value="True"/>
