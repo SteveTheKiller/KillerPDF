@@ -5,7 +5,7 @@ namespace KillerPdf.Engine.Formats.Djvu;
 
 public sealed partial class DjvuDocument
 {
-    /// <summary>Converts supported bitonal and grayscale pages, completely located text, and local bookmarks to a separate PDF.</summary>
+    /// <summary>Converts supported bitonal, grayscale and compound pages, completely located text, and local bookmarks to a separate PDF.</summary>
     public byte[] ConvertToPdf(CancellationToken cancellationToken = default)
         => ConvertToPdf(new List<DjvuDiagnostic>(), cancellationToken);
 
@@ -34,7 +34,10 @@ public sealed partial class DjvuDocument
             }
             var (page, chunks) = ReadPageChunks(pageIndex, cancellationToken);
             if (Classify(page, chunks) == PageLayers.Compound)
-                throw new NotSupportedException("DjVu PDF conversion does not yet support compound pages with foreground colors or a reduced background.");
+            {
+                AddCompoundPdfPage(builder, page, chunks, text, pageIndex, diagnostics, cancellationToken);
+                continue;
+            }
             if (chunks.Any(chunk => chunk.Id == 0x42473434))
             {
                 (page, chunks) = ReadSupportedPage(pageIndex, cancellationToken);
@@ -83,7 +86,8 @@ public sealed partial class DjvuDocument
             }
             double width = frameWidth * 72d / Pages[pageIndex].Dpi;
             double height = frameHeight * 72d / Pages[pageIndex].Dpi;
-            var image = PdfImage.FromBitonal(frameWidth, frameHeight, samples);
+            // Lossless JBIG2 when it is smaller than CCITT G4 or Flate: about a third smaller on text pages.
+            var image = PdfImage.FromBitonal(frameWidth, frameHeight, samples, allowJbig2: true);
             var content = new PdfContentStreamBuilder().DrawImage(image, 0, 0, width, height);
             AddLocatedPdfText(content, text, Pages[pageIndex], pageIndex, diagnostics, cancellationToken);
             builder.AddPage(width, height, content);

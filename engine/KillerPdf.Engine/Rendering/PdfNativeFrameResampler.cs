@@ -32,9 +32,20 @@ internal sealed class PdfNativeImageLayer
         _samples = samples;
         _channels = channels;
         _stride = width * channels;
+        Width = width;
+        Height = height;
+        Reduction = reduction;
         (_column0, _column1, _columnWeight) = Axis(pageWidth, width, reduction);
         (_row0, _row1, _rowWeight) = Axis(pageHeight, height, reduction);
     }
+
+    /// <summary>The stored samples, top row first, one or three bytes per pixel.</summary>
+    internal ReadOnlySpan<byte> Samples => _samples.AsSpan(0, Width * Height * _channels);
+    internal int Width { get; }
+    internal int Height { get; }
+    internal int Channels => _channels;
+    /// <summary>Each stored sample covers this many page pixels across and down.</summary>
+    internal int Reduction { get; }
 
     /// <summary>The bytes a layer of this size holds, with its interpolation tables.</summary>
     internal static long StorageBytes(int width, int height, int channels, int pageWidth, int pageHeight)

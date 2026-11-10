@@ -16,6 +16,8 @@ public sealed class DjvuCompoundTests
         "00000E004A81020008000600963C2AFD7F4247343400000003010FBF004247343400000002020A";
 
     internal const string PaletteOverGrayHex = PaletteOverGray;
+    internal const string ImageForegroundHex = ImageForeground;
+    internal const string Compound600DpiHex = Compound600Dpi;
 
     internal static readonly (byte R, byte G, byte B) Paper = (200, 200, 200), Red = (220, 30, 20), Blue = (20, 40, 210), Black = (0, 0, 0);
     private static readonly string[] Glyph = ["..###..", ".#...#.", "#.....#", "#.....#", "#######", "#.....#", "#.....#", "#.....#", "#.....#"];
@@ -251,13 +253,6 @@ public sealed class DjvuCompoundTests
             d => d.Code == "Iw44RenderingLimited");
         foreach (var stale in new[] { "single-chunk", "upright", "zero delay", "without other visual layers", "block-aligned" })
             Assert.DoesNotContain(stale, notice.Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void ACompoundPageIsNotConvertedToPdfYet()
-    {
-        var error = Assert.Throws<NotSupportedException>(() => DjvuDocument.Open(Convert.FromHexString(PaletteOverGray)).ConvertToPdf());
-        Assert.Contains("compound", error.Message, StringComparison.Ordinal);
     }
 
     private static double Level(float linear) => Math.Pow(linear, 1 / 2.2) * 255;
