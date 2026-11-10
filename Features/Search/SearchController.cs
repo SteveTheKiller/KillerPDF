@@ -196,8 +196,9 @@ namespace KillerPDF.Features
         internal void Restore(ParkedSearch? parked)
         {
             AnnounceReplaceAvailable();
-            if (parked is not null && (parked.NativeRevisionId != _host.NativeSearchRevisionId
-                || parked.NativeRevisionId is not null && parked.Revision != _host.SearchRevision))
+            // A book is read-only, so the same book revision proves its matches still fit. The window's edit
+            // revision moves on for any tab and on every tab switch, so it says nothing about this book.
+            if (parked is not null && parked.NativeRevisionId != _host.NativeSearchRevisionId)
             {
                 ClearMatches();
                 _host.ClearHighlights();

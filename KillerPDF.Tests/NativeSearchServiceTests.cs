@@ -37,8 +37,10 @@ public sealed class NativeSearchServiceTests
     }
 
     [Fact]
-    public async Task SearchControllerDoesNotRestoreNativeMatchesAfterRevisionChanges()
+    public async Task SearchControllerKeepsANativeTabsMatchesWhenTheWindowEditRevisionMovesOn()
     {
+        // The window's edit revision moves on for edits, opens and saves in any tab, and on every tab switch. A book
+        // is read-only, so its parked matches still fit it as long as it is the same book revision.
         using var revision = new PdfCapturedReadRevision(PdfReadSnapshot.OpenDjvu(Page("A")));
         var host = new SearchHost(new CurrentSearchSnapshot([], []) { NativeRevision = revision });
         var controller = new KillerPDF.Features.SearchController(host);
@@ -46,9 +48,11 @@ public sealed class NativeSearchServiceTests
         await host.Completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
         var parked = controller.Capture();
         host.SearchRevision++;
+        int clears = host.HighlightClears;
         controller.Restore(parked);
-        Assert.Null(controller.CurrentOccurrence);
-        Assert.False(controller.HasResults);
+        Assert.Equal(clears, host.HighlightClears);
+        Assert.True(controller.HasResults);
+        Assert.Equal(0, controller.CurrentOccurrence!.Start);
     }
 
     [Fact]
@@ -214,7 +218,8 @@ public sealed class NativeSearchServiceTests
         public void GoToPage(int pageIdx) { }
         public void SetResultText(string text) => Completed.TrySetResult(text);
         public void SetResultCount(string text, string? tooltip) => Completed.TrySetResult(text);
-        public void ClearHighlights() { }
+        public int HighlightClears { get; private set; }
+        public void ClearHighlights() => HighlightClears++;
         public bool? ReplaceShown { get; private set; }
         public void ShowReplaceAvailable(bool available) => ReplaceShown = available;
         public Func<int, bool> OnScreen { get; set; } = _ => true;
