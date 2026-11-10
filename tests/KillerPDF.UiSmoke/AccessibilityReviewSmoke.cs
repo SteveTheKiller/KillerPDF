@@ -139,7 +139,7 @@ internal static class AccessibilityReviewSmoke
         };
         var dialog = (Window)Activator.CreateInstance(assembly.GetType("KillerPDF.AccessibilityReviewDialog", true)!,
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
-            [owner, original, 1d, true, apply, undo, (Func<bool>)(() => true), null], null)!;
+            [owner, original, 1d, true, apply, undo, (Func<bool>)(() => true), null, null], null)!;
         try
         {
             dialog.Show(); Pump();
@@ -174,7 +174,7 @@ internal static class AccessibilityReviewSmoke
         Func<byte[], byte[]?> apply = bytes => { applied++; return bytes; };
         var dialog = (Window)Activator.CreateInstance(assembly.GetType("KillerPDF.AccessibilityReviewDialog", true)!,
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
-            [owner, ParagraphEditSmoke.Fixture(), 1d, true, apply, (Func<byte[]?>)(() => null), (Func<bool>)(() => true), null], null)!;
+            [owner, ParagraphEditSmoke.Fixture(), 1d, true, apply, (Func<byte[]?>)(() => null), (Func<bool>)(() => true), null, null], null)!;
         try
         {
             dialog.Show(); Pump();
@@ -197,7 +197,7 @@ internal static class AccessibilityReviewSmoke
         {
             var window = (Window)Activator.CreateInstance(type, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
                 null, [owner, DescriptionFixture(), scale, true, (Func<byte[], byte[]?>)(bytes => bytes),
-                    (Func<byte[]?>)(() => null), (Func<bool>)(() => true), null], null)!;
+                    (Func<byte[]?>)(() => null), (Func<bool>)(() => true), null, null], null)!;
             try
             {
                 window.Opacity = 1; window.Show(); window.SizeToContent = SizeToContent.Manual;
@@ -278,7 +278,7 @@ internal static class AccessibilityReviewSmoke
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
             [owner, ParagraphEditSmoke.Fixture(), 1d, false,
                 (Func<byte[], byte[]?>)(bytes => { mutations++; return bytes; }),
-                (Func<byte[]?>)(() => { mutations++; return null; }), (Func<bool>)(() => true), null], null)!;
+                (Func<byte[]?>)(() => { mutations++; return null; }), (Func<bool>)(() => true), null, null], null)!;
         try
         {
             dialog.Show(); Pump();

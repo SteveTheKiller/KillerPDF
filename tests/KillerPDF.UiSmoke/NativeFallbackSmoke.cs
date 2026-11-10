@@ -215,10 +215,13 @@ internal static class NativeFallbackSmoke
             var shape = (Button)owner.FindName("ToolShapeBtn");
             Wait(() => shape.IsVisible && shape.IsEnabled);
             ((IInvokeProvider)new ButtonAutomationPeer(shape).GetPattern(PatternInterface.Invoke)).Invoke();
-            Wait(() => Descendants(owner).OfType<Border>().Any(border => border.IsVisible
-                && border.Tag is Color { R: 0, G: 0, B: 0 } && border.Width == 18));
-            var black = Descendants(owner).OfType<Border>().Single(border => border.IsVisible
-                && border.Tag is Color { R: 0, G: 0, B: 0 } && border.Width == 18);
+            // Since 998e7e1 the docked options row offers each quick color as a named toggle swatch.
+            string blackName = (string)owner.FindResource("Str_Color_Black");
+            bool IsBlackSwatch(System.Windows.Controls.Primitives.ToggleButton swatch) => swatch.IsVisible
+                && System.Windows.Automation.AutomationProperties.GetAutomationId(swatch).StartsWith("DrawSwatch", StringComparison.Ordinal)
+                && System.Windows.Automation.AutomationProperties.GetName(swatch).Contains(blackName, StringComparison.Ordinal);
+            Wait(() => Descendants(owner).OfType<System.Windows.Controls.Primitives.ToggleButton>().Any(IsBlackSwatch));
+            var black = Descendants(owner).OfType<System.Windows.Controls.Primitives.ToggleButton>().Single(IsBlackSwatch);
             Point blackPoint = black.PointToScreen(new Point(black.ActualWidth / 2, black.ActualHeight / 2));
             Drag(blackPoint, blackPoint);
             var opacity = Descendants(owner).OfType<Slider>().Single(slider => slider.IsVisible

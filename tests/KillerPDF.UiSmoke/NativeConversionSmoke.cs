@@ -282,8 +282,10 @@ internal static class NativeConversionSmoke
                 if (fontFamily)
                 {
                     var letters = reader.Read(0).Letters;
+                    // Since aba6678 advances are written exactly: Courier New's 1229 of 2048 units at 12 pt, not 600/1000.
+                    const double courierAdvance = 12 * 1229 / 2048d;
                     Product(letters.All(letter => letter.FontName.Contains("CourierNew", StringComparison.OrdinalIgnoreCase)
-                        && Math.Abs(letter.EndBaseLine.X - letter.StartBaseLine.X - 7.2) < .001),
+                        && Math.Abs(letter.EndBaseLine.X - letter.StartBaseLine.X - courierAdvance) < .001),
                         "Converted text must embed the requested Courier New face and its monospaced advances.");
                     if (fontWeight)
                     {

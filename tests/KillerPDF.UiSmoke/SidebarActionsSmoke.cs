@@ -76,9 +76,11 @@ internal static class SidebarActionsSmoke
         }
         Find("ShortcutHelpRailBtn").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Pump();
         RunSearchAction(owner, "Str_Measure_Area", "Alt+Shift+3");
-        Border area = Children(owner).OfType<Border>().Single(border =>
-            AutomationProperties.GetName(border) == (string)Application.Current.FindResource("Str_Measure_TT_Area"));
-        if (!area.IsVisible || area.BorderThickness.Left <= 1)
+        // Since 998e7e1 the measure types are toggles in the docked options row, checked for the active type.
+        ToggleButton area = Children(owner).OfType<ToggleButton>().Single(toggle =>
+            AutomationProperties.GetAutomationId(toggle) == "MeasureModeArea");
+        if (!area.IsVisible || area.IsChecked != true
+            || AutomationProperties.GetName(area) != (string)Application.Current.FindResource("Str_Measure_TT_Area"))
             throw new InvalidOperationException("Area shortcut did not select the Area tool.");
         bool signingOpened = false;
         var closeSigning = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
