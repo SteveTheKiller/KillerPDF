@@ -79,6 +79,45 @@ public sealed class PdfSdrDisplayConverterTests
         Assert.Equal(9, result.DisplayGeneration);
     }
 
+    [Fact]
+    public void ANewObservationOfTheSameUnprofiledMonitorPresentsAlikeWithoutReadingAProfile()
+    {
+        // Windows broadcasts settings changes for many unrelated reasons, and each one starts a new display generation.
+        // An unprofiled SDR monitor shows pages as their sRGB bytes, so nothing about them can have changed.
+        var converter = new PdfSdrDisplayConverter((name, token) => throw new InvalidOperationException("No profile file may be read."));
+
+        Assert.True(converter.PresentsAlike(Display(30, profile: PdfDisplayProfileStatus.NoProfile),
+            Display(31, profile: PdfDisplayProfileStatus.NoProfile)));
+    }
+
+    [Fact]
+    public void ANewObservationPresentsAlikeOnlyWhileTheMonitorProfileHasTheSameContent()
+    {
+        byte[] content = MonitorBytes();
+        var converter = new PdfSdrDisplayConverter((name, token) => PdfColorProfile.Load(content));
+        var frame = new PdfRenderedFrame(1, 1, [1f, 0f, 0f, 1f], PdfFrameColorEncoding.LinearSrgbD65);
+        converter.UpdateDisplay(Display(40));
+        Assert.Equal(PdfSdrConversionOutcome.Converted, converter.Convert(frame).Outcome);
+
+        bool unchanged = converter.PresentsAlike(Display(40), Display(41));
+        // The profile file was replaced under the same name: a different red primary.
+        content = MonitorBytes();
+        BinaryPrimitives.WriteInt32BigEndian(content.AsSpan(216 + 8), 32768);
+        bool replaced = converter.PresentsAlike(Display(41), Display(42));
+
+        Assert.True(unchanged, "The same monitor profile was taken for a change.");
+        Assert.False(replaced, "A replaced monitor profile was taken for no change.");
+    }
+
+    [Fact]
+    public void GainingOrLosingAMonitorProfileIsAChange()
+    {
+        var converter = new PdfSdrDisplayConverter((name, token) => PdfColorProfile.Load(MonitorBytes()));
+
+        Assert.False(converter.PresentsAlike(Display(50, profile: PdfDisplayProfileStatus.NoProfile), Display(51)));
+        Assert.False(converter.PresentsAlike(Display(51), Display(52, profile: PdfDisplayProfileStatus.NoProfile)));
+    }
+
     [Theory]
     [InlineData(PdfDisplayProfileStatus.Unavailable)]
     [InlineData(PdfDisplayProfileStatus.CrossAdapterAmbiguous)]

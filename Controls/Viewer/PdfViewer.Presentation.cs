@@ -51,7 +51,12 @@ public partial class PdfViewer
                 if (_presentationDisplayObserver is not { } observer) return;
                 var observed = DisplayCapture is { } capture ? capture(window) : observer.Capture();
                 if (ReferenceEquals(observed, _presentationDisplay)) return;
+                // Windows broadcasts settings changes for many reasons besides color. Pages that would look the same on
+                // the new observation stay as they are instead of going blank and drawing again.
+                bool alike = _presentationDisplay is { } shown && _sdrDisplayConverter is { } converter
+                    && converter.PresentsAlike(shown, observed);
                 ObservePresentationDisplay(observed);
+                if (alike) return;
                 if (!IsLoaded || !IsVisible || !HasReadDocument)
                 {
                     // Pages converted for the old display are redrawn when the viewer is shown again.
@@ -61,6 +66,7 @@ public partial class PdfViewer
                 RerenderForDisplayChange();
             };
             _presentationDisplayObserver.ObserveChanges();
+            _presentationDisplayObserving = true;
             if (!_presentationVisibilityObserved)
             {
                 _presentationVisibilityObserved = true;
@@ -71,14 +77,23 @@ public partial class PdfViewer
                 };
             }
         }
-        return ObservePresentationDisplay(DisplayCapture is { } captureDisplay
-            ? captureDisplay(window) : _presentationDisplayObserver.Capture());
+        if (DisplayCapture is { } captureDisplay) return ObservePresentationDisplay(captureDisplay(window));
+        // A full capture queries the display configuration and the monitor profile, about 12 ms at the median and 50 ms
+        // or more at the 95th percentile on a two-monitor desktop, on the UI thread for every render pass. The observer
+        // captures again on activation, movement, showing and settings messages and raises Changed for a new
+        // observation, so a render takes its latest one.
+        return ObservePresentationDisplay(_presentationDisplayObserving
+            ? _presentationDisplayObserver.Status : _presentationDisplayObserver.Capture());
     }
+
+    private bool _presentationDisplayObserving;
 
     private void RerenderForDisplayChange()
     {
         _presentationRerenderPending = false;
         CancelVisibleRefinement();
+        // The detail presenter was made for the old display.
+        _primaryViewport?.ClearDetail();
         if (_viewMode.IsContinuous())
         {
             CancelAndRelease(_continuousRenderCts);

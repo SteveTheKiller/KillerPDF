@@ -17,7 +17,9 @@ public partial class PdfViewer
     {
         CancelAndRelease(_visibleRefineCts);
         _visibleRefineCts = null;
-        _primaryViewport?.ClearDetail();
+        // Hidden, not torn down: the next refinement reuses the detail window and its presenter, so each settle after
+        // a scroll or zoom does not create a new device and swap chain. A display change tears it down.
+        _primaryViewport?.HideDetail();
         foreach (var detail in _visibleDetails.Values)
         {
             detail.Source = null;
