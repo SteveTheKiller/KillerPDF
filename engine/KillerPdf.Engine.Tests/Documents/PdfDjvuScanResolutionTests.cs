@@ -135,25 +135,28 @@ public sealed class PdfDjvuScanResolutionTests
                 if (Math.Abs(pixels[i] - expected) > 1e-6f || pixels[i + 1] != pixels[i] || pixels[i + 2] != pixels[i])
                     Assert.Fail($"Pixel {i / 4} of the {width} x {height} frame is {pixels[i]}, not {expected}.");
         }
-        // The IW44 decoder's coefficients, flags, reconstruction and gray samples are 5 bytes per coefficient and
-        // 5 per pixel (80.8 MiB); the gray page is kept as those bytes, never as a 16-byte float frame.
+        // The IW44 decoder's 16-bit coefficients and gray samples are 2 bytes per padded coefficient and 1 per pixel
+        // (24.4 MiB); the gray page is kept as those bytes, never as a 16-byte float frame.
         Assert.True(allocated < 96L << 20, $"A 396 x 512 thumbnail of a 2550 x 3300 gray page allocated {allocated} bytes.");
     }
 
-    // While a 2550 x 3300 IW44 page decodes, its 80 x 104 blocks of 1024 coefficients take 5 bytes each (4 value,
-    // 1 flag) and its 8,415,000 pixels 5 each (4 reconstruction, 1 gray): 42,598,400 + 42,075,000 bytes, plus the
-    // 9-byte chunk and 2,176 bytes of fixed overhead, 84,675,585 in all. That is more than the thumbnail and the kept
-    // gray bytes (6,488,064 + 8,416,024), so it is what a budget has to cover: 80 MiB is too little, 81 MiB enough.
+    // While a 2550 x 3300 IW44 page decodes, its 80 x 104 blocks of 1024 coefficients take 2 bytes each (17,039,360),
+    // one block row of them moving into raster order 163,840, and its 8,415,000 pixels 1 gray byte each, plus the
+    // 9-byte chunk and 2,176 bytes of fixed overhead, 25,620,385 in all. That is more than the thumbnail and the kept
+    // gray bytes (6,488,064 + 8,416,024), so it is what a budget has to cover: 24 MiB is too little, 25 MiB enough.
+    // The region is drawn from the page at half size, whose 1275 x 1650 options fit either budget.
     [Fact]
     public void AGrayscaleScanPageCountsItsDecoderBuffersAgainstTheBudget()
     {
         var snapshot = PdfReadSnapshot.OpenDjvu(FlatGrayPage(2550, 3300, 300));
-        Assert.Throws<ArgumentException>(() =>
-            snapshot.RenderPage(0, new PdfRenderOptions(396, 512, maximumPixelBytes: 80L << 20)));
-        Assert.Throws<ArgumentException>(() =>
-            snapshot.RenderPageRegion(0, new PdfRenderOptions(2550, 3300, maximumPixelBytes: 80L << 20), 0, 0, 64, 64));
-        Assert.Equal(396, snapshot.RenderPage(0, new PdfRenderOptions(396, 512, maximumPixelBytes: 81L << 20)).Width);
-        Assert.Equal(64, snapshot.RenderPageRegion(0, new PdfRenderOptions(2550, 3300, maximumPixelBytes: 81L << 20),
+        var tooLittle = Assert.Throws<ArgumentException>(() =>
+            snapshot.RenderPage(0, new PdfRenderOptions(396, 512, maximumPixelBytes: 24L << 20)));
+        Assert.Contains("combined pixel storage limit", tooLittle.Message);
+        tooLittle = Assert.Throws<ArgumentException>(() =>
+            snapshot.RenderPageRegion(0, new PdfRenderOptions(1275, 1650, maximumPixelBytes: 24L << 20), 0, 0, 64, 64));
+        Assert.Contains("combined pixel storage limit", tooLittle.Message);
+        Assert.Equal(396, snapshot.RenderPage(0, new PdfRenderOptions(396, 512, maximumPixelBytes: 25L << 20)).Width);
+        Assert.Equal(64, snapshot.RenderPageRegion(0, new PdfRenderOptions(1275, 1650, maximumPixelBytes: 25L << 20),
             0, 0, 64, 64).Width);
     }
 

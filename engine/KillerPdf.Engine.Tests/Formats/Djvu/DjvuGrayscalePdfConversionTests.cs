@@ -134,6 +134,12 @@ public sealed class DjvuGrayscalePdfConversionTests
             Assert.Throws<InvalidDataException>(() => native.ConvertToPdf());
         else if (scenario == "unlocated-text")
             Assert.Contains("preserve text", Assert.Throws<NotSupportedException>(() => native.ConvertToPdf()).Message);
+        else if (scenario == "color")
+        {
+            // Native rendering decodes color IW44; PDF conversion stays grayscale only.
+            Assert.Equal(4, native.RenderPage(0).Width);
+            Assert.Equal("Color IW44 decoding is not supported.", Assert.Throws<NotSupportedException>(() => native.ConvertToPdf()).Message);
+        }
         else
         {
             var rendering = Record.Exception(() => native.RenderPage(0));

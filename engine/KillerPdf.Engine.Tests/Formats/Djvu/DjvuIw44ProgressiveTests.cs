@@ -22,9 +22,10 @@ public sealed class DjvuIw44ProgressiveTests
         Assert.Contains("Truncated IW44 continuation header", error.Message);
     }
 
+    // Budget 0 declares 17 x 255 = 4335 slices, over the 4096 limit. Budget 2 is a one-slice 2800 x 2800 page rendered
+    // as a float frame: 2 bytes per padded coefficient plus 1 gray and 32 frame bytes per pixel is 274.6 MB, over 256 MiB.
     [Theory]
     [InlineData(0)]
-    [InlineData(1)]
     [InlineData(2)]
     public void RejectsTotalProgressiveBudgetsBeforeImageAllocation(int budget)
     {
@@ -46,13 +47,9 @@ public sealed class DjvuIw44ProgressiveTests
         else
         {
             input = original;
-            ushort dimension = budget == 1 ? (ushort)320 : (ushort)2800;
-            BinaryPrimitives.WriteUInt16BigEndian(input.AsSpan(24), dimension);
-            BinaryPrimitives.WriteUInt16BigEndian(input.AsSpan(26), dimension);
-            BinaryPrimitives.WriteUInt16BigEndian(input.AsSpan(46), dimension);
-            BinaryPrimitives.WriteUInt16BigEndian(input.AsSpan(48), dimension);
-            input[43] = budget == 1 ? (byte)255 : (byte)1;
-            input[65] = input[77] = budget == 1 ? (byte)255 : (byte)0;
+            foreach (int offset in new[] { 24, 26, 46, 48 }) BinaryPrimitives.WriteUInt16BigEndian(input.AsSpan(offset), 2800);
+            input[43] = 1;
+            input[65] = input[77] = 0;
         }
         BinaryPrimitives.WriteInt32BigEndian(input.AsSpan(8), input.Length - 12);
         var document = DjvuDocument.Open(input);
@@ -62,6 +59,25 @@ public sealed class DjvuIw44ProgressiveTests
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.Contains("combined storage or coefficient-work limit", error.Message);
         Assert.InRange(allocated, 0, 1024 * 1024 - 1);
+    }
+
+    // Every quantization step reaches zero after 20 rounds of 10 bands, and DjVuLibre stops decoding there. A 320 x 320
+    // page declaring 3 x 255 slices therefore renders exactly like the same data cut to 200 slices in its first chunk.
+    [Fact]
+    public void SlicesPastTheTwoHundredthChangeNothing()
+    {
+        byte[] Sized(byte first, byte later)
+        {
+            var input = ProgressiveImage();
+            foreach (int offset in new[] { 24, 26, 46, 48 }) BinaryPrimitives.WriteUInt16BigEndian(input.AsSpan(offset), 320);
+            input[43] = first;
+            input[65] = input[77] = later;
+            return input;
+        }
+        var declared = DjvuDocument.Open(Sized(255, 255)).RenderPage(0);
+        var cut = DjvuDocument.Open(Sized(200, 0)).RenderPage(0);
+        Assert.Equal(320, declared.Width);
+        Assert.Equal(cut.Pixels, declared.Pixels);
     }
 
     [Fact]

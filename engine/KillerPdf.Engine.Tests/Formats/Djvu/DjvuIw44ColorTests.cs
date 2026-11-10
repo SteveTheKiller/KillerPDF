@@ -40,25 +40,24 @@ public sealed class DjvuIw44ColorTests
         }
     }
 
+    // Header byte 50 is the chroma byte: 0 codes chrominance at half resolution with no delay. DjVuLibre 3.5.29 ddjvu
+    // renders this file, and the 31 x 32 one below, as RGB [255,1,1] at every pixel. PDF conversion stays grayscale only.
     [Fact]
-    public void UnqualifiedChromaRetainsExistingNativeAndConversionRefusalMessage()
+    public void HalfResolutionChromaRendersNativelyAndConversionKeepsItsRefusal()
     {
         byte[] source = OwnedRedField(), original;
         source[50] = 0;
         original = source.ToArray();
         var document = DjvuDocument.Open(source);
 
-        var native = Assert.Throws<NotSupportedException>(() => document.RenderPage(0));
+        AssertOwnedRed(document.RenderPage(0), 32);
         var conversion = Assert.Throws<NotSupportedException>(() => document.ConvertToPdf());
 
-        Assert.Equal("Color IW44 decoding is not supported.", native.Message);
         Assert.Equal("Color IW44 decoding is not supported.", conversion.Message);
         Assert.Equal(original, source);
     }
 
     [Theory]
-    [InlineData(50, 129)]
-    [InlineData(50, 1)]
     [InlineData(44, 2)]
     [InlineData(45, 3)]
     [InlineData(33, 2)]
@@ -74,14 +73,24 @@ public sealed class DjvuIw44ColorTests
     }
 
     [Fact]
-    public void OddColorDimensionsRemainRefused()
+    public void OddColorDimensionsRenderLikeTheReferenceDecoder()
     {
         byte[] source = OwnedRedField();
         source[25] = source[47] = 31;
         byte[] original = source.ToArray();
         var document = DjvuDocument.Open(source);
-        Assert.Throws<NotSupportedException>(() => document.RenderPage(0));
+        AssertOwnedRed(document.RenderPage(0), 31);
         Assert.Equal(original, source);
+    }
+
+    private static void AssertOwnedRed(PdfRenderedFrame frame, int width)
+    {
+        Assert.Equal(width, frame.Width);
+        Assert.Equal(32, frame.Height);
+        float[] expected = [1f, (float)Math.Pow(1 / 255d, 2.2), (float)Math.Pow(1 / 255d, 2.2), 1f];
+        for (int pixel = 0; pixel < width * 32; pixel++)
+            for (int channel = 0; channel < 4; channel++)
+                Assert.Equal(expected[channel], frame.Pixels[pixel * 4 + channel]);
     }
 
     [Theory]
@@ -105,9 +114,11 @@ public sealed class DjvuIw44ColorTests
         Assert.Equal(original, source);
     }
 
+    // A float frame render holds three 16-bit coefficient sets and a signed plane (7 bytes per pixel) plus the
+    // 32 bytes per pixel of the frame and its copy: 2800 x 2800 needs 306 MB and 2880 x 2880 323 MB, over 256 MiB.
     [Theory]
-    [InlineData(512)]
-    [InlineData(2048)]
+    [InlineData(2800)]
+    [InlineData(2880)]
     public void CombinedColorWorkAndStorageAreRefusedBeforeLargeAllocations(ushort size)
     {
         byte[] source = OwnedRedField();
@@ -133,10 +144,25 @@ public sealed class DjvuIw44ColorTests
         Assert.Equal(original, source);
     }
 
-    [Theory]
-    [InlineData("BG44")]
-    [InlineData("ANTa")]
-    public void MultipleChunksAndOtherLayersRemainRefused(string chunkId)
+    [Fact]
+    public void OtherLayersRemainRefused()
+    {
+        byte[] source = WithTrailingChunk("ANTa"), original = source.ToArray();
+        var document = DjvuDocument.Open(source);
+        Assert.Throws<NotSupportedException>(() => document.RenderPage(0));
+        Assert.Equal(original, source);
+    }
+
+    // A second BG44 chunk with serial 1 and no slices adds nothing; ddjvu renders the file red like the one-chunk field.
+    [Fact]
+    public void AContinuationChunkWithoutSlicesRendersLikeTheReferenceDecoder()
+    {
+        byte[] source = WithTrailingChunk("BG44"), original = source.ToArray();
+        AssertOwnedRed(DjvuDocument.Open(source).RenderPage(0), 32);
+        Assert.Equal(original, source);
+    }
+
+    private static byte[] WithTrailingChunk(string chunkId)
     {
         byte[] source = new byte[76];
         OwnedRedField().CopyTo(source, 0);
@@ -144,10 +170,7 @@ public sealed class DjvuIw44ColorTests
         source[73] = 2;
         source[74] = 1;
         System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(source.AsSpan(8), source.Length - 12);
-        byte[] original = source.ToArray();
-        var document = DjvuDocument.Open(source);
-        Assert.Throws<NotSupportedException>(() => document.RenderPage(0));
-        Assert.Equal(original, source);
+        return source;
     }
 
     // Owned one-slice 32 by 32 color backgrounds. Each component codes at most its DC

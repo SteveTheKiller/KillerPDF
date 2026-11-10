@@ -73,13 +73,20 @@ public sealed class DjvuIw44Tests
     }
 
     [Fact]
-    public void RejectsColorIw44Explicitly()
+    public void RendersTheOneSliceImageAsColorLikeTheReferenceDecoder()
     {
+        // Byte 44 marks the image as color with half-resolution chroma and no delay. Its one slice leaves every
+        // component zero, so each pixel is RGB [128,128,128]. DjVuLibre 3.5.29 ddjvu writes [186,186,186], the same
+        // value corrected from the file's INFO gamma of 1.0 to its display gamma of 2.2 (255 x (128 / 255)^(1 / 2.2)
+        // is 186.4); the frame keeps the file's linear 128 / 255.
         var input = OneSliceImage();
         input[44] = 1;
-        var document = DjvuDocument.Open(input);
-        var error = Assert.Throws<NotSupportedException>(() => document.RenderPage(0));
-        Assert.Contains("Color IW44", error.Message);
+        var frame = DjvuDocument.Open(input).RenderPage(0);
+        Assert.Equal(4, frame.Width);
+        Assert.Equal(4, frame.Height);
+        for (var pixel = 0; pixel < 16; pixel++)
+            for (var channel = 0; channel < 4; channel++)
+                Assert.Equal(channel == 3 ? 1f : (float)(128 / 255d), frame.Pixels[pixel * 4 + channel]);
     }
 
     // DjVuLibre 3.5.29 ddjvu -format=pgm renders the ramp, with gamma byte 22 and the
