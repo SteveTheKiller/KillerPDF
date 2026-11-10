@@ -48,7 +48,20 @@ namespace KillerPDF.Shell
             var previews = new List<TransformWindow.PagePreview>();
             foreach (int selectedPage in pageIndices)
             {
-                var src = RenderPageBitmap(selectedPage, 1100, BurnPageAnnotationsToTemp(selectedPage));
+                string? burned;
+                try
+                {
+                    // The preview burns the page's annotations into a temporary copy. A temp folder that refuses
+                    // the copy is reported like a failed Apply instead of escaping the toolbar click.
+                    burned = BurnPageAnnotationsToTemp(selectedPage);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    KillerDialog.Show(this, string.Format(Loc("Str_Tf_Failed"), ex.Message), "KillerPDF",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                var src = RenderPageBitmap(selectedPage, 1100, burned);
                 if (src is null) { SetStatus(Loc("Str_Tf_NoRender")); return; }
                 var (pwpt, phpt) = previewSession.PhysicalPageSize(selectedPage, _pageRotations);
                 previews.Add(new TransformWindow.PagePreview(src, pwpt, phpt, selectedPage + 1,
