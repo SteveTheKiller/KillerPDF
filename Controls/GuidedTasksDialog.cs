@@ -39,6 +39,9 @@ internal sealed class GuidedTasksDialog : Window
         Height = Math.Min(430 * scale, SystemParameters.WorkArea.Height - 40);
         MinWidth = 400; MinHeight = 300; UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
+        // It opens 620 x 430 DIP times the app scale and its content scrolls, so 400 x 300 stays its minimum rather than
+        // the opening size, which at a large scale is most of the screen.
+        DialogFrame.KeepDeclaredMinimum(this);
         Id(this, "GuidedTasksDialog", "Str_Guided_Title");
         var body = new DockPanel { Margin = new Thickness(14, 4, 14, 12), LayoutTransform = new ScaleTransform(scale, scale) };
         _run = Button("Str_Btn_Run", "GuidedRun", true); _run.IsDefault = true;

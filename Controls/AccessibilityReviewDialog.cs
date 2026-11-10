@@ -51,6 +51,9 @@ internal sealed class AccessibilityReviewDialog : Window
         MaxHeight = SystemParameters.WorkArea.Height - 40; SizeToContent = SizeToContent.Height;
         MinWidth = 460; MinHeight = 360; UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
+        // It opens 720 DIP times the app scale wide and its content scrolls, so 460 x 360 stays its minimum rather than
+        // the opening size, which at a large scale is most of the screen.
+        DialogFrame.KeepDeclaredMinimum(this);
         Id(this, "AccessibilityReviewDialog");
         var body = new DockPanel { Margin = new Thickness(16, 4, 16, 14),
             LayoutTransform = new ScaleTransform(scale, scale) };

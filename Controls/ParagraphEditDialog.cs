@@ -66,6 +66,9 @@ internal sealed class ParagraphEditDialog : Window
         MinHeight = ScaledDialogFit.Minimum(460, 280, scale, SystemParameters.WorkArea.Height - 40);
         UseLayoutRounding = true;
         DialogFrame.Configure(this, owner, resizable: true);
+        // It opens 980 x 720 DIP times the app scale, so the scaled minimum above stays its minimum rather than the
+        // opening size, which at a large scale fills the screen.
+        DialogFrame.KeepDeclaredMinimum(this);
         Id(this, "ParagraphEditDialog");
         var root = new DockPanel { LayoutTransform = new ScaleTransform(scale, scale) };
 
